@@ -1,0 +1,34 @@
+{
+  "extends": ["hardcore", "hardcore/ts", "hardcore/jest"],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "root": true,
+  "parserOptions": {
+    "project": ["./tsconfig.json", "./tsconfig.test.json"]
+  },
+  "ignorePatterns": ["jest.config.cjs", "jest-stackblitz.config.cjs", "docs/*"],
+  "rules": {
+    "@typescript-eslint/quotes": [
+      "error",
+      "single",
+      {
+        "allowTemplateLiterals": true
+      }
+    ],
+    "@typescript-eslint/parameter-properties": [
+      "error",
+      {
+        "allow": ["public"]
+      }
+    ],
+    "jest/no-hooks": [
+      "error",
+      {
+        "allow": ["beforeEach", "afterEach", "beforeAll", "afterAll"]
+      }
+    ],
+    "@typescript-eslint/consistent-indexed-object-style": "off",
+    "import/no-extraneous-dependencies": ["error", {"peerDependencies": true}]
+
+  }
+}
