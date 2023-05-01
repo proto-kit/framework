@@ -1,0 +1,85 @@
+import { Hash } from "crypto";
+
+class AppModuleWrapper {
+    public stateTransitions = [];
+    public wrap({ stateTransitionsCommitment, transactionCommitmentk, executionStatusCommitment }) {
+        const moduleName
+        const methodName
+        Poseidon.hash(this.sender, moduleName, methodName, args).assertEquals(transactionCommitment);
+        method();
+        const computedStateTransitionsCommitment = this.stateTransitions.reduce(() => stateTransitions.toField());
+        stateTransitionsCommitment.assertEquals(computedStateTransitionsCommitment);
+    }
+}
+
+class Balances {
+    @state
+    public totalSupply = UInt64;
+    public balances = Map(PublicKey, UInt64);
+
+    @method
+    public transfer(proof: Proof, from: PublicKey, to: PublicKey, amount: UInt64): Bool {
+        const fromBalance = this.balances.get(from); // Circuit.witness -> UInt64
+        const toBalance = this.balances.get(to); // Circuit.witness -> UInt64
+        const totalSupply = this.totalSupply.get();
+
+        this.sender.assertEquals(from);
+
+        // Field, Field
+        this.balances.set(from, UInt64.from(0)); // StateTransition
+        this.balances.set(to, UInt64.from(0));
+
+        this.modules.whitelist.isWhitelisted(to);
+
+        // implicit
+        const stateTranstionFrom = {
+            path: [Balances, balances, from],
+            from: fromBalance, // Option
+            to: fromBalance // Option
+        }
+
+        return Bool(true)
+    }
+}
+
+class Whitelist {
+    public whitelist = Map<PublicKey, Bool>; // List<PublicKey>
+
+    public isWhitelisted(address: PublicKey) {
+        return this.whitelist.includes(address);
+    }
+}
+
+class MyBalances extends Mixin(BaseBalances, MintableBalances, Burnable...) {
+public transfer() {
+        return Bool(false)
+    }
+}
+
+class MyAppChain extend AppChain {
+    constructor() {
+        this.modules.register([
+            balances: new MyBalances(),
+            whitelist: new Whitelist()
+    ])
+    }
+}
+
+class StateTransitionProver {
+    applyTransition(balancesProof: ) {}
+}
+
+
+
+// mempool
+
+MyAppChain.modules.get(moduleName).call(functionName, args[]);
+
+[tx, tx2, tx3] -> transaction list commitment
+
+tx execution -> public input: stateTransitionsCommitment
+
+BlockProof
+tx:
+    tx.signature.verify(transactionCommitment, senderPublicKey)
+AppChainproof.fullCommitmment + transitionProof.fullCommitmment + AppChainProof.transactionCommitment
