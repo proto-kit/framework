@@ -28,6 +28,7 @@
       }
     ],
     "@typescript-eslint/consistent-indexed-object-style": "off",
-    "import/no-extraneous-dependencies": ["error", { "peerDependencies": true }]
+    "import/no-extraneous-dependencies": ["error", { "peerDependencies" : true}],
+    "quotes": "off"
   }
 }

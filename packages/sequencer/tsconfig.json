@@ -1,8 +1,12 @@
 {
   "extends": "./../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "snarkyjs": ["../node_modules/snarkyjs"]
+    }
   },
   "include": ["./src/index.ts"],
-  "exclude": ["./dist/**/*.ts"]
+  "exclude": ["./dist/**/*.ts"],
 }

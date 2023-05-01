@@ -14,5 +14,6 @@
     "strict": true,
     "alwaysStrict": true,
     "declarationMap": true
-  }
+  },
+  "exclude": ["jest.config.cjs"]
 }
