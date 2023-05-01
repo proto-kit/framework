@@ -1,5 +1,5 @@
 {
-  "name": "unknown",
+  "name": "yab",
   "version": "0.0.0",
   "license": "MIT",
   "type": "module",
@@ -45,5 +45,5 @@
     "*.ts": [
       "npm run lint:staged"
     ]
-  },
+  }
 }
