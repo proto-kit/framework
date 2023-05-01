@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 /* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 /* eslint-disable import/prefer-default-export */
@@ -14,7 +15,19 @@ import { Option } from '../option/Option.js';
 import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
 import { Path } from '../path/Path.js';
 
-export class State<Value> {
+export class WithPath {
+  public path?: Field;
+
+  public hasPathOrFail(): asserts this is { path: Path } {
+    if (!this.path) {
+      throw new Error(
+        `Could not find 'path', did you forget to add '@state' to your state property?`
+      );
+    }
+  }
+}
+
+export class State<Value> extends WithPath {
   public static from<Value>(valueType: FlexibleProvablePure<Value>) {
     return new State<Value>(valueType);
   }
@@ -29,9 +42,9 @@ export class State<Value> {
     return valueType.fromFields(fields) as Value;
   }
 
-  public path?: Field;
-
-  public constructor(public valueType: FlexibleProvablePure<Value>) {}
+  public constructor(public valueType: FlexibleProvablePure<Value>) {
+    super();
+  }
 
   private witnessState() {
     // get the value from storage, or return a dummy value instead
@@ -43,14 +56,6 @@ export class State<Value> {
     const isSome = Circuit.witness(Bool, () => Bool(true));
 
     return Option.from(isSome, value, this.valueType);
-  }
-
-  public hasPathOrFail(): asserts this is { path: Path } {
-    if (!this.path) {
-      throw new Error(
-        `Could not find 'path', did you forget to add '@state' to your state property?`
-      );
-    }
   }
 
   public get(): [Option<Value>, ProvableStateTransition] {

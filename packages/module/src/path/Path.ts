@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 /* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/no-extraneous-class */
 /* eslint-disable @shopify/no-fully-static-classes */
 /* eslint-disable import/prefer-default-export */
 /* eslint-disable import/no-unused-modules */
-import { Field, Poseidon } from 'snarkyjs';
+import { Field, FlexibleProvablePure, Poseidon } from 'snarkyjs';
 
 export class Path {
   public static toField(value: string) {
@@ -22,5 +23,14 @@ export class Path {
       Path.toField(propertyKey),
       Field(0),
     ]);
+  }
+
+  public static fromKey<KeyType>(
+    path: Field,
+    keyType: FlexibleProvablePure<KeyType>,
+    key: KeyType
+  ): Field {
+    const keyHash = Poseidon.hash(keyType.toFields(key));
+    return Poseidon.hash([path, keyHash]);
   }
 }
