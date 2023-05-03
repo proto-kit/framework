@@ -12,9 +12,20 @@ export class PrivateMempool implements Mempool {
         this.commitment = Field(0)
     }
 
+    validateTx(tx: PendingTransaction) : boolean {
+
+        let valid = tx.signature.verify(tx.sender, tx.getSignatureData())
+
+        return valid.toBoolean()
+
+    }
+
     add(tx: PendingTransaction): MempoolCommitment {
-        this.queue.push(tx)
-        this.commitment = Poseidon.hash([this.commitment, tx.hash()]) //TODO Figure out how to generalize this
+
+        if(this.validateTx(tx)) {
+            this.queue.push(tx)
+            this.commitment = Poseidon.hash([this.commitment, tx.hash()]) //TODO Figure out how to generalize this
+        }
         return { txListCommitment: this.commitment };
     }
 

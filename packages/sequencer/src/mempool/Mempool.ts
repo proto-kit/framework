@@ -11,4 +11,6 @@ export interface Mempool {
 
     //TODO Add stuff for witness generation
 
+    //TODO Graphql
+
 }
