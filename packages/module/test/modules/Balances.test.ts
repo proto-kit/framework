@@ -1,20 +1,17 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import 'reflect-metadata';
-import { Poseidon, PrivateKey, PublicKey, UInt64, isReady } from 'snarkyjs';
+import { Poseidon, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
+import { container } from 'tsyringe';
 
-import { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
-import { Balances } from './Balances.js';
+import type { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
 import { Path } from '../../src/path/Path.js';
 import { State } from '../../src/state/State.js';
-import { Option } from '../../src/option/Option.js';
-import { container } from 'tsyringe';
+import type { Option } from '../../src/option/Option.js';
 import { Chain } from '../../src/chain/Chain.js';
-import { Admin } from './Admin.js';
 import { MethodExecutionContext } from '../../src/method/MethodExecutionContext.js';
 
-import log from 'loglevel';
-
-log.enableAll();
+import { Admin } from './Admin.js';
+import { Balances } from './Balances.js';
 
 describe('balances', () => {
   // eslint-disable-next-line @typescript-eslint/init-declarations
@@ -36,7 +33,9 @@ describe('balances', () => {
       beforeEach(() => {
         const executionContext = container.resolve(MethodExecutionContext);
         balances.getTotalSupply();
-        stateTransitions = executionContext.result.stateTransitions;
+
+        // eslint-disable-next-line prefer-destructuring
+        stateTransitions = executionContext.current().result.stateTransitions;
       });
 
       it('should return a single state transition', () => {
@@ -78,7 +77,9 @@ describe('balances', () => {
       beforeEach(() => {
         const executionContext = container.resolve(MethodExecutionContext);
         balances.setTotalSupply();
-        stateTransitions = executionContext.result.stateTransitions;
+
+        // eslint-disable-next-line prefer-destructuring
+        stateTransitions = executionContext.current().result.stateTransitions;
       });
 
       it('should return a single state transition', () => {
@@ -123,13 +124,14 @@ describe('balances', () => {
     describe('state transitions', () => {
       // eslint-disable-next-line @typescript-eslint/init-declarations
       let stateTransitions: ProvableStateTransition[];
-      let balance: Option<UInt64>;
       const address = PrivateKey.random().toPublicKey();
 
       beforeEach(() => {
         const executionContext = container.resolve(MethodExecutionContext);
         balances.getBalance(address);
-        stateTransitions = executionContext.result.stateTransitions;
+
+        // eslint-disable-next-line prefer-destructuring
+        stateTransitions = executionContext.current().result.stateTransitions;
       });
 
       it('should return a single state transition', () => {

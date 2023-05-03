@@ -2,12 +2,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable import/prefer-default-export */
-/* eslint-disable import/no-unused-modules */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 import { container } from 'tsyringe';
-import { RuntimeModule } from '../runtime/RuntimeModule';
+
+import type { RuntimeModule } from '../runtime/RuntimeModule.js';
+
 import { MethodExecutionContext } from './MethodExecutionContext.js';
 
 export function method() {
@@ -22,12 +22,15 @@ export function method() {
         MethodExecutionContext<ReturnType<typeof originalFunction>>
       >(MethodExecutionContext);
 
+      // eslint-disable-next-line @typescript-eslint/init-declarations
       let resultValue: unknown;
 
       executionContext.beforeMethod(propertyKey);
       try {
         resultValue = originalFunction.apply(this, args);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         throw new Error(error);
       } finally {
         executionContext.afterMethod();

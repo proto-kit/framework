@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unused-modules */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 /* eslint-disable new-cap */
 /* eslint-disable max-classes-per-file */
@@ -6,7 +5,7 @@ import {
   Bool,
   Circuit,
   Field,
-  FlexibleProvablePure,
+  type FlexibleProvablePure,
   Poseidon,
   Struct,
 } from 'snarkyjs';
