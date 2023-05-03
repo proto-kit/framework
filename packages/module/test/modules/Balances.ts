@@ -8,33 +8,40 @@ import { state } from '../../src/state/decorator.js';
 import { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
 import { StateMap } from '../../src/state/StateMap.js';
 import { Option } from '../../src/option/Option.js';
+import { runtimeModule } from '../../src/module/decorator.js';
+import { Admin } from './Admin.js';
+import { autoInjectable, inject, injectAll, injectable } from 'tsyringe';
+import { RuntimeModule } from '../../src/runtime/RuntimeModule.js';
+import { method } from '../../src/method/decorator.js';
 
 await isReady;
 
-export class Balances {
-  @state public totalSupply = State.from<UInt64>(UInt64);
+@runtimeModule()
+export class Balances extends RuntimeModule {
+  @state() public totalSupply = State.from<UInt64>(UInt64);
 
-  @state public balances = StateMap.from<PublicKey, UInt64>(PublicKey, UInt64);
+  @state() public balances = StateMap.from<PublicKey, UInt64>(
+    PublicKey,
+    UInt64
+  );
 
-  public getTotalSupply(): ProvableStateTransition[] {
-    const [, stateTransition] = this.totalSupply.get();
-
-    return [stateTransition];
+  public constructor(public admin: Admin) {
+    super();
   }
 
-  public setTotalSupply(): ProvableStateTransition[] {
-    const stateTransition = this.totalSupply.set(UInt64.from(20));
-
-    return [stateTransition];
+  @method()
+  public getTotalSupply() {
+    this.totalSupply.get();
   }
 
-  public getBalance(
-    address: PublicKey
-  ): [Option<UInt64>, ProvableStateTransition] {
-    // eslint-disable-next-line no-warning-comments
-    // TODO: why does eslint complain when i define
-    // the return typo for getBalance manually?
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  @method()
+  public setTotalSupply() {
+    this.totalSupply.set(UInt64.from(20));
+    this.admin.isAdmin();
+  }
+
+  @method()
+  public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
   }
 }

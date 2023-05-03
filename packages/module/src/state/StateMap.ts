@@ -4,8 +4,8 @@
 import { Field, FlexibleProvablePure } from 'snarkyjs';
 import { State, WithPath } from './State.js';
 import { Path } from '../path/Path.js';
-import { Option } from '../option/Option';
-import { ProvableStateTransition } from '../stateTransition/StateTransition';
+import { Option } from '../option/Option.js';
+import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
 
 export class StateMap<KeyType, ValueType> extends WithPath {
   public static from<KeyType, ValueType>(
@@ -22,7 +22,7 @@ export class StateMap<KeyType, ValueType> extends WithPath {
     super();
   }
 
-  public get(key: KeyType): [Option<ValueType>, ProvableStateTransition] {
+  public get(key: KeyType): Option<ValueType> {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
 
@@ -30,11 +30,11 @@ export class StateMap<KeyType, ValueType> extends WithPath {
     return state.get();
   }
 
-  public set(key: KeyType, value: ValueType): ProvableStateTransition {
+  public set(key: KeyType, value: ValueType) {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
-    return state.set(value);
+    state.set(value);
   }
 }
