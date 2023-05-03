@@ -17,6 +17,9 @@
   },
   "dependencies": {
     "@yab/module": "*",
-    "snarkyjs": "^0.9.8"
+    "loglevel": "^1.8.1",
+    "reflect-metadata": "^0.1.13",
+    "snarkyjs": "^0.9.8",
+    "tsyringe": "^4.7.0"
   }
 }

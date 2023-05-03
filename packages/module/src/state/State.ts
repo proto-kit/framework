@@ -14,6 +14,8 @@ import {
 import { Option } from '../option/Option.js';
 import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
 import { Path } from '../path/Path.js';
+import { container } from 'tsyringe';
+import { MethodExecutionContext } from '../method/MethodExecutionContext.js';
 
 export class WithPath {
   public path?: Field;
@@ -58,7 +60,7 @@ export class State<Value> extends WithPath {
     return Option.from(isSome, value, this.valueType);
   }
 
-  public get(): [Option<Value>, ProvableStateTransition] {
+  public get(): Option<Value> {
     const option = this.witnessState();
     const provableOption = option.toProvable();
 
@@ -69,10 +71,14 @@ export class State<Value> extends WithPath {
       provableOption
     );
 
-    return [option, stateTransition];
+    container
+      .resolve(MethodExecutionContext)
+      .addStateTransition(stateTransition);
+
+    return option;
   }
 
-  public set(value: Value): ProvableStateTransition {
+  public set(value: Value) {
     // link the transition to the current state
     const provableFromOption = this.witnessState().toProvable();
     const provableToOption = Option.from(
@@ -83,10 +89,14 @@ export class State<Value> extends WithPath {
 
     this.hasPathOrFail();
 
-    return ProvableStateTransition.fromTo(
+    const stateTransition = ProvableStateTransition.fromTo(
       this.path,
       provableFromOption,
       provableToOption
     );
+
+    container
+      .resolve(MethodExecutionContext)
+      .addStateTransition(stateTransition);
   }
 }
