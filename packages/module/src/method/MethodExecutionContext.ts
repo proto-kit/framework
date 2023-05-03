@@ -12,6 +12,8 @@ export class MethodExecutionResult<ResultValue> {
 
   public status: Bool = Bool(true);
 
+  public statusMessage?: string;
+
   public value?: ResultValue;
 }
 
@@ -25,6 +27,10 @@ export class MethodExecutionContext<ResultValue> {
 
   public addStateTransition(stateTransition: ProvableStateTransition) {
     this.result.stateTransitions.push(stateTransition);
+  }
+
+  public setStatusMessage(message?: string) {
+    this.result.statusMessage ??= message;
   }
 
   public setStatus(status: Bool) {
