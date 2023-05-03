@@ -1,4 +1,4 @@
-import {Circuit} from "snarkyjs";
+import {Circuit, Field, Struct} from "snarkyjs";
 
 export function NotInCircuit() {
     return function F(target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
@@ -14,3 +14,11 @@ export function NotInCircuit() {
         return descriptor
     }
 }
+
+export function structArrayToFields(...args: { toFields() : Field[] }[]) : Field[]{
+    return args.map(x => x.toFields()).reduce((a, b) => a.concat(b), [])
+}
+
+export type ReturnType<T extends Function> = T extends ((...args: any[]) => infer R) ? R : any
+
+export type ClassType = new(...args: any[]) => any

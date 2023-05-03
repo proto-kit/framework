@@ -10,13 +10,24 @@
     "lint": "eslint ./src",
     "test": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./src",
     "test:ci": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./src",
-    "test:watch": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./src --watch"
+    "test:watch": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./src --watch",
+    "start": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ./dist/index.js"
   },
   "main": "dist/index.js",
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "snarkyjs": "^0.9.8"
+    "snarkyjs": "^0.9.8",
+    "tsyringe": "^4.7.0"
+  },
+  "dependencies": {
+    "@types/express": "^4.17.17",
+    "class-validator": "^0.14.0",
+    "express": "^4.18.2",
+    "graphql": "15.3.0",
+    "graphql-yoga": "^3.9.1",
+    "reflect-metadata": "^0.1.13",
+    "type-graphql": "^1.1.1"
   }
 }

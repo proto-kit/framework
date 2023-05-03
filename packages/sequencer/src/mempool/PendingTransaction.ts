@@ -1,14 +1,37 @@
 import {Field, Poseidon, PrivateKey, PublicKey, Signature, Struct, UInt64} from "snarkyjs";
-import {CompressedSignature} from "./CompressedSignature.js";
+import {structArrayToFields} from "../Utils.js";
 
-export class UnsignedTransaction extends Struct({
-    methodId: Field,
-    sender: PublicKey,
-    nonce: UInt64,
-}){
+export class UnsignedTransaction {
+
+    methodId: Field
+    nonce: UInt64
+    sender: PublicKey
+    args: Field[]
+
+    constructor(data: {
+        methodId: Field,
+        nonce: UInt64,
+        sender: PublicKey,
+        args: Field[]
+    }) {
+        this.methodId = data.methodId
+        this.nonce = data.nonce
+        this.sender = data.sender
+        this.args = data.args
+    }
+
+    argsHash() : Field {
+        return Poseidon.hash(this.args)
+    }
+
+    hash() : Field{
+        return Poseidon.hash([
+            this.methodId, ...this.sender.toFields(), this.nonce.value, this.argsHash()
+        ])
+    }
 
     getSignatureData() : Field[]{
-        return UnsignedTransaction.toFields(this)
+        return [this.hash()] //Could also be the raw elements, not sure
     }
 
     sign(privateKey: PrivateKey) : PendingTransaction{
@@ -21,25 +44,58 @@ export class UnsignedTransaction extends Struct({
             methodId: this.methodId,
             sender: this.sender,
             nonce: this.nonce,
-            signature: signature
+            signature: signature,
+            args: this.args
         })
     }
 
 }
 
-export class PendingTransaction extends Struct({
+type PendingTransactionJSONType = {
+    methodId: string,
+    nonce: string,
+    sender: string,
+    args: string[],
+    signature: {
+        r: string,
+        s: string
+    }
+}
 
-    methodId: Field,
-    sender: PublicKey,
-    nonce: UInt64,
+export class PendingTransaction extends UnsignedTransaction {
+
     signature: Signature
 
-}){
+    constructor(data: {
+        methodId: Field,
+        nonce: UInt64,
+        sender: PublicKey,
+        signature: Signature,
+        args: Field[]
+    }) {
+        super(data)
+        this.signature = data.signature
+    }
 
-    hash() : Field{
-        return Poseidon.hash([
-            this.methodId, ...this.sender.toFields(), this.nonce.value
-        ])
+    static fromJSON(obj: PendingTransactionJSONType) : PendingTransaction {
+
+        return new PendingTransaction({
+            methodId: Field.fromJSON(obj.methodId),
+            nonce: UInt64.fromJSON(obj.nonce),
+            sender: PublicKey.fromJSON(obj.sender),
+            args: obj.args.map(x => Field.fromJSON(x)),
+            signature: Signature.fromJSON(obj.signature)
+        })
+    }
+
+    toJSON() : PendingTransactionJSONType {
+        return {
+            methodId: this.methodId.toJSON(),
+            nonce: this.nonce.toJSON(),
+            sender: this.sender.toJSON(),
+            args: this.args.map(x => x.toJSON()),
+            signature: this.signature.toJSON()
+        }
     }
 
 }
