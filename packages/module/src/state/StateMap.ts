@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 /* eslint-disable import/prefer-default-export */
-/* eslint-disable import/no-unused-modules */
-import { Field, FlexibleProvablePure } from 'snarkyjs';
-import { State, WithPath } from './State.js';
+import type { FlexibleProvablePure } from 'snarkyjs';
+
 import { Path } from '../path/Path.js';
-import { Option } from '../option/Option.js';
-import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
+import type { Option } from '../option/Option.js';
+
+import { State, WithPath } from './State.js';
 
 export class StateMap<KeyType, ValueType> extends WithPath {
   public static from<KeyType, ValueType>(

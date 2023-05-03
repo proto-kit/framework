@@ -4,8 +4,8 @@
 /* eslint-disable new-cap */
 import { Bool } from 'snarkyjs';
 import { singleton } from 'tsyringe';
-import { ProvableStateTransition } from '../stateTransition/StateTransition';
-import log from 'loglevel';
+
+import type { ProvableStateTransition } from '../stateTransition/StateTransition.js';
 
 export class MethodExecutionResult<ResultValue> {
   public stateTransitions: ProvableStateTransition[] = [];
@@ -17,10 +17,11 @@ export class MethodExecutionResult<ResultValue> {
 
 @singleton()
 export class MethodExecutionContext<ResultValue> {
-  public result: MethodExecutionResult<ResultValue> =
-    new MethodExecutionResult();
-
   public methods: string[] = [];
+
+  public constructor(
+    public result: MethodExecutionResult<ResultValue> = new MethodExecutionResult()
+  ) {}
 
   public addStateTransition(stateTransition: ProvableStateTransition) {
     this.result.stateTransitions.push(stateTransition);

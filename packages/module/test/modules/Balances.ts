@@ -1,18 +1,16 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable new-cap */
 /* eslint-disable import/prefer-default-export */
-/* eslint-disable import/no-unused-modules */
-import { Bool, Circuit, PublicKey, UInt64, isReady } from 'snarkyjs';
+import { PublicKey, UInt64, isReady } from 'snarkyjs';
+
 import { State } from '../../src/state/State.js';
 import { state } from '../../src/state/decorator.js';
-import { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
 import { StateMap } from '../../src/state/StateMap.js';
 import { Option } from '../../src/option/Option.js';
 import { runtimeModule } from '../../src/module/decorator.js';
-import { Admin } from './Admin.js';
-import { autoInjectable, inject, injectAll, injectable } from 'tsyringe';
 import { RuntimeModule } from '../../src/runtime/RuntimeModule.js';
 import { method } from '../../src/method/decorator.js';
+
+import { Admin } from './Admin.js';
 
 await isReady;
 

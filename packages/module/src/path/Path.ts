@@ -3,8 +3,7 @@
 /* eslint-disable @typescript-eslint/no-extraneous-class */
 /* eslint-disable @shopify/no-fully-static-classes */
 /* eslint-disable import/prefer-default-export */
-/* eslint-disable import/no-unused-modules */
-import { Field, FlexibleProvablePure, Poseidon } from 'snarkyjs';
+import { Field, type FlexibleProvablePure, Poseidon } from 'snarkyjs';
 
 export class Path {
   public static toField(value: string) {

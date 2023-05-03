@@ -1,16 +1,9 @@
-/* eslint-disable import/prefer-default-export */
 /* eslint-disable import/no-unused-modules */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-import {
-  DependencyContainer,
-  InjectionToken,
-  container,
-  Lifecycle,
-} from 'tsyringe';
-import { AnyConstructor, isRuntimeModule } from '../module/decorator.js';
-import { Admin } from '../../test/modules/Admin.js';
-import { Balances } from '../../test/modules/Balances.js';
-import { RuntimeModule } from '../runtime/RuntimeModule.js';
+import { type DependencyContainer, container, Lifecycle } from 'tsyringe';
+
+import { type AnyConstructor, isRuntimeModule } from '../module/decorator.js';
+import type { RuntimeModule } from '../runtime/RuntimeModule.js';
 
 export interface RuntimeModules {
   [name: string]: AnyConstructor;

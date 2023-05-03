@@ -1,20 +1,13 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable import/prefer-default-export */
-/* eslint-disable import/no-unused-modules */
-import {
-  Bool,
-  Circuit,
-  Field,
-  FlexibleProvable,
-  FlexibleProvablePure,
-} from 'snarkyjs';
+
+import { Bool, Circuit, Field, type FlexibleProvablePure } from 'snarkyjs';
+import { container } from 'tsyringe';
 
 import { Option } from '../option/Option.js';
 import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
-import { Path } from '../path/Path.js';
-import { container } from 'tsyringe';
+import type { Path } from '../path/Path.js';
 import { MethodExecutionContext } from '../method/MethodExecutionContext.js';
 
 export class WithPath {

@@ -1,8 +1,7 @@
 /* eslint-disable import/no-unused-modules */
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable import/prefer-default-export */
-import { injectable, container, registry } from 'tsyringe';
-import { RuntimeModule } from '../runtime/RuntimeModule';
+import { injectable } from 'tsyringe';
+
+import { RuntimeModule } from '../runtime/RuntimeModule.js';
 
 export type AnyConstructor = Parameters<ReturnType<typeof injectable>>[0];
 
