@@ -6,9 +6,10 @@ import { container } from 'tsyringe';
 
 import { MethodExecutionContext } from './MethodExecutionContext.js';
 
-export function assert(boolean: Bool) {
+export function assert(boolean: Bool, message?: string) {
   const executionContext = container.resolve(MethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
   const status = Circuit.if(previousStatus, boolean, previousStatus);
   executionContext.setStatus(status);
+  executionContext.setStatusMessage(message);
 }
