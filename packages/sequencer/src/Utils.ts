@@ -22,3 +22,8 @@ export function structArrayToFields(...args: { toFields() : Field[] }[]) : Field
 export type ReturnType<T extends Function> = T extends ((...args: any[]) => infer R) ? R : any
 
 export type ClassType = new(...args: any[]) => any
+
+export function Struct2<T>(t: T) : ReturnType<typeof Struct<T>> {
+    const X: ReturnType<typeof Struct<T>> = Struct(t)
+    return X
+}
