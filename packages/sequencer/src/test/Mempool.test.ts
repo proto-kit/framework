@@ -1,5 +1,6 @@
-import {Field, isReady, PrivateKey, Scalar, shutdown, Signature} from "snarkyjs";
+import {Field, isReady, PrivateKey, PublicKey, Scalar, shutdown, Signature, UInt64} from "snarkyjs";
 import {CompressedSignature} from "../mempool/CompressedSignature.js";
+import {UnsignedTransaction} from "../mempool/PendingTransaction.js";
 
 describe("MemPool", () => {
 
@@ -7,9 +8,27 @@ describe("MemPool", () => {
         await isReady
     })
 
-    describe("PrivateMempool", () => {
+    describe("PendingTransaction", () => {
 
+        it("Pending- and UnsignedTransition should output the same signature data and hash", () => {
 
+            let pk = PrivateKey.random()
+            let unsigned = new UnsignedTransaction({
+                methodId: Field(12),
+                nonce: UInt64.one,
+                sender: pk.toPublicKey(),
+                args: [Field(13), Field(14)]
+            })
+
+            let data = unsigned.getSignatureData()
+            let hash = unsigned.hash()
+
+            let signed = unsigned.sign(pk)
+
+            expect(data).toEqual(signed.getSignatureData())
+            expect(hash).toEqual(signed.hash())
+
+        })
 
     })
 
