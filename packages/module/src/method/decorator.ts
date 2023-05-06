@@ -56,20 +56,15 @@ export function runInContext(
 export function toStateTransitionsHash(
   stateTransitions: ProvableStateTransition[]
 ) {
-  if (stateTransitions.length === 0) {
-    return Field(0);
-  }
+  const stateTransitionsHashList = HashList.fromType(ProvableStateTransition);
 
-  const stateTransitionsHashList = HashList.fromFields(
-    ProvableStateTransition,
-    stateTransitions[0]
-  );
-
-  return stateTransitions.reduce(
-    (stateTransitionsHash, stateTransition) =>
-      stateTransitionsHashList.push(stateTransition).toField(),
-    stateTransitionsHashList.toField()
-  );
+  return stateTransitions
+    .reduce(
+      (allStateTransitionsHashList, stateTransition) =>
+        allStateTransitionsHashList.push(stateTransition),
+      stateTransitionsHashList
+    )
+    .toField();
 }
 
 export function toWrappedMethod(
