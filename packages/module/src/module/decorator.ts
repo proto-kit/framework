@@ -1,5 +1,5 @@
 /* eslint-disable import/no-unused-modules */
-import { injectable } from 'tsyringe';
+import { injectable, Lifecycle, scoped } from 'tsyringe';
 
 import { RuntimeModule } from '../runtime/RuntimeModule.js';
 

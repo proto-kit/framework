@@ -37,6 +37,10 @@ export class MethodExecutionContext<ResultValue> {
     this.result.status = status;
   }
 
+  public setValue(value: ResultValue) {
+    this.result.value = value;
+  }
+
   public beforeMethod(methodName: string) {
     if (this.isFinished) {
       this.result = new MethodExecutionResult();
