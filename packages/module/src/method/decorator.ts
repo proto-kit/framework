@@ -39,7 +39,7 @@ export function runInContext(
 
   executionContext.beforeMethod(methodName);
   try {
-    resultValue = moduleMethod.apply(this, args);
+    resultValue = Reflect.apply(moduleMethod, this, args);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -80,7 +80,7 @@ export function toWrappedMethod(
   return (publicInput: MethodPublicInput, ...args: unknown[]): unknown => {
     const {
       result: { stateTransitions, status, value },
-    } = runInContext.bind(this)(methodName, moduleMethod, args);
+    } = Reflect.apply(runInContext, this, [methodName, moduleMethod, args]);
 
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
 
@@ -107,11 +107,14 @@ export function runWithCommitments(
   moduleMethod: (...args: unknown[]) => unknown,
   args: unknown[]
 ) {
-  const wrappedMethod = toWrappedMethod.bind(this)(methodName, moduleMethod);
+  const wrappedMethod = Reflect.apply(toWrappedMethod, this, [
+    methodName,
+    moduleMethod,
+  ]);
 
   const {
     result: { stateTransitions, status },
-  } = runInContext.bind(this)(methodName, moduleMethod, args);
+  } = Reflect.apply(runInContext, this, [methodName, moduleMethod, args]);
 
   const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
 
@@ -140,7 +143,11 @@ export function method() {
     ) => unknown;
 
     descriptor.value = function value(this: RuntimeModule, ...args: unknown[]) {
-      return runWithCommitments.bind(this)(propertyKey, originalFunction, args);
+      return Reflect.apply(runWithCommitments, this, [
+        propertyKey,
+        originalFunction,
+        args,
+      ]);
     };
   };
 }
