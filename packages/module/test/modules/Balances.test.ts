@@ -12,20 +12,27 @@ import { MethodExecutionContext } from '../../src/method/MethodExecutionContext.
 
 import { Admin } from './Admin.js';
 import { Balances } from './Balances.js';
+import {
+  runWithCommitments,
+  toWrappedMethod,
+} from '../../src/method/decorator.js';
 
 describe('balances', () => {
   // eslint-disable-next-line @typescript-eslint/init-declarations
   let balances: Balances;
 
-  beforeEach(() => {
+  function createChain() {
     const chain = Chain.from({
       Balances,
       Admin,
     });
+
     balances = chain.getRuntimeModule('Balances');
-  });
+  }
 
   describe('getTotalSupply', () => {
+    beforeAll(createChain);
+
     describe('state transitions', () => {
       // eslint-disable-next-line @typescript-eslint/init-declarations
       let stateTransitions: ProvableStateTransition[];
@@ -70,6 +77,8 @@ describe('balances', () => {
   });
 
   describe('setTotalSupply', () => {
+    beforeAll(createChain);
+
     describe('state transitions', () => {
       // eslint-disable-next-line @typescript-eslint/init-declarations
       let stateTransitions: ProvableStateTransition[];
@@ -121,6 +130,8 @@ describe('balances', () => {
   });
 
   describe('getBalance', () => {
+    beforeAll(createChain);
+
     describe('state transitions', () => {
       // eslint-disable-next-line @typescript-eslint/init-declarations
       let stateTransitions: ProvableStateTransition[];

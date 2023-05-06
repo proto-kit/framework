@@ -1,14 +1,132 @@
+/* eslint-disable new-cap */
+/* eslint-disable import/no-unused-modules */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable import/prefer-default-export */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
+import { Bool, Field, isReady, Struct } from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
+import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
+import { HashList } from '../utils/HashList.js';
 
 import { MethodExecutionContext } from './MethodExecutionContext.js';
+
+await isReady;
+
+export class MethodPublicInput extends Struct({
+  stateTransitionsHash: Field,
+  status: Bool,
+  transactionHash: Field,
+}) {}
+
+// eslint-disable-next-line max-params
+export function runInContext(
+  this: RuntimeModule,
+  methodName: string,
+  moduleMethod: (...args: unknown[]) => unknown,
+  args: unknown[]
+) {
+  const executionContext = container.resolve<
+    MethodExecutionContext<ReturnType<typeof moduleMethod>>
+  >(MethodExecutionContext);
+
+  // eslint-disable-next-line @typescript-eslint/init-declarations
+  let resultValue: unknown;
+
+  executionContext.beforeMethod(methodName);
+  try {
+    resultValue = moduleMethod.apply(this, args);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    throw new Error(error);
+  } finally {
+    executionContext.afterMethod();
+  }
+
+  executionContext.setValue(resultValue);
+
+  return executionContext.current();
+}
+
+export function toStateTransitionsHash(
+  stateTransitions: ProvableStateTransition[]
+) {
+  if (stateTransitions.length === 0) {
+    return Field(0);
+  }
+
+  const stateTransitionsHashList = HashList.fromFields(
+    ProvableStateTransition,
+    stateTransitions[0]
+  );
+
+  return stateTransitions.reduce(
+    (stateTransitionsHash, stateTransition) =>
+      stateTransitionsHashList.push(stateTransition).toField(),
+    stateTransitionsHashList.toField()
+  );
+}
+
+export function toWrappedMethod(
+  this: RuntimeModule,
+  methodName: string,
+  moduleMethod: (...args: unknown[]) => unknown
+) {
+  return (publicInput: MethodPublicInput, ...args: unknown[]): unknown => {
+    const {
+      result: { stateTransitions, status, value },
+    } = runInContext.bind(this)(methodName, moduleMethod, args);
+
+    const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
+
+    publicInput.stateTransitionsHash.assertEquals(
+      stateTransitionsHash,
+      `State transitions produced by '@method ${methodName}' are not consistent through multiple method executions, does your method contain any circuit-unfriendly conditional logic?`
+    );
+    // eslint-disable-next-line no-warning-comments
+    // TODO: implement the transactionHash commitment
+    publicInput.transactionHash.assertEquals(Field(0));
+    publicInput.status.assertEquals(
+      status,
+      `Execution status of '@method ${methodName}' differs across multiple method executions, does your status change by any circuit-unfriendly conditional logic?`
+    );
+
+    return value;
+  };
+}
+
+// eslint-disable-next-line max-params
+export function runWithCommitments(
+  this: RuntimeModule,
+  methodName: string,
+  moduleMethod: (...args: unknown[]) => unknown,
+  args: unknown[]
+) {
+  const wrappedMethod = toWrappedMethod.bind(this)(methodName, moduleMethod);
+
+  const {
+    result: { stateTransitions, status },
+  } = runInContext.bind(this)(methodName, moduleMethod, args);
+
+  const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
+
+  // eslint-disable-next-line no-warning-comments
+  // TODO: when proving, dont run the JS wrapped method,
+  // but run the ZkProgram provable wrapped method instead
+  return wrappedMethod(
+    {
+      stateTransitionsHash,
+      transactionHash: Field(0),
+      status,
+    },
+    ...args
+  );
+}
 
 export function method() {
   return (
@@ -16,27 +134,13 @@ export function method() {
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) => {
-    const originalFunction = descriptor.value;
-    descriptor.value = function value(this: RuntimeModule, ...args: []) {
-      const executionContext = container.resolve<
-        MethodExecutionContext<ReturnType<typeof originalFunction>>
-      >(MethodExecutionContext);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const originalFunction = descriptor.value as (
+      ...args: unknown[]
+    ) => unknown;
 
-      // eslint-disable-next-line @typescript-eslint/init-declarations
-      let resultValue: unknown;
-
-      executionContext.beforeMethod(propertyKey);
-      try {
-        resultValue = originalFunction.apply(this, args);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        throw new Error(error);
-      } finally {
-        executionContext.afterMethod();
-      }
-
-      return resultValue;
+    descriptor.value = function value(this: RuntimeModule, ...args: unknown[]) {
+      return runWithCommitments.bind(this)(propertyKey, originalFunction, args);
     };
   };
 }
