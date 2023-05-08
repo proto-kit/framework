@@ -192,35 +192,46 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
       methods: sortedMethods,
     });
 
-    const zkProgramAnalysis = this.program.analyzeMethods();
-    const analysis = Object.keys(sortedMethods).map((methodName, index) => {
-      const { rows } = zkProgramAnalysis[index];
-      const { privateInputs: inputs } = sortedMethods[methodName];
-      return {
-        methodName,
+    function analyze(this: Chain<RuntimeModules>) {
+      if (!this.program) {
+        throw new Error(
+          `Unable to analyze program for chain: ${this.constructor.name}`
+        );
+      }
+      const zkProgramAnalysis = this.program.analyzeMethods();
+      return Object.keys(sortedMethods).map((methodName, index) => {
+        const { rows } = zkProgramAnalysis[index];
+        const { privateInputs: inputs } = sortedMethods[methodName];
+        return {
+          methodName,
 
-        analysis: {
-          rows,
-          inputs,
-        },
-      };
-    });
+          analysis: {
+            rows,
+            inputs,
+          },
+        };
+      });
+    }
 
     return {
-      analysis,
+      analyze,
 
       toPretty: () => {
-        analysis.forEach(({ methodName, analysis: methodAnalysis }) => {
-          // eslint-disable-next-line max-len
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
-          const inputs = methodAnalysis.inputs.map((input: any) => input.name);
-          // eslint-disable-next-line no-console
-          console.log(`
+        Reflect.apply(analyze, this, []).forEach(
+          ({ methodName, analysis: methodAnalysis }) => {
+            const inputs = methodAnalysis.inputs.map(
+              // eslint-disable-next-line max-len
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
+              (input) => (input as any).name
+            );
+            // eslint-disable-next-line no-console
+            console.log(`
 Method: ${methodName}
 Rows: ${methodAnalysis.rows}
 Inputs: [${inputs.join(', ')}]
 `);
-        });
+          }
+        );
       },
     };
   }
