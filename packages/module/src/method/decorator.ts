@@ -1,10 +1,8 @@
 /* eslint-disable new-cap */
 /* eslint-disable import/no-unused-modules */
 /* eslint-disable no-param-reassign */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable import/prefer-default-export */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 import { Bool, Field, isReady, Struct } from 'snarkyjs';
 import { container } from 'tsyringe';
@@ -141,23 +139,23 @@ export function runWithCommitments(
     status,
   };
 
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (this.chain?.areProofsEnabled) {
     const runtimeModuleName = this.constructor.name;
     const combinedMethodName = combineMethodName(runtimeModuleName, methodName);
     const provableMethod = this.chain?.program?.[combinedMethodName];
 
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!provableMethod) {
       throw new Error(
         `Unable to find a provable method for '@method ${methodName}', did you forget to run chain.compile()?`
       );
     }
 
-    const prove = async () => {
-      return await Reflect.apply(provableMethod, this, [
-        methodPublicInput,
-        ...args,
-      ]);
-    };
+    const prove = async () =>
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line @typescript-eslint/return-await, @typescript-eslint/no-unsafe-argument
+      await Reflect.apply(provableMethod, this, [methodPublicInput, ...args]);
 
     executionContext.setProve(prove);
     return executionContext.current().result.value;

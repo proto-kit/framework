@@ -2,11 +2,12 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable import/no-unused-modules */
 /* eslint-disable new-cap */
-import { Bool, Proof } from 'snarkyjs';
+import { Bool, type Proof } from 'snarkyjs';
 import { singleton } from 'tsyringe';
 
 import type { ProvableStateTransition } from '../stateTransition/StateTransition.js';
-import { MethodPublicInput } from './decorator.js';
+
+import type { MethodPublicInput } from './decorator.js';
 
 export class MethodExecutionResult<ResultValue> {
   public stateTransitions: ProvableStateTransition[] = [];

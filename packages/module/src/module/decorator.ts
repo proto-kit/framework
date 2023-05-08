@@ -1,9 +1,14 @@
 /* eslint-disable import/no-unused-modules */
-import { injectable, Lifecycle, scoped } from 'tsyringe';
+import { injectable } from 'tsyringe';
 
+// eslint-disable-next-line import/no-cycle
 import { RuntimeModule } from '../runtime/RuntimeModule.js';
 
-export type AnyConstructor = Parameters<ReturnType<typeof injectable>>[0];
+export interface AnyConstructor {
+  // eslint-disable-next-line max-len
+  // eslint-disable-next-line @typescript-eslint/prefer-function-type, @typescript-eslint/no-explicit-any, @typescript-eslint/prefer-readonly-parameter-types
+  new (...args: any[]): any;
+}
 
 export const isRuntimeModulePropertyKey = 'isRuntimeModule';
 

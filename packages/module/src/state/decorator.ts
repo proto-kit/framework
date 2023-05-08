@@ -1,6 +1,5 @@
 /* eslint-disable import/prefer-default-export */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable import/no-unused-modules */
 
 import { Path } from '../path/Path.js';
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
@@ -25,9 +24,21 @@ export function state() {
           );
         }
 
+        // eslint-disable-next-line max-len
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        if (!self.chain) {
+          throw new Error(
+            `Unable to provide 'chain' for state, Did you forget to extend your runtime module with 'extends RuntimeModule'?`
+          );
+        }
+
         const path = Path.fromProperty(self.name, propertyKey);
         if (value) {
           value.path = path;
+          // eslint-disable-next-line no-warning-comments
+          // TODO: why is this complaining about `any`?
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          value.chain = self.chain;
         }
         return value;
       },

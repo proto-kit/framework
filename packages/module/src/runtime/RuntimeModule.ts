@@ -1,8 +1,8 @@
-import { Chain, RuntimeModules } from '../chain/Chain';
+import type { Chain, RuntimeModules } from '../chain/Chain';
 
-/* eslint-disable import/prefer-default-export */
+// eslint-disable-next-line import/prefer-default-export
 export class RuntimeModule {
   public name?: string;
 
-  public chain?: Chain<any>;
+  public chain?: Chain<RuntimeModules>;
 }

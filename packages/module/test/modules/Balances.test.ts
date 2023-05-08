@@ -1,18 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import 'reflect-metadata';
-import { Circuit, Poseidon, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
+import { Poseidon, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import type { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
 import { Path } from '../../src/path/Path.js';
 import { State } from '../../src/state/State.js';
-import type { Option } from '../../src/option/Option.js';
 import { Chain } from '../../src/chain/Chain.js';
 import { MethodExecutionContext } from '../../src/method/MethodExecutionContext.js';
-import {
-  runWithCommitments,
-  toWrappedMethod,
-} from '../../src/method/decorator.js';
 
 import { Admin } from './Admin.js';
 import { Balances } from './Balances.js';
@@ -35,8 +30,12 @@ describe('balances', () => {
     balances = chain.getRuntimeModule('Balances');
   }
 
-  describe.only('compile', () => {
+  describe('compile', () => {
     beforeAll(createChain);
+
+    afterAll(() => {
+      chain.disableProofs();
+    });
 
     // eslint-disable-next-line max-statements
     it('should compile', async () => {
@@ -74,7 +73,7 @@ describe('balances', () => {
   });
 
   describe('getTotalSupply', () => {
-    // beforeAll(createChain);
+    beforeAll(createChain);
 
     describe('state transitions', () => {
       // eslint-disable-next-line @typescript-eslint/init-declarations
@@ -182,7 +181,7 @@ describe('balances', () => {
 
       beforeEach(() => {
         const executionContext = container.resolve(MethodExecutionContext);
-        balances.getBalance(address, UInt64.from(0));
+        balances.getBalance(address);
 
         // eslint-disable-next-line prefer-destructuring
         stateTransitions = executionContext.current().result.stateTransitions;

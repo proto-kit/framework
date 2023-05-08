@@ -39,7 +39,7 @@ export class Balances extends RuntimeModule {
   }
 
   @method()
-  public getBalance(address: PublicKey, test: UInt64): Option<UInt64> {
+  public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
   }
 }

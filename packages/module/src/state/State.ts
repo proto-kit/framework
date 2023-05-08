@@ -9,9 +9,12 @@ import { Option } from '../option/Option.js';
 import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
 import type { Path } from '../path/Path.js';
 import { MethodExecutionContext } from '../method/MethodExecutionContext.js';
+import type { Chain, RuntimeModules } from '../chain/Chain.js';
 
 export class WithPath {
   public path?: Field;
+
+  public chain?: Chain<RuntimeModules>;
 
   public hasPathOrFail(): asserts this is { path: Path } {
     if (!this.path) {

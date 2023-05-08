@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 /* eslint-disable import/prefer-default-export */
-/* eslint-disable import/no-unused-modules */
 import { type Bool, Circuit } from 'snarkyjs';
 import { container } from 'tsyringe';
 

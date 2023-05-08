@@ -1,17 +1,17 @@
 /* eslint-disable new-cap */
-/* eslint-disable import/no-unused-modules */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 import { type DependencyContainer, container, Lifecycle } from 'tsyringe';
 import { Experimental } from 'snarkyjs';
+
 import {
   combineMethodName,
   isMethod,
   MethodPublicInput,
   toWrappedMethod,
 } from '../method/decorator.js';
-
+// eslint-disable-next-line import/no-cycle
 import { type AnyConstructor, isRuntimeModule } from '../module/decorator.js';
-import { RuntimeModule } from '../runtime/RuntimeModule.js';
+import type { RuntimeModule } from '../runtime/RuntimeModule.js';
 
 export interface RuntimeModules {
   [name: string]: AnyConstructor;
@@ -58,6 +58,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
             Unable to retrieve module: ${name}, it is not registred as a runtime module for this chain`);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.runtimeContainer.resolve<
       InstanceType<ChainRuntimeModules[Key]>
     >(name);
@@ -170,8 +171,6 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
               };
             }
 
-            // eslint-disable-next-line max-len
-            // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
             return allModuleMethods;
           },
           {}
@@ -211,12 +210,16 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
       analysis,
 
       toPretty: () => {
-        analysis.forEach(({ methodName, analysis }) => {
+        analysis.forEach(({ methodName, analysis: methodAnalysis }) => {
+          // eslint-disable-next-line max-len
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+          const inputs = methodAnalysis.inputs.map((input: any) => input.name);
+          // eslint-disable-next-line no-console
           console.log(`
 Method: ${methodName}
-Rows: ${analysis.rows}
-Inputs: [${analysis.inputs.map((input: any) => input.name)}]
-          `);
+Rows: ${methodAnalysis.rows}
+Inputs: [${inputs.join(', ')}]
+`);
         });
       },
     };
@@ -229,10 +232,10 @@ Inputs: [${analysis.inputs.map((input: any) => input.name)}]
         'Unable to compile chain, pre-compilation did not produce a zkProgram'
       );
     }
-    const { areProofsEnabled } = this;
+    const { areProofsEnabled, program } = this;
 
     this.disableProofs();
-    const artifact = await this.program.compile();
+    const artifact = await program.compile();
 
     this.setProofsEnabled(areProofsEnabled);
 
