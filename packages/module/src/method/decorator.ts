@@ -72,7 +72,10 @@ export function toWrappedMethod(
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown
 ) {
-  return (publicInput: MethodPublicInput, ...args: unknown[]): unknown => {
+  const wrappedMethod = (
+    publicInput: MethodPublicInput,
+    ...args: unknown[]
+  ): unknown => {
     const {
       result: { stateTransitions, status, value },
     } = Reflect.apply(runInContext, this, [methodName, moduleMethod, args]);
@@ -93,15 +96,34 @@ export function toWrappedMethod(
 
     return value;
   };
+
+  Object.defineProperty(wrappedMethod, 'name', {
+    value: `wrapped_${methodName}`,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    writable: false,
+  });
+
+  return wrappedMethod;
 }
 
-// eslint-disable-next-line max-params
+export function combineMethodName(
+  runtimeModuleName: string,
+  methodName: string
+) {
+  return `${runtimeModuleName}.${methodName}`;
+}
+
+// eslint-disable-next-line max-params, max-statements
 export function runWithCommitments(
   this: RuntimeModule,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown,
   args: unknown[]
 ) {
+  const executionContext = container.resolve<
+    MethodExecutionContext<ReturnType<typeof moduleMethod>>
+  >(MethodExecutionContext);
+
   const wrappedMethod = Reflect.apply(toWrappedMethod, this, [
     methodName,
     moduleMethod,
@@ -113,17 +135,44 @@ export function runWithCommitments(
 
   const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
 
+  const methodPublicInput: MethodPublicInput = {
+    stateTransitionsHash,
+    transactionHash: Field(0),
+    status,
+  };
+
+  if (this.chain?.areProofsEnabled) {
+    const runtimeModuleName = this.constructor.name;
+    const combinedMethodName = combineMethodName(runtimeModuleName, methodName);
+    const provableMethod = this.chain?.program?.[combinedMethodName];
+
+    if (!provableMethod) {
+      throw new Error(
+        `Unable to find a provable method for '@method ${methodName}', did you forget to run chain.compile()?`
+      );
+    }
+
+    const prove = async () => {
+      return await Reflect.apply(provableMethod, this, [
+        methodPublicInput,
+        ...args,
+      ]);
+    };
+
+    executionContext.setProve(prove);
+    return executionContext.current().result.value;
+  }
+
   // eslint-disable-next-line no-warning-comments
   // TODO: when proving, dont run the JS wrapped method,
   // but run the ZkProgram provable wrapped method instead
-  return wrappedMethod(
-    {
-      stateTransitionsHash,
-      transactionHash: Field(0),
-      status,
-    },
-    ...args
-  );
+  return wrappedMethod(methodPublicInput, ...args);
+}
+
+export const methodMetadataKey = 'yab-method';
+
+export function isMethod(target: RuntimeModule, propertyKey: string) {
+  return Boolean(Reflect.getMetadata(methodMetadataKey, target, propertyKey));
 }
 
 export function method() {
@@ -132,17 +181,26 @@ export function method() {
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) => {
+    const executionContext = container.resolve<MethodExecutionContext<unknown>>(
+      MethodExecutionContext
+    );
+
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const originalFunction = descriptor.value as (
       ...args: unknown[]
     ) => unknown;
 
+    Reflect.defineMetadata(methodMetadataKey, true, target, propertyKey);
     descriptor.value = function value(this: RuntimeModule, ...args: unknown[]) {
-      return Reflect.apply(runWithCommitments, this, [
-        propertyKey,
-        originalFunction,
-        args,
-      ]);
+      if (executionContext.isTopLevel) {
+        return Reflect.apply(runWithCommitments, this, [
+          propertyKey,
+          originalFunction,
+          args,
+        ]);
+      }
+
+      return Reflect.apply(originalFunction, this, args);
     };
   };
 }
