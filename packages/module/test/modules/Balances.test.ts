@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import 'reflect-metadata';
-import { Poseidon, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
+import { Circuit, Poseidon, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import type { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
@@ -9,20 +9,25 @@ import { State } from '../../src/state/State.js';
 import type { Option } from '../../src/option/Option.js';
 import { Chain } from '../../src/chain/Chain.js';
 import { MethodExecutionContext } from '../../src/method/MethodExecutionContext.js';
-
-import { Admin } from './Admin.js';
-import { Balances } from './Balances.js';
 import {
   runWithCommitments,
   toWrappedMethod,
 } from '../../src/method/decorator.js';
 
+import { Admin } from './Admin.js';
+import { Balances } from './Balances.js';
+
 describe('balances', () => {
   // eslint-disable-next-line @typescript-eslint/init-declarations
   let balances: Balances;
+  // eslint-disable-next-line @typescript-eslint/init-declarations
+  let chain: Chain<{
+    Balances: typeof Balances;
+    Admin: typeof Admin;
+  }>;
 
   function createChain() {
-    const chain = Chain.from({
+    chain = Chain.from({
       Balances,
       Admin,
     });
@@ -30,8 +35,46 @@ describe('balances', () => {
     balances = chain.getRuntimeModule('Balances');
   }
 
-  describe('getTotalSupply', () => {
+  describe.only('compile', () => {
     beforeAll(createChain);
+
+    // eslint-disable-next-line max-statements
+    it('should compile', async () => {
+      expect.assertions(3);
+
+      const executionContext = container.resolve(MethodExecutionContext);
+      const expectedStateTransitionsHash =
+        '14921939452604128385823686416408232294744525422028096501361950385283288751766';
+      const expectedStatus = true;
+
+      chain.enableProofs();
+      await chain.compile();
+
+      balances.getTotalSupply();
+
+      const { result } = executionContext.current();
+      const { prove } = result;
+
+      const proof = await prove?.();
+
+      // eslint-disable-next-line jest/no-conditional-in-test
+      if (!proof || !chain.program) {
+        throw new Error('Program compilation or proof generation has failed');
+      }
+
+      const verified = await chain.program.verify(proof);
+
+      expect(verified).toBe(true);
+
+      expect(proof.publicInput.stateTransitionsHash.toString()).toStrictEqual(
+        expectedStateTransitionsHash
+      );
+      expect(proof.publicInput.status.toBoolean()).toBe(expectedStatus);
+    });
+  });
+
+  describe('getTotalSupply', () => {
+    // beforeAll(createChain);
 
     describe('state transitions', () => {
       // eslint-disable-next-line @typescript-eslint/init-declarations
@@ -139,7 +182,7 @@ describe('balances', () => {
 
       beforeEach(() => {
         const executionContext = container.resolve(MethodExecutionContext);
-        balances.getBalance(address);
+        balances.getBalance(address, UInt64.from(0));
 
         // eslint-disable-next-line prefer-destructuring
         stateTransitions = executionContext.current().result.stateTransitions;

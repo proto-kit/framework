@@ -2,10 +2,11 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable import/no-unused-modules */
 /* eslint-disable new-cap */
-import { Bool } from 'snarkyjs';
+import { Bool, Proof } from 'snarkyjs';
 import { singleton } from 'tsyringe';
 
 import type { ProvableStateTransition } from '../stateTransition/StateTransition.js';
+import { MethodPublicInput } from './decorator.js';
 
 export class MethodExecutionResult<ResultValue> {
   public stateTransitions: ProvableStateTransition[] = [];
@@ -15,6 +16,8 @@ export class MethodExecutionResult<ResultValue> {
   public statusMessage?: string;
 
   public value?: ResultValue;
+
+  public prove?: () => Promise<Proof<MethodPublicInput>>;
 }
 
 @singleton()
@@ -41,6 +44,10 @@ export class MethodExecutionContext<ResultValue> {
     this.result.value = value;
   }
 
+  public setProve(prove: () => Promise<Proof<MethodPublicInput>>) {
+    this.result.prove = prove;
+  }
+
   public beforeMethod(methodName: string) {
     if (this.isFinished) {
       this.result = new MethodExecutionResult();
@@ -50,6 +57,10 @@ export class MethodExecutionContext<ResultValue> {
 
   public afterMethod() {
     this.methods.pop();
+  }
+
+  public get isTopLevel() {
+    return this.isFinished;
   }
 
   public get isFinished() {
