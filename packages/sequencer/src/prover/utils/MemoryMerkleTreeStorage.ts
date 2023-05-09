@@ -49,8 +49,8 @@ export class MemoryMerkleTreeStorage implements SyncMerkleTreeStore {
 
     public getNode(key: bigint, level: number): bigint | undefined {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        return this.nodes[level][key.toString()]
-            ?? this.cache[level][key.toString()]
+        return this.nodes[level]?.[key.toString()]
+            ?? this.cache[level]?.[key.toString()]
             ?? this.parent.getNode(key, level);
     }
 
