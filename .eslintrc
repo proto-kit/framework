@@ -6,19 +6,13 @@
   "parserOptions": {
     "project": ["./tsconfig.json", "./tsconfig.test.json"]
   },
-  "ignorePatterns": ["jest.config.cjs", "jest-stackblitz.config.cjs", "docs/*"],
+  "ignorePatterns": ["jest.config.cjs", "jest-stackblitz.config.cjs", "docs/*", "*.json", "*.js"],
   "rules": {
-    "@typescript-eslint/quotes": [
-      "error",
-      "single",
-      {
-        "allowTemplateLiterals": true
-      }
-    ],
+    "@typescript-eslint/quotes": "off",
     "@typescript-eslint/parameter-properties": [
       "error",
       {
-        "allow": ["public", "private readonly"]
+        "allow": ["public", "private", "private readonly", "public readonly"]
       }
     ],
     "jest/no-hooks": [
@@ -29,6 +23,103 @@
     ],
     "@typescript-eslint/consistent-indexed-object-style": "off",
     "import/no-extraneous-dependencies": ["error", { "peerDependencies" : true}],
-    "quotes": "off"
-  }
+    "quotes": "off",
+    "new-cap": "off",
+    "no-inline-comments": "off",
+    "line-comment-position": "off",
+    "@typescript-eslint/prefer-readonly-parameter-types": "off", //Not enforcable with structs
+    "import/order": "off",
+    "id-length": "off", //E.g. r and s in Signature
+    "import/prefer-default-export": "off",
+    "etc/prefer-interface": "off", //Types are fine
+    "@typescript-eslint/consistent-type-definitions": "off",
+    "max-classes-per-file": [
+      "error",
+      3
+    ],
+    "prettier/prettier": "off",
+    "max-statements": [
+      "error",
+      20
+    ],
+    "max-len": [
+      "warn",
+      140,
+      {
+        "comments": 200,
+        "ignoreStrings": true,
+        "ignoreTemplateLiterals": true
+      }
+    ],
+    "@typescript-eslint/naming-convention": "off", //variables which hold classes should be named uppercase
+    "jest/prefer-expect-assertions": "off",
+    "@typescript-eslint/no-magic-numbers": "off",
+    "no-param-reassign": "off", //It makes a lot of sense to do this for primitive types since they are pass-by-value
+    "unicorn/prevent-abbreviations": "off", //Conflicts with "no-dangling-underscore",
+    "no-plusplus": [
+      "error",
+      {
+        "allowForLoopAfterthoughts": true
+      }
+    ],
+    "import/exports-last": "off",
+    "etc/no-t": "off", //Enabled type parameters like T, or R
+    "@typescript-eslint/no-unsafe-return": "off", //Doesn't do well with tsyringe factories
+    "max-params": [
+      "error", 6
+    ],
+    "decorator-position/decorator-position": [
+      "error",
+      {
+        "methods": "above",
+        "properties": "prefer-inline",
+        "overrides": {
+          "above": [
+            "@Field", "@InputType", "@IsNumberString"
+          ]
+        }
+      }
+    ],
+    "ext/lines-between-object-properties": "off", //Only breaks up js objects
+    "unicorn/consistent-function-scoping": [
+      "error",
+      { "checkArrowFunctions": false }
+    ],
+    "@typescript-eslint/require-await": "off", //Doesn't work when having async interfaces
+    "@typescript-eslint/no-empty-function": [
+      "error",
+      {
+        "allow": ["arrowFunctions", "methods"]
+      }
+    ],
+    "no-await-in-loop": "off",
+    "@typescript-eslint/no-explicit-any": [
+      "error",
+      {
+        "ignoreRestArgs": true
+      }
+    ],
+
+    //Stuff to be considered to be enabled for prod
+    "etc/no-commented-out-code": "off", //We can enable that when building for prod
+    "no-warning-comments": "off",
+    "import/no-unused-modules": "off",
+    "no-console": "off",
+
+    //I could live with this enabled
+    "lines-around-comment": "off",
+    "jest/prefer-strict-equal": "off",
+    "import/no-anonymous-default-export": "off" //Enabled export default {} in index.ts
+  },
+
+  "overrides": [
+    {
+      "files": ["*.test.ts"],
+      "rules": {
+        "@typescript-eslint/no-misused-promises": "off", //shutdown promise timeout - can be removed with snarkyjs 0.10
+        "@typescript-eslint/init-declarations": "off", //conflicts with beforeEach initialization
+        "unicorn/consistent-function-scoping": "off" //Describe-level functions
+      }
+    }
+  ]
 }
