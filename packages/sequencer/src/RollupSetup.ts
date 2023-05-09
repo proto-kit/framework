@@ -1,26 +1,26 @@
-import {container, injectable} from "tsyringe";
-import {GraphqlModule} from "./graphql/GraphqlModule.js";
-import {GraphqlServer} from "./graphql/GraphqlServer.js";
-import {Mempool} from "./mempool/Mempool.js";
+import { container, injectable } from "tsyringe";
+import type { GraphqlModule } from "./graphql/GraphqlModule.js";
+import { GraphqlServer } from "./graphql/GraphqlServer.js";
+import type { Mempool } from "./mempool/Mempool.js";
 
 @injectable()
 export class RollupSetup {
 
-    registerMempoolModule(mempool: Mempool){
-        container.registerInstance("mempool", mempool)
-    }
+  public registerMempoolModule(mempool: Mempool) {
+    container.registerInstance("mempool", mempool);
+  }
 
-    registerGraphqlModule(module: GraphqlModule<any>){
+  public registerGraphqlModule(module: GraphqlModule) {
 
-        container.registerInstance<GraphqlModule<any>>("GraphqlModule", module)
+    container.registerInstance<GraphqlModule>("GraphqlModule", module);
 
-    }
+  }
 
-    async start(){
+  public async start() {
 
-        let graphql = container.resolve(GraphqlServer)
-        await graphql.start()
+    const graphql = container.resolve(GraphqlServer);
+    await graphql.start();
 
-    }
+  }
 
 }

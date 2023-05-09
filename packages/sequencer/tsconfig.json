@@ -3,10 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": ".",
-    "paths": {
-      "snarkyjs": ["../node_modules/snarkyjs"]
-    }
+    "lib": ["esnext.asynciterable"],
+    "strictPropertyInitialization": false
   },
-  "include": ["./src/index.ts"],
-  "exclude": ["./dist/**/*.ts"],
+  "include": ["./src/**/*.ts"],
+  "exclude": ["./dist/**/*.ts", "../../node_modules"]
 }

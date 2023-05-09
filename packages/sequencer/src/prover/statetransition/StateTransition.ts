@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable new-cap */
-/* eslint-disable import/prefer-default-export */
-import {Bool, Circuit, Field, FlexibleProvablePure, Poseidon, Struct} from 'snarkyjs';
+import { Bool, Circuit, Field, type FlexibleProvablePure, Poseidon, Struct } from 'snarkyjs';
 
 export class ProvableOption extends Struct({
     isSome: Bool,
     value: Field,
-}) {}
+}) {
+}
 
 // TODO Only placeholder until feature/module is merged
 export class ProvableStateTransition extends Struct({
@@ -22,6 +20,7 @@ export class ProvableStateTransition extends Struct({
         return new ProvableStateTransition({
             path,
             from,
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
             to: Option.none().toProvable(),
         });
     }
@@ -34,15 +33,16 @@ export class ProvableStateTransition extends Struct({
         });
     }
 
-    public hash() : Field {
+    // TODO ADD
+    public static dummy(): ProvableStateTransition {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        return ProvableStateTransition.from(Field(0), Option.none().toProvable())
+    }
+
+    public hash(): Field {
         return Field(0)
     }
 
-    //TODO ---------------------
-    //TODO ADD
-    public static dummy() : ProvableStateTransition {
-        return ProvableStateTransition.from(Field(0), Option.none().toProvable())
-    }
 }
 
 export class Option<Value> {
@@ -55,7 +55,7 @@ export class Option<Value> {
     }
 
     public static value<Value>(value: Value,
-                        valueType: FlexibleProvablePure<Value>){
+                               valueType: FlexibleProvablePure<Value>) {
         return Option.from(Bool(true), value, valueType)
     }
 
@@ -67,7 +67,8 @@ export class Option<Value> {
         public isSome: Bool,
         public value: Value,
         public valueType: FlexibleProvablePure<Value>
-    ) {}
+    ) {
+    }
 
     public get treeValue() {
         const treeValue = Poseidon.hash(this.valueType.toFields(this.value));

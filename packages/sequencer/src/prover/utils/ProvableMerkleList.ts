@@ -1,47 +1,52 @@
-import {Bool, Circuit, Field, Poseidon} from "snarkyjs";
+import { type Bool, Circuit, Field, Poseidon } from "snarkyjs";
+import { prefixToField } from "../../Utils.js";
 
 export abstract class ProvableMerkleList {
 
-    commitment: Field
+  private internalCommitment: Field;
 
-    constructor(commitment: Field = Field(0)) {
-        this.commitment = commitment
-    }
+  public constructor(commitment: Field = Field(0)) {
+    this.internalCommitment = commitment;
+  }
 
-    abstract hash(e1: Field, e2: Field) : Field
+  public get commitment() {
+    return this.internalCommitment
+  }
 
-    push(element: Field) : Field {
-        this.commitment = this.hash(this.commitment, element)
-        return this.commitment
-    }
+  protected abstract hash(e1: Field, e2: Field): Field
 
-    remove(preimage: Field, value: Field) : Bool {
-        let success = this.hash(preimage, value).equals(this.commitment)
-        this.commitment = Circuit.if(success, preimage, this.commitment)
-        return success
-    }
+  public push(element: Field): Field {
+    this.internalCommitment = this.hash(this.commitment, element);
+    return this.internalCommitment;
+  }
+
+  public remove(preimage: Field, element: Field): Bool {
+    const success = this.hash(preimage, element).equals(this.internalCommitment);
+    this.internalCommitment = Circuit.if(success, preimage, this.internalCommitment);
+    return success;
+  }
 
 }
 
 export class DefaultProvableMerkleList extends ProvableMerkleList {
 
-    hash(e1: Field, e2: Field): Field {
-        return Poseidon.hash([e1, e2]);
-    }
+  public hash(e1: Field, e2: Field): Field {
+    return Poseidon.hash([e1, e2]);
+  }
 
 }
 
 export class PrefixedProvableMerkleList extends ProvableMerkleList {
 
-    prefix: Field
+  private readonly prefix: Field;
 
-    constructor(prefix: string) {
-        super()
-        this.prefix = Field(0) //TODO string -> Field mapping
-    }
+  public constructor(prefix: string) {
+    super();
+    this.prefix = prefixToField(prefix);
+  }
 
-    hash(e1: Field, e2: Field): Field {
-        return Poseidon.hash([this.prefix, e1, e2]);
-    }
+  protected hash(e1: Field, e2: Field): Field {
+    return Poseidon.hash([this.prefix, e1, e2]);
+  }
 
 }

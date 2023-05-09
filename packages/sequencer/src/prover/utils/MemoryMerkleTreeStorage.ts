@@ -1,74 +1,92 @@
-import { MerkleTreeStore, RollupMerkleTree, SyncMerkleTreeStore} from "./RollupMerkleTree.js";
+import { type MerkleTreeStore, RollupMerkleTree, type SyncMerkleTreeStore } from "./RollupMerkleTree.js";
 
 export class NoOpMerkleTreeStorage implements SyncMerkleTreeStore {
-    parent: MerkleTreeStore = this
-    openTransaction(): void {}
-    commit(): void {}
-    getNode(key: bigint, level: number): bigint | undefined {
+    public parent: MerkleTreeStore = this
+
+    public openTransaction(): void {
+    }
+
+    public commit(): void {
+    }
+
+    public getNode(): bigint | undefined {
         return undefined;
     }
-    setNode(key: bigint, level: number, value: bigint): void {}
-    virtualize(): MerkleTreeStore { return this; }
-    getNodeAsync(key: bigint, level: number): Promise<bigint | undefined> {
-        return Promise.resolve(undefined);
+
+    public setNode(): void {}
+
+    public virtualize(): MerkleTreeStore {
+        return this;
     }
-    setNodeAsync(key: bigint, level: number, value: bigint): Promise<void> {
-        return Promise.resolve(undefined);
+
+    public async getNodeAsync(): Promise<bigint | undefined> {
+        return undefined;
+    }
+
+    public async setNodeAsync(): Promise<void> {
+        return undefined;
     }
 
 }
 
 export class MemoryMerkleTreeStorage implements SyncMerkleTreeStore {
 
-    private nodes: Record<number, Record<string, bigint>> = {}
-    private cache: Record<number, Record<string, bigint>> = {}
-    parent: SyncMerkleTreeStore
+    private readonly nodes: Record<number, Record<string, bigint>> = {}
 
-    constructor(parent: SyncMerkleTreeStore | undefined = undefined) {
+    private readonly cache: Record<number, Record<string, bigint>> = {}
+
+    public parent: SyncMerkleTreeStore
+
+    public constructor(parent: SyncMerkleTreeStore | undefined = undefined) {
         this.parent = parent ?? new NoOpMerkleTreeStorage()
     }
 
-    openTransaction() : void {
+    public openTransaction(): void {
     }
 
-    commit(): void {
+    public commit(): void {
     }
 
-    getNode(key: bigint, level: number): bigint | undefined {
-        return this.nodes[level]?.[key.toString()]
-            ?? this.cache[level]?.[key.toString()]
-        ?? this.parent.getNode(key, level);
+    public getNode(key: bigint, level: number): bigint | undefined {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return this.nodes[level][key.toString()]
+            ?? this.cache[level][key.toString()]
+            ?? this.parent.getNode(key, level);
     }
 
-    setNode(key: bigint, level: number, value: bigint): void {
+    public setNode(key: bigint, level: number, value: bigint): void {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         (this.nodes[level] ??= {})[key.toString()] = value
     }
 
-    virtualize() : MerkleTreeStore {
+    public virtualize(): MerkleTreeStore {
         return new MemoryMerkleTreeStorage(this)
     }
 
-    getNodeAsync(key: bigint, level: number): Promise<bigint | undefined> {
-        return Promise.resolve(this.getNode(key, level));
+    public async getNodeAsync(key: bigint, level: number): Promise<bigint | undefined> {
+        return this.getNode(key, level);
     }
 
-    setNodeAsync(key: bigint, level: number, value: bigint): Promise<void> {
+    public async setNodeAsync(key: bigint, level: number, value: bigint): Promise<void> {
         this.setNode(key, level, value)
-        return Promise.resolve(undefined);
+        return undefined;
     }
 
-    async cacheFromParent(index: bigint){
-        //Algo from RollupMerkleTree.getWitness()
-        let leafCount = RollupMerkleTree.leafCount
+    public async cacheFromParent(index: bigint) {
+        // Algo from RollupMerkleTree.getWitness()
+        const { leafCount, height } = RollupMerkleTree;
+
         if (index >= leafCount) {
-            index = index % leafCount
+            index %= leafCount
         }
-        for (let level = 0; level < RollupMerkleTree.height - 1; level++) {
+
+        for (let level = 0; level < height - 1; level++) {
             const isLeft = index % 2n === 0n;
 
-            let key = isLeft ? (index + 1n) : (index - 1n);
-            let value = await this.parent.getNodeAsync(key, level);
-            if(value){
+            const key = isLeft ? (index + 1n) : (index - 1n);
+            const value = await this.parent.getNodeAsync(key, level);
+            if (value !== undefined) {
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 (this.nodes[level] ??= {})[key.toString()] = value
             }
             index /= 2n;

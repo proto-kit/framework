@@ -1,7 +1,7 @@
-import {ClassType} from "../Utils.js";
+import type { ClassType } from "../Utils.js";
 
-export interface GraphqlModule<T extends ClassType & Function> {
+export interface GraphqlModule {
 
-    resolverType: T
+  resolverType: ClassType;
 
 }

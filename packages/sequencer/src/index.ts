@@ -1,24 +1,22 @@
-import "reflect-metadata"
-import {container} from "tsyringe";
-import {RollupSetup} from "./RollupSetup.js";
-import {MempoolResolver} from "./mempool/graphql/MempoolResolver.js";
-import {PrivateMempool} from "./mempool/private/PrivateMempool.js";
-import {isReady} from "snarkyjs";
+import "reflect-metadata";
+import { container } from "tsyringe";
+import { RollupSetup } from "./RollupSetup.js";
+import { MempoolResolver } from "./mempool/graphql/MempoolResolver.js";
+import { PrivateMempool } from "./mempool/private/PrivateMempool.js";
+import { isReady } from "snarkyjs";
 
-export default {}
+await isReady;
 
-await isReady
+export async function setup() {
 
-async function setup(){
+  const rollupSetup = container.resolve(RollupSetup);
+  rollupSetup.registerMempoolModule(new PrivateMempool());
 
-    let setup = container.resolve(RollupSetup)
-    setup.registerMempoolModule(new PrivateMempool())
+  const resolver = container.resolve(MempoolResolver);
+  rollupSetup.registerGraphqlModule(resolver);
 
-    let resolver = container.resolve(MempoolResolver)
-    setup.registerGraphqlModule(resolver)
-
-    await setup.start()
+  await rollupSetup.start();
 
 }
 
-await setup()
+await setup();
