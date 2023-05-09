@@ -31,7 +31,8 @@
     "lint-staged": "^13.1.0",
     "nx": "15.6.2",
     "prettier": "^2.6.2",
-    "ts-jest": "^29.0.5"
+    "ts-jest": "^29.0.5",
+    "typescript": "^4.9.4"
   },
   "workspaces": [
     "packages/sequencer",
@@ -46,8 +47,5 @@
     "*.ts": [
       "npm run lint:staged"
     ]
-  },
-  "dependencies": {
-    "typescript": "^4.9.4"
   }
 }
