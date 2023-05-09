@@ -99,17 +99,24 @@
         "ignoreRestArgs": true
       }
     ],
+    "unicorn/no-negated-condition": "off",
+    "sort-class-members/sort-class-members": "off",
 
     //Stuff to be considered to be enabled for prod
     "etc/no-commented-out-code": "off", //We can enable that when building for prod
     "no-warning-comments": "off",
     "import/no-unused-modules": "off",
     "no-console": "off",
+    "@typescript-eslint/consistent-type-imports": "off",
 
     //I could live with this enabled
     "lines-around-comment": "off",
     "jest/prefer-strict-equal": "off",
-    "import/no-anonymous-default-export": "off" //Enabled export default {} in index.ts
+    "import/no-anonymous-default-export": "off", //Enabled export default {} in index.ts
+    "@typescript-eslint/method-signature-style": [
+      "error",
+      "method"
+    ]
   },
 
   "overrides": [
@@ -118,7 +125,8 @@
       "rules": {
         "@typescript-eslint/no-misused-promises": "off", //shutdown promise timeout - can be removed with snarkyjs 0.10
         "@typescript-eslint/init-declarations": "off", //conflicts with beforeEach initialization
-        "unicorn/consistent-function-scoping": "off" //Describe-level functions
+        "unicorn/consistent-function-scoping": "off", //Describe-level functions
+        "jest/expect-expect": "off" //Does not work well with describe-level functions
       }
     }
   ]

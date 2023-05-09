@@ -71,8 +71,6 @@ describe("stateTransition", () => {
 
   it("should pass without throwing", async () => {
 
-    expect.assertions(0);
-
     const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
 
     tree.setLeaf(1n, Option.value(Field(1), Field).treeValue); // Is ignored because overwritten by first transition
@@ -107,8 +105,6 @@ describe("stateTransition", () => {
 
   it("should throw because of failing precondition", async () => {
 
-    expect.assertions(0);
-
     const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
 
     tree.setLeaf(1n, Option.value(Field(1), Field).treeValue); // Is ignored because overwritten by first transition
@@ -127,7 +123,7 @@ describe("stateTransition", () => {
       })
     ];
 
-    await expect(checkTransitions(tree, transitions)).rejects.toMatch("MerkleWitness not valid for StateTransition (1)");
+    await expect(checkTransitions(tree, transitions)).rejects.toThrow("MerkleWitness not valid for StateTransition (1)");
 
   });
 
