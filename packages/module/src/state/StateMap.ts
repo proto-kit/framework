@@ -5,9 +5,11 @@ import type { FlexibleProvablePure } from 'snarkyjs';
 import { Path } from '../path/Path.js';
 import type { Option } from '../option/Option.js';
 
-import { State, WithPath } from './State.js';
+import { State, WithChain, WithPath } from './State.js';
+import { Mixin } from 'ts-mixer';
 
-export class StateMap<KeyType, ValueType> extends WithPath {
+// eslint-disable-next-line new-cap
+export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithChain) {
   public static from<KeyType, ValueType>(
     keyType: FlexibleProvablePure<KeyType>,
     valueType: FlexibleProvablePure<ValueType>
@@ -25,16 +27,20 @@ export class StateMap<KeyType, ValueType> extends WithPath {
   public get(key: KeyType): Option<ValueType> {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
+    this.hasChainOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
+    state.chain = this.chain;
     return state.get();
   }
 
   public set(key: KeyType, value: ValueType) {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
+    this.hasChainOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
+    state.chain = this.chain;
     state.set(value);
   }
 }

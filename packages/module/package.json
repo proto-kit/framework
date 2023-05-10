@@ -20,6 +20,7 @@
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
     "snarkyjs": "^0.10.0",
+    "ts-mixer": "^6.0.3",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

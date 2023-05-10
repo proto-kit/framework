@@ -11,16 +11,22 @@ import {
 } from '../method/decorator.js';
 import { type AnyConstructor, isRuntimeModule } from '../module/decorator.js';
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
+import { StateService } from '../state/InMemoryStateService.js';
 
 export interface RuntimeModules {
   [name: string]: AnyConstructor;
 }
 
+export interface ChainConfig<ChainRuntimeModules extends RuntimeModules> {
+  state: StateService;
+  runtimeModules: ChainRuntimeModules;
+}
+
 export class Chain<ChainRuntimeModules extends RuntimeModules> {
   public static from<ChainRuntimeModules extends RuntimeModules>(
-    runtimeModules: ChainRuntimeModules
+    config: ChainConfig<ChainRuntimeModules>
   ) {
-    return new Chain(runtimeModules);
+    return new Chain(config);
   }
 
   private readonly runtimeContainer: DependencyContainer;
@@ -29,11 +35,13 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
 
   public program?: ReturnType<typeof Experimental.ZkProgram>;
 
-  public constructor(private readonly runtimeModules: ChainRuntimeModules) {
+  public constructor(public config: ChainConfig<ChainRuntimeModules>) {
     this.runtimeContainer = container.createChildContainer();
-    Object.entries(runtimeModules).forEach(([name, runtimeModule]) => {
-      this.registerRuntimeModule(name, runtimeModule);
-    });
+    Object.entries(this.config.runtimeModules).forEach(
+      ([name, runtimeModule]) => {
+        this.registerRuntimeModule(name, runtimeModule);
+      }
+    );
   }
 
   private decorateRuntimeModule(name: string) {
@@ -44,7 +52,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
   }
 
   public get runtimeModuleNames() {
-    return Object.keys(this.runtimeModules);
+    return Object.keys(this.config.runtimeModules);
   }
 
   public getRuntimeModule<Key extends keyof ChainRuntimeModules>(name: Key) {
