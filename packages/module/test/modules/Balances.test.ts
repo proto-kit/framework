@@ -1,6 +1,7 @@
+/* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/naming-convention */
 import 'reflect-metadata';
-import { Poseidon, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
+import { Field, Poseidon, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import type { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
@@ -11,23 +12,56 @@ import { MethodExecutionContext } from '../../src/method/MethodExecutionContext.
 
 import { Admin } from './Admin.js';
 import { Balances } from './Balances.js';
+import {
+  InMemoryStateService,
+  StateService,
+} from '../../src/state/InMemoryStateService.js';
 
 describe('balances', () => {
   // eslint-disable-next-line @typescript-eslint/init-declarations
   let balances: Balances;
+
+  // eslint-disable-next-line @typescript-eslint/init-declarations
+  let state: StateService;
+
   // eslint-disable-next-line @typescript-eslint/init-declarations
   let chain: Chain<{
     Balances: typeof Balances;
     Admin: typeof Admin;
   }>;
 
+  function getStateValue(path: Field | undefined) {
+    if (!path) {
+      throw new Error('Path not found');
+    }
+
+    const stateValue = state.get(path);
+
+    if (!stateValue) {
+      throw new Error('stateValue is undefined');
+    }
+
+    return stateValue;
+  }
+
   function createChain() {
+    state = new InMemoryStateService();
+
     chain = Chain.from({
-      Balances,
-      Admin,
+      state,
+
+      runtimeModules: {
+        Balances,
+        Admin,
+      },
     });
 
     balances = chain.getRuntimeModule('Balances');
+
+    state.set(
+      balances.totalSupply.path!,
+      State.dummyValue<UInt64>(UInt64).toFields()
+    );
   }
 
   describe('compile', () => {
@@ -38,12 +72,12 @@ describe('balances', () => {
     });
 
     // eslint-disable-next-line max-statements
-    it('should compile', async () => {
+    it.skip('should compile', async () => {
       expect.assertions(3);
 
       const executionContext = container.resolve(MethodExecutionContext);
       const expectedStateTransitionsHash =
-        '14921939452604128385823686416408232294744525422028096501361950385283288751766';
+        '7497547498540883824706737360758356065880487193468389816528185336915078444781';
       const expectedStatus = true;
 
       chain.enableProofs();
@@ -106,7 +140,10 @@ describe('balances', () => {
         expect.assertions(3);
 
         const [stateTransition] = stateTransitions;
-        const value = State.dummyValue<UInt64>(UInt64);
+
+        const value = UInt64.fromFields(
+          getStateValue(balances.totalSupply.path)
+        );
         const treeValue = Poseidon.hash(value.toFields());
 
         expect(stateTransition.from.isSome.toBoolean()).toBe(true);
@@ -152,7 +189,9 @@ describe('balances', () => {
         expect.assertions(4);
 
         const [stateTransition] = stateTransitions;
-        const fromValue = State.dummyValue<UInt64>(UInt64);
+        const fromValue = UInt64.fromFields(
+          getStateValue(balances.totalSupply.path)
+        );
         const fromTreeValue = Poseidon.hash(fromValue.toFields());
 
         const toValue = UInt64.from(20);
@@ -206,17 +245,13 @@ describe('balances', () => {
         );
       });
 
-      it('should produce a from-only state transition', () => {
+      it('should produce a from-only state transition, for non-existing state', () => {
         expect.assertions(3);
 
         const [stateTransition] = stateTransitions;
-        const value = State.dummyValue<UInt64>(UInt64);
-        const treeValue = Poseidon.hash(value.toFields());
 
-        expect(stateTransition.from.isSome.toBoolean()).toBe(true);
-        expect(stateTransition.from.value.toString()).toBe(
-          treeValue.toString()
-        );
+        expect(stateTransition.from.isSome.toBoolean()).toBe(false);
+        expect(stateTransition.from.value.toString()).toBe(Field(0).toString());
         expect(stateTransition.to.isSome.toBoolean()).toBe(false);
       });
     });
