@@ -74,4 +74,8 @@ export class MethodExecutionContext<ResultValue> {
       result: this.result,
     };
   }
+
+  public clear() {
+    this.result = new MethodExecutionResult();
+  }
 }
