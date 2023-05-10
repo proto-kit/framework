@@ -12,6 +12,10 @@ export interface AnyConstructor {
 
 export const isRuntimeModulePropertyKey = 'isRuntimeModule';
 
+/**
+ * Marks the decorated class as a runtime module, while also
+ * making it injectable with our dependency injection solution.
+ */
 export function runtimeModule() {
   return (target: AnyConstructor) => {
     // eslint-disable-next-line max-len, no-warning-comments
@@ -30,6 +34,10 @@ export function runtimeModule() {
   };
 }
 
+/**
+ * Checks if the given class/constructor has been marked as a runtime module
+ * @param target
+ */
 export function isRuntimeModule(target: AnyConstructor) {
   return (
     Object.getOwnPropertyDescriptor(target, isRuntimeModulePropertyKey)

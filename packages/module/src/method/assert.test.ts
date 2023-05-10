@@ -1,13 +1,11 @@
 /* eslint-disable new-cap */
 import 'reflect-metadata';
 
-import { Bool, isReady } from 'snarkyjs';
+import { Bool } from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import { assert } from './assert.js';
 import { MethodExecutionContext } from './MethodExecutionContext.js';
-
-await isReady;
 
 describe('assert', () => {
   const defaultStatusMessage = 'something went wrong';

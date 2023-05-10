@@ -13,14 +13,19 @@ import { HashList } from '../utils/HashList.js';
 
 import { MethodExecutionContext } from './MethodExecutionContext.js';
 
-await isReady;
-
+/**
+ * Public input used to link in-circuit execution with
+ * the proof's public input.
+ */
 export class MethodPublicInput extends Struct({
   stateTransitionsHash: Field,
   status: Bool,
   transactionHash: Field,
 }) {}
 
+/**
+ * Runs a method wrapped in a method execution context.
+ */
 // eslint-disable-next-line max-params
 export function runInContext(
   this: RuntimeModule,
@@ -114,6 +119,12 @@ export function combineMethodName(
   return `${runtimeModuleName}.${methodName}`;
 }
 
+/**
+ * Precomputes the public inputs required to run
+ * an actual wrapped method, produced from the provided moduleMethod.
+ *
+ * Execute the wrapped method with the precomputed public inputs.
+ */
 // eslint-disable-next-line max-params, max-statements
 export function runWithCommitments(
   this: RuntimeModule,
@@ -161,17 +172,21 @@ export function runWithCommitments(
       await Reflect.apply(provableMethod, this, [methodPublicInput, ...args]);
 
     executionContext.setProve(prove);
-    return executionContext.current().result.value;
   }
 
-  // eslint-disable-next-line no-warning-comments
-  // TODO: when proving, dont run the JS wrapped method,
-  // but run the ZkProgram provable wrapped method instead
   return wrappedMethod(methodPublicInput, ...args);
 }
 
 export const methodMetadataKey = 'yab-method';
 
+/**
+ * Checks the metadata of the provided runtime module and its method,
+ * to see if it has been decorated with @method()
+ *
+ * @param target - Runtime module to check
+ * @param propertyKey - Name of the method to check in the prior runtime module
+ * @returns - If the provided method name is a runtime method or not
+ */
 export function isMethod(target: RuntimeModule, propertyKey: string) {
   return Boolean(Reflect.getMetadata(methodMetadataKey, target, propertyKey));
 }
@@ -179,6 +194,17 @@ export function isMethod(target: RuntimeModule, propertyKey: string) {
 // eslint-disable-next-line etc/prefer-interface
 export type DecoratedMethod = (...args: unknown[]) => unknown;
 
+/**
+ * Decorates a runtime module method and toggles execution of
+ * either of its variants, depending on the state of the current
+ * method execution context. If the method is called at the 'top-level',
+ * it is executed 'with commitments'. If the method is called from another
+ * method, it's executed directly.
+ *
+ * Additionally the method is marked with metadata as a 'runtime module method'.
+ *
+ * @returns A decorated runtime module method
+ */
 export function method() {
   return (
     target: RuntimeModule,
