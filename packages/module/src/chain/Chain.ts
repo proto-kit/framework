@@ -9,7 +9,6 @@ import {
   MethodPublicInput,
   toWrappedMethod,
 } from '../method/decorator.js';
-// eslint-disable-next-line import/no-cycle
 import { type AnyConstructor, isRuntimeModule } from '../module/decorator.js';
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
 

@@ -65,15 +65,18 @@ export function toStateTransitionsHash(
     .toField();
 }
 
+// eslint-disable-next-line etc/prefer-interface
+export type WrappedMethod = (
+  publicInput: MethodPublicInput,
+  ...args: unknown[]
+) => unknown;
+
 export function toWrappedMethod(
   this: RuntimeModule,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown
 ) {
-  const wrappedMethod = (
-    publicInput: MethodPublicInput,
-    ...args: unknown[]
-  ): unknown => {
+  const wrappedMethod: WrappedMethod = (publicInput, ...args) => {
     const {
       result: { stateTransitions, status, value },
     } = Reflect.apply(runInContext, this, [methodName, moduleMethod, args]);
@@ -173,6 +176,9 @@ export function isMethod(target: RuntimeModule, propertyKey: string) {
   return Boolean(Reflect.getMetadata(methodMetadataKey, target, propertyKey));
 }
 
+// eslint-disable-next-line etc/prefer-interface
+export type DecoratedMethod = (...args: unknown[]) => unknown;
+
 export function method() {
   return (
     target: RuntimeModule,
@@ -184,9 +190,7 @@ export function method() {
     );
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const originalFunction = descriptor.value as (
-      ...args: unknown[]
-    ) => unknown;
+    const originalFunction = descriptor.value as DecoratedMethod;
 
     Reflect.defineMetadata(methodMetadataKey, true, target, propertyKey);
     descriptor.value = function value(this: RuntimeModule, ...args: unknown[]) {
