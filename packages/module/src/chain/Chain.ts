@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 import { type DependencyContainer, container, Lifecycle } from 'tsyringe';
@@ -11,30 +12,49 @@ import {
 } from '../method/decorator.js';
 import { type AnyConstructor, isRuntimeModule } from '../module/decorator.js';
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
-import { StateService } from '../state/InMemoryStateService.js';
+import type { StateService } from '../state/InMemoryStateService.js';
 
 export interface RuntimeModules {
   [name: string]: AnyConstructor;
 }
 
+// eslint-disable-next-line import/no-unused-modules
 export interface ChainConfig<ChainRuntimeModules extends RuntimeModules> {
   state: StateService;
   runtimeModules: ChainRuntimeModules;
 }
 
+/**
+ * Wrapper for an application specific chain, which helps orchestrate
+ * runtime modules into an interoperable runtime.
+ */
 export class Chain<ChainRuntimeModules extends RuntimeModules> {
+  /**
+   * Alternative constructor for `Chain`.
+   *
+   * @param config - Configuration for the returned Chain
+   * @returns Chain with the provided config
+   */
   public static from<ChainRuntimeModules extends RuntimeModules>(
     config: ChainConfig<ChainRuntimeModules>
   ) {
     return new Chain(config);
   }
 
+  // stores all runtime modules
   private readonly runtimeContainer: DependencyContainer;
 
+  // determines whether any proving should be done when running methods
   public areProofsEnabled = false;
 
+  // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof Experimental.ZkProgram>;
 
+  /**
+   * Creates a new Chain from the provided config
+   *
+   * @param config - Configuration object for the constructed Chain
+   */
   public constructor(public config: ChainConfig<ChainRuntimeModules>) {
     this.runtimeContainer = container.createChildContainer();
     Object.entries(this.config.runtimeModules).forEach(
@@ -44,6 +64,12 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
     );
   }
 
+  /**
+   * Add a name and other respective properties required by RuntimeModules,
+   * that come from the current Chain
+   *
+   * @param name - Name of the runtime module to decorate
+   */
   private decorateRuntimeModule(name: string) {
     const runtimeModuleInstance =
       this.runtimeContainer.resolve<RuntimeModule>(name);
@@ -51,10 +77,19 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
     runtimeModuleInstance.chain = this;
   }
 
+  /**
+   * @returns A list of
+   */
   public get runtimeModuleNames() {
     return Object.keys(this.config.runtimeModules);
   }
 
+  /**
+   * Returns a runtime module registred under the given key.
+   *
+   * @param name - Name of the runtime module to get
+   * @returns A runtime module stored under the given key
+   */
   public getRuntimeModule<Key extends keyof ChainRuntimeModules>(name: Key) {
     if (typeof name !== 'string') {
       throw new TypeError('Only string names are supported');
@@ -71,6 +106,12 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
     >(name);
   }
 
+  /**
+   * Registers a runtime module under the given name.
+   *
+   * @param name - Name of the runtime module to identify it by
+   * @param runtimeModule - Runtime module to register
+   */
   public registerRuntimeModule(name: string, runtimeModule: AnyConstructor) {
     if (!isRuntimeModule(runtimeModule)) {
       throw new Error(
@@ -109,18 +150,33 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
     this.decorateRuntimeModule(name);
   }
 
+  /**
+   * Enables proofs
+   */
   public enableProofs() {
     this.areProofsEnabled = true;
   }
 
+  /**
+   * Disables proofs
+   */
   public disableProofs() {
     this.areProofsEnabled = false;
   }
 
+  /**
+   * Sets if proofs are enabled or not
+   * @param areProofsEnabled
+   */
   public setProofsEnabled(areProofsEnabled: boolean) {
     this.areProofsEnabled = areProofsEnabled;
   }
 
+  /**
+   * Precompiles the current runtime modules into a ZkProgram.
+   *
+   * @returns - Analysis of the precompiled ZkProgram
+   */
   public precompile() {
     type Methods = Parameters<typeof Experimental.ZkProgram>[0]['methods'];
     const methods = this.runtimeModuleNames.reduce<Methods>(
@@ -243,6 +299,12 @@ Inputs: [${inputs.join(', ')}]
     };
   }
 
+  /**
+   * Compiles the current runtime modules configuration
+   * into a ZkProgram and then into a verification key.
+   *
+   * @returns The resulting artifact of ZkProgram compilation (verification key)
+   */
   public async compile() {
     this.precompile();
     if (!this.program) {

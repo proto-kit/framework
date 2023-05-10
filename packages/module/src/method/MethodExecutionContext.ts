@@ -21,6 +21,11 @@ export class MethodExecutionResult<ResultValue> {
   public prove?: () => Promise<Proof<MethodPublicInput>>;
 }
 
+/**
+ * Execution context used to wrap runtime module methods,
+ * allowing them to post relevant information (such as execution status)
+ * into the context without any unnecessary 'prop drilling'.
+ */
 @singleton()
 export class MethodExecutionContext<ResultValue> {
   public methods: string[] = [];
