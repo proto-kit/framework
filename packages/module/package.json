@@ -16,6 +16,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@types/lodash": "^4.14.194",
     "@yab/module": "*",
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
@@ -24,6 +25,7 @@
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {
-    "@jest/globals": "^29.5.0"
+    "@jest/globals": "^29.5.0",
+    "lodash": "^4.17.21"
   }
 }

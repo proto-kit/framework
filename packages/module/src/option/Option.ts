@@ -36,7 +36,7 @@ export class Option<Value> {
   }
 
   /**
-   * @returns Tmpty / none option
+   * @returns Empty / none option
    */
   public static none() {
     return new Option(Bool(false), Field(0), Field);

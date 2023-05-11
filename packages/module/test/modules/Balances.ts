@@ -12,8 +12,6 @@ import { method } from '../../src/method/decorator.js';
 
 import { Admin } from './Admin.js';
 
-await isReady;
-
 @runtimeModule()
 export class Balances extends RuntimeModule {
   @state() public totalSupply = State.from<UInt64>(UInt64);
