@@ -6,9 +6,9 @@ import { Bool, Field } from 'snarkyjs';
 import { container } from 'tsyringe';
 import { jest } from '@jest/globals';
 
-import { ProvableOption } from '../option/Option.js';
+import { Option } from '../option/Option.js';
 import { RuntimeModule } from '../runtime/RuntimeModule.js';
-import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
+import { StateTransition } from '../stateTransition/StateTransition.js';
 
 import {
   MethodPublicInput,
@@ -30,13 +30,7 @@ class TestModule extends RuntimeModule {
   public succeed(foo: number) {
     executionContext.setStatus(Bool(expectedStatus));
     executionContext.addStateTransition(
-      ProvableStateTransition.from(
-        Field(0),
-        new ProvableOption({
-          isSome: Bool(false),
-          value: Field(0),
-        })
-      )
+      StateTransition.from(Field(0), new Option(Bool(false), Field(0), Field))
     );
 
     return foo;
@@ -86,20 +80,14 @@ describe('runInContext', () => {
 });
 
 describe('toStateTransitionsHash', () => {
-  const noneStateTransition = ProvableStateTransition.from(
+  const noneStateTransition = StateTransition.from(
     Field(0),
-    new ProvableOption({
-      isSome: Bool(false),
-      value: Field(0),
-    })
+    new Option(Bool(false), Field(0), Field)
   );
 
-  const someStateTransition = ProvableStateTransition.from(
+  const someStateTransition = StateTransition.from(
     Field(0),
-    new ProvableOption({
-      isSome: Bool(true),
-      value: Field(0),
-    })
+    new Option(Bool(true), Field(0), Field)
   );
 
   it.each([
@@ -109,15 +97,15 @@ describe('toStateTransitionsHash', () => {
     ],
     [
       [someStateTransition],
-      '7067243248312463521220230733411703436580237248681301130001246160136823979683',
+      '12841542804403638489097503092490970035615082088155587790175618374946575398395',
     ],
     [
       [noneStateTransition, someStateTransition],
-      '28458214243854583778615841476196144689845750038158080909909060271139292999680',
+      '21335284518481733126227414071797863427052335154585218444540807622914895750726',
     ],
     [
       [someStateTransition, noneStateTransition],
-      '21526494869688446131100082736844562554912979238021219726622697559317856146482',
+      '9511943285469329402542938964164358206358558145971673073932102969821007441288',
     ],
   ])(
     'should calculate a hash of all provided state transitions',

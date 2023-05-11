@@ -5,12 +5,13 @@
 import { Bool, type Proof } from 'snarkyjs';
 import { singleton } from 'tsyringe';
 
-import type { ProvableStateTransition } from '../stateTransition/StateTransition.js';
+import type { StateTransition } from '../stateTransition/StateTransition.js';
 
 import type { MethodPublicInput } from './decorator.js';
 
 export class MethodExecutionResult<ResultValue> {
-  public stateTransitions: ProvableStateTransition[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public stateTransitions: StateTransition<any>[] = [];
 
   public status: Bool = Bool(true);
 
@@ -34,7 +35,7 @@ export class MethodExecutionContext<ResultValue> {
     public result: MethodExecutionResult<ResultValue> = new MethodExecutionResult()
   ) {}
 
-  public addStateTransition(stateTransition: ProvableStateTransition) {
+  public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
     this.result.stateTransitions.push(stateTransition);
   }
 

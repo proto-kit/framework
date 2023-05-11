@@ -3,11 +3,20 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 
 import { Mixin } from 'ts-mixer';
-import { Bool, Circuit, Field, type FlexibleProvablePure } from 'snarkyjs';
+import {
+  Bool,
+  Circuit,
+  Field,
+  UInt64,
+  type FlexibleProvablePure,
+} from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import { Option } from '../option/Option.js';
-import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
+import {
+  ProvableStateTransition,
+  StateTransition,
+} from '../stateTransition/StateTransition.js';
 import type { Path } from '../path/Path.js';
 import { MethodExecutionContext } from '../method/MethodExecutionContext.js';
 import type { Chain, RuntimeModules } from '../chain/Chain.js';
@@ -87,14 +96,10 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
 
   public get(): Option<Value> {
     const option = this.witnessState();
-    const provableOption = option.toProvable();
 
     this.hasPathOrFail();
 
-    const stateTransition = ProvableStateTransition.from(
-      this.path,
-      provableOption
-    );
+    const stateTransition = StateTransition.from(this.path, option);
 
     container
       .resolve(MethodExecutionContext)
@@ -105,19 +110,16 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
 
   public set(value: Value) {
     // link the transition to the current state
-    const provableFromOption = this.witnessState().toProvable();
-    const provableToOption = Option.from(
-      Bool(true),
-      value,
-      this.valueType
-    ).toProvable();
+    const fromOption = this.witnessState();
+    const toOption = Option.from(Bool(true), value, this.valueType);
 
     this.hasPathOrFail();
 
-    const stateTransition = ProvableStateTransition.fromTo(
+    const stateTransition = StateTransition.fromTo(
       this.path,
-      provableFromOption,
-      provableToOption
+      fromOption,
+      toOption,
+      value
     );
 
     container

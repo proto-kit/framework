@@ -4,11 +4,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-import { Bool, Field, isReady, Struct } from 'snarkyjs';
+import { Bool, Field, Struct } from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
-import { ProvableStateTransition } from '../stateTransition/StateTransition.js';
+import {
+  ProvableStateTransition,
+  type StateTransition,
+} from '../stateTransition/StateTransition.js';
 import { HashList } from '../utils/HashList.js';
 
 import { MethodExecutionContext } from './MethodExecutionContext.js';
@@ -57,11 +60,13 @@ export function runInContext(
 }
 
 export function toStateTransitionsHash(
-  stateTransitions: ProvableStateTransition[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  stateTransitions: StateTransition<any>[]
 ) {
   const stateTransitionsHashList = HashList.fromType(ProvableStateTransition);
 
   return stateTransitions
+    .map((stateTransition) => stateTransition.toProvable())
     .reduce(
       (allStateTransitionsHashList, stateTransition) =>
         allStateTransitionsHashList.push(stateTransition),

@@ -1,7 +1,7 @@
 /* eslint-disable new-cap */
 /* eslint-disable import/prefer-default-export */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-import { Field, type FlexibleProvablePure, Poseidon } from 'snarkyjs';
+import { Field, type FlexibleProvablePure, Poseidon, Circuit } from 'snarkyjs';
 
 export class HashList<Value> {
   public static fromType<Value>(valueType: FlexibleProvablePure<Value>) {
