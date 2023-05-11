@@ -73,7 +73,6 @@ export class MethodExecutionContext<ResultValue> {
    */
   public setProve(prove: () => Promise<Proof<MethodPublicInput>>) {
     this.result.prove = prove;
-    console.log('setProve', this.methods, this.result);
   }
 
   /**

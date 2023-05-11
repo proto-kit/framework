@@ -1,7 +1,14 @@
 /* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/naming-convention */
 import 'reflect-metadata';
-import { Field, Poseidon, PrivateKey, PublicKey, UInt64 } from 'snarkyjs';
+import {
+  Circuit,
+  Field,
+  Poseidon,
+  PrivateKey,
+  PublicKey,
+  UInt64,
+} from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import type { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
@@ -72,12 +79,12 @@ describe('balances', () => {
     });
 
     // eslint-disable-next-line max-statements
-    it.skip('should compile and prove a method execution', async () => {
+    it('should compile and prove a method execution', async () => {
       expect.assertions(3);
 
       const executionContext = container.resolve(MethodExecutionContext);
       const expectedStateTransitionsHash =
-        '7497547498540883824706737360758356065880487193468389816528185336915078444781';
+        '14921939452604128385823686416408232294744525422028096501361950385283288751766';
       const expectedStatus = true;
 
       chain.enableProofs();
