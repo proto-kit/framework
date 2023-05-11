@@ -75,7 +75,7 @@ describe('balances', () => {
     beforeAll(createChain);
 
     afterAll(() => {
-      chain.disableProofs();
+      chain.setProofsEnabled(false);
     });
 
     // eslint-disable-next-line max-statements
@@ -87,7 +87,8 @@ describe('balances', () => {
         '14921939452604128385823686416408232294744525422028096501361950385283288751766';
       const expectedStatus = true;
 
-      chain.enableProofs();
+      chain.setProofsEnabled(true);
+      chain.precompile().toPretty();
       await chain.compile();
 
       balances.getTotalSupply();

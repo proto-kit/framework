@@ -151,20 +151,6 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
   }
 
   /**
-   * Enables proofs
-   */
-  public enableProofs() {
-    this.areProofsEnabled = true;
-  }
-
-  /**
-   * Disables proofs
-   */
-  public disableProofs() {
-    this.areProofsEnabled = false;
-  }
-
-  /**
    * Sets if proofs are enabled or not
    * @param areProofsEnabled
    */
@@ -263,13 +249,14 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
       }
       const zkProgramAnalysis = this.program.analyzeMethods();
       return Object.keys(sortedMethods).map((methodName, index) => {
-        const { rows } = zkProgramAnalysis[index];
+        const { rows, gates } = zkProgramAnalysis[index];
         const { privateInputs: inputs } = sortedMethods[methodName];
         return {
           methodName,
 
           analysis: {
             rows,
+            gates,
             inputs,
           },
         };
@@ -290,7 +277,8 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
             // eslint-disable-next-line no-console
             console.log(`
 Method: ${methodName}
-Rows: ${methodAnalysis.rows}
+Rows: ${methodAnalysis.rows},
+Gates: ${methodAnalysis.gates.length}
 Inputs: [${inputs.join(', ')}]
 `);
           }
@@ -314,7 +302,7 @@ Inputs: [${inputs.join(', ')}]
     }
     const { areProofsEnabled, program } = this;
 
-    this.disableProofs();
+    this.setProofsEnabled(false);
     const artifact = await program.compile();
 
     this.setProofsEnabled(areProofsEnabled);
