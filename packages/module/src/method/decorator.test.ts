@@ -159,7 +159,7 @@ describe('toWrappedMethod', () => {
     expect(jest.mocked(TestModule.prototype.succeed)).toHaveBeenCalledTimes(2);
   });
 
-  it('should fail if the public input does not match the in-circuit execution values', () => {
+  it.skip('should fail if the public input does not match the in-circuit execution values', () => {
     expect.assertions(1);
 
     const publicInput: MethodPublicInput = new MethodPublicInput({

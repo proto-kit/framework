@@ -11,13 +11,14 @@ import { MethodExecutionContext } from './MethodExecutionContext.js';
  * execution status if it has previously failed at least once within the
  * same method execution context.
  *
- * @param boolean - Result of the assertion made about the execution status
+ * @param condition - Result of the assertion made about the execution status
  * @param message - Optional message describing the prior status
  */
-export function assert(boolean: Bool, message?: string) {
+export function assert(condition: Bool, message?: string) {
   const executionContext = container.resolve(MethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
-  const status = Circuit.if(previousStatus, boolean, previousStatus);
+  const status = Circuit.if(previousStatus, condition, previousStatus);
+  // const status = previousStatus.and(condition);
   executionContext.setStatus(status);
   executionContext.setStatusMessage(message);
 }
