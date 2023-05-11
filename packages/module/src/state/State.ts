@@ -46,11 +46,26 @@ export class WithChain {
   }
 }
 
+/**
+ * Utilities for runtime module state, such as get/set
+ */
 export class State<Value> extends Mixin(WithPath, WithChain) {
+  /**
+   * Creates a new state wrapper for the provided value type.
+   *
+   * @param valueType - Type of value to be stored (e.g. UInt64, Struct, ...)
+   * @returns New state for the given value type.
+   */
   public static from<Value>(valueType: FlexibleProvablePure<Value>) {
     return new State<Value>(valueType);
   }
 
+  /**
+   * Computes a dummy value for the given value type.
+   *
+   * @param valueType - Value type to generate the dummy value for
+   * @returns Dummy value for the given value type
+   */
   public static dummyValue<Value>(
     valueType: FlexibleProvablePure<Value>
   ): Value {
@@ -65,6 +80,12 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
     super();
   }
 
+  /**
+   * Provides an in-circuit witness for the current state representation,
+   * and constructs an Option out of it.
+   *
+   * @returns Optional value of the current state
+   */
   private witnessState() {
     // get the value from storage, or return a dummy value instead
     const value = Circuit.witness(this.valueType, () => {
@@ -94,6 +115,12 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
     return Option.from(isSome, value, this.valueType);
   }
 
+  /**
+   * Retrieves the current state and creates a state transition
+   * anchoring the use of the current state value in the circuit.
+   *
+   * @returns Option representation of the current state.
+   */
   public get(): Option<Value> {
     const option = this.witnessState();
 
@@ -108,6 +135,17 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
     return option;
   }
 
+  /**
+   * Sets a new state value by creating a state transition from
+   * the current value to the newly set value.
+   *
+   * The newly set value isn't available via state.get(), since the
+   * state transitions are not applied within the same circuit.
+   * You can however store and access your new value in
+   * a separate circuit variable.
+   *
+   * @param value - Value to be set as the current state
+   */
   public set(value: Value) {
     // link the transition to the current state
     const fromOption = this.witnessState();

@@ -7,6 +7,11 @@ import { Field, Struct } from 'snarkyjs';
 
 import { Option, ProvableOption } from '../option/Option.js';
 
+/**
+ * Provable representation of a State Transition, used to
+ * normalize state transitions of various value types for
+ * the state transition circuit.
+ */
 export class ProvableStateTransition extends Struct({
   path: Field,
 
@@ -17,6 +22,10 @@ export class ProvableStateTransition extends Struct({
   to: ProvableOption,
 }) {}
 
+/**
+ * Generic state transition that constraints the current method circuit
+ * to external state, by providing a state anchor.
+ */
 export class StateTransition<Value> {
   public static from<Value>(path: Field, from: Option<Value>) {
     return new StateTransition(path, from, Option.none());

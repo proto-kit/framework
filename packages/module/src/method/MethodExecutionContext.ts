@@ -35,26 +35,53 @@ export class MethodExecutionContext<ResultValue> {
     public result: MethodExecutionResult<ResultValue> = new MethodExecutionResult()
   ) {}
 
+  /**
+   * Adds an in-method generated state transition to the current context
+   * @param stateTransition - State transition to add to the context
+   */
   public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
     this.result.stateTransitions.push(stateTransition);
   }
 
+  /**
+   * @param message - Status message to acompany the current status
+   */
   public setStatusMessage(message?: string) {
     this.result.statusMessage ??= message;
   }
 
+  /**
+   * @param status - Execution status of the current method
+   */
   public setStatus(status: Bool) {
     this.result.status = status;
   }
 
+  /**
+   * @param value = Return value of the executed method
+   */
   public setValue(value: ResultValue) {
     this.result.value = value;
   }
 
+  /**
+   * Adds a method prover to the current execution context,
+   * which can be collected and ran asynchronously at a later point in time.
+   *
+   * @param prove - Prover function to be ran later,
+   * when the method execution needs to be proven
+   */
   public setProve(prove: () => Promise<Proof<MethodPublicInput>>) {
     this.result.prove = prove;
+    console.log('setProve', this.methods, this.result);
   }
 
+  /**
+   * Adds a method to the method execution stack, reseting the execution context
+   * in a case a new top-level (non nested) method call is made.
+   *
+   * @param methodName - Name of the method being captured in the context
+   */
   public beforeMethod(methodName: string) {
     if (this.isFinished) {
       this.result = new MethodExecutionResult();
@@ -62,6 +89,11 @@ export class MethodExecutionContext<ResultValue> {
     this.methods.push(methodName);
   }
 
+  /**
+   * Removes the latest method from the execution context stack,
+   * keeping track of the amount of 'unfinished' methods. Allowing
+   * for the context to distinguish between top-level and nested method calls.
+   */
   public afterMethod() {
     this.methods.pop();
   }
@@ -74,6 +106,9 @@ export class MethodExecutionContext<ResultValue> {
     return this.methods.length === 0;
   }
 
+  /**
+   * @returns - Current execution context state
+   */
   public current() {
     return {
       isFinished: this.isFinished,
@@ -81,6 +116,9 @@ export class MethodExecutionContext<ResultValue> {
     };
   }
 
+  /**
+   * Manually clears/resets the execution context
+   */
   public clear() {
     this.result = new MethodExecutionResult();
   }
