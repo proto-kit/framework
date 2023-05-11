@@ -43,30 +43,39 @@ export type ResolvedSequencerConfiguration = BasicRuntimeConfiguration & {
 type UnionToIntersection<U> =
   (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never
 
-type ModuleDef<Config> = { [key: string]: Module<Config> }
-
 class Builder<
-  T extends { [key: string]: Module<never> },
+  T extends { [key: string]: Module<unknown> },
   C extends UnionToIntersection<{ [key in keyof T]: T[key] extends Module<infer R> ? R : any }>
 >{
 
-  constructor(a: T) {
+  constructor(private modules: T) {
   }
 
   c: C
 
-  pushConfig(c: C){
+  public pushConfig(c: C){
     this.c = c
   }
 
-  getConfig<T extends keyof C>(key: T) : C[T] {
+  public generateDefaultConfig() : C {
+    let obj = {};
+    for (let key in this.modules) {
+
+      let defaults = this.modules[key].defaultConfig();
+      Object.assign(obj, defaults)
+
+    }
+    return obj as C;
+  }
+
+  public getConfig<T extends keyof C>(key: T) : C[T] {
     return this.c[key]
   }
 
 }
 
 type Config1 = {
-  a: string
+  a?: string
 }
 
 type Config2 = {
@@ -74,16 +83,21 @@ type Config2 = {
 }
 
 class Module<Config> {
-  constructor(c: Config) {
+  constructor(private c: Config) {
+  }
+
+  defaultConfig() : Config {
+    return this.c
   }
 }
 
 let arr = {
-  "one": new Module<Config1>({ "a": "as" }),
+  "one": new Module<Config1>({}),
   "two": new Module<Config2>({ "b": 123 })
 }
 
 let b = new Builder(arr)
+
 b.pushConfig({
   "two": {
     b: 123,
