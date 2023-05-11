@@ -6,6 +6,9 @@ export interface StateService {
   set: (key: Field, value: Field[]) => void;
 }
 
+/**
+ * Naive implementation of a StateService for testing purposes
+ */
 export class InMemoryStateService implements StateService {
   public values: Record<string, Field[]> = {};
 

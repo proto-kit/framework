@@ -176,6 +176,7 @@ export function runWithCommitments(
       // eslint-disable-next-line @typescript-eslint/return-await, @typescript-eslint/no-unsafe-argument
       await Reflect.apply(provableMethod, this, [methodPublicInput, ...args]);
 
+    console.log('setting prover', methodName, prove);
     executionContext.setProve(prove);
   }
 

@@ -64,7 +64,7 @@ describe('balances', () => {
     );
   }
 
-  describe('compile', () => {
+  describe('compile and prove', () => {
     beforeAll(createChain);
 
     afterAll(() => {
@@ -72,7 +72,7 @@ describe('balances', () => {
     });
 
     // eslint-disable-next-line max-statements
-    it.skip('should compile', async () => {
+    it.skip('should compile and prove a method execution', async () => {
       expect.assertions(3);
 
       const executionContext = container.resolve(MethodExecutionContext);
@@ -91,8 +91,13 @@ describe('balances', () => {
       const proof = await prove?.();
 
       // eslint-disable-next-line jest/no-conditional-in-test
-      if (!proof || !chain.program) {
-        throw new Error('Program compilation or proof generation has failed');
+      if (!chain.program) {
+        throw new Error('Program compilation has failed');
+      }
+
+      // eslint-disable-next-line jest/no-conditional-in-test
+      if (!proof) {
+        throw new Error('Proof generation has failed');
       }
 
       const verified = await chain.program.verify(proof);

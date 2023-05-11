@@ -6,6 +6,10 @@ import type { RuntimeModule } from '../runtime/RuntimeModule.js';
 
 import type { State } from './State.js';
 
+/**
+ * Decorates a runtime module property as state, passing down some
+ * underlying values to improve developer experience.
+ */
 export function state() {
   return (target: RuntimeModule, propertyKey: string) => {
     // eslint-disable-next-line @typescript-eslint/init-declarations

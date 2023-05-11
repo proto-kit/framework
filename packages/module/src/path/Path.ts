@@ -5,7 +5,16 @@
 /* eslint-disable import/prefer-default-export */
 import { Field, type FlexibleProvablePure, Poseidon } from 'snarkyjs';
 
+/**
+ * Helps manage path (key) identifiers for key-values in trees.
+ */
 export class Path {
+  /**
+   * Encodes a JS string as a Field
+   *
+   * @param value
+   * @returns Field representation of the provided value
+   */
   public static toField(value: string) {
     const fields = value
       .split('')
@@ -16,6 +25,13 @@ export class Path {
     return Poseidon.hash(fields);
   }
 
+  /**
+   * Encodes a class name and its property name into a Field
+   *
+   * @param className
+   * @param propertyKey
+   * @returns Field representation of class name + property name
+   */
   public static fromProperty(className: string, propertyKey: string): Field {
     return Poseidon.hash([
       Path.toField(className),
@@ -24,6 +40,14 @@ export class Path {
     ]);
   }
 
+  /**
+   * Encodes an existing path with the provided key into a single Field.
+   *
+   * @param path
+   * @param keyType
+   * @param key
+   * @returns Field representation of the leading path + the provided key.
+   */
   public static fromKey<KeyType>(
     path: Field,
     keyType: FlexibleProvablePure<KeyType>,
