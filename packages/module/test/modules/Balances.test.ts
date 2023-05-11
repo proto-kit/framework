@@ -117,8 +117,11 @@ describe('balances', () => {
         const executionContext = container.resolve(MethodExecutionContext);
         balances.getTotalSupply();
 
-        // eslint-disable-next-line prefer-destructuring
-        stateTransitions = executionContext.current().result.stateTransitions;
+        stateTransitions = executionContext
+          .current()
+          .result.stateTransitions.map((stateTransition) =>
+            stateTransition.toProvable()
+          );
       });
 
       it('should return a single state transition', () => {
@@ -167,7 +170,11 @@ describe('balances', () => {
         balances.setTotalSupply();
 
         // eslint-disable-next-line prefer-destructuring
-        stateTransitions = executionContext.current().result.stateTransitions;
+        stateTransitions = executionContext
+          .current()
+          .result.stateTransitions.map((stateTransition) =>
+            stateTransition.toProvable()
+          );
       });
 
       it('should return a single state transition', () => {

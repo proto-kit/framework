@@ -1,3 +1,5 @@
+/* eslint-disable import/no-unused-modules */
+/* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 /* eslint-disable new-cap */
 /* eslint-disable import/prefer-default-export */
@@ -13,20 +15,36 @@ export class ProvableStateTransition extends Struct({
 
   // must be ignored if `None`
   to: ProvableOption,
-}) {
-  public static from(path: Field, from: ProvableOption) {
-    return new ProvableStateTransition({
-      path,
-      from,
-      to: Option.none().toProvable(),
-    });
+}) {}
+
+export class StateTransition<Value> {
+  public static from<Value>(path: Field, from: Option<Value>) {
+    return new StateTransition(path, from, Option.none());
   }
 
-  public static fromTo(path: Field, from: ProvableOption, to: ProvableOption) {
+  // eslint-disable-next-line max-params
+  public static fromTo<Value>(
+    path: Field,
+    from: Option<Field> | Option<Value>,
+    to: Option<Field> | Option<Value>,
+    toValue: Value
+  ) {
+    return new StateTransition(path, from, to, toValue);
+  }
+
+  // eslint-disable-next-line max-params
+  public constructor(
+    public path: Field,
+    public from: Option<Field> | Option<Value>,
+    public to: Option<Field> | Option<Value>,
+    public toValue?: Value
+  ) {}
+
+  public toProvable(): ProvableStateTransition {
     return new ProvableStateTransition({
-      path,
-      from,
-      to,
+      path: this.path,
+      from: this.from.toProvable(),
+      to: this.to.toProvable(),
     });
   }
 }
