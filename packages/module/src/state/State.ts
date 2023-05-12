@@ -13,9 +13,8 @@ import { container } from 'tsyringe';
 
 import { Option } from '@yab/protocol';
 import {
-  StateTransition,
+  StateTransition, type Path
 } from '@yab/protocol';
-import type { Path } from '@yab/protocol';
 import { MethodExecutionContext } from '../method/MethodExecutionContext.js';
 import type { Chain, RuntimeModules } from '../chain/Chain.js';
 

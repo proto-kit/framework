@@ -1,12 +1,8 @@
-import { Field, isReady, PrivateKey, shutdown, Signature, UInt64 } from "snarkyjs";
+import { Field, PrivateKey, Signature, UInt64 } from "snarkyjs";
 import { CompressedSignature } from "../mempool/CompressedSignature.js";
 import { UnsignedTransaction } from "../mempool/PendingTransaction.js";
 
 describe("memPool", () => {
-
-  beforeAll(async () => {
-    await isReady;
-  });
 
   describe("pendingTransaction", () => {
 
@@ -45,10 +41,6 @@ describe("memPool", () => {
       expect(sig2.verify(pk.toPublicKey(), message).toBoolean()).toBe(true);
 
     });
-  });
-
-  afterAll(() => {
-    setTimeout(shutdown, 10);
   });
 
 });

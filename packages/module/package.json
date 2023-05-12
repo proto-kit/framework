@@ -27,7 +27,7 @@
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
-    "snarkyjs": "^0.9.8",
+    "snarkyjs": "0.10.0",
     "tsyringe": "^4.7.0"
   }
 }

@@ -1,4 +1,5 @@
 import { Bool, Field, SelfProof, Struct } from "snarkyjs";
+import { ReturnType } from "../../Utils.js";
 
 export class AppChainProofPublicInput extends Struct({
   transactionHash: Field,
@@ -7,5 +8,5 @@ export class AppChainProofPublicInput extends Struct({
 }) {
 }
 
-export class AppChainProof extends SelfProof<void, AppChainProofPublicInput> {
+export class AppChainProof extends SelfProof<AppChainProofPublicInput> {
 }

@@ -1,17 +1,18 @@
-import { Bool, Field } from "snarkyjs";
+import "reflect-metadata"
+import { Bool, Field,  } from "snarkyjs";
 import { RollupMerkleTree, type RollupMerkleWitness } from "../prover/utils/RollupMerkleTree.js";
+import { Option, ProvableStateTransition, DefaultProvableHashList } from "@yab/protocol";
 import { container } from "tsyringe";
 import {
   StateTransitionProver
 } from "../prover/statetransition/StateTransitionProver.js";
 import { MemoryMerkleTreeStorage } from "../prover/utils/MemoryMerkleTreeStorage.js";
-import { DefaultProvableHashList, Option, ProvableStateTransition } from "@yab/protocol";
 import type { StateTransitionWitnessProvider } from "../prover/statetransition/StateTransitionWitnessProvider.js";
-import { StateTransitionProvableBatch } from "../prover/statetransition/StateTransitionProvableBatch.js";
+import { StateTransitionProvableBatch } from "../../../protocol/src/model/StateTransitionProvableBatch.js";
 
 describe("stateTransition", () => {
 
-  async function checkTransitions(tree: RollupMerkleTree, transitions: (typeof ProvableStateTransition)[]) {
+  async function checkTransitions(tree: RollupMerkleTree, transitions: ProvableStateTransition[]) {
 
     const batch = StateTransitionProvableBatch.fromTransitions(transitions);
 
@@ -19,13 +20,13 @@ describe("stateTransition", () => {
     const temporaryTree = new RollupMerkleTree(tree.store.virtualize() as MemoryMerkleTreeStorage);
     const startRoot = temporaryTree.getRoot();
 
-    const hashList = new DefaultProvableHashList(Field);
+    const hashList = new DefaultProvableHashList(ProvableStateTransition);
 
     batch.batch.forEach(x => {
       if (x.to.isSome.toBoolean()) {
         temporaryTree.setLeaf(x.path.toBigInt(), x.to.value);
       }
-      hashList.push(x.hash());
+      hashList.push(x);
     });
 
     const endRoot = temporaryTree.getRoot();
@@ -54,7 +55,7 @@ describe("stateTransition", () => {
     const state = prover.applyTransitions(startRoot, Field(0), batch);
 
     expect(state.stateRoot).toEqual(endRoot);
-    expect(state.stateTransitions.commitment).toEqual(hashList.commitment);
+    expect(state.stateTransitionList.commitment).toEqual(hashList.commitment);
 
     await childContainer.dispose();
 
@@ -64,8 +65,8 @@ describe("stateTransition", () => {
 
     const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
 
-    tree.setLeaf(1n, Option.value(Field(1), Field).treeValue); // Is ignored because overwritten by first transition
-    tree.setLeaf(2n, Option.value(Field(5), Field).treeValue);
+    tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue); // Is ignored because overwritten by first transition
+    tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
 
     const transitions = [
       new ProvableStateTransition({
@@ -98,8 +99,8 @@ describe("stateTransition", () => {
 
     const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
 
-    tree.setLeaf(1n, Option.value(Field(1), Field).treeValue); // Is ignored because overwritten by first transition
-    tree.setLeaf(2n, Option.value(Field(5), Field).treeValue);
+    tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue); // Is ignored because overwritten by first transition
+    tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
 
     const transitions = [
       new ProvableStateTransition({ // success
