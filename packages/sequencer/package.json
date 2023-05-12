@@ -19,7 +19,7 @@
   },
   "peerDependencies": {
     "tsyringe": "^4.7.0",
-    "snarkyjs": "^0.10.1"
+    "snarkyjs": "^0.9.8"
   },
   "dependencies": {
     "@types/express": "^4.17.17",
@@ -28,8 +28,6 @@
     "graphql": "15.3.0",
     "graphql-yoga": "^3.9.1",
     "reflect-metadata": "^0.1.13",
-    "type-graphql": "^1.1.1",
-    "@yab/module": "*",
-    "@yab/protocol": "*"
+    "type-graphql": "^1.1.1"
   }
 }

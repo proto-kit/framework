@@ -10,7 +10,7 @@ import {
   Struct,
 } from 'snarkyjs';
 
-export const ProvableOption = class ProvableOption extends Struct({
+export class ProvableOption extends Struct({
   isSome: Bool,
   value: Field,
 }) {}
@@ -33,6 +33,20 @@ export class Option<Value> {
     valueType: FlexibleProvablePure<Value>
   ) {
     return new Option(isSome, value, valueType);
+  }
+
+  /**
+   * Creates a new Option from the provided parameters
+   *
+   * @param value
+   * @param valueType
+   * @returns New option from the provided parameters.
+   */
+  public static fromValue<Value>(
+    value: Value,
+    valueType: FlexibleProvablePure<Value>
+  ){
+    return this.from(Bool(true), value, valueType)
   }
 
   /**
