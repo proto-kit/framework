@@ -2,8 +2,9 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable import/no-unused-modules */
 /* eslint-disable new-cap */
-import { Bool, type Proof } from 'snarkyjs';
+import { Bool, Field, type Proof } from 'snarkyjs';
 import { singleton } from 'tsyringe';
+import last from 'lodash/last';
 
 import type { StateTransition } from '../stateTransition/StateTransition.js';
 
@@ -83,7 +84,7 @@ export class MethodExecutionContext<ResultValue> {
    */
   public beforeMethod(methodName: string) {
     if (this.isFinished) {
-      this.result = new MethodExecutionResult();
+      this.clear();
     }
     this.methods.push(methodName);
   }
@@ -120,5 +121,31 @@ export class MethodExecutionContext<ResultValue> {
    */
   public clear() {
     this.result = new MethodExecutionResult();
+  }
+
+  /**
+   * Looks up the last state transition for the given path,
+   * and returns its value.
+   *
+   * @param path - Path where to look up the state
+   * @returns Last set value for path
+   */
+  public getTransientState(path: Field): Field[] | undefined {
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const lastKnown = last(
+      this.result.stateTransitions.filter(
+        (stateTransition) => stateTransition.path.toString() === path.toString()
+      )
+    );
+
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    if (!lastKnown) {
+      return undefined;
+    }
+
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    return lastKnown.to.valueType.toFields(lastKnown.to.value);
   }
 }

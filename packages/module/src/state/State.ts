@@ -92,7 +92,12 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
       this.hasChainOrFail();
       this.hasPathOrFail();
 
-      const fields = this.chain.config.state.get(this.path);
+      let fields = container
+        .resolve(MethodExecutionContext)
+        .getTransientState(this.path);
+
+      fields ??= this.chain.config.state.get(this.path);
+
       if (fields) {
         // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -107,7 +112,11 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
       this.hasChainOrFail();
       this.hasPathOrFail();
 
-      const fields = this.chain.config.state.get(this.path);
+      let fields = container
+        .resolve(MethodExecutionContext)
+        .getTransientState(this.path);
+
+      fields ??= this.chain.config.state.get(this.path);
 
       return Bool(fields !== undefined);
     });
@@ -160,8 +169,8 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
       value
     );
 
-    container
-      .resolve(MethodExecutionContext)
-      .addStateTransition(stateTransition);
+    const executionContext = container.resolve(MethodExecutionContext);
+
+    executionContext.addStateTransition(stateTransition);
   }
 }

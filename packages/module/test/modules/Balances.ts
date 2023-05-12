@@ -40,4 +40,11 @@ export class Balances extends RuntimeModule {
   public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
   }
+
+  @method()
+  public transient(): Option<UInt64> {
+    this.totalSupply.get();
+    this.totalSupply.set(UInt64.from(50));
+    return this.totalSupply.get();
+  }
 }
