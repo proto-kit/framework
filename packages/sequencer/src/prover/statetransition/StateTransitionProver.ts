@@ -1,22 +1,15 @@
-import type { ProvableStateTransition } from "./StateTransition.js";
 import { Circuit, Experimental, Field, Proof, SelfProof, Struct } from "snarkyjs";
-import { DefaultProvableMerkleList, ProvableHashList } from "@yab/protocol";
+import { DefaultProvableHashList, type ProvableHashList, ProvableStateTransition, StateTransitionProvableBatch } from "@yab/protocol";
 import { MerkleTreeUtils, RollupMerkleWitness } from "../utils/RollupMerkleTree.js";
 import type { Subclass, ZkProgramType } from "../../Utils.js";
 import { inject, injectable } from "tsyringe";
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
-import { StateTransitionProvableBatch } from "./StateTransitionProvableBatch.js";
 import { Constants } from "../../Constants.js";
 
-export type StateTransitionProverComputationState = {
-    stateTransitions: ProvableHashList<ProvableStateTransition>
-    stateRoot: Field
-}
-
-export class StateTransitionProverState extends Struct({
-    stateTransitionsHash: Field,
-    stateRoot: Field
-}){}
+type StateTransitionProverState = {
+    stateRoot: Field;
+    stateTransitionList: ProvableHashList<ProvableStateTransition>;
+};
 
 export class StateTransitionProverPublicInput extends Struct({
     fromStateTransitionsHash: Field,
@@ -31,31 +24,29 @@ export class StateTransitionProver {
 
     private readonly program = ((instance: StateTransitionProver) =>
         Experimental.ZkProgram({
-            publicInput: StateTransitionProverState,
-            publicOutput: StateTransitionProverState,
+            publicInput: StateTransitionProverPublicInput,
 
             methods: {
                 proveBatch: {
                     privateInputs: [Field, StateTransitionProvableBatch],
 
                     method(
-                        publicInput: StateTransitionProverState,
+                        publicInput: StateTransitionProverPublicInput,
                         fromStateRoot: Field,
-                        batch: StateTransitionProvableBatch
-                    ) : StateTransitionProverState {
-                        return instance.runBatch(publicInput, fromStateRoot, batch);
+                        batch: StateTransitionProvableBatch) {
+                        instance.runBatch(publicInput, fromStateRoot, batch);
                     },
                 },
 
                 merge: {
-                    privateInputs: [SelfProof<StateTransitionProverState, StateTransitionProverState>, SelfProof<StateTransitionProverState, StateTransitionProverState>],
+                    privateInputs: [SelfProof<StateTransitionProverPublicInput>, SelfProof<StateTransitionProverPublicInput>],
 
                     method(
-                        publicInput: StateTransitionProverState,
-                        proof1: SelfProof<StateTransitionProverState, StateTransitionProverState>,
-                        proof2: SelfProof<StateTransitionProverState, StateTransitionProverState>
-                    ) : StateTransitionProverState {
-                        return instance.merge(publicInput, proof1, proof2);
+                        publicInput: StateTransitionProverPublicInput,
+                        proof1: SelfProof<StateTransitionProverPublicInput>,
+                        proof2: SelfProof<StateTransitionProverPublicInput>
+                    ) {
+                        instance.merge(publicInput, proof1, proof2);
                     },
                 },
             },
@@ -71,10 +62,10 @@ export class StateTransitionProver {
         stateRoot: Field,
         stateTransitionCommitmentFrom: Field,
         transitionBatch: StateTransitionProvableBatch
-    ): StateTransitionProverComputationState {
-        const state: StateTransitionProverComputationState = {
+    ): StateTransitionProverState {
+        const state: StateTransitionProverState = {
             stateRoot,
-            stateTransitions: new DefaultProvableMerkleList(stateTransitionCommitmentFrom),
+            stateTransitionList: new DefaultProvableHashList(ProvableStateTransition, stateTransitionCommitmentFrom),
         };
         const transitions = transitionBatch.batch;
 
@@ -85,7 +76,7 @@ export class StateTransitionProver {
         return state;
     }
 
-    public applyTransition(state: StateTransitionProverComputationState, transition: ProvableStateTransition, index = 0) {
+    public applyTransition(state: StateTransitionProverState, transition: ProvableStateTransition, index = 0) {
         const treeWitness = Circuit.witness(RollupMerkleWitness, () => this.witnessProvider.getWitness(transition.path));
 
         const membershipValid = MerkleTreeUtils.checkMembership(treeWitness, state.stateRoot, transition.path, transition.from.value);
@@ -94,52 +85,46 @@ export class StateTransitionProver {
         const newRoot = MerkleTreeUtils.computeRoot(treeWitness, transition.to.value);
         state.stateRoot = Circuit.if(transition.to.isSome, newRoot, state.stateRoot);
 
-        state.stateTransitions.push(transition);
+        state.stateTransitionList.push(transition);
     }
 
-    public runBatch(publicInput: StateTransitionProverState, fromStateRoot: Field, batch: StateTransitionProvableBatch) : StateTransitionProverState {
+    public runBatch(publicInput: StateTransitionProverPublicInput, fromStateRoot: Field, batch: StateTransitionProvableBatch) {
+        publicInput.fromStateRoot.assertEquals(fromStateRoot, "From state-root not matching");
 
-        publicInput.stateRoot.assertEquals(fromStateRoot, "From state-root not matching");
+        const result = this.applyTransitions(fromStateRoot, publicInput.fromStateTransitionsHash, batch);
 
-        const computationState = this.applyTransitions(fromStateRoot, publicInput.stateTransitionsHash, batch)
-        return new StateTransitionProverState({
-            stateRoot: computationState.stateRoot,
-            stateTransitionsHash: computationState.stateTransitions.commitment
-        })
+        publicInput.toStateRoot.assertEquals(result.stateRoot, "Resulting state-root not matching");
+        publicInput.toStateTransitionsHash.assertEquals(
+            result.stateTransitionList.commitment,
+            "Resulting state transition commitment not matching"
+        );
     }
 
     public merge(
-        publicInput: StateTransitionProverState,
-        proof1: SelfProof<StateTransitionProverState, StateTransitionProverState>,
-        proof2: SelfProof<StateTransitionProverState, StateTransitionProverState>
-    ) : StateTransitionProverState {
-
+        publicInput: StateTransitionProverPublicInput,
+        proof1: SelfProof<StateTransitionProverPublicInput>,
+        proof2: SelfProof<StateTransitionProverPublicInput>
+    ) {
         // Check state
-        publicInput.stateRoot.assertEquals(proof1.publicInput.stateRoot, "StateRoot step 1");
-        proof1.publicOutput.stateRoot.assertEquals(proof2.publicInput.stateRoot, "StateRoot step 2");
-        const resultingStateRoot = proof2.publicOutput.stateRoot;
+        publicInput.fromStateRoot.assertEquals(proof1.publicInput.fromStateRoot, "StateRoot step 1");
+        proof1.publicInput.toStateRoot.assertEquals(proof2.publicInput.fromStateRoot, "StateRoot step 2");
+        proof2.publicInput.toStateRoot.assertEquals(publicInput.toStateRoot, "StateRoot step 3");
 
         // Check ST list
-        publicInput.stateTransitionsHash.assertEquals(proof1.publicInput.stateTransitionsHash, "ST commitment step 1");
-        proof1.publicOutput.stateTransitionsHash.assertEquals(proof2.publicInput.stateTransitionsHash, "ST commitment step 2");
-        const resultingStateTransitionsHash = proof2.publicOutput.stateTransitionsHash
-
-        return new StateTransitionProverState({
-            stateRoot: resultingStateRoot,
-            stateTransitionsHash: resultingStateTransitionsHash
-        })
+        publicInput.fromStateTransitionsHash.assertEquals(proof1.publicInput.fromStateTransitionsHash, "ST commitment step 1");
+        proof1.publicInput.toStateTransitionsHash.assertEquals(proof2.publicInput.fromStateTransitionsHash, "ST commitment step 2");
+        proof2.publicInput.toStateTransitionsHash.assertEquals(publicInput.toStateTransitionsHash, "ST commitment step 3");
     }
 
-    public getZkProgram(): ZkProgramType<StateTransitionProverState, StateTransitionProverState> {
+    public getZkProgram(): ZkProgramType<StateTransitionProverPublicInput> {
         return this.program;
     }
 
-    public getProofType(): Subclass<typeof Proof<StateTransitionProverState, StateTransitionProverState>> {
+    public getProofType(): Subclass<typeof Proof<StateTransitionProverPublicInput>> {
 
         return ((instance: StateTransitionProver) =>
-            class StateTransitionProof extends Proof<StateTransitionProverState, StateTransitionProverState> {
-                public static publicInputType = StateTransitionProverState;
-                public static publicOutput = StateTransitionProverState;
+            class StateTransitionProof extends Proof<StateTransitionProverPublicInput> {
+                public static publicInputType = StateTransitionProverPublicInput;
 
                 public static tag = () => instance.getZkProgram();
             }

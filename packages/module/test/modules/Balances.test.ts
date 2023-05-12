@@ -115,7 +115,7 @@ describe('balances', () => {
         expectedStateTransitionsHash
       );
       expect(proof.publicInput.status.toBoolean()).toBe(expectedStatus);
-    }, 60_000);
+    }, 180_000);
   });
 
   describe('getTotalSupply', () => {

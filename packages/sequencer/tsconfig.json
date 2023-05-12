@@ -7,5 +7,5 @@
     "strictPropertyInitialization": false
   },
   "include": ["./src/**/*.ts"],
-  "exclude": ["./dist/**/*.ts", "../../node_modules"]
+  "exclude": ["./dist/**/*.ts", "../../node_modules", "./**/*.test.ts"]
 }

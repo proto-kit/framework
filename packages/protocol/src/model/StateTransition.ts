@@ -19,7 +19,16 @@ export class ProvableStateTransition extends Struct({
 
   // must be ignored if `None`
   to: ProvableOption,
-}) {}
+}) {
+  public static dummy(): ProvableStateTransition {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    return new ProvableStateTransition({
+      path: Field(0),
+      from: Option.none().toProvable(),
+      to: Option.none().toProvable(),
+    })
+  }
+}
 
 /**
  * Generic state transition that constraints the current method circuit
@@ -55,4 +64,5 @@ export class StateTransition<Value> {
       to: this.to.toProvable(),
     });
   }
+
 }
