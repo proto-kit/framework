@@ -7,5 +7,5 @@ export class AppChainProofPublicInput extends Struct({
 }) {
 }
 
-export class AppChainProof extends SelfProof<AppChainProofPublicInput> {
+export class AppChainProof extends SelfProof<void, AppChainProofPublicInput> {
 }

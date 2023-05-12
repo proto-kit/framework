@@ -11,7 +11,7 @@ import { Option, ProvableOption } from "./Option.js";
  * normalize state transitions of various value types for
  * the state transition circuit.
  */
-export class ProvableStateTransition extends Struct({
+export const ProvableStateTransition = class ProvableStateTransition extends Struct({
   path: Field,
 
   // must be applied even if `None`

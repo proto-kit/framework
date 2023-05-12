@@ -1,19 +1,21 @@
 import { Circuit, Experimental, Field, type Proof, SelfProof, Struct } from "snarkyjs";
 import { injectable } from "tsyringe";
-import { StateTransitionProver, type StateTransitionProverPublicInput } from "../statetransition/StateTransitionProver.js";
-import { DefaultProvableMerkleList } from "../../../../protocol/src/utils/ProvableHashList.js";
+import {
+  StateTransitionProver,
+  type StateTransitionProverPublicInput,
+  StateTransitionProverState
+} from "../statetransition/StateTransitionProver.js";
+import { DefaultProvableHashList } from "@yab/protocol";
 import { AppChainProof } from "./AppChainProof.js";
 
-export type BlockProverState = {
+export type BlockProverComputationState = {
   stateRoot: Field;
-  transactionHash: Field;
+  transactionsHash: Field;
 };
 
-export class BlockProverPublicInput extends Struct({
-  fromTransactionsHash: Field, // TODO name it BundleHash?
-  toTransactionsHash: Field,
-  fromStateRoot: Field,
-  toStateRoot: Field,
+export class BlockProverState extends Struct({
+  transactionsHash: Field, // TODO name it BundleHash?
+  stateRoot: Field,
 }) {}
 
 @injectable()
@@ -27,17 +29,17 @@ export class BlockProver {
 
   public applyTransaction(
     state: BlockProverState,
-    stateProof: Proof<StateTransitionProverPublicInput>,
+    stateProof: Proof<StateTransitionProverState, StateTransitionProverState>,
     appProof: AppChainProof
   ): BlockProverState {
 
     const stateTo = { ...state }
 
     // Checks for the state- and appProof matching
-    stateProof.publicInput.fromStateTransitionsHash.assertEquals(Field(0), "StateProof not starting ST-commitment at zero");
+    stateProof.publicInput.stateTransitionsHash.assertEquals(Field(0), "StateProof not starting ST-commitment at zero");
 
-    appProof.publicInput.stateTransitionsHash.assertEquals(
-      stateProof.publicInput.toStateTransitionsHash,
+    appProof.publicOutput.stateTransitionsHash.assertEquals(
+      stateProof.publicOutput.stateTransitionsHash,
       "StateTransition list commitments are not equal"
     );
 
@@ -45,66 +47,66 @@ export class BlockProver {
     stateProof.verify();
 
     // Apply state if status success
-    state.stateRoot.assertEquals(stateProof.publicInput.fromStateRoot, "fromStateRoot not matching");
+    state.stateRoot.assertEquals(stateProof.publicInput.stateRoot, "fromStateRoot not matching");
     stateTo.stateRoot = Circuit.if(
-      appProof.publicInput.status,
-      stateProof.publicInput.toStateRoot,
-      stateProof.publicInput.fromStateRoot
+      appProof.publicOutput.status,
+      stateProof.publicOutput.stateRoot,
+      stateProof.publicInput.stateRoot
     );
 
     // Append tx to transaction list
-    const transactionList = new DefaultProvableMerkleList(state.transactionHash);
+    const transactionList = new DefaultProvableHashList(Field, state.transactionsHash);
 
-    const { transactionHash } = appProof.publicInput;
+    const { transactionHash } = appProof.publicOutput;
     transactionList.push(transactionHash);
 
-    stateTo.transactionHash = transactionList.commitment;
+    stateTo.transactionsHash = transactionList.commitment;
 
     return stateTo;
   }
 
-  public proveTransaction(
-    publicInput: BlockProverPublicInput,
-    stateProof: Proof<StateTransitionProverPublicInput>,
-    appProof: AppChainProof
-  ) {
-
-    const state: BlockProverState = {
-      transactionHash: publicInput.fromTransactionsHash,
-      stateRoot: publicInput.fromStateRoot
-    };
-
-    this.applyTransaction(state, stateProof, appProof);
-
-    publicInput.toStateRoot.assertEquals(state.stateRoot, "toStateRoot not matching");
-    publicInput.toTransactionsHash.assertEquals(state.transactionHash, "toTransactionsHash does not match with computed value");
-
-  }
+  // public proveTransaction(
+  //   publicInput: BlockProverPublicInput,
+  //   stateProof: Proof<StateTransitionProverPublicInput>,
+  //   appProof: AppChainProof
+  // ) {
+  //
+  //   const state: BlockProverState = {
+  //     transactionHash: publicInput.fromTransactionsHash,
+  //     stateRoot: publicInput.fromStateRoot
+  //   };
+  //
+  //   this.applyTransaction(state, stateProof, appProof);
+  //
+  //   publicInput.toStateRoot.assertEquals(state.stateRoot, "toStateRoot not matching");
+  //   publicInput.toTransactionsHash.assertEquals(state.transactionHash, "toTransactionsHash does not match with computed value");
+  //
+  // }
 
   public merge(
-    publicInput: BlockProverPublicInput,
-    proof1: SelfProof<BlockProverPublicInput>,
-    proof2: SelfProof<BlockProverPublicInput>
-  ) {
+    publicInput: BlockProverState,
+    proof1: SelfProof<BlockProverState, BlockProverState>,
+    proof2: SelfProof<BlockProverState, BlockProverState>
+  ) : BlockProverState {
 
     // Check state
-    publicInput.fromStateRoot.assertEquals(proof1.publicInput.fromStateRoot, "StateRoot step 1");
-    proof1.publicInput.toStateRoot.assertEquals(proof2.publicInput.fromStateRoot, "StateRoot step 2");
-    proof2.publicInput.toStateRoot.assertEquals(publicInput.toStateRoot, "StateRoot step 3");
+    publicInput.stateRoot.assertEquals(proof1.publicInput.stateRoot, "StateRoot step 1");
+    proof1.publicOutput.stateRoot.assertEquals(proof2.publicInput.stateRoot, "StateRoot step 2");
 
     // Check transaction list
-    publicInput.fromTransactionsHash.assertEquals(
-      proof1.publicInput.fromTransactionsHash,
+    publicInput.transactionsHash.assertEquals(
+      proof1.publicInput.transactionsHash,
       "ST commitment step 1"
     );
-    proof1.publicInput.toTransactionsHash.assertEquals(
-      proof2.publicInput.fromTransactionsHash,
+    proof1.publicOutput.transactionsHash.assertEquals(
+      proof2.publicInput.transactionsHash,
       "ST commitment step 2"
     );
-    proof2.publicInput.toTransactionsHash.assertEquals(
-      publicInput.fromTransactionsHash,
-      "ST commitment step 3"
-    );
+
+    return new BlockProverState({
+      stateRoot: proof2.publicOutput.stateRoot,
+      transactionsHash: proof2.publicOutput.transactionsHash
+    })
 
   }
 
@@ -122,33 +124,34 @@ export class BlockProver {
     function createProgram(instance: BlockProver) {
 
       return Experimental.ZkProgram({
-        publicInput: BlockProverPublicInput,
+        publicInput: BlockProverState,
+        publicOutput: BlockProverState,
 
         methods: {
           proveTransaction: {
             privateInputs: [ZkProgramProof, AppChainProof],
 
             method(
-              publicInput: BlockProverPublicInput,
+              publicInput: BlockProverState,
               // TODO Does this work? It errors when using typeof ZkProgramProof
-              stateProof: Proof<StateTransitionProverPublicInput>,
+              stateProof: Proof<StateTransitionProverState, StateTransitionProverState>,
               appProof: AppChainProof
-            ) {
+            ) : BlockProverState {
 
-              instance.proveTransaction(publicInput, stateProof, appProof);
+              return instance.applyTransaction(publicInput, stateProof, appProof);
 
             }
           },
 
           merge: {
-            privateInputs: [SelfProof<BlockProverPublicInput>, SelfProof<BlockProverPublicInput>],
+            privateInputs: [SelfProof<BlockProverState, BlockProverState>, SelfProof<BlockProverState, BlockProverState>],
 
             method(
-              publicInput: BlockProverPublicInput,
-              proof1: SelfProof<BlockProverPublicInput>,
-              proof2: SelfProof<BlockProverPublicInput>
-            ) {
-              instance.merge(publicInput, proof1, proof2);
+              publicInput: BlockProverState,
+              proof1: SelfProof<BlockProverState, BlockProverState>,
+              proof2: SelfProof<BlockProverState, BlockProverState>
+            ) : BlockProverState {
+              return instance.merge(publicInput, proof1, proof2);
             }
           }
         }

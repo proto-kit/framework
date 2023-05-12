@@ -1,21 +1,16 @@
-import { Bool, Field, isReady, Poseidon, Proof, shutdown } from "snarkyjs";
+import { Bool, Field, Poseidon, Proof } from "snarkyjs";
 import {
   BlockProver,
-  BlockProverPublicInput,
-  type BlockProverState
+  BlockProverState
 } from "../prover/block/BlockProver.js";
 import {
-  StateTransitionProverPublicInput
+  StateTransitionProverState
 } from "../prover/statetransition/StateTransitionProver.js";
 import { NoOpStateTransitionWitnessProvider } from "../prover/statetransition/StateTransitionWitnessProvider.js";
 import { container as globalContainer, type DependencyContainer } from "tsyringe";
 import { AppChainProof, AppChainProofPublicInput } from "../prover/block/AppChainProof.js";
 
 describe("blockProver", () => {
-
-  beforeAll(async () => {
-    await isReady;
-  });
 
   let container: DependencyContainer;
 
@@ -25,32 +20,31 @@ describe("blockProver", () => {
     container = childContainer;
   });
 
-  afterAll(() => {
-    setTimeout(shutdown, 0);
-  });
-
-  function generateTestProofs(fromStateRoot: Field, toStateRoot: Field): [AppChainProof, Proof<StateTransitionProverPublicInput>] {
+  function generateTestProofs(fromStateRoot: Field, toStateRoot: Field): [AppChainProof, Proof<StateTransitionProverState, StateTransitionProverState>] {
 
     const transactionHash = Poseidon.hash([Field(12_345)]);
     const sthash = Field(123);
 
     const appProof = new AppChainProof({
-      publicInput: new AppChainProofPublicInput({
+      publicOutput: new AppChainProofPublicInput({
         transactionHash,
         stateTransitionsHash: sthash,
         status: Bool(true)
       }),
+      publicInput: undefined,
 
       proof: "",
       maxProofsVerified: 2
     });
 
-    const stProof = new Proof<StateTransitionProverPublicInput>({
-      publicInput: new StateTransitionProverPublicInput({
-        fromStateTransitionsHash: Field(0),
-        toStateTransitionsHash: sthash,
-        fromStateRoot,
-        toStateRoot
+    const stProof = new Proof<StateTransitionProverState, StateTransitionProverState>({
+      publicInput: new StateTransitionProverState({
+        stateTransitionsHash: Field(0),
+        stateRoot: fromStateRoot
+      }),
+      publicOutput: new StateTransitionProverState({
+        stateTransitionsHash: sthash,
+        stateRoot: toStateRoot
       }),
 
       proof: "",
@@ -71,32 +65,9 @@ describe("blockProver", () => {
 
     const [appProof, stProof] = generateTestProofs(fromState, toState);
 
-    const state: BlockProverState = {
-      stateRoot: fromState,
-      transactionHash: Field(0)
-    };
-    blockProver.applyTransaction(
-      state,
-      stProof,
-      appProof
-    );
-
-  });
-
-  it("previously applied transaction should also pass with derived publicInputs", () => {
-
-    expect.assertions(0)
-
-    const blockProver = container.resolve(BlockProver);
-
-    const fromState = Field(1);
-    const toState = Field(2);
-
-    const [appProof, stProof] = generateTestProofs(fromState, toState);
-
     const fromProverState: BlockProverState = {
       stateRoot: fromState,
-      transactionHash: Field(0)
+      transactionsHash: Field(0)
     };
     const toProverState = { ...fromProverState};
     blockProver.applyTransaction(
@@ -105,14 +76,20 @@ describe("blockProver", () => {
       appProof
     );
 
-    const publicInput = new BlockProverPublicInput({
-      fromStateRoot: fromProverState.stateRoot,
-      toStateRoot: toProverState.stateRoot,
-      fromTransactionsHash: fromProverState.transactionHash,
-      toTransactionsHash: toProverState.transactionHash
+    const publicInput = new BlockProverState({
+      stateRoot: fromProverState.stateRoot,
+      transactionsHash: fromProverState.transactionsHash
     });
 
-    blockProver.proveTransaction(publicInput, stProof, appProof);
+    const publicOutput = new BlockProverState({
+      stateRoot: toProverState.stateRoot,
+      transactionsHash: toProverState.transactionsHash
+    })
+
+    let output = blockProver.applyTransaction(publicInput, stProof, appProof);
+
+    expect(output.stateRoot).toEqual(publicOutput.stateRoot)
+    expect(output.transactionsHash).toEqual(publicOutput.transactionsHash)
 
   });
 

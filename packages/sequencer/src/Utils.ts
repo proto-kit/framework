@@ -39,37 +39,15 @@ export function Struct2<T>(t: T): ReturnType<typeof Struct<T>> {
   return X;
 }
 
-export type ZkProgramType<PublicInputType> = {
+export type ZkProgramType<PublicInputType, PublicOutputType> = {
   name: string;
   compile: () => Promise<{ verificationKey: string }>;
-  verify: (proof: Proof<PublicInputType>) => Promise<boolean>;
+  verify: (proof: Proof<PublicInputType, PublicOutputType>) => Promise<boolean>;
   digest: () => string;
 
   // analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
   publicInputType: TypedClassType<PublicInputType>;
+  publicOutputType: TypedClassType<PublicOutputType>;
 };
-
-export function prefixToField(prefix: string) {
-  const fieldSize = Field.sizeInBytes();
-  if (prefix.length >= fieldSize) {
-    throw new Error('prefix too long');
-  }
-
-  const encoder = new TextEncoder();
-  function stringToBytes(s: string) : number[] {
-    return Array.from(encoder.encode(s));
-  }
-
-  const stringBytes = stringToBytes(prefix);
-  
-  const padding = Array.from<number>({ length: fieldSize - stringBytes.length }).fill(0)
-  const data = stringBytes.concat(padding)
-  
-  return Field.fromBytes(
-    data
-  );
-}
-
-
 
 

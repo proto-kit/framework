@@ -10,7 +10,7 @@ import {
   Struct,
 } from 'snarkyjs';
 
-export class ProvableOption extends Struct({
+export const ProvableOption = class ProvableOption extends Struct({
   isSome: Bool,
   value: Field,
 }) {}
