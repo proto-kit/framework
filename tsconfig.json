@@ -7,7 +7,7 @@
     "declaration": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "moduleResolution": "nodenext",
+    "moduleResolution": "node",
     "noImplicitAny": true,
     "allowJs": true,
     "esModuleInterop": true,
