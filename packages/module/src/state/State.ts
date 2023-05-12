@@ -7,17 +7,15 @@ import {
   Bool,
   Circuit,
   Field,
-  UInt64,
   type FlexibleProvablePure,
 } from 'snarkyjs';
 import { container } from 'tsyringe';
 
-import { Option } from '../option/Option.js';
+import { Option } from '@yab/protocol';
 import {
-  ProvableStateTransition,
   StateTransition,
-} from '../stateTransition/StateTransition.js';
-import type { Path } from '../path/Path.js';
+} from '@yab/protocol';
+import type { Path } from '@yab/protocol';
 import { MethodExecutionContext } from '../method/MethodExecutionContext.js';
 import type { Chain, RuntimeModules } from '../chain/Chain.js';
 

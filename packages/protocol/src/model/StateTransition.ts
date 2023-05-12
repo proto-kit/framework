@@ -4,8 +4,7 @@
 /* eslint-disable new-cap */
 /* eslint-disable import/prefer-default-export */
 import { Field, Struct } from 'snarkyjs';
-
-import { Option, ProvableOption } from '../option/Option.js';
+import { Option, ProvableOption } from "./Option.js";
 
 /**
  * Provable representation of a State Transition, used to

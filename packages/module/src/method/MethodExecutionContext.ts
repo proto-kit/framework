@@ -5,7 +5,7 @@
 import { Bool, type Proof } from 'snarkyjs';
 import { singleton } from 'tsyringe';
 
-import type { StateTransition } from '../stateTransition/StateTransition.js';
+import type { StateTransition } from '@yab/protocol';
 
 import type { MethodPublicInput } from './decorator.js';
 

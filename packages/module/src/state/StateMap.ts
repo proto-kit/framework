@@ -2,8 +2,7 @@
 /* eslint-disable import/prefer-default-export */
 import type { FlexibleProvablePure } from 'snarkyjs';
 
-import { Path } from '../path/Path.js';
-import type { Option } from '../option/Option.js';
+import { Path, type Option } from '@yab/protocol';
 
 import { State, WithChain, WithPath } from './State.js';
 import { Mixin } from 'ts-mixer';
