@@ -1,26 +1,17 @@
-import { Bool, Field, isReady, shutdown } from "snarkyjs";
+import { Bool, Field } from "snarkyjs";
 import { RollupMerkleTree, type RollupMerkleWitness } from "../prover/utils/RollupMerkleTree.js";
-import { Option, ProvableStateTransition } from "../prover/statetransition/StateTransition.js";
 import { container } from "tsyringe";
 import {
   StateTransitionProver
 } from "../prover/statetransition/StateTransitionProver.js";
 import { MemoryMerkleTreeStorage } from "../prover/utils/MemoryMerkleTreeStorage.js";
-import { DefaultProvableMerkleList } from "../prover/utils/ProvableMerkleList.js";
+import { DefaultProvableHashList, Option, ProvableStateTransition } from "@yab/protocol";
 import type { StateTransitionWitnessProvider } from "../prover/statetransition/StateTransitionWitnessProvider.js";
 import { StateTransitionProvableBatch } from "../prover/statetransition/StateTransitionProvableBatch.js";
 
 describe("stateTransition", () => {
 
-  beforeAll(async () => {
-    await isReady;
-  });
-
-  afterAll(() => {
-    setTimeout(shutdown, 0);
-  });
-
-  async function checkTransitions(tree: RollupMerkleTree, transitions: ProvableStateTransition[]) {
+  async function checkTransitions(tree: RollupMerkleTree, transitions: (typeof ProvableStateTransition)[]) {
 
     const batch = StateTransitionProvableBatch.fromTransitions(transitions);
 
@@ -28,7 +19,7 @@ describe("stateTransition", () => {
     const temporaryTree = new RollupMerkleTree(tree.store.virtualize() as MemoryMerkleTreeStorage);
     const startRoot = temporaryTree.getRoot();
 
-    const hashList = new DefaultProvableMerkleList();
+    const hashList = new DefaultProvableHashList(Field);
 
     batch.batch.forEach(x => {
       if (x.to.isSome.toBoolean()) {
@@ -63,7 +54,7 @@ describe("stateTransition", () => {
     const state = prover.applyTransitions(startRoot, Field(0), batch);
 
     expect(state.stateRoot).toEqual(endRoot);
-    expect(state.stateTransitionList.commitment).toEqual(hashList.commitment);
+    expect(state.stateTransitions.commitment).toEqual(hashList.commitment);
 
     await childContainer.dispose();
 
