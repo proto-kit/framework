@@ -5,7 +5,7 @@ import { PublicKey, UInt64, isReady } from 'snarkyjs';
 import { State } from '../../src/state/State.js';
 import { state } from '../../src/state/decorator.js';
 import { StateMap } from '../../src/state/StateMap.js';
-import { Option } from '../../src/option/Option.js';
+import { Option } from '@yab/protocol';
 import { runtimeModule } from '../../src/module/decorator.js';
 import { RuntimeModule } from '../../src/runtime/RuntimeModule.js';
 import { method } from '../../src/method/decorator.js';

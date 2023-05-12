@@ -1,7 +1,7 @@
 import { Circuit, Experimental, Field, type Proof, SelfProof, Struct } from "snarkyjs";
 import { injectable } from "tsyringe";
 import { StateTransitionProver, type StateTransitionProverPublicInput } from "../statetransition/StateTransitionProver.js";
-import { DefaultProvableMerkleList } from "../utils/ProvableMerkleList.js";
+import { DefaultProvableMerkleList } from "../../../../protocol/src/utils/ProvableHashList.js";
 import { AppChainProof } from "./AppChainProof.js";
 
 export type BlockProverState = {

@@ -6,9 +6,8 @@ import { Bool, Field } from 'snarkyjs';
 import { container } from 'tsyringe';
 import { jest } from '@jest/globals';
 
-import { Option } from '../option/Option.js';
+import { Option, StateTransition } from '@yab/protocol';
 import { RuntimeModule } from '../runtime/RuntimeModule.js';
-import { StateTransition } from '../stateTransition/StateTransition.js';
 
 import {
   MethodPublicInput,

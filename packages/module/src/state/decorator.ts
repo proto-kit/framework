@@ -1,7 +1,7 @@
 /* eslint-disable import/prefer-default-export */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 
-import { Path } from '../path/Path.js';
+import { Path } from '@yab/protocol';
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
 
 import type { State } from './State.js';

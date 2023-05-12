@@ -11,8 +11,7 @@ import {
 } from 'snarkyjs';
 import { container } from 'tsyringe';
 
-import type { ProvableStateTransition } from '../../src/stateTransition/StateTransition.js';
-import { Path } from '../../src/path/Path.js';
+import { type ProvableStateTransition, Path } from '@yab/protocol';
 import { State } from '../../src/state/State.js';
 import { Chain } from '../../src/chain/Chain.js';
 import { MethodExecutionContext } from '../../src/method/MethodExecutionContext.js';

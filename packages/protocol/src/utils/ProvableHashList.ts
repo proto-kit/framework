@@ -1,0 +1,51 @@
+import { type Bool, Circuit, Field, Poseidon } from "snarkyjs";
+import { FlexibleProvablePure } from "snarkyjs";
+import { TextEncoder } from "node:util";
+
+/**
+ * Utilities for creating a hash list from a given value type.
+ */
+export abstract class ProvableHashList<Value> {
+
+  public constructor(
+    private readonly valueType: FlexibleProvablePure<Value>,
+    public commitment: Field = Field(0))
+  {
+  }
+
+  protected abstract hash(e: Field[]): Field
+
+  /**
+   * Converts the provided value to Field[] and appends it to
+   * the current hashlist.
+   *
+   * @param value - Value to be appended to the hash list
+   * @returns Current hash list.
+   */
+  public push(value: Value) {
+    this.commitment = this.hash([this.commitment, ...this.valueType.toFields(value)]);
+    return this;
+  }
+
+  public remove(preimage: Field, value: Value): Bool {
+    const success = this.hash([preimage, ...this.valueType.toFields(value)]).equals(this.commitment);
+    this.commitment = Circuit.if(success, preimage, this.commitment);
+    return success;
+  }
+
+  /**
+   * @returns Traling hash of the current hashlist.
+   */
+  public toField() {
+    return this.commitment;
+  }
+
+}
+
+export class DefaultProvableHashList<Value> extends ProvableHashList<Value> {
+
+  public hash(e: Field[]): Field {
+    return Poseidon.hash(e);
+  }
+
+}

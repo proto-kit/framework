@@ -8,13 +8,9 @@ import { Bool, Field, Struct } from 'snarkyjs';
 import { container } from 'tsyringe';
 
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
-import {
-  ProvableStateTransition,
-  type StateTransition,
-} from '../stateTransition/StateTransition.js';
-import { HashList } from '../utils/HashList.js';
 
 import { MethodExecutionContext } from './MethodExecutionContext.js';
+import { StateTransition, DefaultProvableHashList, ProvableStateTransition } from "@yab/protocol";
 
 /**
  * Public input used to link in-circuit execution with
@@ -63,7 +59,7 @@ export function toStateTransitionsHash(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stateTransitions: StateTransition<any>[]
 ) {
-  const stateTransitionsHashList = HashList.fromType(ProvableStateTransition);
+  const stateTransitionsHashList = new DefaultProvableHashList(ProvableStateTransition);
 
   return stateTransitions
     .map((stateTransition) => stateTransition.toProvable())
