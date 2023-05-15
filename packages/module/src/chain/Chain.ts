@@ -2,7 +2,7 @@
 /* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 import { type DependencyContainer, container, Lifecycle } from 'tsyringe';
-import { Experimental } from 'snarkyjs';
+import { Experimental, Proof } from "snarkyjs";
 
 import {
   combineMethodName,
@@ -13,6 +13,7 @@ import {
 import { type AnyConstructor, isRuntimeModule } from '../module/decorator.js';
 import type { RuntimeModule } from '../runtime/RuntimeModule.js';
 import type { StateService } from '../state/InMemoryStateService.js';
+import { Subclass } from "@yab/protocol";
 
 export interface RuntimeModules {
   [name: string]: AnyConstructor;
@@ -308,5 +309,21 @@ Inputs: [${inputs.join(', ')}]
     this.setProofsEnabled(areProofsEnabled);
 
     return artifact;
+  }
+
+  public getProofClass() : Subclass<typeof Proof<MethodPublicInput>> {
+
+    if(this.program === undefined){
+      throw Error("You have to call precompile() before being able to create the proof class")
+    }
+    const program = this.program
+
+    return ((program: { name: string }) =>
+        class AppChainProof extends Proof<MethodPublicInput> {
+          public static publicInputType = MethodPublicInput;
+
+          public static tag = () => program;
+        }
+    )(program)
   }
 }

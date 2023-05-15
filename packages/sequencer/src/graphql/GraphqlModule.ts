@@ -1,4 +1,4 @@
-import type { ClassType } from "../Utils.js";
+import type { ClassType } from "@yab/protocol";
 
 export interface GraphqlModule {
 

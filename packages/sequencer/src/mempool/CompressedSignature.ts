@@ -1,5 +1,5 @@
 import { type Field, Scalar, Signature } from "snarkyjs";
-import { NotInCircuit } from "../Utils.js";
+import { NotInCircuit } from "@yab/protocol";
 
 // Not in circuit
 export class CompressedSignature {

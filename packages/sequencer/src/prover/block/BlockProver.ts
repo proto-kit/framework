@@ -2,7 +2,7 @@ import { Circuit, Experimental, Field, type Proof, SelfProof, Struct } from "sna
 import { injectable } from "tsyringe";
 import { StateTransitionProver, type StateTransitionProverPublicInput } from "../statetransition/StateTransitionProver.js";
 import { DefaultProvableHashList } from "@yab/protocol";
-import { AppChainProof } from "./AppChainProof.js";
+import { Chain, MethodPublicInput } from "@yab/module";
 
 export type BlockProverState = {
   stateRoot: Field;
@@ -16,19 +16,29 @@ export class BlockProverPublicInput extends Struct({
   toStateRoot: Field,
 }) {}
 
+/**
+ * BlockProver class, which aggregates a AppChainProof and a StateTransitionProof into a single BlockProof, that can then be merged to be committed to the base-layer contract
+ */
 @injectable()
 export class BlockProver {
 
-  private readonly stateTransitionProver: StateTransitionProver;
-
-  public constructor(stateTransitionProver: StateTransitionProver) {
-    this.stateTransitionProver = stateTransitionProver;
+  public constructor(
+    private readonly stateTransitionProver: StateTransitionProver,
+    private readonly chain: Chain<never>
+  ) {
   }
 
+  /**
+   * Applies and checks the two proofs and applies the corresponding state changes to the given state
+   * @param state The from-state of the BlockProver
+   * @param stateProof
+   * @param appProof
+   * @returns The new BlockProver-state to be used as public output
+   */
   public applyTransaction(
     state: BlockProverState,
     stateProof: Proof<StateTransitionProverPublicInput>,
-    appProof: AppChainProof
+    appProof: Proof<MethodPublicInput>
   ): BlockProverState {
 
     const stateTo = { ...state }
@@ -66,7 +76,7 @@ export class BlockProver {
   public proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: Proof<StateTransitionProverPublicInput>,
-    appProof: AppChainProof
+    appProof: Proof<MethodPublicInput>
   ) {
 
     const state: BlockProverState = {
@@ -108,16 +118,14 @@ export class BlockProver {
 
   }
 
-  private createZkProgram() {
-
-    // let stateTransitionProver = this.stateTransitionProver.getZkProgram()
-    //
-    // class ZkProgramProof extends Proof<StateTransitionProverPublicInput> {
-    //     static publicInputType = StateTransitionProverPublicInput;
-    //     static tag = () => stateTransitionProver;
-    // }
+  /**
+   * Creates the BlockProver ZkProgram
+   */
+  public createZkProgram() {
 
     const ZkProgramProof = this.stateTransitionProver.getProofType();
+
+    const AppChainProof = this.chain.getProofClass();
 
     function createProgram(instance: BlockProver) {
 
@@ -130,9 +138,9 @@ export class BlockProver {
 
             method(
               publicInput: BlockProverPublicInput,
-              // TODO Does this work? It errors when using typeof ZkProgramProof
+              // TODO Does this work? It errors when using ZkProgramProof
               stateProof: Proof<StateTransitionProverPublicInput>,
-              appProof: AppChainProof
+              appProof: Proof<MethodPublicInput>
             ) {
 
               instance.proveTransaction(publicInput, stateProof, appProof);
@@ -155,7 +163,7 @@ export class BlockProver {
       });
     }
 
-    createProgram(this)
+    return createProgram(this)
 
   }
 
