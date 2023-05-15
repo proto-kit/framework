@@ -1,6 +1,6 @@
 import { Field, FlexibleProvablePure, Poseidon } from "snarkyjs";
 import { ProvableHashList } from "./ProvableHashList.js";
-import { prefixToField } from "./Utils";
+import { stringToField } from "./Utils";
 
 export class PrefixedProvableHashList<Value> extends ProvableHashList<Value> {
 
@@ -12,7 +12,7 @@ export class PrefixedProvableHashList<Value> extends ProvableHashList<Value> {
     internalCommitment: Field = Field(0)
   ) {
     super(valueType, internalCommitment);
-    this.prefix = prefixToField(prefix);
+    this.prefix = stringToField(prefix);
   }
 
   protected hash(e: Field[]): Field {

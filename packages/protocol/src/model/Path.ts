@@ -4,6 +4,7 @@
 /* eslint-disable @shopify/no-fully-static-classes */
 /* eslint-disable import/prefer-default-export */
 import { Field, type FlexibleProvablePure, Poseidon } from 'snarkyjs';
+import { stringToField } from "../utils/Utils";
 
 /**
  * Helps manage path (key) identifiers for key-values in trees.
@@ -16,13 +17,7 @@ export class Path {
    * @returns Field representation of the provided value
    */
   public static toField(value: string) {
-    const fields = value
-      .split('')
-      .map((character) => character.codePointAt(0))
-      .filter((code): code is number => code !== undefined)
-      .map((code) => Field(code));
-
-    return Poseidon.hash(fields);
+    return stringToField(value)
   }
 
   /**

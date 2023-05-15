@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/ban-types
-import { Circuit, Field } from "snarkyjs";
+import { Circuit, Field, Poseidon } from "snarkyjs";
 import { TextEncoder } from "node:util";
 
 export type ReturnType<T extends Function> = T extends ((...args: any[]) => infer R) ? R : any
@@ -29,24 +29,36 @@ export function NotInCircuit() {
   };
 }
 
-export function prefixToField(prefix: string) {
+export function stringToField(value: string) {
   const fieldSize = Field.sizeInBytes();
-  if (prefix.length >= fieldSize) {
-    throw new Error('prefix too long');
-  }
 
   const encoder = new TextEncoder();
   function stringToBytes(s: string) : number[] {
     return Array.from(encoder.encode(s));
   }
 
-  const stringBytes = stringToBytes(prefix);
+  const stringBytes = stringToBytes(value);
 
   const padding = Array.from<number>({ length: fieldSize - stringBytes.length }).fill(0)
   const data = stringBytes.concat(padding)
 
-  return Field.fromBytes(
-    data
-  );
+  if(data.length > fieldSize){
+
+    let chunks = data.reduce((a, b, i) => {
+      let arrIndex = i / fieldSize
+      if(a.length <= arrIndex){
+        a.push([])
+      }
+      a[arrIndex].push(b)
+      return a
+    }, [] as number[][])
+    return Poseidon.hash(chunks.map(x => Field.fromBytes(x)))
+
+  }else{
+    return Field.fromBytes(
+      data
+    );
+  }
+
 }
 
