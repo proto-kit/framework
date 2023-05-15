@@ -1,10 +1,11 @@
 import { Circuit, Experimental, Field, Proof, SelfProof, Struct } from "snarkyjs";
 import { DefaultProvableHashList, type ProvableHashList, ProvableStateTransition, StateTransitionProvableBatch } from "@yab/protocol";
 import { MerkleTreeUtils, RollupMerkleWitness } from "../utils/RollupMerkleTree.js";
-import type { Subclass, ZkProgramType } from "../../Utils.js";
+import type { Subclass } from "@yab/protocol";
 import { inject, injectable } from "tsyringe";
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
 import { Constants } from "../../Constants.js";
+import { ZkProgramType } from "../../Utils";
 
 type StateTransitionProverState = {
     stateRoot: Field;
@@ -19,6 +20,9 @@ export class StateTransitionProverPublicInput extends Struct({
 }) {
 }
 
+/**
+ * StateTransitionProver is the prover that proves the application of some state transitions and checks and updates their merkle-tree entries
+ */
 @injectable()
 export class StateTransitionProver {
 
@@ -58,6 +62,9 @@ export class StateTransitionProver {
     ) {
     }
 
+    /**
+     * Applies the state transitions to the current stateRoot and returns the new prover state
+     */
     public applyTransitions(
         stateRoot: Field,
         stateTransitionCommitmentFrom: Field,
@@ -76,6 +83,9 @@ export class StateTransitionProver {
         return state;
     }
 
+    /**
+     * Applies a single state transition to the given state and mutates it in place
+     */
     public applyTransition(state: StateTransitionProverState, transition: ProvableStateTransition, index = 0) {
         const treeWitness = Circuit.witness(RollupMerkleWitness, () => this.witnessProvider.getWitness(transition.path));
 

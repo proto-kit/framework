@@ -1,5 +1,5 @@
 import { Bool, Circuit, Field, Poseidon, Struct } from "snarkyjs";
-import { NotInCircuit } from "../../Utils.js";
+import { NotInCircuit } from "@yab/protocol";
 
 // external API
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
