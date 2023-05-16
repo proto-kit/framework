@@ -1,44 +1,29 @@
-/* eslint-disable max-classes-per-file */
 /* eslint-disable new-cap */
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
 
-import { Mixin } from 'ts-mixer';
-import {
-  Bool,
-  Circuit,
-  Field,
-  type FlexibleProvablePure,
-} from 'snarkyjs';
-import { container } from 'tsyringe';
+import { Mixin } from "ts-mixer";
+import { Bool, Circuit, Field, type FlexibleProvablePure } from "snarkyjs";
+import { container } from "tsyringe";
+import { Option, StateTransition, type Path } from "@yab/protocol";
 
-import { Option } from '@yab/protocol';
-import {
-  StateTransition, type Path
-} from '@yab/protocol';
-import { MethodExecutionContext } from '../method/MethodExecutionContext.js';
-import type { Chain, RuntimeModules } from '../chain/Chain.js';
+import { MethodExecutionContext } from "../method/MethodExecutionContext.js";
+import type { Chain, RuntimeModules } from "../chain/Chain.js";
 
 export class WithPath {
   public path?: Field;
 
   public hasPathOrFail(): asserts this is { path: Path } {
     if (!this.path) {
-      throw new Error(
-        `Could not find 'path', did you forget to add '@state' to your state property?`
-      );
+      throw new Error("Could not find 'path', did you forget to add '@state' to your state property?");
     }
   }
 }
 
-// eslint-disable-next-line import/no-unused-modules
 export class WithChain {
   public chain?: Chain<RuntimeModules>;
 
   public hasChainOrFail(): asserts this is { chain: Chain<RuntimeModules> } {
     if (!this.chain) {
-      throw new Error(
-        `Could not find 'chain', did you forget to add '@state' to your state property?`
-      );
+      throw new Error("Could not find 'chain', did you forget to add '@state' to your state property?");
     }
   }
 }
@@ -63,9 +48,7 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
    * @param valueType - Value type to generate the dummy value for
    * @returns Dummy value for the given value type
    */
-  public static dummyValue<Value>(
-    valueType: FlexibleProvablePure<Value>
-  ): Value {
+  public static dummyValue<Value>(valueType: FlexibleProvablePure<Value>): Value {
     const length = valueType.sizeInFields();
     const fields = Array.from({ length }, () => Field(0));
 
@@ -91,7 +74,6 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
 
       const fields = this.chain.config.state.get(this.path);
       if (fields) {
-        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return this.valueType.fromFields(fields) as Value;
       }
@@ -125,9 +107,7 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
 
     const stateTransition = StateTransition.from(this.path, option);
 
-    container
-      .resolve(MethodExecutionContext)
-      .addStateTransition(stateTransition);
+    container.resolve(MethodExecutionContext).addStateTransition(stateTransition);
 
     return option;
   }
@@ -150,15 +130,8 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
 
     this.hasPathOrFail();
 
-    const stateTransition = StateTransition.fromTo(
-      this.path,
-      fromOption,
-      toOption,
-      value
-    );
+    const stateTransition = StateTransition.fromTo(this.path, fromOption, toOption, value);
 
-    container
-      .resolve(MethodExecutionContext)
-      .addStateTransition(stateTransition);
+    container.resolve(MethodExecutionContext).addStateTransition(stateTransition);
   }
 }

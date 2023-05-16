@@ -1,13 +1,8 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable max-classes-per-file */
-/* eslint-disable import/no-unused-modules */
-/* eslint-disable new-cap */
-import { Bool, type Proof } from 'snarkyjs';
-import { singleton } from 'tsyringe';
+import { Bool, type Proof } from "snarkyjs";
+import { singleton } from "tsyringe";
+import type { StateTransition } from "@yab/protocol";
 
-import type { StateTransition } from '@yab/protocol';
-
-import type { MethodPublicInput } from './decorator.js';
+import type { MethodPublicInput } from "./decorator.js";
 
 export class MethodExecutionResult<ResultValue> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,9 +26,7 @@ export class MethodExecutionResult<ResultValue> {
 export class MethodExecutionContext<ResultValue> {
   public methods: string[] = [];
 
-  public constructor(
-    public result: MethodExecutionResult<ResultValue> = new MethodExecutionResult()
-  ) {}
+  public constructor(public result: MethodExecutionResult<ResultValue> = new MethodExecutionResult()) {}
 
   /**
    * Adds an in-method generated state transition to the current context

@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable import/prefer-default-export */
-import { type Bool, Circuit } from 'snarkyjs';
-import { container } from 'tsyringe';
+import { type Bool, Circuit } from "snarkyjs";
+import { container } from "tsyringe";
 
-import { MethodExecutionContext } from './MethodExecutionContext.js';
+import { MethodExecutionContext } from "./MethodExecutionContext.js";
 
 /**
  * Maintains an execution status of the current runtime module method,
@@ -18,6 +16,7 @@ export function assert(condition: Bool, message?: string) {
   const executionContext = container.resolve(MethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
   const status = Circuit.if(previousStatus, condition, previousStatus);
+
   // const status = previousStatus.and(condition);
   executionContext.setStatus(status);
   executionContext.setStatusMessage(message);

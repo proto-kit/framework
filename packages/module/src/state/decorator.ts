@@ -1,10 +1,8 @@
-/* eslint-disable import/prefer-default-export */
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
+import { Path } from "@yab/protocol";
 
-import { Path } from '@yab/protocol';
-import type { RuntimeModule } from '../runtime/RuntimeModule.js';
+import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
-import type { State } from './State.js';
+import type { State } from "./State.js";
 
 /**
  * Decorates a runtime module property as state, passing down some
@@ -17,10 +15,9 @@ export function state() {
 
     Object.defineProperty(target, propertyKey, {
       get: function get() {
-        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const self = this as RuntimeModule;
-        // eslint-disable-next-line max-len
+
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if (!self.name) {
           throw new Error(
@@ -28,11 +25,9 @@ export function state() {
           );
         }
 
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if (!self.chain) {
           throw new Error(
-            `Unable to provide 'chain' for state, Did you forget to extend your runtime module with 'extends RuntimeModule'?`
+            "Unable to provide 'chain' for state, Did you forget to extend your runtime module with 'extends RuntimeModule'?"
           );
         }
 
@@ -41,7 +36,7 @@ export function state() {
           value.path = path;
           // eslint-disable-next-line no-warning-comments
           // TODO: why is this complaining about `any`?
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           value.chain = self.chain;
         }
         return value;

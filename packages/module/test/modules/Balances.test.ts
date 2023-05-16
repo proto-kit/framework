@@ -1,36 +1,22 @@
-/* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/naming-convention */
-import 'reflect-metadata';
-import {
-  Circuit,
-  Field,
-  Poseidon,
-  PrivateKey,
-  PublicKey,
-  UInt64,
-} from 'snarkyjs';
-import { container } from 'tsyringe';
+import "reflect-metadata";
+import { Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
+import { container } from "tsyringe";
+import { type ProvableStateTransition, Path } from "@yab/protocol";
 
-import { type ProvableStateTransition, Path } from '@yab/protocol';
-import { State } from '../../src/state/State.js';
-import { Chain } from '../../src/chain/Chain.js';
-import { MethodExecutionContext } from '../../src/method/MethodExecutionContext.js';
+import { State } from "../../src/state/State.js";
+import { Chain } from "../../src/chain/Chain.js";
+import { MethodExecutionContext } from "../../src/method/MethodExecutionContext.js";
+import { InMemoryStateService, StateService } from "../../src/state/InMemoryStateService.js";
 
-import { Admin } from './Admin.js';
-import { Balances } from './Balances.js';
-import {
-  InMemoryStateService,
-  StateService,
-} from '../../src/state/InMemoryStateService.js';
+import { Admin } from "./Admin.js";
+import { Balances } from "./Balances.js";
 
-describe('balances', () => {
-  // eslint-disable-next-line @typescript-eslint/init-declarations
+describe("balances", () => {
   let balances: Balances;
 
-  // eslint-disable-next-line @typescript-eslint/init-declarations
   let state: StateService;
 
-  // eslint-disable-next-line @typescript-eslint/init-declarations
   let chain: Chain<{
     Balances: typeof Balances;
     Admin: typeof Admin;
@@ -38,13 +24,13 @@ describe('balances', () => {
 
   function getStateValue(path: Field | undefined) {
     if (!path) {
-      throw new Error('Path not found');
+      throw new Error("Path not found");
     }
 
     const stateValue = state.get(path);
 
     if (!stateValue) {
-      throw new Error('stateValue is undefined');
+      throw new Error("stateValue is undefined");
     }
 
     return stateValue;
@@ -62,28 +48,24 @@ describe('balances', () => {
       },
     });
 
-    balances = chain.getRuntimeModule('Balances');
+    balances = chain.getRuntimeModule("Balances");
 
-    state.set(
-      balances.totalSupply.path!,
-      State.dummyValue<UInt64>(UInt64).toFields()
-    );
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    state.set(balances.totalSupply.path!, State.dummyValue<UInt64>(UInt64).toFields());
   }
 
-  describe('compile and prove', () => {
+  describe("compile and prove", () => {
     beforeAll(createChain);
 
     afterAll(() => {
       chain.setProofsEnabled(false);
     });
 
-    // eslint-disable-next-line max-statements
-    it('should compile and prove a method execution', async () => {
+    it("should compile and prove a method execution", async () => {
       expect.assertions(3);
 
       const executionContext = container.resolve(MethodExecutionContext);
-      const expectedStateTransitionsHash =
-        '14921939452604128385823686416408232294744525422028096501361950385283288751766';
+      const expectedStateTransitionsHash = "14921939452604128385823686416408232294744525422028096501361950385283288751766";
       const expectedStatus = true;
 
       chain.setProofsEnabled(true);
@@ -99,141 +81,113 @@ describe('balances', () => {
 
       // eslint-disable-next-line jest/no-conditional-in-test
       if (!chain.program) {
-        throw new Error('Program compilation has failed');
+        throw new Error("Program compilation has failed");
       }
 
       // eslint-disable-next-line jest/no-conditional-in-test
       if (!proof) {
-        throw new Error('Proof generation has failed');
+        throw new Error("Proof generation has failed");
       }
 
       const verified = await chain.program.verify(proof);
 
       expect(verified).toBe(true);
 
-      expect(proof.publicInput.stateTransitionsHash.toString()).toStrictEqual(
-        expectedStateTransitionsHash
-      );
+      expect(proof.publicInput.stateTransitionsHash.toString()).toStrictEqual(expectedStateTransitionsHash);
       expect(proof.publicInput.status.toBoolean()).toBe(expectedStatus);
     }, 180_000);
   });
 
-  describe('getTotalSupply', () => {
+  describe("getTotalSupply", () => {
     beforeAll(createChain);
 
-    describe('state transitions', () => {
-      // eslint-disable-next-line @typescript-eslint/init-declarations
+    describe("state transitions", () => {
       let stateTransitions: ProvableStateTransition[];
 
       beforeEach(() => {
         const executionContext = container.resolve(MethodExecutionContext);
         balances.getTotalSupply();
 
-        stateTransitions = executionContext
-          .current()
-          .result.stateTransitions.map((stateTransition) =>
-            stateTransition.toProvable()
-          );
+        stateTransitions = executionContext.current().result.stateTransitions.map((stateTransition) => stateTransition.toProvable());
       });
 
-      it('should return a single state transition', () => {
+      it("should return a single state transition", () => {
         expect.assertions(1);
         expect(stateTransitions).toHaveLength(1);
       });
 
-      it('should have a state transition for the correct path', () => {
+      it("should have a state transition for the correct path", () => {
         expect.assertions(1);
 
-        const path = Path.fromProperty('Balances', 'totalSupply');
+        const path = Path.fromProperty("Balances", "totalSupply");
 
-        expect(stateTransitions[0].path.toString()).toStrictEqual(
-          path.toString()
-        );
+        expect(stateTransitions[0].path.toString()).toStrictEqual(path.toString());
       });
 
-      it('should produce a from-only state transition', () => {
+      it("should produce a from-only state transition", () => {
         expect.assertions(3);
 
         const [stateTransition] = stateTransitions;
 
-        const value = UInt64.fromFields(
-          getStateValue(balances.totalSupply.path)
-        );
+        const value = UInt64.fromFields(getStateValue(balances.totalSupply.path));
         const treeValue = Poseidon.hash(value.toFields());
 
         expect(stateTransition.from.isSome.toBoolean()).toBe(true);
-        expect(stateTransition.from.value.toString()).toBe(
-          treeValue.toString()
-        );
+        expect(stateTransition.from.value.toString()).toBe(treeValue.toString());
         expect(stateTransition.to.isSome.toBoolean()).toBe(false);
       });
     });
   });
 
-  describe('setTotalSupply', () => {
+  describe("setTotalSupply", () => {
     beforeAll(createChain);
 
-    describe('state transitions', () => {
-      // eslint-disable-next-line @typescript-eslint/init-declarations
+    describe("state transitions", () => {
       let stateTransitions: ProvableStateTransition[];
 
       beforeEach(() => {
         const executionContext = container.resolve(MethodExecutionContext);
         balances.setTotalSupply();
 
-        // eslint-disable-next-line prefer-destructuring
-        stateTransitions = executionContext
-          .current()
-          .result.stateTransitions.map((stateTransition) =>
-            stateTransition.toProvable()
-          );
+        stateTransitions = executionContext.current().result.stateTransitions.map((stateTransition) => stateTransition.toProvable());
       });
 
-      it('should return a single state transition', () => {
+      it("should return a single state transition", () => {
         expect.assertions(1);
         expect(stateTransitions).toHaveLength(1);
       });
 
-      it('should have a state transition for the correct path', () => {
+      it("should have a state transition for the correct path", () => {
         expect.assertions(1);
 
-        const path = Path.fromProperty('Balances', 'totalSupply');
+        const path = Path.fromProperty("Balances", "totalSupply");
 
-        expect(stateTransitions[0].path.toString()).toStrictEqual(
-          path.toString()
-        );
+        expect(stateTransitions[0].path.toString()).toStrictEqual(path.toString());
       });
 
-      it('should produce a from-to state transition', () => {
+      it("should produce a from-to state transition", () => {
         expect.assertions(4);
 
         const [stateTransition] = stateTransitions;
-        const fromValue = UInt64.fromFields(
-          getStateValue(balances.totalSupply.path)
-        );
+        const fromValue = UInt64.fromFields(getStateValue(balances.totalSupply.path));
         const fromTreeValue = Poseidon.hash(fromValue.toFields());
 
         const toValue = UInt64.from(20);
         const toTreeValue = Poseidon.hash(toValue.toFields());
 
         expect(stateTransition.from.isSome.toBoolean()).toBe(true);
-        expect(stateTransition.from.value.toString()).toBe(
-          fromTreeValue.toString()
-        );
+        expect(stateTransition.from.value.toString()).toBe(fromTreeValue.toString());
 
         expect(stateTransition.to.isSome.toBoolean()).toBe(true);
-        expect(stateTransition.to.value.toString()).toBe(
-          toTreeValue.toString()
-        );
+        expect(stateTransition.to.value.toString()).toBe(toTreeValue.toString());
       });
     });
   });
 
-  describe('getBalance', () => {
+  describe("getBalance", () => {
     beforeAll(createChain);
 
-    describe('state transitions', () => {
-      // eslint-disable-next-line @typescript-eslint/init-declarations
+    describe("state transitions", () => {
       let stateTransitions: ProvableStateTransition[];
       const address = PrivateKey.random().toPublicKey();
 
@@ -245,26 +199,20 @@ describe('balances', () => {
         stateTransitions = executionContext.current().result.stateTransitions;
       });
 
-      it('should return a single state transition', () => {
+      it("should return a single state transition", () => {
         expect.assertions(1);
         expect(stateTransitions).toHaveLength(1);
       });
 
-      it('should have a state transition for the correct path', () => {
+      it("should have a state transition for the correct path", () => {
         expect.assertions(1);
 
-        const path = Path.fromKey<PublicKey>(
-          Path.fromProperty('Balances', 'balances'),
-          PublicKey,
-          address
-        );
+        const path = Path.fromKey<PublicKey>(Path.fromProperty("Balances", "balances"), PublicKey, address);
 
-        expect(stateTransitions[0].path.toString()).toStrictEqual(
-          path.toString()
-        );
+        expect(stateTransitions[0].path.toString()).toStrictEqual(path.toString());
       });
 
-      it('should produce a from-only state transition, for non-existing state', () => {
+      it("should produce a from-only state transition, for non-existing state", () => {
         expect.assertions(3);
 
         const [stateTransition] = stateTransitions;

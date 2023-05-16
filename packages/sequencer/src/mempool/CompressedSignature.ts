@@ -1,26 +1,25 @@
 import { type Field, Scalar, Signature } from "snarkyjs";
-import { NotInCircuit } from "@yab/protocol";
+import { notInCircuit } from "@yab/protocol";
 
 // Not in circuit
 export class CompressedSignature {
-
-  @NotInCircuit()
+  @notInCircuit()
   public static fromSignature(sig: Signature) {
-    const s = Scalar.toJSON(sig.s);
-    return new CompressedSignature(sig.r, s);
+    const scalar = Scalar.toJSON(sig.s);
+    return new CompressedSignature(sig.r, scalar);
   }
 
-  public constructor(public readonly r: Field, public readonly s: string) {
-  }
+  public constructor(public readonly r: Field, public readonly s: string) {}
 
-  @NotInCircuit()
+  @notInCircuit()
   public toSignature(): Signature {
-
-    const s = Scalar.fromJSON(this.s);
+    const scalar = Scalar.fromJSON(this.s);
 
     return Signature.fromObject({
+      // eslint-disable-next-line id-length
       r: this.r,
-      s
+      // eslint-disable-next-line id-length
+      s: scalar,
     });
   }
 }

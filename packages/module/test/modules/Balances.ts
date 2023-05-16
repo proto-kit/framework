@@ -1,25 +1,19 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable import/prefer-default-export */
-import { PublicKey, UInt64, isReady } from 'snarkyjs';
+import { PublicKey, UInt64 } from "snarkyjs";
+import { Option } from "@yab/protocol";
 
-import { State } from '../../src/state/State.js';
-import { state } from '../../src/state/decorator.js';
-import { StateMap } from '../../src/state/StateMap.js';
-import { Option } from '@yab/protocol';
-import { runtimeModule } from '../../src/module/decorator.js';
-import { RuntimeModule } from '../../src/runtime/RuntimeModule.js';
-import { method } from '../../src/method/decorator.js';
+import { State } from "../../src/state/State.js";
+import { state } from "../../src/state/decorator.js";
+import { StateMap } from "../../src/state/StateMap.js";
+import { runtimeModule } from "../../src/module/decorator.js";
+import { RuntimeModule, method } from "../../src";
 
-import { Admin } from './Admin.js';
+import { Admin } from "./Admin.js";
 
 @runtimeModule()
 export class Balances extends RuntimeModule {
   @state() public totalSupply = State.from<UInt64>(UInt64);
 
-  @state() public balances = StateMap.from<PublicKey, UInt64>(
-    PublicKey,
-    UInt64
-  );
+  @state() public balances = StateMap.from<PublicKey, UInt64>(PublicKey, UInt64);
 
   public constructor(public admin: Admin) {
     super();
@@ -32,6 +26,7 @@ export class Balances extends RuntimeModule {
 
   @method()
   public setTotalSupply() {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
     this.admin.isAdmin();
   }

@@ -1,26 +1,26 @@
-// eslint-disable-next-line @typescript-eslint/ban-types
-import { Circuit, Field, Poseidon } from "snarkyjs";
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
 import { TextEncoder } from "node:util";
 
-export type ReturnType<T extends Function> = T extends ((...args: any[]) => infer R) ? R : any
+import { Circuit, Field, Poseidon } from "snarkyjs";
+import constructor from "tsyringe/dist/typings/types/constructor";
 
-export type ClassType = new(...args: any[]) => any
+export type ReturnType<FunctionType extends Function> = FunctionType extends (...args: any[]) => infer Return ? Return : any;
 
-export type TypedClassType<T> = new(...args: any[]) => T
+export type ClassType = new (...args: any[]) => any;
 
-export type Subclass<Class extends new (...args: any) => any> = (new (
-  ...args: any
-) => InstanceType<Class>) & {
-  [K in keyof Class]: Class[K];
+export type TypedClassType<Class> = new (...args: any[]) => Class;
+
+export type Subclass<Class extends new (...args: any) => any> = (new (...args: any) => InstanceType<Class>) & {
+  [Key in keyof Class]: Class[Key];
 } & { prototype: InstanceType<Class> };
 
-export function NotInCircuit() {
-  return function F(target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+export function notInCircuit(): MethodDecorator {
+  return function ReplacedFunction(target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const childFunction = descriptor.value;
     descriptor.value = function value(this: any, ...args: any[]) {
       if (Circuit.inCheckedComputation() || Circuit.inProver()) {
-        throw new Error(`Method ${  propertyKey.toString()  } is supposed to be only called outside of the circuit`);
+        throw new Error(`Method ${propertyKey.toString()} is supposed to be only called outside of the circuit`);
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       return childFunction.apply(this, args);
@@ -33,32 +33,24 @@ export function stringToField(value: string) {
   const fieldSize = Field.sizeInBytes();
 
   const encoder = new TextEncoder();
-  function stringToBytes(s: string) : number[] {
-    return Array.from(encoder.encode(s));
-  }
 
-  const stringBytes = stringToBytes(value);
+  const stringBytes = Array.from(encoder.encode(value));
 
-  const padding = Array.from<number>({ length: fieldSize - stringBytes.length }).fill(0)
-  const data = stringBytes.concat(padding)
+  const padding = Array.from<number>({ length: fieldSize - stringBytes.length }).fill(0);
+  const data = stringBytes.concat(padding);
 
-  if(data.length > fieldSize){
-
-    let chunks = data.reduce((a, b, i) => {
-      let arrIndex = i / fieldSize
-      if(a.length <= arrIndex){
-        a.push([])
+  if (data.length > fieldSize) {
+    const chunks = data.reduce<number[][]>((a, b, index) => {
+      const arrayIndex = index / fieldSize;
+      if (a.length <= arrayIndex) {
+        a.push([]);
       }
-      a[arrIndex].push(b)
-      return a
-    }, [] as number[][])
-    return Poseidon.hash(chunks.map(x => Field.fromBytes(x)))
-
-  }else{
-    return Field.fromBytes(
-      data
-    );
+      a[arrayIndex].push(b);
+      return a;
+    }, []);
+    return Poseidon.hash(chunks.map((x) => Field.fromBytes(x)));
   }
-
+  return Field.fromBytes(data);
 }
 
+export function noop(): void {}

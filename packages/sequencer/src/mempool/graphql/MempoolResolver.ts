@@ -1,13 +1,14 @@
+/* eslint-disable new-cap,id-length */
 import { Arg, Field, InputType, Mutation, Query, Resolver } from "type-graphql";
+import { inject, injectable } from "tsyringe";
+import { IsNumberString } from "class-validator";
+
 import { Mempool } from "../Mempool.js";
 import { PendingTransaction } from "../PendingTransaction.js";
-import { inject, injectable } from "tsyringe";
 import type { GraphqlModule } from "../../graphql/GraphqlModule.js";
-import { IsNumberString } from "class-validator";
 
 @InputType()
 class Signature {
-
   @Field()
   @IsNumberString()
   public r: string;
@@ -24,7 +25,6 @@ class Signature {
 
 @InputType()
 class TransactionObject {
-
   @Field()
   @IsNumberString()
   public methodId: string;
@@ -54,7 +54,6 @@ class TransactionObject {
 @injectable()
 @Resolver(TransactionObject)
 export class MempoolResolver implements GraphqlModule {
-
   public resolverType = MempoolResolver;
 
   private readonly mempool: Mempool;
@@ -65,19 +64,15 @@ export class MempoolResolver implements GraphqlModule {
 
   @Mutation(() => String)
   public submitTx(@Arg("tx") tx: TransactionObject): string {
-
     const decoded = PendingTransaction.fromJSON(tx);
     this.mempool.add(decoded);
 
     return decoded.hash().toString();
-
   }
 
   @Query(() => String)
-  public transactionState(
-    @Arg("hash") hash: string
-  ) {
-    const tx = this.mempool.getTxs().txs.find(x => x.hash().toString() === hash); // TODO Not very performant
+  public transactionState(@Arg("hash") hash: string) {
+    const tx = this.mempool.getTxs().txs.find((x) => x.hash().toString() === hash);
 
     if (tx) {
       return "pending";
@@ -106,5 +101,4 @@ export class MempoolResolver implements GraphqlModule {
   //         return []
   //     }
   // }
-
 }

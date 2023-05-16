@@ -1,18 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Circuit, Field, type Proof, Struct } from "snarkyjs";
+import { Field, type Proof } from "snarkyjs";
 import { TypedClassType } from "@yab/protocol";
 
+// eslint-disable-next-line import/no-unused-modules
 export function structArrayToFields(...args: { toFields: () => Field[] }[]): Field[] {
-  return args.flatMap(x => x.toFields());
+  return args.flatMap((x) => x.toFields());
 }
 
-
-export function Struct2<T>(t: T): ReturnType<typeof Struct<T>> {
-  const X: ReturnType<typeof Struct<T>> = Struct(t);
-  return X;
-}
-
-export type ZkProgramType<PublicInputType> = {
+export interface ZkProgramType<PublicInputType> {
   name: string;
   compile: () => Promise<{ verificationKey: string }>;
   verify: (proof: Proof<PublicInputType>) => Promise<boolean>;
@@ -20,7 +14,4 @@ export type ZkProgramType<PublicInputType> = {
 
   // analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
   publicInputType: TypedClassType<PublicInputType>;
-};
-
-
-
+}
