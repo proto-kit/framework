@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
 import { TextEncoder } from "node:util";
 
-import { Circuit, Field, Poseidon } from "snarkyjs";
+ import { Circuit, Field, Poseidon, Proof } from "snarkyjs";
 import constructor from "tsyringe/dist/typings/types/constructor";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (...args: any[]) => infer Return ? Return : any;
@@ -13,6 +13,17 @@ export type TypedClassType<Class> = new (...args: any[]) => Class;
 export type Subclass<Class extends new (...args: any) => any> = (new (...args: any) => InstanceType<Class>) & {
   [Key in keyof Class]: Class[Key];
 } & { prototype: InstanceType<Class> };
+
+export interface ZkProgramType<PublicInputType> {
+  name: string;
+  compile: () => Promise<{ verificationKey: string }>;
+  verify: (proof: Proof<PublicInputType>) => Promise<boolean>;
+  digest: () => string;
+
+  // analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
+  publicInputType: TypedClassType<PublicInputType>;
+}
+
 
 export function notInCircuit(): MethodDecorator {
   return function ReplacedFunction(target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {

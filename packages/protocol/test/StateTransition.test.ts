@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { Bool, Field } from "snarkyjs";
-import { Option, ProvableStateTransition, DefaultProvableHashList } from "@yab/protocol";
+import { Option, ProvableStateTransition, DefaultProvableHashList } from "index";
 import { container } from "tsyringe";
-import { StateTransitionProvableBatch } from "@yab/protocol/src/model/StateTransitionProvableBatch.js";
+import { StateTransitionProvableBatch } from "src/model/StateTransitionProvableBatch.js";
 
-import { RollupMerkleTree, type RollupMerkleWitness } from "../prover/utils/RollupMerkleTree.js";
-import { StateTransitionProver } from "../prover/statetransition/StateTransitionProver.js";
-import { MemoryMerkleTreeStorage } from "../prover/utils/MemoryMerkleTreeStorage.js";
-import type { StateTransitionWitnessProvider } from "../prover/statetransition/StateTransitionWitnessProvider.js";
+import { RollupMerkleTree, type RollupMerkleWitness } from "../src/utils/merkletree/RollupMerkleTree.js";
+import { StateTransitionProver } from "../src/prover/statetransition/StateTransitionProver.js";
+import { MemoryMerkleTreeStorage } from "../src/utils/merkletree/MemoryMerkleTreeStorage.js";
+import type { StateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 
 describe("stateTransition", () => {
   async function checkTransitions(tree: RollupMerkleTree, transitions: ProvableStateTransition[]) {

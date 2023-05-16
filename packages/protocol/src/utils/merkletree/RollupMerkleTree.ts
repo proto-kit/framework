@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers,import/no-unused-modules,no-underscore-dangle,id-length,no-warning-comments,etc/no-t,line-comment-position,no-inline-comments */
-
 import { Bool, Circuit, Field, Poseidon, Struct } from "snarkyjs";
-import { notInCircuit } from "@yab/protocol";
+
+import { notInCircuit } from "../Utils";
 
 // external API
 // eslint-disable-next-line @typescript-eslint/no-use-before-define

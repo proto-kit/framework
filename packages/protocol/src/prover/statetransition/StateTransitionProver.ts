@@ -1,10 +1,12 @@
 import { Circuit, Experimental, Field, Proof, SelfProof, Struct } from "snarkyjs";
-import { Subclass, DefaultProvableHashList, ProvableHashList, ProvableStateTransition, StateTransitionProvableBatch } from "@yab/protocol";
 import { inject, injectable } from "tsyringe";
 
-import { MerkleTreeUtils, RollupMerkleWitness } from "../utils/RollupMerkleTree.js";
-import { constants } from "../../Constants.js";
-import { ZkProgramType } from "../../Utils";
+import { MerkleTreeUtils, RollupMerkleWitness } from "../../utils/merkletree/RollupMerkleTree.js";
+import { DefaultProvableHashList, ProvableHashList } from "../../utils/ProvableHashList";
+import { ProvableStateTransition } from "../../model/StateTransition";
+import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
+import { constants } from "../../Constants";
+import { Subclass, ZkProgramType } from "../../utils/Utils";
 
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
 
@@ -69,10 +71,12 @@ export class StateTransitionProver {
       stateRoot,
       stateTransitionList: new DefaultProvableHashList(ProvableStateTransition, stateTransitionCommitmentFrom),
     };
+
     const transitions = transitionBatch.batch;
     for (let index = 0; index < constants.stateTransitionProverBatchSize; index++) {
       this.applyTransition(state, transitions[index], index);
     }
+
     return state;
   }
 

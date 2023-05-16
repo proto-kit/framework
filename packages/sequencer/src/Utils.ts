@@ -5,13 +5,3 @@ import { TypedClassType } from "@yab/protocol";
 export function structArrayToFields(...args: { toFields: () => Field[] }[]): Field[] {
   return args.flatMap((x) => x.toFields());
 }
-
-export interface ZkProgramType<PublicInputType> {
-  name: string;
-  compile: () => Promise<{ verificationKey: string }>;
-  verify: (proof: Proof<PublicInputType>) => Promise<boolean>;
-  digest: () => string;
-
-  // analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
-  publicInputType: TypedClassType<PublicInputType>;
-}
