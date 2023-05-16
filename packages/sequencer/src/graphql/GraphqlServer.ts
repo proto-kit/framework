@@ -1,7 +1,8 @@
-import { buildSchema } from "type-graphql";
+import { buildSchemaSync } from "type-graphql";
 import { container, injectable, injectAll } from "tsyringe";
-import { createYoga } from "graphql-yoga";
-import express from "express";
+// eslint-disable-next-line import/no-named-as-default
+import fastify, { FastifyRegisterOptions } from "fastify";
+import mercurius, { MercuriusOptions } from "mercurius";
 
 import type { GraphqlModule } from "./GraphqlModule.js";
 
@@ -15,7 +16,7 @@ export class GraphqlServer {
 
   public async start() {
     // Building schema
-    const schema = await buildSchema({
+    const schema = buildSchemaSync({
       resolvers: [this.modules[0].resolverType, ...this.modules.slice(1).map((x) => x.resolverType)],
 
       // resolvers: [MempoolResolver as Function],
@@ -27,16 +28,15 @@ export class GraphqlServer {
       },
     });
 
-    const yoga = createYoga({ schema, graphiql: true });
+    const app = fastify();
 
-    const server = express();
+    const options: FastifyRegisterOptions<MercuriusOptions> = {
+      schema,
+      graphiql: true,
+    };
 
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    server.use("/graphql", yoga);
+    await app.register(mercurius, options);
 
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    server.listen(8080, () => {
-      console.log("Running a GraphQL API server at http://localhost:8080/graphql");
-    });
+    await app.listen({ port: 8080 });
   }
 }
