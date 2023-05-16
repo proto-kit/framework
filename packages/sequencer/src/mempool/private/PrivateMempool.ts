@@ -23,11 +23,11 @@ export class PrivateMempool implements Mempool {
       // Figure out how to generalize this
       this.commitment = Poseidon.hash([this.commitment, tx.hash()]);
     }
-    return { txListCommitment: this.commitment };
+    return { transactionsHash: this.commitment };
   }
 
   public getTxs(): { txs: PendingTransaction[]; commitment: MempoolCommitment } {
-    return { commitment: { txListCommitment: this.commitment }, txs: this.queue };
+    return { commitment: { transactionsHash: this.commitment }, txs: this.queue };
   }
 
   public clear() {

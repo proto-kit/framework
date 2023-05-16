@@ -3,7 +3,7 @@ import type { Field } from "snarkyjs";
 import type { PendingTransaction } from "./PendingTransaction.js";
 
 export interface MempoolCommitment {
-  txListCommitment: Field;
+  transactionsHash: Field;
 }
 
 export interface Mempool {
