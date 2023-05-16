@@ -1,7 +1,7 @@
 import type { Field } from "snarkyjs";
-import { injectable, registry } from "tsyringe";
+import { injectable } from "tsyringe";
 
-import { RollupMerkleWitness } from "../utils/RollupMerkleTree.js";
+import { RollupMerkleWitness } from "../../utils/merkletree/RollupMerkleTree.js";
 
 /**
  * Interface for providing merkle witnesses to the state-transition prover
@@ -16,14 +16,6 @@ export interface StateTransitionWitnessProvider {
 }
 
 @injectable()
-@registry([
-  {
-
-    // Doesn't work
-    token: "StateTransitionWitnessProvider",
-    useClass: NoOpStateTransitionWitnessProvider,
-  },
-])
 export class NoOpStateTransitionWitnessProvider implements StateTransitionWitnessProvider {
   public getWitness(): RollupMerkleWitness {
     return new RollupMerkleWitness({ path: [], isLeft: [] });

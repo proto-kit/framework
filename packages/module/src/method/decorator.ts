@@ -1,20 +1,10 @@
-import { Bool, Field, Struct } from "snarkyjs";
+import { Field } from "snarkyjs";
 import { container } from "tsyringe";
-import { StateTransition, DefaultProvableHashList, ProvableStateTransition } from "@yab/protocol";
+import { StateTransition, DefaultProvableHashList, ProvableStateTransition, MethodPublicInput } from "@yab/protocol";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import { MethodExecutionContext } from "./MethodExecutionContext.js";
-
-/**
- * Public input used to link in-circuit execution with
- * the proof's public input.
- */
-export class MethodPublicInput extends Struct({
-  stateTransitionsHash: Field,
-  status: Bool,
-  transactionHash: Field,
-}) {}
 
 /**
  * Runs a method wrapped in a method execution context.
@@ -58,7 +48,7 @@ export function toStateTransitionsHash(
 export type WrappedMethod = (publicInput: MethodPublicInput, ...args: unknown[]) => unknown;
 
 export function toWrappedMethod(this: RuntimeModule, methodName: string, moduleMethod: (...args: unknown[]) => unknown) {
-  const wrappedMethod: WrappedMethod = (publicInput, ...args) => {
+  const wrappedMethod: WrappedMethod = (publicInput: MethodPublicInput, ...args) => {
     const {
       result: { stateTransitions, status, value },
     } = Reflect.apply(runInContext, this, [methodName, moduleMethod, args]);
@@ -82,7 +72,6 @@ export function toWrappedMethod(this: RuntimeModule, methodName: string, moduleM
 
   Object.defineProperty(wrappedMethod, "name", {
     value: `wrapped_${methodName}`,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     writable: false,
   });
 

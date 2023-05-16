@@ -3,6 +3,8 @@
   "compilerOptions": {
     "outDir": "./dist"
   },
-  "include": ["./index.ts"],
+  "include": [
+    "./src/index.ts"
+  ],
   "exclude": ["./dist/**/*.ts"]
 }

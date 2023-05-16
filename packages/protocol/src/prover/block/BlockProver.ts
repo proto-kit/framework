@@ -1,13 +1,18 @@
 import { Circuit, Experimental, Field, type Proof, SelfProof, Struct } from "snarkyjs";
 import { injectable } from "tsyringe";
-import { DefaultProvableHashList } from "@yab/protocol";
-import { Chain, MethodPublicInput } from "@yab/module";
 
 import { StateTransitionProver, type StateTransitionProverPublicInput } from "../statetransition/StateTransitionProver.js";
+import { DefaultProvableHashList } from "../../utils/ProvableHashList";
+import { MethodPublicInput } from "../../model/MethodPublicInput";
+import { Subclass } from "../../utils/Utils";
 
 export interface BlockProverState {
+
+  /** The current state root of the block prover */
   stateRoot: Field;
-  transactionHash: Field;
+
+  /** The current commitment of the transaction-list which will at the end equal the bundle hash */
+  transactionsHash: Field;
 }
 
 export class BlockProverPublicInput extends Struct({
@@ -22,7 +27,7 @@ export class BlockProverPublicInput extends Struct({
  */
 @injectable()
 export class BlockProver {
-  public constructor(private readonly stateTransitionProver: StateTransitionProver, private readonly chain: Chain<never>) {}
+  public constructor(private readonly stateTransitionProver: StateTransitionProver) {}
 
   /**
    * Applies and checks the two proofs and applies the corresponding state changes to the given state
@@ -54,12 +59,12 @@ export class BlockProver {
     stateTo.stateRoot = Circuit.if(appProof.publicInput.status, stateProof.publicInput.toStateRoot, stateProof.publicInput.fromStateRoot);
 
     // Append tx to transaction list
-    const transactionList = new DefaultProvableHashList(Field, state.transactionHash);
+    const transactionList = new DefaultProvableHashList(Field, state.transactionsHash);
 
     const { transactionHash } = appProof.publicInput;
     transactionList.push(transactionHash);
 
-    stateTo.transactionHash = transactionList.commitment;
+    stateTo.transactionsHash = transactionList.commitment;
 
     return stateTo;
   }
@@ -70,14 +75,14 @@ export class BlockProver {
     appProof: Proof<MethodPublicInput>
   ) {
     const state: BlockProverState = {
-      transactionHash: publicInput.fromTransactionsHash,
+      transactionsHash: publicInput.fromTransactionsHash,
       stateRoot: publicInput.fromStateRoot,
     };
 
     this.applyTransaction(state, stateProof, appProof);
 
     publicInput.toStateRoot.assertEquals(state.stateRoot, "toStateRoot not matching");
-    publicInput.toTransactionsHash.assertEquals(state.transactionHash, "toTransactionsHash does not match with computed value");
+    publicInput.toTransactionsHash.assertEquals(state.transactionsHash, "toTransactionsHash does not match with computed value");
   }
 
   public merge(publicInput: BlockProverPublicInput, proof1: SelfProof<BlockProverPublicInput>, proof2: SelfProof<BlockProverPublicInput>) {
@@ -95,10 +100,8 @@ export class BlockProver {
   /**
    * Creates the BlockProver ZkProgram
    */
-  public createZkProgram() {
+  public createZkProgram(AppChainProof: Subclass<typeof Proof<MethodPublicInput>>) {
     const ZkProgramProof = this.stateTransitionProver.getProofType();
-
-    const AppChainProof = this.chain.getProofClass();
 
     function createProgram(instance: BlockProver) {
       return Experimental.ZkProgram({

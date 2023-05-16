@@ -24,7 +24,6 @@ export function runtimeModule() {
     injectable()(target);
 
     Object.defineProperty(target, isRuntimeModulePropertyKey, {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       value: true,
     });
   };

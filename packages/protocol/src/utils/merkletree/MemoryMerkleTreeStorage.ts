@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { noop } from "@yab/protocol";
+import { noop } from "../Utils";
 
 import { type MerkleTreeStore, RollupMerkleTree, type SyncMerkleTreeStore } from "./RollupMerkleTree.js";
 
-// eslint-disable-next-line import/no-unused-modules
 export class NoOpMerkleTreeStorage implements SyncMerkleTreeStore {
   public parent: MerkleTreeStore = this;
 

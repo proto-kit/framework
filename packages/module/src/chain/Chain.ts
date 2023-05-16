@@ -1,10 +1,8 @@
-/* eslint-disable new-cap */
-
 import { type DependencyContainer, container, Lifecycle } from "tsyringe";
 import { Experimental, Proof } from "snarkyjs";
-import { Subclass } from "@yab/protocol";
+import { MethodPublicInput, Subclass } from "@yab/protocol";
 
-import { combineMethodName, isMethod, MethodPublicInput, toWrappedMethod } from "../method/decorator.js";
+import { combineMethodName, isMethod, toWrappedMethod } from "../method/decorator.js";
 import { type AnyConstructor, isRuntimeModule } from "../module/decorator.js";
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 import type { StateService } from "../state/InMemoryStateService.js";

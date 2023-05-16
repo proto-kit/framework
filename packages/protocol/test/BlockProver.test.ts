@@ -3,9 +3,9 @@ import { Bool, Field, Poseidon, Proof } from "snarkyjs";
 import { container as globalContainer, type DependencyContainer } from "tsyringe";
 import { MethodPublicInput } from "@yab/module";
 
-import { BlockProver, BlockProverPublicInput, type BlockProverState } from "../prover/block/BlockProver.js";
-import { StateTransitionProverPublicInput } from "../prover/statetransition/StateTransitionProver.js";
-import { NoOpStateTransitionWitnessProvider } from "../prover/statetransition/StateTransitionWitnessProvider.js";
+import { BlockProver, BlockProverPublicInput, type BlockProverState } from "../src/prover/block/BlockProver.js";
+import { StateTransitionProverPublicInput } from "../src/prover/statetransition/StateTransitionProver.js";
+import { NoOpStateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 
 describe("blockProver", () => {
   let container: DependencyContainer;
