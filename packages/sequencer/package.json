@@ -11,7 +11,7 @@
     "test": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./src",
     "test:ci": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./src",
     "test:watch": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./src --watch",
-    "start": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ./dist/index.js"
+    "start": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ./dist/entry.js"
   },
   "main": "dist/index.js",
   "publishConfig": {
@@ -25,13 +25,17 @@
     "@types/express": "^4.17.17"
   },
   "dependencies": {
-    "class-validator": "^0.14.0",
-    "express": "^4.18.2",
-    "graphql": "16.5.0",
-    "graphql-yoga": "^3.9.1",
-    "reflect-metadata": "^0.1.13",
-    "type-graphql": "^1.1.1",
+    "@types/ws": "^8.5.4",
+    "@yab/module": "*",
     "@yab/protocol": "*",
-    "@yab/module": "*"
+    "class-validator": "^0.14.0",
+    "fastify": "^4.17.0",
+    "graphql": "16.6.0",
+    "mercurius": "^13.0.0",
+    "reflect-metadata": "^0.1.13",
+    "type-graphql": "^2.0.0-beta.1"
+  },
+  "resolutions": {
+    "graphql": "16.6.0"
   }
 }
