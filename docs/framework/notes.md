@@ -4,12 +4,12 @@
 - each app module function is a ZkProgram method
 - public input of this ZkProgram is a hash of state transitions (stateTransitionsCommitment)
 - state & methods are decorated, to distinguish from non-publicly-callable methods
-
+[
 - interop between modules, is like copy pasting code from one module to another
 - composable modules to be as minimal as possible, so that the users can compose the functionality as they see fit (burnable, mintable, governable, upgradable, ...)
 - to override module functionality, you can extend the module class and override .e.g. a method and just return a false status to disable it
 - all module methods are merged into an AppChain ZkProgram, this means that the generated StateTransitionProver has to only accept one AppChain proof
-
+]()
 
 TODO:
 - user signature auth -> sender signs tx, from === sender -> tx prover checks signature, then state transition is merged with tx prover into a block proof

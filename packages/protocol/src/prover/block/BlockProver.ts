@@ -98,7 +98,8 @@ export class BlockProver {
   }
 
   /**
-   * Creates the BlockProver ZkProgram
+   * Creates the BlockProver ZkProgram.
+   * Recursive linking of proofs is done via the previously injected StateTransitionProver and the required AppChainProof class
    */
   public createZkProgram(AppChainProof: Subclass<typeof Proof<MethodPublicInput>>) {
     const ZkProgramProof = this.stateTransitionProver.getProofType();

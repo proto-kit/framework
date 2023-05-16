@@ -54,10 +54,7 @@ export class StateTransitionProver {
       },
     }))(this);
 
-  public constructor(
-    @inject("StateTransitionWitnessProvider")
-    private readonly witnessProvider: StateTransitionWitnessProvider
-  ) {}
+  public constructor(@inject("StateTransitionWitnessProvider") private readonly witnessProvider: StateTransitionWitnessProvider) {}
 
   /**
    * Applies the state transitions to the current stateRoot and returns the new prover state
@@ -94,6 +91,9 @@ export class StateTransitionProver {
     state.stateTransitionList.push(transition);
   }
 
+  /**
+   * Applies a whole batch of StateTransitions at once
+   */
   public runBatch(publicInput: StateTransitionProverPublicInput, fromStateRoot: Field, batch: StateTransitionProvableBatch) {
     publicInput.fromStateRoot.assertEquals(fromStateRoot, "From state-root not matching");
 

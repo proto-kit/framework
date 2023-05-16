@@ -1,8 +1,12 @@
 import { type Field, Scalar, Signature } from "snarkyjs";
 import { notInCircuit } from "@yab/protocol";
 
+/**
+ * CompressedSignature compresses the s scalar of a Signature (which is expanded to 256 Fields in snarkyjs) to a single string
+ */
 // Not in circuit
 export class CompressedSignature {
+
   @notInCircuit()
   public static fromSignature(sig: Signature) {
     const scalar = Scalar.toJSON(sig.s);
