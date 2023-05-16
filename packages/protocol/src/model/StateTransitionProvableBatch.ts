@@ -6,6 +6,9 @@ const constants = {
   stateTransitionProverBatchSize: 8,
 };
 
+/**
+ * A Batch of StateTransitions to be consumed by the StateTransitionProver to prove multiple STs at once
+ */
 export class StateTransitionProvableBatch extends Struct({
   batch: Circuit.array(ProvableStateTransition, constants.stateTransitionProverBatchSize),
 }) {

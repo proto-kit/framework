@@ -1,8 +1,6 @@
 import { Bool, type Proof } from "snarkyjs";
 import { singleton } from "tsyringe";
-import type { StateTransition } from "@yab/protocol";
-
-import type { MethodPublicInput } from "./decorator.js";
+import type { StateTransition, MethodPublicInput } from "@yab/protocol";
 
 export class MethodExecutionResult<ResultValue> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
