@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/no-extraneous-class */
 /* eslint-disable @shopify/no-fully-static-classes */
-/* eslint-disable import/prefer-default-export */
-import { Field, type FlexibleProvablePure, Poseidon } from 'snarkyjs';
+import { Field, type FlexibleProvablePure, Poseidon } from "snarkyjs";
+
 import { stringToField } from "../utils/Utils";
 
 /**
@@ -17,7 +15,7 @@ export class Path {
    * @returns Field representation of the provided value
    */
   public static toField(value: string) {
-    return stringToField(value)
+    return stringToField(value);
   }
 
   /**
@@ -28,11 +26,7 @@ export class Path {
    * @returns Field representation of class name + property name
    */
   public static fromProperty(className: string, propertyKey: string): Field {
-    return Poseidon.hash([
-      Path.toField(className),
-      Path.toField(propertyKey),
-      Field(0),
-    ]);
+    return Poseidon.hash([Path.toField(className), Path.toField(propertyKey), Field(0)]);
   }
 
   /**
@@ -43,11 +37,7 @@ export class Path {
    * @param key
    * @returns Field representation of the leading path + the provided key.
    */
-  public static fromKey<KeyType>(
-    path: Field,
-    keyType: FlexibleProvablePure<KeyType>,
-    key: KeyType
-  ): Field {
+  public static fromKey<KeyType>(path: Field, keyType: FlexibleProvablePure<KeyType>, key: KeyType): Field {
     const keyHash = Poseidon.hash(keyType.toFields(key));
     return Poseidon.hash([path, keyHash]);
   }

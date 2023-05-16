@@ -1,16 +1,14 @@
 /* eslint-disable import/no-unused-modules */
-import { injectable } from 'tsyringe';
+import { injectable } from "tsyringe";
 
-// eslint-disable-next-line import/no-cycle
-import { RuntimeModule } from '../runtime/RuntimeModule.js';
+import { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 export interface AnyConstructor {
-  // eslint-disable-next-line max-len
-  // eslint-disable-next-line @typescript-eslint/prefer-function-type, @typescript-eslint/no-explicit-any, @typescript-eslint/prefer-readonly-parameter-types
+  // eslint-disable-next-line @typescript-eslint/prefer-function-type, @typescript-eslint/no-explicit-any
   new (...args: any[]): any;
 }
 
-export const isRuntimeModulePropertyKey = 'isRuntimeModule';
+export const isRuntimeModulePropertyKey = "isRuntimeModule";
 
 /**
  * Marks the decorated class as a runtime module, while also
@@ -18,12 +16,10 @@ export const isRuntimeModulePropertyKey = 'isRuntimeModule';
  */
 export function runtimeModule() {
   return (target: AnyConstructor) => {
-    // eslint-disable-next-line max-len, no-warning-comments
+    // eslint-disable-next-line no-warning-comments
     // TODO: is there a way to enforce that runtimeModule can only be applied to RuntimeModule classes?
     if (!(target.prototype instanceof RuntimeModule)) {
-      throw new TypeError(
-        `Error applying @runtimeModule() to ${target.name}, did you forget to extend RuntimeModule?`
-      );
+      throw new TypeError(`Error applying @runtimeModule() to ${target.name}, did you forget to extend RuntimeModule?`);
     }
     injectable()(target);
 
@@ -39,8 +35,5 @@ export function runtimeModule() {
  * @param target
  */
 export function isRuntimeModule(target: AnyConstructor) {
-  return (
-    Object.getOwnPropertyDescriptor(target, isRuntimeModulePropertyKey)
-      ?.value === true
-  );
+  return Object.getOwnPropertyDescriptor(target, isRuntimeModulePropertyKey)?.value === true;
 }

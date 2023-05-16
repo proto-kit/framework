@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers,import/no-unused-modules,no-underscore-dangle,id-length,no-warning-comments,etc/no-t,line-comment-position,no-inline-comments */
+
 import { Bool, Circuit, Field, Poseidon, Struct } from "snarkyjs";
-import { NotInCircuit } from "@yab/protocol";
+import { notInCircuit } from "@yab/protocol";
 
 // external API
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -16,7 +18,6 @@ export interface Virtualizable<T> {
 }
 
 export interface MerkleTreeStore extends Virtualizable<MerkleTreeStore> {
-
   openTransaction: () => void;
 
   commit: () => void;
@@ -24,7 +25,6 @@ export interface MerkleTreeStore extends Virtualizable<MerkleTreeStore> {
   setNodeAsync: (key: bigint, level: number, value: bigint) => Promise<void>;
 
   getNodeAsync: (key: bigint, level: number) => Promise<bigint | undefined>;
-
 }
 
 export interface SyncMerkleTreeStore extends MerkleTreeStore {
@@ -33,15 +33,13 @@ export interface SyncMerkleTreeStore extends MerkleTreeStore {
   getNode: (key: bigint, level: number) => bigint | undefined;
 }
 
-
 /**
  * The {@link BaseMerkleWitness} class defines a circuit-compatible base class for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
  */
 class RollupMerkleWitness extends Struct({
   path: Circuit.array(Field, 256 - 1),
-  isLeft: Circuit.array(Bool, 256 - 1)
+  isLeft: Circuit.array(Bool, 256 - 1),
 }) {
-
   public static height = 256;
 
   public height(): number {
@@ -75,8 +73,8 @@ class RollupMerkleWitness extends Struct({
     let index = Field(0);
     const n = this.height();
 
-    for (let i = 1; i < n; ++i) {
-      index = Circuit.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
+    for (let index_ = 1; index_ < n; ++index_) {
+      index = Circuit.if(this.isLeft[index_ - 1], index, index.add(powerOfTwo));
       powerOfTwo = powerOfTwo.mul(2);
     }
 
@@ -121,7 +119,7 @@ class RollupMerkleTree {
    * @param index Index of the node.
    * @returns The data of the node.
    */
-  @NotInCircuit()
+  @notInCircuit()
   public getNode(level: number, index: bigint): Field {
     return Field(this.store.getNode(index, level) ?? this.zeroes[level]);
   }
@@ -130,7 +128,7 @@ class RollupMerkleTree {
    * Returns the root of the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree).
    * @returns The root of the Merkle Tree.
    */
-  @NotInCircuit()
+  @notInCircuit()
   public getRoot(): Field {
     return this.getNode(RollupMerkleTree.height - 1, 0n);
   }
@@ -146,7 +144,7 @@ class RollupMerkleTree {
    * @param index Position of the leaf node.
    * @param leaf New value.
    */
-  @NotInCircuit()
+  @notInCircuit()
   public setLeaf(index: bigint, leaf: Field) {
     if (index >= this.leafCount) {
       index %= this.leafCount;
@@ -170,7 +168,7 @@ class RollupMerkleTree {
    * @param index Position of the leaf node.
    * @returns The witness that belongs to the leaf.
    */
-  @NotInCircuit()
+  @notInCircuit()
   public getWitness(index: bigint): RollupMerkleWitness {
     if (index >= this.leafCount) {
       index %= this.leafCount;
@@ -186,7 +184,7 @@ class RollupMerkleTree {
     }
     return new RollupMerkleWitness({
       isLeft: isLefts,
-      path
+      path,
     });
   }
 
@@ -195,7 +193,7 @@ class RollupMerkleTree {
    * Fills all leaves of the tree.
    * @param leaves Values to fill the leaves with.
    */
-  @NotInCircuit()
+  @notInCircuit()
   public fill(leaves: Field[]) {
     leaves.forEach((value, index) => {
       this.setLeaf(BigInt(index), value);
@@ -209,13 +207,10 @@ class RollupMerkleTree {
   public get leafCount(): bigint {
     return RollupMerkleTree.leafCount;
   }
-
-
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace MerkleTreeUtils {
-
   export function normalizeKey(key: Field): Field {
     // if(NJORD_MERKLE_TREE_HEIGHT < 256){
     //     return fieldMod(key, Field(RollupMerkleTree.leafCount).toConstant())
@@ -226,25 +221,15 @@ export namespace MerkleTreeUtils {
     // }
   }
 
-  export function checkMembership(
-    witness: RollupMerkleWitness,
-    root: Field,
-    key: Field,
-    value: Field
-  ): Bool {
+  export function checkMembership(witness: RollupMerkleWitness, root: Field, key: Field, value: Field): Bool {
     const root2 = witness.calculateRoot(value);
     const key2 = witness.calculateIndex();
     key.assertEquals(key2, "Keys of MerkleWitness does not match");
     return root.equals(root2);
   }
 
-  export function computeRoot(
-    witness: RollupMerkleWitness,
-    value: Field
-  ): Field {
-
+  export function computeRoot(witness: RollupMerkleWitness, value: Field): Field {
     return witness.calculateRoot(value);
-
   }
 }
 
@@ -255,4 +240,3 @@ function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
   const y2 = x.sub(m); // x - b*(x - y) = x + b*(y - x)
   return [x1, y2];
 }
-

@@ -6,9 +6,9 @@
   "parserOptions": {
     "project": ["./tsconfig.json", "./tsconfig.test.json"]
   },
-  "ignorePatterns": ["jest.config.cjs", "jest-stackblitz.config.cjs", "docs/*", "*.json", "*.js"],
+  "ignorePatterns": ["jest.config.cjs", "jest-stackblitz.config.cjs", "docs/*", "*.json"],
   "rules": {
-    "@typescript-eslint/quotes": "off",
+    "@typescript-eslint/quotes": ["error", "double"],
     "@typescript-eslint/parameter-properties": [
       "error",
       {
@@ -23,21 +23,26 @@
     ],
     "@typescript-eslint/consistent-indexed-object-style": "off",
     "import/no-extraneous-dependencies": ["error", { "peerDependencies" : true}],
-    "quotes": "off",
-    "new-cap": "off",
-    "no-inline-comments": "off",
-    "line-comment-position": "off",
-    "@typescript-eslint/prefer-readonly-parameter-types": "off", //Not enforcable with structs
-    "import/order": "off",
-    "id-length": "off", //E.g. r and s in Signature
+    "new-cap": [
+      "error",
+      {
+        "capIsNewExceptions": ["Field", "Bool", "Struct", "ZkProgram"]
+      }
+    ],
+    "@typescript-eslint/prefer-readonly-parameter-types": "off",
+    "id-length": [
+      "error",
+      {
+        "min": 2,
+        "exceptions": ["i", "j", "x", "a", "b"]
+      }
+    ],
     "import/prefer-default-export": "off",
-    "etc/prefer-interface": "off", //Types are fine
     "@typescript-eslint/consistent-type-definitions": "off",
     "max-classes-per-file": [
       "error",
       3
     ],
-    "prettier/prettier": "off",
     "max-statements": [
       "error",
       20
@@ -51,11 +56,15 @@
         "ignoreTemplateLiterals": true
       }
     ],
-    "@typescript-eslint/naming-convention": "off", //variables which hold classes should be named uppercase
-    "jest/prefer-expect-assertions": "off",
-    "@typescript-eslint/no-magic-numbers": "off",
+    "@typescript-eslint/no-magic-numbers": [
+      "error",
+      {
+        "ignore": [0, 1, 2, 10, 100, 1000],
+        "ignoreArrayIndexes": true,
+        "ignoreTypeIndexes": true
+      }
+    ],
     "no-param-reassign": "off", //It makes a lot of sense to do this for primitive types since they are pass-by-value
-    "unicorn/prevent-abbreviations": "off", //Conflicts with "no-dangling-underscore",
     "no-plusplus": [
       "error",
       {
@@ -63,8 +72,6 @@
       }
     ],
     "import/exports-last": "off",
-    "etc/no-t": "off", //Enabled type parameters like T, or R
-    "@typescript-eslint/no-unsafe-return": "off", //Doesn't do well with tsyringe factories
     "max-params": [
       "error", 6
     ],
@@ -80,19 +87,7 @@
         }
       }
     ],
-    "ext/lines-between-object-properties": "off", //Only breaks up js objects
-    "unicorn/consistent-function-scoping": [
-      "error",
-      { "checkArrowFunctions": false }
-    ],
     "@typescript-eslint/require-await": "off", //Doesn't work when having async interfaces
-    "@typescript-eslint/no-empty-function": [
-      "error",
-      {
-        "allow": ["arrowFunctions", "methods"]
-      }
-    ],
-    "no-await-in-loop": "off",
     "@typescript-eslint/no-explicit-any": [
       "error",
       {
@@ -100,22 +95,26 @@
       }
     ],
     "unicorn/no-negated-condition": "off",
-    "sort-class-members/sort-class-members": "off",
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "variable",
+        "types": ["boolean"],
+        "format": ["camelCase"],
+        "prefix": []
+      }
+    ],
 
     //Stuff to be considered to be enabled for prod
-    "etc/no-commented-out-code": "off", //We can enable that when building for prod
-    "no-warning-comments": "off",
-    "import/no-unused-modules": "off",
+    "etc/no-commented-out-code": "off", //Check in PR with CI before merging
     "no-console": "off",
     "@typescript-eslint/consistent-type-imports": "off",
 
     //I could live with this enabled
-    "lines-around-comment": "off",
-    "jest/prefer-strict-equal": "off",
     "import/no-anonymous-default-export": "off", //Enabled export default {} in index.ts
     "@typescript-eslint/method-signature-style": [
       "error",
-      "method"
+      "property"
     ]
   },
 
@@ -126,7 +125,14 @@
         "@typescript-eslint/no-misused-promises": "off", //shutdown promise timeout - can be removed with snarkyjs 0.10
         "@typescript-eslint/init-declarations": "off", //conflicts with beforeEach initialization
         "unicorn/consistent-function-scoping": "off", //Describe-level functions
-        "jest/expect-expect": "off" //Does not work well with describe-level functions
+        "@typescript-eslint/no-magic-numbers": "off",
+        "jest/no-disabled-tests": "off" //For now
+      }
+    },
+    {
+      "files": ["index.ts"],
+      "rules": {
+        "import/no-anonymous-default-export": "off"
       }
     }
   ]

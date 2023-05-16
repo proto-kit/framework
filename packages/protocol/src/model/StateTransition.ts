@@ -1,9 +1,5 @@
-/* eslint-disable import/no-unused-modules */
-/* eslint-disable max-classes-per-file */
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable new-cap */
-/* eslint-disable import/prefer-default-export */
-import { Field, Struct } from 'snarkyjs';
+import { Field, Struct } from "snarkyjs";
+
 import { Option, ProvableOption } from "./Option.js";
 
 /**
@@ -21,12 +17,11 @@ export class ProvableStateTransition extends Struct({
   to: ProvableOption,
 }) {
   public static dummy(): ProvableStateTransition {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return new ProvableStateTransition({
       path: Field(0),
       from: Option.none().toProvable(),
       to: Option.none().toProvable(),
-    })
+    });
   }
 }
 
@@ -39,17 +34,10 @@ export class StateTransition<Value> {
     return new StateTransition(path, from, Option.none());
   }
 
-  // eslint-disable-next-line max-params
-  public static fromTo<Value>(
-    path: Field,
-    from: Option<Field> | Option<Value>,
-    to: Option<Field> | Option<Value>,
-    toValue: Value
-  ) {
+  public static fromTo<Value>(path: Field, from: Option<Field> | Option<Value>, to: Option<Field> | Option<Value>, toValue: Value) {
     return new StateTransition(path, from, to, toValue);
   }
 
-  // eslint-disable-next-line max-params
   public constructor(
     public path: Field,
     public from: Option<Field> | Option<Value>,
@@ -64,5 +52,4 @@ export class StateTransition<Value> {
       to: this.to.toProvable(),
     });
   }
-
 }

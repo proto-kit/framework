@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-/* eslint-disable import/prefer-default-export */
-import type { FlexibleProvablePure } from 'snarkyjs';
+import type { FlexibleProvablePure } from "snarkyjs";
+import { Path, type Option } from "@yab/protocol";
+import { Mixin } from "ts-mixer";
 
-import { Path, type Option } from '@yab/protocol';
-
-import { State, WithChain, WithPath } from './State.js';
-import { Mixin } from 'ts-mixer';
+import { State, WithChain, WithPath } from "./State.js";
 
 /**
  * Map-like wrapper for state
@@ -19,17 +16,11 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithChain) {
    * @param valueType - Type to be stored as a value
    * @returns State map with provided key and value types.
    */
-  public static from<KeyType, ValueType>(
-    keyType: FlexibleProvablePure<KeyType>,
-    valueType: FlexibleProvablePure<ValueType>
-  ) {
+  public static from<KeyType, ValueType>(keyType: FlexibleProvablePure<KeyType>, valueType: FlexibleProvablePure<ValueType>) {
     return new StateMap<KeyType, ValueType>(keyType, valueType);
   }
 
-  public constructor(
-    public keyType: FlexibleProvablePure<KeyType>,
-    public valueType: FlexibleProvablePure<ValueType>
-  ) {
+  public constructor(public keyType: FlexibleProvablePure<KeyType>, public valueType: FlexibleProvablePure<ValueType>) {
     super();
   }
 

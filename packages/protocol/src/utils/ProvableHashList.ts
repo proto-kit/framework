@@ -1,19 +1,12 @@
-import { type Bool, Circuit, Field, Poseidon } from "snarkyjs";
-import { FlexibleProvablePure } from "snarkyjs";
-import { TextEncoder } from "node:util";
+import { type Bool, Circuit, Field, Poseidon, FlexibleProvablePure } from "snarkyjs";
 
 /**
  * Utilities for creating a hash list from a given value type.
  */
 export abstract class ProvableHashList<Value> {
+  public constructor(private readonly valueType: FlexibleProvablePure<Value>, public commitment: Field = Field(0)) {}
 
-  public constructor(
-    private readonly valueType: FlexibleProvablePure<Value>,
-    public commitment: Field = Field(0))
-  {
-  }
-
-  protected abstract hash(e: Field[]): Field
+  protected abstract hash(elements: Field[]): Field;
 
   /**
    * Converts the provided value to Field[] and appends it to
@@ -39,13 +32,10 @@ export abstract class ProvableHashList<Value> {
   public toField() {
     return this.commitment;
   }
-
 }
 
 export class DefaultProvableHashList<Value> extends ProvableHashList<Value> {
-
-  public hash(e: Field[]): Field {
-    return Poseidon.hash(e);
+  public hash(elements: Field[]): Field {
+    return Poseidon.hash(elements);
   }
-
 }

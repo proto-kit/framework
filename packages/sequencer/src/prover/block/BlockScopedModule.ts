@@ -1,7 +1,8 @@
-//Placeholder for a future module architecture that can plug into the BlockProver
+// Placeholder for a future module architecture that can plug into the BlockProver
 
 // export interface BlockScopedModule {
 //
 // }
-const x = 1
-export { x }
+const nothing = 1;
+// eslint-disable-next-line import/no-unused-modules
+export { nothing };

@@ -13,7 +13,8 @@
     "esModuleInterop": true,
     "strict": true,
     "alwaysStrict": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "strictFunctionTypes": true
   },
   "exclude": ["jest.config.cjs"]
 }

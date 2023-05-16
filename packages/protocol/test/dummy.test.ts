@@ -1,5 +1,7 @@
+// eslint-disable-next-line import/unambiguous
 describe("test", () => {
   it("a", () => {
-    expect(1).toEqual(1)
-  })
-})
+    expect.hasAssertions();
+    expect(1).toBe(1);
+  });
+});

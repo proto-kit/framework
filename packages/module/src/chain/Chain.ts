@@ -1,25 +1,18 @@
-/* eslint-disable max-lines */
 /* eslint-disable new-cap */
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-import { type DependencyContainer, container, Lifecycle } from 'tsyringe';
-import { Experimental, Proof } from "snarkyjs";
 
-import {
-  combineMethodName,
-  isMethod,
-  MethodPublicInput,
-  toWrappedMethod,
-} from '../method/decorator.js';
-import { type AnyConstructor, isRuntimeModule } from '../module/decorator.js';
-import type { RuntimeModule } from '../runtime/RuntimeModule.js';
-import type { StateService } from '../state/InMemoryStateService.js';
+import { type DependencyContainer, container, Lifecycle } from "tsyringe";
+import { Experimental, Proof } from "snarkyjs";
 import { Subclass } from "@yab/protocol";
+
+import { combineMethodName, isMethod, MethodPublicInput, toWrappedMethod } from "../method/decorator.js";
+import { type AnyConstructor, isRuntimeModule } from "../module/decorator.js";
+import type { RuntimeModule } from "../runtime/RuntimeModule.js";
+import type { StateService } from "../state/InMemoryStateService.js";
 
 export interface RuntimeModules {
   [name: string]: AnyConstructor;
 }
 
-// eslint-disable-next-line import/no-unused-modules
 export interface ChainConfig<ChainRuntimeModules extends RuntimeModules> {
   state: StateService;
   runtimeModules: ChainRuntimeModules;
@@ -36,9 +29,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
    * @param config - Configuration for the returned Chain
    * @returns Chain with the provided config
    */
-  public static from<ChainRuntimeModules extends RuntimeModules>(
-    config: ChainConfig<ChainRuntimeModules>
-  ) {
+  public static from<ChainRuntimeModules extends RuntimeModules>(config: ChainConfig<ChainRuntimeModules>) {
     return new Chain(config);
   }
 
@@ -58,11 +49,9 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
    */
   public constructor(public config: ChainConfig<ChainRuntimeModules>) {
     this.runtimeContainer = container.createChildContainer();
-    Object.entries(this.config.runtimeModules).forEach(
-      ([name, runtimeModule]) => {
-        this.registerRuntimeModule(name, runtimeModule);
-      }
-    );
+    Object.entries(this.config.runtimeModules).forEach(([name, runtimeModule]) => {
+      this.registerRuntimeModule(name, runtimeModule);
+    });
   }
 
   /**
@@ -72,8 +61,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
    * @param name - Name of the runtime module to decorate
    */
   private decorateRuntimeModule(name: string) {
-    const runtimeModuleInstance =
-      this.runtimeContainer.resolve<RuntimeModule>(name);
+    const runtimeModuleInstance = this.runtimeContainer.resolve<RuntimeModule>(name);
     runtimeModuleInstance.name = name;
     runtimeModuleInstance.chain = this;
   }
@@ -92,8 +80,8 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
    * @returns A runtime module stored under the given key
    */
   public getRuntimeModule<Key extends keyof ChainRuntimeModules>(name: Key) {
-    if (typeof name !== 'string') {
-      throw new TypeError('Only string names are supported');
+    if (typeof name !== "string") {
+      throw new TypeError("Only string names are supported");
     }
 
     if (!this.runtimeModuleNames.includes(name)) {
@@ -102,9 +90,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.runtimeContainer.resolve<
-      InstanceType<ChainRuntimeModules[Key]>
-    >(name);
+    return this.runtimeContainer.resolve<InstanceType<ChainRuntimeModules[Key]>>(name);
   }
 
   /**
@@ -115,9 +101,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
    */
   public registerRuntimeModule(name: string, runtimeModule: AnyConstructor) {
     if (!isRuntimeModule(runtimeModule)) {
-      throw new Error(
-        `Unable to register module: ${name} / ${runtimeModule.name}, did you forget to add @runtimeModule()?`
-      );
+      throw new Error(`Unable to register module: ${name} / ${runtimeModule.name}, did you forget to add @runtimeModule()?`);
     }
     this.runtimeContainer.register(
       name,
@@ -130,12 +114,10 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
     );
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const dependencies: { name?: string }[] | string[] | undefined =
-      Reflect.getMetadata('design:paramtypes', runtimeModule);
+    const dependencies: { name?: string }[] | string[] | undefined = Reflect.getMetadata("design:paramtypes", runtimeModule);
 
     dependencies?.forEach((dependency: string | { name?: string }) => {
-      const name =
-        typeof dependency === 'string' ? dependency : dependency.name;
+      const name = typeof dependency === "string" ? dependency : dependency.name;
 
       // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
       if (!name) {
@@ -165,74 +147,47 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
    * @returns - Analysis of the precompiled ZkProgram
    */
   public precompile() {
-    type Methods = Parameters<typeof Experimental.ZkProgram>[0]['methods'];
-    const methods = this.runtimeModuleNames.reduce<Methods>(
-      (allMethods, runtimeModuleName) => {
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const runtimeModule = this.getRuntimeModule(
-          runtimeModuleName
-        ) as RuntimeModule;
+    type Methods = Parameters<typeof Experimental.ZkProgram>[0]["methods"];
+    const methods = this.runtimeModuleNames.reduce<Methods>((allMethods, runtimeModuleName) => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const runtimeModule = this.getRuntimeModule(runtimeModuleName) as RuntimeModule;
 
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
-          string,
-          (...args: unknown[]) => unknown
-        >;
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<string, (...args: unknown[]) => unknown>;
 
-        const modulePrototypeMethods =
-          Object.getOwnPropertyNames(modulePrototype);
+      const modulePrototypeMethods = Object.getOwnPropertyNames(modulePrototype);
 
-        const moduleMethods = modulePrototypeMethods.reduce<Methods>(
-          (allModuleMethods, methodName) => {
-            if (isMethod(runtimeModule, methodName)) {
-              const combinedMethodName = combineMethodName(
-                runtimeModuleName,
-                methodName
-              );
-              const method = modulePrototype[methodName];
-              const wrappedMethod = Reflect.apply(
-                toWrappedMethod,
-                runtimeModule,
-                [methodName, method]
-              );
+      const moduleMethods = modulePrototypeMethods.reduce<Methods>((allModuleMethods, methodName) => {
+        if (isMethod(runtimeModule, methodName)) {
+          const combinedMethodName = combineMethodName(runtimeModuleName, methodName);
+          const method = modulePrototype[methodName];
+          const wrappedMethod = Reflect.apply(toWrappedMethod, runtimeModule, [methodName, method]);
 
-              // eslint-disable-next-line no-warning-comments
-              // TODO: find out how to import the Tuple type
+          // eslint-disable-next-line no-warning-comments
+          // TODO: find out how to import the Tuple type
 
-              // eslint-disable-next-line max-len
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const privateInputs = Reflect.getMetadata("design:paramtypes", runtimeModule, methodName);
+
+          return {
+            ...allModuleMethods,
+
+            [combinedMethodName]: {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const privateInputs = Reflect.getMetadata(
-                'design:paramtypes',
-                runtimeModule,
-                methodName
-              );
+              privateInputs,
+              method: wrappedMethod,
+            },
+          };
+        }
 
-              return {
-                ...allModuleMethods,
+        return allModuleMethods;
+      }, {});
 
-                [combinedMethodName]: {
-                  // eslint-disable-next-line max-len
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                  privateInputs,
-                  method: wrappedMethod,
-                },
-              };
-            }
-
-            return allModuleMethods;
-          },
-          {}
-        );
-
-        return {
-          ...allMethods,
-          ...moduleMethods,
-        };
-      },
-      {}
-    );
+      return {
+        ...allMethods,
+        ...moduleMethods,
+      };
+    }, {});
 
     // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
     const sortedMethods = Object.fromEntries(Object.entries(methods).sort());
@@ -244,9 +199,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
 
     function analyze(this: Chain<RuntimeModules>) {
       if (!this.program) {
-        throw new Error(
-          `Unable to analyze program for chain: ${this.constructor.name}`
-        );
+        throw new Error(`Unable to analyze program for chain: ${this.constructor.name}`);
       }
       const zkProgramAnalysis = this.program.analyzeMethods();
       return Object.keys(sortedMethods).map((methodName, index) => {
@@ -268,24 +221,36 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
       analyze,
 
       toPretty: () => {
-        Reflect.apply(analyze, this, []).forEach(
-          ({ methodName, analysis: methodAnalysis }) => {
-            const inputs = methodAnalysis.inputs.map(
-              // eslint-disable-next-line max-len
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-              (input) => (input as any).name
-            );
-            // eslint-disable-next-line no-console
-            console.log(`
+        Reflect.apply(analyze, this, []).forEach(({ methodName, analysis: methodAnalysis }) => {
+          const inputs = methodAnalysis.inputs.map(
+            // eslint-disable-next-line max-len
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
+            (input) => (input as any).name
+          );
+
+          console.log(`
 Method: ${methodName}
 Rows: ${methodAnalysis.rows},
 Gates: ${methodAnalysis.gates.length}
-Inputs: [${inputs.join(', ')}]
+Inputs: [${inputs.join(", ")}]
 `);
-          }
-        );
+        });
       },
     };
+  }
+
+  public getProofClass(): Subclass<typeof Proof<MethodPublicInput>> {
+    if (this.program === undefined) {
+      throw new Error("You have to call precompile() before being able to create the proof class");
+    }
+    const { program } = this;
+
+    return ((programClosure: { name: string }) =>
+      class AppChainProof extends Proof<MethodPublicInput> {
+        public static publicInputType = MethodPublicInput;
+
+        public static tag = () => programClosure;
+      })(program);
   }
 
   /**
@@ -297,9 +262,7 @@ Inputs: [${inputs.join(', ')}]
   public async compile() {
     this.precompile();
     if (!this.program) {
-      throw new Error(
-        'Unable to compile chain, pre-compilation did not produce a zkProgram'
-      );
+      throw new Error("Unable to compile chain, pre-compilation did not produce a zkProgram");
     }
     const { areProofsEnabled, program } = this;
 
@@ -309,21 +272,5 @@ Inputs: [${inputs.join(', ')}]
     this.setProofsEnabled(areProofsEnabled);
 
     return artifact;
-  }
-
-  public getProofClass() : Subclass<typeof Proof<MethodPublicInput>> {
-
-    if(this.program === undefined){
-      throw Error("You have to call precompile() before being able to create the proof class")
-    }
-    const program = this.program
-
-    return ((program: { name: string }) =>
-        class AppChainProof extends Proof<MethodPublicInput> {
-          public static publicInputType = MethodPublicInput;
-
-          public static tag = () => program;
-        }
-    )(program)
   }
 }

@@ -1,16 +1,10 @@
-/* eslint-disable new-cap */
-/* eslint-disable import/no-unused-modules */
-/* eslint-disable no-param-reassign */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
-import { Bool, Field, Struct } from 'snarkyjs';
-import { container } from 'tsyringe';
-
-import type { RuntimeModule } from '../runtime/RuntimeModule.js';
-
-import { MethodExecutionContext } from './MethodExecutionContext.js';
+import { Bool, Field, Struct } from "snarkyjs";
+import { container } from "tsyringe";
 import { StateTransition, DefaultProvableHashList, ProvableStateTransition } from "@yab/protocol";
+
+import type { RuntimeModule } from "../runtime/RuntimeModule.js";
+
+import { MethodExecutionContext } from "./MethodExecutionContext.js";
 
 /**
  * Public input used to link in-circuit execution with
@@ -25,16 +19,9 @@ export class MethodPublicInput extends Struct({
 /**
  * Runs a method wrapped in a method execution context.
  */
-// eslint-disable-next-line max-params
-export function runInContext(
-  this: RuntimeModule,
-  methodName: string,
-  moduleMethod: (...args: unknown[]) => unknown,
-  args: unknown[]
-) {
-  const executionContext = container.resolve<
-    MethodExecutionContext<ReturnType<typeof moduleMethod>>
-  >(MethodExecutionContext);
+
+export function runInContext(this: RuntimeModule, methodName: string, moduleMethod: (...args: unknown[]) => unknown, args: unknown[]) {
+  const executionContext = container.resolve<MethodExecutionContext<ReturnType<typeof moduleMethod>>>(MethodExecutionContext);
 
   // eslint-disable-next-line @typescript-eslint/init-declarations
   let resultValue: unknown;
@@ -63,25 +50,14 @@ export function toStateTransitionsHash(
 
   return stateTransitions
     .map((stateTransition) => stateTransition.toProvable())
-    .reduce(
-      (allStateTransitionsHashList, stateTransition) =>
-        allStateTransitionsHashList.push(stateTransition),
-      stateTransitionsHashList
-    )
+    .reduce((allStateTransitionsHashList, stateTransition) => allStateTransitionsHashList.push(stateTransition), stateTransitionsHashList)
     .toField();
 }
 
 // eslint-disable-next-line etc/prefer-interface
-export type WrappedMethod = (
-  publicInput: MethodPublicInput,
-  ...args: unknown[]
-) => unknown;
+export type WrappedMethod = (publicInput: MethodPublicInput, ...args: unknown[]) => unknown;
 
-export function toWrappedMethod(
-  this: RuntimeModule,
-  methodName: string,
-  moduleMethod: (...args: unknown[]) => unknown
-) {
+export function toWrappedMethod(this: RuntimeModule, methodName: string, moduleMethod: (...args: unknown[]) => unknown) {
   const wrappedMethod: WrappedMethod = (publicInput, ...args) => {
     const {
       result: { stateTransitions, status, value },
@@ -104,7 +80,7 @@ export function toWrappedMethod(
     return value;
   };
 
-  Object.defineProperty(wrappedMethod, 'name', {
+  Object.defineProperty(wrappedMethod, "name", {
     value: `wrapped_${methodName}`,
     // eslint-disable-next-line @typescript-eslint/naming-convention
     writable: false,
@@ -113,10 +89,7 @@ export function toWrappedMethod(
   return wrappedMethod;
 }
 
-export function combineMethodName(
-  runtimeModuleName: string,
-  methodName: string
-) {
+export function combineMethodName(runtimeModuleName: string, methodName: string) {
   return `${runtimeModuleName}.${methodName}`;
 }
 
@@ -126,21 +99,16 @@ export function combineMethodName(
  *
  * Execute the wrapped method with the precomputed public inputs.
  */
-// eslint-disable-next-line max-params, max-statements
+
 export function runWithCommitments(
   this: RuntimeModule,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown,
   args: unknown[]
 ) {
-  const executionContext = container.resolve<
-    MethodExecutionContext<ReturnType<typeof moduleMethod>>
-  >(MethodExecutionContext);
+  const executionContext = container.resolve<MethodExecutionContext<ReturnType<typeof moduleMethod>>>(MethodExecutionContext);
 
-  const wrappedMethod = Reflect.apply(toWrappedMethod, this, [
-    methodName,
-    moduleMethod,
-  ]);
+  const wrappedMethod = Reflect.apply(toWrappedMethod, this, [methodName, moduleMethod]);
 
   const {
     result: { stateTransitions, status },
@@ -158,19 +126,13 @@ export function runWithCommitments(
   if (this.chain?.areProofsEnabled) {
     const runtimeModuleName = this.constructor.name;
     const combinedMethodName = combineMethodName(runtimeModuleName, methodName);
-    const provableMethod = this.chain?.program?.[combinedMethodName];
+    const provableMethod = this.chain.program?.[combinedMethodName];
 
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!provableMethod) {
-      throw new Error(
-        `Unable to find a provable method for '@method ${methodName}', did you forget to run chain.compile()?`
-      );
+      throw new Error(`Unable to find a provable method for '@method ${methodName}', did you forget to run chain.compile()?`);
     }
 
-    const prove = async () =>
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line @typescript-eslint/return-await, @typescript-eslint/no-unsafe-argument
-      await Reflect.apply(provableMethod, this, [methodPublicInput, ...args]);
+    const prove = async () => await Reflect.apply(provableMethod, this, [methodPublicInput, ...args]);
 
     const result = wrappedMethod(methodPublicInput, ...args);
 
@@ -181,7 +143,7 @@ export function runWithCommitments(
   return wrappedMethod(methodPublicInput, ...args);
 }
 
-export const methodMetadataKey = 'yab-method';
+export const methodMetadataKey = "yab-method";
 
 /**
  * Checks the metadata of the provided runtime module and its method,
@@ -210,14 +172,8 @@ export type DecoratedMethod = (...args: unknown[]) => unknown;
  * @returns A decorated runtime module method
  */
 export function method() {
-  return (
-    target: RuntimeModule,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) => {
-    const executionContext = container.resolve<MethodExecutionContext<unknown>>(
-      MethodExecutionContext
-    );
+  return (target: RuntimeModule, propertyKey: string, descriptor: PropertyDescriptor) => {
+    const executionContext = container.resolve<MethodExecutionContext<unknown>>(MethodExecutionContext);
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const originalFunction = descriptor.value as DecoratedMethod;
@@ -225,11 +181,7 @@ export function method() {
     Reflect.defineMetadata(methodMetadataKey, true, target, propertyKey);
     descriptor.value = function value(this: RuntimeModule, ...args: unknown[]) {
       if (executionContext.isTopLevel) {
-        return Reflect.apply(runWithCommitments, this, [
-          propertyKey,
-          originalFunction,
-          args,
-        ]);
+        return Reflect.apply(runWithCommitments, this, [propertyKey, originalFunction, args]);
       }
 
       return Reflect.apply(originalFunction, this, args);
