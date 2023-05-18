@@ -26,8 +26,14 @@ export class PrivateMempool implements Mempool {
     return { transactionsHash: this.commitment };
   }
 
-  public getTxs(): { txs: PendingTransaction[]; commitment: MempoolCommitment } {
-    return { commitment: { transactionsHash: this.commitment }, txs: this.queue };
+  public getTxs(): {
+    txs: PendingTransaction[];
+    commitment: MempoolCommitment;
+  } {
+    return {
+      commitment: { transactionsHash: this.commitment },
+      txs: this.queue,
+    };
   }
 
   public clear() {
