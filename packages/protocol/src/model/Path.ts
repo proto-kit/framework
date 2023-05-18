@@ -2,7 +2,7 @@
 /* eslint-disable @shopify/no-fully-static-classes */
 import { Field, type FlexibleProvablePure, Poseidon } from "snarkyjs";
 
-import { stringToField } from "../utils/Utils";
+import { stringToField } from "../utils/utils";
 
 /**
  * Helps manage path (key) identifiers for key-values in trees.
@@ -26,7 +26,11 @@ export class Path {
    * @returns Field representation of class name + property name
    */
   public static fromProperty(className: string, propertyKey: string): Field {
-    return Poseidon.hash([Path.toField(className), Path.toField(propertyKey), Field(0)]);
+    return Poseidon.hash([
+      Path.toField(className),
+      Path.toField(propertyKey),
+      Field(0),
+    ]);
   }
 
   /**
@@ -37,7 +41,11 @@ export class Path {
    * @param key
    * @returns Field representation of the leading path + the provided key.
    */
-  public static fromKey<KeyType>(path: Field, keyType: FlexibleProvablePure<KeyType>, key: KeyType): Field {
+  public static fromKey<KeyType>(
+    path: Field,
+    keyType: FlexibleProvablePure<KeyType>,
+    key: KeyType
+  ): Field {
     const keyHash = Poseidon.hash(keyType.toFields(key));
     return Poseidon.hash([path, keyHash]);
   }

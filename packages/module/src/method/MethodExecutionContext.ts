@@ -24,7 +24,9 @@ export class MethodExecutionResult<ResultValue> {
 export class MethodExecutionContext<ResultValue> {
   public methods: string[] = [];
 
-  public constructor(public result: MethodExecutionResult<ResultValue> = new MethodExecutionResult()) {}
+  public constructor(
+    public result: MethodExecutionResult<ResultValue> = new MethodExecutionResult()
+  ) {}
 
   /**
    * Adds an in-method generated state transition to the current context

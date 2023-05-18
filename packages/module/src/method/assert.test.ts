@@ -22,14 +22,14 @@ describe("assert", () => {
     [true, undefined],
     [false, undefined],
     [false, defaultStatusMessage],
-    // eslint-disable-next-line @typescript-eslint/naming-convention
   ])("status and message propagation", (status, statusMessage) => {
     it("should propagate the assertion status and message", () => {
       expect.assertions(2);
 
       assert(Bool(status), statusMessage);
 
-      const { status: resultStatus, statusMessage: resultStatusMessage } = executionContext.current().result;
+      const { status: resultStatus, statusMessage: resultStatusMessage } =
+        executionContext.current().result;
 
       expect(status).toBe(resultStatus.toBoolean());
       expect(statusMessage).toBe(resultStatusMessage);

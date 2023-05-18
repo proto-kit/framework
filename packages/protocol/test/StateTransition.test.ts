@@ -1,20 +1,32 @@
 import "reflect-metadata";
 import { Bool, Field } from "snarkyjs";
-import { Option, ProvableStateTransition, DefaultProvableHashList } from "index";
 import { container } from "tsyringe";
-import { StateTransitionProvableBatch } from "src/model/StateTransitionProvableBatch.js";
 
-import { RollupMerkleTree, type RollupMerkleWitness } from "../src/utils/merkletree/RollupMerkleTree.js";
+import {
+  Option,
+  ProvableStateTransition,
+  DefaultProvableHashList,
+  StateTransitionProvableBatch,
+} from "../src/index";
+import {
+  RollupMerkleTree,
+  type RollupMerkleWitness,
+} from "../src/utils/merkletree/RollupMerkleTree.js";
 import { StateTransitionProver } from "../src/prover/statetransition/StateTransitionProver.js";
 import { MemoryMerkleTreeStorage } from "../src/utils/merkletree/MemoryMerkleTreeStorage.js";
 import type { StateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 
 describe("stateTransition", () => {
-  async function checkTransitions(tree: RollupMerkleTree, transitions: ProvableStateTransition[]) {
+  async function checkTransitions(
+    tree: RollupMerkleTree,
+    transitions: ProvableStateTransition[]
+  ) {
     const batch = StateTransitionProvableBatch.fromTransitions(transitions);
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const temporaryTree = new RollupMerkleTree(tree.store.virtualize() as MemoryMerkleTreeStorage);
+    const temporaryTree = new RollupMerkleTree(
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      tree.store.virtualize() as MemoryMerkleTreeStorage
+    );
     const startRoot = temporaryTree.getRoot();
 
     const hashList = new DefaultProvableHashList(ProvableStateTransition);
@@ -45,13 +57,18 @@ describe("stateTransition", () => {
     }
 
     const childContainer = container.createChildContainer();
-    childContainer.registerInstance("StateTransitionWitnessProvider", new DummySTWP(tree));
+    childContainer.registerInstance(
+      "StateTransitionWitnessProvider",
+      new DummySTWP(tree)
+    );
     const prover = childContainer.resolve(StateTransitionProver);
 
     const state = prover.applyTransitions(startRoot, Field(0), batch);
 
     expect(state.stateRoot).toStrictEqual(endRoot);
-    expect(state.stateTransitionList.commitment).toStrictEqual(hashList.commitment);
+    expect(state.stateTransitionList.commitment).toStrictEqual(
+      hashList.commitment
+    );
 
     await childContainer.dispose();
   }
@@ -115,6 +132,8 @@ describe("stateTransition", () => {
       }),
     ];
 
-    await expect(checkTransitions(tree, transitions)).rejects.toThrow("MerkleWitness not valid for StateTransition (1)");
+    await expect(checkTransitions(tree, transitions)).rejects.toThrow(
+      "MerkleWitness not valid for StateTransition (1)"
+    );
   });
 });

@@ -7,12 +7,18 @@ const constants = {
 };
 
 /**
- * A Batch of StateTransitions to be consumed by the StateTransitionProver to prove multiple STs at once
+ * A Batch of StateTransitions to be consumed by the StateTransitionProver
+ * to prove multiple STs at once
  */
 export class StateTransitionProvableBatch extends Struct({
-  batch: Circuit.array(ProvableStateTransition, constants.stateTransitionProverBatchSize),
+  batch: Circuit.array(
+    ProvableStateTransition,
+    constants.stateTransitionProverBatchSize
+  ),
 }) {
-  public static fromTransitions(transitions: ProvableStateTransition[]): StateTransitionProvableBatch {
+  public static fromTransitions(
+    transitions: ProvableStateTransition[]
+  ): StateTransitionProvableBatch {
     const array = transitions.slice();
 
     while (array.length < constants.stateTransitionProverBatchSize) {

@@ -4,6 +4,20 @@ import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import type { State } from "./State.js";
 
+const errors = {
+  missingName: (className: string) =>
+    new Error(
+      `Unable to provide a unique identifier for state, ${className} is missing a name. 
+      Did you forget to extend your runtime module with 'extends RuntimeModule'?`
+    ),
+
+  missingChain: (className: string) =>
+    new Error(
+      `Unable to provide 'chain' for state, ${className} is missing a name. 
+      Did you forget to extend your runtime module with 'extends RuntimeModule'?`
+    ),
+};
+
 /**
  * Decorates a runtime module property as state, passing down some
  * underlying values to improve developer experience.
@@ -15,20 +29,18 @@ export function state() {
 
     Object.defineProperty(target, propertyKey, {
       get: function get() {
+        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const self = this as RuntimeModule;
 
+        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if (!self.name) {
-          throw new Error(
-            `Unable to provide a unique identifier for state, ${self.constructor.name} is missing a name. Did you forget to extend your runtime module with 'extends RuntimeModule'?`
-          );
+          throw errors.missingName(self.constructor.name);
         }
 
         if (!self.chain) {
-          throw new Error(
-            "Unable to provide 'chain' for state, Did you forget to extend your runtime module with 'extends RuntimeModule'?"
-          );
+          throw errors.missingChain(self.constructor.name);
         }
 
         const path = Path.fromProperty(self.name, propertyKey);

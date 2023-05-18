@@ -7,7 +7,6 @@ import { RollupMerkleWitness } from "../../utils/merkletree/RollupMerkleTree.js"
  * Interface for providing merkle witnesses to the state-transition prover
  */
 export interface StateTransitionWitnessProvider {
-
   /**
    * Provides the merkle witness corresponding to the given key
    * @param key Merkle-tree key
@@ -16,7 +15,9 @@ export interface StateTransitionWitnessProvider {
 }
 
 @injectable()
-export class NoOpStateTransitionWitnessProvider implements StateTransitionWitnessProvider {
+export class NoOpStateTransitionWitnessProvider
+  implements StateTransitionWitnessProvider
+{
   public getWitness(): RollupMerkleWitness {
     return new RollupMerkleWitness({ path: [], isLeft: [] });
   }

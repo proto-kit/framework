@@ -2,12 +2,11 @@ import "reflect-metadata";
 
 import { Bool, Field } from "snarkyjs";
 import { container } from "tsyringe";
-import { Option, StateTransition } from "@yab/protocol";
+import { Option, StateTransition, MethodPublicInput } from "@yab/protocol";
 
 import { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import {
-  MethodPublicInput,
   runInContext,
   toStateTransitionsHash,
   toWrappedMethod,
@@ -17,7 +16,7 @@ import {
 import { MethodExecutionContext } from "./MethodExecutionContext.js";
 
 const executionContext = container.resolve(MethodExecutionContext);
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 const expectedStatus = false;
 const expectedErrorMessage = "test failure";
 const argument = 5;
@@ -25,7 +24,9 @@ const argument = 5;
 class TestModule extends RuntimeModule {
   public succeed(foo: number) {
     executionContext.setStatus(Bool(expectedStatus));
-    executionContext.addStateTransition(StateTransition.from(Field(0), new Option(Bool(false), Field(0), Field)));
+    executionContext.addStateTransition(
+      StateTransition.from(Field(0), new Option(Bool(false), Field(0), Field))
+    );
 
     return foo;
   }
@@ -46,6 +47,7 @@ describe("runInContext", () => {
       } = Reflect.apply(runInContext, new TestModule(), [
         TestModule.prototype.succeed.name,
 
+        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, jest/unbound-method, @typescript-eslint/unbound-method
         TestModule.prototype.succeed as DecoratedMethod,
         [argument],
@@ -64,6 +66,7 @@ describe("runInContext", () => {
         Reflect.apply(runInContext, new TestModule(), [
           TestModule.prototype.fail.name,
 
+          // eslint-disable-next-line max-len
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, jest/unbound-method, @typescript-eslint/unbound-method
           TestModule.prototype.fail as DecoratedMethod,
           [],
@@ -74,22 +77,43 @@ describe("runInContext", () => {
 });
 
 describe("toStateTransitionsHash", () => {
-  const noneStateTransition = StateTransition.from(Field(0), new Option(Bool(false), Field(0), Field));
+  const noneStateTransition = StateTransition.from(
+    Field(0),
+    new Option(Bool(false), Field(0), Field)
+  );
 
-  const someStateTransition = StateTransition.from(Field(0), new Option(Bool(true), Field(0), Field));
+  const someStateTransition = StateTransition.from(
+    Field(0),
+    new Option(Bool(true), Field(0), Field)
+  );
 
   it.each([
-    [[noneStateTransition], "28700990035644272452675388662126894299960937130710765880529427081589503828331"],
-    [[someStateTransition], "12841542804403638489097503092490970035615082088155587790175618374946575398395"],
-    [[noneStateTransition, someStateTransition], "21335284518481733126227414071797863427052335154585218444540807622914895750726"],
-    [[someStateTransition, noneStateTransition], "9511943285469329402542938964164358206358558145971673073932102969821007441288"],
-  ])("should calculate a hash of all provided state transitions", (stateTransitions, expectedHash) => {
-    expect.assertions(1);
+    [
+      [noneStateTransition],
+      "28700990035644272452675388662126894299960937130710765880529427081589503828331",
+    ],
+    [
+      [someStateTransition],
+      "12841542804403638489097503092490970035615082088155587790175618374946575398395",
+    ],
+    [
+      [noneStateTransition, someStateTransition],
+      "21335284518481733126227414071797863427052335154585218444540807622914895750726",
+    ],
+    [
+      [someStateTransition, noneStateTransition],
+      "9511943285469329402542938964164358206358558145971673073932102969821007441288",
+    ],
+  ])(
+    "should calculate a hash of all provided state transitions",
+    (stateTransitions, expectedHash) => {
+      expect.assertions(1);
 
-    const hash = toStateTransitionsHash(stateTransitions).toString();
+      const hash = toStateTransitionsHash(stateTransitions).toString();
 
-    expect(hash).toBe(expectedHash);
-  });
+      expect(hash).toBe(expectedHash);
+    }
+  );
 });
 
 describe("toWrappedMethod", () => {
@@ -101,6 +125,7 @@ describe("toWrappedMethod", () => {
     wrappedMethod = Reflect.apply(toWrappedMethod, new TestModule(), [
       TestModule.prototype.succeed.name,
 
+      // eslint-disable-next-line max-len
       // eslint-disable-next-line jest/unbound-method, @typescript-eslint/consistent-type-assertions, @typescript-eslint/unbound-method
       TestModule.prototype.succeed as DecoratedMethod,
     ]);
@@ -114,6 +139,7 @@ describe("toWrappedMethod", () => {
     } = Reflect.apply(runInContext, new TestModule(), [
       TestModule.prototype.succeed.name,
 
+      // eslint-disable-next-line max-len
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, jest/unbound-method, @typescript-eslint/unbound-method
       TestModule.prototype.succeed as DecoratedMethod,
       [argument],
