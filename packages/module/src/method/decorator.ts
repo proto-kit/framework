@@ -1,17 +1,46 @@
 import { Field } from "snarkyjs";
 import { container } from "tsyringe";
-import { StateTransition, DefaultProvableHashList, ProvableStateTransition, MethodPublicInput } from "@yab/protocol";
+import {
+  StateTransition,
+  DefaultProvableHashList,
+  ProvableStateTransition,
+  MethodPublicInput,
+} from "@yab/protocol";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import { MethodExecutionContext } from "./MethodExecutionContext.js";
 
+const errors = {
+  inconsistentStateTransitions: (methodName: string) =>
+    `State transitions produced by '@method ${methodName}' are not consistent 
+    through multiple method executions, does your method contain 
+    any circuit-unfriendly conditional logic?`,
+
+  inconsistentExecutionStatus: (methodName: string) =>
+    `Execution status of '@method ${methodName}' differs across multiple method executions, 
+    does your status change by any circuit-unfriendly conditional logic?`,
+
+  proverMissing: (methodName: string) =>
+    new Error(
+      `Unable to find a provable method for '@method ${methodName}', 
+      did you forget to run chain.compile()?`
+    ),
+};
+
 /**
  * Runs a method wrapped in a method execution context.
  */
 
-export function runInContext(this: RuntimeModule, methodName: string, moduleMethod: (...args: unknown[]) => unknown, args: unknown[]) {
-  const executionContext = container.resolve<MethodExecutionContext<ReturnType<typeof moduleMethod>>>(MethodExecutionContext);
+export function runInContext(
+  this: RuntimeModule,
+  methodName: string,
+  moduleMethod: (...args: unknown[]) => unknown,
+  args: unknown[]
+) {
+  const executionContext = container.resolve<
+    MethodExecutionContext<ReturnType<typeof moduleMethod>>
+  >(MethodExecutionContext);
 
   // eslint-disable-next-line @typescript-eslint/init-declarations
   let resultValue: unknown;
@@ -36,19 +65,35 @@ export function toStateTransitionsHash(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stateTransitions: StateTransition<any>[]
 ) {
-  const stateTransitionsHashList = new DefaultProvableHashList(ProvableStateTransition);
+  const stateTransitionsHashList = new DefaultProvableHashList(
+    ProvableStateTransition
+  );
 
   return stateTransitions
     .map((stateTransition) => stateTransition.toProvable())
-    .reduce((allStateTransitionsHashList, stateTransition) => allStateTransitionsHashList.push(stateTransition), stateTransitionsHashList)
+    .reduce(
+      (allStateTransitionsHashList, stateTransition) =>
+        allStateTransitionsHashList.push(stateTransition),
+      stateTransitionsHashList
+    )
     .toField();
 }
 
 // eslint-disable-next-line etc/prefer-interface
-export type WrappedMethod = (publicInput: MethodPublicInput, ...args: unknown[]) => unknown;
+export type WrappedMethod = (
+  publicInput: MethodPublicInput,
+  ...args: unknown[]
+) => unknown;
 
-export function toWrappedMethod(this: RuntimeModule, methodName: string, moduleMethod: (...args: unknown[]) => unknown) {
-  const wrappedMethod: WrappedMethod = (publicInput: MethodPublicInput, ...args) => {
+export function toWrappedMethod(
+  this: RuntimeModule,
+  methodName: string,
+  moduleMethod: (...args: unknown[]) => unknown
+) {
+  const wrappedMethod: WrappedMethod = (
+    publicInput: MethodPublicInput,
+    ...args
+  ) => {
     const {
       result: { stateTransitions, status, value },
     } = Reflect.apply(runInContext, this, [methodName, moduleMethod, args]);
@@ -57,14 +102,14 @@ export function toWrappedMethod(this: RuntimeModule, methodName: string, moduleM
 
     publicInput.stateTransitionsHash.assertEquals(
       stateTransitionsHash,
-      `State transitions produced by '@method ${methodName}' are not consistent through multiple method executions, does your method contain any circuit-unfriendly conditional logic?`
+      errors.inconsistentStateTransitions(methodName)
     );
     // eslint-disable-next-line no-warning-comments
     // TODO: implement the transactionHash commitment
     publicInput.transactionHash.assertEquals(Field(0));
     publicInput.status.assertEquals(
       status,
-      `Execution status of '@method ${methodName}' differs across multiple method executions, does your status change by any circuit-unfriendly conditional logic?`
+      errors.inconsistentExecutionStatus(methodName)
     );
 
     return value;
@@ -78,7 +123,10 @@ export function toWrappedMethod(this: RuntimeModule, methodName: string, moduleM
   return wrappedMethod;
 }
 
-export function combineMethodName(runtimeModuleName: string, methodName: string) {
+export function combineMethodName(
+  runtimeModuleName: string,
+  methodName: string
+) {
   return `${runtimeModuleName}.${methodName}`;
 }
 
@@ -95,9 +143,14 @@ export function runWithCommitments(
   moduleMethod: (...args: unknown[]) => unknown,
   args: unknown[]
 ) {
-  const executionContext = container.resolve<MethodExecutionContext<ReturnType<typeof moduleMethod>>>(MethodExecutionContext);
+  const executionContext = container.resolve<
+    MethodExecutionContext<ReturnType<typeof moduleMethod>>
+  >(MethodExecutionContext);
 
-  const wrappedMethod = Reflect.apply(toWrappedMethod, this, [methodName, moduleMethod]);
+  const wrappedMethod = Reflect.apply(toWrappedMethod, this, [
+    methodName,
+    moduleMethod,
+  ]);
 
   const {
     result: { stateTransitions, status },
@@ -118,10 +171,11 @@ export function runWithCommitments(
     const provableMethod = this.chain.program?.[combinedMethodName];
 
     if (!provableMethod) {
-      throw new Error(`Unable to find a provable method for '@method ${methodName}', did you forget to run chain.compile()?`);
+      throw errors.proverMissing(methodName);
     }
 
-    const prove = async () => await Reflect.apply(provableMethod, this, [methodPublicInput, ...args]);
+    const prove = async () =>
+      await Reflect.apply(provableMethod, this, [methodPublicInput, ...args]);
 
     const result = wrappedMethod(methodPublicInput, ...args);
 
@@ -161,8 +215,14 @@ export type DecoratedMethod = (...args: unknown[]) => unknown;
  * @returns A decorated runtime module method
  */
 export function method() {
-  return (target: RuntimeModule, propertyKey: string, descriptor: PropertyDescriptor) => {
-    const executionContext = container.resolve<MethodExecutionContext<unknown>>(MethodExecutionContext);
+  return (
+    target: RuntimeModule,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) => {
+    const executionContext = container.resolve<MethodExecutionContext<unknown>>(
+      MethodExecutionContext
+    );
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const originalFunction = descriptor.value as DecoratedMethod;
@@ -170,7 +230,11 @@ export function method() {
     Reflect.defineMetadata(methodMetadataKey, true, target, propertyKey);
     descriptor.value = function value(this: RuntimeModule, ...args: unknown[]) {
       if (executionContext.isTopLevel) {
-        return Reflect.apply(runWithCommitments, this, [propertyKey, originalFunction, args]);
+        return Reflect.apply(runWithCommitments, this, [
+          propertyKey,
+          originalFunction,
+          args,
+        ]);
       }
 
       return Reflect.apply(originalFunction, this, args);

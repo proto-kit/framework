@@ -104,7 +104,7 @@ const chain = Chain.from({
   },
 });
 
-const balances = chain.getRuntimeModule('Balances');
+const balances = chain.getRuntimeModule("Balances");
 balances.getTotalSupply();
 
 const {

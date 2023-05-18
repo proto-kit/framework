@@ -34,7 +34,12 @@ export class StateTransition<Value> {
     return new StateTransition(path, from, Option.none());
   }
 
-  public static fromTo<Value>(path: Field, from: Option<Field> | Option<Value>, to: Option<Field> | Option<Value>, toValue: Value) {
+  public static fromTo<Value>(
+    path: Field,
+    from: Option<Field> | Option<Value>,
+    to: Option<Field> | Option<Value>,
+    toValue: Value
+  ) {
     return new StateTransition(path, from, to, toValue);
   }
 

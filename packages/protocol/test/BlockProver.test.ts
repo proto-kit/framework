@@ -1,9 +1,17 @@
 import "reflect-metadata";
 import { Bool, Field, Poseidon, Proof } from "snarkyjs";
-import { container as globalContainer, type DependencyContainer } from "tsyringe";
-import { MethodPublicInput } from "@yab/module";
+import {
+  container as globalContainer,
+  type DependencyContainer,
+} from "tsyringe";
 
-import { BlockProver, BlockProverPublicInput, type BlockProverState } from "../src/prover/block/BlockProver.js";
+import { MethodPublicInput } from "@yab/protocol";
+
+import {
+  BlockProver,
+  BlockProverPublicInput,
+  type BlockProverState,
+} from "../src/prover/block/BlockProver.js";
 import { StateTransitionProverPublicInput } from "../src/prover/statetransition/StateTransitionProver.js";
 import { NoOpStateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 
@@ -12,7 +20,10 @@ describe("blockProver", () => {
 
   beforeEach(() => {
     const childContainer = globalContainer.createChildContainer();
-    childContainer.register("StateTransitionWitnessProvider", NoOpStateTransitionWitnessProvider);
+    childContainer.register(
+      "StateTransitionWitnessProvider",
+      NoOpStateTransitionWitnessProvider
+    );
     container = childContainer;
   });
 
@@ -61,7 +72,7 @@ describe("blockProver", () => {
 
     const state: BlockProverState = {
       stateRoot: fromState,
-      transactionHash: Field(0),
+      transactionsHash: Field(0),
     };
     blockProver.applyTransaction(state, stProof, appProof);
   });
@@ -78,7 +89,7 @@ describe("blockProver", () => {
 
     const fromProverState: BlockProverState = {
       stateRoot: fromState,
-      transactionHash: Field(0),
+      transactionsHash: Field(0),
     };
     const toProverState = { ...fromProverState };
     blockProver.applyTransaction(toProverState, stProof, appProof);
@@ -86,8 +97,8 @@ describe("blockProver", () => {
     const publicInput = new BlockProverPublicInput({
       fromStateRoot: fromProverState.stateRoot,
       toStateRoot: toProverState.stateRoot,
-      fromTransactionsHash: fromProverState.transactionHash,
-      toTransactionsHash: toProverState.transactionHash,
+      fromTransactionsHash: fromProverState.transactionsHash,
+      toTransactionsHash: toProverState.transactionsHash,
     });
 
     blockProver.proveTransaction(publicInput, stProof, appProof);

@@ -13,7 +13,10 @@ import { Admin } from "./Admin.js";
 export class Balances extends RuntimeModule {
   @state() public totalSupply = State.from<UInt64>(UInt64);
 
-  @state() public balances = StateMap.from<PublicKey, UInt64>(PublicKey, UInt64);
+  @state() public balances = StateMap.from<PublicKey, UInt64>(
+    PublicKey,
+    UInt64
+  );
 
   public constructor(public admin: Admin) {
     super();

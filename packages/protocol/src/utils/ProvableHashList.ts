@@ -1,10 +1,19 @@
-import { type Bool, Circuit, Field, Poseidon, FlexibleProvablePure } from "snarkyjs";
+import {
+  type Bool,
+  Circuit,
+  Field,
+  Poseidon,
+  FlexibleProvablePure,
+} from "snarkyjs";
 
 /**
  * Utilities for creating a hash list from a given value type.
  */
 export abstract class ProvableHashList<Value> {
-  public constructor(private readonly valueType: FlexibleProvablePure<Value>, public commitment: Field = Field(0)) {}
+  public constructor(
+    private readonly valueType: FlexibleProvablePure<Value>,
+    public commitment: Field = Field(0)
+  ) {}
 
   protected abstract hash(elements: Field[]): Field;
 
@@ -16,12 +25,18 @@ export abstract class ProvableHashList<Value> {
    * @returns Current hash list.
    */
   public push(value: Value) {
-    this.commitment = this.hash([this.commitment, ...this.valueType.toFields(value)]);
+    this.commitment = this.hash([
+      this.commitment,
+      ...this.valueType.toFields(value),
+    ]);
     return this;
   }
 
   public remove(preimage: Field, value: Value): Bool {
-    const success = this.hash([preimage, ...this.valueType.toFields(value)]).equals(this.commitment);
+    const success = this.hash([
+      preimage,
+      ...this.valueType.toFields(value),
+    ]).equals(this.commitment);
     this.commitment = Circuit.if(success, preimage, this.commitment);
     return success;
   }

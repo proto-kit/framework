@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { noop } from "../Utils";
+import { noop } from "../utils";
 
-import { type MerkleTreeStore, RollupMerkleTree, type SyncMerkleTreeStore } from "./RollupMerkleTree.js";
+import {
+  type MerkleTreeStore,
+  RollupMerkleTree,
+  type SyncMerkleTreeStore,
+} from "./RollupMerkleTree.js";
 
 export class NoOpMerkleTreeStorage implements SyncMerkleTreeStore {
   public parent: MerkleTreeStore = this;
@@ -36,9 +40,11 @@ export class NoOpMerkleTreeStorage implements SyncMerkleTreeStore {
 }
 
 export class MemoryMerkleTreeStorage implements SyncMerkleTreeStore {
-  private readonly nodes: Record<number, Record<string, bigint>> = {};
+  private readonly nodes: Record<number, Record<string, bigint | undefined>> =
+    {};
 
-  private readonly cache: Record<number, Record<string, bigint>> = {};
+  private readonly cache: Record<number, Record<string, bigint | undefined>> =
+    {};
 
   public parent: SyncMerkleTreeStore;
 
@@ -55,8 +61,11 @@ export class MemoryMerkleTreeStorage implements SyncMerkleTreeStore {
   }
 
   public getNode(key: bigint, level: number): bigint | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    return this.nodes[level]?.[key.toString()] ?? this.cache[level]?.[key.toString()] ?? this.parent.getNode(key, level);
+    return (
+      this.nodes[level][key.toString()] ??
+      this.cache[level][key.toString()] ??
+      this.parent.getNode(key, level)
+    );
   }
 
   public setNode(key: bigint, level: number, value: bigint): void {
@@ -68,11 +77,18 @@ export class MemoryMerkleTreeStorage implements SyncMerkleTreeStore {
     return new MemoryMerkleTreeStorage(this);
   }
 
-  public async getNodeAsync(key: bigint, level: number): Promise<bigint | undefined> {
+  public async getNodeAsync(
+    key: bigint,
+    level: number
+  ): Promise<bigint | undefined> {
     return this.getNode(key, level);
   }
 
-  public async setNodeAsync(key: bigint, level: number, value: bigint): Promise<void> {
+  public async setNodeAsync(
+    key: bigint,
+    level: number,
+    value: bigint
+  ): Promise<void> {
     this.setNode(key, level, value);
     return undefined;
   }

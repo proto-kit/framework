@@ -16,11 +16,17 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithChain) {
    * @param valueType - Type to be stored as a value
    * @returns State map with provided key and value types.
    */
-  public static from<KeyType, ValueType>(keyType: FlexibleProvablePure<KeyType>, valueType: FlexibleProvablePure<ValueType>) {
+  public static from<KeyType, ValueType>(
+    keyType: FlexibleProvablePure<KeyType>,
+    valueType: FlexibleProvablePure<ValueType>
+  ) {
     return new StateMap<KeyType, ValueType>(keyType, valueType);
   }
 
-  public constructor(public keyType: FlexibleProvablePure<KeyType>, public valueType: FlexibleProvablePure<ValueType>) {
+  public constructor(
+    public keyType: FlexibleProvablePure<KeyType>,
+    public valueType: FlexibleProvablePure<ValueType>
+  ) {
     super();
   }
 

@@ -1,4 +1,11 @@
-import { Bool, Circuit, Field, type FlexibleProvablePure, Poseidon, Struct } from "snarkyjs";
+import {
+  Bool,
+  Circuit,
+  Field,
+  type FlexibleProvablePure,
+  Poseidon,
+  Struct,
+} from "snarkyjs";
 
 export class ProvableOption extends Struct({
   isSome: Bool,
@@ -17,7 +24,11 @@ export class Option<Value> {
    * @param valueType
    * @returns New option from the provided parameters.
    */
-  public static from<Value>(isSome: Bool, value: Value, valueType: FlexibleProvablePure<Value>) {
+  public static from<Value>(
+    isSome: Bool,
+    value: Value,
+    valueType: FlexibleProvablePure<Value>
+  ) {
     return new Option(isSome, value, valueType);
   }
 
@@ -28,7 +39,10 @@ export class Option<Value> {
    * @param valueType
    * @returns New option from the provided parameters.
    */
-  public static fromValue<Value>(value: Value, valueType: FlexibleProvablePure<Value>) {
+  public static fromValue<Value>(
+    value: Value,
+    valueType: FlexibleProvablePure<Value>
+  ) {
     return this.from(Bool(true), value, valueType);
   }
 
@@ -39,7 +53,11 @@ export class Option<Value> {
     return new Option(Bool(false), Field(0), Field);
   }
 
-  public constructor(public isSome: Bool, public value: Value, public valueType: FlexibleProvablePure<Value>) {}
+  public constructor(
+    public isSome: Bool,
+    public value: Value,
+    public valueType: FlexibleProvablePure<Value>
+  ) {}
 
   /**
    * @returns Tree representation of the current value
