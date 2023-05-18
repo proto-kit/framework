@@ -5,6 +5,7 @@ import { RollupSetup } from "./RollupSetup.js";
 import { MempoolResolver } from "./mempool/graphql/MempoolResolver.js";
 import { PrivateMempool } from "./mempool/private/PrivateMempool.js";
 
+// eslint-disable-next-line import/no-unused-modules
 export async function setup() {
   const rollupSetup = container.resolve(RollupSetup);
   rollupSetup.registerMempoolModule(new PrivateMempool());

@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import { Field, Poseidon, type PrivateKey, PublicKey, Signature, UInt64 } from "snarkyjs";
+import {
+  Field,
+  Poseidon,
+  type PrivateKey,
+  PublicKey,
+  Signature,
+  UInt64,
+} from "snarkyjs";
 
 export class UnsignedTransaction {
   public methodId: Field;
@@ -10,7 +17,12 @@ export class UnsignedTransaction {
 
   public args: Field[];
 
-  public constructor(data: { methodId: Field; nonce: UInt64; sender: PublicKey; args: Field[] }) {
+  public constructor(data: {
+    methodId: Field;
+    nonce: UInt64;
+    sender: PublicKey;
+    args: Field[];
+  }) {
     this.methodId = data.methodId;
     this.nonce = data.nonce;
     this.sender = data.sender;
@@ -22,7 +34,12 @@ export class UnsignedTransaction {
   }
 
   public hash(): Field {
-    return Poseidon.hash([this.methodId, ...this.sender.toFields(), this.nonce.value, this.argsHash()]);
+    return Poseidon.hash([
+      this.methodId,
+      ...this.sender.toFields(),
+      this.nonce.value,
+      this.argsHash(),
+    ]);
   }
 
   public getSignatureData(): Field[] {
@@ -58,7 +75,9 @@ interface PendingTransactionJSONType {
 }
 
 export class PendingTransaction extends UnsignedTransaction {
-  public static fromJSON(object: PendingTransactionJSONType): PendingTransaction {
+  public static fromJSON(
+    object: PendingTransactionJSONType
+  ): PendingTransaction {
     return new PendingTransaction({
       methodId: Field.fromJSON(object.methodId),
       nonce: UInt64.from(object.nonce),
@@ -70,7 +89,13 @@ export class PendingTransaction extends UnsignedTransaction {
 
   public signature: Signature;
 
-  public constructor(data: { methodId: Field; nonce: UInt64; sender: PublicKey; signature: Signature; args: Field[] }) {
+  public constructor(data: {
+    methodId: Field;
+    nonce: UInt64;
+    sender: PublicKey;
+    signature: Signature;
+    args: Field[];
+  }) {
     super(data);
     this.signature = data.signature;
   }

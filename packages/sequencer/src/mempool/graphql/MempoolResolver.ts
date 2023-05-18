@@ -42,7 +42,13 @@ class TransactionObject {
   @Field(() => [String])
   public args: string[];
 
-  public constructor(methodId: string, sender: string, nonce: string, signature: Signature, args: string[]) {
+  public constructor(
+    methodId: string,
+    sender: string,
+    nonce: string,
+    signature: Signature,
+    args: string[]
+  ) {
     this.methodId = methodId;
     this.sender = sender;
     this.nonce = nonce;
@@ -72,7 +78,9 @@ export class MempoolResolver implements GraphqlModule {
 
   @Query(() => String)
   public transactionState(@Arg("hash") hash: string) {
-    const tx = this.mempool.getTxs().txs.find((x) => x.hash().toString() === hash);
+    const tx = this.mempool
+      .getTxs()
+      .txs.find((x) => x.hash().toString() === hash);
 
     if (tx) {
       return "pending";
@@ -92,6 +100,7 @@ export class MempoolResolver implements GraphqlModule {
   //     @Arg("hash") hash: string
   // ){
   //
+  // eslint-disable-next-line max-len
   //     let tx = this.mempool.getTxs().txs.find(x => x.hash().toString() === hash) //TODO Not very performant
   //
   //     if(tx){

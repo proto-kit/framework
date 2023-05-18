@@ -7,7 +7,6 @@ export interface MempoolCommitment {
 }
 
 export interface Mempool {
-
   /**
    * Add a transaction to the mempool
    * @returns The new commitment to the mempool
