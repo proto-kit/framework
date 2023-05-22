@@ -31,11 +31,11 @@ describe("stateTransition", () => {
 
     const hashList = new DefaultProvableHashList(ProvableStateTransition);
 
-    batch.batch.forEach((x) => {
-      if (x.to.isSome.toBoolean()) {
-        temporaryTree.setLeaf(x.path.toBigInt(), x.to.value);
+    batch.batch.forEach((item) => {
+      if (item.to.isSome.toBoolean()) {
+        temporaryTree.setLeaf(item.path.toBigInt(), item.to.value);
       }
-      hashList.push(x);
+      hashList.push(item);
     });
 
     const endRoot = temporaryTree.getRoot();
@@ -73,7 +73,41 @@ describe("stateTransition", () => {
     await childContainer.dispose();
   }
 
-  it("should pass without throwing", async () => {
+  it.each([
+    [
+      [
+        new ProvableStateTransition({
+          from: Option.fromValue(Field(1), Field).toProvable(),
+          to: Option.fromValue(Field(14), Field).toProvable(),
+          path: Field(1),
+        }),
+        new ProvableStateTransition({
+          from: Option.fromValue(Field(14), Field).toProvable(),
+          to: Option.fromValue(Field(4), Field).toProvable(),
+          path: Field(1),
+        }),
+      ],
+    ],
+    [
+      [
+        new ProvableStateTransition({
+          from: Option.none(),
+          to: Option.from(Bool(true), Field(4), Field).toProvable(),
+          path: Field(1),
+        }),
+        new ProvableStateTransition({
+          from: Option.from(Bool(true), Field(5), Field).toProvable(),
+          to: Option.from(Bool(true), Field(2), Field).toProvable(),
+          path: Field(2),
+        }),
+        new ProvableStateTransition({
+          from: Option.from(Bool(true), Field(2), Field).toProvable(),
+          to: Option.none(),
+          path: Field(2),
+        }),
+      ],
+    ],
+  ])("should pass without throwing", async (transitions) => {
     expect.assertions(2);
 
     const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
@@ -81,29 +115,6 @@ describe("stateTransition", () => {
     // Is ignored because overwritten by first transition
     tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
     tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
-
-    const transitions = [
-      new ProvableStateTransition({
-        from: Option.none(),
-        to: Option.from(Bool(true), Field(14), Field).toProvable(),
-        path: Field(1),
-      }),
-      new ProvableStateTransition({
-        from: Option.from(Bool(true), Field(14), Field).toProvable(),
-        to: Option.from(Bool(true), Field(4), Field).toProvable(),
-        path: Field(1),
-      }),
-      new ProvableStateTransition({
-        from: Option.from(Bool(true), Field(5), Field).toProvable(),
-        to: Option.from(Bool(true), Field(2), Field).toProvable(),
-        path: Field(2),
-      }),
-      new ProvableStateTransition({
-        from: Option.from(Bool(true), Field(2), Field).toProvable(),
-        to: Option.none(),
-        path: Field(2),
-      }),
-    ];
 
     await checkTransitions(tree, transitions);
   });

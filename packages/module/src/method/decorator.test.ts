@@ -3,6 +3,8 @@ import "reflect-metadata";
 import { Bool, Field } from "snarkyjs";
 import { container } from "tsyringe";
 import { Option, StateTransition, MethodPublicInput } from "@yab/protocol";
+// eslint-disable-next-line @typescript-eslint/no-shadow
+import { jest } from "@jest/globals";
 
 import { RuntimeModule } from "../runtime/RuntimeModule.js";
 

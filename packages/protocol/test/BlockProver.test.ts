@@ -5,7 +5,7 @@ import {
   type DependencyContainer,
 } from "tsyringe";
 
-import { MethodPublicInput } from "@yab/protocol";
+import { MethodPublicInput, noop } from "@yab/protocol";
 
 import {
   BlockProver,
@@ -14,6 +14,11 @@ import {
 } from "../src/prover/block/BlockProver.js";
 import { StateTransitionProverPublicInput } from "../src/prover/statetransition/StateTransitionProver.js";
 import { NoOpStateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
+
+type BlockProverProofPair = [
+  Proof<MethodPublicInput>,
+  Proof<StateTransitionProverPublicInput>
+];
 
 describe("blockProver", () => {
   let container: DependencyContainer;
@@ -30,7 +35,7 @@ describe("blockProver", () => {
   function generateTestProofs(
     fromStateRoot: Field,
     toStateRoot: Field
-  ): [Proof<MethodPublicInput>, Proof<StateTransitionProverPublicInput>] {
+  ): BlockProverProofPair {
     const transactionHash = Poseidon.hash([Field(12_345)]);
     const sthash = Field(123);
 
@@ -102,5 +107,34 @@ describe("blockProver", () => {
     });
 
     blockProver.proveTransaction(publicInput, stProof, appProof);
+  });
+
+  it("should fail if proofs don't match transactionsHash", () => {
+    expect.assertions(1);
+
+    const blockProver = container.resolve(BlockProver);
+
+    const fromState = Field(1);
+    const toState = Field(2);
+
+    const [appProof, stProof] = generateTestProofs(fromState, toState);
+
+    const fromProverState: BlockProverState = {
+      stateRoot: fromState,
+      transactionsHash: Field(0),
+    };
+    const toProverState = { ...fromProverState };
+    blockProver.applyTransaction(toProverState, stProof, appProof);
+
+    const publicInput = new BlockProverPublicInput({
+      fromStateRoot: fromProverState.stateRoot,
+      toStateRoot: toProverState.stateRoot,
+      fromTransactionsHash: fromProverState.transactionsHash,
+      toTransactionsHash: Field(5),
+    });
+
+    expect(() => { blockProver.proveTransaction(publicInput, stProof, appProof); })
+      // eslint-disable-next-line jest/require-to-throw-message
+      .toThrow();
   });
 });
