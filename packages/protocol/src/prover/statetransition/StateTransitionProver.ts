@@ -19,9 +19,21 @@ import {
 import { ProvableStateTransition } from "../../model/StateTransition";
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
 import { constants } from "../../constants";
-import { Subclass, ZkProgramType } from "../../utils/utils";
+import { Subclass, TypedClassType, ZkProgramType } from "../../utils/utils";
 
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
+
+const errors = {
+  stateRootNotMatching: (step: string) => `StateRoots not matching ${step}`,
+
+  stateTransitionsHashNotMatching: (step: string) =>
+    `State transitions hash not matching ${step}`,
+
+  merkleWitnessNotCorrect: (index: number) =>
+    `MerkleWitness not valid for StateTransition (${index})`,
+
+  propertyNotMatching: (propertyName: string) => `${propertyName} not matching`,
+};
 
 interface StateTransitionProverState {
   stateRoot: Field;
@@ -47,14 +59,13 @@ export class StateTransitionProver {
 
       methods: {
         proveBatch: {
-          privateInputs: [Field, StateTransitionProvableBatch],
+          privateInputs: [StateTransitionProvableBatch],
 
           method(
             publicInput: StateTransitionProverPublicInput,
-            fromStateRoot: Field,
             batch: StateTransitionProvableBatch
           ) {
-            instance.runBatch(publicInput, fromStateRoot, batch);
+            instance.runBatch(publicInput, batch);
           },
         },
 
@@ -130,7 +141,7 @@ export class StateTransitionProver {
     );
     membershipValid
       .or(transition.from.isSome.not())
-      .assertTrue(`MerkleWitness not valid for StateTransition (${index})`);
+      .assertTrue(errors.merkleWitnessNotCorrect(index));
 
     const newRoot = MerkleTreeUtils.computeRoot(
       treeWitness,
@@ -150,27 +161,21 @@ export class StateTransitionProver {
    */
   public runBatch(
     publicInput: StateTransitionProverPublicInput,
-    fromStateRoot: Field,
     batch: StateTransitionProvableBatch
   ) {
-    publicInput.fromStateRoot.assertEquals(
-      fromStateRoot,
-      "From state-root not matching"
-    );
-
     const result = this.applyTransitions(
-      fromStateRoot,
+      publicInput.fromStateRoot,
       publicInput.fromStateTransitionsHash,
       batch
     );
 
     publicInput.toStateRoot.assertEquals(
       result.stateRoot,
-      "Resulting state-root not matching"
+      errors.propertyNotMatching("resulting state-root")
     );
     publicInput.toStateTransitionsHash.assertEquals(
       result.stateTransitionList.commitment,
-      "Resulting state transition commitment not matching"
+      errors.propertyNotMatching("resulting state transition commitment")
     );
   }
 
@@ -179,32 +184,35 @@ export class StateTransitionProver {
     proof1: SelfProof<StateTransitionProverPublicInput>,
     proof2: SelfProof<StateTransitionProverPublicInput>
   ) {
+    proof1.verify();
+    proof2.verify();
+
     // Check state
     publicInput.fromStateRoot.assertEquals(
       proof1.publicInput.fromStateRoot,
-      "StateRoot step 1"
+      errors.stateRootNotMatching("publicInput.from -> proof1.from")
     );
     proof1.publicInput.toStateRoot.assertEquals(
       proof2.publicInput.fromStateRoot,
-      "StateRoot step 2"
+      errors.stateRootNotMatching("proof1.to -> proof2.from")
     );
     proof2.publicInput.toStateRoot.assertEquals(
       publicInput.toStateRoot,
-      "StateRoot step 3"
+      errors.stateRootNotMatching("proof2.to -> publicInput.to")
     );
 
     // Check ST list
     publicInput.fromStateTransitionsHash.assertEquals(
       proof1.publicInput.fromStateTransitionsHash,
-      "ST commitment step 1"
+      errors.stateTransitionsHashNotMatching("publicInput.from -> proof1.from")
     );
     proof1.publicInput.toStateTransitionsHash.assertEquals(
       proof2.publicInput.fromStateTransitionsHash,
-      "ST commitment step 2"
+      errors.stateTransitionsHashNotMatching("proof1.to -> proof2.from")
     );
     proof2.publicInput.toStateTransitionsHash.assertEquals(
       publicInput.toStateTransitionsHash,
-      "ST commitment step 3"
+      errors.stateTransitionsHashNotMatching("proof2.to -> publicInput.to")
     );
   }
 
@@ -214,7 +222,9 @@ export class StateTransitionProver {
 
   public getProofType(): Subclass<
     typeof Proof<StateTransitionProverPublicInput>
-  > {
+  > & {
+    publicInputType: TypedClassType<StateTransitionProverPublicInput>;
+  } {
     return ((instance: StateTransitionProver) =>
       class StateTransitionProof extends Proof<StateTransitionProverPublicInput> {
         public static publicInputType = StateTransitionProverPublicInput;

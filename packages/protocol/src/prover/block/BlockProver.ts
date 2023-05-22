@@ -16,6 +16,20 @@ import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicInput } from "../../model/MethodPublicInput";
 import { Subclass } from "../../utils/utils";
 
+const errors = {
+  stateProofNotStartingAtZero: () => "StateProof not starting ST-commitment at zero",
+
+  stateTransitionsHashNotEqual: () =>
+    "StateTransition list commitments are not equal",
+
+  propertyNotMatching: (propertyName: string) => `${propertyName} not matching`,
+
+  stateRootNotMatching: (step: string) => `StateRoots not matching ${step}`,
+
+  transactionsHashNotMatching: (step: string) =>
+    `transactions hash not matching ${step}`,
+}
+
 export interface BlockProverState {
   // The current state root of the block prover
   stateRoot: Field;
@@ -50,40 +64,40 @@ export class BlockProver {
    * changes to the given state
    *
    * @param state The from-state of the BlockProver
-   * @param stateProof
+   * @param stateTransitionProof
    * @param appProof
    * @returns The new BlockProver-state to be used as public output
    */
   public applyTransaction(
     state: BlockProverState,
-    stateProof: Proof<StateTransitionProverPublicInput>,
+    stateTransitionProof: Proof<StateTransitionProverPublicInput>,
     appProof: Proof<MethodPublicInput>
   ): BlockProverState {
+    appProof.verify();
+    stateTransitionProof.verify();
+
     const stateTo = { ...state };
 
-    // Checks for the state- and appProof matching
-    stateProof.publicInput.fromStateTransitionsHash.assertEquals(
+    // Checks for the stateTransitionProof and appProof matching
+    stateTransitionProof.publicInput.fromStateTransitionsHash.assertEquals(
       Field(0),
-      "StateProof not starting ST-commitment at zero"
+      errors.stateProofNotStartingAtZero()
     );
 
     appProof.publicInput.stateTransitionsHash.assertEquals(
-      stateProof.publicInput.toStateTransitionsHash,
-      "StateTransition list commitments are not equal"
+      stateTransitionProof.publicInput.toStateTransitionsHash,
+      errors.stateTransitionsHashNotEqual()
     );
-
-    appProof.verify();
-    stateProof.verify();
 
     // Apply state if status success
     state.stateRoot.assertEquals(
-      stateProof.publicInput.fromStateRoot,
-      "fromStateRoot not matching"
+      stateTransitionProof.publicInput.fromStateRoot,
+      errors.propertyNotMatching("from state root")
     );
     stateTo.stateRoot = Circuit.if(
       appProof.publicInput.status,
-      stateProof.publicInput.toStateRoot,
-      stateProof.publicInput.fromStateRoot
+      stateTransitionProof.publicInput.toStateRoot,
+      stateTransitionProof.publicInput.fromStateRoot
     );
 
     // Append tx to transaction list
@@ -114,11 +128,11 @@ export class BlockProver {
 
     publicInput.toStateRoot.assertEquals(
       state.stateRoot,
-      "toStateRoot not matching"
+      errors.propertyNotMatching("to state root")
     );
     publicInput.toTransactionsHash.assertEquals(
       state.transactionsHash,
-      "toTransactionsHash does not match with computed value"
+      errors.propertyNotMatching("to transactions hash and computed hash")
     );
   }
 
@@ -127,32 +141,35 @@ export class BlockProver {
     proof1: SelfProof<BlockProverPublicInput>,
     proof2: SelfProof<BlockProverPublicInput>
   ) {
+    proof1.verify();
+    proof2.verify();
+
     // Check state
     publicInput.fromStateRoot.assertEquals(
       proof1.publicInput.fromStateRoot,
-      "StateRoot step 1"
+      errors.stateRootNotMatching("publicInput.from -> proof1.from")
     );
     proof1.publicInput.toStateRoot.assertEquals(
       proof2.publicInput.fromStateRoot,
-      "StateRoot step 2"
+      errors.stateRootNotMatching("proof1.to -> proof2.from")
     );
     proof2.publicInput.toStateRoot.assertEquals(
       publicInput.toStateRoot,
-      "StateRoot step 3"
+      errors.stateRootNotMatching("proof2.to -> publicInput.to")
     );
 
     // Check transaction list
     publicInput.fromTransactionsHash.assertEquals(
       proof1.publicInput.fromTransactionsHash,
-      "ST commitment step 1"
+      errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
     );
     proof1.publicInput.toTransactionsHash.assertEquals(
       proof2.publicInput.fromTransactionsHash,
-      "ST commitment step 2"
+      errors.transactionsHashNotMatching("proof1.to -> proof2.from")
     );
     proof2.publicInput.toTransactionsHash.assertEquals(
       publicInput.fromTransactionsHash,
-      "ST commitment step 3"
+      errors.transactionsHashNotMatching("proof2.to -> publicInput.to")
     );
   }
 

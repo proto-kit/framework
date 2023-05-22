@@ -3,7 +3,7 @@ export * from "./model/StateTransition.js";
 export * from "./model/StateTransitionProvableBatch.js";
 export * from "./model/Option.js";
 export * from "./model/Path.js";
-export * from "./utils/PrefixedHashList.js";
+export * from "./utils/PrefixedProvableHashList.js";
 export * from "./utils/utils.js";
 export * from "./prover/block/BlockProver";
 export * from "./prover/block/BlockScopedModule";

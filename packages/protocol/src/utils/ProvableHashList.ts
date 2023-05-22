@@ -32,15 +32,6 @@ export abstract class ProvableHashList<Value> {
     return this;
   }
 
-  public remove(preimage: Field, value: Value): Bool {
-    const success = this.hash([
-      preimage,
-      ...this.valueType.toFields(value),
-    ]).equals(this.commitment);
-    this.commitment = Circuit.if(success, preimage, this.commitment);
-    return success;
-  }
-
   /**
    * @returns Traling hash of the current hashlist.
    */
