@@ -40,11 +40,15 @@ export class NoOpMerkleTreeStorage implements SyncMerkleTreeStore {
 }
 
 export class MemoryMerkleTreeStorage implements SyncMerkleTreeStore {
-  private readonly nodes: Record<number, Record<string, bigint | undefined>> =
-    {};
+  private readonly nodes: Record<
+    number,
+    Record<string, bigint | undefined> | undefined
+  > = {};
 
-  private readonly cache: Record<number, Record<string, bigint | undefined>> =
-    {};
+  private readonly cache: Record<
+    number,
+    Record<string, bigint | undefined> | undefined
+  > = {};
 
   public parent: SyncMerkleTreeStore;
 
@@ -62,14 +66,13 @@ export class MemoryMerkleTreeStorage implements SyncMerkleTreeStore {
 
   public getNode(key: bigint, level: number): bigint | undefined {
     return (
-      this.nodes[level][key.toString()] ??
-      this.cache[level][key.toString()] ??
+      this.nodes[level]?.[key.toString()] ??
+      this.cache[level]?.[key.toString()] ??
       this.parent.getNode(key, level)
     );
   }
 
   public setNode(key: bigint, level: number, value: bigint): void {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     (this.nodes[level] ??= {})[key.toString()] = value;
   }
 
@@ -108,7 +111,6 @@ export class MemoryMerkleTreeStorage implements SyncMerkleTreeStore {
       // eslint-disable-next-line no-await-in-loop
       const value = await this.parent.getNodeAsync(key, level);
       if (value !== undefined) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         (this.nodes[level] ??= {})[key.toString()] = value;
       }
       index /= 2n;

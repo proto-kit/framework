@@ -6,7 +6,6 @@ export * from "./model/Path.js";
 export * from "./utils/PrefixedProvableHashList.js";
 export * from "./utils/utils.js";
 export * from "./prover/block/BlockProver";
-export * from "./prover/block/BlockScopedModule";
 export * from "./prover/statetransition/StateTransitionProver";
 export * from "./prover/statetransition/StateTransitionWitnessProvider";
 export * from "./utils/merkletree/MemoryMerkleTreeStorage";
