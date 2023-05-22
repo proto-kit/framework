@@ -119,32 +119,66 @@ describe("stateTransition", () => {
     await checkTransitions(tree, transitions);
   });
 
-  it("should throw because of failing precondition", async () => {
-    expect.assertions(1);
+  it.each([
+    [
+      [
+        new ProvableStateTransition({
+          // fail
+          from: Option.from(Bool(true), Field(2), Field).toProvable(),
+          to: Option.none(),
+          path: Field(1),
+        }),
+      ],
+      0,
+    ],
+    [
+      [
+        new ProvableStateTransition({
+          // success
+          from: Option.from(Bool(true), Field(1), Field).toProvable(),
+          to: Option.from(Bool(true), Field(14), Field).toProvable(),
+          path: Field(1),
+        }),
+        new ProvableStateTransition({
+          // fail
+          from: Option.from(Bool(true), Field(6), Field).toProvable(),
+          to: Option.none(),
+          path: Field(2),
+        }),
+      ],
+      1,
+    ],
+    [
+      [
+        new ProvableStateTransition({
+          // success
+          from: Option.from(Bool(true), Field(1), Field).toProvable(),
+          to: Option.from(Bool(true), Field(14), Field).toProvable(),
+          path: Field(1),
+        }),
+        new ProvableStateTransition({
+          // fail
+          from: Option.from(Bool(true), Field(15), Field).toProvable(),
+          to: Option.none(),
+          path: Field(1),
+        }),
+      ],
+      1,
+    ],
+  ])(
+    "should throw because of failing precondition",
+    async (transitions, index) => {
+      expect.assertions(1);
 
-    const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
+      const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
 
-    // Is ignored because overwritten by first transition
-    tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
-    tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
+      // Is ignored because overwritten by first transition
+      tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
+      tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
 
-    const transitions = [
-      new ProvableStateTransition({
-        // success
-        from: Option.from(Bool(true), Field(1), Field).toProvable(),
-        to: Option.from(Bool(true), Field(14), Field).toProvable(),
-        path: Field(1),
-      }),
-      new ProvableStateTransition({
-        // fail
-        from: Option.from(Bool(true), Field(6), Field).toProvable(),
-        to: Option.none(),
-        path: Field(2),
-      }),
-    ];
-
-    await expect(checkTransitions(tree, transitions)).rejects.toThrow(
-      "MerkleWitness not valid for StateTransition (1)"
-    );
-  });
+      await expect(checkTransitions(tree, transitions)).rejects.toThrow(
+        `MerkleWitness not valid for StateTransition (${index})`
+      );
+    }
+  );
 });
