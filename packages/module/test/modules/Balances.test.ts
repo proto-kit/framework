@@ -71,7 +71,7 @@ describe("balances", () => {
 
       const executionContext = container.resolve(MethodExecutionContext);
       const expectedStateTransitionsHash =
-        "14921939452604128385823686416408232294744525422028096501361950385283288751766";
+        "3552603135145241074607202353480815821125288707535730566291968771114531686140";
       const expectedStatus = true;
 
       chain.setProofsEnabled(true);
