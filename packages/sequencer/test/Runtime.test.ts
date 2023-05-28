@@ -1,5 +1,5 @@
 import "reflect-metadata"
-import { GraphQLServerModule } from "../graphql/GraphqlSequencerModule.js";
+import { GraphQLServerModule } from "../src/graphql/GraphqlSequencerModule.js";
 
 // eslint-disable-next-line jest/no-export
 // export class DummyModule implements RuntimeModule {

@@ -5,15 +5,24 @@ import mercurius, { MercuriusOptions } from "mercurius";
 
 import type { GraphqlModule } from "./GraphqlModule.js";
 
+interface GraphqlServerOptions {
+  host: string,
+  port: number
+}
+
 @injectable()
 export class GraphqlServer {
-  private readonly modules: GraphqlModule[];
+  private readonly modules: GraphqlModule[] = [];
 
-  public constructor(@injectAll("GraphqlModule") modules: GraphqlModule[]) {
-    this.modules = modules;
+  // public constructor(@injectAll("GraphqlModule") modules: GraphqlModule[]) {
+  //   this.modules = modules;
+  // }
+
+  public registerModule(module: GraphqlModule){
+    this.modules.push(module)
   }
 
-  public async start() {
+  public async start({ host, port }: GraphqlServerOptions) {
     // Building schema
     const schema = buildSchemaSync({
       resolvers: [
@@ -40,6 +49,6 @@ export class GraphqlServer {
 
     await app.register(mercurius, options);
 
-    await app.listen({ port: 8080 });
+    await app.listen({ port, host });
   }
 }

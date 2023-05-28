@@ -33,7 +33,7 @@ const errors = {
  */
 
 export function runInContext(
-  this: RuntimeModule,
+  this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown,
   args: unknown[]
@@ -86,7 +86,7 @@ export type WrappedMethod = (
 ) => unknown;
 
 export function toWrappedMethod(
-  this: RuntimeModule,
+  this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown
 ) {
@@ -138,7 +138,7 @@ export function combineMethodName(
  */
 
 export function runWithCommitments(
-  this: RuntimeModule,
+  this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown,
   args: unknown[]
@@ -196,7 +196,7 @@ export const methodMetadataKey = "yab-method";
  * @param propertyKey - Name of the method to check in the prior runtime module
  * @returns - If the provided method name is a runtime method or not
  */
-export function isMethod(target: RuntimeModule, propertyKey: string) {
+export function isMethod(target: RuntimeModule<unknown>, propertyKey: string) {
   return Boolean(Reflect.getMetadata(methodMetadataKey, target, propertyKey));
 }
 
@@ -216,7 +216,7 @@ export type DecoratedMethod = (...args: unknown[]) => unknown;
  */
 export function method() {
   return (
-    target: RuntimeModule,
+    target: RuntimeModule<unknown>,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) => {
@@ -228,7 +228,7 @@ export function method() {
     const originalFunction = descriptor.value as DecoratedMethod;
 
     Reflect.defineMetadata(methodMetadataKey, true, target, propertyKey);
-    descriptor.value = function value(this: RuntimeModule, ...args: unknown[]) {
+    descriptor.value = function value(this: RuntimeModule<unknown>, ...args: unknown[]) {
       if (executionContext.isTopLevel) {
         return Reflect.apply(runWithCommitments, this, [
           propertyKey,

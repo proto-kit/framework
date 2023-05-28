@@ -1,7 +1,14 @@
 /* eslint-disable max-lines */
 import { type DependencyContainer, container, Lifecycle } from "tsyringe";
 import { Experimental, Proof } from "snarkyjs";
-import { MethodPublicInput, Subclass } from "@yab/protocol";
+import {
+  ComponentConfig,
+  ConfigurationAggregator,
+  MethodPublicInput,
+  RemoveUndefinedKeys,
+  Subclass,
+  TypedClassType
+} from "@yab/protocol";
 
 import {
   combineMethodName,
@@ -9,11 +16,15 @@ import {
   toWrappedMethod,
 } from "../method/decorator.js";
 import { type AnyConstructor, isRuntimeModule } from "../module/decorator.js";
-import type { RuntimeModule } from "../runtime/RuntimeModule.js";
+import type { RuntimeModule } from "./RuntimeModule.js";
 import type { StateService } from "../state/InMemoryStateService.js";
 
 export interface RuntimeModules {
-  [name: string]: AnyConstructor;
+  [name: string]: TypedClassType<RuntimeModule<unknown>>;
+}
+
+export type ResolvedRuntimeModules<RM extends RuntimeModules> = {
+  [name in keyof RM]: (RM[name] extends TypedClassType<RuntimeModule<infer R>> ? RuntimeModule<R> : any)
 }
 
 export interface ChainConfig<ChainRuntimeModules extends RuntimeModules> {
@@ -64,7 +75,7 @@ const errors = {
  * Wrapper for an application specific chain, which helps orchestrate
  * runtime modules into an interoperable runtime.
  */
-export class Chain<ChainRuntimeModules extends RuntimeModules> {
+export class Runtime<ChainRuntimeModules extends RuntimeModules> implements ConfigurationAggregator<ResolvedRuntimeModules<ChainRuntimeModules>> {
   /**
    * Alternative constructor for `Chain`.
    *
@@ -74,7 +85,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
   public static from<ChainRuntimeModules extends RuntimeModules>(
     config: ChainConfig<ChainRuntimeModules>
   ) {
-    return new Chain(config);
+    return new Runtime(config);
   }
 
   // stores all runtime modules
@@ -89,11 +100,11 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
   /**
    * Creates a new Chain from the provided config
    *
-   * @param config - Configuration object for the constructed Chain
+   * @param modules - Configuration object for the constructed Chain
    */
-  public constructor(public config: ChainConfig<ChainRuntimeModules>) {
+  public constructor(public modules: ChainConfig<ChainRuntimeModules>) {
     this.runtimeContainer = container.createChildContainer();
-    Object.entries(this.config.runtimeModules).forEach(
+    Object.entries(this.modules.runtimeModules).forEach(
       ([name, runtimeModule]) => {
         this.registerRuntimeModule(name, runtimeModule);
       }
@@ -108,16 +119,16 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
    */
   private decorateRuntimeModule(name: string) {
     const runtimeModuleInstance =
-      this.runtimeContainer.resolve<RuntimeModule>(name);
+      this.runtimeContainer.resolve<RuntimeModule<unknown>>(name);
     runtimeModuleInstance.name = name;
     runtimeModuleInstance.chain = this;
   }
 
   /**
-   * @returns A list of
+   * @returns A list of names of all the registered module names
    */
   public get runtimeModuleNames() {
-    return Object.keys(this.config.runtimeModules);
+    return Object.keys(this.modules.runtimeModules);
   }
 
   /**
@@ -135,10 +146,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
       throw errors.notRegistredRuntimeModule(name);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.runtimeContainer.resolve<
-      InstanceType<ChainRuntimeModules[Key]>
-    >(name);
+    return this.runtimeContainer.resolve<InstanceType<ChainRuntimeModules[Key]>>(name);
   }
 
   /**
@@ -202,7 +210,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const runtimeModule = this.getRuntimeModule(
           runtimeModuleName
-        ) as RuntimeModule;
+        ) as RuntimeModule<unknown>;
 
         // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -272,7 +280,7 @@ export class Chain<ChainRuntimeModules extends RuntimeModules> {
       methods: sortedMethods,
     });
 
-    function analyze(this: Chain<RuntimeModules>) {
+    function analyze(this: Runtime<RuntimeModules>) {
       if (!this.program) {
         throw errors.unableToAnalyze(this.constructor.name);
       }
@@ -350,4 +358,11 @@ Inputs: [${inputs.join(", ")}]
 
     return artifact;
   }
+
+  config(config: RemoveUndefinedKeys<ComponentConfig<ResolvedRuntimeModules<ChainRuntimeModules>>>): void {
+    for(let key in config){
+      this.getRuntimeModule(key).configSupplier = () => config[key]
+    }
+  }
+
 }
