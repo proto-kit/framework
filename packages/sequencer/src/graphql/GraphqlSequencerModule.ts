@@ -1,33 +1,33 @@
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { SequencerModule } from "../runtime/builder/SequencerModule.js";
-import { SequencerBuilder } from "../runtime/builder/SequencerBuilder.js";
-import { Sequencer } from "../runtime/executor/Sequencer.js";
-import { sequencerConfig } from "../index.js";
 import { GraphqlServer } from "./GraphqlServer.js";
+import { FlipOptional } from "@yab/protocol";
 
-type GraphQLServerModuleConfig = {
-  port: number,
-  host: string
+export type GraphQLServerModuleConfig = {
+  port: number, // Required values
+  host?: string // Optional values (have to provided via defaultConfig()
 }
 
 @injectable()
-export class GraphQLServerModule extends SequencerModule {
+export class GraphQLServerModule extends SequencerModule<GraphQLServerModuleConfig> {
 
   public constructor(
-    @sequencerConfig() private readonly config: GraphQLServerModuleConfig,
-    private readonly server: GraphqlServer
+    @inject("GraphqlServer") private readonly server: GraphqlServer
   ) {
     super();
   }
 
-  public bind(_: SequencerBuilder): void {
-    
+  public get defaultConfig(): FlipOptional<GraphQLServerModuleConfig> {
+    return {
+      host: "localhost",
+      // port can be omitted here, since it has to be provided by the user
+    };
   }
 
-  public readonly name = "GraphQLServerModule";
+  public async start() {
+    await this.server.start(this.config)
 
-  public async start(_: Sequencer) {
-    await this.server.start()
+    //Do this and that
   }
 
 }

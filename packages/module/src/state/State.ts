@@ -6,7 +6,7 @@ import { container } from "tsyringe";
 import { Option, StateTransition, type Path } from "@yab/protocol";
 
 import { MethodExecutionContext } from "../method/MethodExecutionContext.js";
-import type { Chain, RuntimeModules } from "../chain/Chain.js";
+import type { Runtime, RuntimeModules } from "../runtime/Runtime";
 
 export class WithPath {
   public path?: Field;
@@ -21,9 +21,9 @@ export class WithPath {
 }
 
 export class WithChain {
-  public chain?: Chain<RuntimeModules>;
+  public chain?: Runtime<RuntimeModules>;
 
-  public hasChainOrFail(): asserts this is { chain: Chain<RuntimeModules> } {
+  public hasChainOrFail(): asserts this is { chain: Runtime<RuntimeModules> } {
     if (!this.chain) {
       throw new Error(
         "Could not find 'chain', did you forget to add '@state' to your state property?"
@@ -78,7 +78,7 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
       this.hasChainOrFail();
       this.hasPathOrFail();
 
-      const fields = this.chain.config.state.get(this.path);
+      const fields = this.chain.modules.state.get(this.path);
       if (fields) {
         // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -93,7 +93,7 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
       this.hasChainOrFail();
       this.hasPathOrFail();
 
-      const fields = this.chain.config.state.get(this.path);
+      const fields = this.chain.modules.state.get(this.path);
 
       return Bool(fields !== undefined);
     });

@@ -1,7 +1,7 @@
 import { Field, PrivateKey, Signature, UInt64 } from "snarkyjs";
 
-import { CompressedSignature } from "../mempool/CompressedSignature.js";
-import { UnsignedTransaction } from "../mempool/PendingTransaction.js";
+import { CompressedSignature } from "../src/mempool/CompressedSignature.js";
+import { UnsignedTransaction } from "../src/mempool/PendingTransaction.js";
 
 describe("memPool", () => {
   describe("pendingTransaction", () => {

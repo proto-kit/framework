@@ -1,17 +1,28 @@
-import type { Sequencer } from "../executor/Sequencer.js";
-import type { SequencerBuilder } from "./SequencerBuilder.js";
+import { ConfigurationReceiver, FlipOptional } from "@yab/protocol";
 
 /**
  * Lifecycle of a SequencerModule
  *
- * bind(): Executed after creating the module and allowing the module inject additional dependencies / configuration
- *
  * start(): Executed to execute any logic required to start the module
  */
-export abstract class SequencerModule {
+export abstract class SequencerModule<Config> implements ConfigurationReceiver<Config> {
+  public abstract start(): Promise<void>;
 
-  public abstract start(runtime: Sequencer): Promise<void>
-  public abstract bind(builder: SequencerBuilder) : void
-  public abstract get name() : string
+  // public constructor(config: OptionalKeys<Config> | undefined) {
+  //   let defaultConfig = this.defaultConfig()
+  //
+  // }
+
+  private currentConfig: Required<Config>
+
+  public get config(): Required<Config> {
+    return this.currentConfig;
+  }
+
+  public set config(config: Required<Config>) {
+    this.currentConfig = config
+  }
+
+  abstract get defaultConfig(): FlipOptional<Config>;
 
 }
