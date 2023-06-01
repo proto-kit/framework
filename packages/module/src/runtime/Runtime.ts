@@ -185,7 +185,7 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> extends Configu
     if (!isRuntimeModule(runtimeModule)) {
       throw errors.missingDecorator(name, runtimeModule.name);
     }
-    console.log("Registering " + name);
+
     this.runtimeContainer.register(
       name,
       {
