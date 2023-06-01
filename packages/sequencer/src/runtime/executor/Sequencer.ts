@@ -15,7 +15,7 @@ import {
   SequencerModulesType,
 } from "../builder/Types";
 
-import { ISequencer } from "./ISequencer";
+import { Sequenceable } from "./Sequenceable";
 
 const errors = {
   missingDecorator: (name: string, className: string) =>
@@ -28,7 +28,7 @@ const errors = {
 @scoped(Lifecycle.ContainerScoped)
 export class Sequencer<Modules extends SequencerModulesType>
   extends ConfigurationAggregator<Modules>
-  implements ISequencer<Modules>
+  implements Sequenceable<Modules>
 {
   public static fromGlobalContainer<
     UnresolvedModules extends BuilderModulesType,
@@ -109,20 +109,4 @@ export class Sequencer<Modules extends SequencerModulesType>
 
     this.started = true;
   }
-}
-
-async function test() {
-  const sequencer = Sequencer.fromGlobalContainer({
-    graphql: GraphQLServerModule,
-    // runtime: BlockProducerModule,
-  });
-
-  sequencer.config({
-    graphql: {
-      port: 8080,
-    },
-    // runtime: {},
-  });
-
-  await sequencer.start();
 }
