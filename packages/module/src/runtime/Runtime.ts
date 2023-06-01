@@ -1,4 +1,5 @@
-/* eslint-disable max-lines */
+// eslint-disable-next-line max-len
+/* eslint-disable max-lines,@typescript-eslint/no-explicit-any,guard-for-in,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
 import { type DependencyContainer, container, Lifecycle } from "tsyringe";
 import { Experimental, Proof } from "snarkyjs";
 import {
@@ -7,7 +8,7 @@ import {
   MethodPublicInput,
   RemoveUndefinedKeys,
   Subclass,
-  TypedClassType
+  TypedClassType, UninitializedComponentConfig
 } from "@yab/protocol";
 
 import {
@@ -35,9 +36,9 @@ export interface ChainConfig<ChainRuntimeModules extends RuntimeModules> {
 const errors = {
   onlyStringNames: () => new TypeError("Only string names are supported"),
 
-  notRegistredRuntimeModule: (name: string) =>
+  notRegisteredRuntimeModule: (name: string) =>
     new Error(
-      `Unable to retrieve module: ${name}, it is not registred as a runtime module for this chain`
+      `Unable to retrieve module: ${name}, it is not registered as a runtime module for this chain`
     ),
 
   missingDecorator: (name: string, runtimeModuleName: string) =>
@@ -75,7 +76,9 @@ const errors = {
  * Wrapper for an application specific chain, which helps orchestrate
  * runtime modules into an interoperable runtime.
  */
-export class Runtime<ChainRuntimeModules extends RuntimeModules> implements ConfigurationAggregator<ResolvedRuntimeModules<ChainRuntimeModules>> {
+export class Runtime<ChainRuntimeModules extends RuntimeModules> extends ConfigurationAggregator<
+  ResolvedRuntimeModules<ChainRuntimeModules>
+> {
   /**
    * Alternative constructor for `Chain`.
    *
@@ -97,18 +100,30 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> implements Conf
   // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof Experimental.ZkProgram>;
 
+  // Current state of the config
+  private currentConfig: UninitializedComponentConfig<
+    ComponentConfig<ResolvedRuntimeModules<ChainRuntimeModules>>
+  >;
+
   /**
    * Creates a new Chain from the provided config
    *
    * @param modules - Configuration object for the constructed Chain
    */
   public constructor(public modules: ChainConfig<ChainRuntimeModules>) {
+    super();
     this.runtimeContainer = container.createChildContainer();
     Object.entries(this.modules.runtimeModules).forEach(
       ([name, runtimeModule]) => {
-        this.registerRuntimeModule(name, runtimeModule);
-      }
-    );
+      this.registerRuntimeModule(name, runtimeModule);
+    });
+
+    // Initialize config to empty
+    const x: any = {};
+    for (const key in modules) {
+      x[key] = undefined;
+    }
+    this.currentConfig = x;
   }
 
   /**
@@ -143,10 +158,21 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> implements Conf
     }
 
     if (!this.runtimeModuleNames.includes(name)) {
-      throw errors.notRegistredRuntimeModule(name);
+      throw errors.notRegisteredRuntimeModule(name);
     }
 
-    return this.runtimeContainer.resolve<InstanceType<ChainRuntimeModules[Key]>>(name);
+    return this.runtimeContainer.resolve<
+      InstanceType<ChainRuntimeModules[Key]>
+    >(name);
+  }
+
+  private getAllRuntimeModules(): ResolvedRuntimeModules<ChainRuntimeModules> {
+    const resolvedModules: any = {};
+    for (const key in this.modules.runtimeModules) {
+      resolvedModules[key] = this.getRuntimeModule(key);
+    }
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return resolvedModules as ResolvedRuntimeModules<ChainRuntimeModules>;
   }
 
   /**
@@ -159,6 +185,7 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> implements Conf
     if (!isRuntimeModule(runtimeModule)) {
       throw errors.missingDecorator(name, runtimeModule.name);
     }
+    console.log("Registering " + name);
     this.runtimeContainer.register(
       name,
       {
@@ -169,9 +196,10 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> implements Conf
       }
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const dependencies: { name?: string }[] | string[] | undefined =
-      Reflect.getMetadata("design:paramtypes", runtimeModule);
+    const dependencies: { name?: string }[] | string[] | undefined = Reflect.getMetadata(
+      "design:paramtypes",
+      runtimeModule
+    );
 
     dependencies?.forEach((dependency: string | { name?: string }) => {
       const name =
@@ -338,6 +366,13 @@ Inputs: [${inputs.join(", ")}]
       })(program);
   }
 
+  public config(
+    config: RemoveUndefinedKeys<ComponentConfig<ResolvedRuntimeModules<ChainRuntimeModules>>>
+  ): void {
+    const allModules = this.getAllRuntimeModules();
+    this.currentConfig = this.applyConfig(allModules, this.currentConfig, config);
+  }
+
   /**
    * Compiles the current runtime modules configuration
    * into a ZkProgram and then into a verification key.
@@ -358,11 +393,4 @@ Inputs: [${inputs.join(", ")}]
 
     return artifact;
   }
-
-  config(config: RemoveUndefinedKeys<ComponentConfig<ResolvedRuntimeModules<ChainRuntimeModules>>>): void {
-    for(let key in config){
-      this.getRuntimeModule(key).configSupplier = () => config[key]
-    }
-  }
-
 }

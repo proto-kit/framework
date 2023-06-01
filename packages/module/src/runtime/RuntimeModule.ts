@@ -1,27 +1,36 @@
-import type { Runtime, RuntimeModules } from "./Runtime";
 import { ConfigurationReceiver, FlipOptional } from "@yab/protocol";
+
+import type { Runtime, RuntimeModules } from "./Runtime";
 
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
-
 export abstract class RuntimeModule<Config> implements ConfigurationReceiver<Config> {
   public name?: string;
 
   public chain?: Runtime<RuntimeModules>;
 
-  private _configSupplier?: () => Config;
+  private currentConfig?: Required<Config> = undefined;
 
-  set configSupplier(value: () => Config) {
-    this._configSupplier = value;
-  }
-
-  get config(): Config {
-    if (this._configSupplier === undefined) {
+  public get config(): Required<Config> {
+    if (this.currentConfig === undefined) {
       throw new Error("RuntimeModule config has not been set!"); // TODO Check properly, Config could also be void
     }
-    return this._configSupplier();
+    return this.currentConfig;
   }
 
-  abstract get defaultConfig(): FlipOptional<Config>
+  public set config(config: Required<Config>) {
+    this.currentConfig = config;
+  }
+
+  public abstract get defaultConfig(): FlipOptional<Config>;
+}
+
+/**
+ * This class
+ */
+export abstract class PlainRuntimeModule extends RuntimeModule<{}> {
+  public get defaultConfig(): FlipOptional<{}>{
+    return {};
+  }
 }

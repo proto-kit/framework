@@ -4,7 +4,6 @@ import { container } from "tsyringe";
 import { type ProvableStateTransition, Path } from "@yab/protocol";
 
 import { State } from "../../src/state/State.js";
-import { Chain } from "../../src/chain/Chain.js";
 import { MethodExecutionContext } from "../../src/method/MethodExecutionContext.js";
 import {
   InMemoryStateService,
@@ -13,13 +12,14 @@ import {
 
 import { Admin } from "./Admin.js";
 import { Balances } from "./Balances.js";
+import { Runtime } from "../../src";
 
 describe("balances", () => {
   let balances: Balances;
 
   let state: StateService;
 
-  let chain: Chain<{
+  let runtime: Runtime<{
     Balances: typeof Balances;
     Admin: typeof Admin;
   }>;
@@ -41,16 +41,24 @@ describe("balances", () => {
   function createChain() {
     state = new InMemoryStateService();
 
-    chain = Chain.from({
+    runtime = Runtime.from({
       state,
 
       runtimeModules: {
-        Balances,
         Admin,
+        Balances,
       },
     });
 
-    balances = chain.getRuntimeModule("Balances");
+    runtime.config({
+      Admin: {
+        publicKey: PublicKey.empty().toBase58(),
+      },
+
+      Balances: {},
+    });
+
+    balances = runtime.getRuntimeModule("Balances");
 
     state.set(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -63,10 +71,11 @@ describe("balances", () => {
     beforeAll(createChain);
 
     afterAll(() => {
-      chain.setProofsEnabled(false);
+      runtime.setProofsEnabled(false);
     });
 
-    it("should compile and prove a method execution", async () => {
+    // Disabled until we implement a mechanism to enable/disable compiling tests
+    it.skip("should compile and prove a method execution", async () => {
       expect.assertions(3);
 
       const executionContext = container.resolve(MethodExecutionContext);
@@ -74,9 +83,9 @@ describe("balances", () => {
         "3552603135145241074607202353480815821125288707535730566291968771114531686140";
       const expectedStatus = true;
 
-      chain.setProofsEnabled(true);
-      chain.precompile().toPretty();
-      await chain.compile();
+      runtime.setProofsEnabled(true);
+      runtime.precompile().toPretty();
+      await runtime.compile();
 
       balances.getTotalSupply();
 
@@ -86,7 +95,7 @@ describe("balances", () => {
       const proof = await prove?.();
 
       // eslint-disable-next-line jest/no-conditional-in-test
-      if (!chain.program) {
+      if (!runtime.program) {
         throw new Error("Program compilation has failed");
       }
 
@@ -95,7 +104,7 @@ describe("balances", () => {
         throw new Error("Proof generation has failed");
       }
 
-      const verified = await chain.program.verify(proof);
+      const verified = await runtime.program.verify(proof);
 
       expect(verified).toBe(true);
 

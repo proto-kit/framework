@@ -6,6 +6,7 @@
 module.exports = {
   // because we run tests from within ./packages/<package_name>/
   rootDir: './../../',
+  moduleDirectories: ["node_modules", "packages"],
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     '../../../node_modules/snarkyjs/dist/(.*)': '<rootDir>/node_modules/snarkyjs/dist/$1',

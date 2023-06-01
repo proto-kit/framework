@@ -1,5 +1,5 @@
-import { inject, injectable } from "tsyringe";
-import { SequencerModule } from "../runtime/builder/SequencerModule.js";
+import { inject } from "tsyringe";
+import { sequencerModule, SequencerModule } from "../runtime/builder/SequencerModule.js";
 import { GraphqlServer } from "./GraphqlServer.js";
 import { FlipOptional } from "@yab/protocol";
 
@@ -8,7 +8,7 @@ export type GraphQLServerModuleConfig = {
   host?: string // Optional values (have to provided via defaultConfig()
 }
 
-@injectable()
+@sequencerModule()
 export class GraphQLServerModule extends SequencerModule<GraphQLServerModuleConfig> {
 
   public constructor(
