@@ -2,6 +2,10 @@ import { ConfigurationReceiver, FlipOptional } from "@yab/protocol";
 
 import type { Runtime, RuntimeModules } from "./Runtime";
 
+const errors = {
+  configNotSet: () => new Error("RuntimeModule config has not been set!"),
+};
+
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
@@ -14,7 +18,7 @@ export abstract class RuntimeModule<Config> implements ConfigurationReceiver<Con
 
   public get config(): Required<Config> {
     if (this.currentConfig === undefined) {
-      throw new Error("RuntimeModule config has not been set!"); // TODO Check properly, Config could also be void
+      throw errors.configNotSet(); // TODO Check properly, Config could also be void
     }
     return this.currentConfig;
   }
@@ -30,7 +34,7 @@ export abstract class RuntimeModule<Config> implements ConfigurationReceiver<Con
  * This class
  */
 export abstract class PlainRuntimeModule extends RuntimeModule<{}> {
-  public get defaultConfig(): FlipOptional<{}>{
+  public get defaultConfig(): FlipOptional<{}> {
     return {};
   }
 }

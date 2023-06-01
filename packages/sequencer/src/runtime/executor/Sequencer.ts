@@ -25,7 +25,6 @@ const errors = {
 };
 
 @injectable()
-@scoped(Lifecycle.ContainerScoped)
 export class Sequencer<Modules extends SequencerModulesType>
   extends ConfigurationAggregator<Modules>
   implements Sequenceable<Modules>

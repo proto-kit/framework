@@ -1,21 +1,17 @@
 import {
-  assert,
-  InMemoryStateService,
-  method,
   ResolvedRuntimeModules,
   Runtime,
-  runtimeModule,
-  RuntimeModule,
   RuntimeModules,
 } from "@yab/module";
 import { ComponentConfig, FlipOptional, RemoveUndefinedKeys } from "@yab/protocol";
-import { PublicKey } from "snarkyjs";
 import { container as globalContainer, DependencyContainer } from "tsyringe";
 
 import { Sequenceable } from "../executor/Sequenceable";
 import { SequencerModulesType } from "../builder/Types";
-import { Sequencer } from "../executor/Sequencer";
-import { GraphQLServerModule } from "../../graphql/GraphqlSequencerModule";
+
+const errors = {
+  appChainNotStarted: () => new Error("AppChain has not been started yet"),
+}
 
 interface SequencerBuilder<SequencerModules extends SequencerModulesType> {
   (container: DependencyContainer): Sequenceable<SequencerModules>;
@@ -75,7 +71,7 @@ export class AppChain<
   // Is using getters inside the class a pattern we want to no do?
   public get sequencer(): Sequenceable<SequencerModules> {
     if (this.startedSequencer === undefined) {
-      throw new Error("AppChain has not been started yet");
+      throw errors.appChainNotStarted();
     }
     return this.startedSequencer;
   }
