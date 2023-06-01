@@ -4,18 +4,18 @@ import { FlipOptional, Option } from "@yab/protocol";
 import { State } from "../../src/state/State.js";
 import { state } from "../../src/state/decorator.js";
 import { StateMap } from "../../src/state/StateMap.js";
-import { runtimeModule } from "../../src/module/decorator.js";
-import { RuntimeModule, method } from "../../src";
+import { RuntimeModule, method, runtimeModule } from "../../src";
 
 import { Admin } from "./Admin.js";
+import { inject } from "tsyringe";
 
 @runtimeModule()
-export class Balances extends RuntimeModule<void> {
+export class Balances extends RuntimeModule<{}> {
   @state() public totalSupply = State.from<UInt64>(UInt64);
 
   @state() public balances = StateMap.from<PublicKey, UInt64>(PublicKey, UInt64);
 
-  public constructor(public admin: Admin) {
+  public constructor(@inject("Admin") public admin: Admin) {
     super();
   }
 
@@ -36,7 +36,7 @@ export class Balances extends RuntimeModule<void> {
     return this.balances.get(address);
   }
 
-  get defaultConfig(): FlipOptional<void> {
-    return {  };
+  public get defaultConfig(): FlipOptional<void> {
+    return {};
   }
 }

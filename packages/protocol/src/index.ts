@@ -14,4 +14,3 @@ export * from "./model/MethodPublicInput";
 export * from "./config/Types";
 export * from "./config/ConfigurationReceiver";
 export * from "./config/ConfigurationAggregator";
-export * from "./config/ModuleContainer";

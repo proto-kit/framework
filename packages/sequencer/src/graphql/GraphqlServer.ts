@@ -6,8 +6,8 @@ import mercurius, { MercuriusOptions } from "mercurius";
 import type { GraphqlModule } from "./GraphqlModule.js";
 
 interface GraphqlServerOptions {
-  host: string,
-  port: number
+  host: string;
+  port: number;
 }
 
 @injectable()

@@ -51,6 +51,7 @@ export function runInContext(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    console.log(error);
     throw new Error(error);
   } finally {
     executionContext.afterMethod();

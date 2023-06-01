@@ -3,6 +3,7 @@ import { container, injectable } from "tsyringe";
 import type { GraphqlModule } from "./graphql/GraphqlModule.js";
 import { GraphqlServer } from "./graphql/GraphqlServer.js";
 import type { Mempool } from "./mempool/Mempool.js";
+import { sequencerModule } from "./runtime/builder/SequencerModule";
 
 @injectable()
 export class RollupSetup {
@@ -15,7 +16,7 @@ export class RollupSetup {
   }
 
   public async start() {
-    const graphql = container.resolve(GraphqlServer);
-    await graphql.start();
+    // const graphql = container.resolve(GraphqlServer);
+    // await graphql.start();
   }
 }

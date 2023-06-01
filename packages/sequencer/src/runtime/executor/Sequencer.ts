@@ -1,103 +1,120 @@
-import { injectable, Lifecycle, scoped } from "tsyringe";
-import { ISequencer } from "./ISequencer";
+/* eslint-disable @typescript-eslint/no-explicit-any,guard-for-in,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment,max-len,etc/no-misused-generics */
+import { container, injectable, Lifecycle, scoped, type DependencyContainer } from "tsyringe";
+import {
+  ComponentConfig,
+  ConfigurationAggregator,
+  RemoveUndefinedKeys,
+  UninitializedComponentConfig,
+} from "@yab/protocol";
+
+import { isSequencerModulePropertyKey, SequencerModule } from "../builder/SequencerModule";
 import { GraphQLServerModule } from "../../graphql/GraphqlSequencerModule";
 import {
+  BuilderModulesType,
+  BuilderResolvedModulesType,
   SequencerModulesType,
 } from "../builder/Types";
-import { RuntimeSequencerModule } from "../../protocol/RuntimeSequencerModule";
-import {
-  ModuleContainer,
-  RemoveUndefinedKeys,
-  ComponentConfig,
-  TypedClassType,
-  ConfigurationReceiver, ResolvedModulesType
-} from "@yab/protocol";
-import { RuntimeModules } from "@yab/module";
-import { SequencerModule } from "../builder/SequencerModule";
 
-type UnresolvedModulesType = { [key: string]: TypedClassType<SequencerModule<unknown>> }
+import { ISequencer } from "./ISequencer";
 
-// type ResolvedModulesType<T extends UnresolvedModulesType> =
-//   { [key in keyof T]: T[key] extends TypedClassType<SequencerModule<infer R>> ? SequencerModule<R> : any }
+const errors = {
+  missingDecorator: (name: string, className: string) =>
+    new Error(
+      `Unable to register module: ${name} / ${className}, did you forget to add @sequencerModule()?`
+    ),
+};
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
-// export class Sequencer<Modules extends SequencerModulesType> extends ModuleContainer<Modules> implements ISequencer<Modules> {
-export class Sequencer<UnresolvedModules extends UnresolvedModulesType>
-  extends ModuleContainer<SequencerModule<unknown>, UnresolvedModules>
-  // implements ISequencer<ResolvedModulesType<UnresolvedModules>>
+export class Sequencer<Modules extends SequencerModulesType>
+  extends ConfigurationAggregator<Modules>
+  implements ISequencer<Modules>
 {
-
-  public constructor(
-    // unresolvedModules: { [key in keyof Modules]: TypedClassType<Modules[key]> },
-    unresolvedModules: UnresolvedModules,
-  ) {
-    super(unresolvedModules);
+  public static fromGlobalContainer<
+    UnresolvedModules extends BuilderModulesType,
+    ResolvedModules extends BuilderResolvedModulesType<UnresolvedModules>
+  >(modules: UnresolvedModules): Sequencer<ResolvedModules> {
+    return Sequencer.from<UnresolvedModules, ResolvedModules>(modules)(
+      container.createChildContainer()
+    );
   }
 
+  public static from<
+    UnresolvedModules extends BuilderModulesType,
+    ResolvedModules extends BuilderResolvedModulesType<UnresolvedModules>
+  >(modules: UnresolvedModules): (container: DependencyContainer) => Sequencer<ResolvedModules> {
+    return (diContainer: DependencyContainer) => {
+      // Register all modules
+      for (const key in modules) {
+        // Check if the decorator has been applied to the module's class
+        const decoratorSet =
+          Object.getOwnPropertyDescriptor(modules[key], isSequencerModulePropertyKey)?.value ===
+          true;
+
+        if (!decoratorSet) {
+          throw errors.missingDecorator(key, modules[key].name);
+        }
+
+        diContainer.register(
+          key,
+          { useClass: modules[key] },
+          { lifecycle: Lifecycle.ContainerScoped }
+        );
+      }
+
+      // Build default config and resolve modules
+      const resolvedModules: any = {};
+
+      for (const key in modules) {
+        const module: SequencerModule<unknown> = diContainer.resolve<SequencerModule<unknown>>(key);
+
+        // We need to set the config here, in the case that a module requires no additional configuration, the config would be unset otherwise
+        module.config = module.defaultConfig;
+
+        resolvedModules[key] = module;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return new Sequencer<ResolvedModules>(diContainer, resolvedModules as ResolvedModules);
+    };
+  }
+
+  private currentConfig: UninitializedComponentConfig<ComponentConfig<Modules>>;
+
   private started = false;
-  private resolvedModules?: ResolvedModulesType<SequencerModule<unknown>, UnresolvedModules>;
+
+  public constructor(
+    private readonly runtimeContainer: DependencyContainer,
+    public readonly modules: Modules
+  ) {
+    super();
+    const x: any = {};
+    for (const key in modules) {
+      x[key] = undefined;
+    }
+    this.currentConfig = x;
+  }
+
+  public config(config: RemoveUndefinedKeys<ComponentConfig<Modules>>) {
+    this.currentConfig = this.applyConfig(this.modules, this.currentConfig, config);
+  }
 
   public async start() {
+    for (const key in this.modules) {
+      const module = this.modules[key];
 
-    this.resolvedModules = this.initModules()
-
-    let config = this.getConfig()
-
-    for (let key in this.resolvedModules) {
-      let module = this.resolvedModules[key];
-
-
+      // eslint-disable-next-line no-await-in-loop
       await module.start();
     }
 
     this.started = true;
   }
-
-
-  // public config2(config: ComponentConfig<Modules>): void {
-    // this.config(config)
-  // }
-
-  public static from<
-    UnresolvedModules extends { [key: string]: TypedClassType<SequencerModule<unknown>> },
-    Modules extends { [key in keyof UnresolvedModules]: UnresolvedModules[key] extends TypedClassType<SequencerModule<infer R>> ? SequencerModule<R> : any },
-  >(modules: UnresolvedModules): Sequencer<UnresolvedModules> {
-
-    return new Sequencer<UnresolvedModules>(
-      modules
-    );
-  }
-
-  // static from<
-  //   Modules extends SequencerModulesType,
-  //   UnresolvedModules extends { [key in keyof Modules]: TypedClassType<Modules[key]> },
-  // >(modules: UnresolvedModules): Sequencer<Modules> {
-  //
-  //   return new Sequencer<Modules>(
-  //     modules
-  //   );
-  // }
-}
-
-type Comps2 = {
-  graphql: GraphQLServerModule
-}
-
-type Conf = ComponentConfig<Comps2>
-
-let x: Conf = {
-  graphql: {
-    port: 123,
-    host: ""
-  }
 }
 
 async function test() {
-
-  let sequencer = Sequencer.from({
+  const sequencer = Sequencer.fromGlobalContainer({
     graphql: GraphQLServerModule,
-    // runtime: RuntimeSequencerModule,
+    // runtime: BlockProducerModule,
   });
 
   sequencer.config({
