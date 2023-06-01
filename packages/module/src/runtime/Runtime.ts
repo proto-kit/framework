@@ -119,11 +119,11 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> extends Configu
     });
 
     // Initialize config to empty
-    const x: any = {};
-    for (const key in modules) {
-      x[key] = undefined;
-    }
-    this.currentConfig = x;
+    this.currentConfig = Object.keys(modules).reduce<any>((config, key) => {
+      config[key] = undefined;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return config;
+    }, {});
   }
 
   /**
