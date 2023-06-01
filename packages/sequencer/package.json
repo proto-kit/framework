@@ -19,11 +19,12 @@
     "access": "public"
   },
   "peerDependencies": {
-    "snarkyjs": "^0.9.8",
+    "snarkyjs": "0.10.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {
-    "@types/express": "^4.17.17"
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.2.5"
   },
   "dependencies": {
     "@types/ws": "^8.5.4",

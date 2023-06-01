@@ -1,5 +1,6 @@
 import { PublicKey, UInt64 } from "snarkyjs";
 import { FlipOptional, Option } from "@yab/protocol";
+import { inject } from "tsyringe";
 
 import { State } from "../../src/state/State.js";
 import { state } from "../../src/state/decorator.js";
@@ -7,7 +8,6 @@ import { StateMap } from "../../src/state/StateMap.js";
 import { RuntimeModule, method, runtimeModule } from "../../src";
 
 import { Admin } from "./Admin.js";
-import { inject } from "tsyringe";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<{}> {
