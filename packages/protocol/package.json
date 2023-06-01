@@ -23,7 +23,7 @@
   },
   "peerDependencies": {
     "tsyringe": "^4.7.0",
-    "snarkyjs": "^0.9.8"
+    "snarkyjs": "0.10.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0"

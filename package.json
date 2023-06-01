@@ -18,6 +18,7 @@
   "devDependencies": {
     "@nrwl/nx-cloud": "latest",
     "@types/jest": "^29.4.0",
+    "@types/node": "^20.2.5",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "commitizen": "^4.3.0",
