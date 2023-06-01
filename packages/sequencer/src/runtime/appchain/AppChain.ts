@@ -138,4 +138,6 @@ function test() {
       },
     },
   });
+
+  return appChain.start();
 }

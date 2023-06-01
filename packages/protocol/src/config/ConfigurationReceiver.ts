@@ -4,7 +4,7 @@ import { FlipOptional } from "./Types";
  * Configs:
  *
  * A property that accepts undefined, is an optional argument.
- * That means that you will have to provide it via defaultArguments() and it will be non-undefined via this.config.
+ * That means that you will have to provide it via defaultConfig() and it will be non-undefined via this.config.
  * This is used by devs to indicate configurability but not necessary explicit definition.
  * I.e. when the default arguments will work most of the time
  *
