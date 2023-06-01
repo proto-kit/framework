@@ -40,7 +40,7 @@ await appChain.start();
 
 The AppChain takes two arguments, a Runtime and a Sequencer. 
 1. The Runtime holds all modules that have provable code. 
-In a nutshell, all "smart contract" logic that a developer wants to create for his rollup.
+In a nutshell, all "smart contract" logic that a developer wants to create for their rollup.
 For more documentation on Runtime, please refer to @protokit/module
 
 2. The Sequencer definition.
