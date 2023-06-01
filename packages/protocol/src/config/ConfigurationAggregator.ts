@@ -23,14 +23,11 @@ export abstract class ConfigurationAggregator<Comps extends Components> {
       // Set config to module
       if (currentConfig[key] === undefined) {
         // Initialize config with merge between config and defaultConfig
-        console.log(key);
         // eslint-disable-next-line prefer-destructuring,putout/putout
         const defaultConfig: any = modules[key].defaultConfig;
 
-        console.log(defaultConfig);
         const newConfig = config[key];
         for (const configKey in newConfig) {
-          console.log(newConfig[configKey]);
           defaultConfig[configKey] = newConfig[configKey];
         }
         // The result of that is always a valid Required<Config> since FlipOptional<Config> requires the exact opposite of Config
