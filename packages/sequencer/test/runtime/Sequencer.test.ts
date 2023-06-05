@@ -2,7 +2,7 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
 
-import { Sequencer } from "../../src/runtime/executor/Sequencer";
+import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 
 import { DummyModule, DummyModuleParent, DummyModuleWithoutDecorator } from "./DummyModule";
 

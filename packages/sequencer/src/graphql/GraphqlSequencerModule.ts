@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { sequencerModule, SequencerModule } from "../runtime/builder/SequencerModule.js";
+import { sequencerModule, SequencerModule } from "../sequencer/builder/SequencerModule.js";
 import { GraphqlServer } from "./GraphqlServer.js";
 import { FlipOptional } from "@yab/protocol";
 

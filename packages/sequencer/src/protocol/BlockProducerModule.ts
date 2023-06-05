@@ -1,4 +1,4 @@
-import { SequencerModule } from "../runtime/builder/SequencerModule";
+import { SequencerModule } from "../sequencer/builder/SequencerModule";
 import { inject } from "tsyringe";
 import { Runtime } from "@yab/module";
 import { FlipOptional } from "@yab/protocol";

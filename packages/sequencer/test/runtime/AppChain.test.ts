@@ -8,9 +8,9 @@ import {
 } from "@yab/module";
 import { PublicKey } from "snarkyjs";
 import { FlipOptional } from "@yab/protocol";
-import { Sequencer } from "../../src/runtime/executor/Sequencer";
+import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import { GraphQLServerModule } from "../../src/graphql/GraphqlSequencerModule";
-import { AppChain } from "../../src/runtime/appchain/AppChain";
+import { AppChain } from "../../src/sequencer/appchain/AppChain";
 
 interface AdminConfig {
   publicKey: string;
