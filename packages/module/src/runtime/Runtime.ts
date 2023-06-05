@@ -366,7 +366,7 @@ Inputs: [${inputs.join(", ")}]
       })(program);
   }
 
-  public config(
+  public configure(
     config: RemoveUndefinedKeys<ComponentConfig<ResolvedRuntimeModules<ChainRuntimeModules>>>
   ): void {
     const allModules = this.getAllRuntimeModules();

@@ -4,7 +4,7 @@ export * from "./model/StateTransitionProvableBatch.js";
 export * from "./model/Option.js";
 export * from "./model/Path.js";
 export * from "./utils/PrefixedProvableHashList.js";
-export * from "./utils/Utils";
+export * from "./utils/utils";
 export * from "./prover/block/BlockProver";
 export * from "./prover/statetransition/StateTransitionProver";
 export * from "./prover/statetransition/StateTransitionWitnessProvider";

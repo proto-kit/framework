@@ -1,8 +1,8 @@
 import { ConfigurationAggregator } from "@yab/protocol";
-import { SequencerModulesType } from "../builder/Types";
 
-export interface Sequenceable<Modules extends SequencerModulesType> extends ConfigurationAggregator<Modules>{
+import { SequencerModulesType } from "../builder/types";
 
-  start(): Promise<void>
-
+export interface Sequenceable<Modules extends SequencerModulesType>
+  extends ConfigurationAggregator<Modules> {
+  start: () => Promise<void>;
 }

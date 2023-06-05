@@ -1,9 +1,10 @@
-import { MempoolResolver } from "./MempoolResolver.js";
+import { FlipOptional } from "@yab/protocol";
+
 import { sequencerModule, SequencerModule } from "../../sequencer/builder/SequencerModule.js";
 import { Mempool } from "../Mempool";
-import { inject } from "tsyringe";
 import { GraphqlServer } from "../../graphql/GraphqlServer";
-import { FlipOptional } from "@yab/protocol";
+
+import { MempoolResolver } from "./MempoolResolver.js";
 
 interface MempoolConfig {
   mempool: Mempool;
@@ -11,16 +12,16 @@ interface MempoolConfig {
 
 @sequencerModule()
 export class MempoolModule extends SequencerModule<MempoolConfig> {
-  constructor(@inject("GraphqlServer") private readonly graphqlServer: GraphqlServer) {
+  public constructor(private readonly graphqlServer: GraphqlServer) {
     super();
+  }
+
+  public get defaultConfig(): FlipOptional<MempoolConfig> {
+    return {};
   }
 
   public async start(): Promise<void> {
     const { mempool } = this.config;
     this.graphqlServer.registerModule(new MempoolResolver(mempool));
-  }
-
-  get defaultConfig(): FlipOptional<MempoolConfig> {
-    return {};
   }
 }

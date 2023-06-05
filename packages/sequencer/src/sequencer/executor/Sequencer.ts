@@ -78,24 +78,22 @@ export class Sequencer<Modules extends SequencerModulesType>
     };
   }
 
-  private currentConfig: UninitializedComponentConfig<ComponentConfig<Modules>>;
-
-  private started = false;
+  private config: UninitializedComponentConfig<ComponentConfig<Modules>>;
 
   public constructor(
     private readonly runtimeContainer: DependencyContainer,
     public readonly modules: Modules
   ) {
     super();
-    this.currentConfig = Object.keys(modules).reduce<any>((config, key) => {
+    this.config = Object.keys(modules).reduce<any>((config, key) => {
       config[key] = undefined;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return config;
     }, {});
   }
 
-  public config(config: RemoveUndefinedKeys<ComponentConfig<Modules>>) {
-    this.currentConfig = this.applyConfig(this.modules, this.currentConfig, config);
+  public configure(config: RemoveUndefinedKeys<ComponentConfig<Modules>>) {
+    this.config = this.applyConfig(this.modules, this.config, config);
   }
 
   public async start() {
@@ -105,7 +103,5 @@ export class Sequencer<Modules extends SequencerModulesType>
       // eslint-disable-next-line no-await-in-loop
       await module.start();
     }
-
-    this.started = true;
   }
 }
