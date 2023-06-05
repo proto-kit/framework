@@ -11,6 +11,6 @@ export * from "./prover/statetransition/StateTransitionWitnessProvider";
 export * from "./utils/merkletree/MemoryMerkleTreeStorage";
 export * from "./utils/merkletree/RollupMerkleTree";
 export * from "./model/MethodPublicInput";
-export * from "./config/Types";
+export * from "./config/types";
 export * from "./config/ConfigurationReceiver";
 export * from "./config/ConfigurationAggregator";
