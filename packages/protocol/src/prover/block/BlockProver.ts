@@ -14,7 +14,7 @@ import {
 } from "../statetransition/StateTransitionProver.js";
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicInput } from "../../model/MethodPublicInput";
-import { Subclass } from "../../utils/Utils";
+import { Subclass } from "../../utils/utils";
 
 const errors = {
   stateProofNotStartingAtZero: () => "StateProof not starting ST-commitment at zero",

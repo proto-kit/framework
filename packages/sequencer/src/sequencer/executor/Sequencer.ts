@@ -8,12 +8,11 @@ import {
 } from "@yab/protocol";
 
 import { isSequencerModulePropertyKey, SequencerModule } from "../builder/SequencerModule";
-import { GraphQLServerModule } from "../../graphql/GraphqlSequencerModule";
 import {
   BuilderModulesType,
   BuilderResolvedModulesType,
   SequencerModulesType,
-} from "../builder/Types";
+} from "../builder/types";
 
 import { Sequenceable } from "./Sequenceable";
 

@@ -19,7 +19,7 @@ import {
 import { ProvableStateTransition } from "../../model/StateTransition";
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
 import { constants } from "../../Constants";
-import { Subclass, TypedClassType, ZkProgramType } from "../../utils/Utils";
+import { Subclass, TypedClassType, ZkProgramType } from "../../utils/utils";
 
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
 

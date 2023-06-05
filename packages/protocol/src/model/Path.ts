@@ -2,7 +2,7 @@
 /* eslint-disable @shopify/no-fully-static-classes */
 import { Field, type FlexibleProvablePure, Poseidon } from "snarkyjs";
 
-import { stringToField } from "../utils/Utils";
+import { stringToField } from "../utils/utils";
 
 /**
  * Helps manage path (key) identifiers for key-values in trees.

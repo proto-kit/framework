@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { Bool, Circuit, Field, Poseidon, Struct } from "snarkyjs";
 
-import { notInCircuit } from "../Utils";
+import { notInCircuit } from "../utils";
 
 // external API
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
