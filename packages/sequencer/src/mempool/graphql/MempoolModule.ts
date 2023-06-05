@@ -1,5 +1,5 @@
 import { MempoolResolver } from "./MempoolResolver.js";
-import { sequencerModule, SequencerModule } from "../../runtime/builder/SequencerModule.js";
+import { sequencerModule, SequencerModule } from "../../sequencer/builder/SequencerModule.js";
 import { Mempool } from "../Mempool";
 import { inject } from "tsyringe";
 import { GraphqlServer } from "../../graphql/GraphqlServer";
