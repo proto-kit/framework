@@ -18,7 +18,7 @@ describe("sequencer", () => {
       dummy: DummyModule,
     })(childContainer);
 
-    sequencer.config({
+    sequencer.configure({
       dummy: {
         password,
         returnValue,
@@ -54,7 +54,7 @@ describe("sequencer", () => {
       parent: DummyModuleParent,
     })(childContainer);
 
-    sequencer.config({
+    sequencer.configure({
       dummy: {
         password,
       },

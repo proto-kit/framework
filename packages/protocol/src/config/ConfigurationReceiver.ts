@@ -1,4 +1,8 @@
-import { FlipOptional } from "./Types";
+import type { FlipOptional } from "./types";
+
+const errors = {
+  configNotSet: () => new Error("RuntimeModule config has not been set!"),
+};
 
 /**
  * Configs:
@@ -11,9 +15,25 @@ import { FlipOptional } from "./Types";
  * If devs want a property that can be undefined, they should use null instead
  *
  */
-export interface ConfigurationReceiver<Config> {
-  get config(): Required<Config>;
-  set config(config: Required<Config>);
+export abstract class ConfigurationReceiver<Config> {
+  private currentConfig?: Required<Config> = undefined;
 
-  get defaultConfig(): FlipOptional<Config>;
+  /**
+   * Retrieves the configured config object.
+   * This is only available in instance methods like start(), using this in the constructor will throw an Exception
+   */
+  public get config(): Required<Config> {
+    if (this.currentConfig === undefined) {
+      // eslint-disable-next-line no-warning-comments
+      // TODO Check properly, Config could also be void
+      throw errors.configNotSet();
+    }
+    return this.currentConfig;
+  }
+
+  public set config(config: Required<Config>) {
+    this.currentConfig = config;
+  }
+
+  public abstract get defaultConfig(): FlipOptional<Config>;
 }

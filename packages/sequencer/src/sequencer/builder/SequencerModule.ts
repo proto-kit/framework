@@ -7,24 +7,7 @@ import { injectable } from "tsyringe";
  *
  * start(): Executed to execute any logic required to start the module
  */
-export abstract class SequencerModule<Config> implements ConfigurationReceiver<Config> {
-  private currentConfig?: Required<Config>;
-
-  /**
-   * Retrieves the configured config object.
-   * This is only available in start(), using this in the constructor will throw an Exception
-   */
-  public get config(): Required<Config> {
-    if (this.currentConfig === undefined) {
-      throw new Error("Config has to be initialized before it is retrieved");
-    }
-    return this.currentConfig;
-  }
-
-  public set config(config: Required<Config>) {
-    this.currentConfig = config;
-  }
-
+export abstract class SequencerModule<Config> extends ConfigurationReceiver<Config> {
   /**
    * Start the module and all it's functionality.
    * The returned Promise has to resolve after initialization, since it will block in the sequencer init.

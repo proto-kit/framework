@@ -50,7 +50,7 @@ describe("balances", () => {
       },
     });
 
-    runtime.config({
+    runtime.configure({
       Admin: {
         publicKey: PublicKey.empty().toBase58(),
       },

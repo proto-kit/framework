@@ -17,7 +17,7 @@ describe("runtimeModule", () => {
       },
     });
 
-    runtime.config({
+    runtime.configure({
       Admin: {
         publicKey: "123",
       },

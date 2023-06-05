@@ -1,17 +1,13 @@
-import {
-  ResolvedRuntimeModules,
-  Runtime,
-  RuntimeModules,
-} from "@yab/module";
-import { ComponentConfig, FlipOptional, RemoveUndefinedKeys } from "@yab/protocol";
+import { ResolvedRuntimeModules, Runtime, RuntimeModules } from "@yab/module";
+import { ComponentConfig, RemoveUndefinedKeys } from "@yab/protocol";
 import { container as globalContainer, DependencyContainer } from "tsyringe";
 
 import { Sequenceable } from "../executor/Sequenceable";
-import { SequencerModulesType } from "../builder/Types";
+import { SequencerModulesType } from "../builder/types";
 
 const errors = {
   appChainNotStarted: () => new Error("AppChain has not been started yet"),
-}
+};
 
 interface SequencerBuilder<SequencerModules extends SequencerModulesType> {
   (container: DependencyContainer): Sequenceable<SequencerModules>;
@@ -37,7 +33,6 @@ interface AppChainConfig<
   runtime: ConsumableRuntimeConfig<RuntimeConfig>;
 }
 
-// eslint-disable-next-line import/no-unused-modules
 export class AppChain<
   SequencerModules extends SequencerModulesType,
   RuntimeConfig extends RuntimeModules
@@ -55,17 +50,17 @@ export class AppChain<
     private readonly definition: AppChainDefinition<SequencerModules, RuntimeConfig>
   ) {}
 
-  public config(appChainConfig: AppChainConfig<SequencerModules, RuntimeConfig>) {
-    this.sequencer.config(appChainConfig.sequencer);
-    this.runtime.config(appChainConfig.runtime);
+  public configure(appChainConfig: AppChainConfig<SequencerModules, RuntimeConfig>) {
+    this.sequencer.configure(appChainConfig.sequencer);
+    this.runtime.configure(appChainConfig.runtime);
   }
 
   public sequencerConfig(config: AppChainConfig<SequencerModules, RuntimeConfig>["sequencer"]) {
-    this.sequencer.config(config);
+    this.sequencer.configure(config);
   }
 
   public genesisConfig(config: AppChainConfig<SequencerModules, RuntimeConfig>["runtime"]) {
-    this.runtime.config(config);
+    this.runtime.configure(config);
   }
 
   // Is using getters inside the class a pattern we want to no do?
@@ -86,5 +81,7 @@ export class AppChain<
     const sequencerContainer = globalContainer.createChildContainer();
     sequencerContainer.registerInstance("Runtime", this.runtime);
     this.startedSequencer = this.definition.sequencer(sequencerContainer);
+
+    // TODO
   }
 }

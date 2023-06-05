@@ -15,7 +15,7 @@ export class Balances extends RuntimeModule<{}> {
 
   @state() public balances = StateMap.from<PublicKey, UInt64>(PublicKey, UInt64);
 
-  public constructor(@inject("Admin") public admin: Admin) {
+  public constructor(public admin: Admin) {
     super();
   }
 

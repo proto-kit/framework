@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,guard-for-in,@typescript-eslint/no-unsafe-member-access,max-len,@typescript-eslint/no-unsafe-assignment,@typescript-eslint/consistent-type-assertions */
+import { merge } from "lodash";
+
 import {
   ComponentConfig,
   Components,
   RemoveUndefinedKeys,
   UninitializedComponentConfig,
-} from "./Types";
+} from "./types";
 
 /**
  * In this context, a "Component" is just a way of generalizing Modules,
  * because they don't have to be modules, they can be any configurable unit
  */
 export abstract class ConfigurationAggregator<Comps extends Components> {
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   protected applyConfig(
     modules: Comps,
     currentConfig: UninitializedComponentConfig<ComponentConfig<Comps>>,
@@ -39,11 +40,8 @@ export abstract class ConfigurationAggregator<Comps extends Components> {
         const newConfig: any = config[key];
         const moduleConfig: any = currentConfig[key];
 
-        for (const configKey in moduleConfig) {
-          if (newConfig[configKey] !== undefined) {
-            moduleConfig[configKey] = newConfig[configKey];
-          }
-        }
+        merge(moduleConfig, newConfig);
+
         modules[key].config = moduleConfig;
         nextConfig[key] = moduleConfig;
       }
@@ -51,5 +49,5 @@ export abstract class ConfigurationAggregator<Comps extends Components> {
     return nextConfig as ComponentConfig<Comps>;
   }
 
-  public abstract config(config: RemoveUndefinedKeys<ComponentConfig<Comps>>): void;
+  public abstract configure(config: RemoveUndefinedKeys<ComponentConfig<Comps>>): void;
 }

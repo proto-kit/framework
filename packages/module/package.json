@@ -17,7 +17,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@types/lodash": "^4.14.194",
+    "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
     "ts-mixer": "^6.0.3",
@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
-    "lodash": "^4.17.21"
+    "@types/lodash": "^4.14.194"
   },
   "peerDependencies": {
     "snarkyjs": "0.10.0",
