@@ -17,7 +17,7 @@
     "@typescript-eslint/parameter-properties": [
       "error",
       {
-        "allow": ["public", "private", "private readonly", "public readonly"]
+        "allow": ["public", "private", "private readonly", "public readonly", "protected", "protected readonly"]
       }
     ],
     "jest/no-hooks": [
