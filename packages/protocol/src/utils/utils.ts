@@ -4,6 +4,7 @@
 import { TextEncoder } from "node:util";
 
 import { Circuit, Field, Poseidon, Proof } from "snarkyjs";
+import { TextDecoder } from "util";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
   ...args: any[]
@@ -43,7 +44,7 @@ export function notInCircuit(): MethodDecorator {
   };
 }
 
-export function stringToField(value: string) {
+export function stringToField(value: string, throwOnOverflow = false) {
   const fieldSize = Field.sizeInBytes();
 
   const encoder = new TextEncoder();
@@ -56,6 +57,11 @@ export function stringToField(value: string) {
   const data = stringBytes.concat(padding);
 
   if (data.length > fieldSize) {
+    if (throwOnOverflow) {
+      throw new Error("Trying to encode a stringt that is larger than 256 bits");
+    }
+
+    // Hash the result Field[] to reduce it to
     const chunks = data.reduce<number[][]>((a, b, index) => {
       const arrayIndex = index / fieldSize;
       if (a.length <= arrayIndex) {
@@ -66,7 +72,21 @@ export function stringToField(value: string) {
     }, []);
     return Poseidon.hash(chunks.map((x) => Field.fromBytes(x)));
   }
+
   return Field.fromBytes(data);
+}
+
+/**
+ * Note: This only works for strings that have been encoded using the `throwOnOverflow` set to true
+ */
+export function fieldToString(value: Field | bigint): string {
+  if (typeof value === "bigint") {
+    value = Field(value);
+  }
+  const bytes = Field.toBytes(value);
+  const decoder = new TextDecoder();
+
+  return decoder.decode(new Uint8Array(bytes));
 }
 
 export function noop(): void {}
