@@ -1,6 +1,10 @@
+// eslint-disable-next-line max-len
+/* eslint-disable @typescript-eslint/no-non-null-assertion,@typescript-eslint/consistent-type-assertions */
+import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
+
+import { TaskPayload } from "../manager/ReducableTask";
+
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
-import { ReducableTask, TaskPayload } from "../manager/ReducableTask";
-import { Metrics, MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
 
 /**
  * TaskQueue implementation for BullMQ
@@ -14,41 +18,9 @@ export class BullQueue implements TaskQueue {
       password?: string;
     },
     private readonly options: {
-      retryAttempts?: number
+      retryAttempts?: number;
     } = {}
   ) {}
-
-  public async getQueue(name: string): Promise<InstantiatedQueue> {
-    const queue = new Queue<TaskPayload, TaskPayload>(name, { connection: this.redis });
-    const events = new QueueEvents(name, { connection: this.redis });
-
-    await queue.drain()
-
-    const options = this.options
-
-    return {
-      async addTask(payload: TaskPayload): Promise<{ jobId: string }> {
-        const job = await queue.add(name, payload, { attempts: options.retryAttempts ?? 2 });
-        return { jobId: job.id! };
-      },
-
-      async onCompleted(listener: (result: { jobId: string; payload: TaskPayload }) => void) {
-        events.on("completed", async (result) => {
-          console.log(result.returnvalue);
-          await listener({
-            jobId: result.jobId,
-            payload: JSON.parse(result.returnvalue) as TaskPayload,
-          });
-        });
-        await events.waitUntilReady()
-      },
-
-      async close(): Promise<void> {
-        await events.close();
-        await queue.close();
-      },
-    };
-  }
 
   public createWorker(
     name: string,
@@ -57,10 +29,12 @@ export class BullQueue implements TaskQueue {
   ): Closeable {
     const worker = new Worker<TaskPayload, string>(
       name,
-      async (job) => {
-        return JSON.stringify(await executor(job.data));
-      },
-      { concurrency: options?.concurrency ?? 1, connection: this.redis, metrics: { maxDataPoints: MetricsTime.ONE_HOUR * 24 } }
+      async (job) => JSON.stringify(await executor(job.data)),
+      {
+        concurrency: options?.concurrency ?? 1,
+        connection: this.redis,
+        metrics: { maxDataPoints: MetricsTime.ONE_HOUR * 24 },
+      }
     );
 
     // We have to do this, because we want to prevent the worker from crashing
@@ -72,6 +46,39 @@ export class BullQueue implements TaskQueue {
     return {
       async close() {
         await worker.close();
+      },
+    };
+  }
+
+  public async getQueue(name: string): Promise<InstantiatedQueue> {
+    const queue = new Queue<TaskPayload, TaskPayload>(name, { connection: this.redis });
+    const events = new QueueEvents(name, { connection: this.redis });
+
+    await queue.drain();
+
+    const { options } = this;
+
+    return {
+      async addTask(payload: TaskPayload): Promise<{ jobId: string }> {
+        const job = await queue.add(name, payload, { attempts: options.retryAttempts ?? 2 });
+        return { jobId: job.id! };
+      },
+
+      async onCompleted(
+        listener: (result: { jobId: string; payload: TaskPayload }) => Promise<void>
+      ) {
+        events.on("completed", async (result) => {
+          await listener({
+            jobId: result.jobId,
+            payload: JSON.parse(result.returnvalue) as TaskPayload,
+          });
+        });
+        await events.waitUntilReady();
+      },
+
+      async close(): Promise<void> {
+        await events.close();
+        await queue.close();
       },
     };
   }
