@@ -5,14 +5,11 @@ import {
   ReducableTask,
   TaskSerializer
 } from "../../src/worker/manager/ReducableTask";
-import {
-  MapReduceTaskRunner,
-  ReducingTaskRunner
-} from "../../src/worker/manager/WorkerCoordinator";
 import { LocalTaskQueue } from "./LocalTaskQueue";
 import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
 import { BullQueue } from "../../src/worker/queue/BullQueue";
+import { MapReduceTaskRunner, ReducingTaskRunner } from "../../src/worker/manager/TaskRunner";
 
 // The implementation of the task, known by both master and worker
 class SumTask implements MapReduceTask<number, number>{
