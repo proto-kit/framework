@@ -12,7 +12,7 @@
     "test:ci": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js  ./test",
     "test:watch": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./test --watch",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
-    "start": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ./dist/entry.js"
+    "start": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/src/entry.js"
   },
   "main": "dist/index.js",
   "publishConfig": {
@@ -23,6 +23,7 @@
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {
+    "@jest/globals": "^29.5.0",
     "@types/express": "^4.17.17",
     "@types/node": "^20.2.5"
   },
@@ -31,6 +32,7 @@
     "@yab/module": "*",
     "@yab/protocol": "*",
     "@yab/common": "*",
+    "bullmq": "^3.15.0",
     "class-validator": "^0.14.0",
     "fastify": "^4.17.0",
     "graphql": "16.6.0",
