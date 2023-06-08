@@ -14,7 +14,7 @@ interface AdminConfig {
 export class Admin extends RuntimeModule<AdminConfig> {
   @method()
   public isAdmin(publicKey: PublicKey) {
-    let admin = PublicKey.fromBase58(this.config.publicKey).toConstant();
+    const admin = PublicKey.empty().toConstant();
     assert(admin.equals(publicKey));
   }
 

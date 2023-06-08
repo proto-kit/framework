@@ -8,14 +8,11 @@ import {
   MethodPublicInput,
   RemoveUndefinedKeys,
   Subclass,
-  TypedClassType, UninitializedComponentConfig
+  TypedClassType,
+  UninitializedComponentConfig,
 } from "@yab/protocol";
 
-import {
-  combineMethodName,
-  isMethod,
-  toWrappedMethod,
-} from "../method/decorator.js";
+import { combineMethodName, isMethod, toWrappedMethod } from "../method/decorator.js";
 import { type AnyConstructor, isRuntimeModule } from "../module/decorator.js";
 import type { RuntimeModule } from "./RuntimeModule.js";
 import type { StateService } from "../state/InMemoryStateService.js";
@@ -25,8 +22,10 @@ export interface RuntimeModules {
 }
 
 export type ResolvedRuntimeModules<RM extends RuntimeModules> = {
-  [name in keyof RM]: (RM[name] extends TypedClassType<RuntimeModule<infer R>> ? RuntimeModule<R> : any)
-}
+  [name in keyof RM]: RM[name] extends TypedClassType<RuntimeModule<infer R>>
+    ? RuntimeModule<R>
+    : any;
+};
 
 export interface ChainConfig<ChainRuntimeModules extends RuntimeModules> {
   state: StateService;
@@ -58,18 +57,13 @@ const errors = {
       as a runtime module for this chain: ${name}`
     ),
 
-  unableToAnalyze: (name: string) =>
-    new Error(`Unable to analyze program for chain: ${name}`),
+  unableToAnalyze: (name: string) => new Error(`Unable to analyze program for chain: ${name}`),
 
   precompileFirst: () =>
-    new Error(
-      "You have to call precompile() before being able to create the proof class"
-    ),
+    new Error("You have to call precompile() before being able to create the proof class"),
 
   zkProgramMissing: () =>
-    new Error(
-      "Unable to compile chain, pre-compilation did not produce a zkProgram"
-    ),
+    new Error("Unable to compile chain, pre-compilation did not produce a zkProgram"),
 };
 
 /**
@@ -113,8 +107,7 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> extends Configu
   public constructor(public modules: ChainConfig<ChainRuntimeModules>) {
     super();
     this.runtimeContainer = container.createChildContainer();
-    Object.entries(this.modules.runtimeModules).forEach(
-      ([name, runtimeModule]) => {
+    Object.entries(this.modules.runtimeModules).forEach(([name, runtimeModule]) => {
       this.registerRuntimeModule(name, runtimeModule);
     });
 
@@ -133,8 +126,7 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> extends Configu
    * @param name - Name of the runtime module to decorate
    */
   private decorateRuntimeModule(name: string) {
-    const runtimeModuleInstance =
-      this.runtimeContainer.resolve<RuntimeModule<unknown>>(name);
+    const runtimeModuleInstance = this.runtimeContainer.resolve<RuntimeModule<unknown>>(name);
     runtimeModuleInstance.name = name;
     runtimeModuleInstance.chain = this;
   }
@@ -161,9 +153,7 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> extends Configu
       throw errors.notRegisteredRuntimeModule(name);
     }
 
-    return this.runtimeContainer.resolve<
-      InstanceType<ChainRuntimeModules[Key]>
-    >(name);
+    return this.runtimeContainer.resolve<InstanceType<ChainRuntimeModules[Key]>>(name);
   }
 
   private getAllRuntimeModules(): ResolvedRuntimeModules<ChainRuntimeModules> {
@@ -202,8 +192,7 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> extends Configu
     );
 
     dependencies?.forEach((dependency: string | { name?: string }) => {
-      const name =
-        typeof dependency === "string" ? dependency : dependency.name;
+      const name = typeof dependency === "string" ? dependency : dependency.name;
 
       // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
       if (!name) {
@@ -232,73 +221,57 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> extends Configu
    */
   public precompile() {
     type Methods = Parameters<typeof Experimental.ZkProgram>[0]["methods"];
-    const methods = this.runtimeModuleNames.reduce<Methods>(
-      (allMethods, runtimeModuleName) => {
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const runtimeModule = this.getRuntimeModule(
-          runtimeModuleName
-        ) as RuntimeModule<unknown>;
+    const methods = this.runtimeModuleNames.reduce<Methods>((allMethods, runtimeModuleName) => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const runtimeModule = this.getRuntimeModule(runtimeModuleName) as RuntimeModule<unknown>;
 
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
-          string,
-          (...args: unknown[]) => unknown
-        >;
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
+        string,
+        (...args: unknown[]) => unknown
+      >;
 
-        const modulePrototypeMethods =
-          Object.getOwnPropertyNames(modulePrototype);
+      const modulePrototypeMethods = Object.getOwnPropertyNames(modulePrototype);
 
-        const moduleMethods = modulePrototypeMethods.reduce<Methods>(
-          (allModuleMethods, methodName) => {
-            if (isMethod(runtimeModule, methodName)) {
-              const combinedMethodName = combineMethodName(
-                runtimeModuleName,
-                methodName
-              );
-              const method = modulePrototype[methodName];
-              const wrappedMethod = Reflect.apply(
-                toWrappedMethod,
-                runtimeModule,
-                [methodName, method]
-              );
+      const moduleMethods = modulePrototypeMethods.reduce<Methods>(
+        (allModuleMethods, methodName) => {
+          if (isMethod(runtimeModule, methodName)) {
+            const combinedMethodName = combineMethodName(runtimeModuleName, methodName);
+            const method = modulePrototype[methodName];
+            const wrappedMethod = Reflect.apply(toWrappedMethod, runtimeModule, [
+              methodName,
+              method,
+            ]);
 
-              // eslint-disable-next-line no-warning-comments
-              // TODO: find out how to import the Tuple type
+            // eslint-disable-next-line no-warning-comments
+            // TODO: find out how to import the Tuple type
 
-              // eslint-disable-next-line max-len
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const privateInputs = Reflect.getMetadata(
-                "design:paramtypes",
-                runtimeModule,
-                methodName
-              );
+            const privateInputs = Reflect.getMetadata(
+              "design:paramtypes",
+              runtimeModule,
+              methodName
+            );
 
-              return {
-                ...allModuleMethods,
+            return {
+              ...allModuleMethods,
 
-                [combinedMethodName]: {
-                  // eslint-disable-next-line max-len
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                  privateInputs,
-                  method: wrappedMethod,
-                },
-              };
-            }
+              [combinedMethodName]: {
+                privateInputs,
+                method: wrappedMethod,
+              },
+            };
+          }
 
-            return allModuleMethods;
-          },
-          {}
-        );
+          return allModuleMethods;
+        },
+        {}
+      );
 
-        return {
-          ...allMethods,
-          ...moduleMethods,
-        };
-      },
-      {}
-    );
+      return {
+        ...allMethods,
+        ...moduleMethods,
+      };
+    }, {});
 
     // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
     const sortedMethods = Object.fromEntries(Object.entries(methods).sort());
@@ -332,22 +305,20 @@ export class Runtime<ChainRuntimeModules extends RuntimeModules> extends Configu
       analyze,
 
       toPretty: () => {
-        Reflect.apply(analyze, this, []).forEach(
-          ({ methodName, analysis: methodAnalysis }) => {
-            const inputs = methodAnalysis.inputs.map(
-              // eslint-disable-next-line max-len
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-              (input) => (input as any).name
-            );
+        Reflect.apply(analyze, this, []).forEach(({ methodName, analysis: methodAnalysis }) => {
+          const inputs = methodAnalysis.inputs.map(
+            // eslint-disable-next-line max-len
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/consistent-type-assertions
+            (input) => (input as any).name
+          );
 
-            console.log(`
+          console.log(`
 Method: ${methodName}
 Rows: ${methodAnalysis.rows},
 Gates: ${methodAnalysis.gates.length}
 Inputs: [${inputs.join(", ")}]
 `);
-          }
-        );
+        });
       },
     };
   }

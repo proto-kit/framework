@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,guard-for-in,@typescript-eslint/no-unsafe-member-access,max-len,@typescript-eslint/no-unsafe-assignment,@typescript-eslint/consistent-type-assertions */
-import { merge } from "lodash";
+import merge from "lodash/merge";
 
 import {
   ComponentConfig,

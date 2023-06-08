@@ -30,31 +30,29 @@ export class ProvableStateTransition extends Struct({
  * to external state, by providing a state anchor.
  */
 export class StateTransition<Value> {
-  public static from<Value>(path: Field, from: Option<Value>) {
-    return new StateTransition(path, from, Option.none());
+  public static from<Value>(path: Field, fromValue: Option<Value>) {
+    return new StateTransition(path, fromValue, Option.none());
   }
 
-  public static fromTo<Value>(
-    path: Field,
-    from: Option<Field> | Option<Value>,
-    to: Option<Field> | Option<Value>,
-    toValue: Value
-  ) {
-    return new StateTransition(path, from, to, toValue);
+  public static fromTo<Value>(path: Field, fromValue: Option<Value>, toValue: Option<Value>) {
+    return new StateTransition(path, fromValue, toValue);
   }
 
   public constructor(
     public path: Field,
-    public from: Option<Field> | Option<Value>,
-    public to: Option<Field> | Option<Value>,
-    public toValue?: Value
+    public fromValue: Option<Field> | Option<Value>,
+    public toValue: Option<Field> | Option<Value>
   ) {}
 
+  /**
+   * Converts a StateTransition to a ProvableStateTransition,
+   * while enforcing the 'from' property to be 'Some' in all cases.
+   */
   public toProvable(): ProvableStateTransition {
     return new ProvableStateTransition({
       path: this.path,
-      from: this.from.toProvable(),
-      to: this.to.toProvable(),
+      from: this.fromValue.toProvable().toSome(),
+      to: this.toValue.toProvable(),
     });
   }
 }

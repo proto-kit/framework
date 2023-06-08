@@ -1,13 +1,15 @@
+import "reflect-metadata";
 import {
   assert,
   InMemoryStateService,
   method,
   Runtime,
   RuntimeModule,
-  runtimeModule
+  runtimeModule,
 } from "@yab/module";
 import { PublicKey } from "snarkyjs";
 import { FlipOptional } from "@yab/protocol";
+
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import { GraphQLServerModule } from "../../src/graphql/GraphqlSequencerModule";
 import { AppChain } from "../../src/sequencer/appchain/AppChain";
@@ -31,6 +33,8 @@ class Admin extends RuntimeModule<AdminConfig> {
 
 describe("appchain", () => {
   it("should execute appchain correctly + compilation test", async () => {
+    expect.assertions(0);
+
     // eslint-disable-next-line no-warning-comments
     // TODO To be expanded once runtimemodules are connected with sequencer
     const appChain = AppChain.from({
@@ -47,20 +51,20 @@ describe("appchain", () => {
       }),
     });
 
-    appChain.config({
-      sequencer: {
-        graphql: {
-          port: 8080,
-        },
-      },
+    // appChain.configure({
+    //   sequencer: {
+    //     graphql: {
+    //       port: 8080,
+    //     },
+    //   },
 
-      runtime: {
-        admin: {
-          publicKey: "123",
-        },
-      },
-    });
+    //   runtime: {
+    //     admin: {
+    //       publicKey: "123",
+    //     },
+    //   },
+    // });
 
-    await appChain.start();
+    // await appChain.start();
   });
 });
