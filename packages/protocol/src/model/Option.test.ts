@@ -4,9 +4,7 @@ import { Option } from "./Option";
 
 describe("option", () => {
   it.each([
-    // 1. Field(0)
     [Bool(true), Field(0), Field, true],
-    // 2.
     [Bool(false), Field(0), Field, false],
   ])("should serialize to the correct tree value", (isSome, value, valueType, shouldHash) => {
     expect.assertions(1);
