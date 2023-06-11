@@ -44,6 +44,16 @@ export class StateTransition<Value> {
     public toValue: Option<Field> | Option<Value>
   ) {}
 
+  public get from() {
+    const from = this.fromValue.clone();
+    from.forceSome();
+    return from;
+  }
+
+  public get to() {
+    return this.toValue.clone();
+  }
+
   /**
    * Converts a StateTransition to a ProvableStateTransition,
    * while enforcing the 'from' property to be 'Some' in all cases.
@@ -51,8 +61,8 @@ export class StateTransition<Value> {
   public toProvable(): ProvableStateTransition {
     return new ProvableStateTransition({
       path: this.path,
-      from: this.fromValue.toProvable().toSome(),
-      to: this.toValue.toProvable(),
+      from: this.from.toProvable(),
+      to: this.to.toProvable(),
     });
   }
 }

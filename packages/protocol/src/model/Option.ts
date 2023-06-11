@@ -62,11 +62,22 @@ export class Option<Value> {
     return valueType.fromFields(fields) as Value;
   }
 
+  public isForcedSome = Bool(false);
+
   public constructor(
     public isSome: Bool,
     public value: Value,
     public valueType: FlexibleProvablePure<Value>
   ) {}
+
+  public clone() {
+    return new Option(this.isSome, this.value, this.valueType);
+  }
+
+  public forceSome() {
+    this.isForcedSome = Circuit.if(this.isSome, Bool(false), Bool(true));
+    this.isSome = Bool(true);
+  }
 
   /**
    * @returns Tree representation of the current value
@@ -74,7 +85,7 @@ export class Option<Value> {
   public get treeValue() {
     const treeValue = Poseidon.hash(this.valueType.toFields(this.value));
 
-    return Circuit.if(this.isSome, treeValue, Field(0));
+    return Circuit.if(this.isSome.and(this.isForcedSome.not()), treeValue, Field(0));
   }
 
   /**
