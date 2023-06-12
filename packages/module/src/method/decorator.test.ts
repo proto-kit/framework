@@ -93,7 +93,7 @@ describe("toStateTransitionsHash", () => {
   it.each([
     [
       [noneStateTransition],
-      "28700990035644272452675388662126894299960937130710765880529427081589503828331",
+      "7067243248312463521220230733411703436580237248681301130001246160136823979683",
     ],
     [
       [someStateTransition],
@@ -101,11 +101,11 @@ describe("toStateTransitionsHash", () => {
     ],
     [
       [noneStateTransition, someStateTransition],
-      "21335284518481733126227414071797863427052335154585218444540807622914895750726",
+      "20641278138648130746922286021889771603940136555847557324578879341962747943601",
     ],
     [
       [someStateTransition, noneStateTransition],
-      "9511943285469329402542938964164358206358558145971673073932102969821007441288",
+      "10362098987098600767020985423446775093761176563902435645494178193997179006954",
     ],
   ])(
     "should calculate a hash of all provided state transitions",
@@ -126,7 +126,7 @@ describe("toWrappedMethod", () => {
     jest.spyOn(TestModule.prototype, "succeed");
 
     wrappedMethod = Reflect.apply(toWrappedMethod, new TestModule(), [
-      TestModule.prototype.succeed.name,
+      "succeed",
 
       // eslint-disable-next-line max-len
       // eslint-disable-next-line jest/unbound-method, @typescript-eslint/consistent-type-assertions, @typescript-eslint/unbound-method
@@ -161,7 +161,7 @@ describe("toWrappedMethod", () => {
     expect(jest.mocked(TestModule.prototype.succeed)).toHaveBeenCalledTimes(2);
   });
 
-  it.skip("should fail if the public input does not match the in-circuit execution values", () => {
+  it("should fail if the public input does not match the in-circuit execution values", () => {
     expect.assertions(1);
 
     const publicInput: MethodPublicInput = new MethodPublicInput({
@@ -172,6 +172,6 @@ describe("toWrappedMethod", () => {
 
     expect(() => {
       wrappedMethod(publicInput);
-    }).toThrow(/not consistent through multiple method executions/u);
+    }).toThrow(/State transitions produced by '@method succeed' are not consistent/u);
   });
 });

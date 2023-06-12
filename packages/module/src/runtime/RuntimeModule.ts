@@ -1,6 +1,7 @@
 import { ConfigurationReceiver, FlipOptional } from "@yab/protocol";
 
 import type { Runtime, RuntimeModules } from "./Runtime";
+
 /**
  * Base class for runtime modules providing the necessary utilities.
  */

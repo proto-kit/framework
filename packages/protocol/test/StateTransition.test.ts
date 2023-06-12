@@ -17,10 +17,7 @@ import { MemoryMerkleTreeStorage } from "../src/utils/merkletree/MemoryMerkleTre
 import type { StateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 
 describe("stateTransition", () => {
-  async function checkTransitions(
-    tree: RollupMerkleTree,
-    transitions: ProvableStateTransition[]
-  ) {
+  async function checkTransitions(tree: RollupMerkleTree, transitions: ProvableStateTransition[]) {
     const batch = StateTransitionProvableBatch.fromTransitions(transitions);
 
     const temporaryTree = new RollupMerkleTree(
@@ -57,18 +54,13 @@ describe("stateTransition", () => {
     }
 
     const childContainer = container.createChildContainer();
-    childContainer.registerInstance(
-      "StateTransitionWitnessProvider",
-      new DummySTWP(tree)
-    );
+    childContainer.registerInstance("StateTransitionWitnessProvider", new DummySTWP(tree));
     const prover = childContainer.resolve(StateTransitionProver);
 
     const state = prover.applyTransitions(startRoot, Field(0), batch);
 
     expect(state.stateRoot).toStrictEqual(endRoot);
-    expect(state.stateTransitionList.commitment).toStrictEqual(
-      hashList.commitment
-    );
+    expect(state.stateTransitionList.commitment).toStrictEqual(hashList.commitment);
 
     await childContainer.dispose();
   }
@@ -91,7 +83,7 @@ describe("stateTransition", () => {
     [
       [
         new ProvableStateTransition({
-          from: Option.none(),
+          from: Option.none().toProvable(),
           to: Option.from(Bool(true), Field(4), Field).toProvable(),
           path: Field(1),
         }),
@@ -102,7 +94,7 @@ describe("stateTransition", () => {
         }),
         new ProvableStateTransition({
           from: Option.from(Bool(true), Field(2), Field).toProvable(),
-          to: Option.none(),
+          to: Option.none().toProvable(),
           path: Field(2),
         }),
       ],
@@ -125,7 +117,7 @@ describe("stateTransition", () => {
         new ProvableStateTransition({
           // fail
           from: Option.from(Bool(true), Field(2), Field).toProvable(),
-          to: Option.none(),
+          to: Option.none().toProvable(),
           path: Field(1),
         }),
       ],
@@ -142,7 +134,7 @@ describe("stateTransition", () => {
         new ProvableStateTransition({
           // fail
           from: Option.from(Bool(true), Field(6), Field).toProvable(),
-          to: Option.none(),
+          to: Option.none().toProvable(),
           path: Field(2),
         }),
       ],
@@ -159,26 +151,23 @@ describe("stateTransition", () => {
         new ProvableStateTransition({
           // fail
           from: Option.from(Bool(true), Field(15), Field).toProvable(),
-          to: Option.none(),
+          to: Option.none().toProvable(),
           path: Field(1),
         }),
       ],
       1,
     ],
-  ])(
-    "should throw because of failing precondition",
-    async (transitions, index) => {
-      expect.assertions(1);
+  ])("should throw because of failing precondition", async (transitions, index) => {
+    expect.assertions(1);
 
-      const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
+    const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
 
-      // Is ignored because overwritten by first transition
-      tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
-      tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
+    // Is ignored because overwritten by first transition
+    tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
+    tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
 
-      await expect(checkTransitions(tree, transitions)).rejects.toThrow(
-        `MerkleWitness not valid for StateTransition (${index})`
-      );
-    }
-  );
+    await expect(checkTransitions(tree, transitions)).rejects.toThrow(
+      `MerkleWitness not valid for StateTransition (${index})`
+    );
+  });
 });
