@@ -86,6 +86,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
   }
 
   protected async handleCompleted(payload: TaskPayload, resolve: (result: Type) => void) {
+
     const parsed = this.serializer.fromJSON(payload.payload);
 
     this.runningTaskCount -= 1;
@@ -127,7 +128,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
 
   protected async execute(
     executor: (resolve: (type: Type) => void) => Promise<void>
-  ) : Promise<Type> {
+  ): Promise<Type> {
     const queue = await this.messageQueue.getQueue(this.queueName);
     this.queue = queue;
 

@@ -50,17 +50,19 @@ export class BullQueue implements TaskQueue {
     };
   }
 
-  public async getQueue(name: string): Promise<InstantiatedQueue> {
-    const queue = new Queue<TaskPayload, TaskPayload>(name, { connection: this.redis });
-    const events = new QueueEvents(name, { connection: this.redis });
+  public async getQueue(queueName: string): Promise<InstantiatedQueue> {
+    const queue = new Queue<TaskPayload, TaskPayload>(queueName, { connection: this.redis });
+    const events = new QueueEvents(queueName, { connection: this.redis });
 
     await queue.drain();
 
     const { options } = this;
 
     return {
+      name: queueName,
+
       async addTask(payload: TaskPayload): Promise<{ jobId: string }> {
-        const job = await queue.add(name, payload, { attempts: options.retryAttempts ?? 2 });
+        const job = await queue.add(queueName, payload, { attempts: options.retryAttempts ?? 2 });
         return { jobId: job.id! };
       },
 

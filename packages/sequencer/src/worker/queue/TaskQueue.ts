@@ -17,6 +17,8 @@ export interface Closeable {
  * Object that abstracts a concrete connection to a queue instance.
  */
 export interface InstantiatedQueue extends Closeable {
+  name: string;
+
   /**
    * Adds a specific payload to the queue and returns a unique jobId
    */
