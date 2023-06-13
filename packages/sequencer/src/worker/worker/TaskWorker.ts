@@ -97,6 +97,7 @@ export class TaskWorker implements Closeable {
         const [, [task]] = tasks;
 
         const result = await task.handler(data);
+        console.log("Result: " + JSON.stringify(result));
         if (result === undefined) {
           throw errors.notComputable();
         }

@@ -19,6 +19,8 @@ The operation name is a indicator for how the input/result data should be interp
 - `taskName`: A "reduce" step
 - `taskName + "_map"`: A "mapping" step
 
+The taskName is provided via Task.name()
+
 In the map-reduce pattern a sample flow would look like:
 
 #### Example

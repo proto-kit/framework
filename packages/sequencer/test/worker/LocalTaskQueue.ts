@@ -2,72 +2,86 @@ import { Closeable, InstantiatedQueue, TaskQueue } from "../../src/worker/queue/
 import { TaskPayload } from "../../src/worker/manager/ReducableTask";
 
 export class LocalTaskQueue implements TaskQueue {
+  private queues: {
+    [key: string]: { payload: TaskPayload; jobId: string }[];
+  } = {};
 
-  constructor(private readonly simulatedDuration: number) {
-  }
+  private workers: {
+    [key: string]: { busy: boolean; handler: (data: TaskPayload) => Promise<TaskPayload> };
+  } = {};
 
-  queues: { [key: string]: { payload: TaskPayload, jobId: string }[] } = {};
-  workers: { [key: string]: { busy: boolean, f: (data: TaskPayload) => Promise<TaskPayload> } } = {}
-  listeners: ((result: { jobId: string; payload: TaskPayload }) => Promise<void>)[] = []
+  private readonly listeners: {
+    [key: string]: ((result: { jobId: string; payload: TaskPayload }) => Promise<void>)[];
+  } = {};
 
-  workNextTasks() {
-    Object.entries(this.queues).forEach(queue => {
-      const tasks = queue[1]
-      if(tasks.length > 0){
-        tasks.forEach(task => {
-          this.workers[queue[0]].f(task.payload).then(result => {
-            this.listeners.forEach((listener) => listener({ payload: result, jobId: task.jobId }));
-          })
-        })
+  public constructor(private readonly simulatedDuration: number) {}
+
+  private workNextTasks() {
+    Object.entries(this.queues).forEach((queue) => {
+      const tasks = queue[1];
+
+      if (tasks.length > 0) {
+        tasks.forEach((task) => {
+          // Execute task in worker
+          this.workers[queue[0]].handler(task.payload).then((result) => {
+            // Notify listeners about result
+            this.listeners[queue[0]].forEach(async (listener) => {
+              await listener({ payload: result, jobId: task.jobId })
+            });
+          });
+        });
       }
-      this.queues[queue[0]] = []
-    })
+
+      this.queues[queue[0]] = [];
+    });
   }
 
-  async getQueue(name: string): Promise<InstantiatedQueue> {
-    this.queues[name] = [];
+  public async getQueue(queueName: string): Promise<InstantiatedQueue> {
+    this.queues[queueName] = [];
 
-    let id = 0
+    let id = 0;
 
-    const listeners = this.listeners
-    const thisClojure = this
+    const thisClojure = this;
 
     return {
+      name: queueName,
+
       async addTask(payload: TaskPayload): Promise<{ jobId: string }> {
-        const nextId = id++ + ""
-        thisClojure.queues[name].push( { payload, jobId: nextId })
+        id += 1;
+        const nextId = String(id).toString();
+        thisClojure.queues[queueName].push({ payload, jobId: nextId });
 
-        thisClojure.workNextTasks()
+        thisClojure.workNextTasks();
 
-        return { jobId: nextId }
+        return { jobId: nextId };
       },
 
       async onCompleted(
         listener: (result: { jobId: string; payload: TaskPayload }) => Promise<void>
       ): Promise<void> {
-        listeners.push(listener)
+        (thisClojure.listeners[queueName] ??= []).push(listener);
       },
 
-      close(): Promise<void> {
-        return Promise.resolve()
-      },
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      async close(): Promise<void> {},
     };
   }
 
-  createWorker(name: string, executor: (data: TaskPayload) => Promise<TaskPayload>): Closeable {
-    this.workers[name] = {
+  public createWorker(queueName: string, executor: (data: TaskPayload) => Promise<TaskPayload>): Closeable {
+    this.workers[queueName] = {
       busy: false,
-      f: async (data: TaskPayload) => {
-        await sleep(this.simulatedDuration)
 
-        return await executor(data)
-      }
+      handler: async (data: TaskPayload) => {
+        await sleep(this.simulatedDuration);
+
+        return await executor(data);
+      },
     };
-    this.workNextTasks()
+    this.workNextTasks();
     return {
-      close: async () => {}
-    }
+      close: async () => {},
+    };
   }
 }
 
-export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
