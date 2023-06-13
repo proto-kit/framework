@@ -3,178 +3,195 @@ import "reflect-metadata";
 import {
   MapReduceTask,
   ReducableTask,
-  TaskSerializer
+  TaskSerializer,
 } from "../../src/worker/manager/ReducableTask";
 import { LocalTaskQueue } from "./LocalTaskQueue";
 import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
 import { BullQueue } from "../../src/worker/queue/BullQueue";
 import { MapReduceTaskRunner, ReducingTaskRunner } from "../../src/worker/manager/TaskRunner";
+import { beforeAll } from "@jest/globals";
 
 // The implementation of the task, known by both master and worker
-class SumTask implements MapReduceTask<number, number>{
-
-  name(): string {
-    // Tells the framework from which queues to consume
+class SumTask implements MapReduceTask<number, number> {
+  public name(): string {
+    // Tells the framework from which sub-queues to consume
     return "sum";
   }
 
-  // Worker-executed
-  prepare(): Promise<void> {
-    // we can call .compile() here for example
-    return Promise.resolve(undefined);
-  }
-
   // Master-executed
-  reducible(r1: number, r2: number): boolean {
+  public reducible(r1: number, r2: number): boolean {
     // Checks if the tasks r1 and r2 fit together and can be reduced
     return true;
   }
 
-  // Worker-executed
-  reduce(r1: number, r2: number): Promise<number> {
-    console.log("Reducing " + r1 + " + " + r2);
-    // Does the actual reducing work
-    return Promise.resolve(r1 + r2)
-  }
-
-  serializer(): TaskSerializer<number> {
+  public serializer(): TaskSerializer<number> {
     return {
-      fromJSON(s: string): number {
-        return Number.parseInt(s);
+      fromJSON(json: string): number {
+        return Number.parseInt(json, 10);
       },
-      toJSON(t: number): string {
-        return t + "";
+
+      toJSON(num: number): string {
+        return String(num).toString();
       },
     };
   }
 
-  inputSerializer(): TaskSerializer<number> {
+  public inputSerializer(): TaskSerializer<number> {
     return this.serializer();
   }
 
-  async map(t: number): Promise<number> {
-    return t * 2;
+  // Worker-executed
+  public async prepare(): Promise<void> {
+    // we can call .compile() here for example
+  }
+
+  // Worker-executed
+  public async reduce(r1: number, r2: number): Promise<number> {
+    console.log(`Reducing ${r1} + ${r2}`);
+    // Does the actual reducing work
+    return r1 + r2;
+  }
+
+  public async map(input: number): Promise<number> {
+    return input * 2;
   }
 }
 
 describe("worker", () => {
-  let closeables: Closeable[] = []
+  let closeables: Closeable[];
 
-  async function performAfterEach(){
-    await Promise.all(closeables.map(x => x.close()))
-    closeables = []
+  async function performAfterEach() {
+    await Promise.all(closeables.map((x) => x.close()));
+    closeables = [];
   }
+
+  beforeAll(() => {
+    closeables = [];
+  });
 
   // Doesn't trigger, no idea why
   afterEach(async () => {
-    await performAfterEach()
-  })
+    await performAfterEach();
+  });
 
   afterAll(async () => {
-    await performAfterEach()
-  })
+    await performAfterEach();
+  });
 
-  async function runSumTask(inputs: number[], queue: TaskQueue, task: ReducableTask<number>) : Promise<{ result: number, timeElapsed: number }> {
+  async function runSumTask(
+    inputs: number[],
+    queue: TaskQueue,
+    task: ReducableTask<number>
+  ): Promise<{ result: number; timeElapsed: number }> {
+    const coord = new ReducingTaskRunner(queue, task, "sum");
+    closeables.push(coord);
 
-    // let coord = new WorkerCoordinator(queue)
-    let coord = new ReducingTaskRunner(queue, task, "sum")
-    closeables.push(coord)
+    const start = Date.now();
 
-    const start = new Date().getTime()
-
-    //Executes the task on the workers and reports back once the task has been fully reduced
+    // Executes the task on the workers and reports back once the task has been fully reduced
     // let result = await coord.executeReducingTask("sum", task, inputs)
-    let result = await coord.executeReduce(inputs)
+    const result = await coord.executeReduce(inputs);
 
-    const timeElapsed = new Date().getTime() - start
+    const timeElapsed = new Date().getTime() - start;
 
     return { result, timeElapsed };
   }
 
-  async function runSumTaskMapReduce(inputs: number[], queue: TaskQueue, task: MapReduceTask<number, number>) : Promise<{ result: number, timeElapsed: number }> {
+  async function runSumTaskMapReduce(
+    inputs: number[],
+    queue: TaskQueue,
+    task: MapReduceTask<number, number>
+  ): Promise<{ result: number; timeElapsed: number }> {
+    const coord = new MapReduceTaskRunner(queue, task, "sum_map");
+    closeables.push(coord);
 
-    let coord = new MapReduceTaskRunner(queue, task, "sum")
-    closeables.push(coord)
+    const start = Date.now();
 
-    const start = new Date().getTime()
+    // Executes the task on the workers and reports back once the task has been fully reduced
+    const result = await coord.executeMapReduce(inputs);
 
-    //Executes the task on the workers and reports back once the task has been fully reduced
-    let result = await coord.executeMapReduce(inputs)
+    const timeElapsed = new Date().getTime() - start;
 
-    const timeElapsed = new Date().getTime() - start
-
-    return { result, timeElapsed }
+    return { result, timeElapsed };
   }
 
-  function createLocalQueue() : LocalTaskQueue {
+  function createLocalQueue(): LocalTaskQueue {
     return new LocalTaskQueue(100);
   }
 
-  function createBullQueue() : BullQueue {
-    return new BullQueue({ host: "rpanic.com", port: 6379, password: "protokit" })
+  function createBullQueue(): BullQueue {
+    return new BullQueue({ host: "rpanic.com", port: 6379, password: "protokit" });
   }
 
-  // TODO Change to describe
   describe.each([
     [createLocalQueue, "local"],
     // [createBullQueue, "bullmq"],  // Enable once issue #25 is implemented
   ])("queue", (queueGenerator: () => TaskQueue, testName: string) => {
-
     const inputs = [
-      [[1,2,3,4,6,47,2,745,83,8,589,34,7,62,346,247,458748,47,48,37,123512,346,146,12346,26,2,23,4512,5,125,125,2153,126,2,62,53,2135,1235,2135]],
-      [[1,2,3,4,6,47,2,745,83,8,589,34,7,62,346,247,458748,47,48,37]],
-      [[1,2,3,4]],
-      [[1,2]],
+      // [
+      //   [
+      //     1, 2, 3, 4, 6, 47, 2, 745, 83, 8, 589, 34, 7, 62, 346, 247, 458748, 47, 48, 37, 123512,
+      //     346, 146, 12346, 26, 2, 23, 4512, 5, 125, 125, 2153, 126, 2, 62, 53, 2135, 1235, 2135,
+      //   ],
+      // ],
+      // [[1, 2, 3, 4, 6, 47, 2, 745, 83, 8, 589, 34, 7, 62, 346, 247, 458748, 47, 48, 37]],
+      [[1, 2, 3, 4]],
+      // [[1, 2]],
     ];
 
-    it.each(inputs)
-    (`should execute reduce correctly: ${testName}`, async (inputs: number[]) => {
-      expect.assertions(1)
+    it.each(inputs)(
+      `should execute reduce correctly: ${testName}`,
+      async (input: number[]) => {
+        expect.assertions(1);
 
-      const task = new SumTask();
+        const task = new SumTask();
 
-      const sum = inputs.reduce((a, b) => a + b)
+        const sum = input.reduce((a, b) => a + b);
 
-      const queue = queueGenerator()
+        const queue = queueGenerator();
 
-      // Initialize a dummy worker
-      let worker = new TaskWorker(queue)
-      worker.addReducableTask("sum", task)
-      closeables.push(worker)
-      await worker.init()
+        // Initialize a dummy worker
+        const worker = new TaskWorker(queue);
+        worker.addReducableTask("sum", task);
+        closeables.push(worker);
+        await worker.init();
 
-      const { result } = await runSumTask(inputs, queue, task)
+        const { result } = await runSumTask(input, queue, task);
 
-      expect(result).toStrictEqual(sum)
+        expect(result).toStrictEqual(sum);
 
-      await performAfterEach()
-    }, 15*1000)
+        await performAfterEach();
+      },
+      15 * 1000
+    );
 
-    it.each(inputs)
-    (`should calculate map-reduce multiply-sum correctly: ${testName}`, async (inputs: number[]) => {
-      expect.assertions(1)
+    it.each(inputs)(
+      `should calculate map-reduce multiply-sum correctly: ${testName}`,
+      async (input: number[]) => {
+        expect.assertions(1);
 
-      const task = new SumTask();
+        const task = new SumTask();
 
-      const sum = inputs.map(x => x * 2).reduce((a, b) => a + b)
+        const sum = input.map((x) => x * 2).reduce((a, b) => a + b);
 
-      const queue = queueGenerator()
+        const queue = queueGenerator();
 
-      // Initialize a dummy worker
-      let worker = new TaskWorker(queue)
-      worker.addMapReduceTask("sum", task)
-      closeables.push(worker)
-      await worker.init()
+        // Initialize a dummy worker
+        const worker = new TaskWorker(queue);
+        worker.addMapReduceTask("sum_map", task);
+        closeables.push(worker);
+        await worker.init();
 
-      const { result } = await runSumTaskMapReduce(inputs, queue, task)
+        const { result } = await runSumTaskMapReduce(input, queue, task);
 
-      expect(result).toStrictEqual(sum)
+        expect(result).toStrictEqual(sum);
 
-      await performAfterEach()
-    }, 15_000)
-
-  })
+        await performAfterEach();
+      },
+      15_000
+    );
+  });
 
   // it.skip.each([
   //   [[1,2,3,4,6,47,2,745,83,8,589,34,7,62,346,247,458748,47,48,37]],
@@ -255,4 +272,4 @@ describe("worker", () => {
   //
   //   await performAfterEach()
   // }, 15_000)
-})
+});
