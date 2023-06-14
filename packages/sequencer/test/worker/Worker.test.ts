@@ -9,7 +9,10 @@ import { LocalTaskQueue } from "./LocalTaskQueue";
 import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
 import { BullQueue } from "../../src/worker/queue/BullQueue";
-import { MapReduceTaskRunner, ReducingTaskRunner } from "../../src/worker/manager/TaskRunner";
+import {
+  MapReduceTaskRunner,
+  ReducingTaskRunner,
+} from "../../src/worker/manager/TaskRunner";
 import { beforeAll } from "@jest/globals";
 
 // The implementation of the task, known by both master and worker
@@ -121,7 +124,11 @@ describe("worker", () => {
   }
 
   function createBullQueue(): BullQueue {
-    return new BullQueue({ host: "rpanic.com", port: 6379, password: "protokit" });
+    return new BullQueue({
+      host: "rpanic.com",
+      port: 6379,
+      password: "protokit",
+    });
   }
 
   describe.each([

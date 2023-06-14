@@ -1,4 +1,8 @@
-import { Closeable, InstantiatedQueue, TaskQueue } from "../../src/worker/queue/TaskQueue";
+import {
+  Closeable,
+  InstantiatedQueue,
+  TaskQueue,
+} from "../../src/worker/queue/TaskQueue";
 import { TaskPayload } from "../../src/worker/manager/ReducableTask";
 
 export class LocalTaskQueue implements TaskQueue {
@@ -7,11 +11,17 @@ export class LocalTaskQueue implements TaskQueue {
   } = {};
 
   private workers: {
-    [key: string]: { busy: boolean; handler: (data: TaskPayload) => Promise<TaskPayload> };
+    [key: string]: {
+      busy: boolean;
+      handler: (data: TaskPayload) => Promise<TaskPayload>;
+    };
   } = {};
 
   private readonly listeners: {
-    [key: string]: ((result: { jobId: string; payload: TaskPayload }) => Promise<void>)[];
+    [key: string]: ((result: {
+      jobId: string;
+      payload: TaskPayload;
+    }) => Promise<void>)[];
   } = {};
 
   public constructor(private readonly simulatedDuration: number) {}
@@ -26,7 +36,7 @@ export class LocalTaskQueue implements TaskQueue {
           this.workers[queue[0]].handler(task.payload).then((result) => {
             // Notify listeners about result
             this.listeners[queue[0]].forEach(async (listener) => {
-              await listener({ payload: result, jobId: task.jobId })
+              await listener({ payload: result, jobId: task.jobId });
             });
           });
         });
@@ -57,7 +67,10 @@ export class LocalTaskQueue implements TaskQueue {
       },
 
       async onCompleted(
-        listener: (result: { jobId: string; payload: TaskPayload }) => Promise<void>
+        listener: (result: {
+          jobId: string;
+          payload: TaskPayload;
+        }) => Promise<void>
       ): Promise<void> {
         (thisClojure.listeners[queueName] ??= []).push(listener);
       },
@@ -67,7 +80,10 @@ export class LocalTaskQueue implements TaskQueue {
     };
   }
 
-  public createWorker(queueName: string, executor: (data: TaskPayload) => Promise<TaskPayload>): Closeable {
+  public createWorker(
+    queueName: string,
+    executor: (data: TaskPayload) => Promise<TaskPayload>
+  ): Closeable {
     this.workers[queueName] = {
       busy: false,
 

@@ -6,7 +6,10 @@ import { TaskPayload } from "../manager/ReducableTask";
 export interface TaskQueue {
   getQueue: (name: string) => Promise<InstantiatedQueue>;
 
-  createWorker: (name: string, executor: (data: TaskPayload) => Promise<TaskPayload>) => Closeable;
+  createWorker: (
+    name: string,
+    executor: (data: TaskPayload) => Promise<TaskPayload>
+  ) => Closeable;
 }
 
 export interface Closeable {
