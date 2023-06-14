@@ -3,7 +3,12 @@
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 
-import { MapReduceTask, ReducableTask, TaskPayload, TaskSerializer } from "./ReducableTask";
+import {
+  MapReduceTask,
+  ReducableTask,
+  TaskPayload,
+  TaskSerializer,
+} from "./ReducableTask";
 
 const errors = {
   taskNotTerminating: () => new Error("Task not terminating"),
@@ -50,7 +55,9 @@ export class ReducingTaskRunner<Type> implements Closeable {
 
       if (secondIndex > 0) {
         const second = pendingInputs[secondIndex];
-        pendingInputs = pendingInputs.filter((_, index2) => index2 !== index && index2 !== secondIndex);
+        pendingInputs = pendingInputs.filter(
+          (_, index2) => index2 !== index && index2 !== secondIndex
+        );
 
         res.push({ r1: first, r2: second });
       }
@@ -64,7 +71,10 @@ export class ReducingTaskRunner<Type> implements Closeable {
   private async pushReduction(t1: Type, t2: Type) {
     const payload: TaskPayload = {
       name: this.task.name(),
-      payload: JSON.stringify([this.serializer.toJSON(t1), this.serializer.toJSON(t2)]),
+      payload: JSON.stringify([
+        this.serializer.toJSON(t1),
+        this.serializer.toJSON(t2),
+      ]),
     };
 
     console.log(`Pushed Reduction: ${JSON.stringify([t1, t2])}`);
@@ -75,8 +85,8 @@ export class ReducingTaskRunner<Type> implements Closeable {
   private async pushAvailableReductions() {
     const tasks = this.resolveReducibleTasks();
 
-    const promises = tasks.map(async ({ r1, r2 }) =>
-      await this.pushReduction(r1, r2)
+    const promises = tasks.map(
+      async ({ r1, r2 }) => await this.pushReduction(r1, r2)
     );
 
     // We additionally need this count, because otherwise there would be a race condition to mark a task as completed, if we would do it via runningTasks
@@ -85,8 +95,10 @@ export class ReducingTaskRunner<Type> implements Closeable {
     await Promise.all(promises);
   }
 
-  protected async handleCompleted(payload: TaskPayload, resolve: (result: Type) => void) {
-
+  protected async handleCompleted(
+    payload: TaskPayload,
+    resolve: (result: Type) => void
+  ) {
     const parsed = this.serializer.fromJSON(payload.payload);
 
     this.runningTaskCount -= 1;
@@ -149,7 +161,10 @@ export class ReducingTaskRunner<Type> implements Closeable {
   }
 }
 
-export class MapReduceTaskRunner<Input, Result> extends ReducingTaskRunner<Result> {
+export class MapReduceTaskRunner<
+  Input,
+  Result
+> extends ReducingTaskRunner<Result> {
   public constructor(
     messageQueue: TaskQueue,
     task: MapReduceTask<Input, Result>,

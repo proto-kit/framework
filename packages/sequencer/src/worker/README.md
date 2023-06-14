@@ -12,6 +12,7 @@ TaskPayload: {
   payload: string // The data that is transmitted, i.e. inputs and results, JSON encoded
 }
 ```
+
 These objects are used for both master -> worker and worker -> master communication, in the following called "task-input" and "task-results".
 
 The operation name is a indicator for how the input/result data should be interpreted. For this there are currently two methods:
