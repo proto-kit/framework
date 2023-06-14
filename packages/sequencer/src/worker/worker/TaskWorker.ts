@@ -1,13 +1,18 @@
 // eslint-disable-next-line id-length
 import _ from "lodash";
 
-import { MapReduceTask, ReducableTask, TaskPayload } from "../manager/ReducableTask";
+import {
+  MapReduceTask,
+  ReducableTask,
+  TaskPayload,
+} from "../manager/ReducableTask";
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
 
 const errors = {
   notComputable: () => new Error("Task not computable on selected worker"),
 
-  multipleTasksOnQueue: () => new Error("Multiple tasks per queue name are not supported"),
+  multipleTasksOnQueue: () =>
+    new Error("Multiple tasks per queue name are not supported"),
 };
 
 export class TaskWorker implements Closeable {
@@ -48,7 +53,10 @@ export class TaskWorker implements Closeable {
     });
   }
 
-  public addMapReduceTask<Input, Result>(queue: string, task: MapReduceTask<Input, Result>) {
+  public addMapReduceTask<Input, Result>(
+    queue: string,
+    task: MapReduceTask<Input, Result>
+  ) {
     const serializer = task.serializer();
 
     this.tasks.push({
@@ -86,9 +94,9 @@ export class TaskWorker implements Closeable {
   }
 
   public async init() {
-    this.workers = Object.entries(_.groupBy(this.tasks, (task) => task.queue))
-      .map((tasks) =>
-
+    this.workers = Object.entries(
+      _.groupBy(this.tasks, (task) => task.queue)
+    ).map((tasks) =>
       this.queue.createWorker(tasks[0], async (data) => {
         if (tasks[1].length > 1) {
           throw errors.multipleTasksOnQueue();

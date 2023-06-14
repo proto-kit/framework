@@ -51,7 +51,9 @@ export class BullQueue implements TaskQueue {
   }
 
   public async getQueue(queueName: string): Promise<InstantiatedQueue> {
-    const queue = new Queue<TaskPayload, TaskPayload>(queueName, { connection: this.redis });
+    const queue = new Queue<TaskPayload, TaskPayload>(queueName, {
+      connection: this.redis,
+    });
     const events = new QueueEvents(queueName, { connection: this.redis });
 
     await queue.drain();
@@ -62,12 +64,17 @@ export class BullQueue implements TaskQueue {
       name: queueName,
 
       async addTask(payload: TaskPayload): Promise<{ jobId: string }> {
-        const job = await queue.add(queueName, payload, { attempts: options.retryAttempts ?? 2 });
+        const job = await queue.add(queueName, payload, {
+          attempts: options.retryAttempts ?? 2,
+        });
         return { jobId: job.id! };
       },
 
       async onCompleted(
-        listener: (result: { jobId: string; payload: TaskPayload }) => Promise<void>
+        listener: (result: {
+          jobId: string;
+          payload: TaskPayload;
+        }) => Promise<void>
       ) {
         events.on("completed", async (result) => {
           await listener({
