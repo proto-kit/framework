@@ -17,7 +17,8 @@ import { MethodPublicInput } from "../../model/MethodPublicInput";
 import { Subclass } from "../../utils/utils";
 
 const errors = {
-  stateProofNotStartingAtZero: () => "StateProof not starting ST-commitment at zero",
+  stateProofNotStartingAtZero: () =>
+    "StateProof not starting ST-commitment at zero",
 
   stateTransitionsHashNotEqual: () =>
     "StateTransition list commitments are not equal",
@@ -28,7 +29,7 @@ const errors = {
 
   transactionsHashNotMatching: (step: string) =>
     `transactions hash not matching ${step}`,
-}
+};
 
 export interface BlockProverState {
   // The current state root of the block prover

@@ -4,7 +4,11 @@ import { container } from "tsyringe";
 
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 
-import { DummyModule, DummyModuleParent, DummyModuleWithoutDecorator } from "./DummyModule";
+import {
+  DummyModule,
+  DummyModuleParent,
+  DummyModuleWithoutDecorator,
+} from "./DummyModule";
 
 describe("sequencer", () => {
   it("should inject module and start correctly", async () => {
@@ -73,7 +77,9 @@ describe("sequencer", () => {
 
     const resolvedChild = childContainer.resolve<DummyModule>("dummy");
 
-    expect(resolvedParent.callChild()).toStrictEqual(resolvedChild.defaultConfig.returnValue);
+    expect(resolvedParent.callChild()).toStrictEqual(
+      resolvedChild.defaultConfig.returnValue
+    );
   });
 
   it("should throw on un-decorated module", () => {

@@ -49,5 +49,7 @@ export abstract class ConfigurationAggregator<Comps extends Components> {
     return nextConfig as ComponentConfig<Comps>;
   }
 
-  public abstract configure(config: RemoveUndefinedKeys<ComponentConfig<Comps>>): void;
+  public abstract configure(
+    config: RemoveUndefinedKeys<ComponentConfig<Comps>>
+  ): void;
 }

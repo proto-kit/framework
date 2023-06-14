@@ -16,7 +16,10 @@ export class InMemoryStateService implements StateService {
   }
 
   public set(key: Field, value: Field[] | undefined) {
-    if (value === undefined && Object.prototype.hasOwnProperty.call(this.values, key.toString())) {
+    if (
+      value === undefined &&
+      Object.prototype.hasOwnProperty.call(this.values, key.toString())
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this.values[key.toString()];
     } else {

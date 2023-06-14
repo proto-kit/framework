@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,guard-for-in,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment,max-len,etc/no-misused-generics */
-import { container, injectable, Lifecycle, scoped, type DependencyContainer } from "tsyringe";
+import {
+  container,
+  injectable,
+  Lifecycle,
+  scoped,
+  type DependencyContainer,
+} from "tsyringe";
 import {
   ComponentConfig,
   ConfigurationAggregator,
@@ -7,7 +13,10 @@ import {
   UninitializedComponentConfig,
 } from "@yab/protocol";
 
-import { isSequencerModulePropertyKey, SequencerModule } from "../builder/SequencerModule";
+import {
+  isSequencerModulePropertyKey,
+  SequencerModule,
+} from "../builder/SequencerModule";
 import {
   BuilderModulesType,
   BuilderResolvedModulesType,
@@ -40,14 +49,18 @@ export class Sequencer<Modules extends SequencerModulesType>
   public static from<
     UnresolvedModules extends BuilderModulesType,
     ResolvedModules extends BuilderResolvedModulesType<UnresolvedModules>
-  >(modules: UnresolvedModules): (container: DependencyContainer) => Sequencer<ResolvedModules> {
+  >(
+    modules: UnresolvedModules
+  ): (container: DependencyContainer) => Sequencer<ResolvedModules> {
     return (diContainer: DependencyContainer) => {
       // Register all modules
       for (const key in modules) {
         // Check if the decorator has been applied to the module's class
         const decoratorSet =
-          Object.getOwnPropertyDescriptor(modules[key], isSequencerModulePropertyKey)?.value ===
-          true;
+          Object.getOwnPropertyDescriptor(
+            modules[key],
+            isSequencerModulePropertyKey
+          )?.value === true;
 
         if (!decoratorSet) {
           throw errors.missingDecorator(key, modules[key].name);
@@ -64,7 +77,8 @@ export class Sequencer<Modules extends SequencerModulesType>
       const resolvedModules: any = {};
 
       for (const key in modules) {
-        const module: SequencerModule<unknown> = diContainer.resolve<SequencerModule<unknown>>(key);
+        const module: SequencerModule<unknown> =
+          diContainer.resolve<SequencerModule<unknown>>(key);
 
         // We need to set the config here, in the case that a module requires no additional configuration, the config would be unset otherwise
         module.config = module.defaultConfig;
@@ -73,7 +87,10 @@ export class Sequencer<Modules extends SequencerModulesType>
       }
 
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return new Sequencer<ResolvedModules>(diContainer, resolvedModules as ResolvedModules);
+      return new Sequencer<ResolvedModules>(
+        diContainer,
+        resolvedModules as ResolvedModules
+      );
     };
   }
 

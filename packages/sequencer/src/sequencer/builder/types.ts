@@ -8,7 +8,9 @@ export interface BuilderModulesType {
   [key: string]: TypedClassType<SequencerModule<unknown>>;
 }
 export type BuilderResolvedModulesType<BuilderModules> = {
-  [key in keyof BuilderModules]: BuilderModules[key] extends TypedClassType<infer Seq>
+  [key in keyof BuilderModules]: BuilderModules[key] extends TypedClassType<
+    infer Seq
+  >
     ? Seq extends SequencerModule<unknown>
       ? Seq
       : any

@@ -1,7 +1,8 @@
 import type { FlipOptional } from "./types";
 
 const errors = {
-  configNotSet: (name: string) => new Error(`RuntimeModule (${name}) config has not been set!`),
+  configNotSet: (name: string) =>
+    new Error(`RuntimeModule (${name}) config has not been set!`),
 };
 
 /**

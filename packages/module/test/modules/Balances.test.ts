@@ -4,7 +4,10 @@ import { container } from "tsyringe";
 import { type ProvableStateTransition, Path } from "@yab/protocol";
 
 import { MethodExecutionContext } from "../../src/method/MethodExecutionContext.js";
-import { InMemoryStateService, StateService } from "../../src/state/InMemoryStateService.js";
+import {
+  InMemoryStateService,
+  StateService,
+} from "../../src/state/InMemoryStateService.js";
 import { Runtime } from "../../src";
 
 import { Admin } from "./Admin.js";
@@ -123,7 +126,9 @@ describe("balances", () => {
 
         stateTransitions = executionContext
           .current()
-          .result.stateTransitions.map((stateTransition) => stateTransition.toProvable());
+          .result.stateTransitions.map((stateTransition) =>
+            stateTransition.toProvable()
+          );
       });
 
       it("should return a single state transition", () => {
@@ -136,7 +141,9 @@ describe("balances", () => {
 
         const path = Path.fromProperty("Balances", "totalSupply");
 
-        expect(stateTransitions[0].path.toString()).toStrictEqual(path.toString());
+        expect(stateTransitions[0].path.toString()).toStrictEqual(
+          path.toString()
+        );
       });
 
       it("should produce a from-only state transition", () => {
@@ -144,11 +151,15 @@ describe("balances", () => {
 
         const [stateTransition] = stateTransitions;
 
-        const value = UInt64.fromFields(getStateValue(balances.totalSupply.path));
+        const value = UInt64.fromFields(
+          getStateValue(balances.totalSupply.path)
+        );
         const treeValue = Poseidon.hash(value.toFields());
 
         expect(stateTransition.from.isSome.toBoolean()).toBe(true);
-        expect(stateTransition.from.value.toString()).toBe(treeValue.toString());
+        expect(stateTransition.from.value.toString()).toBe(
+          treeValue.toString()
+        );
         expect(stateTransition.to.isSome.toBoolean()).toBe(false);
       });
     });
@@ -168,7 +179,9 @@ describe("balances", () => {
 
         stateTransitions = executionContext
           .current()
-          .result.stateTransitions.map((stateTransition) => stateTransition.toProvable());
+          .result.stateTransitions.map((stateTransition) =>
+            stateTransition.toProvable()
+          );
       });
 
       it("should return a single state transition", () => {
@@ -181,7 +194,9 @@ describe("balances", () => {
 
         const path = Path.fromProperty("Balances", "totalSupply");
 
-        expect(stateTransitions[0].path.toString()).toStrictEqual(path.toString());
+        expect(stateTransitions[0].path.toString()).toStrictEqual(
+          path.toString()
+        );
       });
 
       it("should produce a from-only state transition", () => {
@@ -192,7 +207,9 @@ describe("balances", () => {
         const treeValue = Field(0);
 
         expect(stateTransition.from.isSome.toBoolean()).toBe(true);
-        expect(stateTransition.from.value.toString()).toBe(treeValue.toString());
+        expect(stateTransition.from.value.toString()).toBe(
+          treeValue.toString()
+        );
         expect(stateTransition.to.isSome.toBoolean()).toBe(false);
       });
     });
@@ -210,7 +227,9 @@ describe("balances", () => {
 
         stateTransitions = executionContext
           .current()
-          .result.stateTransitions.map((stateTransition) => stateTransition.toProvable());
+          .result.stateTransitions.map((stateTransition) =>
+            stateTransition.toProvable()
+          );
       });
 
       it("should return a single state transition", () => {
@@ -223,24 +242,32 @@ describe("balances", () => {
 
         const path = Path.fromProperty("Balances", "totalSupply");
 
-        expect(stateTransitions[0].path.toString()).toStrictEqual(path.toString());
+        expect(stateTransitions[0].path.toString()).toStrictEqual(
+          path.toString()
+        );
       });
 
       it("should produce a from-to state transition", () => {
         expect.assertions(4);
 
         const [stateTransition] = stateTransitions;
-        const fromValue = UInt64.fromFields(getStateValue(balances.totalSupply.path));
+        const fromValue = UInt64.fromFields(
+          getStateValue(balances.totalSupply.path)
+        );
         const fromTreeValue = Poseidon.hash(fromValue.toFields());
 
         const toValue = UInt64.from(20);
         const toTreeValue = Poseidon.hash(toValue.toFields());
 
         expect(stateTransition.from.isSome.toBoolean()).toBe(true);
-        expect(stateTransition.from.value.toString()).toBe(fromTreeValue.toString());
+        expect(stateTransition.from.value.toString()).toBe(
+          fromTreeValue.toString()
+        );
 
         expect(stateTransition.to.isSome.toBoolean()).toBe(true);
-        expect(stateTransition.to.value.toString()).toBe(toTreeValue.toString());
+        expect(stateTransition.to.value.toString()).toBe(
+          toTreeValue.toString()
+        );
       });
     });
   });
@@ -258,7 +285,9 @@ describe("balances", () => {
 
         stateTransitions = executionContext
           .current()
-          .result.stateTransitions.map((stateTransition) => stateTransition.toProvable());
+          .result.stateTransitions.map((stateTransition) =>
+            stateTransition.toProvable()
+          );
       });
 
       it("should return a single state transition", () => {
@@ -275,7 +304,9 @@ describe("balances", () => {
           address
         );
 
-        expect(stateTransitions[0].path.toString()).toStrictEqual(path.toString());
+        expect(stateTransitions[0].path.toString()).toStrictEqual(
+          path.toString()
+        );
       });
 
       it("should produce a from-only state transition, for non-existing state", () => {

@@ -1,16 +1,18 @@
 import { inject } from "tsyringe";
-import { sequencerModule, SequencerModule } from "../sequencer/builder/SequencerModule.js";
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../sequencer/builder/SequencerModule.js";
 import { GraphqlServer } from "./GraphqlServer.js";
 import { FlipOptional } from "@yab/protocol";
 
 export type GraphQLServerModuleConfig = {
-  port: number, // Required values
-  host?: string // Optional values (have to provided via defaultConfig()
-}
+  port: number; // Required values
+  host?: string; // Optional values (have to provided via defaultConfig()
+};
 
 @sequencerModule()
 export class GraphQLServerModule extends SequencerModule<GraphQLServerModuleConfig> {
-
   public constructor(
     @inject("GraphqlServer") private readonly server: GraphqlServer
   ) {
@@ -25,9 +27,8 @@ export class GraphQLServerModule extends SequencerModule<GraphQLServerModuleConf
   }
 
   public async start() {
-    await this.server.start(this.config)
+    await this.server.start(this.config);
 
     //Do this and that
   }
-
 }
