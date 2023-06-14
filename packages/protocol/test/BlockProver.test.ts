@@ -133,7 +133,9 @@ describe("blockProver", () => {
       toTransactionsHash: Field(5),
     });
 
-    expect(() => { blockProver.proveTransaction(publicInput, stProof, appProof); })
+    expect(() => {
+      blockProver.proveTransaction(publicInput, stProof, appProof);
+    })
       // eslint-disable-next-line jest/require-to-throw-message
       .toThrow();
   });

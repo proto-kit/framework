@@ -172,6 +172,8 @@ describe("toWrappedMethod", () => {
 
     expect(() => {
       wrappedMethod(publicInput);
-    }).toThrow(/State transitions produced by '@method succeed' are not consistent/u);
+    }).toThrow(
+      /State transitions produced by '@method succeed' are not consistent/u
+    );
   });
 });

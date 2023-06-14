@@ -18,8 +18,8 @@ export class GraphqlServer {
   //   this.modules = modules;
   // }
 
-  public registerModule(module: GraphqlModule){
-    this.modules.push(module)
+  public registerModule(module: GraphqlModule) {
+    this.modules.push(module);
   }
 
   public async start({ host, port }: GraphqlServerOptions) {

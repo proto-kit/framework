@@ -5,7 +5,9 @@ import type { Runtime, RuntimeModules } from "./Runtime";
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
-export abstract class RuntimeModule<Config> extends ConfigurationReceiver<Config> {
+export abstract class RuntimeModule<
+  Config
+> extends ConfigurationReceiver<Config> {
   public name?: string;
 
   public chain?: Runtime<RuntimeModules>;

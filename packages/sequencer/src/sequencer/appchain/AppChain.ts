@@ -21,9 +21,8 @@ interface AppChainDefinition<
   runtime: Runtime<RuntimeConfig>;
 }
 
-type ConsumableRuntimeConfig<RuntimeConfig extends RuntimeModules> = RemoveUndefinedKeys<
-  ComponentConfig<ResolvedRuntimeModules<RuntimeConfig>>
->;
+type ConsumableRuntimeConfig<RuntimeConfig extends RuntimeModules> =
+  RemoveUndefinedKeys<ComponentConfig<ResolvedRuntimeModules<RuntimeConfig>>>;
 
 interface AppChainConfig<
   SequencerModules extends SequencerModulesType,
@@ -47,19 +46,28 @@ export class AppChain<
   private startedSequencer?: Sequenceable<SequencerModules>;
 
   public constructor(
-    private readonly definition: AppChainDefinition<SequencerModules, RuntimeConfig>
+    private readonly definition: AppChainDefinition<
+      SequencerModules,
+      RuntimeConfig
+    >
   ) {}
 
-  public configure(appChainConfig: AppChainConfig<SequencerModules, RuntimeConfig>) {
+  public configure(
+    appChainConfig: AppChainConfig<SequencerModules, RuntimeConfig>
+  ) {
     this.sequencer.configure(appChainConfig.sequencer);
     this.runtime.configure(appChainConfig.runtime);
   }
 
-  public sequencerConfig(config: AppChainConfig<SequencerModules, RuntimeConfig>["sequencer"]) {
+  public sequencerConfig(
+    config: AppChainConfig<SequencerModules, RuntimeConfig>["sequencer"]
+  ) {
     this.sequencer.configure(config);
   }
 
-  public genesisConfig(config: AppChainConfig<SequencerModules, RuntimeConfig>["runtime"]) {
+  public genesisConfig(
+    config: AppChainConfig<SequencerModules, RuntimeConfig>["runtime"]
+  ) {
     this.runtime.configure(config);
   }
 

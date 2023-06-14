@@ -52,7 +52,9 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
    * @param valueType - Value type to generate the dummy value for
    * @returns Dummy value for the given value type
    */
-  public static dummyValue<Value>(valueType: FlexibleProvablePure<Value>): Value {
+  public static dummyValue<Value>(
+    valueType: FlexibleProvablePure<Value>
+  ): Value {
     const length = valueType.sizeInFields();
     const fields = Array.from({ length }, () => Field(0));
 
@@ -112,7 +114,9 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
 
     const stateTransition = StateTransition.from(this.path, option);
 
-    container.resolve(MethodExecutionContext).addStateTransition(stateTransition);
+    container
+      .resolve(MethodExecutionContext)
+      .addStateTransition(stateTransition);
 
     return option;
   }
@@ -135,8 +139,14 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
 
     this.hasPathOrFail();
 
-    const stateTransition = StateTransition.fromTo(this.path, fromOption, toOption);
+    const stateTransition = StateTransition.fromTo(
+      this.path,
+      fromOption,
+      toOption
+    );
 
-    container.resolve(MethodExecutionContext).addStateTransition(stateTransition);
+    container
+      .resolve(MethodExecutionContext)
+      .addStateTransition(stateTransition);
   }
 }

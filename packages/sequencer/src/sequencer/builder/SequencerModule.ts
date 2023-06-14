@@ -1,5 +1,9 @@
 /* eslint-disable max-len */
-import { ConfigurationReceiver, FlipOptional, TypedClassType } from "@yab/protocol";
+import {
+  ConfigurationReceiver,
+  FlipOptional,
+  TypedClassType,
+} from "@yab/protocol";
 import { injectable } from "tsyringe";
 
 /**
@@ -7,7 +11,9 @@ import { injectable } from "tsyringe";
  *
  * start(): Executed to execute any logic required to start the module
  */
-export abstract class SequencerModule<Config> extends ConfigurationReceiver<Config> {
+export abstract class SequencerModule<
+  Config
+> extends ConfigurationReceiver<Config> {
   /**
    * Start the module and all it's functionality.
    * The returned Promise has to resolve after initialization, since it will block in the sequencer init.

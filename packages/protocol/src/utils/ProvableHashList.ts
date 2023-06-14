@@ -1,8 +1,4 @@
-import {
-  Field,
-  Poseidon,
-  FlexibleProvablePure,
-} from "snarkyjs";
+import { Field, Poseidon, FlexibleProvablePure } from "snarkyjs";
 
 /**
  * Utilities for creating a hash list from a given value type.

@@ -4,7 +4,7 @@ import { Runtime } from "@yab/module";
 import { FlipOptional } from "@yab/protocol";
 
 interface RuntimeSequencerModuleConfig {
-  proofsEnabled?: boolean
+  proofsEnabled?: boolean;
 }
 
 export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleConfig> {
@@ -19,8 +19,6 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
   }
 
   public async start(): Promise<void> {
-
     this.chain.setProofsEnabled(this.config.proofsEnabled);
-
   }
 }

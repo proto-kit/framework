@@ -1,6 +1,9 @@
 import { FlipOptional } from "@yab/protocol";
 
-import { sequencerModule, SequencerModule } from "../../sequencer/builder/SequencerModule.js";
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../../sequencer/builder/SequencerModule.js";
 import { Mempool } from "../Mempool";
 import { GraphqlServer } from "../../graphql/GraphqlServer";
 

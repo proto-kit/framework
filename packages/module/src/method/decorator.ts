@@ -38,10 +38,9 @@ export function runInContext(
   moduleMethod: (...args: unknown[]) => unknown,
   args: unknown[]
 ) {
-  const executionContext =
-    container.resolve<MethodExecutionContext<ReturnType<typeof moduleMethod>>>(
-      MethodExecutionContext
-    );
+  const executionContext = container.resolve<
+    MethodExecutionContext<ReturnType<typeof moduleMethod>>
+  >(MethodExecutionContext);
 
   // eslint-disable-next-line @typescript-eslint/init-declarations
   let resultValue: unknown;
@@ -66,7 +65,9 @@ export function toStateTransitionsHash(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stateTransitions: StateTransition<any>[]
 ) {
-  const stateTransitionsHashList = new DefaultProvableHashList(ProvableStateTransition);
+  const stateTransitionsHashList = new DefaultProvableHashList(
+    ProvableStateTransition
+  );
 
   return stateTransitions
     .map((stateTransition) => stateTransition.toProvable())
@@ -79,14 +80,20 @@ export function toStateTransitionsHash(
 }
 
 // eslint-disable-next-line etc/prefer-interface
-export type WrappedMethod = (publicInput: MethodPublicInput, ...args: unknown[]) => unknown;
+export type WrappedMethod = (
+  publicInput: MethodPublicInput,
+  ...args: unknown[]
+) => unknown;
 
 export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown
 ) {
-  const wrappedMethod: WrappedMethod = (publicInput: MethodPublicInput, ...args) => {
+  const wrappedMethod: WrappedMethod = (
+    publicInput: MethodPublicInput,
+    ...args
+  ) => {
     const {
       result: { stateTransitions, status, value },
     } = Reflect.apply(runInContext, this, [methodName, moduleMethod, args]);
@@ -100,7 +107,10 @@ export function toWrappedMethod(
     // eslint-disable-next-line no-warning-comments
     // TODO: implement the transactionHash commitment
     publicInput.transactionHash.assertEquals(Field(0));
-    publicInput.status.assertEquals(status, errors.inconsistentExecutionStatus(methodName));
+    publicInput.status.assertEquals(
+      status,
+      errors.inconsistentExecutionStatus(methodName)
+    );
 
     return value;
   };
@@ -113,7 +123,10 @@ export function toWrappedMethod(
   return wrappedMethod;
 }
 
-export function combineMethodName(runtimeModuleName: string, methodName: string) {
+export function combineMethodName(
+  runtimeModuleName: string,
+  methodName: string
+) {
   return `${runtimeModuleName}.${methodName}`;
 }
 
@@ -130,12 +143,14 @@ export function runWithCommitments(
   moduleMethod: (...args: unknown[]) => unknown,
   args: unknown[]
 ) {
-  const executionContext =
-    container.resolve<MethodExecutionContext<ReturnType<typeof moduleMethod>>>(
-      MethodExecutionContext
-    );
+  const executionContext = container.resolve<
+    MethodExecutionContext<ReturnType<typeof moduleMethod>>
+  >(MethodExecutionContext);
 
-  const wrappedMethod = Reflect.apply(toWrappedMethod, this, [methodName, moduleMethod]);
+  const wrappedMethod = Reflect.apply(toWrappedMethod, this, [
+    methodName,
+    moduleMethod,
+  ]);
 
   const {
     result: { stateTransitions, status },
@@ -200,17 +215,29 @@ export type DecoratedMethod = (...args: unknown[]) => unknown;
  * @returns A decorated runtime module method
  */
 export function method() {
-  return (target: RuntimeModule<unknown>, propertyKey: string, descriptor: PropertyDescriptor) => {
-    const executionContext =
-      container.resolve<MethodExecutionContext<unknown>>(MethodExecutionContext);
+  return (
+    target: RuntimeModule<unknown>,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) => {
+    const executionContext = container.resolve<MethodExecutionContext<unknown>>(
+      MethodExecutionContext
+    );
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const originalFunction = descriptor.value as DecoratedMethod;
 
     Reflect.defineMetadata(methodMetadataKey, true, target, propertyKey);
-    descriptor.value = function value(this: RuntimeModule<unknown>, ...args: unknown[]) {
+    descriptor.value = function value(
+      this: RuntimeModule<unknown>,
+      ...args: unknown[]
+    ) {
       if (executionContext.isTopLevel) {
-        return Reflect.apply(runWithCommitments, this, [propertyKey, originalFunction, args]);
+        return Reflect.apply(runWithCommitments, this, [
+          propertyKey,
+          originalFunction,
+          args,
+        ]);
       }
 
       return Reflect.apply(originalFunction, this, args);
