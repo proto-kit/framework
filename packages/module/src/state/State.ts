@@ -6,7 +6,7 @@ import { container } from "tsyringe";
 import { Option, StateTransition, type Path } from "@yab/protocol";
 
 import { MethodExecutionContext } from "../method/MethodExecutionContext.js";
-import type { Runtime, RuntimeModules } from "../runtime/Runtime";
+import type { Runtime } from "../runtime/Runtime";
 
 export class WithPath {
   public path?: Field;
@@ -20,13 +20,15 @@ export class WithPath {
   }
 }
 
-export class WithChain {
-  public chain?: Runtime<RuntimeModules>;
+export class WithRuntime {
+  public runtime?: Runtime;
 
-  public hasChainOrFail(): asserts this is { chain: Runtime<RuntimeModules> } {
-    if (!this.chain) {
+  public hasChainOrFail(): asserts this is {
+    runtime: Runtime;
+  } {
+    if (!this.runtime) {
       throw new Error(
-        "Could not find 'chain', did you forget to add '@state' to your state property?"
+        "Could not find 'runtime', did you forget to add '@state' to your state property?"
       );
     }
   }
@@ -35,7 +37,7 @@ export class WithChain {
 /**
  * Utilities for runtime module state, such as get/set
  */
-export class State<Value> extends Mixin(WithPath, WithChain) {
+export class State<Value> extends Mixin(WithPath, WithRuntime) {
   /**
    * Creates a new state wrapper for the provided value type.
    *
@@ -78,7 +80,7 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
       this.hasChainOrFail();
       this.hasPathOrFail();
 
-      const fields = this.chain.modules.state.get(this.path);
+      const fields = this.runtime.definition.state.get(this.path);
       if (fields) {
         // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -93,7 +95,7 @@ export class State<Value> extends Mixin(WithPath, WithChain) {
       this.hasChainOrFail();
       this.hasPathOrFail();
 
-      const fields = this.chain.modules.state.get(this.path);
+      const fields = this.runtime.definition.state.get(this.path);
 
       return Bool(fields !== undefined);
     });

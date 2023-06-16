@@ -2,13 +2,13 @@ import type { FlexibleProvablePure } from "snarkyjs";
 import { Path, type Option } from "@yab/protocol";
 import { Mixin } from "ts-mixer";
 
-import { State, WithChain, WithPath } from "./State.js";
+import { State, WithRuntime, WithPath } from "./State.js";
 
 /**
  * Map-like wrapper for state
  */
 // eslint-disable-next-line new-cap
-export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithChain) {
+export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithRuntime) {
   /**
    * Create a new state map with the given key and value types
    *
@@ -42,7 +42,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithChain) {
     this.hasChainOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
-    state.chain = this.chain;
+    state.runtime = this.runtime;
     return state.get();
   }
 
@@ -58,7 +58,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithChain) {
     this.hasChainOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
-    state.chain = this.chain;
+    state.runtime = this.runtime;
     state.set(value);
   }
 }
