@@ -165,10 +165,10 @@ export function runWithCommitments(
   };
 
   // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  if (this.chain?.areProofsEnabled) {
+  if (this.runtime?.areProofsEnabled) {
     const runtimeModuleName = this.constructor.name;
     const combinedMethodName = combineMethodName(runtimeModuleName, methodName);
-    const provableMethod = this.chain.program?.[combinedMethodName];
+    const provableMethod = this.runtime.program?.[combinedMethodName];
 
     if (!provableMethod) {
       throw errors.proverMissing(methodName);

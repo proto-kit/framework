@@ -1,25 +1,18 @@
-import { ConfigurationReceiver, FlipOptional } from "@yab/protocol";
+import { configurableModule, ConfigurableModule, Presets } from "@yab/protocol";
 
-import type { Runtime, RuntimeModules } from "./Runtime";
+import type { Runtime } from "./Runtime";
 
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
-export abstract class RuntimeModule<
-  Config
-> extends ConfigurationReceiver<Config> {
+@configurableModule()
+export class RuntimeModule<
+  Config,
+  CurrentRuntime extends Runtime = Runtime
+> extends ConfigurableModule<Config> {
+  public static presets: Presets<unknown> = {};
+
   public name?: string;
 
-  public chain?: Runtime<RuntimeModules>;
-
-  public abstract get defaultConfig(): FlipOptional<Config>;
-}
-
-/**
- * This class
- */
-export abstract class PlainRuntimeModule extends RuntimeModule<{}> {
-  public get defaultConfig(): FlipOptional<{}> {
-    return {};
-  }
+  public runtime?: CurrentRuntime;
 }

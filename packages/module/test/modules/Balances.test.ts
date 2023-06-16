@@ -1,27 +1,39 @@
 import "reflect-metadata";
 import { Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { container } from "tsyringe";
-import { type ProvableStateTransition, Path } from "@yab/protocol";
+import {
+  type ProvableStateTransition,
+  Path,
+  ModulesRecord,
+  ModulesConfig,
+  ConfigurableModule,
+} from "@yab/protocol";
 
 import { MethodExecutionContext } from "../../src/method/MethodExecutionContext.js";
 import {
   InMemoryStateService,
   StateService,
 } from "../../src/state/InMemoryStateService.js";
-import { Runtime } from "../../src";
+import { Runtime, RuntimeModule, RuntimeModulesRecord } from "../../src";
 
-import { Admin } from "./Admin.js";
 import { Balances } from "./Balances.js";
+import { Admin } from "./Admin.js";
 
 describe("balances", () => {
   let balances: Balances;
 
   let state: StateService;
 
-  let runtime: Runtime<{
-    Balances: typeof Balances;
-    Admin: typeof Admin;
-  }>;
+  let runtime: Runtime<
+    {
+      Admin: typeof Admin;
+      Balances: typeof Balances;
+    },
+    ModulesConfig<{
+      Admin: typeof Admin;
+      Balances: typeof Balances;
+    }>
+  >;
 
   function getStateValue(path: Field | undefined) {
     if (!path) {
@@ -43,7 +55,7 @@ describe("balances", () => {
     runtime = Runtime.from({
       state,
 
-      runtimeModules: {
+      modules: {
         Admin,
         Balances,
       },
@@ -57,7 +69,7 @@ describe("balances", () => {
       Balances: {},
     });
 
-    balances = runtime.getRuntimeModule("Balances");
+    balances = runtime.resolve("Balances");
 
     state.set(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

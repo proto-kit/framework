@@ -4,8 +4,12 @@ import { type DependencyContainer, container, Lifecycle } from "tsyringe";
 import { Experimental, Proof } from "snarkyjs";
 import {
   ComponentConfig,
+  ConfigurableModule,
   ConfigurationAggregator,
   MethodPublicInput,
+  ModuleContainer,
+  ModulesConfig,
+  ModulesRecord,
   RemoveUndefinedKeys,
   Subclass,
   TypedClassType,
@@ -21,28 +25,18 @@ import { type AnyConstructor, isRuntimeModule } from "../module/decorator.js";
 import type { RuntimeModule } from "./RuntimeModule.js";
 import type { StateService } from "../state/InMemoryStateService.js";
 
-export interface RuntimeModules {
-  [name: string]: TypedClassType<RuntimeModule<unknown>>;
-}
-
-export type ResolvedRuntimeModules<RM extends RuntimeModules> = {
-  [name in keyof RM]: RM[name] extends TypedClassType<RuntimeModule<infer R>>
-    ? RuntimeModule<R>
-    : any;
-};
-
-export interface ChainConfig<ChainRuntimeModules extends RuntimeModules> {
+export type RuntimeModulesRecord = ModulesRecord<typeof RuntimeModule<unknown>>;
+export interface RuntimeDefinition<
+  Modules extends RuntimeModulesRecord,
+  Config extends ModulesConfig<Modules>
+> {
   state: StateService;
-  runtimeModules: ChainRuntimeModules;
+  modules: Modules;
+  config?: Config;
 }
 
 const errors = {
   onlyStringNames: () => new TypeError("Only string names are supported"),
-
-  notRegisteredRuntimeModule: (name: string) =>
-    new Error(
-      `Unable to retrieve module: ${name}, it is not registered as a runtime module for this chain`
-    ),
 
   missingDecorator: (name: string, runtimeModuleName: string) =>
     new Error(
@@ -80,22 +74,21 @@ const errors = {
  * runtime modules into an interoperable runtime.
  */
 export class Runtime<
-  ChainRuntimeModules extends RuntimeModules
-> extends ConfigurationAggregator<ResolvedRuntimeModules<ChainRuntimeModules>> {
+  Modules extends RuntimeModulesRecord = RuntimeModulesRecord,
+  Config extends ModulesConfig<Modules> = ModulesConfig<Modules>
+> extends ModuleContainer<Modules, Config> {
   /**
    * Alternative constructor for `Chain`.
    *
    * @param config - Configuration for the returned Chain
    * @returns Chain with the provided config
    */
-  public static from<ChainRuntimeModules extends RuntimeModules>(
-    config: ChainConfig<ChainRuntimeModules>
-  ) {
-    return new Runtime(config);
+  public static from<
+    Modules extends RuntimeModulesRecord,
+    Config extends ModulesConfig<Modules>
+  >(definition: RuntimeDefinition<Modules, Config>) {
+    return new Runtime(definition);
   }
-
-  // stores all runtime modules
-  private readonly runtimeContainer: DependencyContainer;
 
   // determines whether any proving should be done when running methods
   public areProofsEnabled = false;
@@ -103,31 +96,40 @@ export class Runtime<
   // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof Experimental.ZkProgram>;
 
-  // Current state of the config
-  private currentConfig: UninitializedComponentConfig<
-    ComponentConfig<ResolvedRuntimeModules<ChainRuntimeModules>>
-  >;
+  public definition: RuntimeDefinition<Modules, Config>;
 
   /**
    * Creates a new Chain from the provided config
    *
    * @param modules - Configuration object for the constructed Chain
    */
-  public constructor(public modules: ChainConfig<ChainRuntimeModules>) {
-    super();
-    this.runtimeContainer = container.createChildContainer();
-    Object.entries(this.modules.runtimeModules).forEach(
-      ([name, runtimeModule]) => {
-        this.registerRuntimeModule(name, runtimeModule);
-      }
-    );
+  public constructor(definition: RuntimeDefinition<Modules, Config>) {
+    super(definition);
+    this.definition = definition;
+  }
 
-    // Initialize config to empty
-    this.currentConfig = Object.keys(modules).reduce<any>((config, key) => {
-      config[key] = undefined;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return config;
-    }, {});
+  public validateModule<ModuleName extends keyof Modules>(
+    moduleName: ModuleName | string,
+    containedModule: ConfigurableModule<unknown>
+  ): void {
+    const dependencies: { name?: string }[] | string[] | undefined =
+      Reflect.getMetadata("design:paramtypes", containedModule);
+
+    dependencies?.forEach((dependency: string | { name?: string }) => {
+      const name =
+        typeof dependency === "string" ? dependency : dependency.name;
+
+      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+      if (!name) {
+        throw errors.nonModuleDependecy(this.moduleNameToString(moduleName));
+      }
+      if (!this.runtimeModuleNames.includes(name)) {
+        throw errors.unknownDependency(
+          this.moduleNameToString(moduleName),
+          name
+        );
+      }
+    });
   }
 
   /**
@@ -136,87 +138,21 @@ export class Runtime<
    *
    * @param name - Name of the runtime module to decorate
    */
-  private decorateRuntimeModule(name: string) {
-    const runtimeModuleInstance =
-      this.runtimeContainer.resolve<RuntimeModule<unknown>>(name);
-    runtimeModuleInstance.name = name;
-    runtimeModuleInstance.chain = this;
+  public override decorateModule<ModuleName extends keyof Modules>(
+    moduleName: ModuleName | string,
+    containedModule: InstanceType<Modules[ModuleName]>
+  ) {
+    containedModule.name = this.moduleNameToString(moduleName);
+    containedModule.runtime = this;
+
+    super.decorateModule(moduleName, containedModule);
   }
 
   /**
    * @returns A list of names of all the registered module names
    */
   public get runtimeModuleNames() {
-    return Object.keys(this.modules.runtimeModules);
-  }
-
-  /**
-   * Returns a runtime module registred under the given key.
-   *
-   * @param name - Name of the runtime module to get
-   * @returns A runtime module stored under the given key
-   */
-  public getRuntimeModule<Key extends keyof ChainRuntimeModules>(name: Key) {
-    if (typeof name !== "string") {
-      throw errors.onlyStringNames();
-    }
-
-    if (!this.runtimeModuleNames.includes(name)) {
-      throw errors.notRegisteredRuntimeModule(name);
-    }
-
-    return this.runtimeContainer.resolve<
-      InstanceType<ChainRuntimeModules[Key]>
-    >(name);
-  }
-
-  private getAllRuntimeModules(): ResolvedRuntimeModules<ChainRuntimeModules> {
-    const resolvedModules: any = {};
-    for (const key in this.modules.runtimeModules) {
-      resolvedModules[key] = this.getRuntimeModule(key);
-    }
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return resolvedModules as ResolvedRuntimeModules<ChainRuntimeModules>;
-  }
-
-  /**
-   * Registers a runtime module under the given name.
-   *
-   * @param name - Name of the runtime module to identify it by
-   * @param runtimeModule - Runtime module to register
-   */
-  public registerRuntimeModule(name: string, runtimeModule: AnyConstructor) {
-    if (!isRuntimeModule(runtimeModule)) {
-      throw errors.missingDecorator(name, runtimeModule.name);
-    }
-
-    this.runtimeContainer.register(
-      name,
-      {
-        useClass: runtimeModule,
-      },
-      {
-        lifecycle: Lifecycle.ContainerScoped,
-      }
-    );
-
-    const dependencies: { name?: string }[] | string[] | undefined =
-      Reflect.getMetadata("design:paramtypes", runtimeModule);
-
-    dependencies?.forEach((dependency: string | { name?: string }) => {
-      const name =
-        typeof dependency === "string" ? dependency : dependency.name;
-
-      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-      if (!name) {
-        throw errors.nonModuleDependecy(runtimeModule.name);
-      }
-      if (!this.runtimeModuleNames.includes(name)) {
-        throw errors.unknownDependency(runtimeModule.name, name);
-      }
-    });
-
-    this.decorateRuntimeModule(name);
+    return Object.keys(this.definition.modules);
   }
 
   /**
@@ -236,11 +172,9 @@ export class Runtime<
     type Methods = Parameters<typeof Experimental.ZkProgram>[0]["methods"];
     const methods = this.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const runtimeModule = this.getRuntimeModule(
-          runtimeModuleName
-        ) as RuntimeModule<unknown>;
+        const runtimeModule = this.resolve(runtimeModuleName);
 
+        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
           string,
@@ -304,7 +238,7 @@ export class Runtime<
       methods: sortedMethods,
     });
 
-    function analyze(this: Runtime<RuntimeModules>) {
+    function analyze(this: Runtime) {
       if (!this.program) {
         throw errors.unableToAnalyze(this.constructor.name);
       }
@@ -337,11 +271,11 @@ export class Runtime<
             );
 
             console.log(`
-Method: ${methodName}
-Rows: ${methodAnalysis.rows},
-Gates: ${methodAnalysis.gates.length}
-Inputs: [${inputs.join(", ")}]
-`);
+  Method: ${methodName}
+  Rows: ${methodAnalysis.rows},
+  Gates: ${methodAnalysis.gates.length}
+  Inputs: [${inputs.join(", ")}]
+  `);
           }
         );
       },
@@ -360,19 +294,6 @@ Inputs: [${inputs.join(", ")}]
 
         public static tag = () => programClosure;
       })(program);
-  }
-
-  public configure(
-    config: RemoveUndefinedKeys<
-      ComponentConfig<ResolvedRuntimeModules<ChainRuntimeModules>>
-    >
-  ): void {
-    const allModules = this.getAllRuntimeModules();
-    this.currentConfig = this.applyConfig(
-      allModules,
-      this.currentConfig,
-      config
-    );
   }
 
   /**
