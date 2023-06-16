@@ -1,19 +1,13 @@
 // eslint-disable-next-line max-len
-/* eslint-disable max-lines,@typescript-eslint/no-explicit-any,guard-for-in,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
-import { type DependencyContainer, container, Lifecycle } from "tsyringe";
+/* eslint-disable max-lines,@typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
 import { Experimental, Proof } from "snarkyjs";
 import {
-  ComponentConfig,
   ConfigurableModule,
-  ConfigurationAggregator,
   MethodPublicInput,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
-  RemoveUndefinedKeys,
   Subclass,
-  TypedClassType,
-  UninitializedComponentConfig,
 } from "@yab/protocol";
 
 import {
@@ -21,9 +15,9 @@ import {
   isMethod,
   toWrappedMethod,
 } from "../method/decorator.js";
-import { type AnyConstructor, isRuntimeModule } from "../module/decorator.js";
-import type { RuntimeModule } from "./RuntimeModule.js";
-import type { StateService } from "../state/InMemoryStateService.js";
+import { StateService } from "../state/InMemoryStateService.js";
+
+import { RuntimeModule } from "./RuntimeModule.js";
 
 export type RuntimeModulesRecord = ModulesRecord<typeof RuntimeModule<unknown>>;
 export interface RuntimeDefinition<
