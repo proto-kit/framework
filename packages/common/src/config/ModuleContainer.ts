@@ -1,5 +1,10 @@
-/* eslint-disable max-classes-per-file */
+import "reflect-metadata";
+
 import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
+
+import { TypedClassConstructor } from "../types";
+
+import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 
 export const errors = {
   configNotSet: (moduleName: string) =>
@@ -21,43 +26,20 @@ export const errors = {
   unableToDecorateModule: (moduleName: InjectionToken<unknown>) =>
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     new Error(`Unable to decorate module ${moduleName.toString()}`),
+
+  nonModuleDependecy: (runtimeModuleName: string) =>
+    new Error(`
+  Unable to register module: ${runtimeModuleName}, attempting to inject a non-module dependency`),
+
+  unknownDependency: (runtimeModuleName: string, name: string) =>
+    new Error(
+      `Unable to register module: ${runtimeModuleName}, 
+      attempting to inject a dependency that is not registred 
+      as a runtime module for this chain: ${name}`
+    ),
 };
 
-export type Preset<Config> = Config | ((...args: any[]) => Config);
-
-export type Presets<Config> = Record<string, Preset<Config>>;
-
-export class ConfigurableModule<Config> {
-  protected currentConfig: Config | undefined;
-
-  // eslint-disable-next-line max-len
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
-  public constructor(...args: any[]) {}
-
-  public get config(): Config {
-    if (this.currentConfig === undefined) {
-      throw errors.configNotSet(this.constructor.name);
-    }
-    return this.currentConfig;
-  }
-
-  public set config(config: Config) {
-    this.currentConfig = config;
-  }
-}
-
-export interface ConfigurableModuleClass<Config> {
-  new (...args: any[]): ConfigurableModule<Config>;
-  presets: Presets<Config>;
-}
-
-export function configurableModule() {
-  // eslint-disable-next-line max-len
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
-  return <Config>(target: ConfigurableModuleClass<Config>) => {};
-}
-
-export type BaseModuleType = typeof ConfigurableModule<unknown>;
+export type BaseModuleType = TypedClassConstructor<Configurable<unknown>>;
 export interface ModulesRecord<
   ModuleType extends BaseModuleType = BaseModuleType
 > {
@@ -85,10 +67,34 @@ export abstract class ModuleContainer<
     this.registerModules(definition.modules);
   }
 
-  public abstract validateModule<ModuleName extends keyof Modules>(
+  public get moduleNames() {
+    return Object.keys(this.definition.modules);
+  }
+
+  public validateModule<ModuleName extends keyof Modules>(
     moduleName: ModuleName | string,
     containedModule: ConfigurableModule<unknown>
-  ): void;
+  ): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const dependencies: { name?: string }[] | string[] | undefined =
+      Reflect.getMetadata("design:paramtypes", containedModule);
+
+    dependencies?.forEach((dependency: string | { name?: string }) => {
+      const name =
+        typeof dependency === "string" ? dependency : dependency.name;
+
+      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+      if (!name) {
+        throw errors.nonModuleDependecy(this.moduleNameToString(moduleName));
+      }
+      if (!this.moduleNames.includes(name)) {
+        throw errors.unknownDependency(
+          this.moduleNameToString(moduleName),
+          name
+        );
+      }
+    });
+  }
 
   public registerModules(modules: Modules) {
     for (const moduleName in modules) {
