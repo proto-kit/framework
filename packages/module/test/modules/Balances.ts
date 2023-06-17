@@ -1,4 +1,4 @@
-import { PublicKey, UInt64 } from "snarkyjs";
+import { Bool, PublicKey, UInt64 } from "snarkyjs";
 import { Option } from "@yab/protocol";
 import { Presets } from "@yab/common";
 
@@ -9,7 +9,9 @@ import { RuntimeModule, method, runtimeModule } from "../../src";
 
 import { Admin } from "./Admin.js";
 
-interface BalancesConfig {}
+interface BalancesConfig {
+  test: Bool;
+}
 
 @runtimeModule()
 export class Balances extends RuntimeModule<BalancesConfig> {

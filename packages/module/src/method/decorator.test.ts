@@ -6,7 +6,7 @@ import { Option, StateTransition, MethodPublicInput } from "@yab/protocol";
 // eslint-disable-next-line @typescript-eslint/no-shadow
 import { jest } from "@jest/globals";
 
-import { PlainRuntimeModule } from "../runtime/RuntimeModule.js";
+import { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import {
   runInContext,
@@ -16,7 +16,6 @@ import {
   type DecoratedMethod,
 } from "./decorator.js";
 import { MethodExecutionContext } from "./MethodExecutionContext.js";
-import { Admin } from "../../test/modules/Admin";
 
 const executionContext = container.resolve(MethodExecutionContext);
 
@@ -24,7 +23,7 @@ const expectedStatus = false;
 const expectedErrorMessage = "test failure";
 const argument = 5;
 
-class TestModule extends PlainRuntimeModule {
+class TestModule extends RuntimeModule<unknown> {
   public succeed(foo: number) {
     executionContext.setStatus(Bool(expectedStatus));
     executionContext.addStateTransition(

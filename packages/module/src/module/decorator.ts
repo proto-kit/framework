@@ -9,6 +9,10 @@ import { RuntimeModule } from "../runtime/RuntimeModule.js";
  */
 export function runtimeModule() {
   return (
+    /**
+     * Check if the target class extends RuntimeModule, while
+     * also providing static config presets
+     */
     target: StaticConfigurableModule<unknown> &
       TypedClassConstructor<RuntimeModule<unknown>>
   ) => {
