@@ -40,7 +40,7 @@ const errors = {
     ),
 
   unableToAnalyze: (name: string) =>
-    new Error(`Unable to analyze program for chain: ${name}`),
+    new Error(`Unable to analyze program for runtime: ${name}`),
 
   precompileFirst: () =>
     new Error(
@@ -49,12 +49,12 @@ const errors = {
 
   zkProgramMissing: () =>
     new Error(
-      "Unable to compile chain, pre-compilation did not produce a zkProgram"
+      "Unable to compile runtime, pre-compilation did not produce a zkProgram"
     ),
 };
 
 /**
- * Wrapper for an application specific chain, which helps orchestrate
+ * Wrapper for an application specific runtime, which helps orchestrate
  * runtime modules into an interoperable runtime.
  */
 export class Runtime<
@@ -62,10 +62,10 @@ export class Runtime<
   Config extends ModulesConfig<Modules> = ModulesConfig<Modules>
 > extends ModuleContainer<Modules, Config> {
   /**
-   * Alternative constructor for `Chain`.
+   * Alternative constructor for `Runtime`.
    *
-   * @param config - Configuration for the returned Chain
-   * @returns Chain with the provided config
+   * @param config - Configuration for the returned Runtime
+   * @returns Runtime with the provided config
    */
   public static from<
     Modules extends RuntimeModulesRecord,
@@ -83,9 +83,9 @@ export class Runtime<
   public definition: RuntimeDefinition<Modules, Config>;
 
   /**
-   * Creates a new Chain from the provided config
+   * Creates a new Runtime from the provided config
    *
-   * @param modules - Configuration object for the constructed Chain
+   * @param modules - Configuration object for the constructed Runtime
    */
   public constructor(definition: RuntimeDefinition<Modules, Config>) {
     super(definition);
@@ -94,7 +94,7 @@ export class Runtime<
 
   /**
    * Add a name and other respective properties required by RuntimeModules,
-   * that come from the current Chain
+   * that come from the current Runtime
    *
    * @param name - Name of the runtime module to decorate
    */
