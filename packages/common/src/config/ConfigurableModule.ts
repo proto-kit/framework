@@ -18,12 +18,17 @@ export interface Configurable<Config> {
  * Used by various module sub-types that may need to be configured
  */
 export class ConfigurableModule<Config> implements Configurable<Config> {
+  /**
+   * Store the config separately, so that we can apply additional
+   * checks when retrieving it via the getter
+   */
   protected currentConfig: Config | undefined;
 
   // eslint-disable-next-line max-len
   // eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
   public constructor(...args: any[]) {}
 
+  // retrieve the existing config
   public get config(): Config {
     if (this.currentConfig === undefined) {
       throw errors.configNotSet(this.constructor.name);
@@ -31,6 +36,7 @@ export class ConfigurableModule<Config> implements Configurable<Config> {
     return this.currentConfig;
   }
 
+  // set the config
   public set config(config: Config) {
     this.currentConfig = config;
   }

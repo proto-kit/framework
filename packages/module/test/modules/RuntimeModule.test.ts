@@ -1,7 +1,11 @@
 /* eslint-disable jest/no-restricted-matchers */
 import "reflect-metadata";
-import { Balances } from "./Balances";
+
+import { Bool } from "snarkyjs";
+
 import { InMemoryStateService, Runtime } from "../../src";
+
+import { Balances } from "./Balances";
 import { Admin } from "./Admin";
 
 describe("runtimeModule", () => {
@@ -11,7 +15,7 @@ describe("runtimeModule", () => {
     const runtime = Runtime.from({
       state: new InMemoryStateService(),
 
-      runtimeModules: {
+      modules: {
         Admin,
         Balances,
       },
@@ -22,11 +26,12 @@ describe("runtimeModule", () => {
         publicKey: "123",
       },
 
-      Balances: {},
+      Balances: {
+        test: Bool(true),
+      },
     });
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    const childContainer = runtime["runtimeContainer"];
+    const childContainer = runtime.container;
 
     expect(childContainer.isRegistered("Admin")).toBe(true);
     expect(childContainer.isRegistered("Balances")).toBe(true);

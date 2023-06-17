@@ -39,38 +39,67 @@ export const errors = {
     ),
 };
 
+// determines that a module should be configurable by default
 export type BaseModuleType = TypedClassConstructor<Configurable<unknown>>;
+
+// allows to specify what kind of modules can be passed into a container
 export interface ModulesRecord<
+  // use the default configurable module type
   ModuleType extends BaseModuleType = BaseModuleType
 > {
   [name: string]: ModuleType;
 }
 
+// config record derived from the provided modules and their config types
 export type ModulesConfig<Modules extends ModulesRecord> = {
+  // this will translate into = key: module name, value: module.config
   [ConfigKey in keyof Modules]: InstanceType<Modules[ConfigKey]>["config"];
 };
 
+/**
+ * Parameters required when creating a module container instance
+ */
+export interface ModuleContainerDefinition<Modules, Config> {
+  modules: Modules;
+  // config is optional, as it may be provided by the parent/wrapper class
+  config?: Config;
+}
+
+/**
+ * Reusable module container facilitating registration, resolution
+ * configuration, decoration and validation of modules
+ */
 export abstract class ModuleContainer<
   Modules extends ModulesRecord,
   Config extends ModulesConfig<Modules>
 > {
+  // determines how often are modules decorated upon resolution
   public static moduleDecorationFrequency: Frequency = "Once";
 
+  // DI container holding all the registred modules
   public container = container.createChildContainer();
 
   public constructor(
-    public definition: {
-      modules: Modules;
-      config?: Config;
-    }
+    public definition: ModuleContainerDefinition<Modules, Config>
   ) {
+    // register all provided modules when the container is created
     this.registerModules(definition.modules);
   }
 
+  /**
+   * @returns list of module names
+   */
   public get moduleNames() {
     return Object.keys(this.definition.modules);
   }
 
+  /**
+   * Check if the provided module satisfies the container requirements,
+   * such as only injecting other known modules.
+   *
+   * @param moduleName
+   * @param containedModule
+   */
   public validateModule<ModuleName extends keyof Modules>(
     moduleName: ModuleName | string,
     containedModule: ConfigurableModule<unknown>
@@ -96,7 +125,14 @@ export abstract class ModuleContainer<
     });
   }
 
-  public registerModules(modules: Modules) {
+  /**
+   * Register modules into the current container, and registers
+   * a respective resolution hook in order to decorate the module
+   * upon/after resolution.
+   *
+   * @param modules
+   */
+  private registerModules(modules: Modules) {
     for (const moduleName in modules) {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.container.register(
@@ -109,16 +145,33 @@ export abstract class ModuleContainer<
     }
   }
 
+  /**
+   * Register a non-module value into the current container
+   * @param modules
+   */
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
       this.container.register(moduleName, { useValue });
     });
   }
 
+  /**
+   * Provide additional configuration after the ModuleContainer was created.
+   *
+   * Keep in mind that modules are only decorated once after they are resolved,
+   * therefore applying any configuration must happen
+   * before the first resolution.
+   * @param config
+   */
   public configure(config: Config) {
     this.definition.config = config;
   }
 
+  /**
+   * Resolves a module from the current module container
+   * @param moduleName
+   * @returns
+   */
   public resolve<ModuleName extends keyof Modules>(
     moduleName: ModuleName
   ): InstanceType<Modules[ModuleName]> {
@@ -139,7 +192,7 @@ export abstract class ModuleContainer<
    * Override this in the child class to provide custom
    * features or module checks
    */
-  public decorateModule<ModuleName extends keyof Modules>(
+  private decorateModule<ModuleName extends keyof Modules>(
     moduleName: ModuleName | string,
     containedModule: InstanceType<Modules[ModuleName]>
   ) {
@@ -154,13 +207,18 @@ export abstract class ModuleContainer<
     containedModule.config = config;
   }
 
-  public onAfterModuleResolution<ModuleName extends keyof Modules>(
+  /**
+   * Handle module resolution, e.g. by decorating resolved modules
+   * @param moduleName
+   */
+  private onAfterModuleResolution<ModuleName extends keyof Modules>(
     moduleName: ModuleName | string
   ) {
     this.container.afterResolution<InstanceType<Modules[ModuleName]>>(
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       moduleName as InjectionToken,
       (containedModuleName, containedModule) => {
+        // special case where tsyringe may return multiple known instances (?)
         if (Array.isArray(containedModule)) {
           throw errors.unableToDecorateModule(containedModuleName);
         }

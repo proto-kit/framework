@@ -1,8 +1,7 @@
 // eslint-disable-next-line max-len
-/* eslint-disable max-lines,@typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
 import { Experimental, Proof } from "snarkyjs";
 import { MethodPublicInput, Subclass } from "@yab/protocol";
-
 import {
   ModuleContainer,
   ModulesConfig,

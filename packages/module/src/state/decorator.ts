@@ -1,5 +1,4 @@
 import { Path } from "@yab/protocol";
-import { Runtime } from "../runtime/Runtime.js";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
@@ -20,10 +19,7 @@ const errors = {
 };
 
 // eslint-disable-next-line import/no-unused-modules
-export type TargetRuntimeModule = RuntimeModule<
-  unknown,
-  Runtime extends infer InferRuntime ? InferRuntime : never
->;
+export type TargetRuntimeModule = RuntimeModule<unknown>;
 
 /**
  * Decorates a runtime module property as state, passing down some

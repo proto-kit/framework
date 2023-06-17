@@ -1,9 +1,8 @@
 /* eslint-disable max-lines */
 import "reflect-metadata";
-import { Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { container } from "tsyringe";
 import { type ProvableStateTransition, Path } from "@yab/protocol";
-
 import { ModulesConfig } from "@yab/common";
 
 import { MethodExecutionContext } from "../../src/method/MethodExecutionContext.js";
@@ -63,7 +62,9 @@ describe("balances", () => {
         publicKey: PublicKey.empty().toBase58(),
       },
 
-      Balances: {},
+      Balances: {
+        test: Bool(true),
+      },
     });
 
     balances = runtime.resolve("Balances");
