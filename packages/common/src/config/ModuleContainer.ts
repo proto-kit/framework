@@ -14,7 +14,7 @@ export const errors = {
 
   configNotSetInContainer: (moduleName: string) =>
     new Error(
-      `Trying to set config of ${moduleName}, but it was not yet set in the module container`
+      `Trying to get config of ${moduleName}, but it was not yet set in the module container`
     ),
 
   onlyStringModuleNames: (moduleName: NonNullable<unknown>) =>
