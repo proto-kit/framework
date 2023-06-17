@@ -1,8 +1,9 @@
 {
-  "name": "@yab/module",
+  "name": "@yab/common",
   "license": "MIT",
   "private": false,
   "type": "module",
+  "version": "0.1.0",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -16,19 +17,17 @@
     "access": "public"
   },
   "dependencies": {
-    "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
-    "ts-mixer": "^6.0.3",
-    "@yab/protocol": "*",
-    "@yab/common": "*"
+    "tsyringe": "^4.7.0",
+    "lodash": "^4.17.21"
+  },
+  "peerDependencies": {
+    "tsyringe": "^4.7.0",
+    "snarkyjs": "0.10.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
     "@types/lodash": "^4.14.194"
-  },
-  "peerDependencies": {
-    "snarkyjs": "0.10.0",
-    "tsyringe": "^4.7.0"
   }
 }

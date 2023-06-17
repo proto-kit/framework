@@ -1,11 +1,6 @@
 import { PublicKey, UInt64 } from "snarkyjs";
-import {
-  configurableModule,
-  FlipOptional,
-  Option,
-  Presets,
-} from "@yab/protocol";
-import { inject } from "tsyringe";
+import { Option } from "@yab/protocol";
+import { Presets } from "@yab/common";
 
 import { State } from "../../src/state/State.js";
 import { state } from "../../src/state/decorator.js";
@@ -17,7 +12,6 @@ import { Admin } from "./Admin.js";
 interface BalancesConfig {}
 
 @runtimeModule()
-@configurableModule()
 export class Balances extends RuntimeModule<BalancesConfig> {
   public static presets: Presets<BalancesConfig> = {};
 
@@ -47,9 +41,5 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   @method()
   public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
-  }
-
-  public get defaultConfig(): FlipOptional<void> {
-    return {};
   }
 }

@@ -19,7 +19,11 @@ import {
 import { ProvableStateTransition } from "../../model/StateTransition";
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
 import { constants } from "../../Constants";
-import { Subclass, TypedClassType, ZkProgramType } from "../../utils/utils";
+import {
+  Subclass,
+  TypedClassConstructor,
+  ZkProgramType,
+} from "../../utils/utils";
 
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
 
@@ -223,7 +227,7 @@ export class StateTransitionProver {
   public getProofType(): Subclass<
     typeof Proof<StateTransitionProverPublicInput>
   > & {
-    publicInputType: TypedClassType<StateTransitionProverPublicInput>;
+    publicInputType: TypedClassConstructor<StateTransitionProverPublicInput>;
   } {
     return ((instance: StateTransitionProver) =>
       class StateTransitionProof extends Proof<StateTransitionProverPublicInput> {

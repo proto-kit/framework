@@ -1,14 +1,14 @@
 // eslint-disable-next-line max-len
 /* eslint-disable max-lines,@typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
 import { Experimental, Proof } from "snarkyjs";
+import { MethodPublicInput, Subclass } from "@yab/protocol";
+
 import {
-  ConfigurableModule,
-  MethodPublicInput,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
-  Subclass,
-} from "@yab/protocol";
+  TypedClassConstructor,
+} from "@yab/common";
 
 import {
   combineMethodName,
@@ -19,7 +19,9 @@ import { StateService } from "../state/InMemoryStateService.js";
 
 import { RuntimeModule } from "./RuntimeModule.js";
 
-export type RuntimeModulesRecord = ModulesRecord<typeof RuntimeModule<unknown>>;
+export type RuntimeModulesRecord = ModulesRecord<
+  TypedClassConstructor<RuntimeModule<unknown>>
+>;
 export interface RuntimeDefinition<
   Modules extends RuntimeModulesRecord,
   Config extends ModulesConfig<Modules>
@@ -36,17 +38,6 @@ const errors = {
     new Error(
       `Unable to register module: ${name} / ${runtimeModuleName},
       did you forget to add @runtimeModule()?`
-    ),
-
-  nonModuleDependecy: (runtimeModuleName: string) =>
-    new Error(`
-  Unable to register module: ${runtimeModuleName}, attempting to inject a non-module dependency`),
-
-  unknownDependency: (runtimeModuleName: string, name: string) =>
-    new Error(
-      `Unable to register module: ${runtimeModuleName}, 
-      attempting to inject a dependency that is not registred 
-      as a runtime module for this chain: ${name}`
     ),
 
   unableToAnalyze: (name: string) =>
@@ -100,30 +91,6 @@ export class Runtime<
   public constructor(definition: RuntimeDefinition<Modules, Config>) {
     super(definition);
     this.definition = definition;
-  }
-
-  public validateModule<ModuleName extends keyof Modules>(
-    moduleName: ModuleName | string,
-    containedModule: ConfigurableModule<unknown>
-  ): void {
-    const dependencies: { name?: string }[] | string[] | undefined =
-      Reflect.getMetadata("design:paramtypes", containedModule);
-
-    dependencies?.forEach((dependency: string | { name?: string }) => {
-      const name =
-        typeof dependency === "string" ? dependency : dependency.name;
-
-      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-      if (!name) {
-        throw errors.nonModuleDependecy(this.moduleNameToString(moduleName));
-      }
-      if (!this.runtimeModuleNames.includes(name)) {
-        throw errors.unknownDependency(
-          this.moduleNameToString(moduleName),
-          name
-        );
-      }
-    });
   }
 
   /**

@@ -1,20 +1,17 @@
+/* eslint-disable max-lines */
 import "reflect-metadata";
 import { Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { container } from "tsyringe";
-import {
-  type ProvableStateTransition,
-  Path,
-  ModulesRecord,
-  ModulesConfig,
-  ConfigurableModule,
-} from "@yab/protocol";
+import { type ProvableStateTransition, Path } from "@yab/protocol";
+
+import { ModulesConfig } from "@yab/common";
 
 import { MethodExecutionContext } from "../../src/method/MethodExecutionContext.js";
 import {
   InMemoryStateService,
   StateService,
 } from "../../src/state/InMemoryStateService.js";
-import { Runtime, RuntimeModule, RuntimeModulesRecord } from "../../src";
+import { Runtime } from "../../src";
 
 import { Balances } from "./Balances.js";
 import { Admin } from "./Admin.js";
@@ -86,7 +83,7 @@ describe("balances", () => {
     });
 
     // Disabled until we implement a mechanism to enable/disable compiling tests
-    it("should compile and prove a method execution", async () => {
+    it.skip("should compile and prove a method execution", async () => {
       expect.assertions(3);
 
       const executionContext = container.resolve(MethodExecutionContext);
