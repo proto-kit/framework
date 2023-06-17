@@ -18,9 +18,19 @@ import { StateService } from "../state/InMemoryStateService.js";
 
 import { RuntimeModule } from "./RuntimeModule.js";
 
+/**
+ * Record of modules accepted by the Runtime module container.
+ *
+ * We have to use TypedClassConstructor since RuntimeModule
+ * is an abstract class
+ */
 export type RuntimeModulesRecord = ModulesRecord<
   TypedClassConstructor<RuntimeModule<unknown>>
 >;
+
+/**
+ * Definition / required arguments for the Runtime class
+ */
 export interface RuntimeDefinition<
   Modules extends RuntimeModulesRecord,
   Config extends ModulesConfig<Modules>

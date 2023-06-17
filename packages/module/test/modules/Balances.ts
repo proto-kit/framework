@@ -15,7 +15,11 @@ interface BalancesConfig {
 
 @runtimeModule()
 export class Balances extends RuntimeModule<BalancesConfig> {
-  public static presets: Presets<BalancesConfig> = {};
+  /**
+   * We use `satisfies` here in order to be able to access
+   * presets by key in a type safe way.
+   */
+  public static presets = {} satisfies Presets<BalancesConfig>;
 
   @state() public totalSupply = State.from<UInt64>(UInt64);
 

@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import { ConfigurableModule } from "../../src/config/ConfigurableModule";
 import {
   errors,
@@ -7,6 +8,7 @@ import {
 } from "../../src/config/ModuleContainer";
 import { TypedClassConstructor } from "../../src/types";
 
+// module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
 
 type TestModulesRecord = ModulesRecord<
@@ -18,6 +20,14 @@ interface TestModuleConfig {
 }
 
 class TestModule extends BaseTestModule<TestModuleConfig> {}
+
+/**
+ * Showcases a wrongly typed/defined module as
+ * per the TestModuleContainer requirements
+ */
+// eslint-disable-next-line max-len
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class, @typescript-eslint/no-unused-vars
+class WrongTestModule {}
 
 class TestModuleContainer<
   Modules extends TestModulesRecord = TestModulesRecord,
@@ -34,6 +44,8 @@ describe("moduleContainer", () => {
     container = new TestModuleContainer({
       modules: {
         TestModule,
+        // this module would not be assignable to TestModuleContainer
+        // WrongTestModule,
       },
     });
   });
