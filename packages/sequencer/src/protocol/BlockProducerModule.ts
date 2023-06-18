@@ -1,24 +1,23 @@
-import { SequencerModule } from "../sequencer/builder/SequencerModule";
+/* eslint-disable import/no-unused-modules */
 import { inject } from "tsyringe";
 import { Runtime } from "@yab/module";
-import { FlipOptional } from "@yab/protocol";
+
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../sequencer/builder/SequencerModule";
 
 interface RuntimeSequencerModuleConfig {
-  proofsEnabled?: boolean;
+  proofsEnabled: boolean;
 }
 
+@sequencerModule()
 export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleConfig> {
-  public constructor(@inject("runtime") private readonly chain: Runtime<any>) {
+  public constructor(@inject("runtime") private readonly runtime: Runtime) {
     super();
   }
 
-  public get defaultConfig(): FlipOptional<RuntimeSequencerModuleConfig> {
-    return {
-      proofsEnabled: true,
-    };
-  }
-
   public async start(): Promise<void> {
-    this.chain.setProofsEnabled(this.config.proofsEnabled);
+    this.runtime.setProofsEnabled(this.config.proofsEnabled);
   }
 }

@@ -30,6 +30,7 @@
     "@types/ws": "^8.5.4",
     "@yab/module": "*",
     "@yab/protocol": "*",
+    "@yab/common": "*",
     "class-validator": "^0.14.0",
     "fastify": "^4.17.0",
     "graphql": "16.6.0",

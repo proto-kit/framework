@@ -1,0 +1,36 @@
+{
+  "name": "@yab/sdk",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "lint": "eslint ./src ./test",
+    "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
+    "test": "npm run test:file -- ./src/** ./test/**",
+    "test:watch": "npm run test:file -- ./src/** ./test/** --watch"
+  },
+  "main": "dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "loglevel": "^1.8.1",
+    "reflect-metadata": "^0.1.13",
+    "tsyringe": "^4.7.0",
+    "lodash": "^4.17.21",
+    "@yab/sequencer": "*",
+    "@yab/module": "*",
+    "@yab/protocol": "*"
+  },
+  "peerDependencies": {
+    "tsyringe": "^4.7.0",
+    "snarkyjs": "0.10.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.5.0",
+    "@types/lodash": "^4.14.194"
+  }
+}

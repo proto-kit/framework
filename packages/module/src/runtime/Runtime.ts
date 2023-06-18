@@ -1,6 +1,7 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
 import { Experimental, Proof } from "snarkyjs";
+import { injectable } from "tsyringe";
 import { MethodPublicInput, Subclass } from "@yab/protocol";
 import {
   ModuleContainer,
@@ -41,14 +42,6 @@ export interface RuntimeDefinition<
 }
 
 const errors = {
-  onlyStringNames: () => new TypeError("Only string names are supported"),
-
-  missingDecorator: (name: string, runtimeModuleName: string) =>
-    new Error(
-      `Unable to register module: ${name} / ${runtimeModuleName},
-      did you forget to add @runtimeModule()?`
-    ),
-
   unableToAnalyze: (name: string) =>
     new Error(`Unable to analyze program for runtime: ${name}`),
 
@@ -67,6 +60,7 @@ const errors = {
  * Wrapper for an application specific runtime, which helps orchestrate
  * runtime modules into an interoperable runtime.
  */
+@injectable()
 export class Runtime<
   Modules extends RuntimeModulesRecord = RuntimeModulesRecord,
   Config extends ModulesConfig<Modules> = ModulesConfig<Modules>
@@ -108,7 +102,7 @@ export class Runtime<
    *
    * @param name - Name of the runtime module to decorate
    */
-  public override decorateModule<ModuleName extends keyof Modules>(
+  protected override decorateModule<ModuleName extends keyof Modules>(
     moduleName: ModuleName | string,
     containedModule: InstanceType<Modules[ModuleName]>
   ) {

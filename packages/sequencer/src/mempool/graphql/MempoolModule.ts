@@ -1,5 +1,4 @@
-import { FlipOptional } from "@yab/protocol";
-
+/* eslint-disable import/no-unused-modules */
 import {
   sequencerModule,
   SequencerModule,
@@ -17,10 +16,6 @@ interface MempoolConfig {
 export class MempoolModule extends SequencerModule<MempoolConfig> {
   public constructor(private readonly graphqlServer: GraphqlServer) {
     super();
-  }
-
-  public get defaultConfig(): FlipOptional<MempoolConfig> {
-    return {};
   }
 
   public async start(): Promise<void> {

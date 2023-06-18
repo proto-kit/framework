@@ -132,7 +132,7 @@ export abstract class ModuleContainer<
    *
    * @param modules
    */
-  private registerModules(modules: Modules) {
+  protected registerModules(modules: Modules) {
     for (const moduleName in modules) {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.container.register(
@@ -192,7 +192,7 @@ export abstract class ModuleContainer<
    * Override this in the child class to provide custom
    * features or module checks
    */
-  private decorateModule<ModuleName extends keyof Modules>(
+  protected decorateModule<ModuleName extends keyof Modules>(
     moduleName: ModuleName | string,
     containedModule: InstanceType<Modules[ModuleName]>
   ) {
@@ -211,7 +211,7 @@ export abstract class ModuleContainer<
    * Handle module resolution, e.g. by decorating resolved modules
    * @param moduleName
    */
-  private onAfterModuleResolution<ModuleName extends keyof Modules>(
+  protected onAfterModuleResolution<ModuleName extends keyof Modules>(
     moduleName: ModuleName | string
   ) {
     this.container.afterResolution<InstanceType<Modules[ModuleName]>>(
