@@ -11,7 +11,7 @@ export type ReturnType<FunctionType extends Function> = FunctionType extends (
   ? Return
   : any;
 
-export type ClassType = new (...args: any[]) => any;
+export type UntypedClassConstructor = new (...args: any[]) => any;
 
 export type TypedClassConstructor<Class> = new (...args: any[]) => Class;
 

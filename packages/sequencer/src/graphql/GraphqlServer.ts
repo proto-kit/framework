@@ -1,5 +1,5 @@
 import { buildSchemaSync } from "type-graphql";
-import { container, injectable, injectAll } from "tsyringe";
+import { container, injectable } from "tsyringe";
 import { FastifyRegisterOptions, fastify } from "fastify";
 import mercurius, { MercuriusOptions } from "mercurius";
 
@@ -27,6 +27,8 @@ export class GraphqlServer {
     const schema = buildSchemaSync({
       resolvers: [
         this.modules[0].resolverType,
+        // eslint-disable-next-line max-len
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return
         ...this.modules.slice(1).map((x) => x.resolverType),
       ],
 

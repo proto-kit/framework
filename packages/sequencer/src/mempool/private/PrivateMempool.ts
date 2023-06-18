@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unused-modules */
 import { Field, Poseidon } from "snarkyjs";
 
 import type { Mempool, MempoolCommitment } from "../Mempool.js";
