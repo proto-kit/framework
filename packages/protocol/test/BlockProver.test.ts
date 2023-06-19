@@ -5,7 +5,7 @@ import {
   type DependencyContainer,
 } from "tsyringe";
 
-import { MethodPublicInput, noop } from "@yab/protocol";
+import { MethodPublicInput } from "@yab/protocol";
 
 import {
   BlockProver,
