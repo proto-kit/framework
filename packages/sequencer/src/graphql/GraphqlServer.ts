@@ -27,8 +27,6 @@ export class GraphqlServer {
     const schema = buildSchemaSync({
       resolvers: [
         this.modules[0].resolverType,
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return
         ...this.modules.slice(1).map((x) => x.resolverType),
       ],
 

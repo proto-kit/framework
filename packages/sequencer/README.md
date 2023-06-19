@@ -38,18 +38,19 @@ appChain.config({
 await appChain.start();
 ```
 
-The AppChain takes two arguments, a Runtime and a Sequencer. 
-1. The Runtime holds all modules that have provable code. 
-In a nutshell, all "smart contract" logic that a developer wants to create for their rollup.
-For more documentation on Runtime, please refer to @protokit/module
+The AppChain takes two arguments, a Runtime and a Sequencer.
+
+1. The Runtime holds all modules that have provable code.
+   In a nutshell, all "smart contract" logic that a developer wants to create for their rollup.
+   For more documentation on Runtime, please refer to @protokit/module
 
 2. The Sequencer definition.
-A sequencer is responsible for all services that interact with the Runtime, but are not provable code itself.
-That could be a GraphQL interface, P2P networking layer, database layer, ...
+   A sequencer is responsible for all services that interact with the Runtime, but are not provable code itself.
+   That could be a GraphQL interface, P2P networking layer, database layer, ...
 
 ## Sequencer
 
-A Sequencer is structure similar to a Runtime. 
+A Sequencer is structure similar to a Runtime.
 It is given a list of SequencerModules, that are then dynamically instantiated and resolved by the Sequencer.
 When calling `.start()` on a sequencer, the sequencer starts up all the modules and exposes the services provided by them.
 
@@ -73,7 +74,7 @@ That means that you mustn't `await server.start()` for example.
 
 #### Config
 
-Configs are TS Objects that are provided via generics. 
+Configs are TS Objects that are provided via generics.
 
 A property that accepts undefined, is an optional argument.
 That means that you will have to provide it via `defaultConfig()` and it will be non-undefined via this.config.
@@ -86,15 +87,13 @@ An example of that could look like:
 
 ```typescript
 interface GraphQLConfig {
-  port: number, // Required values
-  host?: string // Optional values (have to provided via defaultConfig)
+  port: number; // Required values
+  host?: string; // Optional values (have to provided via defaultConfig)
 }
 ```
 
-In this case, `defaultConfig()` would only have to provide `host`. 
+In this case, `defaultConfig()` would only have to provide `host`.
 `port` has to be provided by the executing user (for example via `sequencer.config()`).
-
 
 The config can be accessed inside the module using `this.config` inside and after `start()` is called.
 If you try to access `this.config` inside the constructor, this will throw an error since it won't be initialized yet.
-
