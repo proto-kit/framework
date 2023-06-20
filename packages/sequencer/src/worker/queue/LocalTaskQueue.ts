@@ -115,20 +115,4 @@ export class LocalTaskQueue implements TaskQueue {
       async close(): Promise<void> {},
     };
   }
-
-  public createWorker(queueName: string, executor: (data: TaskPayload) => Promise<TaskPayload>): Closeable {
-    this.workers[queueName] = {
-      busy: false,
-
-      handler: async (data: TaskPayload) => {
-        await sleep(this.simulatedDuration);
-
-        return await executor(data);
-      },
-    };
-    this.workNextTasks();
-    return {
-      close: async () => {},
-    };
-  }
 }
