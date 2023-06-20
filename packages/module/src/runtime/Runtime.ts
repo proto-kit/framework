@@ -1,10 +1,10 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
 import { Experimental, Proof } from "snarkyjs";
-import { injectable } from "tsyringe";
+import { container, injectable } from "tsyringe";
 import { MethodPublicInput, Subclass } from "@yab/protocol";
 import {
-  KeyOf,
+  StringKeyOf,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
@@ -60,8 +60,7 @@ const errors = {
  */
 @injectable()
 export class Runtime<
-  Modules extends RuntimeModulesRecord,
-  ModuleName extends KeyOf<Modules> = KeyOf<Modules>
+  Modules extends RuntimeModulesRecord
 > extends ModuleContainer<Modules> {
   /**
    * Alternative constructor for `Runtime`.
@@ -100,8 +99,8 @@ export class Runtime<
    * @param name - Name of the runtime module to decorate
    */
   protected override decorateModule(
-    moduleName: ModuleName,
-    containedModule: InstanceType<Modules[ModuleName]>
+    moduleName: StringKeyOf<Modules>,
+    containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
     containedModule.name = moduleName;
     containedModule.runtime = this;

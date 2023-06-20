@@ -5,7 +5,7 @@ import {
   ModuleContainer,
   ModulesRecord,
 } from "../../src/config/ModuleContainer";
-import { TypedClass } from "../../src/types";
+import { StringKeyOf, TypedClass } from "../../src/types";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -52,6 +52,8 @@ describe("moduleContainer", () => {
         // WrongTestModule,
       },
     });
+
+    const otherTestModule = container.resolve("OtherTestModule");
   });
 
   it("should throw on resolution, if config was not provided", () => {
