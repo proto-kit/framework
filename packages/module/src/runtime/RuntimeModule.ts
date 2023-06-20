@@ -1,13 +1,13 @@
 import { ConfigurableModule, Presets } from "@yab/common";
 
-import type { Runtime } from "./Runtime";
+import type { Runtime, RuntimeModulesRecord } from "./Runtime";
 
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
 export abstract class RuntimeModule<
   Config,
-  CurrentRuntime extends Runtime = Runtime
+  CurrentRuntime extends Runtime<RuntimeModulesRecord> = Runtime<RuntimeModulesRecord>
 > extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 

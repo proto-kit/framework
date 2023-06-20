@@ -23,7 +23,8 @@
     "lodash": "^4.17.21",
     "@yab/sequencer": "*",
     "@yab/module": "*",
-    "@yab/protocol": "*"
+    "@yab/protocol": "*",
+    "@yab/common": "*"
   },
   "peerDependencies": {
     "tsyringe": "^4.7.0",

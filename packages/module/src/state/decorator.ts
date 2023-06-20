@@ -18,15 +18,15 @@ const errors = {
     ),
 };
 
-// eslint-disable-next-line import/no-unused-modules
-export type TargetRuntimeModule = RuntimeModule<unknown>;
-
 /**
  * Decorates a runtime module property as state, passing down some
  * underlying values to improve developer experience.
  */
 export function state() {
-  return (target: TargetRuntimeModule, propertyKey: string) => {
+  return <TargetRuntimeModule extends RuntimeModule<unknown>>(
+    target: TargetRuntimeModule,
+    propertyKey: string
+  ) => {
     // eslint-disable-next-line @typescript-eslint/init-declarations
     let value: State<unknown> | undefined;
 
@@ -36,9 +36,7 @@ export function state() {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const self = this as TargetRuntimeModule;
 
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        if (!self.name) {
+        if (self.name === undefined) {
           throw errors.missingName(self.constructor.name);
         }
 

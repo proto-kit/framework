@@ -4,6 +4,7 @@ import { Experimental, Proof } from "snarkyjs";
 import { injectable } from "tsyringe";
 import { MethodPublicInput, Subclass } from "@yab/protocol";
 import {
+  KeyOf,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
@@ -32,13 +33,10 @@ export type RuntimeModulesRecord = ModulesRecord<
 /**
  * Definition / required arguments for the Runtime class
  */
-export interface RuntimeDefinition<
-  Modules extends RuntimeModulesRecord,
-  Config extends ModulesConfig<Modules>
-> {
+export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
   state: StateService;
   modules: Modules;
-  config?: Config;
+  config?: ModulesConfig<Modules>;
 }
 
 const errors = {
@@ -62,19 +60,18 @@ const errors = {
  */
 @injectable()
 export class Runtime<
-  Modules extends RuntimeModulesRecord = RuntimeModulesRecord,
-  Config extends ModulesConfig<Modules> = ModulesConfig<Modules>
-> extends ModuleContainer<Modules, Config> {
+  Modules extends RuntimeModulesRecord,
+  ModuleName extends KeyOf<Modules> = KeyOf<Modules>
+> extends ModuleContainer<Modules> {
   /**
    * Alternative constructor for `Runtime`.
    *
    * @param config - Configuration for the returned Runtime
    * @returns Runtime with the provided config
    */
-  public static from<
-    Modules extends RuntimeModulesRecord,
-    Config extends ModulesConfig<Modules>
-  >(definition: RuntimeDefinition<Modules, Config>) {
+  public static from<Modules extends RuntimeModulesRecord>(
+    definition: RuntimeDefinition<Modules>
+  ) {
     return new Runtime(definition);
   }
 
@@ -84,14 +81,14 @@ export class Runtime<
   // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof Experimental.ZkProgram>;
 
-  public definition: RuntimeDefinition<Modules, Config>;
+  public definition: RuntimeDefinition<Modules>;
 
   /**
    * Creates a new Runtime from the provided config
    *
    * @param modules - Configuration object for the constructed Runtime
    */
-  public constructor(definition: RuntimeDefinition<Modules, Config>) {
+  public constructor(definition: RuntimeDefinition<Modules>) {
     super(definition);
     this.definition = definition;
   }
@@ -102,11 +99,11 @@ export class Runtime<
    *
    * @param name - Name of the runtime module to decorate
    */
-  protected override decorateModule<ModuleName extends keyof Modules>(
-    moduleName: ModuleName | string,
+  protected override decorateModule(
+    moduleName: ModuleName,
     containedModule: InstanceType<Modules[ModuleName]>
   ) {
-    containedModule.name = this.moduleNameToString(moduleName);
+    containedModule.name = moduleName;
     containedModule.runtime = this;
 
     super.decorateModule(moduleName, containedModule);
@@ -136,6 +133,7 @@ export class Runtime<
     type Methods = Parameters<typeof Experimental.ZkProgram>[0]["methods"];
     const methods = this.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
+        this.isValidModuleName(this.definition.modules, runtimeModuleName);
         const runtimeModule = this.resolve(runtimeModuleName);
 
         // eslint-disable-next-line max-len
@@ -202,7 +200,7 @@ export class Runtime<
       methods: sortedMethods,
     });
 
-    function analyze(this: Runtime) {
+    function analyze(this: Runtime<Modules>) {
       if (!this.program) {
         throw errors.unableToAnalyze(this.constructor.name);
       }

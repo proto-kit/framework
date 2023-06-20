@@ -3,7 +3,6 @@ import { ConfigurableModule } from "../../src/config/ConfigurableModule";
 import {
   errors,
   ModuleContainer,
-  ModulesConfig,
   ModulesRecord,
 } from "../../src/config/ModuleContainer";
 import { TypedClassConstructor } from "../../src/types";
@@ -21,6 +20,12 @@ interface TestModuleConfig {
 
 class TestModule extends BaseTestModule<TestModuleConfig> {}
 
+interface OtherTestModuleConfig {
+  otherTestConfigProperty: number;
+}
+
+class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {}
+
 /**
  * Showcases a wrongly typed/defined module as
  * per the TestModuleContainer requirements
@@ -30,13 +35,13 @@ class TestModule extends BaseTestModule<TestModuleConfig> {}
 class WrongTestModule {}
 
 class TestModuleContainer<
-  Modules extends TestModulesRecord = TestModulesRecord,
-  Config extends ModulesConfig<Modules> = ModulesConfig<Modules>
-> extends ModuleContainer<Modules, Config> {}
+  Modules extends TestModulesRecord
+> extends ModuleContainer<Modules> {}
 
 describe("moduleContainer", () => {
   let container: TestModuleContainer<{
     TestModule: typeof TestModule;
+    OtherTestModule: typeof OtherTestModule;
   }>;
   const testConfigProperty = 0;
 
@@ -44,6 +49,7 @@ describe("moduleContainer", () => {
     container = new TestModuleContainer({
       modules: {
         TestModule,
+        OtherTestModule,
         // this module would not be assignable to TestModuleContainer
         // WrongTestModule,
       },
@@ -58,12 +64,16 @@ describe("moduleContainer", () => {
     }).toThrow(errors.configNotSetInContainer("TestModule"));
   });
 
-  it("should resolve the registred module with the provided config", () => {
+  it("should resolve the registered module with the provided config", () => {
     expect.assertions(1);
 
     container.configure({
       TestModule: {
         testConfigProperty,
+      },
+
+      OtherTestModule: {
+        otherTestConfigProperty: testConfigProperty,
       },
     });
 

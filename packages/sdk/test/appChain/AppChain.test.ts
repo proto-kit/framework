@@ -7,6 +7,7 @@ import {
   Runtime,
   RuntimeModule,
   runtimeModule,
+  RuntimeModulesRecord,
 } from "@yab/module";
 import { Sequencer, sequencerModule, SequencerModule } from "@yab/sequencer";
 import { inject } from "tsyringe";
@@ -32,7 +33,9 @@ interface MempoolConfig {
 
 @sequencerModule()
 class Mempool extends SequencerModule<MempoolConfig> {
-  public constructor(@inject("Runtime") public runtime: Runtime) {
+  public constructor(
+    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
+  ) {
     super();
   }
 
@@ -46,23 +49,32 @@ class Mempool extends SequencerModule<MempoolConfig> {
 }
 
 describe("appChain", () => {
-  it("should execute appchain correctly + compilation test", async () => {
+  it("should compose appchain correctly", async () => {
     expect.assertions(0);
 
+    const runtime = Runtime.from({
+      state: new InMemoryStateService(),
+
+      modules: {
+        Admin,
+      },
+    });
+
+    runtime.configure({
+      Admin: {
+        publicKey: "1",
+      },
+    });
+
+    const sequencer = Sequencer.from({
+      modules: {
+        Mempool,
+      },
+    });
+
     const appChain = AppChain.from({
-      runtime: Runtime.from({
-        state: new InMemoryStateService(),
-
-        modules: {
-          Admin,
-        },
-      }),
-
-      sequencer: Sequencer.from({
-        modules: {
-          Mempool,
-        },
-      }),
+      runtime,
+      sequencer,
     });
 
     appChain.configure({

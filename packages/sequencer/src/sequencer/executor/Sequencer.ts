@@ -1,17 +1,15 @@
 /* eslint-disable guard-for-in */
 import {
   ModuleContainer,
-  ModulesConfig,
   ModulesRecord,
   TypedClassConstructor,
   ModuleContainerDefinition,
 } from "@yab/common";
-import { Runtime } from "@yab/module";
+import { Runtime, RuntimeModulesRecord } from "@yab/module";
 import { injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
 
-// eslint-disable-next-line import/no-cycle
 import { Sequenceable } from "./Sequenceable";
 
 export type SequencerModulesRecord = ModulesRecord<
@@ -19,27 +17,23 @@ export type SequencerModulesRecord = ModulesRecord<
 >;
 
 @injectable()
-export class Sequencer<
-    Modules extends SequencerModulesRecord = SequencerModulesRecord,
-    Config extends ModulesConfig<Modules> = ModulesConfig<Modules>
-  >
-  extends ModuleContainer<Modules, Config>
-  implements Sequenceable<Modules, Config>
+export class Sequencer<Modules extends SequencerModulesRecord>
+  extends ModuleContainer<Modules>
+  implements Sequenceable
 {
   /**
    * Alternative constructor for Sequencer
    * @param definition
    * @returns Sequencer
    */
-  public static from<
-    Modules extends SequencerModulesRecord,
-    Config extends ModulesConfig<Modules>
-  >(definition: ModuleContainerDefinition<Modules, Config>) {
+  public static from<Modules extends SequencerModulesRecord>(
+    definition: ModuleContainerDefinition<Modules>
+  ) {
     return new Sequencer(definition);
   }
 
-  public get runtime(): Runtime {
-    return this.container.resolve<Runtime>("Runtime");
+  public get runtime(): Runtime<RuntimeModulesRecord> {
+    return this.container.resolve<Runtime<RuntimeModulesRecord>>("Runtime");
   }
 
   /**

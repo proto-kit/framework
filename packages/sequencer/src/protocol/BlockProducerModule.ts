@@ -1,6 +1,6 @@
 /* eslint-disable import/no-unused-modules */
 import { inject } from "tsyringe";
-import { Runtime } from "@yab/module";
+import { Runtime, RuntimeModulesRecord } from "@yab/module";
 
 import {
   sequencerModule,
@@ -13,7 +13,9 @@ interface RuntimeSequencerModuleConfig {
 
 @sequencerModule()
 export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleConfig> {
-  public constructor(@inject("runtime") private readonly runtime: Runtime) {
+  public constructor(
+    @inject("runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
+  ) {
     super();
   }
 

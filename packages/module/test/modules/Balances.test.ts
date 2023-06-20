@@ -3,7 +3,6 @@ import "reflect-metadata";
 import { Bool, Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { container } from "tsyringe";
 import { type ProvableStateTransition, Path } from "@yab/protocol";
-import { ModulesConfig } from "@yab/common";
 
 import { MethodExecutionContext } from "../../src/method/MethodExecutionContext.js";
 import {
@@ -20,16 +19,10 @@ describe("balances", () => {
 
   let state: StateService;
 
-  let runtime: Runtime<
-    {
-      Admin: typeof Admin;
-      Balances: typeof Balances;
-    },
-    ModulesConfig<{
-      Admin: typeof Admin;
-      Balances: typeof Balances;
-    }>
-  >;
+  let runtime: Runtime<{
+    Admin: typeof Admin;
+    Balances: typeof Balances;
+  }>;
 
   function getStateValue(path: Field | undefined) {
     if (!path) {
@@ -93,7 +86,9 @@ describe("balances", () => {
       const expectedStatus = true;
 
       runtime.setProofsEnabled(true);
-      runtime.precompile().toPretty();
+      const precompiled = runtime.precompile();
+      precompiled.toPretty();
+
       await runtime.compile();
 
       balances.getTotalSupply();
