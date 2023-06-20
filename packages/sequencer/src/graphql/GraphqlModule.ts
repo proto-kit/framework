@@ -1,5 +1,5 @@
-import type { UntypedClassConstructor } from "@yab/protocol";
+import type { UnTypedClass } from "@yab/protocol";
 
 export interface GraphqlModule {
-  resolverType: UntypedClassConstructor;
+  resolverType: UnTypedClass;
 }

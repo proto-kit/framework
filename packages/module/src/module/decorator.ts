@@ -1,5 +1,5 @@
 import { injectable } from "tsyringe";
-import { StaticConfigurableModule, TypedClassConstructor } from "@yab/common";
+import { StaticConfigurableModule, TypedClass } from "@yab/common";
 
 import { RuntimeModule } from "../runtime/RuntimeModule.js";
 
@@ -14,7 +14,7 @@ export function runtimeModule() {
      * also providing static config presets
      */
     target: StaticConfigurableModule<unknown> &
-      TypedClassConstructor<RuntimeModule<unknown>>
+      TypedClass<RuntimeModule<unknown>>
   ) => {
     injectable()(target);
   };

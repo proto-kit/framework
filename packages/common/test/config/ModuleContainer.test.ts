@@ -5,14 +5,12 @@ import {
   ModuleContainer,
   ModulesRecord,
 } from "../../src/config/ModuleContainer";
-import { TypedClassConstructor } from "../../src/types";
+import { TypedClass } from "../../src/types";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
 
-type TestModulesRecord = ModulesRecord<
-  TypedClassConstructor<BaseTestModule<unknown>>
->;
+type TestModulesRecord = ModulesRecord<TypedClass<BaseTestModule<unknown>>>;
 
 interface TestModuleConfig {
   testConfigProperty: number;

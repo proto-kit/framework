@@ -11,9 +11,9 @@ export type ReturnType<FunctionType extends Function> = FunctionType extends (
   ? Return
   : any;
 
-export type UntypedClassConstructor = new (...args: any[]) => any;
+export type UnTypedClass = new (...args: any[]) => any;
 
-export type TypedClassConstructor<Class> = new (...args: any[]) => Class;
+export type TypedClass<Class> = new (...args: any[]) => Class;
 
 export type Subclass<Class extends new (...args: any) => any> = (new (
   ...args: any
@@ -28,7 +28,7 @@ export interface ZkProgramType<PublicInputType> {
   digest: () => string;
 
   // analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
-  publicInputType: TypedClassConstructor<PublicInputType>;
+  publicInputType: TypedClass<PublicInputType>;
 }
 
 export function notInCircuit(): MethodDecorator {

@@ -2,7 +2,7 @@
 import {
   ConfigurableModule,
   StaticConfigurableModule,
-  TypedClassConstructor,
+  TypedClass,
   Presets,
 } from "@yab/common";
 import { injectable } from "tsyringe";
@@ -39,7 +39,7 @@ export abstract class SequencerModule<
 export function sequencerModule() {
   return (
     target: StaticConfigurableModule<unknown> &
-      TypedClassConstructor<SequencerModule<unknown>>
+      TypedClass<SequencerModule<unknown>>
   ) => {
     injectable()(target);
   };

@@ -2,7 +2,7 @@
 import {
   ModuleContainer,
   ModulesRecord,
-  TypedClassConstructor,
+  TypedClass,
   ModuleContainerDefinition,
 } from "@yab/common";
 import { Runtime, RuntimeModulesRecord } from "@yab/module";
@@ -13,7 +13,7 @@ import { SequencerModule } from "../builder/SequencerModule";
 import { Sequenceable } from "./Sequenceable";
 
 export type SequencerModulesRecord = ModulesRecord<
-  TypedClassConstructor<SequencerModule<unknown>>
+  TypedClass<SequencerModule<unknown>>
 >;
 
 @injectable()
