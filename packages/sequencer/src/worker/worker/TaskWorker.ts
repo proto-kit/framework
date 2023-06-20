@@ -1,5 +1,5 @@
-// eslint-disable-next-line id-length
-import _ from "lodash";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import groupBy from "lodash/groupBy";
 
 import {
   MapReduceTask,
@@ -18,6 +18,7 @@ const errors = {
 export class TaskWorker implements Closeable {
   private readonly tasks: {
     queue: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     task: ReducableTask<any>;
     handler: (payload: TaskPayload) => Promise<TaskPayload | undefined>;
   }[] = [];
@@ -95,7 +96,7 @@ export class TaskWorker implements Closeable {
 
   public async init() {
     this.workers = Object.entries(
-      _.groupBy(this.tasks, (task) => task.queue)
+      groupBy(this.tasks, (task) => task.queue)
     ).map((tasks) =>
       this.queue.createWorker(tasks[0], async (data) => {
         if (tasks[1].length > 1) {
@@ -105,7 +106,7 @@ export class TaskWorker implements Closeable {
         const [, [task]] = tasks;
 
         const result = await task.handler(data);
-        console.log("Result: " + JSON.stringify(result));
+        console.log(`Result: ${JSON.stringify(result)}`);
         if (result === undefined) {
           throw errors.notComputable();
         }
@@ -116,6 +117,10 @@ export class TaskWorker implements Closeable {
   }
 
   public async close() {
-    await Promise.all(this.workers.map((worker) => worker.close()));
+    await Promise.all(
+      this.workers.map(async (worker) => {
+        await worker.close();
+      })
+    );
   }
 }

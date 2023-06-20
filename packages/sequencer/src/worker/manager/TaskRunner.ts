@@ -1,6 +1,4 @@
-// eslint-disable-next-line max-len
-/* eslint-disable promise/avoid-new,promise/prefer-await-to-then,promise/always-return,@typescript-eslint/no-empty-function,etc/no-implicit-any-catch,putout/putout */
-
+/* eslint-disable max-len,promise/avoid-new,promise/prefer-await-to-then,promise/always-return,@typescript-eslint/no-empty-function,etc/no-implicit-any-catch,putout/putout */
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 
 import {
@@ -12,6 +10,9 @@ import {
 
 const errors = {
   taskNotTerminating: () => new Error("Task not terminating"),
+
+  queueIsUndefined: () =>
+    new Error("Queue not initialized, call this method only through execute()"),
 };
 
 /**
@@ -42,21 +43,30 @@ export class ReducingTaskRunner<Type> implements Closeable {
     protected readonly queueName: string
   ) {}
 
+  protected assertQueueNotNull(
+    queue: InstantiatedQueue | undefined
+  ): asserts queue is InstantiatedQueue {
+    if (queue !== undefined) {
+      throw errors.queueIsUndefined();
+    }
+  }
+
   private resolveReducibleTasks(): { r1: Type; r2: Type }[] {
     const res: { r1: Type; r2: Type }[] = [];
 
     let { pendingInputs } = this;
+    const { task } = this;
 
     for (let index = 0; index < pendingInputs.length; index++) {
       const first = pendingInputs[index];
-      const secondIndex = pendingInputs.findIndex((second, index2) => {
-        return index2 > index && this.task.reducible(first, second);
-      });
+      const secondIndex = pendingInputs.findIndex(
+        (second, index2) => index2 > index && task.reducible(first, second)
+      );
 
       if (secondIndex > 0) {
         const second = pendingInputs[secondIndex];
         pendingInputs = pendingInputs.filter(
-          (_, index2) => index2 !== index && index2 !== secondIndex
+          (unused, index2) => index2 !== index && index2 !== secondIndex
         );
 
         res.push({ r1: first, r2: second });
@@ -71,6 +81,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
   private async pushReduction(t1: Type, t2: Type) {
     const payload: TaskPayload = {
       name: this.task.name(),
+
       payload: JSON.stringify([
         this.serializer.toJSON(t1),
         this.serializer.toJSON(t2),
@@ -79,10 +90,13 @@ export class ReducingTaskRunner<Type> implements Closeable {
 
     console.log(`Pushed Reduction: ${JSON.stringify([t1, t2])}`);
 
-    return await this.queue!.addTask(payload);
+    const { queue } = this;
+    this.assertQueueNotNull(queue);
+
+    return await queue.addTask(payload);
   }
 
-  private async pushAvailableReductions() {
+  protected async pushAvailableReductions() {
     const tasks = this.resolveReducibleTasks();
 
     const promises = tasks.map(
@@ -103,17 +117,22 @@ export class ReducingTaskRunner<Type> implements Closeable {
 
     this.runningTaskCount -= 1;
 
-    this.pendingInputs.push(parsed);
+    const { queue, pendingInputs, runningTaskCount } = this;
 
-    if (this.pendingInputs.length >= 2) {
+    pendingInputs.push(parsed);
+
+    this.assertQueueNotNull(queue);
+
+    if (pendingInputs.length >= 2) {
       await this.pushAvailableReductions();
-    } else if (this.runningTaskCount === 0 && this.pendingInputs.length === 1) {
+    } else if (runningTaskCount === 0 && pendingInputs.length === 1) {
       // Report result
-      await this.queue!.close();
-      resolve(this.pendingInputs[0]);
-    } else if (this.runningTaskCount === 0 && this.pendingInputs.length === 0) {
+      await queue.close();
+      resolve(pendingInputs[0]);
+    } else if (runningTaskCount === 0 && pendingInputs.length === 0) {
       throw errors.taskNotTerminating();
-      // Error
+    } else {
+      // Do nothing
     }
   }
 
@@ -123,9 +142,12 @@ export class ReducingTaskRunner<Type> implements Closeable {
   }
 
   public async executeReduce(inputs: Type[]): Promise<Type> {
+    const { queue } = this;
+    this.assertQueueNotNull(queue);
+
     // Why these weird functions? To get direct promise usage to a minimum
     const start = async (resolve: (type: Type) => void) => {
-      await this.queue!.onCompleted(async (result) => {
+      await queue.onCompleted(async (result) => {
         await this.handleCompleted(result.payload, resolve);
       });
 
@@ -150,14 +172,20 @@ export class ReducingTaskRunner<Type> implements Closeable {
       executor(resolve)
         // Do we need then()?
         .then(() => {})
-        .catch((err) => reject(err));
+        .catch((error) => {
+          reject(error);
+        });
     });
 
     return await promise;
   }
 
   public async close(): Promise<void> {
-    await Promise.all(this.openCloseables.map((x) => x.close()));
+    await Promise.all(
+      this.openCloseables.map(async (x) => {
+        await x.close();
+      })
+    );
   }
 }
 
@@ -175,15 +203,16 @@ export class MapReduceTaskRunner<
 
   public async executeMapReduce(inputs: Input[]): Promise<Result> {
     const start = async (resolve: (type: Result) => void) => {
-      const queue = this.queue!;
+      const { queue, task } = this;
+      this.assertQueueNotNull(queue);
 
       await queue.onCompleted(async (result) => {
         const { payload } = result;
 
-        if (payload.name === this.task.name()) {
+        if (payload.name === task.name()) {
           await super.handleCompleted(payload, resolve);
           // eslint-disable-next-line sonarjs/elseif-without-else
-        } else if (payload.name === `${this.task.name()}_map`) {
+        } else if (payload.name === `${task.name()}_map`) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const parsedResult: Result = JSON.parse(payload.payload);
           await super.addInput(parsedResult);
@@ -196,7 +225,7 @@ export class MapReduceTaskRunner<
       const initialPromises = inputQueue.map(
         async (input) =>
           await queue.addTask({
-            name: `${this.task.name()}_map`,
+            name: `${task.name()}_map`,
             payload: JSON.stringify(input),
           })
       );
