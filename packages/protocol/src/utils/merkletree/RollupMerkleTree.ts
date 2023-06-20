@@ -5,6 +5,7 @@
 import { Bool, Circuit, Field, Poseidon, Struct } from "snarkyjs";
 
 import { notInCircuit } from "../utils";
+import { MerkleTreeStore } from "./MerkleTreeStore";
 
 // external API
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -13,29 +14,6 @@ export { RollupMerkleTree, RollupMerkleWitness };
 // internal API
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
 export { maybeSwap };
-
-// eslint-disable-next-line etc/no-t
-export interface Virtualizable<T> {
-  parent: T;
-
-  virtualize: () => T;
-}
-
-export interface MerkleTreeStore extends Virtualizable<MerkleTreeStore> {
-  openTransaction: () => void;
-
-  commit: () => void;
-
-  setNodeAsync: (key: bigint, level: number, value: bigint) => Promise<void>;
-
-  getNodeAsync: (key: bigint, level: number) => Promise<bigint | undefined>;
-}
-
-export interface SyncMerkleTreeStore extends MerkleTreeStore {
-  setNode: (key: bigint, level: number, value: bigint) => void;
-
-  getNode: (key: bigint, level: number) => bigint | undefined;
-}
 
 /**
  * The {@link BaseMerkleWitness} class defines a circuit-compatible base class
@@ -111,9 +89,9 @@ class RollupMerkleTree {
 
   private readonly zeroes: bigint[];
 
-  public readonly store: SyncMerkleTreeStore;
+  public readonly store: MerkleTreeStore;
 
-  public constructor(store: SyncMerkleTreeStore) {
+  public constructor(store: MerkleTreeStore) {
     this.store = store;
     // eslint-disable-next-line @shopify/prefer-class-properties
     this.zeroes = [0n];
@@ -166,7 +144,6 @@ class RollupMerkleTree {
     if (index >= this.leafCount) {
       index %= this.leafCount;
     }
-    this.store.openTransaction();
     this.setNode(0, index, leaf);
     let currentIndex = index;
     for (let level = 1; level < RollupMerkleTree.height; level += 1) {
@@ -177,7 +154,6 @@ class RollupMerkleTree {
 
       this.setNode(level, currentIndex, Poseidon.hash([left, right]));
     }
-    this.store.commit();
   }
 
   /**

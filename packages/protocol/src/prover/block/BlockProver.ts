@@ -88,6 +88,9 @@ export class BlockProver
 
     const stateTo = { ...state };
 
+    // eslint-disable-next-line no-warning-comments
+    // TODO Check the user authorization and methodId?
+
     // Checks for the stateTransitionProof and appProof matching
     stateTransitionProof.publicInput.stateTransitionsHash.assertEquals(
       Field(0),

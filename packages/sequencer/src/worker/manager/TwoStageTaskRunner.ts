@@ -13,7 +13,7 @@ export class TwoStageTaskRunner<
   Result
 > extends MapReduceTaskRunner<[ParamOutput1, ParamOutput2, AdditionalParams], Result> {
 
-  constructor(
+  public constructor(
     messageQueue: TaskQueue,
     queueName: string,
     reducingTask: MapReduceTask<[ParamOutput1, ParamOutput2, AdditionalParams], Result>,
@@ -45,7 +45,7 @@ export class TwoStageTaskRunner<
             output1: undefined as ParamOutput1 | undefined,
             output2: undefined as ParamOutput2 | undefined,
             params: inputs[index][2],
-          }
+          };
         });
 
       // Checks if the given index has both outputs computed.

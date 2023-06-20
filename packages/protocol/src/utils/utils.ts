@@ -58,7 +58,9 @@ export function stringToField(value: string, throwOnOverflow = false) {
 
   if (data.length > fieldSize) {
     if (throwOnOverflow) {
-      throw new Error("Trying to encode a stringt that is larger than 256 bits");
+      throw new Error(
+        "Trying to encode a stringt that is larger than 256 bits"
+      );
     }
 
     // Hash the result Field[] to reduce it to
