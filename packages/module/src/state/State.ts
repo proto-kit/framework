@@ -6,7 +6,7 @@ import { container } from "tsyringe";
 import { Option, StateTransition, type Path } from "@yab/protocol";
 
 import { MethodExecutionContext } from "../method/MethodExecutionContext.js";
-import type { Runtime } from "../runtime/Runtime";
+import type { Runtime, RuntimeModulesRecord } from "../runtime/Runtime";
 
 export class WithPath {
   public path?: Field;
@@ -21,10 +21,10 @@ export class WithPath {
 }
 
 export class WithRuntime {
-  public runtime?: Runtime;
+  public runtime?: Runtime<RuntimeModulesRecord>;
 
-  public hasChainOrFail(): asserts this is {
-    runtime: Runtime;
+  public hasRuntimeOrFail(): asserts this is {
+    runtime: Runtime<RuntimeModulesRecord>;
   } {
     if (!this.runtime) {
       throw new Error(
@@ -77,7 +77,7 @@ export class State<Value> extends Mixin(WithPath, WithRuntime) {
   private witnessState() {
     // get the value from storage, or return a dummy value instead
     const value = Circuit.witness(this.valueType, () => {
-      this.hasChainOrFail();
+      this.hasRuntimeOrFail();
       this.hasPathOrFail();
 
       const fields = this.runtime.definition.state.get(this.path);
@@ -92,7 +92,7 @@ export class State<Value> extends Mixin(WithPath, WithRuntime) {
 
     // check if the value exists in the storage or not
     const isSome = Circuit.witness(Bool, () => {
-      this.hasChainOrFail();
+      this.hasRuntimeOrFail();
       this.hasPathOrFail();
 
       const fields = this.runtime.definition.state.get(this.path);

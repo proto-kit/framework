@@ -24,10 +24,6 @@ export class ConfigurableModule<Config> implements Configurable<Config> {
    */
   protected currentConfig: Config | undefined;
 
-  // eslint-disable-next-line max-len
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
-  public constructor(...args: any[]) {}
-
   // retrieve the existing config
   public get config(): Config {
     if (this.currentConfig === undefined) {

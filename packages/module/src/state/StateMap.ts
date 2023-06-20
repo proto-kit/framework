@@ -39,7 +39,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithRuntime) {
   public get(key: KeyType): Option<ValueType> {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
-    this.hasChainOrFail();
+    this.hasRuntimeOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
     state.runtime = this.runtime;
@@ -55,7 +55,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithRuntime) {
   public set(key: KeyType, value: ValueType) {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
-    this.hasChainOrFail();
+    this.hasRuntimeOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
     state.runtime = this.runtime;

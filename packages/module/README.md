@@ -8,7 +8,7 @@ Set of APIs to define YAB runtime modules and application chains.
 const chain = Chain.from({
   state: new InMemoryStateService(),
   // specify which modules should the chain consist of
-  runtimeModules: {
+  modules: {
     Balances,
     Admin,
   },
@@ -98,13 +98,13 @@ Here's an example of how a runtime module method execution proof can be generate
 const chain = Chain.from({
   state,
 
-  runtimeModules: {
+  modules: {
     Balances,
     Admin,
   },
 });
 
-const balances = chain.getRuntimeModule("Balances");
+const balances = chain.resolve("Balances");
 balances.getTotalSupply();
 
 const {

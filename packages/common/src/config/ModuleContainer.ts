@@ -2,7 +2,7 @@ import "reflect-metadata";
 
 import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
 
-import { TypedClassConstructor } from "../types";
+import { KeyOf, TypedClassConstructor } from "../types";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 
@@ -27,14 +27,14 @@ export const errors = {
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     new Error(`Unable to decorate module ${moduleName.toString()}`),
 
-  nonModuleDependecy: (runtimeModuleName: string) =>
+  nonModuleDependency: (runtimeModuleName: string) =>
     new Error(`
   Unable to register module: ${runtimeModuleName}, attempting to inject a non-module dependency`),
 
   unknownDependency: (runtimeModuleName: string, name: string) =>
     new Error(
       `Unable to register module: ${runtimeModuleName}, 
-      attempting to inject a dependency that is not registred 
+      attempting to inject a dependency that is not registered 
       as a runtime module for this chain: ${name}`
     ),
 };
@@ -53,16 +53,20 @@ export interface ModulesRecord<
 // config record derived from the provided modules and their config types
 export type ModulesConfig<Modules extends ModulesRecord> = {
   // this will translate into = key: module name, value: module.config
-  [ConfigKey in keyof Modules]: InstanceType<Modules[ConfigKey]>["config"];
+  [ConfigKey in KeyOf<Modules>]: InstanceType<
+    Modules[ConfigKey]
+  > extends Configurable<infer Config>
+    ? Config
+    : never;
 };
 
 /**
  * Parameters required when creating a module container instance
  */
-export interface ModuleContainerDefinition<Modules, Config> {
+export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   modules: Modules;
   // config is optional, as it may be provided by the parent/wrapper class
-  config?: Config;
+  config?: ModulesConfig<Modules>;
 }
 
 /**
@@ -71,17 +75,18 @@ export interface ModuleContainerDefinition<Modules, Config> {
  */
 export abstract class ModuleContainer<
   Modules extends ModulesRecord,
-  Config extends ModulesConfig<Modules>
+  ModuleName extends KeyOf<Modules> = KeyOf<Modules>
 > {
-  // determines how often are modules decorated upon resolution
-  public static moduleDecorationFrequency: Frequency = "Once";
+  /**
+   * Determines how often are modules decorated upon resolution
+   * from the tsyringe DI container
+   */
+  private static readonly moduleDecorationFrequency: Frequency = "Once";
 
-  // DI container holding all the registred modules
-  public container = container.createChildContainer();
+  // DI container holding all the registered modules
+  protected readonly container = container.createChildContainer();
 
-  public constructor(
-    public definition: ModuleContainerDefinition<Modules, Config>
-  ) {
+  public constructor(public definition: ModuleContainerDefinition<Modules>) {
     // register all provided modules when the container is created
     this.registerModules(definition.modules);
   }
@@ -100,8 +105,8 @@ export abstract class ModuleContainer<
    * @param moduleName
    * @param containedModule
    */
-  public validateModule<ModuleName extends keyof Modules>(
-    moduleName: ModuleName | string,
+  protected validateModule(
+    moduleName: ModuleName,
     containedModule: ConfigurableModule<unknown>
   ): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -112,17 +117,28 @@ export abstract class ModuleContainer<
       const name =
         typeof dependency === "string" ? dependency : dependency.name;
 
-      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-      if (!name) {
-        throw errors.nonModuleDependecy(this.moduleNameToString(moduleName));
+      if (name === undefined) {
+        throw errors.nonModuleDependency(moduleName);
       }
+
       if (!this.moduleNames.includes(name)) {
-        throw errors.unknownDependency(
-          this.moduleNameToString(moduleName),
-          name
-        );
+        throw errors.unknownDependency(moduleName, name);
       }
     });
+  }
+
+  /**
+   * Assert that the iterated `moduleName` is of ModuleName type,
+   * otherwise it may be just string e.g. when modules are iterated over
+   * using e.g. a for loop.
+   */
+  protected isValidModuleName(
+    modules: Modules,
+    moduleName: string
+  ): asserts moduleName is ModuleName {
+    if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
+      throw errors.onlyStringModuleNames(moduleName);
+    }
   }
 
   /**
@@ -135,6 +151,8 @@ export abstract class ModuleContainer<
   protected registerModules(modules: Modules) {
     for (const moduleName in modules) {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
+        this.isValidModuleName(modules, moduleName);
+
         this.container.register(
           moduleName,
           { useClass: modules[moduleName] },
@@ -163,45 +181,41 @@ export abstract class ModuleContainer<
    * before the first resolution.
    * @param config
    */
-  public configure(config: Config) {
+  public configure(config: ModulesConfig<Modules>) {
     this.definition.config = config;
   }
 
   /**
    * Resolves a module from the current module container
+   *
+   * We have to narrow down the `ModuleName` type here to
+   * `ResolvableModuleName`, otherwise the resolved value might
+   * be any module instance, not the one specifically requested as argument.
+   *
    * @param moduleName
    * @returns
    */
-  public resolve<ModuleName extends keyof Modules>(
-    moduleName: ModuleName
-  ): InstanceType<Modules[ModuleName]> {
-    return this.container.resolve(this.moduleNameToString(moduleName));
-  }
-
-  public moduleNameToString<ModuleName extends keyof Modules>(
-    moduleName: ModuleName | string
-  ): string {
-    if (typeof moduleName !== "string") {
-      throw errors.onlyStringModuleNames(moduleName);
-    }
-
-    return moduleName;
+  public resolve<ResolvableModuleName extends ModuleName>(
+    moduleName: ResolvableModuleName
+  ): InstanceType<Modules[ResolvableModuleName]> {
+    return this.container.resolve<InstanceType<Modules[ResolvableModuleName]>>(
+      moduleName
+    );
   }
 
   /**
    * Override this in the child class to provide custom
    * features or module checks
    */
-  protected decorateModule<ModuleName extends keyof Modules>(
-    moduleName: ModuleName | string,
+  protected decorateModule(
+    moduleName: ModuleName,
     containedModule: InstanceType<Modules[ModuleName]>
   ) {
-    const moduleNameString = this.moduleNameToString(moduleName);
-    const config = this.definition.config?.[moduleNameString];
+    const config = this.definition.config?.[moduleName];
 
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config) {
-      throw errors.configNotSetInContainer(moduleNameString);
+      throw errors.configNotSetInContainer(moduleName.toString());
     }
 
     containedModule.config = config;
@@ -211,12 +225,9 @@ export abstract class ModuleContainer<
    * Handle module resolution, e.g. by decorating resolved modules
    * @param moduleName
    */
-  protected onAfterModuleResolution<ModuleName extends keyof Modules>(
-    moduleName: ModuleName | string
-  ) {
+  protected onAfterModuleResolution(moduleName: ModuleName) {
     this.container.afterResolution<InstanceType<Modules[ModuleName]>>(
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      moduleName as InjectionToken,
+      moduleName,
       (containedModuleName, containedModule) => {
         // special case where tsyringe may return multiple known instances (?)
         if (Array.isArray(containedModule)) {

@@ -1,49 +1,50 @@
-import { Runtime as BaseRuntime } from "@yab/module";
-import { Sequencer as BaseSeqeuncer } from "@yab/sequencer";
+import { ModulesConfig } from "@yab/common";
+import { Runtime, RuntimeModulesRecord } from "@yab/module";
+import { Sequencer, SequencerModulesRecord } from "@yab/sequencer";
 
 export interface AppChainDefinition<
-  Runtime extends BaseRuntime,
-  Sequencer extends BaseSeqeuncer
+  RuntimeModules extends RuntimeModulesRecord,
+  SequencerModules extends SequencerModulesRecord
 > {
-  runtime: Runtime;
-  sequencer: Sequencer;
+  runtime: Runtime<RuntimeModules>;
+  sequencer: Sequencer<SequencerModules>;
 }
 
 /**
  * Definition of required arguments for AppChain
  */
 export interface AppChainConfig<
-  Runtime extends BaseRuntime,
-  Sequencer extends BaseSeqeuncer
+  RuntimeModules extends RuntimeModulesRecord,
+  SequencerModules extends SequencerModulesRecord
 > {
-  runtime: Required<Runtime["definition"]["config"]>;
-  sequencer: Required<Sequencer["definition"]["config"]>;
+  runtime: ModulesConfig<RuntimeModules>;
+  sequencer: ModulesConfig<SequencerModules>;
 }
 
 /**
  * AppChain acts as a wrapper connecting Runtime, Protocol and Sequencer
  */
 export class AppChain<
-  Runtime extends BaseRuntime,
-  Sequencer extends BaseSeqeuncer
+  RuntimeModules extends RuntimeModulesRecord,
+  SequencerModules extends SequencerModulesRecord
 > {
   // alternative AppChain constructor
   public static from<
-    Runtime extends BaseRuntime,
-    Sequencer extends BaseSeqeuncer
-  >(definition: AppChainDefinition<Runtime, Sequencer>) {
+    RuntimeModules extends RuntimeModulesRecord,
+    SequencerModules extends SequencerModulesRecord
+  >(definition: AppChainDefinition<RuntimeModules, SequencerModules>) {
     return new AppChain(definition);
   }
 
   public constructor(
-    public definition: AppChainDefinition<Runtime, Sequencer>
+    public definition: AppChainDefinition<RuntimeModules, SequencerModules>
   ) {}
 
-  public get runtime(): Runtime {
+  public get runtime(): Runtime<RuntimeModules> {
     return this.definition.runtime;
   }
 
-  public get sequencer(): Sequencer {
+  public get sequencer(): Sequencer<SequencerModules> {
     return this.definition.sequencer;
   }
 
@@ -51,7 +52,7 @@ export class AppChain<
    * Set config of the current AppChain and its underlying components
    * @param config
    */
-  public configure(config: AppChainConfig<Runtime, Sequencer>) {
+  public configure(config: AppChainConfig<RuntimeModules, SequencerModules>) {
     this.runtime.configure(config.runtime);
     this.sequencer.configure(config.sequencer);
   }
