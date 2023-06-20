@@ -2,7 +2,7 @@ import "reflect-metadata";
 
 import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
 
-import { KeyOf, TypedClassConstructor } from "../types";
+import { KeyOf, TypedClass } from "../types";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 
@@ -40,7 +40,7 @@ export const errors = {
 };
 
 // determines that a module should be configurable by default
-export type BaseModuleType = TypedClassConstructor<Configurable<unknown>>;
+export type BaseModuleType = TypedClass<Configurable<unknown>>;
 
 // allows to specify what kind of modules can be passed into a container
 export interface ModulesRecord<

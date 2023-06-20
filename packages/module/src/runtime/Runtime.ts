@@ -8,7 +8,7 @@ import {
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
-  TypedClassConstructor,
+  TypedClass,
 } from "@yab/common";
 
 import {
@@ -23,11 +23,11 @@ import { RuntimeModule } from "./RuntimeModule.js";
 /**
  * Record of modules accepted by the Runtime module container.
  *
- * We have to use TypedClassConstructor since RuntimeModule
+ * We have to use TypedClass since RuntimeModule
  * is an abstract class
  */
 export type RuntimeModulesRecord = ModulesRecord<
-  TypedClassConstructor<RuntimeModule<unknown>>
+  TypedClass<RuntimeModule<unknown>>
 >;
 
 /**

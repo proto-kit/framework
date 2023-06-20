@@ -1,5 +1,5 @@
 // allows to reference interfaces as 'classes' rather than instances
-export type TypedClassConstructor<Class> = new (...args: any[]) => Class;
+export type TypedClass<Class> = new (...args: any[]) => Class;
 
 /**
  * Using simple `keyof Target` would result into the key
