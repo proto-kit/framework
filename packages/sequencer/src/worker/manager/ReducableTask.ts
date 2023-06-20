@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 export interface AbstractTask<Result> {
   name: () => string;
   prepare: () => Promise<void>;

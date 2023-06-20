@@ -1,7 +1,8 @@
 import { TaskPayload } from "../manager/ReducableTask";
 
 /**
- * Definition of a connection-object that can generate queues and workers for a specific connection type (e.g. BullMQ, In-memory)
+ * Definition of a connection-object that can generate queues and workers
+ * for a specific connection type (e.g. BullMQ, In-memory)
  */
 export interface TaskQueue {
   getQueue: (name: string) => Promise<InstantiatedQueue>;

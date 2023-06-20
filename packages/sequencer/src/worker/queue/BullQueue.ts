@@ -33,6 +33,7 @@ export class BullQueue implements TaskQueue {
       {
         concurrency: options?.concurrency ?? 1,
         connection: this.redis,
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         metrics: { maxDataPoints: MetricsTime.ONE_HOUR * 24 },
       }
     );
@@ -76,6 +77,7 @@ export class BullQueue implements TaskQueue {
           payload: TaskPayload;
         }) => Promise<void>
       ) {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         events.on("completed", async (result) => {
           await listener({
             jobId: result.jobId,
