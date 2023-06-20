@@ -6,7 +6,7 @@ import { container } from "tsyringe";
 import { Option, StateTransition, type Path } from "@yab/protocol";
 
 import { MethodExecutionContext } from "../method/MethodExecutionContext.js";
-import type { Runtime, RuntimeModulesRecord } from "../runtime/Runtime";
+import { PartialRuntime } from "../runtime/RuntimeModule.js";
 
 export class WithPath {
   public path?: Field;
@@ -21,10 +21,10 @@ export class WithPath {
 }
 
 export class WithRuntime {
-  public runtime?: Runtime<RuntimeModulesRecord>;
+  public runtime?: PartialRuntime;
 
   public hasRuntimeOrFail(): asserts this is {
-    runtime: Runtime<RuntimeModulesRecord>;
+    runtime: PartialRuntime;
   } {
     if (!this.runtime) {
       throw new Error(

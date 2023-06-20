@@ -7,6 +7,15 @@ import type {
 } from "./Runtime";
 
 /**
+ * This type exists to carry over certain runtime properties
+ * to runtime modules, until we can inject them through DI.
+ */
+export interface PartialRuntime
+  extends Pick<Runtime<RuntimeModulesRecord>, "areProofsEnabled" | "program"> {
+  definition: Pick<RuntimeDefinition<RuntimeModulesRecord>, "state">;
+}
+
+/**
  * Base class for runtime modules providing the necessary utilities.
  */
 export abstract class RuntimeModule<Config> extends ConfigurableModule<Config> {
@@ -21,7 +30,5 @@ export abstract class RuntimeModule<Config> extends ConfigurableModule<Config> {
 
   public name?: string;
 
-  public runtime?: Pick<Runtime<RuntimeModulesRecord>, "areProofsEnabled"> & {
-    state?: Pick<RuntimeDefinition<RuntimeModulesRecord>, "state">;
-  };
+  public runtime?: PartialRuntime;
 }

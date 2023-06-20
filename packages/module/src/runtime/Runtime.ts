@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
 import { Experimental, Proof } from "snarkyjs";
-import { container, injectable } from "tsyringe";
+import { injectable } from "tsyringe";
 import { MethodPublicInput, Subclass } from "@yab/protocol";
 import {
   StringKeyOf,
