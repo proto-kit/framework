@@ -2,7 +2,7 @@ import "reflect-metadata";
 
 import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
 
-import { KeyOf, TypedClass } from "../types";
+import { StringKeyOf, TypedClass } from "../types";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 
@@ -53,7 +53,7 @@ export interface ModulesRecord<
 // config record derived from the provided modules and their config types
 export type ModulesConfig<Modules extends ModulesRecord> = {
   // this will translate into = key: module name, value: module.config
-  [ConfigKey in KeyOf<Modules>]: InstanceType<
+  [ConfigKey in StringKeyOf<Modules>]: InstanceType<
     Modules[ConfigKey]
   > extends Configurable<infer Config>
     ? Config
@@ -73,10 +73,7 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
  */
-export abstract class ModuleContainer<
-  Modules extends ModulesRecord,
-  ModuleName extends KeyOf<Modules> = KeyOf<Modules>
-> {
+export class ModuleContainer<Modules extends ModulesRecord> {
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -106,7 +103,7 @@ export abstract class ModuleContainer<
    * @param containedModule
    */
   protected validateModule(
-    moduleName: ModuleName,
+    moduleName: StringKeyOf<Modules>,
     containedModule: ConfigurableModule<unknown>
   ): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -135,7 +132,7 @@ export abstract class ModuleContainer<
   protected isValidModuleName(
     modules: Modules,
     moduleName: string
-  ): asserts moduleName is ModuleName {
+  ): asserts moduleName is StringKeyOf<Modules> {
     if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
       throw errors.onlyStringModuleNames(moduleName);
     }
@@ -195,7 +192,7 @@ export abstract class ModuleContainer<
    * @param moduleName
    * @returns
    */
-  public resolve<ResolvableModuleName extends ModuleName>(
+  public resolve<ResolvableModuleName extends StringKeyOf<Modules>>(
     moduleName: ResolvableModuleName
   ): InstanceType<Modules[ResolvableModuleName]> {
     return this.container.resolve<InstanceType<Modules[ResolvableModuleName]>>(
@@ -208,8 +205,8 @@ export abstract class ModuleContainer<
    * features or module checks
    */
   protected decorateModule(
-    moduleName: ModuleName,
-    containedModule: InstanceType<Modules[ModuleName]>
+    moduleName: StringKeyOf<Modules>,
+    containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
     const config = this.definition.config?.[moduleName];
 
@@ -225,8 +222,8 @@ export abstract class ModuleContainer<
    * Handle module resolution, e.g. by decorating resolved modules
    * @param moduleName
    */
-  protected onAfterModuleResolution(moduleName: ModuleName) {
-    this.container.afterResolution<InstanceType<Modules[ModuleName]>>(
+  protected onAfterModuleResolution(moduleName: StringKeyOf<Modules>) {
+    this.container.afterResolution<InstanceType<Modules[StringKeyOf<Modules>]>>(
       moduleName,
       (containedModuleName, containedModule) => {
         // special case where tsyringe may return multiple known instances (?)

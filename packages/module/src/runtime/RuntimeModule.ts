@@ -1,14 +1,15 @@
 import { ConfigurableModule, Presets } from "@yab/common";
 
-import type { Runtime, RuntimeModulesRecord } from "./Runtime";
+import type {
+  Runtime,
+  RuntimeDefinition,
+  RuntimeModulesRecord,
+} from "./Runtime";
 
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
-export abstract class RuntimeModule<
-  Config,
-  CurrentRuntime extends Runtime<RuntimeModulesRecord> = Runtime<RuntimeModulesRecord>
-> extends ConfigurableModule<Config> {
+export abstract class RuntimeModule<Config> extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 
   /**
@@ -20,5 +21,7 @@ export abstract class RuntimeModule<
 
   public name?: string;
 
-  public runtime?: CurrentRuntime;
+  public runtime?: Pick<Runtime<RuntimeModulesRecord>, "areProofsEnabled"> & {
+    state?: Pick<RuntimeDefinition<RuntimeModulesRecord>, "state">;
+  };
 }
