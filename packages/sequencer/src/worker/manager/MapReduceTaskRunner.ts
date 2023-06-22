@@ -47,7 +47,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
   protected assertQueueNotNull(
     queue: InstantiatedQueue | undefined
   ): asserts queue is InstantiatedQueue {
-    if (queue !== undefined) {
+    if (queue === undefined) {
       throw errors.queueIsUndefined();
     }
   }
@@ -82,7 +82,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
 
   private async pushReduction(t1: Type, t2: Type) {
     const payload: TaskPayload = {
-      name: this.reducableTask.name(),
+      name: `${this.reducableTask.name()}_reduce`,
 
       payload: JSON.stringify([
         this.serializer.toJSON(t1),
@@ -148,11 +148,11 @@ export class ReducingTaskRunner<Type> implements Closeable {
   }
 
   public async executeReduce(inputs: Type[]): Promise<Type> {
-    const { queue } = this;
-    this.assertQueueNotNull(queue);
-
     // Why these weird functions? To get direct promise usage to a minimum
     const start = async (resolve: (type: Type) => void) => {
+      const { queue } = this;
+      this.assertQueueNotNull(queue);
+
       await queue.onCompleted(async (result) => {
         await this.handleCompletedReducingStep(result.payload, resolve);
       });
@@ -163,7 +163,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
       await this.pushAvailableReductions();
     };
 
-    return await this.execute(start);
+    return await this.execute(start.bind(this));
   }
 
   protected async execute(
@@ -174,8 +174,10 @@ export class ReducingTaskRunner<Type> implements Closeable {
 
     this.openCloseables.push(queue);
 
+    const boundExecutor = executor.bind(this);
+
     const promise = new Promise<Type>((resolve, reject) => {
-      executor(resolve)
+      boundExecutor(resolve)
         // Do we need then()?
         .then(() => {})
         .catch((error) => {
@@ -215,10 +217,11 @@ export class MapReduceTaskRunner<
       await queue.onCompleted(async (result) => {
         const { payload } = result;
 
-        if (payload.name === `${mapReduceTask.name()}_redice`) {
+        if (payload.name === `${mapReduceTask.name()}_reduce`) {
           await super.handleCompletedReducingStep(payload, resolve);
           // eslint-disable-next-line sonarjs/elseif-without-else
         } else if (payload.name === mapReduceTask.name()) {
+          console.log(payload.payload);
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const parsedResult: Result = JSON.parse(payload.payload);
           await super.addInput(parsedResult);
@@ -233,7 +236,7 @@ export class MapReduceTaskRunner<
       const initialPromises = inputQueue.map(
         async (input) =>
           await queue.addTask({
-            name: `${mapReduceTask.name()}_map`,
+            name: mapReduceTask.name(),
             payload: inputSerializer.toJSON(input),
           })
       );
