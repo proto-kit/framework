@@ -1,12 +1,7 @@
 /* eslint-disable max-len,promise/avoid-new,promise/prefer-await-to-then,promise/always-return,@typescript-eslint/no-empty-function,etc/no-implicit-any-catch,putout/putout */
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 
-import {
-  MapReduceTask,
-  ReducableTask,
-  TaskPayload,
-  TaskSerializer,
-} from "./ReducableTask";
+import { MapReduceTask, TaskPayload, TaskSerializer } from "./ReducableTask";
 
 const errors = {
   taskNotTerminating: () => new Error("Task not terminating"),
@@ -16,31 +11,32 @@ const errors = {
 };
 
 /**
- * Task-runner that has the responsibility of pushing and coordinating the computing of a task with the corresponding inputs.
+ * Task-runner that has the responsibility of pushing and coordinating
+ * the computing of a task with the corresponding inputs.
  *
  * This instance takes a ReduceableTask and runs it on a given TaskQueue
  */
-export class ReducingTaskRunner<Type> implements Closeable {
-  protected serializer: TaskSerializer<Type> =
-    this.reducableTask.resultSerializer();
+export class ReducingTaskRunner<Input, Result> implements Closeable {
+  protected serializer: TaskSerializer<Result> =
+    this.mapReduceTask.resultSerializer();
 
   protected queue?: InstantiatedQueue = undefined;
 
   protected openCloseables: Closeable[] = [];
 
   // The queue of all inputs that aren't yet submitted in a task
-  private pendingInputs: Type[] = [];
+  private pendingInputs: Result[] = [];
 
   private runningTaskCount = 0;
 
   /**
    * @param messageQueue The connection object to the messageQueue
-   * @param reducableTask The task definition to be executed
+   * @param mapReduceTask The task definition to be executed
    * @param queueName The name of the queue on which the task should be executed (workers have to listen on that queue)
    */
   public constructor(
     protected readonly messageQueue: TaskQueue,
-    protected readonly reducableTask: ReducableTask<Type>,
+    protected readonly mapReduceTask: MapReduceTask<Input, Result>,
     protected readonly queueName: string
   ) {}
 
@@ -52,17 +48,17 @@ export class ReducingTaskRunner<Type> implements Closeable {
     }
   }
 
-  private resolveReducibleTasks(): { r1: Type; r2: Type }[] {
-    const res: { r1: Type; r2: Type }[] = [];
+  private resolveReducibleTasks(): { r1: Result; r2: Result }[] {
+    const res: { r1: Result; r2: Result }[] = [];
 
     let { pendingInputs } = this;
-    const { reducableTask } = this;
+    const { mapReduceTask } = this;
 
     for (let index = 0; index < pendingInputs.length; index++) {
       const first = pendingInputs[index];
       const secondIndex = pendingInputs.findIndex(
         (second, index2) =>
-          index2 > index && reducableTask.reducible(first, second)
+          index2 > index && mapReduceTask.reducible(first, second)
       );
 
       if (secondIndex > 0) {
@@ -80,9 +76,9 @@ export class ReducingTaskRunner<Type> implements Closeable {
     return res;
   }
 
-  private async pushReduction(t1: Type, t2: Type) {
+  private async pushReduction(t1: Result, t2: Result) {
     const payload: TaskPayload = {
-      name: `${this.reducableTask.name()}_reduce`,
+      name: `${this.mapReduceTask.name()}_reduce`,
 
       payload: JSON.stringify([
         this.serializer.toJSON(t1),
@@ -117,7 +113,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
   // It checks whether new reductions are available to compute or if the reduction has been completed
   protected async handleCompletedReducingStep(
     payload: TaskPayload,
-    resolve: (result: Type) => void
+    resolve: (result: Result) => void
   ) {
     const parsed = this.serializer.fromJSON(payload.payload);
 
@@ -142,74 +138,13 @@ export class ReducingTaskRunner<Type> implements Closeable {
     }
   }
 
-  protected async addInput(...inputs: Type[]) {
+  protected async addInput(...inputs: Result[]) {
     this.pendingInputs.push(...inputs);
     await this.pushAvailableReductions();
   }
 
-  public async executeReduce(inputs: Type[]): Promise<Type> {
-    // Why these weird functions? To get direct promise usage to a minimum
-    const start = async (resolve: (type: Type) => void) => {
-      const { queue } = this;
-      this.assertQueueNotNull(queue);
-
-      await queue.onCompleted(async (result) => {
-        await this.handleCompletedReducingStep(result.payload, resolve);
-      });
-
-      this.pendingInputs = Array.from(inputs);
-
-      // Push initial tasks
-      await this.pushAvailableReductions();
-    };
-
-    return await this.execute(start.bind(this));
-  }
-
-  protected async execute(
-    executor: (resolve: (type: Type) => void) => Promise<void>
-  ): Promise<Type> {
-    const queue = await this.messageQueue.getQueue(this.queueName);
-    this.queue = queue;
-
-    this.openCloseables.push(queue);
-
-    const boundExecutor = executor.bind(this);
-
-    const promise = new Promise<Type>((resolve, reject) => {
-      boundExecutor(resolve)
-        // Do we need then()?
-        .then(() => {})
-        .catch((error) => {
-          reject(error);
-        });
-    });
-
-    return await promise;
-  }
-
-  public async close(): Promise<void> {
-    await Promise.all(
-      this.openCloseables.map(async (x) => {
-        await x.close();
-      })
-    );
-  }
-}
-
-export class MapReduceTaskRunner<
-  Input,
-  Result
-> extends ReducingTaskRunner<Result> {
-  public constructor(
-    messageQueue: TaskQueue,
-    protected readonly mapReduceTask: MapReduceTask<Input, Result>,
-    queueName: string
-  ) {
-    super(messageQueue, mapReduceTask, queueName);
-  }
-
   public async executeMapReduce(inputs: Input[]): Promise<Result> {
+    // Why these weird functions? To get direct promise usage to a minimum
     const start = async (resolve: (type: Result) => void) => {
       const { queue, mapReduceTask } = this;
       this.assertQueueNotNull(queue);
@@ -218,13 +153,13 @@ export class MapReduceTaskRunner<
         const { payload } = result;
 
         if (payload.name === `${mapReduceTask.name()}_reduce`) {
-          await super.handleCompletedReducingStep(payload, resolve);
+          await this.handleCompletedReducingStep(payload, resolve);
           // eslint-disable-next-line sonarjs/elseif-without-else
         } else if (payload.name === mapReduceTask.name()) {
           console.log(payload.payload);
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const parsedResult: Result = JSON.parse(payload.payload);
-          await super.addInput(parsedResult);
+          await this.addInput(parsedResult);
         }
       });
 
@@ -242,6 +177,40 @@ export class MapReduceTaskRunner<
       );
       await Promise.all(initialPromises);
     };
-    return await this.execute(start);
+    return await this.executeFlowWithQueue(start);
+  }
+
+  /**
+   * Executes a function that handles the processing of the flow while
+   * opening a queue instance and handling errors
+   */
+  protected async executeFlowWithQueue(
+    executor: (resolve: (type: Result) => void) => Promise<void>
+  ): Promise<Result> {
+    const queue = await this.messageQueue.getQueue(this.queueName);
+    this.queue = queue;
+
+    this.openCloseables.push(queue);
+
+    const boundExecutor = executor.bind(this);
+
+    const promise = new Promise<Result>((resolve, reject) => {
+      boundExecutor(resolve)
+        // Do we need then()?
+        .then(() => {})
+        .catch((error) => {
+          reject(error);
+        });
+    });
+
+    return await promise;
+  }
+
+  public async close(): Promise<void> {
+    await Promise.all(
+      this.openCloseables.map(async (x) => {
+        await x.close();
+      })
+    );
   }
 }
