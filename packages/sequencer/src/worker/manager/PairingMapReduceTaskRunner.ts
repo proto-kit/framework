@@ -1,6 +1,8 @@
-import { MapReduceTaskRunner } from "./MapReduceTaskRunner";
-import { MappingTask, MapReduceTask, TaskPayload } from "./ReducableTask";
+/* eslint-disable putout/putout */
 import { TaskQueue } from "../queue/TaskQueue";
+
+import { MapReduceTaskRunner } from "./MapReduceTaskRunner";
+import { MappingTask, MapReduceTask } from "./ReducableTask";
 
 const errors = {
   unknownTask: (name: string) =>
@@ -33,6 +35,15 @@ interface PairingCollector<Output1, Output2, AdditionalParameters> {
 }
 
 /**
+ * This is a task runner that extends the functionality of the
+ * MapReduceTaskRunner with the ability to perform an extra step
+ * called "pairing" before starting the map-reduce.
+ *
+ * The pairing is an extra step with 2 distinct and seperated tasks
+ * that get executed independently, but then the two results together
+ * are in turn used as an input for Map-Reduce flow that then gets
+ * processed normally.
+ *
  * What is a "pairing"?
  * A pairing is defined as a set of two tasks that have to be matched 1:1 and
  * need to be both completed before a result will be returned and followup
@@ -144,7 +155,7 @@ export class PairingMapReduceTaskRunner<
         input2: task.secondPairing.inputSerializer(),
         output2: task.secondPairing.resultSerializer(),
       };
-      const mapReduceInputSerializer = this.task.reducingTask.inputSerializer();
+      const mapReduceInputSerializer = task.reducingTask.inputSerializer();
 
       // Collects all matching pairs of calculated inputs
       const pairingCollector = this.createNewPairingCollector(
@@ -153,9 +164,7 @@ export class PairingMapReduceTaskRunner<
       );
 
       // Add listener
-      await queue.onCompleted(async (result) => {
-        const { payload } = result;
-
+      await queue.onCompleted(async ({ payload }) => {
         switch (payload.name) {
           // This case gets triggered when a result of a pair-task comes back
           case task.firstPairing.name():
@@ -196,7 +205,6 @@ export class PairingMapReduceTaskRunner<
             break;
           }
           case `${task.reducingTask.name()}_reduce`: {
-            // Handle reducing step
             await super.handleCompletedReducingStep(payload, resolve);
 
             break;
@@ -211,13 +219,13 @@ export class PairingMapReduceTaskRunner<
       const taskPushPromises = inputs.flatMap(async (input, index) => {
         const taskId = taskIdGenerator(input[0], index);
 
-        // Push input 1
+        // Push first pairing element
         const promise1 = await queue.addTask({
           name: task.firstPairing.name(),
           payload: pairingSerializers.input1.toJSON(input[0]),
           taskId,
         });
-        // Push input 2
+        // Push second pairing element
         const promise2 = await queue.addTask({
           name: task.secondPairing.name(),
           payload: pairingSerializers.input2.toJSON(input[1]),
@@ -230,6 +238,6 @@ export class PairingMapReduceTaskRunner<
       // Await all addTask() calls before continuing
       await Promise.all(taskPushPromises);
     };
-    return await this.execute(start);
+    return await this.executeFlowWithQueue(start);
   }
 }
