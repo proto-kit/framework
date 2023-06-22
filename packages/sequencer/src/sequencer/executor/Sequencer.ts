@@ -7,7 +7,6 @@ import {
   log,
 } from "@yab/common";
 import { Runtime, RuntimeModulesRecord } from "@yab/module";
-import { injectable } from "tsyringe";
 import {
   Protocol,
   ProtocolModulesRecord,
@@ -16,6 +15,7 @@ import {
   StateTransitionWitnessProvider,
   StateTransitionWitnessProviderReference,
 } from "@yab/protocol";
+import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
 
@@ -47,6 +47,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
 
   public get protocol(): Protocol<ProtocolModulesRecord> {
     return this.container.resolve<Protocol<ProtocolModulesRecord>>("Protocol");
+  }
+
+  public get dependencyContainer(): DependencyContainer {
+    return this.container
   }
 
   /**

@@ -7,10 +7,8 @@ import {
 } from "@yab/module";
 import {
   AsyncMerkleTreeStore, BlockProverPublicInput,
-  CachedMerkleTreeStore,
-  FlipOptional,
-  MerkleTreeStore,
-  MethodPublicInput,
+  CachedMerkleTreeStore, DefaultProvableHashList,
+  MethodPublicInput, ProvableHashList,
   ProvableStateTransition,
   RollupMerkleTree,
   RollupMerkleWitness,
@@ -28,9 +26,12 @@ import { Field, Proof } from "snarkyjs";
 import { BaseLayer } from "../baselayer/BaseLayer";
 import { BlockProvingTask } from "./tasks/BlockProvingTask";
 import { TaskQueue } from "../../worker/queue/TaskQueue";
+import { MapReduceDerivedInput, TwoStageTaskRunner } from "../../worker/manager/TwoStageTaskRunner";
+import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
+import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 
 interface RuntimeSequencerModuleConfig {
-  proofsEnabled?: boolean;
+  proofsEnabled: boolean;
 }
 
 export interface StateRecord {
@@ -47,6 +48,15 @@ export interface TransactionTrace {
   stateTransitionInput: StateTransitionProverPublicInput;
   stateTransitions: ProvableStateTransition[];
   merkleWitnesses: RollupMerkleWitness[];
+  bundle: {
+    fromTransactionsHash: Field;
+    toTransactionHash: Field;
+  };
+}
+
+const errors = {
+  publicInputUndefined: () =>
+    new Error("Public Input undefined, something went wrong during execution")
 }
 
 export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleConfig> {
@@ -65,12 +75,6 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     @inject("TaskQueue") private readonly taskQueue: TaskQueue
   ) {
     super();
-  }
-
-  public get defaultConfig(): FlipOptional<RuntimeSequencerModuleConfig> {
-    return {
-      proofsEnabled: true,
-    };
   }
 
   public async start(): Promise<void> {
@@ -93,7 +97,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
   public async produceBlock() {
     this.productionInProgress = true;
 
-
+    const block = await this.createBlock()
 
     // Broadcast result on to baselayer
     this.baseLayer.blockProduced({});
@@ -112,22 +116,51 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
    * 3. We create tasks based on those traces
    *
    */
-  public async createBlock(): Promise<Proof<BlockProverPublicInput>> {
+  public async createBlock(blockId: number): Promise<Proof<BlockProverPublicInput>> {
     const stateServices = {
       stateService: new CachedStateService(this.asyncStateService),
       merkleStore: new CachedMerkleTreeStore(this.merkleStore),
     };
 
+    const bundleTracker = new DefaultProvableHashList(Field);
+
     const traces = await Promise.all(
       this.mempool.getTxs().txs.map(async (tx) => {
-        return await this.createTrace(tx, stateServices);
+        return await this.createTrace(tx, stateServices, bundleTracker);
       })
     );
 
     // Init tasks based on traces
+    const mappedInputs = traces.map<[StateTransitionProofParameters, RuntimeProofParameters, BlockProverPublicInput]>(trace => {
+      return [
+        {
+          publicInput: trace.stateTransitionInput,
+          batch: trace.stateTransitions,
+          merkleWitnesses: trace.merkleWitnesses,
+        },
+        {
+          state: trace.state,
+          tx: trace.tx,
+        },
+        {
+          fromStateRoot: trace.stateTransitionInput.fromStateRoot,
+          toStateRoot: trace.stateTransitionInput.toStateRoot,
+          fromTransactionsHash: trace.bundle.fromTransactionsHash,
+          toTransactionsHash: trace.bundle.toTransactionHash,
+        },
+      ];
+    });
+
     const task = container.resolve(BlockProvingTask);
 
+    const runner = new TwoStageTaskRunner(this.taskQueue, `block_${blockId}`, task, task)
 
+    const proof = await runner.executeTwoStageMapReduce(mappedInputs);
+
+    // Exceptions?
+    await runner.close();
+
+    return proof;
   }
 
   /**
@@ -150,38 +183,54 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
   public async createTrace(
     tx: PendingTransaction,
     stateServices: {
-      stateService: CachedStateService,
-      merkleStore: CachedMerkleTreeStore
-    }
+      stateService: CachedStateService;
+      merkleStore: CachedMerkleTreeStore;
+    },
+    bundleTracker: ProvableHashList<Field>
   ): Promise<TransactionTrace> {
     const method = this.runtime.getMethodById(tx.methodId.toBigInt());
 
     // Step 1 & 2
-    const { executionResult, startingState }  = await this.executeRuntimeMethod(stateServices.stateService, method);
+    const { executionResult, startingState } =
+      await this.executeRuntimeMethod(stateServices.stateService, method);
     const { stateTransitions, publicInput } = executionResult;
 
+    if (publicInput === undefined){
+      throw errors.publicInputUndefined();
+    }
+
     // Step 3
-    const { witnesses, fromStateRoot, toStateRoot } = await this.createMerkleTrace(stateServices.merkleStore, stateTransitions);
+    const { witnesses, fromStateRoot, toStateRoot } =
+      await this.createMerkleTrace(stateServices.merkleStore, stateTransitions);
+
+    const fromTransactionsHash = bundleTracker.commitment;
+    bundleTracker.push(tx.hash());
 
     const trace: TransactionTrace = {
       tx,
-      runtimeInput: publicInput!,
+      runtimeInput: publicInput,
       state: startingState,
 
       stateTransitionInput: {
         fromStateRoot,
         toStateRoot,
         fromStateTransitionsHash: Field(0),
-        toStateTransitionsHash: publicInput!.stateTransitionsHash
+        toStateTransitionsHash: publicInput.stateTransitionsHash,
       },
+
       stateTransitions: stateTransitions.map(transition => transition.toProvable()),
-      merkleWitnesses: witnesses
+      merkleWitnesses: witnesses,
+
+      bundle: {
+        fromTransactionsHash,
+        toTransactionHash: bundleTracker.commitment,
+      },
     };
 
     this.runtime.stateServiceProvider.resetToDefault();
     stateServices.merkleStore.resetWrittenNodes();
 
-    return trace
+    return trace;
   }
 
   private async createMerkleTrace(

@@ -8,7 +8,7 @@ import {
   BlockProverPublicInput,
   MethodPublicInput, ReturnType,
   StateTransitionProver,
-  StateTransitionProverPublicInput, Subclass, TypedClassType
+  StateTransitionProverPublicInput, Subclass, TypedClass
 } from "@yab/protocol";
 import { Experimental, Proof } from "snarkyjs";
 import { MethodExecutionContext, Runtime } from "@yab/module";
@@ -21,6 +21,7 @@ import {
 import { RuntimeProofParameters, RuntimeProofParametersSerializer } from "./RuntimeTaskParameters";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import ZkProgram = Experimental.ZkProgram;
+import { MapReduceDerivedInput } from "../../../worker/manager/TwoStageTaskRunner";
 
 type StateTransitionProof = Proof<StateTransitionProverPublicInput>;
 type AppchainProof = Proof<MethodPublicInput>;
@@ -94,11 +95,7 @@ export class RuntimeProvingTask
   }
 }
 
-export interface BlockProvingTaskInput {
-  stateTransitionProof: StateTransitionProof
-  runtimeProof: AppchainProof
-  publicInput: BlockProverPublicInput
-}
+export type BlockProvingTaskInput = MapReduceDerivedInput<StateTransitionProof, AppchainProof, BlockProverPublicInput>;
 
 @injectable()
 export class BlockProvingTask
@@ -106,7 +103,7 @@ export class BlockProvingTask
   implements MapReduceTask<BlockProvingTaskInput, BlockProof>
 {
   private blockProverProgram: ReturnType<typeof BlockProver.prototype.createZkProgram> extends Promise<infer Program> ? Program : any
-  private blockProofType: Subclass<TypedClassType<BlockProof>>;
+  private blockProofType: Subclass<TypedClass<BlockProof>>;
 
   public constructor(
     stateTransitionProver: StateTransitionProver,
@@ -129,9 +126,9 @@ export class BlockProvingTask
     return {
       toJSON(input: BlockProvingTaskInput): string {
         const jsonReadyObject = {
-          stateTransitionProof: stProofSerializer.toJSON(input.stateTransitionProof),
-          runtimeProof: runtimeProofSerializer.toJSON(input.runtimeProof),
-          publicInput: BlockProverPublicInput.toJSON(input.publicInput),
+          input1: stProofSerializer.toJSON(input.input1),
+          input2: runtimeProofSerializer.toJSON(input.input2),
+          params: BlockProverPublicInput.toJSON(input.params),
         };
         return JSON.stringify(jsonReadyObject)
       },
@@ -139,21 +136,21 @@ export class BlockProvingTask
       fromJSON(json: string): BlockProvingTaskInput {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonReadyObject: {
-          stateTransitionProof: string;
-          runtimeProof: string;
-          publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
+          input1: string;
+          input2: string;
+          params: ReturnType<typeof BlockProverPublicInput.toJSON>;
         } = JSON.parse(json);
 
         return {
-          stateTransitionProof: stProofSerializer.fromJSON(jsonReadyObject.stateTransitionProof),
-          runtimeProof: runtimeProofSerializer.fromJSON(jsonReadyObject.runtimeProof),
-          publicInput: BlockProverPublicInput.fromJSON(jsonReadyObject.publicInput),
+          input1: stProofSerializer.fromJSON(jsonReadyObject.input1),
+          input2: runtimeProofSerializer.fromJSON(jsonReadyObject.input2),
+          params: BlockProverPublicInput.fromJSON(jsonReadyObject.params),
         }
       }
     };
   }
 
-  public async map(t: [StateTransitionProof, AppchainProof, BlockProverPublicInput]): Promise<BlockProof> {
+  public async map(t: MapReduceDerivedInput<StateTransitionProof, AppchainProof, BlockProverPublicInput>): Promise<BlockProof> {
 
   }
 
