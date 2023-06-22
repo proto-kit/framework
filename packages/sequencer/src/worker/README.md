@@ -45,17 +45,20 @@ Notation: `<taskName>(<payload>)`
 ### How does that relate to block production?
 
 We dissect the block production problem into multiple smaller problems:
+
 1. Mapping of TX params (called method, arguments, etc.) => RuntimeProof
 2. Mapping of StateTransitionParams (merkle witnesses, state values, ...) => StateTransitionProof (STProof)
 3. Mapping of [RuntimeProof, StateTransitionProof, BlockProverParams] => BlockProof
 4. Reducing of BlockProof[] => BlockProof
 
 We also have few constraints on that:
+
 - 1 RuntimeProof is compatible with exactly 1 STProof
 - A BlockProof-Array is implicitly ordered by their from- and to- public inputs.
   Any BlockProof at position n in that ordering can only be merged with the BlockProofs at n-1 or n+1
 
 When we now combine all of these facts, we arrive at the following high-level flow:
+
 - Map Steps 1 & 2
 - Pair results into inputs for Step 3
 - Map Step 3
