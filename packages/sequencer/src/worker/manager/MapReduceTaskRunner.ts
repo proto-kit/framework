@@ -21,7 +21,8 @@ const errors = {
  * This instance takes a ReduceableTask and runs it on a given TaskQueue
  */
 export class ReducingTaskRunner<Type> implements Closeable {
-  protected serializer: TaskSerializer<Type> = this.task.serializer();
+  protected serializer: TaskSerializer<Type> =
+    this.reducableTask.resultSerializer();
 
   protected queue?: InstantiatedQueue = undefined;
 
@@ -34,12 +35,12 @@ export class ReducingTaskRunner<Type> implements Closeable {
 
   /**
    * @param messageQueue The connection object to the messageQueue
-   * @param task The task definition to be executed
+   * @param reducableTask The task definition to be executed
    * @param queueName The name of the queue on which the task should be executed (workers have to listen on that queue)
    */
   public constructor(
     protected readonly messageQueue: TaskQueue,
-    protected readonly task: ReducableTask<Type>,
+    protected readonly reducableTask: ReducableTask<Type>,
     protected readonly queueName: string
   ) {}
 
@@ -55,12 +56,13 @@ export class ReducingTaskRunner<Type> implements Closeable {
     const res: { r1: Type; r2: Type }[] = [];
 
     let { pendingInputs } = this;
-    const { task } = this;
+    const { reducableTask } = this;
 
     for (let index = 0; index < pendingInputs.length; index++) {
       const first = pendingInputs[index];
       const secondIndex = pendingInputs.findIndex(
-        (second, index2) => index2 > index && task.reducible(first, second)
+        (second, index2) =>
+          index2 > index && reducableTask.reducible(first, second)
       );
 
       if (secondIndex > 0) {
@@ -80,7 +82,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
 
   private async pushReduction(t1: Type, t2: Type) {
     const payload: TaskPayload = {
-      name: this.task.name(),
+      name: this.reducableTask.name(),
 
       payload: JSON.stringify([
         this.serializer.toJSON(t1),
@@ -88,7 +90,9 @@ export class ReducingTaskRunner<Type> implements Closeable {
       ]),
     };
 
-    console.log(`Pushed Reduction: ${JSON.stringify([t1, t2])}`);
+    console.log(
+      `Pushed Reduction: ${JSON.stringify([String(t1), String(t2)])}`
+    );
 
     const { queue } = this;
     this.assertQueueNotNull(queue);
@@ -109,7 +113,9 @@ export class ReducingTaskRunner<Type> implements Closeable {
     await Promise.all(promises);
   }
 
-  protected async handleCompleted(
+  // Handles the result of a reduce operation
+  // It checks whether new reductions are available to compute or if the reduction has been completed
+  protected async handleCompletedReducingStep(
     payload: TaskPayload,
     resolve: (result: Type) => void
   ) {
@@ -148,7 +154,7 @@ export class ReducingTaskRunner<Type> implements Closeable {
     // Why these weird functions? To get direct promise usage to a minimum
     const start = async (resolve: (type: Type) => void) => {
       await queue.onCompleted(async (result) => {
-        await this.handleCompleted(result.payload, resolve);
+        await this.handleCompletedReducingStep(result.payload, resolve);
       });
 
       this.pendingInputs = Array.from(inputs);
@@ -195,24 +201,24 @@ export class MapReduceTaskRunner<
 > extends ReducingTaskRunner<Result> {
   public constructor(
     messageQueue: TaskQueue,
-    task: MapReduceTask<Input, Result>,
+    protected readonly mapReduceTask: MapReduceTask<Input, Result>,
     queueName: string
   ) {
-    super(messageQueue, task, queueName);
+    super(messageQueue, mapReduceTask, queueName);
   }
 
   public async executeMapReduce(inputs: Input[]): Promise<Result> {
     const start = async (resolve: (type: Result) => void) => {
-      const { queue, task } = this;
+      const { queue, mapReduceTask } = this;
       this.assertQueueNotNull(queue);
 
       await queue.onCompleted(async (result) => {
         const { payload } = result;
 
-        if (payload.name === task.name()) {
-          await super.handleCompleted(payload, resolve);
+        if (payload.name === `${mapReduceTask.name()}_redice`) {
+          await super.handleCompletedReducingStep(payload, resolve);
           // eslint-disable-next-line sonarjs/elseif-without-else
-        } else if (payload.name === `${task.name()}_map`) {
+        } else if (payload.name === mapReduceTask.name()) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const parsedResult: Result = JSON.parse(payload.payload);
           await super.addInput(parsedResult);
@@ -221,12 +227,14 @@ export class MapReduceTaskRunner<
 
       const inputQueue = Array.from(inputs);
 
+      const inputSerializer = mapReduceTask.inputSerializer();
+
       // Push initial tasks
       const initialPromises = inputQueue.map(
         async (input) =>
           await queue.addTask({
-            name: `${task.name()}_map`,
-            payload: JSON.stringify(input),
+            name: `${mapReduceTask.name()}_map`,
+            payload: inputSerializer.toJSON(input),
           })
       );
       await Promise.all(initialPromises);

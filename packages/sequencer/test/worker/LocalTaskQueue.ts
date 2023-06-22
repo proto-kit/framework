@@ -39,6 +39,8 @@ export class LocalTaskQueue implements TaskQueue {
     Object.entries(this.queues).forEach((queue) => {
       const [queueName, tasks] = queue;
 
+      console.log("Tasks: " + tasks.map(x => x.payload.name));
+
       if (tasks.length > 0) {
         tasks.forEach((task) => {
           // Execute task in worker
@@ -46,9 +48,10 @@ export class LocalTaskQueue implements TaskQueue {
           // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
           void this.workers[queueName].handler(task.payload).then((payload) => {
             // Notify listeners about result
-            void this.listeners[queueName].map(async (listener) => {
+            const listenerPromises = this.listeners[queueName].map(async (listener) => {
               await listener({ payload, jobId: task.jobId });
             });
+            Promise.all(listenerPromises).then(x => {})
           });
         });
       }
@@ -92,6 +95,7 @@ export class LocalTaskQueue implements TaskQueue {
       name: queueName,
 
       async addTask(payload: TaskPayload): Promise<{ jobId: string }> {
+        console.log("1 " + payload.name);
         id += 1;
         const nextId = String(id).toString();
         thisClosure.queues[queueName].push({ payload, jobId: nextId });

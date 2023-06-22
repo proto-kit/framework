@@ -4,9 +4,9 @@ import "reflect-metadata";
 import { beforeAll } from "@jest/globals";
 
 import {
-  MapReduceTask,
+  MapReduceTask, PairedMapTask,
   ReducableTask,
-  TaskSerializer,
+  TaskSerializer
 } from "../../src/worker/manager/ReducableTask";
 import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
@@ -32,7 +32,7 @@ class SumTask implements MapReduceTask<number, number> {
     return true;
   }
 
-  public serializer(): TaskSerializer<number> {
+  public resultSerializer(): TaskSerializer<number> {
     return {
       fromJSON(json: string): number {
         return Number.parseInt(json, 10);
@@ -45,7 +45,7 @@ class SumTask implements MapReduceTask<number, number> {
   }
 
   public inputSerializer(): TaskSerializer<number> {
-    return this.serializer();
+    return this.resultSerializer();
   }
 
   // Worker-executed
