@@ -1,11 +1,14 @@
 /* eslint-disable max-len */
-export interface AbstractTask<Result> {
+export interface AbstractTask {
   name: () => string;
   prepare: () => Promise<void>;
-  serializer: () => TaskSerializer<Result>;
 }
 
-export interface ReducableTask<Result> extends AbstractTask<Result> {
+export interface SingleResultTask<Result> extends AbstractTask{
+  resultSerializer: () => TaskSerializer<Result>;
+}
+
+export interface ReducableTask<Result> extends SingleResultTask<Result> {
   /**
    * Reduces two elements into one, for example via merging
    */
@@ -18,19 +21,52 @@ export interface ReducableTask<Result> extends AbstractTask<Result> {
   reducible: (r1: Result, r2: Result) => boolean;
 }
 
-export interface MapReduceTask<Input, Result> extends ReducableTask<Result> {
+export interface MappingTask<Input, Result> extends SingleResultTask<Result> {
   /**
    * Is the first step of this task, which generates a Result from a given Input.
    * That Result(s) can then be reduced into a single Result via reduce()
    */
-  map: (t: Input) => Promise<Result>;
+  map: (input: Input) => Promise<Result>;
 
   inputSerializer: () => TaskSerializer<Input>;
 }
 
+export interface MapReduceTask<Input, Result>
+  extends ReducableTask<Result>,
+    MappingTask<Input, Result> {}
+
+export interface PairedMapTask<Input1, Output1, Input2, Output2> extends AbstractTask {
+
+  mapOne: (input: Input1) => Promise<Output1>;
+  mapTwo: (input: Input2) => Promise<Output2>;
+
+  serializers: () => {
+    input1: TaskSerializer<Input1>;
+    output1: TaskSerializer<Output1>;
+    input2: TaskSerializer<Input2>;
+    output2: TaskSerializer<Output2>;
+  };
+}
+
 export interface TaskSerializer<Type> {
-  toJSON: (t: Type) => string;
-  fromJSON: (s: string) => Type;
+  toJSON: (input: Type) => string;
+  fromJSON: (json: string) => Type;
+}
+
+export const JSONTaskSerializer = {
+  fromType<Type>(): TaskSerializer<Type>{
+    return {
+      fromJSON(json: string) : Type{
+        if(json === undefined){
+          console.log(Error().stack)
+        }
+        return JSON.parse(json) as Type
+      },
+      toJSON(t: Type) : string {
+        return JSON.stringify(t)
+      }
+    }
+  }
 }
 
 export interface TaskPayload {
