@@ -5,18 +5,14 @@ import {
   AbstractTask,
   MappingTask,
   MapReduceTask,
-  PairedMapTask,
   ReducableTask,
   TaskPayload,
-  TaskSerializer,
 } from "../manager/ReducableTask";
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
 
 const errors = {
-  notComputable: (name: string) => new Error(`Task ${name} not computable on selected worker`),
-
-  multipleTasksOnQueue: () =>
-    new Error("Multiple tasks per queue name are not supported"),
+  notComputable: (name: string) =>
+    new Error(`Task ${name} not computable on selected worker`),
 };
 
 export class TaskWorker implements Closeable {
@@ -114,8 +110,6 @@ export class TaskWorker implements Closeable {
     const input = task.inputSerializer().fromJSON(payload.payload);
     console.log(input);
     const result = await task.map(input);
-
-    console.log("map-result: " + result);
 
     return {
       name: payload.name,
