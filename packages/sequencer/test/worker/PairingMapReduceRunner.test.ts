@@ -1,4 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-shadow
+import "reflect-metadata";
 import { afterEach, beforeEach } from "@jest/globals";
 import { noop } from "@yab/protocol";
 
@@ -41,10 +42,12 @@ class PairedSumTask
     return {
       fromJSON: (json: string) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const array: [number, number] = JSON.parse(json);
+        const jsonReadyObject: { input1: number; input2: string } =
+          JSON.parse(json);
+
         return {
-          input1: array[0],
-          input2: BigInt(array[1]),
+          input1: jsonReadyObject.input1,
+          input2: BigInt(jsonReadyObject.input2),
           params: undefined,
         };
       },
@@ -77,7 +80,6 @@ class PairedSumTask
   public async map(
     input: PairingDerivedInput<number, bigint, void>
   ): Promise<bigint> {
-    console.log(`Input: ${JSON.stringify(input)}`);
     return BigInt(input.input1) * input.input2;
   }
 
@@ -210,7 +212,8 @@ describe("twoStepRunner", () => {
         undefined,
       ]);
       const computedResult = await runner.executeTwoStageMapReduce(
-        paramedInputs
+        paramedInputs,
+        (number, index) => String(index)
       );
 
       console.log(computedResult);
