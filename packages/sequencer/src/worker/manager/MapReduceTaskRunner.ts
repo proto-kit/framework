@@ -7,7 +7,9 @@ const errors = {
   taskNotTerminating: () => new Error("Task not terminating"),
 
   queueIsUndefined: () =>
-    new Error("Queue not initialized, call this method only through execute()"),
+    new Error(
+      "Queue not initialized, call this method only through executeFlowWithQueue()"
+    ),
 };
 
 /**
@@ -16,7 +18,7 @@ const errors = {
  *
  * This instance takes a ReduceableTask and runs it on a given TaskQueue
  */
-export class ReducingTaskRunner<Input, Result> implements Closeable {
+export class MapReduceTaskRunner<Input, Result> implements Closeable {
   protected serializer: TaskSerializer<Result> =
     this.mapReduceTask.resultSerializer();
 
