@@ -1,5 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-shadow
 import "reflect-metadata";
+// eslint-disable-next-line @typescript-eslint/no-shadow
 import { afterEach, beforeEach } from "@jest/globals";
 import { noop } from "@yab/protocol";
 
