@@ -13,7 +13,7 @@ import {
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
 
 const errors = {
-  notComputable: () => new Error("Task not computable on selected worker"),
+  notComputable: (name: string) => new Error(`Task ${name} not computable on selected worker`),
 
   multipleTasksOnQueue: () =>
     new Error("Multiple tasks per queue name are not supported"),
@@ -40,7 +40,7 @@ export class TaskWorker implements Closeable {
       task,
 
       handler: async (payload) => {
-        if (payload.name === task.name()) {
+        if (payload.name === `${task.name()}_reduce`) {
           return await this.doReduceStep(task, payload);
         }
         return undefined;
@@ -78,6 +78,7 @@ export class TaskWorker implements Closeable {
       task,
 
       handler: async (payload) => {
+        console.log(`${payload.name} ${JSON.stringify(payload)}`);
         if (payload.name === task.name()) {
           return await this.doMapStep(task, payload);
         }
@@ -102,6 +103,7 @@ export class TaskWorker implements Closeable {
     return {
       name: payload.name,
       payload: serializer.toJSON(result),
+      taskId: payload.taskId,
     };
   }
 
@@ -110,12 +112,15 @@ export class TaskWorker implements Closeable {
     payload: TaskPayload
   ): Promise<TaskPayload> {
     const input = task.inputSerializer().fromJSON(payload.payload);
-
+    console.log(input);
     const result = await task.map(input);
+
+    console.log("map-result: " + result);
 
     return {
       name: payload.name,
       payload: task.resultSerializer().toJSON(result),
+      taskId: payload.taskId,
     };
   }
 
@@ -138,7 +143,7 @@ export class TaskWorker implements Closeable {
         }
 
         if (result === undefined) {
-          throw errors.notComputable();
+          throw errors.notComputable(data.name);
         }
 
         return result;
