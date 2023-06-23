@@ -9,6 +9,7 @@ import {
   TaskPayload,
 } from "../manager/ReducableTask";
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
+import { ArrayElement } from "@yab/common";
 
 const errors = {
   notComputable: (name: string) =>
@@ -83,6 +84,31 @@ export class TaskWorker implements Closeable {
     });
   }
 
+  // The array type is this weird, because we first want to extract the
+  // element type, and after that, we expect multiple elements of that -> []
+  private initHandler(tasks: [string, ArrayElement<typeof this.tasks>[]]){
+    return this.queue.createWorker(tasks[0], async (data) => {
+      // Use first handler that returns a non-undefined result
+      // eslint-disable-next-line @typescript-eslint/init-declarations
+      let result: TaskPayload | undefined;
+      for (const task of tasks[1]) {
+        // eslint-disable-next-line no-await-in-loop
+        const candidate = await task.handler(data);
+
+        if (candidate !== undefined) {
+          result = candidate;
+          break;
+        }
+      }
+
+      if (result === undefined) {
+        throw errors.notComputable(data.name);
+      }
+
+      return result;
+    });
+  }
+
   private async doReduceStep<Result>(
     task: ReducableTask<Result>,
     payload: TaskPayload
@@ -118,31 +144,18 @@ export class TaskWorker implements Closeable {
     };
   }
 
-  public async init() {
+  public async start() {
+    // Call all task's prepare() method
+    // Call them in order of registration, because the prepare methods
+    // might depend on each other or a result that is saved in a DI singleton
+    for (const task of this.tasks) {
+      // eslint-disable-next-line no-await-in-loop
+      await task.task.prepare();
+    }
+
     this.workers = Object.entries(
       groupBy(this.tasks, (task) => task.queue)
-    ).map((tasks) =>
-      this.queue.createWorker(tasks[0], async (data) => {
-        // Use first handler that returns a non-undefined result
-        // eslint-disable-next-line @typescript-eslint/init-declarations
-        let result: TaskPayload | undefined;
-        for (const task of tasks[1]) {
-          // eslint-disable-next-line no-await-in-loop
-          const candidate = await task.handler(data);
-
-          if (candidate !== undefined) {
-            result = candidate;
-            break;
-          }
-        }
-
-        if (result === undefined) {
-          throw errors.notComputable(data.name);
-        }
-
-        return result;
-      })
-    );
+    ).map((tasks) => this.initHandler(tasks));
   }
 
   public async close() {
