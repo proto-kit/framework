@@ -19,7 +19,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "snarkyjs": "0.10.0",
+    "snarkyjs": "0.11.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

@@ -34,7 +34,13 @@
     "new-cap": [
       "error",
       {
-        "capIsNewExceptions": ["Field", "Bool", "Struct", "ZkProgram"]
+        "capIsNewExceptions": [
+          "Field",
+          "Bool",
+          "Struct",
+          "ZkProgram",
+          "Memoize"
+        ]
       }
     ],
     "@typescript-eslint/prefer-readonly-parameter-types": "off",
@@ -124,7 +130,7 @@
         "@typescript-eslint/init-declarations": "off", //conflicts with beforeEach initialization
         "unicorn/consistent-function-scoping": "off", //Describe-level functions
         "@typescript-eslint/no-magic-numbers": "off",
-        "jest/no-disabled-tests": "off", //For now
+        "jest/no-disabled-tests": "off" //For now
       }
     },
     {
