@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import groupBy from "lodash/groupBy";
+import { ArrayElement } from "@yab/common";
 
 import {
   AbstractTask,
@@ -9,7 +10,6 @@ import {
   TaskPayload,
 } from "../manager/ReducableTask";
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
-import { ArrayElement } from "@yab/common";
 
 const errors = {
   notComputable: (name: string) =>
@@ -86,7 +86,7 @@ export class TaskWorker implements Closeable {
 
   // The array type is this weird, because we first want to extract the
   // element type, and after that, we expect multiple elements of that -> []
-  private initHandler(tasks: [string, ArrayElement<typeof this.tasks>[]]){
+  private initHandler(tasks: [string, ArrayElement<typeof this.tasks>[]]) {
     return this.queue.createWorker(tasks[0], async (data) => {
       // Use first handler that returns a non-undefined result
       // eslint-disable-next-line @typescript-eslint/init-declarations

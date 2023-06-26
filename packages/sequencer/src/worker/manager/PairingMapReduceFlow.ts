@@ -1,7 +1,7 @@
 /* eslint-disable putout/putout */
 import { TaskQueue } from "../queue/TaskQueue";
 
-import { MapReduceTaskRunner } from "./MapReduceTaskRunner";
+import { MapReduceFlow } from "./MapReduceFlow";
 import { MappingTask, MapReduceTask } from "./ReducableTask";
 
 const errors = {
@@ -49,14 +49,14 @@ interface PairingCollector<Output1, Output2, AdditionalParameters> {
  * need to be both completed before a result will be returned and followup
  * actions are triggered
  */
-export class PairingMapReduceTaskRunner<
+export class PairingMapReduceFlow<
   Input1,
   Output1,
   Input2,
   Output2,
   AdditionalParameters,
   Result
-> extends MapReduceTaskRunner<
+> extends MapReduceFlow<
   PairingDerivedInput<Output1, Output2, AdditionalParameters>,
   Result
 > {
@@ -92,12 +92,12 @@ export class PairingMapReduceTaskRunner<
    */
   private createNewPairingCollector(
     inputs: [Input1, Input2, AdditionalParameters][],
-    taskIdGenerator: (input: Input1, index: number) => string
+    taskIds: string[]
   ) {
     return inputs.reduce<
       PairingCollector<Output1, Output2, AdditionalParameters>
     >((agg, input, index) => {
-      agg[taskIdGenerator(input[0], index)] = {
+      agg[taskIds[index]] = {
         pairing1: undefined,
         pairing2: undefined,
         params: input[2],
@@ -131,13 +131,12 @@ export class PairingMapReduceTaskRunner<
   /**
    *
    * @param inputs Set of inputs
-   * @param taskIdGenerator A function that generates unique identifiers
+   * @param taskIds A array that containes unique IDs for each input
    * to identify submitted tasks.
    */
-  public async executeTwoStageMapReduce(
+  public async executePairingMapReduce(
     inputs: [Input1, Input2, AdditionalParameters][],
-    // Not sure about this yet, maybe putt this in the input array?
-    taskIdGenerator: (input: Input1, index: number) => string
+    taskIds: string[]
   ) {
     // How handing this should work:
     // 1. Push all Inputs as tasks and wait on them to be resolved in pairs
@@ -158,10 +157,7 @@ export class PairingMapReduceTaskRunner<
       const mapReduceInputSerializer = task.reducingTask.inputSerializer();
 
       // Collects all matching pairs of calculated inputs
-      const pairingCollector = this.createNewPairingCollector(
-        inputs,
-        taskIdGenerator
-      );
+      const pairingCollector = this.createNewPairingCollector(inputs, taskIds);
 
       // Add listener
       await queue.onCompleted(async ({ payload }) => {
@@ -217,7 +213,7 @@ export class PairingMapReduceTaskRunner<
 
       // Push inputs (step 1)
       const taskPushPromises = inputs.flatMap(async (input, index) => {
-        const taskId = taskIdGenerator(input[0], index);
+        const taskId = taskIds[index];
 
         // Push first pairing element
         const promise1 = await queue.addTask({
