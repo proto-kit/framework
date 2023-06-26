@@ -18,7 +18,7 @@ const errors = {
  *
  * This instance takes a ReduceableTask and runs it on a given TaskQueue
  */
-export class MapReduceTaskRunner<Input, Result> implements Closeable {
+export class MapReduceFlow<Input, Result> implements Closeable {
   protected serializer: TaskSerializer<Result> =
     this.mapReduceTask.resultSerializer();
 

@@ -11,8 +11,8 @@ import {
 } from "../../src/worker/manager/ReducableTask";
 import {
   PairingDerivedInput,
-  PairingMapReduceTaskRunner,
-} from "../../src/worker/manager/PairingMapReduceTaskRunner";
+  PairingMapReduceFlow,
+} from "../../src/worker/manager/PairingMapReduceFlow";
 import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable } from "../../src/worker/queue/TaskQueue";
 
@@ -199,7 +199,7 @@ describe("twoStepRunner", () => {
       await worker.start();
 
       // Create runner
-      const runner = new PairingMapReduceTaskRunner(queue, "sumqueue", {
+      const flow = new PairingMapReduceFlow(queue, "sumqueue", {
         firstPairing: new NumberDoublingTask(),
         secondPairing: new BigIntDoublingTask(),
         reducingTask: new PairedSumTask(),
@@ -211,9 +211,11 @@ describe("twoStepRunner", () => {
         input[1],
         undefined,
       ]);
-      const computedResult = await runner.executeTwoStageMapReduce(
+      const computedResult = await flow.executePairingMapReduce(
         paramedInputs,
-        (number, index) => String(index)
+        Array.from({ length: paramedInputs.length }, (item, index) =>
+          String(index)
+        )
       );
 
       console.log(computedResult);

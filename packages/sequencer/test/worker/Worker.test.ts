@@ -10,7 +10,7 @@ import {
 import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
 import { BullQueue } from "../../src/worker/queue/BullQueue";
-import { MapReduceTaskRunner } from "../../dist/worker/manager/MapReduceTaskRunner";
+import { MapReduceFlow } from "../../src";
 
 import { LocalTaskQueue } from "./LocalTaskQueue";
 
@@ -92,14 +92,14 @@ describe("worker", () => {
     queue: TaskQueue,
     task: MapReduceTask<number, number>
   ): Promise<{ result: number; timeElapsed: number }> {
-    const coord = new MapReduceTaskRunner(queue, task, "sum_map");
-    closeables.push(coord);
+    const flow = new MapReduceFlow(queue, task, "sum_map");
+    closeables.push(flow);
 
     const start = Date.now();
 
     // Executes the task on the workers and reports back once the task has been
     // fully reduced
-    const result = await coord.executeMapReduce(inputs);
+    const result = await flow.executeMapReduce(inputs);
 
     const timeElapsed = Date.now() - start;
 
