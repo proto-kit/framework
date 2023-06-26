@@ -37,7 +37,11 @@ export class PrivateMempool implements Mempool {
     };
   }
 
-  public clear() {
-    this.queue = [];
+  public removeTxs(txs: PendingTransaction[]): boolean {
+    const { length } = this.queue;
+    this.queue = this.queue.filter((tx) => !txs.includes(tx));
+    // Check that all elements have been removed and were in the mempool prior
+    // eslint-disable-next-line unicorn/consistent-destructuring
+    return length === this.queue.length - txs.length;
   }
 }

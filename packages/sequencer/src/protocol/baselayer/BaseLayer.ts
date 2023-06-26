@@ -1,3 +1,5 @@
+import { ComputedBlock } from "../../storage/model/Block";
+
 export interface BaseLayer {
-  blockProduced(block: any) : void;
+  blockProduced: (block: ComputedBlock) => Promise<void>;
 }
