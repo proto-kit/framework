@@ -196,7 +196,7 @@ describe("twoStepRunner", () => {
       worker.addMapTask("sumqueue", new NumberDoublingTask());
       worker.addMapTask("sumqueue", new BigIntDoublingTask());
       closeables.push(worker);
-      await worker.init();
+      await worker.start();
 
       // Create runner
       const runner = new PairingMapReduceTaskRunner(queue, "sumqueue", {

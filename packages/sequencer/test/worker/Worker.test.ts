@@ -1,19 +1,18 @@
 import "reflect-metadata";
 
 // eslint-disable-next-line @typescript-eslint/no-shadow
-import { beforeAll } from "@jest/globals";
+import { beforeAll, jest } from "@jest/globals";
 
 import {
   MapReduceTask,
-  ReducableTask,
   TaskSerializer,
 } from "../../src/worker/manager/ReducableTask";
 import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
 import { BullQueue } from "../../src/worker/queue/BullQueue";
+import { MapReduceTaskRunner } from "../../dist/worker/manager/MapReduceTaskRunner";
 
 import { LocalTaskQueue } from "./LocalTaskQueue";
-import { MapReduceTaskRunner } from "../../dist/worker/manager/MapReduceTaskRunner";
 
 // The implementation of the task, known by both master and worker
 class SumTask implements MapReduceTask<number, number> {
@@ -157,7 +156,7 @@ describe("worker", () => {
         const worker = new TaskWorker(queue);
         worker.addMapReduceTask("sum_map", task);
         closeables.push(worker);
-        await worker.init();
+        await worker.start();
 
         const { result } = await runSumTaskMapReduce(input, queue, task);
 
@@ -167,5 +166,22 @@ describe("worker", () => {
       },
       15_000
     );
+  });
+
+  it("worker.init should call prepare", async () => {
+    expect.assertions(1);
+
+    const mock = jest.fn(async () => {
+      await Promise.resolve();
+    });
+    const task = new SumTask();
+    task.prepare = mock;
+
+    const worker = new TaskWorker(createLocalQueue());
+    worker.addMapReduceTask("sum", task);
+    closeables.push(worker);
+    await worker.start();
+
+    expect(mock).toHaveBeenCalledTimes(1);
   });
 });
