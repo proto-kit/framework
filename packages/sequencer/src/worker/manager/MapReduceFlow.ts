@@ -1,10 +1,13 @@
 /* eslint-disable max-len,promise/avoid-new,promise/prefer-await-to-then,promise/always-return,@typescript-eslint/no-empty-function,etc/no-implicit-any-catch,putout/putout */
+import { log } from "@yab/common";
+
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 
 import { MapReduceTask, TaskPayload, TaskSerializer } from "./ReducableTask";
 
 const errors = {
-  taskNotTerminating: () => new Error("Task not terminating"),
+  taskNotTerminating: (taskName: string) =>
+    new Error(`Task ${taskName} not terminating`),
 
   queueIsUndefined: () =>
     new Error(
@@ -88,9 +91,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
       ]),
     };
 
-    console.log(
-      `Pushed Reduction: ${JSON.stringify([String(t1), String(t2)])}`
-    );
+    log.trace(`Pushed Reduction: ${JSON.stringify([String(t1), String(t2)])}`);
 
     const { queue } = this;
     this.assertQueueNotNull(queue);
@@ -121,7 +122,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
 
     this.runningTaskCount -= 1;
 
-    const { queue, pendingInputs, runningTaskCount } = this;
+    const { queue, pendingInputs, runningTaskCount, mapReduceTask } = this;
 
     pendingInputs.push(parsed);
 
@@ -134,7 +135,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
       await queue.close();
       resolve(pendingInputs[0]);
     } else if (runningTaskCount === 0 && pendingInputs.length === 0) {
-      throw errors.taskNotTerminating();
+      throw errors.taskNotTerminating(mapReduceTask.name());
     } else {
       // Do nothing
     }
@@ -151,6 +152,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
       const { queue, mapReduceTask } = this;
       this.assertQueueNotNull(queue);
 
+      // Register result listener
       await queue.onCompleted(async (result) => {
         const { payload } = result;
 
@@ -158,7 +160,6 @@ export class MapReduceFlow<Input, Result> implements Closeable {
           await this.handleCompletedReducingStep(payload, resolve);
           // eslint-disable-next-line sonarjs/elseif-without-else
         } else if (payload.name === mapReduceTask.name()) {
-          console.log(payload.payload);
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const parsedResult: Result = JSON.parse(payload.payload);
           await this.addInput(parsedResult);
@@ -210,8 +211,8 @@ export class MapReduceFlow<Input, Result> implements Closeable {
 
   public async close(): Promise<void> {
     await Promise.all(
-      this.openCloseables.map(async (x) => {
-        await x.close();
+      this.openCloseables.map(async (closeable) => {
+        await closeable.close();
       })
     );
   }

@@ -15,8 +15,7 @@ import {
 } from "../../src/worker/manager/PairingMapReduceFlow";
 import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable } from "../../src/worker/queue/TaskQueue";
-
-import { LocalTaskQueue } from "./LocalTaskQueue";
+import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
 
 /**
  * The two Sum tasks are only used to showcase the task framework in its full

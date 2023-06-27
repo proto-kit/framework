@@ -1,6 +1,7 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-non-null-assertion,@typescript-eslint/consistent-type-assertions */
 import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
+import { log } from "@yab/common";
 
 import { TaskPayload } from "../manager/ReducableTask";
 
@@ -40,8 +41,8 @@ export class BullQueue implements TaskQueue {
 
     // We have to do this, because we want to prevent the worker from crashing
     worker.on("error", (error) => {
-      console.log("Worker threw error:");
-      console.log(error);
+      log.error("Worker threw error:");
+      log.error(error);
     });
 
     return {
@@ -64,23 +65,23 @@ export class BullQueue implements TaskQueue {
     return {
       name: queueName,
 
-      async addTask(payload: TaskPayload): Promise<{ jobId: string }> {
+      async addTask(payload: TaskPayload): Promise<{ taskId: string }> {
         const job = await queue.add(queueName, payload, {
           attempts: options.retryAttempts ?? 2,
         });
-        return { jobId: job.id! };
+        return { taskId: job.id! };
       },
 
       async onCompleted(
         listener: (result: {
-          jobId: string;
+          taskId: string;
           payload: TaskPayload;
         }) => Promise<void>
       ) {
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         events.on("completed", async (result) => {
           await listener({
-            jobId: result.jobId,
+            taskId: result.jobId,
             payload: JSON.parse(result.returnvalue) as TaskPayload,
           });
         });

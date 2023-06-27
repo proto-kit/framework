@@ -12,7 +12,7 @@ import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
 import { BullQueue } from "../../src/worker/queue/BullQueue";
 import { MapReduceFlow } from "../../src";
 
-import { LocalTaskQueue } from "./LocalTaskQueue";
+import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
 
 // The implementation of the task, known by both master and worker
 class SumTask implements MapReduceTask<number, number> {
