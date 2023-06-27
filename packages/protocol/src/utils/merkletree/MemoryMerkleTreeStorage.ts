@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { noop } from "../utils";
+import noop from "lodash/noop";
 
 import {
   type MerkleTreeStore,

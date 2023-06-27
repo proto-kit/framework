@@ -12,6 +12,7 @@ import {
   PlainZkProgram,
   WithZkProgrammable,
   AreProofsEnabled,
+  log,
 } from "@yab/common";
 
 import {

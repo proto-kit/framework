@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import groupBy from "lodash/groupBy";
-import { ArrayElement } from "@yab/common";
+import { ArrayElement, log } from "@yab/common";
 
 import {
   AbstractTask,
@@ -54,7 +54,6 @@ export class TaskWorker implements Closeable {
       task,
 
       handler: async (payload) => {
-        console.log(`${payload.name} ${JSON.stringify(payload)}`);
         if (payload.name === task.name()) {
           return await this.doMapStep(task, payload);
         }
@@ -75,7 +74,6 @@ export class TaskWorker implements Closeable {
       task,
 
       handler: async (payload) => {
-        console.log(`${payload.name} ${JSON.stringify(payload)}`);
         if (payload.name === task.name()) {
           return await this.doMapStep(task, payload);
         }
@@ -86,12 +84,17 @@ export class TaskWorker implements Closeable {
 
   // The array type is this weird, because we first want to extract the
   // element type, and after that, we expect multiple elements of that -> []
-  private initHandler(tasks: [string, ArrayElement<typeof this.tasks>[]]) {
-    return this.queue.createWorker(tasks[0], async (data) => {
+  private initHandler(
+    queueName: string,
+    tasks: ArrayElement<typeof this.tasks>[]
+  ) {
+    return this.queue.createWorker(queueName, async (data) => {
+      log.debug(`Received task in queue ${queueName}`);
+
       // Use first handler that returns a non-undefined result
       // eslint-disable-next-line @typescript-eslint/init-declarations
       let result: TaskPayload | undefined;
-      for (const task of tasks[1]) {
+      for (const task of tasks) {
         // eslint-disable-next-line no-await-in-loop
         const candidate = await task.handler(data);
 
@@ -113,6 +116,8 @@ export class TaskWorker implements Closeable {
     task: ReducableTask<Result>,
     payload: TaskPayload
   ): Promise<TaskPayload> {
+    // Here we only need the resultSerializer, because reducing is a function
+    // of type ([Result, Result]) => Result
     const serializer = task.resultSerializer();
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -134,7 +139,7 @@ export class TaskWorker implements Closeable {
     payload: TaskPayload
   ): Promise<TaskPayload> {
     const input = task.inputSerializer().fromJSON(payload.payload);
-    console.log(input);
+
     const result = await task.map(input);
 
     return {
@@ -155,7 +160,7 @@ export class TaskWorker implements Closeable {
 
     this.workers = Object.entries(
       groupBy(this.tasks, (task) => task.queue)
-    ).map((tasks) => this.initHandler(tasks));
+    ).map((tasks) => this.initHandler(tasks[0], tasks[1]));
   }
 
   public async close() {

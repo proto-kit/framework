@@ -1,11 +1,8 @@
 import { noop } from "@yab/protocol";
 
-import {
-  Closeable,
-  InstantiatedQueue,
-  TaskQueue,
-} from "../../src/worker/queue/TaskQueue";
-import { TaskPayload } from "../../src/worker/manager/ReducableTask";
+import { TaskPayload } from "../manager/ReducableTask";
+
+import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
 
 async function sleep(ms: number) {
   // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
@@ -14,12 +11,12 @@ async function sleep(ms: number) {
 
 // Had to extract it to here bc eslint would ruin the code
 interface QueueListener {
-  (result: { jobId: string; payload: TaskPayload }): Promise<void>;
+  (result: { taskId: string; payload: TaskPayload }): Promise<void>;
 }
 
 export class LocalTaskQueue implements TaskQueue {
   private queues: {
-    [key: string]: { payload: TaskPayload; jobId: string }[];
+    [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
 
   private workers: {
@@ -45,10 +42,12 @@ export class LocalTaskQueue implements TaskQueue {
           // eslint-disable-next-line max-len
           // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
           void this.workers[queueName].handler(task.payload).then((payload) => {
+            console.log("Got", JSON.stringify(payload));
             // Notify listeners about result
             const listenerPromises = this.listeners[queueName].map(
               async (listener) => {
-                await listener({ payload, jobId: task.jobId });
+                console.log("Got 1 listener");
+                await listener({ payload, taskId: task.taskId });
               }
             );
             void Promise.all(listenerPromises);
@@ -87,31 +86,29 @@ export class LocalTaskQueue implements TaskQueue {
 
     let id = 0;
 
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-this-alias,consistent-this,unicorn/no-this-assignment
-    const thisClosure = this;
-
     return {
       name: queueName,
 
-      async addTask(payload: TaskPayload): Promise<{ jobId: string }> {
+      // eslint-disable-next-line putout/putout
+      addTask: async (payload: TaskPayload): Promise<{ taskId: string }> => {
         id += 1;
         const nextId = String(id).toString();
-        thisClosure.queues[queueName].push({ payload, jobId: nextId });
+        this.queues[queueName].push({ payload, taskId: nextId });
 
-        thisClosure.workNextTasks();
+        this.workNextTasks();
 
-        return { jobId: nextId };
+        return { taskId: nextId };
       },
 
-      async onCompleted(
+      // eslint-disable-next-line putout/putout
+      onCompleted: async (
         listener: (result: {
-          jobId: string;
+          taskId: string;
           payload: TaskPayload;
         }) => Promise<void>
-      ): Promise<void> {
+      ): Promise<void> => {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        (thisClosure.listeners[queueName] ??= []).push(listener);
+        (this.listeners[queueName] ??= []).push(listener);
       },
 
       // eslint-disable-next-line @typescript-eslint/no-empty-function
