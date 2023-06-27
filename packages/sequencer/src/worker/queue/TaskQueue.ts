@@ -26,12 +26,15 @@ export interface InstantiatedQueue extends Closeable {
   /**
    * Adds a specific payload to the queue and returns a unique jobId
    */
-  addTask: (payload: TaskPayload) => Promise<{ jobId: string }>;
+  addTask: (payload: TaskPayload) => Promise<{ taskId: string }>;
 
   /**
    * Registers a listener for the completion of jobs
    */
   onCompleted: (
-    listener: (result: { jobId: string; payload: TaskPayload }) => Promise<void>
+    listener: (result: {
+      taskId: string;
+      payload: TaskPayload;
+    }) => Promise<void>
   ) => Promise<void>;
 }

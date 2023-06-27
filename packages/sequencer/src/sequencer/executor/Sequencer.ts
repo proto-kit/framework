@@ -4,6 +4,7 @@ import {
   ModulesRecord,
   TypedClass,
   ModuleContainerDefinition,
+  log,
 } from "@yab/common";
 import { Runtime, RuntimeModulesRecord } from "@yab/module";
 import { injectable } from "tsyringe";
@@ -41,11 +42,16 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    * modules to start each
    */
   public async start() {
-    console.log("starting sequencer 2", this.definition.modules);
+    const moduleClassNames = Object.values(this.definition.modules).map(
+      (clazz) => clazz.name
+    );
+    log.info("Starting sequencer...", moduleClassNames);
     for (const moduleName in this.definition.modules) {
-      console.log("starting sequecncer module", moduleName);
       const sequencerModule = this.resolve(moduleName);
 
+      log.info(
+        `Starting sequecncer module ${moduleName}(${sequencerModule.constructor.name})`
+      );
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
     }

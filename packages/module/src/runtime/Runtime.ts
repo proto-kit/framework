@@ -9,6 +9,7 @@ import {
   ModulesConfig,
   ModulesRecord,
   TypedClass,
+  log,
 } from "@yab/common";
 
 import {
@@ -231,7 +232,7 @@ export class Runtime<
               (input) => (input as any).name
             );
 
-            console.log(`
+            log.info(`
   Method: ${methodName}
   Rows: ${methodAnalysis.rows},
   Gates: ${methodAnalysis.gates.length}
