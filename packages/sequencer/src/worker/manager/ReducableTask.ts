@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 export interface AbstractTask {
   name: () => string;
   prepare: () => Promise<void>;
@@ -16,15 +15,16 @@ export interface ReducableTask<Result> extends SingleResultTask<Result> {
 
   /**
    * Checks if the two inputs r1 and r2 are reducible into a single Result.
-   * This method has to return the same value on both r1->r2 and r2->r1, i.e. the implementation has to be commutative
+   * This method has to return the same value on both r1->r2 and r2->r1,
+   * i.e. the implementation has to be commutative
    */
   reducible: (r1: Result, r2: Result) => boolean;
 }
 
 export interface MappingTask<Input, Result> extends SingleResultTask<Result> {
   /**
-   * Is the first step of this task, which generates a Result from a given Input.
-   * That Result(s) can then be reduced into a single Result via reduce()
+   * Is the first step of this task, which generates a Result from a given
+   * Input. That Result(s) can then be reduced into a single Result via reduce()
    */
   map: (input: Input) => Promise<Result>;
 
@@ -58,6 +58,7 @@ export const JSONTaskSerializer = {
   fromType<Type>(): TaskSerializer<Type> {
     return {
       fromJSON(json: string): Type {
+        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return JSON.parse(json) as Type;
       },

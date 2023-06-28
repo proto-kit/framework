@@ -1,7 +1,6 @@
-/* eslint-disable putout/putout */
 import { TaskQueue } from "../queue/TaskQueue";
 
-import { MapReduceFlow } from "./MapReduceFlow";
+import { MapReduceFlow, TASKS_REDUCE_SUFFIX } from "./MapReduceFlow";
 import { MappingTask, MapReduceTask } from "./ReducableTask";
 
 const errors = {
@@ -200,9 +199,8 @@ export class PairingMapReduceFlow<
 
             break;
           }
-          case `${task.reducingTask.name()}_reduce`: {
+          case `${task.reducingTask.name()}${TASKS_REDUCE_SUFFIX}`: {
             await super.handleCompletedReducingStep(payload, resolve);
-
             break;
           }
           default: {
