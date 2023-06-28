@@ -10,6 +10,7 @@ import {
   TaskPayload,
 } from "../manager/ReducableTask";
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
+import { TASKS_REDUCE_SUFFIX } from "../manager/MapReduceFlow";
 
 const errors = {
   notComputable: (name: string) =>
@@ -37,7 +38,7 @@ export class TaskWorker implements Closeable {
       task,
 
       handler: async (payload) => {
-        if (payload.name === `${task.name()}_reduce`) {
+        if (payload.name === `${task.name()}${TASKS_REDUCE_SUFFIX}`) {
           return await this.doReduceStep(task, payload);
         }
         return undefined;
@@ -57,7 +58,7 @@ export class TaskWorker implements Closeable {
         if (payload.name === task.name()) {
           return await this.doMapStep(task, payload);
         }
-        if (payload.name === `${task.name()}_reduce`) {
+        if (payload.name === `${task.name()}${TASKS_REDUCE_SUFFIX}`) {
           return await this.doReduceStep(task, payload);
         }
         return undefined;
