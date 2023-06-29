@@ -1,5 +1,7 @@
+import { ComputedBlock } from "../../../storage/model/Block";
+
 export interface BlockProducingFunction {
-  (): Promise<void>;
+  (): Promise<ComputedBlock | undefined>;
 }
 
 export interface BlockTrigger {

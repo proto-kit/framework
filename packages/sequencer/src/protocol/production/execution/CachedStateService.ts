@@ -3,13 +3,13 @@ import { Field } from "snarkyjs";
 import { AsyncStateService } from "../state/AsyncStateService";
 
 export class CachedStateService extends InMemoryStateService implements AsyncStateService {
-  public constructor(private readonly parent: AsyncStateService) {
+  public constructor(private readonly parent: AsyncStateService | undefined) {
     super();
   }
 
   public async preloadKey(key: Field){
     // Only preload it if it hasn't been preloaded previously
-    if(this.get(key) !== undefined){
+    if (this.parent !== undefined && this.get(key) !== undefined){
       const value = await this.parent.getAsync(key);
       this.set(key, value);
     }

@@ -6,8 +6,6 @@ import { Field } from "snarkyjs";
  * CachedStateService to preload keys for In-Circuit usage.
  */
 export interface AsyncStateService {
-
-  setAsync(key: Field, value: Field[] | undefined) : Promise<void>;
-  getAsync(key: Field) : Promise<Field[] | undefined>;
-
+  setAsync: (key: Field, value: Field[] | undefined) => Promise<void>;
+  getAsync: (key: Field) => Promise<Field[] | undefined>;
 }

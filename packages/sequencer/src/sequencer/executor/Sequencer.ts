@@ -20,6 +20,9 @@ import { DependencyContainer, injectable } from "tsyringe";
 import { SequencerModule } from "../builder/SequencerModule";
 
 import { Sequenceable } from "./Sequenceable";
+import { StorageDependencyFactory } from "../../storage/StorageDependencyFactory";
+import { DependencyFactory } from "../builder/DependencyFactory";
+import { MockStorageDependencyFactory } from "../../storage/MockStorageDependencyFactory";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -50,7 +53,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
   }
 
   public get dependencyContainer(): DependencyContainer {
-    return this.container
+    return this.container;
   }
 
   /**
@@ -58,6 +61,16 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    * modules to start each
    */
   public async start() {
+    // Define DependencyFactories and initialize them
+    const factories: TypedClass<DependencyFactory>[] = [
+      MockStorageDependencyFactory,
+    ];
+    factories.forEach((factory) => {
+      this.dependencyContainer
+        .resolve(factory)
+        .initDependencies(this.dependencyContainer);
+    });
+
     // Set default STWitnessProvider inside protocol
     const witnessProviderReference = this.protocol.dependencyContainer.resolve(
       StateTransitionWitnessProviderReference
@@ -68,10 +81,17 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       );
     witnessProviderReference.setWitnessProvider(witnessProvider);
 
+    // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(
       (clazz) => clazz.name
     );
-    log.info("Starting sequencer...", moduleClassNames);
+    log.info("Starting sequencer...");
+    log.info("Modules:", moduleClassNames);
+    log.info(
+      "Factories:",
+      factories.map((clazz) => clazz.name)
+    );
+
     for (const moduleName in this.definition.modules) {
       const sequencerModule = this.resolve(moduleName);
 

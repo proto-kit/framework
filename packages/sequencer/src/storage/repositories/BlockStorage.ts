@@ -1,5 +1,3 @@
 export interface BlockStorage {
-
-  getCurrentBlockHeight() : Promise<number>
-
+  getCurrentBlockHeight: () => Promise<number>;
 }

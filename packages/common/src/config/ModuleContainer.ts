@@ -199,10 +199,10 @@ export class ModuleContainer<Modules extends ModulesRecord> {
    * @param moduleName
    * @returns
    */
-  public resolve<ResolvableModuleName extends StringKeyOf<Modules>>(
-    moduleName: ResolvableModuleName
-  ): InstanceType<Modules[ResolvableModuleName]> {
-    return this.container.resolve<InstanceType<Modules[ResolvableModuleName]>>(
+  public resolve(
+    moduleName: StringKeyOf<Modules>
+  ): InstanceType<Modules[StringKeyOf<Modules>]> {
+    return this.container.resolve<InstanceType<Modules[StringKeyOf<Modules>]>>(
       moduleName
     );
   }

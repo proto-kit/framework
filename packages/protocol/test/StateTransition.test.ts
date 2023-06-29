@@ -6,14 +6,13 @@ import {
   Option,
   ProvableStateTransition,
   DefaultProvableHashList,
-  StateTransitionProvableBatch,
+  StateTransitionProvableBatch, CachedMerkleTreeStore
 } from "../src/index";
 import {
   RollupMerkleTree,
   type RollupMerkleWitness,
 } from "../src/utils/merkletree/RollupMerkleTree.js";
 import { StateTransitionProver } from "../src/prover/statetransition/StateTransitionProver.js";
-import { MemoryMerkleTreeStorage } from "../src/utils/merkletree/MemoryMerkleTreeStorage.js";
 import type { StateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 
 describe("stateTransition", () => {
@@ -24,8 +23,7 @@ describe("stateTransition", () => {
     const batch = StateTransitionProvableBatch.fromTransitions(transitions);
 
     const temporaryTree = new RollupMerkleTree(
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      tree.store.virtualize() as MemoryMerkleTreeStorage
+      new CachedMerkleTreeStore(tree.store)
     );
     const startRoot = temporaryTree.getRoot();
 

@@ -30,7 +30,7 @@ export class LocalTaskQueue implements TaskQueue {
     [key: string]: QueueListener[];
   } = {};
 
-  public constructor(private readonly simulatedDuration: number) {}
+  public constructor(private readonly simulatedDuration?: number) {}
 
   private workNextTasks() {
     Object.entries(this.queues).forEach((queue) => {
@@ -67,7 +67,7 @@ export class LocalTaskQueue implements TaskQueue {
       busy: false,
 
       handler: async (data: TaskPayload) => {
-        await sleep(this.simulatedDuration);
+        await sleep(this.simulatedDuration ?? 0);
 
         return await executor(data);
       },

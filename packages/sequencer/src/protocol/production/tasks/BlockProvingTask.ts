@@ -1,7 +1,6 @@
 import {
   MappingTask,
   MapReduceTask,
-  PairedMapTask,
   TaskSerializer
 } from "../../../worker/manager/ReducableTask";
 import {
@@ -9,11 +8,11 @@ import {
   BlockProverPublicInput, BlockProverState,
   MethodPublicInput, ReturnType,
   StateTransitionProver,
-  StateTransitionProverPublicInput, StateTransitionWitnessProvider, Subclass, TypedClass
+  StateTransitionProverPublicInput, Subclass, TypedClass
 } from "@yab/protocol";
 import { Experimental, Proof } from "snarkyjs";
 import { MethodExecutionContext, Runtime } from "@yab/module";
-import { inject, injectable } from "tsyringe";
+import { injectable } from "tsyringe";
 import { PreFilledStateService } from "./providers/PreFilledStateService";
 import {
   StateTransitionParametersSerializer,
@@ -22,8 +21,7 @@ import {
 import { RuntimeProofParameters, RuntimeProofParametersSerializer } from "./RuntimeTaskParameters";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import ZkProgram = Experimental.ZkProgram;
-import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceTaskRunner";
-import { PreFilledWitnessProvider } from "./providers/PreFilledWitnessProvider";
+import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
 
 type StateTransitionProof = Proof<StateTransitionProverPublicInput>;
 type RuntimeProof = Proof<MethodPublicInput>;
@@ -110,11 +108,11 @@ implements MappingTask<RuntimeProofParameters, RuntimeProof>
 
 }
 
-export type BlockProvingTaskInput = PairingDerivedInput<StateTransitionProof, RuntimeProof, BlockProverPublicInput>;
+export type BlockProvingTaskParameters = PairingDerivedInput<StateTransitionProof, RuntimeProof, BlockProverPublicInput>;
 
 @injectable()
 export class BlockProvingTask
-  implements MapReduceTask<BlockProvingTaskInput, BlockProof>
+  implements MapReduceTask<BlockProvingTaskParameters, BlockProof>
 {
   private readonly blockProverProgram: ReturnType<typeof BlockProver.prototype.createZkProgram> extends Promise<infer Program> ? Program : any
   private readonly blockProofType: Subclass<TypedClass<BlockProof>>;
@@ -134,11 +132,11 @@ export class BlockProvingTask
     return "block";
   }
 
-  public inputSerializer(): TaskSerializer<BlockProvingTaskInput> {
+  public inputSerializer(): TaskSerializer<BlockProvingTaskParameters> {
     const stProofSerializer = new ProofTaskSerializer(this.stateTransitionProofType)
     const runtimeProofSerializer = new ProofTaskSerializer(this.runtimeProofType)
     return {
-      toJSON(input: BlockProvingTaskInput): string {
+      toJSON(input: BlockProvingTaskParameters): string {
         const jsonReadyObject = {
           input1: stProofSerializer.toJSON(input.input1),
           input2: runtimeProofSerializer.toJSON(input.input2),
@@ -147,7 +145,7 @@ export class BlockProvingTask
         return JSON.stringify(jsonReadyObject)
       },
 
-      fromJSON(json: string): BlockProvingTaskInput {
+      fromJSON(json: string): BlockProvingTaskParameters {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonReadyObject: {
           input1: string;

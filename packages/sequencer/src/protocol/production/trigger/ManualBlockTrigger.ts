@@ -1,17 +1,27 @@
 import { injectable } from "tsyringe";
+import { noop } from "@yab/protocol";
+
+import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
+
 import { BlockProducingFunction, BlockTrigger } from "./BlockTrigger";
+import { ComputedBlock } from "../../../storage/model/Block";
 
 @injectable()
-export class ManualBlockTrigger implements BlockTrigger {
+export class ManualBlockTrigger
+  extends SequencerModule<object>
+  implements BlockTrigger
+{
   private produceBlockAction: BlockProducingFunction;
 
-  setProduceBlock(produceBlock: BlockProducingFunction): void {
+  public setProduceBlock(produceBlock: BlockProducingFunction): void {
     this.produceBlockAction = produceBlock;
   }
 
-  public async produceBlock() : Promise<void> {
-    await this.produceBlockAction()
+  public async produceBlock(): Promise<ComputedBlock | undefined> {
+    return await this.produceBlockAction();
   }
 
-  public async start(): Promise<void> {}
+  public async start(): Promise<void> {
+    noop();
+  }
 }
