@@ -1,18 +1,30 @@
 /* eslint-disable max-classes-per-file */
-import {
-  Experimental,
-  Field,
-  Struct,
-  Provable,
-  FlexibleProvablePure,
-  Proof,
-} from "snarkyjs";
-import { Memoize } from "typescript-memoize";
+import "reflect-metadata";
+// eslint-disable-next-line @typescript-eslint/no-shadow
+import { jest } from "@jest/globals";
+import { container } from "tsyringe";
+import { Experimental, Field, Struct, Proof } from "snarkyjs";
 
 import {
+  mockProof,
+  provableMethod,
+} from "../../src/zkProgrammable/provableMethod";
+import {
+  AreProofsEnabled,
+  CompileArtifact,
+  mockVerificationKey,
   PlainZkProgram,
   ZkProgrammable,
 } from "../../src/zkProgrammable/ZkProgrammable";
+import { ProvableMethodExecutionContext } from "../../src/zkProgrammable/ProvableMethodExecutionContext";
+
+const appChainMock: AreProofsEnabled = {
+  areProofsEnabled: false,
+
+  setProofsEnabled(areProofsEnabled: boolean) {
+    this.areProofsEnabled = areProofsEnabled;
+  },
+};
 
 class TestPublicInput extends Struct({
   foo: Field,
@@ -22,14 +34,28 @@ class TestPublicOutput extends Struct({
   bar: Field,
 }) {}
 
+const failErrorMessage = "test failure";
+
 class TestProgrammable extends ZkProgrammable<
   TestPublicInput,
   TestPublicOutput
 > {
+  public appChain: AreProofsEnabled = appChainMock;
+
+  @provableMethod()
   public foo(publicInput: TestPublicInput, bar: Field) {
     // expose the private input as public output again for testing purposes
     return new TestPublicOutput({
       bar,
+    });
+  }
+
+  @provableMethod()
+  public fail(publicInput: TestPublicInput) {
+    publicInput.foo.assertEquals(1, failErrorMessage);
+
+    return new TestPublicOutput({
+      bar: Field(0),
     });
   }
 
@@ -43,6 +69,11 @@ class TestProgrammable extends ZkProgrammable<
           privateInputs: [Field],
           method: this.foo.bind(this),
         },
+
+        fail: {
+          privateInputs: [],
+          method: this.fail.bind(this),
+        },
       },
     });
 
@@ -50,6 +81,7 @@ class TestProgrammable extends ZkProgrammable<
 
     const methods = {
       foo: program.foo.bind(program),
+      fail: program.fail.bind(program),
     };
 
     return {
@@ -64,10 +96,13 @@ class TestProgrammable extends ZkProgrammable<
 class EmptyPublicInput extends Struct({}) {}
 
 class OtherTestProgrammable extends ZkProgrammable<EmptyPublicInput, void> {
+  public appChain: AreProofsEnabled = appChainMock;
+
   public constructor(public testProgrammable: TestProgrammable) {
     super();
   }
 
+  @provableMethod()
   public bar(
     publicInput: EmptyPublicInput,
     testProgrammableProof: Proof<TestPublicInput, TestPublicOutput>
@@ -75,7 +110,7 @@ class OtherTestProgrammable extends ZkProgrammable<EmptyPublicInput, void> {
     testProgrammableProof.verify();
   }
 
-  public zkProgramFactory(): PlainZkProgram<EmptyPublicInput, void> {
+  public zkProgramFactory(): PlainZkProgram<EmptyPublicInput> {
     const program = Experimental.ZkProgram({
       publicInput: EmptyPublicInput,
       publicOutput: undefined,
@@ -104,41 +139,146 @@ class OtherTestProgrammable extends ZkProgrammable<EmptyPublicInput, void> {
 }
 
 describe("zkProgrammable", () => {
-  it("should create and cache a ZkProgram", async () => {
-    expect.assertions(2);
+  let testProgrammable: TestProgrammable;
+  let artifact: CompileArtifact;
+  let zkProgramFactorySpy: ReturnType<typeof jest.spyOn>;
 
-    const testProgrammable = new TestProgrammable();
-    const { zkProgram: testZkProgram } = testProgrammable;
+  describe.each([
+    [
+      false,
+      {
+        verificationKey: mockVerificationKey,
+        shouldVerifyMockProofs: true,
+      },
+    ],
+    [
+      true,
+      {
+        verificationKey:
+          "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",
+
+        shouldVerifyMockProofs: false,
+      },
+    ],
+  ])(
+    "areProofsEnabled",
+    (areProofsEnabled, { verificationKey, shouldVerifyMockProofs }) => {
+      beforeAll(async () => {
+        testProgrammable = new TestProgrammable();
+        testProgrammable.appChain.setProofsEnabled(areProofsEnabled);
+        zkProgramFactorySpy = jest.spyOn(testProgrammable, "zkProgramFactory");
+        artifact = await testProgrammable.zkProgram.compile();
+      }, 500_000);
+
+      describe("zkProgramFactory", () => {
+        it("should create and cache a ZkProgram", () => {
+          expect.assertions(1);
+
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const programs = {
+            1: testProgrammable.zkProgram,
+            2: testProgrammable.zkProgram,
+            3: testProgrammable.zkProgram,
+          };
+
+          expect(zkProgramFactorySpy).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      it("compile should return the correct verification key", () => {
+        expect.assertions(1);
+
+        expect(artifact.verificationKey).toBe(verificationKey);
+      });
+
+      it("if proofs are disabled, it should successfully verify mock proofs", async () => {
+        expect.assertions(1);
+
+        const proof = new testProgrammable.zkProgram.Proof({
+          proof: mockProof,
+
+          publicInput: new TestPublicInput({
+            foo: Field(0),
+          }),
+
+          publicOutput: new TestPublicOutput({
+            bar: Field(0),
+          }),
+
+          maxProofsVerified: 0,
+        });
+
+        const verified = await testProgrammable.zkProgram.verify(proof);
+
+        expect(verified).toBe(shouldVerifyMockProofs);
+      });
+    }
+  );
+
+  describe("provableMethod", () => {
+    const executionContext = container.resolve<ProvableMethodExecutionContext>(
+      ProvableMethodExecutionContext
+    );
+
+    let otherTestProgrammable: OtherTestProgrammable;
 
     const testPublicInput = new TestPublicInput({
       foo: Field(0),
     });
 
-    await testZkProgram.compile();
+    describe("zkProgram interoperability", () => {
+      beforeAll(async () => {
+        otherTestProgrammable = new OtherTestProgrammable(testProgrammable);
+        await otherTestProgrammable.zkProgram.compile();
+      }, 500_000);
 
-    const testProof = await testZkProgram.methods.foo(
-      testPublicInput,
-      Field(0)
-    );
+      it("should successfully pass proof of one zkProgram as input to another zkProgram", async () => {
+        expect.assertions(3);
 
-    expect(testProof.publicOutput.bar.toString()).toBe(
-      testPublicInput.foo.toString()
-    );
+        // execute foo
+        testProgrammable.foo(testPublicInput, Field(0));
 
-    const { zkProgram: otherTestZkProgram } = new OtherTestProgrammable(
-      testProgrammable
-    );
-    const otherTestPublicInput = new EmptyPublicInput({});
+        // prove foo
+        const testProof = await executionContext
+          .current()
+          .result.prove<Proof<TestPublicInput, TestPublicOutput>>();
+        const testProofVerified = await testProgrammable.zkProgram.verify(
+          testProof
+        );
 
-    await otherTestZkProgram.compile();
+        const otherTestPublicInput = new EmptyPublicInput({});
 
-    const otherTestProof = await otherTestZkProgram.methods.bar(
-      otherTestPublicInput,
-      testProof
-    );
+        // execute bar
+        otherTestProgrammable.bar(otherTestPublicInput, testProof);
 
-    const verified = await otherTestZkProgram.verify(otherTestProof);
+        // proof bar
+        const otherTestProof = await executionContext
+          .current()
+          .result.prove<Proof<EmptyPublicInput, void>>();
+        const otherTestProofVerified =
+          await otherTestProgrammable.zkProgram.verify(otherTestProof);
 
-    expect(verified).toBe(true);
-  }, 500_000);
+        expect(testProof.publicOutput.bar.toString()).toBe(
+          testPublicInput.foo.toString()
+        );
+
+        expect(testProofVerified).toBe(true);
+        expect(otherTestProofVerified).toBe(true);
+      }, 500_000);
+    });
+
+    describe("failed method execution", () => {
+      it("if the method fails, it should fail to execute and prove", async () => {
+        expect.assertions(2);
+
+        expect(() => {
+          testProgrammable.fail(testPublicInput);
+        }).toThrow(failErrorMessage);
+
+        await expect(async () => {
+          await executionContext.current().result.prove();
+        }).rejects.toThrow(failErrorMessage);
+      });
+    });
+  });
 });
