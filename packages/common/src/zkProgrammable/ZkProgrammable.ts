@@ -27,7 +27,7 @@ export interface Compile {
   (): Promise<CompileArtifact>;
 }
 
-export interface PlainZkProgram<PublicInput, PublicOutput = void> {
+export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   compile: Compile;
   verify: Verify<PublicInput, PublicOutput>;
   Proof: ReturnType<
@@ -38,11 +38,15 @@ export interface PlainZkProgram<PublicInput, PublicOutput = void> {
   >;
   methods: Record<
     string,
-    (
-      publicInput: PublicInput,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...args: any
-    ) => Promise<Proof<PublicInput, PublicOutput>>
+    | ((
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...args: any
+      ) => Promise<Proof<PublicInput, PublicOutput>>)
+    | ((
+        publicInput: PublicInput,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...args: any
+      ) => Promise<Proof<PublicInput, PublicOutput>>)
   >;
 }
 
@@ -85,7 +89,10 @@ export function compileToMockable(
   };
 }
 
-export abstract class ZkProgrammable<PublicInput, PublicOutput> {
+export abstract class ZkProgrammable<
+  PublicInput = undefined,
+  PublicOutput = void
+> {
   // only a subset of AppChain is relevant for us here
   public abstract appChain?: AreProofsEnabled;
 

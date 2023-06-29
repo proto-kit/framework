@@ -93,9 +93,7 @@ class TestProgrammable extends ZkProgrammable<
   }
 }
 
-class EmptyPublicInput extends Struct({}) {}
-
-class OtherTestProgrammable extends ZkProgrammable<EmptyPublicInput, void> {
+class OtherTestProgrammable extends ZkProgrammable {
   public appChain: AreProofsEnabled = appChainMock;
 
   public constructor(public testProgrammable: TestProgrammable) {
@@ -104,17 +102,15 @@ class OtherTestProgrammable extends ZkProgrammable<EmptyPublicInput, void> {
 
   @provableMethod()
   public bar(
-    publicInput: EmptyPublicInput,
-    testProgrammableProof: Proof<TestPublicInput, TestPublicOutput>
+    testProgrammableProof: InstanceType<
+      typeof this.testProgrammable.zkProgram.Proof
+    >
   ) {
     testProgrammableProof.verify();
   }
 
-  public zkProgramFactory(): PlainZkProgram<EmptyPublicInput> {
+  public zkProgramFactory(): PlainZkProgram {
     const program = Experimental.ZkProgram({
-      publicInput: EmptyPublicInput,
-      publicOutput: undefined,
-
       methods: {
         bar: {
           privateInputs: [this.testProgrammable.zkProgram.Proof],
@@ -246,15 +242,13 @@ describe("zkProgrammable", () => {
           testProof
         );
 
-        const otherTestPublicInput = new EmptyPublicInput({});
-
         // execute bar
-        otherTestProgrammable.bar(otherTestPublicInput, testProof);
+        otherTestProgrammable.bar(testProof);
 
         // proof bar
         const otherTestProof = await executionContext
           .current()
-          .result.prove<Proof<EmptyPublicInput, void>>();
+          .result.prove<Proof<undefined, void>>();
         const otherTestProofVerified =
           await otherTestProgrammable.zkProgram.verify(otherTestProof);
 
