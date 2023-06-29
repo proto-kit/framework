@@ -1,4 +1,4 @@
-import { SequencerModule } from "../../sequencer/builder/SequencerModule";
+/* eslint-disable max-lines */
 import { container, inject } from "tsyringe";
 import {
   MethodExecutionContext,
@@ -10,35 +10,35 @@ import {
   BlockProverPublicInput,
   CachedMerkleTreeStore,
   DefaultProvableHashList,
-  MethodPublicInput,
   ProvableHashList,
-  ProvableStateTransition,
   RollupMerkleTree,
   RollupMerkleWitness,
   StateTransition,
-  StateTransitionProverPublicInput,
 } from "@yab/protocol";
+import { Field, Proof } from "snarkyjs";
+import { requireTrue } from "@yab/common";
+
+import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 import { Mempool } from "../../mempool/Mempool";
-import { BlockTrigger } from "./trigger/BlockTrigger";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { distinct } from "../../helpers/utils";
+import { BaseLayer } from "../baselayer/BaseLayer";
+import { TaskQueue } from "../../worker/queue/TaskQueue";
+import { BlockStorage } from "../../storage/repositories/BlockStorage";
+import { ComputedBlock } from "../../storage/model/Block";
+import { PairingMapReduceFlow } from "../../worker/manager/PairingMapReduceFlow";
+
+import { BlockTrigger } from "./trigger/BlockTrigger";
 import { DummyStateService } from "./execution/DummyStateService";
 import { AsyncStateService } from "./state/AsyncStateService";
 import { CachedStateService } from "./execution/CachedStateService";
-import { distinct } from "../../helpers/utils";
-import { Field, Proof } from "snarkyjs";
-import { BaseLayer } from "../baselayer/BaseLayer";
 import {
   BlockProvingTask,
   RuntimeProvingTask,
-  StateTransitionTask
+  StateTransitionTask,
 } from "./tasks/BlockProvingTask";
-import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
-import { BlockStorage } from "../../storage/repositories/BlockStorage";
-import { requireTrue } from "@yab/common";
-import { ComputedBlock } from "../../storage/model/Block";
-import { PairingMapReduceFlow } from "../../worker/manager/PairingMapReduceFlow";
 
 interface RuntimeSequencerModuleConfig {
   proofsEnabled: boolean;
@@ -49,21 +49,9 @@ export interface StateRecord {
 }
 
 export interface TransactionTrace {
-  // For MethodProver (runtime)
-  tx: PendingTransaction;
-  runtimeInput: MethodPublicInput;
-  state: StateRecord;
-
-  // For StateTransitionProver
-  stateTransitionInput: StateTransitionProverPublicInput;
-  stateTransitions: ProvableStateTransition[];
-  merkleWitnesses: RollupMerkleWitness[];
-
-  // For BlockProver
-  bundle: {
-    fromTransactionsHash: Field;
-    toTransactionHash: Field;
-  };
+  runtimeProver: RuntimeProofParameters;
+  stateTransitionProver: StateTransitionProofParameters;
+  blockProver: BlockProverPublicInput;
 }
 
 const errors = {
@@ -71,7 +59,6 @@ const errors = {
     new Error("Public Input undefined, something went wrong during execution"),
 
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
-
 };
 
 export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleConfig> {
@@ -95,16 +82,23 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     super();
   }
 
+  private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
+    return stateTransitions.map((st) => st.path).filter(distinct);
+  }
+
   public async start(): Promise<void> {
     this.runtime.setProofsEnabled(this.config.proofsEnabled);
 
-    this.blockTrigger.setProduceBlock(async () => {
-      const block = await this.tryProduceBlock();
-      if (block !== undefined) {
-        // Broadcast result on to baselayer
-        await this.baseLayer.blockProduced(block);
+    this.blockTrigger.setProduceBlock(
+      async (): Promise<ComputedBlock | undefined> => {
+        const block = await this.tryProduceBlock();
+        if (block !== undefined) {
+          // Broadcast result on to baselayer
+          await this.baseLayer.blockProduced(block);
+        }
+        return block;
       }
-    });
+    );
 
     await this.blockTrigger.start();
   }
@@ -120,7 +114,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     this.productionInProgress = true;
 
     // Get next blockheight and therefore taskId
-    const lastHeight = await this.blockStorage.getCurrentBlockHeight()
+    const lastHeight = await this.blockStorage.getCurrentBlockHeight();
 
     const { txs } = this.mempool.getTxs();
 
@@ -158,9 +152,9 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     const bundleTracker = new DefaultProvableHashList(Field);
 
     const traces = await Promise.all(
-      txs.map(async (tx) => {
-        return await this.createTrace(tx, stateServices, bundleTracker);
-      })
+      txs.map(
+        async (tx) => await this.createTrace(tx, stateServices, bundleTracker)
+      )
     );
 
     // Init tasks based on traces
@@ -170,41 +164,26 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
         RuntimeProofParameters,
         BlockProverPublicInput
       ]
-    >((trace) => {
-      return [
-        {
-          publicInput: trace.stateTransitionInput,
-          batch: trace.stateTransitions,
-          merkleWitnesses: trace.merkleWitnesses,
-        },
-        {
-          state: trace.state,
-          tx: trace.tx,
-        },
-        {
-          fromStateRoot: trace.stateTransitionInput.fromStateRoot,
-          toStateRoot: trace.stateTransitionInput.toStateRoot,
-          fromTransactionsHash: trace.bundle.fromTransactionsHash,
-          toTransactionsHash: trace.bundle.toTransactionHash,
-        },
-      ];
+    >((trace) => [
+      trace.stateTransitionProver,
+      trace.runtimeProver,
+      trace.blockProver,
+    ]);
+
+    const stateTransitionTask = container.resolve(StateTransitionTask);
+    const runtimeTask = container.resolve(RuntimeProvingTask);
+    const blockTask = container.resolve(BlockProvingTask);
+
+    const flow = new PairingMapReduceFlow(this.taskQueue, `block_${blockId}`, {
+      // eslint-disable-next-line putout/putout
+      firstPairing: stateTransitionTask,
+      // eslint-disable-next-line putout/putout
+      secondPairing: runtimeTask,
+      // eslint-disable-next-line putout/putout
+      reducingTask: blockTask,
     });
 
-    const runtimeTask = container.resolve(RuntimeProvingTask);
-    const stateTransitionTask = container.resolve(StateTransitionTask);
-    const blockProvingTask = container.resolve(BlockProvingTask);
-
-    const flow = new PairingMapReduceFlow(
-      this.taskQueue,
-      `block_${blockId}`,
-      {
-        firstPairing: stateTransitionTask,
-        secondPairing: runtimeTask,
-        reducingTask: blockProvingTask,
-      },
-    );
-
-    const taskIds = mappedInputs.map(input => input[1].tx.hash().toString())
+    const taskIds = mappedInputs.map((input) => input[1].tx.hash().toString());
 
     const proof = await flow.executePairingMapReduce(mappedInputs, taskIds);
 
@@ -223,13 +202,16 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
    * How do we create a trace?
    *
    * 1. We execute the transaction and create the stateTransitions
-   * The first execution is done with a DummyStateService to find out the accessed keys
-   * that can then be cached for the actual run, which generates the correct state transitions and
-   * has to be done for the next transactions to be based on the correct state.
+   * The first execution is done with a DummyStateService to find out the
+   * accessed keys that can then be cached for the actual run, which generates
+   * the correct state transitions and  has to be done for the next
+   * transactions to be based on the correct state.
    *
-   * 2. We extract the accessed keys, download the state and put it into AppChainProveParams
-   * 3. We retrieve merkle witnesses for each step and put them into StateTransitionProveParams
+   * 2. We extract the accessed keys, download the state and put it into
+   * AppChainProveParams
    *
+   * 3. We retrieve merkle witnesses for each step and put them into
+   * StateTransitionProveParams
    */
   public async createTrace(
     tx: PendingTransaction,
@@ -260,26 +242,29 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     bundleTracker.push(tx.hash());
 
     const trace: TransactionTrace = {
-      tx,
-      runtimeInput: publicInput,
-      state: startingState,
-
-      stateTransitionInput: {
-        fromStateRoot,
-        toStateRoot,
-        fromStateTransitionsHash: Field(0),
-        toStateTransitionsHash: publicInput.stateTransitionsHash,
+      runtimeProver: {
+        tx,
+        state: startingState,
       },
 
-      stateTransitions: stateTransitions.map((transition) =>
-        transition.toProvable()
-      ),
+      stateTransitionProver: {
+        publicInput: {
+          fromStateRoot,
+          toStateRoot,
+          fromStateTransitionsHash: Field(0),
+          toStateTransitionsHash: publicInput.stateTransitionsHash,
+        },
 
-      merkleWitnesses: witnesses,
+        batch: stateTransitions.map((transition) => transition.toProvable()),
 
-      bundle: {
+        merkleWitnesses: witnesses,
+      },
+
+      blockProver: {
+        fromStateRoot,
+        toStateRoot,
         fromTransactionsHash,
-        toTransactionHash: bundleTracker.commitment,
+        toTransactionsHash: bundleTracker.commitment,
       },
     };
 
@@ -343,26 +328,25 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
 
     method(...args);
 
-    const stateTransitions = executionContext.current().result.stateTransitions;
+    const { stateTransitions } = executionContext.current().result;
     const accessedKeys = this.allKeys(stateTransitions);
 
     // Preload keys
     await stateService.preloadKeys(accessedKeys);
 
     // Get starting state
-    // This has to be this detailed bc the CachedStateService collects state over the whole block,
-    // but we are only interested in the keys touched by this tx
+    // This has to be this detailed bc the CachedStateService collects state
+    // over the whole block, but we are only interested in the keys touched
+    // by this tx
     const startingState = accessedKeys
       .map<[string, Field[] | undefined]>((key) => [
         key.toString(),
         stateService.get(key),
       ])
       .reduce<StateRecord>((a, b) => {
-        const key = b[0];
-        return {
-          ...a,
-          [key]: b[1],
-        };
+        const [recordKey, value] = b;
+        a[recordKey] = value;
+        return a;
       }, {});
 
     // Execute second time with preloaded state
@@ -376,9 +360,5 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
       executionResult: executionContext.current().result,
       startingState,
     };
-  }
-
-  private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
-    return stateTransitions.map((st) => st.path).filter(distinct);
   }
 }
