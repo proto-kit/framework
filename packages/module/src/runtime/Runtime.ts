@@ -1,21 +1,26 @@
 // eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment */
-import { Experimental, Proof } from "snarkyjs";
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment */
+import { Experimental } from "snarkyjs";
 import { injectable } from "tsyringe";
-import { MethodPublicInput, Subclass } from "@yab/protocol";
 import {
   StringKeyOf,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
   TypedClass,
+  ZkProgrammable,
+  PlainZkProgram,
+  WithZkProgrammable,
+  AreProofsEnabled,
 } from "@yab/common";
 
 import {
   combineMethodName,
-  isMethod,
+  isRuntimeMethod,
+  MethodPublicOutput,
   toWrappedMethod,
-} from "../method/decorator.js";
+  WrappedMethod,
+} from "../method/runtimeMethod.js";
 import { StateService } from "../state/InMemoryStateService.js";
 
 import { RuntimeModule } from "./RuntimeModule.js";
@@ -39,101 +44,43 @@ export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
   config?: ModulesConfig<Modules>;
 }
 
-const errors = {
-  unableToAnalyze: (name: string) =>
-    new Error(`Unable to analyze program for runtime: ${name}`),
-
-  precompileFirst: () =>
-    new Error(
-      "You have to call precompile() before being able to create the proof class"
-    ),
-
-  zkProgramMissing: () =>
-    new Error(
-      "Unable to compile runtime, pre-compilation did not produce a zkProgram"
-    ),
-};
-
-/**
- * Wrapper for an application specific runtime, which helps orchestrate
- * runtime modules into an interoperable runtime.
- */
-@injectable()
-export class Runtime<
+export class RuntimeZkProgrammable<
   Modules extends RuntimeModulesRecord
-> extends ModuleContainer<Modules> {
-  /**
-   * Alternative constructor for `Runtime`.
-   *
-   * @param config - Configuration for the returned Runtime
-   * @returns Runtime with the provided config
-   */
-  public static from<Modules extends RuntimeModulesRecord>(
-    definition: RuntimeDefinition<Modules>
-  ) {
-    return new Runtime(definition);
+> extends ZkProgrammable<undefined, MethodPublicOutput> {
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  public constructor(public runtime: Runtime<Modules>) {
+    super();
   }
 
-  // determines whether any proving should be done when running methods
-  public areProofsEnabled = false;
-
-  // runtime modules composed into a ZkProgram
-  public program?: ReturnType<typeof Experimental.ZkProgram>;
-
-  public definition: RuntimeDefinition<Modules>;
-
-  /**
-   * Creates a new Runtime from the provided config
-   *
-   * @param modules - Configuration object for the constructed Runtime
-   */
-  public constructor(definition: RuntimeDefinition<Modules>) {
-    super(definition);
-    this.definition = definition;
+  public get appChain() {
+    return this.runtime.appChain;
   }
 
-  /**
-   * Add a name and other respective properties required by RuntimeModules,
-   * that come from the current Runtime
-   *
-   * @param name - Name of the runtime module to decorate
-   */
-  protected override decorateModule(
-    moduleName: StringKeyOf<Modules>,
-    containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
-  ) {
-    containedModule.name = moduleName;
-    containedModule.runtime = this;
+  public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
+    type Methods = Record<
+      string,
+      {
+        privateInputs: any;
+        method: WrappedMethod;
+      }
+    >;
+    const { runtime } = this;
 
-    super.decorateModule(moduleName, containedModule);
-  }
-
-  /**
-   * @returns A list of names of all the registered module names
-   */
-  public get runtimeModuleNames() {
-    return Object.keys(this.definition.modules);
-  }
-
-  /**
-   * Sets if proofs are enabled or not
-   * @param areProofsEnabled
-   */
-  public setProofsEnabled(areProofsEnabled: boolean) {
-    this.areProofsEnabled = areProofsEnabled;
-  }
-
-  /**
-   * Precompiles the current runtime modules into a ZkProgram.
-   *
-   * @returns - Analysis of the precompiled ZkProgram
-   */
-  public precompile() {
-    type Methods = Parameters<typeof Experimental.ZkProgram>[0]["methods"];
-    const methods = this.runtimeModuleNames.reduce<Methods>(
+    const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
-        this.isValidModuleName(this.definition.modules, runtimeModuleName);
-        const runtimeModule = this.resolve(runtimeModuleName);
+        runtime.isValidModuleName(
+          runtime.definition.modules,
+          runtimeModuleName
+        );
+
+        /**
+         * Couldnt find a better way to circumvent the type assertion
+         * regarding resolving only known modules. We assert in the line above
+         * but we cast it to any anyways to satisfy the proof system.
+         */
+        // eslint-disable-next-line max-len
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const runtimeModule = runtime.resolve(runtimeModuleName as any);
 
         // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -147,7 +94,9 @@ export class Runtime<
 
         const moduleMethods = modulePrototypeMethods.reduce<Methods>(
           (allModuleMethods, methodName) => {
-            if (isMethod(runtimeModule, methodName)) {
+            // eslint-disable-next-line max-len
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/strict-boolean-expressions
+            if (isRuntimeMethod(runtimeModule, methodName)) {
               const combinedMethodName = combineMethodName(
                 runtimeModuleName,
                 methodName
@@ -191,90 +140,92 @@ export class Runtime<
       {}
     );
 
-    // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
-    const sortedMethods = Object.fromEntries(Object.entries(methods).sort());
+    const sortedRuntimeMethods = Object.fromEntries(
+      // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
+      Object.entries(runtimeMethods).sort()
+    );
 
-    this.program = Experimental.ZkProgram({
-      publicInput: MethodPublicInput,
-      methods: sortedMethods,
+    const program = Experimental.ZkProgram({
+      publicOutput: MethodPublicOutput,
+      methods: sortedRuntimeMethods,
     });
 
-    function analyze(this: Runtime<Modules>) {
-      if (!this.program) {
-        throw errors.unableToAnalyze(this.constructor.name);
-      }
-      const zkProgramAnalysis = this.program.analyzeMethods();
-      return Object.keys(sortedMethods).map((methodName, index) => {
-        const { rows, gates } = zkProgramAnalysis[index];
-        const { privateInputs: inputs } = sortedMethods[methodName];
-        return {
-          methodName,
+    const SelfProof = Experimental.ZkProgram.Proof(program);
 
-          analysis: {
-            rows,
-            gates,
-            inputs,
-          },
-        };
-      });
-    }
+    const methods = Object.keys(sortedRuntimeMethods).reduce<
+      Record<string, any>
+    >((boundMethods, methodName) => {
+      boundMethods[methodName] = program[methodName].bind(program);
+      return boundMethods;
+    }, {});
 
     return {
-      analyze,
-
-      toPretty: () => {
-        Reflect.apply(analyze, this, []).forEach(
-          ({ methodName, analysis: methodAnalysis }) => {
-            const inputs = methodAnalysis.inputs.map(
-              // eslint-disable-next-line max-len
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/consistent-type-assertions
-              (input) => (input as any).name
-            );
-
-            console.log(`
-  Method: ${methodName}
-  Rows: ${methodAnalysis.rows},
-  Gates: ${methodAnalysis.gates.length}
-  Inputs: [${inputs.join(", ")}]
-  `);
-          }
-        );
-      },
+      compile: program.compile.bind(program),
+      verify: program.verify.bind(program),
+      Proof: SelfProof,
+      methods,
     };
   }
+}
 
-  public getProofClass(): Subclass<typeof Proof<MethodPublicInput>> {
-    if (this.program === undefined) {
-      throw errors.precompileFirst();
-    }
-    const { program } = this;
+/**
+ * Wrapper for an application specific runtime, which helps orchestrate
+ * runtime modules into an interoperable runtime.
+ */
+@injectable()
+export class Runtime<Modules extends RuntimeModulesRecord>
+  extends ModuleContainer<Modules>
+  implements WithZkProgrammable<undefined, MethodPublicOutput>
+{
+  public static from<Modules extends RuntimeModulesRecord>(
+    definition: RuntimeDefinition<Modules>
+  ) {
+    return new Runtime(definition);
+  }
 
-    return ((programClosure: { name: string }) =>
-      class AppChainProof extends Proof<MethodPublicInput> {
-        public static publicInputType = MethodPublicInput;
+  // runtime modules composed into a ZkProgram
+  public program?: ReturnType<typeof Experimental.ZkProgram>;
 
-        public static tag = () => programClosure;
-      })(program);
+  public appChain?: AreProofsEnabled;
+
+  public definition: RuntimeDefinition<Modules>;
+
+  public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
+
+  /**
+   * Creates a new Runtime from the provided config
+   *
+   * @param modules - Configuration object for the constructed Runtime
+   */
+  public constructor(definition: RuntimeDefinition<Modules>) {
+    super(definition);
+    this.definition = definition;
+    this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
+    // this.registerValue({
+    //   Runtime: this,
+    // });
   }
 
   /**
-   * Compiles the current runtime modules configuration
-   * into a ZkProgram and then into a verification key.
+   * Add a name and other respective properties required by RuntimeModules,
+   * that come from the current Runtime
    *
-   * @returns The resulting artifact of ZkProgram compilation (verification key)
+   * @param name - Name of the runtime module to decorate
    */
-  public async compile() {
-    this.precompile();
-    if (!this.program) {
-      throw errors.zkProgramMissing();
-    }
-    const { areProofsEnabled, program } = this;
+  public decorateModule(
+    moduleName: StringKeyOf<Modules>,
+    containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
+  ) {
+    containedModule.name = moduleName;
+    containedModule.runtime = this;
 
-    this.setProofsEnabled(false);
-    const artifact = await program.compile();
+    super.decorateModule(moduleName, containedModule);
+  }
 
-    this.setProofsEnabled(areProofsEnabled);
-
-    return artifact;
+  /**
+   * @returns A list of names of all the registered module names
+   */
+  public get runtimeModuleNames() {
+    return Object.keys(this.definition.modules);
   }
 }

@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unused-modules */
 import type { Proof } from "snarkyjs";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
@@ -8,11 +7,11 @@ export const errors = {
 
   proverNotSet: (moduleName: string, methodName: string) =>
     new Error(
-      `Prover not set for '${moduleName}.${methodName}', did you forget to decorate your method with @provableMethod()?`
+      `Prover not set for '${moduleName}.${methodName}', did you forget to decorate your method?`
     ),
 };
 
-export class MethodExecutionResult {
+export class ProvableMethodExecutionResult {
   public moduleName?: string;
 
   public methodName?: string;
@@ -48,9 +47,8 @@ export class ProvableMethodExecutionContext {
 
   public methods: string[] = [];
 
-  public constructor(
-    public result: MethodExecutionResult = new MethodExecutionResult()
-  ) {}
+  public result: ProvableMethodExecutionResult =
+    new ProvableMethodExecutionResult();
 
   /**
    * Adds a method prover to the current execution context,
@@ -109,6 +107,6 @@ export class ProvableMethodExecutionContext {
    * Manually clears/resets the execution context
    */
   public clear() {
-    this.result = new MethodExecutionResult();
+    this.result = new ProvableMethodExecutionResult();
   }
 }

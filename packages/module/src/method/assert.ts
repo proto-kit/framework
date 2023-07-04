@@ -1,7 +1,7 @@
-import { type Bool, Circuit } from "snarkyjs";
+import { type Bool, Provable } from "snarkyjs";
 import { container } from "tsyringe";
 
-import { MethodExecutionContext } from "./MethodExecutionContext.js";
+import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext";
 
 /**
  * Maintains an execution status of the current runtime module method,
@@ -13,9 +13,9 @@ import { MethodExecutionContext } from "./MethodExecutionContext.js";
  * @param message - Optional message describing the prior status
  */
 export function assert(condition: Bool, message?: string) {
-  const executionContext = container.resolve(MethodExecutionContext);
+  const executionContext = container.resolve(RuntimeMethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
-  const status = Circuit.if(previousStatus, condition, previousStatus);
+  const status = Provable.if(previousStatus, condition, previousStatus);
 
   // const status = previousStatus.and(condition);
   executionContext.setStatus(status);

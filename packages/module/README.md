@@ -36,18 +36,18 @@ export class Balances extends RuntimeModule {
     super();
   }
 
-  @method()
+  @runtimeMethod()
   public getTotalSupply() {
     this.totalSupply.get();
   }
 
-  @method()
+  @runtimeMethod()
   public setTotalSupply() {
     this.totalSupply.set(UInt64.from(20));
     this.admin.isAdmin();
   }
 
-  @method()
+  @runtimeMethod()
   public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
   }
@@ -61,7 +61,7 @@ The Balances runtime module shows how the YAB runtime module API can be used:
 - `@state() public totalSupply = State.from<UInt64>(UInt64)` - defines a runtime module state of type `UInt64`, which can be either get or set
 - `@state() public balances = StateMap.from<PublicKey, UInt64>(PublicKey, UInt64)` - defines a runtime module map state, which allows values to be stored under keys, respective of the given key & value types.
 - `public constructor(public admin: Admin)` - injects a runtime module dependency to another runtime module `Admin`, which is a standalone runtime module
-- `@method() public getTotalSupply()` - defines a runtime module method containing circuit logic for a runtime state transition. Methods define how the chain state is transformed from the initial state to the resulting state.
+- `@runtimeMethod() public getTotalSupply()` - defines a runtime module method containing circuit logic for a runtime state transition. Methods define how the chain state is transformed from the initial state to the resulting state.
 - `this.admin.isAdmin()` - shows how runtime module interoperability works, a configured runtime module is injected in the constructor, and can be used within the existing methods. Code of the called runtime module becomes part of the original method circuit (setTotalSupply in this case).
 
 ## Method wrapper circuit

@@ -20,7 +20,7 @@ interface AdminConfig {
 
 @runtimeModule()
 class Admin extends RuntimeModule<AdminConfig> {
-  @method()
+  @runtimeMethod()
   public isAdmin(publicKey: PublicKey) {
     const admin = PublicKey.fromBase58(this.config.publicKey);
     assert(admin.equals(publicKey));

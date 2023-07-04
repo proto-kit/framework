@@ -17,7 +17,7 @@ class Balances {
     public totalSupply = UInt64;
     public balances = Map(PublicKey, UInt64);
 
-    @method
+    @runtimeMethod
     public transfer(proof: Proof, from: PublicKey, to: PublicKey, amount: UInt64): Bool {
         const fromBalance = this.balances.get(from); // Circuit.witness -> UInt64
         const toBalance = this.balances.get(to); // Circuit.witness -> UInt64

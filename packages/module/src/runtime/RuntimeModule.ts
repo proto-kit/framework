@@ -1,4 +1,5 @@
 import { ConfigurableModule, Presets } from "@yab/common";
+import { injectable } from "tsyringe";
 
 import type {
   Runtime,
@@ -11,14 +12,15 @@ import type {
  * to runtime modules, until we can inject them through DI.
  */
 export interface PartialRuntime
-  extends Pick<Runtime<RuntimeModulesRecord>, "areProofsEnabled" | "program"> {
+  extends Pick<Runtime<RuntimeModulesRecord>, "zkProgrammable"> {
   definition: Pick<RuntimeDefinition<RuntimeModulesRecord>, "state">;
 }
 
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
-export abstract class RuntimeModule<Config> extends ConfigurableModule<Config> {
+@injectable()
+export class RuntimeModule<Config> extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 
   /**
@@ -30,5 +32,5 @@ export abstract class RuntimeModule<Config> extends ConfigurableModule<Config> {
 
   public name?: string;
 
-  public runtime?: PartialRuntime;
+  public runtime?: Runtime<RuntimeModulesRecord>;
 }

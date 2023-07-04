@@ -17,10 +17,10 @@ export const errors = {
       `Trying to get config of ${moduleName}, but it was not yet set in the module container`
     ),
 
-  onlyStringModuleNames: (moduleName: NonNullable<unknown>) =>
+  onlyValidModuleNames: (moduleName: NonNullable<unknown>) =>
     new Error(
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      `Only string module names, using ${typeof moduleName} instead: ${moduleName.toString()}`
+      `Only known module names are allowed, using unknown module name: ${moduleName}`
     ),
 
   unableToDecorateModule: (moduleName: InjectionToken<unknown>) =>
@@ -129,12 +129,16 @@ export class ModuleContainer<Modules extends ModulesRecord> {
    * otherwise it may be just string e.g. when modules are iterated over
    * using e.g. a for loop.
    */
-  protected isValidModuleName(
+  public assertIsValidModuleName(
     modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
+    this.isValidModuleName(modules, moduleName);
+  }
+
+  public isValidModuleName(modules: Modules, moduleName: string) {
     if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-      throw errors.onlyStringModuleNames(moduleName);
+      throw errors.onlyValidModuleNames(moduleName);
     }
   }
 
@@ -148,7 +152,7 @@ export class ModuleContainer<Modules extends ModulesRecord> {
   protected registerModules(modules: Modules) {
     for (const moduleName in modules) {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-        this.isValidModuleName(modules, moduleName);
+        this.assertIsValidModuleName(modules, moduleName);
 
         this.container.register(
           moduleName,

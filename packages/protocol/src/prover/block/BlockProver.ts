@@ -13,7 +13,7 @@ import {
   type StateTransitionProverPublicInput,
 } from "../statetransition/StateTransitionProver.js";
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
-import { MethodPublicInput } from "../../model/MethodPublicInput";
+import { MethodPublicInput } from "../../model/MethodPublicOutput";
 import { Subclass } from "../../utils/utils";
 
 const errors = {

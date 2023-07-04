@@ -41,9 +41,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    * modules to start each
    */
   public async start() {
-    console.log("starting sequencer 2", this.definition.modules);
     for (const moduleName in this.definition.modules) {
-      console.log("starting sequecncer module", moduleName);
       const sequencerModule = this.resolve(moduleName);
 
       // eslint-disable-next-line no-await-in-loop

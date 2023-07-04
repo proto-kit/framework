@@ -93,7 +93,6 @@ export abstract class ZkProgrammable<
   PublicInput = undefined,
   PublicOutput = void
 > {
-  // only a subset of AppChain is relevant for us here
   public abstract appChain?: AreProofsEnabled;
 
   public abstract zkProgramFactory(): PlainZkProgram<PublicInput, PublicOutput>;
@@ -112,4 +111,11 @@ export abstract class ZkProgrammable<
       compile: compileToMockable(zkProgram.compile, this.appChain),
     };
   }
+}
+
+export interface WithZkProgrammable<
+  PublicInput = undefined,
+  PublicOutput = void
+> {
+  zkProgrammable: ZkProgrammable<PublicInput, PublicOutput>;
 }
