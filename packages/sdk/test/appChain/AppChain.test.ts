@@ -3,16 +3,16 @@ import { PublicKey } from "snarkyjs";
 import {
   assert,
   InMemoryStateService,
-  method,
-  Runtime,
+  Runtime, runtimeMethod,
   RuntimeModule,
   runtimeModule,
-  RuntimeModulesRecord,
+  RuntimeModulesRecord
 } from "@yab/module";
 import { Sequencer, sequencerModule, SequencerModule } from "@yab/sequencer";
 import { inject } from "tsyringe";
 
 import { AppChain } from "../../src";
+import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 
 interface AdminConfig {
   publicKey: string;
@@ -75,6 +75,7 @@ describe("appChain", () => {
     const appChain = AppChain.from({
       runtime,
       sequencer,
+      protocol: VanillaProtocol.create(),
     });
 
     appChain.configure({

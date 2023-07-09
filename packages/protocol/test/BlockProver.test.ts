@@ -5,19 +5,22 @@ import {
   type DependencyContainer,
 } from "tsyringe";
 
-import { MethodPublicInput } from "@yab/protocol";
+import { MethodPublicOutput } from "@yab/protocol";
 
 import {
   BlockProver,
-  BlockProverPublicInput,
   type BlockProverState,
 } from "../src/prover/block/BlockProver.js";
-import { StateTransitionProverPublicInput } from "../src/prover/statetransition/StateTransitionProver.js";
 import { NoOpStateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
+import {
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput
+} from "../src/prover/statetransition/StateTransitionProvable";
+import { BlockProverPublicInput } from "../src/prover/block/BlockProvable";
 
 type BlockProverProofPair = [
-  Proof<MethodPublicInput>,
-  Proof<StateTransitionProverPublicInput>
+  Proof<void, MethodPublicOutput>,
+  Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>
 ];
 
 describe("blockProver", () => {
@@ -39,8 +42,9 @@ describe("blockProver", () => {
     const transactionHash = Poseidon.hash([Field(12_345)]);
     const sthash = Field(123);
 
-    const appProof = new Proof<MethodPublicInput>({
-      publicInput: new MethodPublicInput({
+    const appProof = new Proof<undefined, MethodPublicOutput>({
+      publicInput: undefined,
+      publicOutput: new MethodPublicOutput({
         transactionHash,
         stateTransitionsHash: sthash,
         status: Bool(true),
@@ -50,12 +54,14 @@ describe("blockProver", () => {
       maxProofsVerified: 2,
     });
 
-    const stProof = new Proof<StateTransitionProverPublicInput>({
+    const stProof = new Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>({
       publicInput: new StateTransitionProverPublicInput({
-        fromStateTransitionsHash: Field(0),
-        toStateTransitionsHash: sthash,
-        fromStateRoot,
-        toStateRoot,
+        stateTransitionsHash: Field(0),
+        stateRoot: fromStateRoot,
+      }),
+      publicOutput: new StateTransitionProverPublicOutput({
+        stateTransitionsHash: sthash,
+        stateRoot: toStateRoot
       }),
 
       proof: "",
@@ -83,7 +89,7 @@ describe("blockProver", () => {
   });
 
   it("previously applied transaction should also pass with derived publicInputs", () => {
-    expect.assertions(0);
+    expect.assertions(2);
 
     const blockProver = container.resolve(BlockProver);
 
@@ -100,43 +106,13 @@ describe("blockProver", () => {
     blockProver.applyTransaction(toProverState, stProof, appProof);
 
     const publicInput = new BlockProverPublicInput({
-      fromStateRoot: fromProverState.stateRoot,
-      toStateRoot: toProverState.stateRoot,
-      fromTransactionsHash: fromProverState.transactionsHash,
-      toTransactionsHash: toProverState.transactionsHash,
+      stateRoot: fromProverState.stateRoot,
+      transactionsHash: fromProverState.transactionsHash,
     });
 
-    blockProver.proveTransaction(publicInput, stProof, appProof);
-  });
+    const publicOutput = blockProver.proveTransaction(publicInput, stProof, appProof);
 
-  it("should fail if proofs don't match transactionsHash", () => {
-    expect.assertions(1);
-
-    const blockProver = container.resolve(BlockProver);
-
-    const fromState = Field(1);
-    const toState = Field(2);
-
-    const [appProof, stProof] = generateTestProofs(fromState, toState);
-
-    const fromProverState: BlockProverState = {
-      stateRoot: fromState,
-      transactionsHash: Field(0),
-    };
-    const toProverState = { ...fromProverState };
-    blockProver.applyTransaction(toProverState, stProof, appProof);
-
-    const publicInput = new BlockProverPublicInput({
-      fromStateRoot: fromProverState.stateRoot,
-      toStateRoot: toProverState.stateRoot,
-      fromTransactionsHash: fromProverState.transactionsHash,
-      toTransactionsHash: Field(5),
-    });
-
-    expect(() => {
-      blockProver.proveTransaction(publicInput, stProof, appProof);
-    })
-      // eslint-disable-next-line jest/require-to-throw-message
-      .toThrow();
+    expect(publicOutput.stateRoot).toStrictEqual(toProverState.stateRoot);
+    expect(publicOutput.transactionsHash).toStrictEqual(toProverState.transactionsHash);
   });
 });

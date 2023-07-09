@@ -2,7 +2,7 @@ import type { Proof } from "snarkyjs";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 
-export const errors = {
+const errors = {
   moduleOrMethodNameNotSet: () => new Error("Module or method name not set"),
 
   proverNotSet: (moduleName: string, methodName: string) =>

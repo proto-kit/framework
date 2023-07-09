@@ -11,3 +11,4 @@ export * from "./prover/statetransition/StateTransitionWitnessProvider";
 export * from "./utils/merkletree/MemoryMerkleTreeStorage";
 export * from "./utils/merkletree/RollupMerkleTree";
 export * from "./model/MethodPublicOutput";
+export * from "./prover/statetransition/StateTransitionWitnessProviderReference";
