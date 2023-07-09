@@ -20,7 +20,8 @@
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
     "tsyringe": "^4.7.0",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "@yab/common": "*"
   },
   "peerDependencies": {
     "tsyringe": "^4.7.0",

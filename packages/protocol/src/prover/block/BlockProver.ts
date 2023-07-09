@@ -1,26 +1,22 @@
-import {
-  Circuit,
-  Experimental,
-  Field,
-  type Proof, Provable,
-  SelfProof
-} from "snarkyjs";
+import { Experimental, Field, type Proof, Provable, SelfProof } from "snarkyjs";
 import { injectable } from "tsyringe";
+import { AreProofsEnabled, PlainZkProgram, ZkProgrammable } from "@yab/common";
+
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import {
+  StateTransitionProof,
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput,
+} from "../statetransition/StateTransitionProvable";
+
+import {
   BlockProvable,
   BlockProverProof,
   BlockProverPublicInput,
-  BlockProverPublicOutput
+  BlockProverPublicOutput,
 } from "./BlockProvable";
-import {
-  StateTransitionProof,
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
-} from "../statetransition/StateTransitionProvable";
-import { AreProofsEnabled, PlainZkProgram, ZkProgrammable } from "@yab/common";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -61,7 +57,10 @@ export class BlockProver
   public appChain?: AreProofsEnabled;
 
   public constructor(
-    private readonly stateTransitionProver: ZkProgrammable<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>,
+    private readonly stateTransitionProver: ZkProgrammable<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >,
     private readonly runtime: ZkProgrammable<void, MethodPublicOutput>
   ) {
     super();
@@ -78,7 +77,10 @@ export class BlockProver
    */
   public applyTransaction(
     state: BlockProverState,
-    stateTransitionProof: Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>,
+    stateTransitionProof: Proof<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >,
     appProof: Proof<void, MethodPublicOutput>
   ): BlockProverState {
     appProof.verify();
@@ -136,7 +138,7 @@ export class BlockProver
 
     return new BlockProverPublicOutput({
       stateRoot: state.stateRoot,
-      transactionsHash: state.transactionsHash
+      transactionsHash: state.transactionsHash,
     });
   }
 
@@ -170,8 +172,8 @@ export class BlockProver
 
     return new BlockProverPublicOutput({
       stateRoot: proof2.publicOutput.stateRoot,
-      transactionsHash: proof2.publicOutput.transactionsHash
-    })
+      transactionsHash: proof2.publicOutput.transactionsHash,
+    });
   }
 
   /**
@@ -179,9 +181,13 @@ export class BlockProver
    * Recursive linking of proofs is done via the previously
    * injected StateTransitionProver and the required AppChainProof class
    */
-  public zkProgramFactory(): PlainZkProgram<BlockProverPublicInput, BlockProverPublicOutput> {
-    const StateTransitionProof = this.stateTransitionProver.zkProgram.Proof;
-    const RuntimeProof = this.runtime.zkProgram.Proof;
+  public zkProgramFactory(): PlainZkProgram<
+    BlockProverPublicInput,
+    BlockProverPublicOutput
+  > {
+    const StateTransitionProofClass =
+      this.stateTransitionProver.zkProgram.Proof;
+    const RuntimeProofClass = this.runtime.zkProgram.Proof;
 
     const proveTransaction = this.proveTransaction.bind(this);
     const merge = this.merge.bind(this);
@@ -192,7 +198,7 @@ export class BlockProver
 
       methods: {
         proveTransaction: {
-          privateInputs: [StateTransitionProof, RuntimeProof],
+          privateInputs: [StateTransitionProofClass, RuntimeProofClass],
 
           method(
             publicInput: BlockProverPublicInput,
@@ -223,7 +229,7 @@ export class BlockProver
     const methods = {
       proveTransaction: program.proveTransaction,
       merge: program.merge,
-    }
+    };
 
     const SelfProofClass = Experimental.ZkProgram.Proof(program);
 
