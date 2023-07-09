@@ -3,16 +3,17 @@ import { PublicKey } from "snarkyjs";
 import {
   assert,
   InMemoryStateService,
-  Runtime, runtimeMethod,
+  Runtime,
+  runtimeMethod,
   RuntimeModule,
   runtimeModule,
-  RuntimeModulesRecord
+  RuntimeModulesRecord,
 } from "@yab/module";
 import { Sequencer, sequencerModule, SequencerModule } from "@yab/sequencer";
 import { inject } from "tsyringe";
+import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 
 import { AppChain } from "../../src";
-import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 
 interface AdminConfig {
   publicKey: string;

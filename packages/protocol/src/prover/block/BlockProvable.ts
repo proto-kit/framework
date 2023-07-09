@@ -1,4 +1,5 @@
-import { Field, Proof, SelfProof, Struct } from "snarkyjs";
+import { Field, Proof, Struct } from "snarkyjs";
+
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 
@@ -7,21 +8,25 @@ export class BlockProverPublicInput extends Struct({
   stateRoot: Field,
 }) {}
 
-export const BlockProverPublicOutput = BlockProverPublicInput
-export type BlockProverPublicOutput = BlockProverPublicInput
+export const BlockProverPublicOutput = BlockProverPublicInput;
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type BlockProverPublicOutput = BlockProverPublicInput;
 
-export type BlockProverProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>
+export type BlockProverProof = Proof<
+  BlockProverPublicInput,
+  BlockProverPublicOutput
+>;
 
 export interface BlockProvable {
   proveTransaction: (
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
     appProof: Proof<void, MethodPublicOutput>
-  ) => BlockProverPublicOutput
+  ) => BlockProverPublicOutput;
 
   merge: (
     publicInput: BlockProverPublicInput,
     proof1: BlockProverProof,
     proof2: BlockProverProof
-  ) => BlockProverPublicOutput
+  ) => BlockProverPublicOutput;
 }

@@ -1,18 +1,13 @@
 import "reflect-metadata";
 
 import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
+import log from "loglevel";
 
 import { StringKeyOf, TypedClass } from "../types";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
-import log from "loglevel";
 
 const errors = {
-  configNotSet: (moduleName: string) =>
-    new Error(
-      `Trying to retrieve config of ${moduleName}, which was not yet set`
-    ),
-
   configNotSetInContainer: (moduleName: string) =>
     new Error(
       `Trying to get config of ${moduleName}, but it was not yet set in the module container`
@@ -20,7 +15,8 @@ const errors = {
 
   onlyValidModuleNames: (moduleName: NonNullable<unknown>) =>
     new Error(
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string,@typescript-eslint/restrict-template-expressions
       `Only known module names are allowed, using unknown module name: ${moduleName}`
     ),
 
@@ -157,7 +153,7 @@ export class ModuleContainer<Modules extends ModulesRecord> {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.assertIsValidModuleName(modules, moduleName);
 
-        log.trace(`Registering module: ${moduleName}`)
+        log.trace(`Registering module: ${moduleName}`);
 
         this.container.register(
           moduleName,
@@ -173,6 +169,7 @@ export class ModuleContainer<Modules extends ModulesRecord> {
    * Register a non-module value into the current container
    * @param modules
    */
+  // eslint-disable-next-line no-warning-comments
   // TODO Rename to plural since object is param
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
