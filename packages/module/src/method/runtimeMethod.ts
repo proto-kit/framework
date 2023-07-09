@@ -11,7 +11,7 @@ import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext.js";
 
-export const errors = {
+const errors = {
   runtimeNotProvided: (name: string) =>
     new Error(`Runtime was not provided for module: ${name}`),
 };

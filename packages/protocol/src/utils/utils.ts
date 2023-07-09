@@ -21,16 +21,6 @@ export type Subclass<Class extends new (...args: any) => any> = (new (
   [Key in keyof Class]: Class[Key];
 } & { prototype: InstanceType<Class> };
 
-export interface ZkProgramType<PublicInputType> {
-  name: string;
-  compile: () => Promise<{ verificationKey: string }>;
-  verify: (proof: Proof<PublicInputType>) => Promise<boolean>;
-  digest: () => string;
-
-  // analyzeMethods: () => ReturnType<typeof analyzeMethod>[];
-  publicInputType: TypedClass<PublicInputType>;
-}
-
 export function notInCircuit(): MethodDecorator {
   return function ReplacedFunction(
     target: any,

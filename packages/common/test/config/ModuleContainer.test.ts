@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import { ConfigurableModule } from "../../src/config/ConfigurableModule";
 import {
-  errors,
+  ModuleContainerErrors,
   ModuleContainer,
   ModulesRecord,
 } from "../../src/config/ModuleContainer";
@@ -59,7 +59,7 @@ describe("moduleContainer", () => {
 
     expect(() => {
       container.resolve("TestModule");
-    }).toThrow(errors.configNotSetInContainer("TestModule"));
+    }).toThrow(ModuleContainerErrors.configNotSetInContainer("TestModule"));
   });
 
   it("should resolve the registered module with the provided config", () => {

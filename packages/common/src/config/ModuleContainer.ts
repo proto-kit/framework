@@ -5,8 +5,9 @@ import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
 import { StringKeyOf, TypedClass } from "../types";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
+import log from "loglevel";
 
-export const errors = {
+const errors = {
   configNotSet: (moduleName: string) =>
     new Error(
       `Trying to retrieve config of ${moduleName}, which was not yet set`
@@ -38,6 +39,8 @@ export const errors = {
       as a runtime module for this chain: ${name}`
     ),
 };
+
+export const ModuleContainerErrors = errors;
 
 // determines that a module should be configurable by default
 export type BaseModuleType = TypedClass<Configurable<unknown>>;
@@ -154,6 +157,8 @@ export class ModuleContainer<Modules extends ModulesRecord> {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.assertIsValidModuleName(modules, moduleName);
 
+        log.trace(`Registering module: ${moduleName}`)
+
         this.container.register(
           moduleName,
           { useClass: modules[moduleName] },
@@ -168,6 +173,7 @@ export class ModuleContainer<Modules extends ModulesRecord> {
    * Register a non-module value into the current container
    * @param modules
    */
+  // TODO Rename to plural since object is param
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
       this.container.register(moduleName, { useValue });
