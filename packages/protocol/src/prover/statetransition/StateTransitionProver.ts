@@ -1,8 +1,7 @@
 import {
-  Circuit,
   Experimental,
-  Field,
-  SelfProof,
+  Field, Provable,
+  SelfProof
 } from "snarkyjs";
 import { inject, injectable } from "tsyringe";
 
@@ -163,7 +162,7 @@ export class StateTransitionProver extends ProtocolModule<StateTransitionProverP
     transition: ProvableStateTransition,
     index = 0
   ) {
-    const treeWitness = Circuit.witness(RollupMerkleWitness, () =>
+    const treeWitness = Provable.witness(RollupMerkleWitness, () =>
       this.witnessProvider.getWitness(transition.path)
     );
     const membershipValid = MerkleTreeUtils.checkMembership(
@@ -180,7 +179,7 @@ export class StateTransitionProver extends ProtocolModule<StateTransitionProverP
       treeWitness,
       transition.to.value
     );
-    state.stateRoot = Circuit.if(
+    state.stateRoot = Provable.if(
       transition.to.isSome,
       newRoot,
       state.stateRoot

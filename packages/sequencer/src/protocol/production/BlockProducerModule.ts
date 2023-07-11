@@ -1,19 +1,17 @@
 /* eslint-disable max-lines */
 import { container, inject } from "tsyringe";
 import {
-  MethodExecutionContext,
-  MethodExecutionResult,
-  Runtime,
+  Runtime, RuntimeMethodExecutionContext, RuntimeProvableMethodExecutionResult
 } from "@yab/module";
 import {
   AsyncMerkleTreeStore,
-  BlockProverPublicInput,
+  BlockProverPublicInput, BlockProverPublicOutput,
   CachedMerkleTreeStore,
   DefaultProvableHashList,
   ProvableHashList,
   RollupMerkleTree,
   RollupMerkleWitness,
-  StateTransition,
+  StateTransition
 } from "@yab/protocol";
 import { Field, Proof } from "snarkyjs";
 import { requireTrue } from "@yab/common";
@@ -87,7 +85,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
   }
 
   public async start(): Promise<void> {
-    this.runtime.setProofsEnabled(this.config.proofsEnabled);
+    // this.runtime.setProofsEnabled(this.config.proofsEnabled);
 
     this.blockTrigger.setProduceBlock(
       async (): Promise<ComputedBlock | undefined> => {
@@ -143,7 +141,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
   public async createBlock(
     txs: PendingTransaction[],
     blockId: number
-  ): Promise<Proof<BlockProverPublicInput>> {
+  ): Promise<Proof<BlockProverPublicInput, BlockProverPublicOutput>> {
     const stateServices = {
       stateService: new CachedStateService(this.asyncStateService),
       merkleStore: new CachedMerkleTreeStore(this.merkleStore),
@@ -228,11 +226,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
       stateServices.stateService,
       method
     );
-    const { stateTransitions, publicInput } = executionResult;
-
-    if (publicInput === undefined) {
-      throw errors.publicInputUndefined();
-    }
+    const { stateTransitions } = executionResult;
 
     // Step 3
     const { witnesses, fromStateRoot, toStateRoot } =
@@ -249,10 +243,10 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
 
       stateTransitionProver: {
         publicInput: {
-          fromStateRoot,
-          toStateRoot,
-          fromStateTransitionsHash: Field(0),
-          toStateTransitionsHash: publicInput.stateTransitionsHash,
+          stateRoot: fromStateRoot,
+          // toStateRoot,
+          stateTransitionsHash: Field(0),
+          // toStateTransitionsHash: publicInput.stateTransitionsHash,
         },
 
         batch: stateTransitions.map((transition) => transition.toProvable()),
@@ -261,10 +255,10 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
       },
 
       blockProver: {
-        fromStateRoot,
-        toStateRoot,
-        fromTransactionsHash,
-        toTransactionsHash: bundleTracker.commitment,
+        stateRoot: fromStateRoot,
+        // toStateRoot,
+        transactionsHash: fromTransactionsHash,
+        // toTransactionsHash: bundleTracker.commitment,
       },
     };
 
@@ -315,7 +309,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     method: (...args: unknown[]) => unknown,
     ...args: unknown[]
   ): Promise<{
-    executionResult: MethodExecutionResult<unknown>;
+    executionResult: RuntimeProvableMethodExecutionResult;
     startingState: StateRecord;
   }> {
     // Execute the first time with dummy service
@@ -323,7 +317,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
       this.dummyStateService
     );
     const executionContext = this.runtime.dependencyContainer.resolve(
-      MethodExecutionContext
+      RuntimeMethodExecutionContext
     );
 
     method(...args);

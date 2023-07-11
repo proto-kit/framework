@@ -1,7 +1,10 @@
 import { ModulesConfig } from "@yab/common";
 import { Runtime, RuntimeModulesRecord } from "@yab/module";
 import { Sequencer, SequencerModulesRecord } from "@yab/sequencer";
-import { Protocol, ProtocolModulesRecord } from "@yab/protocol/src/protocol/Protocol";
+import {
+  Protocol,
+  ProtocolModulesRecord,
+} from "@yab/protocol/src/protocol/Protocol";
 
 export interface AppChainDefinition<
   RuntimeModules extends RuntimeModulesRecord,
@@ -18,7 +21,7 @@ export interface AppChainDefinition<
  */
 export interface AppChainConfig<
   RuntimeModules extends RuntimeModulesRecord,
-  SequencerModules extends SequencerModulesRecord,
+  SequencerModules extends SequencerModulesRecord
 > {
   runtime: ModulesConfig<RuntimeModules>;
   sequencer: ModulesConfig<SequencerModules>;
@@ -37,12 +40,22 @@ export class AppChain<
     RuntimeModules extends RuntimeModulesRecord,
     ProtocolModules extends ProtocolModulesRecord,
     SequencerModules extends SequencerModulesRecord
-  >(definition: AppChainDefinition<RuntimeModules, ProtocolModules, SequencerModules>) {
+  >(
+    definition: AppChainDefinition<
+      RuntimeModules,
+      ProtocolModules,
+      SequencerModules
+    >
+  ) {
     return new AppChain(definition);
   }
 
   public constructor(
-    public definition: AppChainDefinition<RuntimeModules, ProtocolModules, SequencerModules>
+    public definition: AppChainDefinition<
+      RuntimeModules,
+      ProtocolModules,
+      SequencerModules
+    >
   ) {}
 
   public get runtime(): Runtime<RuntimeModules> {
@@ -72,7 +85,7 @@ export class AppChain<
   public async start() {
     this.sequencer.registerValue({
       Runtime: this.definition.runtime,
-      Protocol: this.definition.protocol
+      Protocol: this.definition.protocol,
     });
 
     await this.sequencer.start();
