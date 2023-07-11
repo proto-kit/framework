@@ -20,6 +20,6 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
   }
 
   public async start(): Promise<void> {
-    this.runtime.setProofsEnabled(this.config.proofsEnabled);
+    // this.runtime.setProofsEnabled(this.config.proofsEnabled);
   }
 }
