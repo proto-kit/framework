@@ -7,15 +7,18 @@ import {
 } from "@yab/common";
 import { Runtime, RuntimeModulesRecord } from "@yab/module";
 import { injectable } from "tsyringe";
+import {
+  Protocol,
+  ProtocolModulesRecord,
+} from "@yab/protocol/src/protocol/Protocol";
+import {
+  StateTransitionWitnessProvider,
+  StateTransitionWitnessProviderReference,
+} from "@yab/protocol";
 
 import { SequencerModule } from "../builder/SequencerModule";
 
 import { Sequenceable } from "./Sequenceable";
-import { Protocol, ProtocolModulesRecord } from "@yab/protocol/src/protocol/Protocol";
-import {
-  StateTransitionWitnessProvider,
-  StateTransitionWitnessProviderReference
-} from "@yab/protocol";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -51,8 +54,13 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    */
   public async start() {
     // Set default STWitnessProvider inside protocol
-    const witnessProviderReference = this.protocol.dependencyContainer.resolve(StateTransitionWitnessProviderReference);
-    const witnessProvider = this.container.resolve<StateTransitionWitnessProvider>("StateTransitionWitnessProvider");
+    const witnessProviderReference = this.protocol.dependencyContainer.resolve(
+      StateTransitionWitnessProviderReference
+    );
+    const witnessProvider =
+      this.container.resolve<StateTransitionWitnessProvider>(
+        "StateTransitionWitnessProvider"
+      );
     witnessProviderReference.setWitnessProvider(witnessProvider);
 
     console.log("starting sequencer 2", this.definition.modules);
