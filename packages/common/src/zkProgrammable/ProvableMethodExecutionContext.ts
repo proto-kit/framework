@@ -50,6 +50,8 @@ export class ProvableMethodExecutionContext {
   public result: ProvableMethodExecutionResult =
     new ProvableMethodExecutionResult();
 
+  // eslint-disable-next-line no-warning-comments,max-len
+  // TODO See if we should make this class generic, bc I think we can persist the type
   /**
    * Adds a method prover to the current execution context,
    * which can be collected and ran asynchronously at a later point in time.

@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment */
 import { Experimental } from "snarkyjs";
-import { injectable } from "tsyringe";
+import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
   ModuleContainer,
@@ -25,6 +25,8 @@ import {
 import { StateService } from "../state/InMemoryStateService.js";
 
 import { RuntimeModule } from "./RuntimeModule.js";
+import { StateServiceProvider } from "../state/StateServiceProvider";
+import { fieldToString, stringToField } from "@yab/protocol";
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -35,6 +37,11 @@ import { RuntimeModule } from "./RuntimeModule.js";
 export type RuntimeModulesRecord = ModulesRecord<
   TypedClass<RuntimeModule<unknown>>
 >;
+
+const errors = {
+  methodNotFound: (methodKey: string) =>
+    new Error(`Unable to find method with id ${methodKey}`),
+};
 
 /**
  * Definition / required arguments for the Runtime class
@@ -65,7 +72,11 @@ export class RuntimeZkProgrammable<
         method: WrappedMethod;
       }
     >;
-    const { runtime } = this;
+    // We need to use explicit type annotations here,
+    // therefore we can't use destructuring
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define,prefer-destructuring,putout/putout
+    const runtime: Runtime<Modules> = this.runtime;
 
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
@@ -95,8 +106,6 @@ export class RuntimeZkProgrammable<
 
         const moduleMethods = modulePrototypeMethods.reduce<Methods>(
           (allModuleMethods, methodName) => {
-            // eslint-disable-next-line max-len
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/strict-boolean-expressions
             if (isRuntimeMethod(runtimeModule, methodName)) {
               const combinedMethodName = combineMethodName(
                 runtimeModuleName,
@@ -193,6 +202,12 @@ export class Runtime<Modules extends RuntimeModulesRecord>
 
   public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
 
+  // eslint-disable-next-line no-warning-comments
+  // TODO DI
+  private readonly stateServiceProviderInstance = new StateServiceProvider(
+    this.definition.state
+  );
+
   /**
    * Creates a new Runtime from the provided config
    *
@@ -205,6 +220,50 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     // this.registerValue({
     //   Runtime: this,
     // });
+  }
+
+  public get stateService(): StateService {
+    return this.stateServiceProviderInstance.stateService;
+  }
+
+  public get stateServiceProvider(): StateServiceProvider {
+    return this.stateServiceProviderInstance;
+  }
+
+  /**
+   * @returns The dependency injection container of this runtime
+   */
+  public get dependencyContainer(): DependencyContainer {
+    return this.container;
+  }
+
+  /**
+   * @param methodId The encoded name of the method to call.
+   * Encoding: "stringToField(module.name) << 128 + stringToField(method-name)"
+   */
+  public getMethodById(methodId: bigint): (...args: unknown[]) => unknown {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    const moduleName = fieldToString(methodId >> 128n);
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    const methodName = fieldToString(methodId % 2n ** 128n);
+
+    this.isValidModuleName(this.definition.modules, moduleName);
+    const module: any = this.resolve(moduleName);
+
+    if (!(methodName in module)) {
+      throw errors.methodNotFound(`${moduleName}.${methodName}`);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return module[methodName];
+  }
+
+  public getMethodId(moduleName: string, methodName: string): bigint {
+    return (
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      (stringToField(moduleName).toBigInt() << 128n) +
+      stringToField(methodName).toBigInt()
+    );
   }
 
   /**

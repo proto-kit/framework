@@ -4,14 +4,12 @@ import {
   TaskSerializer
 } from "../../../worker/manager/ReducableTask";
 import {
-  BlockProver,
-  BlockProverPublicInput, BlockProverState,
-  MethodPublicInput, ReturnType,
-  StateTransitionProver,
-  StateTransitionProverPublicInput, Subclass, TypedClass
+  BlockProver, BlockProverState,
+  ReturnType,
+  StateTransitionProver, StateTransitionProverPublicInput, Subclass, TypedClass
 } from "@yab/protocol";
 import { Experimental, Proof } from "snarkyjs";
-import { MethodExecutionContext, Runtime } from "@yab/module";
+import { MethodPublicOutput, Runtime, RuntimeMethodExecutionContext } from "@yab/module";
 import { injectable } from "tsyringe";
 import { PreFilledStateService } from "./providers/PreFilledStateService";
 import {
@@ -22,16 +20,24 @@ import { RuntimeProofParameters, RuntimeProofParametersSerializer } from "./Runt
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import ZkProgram = Experimental.ZkProgram;
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
+import {
+  StateTransitionProverPublicOutput
+} from "@yab/protocol/dist/prover/statetransition/StateTransitionProvable";
+import {
+  BlockProverPublicInput,
+  BlockProverPublicOutput
+} from "@yab/protocol/dist/prover/block/BlockProvable";
+import { ZkProgrammable } from "@yab/common";
 
-type StateTransitionProof = Proof<StateTransitionProverPublicInput>;
-type RuntimeProof = Proof<MethodPublicInput>;
-type BlockProof = Proof<BlockProverPublicInput>;
+type StateTransitionProof = Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>;
+type RuntimeProof = Proof<undefined, MethodPublicOutput>;
+type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export class StateTransitionTask
   implements
     MappingTask<StateTransitionProofParameters, StateTransitionProof>
 {
-  private readonly stateTransitionProofType = this.stateTransitionProver.getProofType()
+  private readonly stateTransitionProofType = this.stateTransitionProver.zkProgram.Proof
 
   public constructor(
     protected readonly stateTransitionProver: StateTransitionProver,
@@ -48,7 +54,7 @@ export class StateTransitionTask
   }
 
   public async map(input: StateTransitionProofParameters): Promise<StateTransitionProof> {
-    const program = this.stateTransitionProver.getZkProgram();
+    const program = this.stateTransitionProver.zkProgram;
 
     // this.witnessProvider.
 
@@ -59,7 +65,7 @@ export class StateTransitionTask
   }
 
   public async prepare(): Promise<void> {
-    await this.stateTransitionProver.getZkProgram().compile();
+    await this.stateTransitionProver.zkProgram.compile();
   }
 
 }
@@ -67,7 +73,7 @@ export class StateTransitionTask
 export class RuntimeProvingTask
 implements MappingTask<RuntimeProofParameters, RuntimeProof>
 {
-  protected readonly runtimeProofType = this.runtime.getProofClass();
+  protected readonly runtimeZkProgrammable = this.runtime.zkProgrammable.zkProgram
 
   public constructor(
     protected readonly runtime: Runtime<never>
@@ -78,7 +84,7 @@ implements MappingTask<RuntimeProofParameters, RuntimeProof>
   }
 
   public resultSerializer(): TaskSerializer<RuntimeProof> {
-    return new ProofTaskSerializer(this.runtimeProofType);
+    return new ProofTaskSerializer(this.runtimeZkProgrammable.Proof);
   }
 
   public async map(input: RuntimeProofParameters): Promise<RuntimeProof> {
@@ -87,11 +93,11 @@ implements MappingTask<RuntimeProofParameters, RuntimeProof>
     const prefilledStateService = new PreFilledStateService(input.state);
     this.runtime.stateServiceProvider.setCurrentStateService(prefilledStateService)
 
-    const executionContext = this.runtime.dependencyContainer.resolve(MethodExecutionContext);
+    const executionContext = this.runtime.dependencyContainer.resolve(RuntimeMethodExecutionContext);
     method(...input.tx.args);
     const { result } = executionContext.current();
 
-    const proof = await result.prove!();
+    const proof = await result.prove!<RuntimeProof>();
 
     this.runtime.stateServiceProvider.resetToDefault()
     return proof;
@@ -102,8 +108,7 @@ implements MappingTask<RuntimeProofParameters, RuntimeProof>
   }
 
   public async prepare(): Promise<void> {
-    this.runtime.precompile();
-    await this.runtime.compile();
+    await this.runtimeZkProgrammable.compile();
   }
 
 }
@@ -114,18 +119,17 @@ export type BlockProvingTaskParameters = PairingDerivedInput<StateTransitionProo
 export class BlockProvingTask
   implements MapReduceTask<BlockProvingTaskParameters, BlockProof>
 {
-  private readonly blockProverProgram: ReturnType<typeof BlockProver.prototype.createZkProgram> extends Promise<infer Program> ? Program : any
-  private readonly blockProofType: Subclass<TypedClass<BlockProof>>;
-  private readonly runtimeProofType = this.runtime.getProofClass();
-  private readonly stateTransitionProofType = this.stateTransitionProver.getProofType()
+  // private readonly blockProofType: Subclass<TypedClass<BlockProof>>;
+  private readonly runtimeProofType = this.runtime.zkProgrammable.zkProgram.Proof;
+  private readonly stateTransitionProofType = this.stateTransitionProver.zkProgram.Proof
 
   public constructor(
     private readonly stateTransitionProver: StateTransitionProver,
     private readonly runtime: Runtime<never>,
     private readonly blockProver: BlockProver
   ) {
-    this.blockProverProgram = this.blockProver.createZkProgram(this.runtimeProofType);
-    this.blockProofType = ZkProgram.Proof(this.blockProverProgram);
+    // this.blockProverProgram = this.blockProver.zkProgram
+    // this.blockProofType = ZkProgram.Proof(this.blockProverProgram);
   }
 
   public name(): string {
@@ -166,14 +170,15 @@ export class BlockProvingTask
     const stateTransitionProof = input.input1;
     const runtimeProof = input.input2;
     const blockProverState: BlockProverState = {
-      transactionsHash: input.params.fromTransactionsHash,
-      stateRoot: input.params.fromStateRoot
+      transactionsHash: input.params.transactionsHash,
+      stateRoot: input.params.stateRoot
     }
     this.blockProver.applyTransaction(
       blockProverState,
       stateTransitionProof,
       runtimeProof
     )
+    this.blockProver.zkProgram.
     //return proof;
   }
 
