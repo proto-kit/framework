@@ -1,6 +1,6 @@
 import { Experimental, Field, type Proof, Provable, SelfProof } from "snarkyjs";
 import { injectable } from "tsyringe";
-import { AreProofsEnabled, PlainZkProgram, ZkProgrammable } from "@yab/common";
+import { AreProofsEnabled, PlainZkProgram, provableMethod, ZkProgrammable } from "@yab/common";
 
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
@@ -124,6 +124,7 @@ export class BlockProver
     return stateTo;
   }
 
+  @provableMethod()
   public proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
@@ -142,6 +143,7 @@ export class BlockProver
     });
   }
 
+  @provableMethod()
   public merge(
     publicInput: BlockProverPublicInput,
     proof1: BlockProverProof,
