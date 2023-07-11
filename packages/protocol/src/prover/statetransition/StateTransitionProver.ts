@@ -19,7 +19,7 @@ import { StateTransitionProvableBatch } from "../../model/StateTransitionProvabl
 import { constants } from "../../Constants";
 
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
-import { AreProofsEnabled, PlainZkProgram } from "@yab/common";
+import { AreProofsEnabled, PlainZkProgram, provableMethod } from "@yab/common";
 import {
   StateTransitionProvable,
   StateTransitionProverPublicInput, StateTransitionProof, StateTransitionProverPublicOutput
@@ -192,6 +192,7 @@ export class StateTransitionProver extends ProtocolModule<StateTransitionProverP
   /**
    * Applies a whole batch of StateTransitions at once
    */
+  @provableMethod()
   public runBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
@@ -208,6 +209,7 @@ export class StateTransitionProver extends ProtocolModule<StateTransitionProverP
     })
   }
 
+  @provableMethod()
   public merge(
     publicInput: StateTransitionProverPublicInput,
     proof1: StateTransitionProof,
