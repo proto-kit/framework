@@ -56,6 +56,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     return this.container;
   }
 
+  private initSequencer() {
+
+  }
+
   /**
    * Starts the sequencer by iterating over all provided
    * modules to start each
@@ -72,14 +76,15 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     });
 
     // Set default STWitnessProvider inside protocol
+    // TODO But what is the default? How do we deal with stages states (i.e. simulated state) in the DI container?
     const witnessProviderReference = this.protocol.dependencyContainer.resolve(
       StateTransitionWitnessProviderReference
     );
-    const witnessProvider =
-      this.container.resolve<StateTransitionWitnessProvider>(
-        "StateTransitionWitnessProvider"
-      );
-    witnessProviderReference.setWitnessProvider(witnessProvider);
+    // const witnessProvider =
+    //   this.container.resolve<StateTransitionWitnessProvider>(
+    //     "StateTransitionWitnessProvider"
+    //   );
+    // witnessProviderReference.setWitnessProvider(witnessProvider);
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(
@@ -96,7 +101,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       const sequencerModule = this.resolve(moduleName);
 
       log.info(
-        `Starting sequecncer module ${moduleName}(${sequencerModule.constructor.name})`
+        `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
       );
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();

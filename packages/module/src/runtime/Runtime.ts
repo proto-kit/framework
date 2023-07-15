@@ -248,14 +248,17 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     const methodName = fieldToString(methodId % 2n ** 128n);
 
     this.isValidModuleName(this.definition.modules, moduleName);
-    const module: any = this.resolve(moduleName);
+    const module = this.resolve(moduleName);
 
-    if (!(methodName in module)) {
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-member-access
+    const method = (module as any)[methodName];
+    if (method === undefined) {
       throw errors.methodNotFound(`${moduleName}.${methodName}`);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return module[methodName];
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return method as (...args: unknown[]) => unknown;
   }
 
   public getMethodId(moduleName: string, methodName: string): bigint {

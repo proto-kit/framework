@@ -153,7 +153,7 @@ export class ModuleContainer<Modules extends ModulesRecord> {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.assertIsValidModuleName(modules, moduleName);
 
-        log.trace(`Registering module: ${moduleName}`);
+        log.debug(`Registering module: ${moduleName}`);
 
         this.container.register(
           moduleName,
@@ -199,10 +199,10 @@ export class ModuleContainer<Modules extends ModulesRecord> {
    * @param moduleName
    * @returns
    */
-  public resolve(
-    moduleName: StringKeyOf<Modules>
-  ): InstanceType<Modules[StringKeyOf<Modules>]> {
-    return this.container.resolve<InstanceType<Modules[StringKeyOf<Modules>]>>(
+  public resolve<ResolvableModuleName extends StringKeyOf<Modules>>(
+    moduleName: ResolvableModuleName
+  ): InstanceType<Modules[ResolvableModuleName]> {
+    return this.container.resolve<InstanceType<Modules[ResolvableModuleName]>>(
       moduleName
     );
   }

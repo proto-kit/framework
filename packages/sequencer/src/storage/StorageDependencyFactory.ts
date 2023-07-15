@@ -11,7 +11,7 @@ import { BlockStorage } from "./repositories/BlockStorage";
 export interface StorageDependencyFactory {
   asyncStateService: () => AsyncStateService;
   asyncMerkleStore: () => AsyncMerkleTreeStore;
-  blockStore: () => BlockStorage
+  blockStorage: () => BlockStorage
 }
 
 @dependencyFactory()

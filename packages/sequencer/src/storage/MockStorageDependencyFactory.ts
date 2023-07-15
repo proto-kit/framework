@@ -1,7 +1,7 @@
 import {
   AsyncMerkleTreeStore,
   InMemoryMerkleTreeStorage,
-  noop,
+  noop, StateTransitionWitnessProvider
 } from "@yab/protocol";
 
 import {
@@ -64,7 +64,7 @@ export class MockStorageDependencyFactory
   }
 
   @dependency()
-  public blockStore(): BlockStorage {
+  public blockStorage(): BlockStorage {
     return new MockBlockStorage();
   }
 }

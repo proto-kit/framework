@@ -1,22 +1,25 @@
 /* eslint-disable max-lines */
 import { container, inject } from "tsyringe";
 import {
-  Runtime, RuntimeMethodExecutionContext, RuntimeProvableMethodExecutionResult
+  Runtime,
+  RuntimeMethodExecutionContext,
+  RuntimeProvableMethodExecutionResult,
 } from "@yab/module";
 import {
   AsyncMerkleTreeStore,
-  BlockProverPublicInput, BlockProverPublicOutput,
+  BlockProverPublicInput,
+  BlockProverPublicOutput,
   CachedMerkleTreeStore,
   DefaultProvableHashList,
   ProvableHashList,
   RollupMerkleTree,
   RollupMerkleWitness,
-  StateTransition
+  StateTransition,
 } from "@yab/protocol";
 import { Field, Proof } from "snarkyjs";
 import { requireTrue } from "@yab/common";
 
-import { SequencerModule } from "../../sequencer/builder/SequencerModule";
+import { sequencerModule, SequencerModule } from "../../sequencer/builder/SequencerModule";
 import { Mempool } from "../../mempool/Mempool";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinct } from "../../helpers/utils";
@@ -59,6 +62,7 @@ const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
 };
 
+@sequencerModule()
 export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleConfig> {
   private productionInProgress = false;
 
@@ -89,16 +93,22 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
 
     this.blockTrigger.setProduceBlock(
       async (): Promise<ComputedBlock | undefined> => {
+        console.log("Producing batch...");
         const block = await this.tryProduceBlock();
         if (block !== undefined) {
+          console.log("Batch produced");
           // Broadcast result on to baselayer
           await this.baseLayer.blockProduced(block);
+          console.log("Batch submitted onto baselayer");
         }
         return block;
       }
     );
 
+    // TODO Remove that probably, otherwise .start() will be called twice on that module
     await this.blockTrigger.start();
+
+    console.log("Blocktrigger set");
   }
 
   public async tryProduceBlock(): Promise<ComputedBlock | undefined> {
@@ -168,17 +178,16 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
       trace.blockProver,
     ]);
 
-    const stateTransitionTask = container.resolve(StateTransitionTask);
-    const runtimeTask = container.resolve(RuntimeProvingTask);
-    const blockTask = container.resolve(BlockProvingTask);
+    const firstPairing = container.resolve(StateTransitionTask);
+    const secondPairing = container.resolve(RuntimeProvingTask);
+    const reducingTask = container.resolve(BlockProvingTask);
 
     const flow = new PairingMapReduceFlow(this.taskQueue, `block_${blockId}`, {
-      // eslint-disable-next-line putout/putout
-      firstPairing: stateTransitionTask,
-      // eslint-disable-next-line putout/putout
-      secondPairing: runtimeTask,
-      // eslint-disable-next-line putout/putout
-      reducingTask: blockTask,
+      firstPairing,
+
+      secondPairing,
+
+      reducingTask,
     });
 
     const taskIds = mappedInputs.map((input) => input[1].tx.hash().toString());
@@ -219,6 +228,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     },
     bundleTracker: ProvableHashList<Field>
   ): Promise<TransactionTrace> {
+    console.log(this.runtime.moduleNames);
     const method = this.runtime.getMethodById(tx.methodId.toBigInt());
 
     // Step 1 & 2
@@ -232,7 +242,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     const { witnesses, fromStateRoot, toStateRoot } =
       await this.createMerkleTrace(stateServices.merkleStore, stateTransitions);
 
-    const fromTransactionsHash = bundleTracker.commitment;
+    const transactionsHash = bundleTracker.commitment;
     bundleTracker.push(tx.hash());
 
     const trace: TransactionTrace = {
@@ -257,7 +267,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
       blockProver: {
         stateRoot: fromStateRoot,
         // toStateRoot,
-        transactionsHash: fromTransactionsHash,
+        transactionsHash,
         // toTransactionsHash: bundleTracker.commitment,
       },
     };

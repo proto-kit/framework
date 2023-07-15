@@ -94,7 +94,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
       ]),
     };
 
-    log.trace(`Pushed Reduction: ${JSON.stringify([String(t1), String(t2)])}`);
+    log.debug(`Pushed Reduction: ${JSON.stringify([String(t1), String(t2)])}`);
 
     const { queue } = this;
     this.assertQueueNotNull(queue);

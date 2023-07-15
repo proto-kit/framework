@@ -1,4 +1,4 @@
-import { method, runtimeModule, RuntimeModule } from "@yab/module";
+import { runtimeMethod, runtimeModule, RuntimeModule } from "@yab/module";
 import { Presets } from "@yab/common";
 import { state } from "@yab/module/dist/state/decorator";
 import { State } from "@yab/module/dist/state/State";
@@ -22,24 +22,24 @@ export class Balance extends RuntimeModule<object> {
     super();
   }
 
-  @method()
+  @runtimeMethod()
   public getTotalSupply() {
     this.totalSupply.get();
   }
 
-  @method()
+  @runtimeMethod()
   public setTotalSupply() {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
     this.admin.isAdmin(PublicKey.empty());
   }
 
-  @method()
+  @runtimeMethod()
   public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
   }
 
-  @method()
+  @runtimeMethod()
   public setBalance(address: PublicKey, value: UInt64) {
     this.balances.set(address, value);
   }

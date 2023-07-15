@@ -1,10 +1,9 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
 
-import { TextEncoder } from "node:util";
+import { TextEncoder, TextDecoder } from "node:util";
 
 import { Circuit, Field, Poseidon, Proof } from "snarkyjs";
-import { TextDecoder } from "util";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
   ...args: any[]
@@ -85,7 +84,17 @@ export function fieldToString(value: Field | bigint): string {
   if (typeof value === "bigint") {
     value = Field(value);
   }
-  const bytes = Field.toBytes(value);
+  let bytes = Field.toBytes(value);
+  // Find start of padded zeroes in order to remove them.
+  const zeroesStart =
+    bytes.length -
+    bytes
+      .slice()
+      .reverse()
+      .findIndex((element) => element !== 0);
+
+  bytes = bytes.slice(0, zeroesStart);
+
   const decoder = new TextDecoder();
 
   return decoder.decode(new Uint8Array(bytes));

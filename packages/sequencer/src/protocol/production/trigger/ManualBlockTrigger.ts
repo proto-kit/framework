@@ -11,7 +11,7 @@ export class ManualBlockTrigger
   extends SequencerModule<object>
   implements BlockTrigger
 {
-  private produceBlockAction: BlockProducingFunction;
+  private produceBlockAction: BlockProducingFunction = async () => undefined;
 
   public setProduceBlock(produceBlock: BlockProducingFunction): void {
     this.produceBlockAction = produceBlock;
