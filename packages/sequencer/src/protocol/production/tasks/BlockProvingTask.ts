@@ -43,6 +43,7 @@ type StateTransitionProof = Proof<
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
+@injectable()
 export class StateTransitionTask
   implements MappingTask<StateTransitionProofParameters, StateTransitionProof>
 {
@@ -94,6 +95,7 @@ export class StateTransitionTask
   }
 }
 
+@injectable()
 export class RuntimeProvingTask
   implements MappingTask<RuntimeProofParameters, RuntimeProof>
 {
