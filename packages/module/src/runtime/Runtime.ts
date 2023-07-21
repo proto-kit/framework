@@ -242,10 +242,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    * Encoding: "stringToField(module.name) << 128 + stringToField(method-name)"
    */
   public getMethodById(methodId: bigint): (...args: unknown[]) => unknown {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    const moduleName = fieldToString(methodId >> 128n);
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    const methodName = fieldToString(methodId % 2n ** 128n);
+    const [moduleName, methodName] = this.getMethodNameFromId(methodId);
 
     this.isValidModuleName(this.definition.modules, moduleName);
     const module = this.resolve(moduleName);
@@ -258,7 +255,16 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     }
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return method as (...args: unknown[]) => unknown;
+    return (method as (...args: unknown[]) => unknown).bind(module);
+  }
+
+  public getMethodNameFromId(methodId: bigint): [string, string] {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    const moduleName = fieldToString(methodId >> 128n);
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    const methodName = fieldToString(methodId % 2n ** 128n);
+
+    return [moduleName, methodName];
   }
 
   public getMethodId(moduleName: string, methodName: string): bigint {

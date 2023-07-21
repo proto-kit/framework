@@ -27,7 +27,7 @@ export interface Compile {
   (): Promise<CompileArtifact>;
 }
 
-export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
+export interface PlainZkProgram<PublicInput = undefined, PublicOutput = undefined> {
   compile: Compile;
   verify: Verify<PublicInput, PublicOutput>;
   Proof: ReturnType<

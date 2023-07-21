@@ -6,8 +6,10 @@ export class StateTransitionProverPublicInput extends Struct({
   stateRoot: Field,
 }) {}
 
-export const StateTransitionProverPublicOutput = StateTransitionProverPublicInput
-export type StateTransitionProverPublicOutput = StateTransitionProverPublicInput
+export class StateTransitionProverPublicOutput extends Struct({
+  stateTransitionsHash: Field,
+  stateRoot: Field,
+}) {}
 
 export type StateTransitionProof = Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>
 
