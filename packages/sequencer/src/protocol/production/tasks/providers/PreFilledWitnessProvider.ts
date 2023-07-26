@@ -1,6 +1,8 @@
 import {
+  InMemoryMerkleTreeStorage,
+  RollupMerkleTree,
   RollupMerkleWitness,
-  StateTransitionWitnessProvider,
+  StateTransitionWitnessProvider
 } from "@yab/protocol";
 import { Field } from "snarkyjs";
 
@@ -22,7 +24,14 @@ export class PreFilledWitnessProvider
     this.witnesses = witnesses.reverse();
   }
 
-  getWitness(key: Field): RollupMerkleWitness {
+  public getWitness(key: Field): RollupMerkleWitness {
+    // dummy ST
+    if (key.equals(Field(0)).toBoolean()) {
+      // return some witness here, it won't get checked in the circuit
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      return new RollupMerkleTree(new InMemoryMerkleTreeStorage()).getWitness(0n);
+    }
+
     const witness = this.witnesses.pop();
     if (witness === undefined) {
       throw errors.noWitnessAvailable();

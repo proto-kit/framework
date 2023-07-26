@@ -1,6 +1,12 @@
 import { Experimental, Field, type Proof, Provable, SelfProof } from "snarkyjs";
-import { injectable } from "tsyringe";
-import { AreProofsEnabled, PlainZkProgram, provableMethod, ZkProgrammable } from "@yab/common";
+import { inject, injectable } from "tsyringe";
+import {
+  AreProofsEnabled,
+  PlainZkProgram,
+  provableMethod,
+  WithZkProgrammable,
+  ZkProgrammable
+} from "@yab/common";
 
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
@@ -54,14 +60,14 @@ export class BlockProver
   extends ProtocolModule<BlockProverPublicInput, BlockProverPublicInput>
   implements BlockProvable
 {
-  public appChain?: AreProofsEnabled;
-
   public constructor(
+    @inject("StateTransitionProver")
     private readonly stateTransitionProver: ZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    private readonly runtime: ZkProgrammable<void, MethodPublicOutput>
+    @inject("Runtime")
+    private readonly runtime: WithZkProgrammable<void, MethodPublicOutput>
   ) {
     super();
   }
@@ -192,7 +198,7 @@ export class BlockProver
   > {
     const StateTransitionProofClass =
       this.stateTransitionProver.zkProgram.Proof;
-    const RuntimeProofClass = this.runtime.zkProgram.Proof;
+    const RuntimeProofClass = this.runtime.zkProgrammable.zkProgram.Proof;
 
     const proveTransaction = this.proveTransaction.bind(this);
     const merge = this.merge.bind(this);

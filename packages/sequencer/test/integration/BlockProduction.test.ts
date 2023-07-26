@@ -11,8 +11,15 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { AreProofsEnabled, log } from "@yab/common";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
-import { BaseLayer, BlockProducerModule, ManualBlockTrigger, TaskQueue } from "../../src";
+import {
+  BaseLayer,
+  BlockProducerModule, BlockProvingTask,
+  ManualBlockTrigger, RuntimeProvingTask, StateTransitionTask,
+  TaskQueue,
+  TaskWorker
+} from "../../src";
 import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
+import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
 const appChainMock: AreProofsEnabled = {
   areProofsEnabled: false,
@@ -49,12 +56,14 @@ describe("block production", () => {
         BlockTrigger: ManualBlockTrigger,
         Mempool: PrivateMempool,
         BlockProducerModule,
+        LocalTaskWorkerModule,
       },
 
       config: {
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {proofsEnabled: false}
+        BlockProducerModule: {proofsEnabled: false},
+        LocalTaskWorkerModule: {},
       },
     });
 
@@ -68,10 +77,12 @@ describe("block production", () => {
       useValue: new LocalTaskQueue(0),
     });
 
+    // const x = VanillaProtocol.create().stateTransitionProver.zkProgram
+
     const app = AppChain.from({
       runtime,
       sequencer,
-      protocol: VanillaProtocol.create()
+      protocol: VanillaProtocol.create(),
     });
 
     // Start AppChain
@@ -107,5 +118,5 @@ describe("block production", () => {
     console.log(block!.txs.length);
 
     // TODO Retrieve BlockProof and check it
-  });
+  }, 10_000);
 });

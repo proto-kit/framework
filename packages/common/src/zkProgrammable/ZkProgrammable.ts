@@ -1,5 +1,4 @@
-import { Experimental, FlexibleProvablePure } from "snarkyjs";
-import { Proof } from "snarkyjs/dist/node/lib/proof_system";
+import { Experimental, FlexibleProvablePure, Proof } from "snarkyjs";
 import { Memoize } from "typescript-memoize";
 
 // eslint-disable-next-line import/no-cycle
@@ -27,7 +26,7 @@ export interface Compile {
   (): Promise<CompileArtifact>;
 }
 
-export interface PlainZkProgram<PublicInput = undefined, PublicOutput = undefined> {
+export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   compile: Compile;
   verify: Verify<PublicInput, PublicOutput>;
   Proof: ReturnType<
@@ -93,7 +92,7 @@ export abstract class ZkProgrammable<
   PublicInput = undefined,
   PublicOutput = void
 > {
-  public abstract appChain?: AreProofsEnabled;
+  public abstract get appChain(): AreProofsEnabled | undefined;
 
   public abstract zkProgramFactory(): PlainZkProgram<PublicInput, PublicOutput>;
 

@@ -1,8 +1,7 @@
 import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
-// eslint-disable-next-line import/no-cycle
-import { ZkProgrammable } from "./ZkProgrammable";
+import type { ZkProgrammable } from "./ZkProgrammable";
 
 // eslint-disable-next-line etc/prefer-interface
 export type DecoratedMethod = (...args: unknown[]) => unknown;
@@ -12,6 +11,7 @@ export const mockProof = "mock-proof";
 export function toProver(
   methodName: string,
   simulatedMethod: DecoratedMethod,
+  isFirstParameterPublicInput: boolean,
   ...args: unknown[]
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,12 +25,16 @@ export function toProver(
     // create a mock proof by simulating method execution in JS
     const publicOutput = Reflect.apply(simulatedMethod, this, args);
 
+    console.log(args);
+    console.log(args[0]);
+    console.log(publicOutput);
+
     return new this.zkProgram.Proof({
       proof: mockProof,
 
       // eslint-disable-next-line no-warning-comments
       // TODO: provide undefined if public input is not used
-      publicInput: args[0],
+      publicInput: isFirstParameterPublicInput ? args[0] : undefined,
       publicOutput,
 
       /**
@@ -47,10 +51,12 @@ export function toProver(
  * if proofs are enabled or not, either runs the respective zkProgram prover,
  * or simulates the method execution and issues a mock proof.
  *
+ * @param isFirstParameterPublicInput
  * @param executionContext
  * @returns
  */
 export function provableMethod(
+  isFirstParameterPublicInput = true,
   executionContext: ProvableMethodExecutionContext = container.resolve<ProvableMethodExecutionContext>(
     ProvableMethodExecutionContext
   )
@@ -68,7 +74,7 @@ export function provableMethod(
       this: ZkProgrammable<unknown, unknown>,
       ...args: unknown[]
     ) {
-      const prover = toProver(methodName, simulatedMethod, ...args);
+      const prover = toProver(methodName, simulatedMethod, isFirstParameterPublicInput, ...args);
 
       executionContext.beforeMethod(this.constructor.name, methodName);
 

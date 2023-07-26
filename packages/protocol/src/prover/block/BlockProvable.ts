@@ -2,6 +2,7 @@ import { Field, Proof, Struct } from "snarkyjs";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
+import { ZkProgrammable } from "@yab/common";
 
 export class BlockProverPublicInput extends Struct({
   transactionsHash: Field,
@@ -17,7 +18,8 @@ export type BlockProverProof = Proof<
   BlockProverPublicOutput
 >;
 
-export interface BlockProvable {
+export interface BlockProvable
+  extends ZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput> {
   proveTransaction: (
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,

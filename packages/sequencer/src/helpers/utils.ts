@@ -1,4 +1,4 @@
-import { Proof } from "snarkyjs";
+import { Field, Proof } from "snarkyjs";
 import { Subclass } from "@yab/protocol";
 import { TaskSerializer } from "../worker/manager/ReducableTask";
 
@@ -20,6 +20,16 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
   ) {}
 
   public toJSON(proof: Proof<PublicInputType, PublicOutputType>): string {
+    console.log(proof);
+
+    if(proof.proof === "mock-proof"){
+      return JSON.stringify({
+        publicInput: this.proofClass.publicInputType.toFields(proof.publicInput as any).map(String),
+        publicOutput: this.proofClass.publicOutputType.toFields(proof.publicOutput as any).map(String),
+        maxProofsVerified: proof.maxProofsVerified,
+        proof: "mock-proof"
+      });
+    }
     return JSON.stringify(proof.toJSON());
   }
 
@@ -27,6 +37,19 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const jsonProof: ReturnType<typeof Proof.prototype.toJSON> =
       JSON.parse(json);
+
+    console.log(json);
+
+    if (jsonProof.proof === "mock-proof") {
+      const publicInput = this.proofClass.publicInputType.fromFields(jsonProof.publicInput.map(Field));
+      const publicOutput = this.proofClass.publicOutputType.fromFields(jsonProof.publicOutput.map(Field));
+      return new this.proofClass({
+        publicInput,
+        publicOutput,
+        proof: "mock-proof",
+        maxProofsVerified: jsonProof.maxProofsVerified,
+      });
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.proofClass.fromJSON(jsonProof);

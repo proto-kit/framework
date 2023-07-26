@@ -196,8 +196,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof Experimental.ZkProgram>;
 
-  public appChain?: AreProofsEnabled;
-
   public definition: RuntimeDefinition<Modules>;
 
   public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
@@ -220,6 +218,10 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     // this.registerValue({
     //   Runtime: this,
     // });
+  }
+
+  public get appChain(): AreProofsEnabled | undefined {
+    return this.container.resolve<AreProofsEnabled>("AppChain");
   }
 
   public get stateService(): StateService {

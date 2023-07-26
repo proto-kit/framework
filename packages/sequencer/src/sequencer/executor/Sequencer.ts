@@ -56,10 +56,6 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     return this.container;
   }
 
-  private initSequencer() {
-
-  }
-
   /**
    * Starts the sequencer by iterating over all provided
    * modules to start each

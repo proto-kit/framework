@@ -160,6 +160,7 @@ export function runtimeMethod() {
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
           simulatedWrappedMethod,
+          false,
           ...args
         ).bind(this);
         // eslint-disable-next-line @typescript-eslint/init-declarations

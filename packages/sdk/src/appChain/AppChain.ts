@@ -5,6 +5,7 @@ import {
   Protocol,
   ProtocolModulesRecord,
 } from "@yab/protocol/src/protocol/Protocol";
+import { StateTransitionWitnessProviderReference } from "@yab/protocol";
 
 export interface AppChainDefinition<
   RuntimeModules extends RuntimeModulesRecord,
@@ -34,7 +35,8 @@ export class AppChain<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord
-> implements AreProofsEnabled {
+> implements AreProofsEnabled
+{
   // alternative AppChain constructor
   public static from<
     RuntimeModules extends RuntimeModulesRecord,
@@ -87,9 +89,29 @@ export class AppChain<
       container.registerValue({ AppChain: this });
     });
 
+    this.protocol.registerValue({
+      Runtime: this.runtime,
+    });
+
+    // Hacky workaround to get protocol and sequencer to have
+    // access to the same WitnessProviderReference
+    const reference = new StateTransitionWitnessProviderReference();
+    this.protocol.dependencyContainer.register(
+      "StateTransitionWitnessProviderReference",
+      {
+        useValue: reference,
+      }
+    );
+    this.sequencer.dependencyContainer.register(
+      "StateTransitionWitnessProviderReference",
+      {
+        useValue: reference,
+      }
+    );
+
     this.sequencer.registerValue({
-      Runtime: this.definition.runtime,
-      Protocol: this.definition.protocol,
+      Runtime: this.runtime,
+      Protocol: this.protocol,
     });
 
     await this.sequencer.start();

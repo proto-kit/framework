@@ -6,6 +6,8 @@ const constants = {
   stateTransitionProverBatchSize: 8,
 };
 
+export { constants as StateTransitionProvableBatchConstants };
+
 /**
  * A Batch of StateTransitions to be consumed by the StateTransitionProver
  * to prove multiple STs at once

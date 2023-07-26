@@ -1,11 +1,11 @@
 import {
   ModuleContainer,
-  ModulesConfig, ModulesRecord,
+  ModulesConfig,
+  ModulesRecord,
   StringKeyOf,
-  TypedClass
+  TypedClass,
 } from "@yab/common";
 import { DependencyContainer } from "tsyringe";
-import { AppChain } from "@yab/sdk";
 
 import {
   BlockProvable,
@@ -22,34 +22,31 @@ import { BlockProver } from "../prover/block/BlockProver";
 
 import { ProtocolModule } from "./ProtocolModule";
 
-export interface GenericProtocolModuleRecord extends ModulesRecord<TypedClass<ProtocolModule<unknown, unknown>>> {
-
-}
+export type GenericProtocolModuleRecord = ModulesRecord<
+  TypedClass<ProtocolModule<any, any>>
+>;
 
 interface BlockProverType
-extends ProtocolModule<BlockProverPublicInput, BlockProverPublicOutput>, BlockProvable {
-
-}
+  extends ProtocolModule<BlockProverPublicInput, BlockProverPublicOutput>,
+    BlockProvable {}
 
 interface StateTransitionProverType
-extends ProtocolModule<
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
->, StateTransitionProvable{}
-//
-// export interface ProtocolCustomModulesRecord {
-//   BlockProver: TypedClass<
-//     BlockProverType
-//   >;
-//   StateTransitionProver: TypedClass<StateTransitionProverType
-//   >;
-// }
+  extends ProtocolModule<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >,
+    StateTransitionProvable {}
 
-export type ProtocolModulesRecord = GenericProtocolModuleRecord// & ProtocolCustomModulesRecord
+export interface ProtocolCustomModulesRecord {
+  BlockProver: TypedClass<BlockProverType>;
+  StateTransitionProver: TypedClass<StateTransitionProverType>;
+}
 
-export interface ProtocolDefinition<
-  Modules extends ProtocolModulesRecord
-> {
+export interface ProtocolModulesRecord
+  extends GenericProtocolModuleRecord,
+    ProtocolCustomModulesRecord {}
+
+export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   modules: Modules;
   // config: ModulesConfig<Modules>
 }
@@ -58,9 +55,7 @@ export class Protocol<
   Modules extends ProtocolModulesRecord
 > extends ModuleContainer<Modules> {
   // .from() to create Protocol
-  public static from<
-    Modules extends ProtocolModulesRecord
-  >(
+  public static from<Modules extends ProtocolModulesRecord>(
     modules: ProtocolDefinition<Modules>
   ) {
     const protocol = new Protocol(modules);
@@ -87,7 +82,8 @@ export class Protocol<
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
-    // containedModule.protocol = this;
+    console.log("Decorated " + moduleName);
+    containedModule.protocol = this;
 
     super.decorateModule(moduleName, containedModule);
   }
@@ -102,36 +98,31 @@ export class Protocol<
     return this.definition.modules[moduleName] !== undefined;
   }
 
-  // public get blockProver(): BlockProvable {
-  //   // Why do I resolve directly here?
-  //   // I don't know exactly but generics don't let me use .resolve()
-  //   return this.container.resolve<InstanceType<Modules["BlockProver"]>>(
-  //     "BlockProver"
-  //   );
-  // }
-  //
-  // public get stateTransitionProver(): StateTransitionProvable {
-  //   return this.container.resolve<
-  //     InstanceType<Modules["StateTransitionProver"]>
-  //   >("StateTransitionProver");
-  // }
-}
+  public get blockProver(): BlockProvable {
+    // Why do I resolve directly here?
+    // I don't know exactly but generics don't let me use .resolve()
+    return this.container.resolve<InstanceType<Modules["BlockProver"]>>(
+      "BlockProver"
+    );
+  }
 
-export class VanillaProtocol {
-  public static create()
-  //   : Protocol<{
-  //   StateTransitionProver: typeof StateTransitionProver;
-  //   BlockProver: typeof BlockProver;
-  // }>
-  {
-    return Protocol.from({
-      modules: {
-        // StateTransitionProver,
-        BlockProver,
-      },
-    });
+  public get stateTransitionProver(): StateTransitionProvable {
+    return this.container.resolve<
+      InstanceType<Modules["StateTransitionProver"]>
+    >("StateTransitionProver");
   }
 }
 
-const protocol = VanillaProtocol.create();
-protocol.resolve("BlockProver");
+export const VanillaProtocol = {
+  create(): Protocol<{
+    StateTransitionProver: typeof StateTransitionProver;
+    BlockProver: typeof BlockProver;
+  }> {
+    return Protocol.from({
+      modules: {
+        StateTransitionProver,
+        BlockProver,
+      },
+    });
+  },
+};
