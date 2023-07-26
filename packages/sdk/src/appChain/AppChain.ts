@@ -1,10 +1,21 @@
 import { ModulesConfig } from "@yab/common";
-import { Runtime, RuntimeModulesRecord } from "@yab/module";
-import { Sequencer, SequencerModulesRecord } from "@yab/sequencer";
+import {
+  Runtime,
+  RuntimeMethodExecutionContext,
+  RuntimeModulesRecord,
+} from "@yab/module";
+import {
+  Sequencer,
+  SequencerModulesRecord,
+  PrivateMempool,
+} from "@yab/sequencer";
 import {
   Protocol,
   ProtocolModulesRecord,
 } from "@yab/protocol/src/protocol/Protocol";
+import { container } from "tsyringe";
+import { UnsignedTransaction } from "@yab/sequencer/dist/mempool/PendingTransaction";
+import { Field, PublicKey, UInt32, UInt64 } from "snarkyjs";
 
 export interface AppChainDefinition<
   RuntimeModules extends RuntimeModulesRecord,
@@ -77,6 +88,32 @@ export class AppChain<
   public configure(config: AppChainConfig<RuntimeModules, SequencerModules>) {
     this.runtime.configure(config.runtime);
     this.sequencer.configure(config.sequencer);
+  }
+
+  public transaction(sender: PublicKey, callback: () => void) {
+    const executionContext = container.resolve<RuntimeMethodExecutionContext>(
+      RuntimeMethodExecutionContext
+    );
+
+    callback();
+
+    const { methodName, moduleName, args } = executionContext.current().result;
+
+    // TODO: extract error
+    if (!methodName || !moduleName || !args) {
+      throw new Error(
+        "Unable to determine moduleName, methodName or args for the transaction"
+      );
+    }
+
+    const argsFields = args.flatMap((arg) => arg.toFields(arg));
+
+    return new UnsignedTransaction({
+      methodId: Field(this.runtime.getMethodId(moduleName, methodName)),
+      args: argsFields,
+      nonce: UInt64.from(0),
+      sender,
+    });
   }
 
   /**

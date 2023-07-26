@@ -1,4 +1,4 @@
-import { Bool, Field, Struct } from "snarkyjs";
+import { Bool, Field, FlexibleProvable, Struct } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -119,7 +119,7 @@ export function runtimeMethod() {
 
     descriptor.value = function value(
       this: RuntimeModule<unknown>,
-      ...args: unknown[]
+      ...args: FlexibleProvable<unknown>[]
     ) {
       const constructorName = this.constructor.name;
 
@@ -142,7 +142,7 @@ export function runtimeMethod() {
        */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       async function prover(this: ZkProgrammable<any, any>) {
-        executionContext.beforeMethod(constructorName, methodName);
+        executionContext.beforeMethod(constructorName, methodName, args);
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
           simulatedWrappedMethod,
@@ -160,7 +160,7 @@ export function runtimeMethod() {
         return result;
       }
 
-      executionContext.beforeMethod(constructorName, methodName);
+      executionContext.beforeMethod(constructorName, methodName, args);
 
       if (executionContext.isTopLevel) {
         if (!this.runtime) {

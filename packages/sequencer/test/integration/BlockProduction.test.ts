@@ -11,7 +11,12 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { AreProofsEnabled, log } from "@yab/common";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
-import { BaseLayer, BlockProducerModule, ManualBlockTrigger, TaskQueue } from "../../src";
+import {
+  BaseLayer,
+  BlockProducerModule,
+  ManualBlockTrigger,
+  TaskQueue,
+} from "../../src";
 import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 
 const appChainMock: AreProofsEnabled = {
@@ -32,6 +37,8 @@ describe("block production", () => {
   });
 
   it("should produce a dummy block proof", async () => {
+    expect.assertions(0);
+
     const runtime = Runtime.from({
       modules: {
         Balance,
@@ -54,7 +61,7 @@ describe("block production", () => {
       config: {
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {proofsEnabled: false}
+        BlockProducerModule: { proofsEnabled: false },
       },
     });
 
@@ -71,7 +78,7 @@ describe("block production", () => {
     const app = AppChain.from({
       runtime,
       sequencer,
-      protocol: VanillaProtocol.create()
+      protocol: VanillaProtocol.create(),
     });
 
     // Start AppChain

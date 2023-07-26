@@ -1,7 +1,7 @@
 export * from "./mempool/Mempool";
 export * from "./sequencer/executor/Sequencer";
 export * from "./sequencer/builder/SequencerModule";
-export * from "./sequencer/builder/DependencyFactory"
+export * from "./sequencer/builder/DependencyFactory";
 export * from "./worker/manager/ReducableTask";
 export * from "./worker/manager/MapReduceFlow";
 export * from "./worker/manager/PairingMapReduceFlow";
@@ -21,3 +21,4 @@ export * from "./protocol/production/trigger/BlockTrigger";
 export * from "./protocol/production/trigger/ManualBlockTrigger";
 export * from "./protocol/production/trigger/TimedBlockTrigger";
 export * from "./protocol/production/BlockProducerModule";
+export * from "./mempool/private/PrivateMempool";

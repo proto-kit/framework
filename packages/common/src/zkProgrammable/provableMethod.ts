@@ -1,3 +1,4 @@
+import { FlexibleProvable } from "snarkyjs";
 import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
@@ -66,11 +67,11 @@ export function provableMethod(
 
     descriptor.value = function value(
       this: ZkProgrammable<unknown, unknown>,
-      ...args: unknown[]
+      ...args: FlexibleProvable<unknown>[]
     ) {
       const prover = toProver(methodName, simulatedMethod, ...args);
 
-      executionContext.beforeMethod(this.constructor.name, methodName);
+      executionContext.beforeMethod(this.constructor.name, methodName, args);
 
       /**
        * Check if the method is called at the top level,
