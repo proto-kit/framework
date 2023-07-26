@@ -1,9 +1,10 @@
 /* eslint-disable max-lines */
 import { container, inject } from "tsyringe";
 import {
+  MethodParameterDecoder,
   Runtime,
   RuntimeMethodExecutionContext,
-  RuntimeProvableMethodExecutionResult,
+  RuntimeProvableMethodExecutionResult
 } from "@yab/module";
 import {
   AsyncMerkleTreeStore,
@@ -231,15 +232,21 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     console.log(this.runtime.moduleNames);
     const method = this.runtime.getMethodById(tx.methodId.toBigInt());
 
+    const [ moduleName, methodName] = this.runtime.getMethodNameFromId(tx.methodId.toBigInt());
+
+    const parameterDecoder = MethodParameterDecoder.fromMethod(this.runtime.resolve(moduleName), methodName);
+    const decodedArguments = parameterDecoder.fromFields(tx.args);
+
     // Step 1 & 2
     const { executionResult, startingState } = await this.executeRuntimeMethod(
       stateServices.stateService,
-      method
+      method,
+      decodedArguments
     );
     const { stateTransitions } = executionResult;
 
     // Step 3
-    const { witnesses, fromStateRoot, toStateRoot } =
+    const { witnesses, fromStateRoot } =
       await this.createMerkleTrace(stateServices.merkleStore, stateTransitions);
 
     const transactionsHash = bundleTracker.commitment;
@@ -317,7 +324,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
   private async executeRuntimeMethod(
     stateService: CachedStateService,
     method: (...args: unknown[]) => unknown,
-    ...args: unknown[]
+    args: unknown[]
   ): Promise<{
     executionResult: RuntimeProvableMethodExecutionResult;
     startingState: StateRecord;

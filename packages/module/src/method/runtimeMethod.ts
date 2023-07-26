@@ -114,6 +114,24 @@ export function runtimeMethod() {
 
     Reflect.defineMetadata(runtimeMethodMetadataKey, true, target, methodName);
 
+    const paramtypes = Reflect.getMetadata(
+      "design:paramtypes",
+      target,
+      methodName
+    );
+    // console.log(methodName);
+    // console.log(paramtypes);
+    // if(paramtypes.length > 0){
+    //   console.log(paramtypes[0]);
+    //   if(paramtypes.length > 1) {
+    //     console.log(paramtypes[1]);
+    //     console.log(typeof paramtypes[1]);
+    //     console.log(paramtypes[1]);
+    //     console.log(paramtypes[1].fromFields([Field(0)]));
+    //     console.log(paramtypes[0].fromFields([Field(0)]));
+    //   }
+    // }
+
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const simulatedMethod = descriptor.value as DecoratedMethod;
 

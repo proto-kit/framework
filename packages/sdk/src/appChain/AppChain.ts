@@ -1,21 +1,17 @@
-import { ModulesConfig } from "@yab/common";
+import { AreProofsEnabled, ModulesConfig } from "@yab/common";
 import {
   Runtime,
   RuntimeMethodExecutionContext,
   RuntimeModulesRecord,
 } from "@yab/module";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-  PrivateMempool,
-} from "@yab/sequencer";
+import { Sequencer, SequencerModulesRecord } from "@yab/sequencer";
 import {
   Protocol,
   ProtocolModulesRecord,
 } from "@yab/protocol/src/protocol/Protocol";
 import { container } from "tsyringe";
 import { UnsignedTransaction } from "@yab/sequencer/dist/mempool/PendingTransaction";
-import { Field, PublicKey, UInt32, UInt64 } from "snarkyjs";
+import { Field, PublicKey, UInt64 } from "snarkyjs";
 
 export interface AppChainDefinition<
   RuntimeModules extends RuntimeModulesRecord,
@@ -45,7 +41,8 @@ export class AppChain<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord
-> {
+> implements AreProofsEnabled
+{
   // alternative AppChain constructor
   public static from<
     RuntimeModules extends RuntimeModulesRecord,
@@ -120,11 +117,27 @@ export class AppChain<
    * Starts the appchain and cross-registers runtime to sequencer
    */
   public async start() {
+    [this.runtime, this.protocol, this.sequencer].forEach((container) => {
+      container.registerValue({ AppChain: this });
+    });
+
     this.sequencer.registerValue({
       Runtime: this.definition.runtime,
       Protocol: this.definition.protocol,
     });
 
     await this.sequencer.start();
+  }
+
+  // eslint-disable-next-line no-warning-comments
+  // TODO
+  private proofsEnabled: boolean = false;
+
+  public get areProofsEnabled(): boolean {
+    return this.proofsEnabled;
+  }
+
+  public setProofsEnabled(areProofsEnabled: boolean): void {
+    this.proofsEnabled = areProofsEnabled;
   }
 }
