@@ -25,10 +25,6 @@ export function toProver(
     // create a mock proof by simulating method execution in JS
     const publicOutput = Reflect.apply(simulatedMethod, this, args);
 
-    console.log(args);
-    console.log(args[0]);
-    console.log(publicOutput);
-
     return new this.zkProgram.Proof({
       proof: mockProof,
 

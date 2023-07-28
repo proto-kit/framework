@@ -1,12 +1,7 @@
 import { Circuit, Struct } from "snarkyjs";
 
 import { ProvableStateTransition } from "./StateTransition.js";
-
-const constants = {
-  stateTransitionProverBatchSize: 8,
-};
-
-export { constants as StateTransitionProvableBatchConstants };
+import { constants } from "../Constants";
 
 /**
  * A Batch of StateTransitions to be consumed by the StateTransitionProver
@@ -18,6 +13,10 @@ export class StateTransitionProvableBatch extends Struct({
     constants.stateTransitionProverBatchSize
   ),
 }) {
+  private constructor(object: { batch: ProvableStateTransition[] }) {
+    super(object);
+  }
+
   public static fromTransitions(
     transitions: ProvableStateTransition[]
   ): StateTransitionProvableBatch {

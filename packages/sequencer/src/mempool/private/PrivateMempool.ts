@@ -44,7 +44,7 @@ export class PrivateMempool extends SequencerModule<object> implements Mempool {
     this.queue = this.queue.filter((tx) => !txs.includes(tx));
     // Check that all elements have been removed and were in the mempool prior
     // eslint-disable-next-line unicorn/consistent-destructuring
-    return length === this.queue.length - txs.length;
+    return length === this.queue.length + txs.length;
   }
 
   public async start(): Promise<void> {

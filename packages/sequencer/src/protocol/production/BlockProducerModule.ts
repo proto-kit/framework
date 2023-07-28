@@ -6,7 +6,6 @@ import {
   BlockProverPublicOutput,
   CachedMerkleTreeStore,
   DefaultProvableHashList,
-  StateTransitionProvableBatchConstants
 } from "@yab/protocol";
 import { Field, Proof } from "snarkyjs";
 import { requireTrue } from "@yab/common";

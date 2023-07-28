@@ -1,7 +1,13 @@
-import { runtimeMethod, runtimeModule, RuntimeModule, state, State } from "@yab/module";
+import {
+  runtimeMethod,
+  runtimeModule,
+  RuntimeModule,
+  state,
+  State,
+  StateMap,
+} from "@yab/module";
 import { Presets } from "@yab/common";
 import { PublicKey, UInt64 } from "snarkyjs";
-import { StateMap } from "@yab/module";
 import { Admin } from "@yab/module/test/modules/Admin";
 import { Option } from "@yab/protocol";
 

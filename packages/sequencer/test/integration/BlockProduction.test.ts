@@ -114,9 +114,7 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    console.log(block!.proof.toJSON());
-    console.log(block!.txs.length);
-
-    // TODO Retrieve BlockProof and check it
-  }, 10_000);
+    expect(block!.txs.length).toStrictEqual(1);
+    expect(block!.proof.proof).toStrictEqual("mock-proof")
+  }, 60_000);
 });

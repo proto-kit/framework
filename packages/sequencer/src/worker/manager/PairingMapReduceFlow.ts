@@ -160,6 +160,7 @@ export class PairingMapReduceFlow<
 
       // Add listener
       await queue.onCompleted(async ({ payload }) => {
+        console.log(`Got payload name: ${payload.name}`);
         switch (payload.name) {
           // This case gets triggered when a result of a pair-task comes back
           case task.firstPairing.name():
@@ -194,6 +195,13 @@ export class PairingMapReduceFlow<
             // Handle mapping result and delegate new input to MapReduceRunner
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const parsedResult: Result = JSON.parse(payload.payload);
+
+            // This should prevent a non-resolvablility issue when you only have
+            // one input pair and therefore there will be no reduction step
+            if (inputs.length === 1) {
+              resolve(parsedResult);
+              return;
+            }
 
             await super.addInput(parsedResult);
 

@@ -2,22 +2,21 @@ import {
   BlockProvable,
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  Protocol,
+  Protocol, ProtocolConstants,
   ProtocolModulesRecord,
   ProvableStateTransition,
   ReturnType,
   StateTransitionProvable,
   StateTransitionProvableBatch,
-  StateTransitionProvableBatchConstants,
   StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput,
-  StateTransitionWitnessProviderReference,
+  StateTransitionProverPublicOutput
 } from "@yab/protocol";
 import { Proof } from "snarkyjs";
 import {
+  MethodParameterDecoder,
   MethodPublicOutput,
   Runtime,
-  RuntimeMethodExecutionContext,
+  RuntimeMethodExecutionContext
 } from "@yab/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
@@ -39,6 +38,7 @@ import {
   RuntimeProofParametersSerializer,
 } from "./RuntimeTaskParameters";
 import { PreFilledWitnessProvider } from "./providers/PreFilledWitnessProvider";
+import { ProvableMethodExecutionContext } from "@yab/common";
 
 type StateTransitionProof = Proof<
   StateTransitionProverPublicInput,
@@ -57,7 +57,7 @@ export class StateTransitionTask
   public constructor(
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>,
-    private readonly executionContext: RuntimeMethodExecutionContext
+    private readonly executionContext: ProvableMethodExecutionContext
   ) {
     this.stateTransitionProver = this.protocol.stateTransitionProver;
   }
@@ -87,7 +87,7 @@ export class StateTransitionTask
     const stBatch = input.batch.slice();
     Array.from({
       length:
-        StateTransitionProvableBatchConstants.stateTransitionProverBatchSize -
+        ProtocolConstants.stateTransitionProverBatchSize -
         stBatch.length,
     }).forEach(() => {
       stBatch.push(ProvableStateTransition.dummy());
@@ -97,7 +97,7 @@ export class StateTransitionTask
 
     const output = this.stateTransitionProver.runBatch(
       input.publicInput,
-      new StateTransitionProvableBatch({ batch: stBatch })
+      StateTransitionProvableBatch.fromTransitions(stBatch)
     );
     console.log(output);
 
@@ -156,12 +156,17 @@ export class RuntimeProvingTask
   public async map(input: RuntimeProofParameters): Promise<RuntimeProof> {
     const method = this.runtime.getMethodById(input.tx.methodId.toBigInt());
 
+    const [ moduleName, methodName] = this.runtime.getMethodNameFromId(input.tx.methodId.toBigInt());
+
+    const parameterDecoder = MethodParameterDecoder.fromMethod(this.runtime.resolve(moduleName), methodName);
+    const decodedArguments = parameterDecoder.fromFields(input.tx.args);
+
     const prefilledStateService = new PreFilledStateService(input.state);
     this.runtime.stateServiceProvider.setCurrentStateService(
       prefilledStateService
     );
 
-    method(...input.tx.args);
+    method(...decodedArguments);
     const { result } = this.executionContext.current();
 
     const proof = await result.prove<RuntimeProof>();
@@ -198,7 +203,7 @@ export class BlockProvingTask
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>,
     @inject("Runtime") private readonly runtime: Runtime<never>,
-    private readonly executionContext: RuntimeMethodExecutionContext
+    private readonly executionContext: ProvableMethodExecutionContext
   ) {
     this.stateTransitionProver = protocol.stateTransitionProver;
 
