@@ -17,6 +17,7 @@ import {
   ZkProgrammable,
 } from "../../src/zkProgrammable/ZkProgrammable";
 import { ProvableMethodExecutionContext } from "../../src/zkProgrammable/ProvableMethodExecutionContext";
+import { Pickles } from "snarkyjs/dist/node/snarky";
 
 const appChainMock: AreProofsEnabled = {
   areProofsEnabled: false,

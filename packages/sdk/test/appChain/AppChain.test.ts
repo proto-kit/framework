@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { PublicKey } from "snarkyjs";
+import { PrivateKey, PublicKey, Signature } from "snarkyjs";
 import {
   assert,
   InMemoryStateService,
@@ -14,6 +14,8 @@ import { inject } from "tsyringe";
 import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 
 import { AppChain } from "../../src";
+import { InMemorySigner } from "../../src/transaction/InMemorySigner";
+import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
 
 interface AdminConfig {
   publicKey: string;
@@ -63,7 +65,7 @@ describe("appChain", () => {
 
     runtime.configure({
       Admin: {
-        publicKey: "1",
+        publicKey: PublicKey.empty().toBase58(),
       },
     });
 
@@ -73,26 +75,34 @@ describe("appChain", () => {
       },
     });
 
+    sequencer.configure({
+      Mempool: {
+        test: "1",
+      },
+    });
+
     const appChain = AppChain.from({
       runtime,
       sequencer,
       protocol: VanillaProtocol.create(),
-    });
 
-    appChain.configure({
-      runtime: {
-        Admin: {
-          publicKey: PublicKey.empty().toBase58(),
-        },
-      },
-
-      sequencer: {
-        Mempool: {
-          test: "test",
-        },
+      modules: {
+        Signer: InMemorySigner,
+        TransactionSender: InMemoryTransactionSender,
       },
     });
 
     await appChain.start();
+
+    const sender = PrivateKey.random().toPublicKey();
+
+    const transaction = appChain.transaction(sender, () => {
+      const admin = appChain.runtime.resolve("Admin");
+
+      admin.isAdmin(sender);
+    });
+
+    await transaction.sign();
+    await transaction.send();
   });
 });

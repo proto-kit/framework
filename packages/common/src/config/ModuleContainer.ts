@@ -72,7 +72,9 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
  */
-export class ModuleContainer<Modules extends ModulesRecord> {
+export class ModuleContainer<
+  Modules extends ModulesRecord
+> extends ConfigurableModule<unknown> {
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -83,6 +85,7 @@ export class ModuleContainer<Modules extends ModulesRecord> {
   protected readonly container = container.createChildContainer();
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
+    super();
     // register all provided modules when the container is created
     this.registerModules(definition.modules);
   }
@@ -135,7 +138,10 @@ export class ModuleContainer<Modules extends ModulesRecord> {
     this.isValidModuleName(modules, moduleName);
   }
 
-  public isValidModuleName(modules: Modules, moduleName: string | number | symbol): asserts moduleName is StringKeyOf<Modules> {
+  public isValidModuleName(
+    modules: Modules,
+    moduleName: string | number | symbol
+  ): asserts moduleName is StringKeyOf<Modules> {
     if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }
@@ -205,6 +211,20 @@ export class ModuleContainer<Modules extends ModulesRecord> {
     return this.container.resolve<InstanceType<Modules[ResolvableModuleName]>>(
       moduleName
     );
+  }
+
+  public resolveOrFail<ModuleType>(
+    moduleName: string,
+    moduleType: TypedClass<ModuleType>
+  ) {
+    const instance = this.container.resolve<ModuleType>(moduleName);
+    const isValidModuleInstance = instance instanceof moduleType;
+
+    if (!isValidModuleInstance) {
+      throw new Error("Incompatible module instance");
+    }
+
+    return instance;
   }
 
   /**

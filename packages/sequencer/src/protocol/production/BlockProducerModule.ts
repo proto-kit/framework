@@ -4,7 +4,7 @@ import {
   MethodParameterDecoder,
   Runtime,
   RuntimeMethodExecutionContext,
-  RuntimeProvableMethodExecutionResult
+  RuntimeProvableMethodExecutionResult,
 } from "@yab/module";
 import {
   AsyncMerkleTreeStore,
@@ -20,7 +20,10 @@ import {
 import { Field, Proof } from "snarkyjs";
 import { requireTrue } from "@yab/common";
 
-import { sequencerModule, SequencerModule } from "../../sequencer/builder/SequencerModule";
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../../sequencer/builder/SequencerModule";
 import { Mempool } from "../../mempool/Mempool";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinct } from "../../helpers/utils";
@@ -232,9 +235,14 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     console.log(this.runtime.moduleNames);
     const method = this.runtime.getMethodById(tx.methodId.toBigInt());
 
-    const [ moduleName, methodName] = this.runtime.getMethodNameFromId(tx.methodId.toBigInt());
+    const [moduleName, methodName] = this.runtime.getMethodById(
+      tx.methodId.toBigInt()
+    );
 
-    const parameterDecoder = MethodParameterDecoder.fromMethod(this.runtime.resolve(moduleName), methodName);
+    const parameterDecoder = MethodParameterDecoder.fromMethod(
+      this.runtime.resolve(moduleName),
+      methodName
+    );
     const decodedArguments = parameterDecoder.fromFields(tx.args);
 
     // Step 1 & 2
@@ -246,8 +254,10 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     const { stateTransitions } = executionResult;
 
     // Step 3
-    const { witnesses, fromStateRoot } =
-      await this.createMerkleTrace(stateServices.merkleStore, stateTransitions);
+    const { witnesses, fromStateRoot } = await this.createMerkleTrace(
+      stateServices.merkleStore,
+      stateTransitions
+    );
 
     const transactionsHash = bundleTracker.commitment;
     bundleTracker.push(tx.hash());
