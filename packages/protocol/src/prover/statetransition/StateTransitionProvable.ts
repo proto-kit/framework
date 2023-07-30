@@ -1,25 +1,40 @@
-import { Field, Proof, SelfProof, Struct } from "snarkyjs";
+import { Field, Proof, Struct } from "snarkyjs";
+import { ZkProgrammable } from "@yab/common";
+
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
+
+import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
 
 export class StateTransitionProverPublicInput extends Struct({
   stateTransitionsHash: Field,
   stateRoot: Field,
 }) {}
 
-export const StateTransitionProverPublicOutput = StateTransitionProverPublicInput
-export type StateTransitionProverPublicOutput = StateTransitionProverPublicInput
+export class StateTransitionProverPublicOutput extends Struct({
+  stateTransitionsHash: Field,
+  stateRoot: Field,
+}) {}
 
-export type StateTransitionProof = Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>
+export type StateTransitionProof = Proof<
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput
+>;
 
-export interface StateTransitionProvable {
+export interface StateTransitionProvable
+  extends ZkProgrammable<
+    StateTransitionProverPublicInput,
+    StateTransitionProverPublicOutput
+  > {
+  witnessProviderReference: StateTransitionWitnessProviderReference;
+
   runBatch: (
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
-  ) => StateTransitionProverPublicInput
+  ) => StateTransitionProverPublicOutput;
 
   merge: (
     publicInput: StateTransitionProverPublicInput,
     proof1: StateTransitionProof,
     proof2: StateTransitionProof
-  ) => StateTransitionProverPublicInput
+  ) => StateTransitionProverPublicOutput;
 }

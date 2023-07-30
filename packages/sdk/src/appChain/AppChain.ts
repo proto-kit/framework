@@ -20,8 +20,9 @@ import { UnsignedTransaction } from "@yab/sequencer/dist/mempool/PendingTransact
 import { Field, PublicKey, UInt64 } from "snarkyjs";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
-import { Signer, TransactionSigner } from "../transaction/InMemorySigner";
+import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
+import { StateTransitionWitnessProviderReference } from "@yab/protocol";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -169,9 +170,29 @@ export class AppChain<
       container.registerValue({ AppChain: this });
     });
 
+    this.protocol.registerValue({
+      Runtime: this.runtime,
+    });
+
+    // Hacky workaround to get protocol and sequencer to have
+    // access to the same WitnessProviderReference
+    const reference = new StateTransitionWitnessProviderReference();
+    this.protocol.dependencyContainer.register(
+      "StateTransitionWitnessProviderReference",
+      {
+        useValue: reference,
+      }
+    );
+    this.sequencer.dependencyContainer.register(
+      "StateTransitionWitnessProviderReference",
+      {
+        useValue: reference,
+      }
+    );
+
     this.sequencer.registerValue({
-      Runtime: this.definition.runtime,
-      Protocol: this.definition.protocol,
+      Runtime: this.runtime,
+      Protocol: this.protocol,
     });
 
     await this.sequencer.start();

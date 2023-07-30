@@ -1,8 +1,4 @@
-import {
-  Experimental,
-  Field, Provable,
-  SelfProof
-} from "snarkyjs";
+import { Experimental, Field, Provable, SelfProof } from "snarkyjs";
 import { inject, injectable } from "tsyringe";
 
 import {
@@ -21,7 +17,9 @@ import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider
 import { AreProofsEnabled, PlainZkProgram, provableMethod } from "@yab/common";
 import {
   StateTransitionProvable,
-  StateTransitionProverPublicInput, StateTransitionProof, StateTransitionProverPublicOutput
+  StateTransitionProverPublicInput,
+  StateTransitionProof,
+  StateTransitionProverPublicOutput,
 } from "./StateTransitionProvable";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
@@ -36,7 +34,9 @@ const errors = {
     `MerkleWitness not valid for StateTransition (${index})`,
 
   noWitnessProviderSet: () =>
-    new Error("WitnessProvider not set, set it before you use StateTransitionProvider"),
+    new Error(
+      "WitnessProvider not set, set it before you use StateTransitionProvider"
+    ),
 
   propertyNotMatching: (propertyName: string) => `${propertyName} not matching`,
 };
@@ -46,18 +46,34 @@ interface StateTransitionProverExecutionState {
   stateTransitionList: ProvableHashList<ProvableStateTransition>;
 }
 
-const StateTransitionSelfProofClass = SelfProof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>
+const StateTransitionSelfProofClass = SelfProof<
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput
+>;
 
 /**
  * StateTransitionProver is the prover that proves the application of some state
  * transitions and checks and updates their merkle-tree entries
  */
 @injectable()
-export class StateTransitionProver extends ProtocolModule<StateTransitionProverPublicInput, StateTransitionProverPublicOutput> implements StateTransitionProvable{
+export class StateTransitionProver
+  extends ProtocolModule<
+    StateTransitionProverPublicInput,
+    StateTransitionProverPublicOutput
+  >
+  implements StateTransitionProvable
+{
+  public constructor(
+    // Injected
+    public readonly witnessProviderReference: StateTransitionWitnessProviderReference
+  ) {
+    super();
+  }
 
-  public appChain?: AreProofsEnabled
-
-  public zkProgramFactory(): PlainZkProgram<StateTransitionProverPublicInput, StateTransitionProverPublicOutput> {
+  public zkProgramFactory(): PlainZkProgram<
+    StateTransitionProverPublicInput,
+    StateTransitionProverPublicOutput
+  > {
     const instance = this;
 
     const program = Experimental.ZkProgram({
@@ -108,19 +124,12 @@ export class StateTransitionProver extends ProtocolModule<StateTransitionProverP
     };
   }
 
-  public constructor(
-    // Injected
-    private readonly witnessProviderReference: StateTransitionWitnessProviderReference
-  ) {
-    super();
-  }
-
   private get witnessProvider(): StateTransitionWitnessProvider {
-    const provider = this.witnessProviderReference.getWitnessProvider()
-    if(provider === undefined){
+    const provider = this.witnessProviderReference.getWitnessProvider();
+    if (provider === undefined) {
       throw errors.noWitnessProviderSet();
     }
-    return provider
+    return provider;
   }
 
   /**
@@ -185,7 +194,10 @@ export class StateTransitionProver extends ProtocolModule<StateTransitionProverP
       state.stateRoot
     );
 
-    state.stateTransitionList.push(transition);
+    state.stateTransitionList.pushIf(
+      transition,
+      transition.path.equals(Field(0)).not()
+    );
   }
 
   /**
@@ -196,16 +208,19 @@ export class StateTransitionProver extends ProtocolModule<StateTransitionProverP
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
   ): StateTransitionProverPublicOutput {
+    Provable.log(publicInput);
     const result = this.applyTransitions(
       publicInput.stateRoot,
       publicInput.stateTransitionsHash,
       batch
     );
 
-    return new StateTransitionProverPublicInput({
+    const output = new StateTransitionProverPublicOutput({
       stateRoot: result.stateRoot,
-      stateTransitionsHash: result.stateTransitionList.commitment
-    })
+      stateTransitionsHash: result.stateTransitionList.commitment,
+    });
+    Provable.log(output);
+    return output;
   }
 
   @provableMethod()
@@ -240,6 +255,6 @@ export class StateTransitionProver extends ProtocolModule<StateTransitionProverP
     return new StateTransitionProverPublicInput({
       stateRoot: proof2.publicOutput.stateRoot,
       stateTransitionsHash: proof2.publicOutput.stateTransitionsHash,
-    })
+    });
   }
 }

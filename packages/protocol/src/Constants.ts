@@ -1,3 +1,3 @@
 export const constants = {
-  stateTransitionProverBatchSize: 8,
+  stateTransitionProverBatchSize: 4,
 };

@@ -14,10 +14,15 @@ import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   BaseLayer,
   BlockProducerModule,
+  BlockProvingTask,
   ManualBlockTrigger,
+  RuntimeProvingTask,
+  StateTransitionTask,
   TaskQueue,
+  TaskWorker,
 } from "../../src";
 import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
+import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
 const appChainMock: AreProofsEnabled = {
   areProofsEnabled: false,
@@ -56,12 +61,14 @@ describe("block production", () => {
         BlockTrigger: ManualBlockTrigger,
         Mempool: PrivateMempool,
         BlockProducerModule,
+        LocalTaskWorkerModule,
       },
 
       config: {
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: { proofsEnabled: false },
+        LocalTaskWorkerModule: {},
       },
     });
 
@@ -74,6 +81,8 @@ describe("block production", () => {
     sequencer.dependencyContainer.register<TaskQueue>("TaskQueue", {
       useValue: new LocalTaskQueue(0),
     });
+
+    // const x = VanillaProtocol.create().stateTransitionProver.zkProgram
 
     const app = AppChain.from({
       runtime,
@@ -110,9 +119,7 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    console.log(block!.proof.toJSON());
-    console.log(block!.txs.length);
-
-    // TODO Retrieve BlockProof and check it
-  });
+    expect(block!.txs.length).toStrictEqual(1);
+    expect(block!.proof.proof).toStrictEqual("mock-proof");
+  }, 60_000);
 });

@@ -2,8 +2,7 @@ import "reflect-metadata";
 import { afterEach, describe, jest } from "@jest/globals";
 
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
-import { InstantiatedQueue, TaskPayload } from "../../src";
-import { sleep } from "../../dist/test/worker/LocalTaskQueue";
+import { TaskPayload } from "../../src";
 
 describe("localTaskQueue", () => {
   let taskQueue: LocalTaskQueue;
@@ -41,7 +40,7 @@ describe("localTaskQueue", () => {
         });
       }
 
-      await sleep(300);
+      // await sleep(300);
 
       for (const [index, input] of inputs.entries()) {
         expect(spy).toHaveBeenNthCalledWith(index + 1, {

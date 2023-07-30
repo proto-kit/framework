@@ -22,3 +22,4 @@ export * from "./protocol/production/trigger/ManualBlockTrigger";
 export * from "./protocol/production/trigger/TimedBlockTrigger";
 export * from "./protocol/production/BlockProducerModule";
 export * from "./mempool/private/PrivateMempool";
+export * from "./protocol/production/execution/MerkleStoreWitnessProvider";

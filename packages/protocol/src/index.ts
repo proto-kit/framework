@@ -15,3 +15,6 @@ export * from "./utils/merkletree/InMemoryMerkleTreeStorage";
 export * from "./utils/merkletree/RollupMerkleTree";
 export * from "./model/MethodPublicOutput";
 export * from "./prover/statetransition/StateTransitionWitnessProviderReference";
+export * from "./protocol/Protocol";
+export * from "./protocol/ProtocolModule";
+export { constants as ProtocolConstants } from "./Constants";

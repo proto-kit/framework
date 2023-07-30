@@ -1,32 +1,50 @@
-import { ModuleContainer, ModulesConfig, StringKeyOf, TypedClass } from "@yab/common";
+import {
+  ModuleContainer,
+  ModulesConfig,
+  ModulesRecord,
+  StringKeyOf,
+  TypedClass,
+} from "@yab/common";
+import { DependencyContainer } from "tsyringe";
+
 import {
   BlockProvable,
   BlockProverPublicInput,
   BlockProverPublicOutput,
 } from "../prover/block/BlockProvable";
 import { StateTransitionProver } from "../prover/statetransition/StateTransitionProver";
-import { ProtocolModule } from "./ProtocolModule";
 import {
   StateTransitionProvable,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "../prover/statetransition/StateTransitionProvable";
 import { BlockProver } from "../prover/block/BlockProver";
-import { DependencyContainer } from "tsyringe";
 
-export type ProtocolModulesRecord = {
-  BlockProver: TypedClass<
-    BlockProvable &
-      ProtocolModule<BlockProverPublicInput, BlockProverPublicOutput>
-  >;
-  StateTransitionProver: TypedClass<
-    StateTransitionProvable &
-      ProtocolModule<
-        StateTransitionProverPublicInput,
-        StateTransitionProverPublicOutput
-      >
-  >;
-};
+import { ProtocolModule } from "./ProtocolModule";
+
+export type GenericProtocolModuleRecord = ModulesRecord<
+  TypedClass<ProtocolModule<any, any>>
+>;
+
+interface BlockProverType
+  extends ProtocolModule<BlockProverPublicInput, BlockProverPublicOutput>,
+    BlockProvable {}
+
+interface StateTransitionProverType
+  extends ProtocolModule<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >,
+    StateTransitionProvable {}
+
+export interface ProtocolCustomModulesRecord {
+  BlockProver: TypedClass<BlockProverType>;
+  StateTransitionProver: TypedClass<StateTransitionProverType>;
+}
+
+export interface ProtocolModulesRecord
+  extends GenericProtocolModuleRecord,
+    ProtocolCustomModulesRecord {}
 
 export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   modules: Modules;
@@ -43,13 +61,31 @@ export class Protocol<
     const protocol = new Protocol(modules);
 
     // Set empty config for all modules, since we don't have that feature yet
-    const emptyConfig = Object.keys(modules.modules).reduce<any>((agg, item: string) => {
-      agg[item] = {}
-      return agg;
-    }, {});
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment
+    const emptyConfig = Object.keys(modules.modules).reduce<any>(
+      (agg, item: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        agg[item] = {};
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return agg;
+      },
+      {}
+    );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     protocol.configure(emptyConfig as ModulesConfig<Modules>);
 
     return protocol;
+  }
+
+  protected decorateModule(
+    moduleName: StringKeyOf<Modules>,
+    containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
+  ) {
+    console.log("Decorated " + moduleName);
+    containedModule.protocol = this;
+
+    super.decorateModule(moduleName, containedModule);
   }
 
   public get dependencyContainer(): DependencyContainer {
@@ -77,19 +113,16 @@ export class Protocol<
   }
 }
 
-export class VanillaProtocol {
-  public static create(): Protocol<{
+export const VanillaProtocol = {
+  create(): Protocol<{
     StateTransitionProver: typeof StateTransitionProver;
     BlockProver: typeof BlockProver;
   }> {
     return Protocol.from({
       modules: {
-        StateTransitionProver: StateTransitionProver,
-        BlockProver: BlockProver,
+        StateTransitionProver,
+        BlockProver,
       },
     });
-  }
-}
-
-const protocol = VanillaProtocol.create();
-protocol.resolve("BlockProver");
+  },
+};

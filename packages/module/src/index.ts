@@ -5,4 +5,8 @@ export * from "./module/decorator";
 export * from "./runtime/RuntimeModule";
 export * from "./runtime/Runtime";
 export * from "./state/InMemoryStateService";
+export * from "./state/State";
+export * from "./state/StateMap";
+export * from "./state/StateServiceProvider";
+export * from "./state/decorator";
 export * from "./method/MethodParameterDecoder";
