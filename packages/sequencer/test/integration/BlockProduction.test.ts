@@ -1,44 +1,41 @@
+// eslint-disable-next-line max-len
+/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion */
 import "reflect-metadata";
-import { container, DependencyContainer } from "tsyringe";
+// eslint-disable-next-line @typescript-eslint/no-shadow
 import { beforeEach } from "@jest/globals";
 import { InMemoryStateService, Runtime } from "@yab/module";
-import { Balance } from "./mocks/Balance";
+// eslint-disable-next-line no-warning-comments
+// TODO this is acutally a big issue
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@yab/sdk";
+import { Path } from "@yab/protocol";
+import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
+import { log } from "@yab/common";
+import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
+
 import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
-import { noop } from "@yab/protocol";
 import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
-import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
-import { AreProofsEnabled, log } from "@yab/common";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
-  BaseLayer,
-  BlockProducerModule, BlockProvingTask,
-  ManualBlockTrigger, RuntimeProvingTask, StateTransitionTask,
+  AsyncStateService,
+  BlockProducerModule,
+  ManualBlockTrigger,
   TaskQueue,
-  TaskWorker
 } from "../../src";
-import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
-const appChainMock: AreProofsEnabled = {
-  areProofsEnabled: false,
-
-  setProofsEnabled(areProofsEnabled: boolean) {
-    this.areProofsEnabled = areProofsEnabled;
-  },
-};
+import { Balance } from "./mocks/Balance";
+import { NoopBaseLayer } from "./mocks/NoopBaseLayer";
 
 describe("block production", () => {
-  let dependencyContainer: DependencyContainer;
-
   beforeEach(() => {
-    dependencyContainer = container.createChildContainer();
-
     log.setLevel("TRACE");
   });
 
   it("should produce a dummy block proof", async () => {
+    expect.assertions(5);
+
     const runtime = Runtime.from({
       modules: {
         Balance,
@@ -57,27 +54,21 @@ describe("block production", () => {
         Mempool: PrivateMempool,
         BlockProducerModule,
         LocalTaskWorkerModule,
+        BaseLayer: NoopBaseLayer,
       },
 
       config: {
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {proofsEnabled: false},
+        BlockProducerModule: {},
         LocalTaskWorkerModule: {},
-      },
-    });
-
-    sequencer.dependencyContainer.register<BaseLayer>("BaseLayer", {
-      useValue: {
-        blockProduced: async (block) => {},
+        BaseLayer: {},
       },
     });
 
     sequencer.dependencyContainer.register<TaskQueue>("TaskQueue", {
       useValue: new LocalTaskQueue(0),
     });
-
-    // const x = VanillaProtocol.create().stateTransitionProver.zkProgram
 
     const app = AppChain.from({
       runtime,
@@ -114,7 +105,22 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    expect(block!.txs.length).toStrictEqual(1);
-    expect(block!.proof.proof).toStrictEqual("mock-proof")
+    expect(block!.txs).toHaveLength(1);
+    expect(block!.proof.proof).toBe("mock-proof");
+
+    const stateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "AsyncStateService"
+      );
+    const balanceModule = runtime.resolve("Balance");
+    const balancesPath = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      PublicKey.empty()
+    );
+    const newState = await stateService.getAsync(balancesPath);
+
+    expect(newState).toBeDefined();
+    expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
   }, 60_000);
 });

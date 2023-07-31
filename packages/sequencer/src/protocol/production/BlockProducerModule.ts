@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import { inject } from "tsyringe";
 import {
   AsyncMerkleTreeStore,
@@ -10,7 +9,10 @@ import {
 import { Field, Proof } from "snarkyjs";
 import { requireTrue } from "@yab/common";
 
-import { sequencerModule, SequencerModule } from "../../sequencer/builder/SequencerModule";
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../../sequencer/builder/SequencerModule";
 import { Mempool } from "../../mempool/Mempool";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { BaseLayer } from "../baselayer/BaseLayer";
@@ -26,7 +28,6 @@ import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
 
 interface RuntimeSequencerModuleConfig {
-  proofsEnabled: boolean;
 }
 
 export interface StateRecord {
@@ -37,6 +38,12 @@ export interface TransactionTrace {
   runtimeProver: RuntimeProofParameters;
   stateTransitionProver: StateTransitionProofParameters;
   blockProver: BlockProverPublicInput;
+}
+
+interface ComputedBlockMetadata {
+  block: ComputedBlock;
+  stateService: CachedStateService;
+  merkleStore: CachedMerkleTreeStore;
 }
 
 const errors = {
@@ -66,6 +73,11 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
     super();
   }
 
+  private async applyStateChanges(block: ComputedBlockMetadata) {
+    await block.stateService.mergeIntoParent();
+    await block.merkleStore.mergeIntoParent();
+  }
+
   public async start(): Promise<void> {
     // this.runtime.setProofsEnabled(this.config.proofsEnabled);
 
@@ -75,28 +87,32 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
         const block = await this.tryProduceBlock();
         if (block !== undefined) {
           console.log("Batch produced");
+          // Apply state changes to current StateService
+          await this.applyStateChanges(block);
+
           // Broadcast result on to baselayer
-          await this.baseLayer.blockProduced(block);
+          await this.baseLayer.blockProduced(block.block);
           console.log("Batch submitted onto baselayer");
         }
-        return block;
+        return block?.block;
       }
     );
 
+    // eslint-disable-next-line no-warning-comments
     // TODO Remove that probably, otherwise .start() will be called twice on that module
     await this.blockTrigger.start();
 
     console.log("Blocktrigger set");
   }
 
-  public async tryProduceBlock(): Promise<ComputedBlock | undefined> {
+  public async tryProduceBlock(): Promise<ComputedBlockMetadata | undefined> {
     if (!this.productionInProgress) {
       return await this.produceBlock();
     }
     return undefined;
   }
 
-  public async produceBlock(): Promise<ComputedBlock> {
+  public async produceBlock(): Promise<ComputedBlockMetadata> {
     this.productionInProgress = true;
 
     // Get next blockheight and therefore taskId
@@ -104,13 +120,18 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
 
     const { txs } = this.mempool.getTxs();
 
-    const proof = await this.createBlock(txs, lastHeight + 1);
+    const block = await this.createBlock(txs, lastHeight + 1);
 
     requireTrue(this.mempool.removeTxs(txs), errors.txRemovalFailed);
 
     return {
-      proof,
-      txs,
+      block: {
+        proof: block.proof,
+        txs,
+      },
+
+      stateService: block.stateSerivce,
+      merkleStore: block.merkleStore,
     };
   }
 
@@ -129,7 +150,11 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
   public async createBlock(
     txs: PendingTransaction[],
     blockId: number
-  ): Promise<Proof<BlockProverPublicInput, BlockProverPublicOutput>> {
+  ): Promise<{
+    proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
+    stateSerivce: CachedStateService;
+    merkleStore: CachedMerkleTreeStore;
+  }> {
     const stateServices = {
       stateService: new CachedStateService(this.asyncStateService),
       merkleStore: new CachedMerkleTreeStore(this.merkleStore),
@@ -139,10 +164,20 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
 
     const traces = await Promise.all(
       txs.map(
-        async (tx) => await this.traceService.createTrace(tx, stateServices, bundleTracker)
+        async (tx) =>
+          await this.traceService.createTrace(tx, stateServices, bundleTracker)
       )
     );
 
-    return await this.blockFlowService.executeBlockCreation(traces, blockId);
+    const blockProof = await this.blockFlowService.executeBlockCreation(
+      traces,
+      blockId
+    );
+
+    return {
+      proof: blockProof,
+      stateSerivce: stateServices.stateService,
+      merkleStore: stateServices.merkleStore,
+    };
   }
 }

@@ -26,7 +26,6 @@ export class PreFilledWitnessProvider
   }
 
   public getWitness(key: Field): RollupMerkleWitness {
-    console.log(`getWitness key ${key.toString()}`);
     // dummy ST
     if (key.equals(Field(0)).toBoolean()) {
       // return some witness here, it won't get checked in the circuit

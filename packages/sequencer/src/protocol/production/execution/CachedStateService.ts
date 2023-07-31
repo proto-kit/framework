@@ -1,15 +1,31 @@
 import { InMemoryStateService } from "@yab/module";
 import { Field } from "snarkyjs";
+
 import { AsyncStateService } from "../state/AsyncStateService";
 
-export class CachedStateService extends InMemoryStateService implements AsyncStateService {
+const errors = {
+  parentIsUndefined: () => new Error("Parent StateService is undefined"),
+};
+
+export class CachedStateService
+  extends InMemoryStateService
+  implements AsyncStateService
+{
   public constructor(private readonly parent: AsyncStateService | undefined) {
     super();
   }
 
-  public async preloadKey(key: Field){
+  private assertParentNotNull(
+    parent: AsyncStateService | undefined
+  ): asserts parent is AsyncStateService {
+    if (parent === undefined) {
+      throw errors.parentIsUndefined();
+    }
+  }
+
+  public async preloadKey(key: Field) {
     // Only preload it if it hasn't been preloaded previously
-    if (this.parent !== undefined && this.get(key) !== undefined){
+    if (this.parent !== undefined && this.get(key) !== undefined) {
       const value = await this.parent.getAsync(key);
       this.set(key, value);
     }
@@ -28,6 +44,24 @@ export class CachedStateService extends InMemoryStateService implements AsyncSta
   }
 
   public async setAsync(key: Field, value: Field[] | undefined): Promise<void> {
-    return this.set(key, value)
+    this.set(key, value);
+  }
+
+  /**
+   * Merges all caches set() operation into the parent and
+   * resets this instance to the parent's state (by clearing the cache and
+   * defaulting to the parent)
+   */
+  public async mergeIntoParent() {
+    const { parent } = this;
+    this.assertParentNotNull(parent);
+
+    // Set all cached values on parent
+    const promises = Object.entries(this.values).map(async (value) => {
+      await parent.setAsync(Field(value[0]), value[1]);
+    });
+    await Promise.all(promises);
+    // Clear cache
+    this.values = {};
   }
 }

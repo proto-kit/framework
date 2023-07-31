@@ -111,6 +111,16 @@ export class Option<Value> {
   }
 
   /**
+   * Not in circuit
+   */
+  public toFields(): Field[] {
+    if (this.isSome.toBoolean()) {
+      return this.valueType.toFields(this.value);
+    }
+    return [Field(0)];
+  }
+
+  /**
    * @returns Provable representation of the current option.
    */
   public toProvable() {

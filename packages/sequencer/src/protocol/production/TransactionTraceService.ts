@@ -112,9 +112,7 @@ export class TransactionTraceService {
       stateTransitionProver: {
         publicInput: {
           stateRoot: fromStateRoot,
-          // toStateRoot,
           stateTransitionsHash: Field(0),
-          // toStateTransitionsHash: publicInput.stateTransitionsHash,
         },
 
         batch: stateTransitions.map((transition) => transition.toProvable()),
@@ -124,13 +122,9 @@ export class TransactionTraceService {
 
       blockProver: {
         stateRoot: fromStateRoot,
-        // toStateRoot,
         transactionsHash,
-        // toTransactionsHash: bundleTracker.commitment,
       },
     };
-
-    stateServices.merkleStore.resetWrittenNodes();
 
     return trace;
   }
@@ -217,6 +211,13 @@ export class TransactionTraceService {
     method(...args);
 
     this.runtime.stateServiceProvider.resetToDefault();
+
+    // Update the stateservice
+    await Promise.all(
+      stateTransitions.map(async (st) => {
+        await stateService.setAsync(st.path, st.to.toFields());
+      })
+    );
 
     return {
       executionResult: executionContext.current().result,
