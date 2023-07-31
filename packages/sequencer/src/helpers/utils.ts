@@ -1,5 +1,6 @@
 import { Field, Proof } from "snarkyjs";
 import { Subclass } from "@yab/protocol";
+
 import { TaskSerializer } from "../worker/manager/ReducableTask";
 
 export function distinct<Value>(
@@ -22,12 +23,22 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
   public toJSON(proof: Proof<PublicInputType, PublicOutputType>): string {
     console.log(proof);
 
-    if(proof.proof === "mock-proof"){
+    if (proof.proof === "mock-proof") {
       return JSON.stringify({
-        publicInput: this.proofClass.publicInputType.toFields(proof.publicInput as any).map(String),
-        publicOutput: this.proofClass.publicOutputType.toFields(proof.publicOutput as any).map(String),
+        publicInput: this.proofClass.publicInputType
+          // eslint-disable-next-line max-len
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-explicit-any
+          .toFields(proof.publicInput as any)
+          .map(String),
+
+        publicOutput: this.proofClass.publicOutputType
+          // eslint-disable-next-line max-len
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-explicit-any
+          .toFields(proof.publicOutput as any)
+          .map(String),
+
         maxProofsVerified: proof.maxProofsVerified,
-        proof: "mock-proof"
+        proof: "mock-proof",
       });
     }
     return JSON.stringify(proof.toJSON());
@@ -41,8 +52,17 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
     console.log(json);
 
     if (jsonProof.proof === "mock-proof") {
-      const publicInput = this.proofClass.publicInputType.fromFields(jsonProof.publicInput.map(Field));
-      const publicOutput = this.proofClass.publicOutputType.fromFields(jsonProof.publicOutput.map(Field));
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const publicInput: PublicInputType =
+        this.proofClass.publicInputType.fromFields(
+          jsonProof.publicInput.map(Field)
+        );
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const publicOutput: PublicOutputType =
+        this.proofClass.publicOutputType.fromFields(
+          jsonProof.publicOutput.map(Field)
+        );
+      // eslint-disable-next-line new-cap
       return new this.proofClass({
         publicInput,
         publicOutput,

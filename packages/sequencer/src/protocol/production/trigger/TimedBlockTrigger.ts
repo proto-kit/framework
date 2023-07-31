@@ -14,11 +14,12 @@ export class TimedBlockTrigger
   extends SequencerModule<BlockTimeConfig>
   implements BlockTrigger, Closeable
 {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private interval?: any;
+
   private produceBlock: BlockProducingFunction = async () => undefined;
 
   // There is no real type for interval ids somehow, so any it is
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private interval?: any;
 
   public setProduceBlock(produceBlock: BlockProducingFunction): void {
     this.produceBlock = produceBlock;

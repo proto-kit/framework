@@ -1,9 +1,5 @@
 import { inject } from "tsyringe";
-import {
-  noop,
-  Protocol,
-  ProtocolModulesRecord,
-} from "@yab/protocol";
+import { noop, Protocol, ProtocolModulesRecord } from "@yab/protocol";
 
 import {
   sequencerModule,
@@ -19,13 +15,14 @@ import {
 import { TaskWorker } from "./TaskWorker";
 
 @sequencerModule()
-export class LocalTaskWorkerModule extends SequencerModule<{}> {
+export class LocalTaskWorkerModule extends SequencerModule<object> {
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,
     private readonly stateTransitionTask: StateTransitionTask,
     private readonly runtimeProvingTask: RuntimeProvingTask,
     private readonly blockProvingTask: BlockProvingTask,
-    @inject("Protocol") private readonly protocol: Protocol<ProtocolModulesRecord>,
+    @inject("Protocol")
+    private readonly protocol: Protocol<ProtocolModulesRecord>
   ) {
     super();
   }
@@ -35,8 +32,17 @@ export class LocalTaskWorkerModule extends SequencerModule<{}> {
     worker.addMapTask("block", this.stateTransitionTask);
     worker.addMapTask("block", this.runtimeProvingTask);
     worker.addMapReduceTask("block", this.blockProvingTask);
-    worker.start().then(() => {
-      noop();
-    });
+    worker
+      .start()
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
+      .then(() => {
+        noop();
+      })
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line promise/prefer-await-to-then,etc/no-implicit-any-catch
+      .catch((error: Error) => {
+        console.error(error);
+      });
   }
 }

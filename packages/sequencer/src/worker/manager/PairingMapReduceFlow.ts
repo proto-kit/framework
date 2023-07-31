@@ -143,6 +143,7 @@ export class PairingMapReduceFlow<
     //    push the paired result tuples as tasks (normal map)
     // 3. Reduce
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     const start = async (resolve: (type: Result) => void) => {
       const { queue, task } = this;
       this.assertQueueNotNull(queue);

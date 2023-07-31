@@ -53,11 +53,11 @@ export class CachedStateService
    * defaulting to the parent)
    */
   public async mergeIntoParent() {
-    const { parent } = this;
+    const { parent, values } = this;
     this.assertParentNotNull(parent);
 
     // Set all cached values on parent
-    const promises = Object.entries(this.values).map(async (value) => {
+    const promises = Object.entries(values).map(async (value) => {
       await parent.setAsync(Field(value[0]), value[1]);
     });
     await Promise.all(promises);

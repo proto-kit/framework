@@ -2,7 +2,7 @@ import {
   InMemoryMerkleTreeStorage,
   RollupMerkleTree,
   RollupMerkleWitness,
-  StateTransitionWitnessProvider
+  StateTransitionWitnessProvider,
 } from "@yab/protocol";
 import { Field } from "snarkyjs";
 
@@ -18,7 +18,8 @@ export class PreFilledWitnessProvider
   implements StateTransitionWitnessProvider
 {
   private readonly witnesses: RollupMerkleWitness[];
-  private cursor: number = 0;
+
+  private cursor = 0;
 
   public constructor(witnesses: RollupMerkleWitness[]) {
     // Reverse so that we can conviniently .pop() one-by-one
@@ -29,12 +30,14 @@ export class PreFilledWitnessProvider
     // dummy ST
     if (key.equals(Field(0)).toBoolean()) {
       // return some witness here, it won't get checked in the circuit
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      return new RollupMerkleTree(new InMemoryMerkleTreeStorage()).getWitness(0n);
+
+      return new RollupMerkleTree(new InMemoryMerkleTreeStorage()).getWitness(
+        BigInt(0)
+      );
     }
 
     const witness = this.witnesses[this.cursor % this.witnesses.length];
-    // eslint-disable-next-line no-warning-comments
+    // eslint-disable-next-line no-warning-comments,max-len
     // TODO Introduce something that throws this if it overflows before a new prover run begins
     // if (witness === undefined) {
     //   throw errors.noWitnessAvailable();
@@ -43,7 +46,7 @@ export class PreFilledWitnessProvider
     if (!witness.calculateIndex().equals(key).toBoolean()) {
       throw errors.keysDoNotMatch();
     }
-    this.cursor++;
+    this.cursor += 1;
     return witness;
   }
 }

@@ -21,12 +21,15 @@ interface StateTransitionParametersJSON {
 export class StateTransitionParametersSerializer
   implements TaskSerializer<StateTransitionProofParameters>
 {
-  public toJSON(params: StateTransitionProofParameters) {
+  public toJSON(parameters: StateTransitionProofParameters) {
     return JSON.stringify({
-      publicInput: StateTransitionProverPublicInput.toJSON(params.publicInput),
-      batch: params.batch.map((st) => ProvableStateTransition.toJSON(st)),
+      publicInput: StateTransitionProverPublicInput.toJSON(
+        parameters.publicInput
+      ),
 
-      merkleWitnesses: params.merkleWitnesses.map((witness) =>
+      batch: parameters.batch.map((st) => ProvableStateTransition.toJSON(st)),
+
+      merkleWitnesses: parameters.merkleWitnesses.map((witness) =>
         RollupMerkleWitness.toJSON(witness)
       ),
     });

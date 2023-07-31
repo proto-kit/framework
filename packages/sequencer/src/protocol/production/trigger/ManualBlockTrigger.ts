@@ -2,9 +2,9 @@ import { injectable } from "tsyringe";
 import { noop } from "@yab/protocol";
 
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
+import { ComputedBlock } from "../../../storage/model/Block";
 
 import { BlockProducingFunction, BlockTrigger } from "./BlockTrigger";
-import { ComputedBlock } from "../../../storage/model/Block";
 
 @injectable()
 export class ManualBlockTrigger

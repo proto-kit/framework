@@ -1,6 +1,10 @@
 import { inject, injectable } from "tsyringe";
 import { Proof } from "snarkyjs";
 import { BlockProverPublicInput, BlockProverPublicOutput } from "@yab/protocol";
+
+import { PairingMapReduceFlow } from "../../worker/manager/PairingMapReduceFlow";
+import { TaskQueue } from "../../worker/queue/TaskQueue";
+
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import {
@@ -8,13 +12,11 @@ import {
   RuntimeProvingTask,
   StateTransitionTask,
 } from "./tasks/BlockProvingTask";
-import { PairingMapReduceFlow } from "../../worker/manager/PairingMapReduceFlow";
-import { TaskQueue } from "../../worker/queue/TaskQueue";
-import { TransactionTrace } from "./BlockProducerModule";
+import type { TransactionTrace } from "./BlockProducerModule";
 
 /**
- * We could rename this into BlockCreationStategy and enable the injection of different creation
- * strategies.
+ * We could rename this into BlockCreationStategy and enable the injection of
+ * different creation strategies.
  */
 @injectable()
 export class BlockTaskFlowService {
@@ -27,6 +29,7 @@ export class BlockTaskFlowService {
 
   public async executeBlockCreation(
     transactionTraces: TransactionTrace[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     blockId: number
   ): Promise<Proof<BlockProverPublicInput, BlockProverPublicOutput>> {
     // Init tasks based on traces
@@ -44,7 +47,7 @@ export class BlockTaskFlowService {
 
     // eslint-disable-next-line no-warning-comments
     // TODO Find solution for multiple parallel blocks
-    const flow = new PairingMapReduceFlow(this.taskQueue, `block`, {
+    const flow = new PairingMapReduceFlow(this.taskQueue, "block", {
       firstPairing: this.stateTransitionTask,
       secondPairing: this.runtimeProvingTask,
       reducingTask: this.blockProvingTask,

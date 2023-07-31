@@ -3,27 +3,30 @@ import {
   MethodParameterDecoder,
   Runtime,
   RuntimeMethodExecutionContext,
-  RuntimeProvableMethodExecutionResult
+  RuntimeProvableMethodExecutionResult,
 } from "@yab/module";
-import { Mempool } from "../../mempool/Mempool";
-import { BlockTrigger } from "./trigger/BlockTrigger";
-import { AsyncStateService } from "./state/AsyncStateService";
 import {
   AsyncMerkleTreeStore,
   CachedMerkleTreeStore,
-  ProvableHashList, RollupMerkleTree, RollupMerkleWitness,
-  StateTransition, StateTransitionWitnessProviderReference
+  ProvableHashList,
+  RollupMerkleTree,
+  RollupMerkleWitness,
+  StateTransition,
 } from "@yab/protocol";
+import { Field } from "snarkyjs";
+
+import { Mempool } from "../../mempool/Mempool";
 import { BaseLayer } from "../baselayer/BaseLayer";
 import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import { CachedStateService } from "./execution/CachedStateService";
-import { Field } from "snarkyjs";
-import { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { distinct } from "../../helpers/utils";
+
+import { CachedStateService } from "./execution/CachedStateService";
+import { StateRecord, TransactionTrace } from "./BlockProducerModule";
+import { AsyncStateService } from "./state/AsyncStateService";
+import { BlockTrigger } from "./trigger/BlockTrigger";
 import { DummyStateService } from "./execution/DummyStateService";
-import { MerkleStoreWitnessProvider } from "./execution/MerkleStoreWitnessProvider";
 
 @injectable()
 export class TransactionTraceService {
@@ -40,11 +43,9 @@ export class TransactionTraceService {
     private readonly merkleStore: AsyncMerkleTreeStore,
     @inject("BaseLayer") private readonly baseLayer: BaseLayer,
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,
-    @inject("BlockStorage") private readonly blockStorage: BlockStorage,
-    // private readonly witnessProviderReference: StateTransitionWitnessProviderReference
-  ) {
-  }
-  
+    @inject("BlockStorage") private readonly blockStorage: BlockStorage
+  ) {}
+
   private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
     return stateTransitions.map((st) => st.path).filter(distinct);
   }
@@ -83,9 +84,14 @@ export class TransactionTraceService {
 
     const method = this.runtime.getMethodById(tx.methodId.toBigInt());
 
-    const [ moduleName, methodName] = this.runtime.getMethodNameFromId(tx.methodId.toBigInt());
+    const [moduleName, methodName] = this.runtime.getMethodNameFromId(
+      tx.methodId.toBigInt()
+    );
 
-    const parameterDecoder = MethodParameterDecoder.fromMethod(this.runtime.resolve(moduleName), methodName);
+    const parameterDecoder = MethodParameterDecoder.fromMethod(
+      this.runtime.resolve(moduleName),
+      methodName
+    );
     const decodedArguments = parameterDecoder.fromFields(tx.args);
 
     // Step 1 & 2
@@ -97,8 +103,10 @@ export class TransactionTraceService {
     const { stateTransitions } = executionResult;
 
     // Step 3
-    const { witnesses, fromStateRoot } =
-      await this.createMerkleTrace(stateServices.merkleStore, stateTransitions);
+    const { witnesses, fromStateRoot } = await this.createMerkleTrace(
+      stateServices.merkleStore,
+      stateTransitions
+    );
 
     const transactionsHash = bundleTracker.commitment;
     bundleTracker.push(tx.hash());
@@ -224,5 +232,4 @@ export class TransactionTraceService {
       startingState,
     };
   }
-
 }

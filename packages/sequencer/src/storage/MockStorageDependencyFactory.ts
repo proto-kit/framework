@@ -1,7 +1,7 @@
 import {
   AsyncMerkleTreeStore,
   InMemoryMerkleTreeStorage,
-  noop, StateTransitionWitnessProvider
+  noop,
 } from "@yab/protocol";
 
 import {

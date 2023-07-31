@@ -2,23 +2,25 @@ import {
   BlockProvable,
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  Protocol, ProtocolConstants,
+  Protocol,
+  ProtocolConstants,
   ProtocolModulesRecord,
   ProvableStateTransition,
   ReturnType,
   StateTransitionProvable,
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
+  StateTransitionProverPublicOutput,
 } from "@yab/protocol";
 import { Proof } from "snarkyjs";
 import {
   MethodParameterDecoder,
   MethodPublicOutput,
   Runtime,
-  RuntimeMethodExecutionContext
+  RuntimeMethodExecutionContext,
 } from "@yab/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { ProvableMethodExecutionContext } from "@yab/common";
 
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
@@ -38,7 +40,6 @@ import {
   RuntimeProofParametersSerializer,
 } from "./RuntimeTaskParameters";
 import { PreFilledWitnessProvider } from "./providers/PreFilledWitnessProvider";
-import { ProvableMethodExecutionContext } from "@yab/common";
 
 type StateTransitionProof = Proof<
   StateTransitionProverPublicInput,
@@ -79,16 +80,13 @@ export class StateTransitionTask
   ): Promise<StateTransitionProof> {
     const witnessProvider = new PreFilledWitnessProvider(input.merkleWitnesses);
 
-    const witnessProviderReference =
-      this.stateTransitionProver.witnessProviderReference;
+    const { witnessProviderReference } = this.stateTransitionProver;
     const previousProvider = witnessProviderReference.getWitnessProvider();
     witnessProviderReference.setWitnessProvider(witnessProvider);
 
     const stBatch = input.batch.slice();
     Array.from({
-      length:
-        ProtocolConstants.stateTransitionProverBatchSize -
-        stBatch.length,
+      length: ProtocolConstants.stateTransitionProverBatchSize - stBatch.length,
     }).forEach(() => {
       stBatch.push(ProvableStateTransition.dummy());
     });
@@ -104,18 +102,6 @@ export class StateTransitionTask
     const proof = await this.executionContext
       .current()
       .result.prove<StateTransitionProof>();
-
-    console.log(proof.publicInput);
-    console.log(proof.publicOutput);
-
-    console.log(proof.publicInput.stateRoot.toString());
-    console.log(proof.publicInput.stateTransitionsHash.toString());
-    console.log(proof.publicOutput.stateRoot.toString());
-    console.log(proof.publicOutput.stateTransitionsHash.toString());
-    console.log(proof.proof);
-
-    console.log(StateTransitionProverPublicInput.toJSON(proof.publicInput));
-    console.log(StateTransitionProverPublicOutput.toJSON(proof.publicOutput));
 
     if (previousProvider !== undefined) {
       witnessProviderReference.setWitnessProvider(previousProvider);
@@ -156,9 +142,14 @@ export class RuntimeProvingTask
   public async map(input: RuntimeProofParameters): Promise<RuntimeProof> {
     const method = this.runtime.getMethodById(input.tx.methodId.toBigInt());
 
-    const [ moduleName, methodName] = this.runtime.getMethodNameFromId(input.tx.methodId.toBigInt());
+    const [moduleName, methodName] = this.runtime.getMethodNameFromId(
+      input.tx.methodId.toBigInt()
+    );
 
-    const parameterDecoder = MethodParameterDecoder.fromMethod(this.runtime.resolve(moduleName), methodName);
+    const parameterDecoder = MethodParameterDecoder.fromMethod(
+      this.runtime.resolve(moduleName),
+      methodName
+    );
     const decodedArguments = parameterDecoder.fromFields(input.tx.args);
 
     const prefilledStateService = new PreFilledStateService(input.state);

@@ -24,11 +24,8 @@ import { AsyncStateService } from "./state/AsyncStateService";
 import { CachedStateService } from "./execution/CachedStateService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
-import { TransactionTraceService } from "./TransactionTraceService";
-import { BlockTaskFlowService } from "./BlockTaskFlowService";
-
-interface RuntimeSequencerModuleConfig {
-}
+import type { TransactionTraceService } from "./TransactionTraceService";
+import type { BlockTaskFlowService } from "./BlockTaskFlowService";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
@@ -47,14 +44,11 @@ interface ComputedBlockMetadata {
 }
 
 const errors = {
-  publicInputUndefined: () =>
-    new Error("Public Input undefined, something went wrong during execution"),
-
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
 };
 
 @sequencerModule()
-export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleConfig> {
+export class BlockProducerModule extends SequencerModule<object> {
   private productionInProgress = false;
 
   // eslint-disable-next-line max-params
@@ -98,7 +92,7 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
       }
     );
 
-    // eslint-disable-next-line no-warning-comments
+    // eslint-disable-next-line no-warning-comments,max-len
     // TODO Remove that probably, otherwise .start() will be called twice on that module
     await this.blockTrigger.start();
 
@@ -169,13 +163,13 @@ export class BlockProducerModule extends SequencerModule<RuntimeSequencerModuleC
       )
     );
 
-    const blockProof = await this.blockFlowService.executeBlockCreation(
+    const proof = await this.blockFlowService.executeBlockCreation(
       traces,
       blockId
     );
 
     return {
-      proof: blockProof,
+      proof,
       stateSerivce: stateServices.stateService,
       merkleStore: stateServices.merkleStore,
     };

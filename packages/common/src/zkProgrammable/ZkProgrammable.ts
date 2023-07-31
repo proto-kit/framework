@@ -1,7 +1,6 @@
 import { Experimental, FlexibleProvablePure, Proof } from "snarkyjs";
 import { Memoize } from "typescript-memoize";
 
-// eslint-disable-next-line import/no-cycle
 import { mockProof } from "./provableMethod";
 
 const errors = {

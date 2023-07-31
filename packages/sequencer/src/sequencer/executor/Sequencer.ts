@@ -11,18 +11,14 @@ import {
   Protocol,
   ProtocolModulesRecord,
 } from "@yab/protocol/src/protocol/Protocol";
-import {
-  StateTransitionWitnessProvider,
-  StateTransitionWitnessProviderReference,
-} from "@yab/protocol";
+import { StateTransitionWitnessProviderReference } from "@yab/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
-
-import { Sequenceable } from "./Sequenceable";
-import { StorageDependencyFactory } from "../../storage/StorageDependencyFactory";
 import { DependencyFactory } from "../builder/DependencyFactory";
 import { MockStorageDependencyFactory } from "../../storage/MockStorageDependencyFactory";
+
+import { Sequenceable } from "./Sequenceable";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -72,10 +68,12 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     });
 
     // Set default STWitnessProvider inside protocol
+    // eslint-disable-next-line no-warning-comments,max-len
     // TODO But what is the default? How do we deal with stages states (i.e. simulated state) in the DI container?
-    const witnessProviderReference = this.protocol.dependencyContainer.resolve(
-      StateTransitionWitnessProviderReference
-    );
+    // const witnessProviderReference = this.protocol.dependencyContainer
+    // .resolve(
+    //   StateTransitionWitnessProviderReference
+    // );
     // const witnessProvider =
     //   this.container.resolve<StateTransitionWitnessProvider>(
     //     "StateTransitionWitnessProvider"
