@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
+// eslint-disable-next-line max-len
+/* eslint-disable @typescript-eslint/no-magic-numbers,@typescript-eslint/no-unnecessary-condition */
 import { RollupMerkleTree } from "./RollupMerkleTree.js";
 import { AsyncMerkleTreeStore, MerkleTreeStore } from "./MerkleTreeStore";
 
@@ -54,6 +55,7 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
       index %= leafCount;
     }
 
+    // eslint-disable-next-line no-warning-comments,max-len
     // TODO Not practical at the moment. Improve pattern when implementing DB storage
     for (let level = 0; level < height - 1; level++) {
       const isLeft = index % 2n === 0n;
@@ -69,6 +71,11 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
   }
 
   public async mergeIntoParent(): Promise<void> {
+    // In case no state got set we can skip this step
+    if (Object.keys(this.writeCache).length === 0) {
+      return;
+    }
+
     this.parent.openTransaction();
     const { height } = RollupMerkleTree;
     const nodes = this.getWrittenNodes();
