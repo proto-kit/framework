@@ -7,7 +7,7 @@ import {
   SequencerModulesRecord,
 } from "@yab/sequencer";
 import { PendingTransaction } from "@yab/sequencer/dist/mempool/PendingTransaction";
-import { inject } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { AppChain, AppChainModulesRecord } from "../appChain/AppChain";
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -15,6 +15,7 @@ export interface TransactionSender extends AppChainModule<unknown> {
   send: (transaction: PendingTransaction) => Promise<void>;
 }
 
+@injectable()
 export class InMemoryTransactionSender
   extends AppChainModule<unknown>
   implements TransactionSender

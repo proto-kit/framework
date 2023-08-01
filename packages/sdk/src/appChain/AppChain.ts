@@ -11,10 +11,7 @@ import {
   RuntimeModulesRecord,
 } from "@yab/module";
 import { dependency, Sequencer, SequencerModulesRecord } from "@yab/sequencer";
-import {
-  Protocol,
-  ProtocolModulesRecord,
-} from "@yab/protocol/src/protocol/Protocol";
+import { Protocol, ProtocolModulesRecord } from "@yab/protocol";
 import { container } from "tsyringe";
 import { UnsignedTransaction } from "@yab/sequencer/dist/mempool/PendingTransaction";
 import { Field, PublicKey, UInt64 } from "snarkyjs";
@@ -153,7 +150,7 @@ export class AppChain<
 
     const signer = this.container.resolve<Signer>("Signer");
     const transactionSender =
-      this.container.resolve<TransactionSender>("Sender");
+      this.container.resolve<TransactionSender>("TransactionSender");
 
     const transaction = new AppChainTransaction(signer, transactionSender);
 

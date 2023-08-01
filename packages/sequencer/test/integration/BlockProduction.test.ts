@@ -26,7 +26,7 @@ import {
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
 import { Balance } from "./mocks/Balance";
-import { NoopBaseLayer } from "./mocks/NoopBaseLayer";
+import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
 
 describe("block production", () => {
   beforeEach(() => {
@@ -74,6 +74,7 @@ describe("block production", () => {
       runtime,
       sequencer,
       protocol: VanillaProtocol.create(),
+      modules: {},
     });
 
     // Start AppChain

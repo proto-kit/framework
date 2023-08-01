@@ -6,7 +6,7 @@ import {
   TypedClass,
 } from "@yab/common";
 import { RuntimeModulesRecord } from "@yab/module";
-import { ProtocolModulesRecord } from "@yab/protocol/src/protocol/Protocol";
+import { ProtocolModulesRecord } from "@yab/protocol";
 import { SequencerModulesRecord } from "@yab/sequencer";
 import { injectable } from "tsyringe";
 import { AppChain, AppChainModulesRecord } from "./AppChain";

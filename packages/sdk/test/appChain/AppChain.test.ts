@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { PrivateKey, PublicKey, Signature } from "snarkyjs";
+import { PrivateKey, Provable, PublicKey, Signature, UInt64 } from "snarkyjs";
 import {
   assert,
   InMemoryStateService,
@@ -8,46 +8,44 @@ import {
   RuntimeModule,
   runtimeModule,
   RuntimeModulesRecord,
+  state,
+  StateMap,
 } from "@yab/module";
-import { Sequencer, sequencerModule, SequencerModule } from "@yab/sequencer";
+import {
+  AsyncStateService,
+  Sequencer,
+  sequencerModule,
+  SequencerModule,
+} from "@yab/sequencer";
 import { inject } from "tsyringe";
 import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 
 import { AppChain } from "../../src";
 import { InMemorySigner } from "../../src/transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
+import { TestingAppChain } from "../../src/appChain/TestingAppChain";
+import { Path } from "@yab/protocol";
 
-interface AdminConfig {
-  publicKey: string;
-}
+interface BalancesConfig {}
 
 @runtimeModule()
-class Admin extends RuntimeModule<AdminConfig> {
+class Balances extends RuntimeModule<BalancesConfig> {
+  @state() public balances = StateMap.from<PublicKey, UInt64>(
+    PublicKey,
+    UInt64
+  );
+
   @runtimeMethod()
-  public isAdmin(publicKey: PublicKey) {
-    const admin = PublicKey.fromBase58(this.config.publicKey);
-    assert(admin.equals(publicKey));
-  }
-}
+  public addBalance(address: PublicKey, balance: UInt64) {
+    const currentBalance = this.balances.get(address);
 
-interface MempoolConfig {
-  test: string;
-}
+    const newBalance = currentBalance.value.add(balance);
 
-@sequencerModule()
-class Mempool extends SequencerModule<MempoolConfig> {
-  public constructor(
-    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
-  ) {
-    super();
-  }
-
-  public async start() {
-    // for test purposes retrieve the configured runtime module and call it
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const admin = this.runtime.resolve("Admin") as unknown as Admin;
-
-    admin.isAdmin(PublicKey.empty());
+    Provable.log("balances", {
+      currentBalance: currentBalance.value.toBigInt(),
+      newBalance: newBalance.toBigInt(),
+    });
+    this.balances.set(address, newBalance);
   }
 }
 
@@ -55,54 +53,54 @@ describe("appChain", () => {
   it("should compose appchain correctly", async () => {
     expect.assertions(0);
 
-    const runtime = Runtime.from({
-      state: new InMemoryStateService(),
-
-      modules: {
-        Admin,
-      },
+    // create a testing app chain from the provided runtime modules
+    const appChain = TestingAppChain.fromRuntime({
+      modules: { Balances },
+      config: { Balances: {} },
     });
 
-    runtime.configure({
-      Admin: {
-        publicKey: PublicKey.empty().toBase58(),
-      },
-    });
+    // set a signer for the transaction API
+    const signer = PrivateKey.random();
+    const sender = signer.toPublicKey();
 
-    const sequencer = Sequencer.from({
-      modules: {
-        Mempool,
-      },
-    });
+    appChain.setSigner(signer);
 
-    sequencer.configure({
-      Mempool: {
-        test: "1",
-      },
-    });
-
-    const appChain = AppChain.from({
-      runtime,
-      sequencer,
-      protocol: VanillaProtocol.create(),
-
-      modules: {
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
-      },
-    });
-
+    // start the chain, sequencer is now accepting transactions
     await appChain.start();
 
-    const sender = PrivateKey.random().toPublicKey();
+    const balances = appChain.runtime.resolve("Balances");
 
-    const transaction = appChain.transaction(sender, () => {
-      const admin = appChain.runtime.resolve("Admin");
+    // prepare a transaction invoking `Balances.setBalance`
+    async function addBalance() {
+      const transaction = appChain.transaction(sender, () => {
+        balances.addBalance(sender, UInt64.from(1000));
+      });
 
-      admin.isAdmin(sender);
-    });
+      await transaction.sign();
+      await transaction.send();
+    }
 
-    await transaction.sign();
-    await transaction.send();
-  });
+    // observe the new chain state after the transaction
+    async function getBalance() {
+      const senderBalancePath = Path.fromKey(
+        balances.balances.path!,
+        balances.balances.keyType,
+        sender
+      );
+
+      const stateService =
+        appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
+          "AsyncStateService"
+        );
+      const senderBalance = await stateService.getAsync(senderBalancePath);
+
+      return UInt64.fromFields(senderBalance!);
+    }
+
+    await addBalance();
+    // once the transaction has been sent to the mempool, produce a block
+    await appChain.produceBlock();
+
+    console.log("balance", (await getBalance()).toBigInt());
+  }, 60_000);
 });
