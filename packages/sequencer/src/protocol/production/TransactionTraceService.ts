@@ -1,4 +1,4 @@
-import { inject, injectable } from "tsyringe";
+import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   MethodParameterDecoder,
   Runtime,
@@ -6,7 +6,6 @@ import {
   RuntimeProvableMethodExecutionResult,
 } from "@yab/module";
 import {
-  AsyncMerkleTreeStore,
   CachedMerkleTreeStore,
   ProvableHashList,
   RollupMerkleTree,
@@ -15,35 +14,20 @@ import {
 } from "@yab/protocol";
 import { Field } from "snarkyjs";
 
-import { Mempool } from "../../mempool/Mempool";
-import { BaseLayer } from "../baselayer/BaseLayer";
-import { TaskQueue } from "../../worker/queue/TaskQueue";
-import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinct } from "../../helpers/utils";
 
 import { CachedStateService } from "./execution/CachedStateService";
-import { StateRecord, TransactionTrace } from "./BlockProducerModule";
-import { AsyncStateService } from "./state/AsyncStateService";
-import { BlockTrigger } from "./trigger/BlockTrigger";
+import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
 
 @injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class TransactionTraceService {
   private readonly dummyStateService = new DummyStateService();
 
-  // eslint-disable-next-line max-params
   public constructor(
-    @inject("Runtime") private readonly runtime: Runtime<never>,
-    @inject("Mempool") private readonly mempool: Mempool,
-    @inject("BlockTrigger") private readonly blockTrigger: BlockTrigger,
-    @inject("AsyncStateService")
-    private readonly asyncStateService: AsyncStateService,
-    @inject("AsyncMerkleStore")
-    private readonly merkleStore: AsyncMerkleTreeStore,
-    @inject("BaseLayer") private readonly baseLayer: BaseLayer,
-    @inject("TaskQueue") private readonly taskQueue: TaskQueue,
-    @inject("BlockStorage") private readonly blockStorage: BlockStorage
+    @inject("Runtime") private readonly runtime: Runtime<never>
   ) {}
 
   private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {

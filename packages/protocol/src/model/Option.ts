@@ -111,6 +111,7 @@ export class Option<Value> {
   }
 
   /**
+   * Returns the `to`-value as decoded as a list of fields
    * Not in circuit
    */
   public toFields(): Field[] {

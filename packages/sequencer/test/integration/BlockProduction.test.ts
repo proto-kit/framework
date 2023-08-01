@@ -50,11 +50,11 @@ describe("block production", () => {
 
     const sequencer = Sequencer.from({
       modules: {
-        BlockTrigger: ManualBlockTrigger,
         Mempool: PrivateMempool,
-        BlockProducerModule,
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
+        BlockProducerModule,
+        BlockTrigger: ManualBlockTrigger,
       },
 
       config: {

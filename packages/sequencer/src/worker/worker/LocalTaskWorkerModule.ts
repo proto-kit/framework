@@ -14,6 +14,12 @@ import {
 
 import { TaskWorker } from "./TaskWorker";
 
+/**
+ * This module spins up a worker in the current local node instance.
+ * This should only be used for local testing/development and not in a
+ * production setup. Use the proper worker execution method for spinning up
+ * cloud workers.
+ */
 @sequencerModule()
 export class LocalTaskWorkerModule extends SequencerModule<object> {
   public constructor(

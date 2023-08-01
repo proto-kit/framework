@@ -4,7 +4,7 @@ import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
   CachedMerkleTreeStore,
-  DefaultProvableHashList,
+  DefaultProvableHashList, noop
 } from "@yab/protocol";
 import { Field, Proof } from "snarkyjs";
 import { requireTrue } from "@yab/common";
@@ -19,13 +19,12 @@ import { BaseLayer } from "../baselayer/BaseLayer";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { ComputedBlock } from "../../storage/model/Block";
 
-import { BlockTrigger } from "./trigger/BlockTrigger";
 import { AsyncStateService } from "./state/AsyncStateService";
 import { CachedStateService } from "./execution/CachedStateService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
-import type { TransactionTraceService } from "./TransactionTraceService";
-import type { BlockTaskFlowService } from "./BlockTaskFlowService";
+import { TransactionTraceService } from "./TransactionTraceService";
+import { BlockTaskFlowService } from "./BlockTaskFlowService";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
@@ -47,6 +46,14 @@ const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
 };
 
+/**
+ * The BlockProducerModule has the resposiblity to oversee the block production
+ * and combine all necessary parts for that to happen. The flow roughly follows
+ * the following steps:
+ *
+ * 1. BlockTrigger triggers and executes the startup function
+ * 2.
+ */
 @sequencerModule()
 export class BlockProducerModule extends SequencerModule<object> {
   private productionInProgress = false;
@@ -54,7 +61,6 @@ export class BlockProducerModule extends SequencerModule<object> {
   // eslint-disable-next-line max-params
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @inject("BlockTrigger") private readonly blockTrigger: BlockTrigger,
     @inject("AsyncStateService")
     private readonly asyncStateService: AsyncStateService,
     @inject("AsyncMerkleStore")
@@ -72,41 +78,40 @@ export class BlockProducerModule extends SequencerModule<object> {
     await block.merkleStore.mergeIntoParent();
   }
 
-  public async start(): Promise<void> {
-    // this.runtime.setProofsEnabled(this.config.proofsEnabled);
+  /**
+   * Main function to call when wanting to create a new block based on the
+   * transactions that are present in the mempool. This function should also
+   * be the one called by BlockTriggers
+   */
+  public async createBlock(): Promise<ComputedBlock | undefined> {
+    console.log("Producing batch...");
 
-    this.blockTrigger.setProduceBlock(
-      async (): Promise<ComputedBlock | undefined> => {
-        console.log("Producing batch...");
-        const block = await this.tryProduceBlock();
-        if (block !== undefined) {
-          console.log("Batch produced");
-          // Apply state changes to current StateService
-          await this.applyStateChanges(block);
+    const block = await this.tryProduceBlock();
 
-          // Broadcast result on to baselayer
-          await this.baseLayer.blockProduced(block.block);
-          console.log("Batch submitted onto baselayer");
-        }
-        return block?.block;
-      }
-    );
+    if (block !== undefined) {
+      console.log("Batch produced");
+      // Apply state changes to current StateService
+      await this.applyStateChanges(block);
 
-    // eslint-disable-next-line no-warning-comments,max-len
-    // TODO Remove that probably, otherwise .start() will be called twice on that module
-    await this.blockTrigger.start();
-
-    console.log("Blocktrigger set");
+      // Broadcast result on to baselayer
+      await this.baseLayer.blockProduced(block.block);
+      console.log("Batch submitted onto baselayer");
+    }
+    return block?.block;
   }
 
-  public async tryProduceBlock(): Promise<ComputedBlockMetadata | undefined> {
+  public async start(): Promise<void> {
+    noop();
+  }
+
+  private async tryProduceBlock(): Promise<ComputedBlockMetadata | undefined> {
     if (!this.productionInProgress) {
       return await this.produceBlock();
     }
     return undefined;
   }
 
-  public async produceBlock(): Promise<ComputedBlockMetadata> {
+  private async produceBlock(): Promise<ComputedBlockMetadata> {
     this.productionInProgress = true;
 
     // Get next blockheight and therefore taskId
@@ -114,7 +119,7 @@ export class BlockProducerModule extends SequencerModule<object> {
 
     const { txs } = this.mempool.getTxs();
 
-    const block = await this.createBlock(txs, lastHeight + 1);
+    const block = await this.computeBlock(txs, lastHeight + 1);
 
     requireTrue(this.mempool.removeTxs(txs), errors.txRemovalFailed);
 
@@ -141,7 +146,7 @@ export class BlockProducerModule extends SequencerModule<object> {
    * 3. We create tasks based on those traces
    *
    */
-  public async createBlock(
+  private async computeBlock(
     txs: PendingTransaction[],
     blockId: number
   ): Promise<{

@@ -1,4 +1,4 @@
-import { inject, injectable } from "tsyringe";
+import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Proof } from "snarkyjs";
 import { BlockProverPublicInput, BlockProverPublicOutput } from "@yab/protocol";
 
@@ -19,6 +19,7 @@ import type { TransactionTrace } from "./BlockProducerModule";
  * different creation strategies.
  */
 @injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class BlockTaskFlowService {
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,
