@@ -71,7 +71,12 @@ export function provableMethod(
       this: ZkProgrammable<unknown, unknown>,
       ...args: FlexibleProvable<unknown>[]
     ) {
-      const prover = toProver(methodName, simulatedMethod, isFirstParameterPublicInput, ...args);
+      const prover = toProver(
+        methodName,
+        simulatedMethod,
+        isFirstParameterPublicInput,
+        ...args
+      );
 
       executionContext.beforeMethod(this.constructor.name, methodName, args);
 

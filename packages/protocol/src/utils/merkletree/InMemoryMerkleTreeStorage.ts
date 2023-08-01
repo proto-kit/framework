@@ -1,23 +1,16 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { noop } from "../utils";
-
-import {
-  RollupMerkleTree,
-} from "./RollupMerkleTree.js";
+import { RollupMerkleTree } from "./RollupMerkleTree.js";
 import { AsyncMerkleTreeStore, MerkleTreeStore } from "./MerkleTreeStore";
-import range from "lodash/range";
 
 export class InMemoryMerkleTreeStorage implements MerkleTreeStore {
   protected readonly nodes: {
     [key: number]: {
-      [key: string]: bigint
-    }
-  } = {}
+      [key: string]: bigint;
+    };
+  } = {};
 
   public getNode(key: bigint, level: number): bigint | undefined {
-    return (
-      this.nodes[level]?.[key.toString()]
-    );
+    return this.nodes[level]?.[key.toString()];
   }
 
   public setNode(key: bigint, level: number, value: bigint): void {
@@ -32,7 +25,7 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
     };
   } = {};
 
-  constructor(private readonly parent: AsyncMerkleTreeStore) {
+  public constructor(private readonly parent: AsyncMerkleTreeStore) {
     super();
   }
 
@@ -53,7 +46,7 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
     this.writeCache = {};
   }
 
-  public async preloadKey(index: bigint) : Promise<void> {
+  public async preloadKey(index: bigint): Promise<void> {
     // Algo from RollupMerkleTree.getWitness()
     const { leafCount, height } = RollupMerkleTree;
 
@@ -73,5 +66,22 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
       }
       index /= 2n;
     }
+  }
+
+  public async mergeIntoParent(): Promise<void> {
+    this.parent.openTransaction();
+    const { height } = RollupMerkleTree;
+    const nodes = this.getWrittenNodes();
+
+    const promises = Array.from({ length: height }).flatMap((_, level) => {
+      return Object.entries(nodes[level]).map(async (entry) => {
+        await this.parent.setNode(BigInt(entry[0]), level, entry[1]);
+      });
+    });
+
+    await Promise.all(promises);
+
+    this.parent.commit();
+    this.writeCache = {};
   }
 }

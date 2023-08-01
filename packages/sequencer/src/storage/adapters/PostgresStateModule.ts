@@ -1,22 +1,12 @@
 import {
   sequencerModule,
-  SequencerModule
+  SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import { InMemoryStateService, StateService } from "@yab/module";
-import { Field } from "snarkyjs";
-import { registry } from "tsyringe";
 
 @sequencerModule()
-export class PostgresStateModule extends SequencerModule<{ }>{
-
-  start(): Promise<void> {
-    return Promise.resolve(undefined);
+// eslint-disable-next-line import/no-unused-modules
+export class PostgresStateModule extends SequencerModule<object> {
+  public async start(): Promise<void> {
+    return undefined;
   }
-
-  stateService() : StateService{
-    const service = new InMemoryStateService();
-    service.set(Field(1), [Field(2)])
-    return service
-  }
-
 }
