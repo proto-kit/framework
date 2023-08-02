@@ -11,7 +11,7 @@ async function sleep(ms: number) {
 
 // Had to extract it to here bc eslint would ruin the code
 interface QueueListener {
-  (result: { taskId: string; payload: TaskPayload }): Promise<void>;
+  (payload: TaskPayload): Promise<void>;
 }
 
 export class LocalTaskQueue implements TaskQueue {
@@ -46,8 +46,7 @@ export class LocalTaskQueue implements TaskQueue {
             // Notify listeners about result
             const listenerPromises = this.listeners[queueName].map(
               async (listener) => {
-                console.log("Got 1 listener");
-                await listener({ payload, taskId: task.taskId });
+                await listener(payload);
               }
             );
             void Promise.all(listenerPromises);
@@ -102,17 +101,16 @@ export class LocalTaskQueue implements TaskQueue {
 
       // eslint-disable-next-line putout/putout
       onCompleted: async (
-        listener: (result: {
-          taskId: string;
-          payload: TaskPayload;
-        }) => Promise<void>
+        listener: (
+          payload: TaskPayload
+        ) => Promise<void>
       ): Promise<void> => {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         (this.listeners[queueName] ??= []).push(listener);
       },
 
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
-      async close(): Promise<void> {},
+      close: async () => {
+      },
     };
   }
 }

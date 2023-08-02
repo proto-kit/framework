@@ -5,6 +5,7 @@ import { noop } from "@yab/protocol";
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 
 import { MapReduceTask, TaskPayload, TaskSerializer } from "./ReducableTask";
+import { DispatchableFlow } from "./DispatchableFlow";
 
 const errors = {
   taskNotTerminating: (taskName: string) =>
@@ -30,12 +31,21 @@ export class MapReduceFlow<Input, Result> implements Closeable {
 
   protected queue?: InstantiatedQueue = undefined;
 
+  // flowId => state
+  private executionState: Record<
+    string,
+    {
+      // The queue of all inputs that aren't yet submitted in a task
+      pendingInputs: Result[];
+      runningTaskCount: number;
+    }
+  > = {};
+
   protected openCloseables: Closeable[] = [];
 
-  // The queue of all inputs that aren't yet submitted in a task
-  private pendingInputs: Result[] = [];
-
-  private runningTaskCount = 0;
+  // private pendingInputs: Result[] = [];
+  //
+  // private runningTaskCount = 0;
 
   /**
    * @param messageQueue The connection object to the messageQueue
@@ -57,10 +67,10 @@ export class MapReduceFlow<Input, Result> implements Closeable {
     }
   }
 
-  private resolveReducibleTasks(): { r1: Result; r2: Result }[] {
+  private resolveReducibleTasks(flowId: string): { r1: Result; r2: Result }[] {
     const res: { r1: Result; r2: Result }[] = [];
 
-    let { pendingInputs } = this;
+    let { pendingInputs } = this.executionState[flowId];
     const { mapReduceTask } = this;
 
     for (const [index, first] of pendingInputs.entries()) {
@@ -79,12 +89,12 @@ export class MapReduceFlow<Input, Result> implements Closeable {
       }
     }
 
-    this.pendingInputs = pendingInputs;
+    this.executionState[flowId].pendingInputs = pendingInputs;
 
     return res;
   }
 
-  private async pushReduction(t1: Result, t2: Result) {
+  private async pushReduction(flowId: string, t1: Result, t2: Result) {
     const payload: TaskPayload = {
       name: `${this.mapReduceTask.name()}${TASKS_REDUCE_SUFFIX}`,
 
@@ -92,6 +102,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
         this.serializer.toJSON(t1),
         this.serializer.toJSON(t2),
       ]),
+      flowId,
     };
 
     log.debug(`Pushed Reduction: ${JSON.stringify([String(t1), String(t2)])}`);
@@ -102,16 +113,16 @@ export class MapReduceFlow<Input, Result> implements Closeable {
     return await queue.addTask(payload);
   }
 
-  protected async pushAvailableReductions() {
-    const tasks = this.resolveReducibleTasks();
+  protected async pushAvailableReductions(flowId: string) {
+    const tasks = this.resolveReducibleTasks(flowId);
 
     const promises = tasks.map(
-      async ({ r1, r2 }) => await this.pushReduction(r1, r2)
+      async ({ r1, r2 }) => await this.pushReduction(flowId, r1, r2)
     );
 
     // We additionally need this count, because otherwise there would be a race
     // condition to mark a task as completed, if we would do it via runningTasks
-    this.runningTaskCount += tasks.length;
+    this.executionState[flowId].runningTaskCount += tasks.length;
 
     await Promise.all(promises);
   }
@@ -120,21 +131,23 @@ export class MapReduceFlow<Input, Result> implements Closeable {
   // It checks whether new reductions are available to compute or if the
   // reduction has been completed
   protected async handleCompletedReducingStep(
+    flowId: string,
     payload: TaskPayload,
     resolve: (result: Result) => void
   ) {
     const parsed = this.serializer.fromJSON(payload.payload);
 
-    this.runningTaskCount -= 1;
+    this.executionState[flowId].runningTaskCount -= 1;
 
-    const { queue, pendingInputs, runningTaskCount, mapReduceTask } = this;
+    const { queue, mapReduceTask, executionState } = this;
+    const { pendingInputs, runningTaskCount } = executionState[flowId];
 
     pendingInputs.push(parsed);
 
     this.assertQueueNotNull(queue);
 
     if (pendingInputs.length >= 2) {
-      await this.pushAvailableReductions();
+      await this.pushAvailableReductions(flowId);
     } else if (runningTaskCount === 0 && pendingInputs.length === 1) {
       // Report result
       await queue.close();
@@ -146,28 +159,31 @@ export class MapReduceFlow<Input, Result> implements Closeable {
     }
   }
 
-  protected async addInput(...inputs: Result[]) {
-    this.pendingInputs.push(...inputs);
-    await this.pushAvailableReductions();
+  protected async addInput(flowId: string, ...inputs: Result[]) {
+    this.executionState[flowId].pendingInputs.push(...inputs);
+    await this.pushAvailableReductions(flowId);
   }
 
-  public async executeMapReduce(inputs: Input[]): Promise<Result> {
+  public async executeMapReduce(
+    flowId: string,
+    inputs: Input[]
+  ): Promise<Result> {
     // Why these weird functions? To get direct promise usage to a minimum
     const start = async (resolve: (type: Result) => void) => {
       const { queue, mapReduceTask } = this;
       this.assertQueueNotNull(queue);
 
       // Register result listener
-      await queue.onCompleted(async ({ payload }) => {
+      this.onCompletedListeners[flowId] = async (payload) => {
         if (payload.name === `${mapReduceTask.name()}${TASKS_REDUCE_SUFFIX}`) {
-          await this.handleCompletedReducingStep(payload, resolve);
+          await this.handleCompletedReducingStep(flowId, payload, resolve);
           // eslint-disable-next-line sonarjs/elseif-without-else
         } else if (payload.name === mapReduceTask.name()) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const parsedResult: Result = JSON.parse(payload.payload);
-          await this.addInput(parsedResult);
+          await this.addInput(flowId, parsedResult);
         }
-      });
+      };
 
       const inputQueue = Array.from(inputs);
 
@@ -179,24 +195,43 @@ export class MapReduceFlow<Input, Result> implements Closeable {
           await queue.addTask({
             name: mapReduceTask.name(),
             payload: inputSerializer.toJSON(input),
+            flowId,
           })
       );
       await Promise.all(initialPromises);
     };
-    return await this.executeFlowWithQueue(start);
+    return await this.executeFlowWithQueue(flowId, start);
   }
+
+  protected onCompletedListeners: {
+    [key: string]: (payload: TaskPayload) => Promise<void>;
+  } = {};
 
   /**
    * Executes a function that handles the processing of the flow while
    * opening a queue instance and handling errors
    */
   protected async executeFlowWithQueue(
+    flowId: string,
     executor: (resolve: (type: Result) => void) => Promise<void>
   ): Promise<Result> {
-    const queue = await this.messageQueue.getQueue(this.queueName);
-    this.queue = queue;
+    this.executionState[flowId] = {
+      pendingInputs: [],
+      runningTaskCount: 0,
+    };
+    if (this.queue === undefined) {
+      const queue = await this.messageQueue.getQueue(this.queueName);
+      this.queue = queue;
 
-    this.openCloseables.push(queue);
+      await queue.onCompleted(async (payload) => {
+        const listener = this.onCompletedListeners[payload.flowId];
+        if (listener !== undefined) {
+          await listener(payload);
+        }
+      });
+
+      this.openCloseables.push(queue);
+    }
 
     const boundExecutor = executor.bind(this);
 

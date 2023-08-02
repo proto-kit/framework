@@ -74,4 +74,5 @@ export interface TaskPayload {
   name: string;
   payload: string;
   taskId?: string;
+  flowId: string;
 }

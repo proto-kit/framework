@@ -211,6 +211,7 @@ describe("twoStepRunner", () => {
         undefined,
       ]);
       const computedResult = await flow.executePairingMapReduce(
+        "0",
         paramedInputs,
         Array.from({ length: paramedInputs.length }, (item, index) =>
           String(index)
