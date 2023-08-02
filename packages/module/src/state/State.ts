@@ -80,7 +80,7 @@ export class State<Value> extends Mixin(WithPath, WithRuntime) {
       this.hasRuntimeOrFail();
       this.hasPathOrFail();
 
-      const fields = this.runtime.definition.state.get(this.path);
+      const fields = this.runtime.stateService.get(this.path);
       if (fields) {
         // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -95,7 +95,7 @@ export class State<Value> extends Mixin(WithPath, WithRuntime) {
       this.hasRuntimeOrFail();
       this.hasPathOrFail();
 
-      const fields = this.runtime.definition.state.get(this.path);
+      const fields = this.runtime.stateService.get(this.path);
 
       return Bool(fields !== undefined);
     });

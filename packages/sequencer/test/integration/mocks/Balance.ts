@@ -7,7 +7,7 @@ import {
   StateMap,
 } from "@yab/module";
 import { Presets } from "@yab/common";
-import { PublicKey, UInt64 } from "snarkyjs";
+import { Provable, PublicKey, UInt64 } from "snarkyjs";
 import { Admin } from "@yab/module/test/modules/Admin";
 import { Option } from "@yab/protocol";
 
@@ -46,5 +46,13 @@ export class Balance extends RuntimeModule<object> {
   @runtimeMethod()
   public setBalance(address: PublicKey, value: UInt64) {
     this.balances.set(address, value);
+  }
+
+  @runtimeMethod()
+  public addBalance(address: PublicKey, value: UInt64) {
+    const balance = this.balances.get(address);
+    Provable.log("Balance:", balance.isSome, balance.value);
+    const newBalance = balance.value.add(value);
+    this.balances.set(address, newBalance);
   }
 }

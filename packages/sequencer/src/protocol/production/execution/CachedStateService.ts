@@ -15,6 +15,10 @@ export class CachedStateService
     super();
   }
 
+  public get(key: Field): Field[] | undefined {
+    return super.get(key);
+  }
+
   private assertParentNotNull(
     parent: AsyncStateService | undefined
   ): asserts parent is AsyncStateService {
@@ -25,8 +29,13 @@ export class CachedStateService
 
   public async preloadKey(key: Field) {
     // Only preload it if it hasn't been preloaded previously
-    if (this.parent !== undefined && this.get(key) !== undefined) {
+    if (this.parent !== undefined && this.get(key) === undefined) {
       const value = await this.parent.getAsync(key);
+      console.log(
+        `Preloading ${key.toString()}: ${
+          value?.map((i) => i.toString()) ?? []
+        }`
+      );
       this.set(key, value);
     }
   }
@@ -58,6 +67,7 @@ export class CachedStateService
 
     // Set all cached values on parent
     const promises = Object.entries(values).map(async (value) => {
+      console.log(`Merging into parent ${value[0]}: ${value[1]}`);
       await parent.setAsync(Field(value[0]), value[1]);
     });
     await Promise.all(promises);

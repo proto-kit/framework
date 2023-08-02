@@ -31,7 +31,12 @@ export class TransactionTraceService {
   ) {}
 
   private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
-    return stateTransitions.map((st) => st.path).filter(distinct);
+    // We have to do the distinct with strings because
+    // array.indexOf() doesn't work with fields
+    return stateTransitions
+      .map((st) => st.path.toString())
+      .filter(distinct)
+      .map((string) => Field(string));
   }
 
   /**
@@ -135,19 +140,36 @@ export class TransactionTraceService {
         await merkleStore.preloadKey(key.toBigInt());
       })
     );
+    console.log(keys.map((x) => x.toString()));
+    console.log(merkleStore.getNode(keys[0].toBigInt(), 0));
+    // console.log(merkleStore);
 
     const tree = new RollupMerkleTree(merkleStore);
 
     const fromStateRoot = tree.getRoot();
+    console.log("FromSR", fromStateRoot.toString());
+    console.log("FromSR2", merkleStore.getNode(0n, 255));
 
-    const witnesses = stateTransitions.map((transition) => {
+    const witnesses = stateTransitions.map((transition, index) => {
       const witness = tree.getWitness(transition.path.toBigInt());
+
+      console.log(
+        `Witness ${index}, root`,
+        witness.calculateRoot(transition.toProvable().from.value).toString()
+      );
 
       const provableTransition = transition.toProvable();
 
       if (transition.to.isSome.toBoolean()) {
-        tree.setLeaf(transition.path.toBigInt(), provableTransition.to.value);
+        tree.setLeaf(
+          provableTransition.path.toBigInt(),
+          provableTransition.to.value
+        );
       }
+      console.log(
+        `After witness`,
+        tree.getRoot().toString()
+      );
       return witness;
     });
 
@@ -179,6 +201,9 @@ export class TransactionTraceService {
     const { stateTransitions } = executionContext.current().result;
     const accessedKeys = this.allKeys(stateTransitions);
 
+    console.log(`keys: ${accessedKeys.map((x) => x.toString())}`);
+    console.log(stateTransitions.length);
+
     // Preload keys
     await stateService.preloadKeys(accessedKeys);
 
@@ -204,15 +229,19 @@ export class TransactionTraceService {
 
     this.runtime.stateServiceProvider.resetToDefault();
 
+    const executionResult = executionContext.current().result
+
     // Update the stateservice
     await Promise.all(
-      stateTransitions.map(async (st) => {
+      // Use updated stateTransitions since only they will have the right values
+      executionResult.stateTransitions.map(async (st) => {
+        console.log(`Setting ${st.to.toFields().map(x => x.toString())}`);
         await stateService.setAsync(st.path, st.to.toFields());
       })
     );
 
     return {
-      executionResult: executionContext.current().result,
+      executionResult,
       startingState,
     };
   }
