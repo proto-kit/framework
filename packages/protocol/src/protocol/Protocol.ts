@@ -1,4 +1,5 @@
 import {
+  log,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
@@ -82,7 +83,7 @@ export class Protocol<
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
-    console.log("Decorated " + moduleName);
+    log.debug(`Decorated ${moduleName}`);
     containedModule.protocol = this;
 
     super.decorateModule(moduleName, containedModule);

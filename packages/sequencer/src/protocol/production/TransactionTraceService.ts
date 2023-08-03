@@ -20,6 +20,7 @@ import { distinct } from "../../helpers/utils";
 import { CachedStateService } from "./execution/CachedStateService";
 import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
+import { log } from "@yab/common";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -140,23 +141,13 @@ export class TransactionTraceService {
         await merkleStore.preloadKey(key.toBigInt());
       })
     );
-    console.log(keys.map((x) => x.toString()));
-    console.log(merkleStore.getNode(keys[0].toBigInt(), 0));
-    // console.log(merkleStore);
 
     const tree = new RollupMerkleTree(merkleStore);
 
     const fromStateRoot = tree.getRoot();
-    console.log("FromSR", fromStateRoot.toString());
-    console.log("FromSR2", merkleStore.getNode(0n, 255));
 
     const witnesses = stateTransitions.map((transition, index) => {
       const witness = tree.getWitness(transition.path.toBigInt());
-
-      console.log(
-        `Witness ${index}, root`,
-        witness.calculateRoot(transition.toProvable().from.value).toString()
-      );
 
       const provableTransition = transition.toProvable();
 
@@ -166,10 +157,6 @@ export class TransactionTraceService {
           provableTransition.to.value
         );
       }
-      console.log(
-        `After witness`,
-        tree.getRoot().toString()
-      );
       return witness;
     });
 
@@ -201,8 +188,9 @@ export class TransactionTraceService {
     const { stateTransitions } = executionContext.current().result;
     const accessedKeys = this.allKeys(stateTransitions);
 
-    console.log(`keys: ${accessedKeys.map((x) => x.toString())}`);
-    console.log(stateTransitions.length);
+    log.trace("Got", stateTransitions.length, "StateTransitions");
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    log.trace(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
 
     // Preload keys
     await stateService.preloadKeys(accessedKeys);
@@ -235,7 +223,6 @@ export class TransactionTraceService {
     await Promise.all(
       // Use updated stateTransitions since only they will have the right values
       executionResult.stateTransitions.map(async (st) => {
-        console.log(`Setting ${st.to.toFields().map(x => x.toString())}`);
         await stateService.setAsync(st.path, st.to.toFields());
       })
     );

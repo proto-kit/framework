@@ -1,5 +1,7 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-magic-numbers,@typescript-eslint/no-unnecessary-condition */
+import { log } from "@yab/common";
+
 import { RollupMerkleTree } from "./RollupMerkleTree.js";
 import { AsyncMerkleTreeStore, MerkleTreeStore } from "./MerkleTreeStore";
 
@@ -48,7 +50,7 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
   }
 
   public async preloadKey(index: bigint): Promise<void> {
-    console.log(`Preloading MT ${index}`);
+    log.trace(`Preloading MT ${index}`);
     // Algo from RollupMerkleTree.getWitness()
     const { leafCount, height } = RollupMerkleTree;
 
@@ -65,8 +67,8 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
       const key = index;
       // eslint-disable-next-line no-await-in-loop
       const value = await this.parent.getNode(key, level);
-      if(level === 0){
-        console.log(`Preloaded ${key} -> ${value}`);
+      if (level === 0) {
+        log.trace(`Preloaded ${key} -> ${value ?? "-"}`);
       }
       if (value !== undefined) {
         (this.nodes[level] ??= {})[key.toString()] = value;
@@ -85,11 +87,11 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
     const { height } = RollupMerkleTree;
     const nodes = this.getWrittenNodes();
 
-    const promises = Array.from({ length: height }).flatMap((_, level) => {
-      return Object.entries(nodes[level]).map(async (entry) => {
+    const promises = Array.from({ length: height }).flatMap((ignored, level) =>
+      Object.entries(nodes[level]).map(async (entry) => {
         await this.parent.setNode(BigInt(entry[0]), level, entry[1]);
-      });
-    });
+      })
+    );
 
     await Promise.all(promises);
 

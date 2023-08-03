@@ -1,3 +1,5 @@
+import { log } from "@yab/common";
+
 import { TaskQueue } from "../queue/TaskQueue";
 
 import { MapReduceFlow, TASKS_REDUCE_SUFFIX } from "./MapReduceFlow";
@@ -162,7 +164,7 @@ export class PairingMapReduceFlow<
 
       // Add listener
       this.onCompletedListeners[flowId] = async (payload) => {
-        console.log(
+        log.trace(
           `Got payload name: ${payload.name} with id ${payload.taskId ?? "-"}`
         );
         switch (payload.name) {
