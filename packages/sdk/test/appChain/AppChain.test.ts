@@ -1,38 +1,15 @@
 import "reflect-metadata";
+import { PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import {
-  PrivateKey,
-  Provable,
-  PublicKey,
-  Signature,
-  Struct,
-  UInt64,
-} from "snarkyjs";
-import {
-  assert,
-  InMemoryStateService,
-  Runtime,
   runtimeMethod,
   RuntimeModule,
   runtimeModule,
-  RuntimeModulesRecord,
   state,
   StateMap,
   State,
 } from "@yab/module";
-import {
-  AsyncStateService,
-  Sequencer,
-  sequencerModule,
-  SequencerModule,
-} from "@yab/sequencer";
-import { inject } from "tsyringe";
-import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
-
-import { AppChain } from "../../src";
-import { InMemorySigner } from "../../src/transaction/InMemorySigner";
-import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
-import { Path } from "@yab/protocol";
+import log from "loglevel";
 
 @runtimeModule()
 class Balances extends RuntimeModule<unknown> {
@@ -57,6 +34,9 @@ class Balances extends RuntimeModule<unknown> {
 describe("testing app chain", () => {
   it("should enable a complete transaction roundtrip", async () => {
     expect.assertions(1);
+
+    log.setLevel("info");
+
     console.time("test");
     /**
      * Setup the app chain for testing purposes,

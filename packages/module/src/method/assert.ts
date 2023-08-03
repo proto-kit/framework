@@ -1,4 +1,4 @@
-import { type Bool, Provable } from "snarkyjs";
+import { Bool, Provable } from "snarkyjs";
 import { container } from "tsyringe";
 
 import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext";
@@ -15,7 +15,7 @@ import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext";
 export function assert(condition: Bool, message?: string) {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
-  const status = Provable.if(previousStatus, condition, previousStatus);
+  const status = Provable.if(previousStatus, Bool, condition, previousStatus);
 
   // const status = previousStatus.and(condition);
   executionContext.setStatus(status);
