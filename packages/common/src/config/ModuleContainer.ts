@@ -135,7 +135,10 @@ export class ModuleContainer<Modules extends ModulesRecord> {
     this.isValidModuleName(modules, moduleName);
   }
 
-  public isValidModuleName(modules: Modules, moduleName: string | number | symbol): asserts moduleName is StringKeyOf<Modules> {
+  public isValidModuleName(
+    modules: Modules,
+    moduleName: number | string | symbol
+  ): asserts moduleName is StringKeyOf<Modules> {
     if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }

@@ -16,15 +16,11 @@ import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
 import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-} from "../../src/sequencer/executor/Sequencer";
+import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
   BlockProducerModule,
   ManualBlockTrigger,
-  Mempool,
   TaskQueue,
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
@@ -97,12 +93,13 @@ describe("block production", () => {
   }) {
     return new UnsignedTransaction({
       methodId: Field(runtime.getMethodId(spec.method[0], spec.method[1])),
-      args: spec.args.flatMap((arg) => arg.toFields()),
+      args: spec.args.flatMap((parameter) => parameter.toFields()),
       sender: spec.privateKey.toPublicKey(),
       nonce: UInt64.from(spec.nonce),
     }).sign(spec.privateKey);
   }
 
+  // eslint-disable-next-line max-statements
   it("should produce a dummy block proof", async () => {
     expect.assertions(10);
 

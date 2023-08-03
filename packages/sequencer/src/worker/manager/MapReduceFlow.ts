@@ -5,7 +5,6 @@ import { noop } from "@yab/protocol";
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 
 import { MapReduceTask, TaskPayload, TaskSerializer } from "./ReducableTask";
-import { DispatchableFlow } from "./DispatchableFlow";
 
 const errors = {
   taskNotTerminating: (taskName: string) =>
@@ -43,9 +42,9 @@ export class MapReduceFlow<Input, Result> implements Closeable {
 
   protected openCloseables: Closeable[] = [];
 
-  // private pendingInputs: Result[] = [];
-  //
-  // private runningTaskCount = 0;
+  protected onCompletedListeners: {
+    [key: string]: (payload: TaskPayload) => Promise<void>;
+  } = {};
 
   /**
    * @param messageQueue The connection object to the messageQueue
@@ -70,8 +69,8 @@ export class MapReduceFlow<Input, Result> implements Closeable {
   private resolveReducibleTasks(flowId: string): { r1: Result; r2: Result }[] {
     const res: { r1: Result; r2: Result }[] = [];
 
-    let { pendingInputs } = this.executionState[flowId];
-    const { mapReduceTask } = this;
+    const { mapReduceTask, executionState } = this;
+    let { pendingInputs } = executionState[flowId];
 
     for (const [index, first] of pendingInputs.entries()) {
       const secondIndex = pendingInputs.findIndex(
@@ -89,7 +88,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
       }
     }
 
-    this.executionState[flowId].pendingInputs = pendingInputs;
+    executionState[flowId].pendingInputs = pendingInputs;
 
     return res;
   }
@@ -102,6 +101,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
         this.serializer.toJSON(t1),
         this.serializer.toJSON(t2),
       ]),
+
       flowId,
     };
 
@@ -170,11 +170,11 @@ export class MapReduceFlow<Input, Result> implements Closeable {
   ): Promise<Result> {
     // Why these weird functions? To get direct promise usage to a minimum
     const start = async (resolve: (type: Result) => void) => {
-      const { queue, mapReduceTask } = this;
+      const { queue, mapReduceTask, onCompletedListeners } = this;
       this.assertQueueNotNull(queue);
 
       // Register result listener
-      this.onCompletedListeners[flowId] = async (payload) => {
+      onCompletedListeners[flowId] = async (payload) => {
         if (payload.name === `${mapReduceTask.name()}${TASKS_REDUCE_SUFFIX}`) {
           await this.handleCompletedReducingStep(flowId, payload, resolve);
           // eslint-disable-next-line sonarjs/elseif-without-else
@@ -203,10 +203,6 @@ export class MapReduceFlow<Input, Result> implements Closeable {
     return await this.executeFlowWithQueue(flowId, start);
   }
 
-  protected onCompletedListeners: {
-    [key: string]: (payload: TaskPayload) => Promise<void>;
-  } = {};
-
   /**
    * Executes a function that handles the processing of the flow while
    * opening a queue instance and handling errors
@@ -225,6 +221,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
 
       await queue.onCompleted(async (payload) => {
         const listener = this.onCompletedListeners[payload.flowId];
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (listener !== undefined) {
           await listener(payload);
         }
