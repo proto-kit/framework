@@ -50,7 +50,7 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
   }
 
   public async preloadKey(index: bigint): Promise<void> {
-    log.trace(`Preloading MT ${index}`);
+    log.debug(`Preloading MT ${index}`);
     // Algo from RollupMerkleTree.getWitness()
     const { leafCount, height } = RollupMerkleTree;
 
@@ -68,7 +68,7 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
       // eslint-disable-next-line no-await-in-loop
       const value = await this.parent.getNode(key, level);
       if (level === 0) {
-        log.trace(`Preloaded ${key} -> ${value ?? "-"}`);
+        log.debug(`Preloaded ${key} -> ${value ?? "-"}`);
       }
       if (value !== undefined) {
         (this.nodes[level] ??= {})[key.toString()] = value;

@@ -188,9 +188,9 @@ export class TransactionTraceService {
     const { stateTransitions } = executionContext.current().result;
     const accessedKeys = this.allKeys(stateTransitions);
 
-    log.trace("Got", stateTransitions.length, "StateTransitions");
+    log.debug("Got", stateTransitions.length, "StateTransitions");
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    log.trace(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
+    log.debug(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
 
     // Preload keys
     await stateService.preloadKeys(accessedKeys);

@@ -32,7 +32,7 @@ export class CachedStateService
     // Only preload it if it hasn't been preloaded previously
     if (this.parent !== undefined && this.get(key) === undefined) {
       const value = await this.parent.getAsync(key);
-      log.trace(
+      log.debug(
         `Preloading ${key.toString()}: ${
           // eslint-disable-next-line max-len
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions

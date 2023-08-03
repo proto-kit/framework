@@ -96,7 +96,7 @@ export class StateTransitionTask
       input.publicInput,
       StateTransitionProvableBatch.fromTransitions(stBatch)
     );
-    log.trace("STTrask output:", output);
+    log.debug("STTrask output:", output);
 
     const proof = await this.executionContext
       .current()
