@@ -18,6 +18,7 @@ import {
   BlockTrigger,
 } from "@yab/sequencer";
 import { PrivateKey, PublicKey } from "snarkyjs";
+import { InMemoryQueryTransportModule } from "../query/InMemoryQueryTransportModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
@@ -74,6 +75,7 @@ export class TestingAppChain<
       modules: {
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
+        QueryTransportModule: InMemoryQueryTransportModule,
       },
     });
   }
@@ -85,6 +87,7 @@ export class TestingAppChain<
       },
 
       TransactionSender: {},
+      QueryTransportModule: {},
     });
   }
 

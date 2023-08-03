@@ -1,5 +1,12 @@
 import "reflect-metadata";
-import { PrivateKey, Provable, PublicKey, Signature, UInt64 } from "snarkyjs";
+import {
+  PrivateKey,
+  Provable,
+  PublicKey,
+  Signature,
+  Struct,
+  UInt64,
+} from "snarkyjs";
 import {
   assert,
   InMemoryStateService,
@@ -10,6 +17,7 @@ import {
   RuntimeModulesRecord,
   state,
   StateMap,
+  State,
 } from "@yab/module";
 import {
   AsyncStateService,
@@ -26,10 +34,10 @@ import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransac
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
 import { Path } from "@yab/protocol";
 
-interface BalancesConfig {}
-
 @runtimeModule()
-class Balances extends RuntimeModule<BalancesConfig> {
+class Balances extends RuntimeModule<unknown> {
+  @state() public totalSupply = State.from<UInt64>(UInt64);
+
   @state() public balances = StateMap.from<PublicKey, UInt64>(
     PublicKey,
     UInt64
@@ -37,70 +45,63 @@ class Balances extends RuntimeModule<BalancesConfig> {
 
   @runtimeMethod()
   public addBalance(address: PublicKey, balance: UInt64) {
+    // this.totalSupply.set(UInt64.from(5000000));
     const currentBalance = this.balances.get(address);
 
     const newBalance = currentBalance.value.add(balance);
 
-    Provable.log("balances", {
-      currentBalance: currentBalance.value.toBigInt(),
-      newBalance: newBalance.toBigInt(),
-    });
     this.balances.set(address, newBalance);
   }
 }
 
-describe("appChain", () => {
-  it("should compose appchain correctly", async () => {
-    expect.assertions(0);
-
-    // create a testing app chain from the provided runtime modules
+describe("testing app chain", () => {
+  it("should enable a complete transaction roundtrip", async () => {
+    expect.assertions(1);
+    console.time("test");
+    /**
+     * Setup the app chain for testing purposes,
+     * using the provided runtime modules
+     */
     const appChain = TestingAppChain.fromRuntime({
       modules: { Balances },
       config: { Balances: {} },
     });
 
-    // set a signer for the transaction API
+    /**
+     *  Setup the transaction signer / sender
+     */
     const signer = PrivateKey.random();
     const sender = signer.toPublicKey();
-
     appChain.setSigner(signer);
 
     // start the chain, sequencer is now accepting transactions
     await appChain.start();
 
+    /**
+     * Resolve the registred 'Balances' module and
+     * send a transaction to `addBalance` for sender
+     */
     const balances = appChain.runtime.resolve("Balances");
 
     // prepare a transaction invoking `Balances.setBalance`
-    async function addBalance() {
-      const transaction = appChain.transaction(sender, () => {
-        balances.addBalance(sender, UInt64.from(1000));
-      });
+    const transaction = appChain.transaction(sender, () => {
+      balances.addBalance(sender, UInt64.from(1000));
+    });
 
-      await transaction.sign();
-      await transaction.send();
-    }
+    await transaction.sign();
+    await transaction.send();
 
-    // observe the new chain state after the transaction
-    async function getBalance() {
-      const senderBalancePath = Path.fromKey(
-        balances.balances.path!,
-        balances.balances.keyType,
-        sender
-      );
-
-      const stateService =
-        appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
-          "AsyncStateService"
-        );
-      const senderBalance = await stateService.getAsync(senderBalancePath);
-
-      return UInt64.fromFields(senderBalance!);
-    }
-
-    await addBalance();
-    // once the transaction has been sent to the mempool, produce a block
+    /**
+     * Produce the next block from pending transactions in the mempool
+     */
     await appChain.produceBlock();
 
-    console.log("balance", (await getBalance()).toBigInt());
+    /**
+     * Observe new state after the block has been produced
+     */
+    const balance = await appChain.query.Balances.balances.get(sender);
+
+    expect(balance?.toBigInt()).toBe(1000n);
+    console.timeEnd("test");
   }, 60_000);
 });

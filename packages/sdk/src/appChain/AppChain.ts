@@ -20,6 +20,8 @@ import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { StateTransitionWitnessProviderReference } from "@yab/protocol";
+import { QueryBuilderFactory } from "../query/QueryBuilderFactory";
+import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -80,6 +82,18 @@ export class AppChain<
     >
   ) {
     return new AppChain(definition);
+  }
+
+  public get query() {
+    const queryTransportModule = this.resolveOrFail(
+      "QueryTransportModule",
+      InMemoryQueryTransportModule
+    );
+
+    return QueryBuilderFactory.fromRuntime(
+      this.definition.runtime,
+      queryTransportModule
+    );
   }
 
   public constructor(

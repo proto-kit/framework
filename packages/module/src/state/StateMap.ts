@@ -1,4 +1,4 @@
-import type { FlexibleProvablePure } from "snarkyjs";
+import type { Field, FlexibleProvablePure } from "snarkyjs";
 import { Path, type Option } from "@yab/protocol";
 import { Mixin } from "ts-mixer";
 
@@ -30,6 +30,11 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithRuntime) {
     super();
   }
 
+  public getPath(key: KeyType): Field {
+    this.hasPathOrFail();
+    return Path.fromKey(this.path, this.keyType, key);
+  }
+
   /**
    * Obtains a value for the provided key in the current state map.
    *
@@ -41,7 +46,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithRuntime) {
     this.hasPathOrFail();
     this.hasRuntimeOrFail();
 
-    state.path = Path.fromKey(this.path, this.keyType, key);
+    state.path = this.getPath(key);
     state.runtime = this.runtime;
     return state.get();
   }
