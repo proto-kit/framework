@@ -1,5 +1,5 @@
 import { Field } from "snarkyjs";
-import { ReturnType } from "@yab/protocol";
+import { NetworkState, ReturnType } from "@yab/protocol";
 
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
@@ -11,6 +11,7 @@ export interface DecodedState {
 export interface RuntimeProofParameters {
   // publicInput: MethodPublicInput;
   tx: PendingTransaction;
+  networkState: NetworkState;
   state: DecodedState;
 }
 
@@ -24,6 +25,7 @@ export class RuntimeProofParametersSerializer
   public toJSON(parameters: RuntimeProofParameters): string {
     const jsonReadyObject = {
       tx: parameters.tx.toJSON(),
+      networkState: NetworkState.toJSON(parameters.networkState),
 
       state: Object.entries(parameters.state).reduce<JSONEncodableState>(
         (aggregator, entry) => {
@@ -40,10 +42,12 @@ export class RuntimeProofParametersSerializer
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const jsonReadyObject: {
       tx: ReturnType<PendingTransaction["toJSON"]>;
+      networkState: ReturnType<typeof NetworkState["toJSON"]>;
       state: JSONEncodableState;
     } = JSON.parse(json);
     return {
       tx: PendingTransaction.fromJSON(jsonReadyObject.tx),
+      networkState: new NetworkState(NetworkState.fromJSON(jsonReadyObject.networkState)),
 
       state: Object.entries(jsonReadyObject.state).reduce<DecodedState>(
         (aggregator, entry) => {

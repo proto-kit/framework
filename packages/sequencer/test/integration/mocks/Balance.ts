@@ -1,10 +1,11 @@
 import {
+  assert,
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
   state,
   State,
-  StateMap,
+  StateMap
 } from "@yab/module";
 import { Presets } from "@yab/common";
 import { Provable, PublicKey, UInt64 } from "snarkyjs";
@@ -35,7 +36,7 @@ export class Balance extends RuntimeModule<object> {
   public setTotalSupply() {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(PublicKey.empty());
+    this.admin.isAdmin(this.transaction.sender);
   }
 
   @runtimeMethod()
@@ -52,6 +53,20 @@ export class Balance extends RuntimeModule<object> {
   public addBalance(address: PublicKey, value: UInt64) {
     const balance = this.balances.get(address);
     Provable.log("Balance:", balance.isSome, balance.value);
+    const newBalance = balance.value.add(value);
+    this.balances.set(address, newBalance);
+  }
+
+  @runtimeMethod()
+  public addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
+    const address = this.transaction.sender;
+    const balance = this.balances.get(address);
+
+    Provable.log("Sender:", address);
+    Provable.log("Balance:", balance.isSome, balance.value);
+
+    assert(blockHeight.equals(this.network.block.height));
+
     const newBalance = balance.value.add(value);
     this.balances.set(address, newBalance);
   }

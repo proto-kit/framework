@@ -1,11 +1,11 @@
+/* eslint-disable max-lines */
 import { Experimental, Field, type Proof, Provable, SelfProof } from "snarkyjs";
 import { inject, injectable } from "tsyringe";
 import {
-  AreProofsEnabled,
   PlainZkProgram,
   provableMethod,
   WithZkProgrammable,
-  ZkProgrammable
+  ZkProgrammable,
 } from "@yab/common";
 
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
@@ -16,9 +16,11 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "../statetransition/StateTransitionProvable";
+import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 
 import {
   BlockProvable,
+  BlockProverExecutionData,
   BlockProverProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
@@ -48,6 +50,12 @@ export interface BlockProverState {
    * will at the end equal the bundle hash
    */
   transactionsHash: Field;
+
+  /**
+   * The network state which gives access to values such as blockHeight
+   * This value is the same for the whole batch (L2 block)
+   */
+  networkStateHash: Field;
 }
 
 /**
@@ -57,7 +65,7 @@ export interface BlockProverState {
  */
 @injectable()
 export class BlockProver
-  extends ProtocolModule<BlockProverPublicInput, BlockProverPublicInput>
+  extends ProtocolModule<BlockProverPublicInput, BlockProverPublicOutput>
   implements BlockProvable
 {
   public constructor(
@@ -87,7 +95,8 @@ export class BlockProver
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    appProof: Proof<void, MethodPublicOutput>
+    appProof: Proof<void, MethodPublicOutput>,
+    { transaction, networkState }: BlockProverExecutionData
   ): BlockProverState {
     appProof.verify();
     stateTransitionProof.verify();
@@ -95,7 +104,7 @@ export class BlockProver
     const stateTo = { ...state };
 
     // eslint-disable-next-line no-warning-comments
-    // TODO Check the user authorization and methodId?
+    // TODO Check methodId?
 
     // Checks for the stateTransitionProof and appProof matching
     stateTransitionProof.publicInput.stateTransitionsHash.assertEquals(
@@ -119,6 +128,33 @@ export class BlockProver
       stateTransitionProof.publicInput.stateRoot
     );
 
+    // Check transaction signature
+    transaction
+      .validateSignature()
+      .assertTrue("Transaction signature not valid");
+
+    // Check if the methodId is correct
+    // to do
+
+    // Check transaction integrity against appProof
+    const blockTransactionHash =
+      RuntimeTransaction.fromProtocolTransaction(transaction).hash();
+
+    blockTransactionHash.assertEquals(
+      appProof.publicOutput.transactionHash,
+      "Transactions provided in AppProof and BlockProof do not match"
+    );
+
+    // Check network state integrity against appProof
+    state.networkStateHash.assertEquals(
+      appProof.publicOutput.networkStateHash,
+      "Network state does not match state used in AppProof"
+    );
+    state.networkStateHash.assertEquals(
+      networkState.hash(),
+      "Network state provided to BlockProver does not match the publicInput"
+    );
+
     // Append tx to transaction list
     const transactionList = new DefaultProvableHashList(
       Field,
@@ -137,14 +173,16 @@ export class BlockProver
   public proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    appProof: Proof<void, MethodPublicOutput>
+    appProof: Proof<void, MethodPublicOutput>,
+    executionData: BlockProverExecutionData
   ): BlockProverPublicOutput {
     const state: BlockProverState = {
       transactionsHash: publicInput.transactionsHash,
       stateRoot: publicInput.stateRoot,
+      networkStateHash: publicInput.networkStateHash,
     };
 
-    this.applyTransaction(state, stateProof, appProof);
+    this.applyTransaction(state, stateProof, appProof, executionData);
 
     return new BlockProverPublicOutput({
       stateRoot: state.stateRoot,
@@ -209,14 +247,24 @@ export class BlockProver
 
       methods: {
         proveTransaction: {
-          privateInputs: [StateTransitionProofClass, RuntimeProofClass],
+          privateInputs: [
+            StateTransitionProofClass,
+            RuntimeProofClass,
+            BlockProverExecutionData,
+          ],
 
           method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
-            appProof: Proof<void, MethodPublicOutput>
+            appProof: Proof<void, MethodPublicOutput>,
+            executionData: BlockProverExecutionData
           ) {
-            return proveTransaction(publicInput, stateProof, appProof);
+            return proveTransaction(
+              publicInput,
+              stateProof,
+              appProof,
+              executionData
+            );
           },
         },
 

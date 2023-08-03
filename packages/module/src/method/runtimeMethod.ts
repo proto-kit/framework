@@ -1,9 +1,9 @@
-import { Bool, CircuitValue, Field, PublicKey, Struct } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,
   DefaultProvableHashList,
   ProvableStateTransition,
+  MethodPublicOutput,
 } from "@yab/protocol";
 import { DecoratedMethod, toProver, ZkProgrammable } from "@yab/common";
 
@@ -14,6 +14,11 @@ import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext.j
 const errors = {
   runtimeNotProvided: (name: string) =>
     new Error(`Runtime was not provided for module: ${name}`),
+
+  methodInputsNotProvided: () =>
+    new Error(
+      "Method execution inputs not provided, provide them via context.inputs"
+    ),
 };
 
 export function toStateTransitionsHash(
@@ -34,13 +39,6 @@ export function toStateTransitionsHash(
     .toField();
 }
 
-// temrporarily here until available as export from @yab/protocol
-export class MethodPublicOutput extends Struct({
-  stateTransitionsHash: Field,
-  status: Bool,
-  transactionHash: Field,
-}) {}
-
 // eslint-disable-next-line etc/prefer-interface
 export type WrappedMethod = (...args: unknown[]) => MethodPublicOutput;
 
@@ -57,14 +55,23 @@ export function toWrappedMethod(
     Reflect.apply(moduleMethod, this, args);
     const {
       result: { stateTransitions, status },
+      input,
     } = executionContext.current();
 
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
 
+    if (input === undefined) {
+      throw errors.methodInputsNotProvided();
+    }
+
+    const transactionHash = input.transaction.hash();
+    const networkStateHash = input.networkState.hash();
+
     return new MethodPublicOutput({
       stateTransitionsHash,
       status,
-      transactionHash: Field(0),
+      transactionHash,
+      networkStateHash,
     });
   };
 
@@ -113,20 +120,6 @@ export function runtimeMethod() {
     );
 
     Reflect.defineMetadata(runtimeMethodMetadataKey, true, target, methodName);
-
-    const paramtypes = Reflect.getMetadata('design:paramtypes', target, methodName);
-    // console.log(methodName);
-    // console.log(paramtypes);
-    // if(paramtypes.length > 0){
-    //   console.log(paramtypes[0]);
-    //   if(paramtypes.length > 1) {
-    //     console.log(paramtypes[1]);
-    //     console.log(typeof paramtypes[1]);
-    //     console.log(paramtypes[1]);
-    //     console.log(paramtypes[1].fromFields([Field(0)]));
-    //     console.log(paramtypes[0].fromFields([Field(0)]));
-    //   }
-    // }
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const simulatedMethod = descriptor.value as DecoratedMethod;

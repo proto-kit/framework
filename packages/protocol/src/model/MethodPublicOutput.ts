@@ -8,4 +8,5 @@ export class MethodPublicOutput extends Struct({
   stateTransitionsHash: Field,
   status: Bool,
   transactionHash: Field,
+  networkStateHash: Field,
 }) {}

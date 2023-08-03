@@ -5,9 +5,10 @@ import {
   BlockProverPublicOutput,
   CachedMerkleTreeStore,
   DefaultProvableHashList,
+  NetworkState,
   noop,
 } from "@yab/protocol";
-import { Field, Proof } from "snarkyjs";
+import { Field, Proof, UInt64 } from "snarkyjs";
 import { log, requireTrue } from "@yab/common";
 
 import {
@@ -26,6 +27,7 @@ import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParam
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
+import { BlockProverParameters } from "./tasks/BlockProvingTask";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
@@ -34,7 +36,7 @@ export interface StateRecord {
 export interface TransactionTrace {
   runtimeProver: RuntimeProofParameters;
   stateTransitionProver: StateTransitionProofParameters;
-  blockProver: BlockProverPublicInput;
+  blockProver: BlockProverParameters;
 }
 
 interface ComputedBlockMetadata {
@@ -72,6 +74,14 @@ export class BlockProducerModule extends SequencerModule<object> {
     private readonly blockFlowService: BlockTaskFlowService
   ) {
     super();
+  }
+
+  private createNetworkState(lastHeight: number): NetworkState {
+    return new NetworkState({
+      block: {
+        height: UInt64.from(lastHeight + 1),
+      },
+    });
   }
 
   private async applyStateChanges(block: ComputedBlockMetadata) {
@@ -125,7 +135,9 @@ export class BlockProducerModule extends SequencerModule<object> {
 
     const { txs } = this.mempool.getTxs();
 
-    const block = await this.computeBlock(txs, lastHeight + 1);
+    const networkState = this.createNetworkState(lastHeight);
+
+    const block = await this.computeBlock(txs, networkState, lastHeight + 1);
 
     requireTrue(this.mempool.removeTxs(txs), errors.txRemovalFailed);
 
@@ -156,6 +168,7 @@ export class BlockProducerModule extends SequencerModule<object> {
    */
   private async computeBlock(
     txs: PendingTransaction[],
+    networkState: NetworkState,
     blockId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -172,7 +185,12 @@ export class BlockProducerModule extends SequencerModule<object> {
     const traces = await Promise.all(
       txs.map(
         async (tx) =>
-          await this.traceService.createTrace(tx, stateServices, bundleTracker)
+          await this.traceService.createTrace(
+            tx,
+            stateServices,
+            networkState,
+            bundleTracker
+          )
       )
     );
 

@@ -1,5 +1,6 @@
 {
   "rules": {
-    "remove-nested-blocks": "off"
+    "remove-nested-blocks": "off",
+    "apply-shorthand-properties": "off"
   }
 }

@@ -61,10 +61,8 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
     // eslint-disable-next-line no-warning-comments,max-len
     // TODO Not practical at the moment. Improve pattern when implementing DB storage
     for (let level = 0; level < height; level++) {
-      // const isLeft = index % 2n === 0n;
-      //
-      // const key = isLeft ? index + 1n : index - 1n;
       const key = index;
+
       // eslint-disable-next-line no-await-in-loop
       const value = await this.parent.getNode(key, level);
       if (level === 0) {

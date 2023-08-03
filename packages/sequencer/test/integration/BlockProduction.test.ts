@@ -104,13 +104,14 @@ describe("block production", () => {
     expect.assertions(10);
 
     const privateKey = PrivateKey.random();
+    const publicKey = privateKey.toPublicKey();
 
     const mempool = sequencer.resolve("Mempool");
     mempool.add(
       createTransaction({
         method: ["Balance", "setBalance"],
         privateKey,
-        args: [PublicKey.empty(), UInt64.from(100)],
+        args: [publicKey, UInt64.from(100)],
         nonce: 0,
       })
     );
@@ -132,7 +133,7 @@ describe("block production", () => {
     const balancesPath = Path.fromKey(
       balanceModule.balances.path!,
       balanceModule.balances.keyType,
-      PublicKey.empty()
+      publicKey
     );
     const newState = await stateService.getAsync(balancesPath);
 
@@ -142,9 +143,9 @@ describe("block production", () => {
     // Second tx
     mempool.add(
       createTransaction({
-        method: ["Balance", "addBalance"],
+        method: ["Balance", "addBalanceToSelf"],
         privateKey,
-        args: [PublicKey.empty(), UInt64.from(100)],
+        args: [UInt64.from(100), UInt64.from(1)],
         nonce: 0,
       })
     );
