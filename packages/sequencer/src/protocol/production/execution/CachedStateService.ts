@@ -1,5 +1,6 @@
 import { InMemoryStateService } from "@yab/module";
 import { Field } from "snarkyjs";
+import { log } from "@yab/common";
 
 import { AsyncStateService } from "../state/AsyncStateService";
 
@@ -31,9 +32,11 @@ export class CachedStateService
     // Only preload it if it hasn't been preloaded previously
     if (this.parent !== undefined && this.get(key) === undefined) {
       const value = await this.parent.getAsync(key);
-      console.log(
+      log.trace(
         `Preloading ${key.toString()}: ${
-          value?.map((i) => i.toString()) ?? []
+          // eslint-disable-next-line max-len
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          value?.map((element) => element.toString()) ?? []
         }`
       );
       this.set(key, value);
@@ -67,7 +70,6 @@ export class CachedStateService
 
     // Set all cached values on parent
     const promises = Object.entries(values).map(async (value) => {
-      console.log(`Merging into parent ${value[0]}: ${value[1]}`);
       await parent.setAsync(Field(value[0]), value[1]);
     });
     await Promise.all(promises);

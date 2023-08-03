@@ -6,6 +6,7 @@ import {
   ProtocolConstants,
   ProtocolModulesRecord,
   ProvableStateTransition,
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   ReturnType,
   StateTransitionProvable,
   StateTransitionProvableBatch,
@@ -20,7 +21,7 @@ import {
   RuntimeMethodExecutionContext,
 } from "@yab/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { ProvableMethodExecutionContext } from "@yab/common";
+import { log, ProvableMethodExecutionContext } from "@yab/common";
 
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
@@ -91,13 +92,11 @@ export class StateTransitionTask
       stBatch.push(ProvableStateTransition.dummy());
     });
 
-    // console.log(stBatch.map((x) => ProvableStateTransition.toJSON(x)));
-
     const output = this.stateTransitionProver.runBatch(
       input.publicInput,
       StateTransitionProvableBatch.fromTransitions(stBatch)
     );
-    console.log(output);
+    log.trace("STTrask output:", output);
 
     const proof = await this.executionContext
       .current()
@@ -186,7 +185,6 @@ export class BlockProvingTask
 
   private readonly blockProver: BlockProvable;
 
-  // private readonly blockProofType: Subclass<TypedClass<BlockProof>>;
   private readonly runtimeProofType =
     this.runtime.zkProgrammable.zkProgram.Proof;
 
@@ -199,8 +197,6 @@ export class BlockProvingTask
     this.stateTransitionProver = protocol.stateTransitionProver;
 
     this.blockProver = this.protocol.blockProver;
-    // this.blockProverProgram = this.blockProver.zkProgram
-    // this.blockProofType = ZkProgram.Proof(this.blockProverProgram);
   }
 
   public name(): string {

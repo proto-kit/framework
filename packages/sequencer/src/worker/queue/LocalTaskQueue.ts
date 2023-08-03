@@ -1,4 +1,5 @@
 import { noop } from "@yab/protocol";
+import { log } from "@yab/common";
 
 import { TaskPayload } from "../manager/ReducableTask";
 
@@ -42,7 +43,7 @@ export class LocalTaskQueue implements TaskQueue {
           // eslint-disable-next-line max-len
           // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
           void this.workers[queueName].handler(task.payload).then((payload) => {
-            console.log("Got", JSON.stringify(payload));
+            log.trace("LocalTaskQueue got", JSON.stringify(payload));
             // Notify listeners about result
             const listenerPromises = this.listeners[queueName].map(
               async (listener) => {
@@ -101,15 +102,14 @@ export class LocalTaskQueue implements TaskQueue {
 
       // eslint-disable-next-line putout/putout
       onCompleted: async (
-        listener: (
-          payload: TaskPayload
-        ) => Promise<void>
+        listener: (payload: TaskPayload) => Promise<void>
       ): Promise<void> => {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         (this.listeners[queueName] ??= []).push(listener);
       },
 
       close: async () => {
+        noop();
       },
     };
   }

@@ -8,7 +8,7 @@ import {
   noop,
 } from "@yab/protocol";
 import { Field, Proof } from "snarkyjs";
-import { requireTrue } from "@yab/common";
+import { log, requireTrue } from "@yab/common";
 
 import {
   sequencerModule,
@@ -85,12 +85,12 @@ export class BlockProducerModule extends SequencerModule<object> {
    * be the one called by BlockTriggers
    */
   public async createBlock(): Promise<ComputedBlock | undefined> {
-    console.log("Producing batch...");
+    log.info("Producing batch...");
 
     const block = await this.tryProduceBlock();
 
     if (block !== undefined) {
-      console.log("Batch produced");
+      log.debug("Batch produced");
       // Apply state changes to current StateService
       await this.applyStateChanges(block);
 
@@ -101,7 +101,7 @@ export class BlockProducerModule extends SequencerModule<object> {
 
       // Broadcast result on to baselayer
       await this.baseLayer.blockProduced(block.block);
-      console.log("Batch submitted onto baselayer");
+      log.info("Batch submitted onto baselayer");
     }
     return block?.block;
   }

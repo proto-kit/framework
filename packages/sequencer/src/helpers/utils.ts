@@ -21,8 +21,6 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
   ) {}
 
   public toJSON(proof: Proof<PublicInputType, PublicOutputType>): string {
-    console.log(proof);
-
     if (proof.proof === "mock-proof") {
       return JSON.stringify({
         publicInput: this.proofClass.publicInputType
@@ -48,8 +46,6 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const jsonProof: ReturnType<typeof Proof.prototype.toJSON> =
       JSON.parse(json);
-
-    console.log(json);
 
     if (jsonProof.proof === "mock-proof") {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
