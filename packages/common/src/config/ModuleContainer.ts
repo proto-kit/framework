@@ -140,7 +140,7 @@ export class ModuleContainer<
 
   public isValidModuleName(
     modules: Modules,
-    moduleName: string | number | symbol
+    moduleName: number | string | symbol
   ): asserts moduleName is StringKeyOf<Modules> {
     if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);

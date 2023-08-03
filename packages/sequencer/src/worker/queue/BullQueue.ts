@@ -6,6 +6,7 @@ import { log } from "@yab/common";
 import { TaskPayload } from "../manager/ReducableTask";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
+import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 
 /**
  * TaskQueue implementation for BullMQ
@@ -73,17 +74,11 @@ export class BullQueue implements TaskQueue {
       },
 
       async onCompleted(
-        listener: (result: {
-          taskId: string;
-          payload: TaskPayload;
-        }) => Promise<void>
+        listener: (payload: TaskPayload) => Promise<void>
       ) {
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         events.on("completed", async (result) => {
-          await listener({
-            taskId: result.jobId,
-            payload: JSON.parse(result.returnvalue) as TaskPayload,
-          });
+          await listener(JSON.parse(result.returnvalue) as TaskPayload);
         });
         await events.waitUntilReady();
       },

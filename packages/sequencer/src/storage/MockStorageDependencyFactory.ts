@@ -43,8 +43,14 @@ class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
 }
 
 class MockBlockStorage implements BlockStorage {
+  private height = 0;
+
   public async getCurrentBlockHeight(): Promise<number> {
-    return 0;
+    return this.height;
+  }
+
+  public async setBlockHeight(number: number): Promise<void> {
+    this.height = number;
   }
 }
 

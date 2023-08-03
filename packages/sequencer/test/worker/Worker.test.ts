@@ -99,7 +99,7 @@ describe("worker", () => {
 
     // Executes the task on the workers and reports back once the task has been
     // fully reduced
-    const result = await flow.executeMapReduce(inputs);
+    const result = await flow.executeMapReduce("0", inputs);
 
     const timeElapsed = Date.now() - start;
 

@@ -134,6 +134,7 @@ export class PairingMapReduceFlow<
    * to identify submitted tasks.
    */
   public async executePairingMapReduce(
+    flowId: string,
     inputs: [Input1, Input2, AdditionalParameters][],
     taskIds: string[]
   ) {
@@ -160,8 +161,10 @@ export class PairingMapReduceFlow<
       const pairingCollector = this.createNewPairingCollector(inputs, taskIds);
 
       // Add listener
-      await queue.onCompleted(async ({ payload }) => {
-        console.log(`Got payload name: ${payload.name}`);
+      this.onCompletedListeners[flowId] = async (payload) => {
+        console.log(
+          `Got payload name: ${payload.name} with id ${payload.taskId ?? "-"}`
+        );
         switch (payload.name) {
           // This case gets triggered when a result of a pair-task comes back
           case task.firstPairing.name():
@@ -187,6 +190,7 @@ export class PairingMapReduceFlow<
               await queue.addTask({
                 name: task.reducingTask.name(),
                 payload: mapReduceInputSerializer.toJSON(resultingTask),
+                flowId,
               });
             }
 
@@ -204,19 +208,19 @@ export class PairingMapReduceFlow<
               return;
             }
 
-            await super.addInput(parsedResult);
+            await super.addInput(flowId, parsedResult);
 
             break;
           }
           case `${task.reducingTask.name()}${TASKS_REDUCE_SUFFIX}`: {
-            await super.handleCompletedReducingStep(payload, resolve);
+            await super.handleCompletedReducingStep(flowId, payload, resolve);
             break;
           }
           default: {
             throw errors.unknownTask(payload.name);
           }
         }
-      });
+      };
 
       // Push inputs (step 1)
       const taskPushPromises = inputs.flatMap(async (input, index) => {
@@ -227,12 +231,14 @@ export class PairingMapReduceFlow<
           name: task.firstPairing.name(),
           payload: pairingSerializers.input1.toJSON(input[0]),
           taskId,
+          flowId,
         });
         // Push second pairing element
         const promise2 = await queue.addTask({
           name: task.secondPairing.name(),
           payload: pairingSerializers.input2.toJSON(input[1]),
           taskId,
+          flowId,
         });
 
         return await Promise.all([promise1, promise2]);
@@ -241,6 +247,6 @@ export class PairingMapReduceFlow<
       // Await all addTask() calls before continuing
       await Promise.all(taskPushPromises);
     };
-    return await this.executeFlowWithQueue(start);
+    return await this.executeFlowWithQueue(flowId, start);
   }
 }

@@ -6,6 +6,7 @@ import type {
   RuntimeDefinition,
   RuntimeModulesRecord,
 } from "./Runtime";
+import { StateService } from "../state/InMemoryStateService";
 
 /**
  * This type exists to carry over certain runtime properties
@@ -14,6 +15,8 @@ import type {
 export interface PartialRuntime
   extends Pick<Runtime<RuntimeModulesRecord>, "zkProgrammable"> {
   definition: Pick<RuntimeDefinition<RuntimeModulesRecord>, "state">;
+
+  get stateService(): StateService;
 }
 
 /**

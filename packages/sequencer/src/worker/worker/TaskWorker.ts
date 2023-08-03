@@ -132,6 +132,7 @@ export class TaskWorker implements Closeable {
       name: payload.name,
       payload: serializer.toJSON(result),
       taskId: payload.taskId,
+      flowId: payload.flowId,
     };
   }
 
@@ -147,6 +148,7 @@ export class TaskWorker implements Closeable {
       name: payload.name,
       payload: task.resultSerializer().toJSON(result),
       taskId: payload.taskId,
+      flowId: payload.flowId,
     };
   }
 

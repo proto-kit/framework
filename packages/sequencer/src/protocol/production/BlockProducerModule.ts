@@ -94,6 +94,11 @@ export class BlockProducerModule extends SequencerModule<object> {
       // Apply state changes to current StateService
       await this.applyStateChanges(block);
 
+      // Mock for now
+      await this.blockStorage.setBlockHeight(
+        (await this.blockStorage.getCurrentBlockHeight()) + 1
+      );
+
       // Broadcast result on to baselayer
       await this.baseLayer.blockProduced(block.block);
       console.log("Batch submitted onto baselayer");
@@ -123,6 +128,8 @@ export class BlockProducerModule extends SequencerModule<object> {
     const block = await this.computeBlock(txs, lastHeight + 1);
 
     requireTrue(this.mempool.removeTxs(txs), errors.txRemovalFailed);
+
+    this.productionInProgress = false;
 
     return {
       block: {

@@ -32,9 +32,25 @@ export interface InstantiatedQueue extends Closeable {
    * Registers a listener for the completion of jobs
    */
   onCompleted: (
-    listener: (result: {
-      taskId: string;
-      payload: TaskPayload;
-    }) => Promise<void>
+    listener: (payload: TaskPayload) => Promise<void>
   ) => Promise<void>;
 }
+
+// export abstract class AbstractTaskQueue implements TaskQueue {
+//   private queues: Record<string, InstantiatedQueue> = {}
+//
+//   public async getQueue(name: string): Promise<InstantiatedQueue> {
+//     if(this.queues[name] === undefined){
+//       return this.queues[name];
+//     }else{
+//
+//     }
+//   }
+//
+//   protected abstract createQueue: (name: string) => Promise<InstantiatedQueue>;
+//
+//   public abstract createWorker: (
+//     name: string,
+//     executor: (data: TaskPayload) => Promise<TaskPayload>
+//   ) => Closeable;
+// }

@@ -56,7 +56,11 @@ export class BlockTaskFlowService {
 
     const taskIds = mappedInputs.map((input) => input[1].tx.hash().toString());
 
-    const proof = await flow.executePairingMapReduce(mappedInputs, taskIds);
+    const proof = await flow.executePairingMapReduce(
+      String(blockId),
+      mappedInputs,
+      taskIds
+    );
 
     // Exceptions?
     await flow.close();
