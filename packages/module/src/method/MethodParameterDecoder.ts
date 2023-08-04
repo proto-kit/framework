@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import { Field } from "snarkyjs";
 
 import { RuntimeModule } from "../runtime/RuntimeModule";
@@ -9,15 +10,22 @@ export interface Fieldable {
 export interface FromFieldClass {
   new: (...args: any[]) => any;
   fromFields: (fields: Field[]) => Fieldable;
+  name: string;
   // Maybe this is wrong IDK
   prototype: {
-    _fields: any[];
+    _fields?: any[];
   };
+  sizeInFields?: () => number;
 }
 
 const errors = {
   fieldLengthNotMatching: (expected: number, actual: number) =>
     new Error(`Expected ${expected} field elements, got ${actual}`),
+
+  typeNotCompatible: (name: string) =>
+    new Error(
+      `Cannot decode type ${name}, it has to be either a Struct, CircuitValue or built-in snarkyjs type`
+    ),
 };
 
 export class MethodParameterDecoder {
@@ -39,8 +47,11 @@ export class MethodParameterDecoder {
     }
     let stack = fields.slice();
     return this.types.map((type) => {
-      // eslint-disable-next-line no-underscore-dangle
-      const numberFieldsNeeded = type.prototype._fields.length;
+      const numberFieldsNeeded =
+        type.prototype._fields?.length ?? type.sizeInFields?.() ?? -1;
+      if (numberFieldsNeeded === -1) {
+        throw errors.typeNotCompatible(type.name);
+      }
       const structFields = stack.slice(0, numberFieldsNeeded);
       stack = stack.slice(numberFieldsNeeded);
       return type.fromFields(structFields);
@@ -49,7 +60,9 @@ export class MethodParameterDecoder {
 
   public get fieldSize(): number {
     return this.types
-      .map((type) => type.prototype._fields.length)
+      .map(
+        (type) => type.prototype._fields?.length ?? type.sizeInFields?.() ?? 0
+      )
       .reduce((a, b) => a + b);
   }
 }

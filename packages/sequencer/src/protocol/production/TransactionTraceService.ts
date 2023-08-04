@@ -13,14 +13,15 @@ import {
   StateTransition,
 } from "@yab/protocol";
 import { Field } from "snarkyjs";
+import { log } from "@yab/common";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinct } from "../../helpers/utils";
+import { ComputedBlockTransaction } from "../../storage/model/Block";
 
 import { CachedStateService } from "./execution/CachedStateService";
 import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
-import { log } from "@yab/common";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -67,7 +68,10 @@ export class TransactionTraceService {
       merkleStore: CachedMerkleTreeStore;
     },
     bundleTracker: ProvableHashList<Field>
-  ): Promise<TransactionTrace> {
+  ): Promise<{
+    trace: TransactionTrace;
+    txStatus: ComputedBlockTransaction;
+  }> {
     // this.witnessProviderReference.setWitnessProvider(
     //   new MerkleStoreWitnessProvider(stateServices.merkleStore)
     // );
@@ -90,7 +94,7 @@ export class TransactionTraceService {
       method,
       decodedArguments
     );
-    const { stateTransitions } = executionResult;
+    const { stateTransitions, status, statusMessage } = executionResult;
 
     // Step 3
     const { witnesses, fromStateRoot } = await this.createMerkleTrace(
@@ -124,7 +128,15 @@ export class TransactionTraceService {
       },
     };
 
-    return trace;
+    return {
+      trace,
+
+      txStatus: {
+        tx,
+        status: status.toBoolean(),
+        statusMessage,
+      },
+    };
   }
 
   private async createMerkleTrace(
@@ -217,15 +229,18 @@ export class TransactionTraceService {
 
     this.runtime.stateServiceProvider.resetToDefault();
 
-    const executionResult = executionContext.current().result
+    const executionResult = executionContext.current().result;
 
-    // Update the stateservice
-    await Promise.all(
-      // Use updated stateTransitions since only they will have the right values
-      executionResult.stateTransitions.map(async (st) => {
-        await stateService.setAsync(st.path, st.to.toFields());
-      })
-    );
+    // Update the stateservice (only if the tx succeeded)
+    if (executionResult.status.toBoolean()) {
+      await Promise.all(
+        // Use updated stateTransitions since only they will have the
+        // right values
+        executionResult.stateTransitions.map(async (st) => {
+          await stateService.setAsync(st.path, st.to.toFields());
+        })
+      );
+    }
 
     return {
       executionResult,

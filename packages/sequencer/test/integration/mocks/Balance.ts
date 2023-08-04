@@ -1,13 +1,14 @@
 import {
+  assert,
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
   state,
   State,
-  StateMap,
+  StateMap
 } from "@yab/module";
 import { Presets } from "@yab/common";
-import { Provable, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, Provable, PublicKey, UInt64 } from "snarkyjs";
 import { Admin } from "@yab/module/test/modules/Admin";
 import { Option } from "@yab/protocol";
 
@@ -44,7 +45,8 @@ export class Balance extends RuntimeModule<object> {
   }
 
   @runtimeMethod()
-  public setBalance(address: PublicKey, value: UInt64) {
+  public setBalanceIf(address: PublicKey, value: UInt64, condition: Bool) {
+    assert(condition, "Condition not met");
     this.balances.set(address, value);
   }
 
