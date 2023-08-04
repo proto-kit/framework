@@ -2,7 +2,7 @@
   "name": "@proto-kit/module",
   "license": "MIT",
   "private": false,
-  "version": "0.1.0",
+  "version": "0.1.1-develop.160+5120680",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -17,12 +17,12 @@
     "access": "public"
   },
   "dependencies": {
+    "@proto-kit/common": "0.1.1-develop.160+5120680",
+    "@proto-kit/protocol": "0.1.1-develop.160+5120680",
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
-    "ts-mixer": "^6.0.3",
-    "@proto-kit/protocol": "*",
-    "@proto-kit/common": "*"
+    "ts-mixer": "^6.0.3"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
@@ -31,5 +31,6 @@
   "peerDependencies": {
     "snarkyjs": "0.11.0",
     "tsyringe": "^4.7.0"
-  }
+  },
+  "gitHead": "51206808f0eba77c4ad8c1af476a6dbdd478d2a3"
 }

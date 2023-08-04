@@ -1,6 +1,6 @@
 {
   "name": "@proto-kit/sequencer",
-  "version": "0.1.0",
+  "version": "0.1.1-develop.160+5120680",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -28,10 +28,10 @@
     "@types/node": "^20.2.5"
   },
   "dependencies": {
+    "@proto-kit/common": "0.1.1-develop.160+5120680",
+    "@proto-kit/module": "0.1.1-develop.160+5120680",
+    "@proto-kit/protocol": "0.1.1-develop.160+5120680",
     "@types/ws": "^8.5.4",
-    "@proto-kit/module": "*",
-    "@proto-kit/protocol": "*",
-    "@proto-kit/common": "*",
     "bullmq": "^3.15.0",
     "class-validator": "^0.14.0",
     "fastify": "^4.17.0",
@@ -42,5 +42,6 @@
   },
   "resolutions": {
     "graphql": "16.6.0"
-  }
+  },
+  "gitHead": "51206808f0eba77c4ad8c1af476a6dbdd478d2a3"
 }

@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.1.1-develop.160+5120680",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -17,21 +17,22 @@
     "access": "public"
   },
   "dependencies": {
+    "@proto-kit/common": "0.1.1-develop.160+5120680",
+    "@proto-kit/module": "0.1.1-develop.160+5120680",
+    "@proto-kit/protocol": "0.1.1-develop.160+5120680",
+    "@proto-kit/sequencer": "0.1.1-develop.160+5120680",
+    "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
-    "tsyringe": "^4.7.0",
-    "lodash": "^4.17.21",
-    "@proto-kit/sequencer": "*",
-    "@proto-kit/module": "*",
-    "@proto-kit/protocol": "*",
-    "@proto-kit/common": "*"
+    "tsyringe": "^4.7.0"
   },
   "peerDependencies": {
-    "tsyringe": "^4.7.0",
-    "snarkyjs": "0.11.0"
+    "snarkyjs": "0.11.0",
+    "tsyringe": "^4.7.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
     "@types/lodash": "^4.14.194"
-  }
+  },
+  "gitHead": "51206808f0eba77c4ad8c1af476a6dbdd478d2a3"
 }
