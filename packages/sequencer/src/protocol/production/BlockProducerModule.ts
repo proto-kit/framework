@@ -19,7 +19,10 @@ import { Mempool } from "../../mempool/Mempool";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { BaseLayer } from "../baselayer/BaseLayer";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
-import { ComputedBlock } from "../../storage/model/Block";
+import {
+  ComputedBlock,
+  ComputedBlockTransaction,
+} from "../../storage/model/Block";
 
 import { AsyncStateService } from "./state/AsyncStateService";
 import { CachedStateService } from "./execution/CachedStateService";
@@ -146,7 +149,7 @@ export class BlockProducerModule extends SequencerModule<object> {
     return {
       block: {
         proof: block.proof,
-        txs,
+        txs: block.computedTransactions,
       },
 
       stateService: block.stateSerivce,
@@ -174,6 +177,7 @@ export class BlockProducerModule extends SequencerModule<object> {
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
     stateSerivce: CachedStateService;
     merkleStore: CachedMerkleTreeStore;
+    computedTransactions: ComputedBlockTransaction[];
   }> {
     const stateServices = {
       stateService: new CachedStateService(this.asyncStateService),
@@ -182,7 +186,7 @@ export class BlockProducerModule extends SequencerModule<object> {
 
     const bundleTracker = new DefaultProvableHashList(Field);
 
-    const traces = await Promise.all(
+    const traceResults = await Promise.all(
       txs.map(
         async (tx) =>
           await this.traceService.createTrace(
@@ -193,6 +197,7 @@ export class BlockProducerModule extends SequencerModule<object> {
           )
       )
     );
+    const traces = traceResults.map((result) => result.trace);
 
     const proof = await this.blockFlowService.executeBlockCreation(
       traces,
@@ -203,6 +208,7 @@ export class BlockProducerModule extends SequencerModule<object> {
       proof,
       stateSerivce: stateServices.stateService,
       merkleStore: stateServices.merkleStore,
+      computedTransactions: traceResults.map((result) => result.txStatus),
     };
   }
 }

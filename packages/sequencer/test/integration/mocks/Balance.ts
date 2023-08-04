@@ -45,7 +45,8 @@ export class Balance extends RuntimeModule<object> {
   }
 
   @runtimeMethod()
-  public setBalance(address: PublicKey, value: UInt64) {
+  public setBalanceIf(address: PublicKey, value: UInt64, condition: Bool) {
+    assert(condition, "Condition not met");
     this.balances.set(address, value);
   }
 
