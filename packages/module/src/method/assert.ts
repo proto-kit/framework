@@ -2,6 +2,7 @@ import { Bool, Provable } from "snarkyjs";
 import { container } from "tsyringe";
 
 import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext";
+import { log } from "@proto-kit/common";
 
 /**
  * Maintains an execution status of the current runtime module method,
@@ -16,6 +17,10 @@ export function assert(condition: Bool, message?: string) {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
   const status = Provable.if(previousStatus, Bool, condition, previousStatus);
+
+  if (!status.toBoolean()) {
+    log.debug("Assertion failed: ", message);
+  }
 
   // const status = previousStatus.and(condition);
   executionContext.setStatus(status);

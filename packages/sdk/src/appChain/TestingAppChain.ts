@@ -2,6 +2,7 @@ import { ModulesConfig } from "@proto-kit/common";
 import {
   InMemoryStateService,
   Runtime,
+  RuntimeMethodExecutionContext,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import { ProtocolModulesRecord, VanillaProtocol } from "@proto-kit/protocol";
@@ -18,6 +19,7 @@ import {
   BlockTrigger,
 } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "snarkyjs";
+import { container } from "tsyringe";
 import { InMemoryQueryTransportModule } from "../query/InMemoryQueryTransportModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
@@ -96,6 +98,20 @@ export class TestingAppChain<
       "BlockTrigger",
       ManualBlockTrigger
     );
-    await blockTrigger.produceBlock();
+
+    const executionContext = container.resolve<RuntimeMethodExecutionContext>(
+      RuntimeMethodExecutionContext
+    );
+
+    const { status, statusMessage } = executionContext.current().result;
+    const lastTransaction = {
+      status: status.toBoolean(),
+      statusMessage,
+    };
+
+    return {
+      block: await blockTrigger.produceBlock(),
+      lastTransaction,
+    };
   }
 }

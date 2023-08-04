@@ -31,7 +31,6 @@ export class InMemoryTransactionSender
   }
 
   public async send(transaction: PendingTransaction) {
-    console.log("sending transaction", transaction);
     this.mempool.add(transaction);
   }
 }
