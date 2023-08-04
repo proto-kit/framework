@@ -9,7 +9,7 @@ import { Fieldable, InMemoryStateService, Runtime } from "@yab/module";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@yab/sdk";
 import { Path } from "@yab/protocol";
-import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { log } from "@yab/common";
 import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 
@@ -37,6 +37,9 @@ describe("block production", () => {
     BlockProducerModule: typeof BlockProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
   }>;
+
+  let blockTrigger: ManualBlockTrigger;
+  let mempool: PrivateMempool;
 
   beforeEach(async () => {
     log.setLevel("TRACE");
@@ -83,6 +86,9 @@ describe("block production", () => {
 
     // Start AppChain
     await app.start();
+
+    blockTrigger = sequencer.resolve("BlockTrigger");
+    mempool = sequencer.resolve("Mempool");
   });
 
   function createTransaction(spec: {
@@ -106,17 +112,14 @@ describe("block production", () => {
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
 
-    const mempool = sequencer.resolve("Mempool");
     mempool.add(
       createTransaction({
-        method: ["Balance", "setBalance"],
+        method: ["Balance", "setBalanceIf"],
         privateKey,
-        args: [publicKey, UInt64.from(100)],
+        args: [publicKey, UInt64.from(100), Bool(true)],
         nonce: 0,
       })
     );
-
-    const blockTrigger = sequencer.resolve("BlockTrigger");
 
     let block = await blockTrigger.produceBlock();
 
@@ -164,4 +167,39 @@ describe("block production", () => {
     expect(state2).toBeDefined();
     expect(UInt64.fromFields(state2!)).toStrictEqual(UInt64.from(200));
   }, 60_000);
+
+  it("should reject tx and not apply the state", async () => {
+    expect.assertions(3);
+
+    const privateKey = PrivateKey.random();
+
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "setBalanceIf"],
+        privateKey,
+        args: [PublicKey.empty(), UInt64.from(100), Bool(false)],
+        nonce: 0,
+      })
+    );
+
+    let block = await blockTrigger.produceBlock();
+
+    const stateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "AsyncStateService"
+      );
+    const balanceModule = runtime.resolve("Balance");
+    const balancesPath = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      PublicKey.empty()
+    );
+    const newState = await stateService.getAsync(balancesPath);
+
+    // Assert that state is not set
+    expect(newState).toBeUndefined();
+
+    expect(block?.txs[0].status).toBe(false);
+    expect(block?.txs[0].statusMessage).toBe("Condition not met");
+  }, 30_000);
 });
