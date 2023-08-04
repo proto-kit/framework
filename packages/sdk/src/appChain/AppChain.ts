@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
   AreProofsEnabled,
   ModuleContainer,
@@ -15,7 +16,13 @@ import {
   Sequencer,
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
-import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
+import {
+  NetworkState,
+  Protocol,
+  ProtocolModulesRecord,
+  ProtocolTransaction,
+  RuntimeTransaction,
+} from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { UnsignedTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
 import { Field, PublicKey, UInt64 } from "snarkyjs";
@@ -146,6 +153,20 @@ export class AppChain<
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
+
+    executionContext.setup({
+      transaction: {
+        sender,
+        nonce: UInt64.from(0),
+        argsHash: Field(0),
+      } as unknown as RuntimeTransaction,
+
+      networkState: {
+        block: {
+          height: UInt64.from(0),
+        },
+      } as unknown as NetworkState,
+    });
 
     callback();
 
