@@ -8,9 +8,10 @@ import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import {
+  BlockProverParameters,
   BlockProvingTask,
   RuntimeProvingTask,
-  StateTransitionTask,
+  StateTransitionTask
 } from "./tasks/BlockProvingTask";
 import type { TransactionTrace } from "./BlockProducerModule";
 
@@ -30,7 +31,6 @@ export class BlockTaskFlowService {
 
   public async executeBlockCreation(
     transactionTraces: TransactionTrace[],
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     blockId: number
   ): Promise<Proof<BlockProverPublicInput, BlockProverPublicOutput>> {
     // Init tasks based on traces
@@ -38,7 +38,7 @@ export class BlockTaskFlowService {
       [
         StateTransitionProofParameters,
         RuntimeProofParameters,
-        BlockProverPublicInput
+        BlockProverParameters
       ]
     >((trace) => [
       trace.stateTransitionProver,

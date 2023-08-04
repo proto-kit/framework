@@ -1,13 +1,16 @@
 import {
   BlockProvable,
+  BlockProverExecutionData,
   BlockProverPublicInput,
   BlockProverPublicOutput,
+  MethodPublicOutput,
   Protocol,
   ProtocolConstants,
   ProtocolModulesRecord,
   ProvableStateTransition,
   // eslint-disable-next-line @typescript-eslint/no-shadow
   ReturnType,
+  RuntimeTransaction,
   StateTransitionProvable,
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
@@ -16,7 +19,6 @@ import {
 import { Proof } from "snarkyjs";
 import {
   MethodParameterDecoder,
-  MethodPublicOutput,
   Runtime,
   RuntimeMethodExecutionContext,
 } from "@yab/module";
@@ -96,7 +98,7 @@ export class StateTransitionTask
       input.publicInput,
       StateTransitionProvableBatch.fromTransitions(stBatch)
     );
-    log.trace("STTrask output:", output);
+    log.debug("STTask output:", output);
 
     const proof = await this.executionContext
       .current()
@@ -156,9 +158,20 @@ export class RuntimeProvingTask
       prefilledStateService
     );
 
+    // Set network state and transaction for the runtimemodule to access
+    const runtimeTransaction = RuntimeTransaction.fromProtocolTransaction(
+      input.tx.toProtocolTransaction()
+    );
+    const contextInputs = {
+      networkState: input.networkState,
+      transaction: runtimeTransaction,
+    }
+    this.executionContext.setup(contextInputs);
+
     method(...decodedArguments);
     const { result } = this.executionContext.current();
 
+    this.executionContext.setup(contextInputs);
     const proof = await result.prove<RuntimeProof>();
 
     this.runtime.stateServiceProvider.resetToDefault();
@@ -170,10 +183,15 @@ export class RuntimeProvingTask
   }
 }
 
+export interface BlockProverParameters {
+  publicInput: BlockProverPublicInput;
+  executionData: BlockProverExecutionData;
+}
+
 export type BlockProvingTaskParameters = PairingDerivedInput<
   StateTransitionProof,
   RuntimeProof,
-  BlockProverPublicInput
+  BlockProverParameters
 >;
 
 @injectable()
@@ -215,7 +233,16 @@ export class BlockProvingTask
         const jsonReadyObject = {
           input1: stProofSerializer.toJSON(input.input1),
           input2: runtimeProofSerializer.toJSON(input.input2),
-          params: BlockProverPublicInput.toJSON(input.params),
+
+          params: {
+            publicInput: BlockProverPublicInput.toJSON(
+              input.params.publicInput
+            ),
+
+            executionData: BlockProverExecutionData.toJSON(
+              input.params.executionData
+            ),
+          },
         };
         return JSON.stringify(jsonReadyObject);
       },
@@ -225,13 +252,24 @@ export class BlockProvingTask
         const jsonReadyObject: {
           input1: string;
           input2: string;
-          params: ReturnType<typeof BlockProverPublicInput.toJSON>;
+          params: {
+            publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
+            executionData: ReturnType<typeof BlockProverExecutionData.toJSON>;
+          };
         } = JSON.parse(json);
 
         return {
           input1: stProofSerializer.fromJSON(jsonReadyObject.input1),
           input2: runtimeProofSerializer.fromJSON(jsonReadyObject.input2),
-          params: BlockProverPublicInput.fromJSON(jsonReadyObject.params),
+
+          params: {
+            publicInput: BlockProverPublicInput.fromJSON(
+              jsonReadyObject.params.publicInput
+            ),
+            executionData: BlockProverExecutionData.fromJSON(
+              jsonReadyObject.params.executionData
+            ),
+          },
         };
       },
     };
@@ -258,15 +296,16 @@ export class BlockProvingTask
     input: PairingDerivedInput<
       StateTransitionProof,
       RuntimeProof,
-      BlockProverPublicInput
+      BlockProverParameters
     >
   ): Promise<BlockProof> {
     const stateTransitionProof = input.input1;
     const runtimeProof = input.input2;
     this.blockProver.proveTransaction(
-      input.params,
+      input.params.publicInput,
       stateTransitionProof,
-      runtimeProof
+      runtimeProof,
+      input.params.executionData
     );
     return await this.executionContext.current().result.prove<BlockProof>();
   }

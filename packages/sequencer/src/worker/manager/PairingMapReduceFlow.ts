@@ -164,7 +164,7 @@ export class PairingMapReduceFlow<
 
       // Add listener
       this.onCompletedListeners[flowId] = async (payload) => {
-        log.trace(
+        log.debug(
           `Got payload name: ${payload.name} with id ${payload.taskId ?? "-"}`
         );
         switch (payload.name) {

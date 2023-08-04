@@ -41,7 +41,7 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   public setTotalSupply() {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(PublicKey.empty());
+    this.admin.isAdmin(this.transaction.sender);
   }
 
   @runtimeMethod()

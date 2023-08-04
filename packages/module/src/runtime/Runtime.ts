@@ -12,21 +12,23 @@ import {
   PlainZkProgram,
   WithZkProgrammable,
   AreProofsEnabled,
-  log,
 } from "@yab/common";
+import {
+  fieldToString,
+  stringToField,
+  MethodPublicOutput,
+} from "@yab/protocol";
 
 import {
   combineMethodName,
   isRuntimeMethod,
-  MethodPublicOutput,
   toWrappedMethod,
   WrappedMethod,
 } from "../method/runtimeMethod.js";
 import { StateService } from "../state/InMemoryStateService.js";
+import { StateServiceProvider } from "../state/StateServiceProvider";
 
 import { RuntimeModule } from "./RuntimeModule.js";
-import { StateServiceProvider } from "../state/StateServiceProvider";
-import { fieldToString, stringToField } from "@yab/protocol";
 
 /**
  * Record of modules accepted by the Runtime module container.

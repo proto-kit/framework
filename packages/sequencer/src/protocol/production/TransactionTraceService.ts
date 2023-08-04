@@ -7,12 +7,15 @@ import {
 } from "@yab/module";
 import {
   CachedMerkleTreeStore,
+  NetworkState,
   ProvableHashList,
   RollupMerkleTree,
   RollupMerkleWitness,
+  RuntimeTransaction,
   StateTransition,
 } from "@yab/protocol";
 import { Field } from "snarkyjs";
+import { log } from "@yab/common";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinct } from "../../helpers/utils";
@@ -20,7 +23,6 @@ import { distinct } from "../../helpers/utils";
 import { CachedStateService } from "./execution/CachedStateService";
 import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
-import { log } from "@yab/common";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -38,6 +40,28 @@ export class TransactionTraceService {
       .map((st) => st.path.toString())
       .filter(distinct)
       .map((string) => Field(string));
+  }
+
+  private decodeTransaction(tx: PendingTransaction): {
+    method: (...args: unknown[]) => unknown;
+    args: unknown[];
+  } {
+    const method = this.runtime.getMethodById(tx.methodId.toBigInt());
+
+    const [moduleName, methodName] = this.runtime.getMethodNameFromId(
+      tx.methodId.toBigInt()
+    );
+
+    const parameterDecoder = MethodParameterDecoder.fromMethod(
+      this.runtime.resolve(moduleName),
+      methodName
+    );
+    const args = parameterDecoder.fromFields(tx.args);
+
+    return {
+      method,
+      args,
+    };
   }
 
   /**
@@ -66,29 +90,18 @@ export class TransactionTraceService {
       stateService: CachedStateService;
       merkleStore: CachedMerkleTreeStore;
     },
+    networkState: NetworkState,
     bundleTracker: ProvableHashList<Field>
   ): Promise<TransactionTrace> {
     // this.witnessProviderReference.setWitnessProvider(
     //   new MerkleStoreWitnessProvider(stateServices.merkleStore)
     // );
 
-    const method = this.runtime.getMethodById(tx.methodId.toBigInt());
-
-    const [moduleName, methodName] = this.runtime.getMethodNameFromId(
-      tx.methodId.toBigInt()
-    );
-
-    const parameterDecoder = MethodParameterDecoder.fromMethod(
-      this.runtime.resolve(moduleName),
-      methodName
-    );
-    const decodedArguments = parameterDecoder.fromFields(tx.args);
-
     // Step 1 & 2
     const { executionResult, startingState } = await this.executeRuntimeMethod(
       stateServices.stateService,
-      method,
-      decodedArguments
+      tx,
+      networkState
     );
     const { stateTransitions } = executionResult;
 
@@ -105,6 +118,7 @@ export class TransactionTraceService {
       runtimeProver: {
         tx,
         state: startingState,
+        networkState,
       },
 
       stateTransitionProver: {
@@ -119,8 +133,16 @@ export class TransactionTraceService {
       },
 
       blockProver: {
-        stateRoot: fromStateRoot,
-        transactionsHash,
+        publicInput: {
+          stateRoot: fromStateRoot,
+          transactionsHash,
+          networkStateHash: networkState.hash(),
+        },
+
+        executionData: {
+          networkState,
+          transaction: tx.toProtocolTransaction(),
+        },
       },
     };
 
@@ -169,28 +191,40 @@ export class TransactionTraceService {
 
   private async executeRuntimeMethod(
     stateService: CachedStateService,
-    method: (...args: unknown[]) => unknown,
-    args: unknown[]
+    tx: PendingTransaction,
+    networkState: NetworkState
   ): Promise<{
     executionResult: RuntimeProvableMethodExecutionResult;
     startingState: StateRecord;
   }> {
+    const { method, args } = this.decodeTransaction(tx);
+
     // Execute the first time with dummy service
     this.runtime.stateServiceProvider.setCurrentStateService(
       this.dummyStateService
     );
+
     const executionContext = this.runtime.dependencyContainer.resolve(
       RuntimeMethodExecutionContext
     );
+    // Set network state and transaction for the runtimemodule to access
+    const contextInputs = {
+      networkState,
+
+      transaction: RuntimeTransaction.fromProtocolTransaction(
+        tx.toProtocolTransaction()
+      ),
+    };
+    executionContext.setup(contextInputs);
 
     method(...args);
 
     const { stateTransitions } = executionContext.current().result;
     const accessedKeys = this.allKeys(stateTransitions);
 
-    log.trace("Got", stateTransitions.length, "StateTransitions");
+    log.debug("Got", stateTransitions.length, "StateTransitions");
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    log.trace(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
+    log.debug(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
 
     // Preload keys
     await stateService.preloadKeys(accessedKeys);
@@ -212,12 +246,15 @@ export class TransactionTraceService {
 
     // Execute second time with preloaded state
     this.runtime.stateServiceProvider.setCurrentStateService(stateService);
+    // We have to set it a second time here, because the inputs are cleared
+    // in afterMethod()
+    executionContext.setup(contextInputs);
 
     method(...args);
 
     this.runtime.stateServiceProvider.resetToDefault();
 
-    const executionResult = executionContext.current().result
+    const executionResult = executionContext.current().result;
 
     // Update the stateservice
     await Promise.all(
