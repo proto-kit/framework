@@ -178,12 +178,7 @@ export class StateTransitionProver
     const treeWitness = Provable.witness(RollupMerkleWitness, () =>
       this.witnessProvider.getWitness(transition.path)
     );
-    Provable.log(
-      `ST (${index})`,
-      state.stateRoot,
-      " value: ",
-      transition.from.value
-    );
+
     const membershipValid = MerkleTreeUtils.checkMembership(
       treeWitness,
       state.stateRoot,
@@ -218,7 +213,6 @@ export class StateTransitionProver
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
   ): StateTransitionProverPublicOutput {
-    Provable.log(publicInput);
     const result = this.applyTransitions(
       publicInput.stateRoot,
       publicInput.stateTransitionsHash,
@@ -229,7 +223,6 @@ export class StateTransitionProver
       stateRoot: result.stateRoot,
       stateTransitionsHash: result.stateTransitionList.commitment,
     });
-    Provable.log(output);
     return output;
   }
 

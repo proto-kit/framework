@@ -99,19 +99,6 @@ export class TestingAppChain<
       ManualBlockTrigger
     );
 
-    const executionContext = container.resolve<RuntimeMethodExecutionContext>(
-      RuntimeMethodExecutionContext
-    );
-
-    const { status, statusMessage } = executionContext.current().result;
-    const lastTransaction = {
-      status: status.toBoolean(),
-      statusMessage,
-    };
-
-    return {
-      block: await blockTrigger.produceBlock(),
-      lastTransaction,
-    };
+    return await blockTrigger.produceBlock();
   }
 }

@@ -1,3 +1,4 @@
+/* eslint-disable max-statements */
 import "reflect-metadata";
 import { PrivateKey, PublicKey, UInt64, Provable } from "snarkyjs";
 import {
@@ -16,7 +17,7 @@ import { exec } from "child_process";
 import { log } from "@proto-kit/common";
 import { randomUUID } from "crypto";
 
-log.setLevel("DEBUG");
+log.setLevel("ERROR");
 
 export interface AdminConfig {
   admin: PublicKey;
@@ -81,7 +82,6 @@ class Balances extends RuntimeModule<BalancesConfig> {
     const isSender = this.transaction.sender.equals(address);
     assert(isSender, "Address is not the sender");
 
-    // this.totalSupply.set(UInt64.from(5000000));
     const currentBalance = this.balances.get(address);
 
     const newBalance = currentBalance.value.add(balance);
@@ -144,9 +144,9 @@ describe("testing app chain", () => {
     /**
      * Produce the next block from pending transactions in the mempool
      */
-    const { lastTransaction } = await appChain.produceBlock();
+    const block = await appChain.produceBlock();
 
-    expect(lastTransaction.status).toBe(true);
+    expect(block?.txs[0].status).toBe(true);
 
     /**
      * Observe new state after the block has been produced
