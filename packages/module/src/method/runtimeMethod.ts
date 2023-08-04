@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import { Bool, Field, FlexibleProvable, Struct } from "snarkyjs";
-=======
->>>>>>> 2cfe66267d522a66e57edd8e32ff2e26e963f5f9
 import { container } from "tsyringe";
 import {
   StateTransition,
