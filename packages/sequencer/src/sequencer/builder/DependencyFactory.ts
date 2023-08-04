@@ -1,4 +1,4 @@
-import { TypedClass } from "@yab/common";
+import { TypedClass } from "@proto-kit/common";
 import { DependencyContainer, injectable, Lifecycle } from "tsyringe";
 
 const errors = {

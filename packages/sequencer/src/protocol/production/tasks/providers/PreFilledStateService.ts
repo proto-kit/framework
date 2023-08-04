@@ -1,4 +1,4 @@
-import { InMemoryStateService } from "@yab/module";
+import { InMemoryStateService } from "@proto-kit/module";
 import { Field } from "snarkyjs";
 
 export class PreFilledStateService extends InMemoryStateService {

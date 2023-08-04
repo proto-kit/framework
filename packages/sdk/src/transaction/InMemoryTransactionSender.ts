@@ -1,12 +1,12 @@
 /* eslint-disable import/no-unused-modules */
-import { RuntimeModulesRecord } from "@yab/module";
-import { ProtocolModulesRecord } from "@yab/protocol/src/protocol/Protocol";
+import { RuntimeModulesRecord } from "@proto-kit/module";
+import { ProtocolModulesRecord } from "@proto-kit/protocol/src/protocol/Protocol";
 import {
   PrivateMempool,
   Sequencer,
   SequencerModulesRecord,
-} from "@yab/sequencer";
-import { PendingTransaction } from "@yab/sequencer/dist/mempool/PendingTransaction";
+} from "@proto-kit/sequencer";
+import { PendingTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
 import { inject, injectable } from "tsyringe";
 import { AppChain, AppChainModulesRecord } from "../appChain/AppChain";
 import { AppChainModule } from "../appChain/AppChainModule";

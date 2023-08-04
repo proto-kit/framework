@@ -1,5 +1,5 @@
 import { Field, Proof } from "snarkyjs";
-import { Subclass } from "@yab/protocol";
+import { Subclass } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../worker/manager/ReducableTask";
 

@@ -2,7 +2,7 @@ import { InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { inject } from "tsyringe";
 import { DispatchableFlow } from "./DispatchableFlow";
 import { TaskPayload } from "./ReducableTask";
-import { noop } from "@yab/protocol";
+import { noop } from "@proto-kit/protocol";
 
 // class ProxiedTaskQueue implements InstantiatedQueue{
 //   constructor(private readonly queue: InstantiatedQueue) {

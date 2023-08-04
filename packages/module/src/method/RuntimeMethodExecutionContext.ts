@@ -1,11 +1,11 @@
 import { Bool } from "snarkyjs";
 import { singleton } from "tsyringe";
-import type { StateTransition, NetworkState } from "@yab/protocol";
+import type { StateTransition, NetworkState } from "@proto-kit/protocol";
 import {
   ProvableMethodExecutionContext,
   ProvableMethodExecutionResult,
-} from "@yab/common";
-import { RuntimeTransaction } from "@yab/protocol/src/model/transaction/RuntimeTransaction";
+} from "@proto-kit/common";
+import { RuntimeTransaction } from "@proto-kit/protocol/src/model/transaction/RuntimeTransaction";
 
 const errors = {
   setupNotCalled: () =>

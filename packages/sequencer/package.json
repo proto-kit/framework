@@ -1,5 +1,5 @@
 {
-  "name": "@yab/sequencer",
+  "name": "@proto-kit/sequencer",
   "version": "0.1.8",
   "license": "MIT",
   "private": false,
@@ -29,9 +29,9 @@
   },
   "dependencies": {
     "@types/ws": "^8.5.4",
-    "@yab/module": "*",
-    "@yab/protocol": "*",
-    "@yab/common": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/protocol": "*",
+    "@proto-kit/common": "*",
     "bullmq": "^3.15.0",
     "class-validator": "^0.14.0",
     "fastify": "^4.17.0",

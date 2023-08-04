@@ -12,12 +12,12 @@ import {
   PlainZkProgram,
   WithZkProgrammable,
   AreProofsEnabled,
-} from "@yab/common";
+} from "@proto-kit/common";
 import {
   fieldToString,
   stringToField,
   MethodPublicOutput,
-} from "@yab/protocol";
+} from "@proto-kit/protocol";
 
 import {
   combineMethodName,

@@ -5,13 +5,13 @@ import {
   TypedClass,
   ModuleContainerDefinition,
   log,
-} from "@yab/common";
-import { Runtime, RuntimeModulesRecord } from "@yab/module";
+} from "@proto-kit/common";
+import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
   Protocol,
   ProtocolModulesRecord,
-} from "@yab/protocol/src/protocol/Protocol";
-import { StateTransitionWitnessProviderReference } from "@yab/protocol";
+} from "@proto-kit/protocol/src/protocol/Protocol";
+import { StateTransitionWitnessProviderReference } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";

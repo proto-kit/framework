@@ -1,5 +1,5 @@
 {
-  "name": "@yab/sdk",
+  "name": "@proto-kit/sdk",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -21,10 +21,10 @@
     "reflect-metadata": "^0.1.13",
     "tsyringe": "^4.7.0",
     "lodash": "^4.17.21",
-    "@yab/sequencer": "*",
-    "@yab/module": "*",
-    "@yab/protocol": "*",
-    "@yab/common": "*"
+    "@proto-kit/sequencer": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/protocol": "*",
+    "@proto-kit/common": "*"
   },
   "peerDependencies": {
     "tsyringe": "^4.7.0",

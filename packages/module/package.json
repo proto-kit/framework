@@ -1,5 +1,5 @@
 {
-  "name": "@yab/module",
+  "name": "@proto-kit/module",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -20,8 +20,8 @@
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
     "ts-mixer": "^6.0.3",
-    "@yab/protocol": "*",
-    "@yab/common": "*"
+    "@proto-kit/protocol": "*",
+    "@proto-kit/common": "*"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",

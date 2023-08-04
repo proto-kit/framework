@@ -1,4 +1,4 @@
-import { log } from "@yab/common";
+import { log } from "@proto-kit/common";
 
 import { TaskQueue } from "../queue/TaskQueue";
 

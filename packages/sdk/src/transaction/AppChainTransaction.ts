@@ -2,7 +2,7 @@
 import {
   PendingTransaction,
   UnsignedTransaction,
-} from "@yab/sequencer/dist/mempool/PendingTransaction";
+} from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
 import { Signer } from "./InMemorySigner";
 import { TransactionSender } from "./InMemoryTransactionSender";
 

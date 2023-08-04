@@ -4,22 +4,26 @@ import {
   ModulesConfig,
   ModulesRecord,
   TypedClass,
-} from "@yab/common";
+} from "@proto-kit/common";
 import {
   Runtime,
   RuntimeMethodExecutionContext,
   RuntimeModulesRecord,
-} from "@yab/module";
-import { dependency, Sequencer, SequencerModulesRecord } from "@yab/sequencer";
-import { Protocol, ProtocolModulesRecord } from "@yab/protocol";
+} from "@proto-kit/module";
+import {
+  dependency,
+  Sequencer,
+  SequencerModulesRecord,
+} from "@proto-kit/sequencer";
+import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
 import { container } from "tsyringe";
-import { UnsignedTransaction } from "@yab/sequencer/dist/mempool/PendingTransaction";
+import { UnsignedTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
 import { Field, PublicKey, UInt64 } from "snarkyjs";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { StateTransitionWitnessProviderReference } from "@yab/protocol";
+import { StateTransitionWitnessProviderReference } from "@proto-kit/protocol";
 import { QueryBuilderFactory } from "../query/QueryBuilderFactory";
 import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
 

@@ -5,7 +5,7 @@ import {
   type DependencyContainer,
 } from "tsyringe";
 
-import { MethodPublicOutput } from "@yab/protocol";
+import { MethodPublicOutput } from "@proto-kit/protocol";
 
 import {
   BlockProver,
@@ -14,7 +14,7 @@ import {
 import { NoOpStateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 import {
   StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
+  StateTransitionProverPublicOutput,
 } from "../src/prover/statetransition/StateTransitionProvable";
 import { BlockProverPublicInput } from "../src/prover/block/BlockProvable";
 
@@ -54,14 +54,17 @@ describe("blockProver", () => {
       maxProofsVerified: 2,
     });
 
-    const stProof = new Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>({
+    const stProof = new Proof<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >({
       publicInput: new StateTransitionProverPublicInput({
         stateTransitionsHash: Field(0),
         stateRoot: fromStateRoot,
       }),
       publicOutput: new StateTransitionProverPublicOutput({
         stateTransitionsHash: sthash,
-        stateRoot: toStateRoot
+        stateRoot: toStateRoot,
       }),
 
       proof: "",
@@ -110,9 +113,15 @@ describe("blockProver", () => {
       transactionsHash: fromProverState.transactionsHash,
     });
 
-    const publicOutput = blockProver.proveTransaction(publicInput, stProof, appProof);
+    const publicOutput = blockProver.proveTransaction(
+      publicInput,
+      stProof,
+      appProof
+    );
 
     expect(publicOutput.stateRoot).toStrictEqual(toProverState.stateRoot);
-    expect(publicOutput.transactionsHash).toStrictEqual(toProverState.transactionsHash);
+    expect(publicOutput.transactionsHash).toStrictEqual(
+      toProverState.transactionsHash
+    );
   });
 });

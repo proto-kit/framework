@@ -1,4 +1,8 @@
-import { AreProofsEnabled, Configurable, ZkProgrammable } from "@yab/common";
+import {
+  AreProofsEnabled,
+  Configurable,
+  ZkProgrammable,
+} from "@proto-kit/common";
 
 import type { Protocol, ProtocolModulesRecord } from "./Protocol";
 import { noop } from "lodash";
@@ -12,7 +16,9 @@ export abstract class ProtocolModule<PublicInput, PublicOutput>
   public protocol?: Protocol<ProtocolModulesRecord>;
 
   public get appChain(): AreProofsEnabled | undefined {
-    return this.protocol?.dependencyContainer.resolve<AreProofsEnabled>("AppChain");
+    return this.protocol?.dependencyContainer.resolve<AreProofsEnabled>(
+      "AppChain"
+    );
   }
 
   public constructor() {

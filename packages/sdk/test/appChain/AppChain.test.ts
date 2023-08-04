@@ -7,7 +7,7 @@ import {
   state,
   StateMap,
   State,
-} from "@yab/module";
+} from "@proto-kit/module";
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
 import log from "loglevel";
 

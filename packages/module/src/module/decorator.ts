@@ -1,5 +1,5 @@
 import { injectable } from "tsyringe";
-import { StaticConfigurableModule, TypedClass } from "@yab/common";
+import { StaticConfigurableModule, TypedClass } from "@proto-kit/common";
 
 import { RuntimeModule } from "../runtime/RuntimeModule.js";
 

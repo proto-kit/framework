@@ -4,7 +4,7 @@ import {
   RollupMerkleTree,
   RollupMerkleWitness,
   StateTransitionWitnessProvider,
-} from "@yab/protocol";
+} from "@proto-kit/protocol";
 import { Field } from "snarkyjs";
 
 @injectable()

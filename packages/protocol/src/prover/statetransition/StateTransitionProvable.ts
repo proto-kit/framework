@@ -1,5 +1,5 @@
 import { Field, Proof, Struct } from "snarkyjs";
-import { ZkProgrammable } from "@yab/common";
+import { ZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
 

@@ -1,10 +1,10 @@
-import { ModulesConfig } from "@yab/common";
+import { ModulesConfig } from "@proto-kit/common";
 import {
   InMemoryStateService,
   Runtime,
   RuntimeModulesRecord,
-} from "@yab/module";
-import { ProtocolModulesRecord, VanillaProtocol } from "@yab/protocol";
+} from "@proto-kit/module";
+import { ProtocolModulesRecord, VanillaProtocol } from "@proto-kit/protocol";
 import {
   PrivateMempool,
   Sequencer,
@@ -16,7 +16,7 @@ import {
   LocalTaskQueue,
   SequencerModulesRecord,
   BlockTrigger,
-} from "@yab/sequencer";
+} from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "snarkyjs";
 import { InMemoryQueryTransportModule } from "../query/InMemoryQueryTransportModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";

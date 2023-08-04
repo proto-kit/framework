@@ -1,4 +1,4 @@
-import { Presets } from "@yab/common";
+import { Presets } from "@proto-kit/common";
 
 import {
   sequencerModule,

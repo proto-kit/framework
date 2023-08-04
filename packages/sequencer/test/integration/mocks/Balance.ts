@@ -5,12 +5,12 @@ import {
   RuntimeModule,
   state,
   State,
-  StateMap
-} from "@yab/module";
-import { Presets } from "@yab/common";
+  StateMap,
+} from "@proto-kit/module";
+import { Presets } from "@proto-kit/common";
 import { Provable, PublicKey, UInt64 } from "snarkyjs";
-import { Admin } from "@yab/module/test/modules/Admin";
-import { Option } from "@yab/protocol";
+import { Admin } from "@proto-kit/module/test/modules/Admin";
+import { Option } from "@proto-kit/protocol";
 
 @runtimeModule()
 export class Balance extends RuntimeModule<object> {

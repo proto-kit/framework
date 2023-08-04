@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { AsyncMerkleTreeStore } from "@yab/protocol";
+import { AsyncMerkleTreeStore } from "@proto-kit/protocol";
 
 import {
   DependencyFactory,

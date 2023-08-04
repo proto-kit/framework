@@ -1,4 +1,4 @@
-import { Path } from "@yab/protocol";
+import { Path } from "@proto-kit/protocol";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 

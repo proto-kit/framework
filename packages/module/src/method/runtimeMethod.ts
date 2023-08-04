@@ -5,8 +5,8 @@ import {
   DefaultProvableHashList,
   ProvableStateTransition,
   MethodPublicOutput,
-} from "@yab/protocol";
-import { DecoratedMethod, toProver, ZkProgrammable } from "@yab/common";
+} from "@proto-kit/protocol";
+import { DecoratedMethod, toProver, ZkProgrammable } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 

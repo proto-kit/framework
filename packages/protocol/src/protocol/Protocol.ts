@@ -5,7 +5,7 @@ import {
   ModulesRecord,
   StringKeyOf,
   TypedClass,
-} from "@yab/common";
+} from "@proto-kit/common";
 import { DependencyContainer } from "tsyringe";
 
 import {

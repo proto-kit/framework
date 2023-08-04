@@ -4,7 +4,7 @@ import {
   Runtime,
   RuntimeMethodExecutionContext,
   RuntimeProvableMethodExecutionResult,
-} from "@yab/module";
+} from "@proto-kit/module";
 import {
   CachedMerkleTreeStore,
   NetworkState,
@@ -13,9 +13,9 @@ import {
   RollupMerkleWitness,
   RuntimeTransaction,
   StateTransition,
-} from "@yab/protocol";
+} from "@proto-kit/protocol";
 import { Field } from "snarkyjs";
-import { log } from "@yab/common";
+import { log } from "@proto-kit/common";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinct } from "../../helpers/utils";

@@ -15,15 +15,15 @@ import {
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
-} from "@yab/protocol";
+} from "@proto-kit/protocol";
 import { Proof } from "snarkyjs";
 import {
   MethodParameterDecoder,
   Runtime,
   RuntimeMethodExecutionContext,
-} from "@yab/module";
+} from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { log, ProvableMethodExecutionContext } from "@yab/common";
+import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
 
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
@@ -165,7 +165,7 @@ export class RuntimeProvingTask
     const contextInputs = {
       networkState: input.networkState,
       transaction: runtimeTransaction,
-    }
+    };
     this.executionContext.setup(contextInputs);
 
     method(...decodedArguments);

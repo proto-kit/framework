@@ -1,5 +1,5 @@
 import { Field, Poseidon } from "snarkyjs";
-import { noop } from "@yab/protocol";
+import { noop } from "@proto-kit/protocol";
 
 import type { Mempool, MempoolCommitment } from "../Mempool.js";
 import type { PendingTransaction } from "../PendingTransaction.js";

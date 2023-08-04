@@ -1,5 +1,5 @@
 import { type Field, Scalar, Signature } from "snarkyjs";
-import { notInCircuit } from "@yab/protocol";
+import { notInCircuit } from "@proto-kit/protocol";
 
 /**
  * CompressedSignature compresses the s scalar of a Signature

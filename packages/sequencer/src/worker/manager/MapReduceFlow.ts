@@ -1,6 +1,6 @@
 /* eslint-disable promise/avoid-new */
-import { log } from "@yab/common";
-import { noop } from "@yab/protocol";
+import { log } from "@proto-kit/common";
+import { noop } from "@proto-kit/protocol";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 

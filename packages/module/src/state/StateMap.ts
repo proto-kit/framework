@@ -1,5 +1,5 @@
 import type { Field, FlexibleProvablePure } from "snarkyjs";
-import { Path, type Option } from "@yab/protocol";
+import { Path, type Option } from "@proto-kit/protocol";
 import { Mixin } from "ts-mixer";
 
 import { State, WithRuntime, WithPath } from "./State.js";

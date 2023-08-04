@@ -2,7 +2,7 @@ import {
   AsyncMerkleTreeStore,
   InMemoryMerkleTreeStorage,
   noop,
-} from "@yab/protocol";
+} from "@proto-kit/protocol";
 
 import {
   dependency,

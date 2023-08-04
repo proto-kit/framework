@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-magic-numbers,@typescript-eslint/no-unnecessary-condition */
-import { log } from "@yab/common";
+import { log } from "@proto-kit/common";
 
 import { RollupMerkleTree } from "./RollupMerkleTree.js";
 import { AsyncMerkleTreeStore, MerkleTreeStore } from "./MerkleTreeStore";

@@ -1,5 +1,5 @@
 {
-  "name": "@yab/protocol",
+  "name": "@proto-kit/protocol",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -21,7 +21,7 @@
     "reflect-metadata": "^0.1.13",
     "tsyringe": "^4.7.0",
     "lodash": "^4.17.21",
-    "@yab/common": "*"
+    "@proto-kit/common": "*"
   },
   "peerDependencies": {
     "tsyringe": "^4.7.0",

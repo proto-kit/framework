@@ -1,5 +1,5 @@
 {
-  "name": "@yab/common",
+  "name": "@proto-kit/common",
   "license": "MIT",
   "private": false,
   "type": "module",

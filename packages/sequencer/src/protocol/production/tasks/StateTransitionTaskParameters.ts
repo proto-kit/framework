@@ -2,7 +2,7 @@ import {
   ProvableStateTransition,
   RollupMerkleWitness,
   StateTransitionProverPublicInput,
-} from "@yab/protocol";
+} from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 

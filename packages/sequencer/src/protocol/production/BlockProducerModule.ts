@@ -7,9 +7,9 @@ import {
   DefaultProvableHashList,
   NetworkState,
   noop,
-} from "@yab/protocol";
+} from "@proto-kit/protocol";
 import { Field, Proof, UInt64 } from "snarkyjs";
-import { log, requireTrue } from "@yab/common";
+import { log, requireTrue } from "@proto-kit/common";
 
 import {
   sequencerModule,

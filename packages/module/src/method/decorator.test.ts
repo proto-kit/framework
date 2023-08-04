@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 import { Bool, Field } from "snarkyjs";
-import { Option, StateTransition } from "@yab/protocol";
+import { Option, StateTransition } from "@proto-kit/protocol";
 
 import { toStateTransitionsHash } from "./runtimeMethod.js";
 

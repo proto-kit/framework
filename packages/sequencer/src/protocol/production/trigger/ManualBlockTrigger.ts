@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { noop } from "@yab/protocol";
+import { noop } from "@proto-kit/protocol";
 
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { ComputedBlock } from "../../../storage/model/Block";

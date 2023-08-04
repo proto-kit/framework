@@ -10,7 +10,7 @@ import {
   UInt64,
 } from "snarkyjs";
 import { container } from "tsyringe";
-import { type ProvableStateTransition, Path } from "@yab/protocol";
+import { type ProvableStateTransition, Path } from "@proto-kit/protocol";
 
 import {
   InMemoryStateService,

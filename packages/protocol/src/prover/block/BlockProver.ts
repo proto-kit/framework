@@ -6,7 +6,7 @@ import {
   provableMethod,
   WithZkProgrammable,
   ZkProgrammable,
-} from "@yab/common";
+} from "@proto-kit/common";
 
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";

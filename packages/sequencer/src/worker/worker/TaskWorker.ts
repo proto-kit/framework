@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import groupBy from "lodash/groupBy";
-import { ArrayElement, log } from "@yab/common";
+import { ArrayElement, log } from "@proto-kit/common";
 
 import {
   AbstractTask,

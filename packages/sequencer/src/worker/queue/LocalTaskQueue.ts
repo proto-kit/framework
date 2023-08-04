@@ -1,5 +1,5 @@
-import { noop } from "@yab/protocol";
-import { log } from "@yab/common";
+import { noop } from "@proto-kit/protocol";
+import { log } from "@proto-kit/common";
 
 import { TaskPayload } from "../manager/ReducableTask";
 

@@ -3,15 +3,15 @@
 import "reflect-metadata";
 // eslint-disable-next-line @typescript-eslint/no-shadow
 import { beforeEach } from "@jest/globals";
-import { Fieldable, InMemoryStateService, Runtime } from "@yab/module";
+import { Fieldable, InMemoryStateService, Runtime } from "@proto-kit/module";
 // eslint-disable-next-line no-warning-comments
 // TODO this is acutally a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { AppChain } from "@yab/sdk";
-import { Path } from "@yab/protocol";
+import { AppChain } from "@proto-kit/sdk";
+import { Path } from "@proto-kit/protocol";
 import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
-import { log } from "@yab/common";
-import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
+import { log } from "@proto-kit/common";
+import { VanillaProtocol } from "@proto-kit/protocol/src/protocol/Protocol";
 
 import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";

@@ -1,6 +1,6 @@
-import { ConfigurableModule, Presets } from "@yab/common";
+import { ConfigurableModule, Presets } from "@proto-kit/common";
 import { container, injectable } from "tsyringe";
-import { NetworkState, RuntimeTransaction } from "@yab/protocol";
+import { NetworkState, RuntimeTransaction } from "@proto-kit/protocol";
 
 import {
   RuntimeMethodExecutionContext,

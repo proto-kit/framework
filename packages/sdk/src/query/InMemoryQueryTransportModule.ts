@@ -3,7 +3,7 @@ import {
   AsyncStateService,
   Sequencer,
   SequencerModulesRecord,
-} from "@yab/sequencer";
+} from "@proto-kit/sequencer";
 import { Field } from "snarkyjs";
 import { inject, injectable } from "tsyringe";
 

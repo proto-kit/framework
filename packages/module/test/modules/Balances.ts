@@ -1,6 +1,6 @@
 import { Bool, PublicKey, UInt64 } from "snarkyjs";
-import { Option } from "@yab/protocol";
-import { Presets } from "@yab/common";
+import { Option } from "@proto-kit/protocol";
+import { Presets } from "@proto-kit/common";
 
 import { State } from "../../src/state/State.js";
 import { state } from "../../src/state/decorator.js";

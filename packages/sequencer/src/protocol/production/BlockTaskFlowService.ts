@@ -1,6 +1,9 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Proof } from "snarkyjs";
-import { BlockProverPublicInput, BlockProverPublicOutput } from "@yab/protocol";
+import {
+  BlockProverPublicInput,
+  BlockProverPublicOutput,
+} from "@proto-kit/protocol";
 
 import { PairingMapReduceFlow } from "../../worker/manager/PairingMapReduceFlow";
 import { TaskQueue } from "../../worker/queue/TaskQueue";
@@ -11,7 +14,7 @@ import {
   BlockProverParameters,
   BlockProvingTask,
   RuntimeProvingTask,
-  StateTransitionTask
+  StateTransitionTask,
 } from "./tasks/BlockProvingTask";
 import type { TransactionTrace } from "./BlockProducerModule";
 

@@ -7,8 +7,8 @@ import {
   Signature,
   UInt64,
 } from "snarkyjs";
-import { ProtocolTransaction } from "@yab/protocol/dist/model/transaction/ProtocolTransaction";
-import { Protocol } from "@yab/protocol";
+import { ProtocolTransaction } from "@proto-kit/protocol/dist/model/transaction/ProtocolTransaction";
+import { Protocol } from "@proto-kit/protocol";
 
 export class UnsignedTransaction {
   public methodId: Field;

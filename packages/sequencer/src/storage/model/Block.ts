@@ -1,4 +1,7 @@
-import { BlockProverPublicInput, BlockProverPublicOutput } from "@yab/protocol";
+import {
+  BlockProverPublicInput,
+  BlockProverPublicOutput,
+} from "@proto-kit/protocol";
 import { Proof } from "snarkyjs";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";

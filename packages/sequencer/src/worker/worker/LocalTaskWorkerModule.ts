@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { noop, Protocol, ProtocolModulesRecord } from "@yab/protocol";
+import { noop, Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
 
 import {
   sequencerModule,

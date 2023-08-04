@@ -14,7 +14,11 @@ import { StateTransitionProvableBatch } from "../../model/StateTransitionProvabl
 import { constants } from "../../Constants";
 
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
-import { AreProofsEnabled, PlainZkProgram, provableMethod } from "@yab/common";
+import {
+  AreProofsEnabled,
+  PlainZkProgram,
+  provableMethod,
+} from "@proto-kit/common";
 import {
   StateTransitionProvable,
   StateTransitionProverPublicInput,
@@ -174,7 +178,12 @@ export class StateTransitionProver
     const treeWitness = Provable.witness(RollupMerkleWitness, () =>
       this.witnessProvider.getWitness(transition.path)
     );
-    Provable.log(`ST (${index})`, state.stateRoot, " value: ", transition.from.value);
+    Provable.log(
+      `ST (${index})`,
+      state.stateRoot,
+      " value: ",
+      transition.from.value
+    );
     const membershipValid = MerkleTreeUtils.checkMembership(
       treeWitness,
       state.stateRoot,

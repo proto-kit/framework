@@ -3,7 +3,7 @@
 import { Mixin } from "ts-mixer";
 import { Bool, Field, Provable, type FlexibleProvablePure } from "snarkyjs";
 import { container } from "tsyringe";
-import { Option, StateTransition, type Path } from "@yab/protocol";
+import { Option, StateTransition, type Path } from "@proto-kit/protocol";
 
 import { PartialRuntime } from "../runtime/RuntimeModule.js";
 import { RuntimeMethodExecutionContext } from "../method/RuntimeMethodExecutionContext.js";

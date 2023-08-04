@@ -5,8 +5,13 @@
 /* eslint-disable guard-for-in */
 /* eslint-disable @shopify/no-fully-static-classes */
 /* eslint-disable import/no-unused-modules */
-import { StringKeyOf } from "@yab/common";
-import { Runtime, RuntimeModulesRecord, State, StateMap } from "@yab/module";
+import { StringKeyOf } from "@proto-kit/common";
+import {
+  Runtime,
+  RuntimeModulesRecord,
+  State,
+  StateMap,
+} from "@proto-kit/module";
 import { QueryTransportModule } from "./InMemoryQueryTransportModule";
 
 type StateMapKey<Type> = Type extends StateMap<infer Key, any> ? Key : Type;

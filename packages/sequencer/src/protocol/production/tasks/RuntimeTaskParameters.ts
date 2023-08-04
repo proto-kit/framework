@@ -1,5 +1,5 @@
 import { Field } from "snarkyjs";
-import { NetworkState, ReturnType } from "@yab/protocol";
+import { NetworkState, ReturnType } from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
@@ -42,12 +42,14 @@ export class RuntimeProofParametersSerializer
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const jsonReadyObject: {
       tx: ReturnType<PendingTransaction["toJSON"]>;
-      networkState: ReturnType<typeof NetworkState["toJSON"]>;
+      networkState: ReturnType<(typeof NetworkState)["toJSON"]>;
       state: JSONEncodableState;
     } = JSON.parse(json);
     return {
       tx: PendingTransaction.fromJSON(jsonReadyObject.tx),
-      networkState: new NetworkState(NetworkState.fromJSON(jsonReadyObject.networkState)),
+      networkState: new NetworkState(
+        NetworkState.fromJSON(jsonReadyObject.networkState)
+      ),
 
       state: Object.entries(jsonReadyObject.state).reduce<DecodedState>(
         (aggregator, entry) => {

@@ -1,6 +1,6 @@
-import { InMemoryStateService } from "@yab/module";
+import { InMemoryStateService } from "@proto-kit/module";
 import { Field } from "snarkyjs";
-import { log } from "@yab/common";
+import { log } from "@proto-kit/common";
 
 import { AsyncStateService } from "../state/AsyncStateService";
 

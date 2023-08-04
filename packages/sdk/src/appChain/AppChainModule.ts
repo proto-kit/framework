@@ -4,10 +4,10 @@ import {
   ModulesRecord,
   Presets,
   TypedClass,
-} from "@yab/common";
-import { RuntimeModulesRecord } from "@yab/module";
-import { ProtocolModulesRecord } from "@yab/protocol";
-import { SequencerModulesRecord } from "@yab/sequencer";
+} from "@proto-kit/common";
+import { RuntimeModulesRecord } from "@proto-kit/module";
+import { ProtocolModulesRecord } from "@proto-kit/protocol";
+import { SequencerModulesRecord } from "@proto-kit/sequencer";
 import { injectable } from "tsyringe";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
