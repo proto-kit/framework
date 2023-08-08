@@ -158,6 +158,7 @@ export class PairingMapReduceFlow<
         output2: task.secondPairing.resultSerializer(),
       };
       const mapReduceInputSerializer = task.reducingTask.inputSerializer();
+      const mapReduceOutputSerializer = task.reducingTask.resultSerializer();
 
       // Collects all matching pairs of calculated inputs
       const pairingCollector = this.createNewPairingCollector(inputs, taskIds);
@@ -201,7 +202,7 @@ export class PairingMapReduceFlow<
           case task.reducingTask.name(): {
             // Handle mapping result and delegate new input to MapReduceRunner
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const parsedResult: Result = JSON.parse(payload.payload);
+            const parsedResult: Result = mapReduceOutputSerializer.fromJSON(payload.payload);
 
             // This should prevent a non-resolvablility issue when you only have
             // one input pair and therefore there will be no reduction step

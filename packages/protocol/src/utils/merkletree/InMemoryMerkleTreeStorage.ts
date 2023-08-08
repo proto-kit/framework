@@ -63,13 +63,20 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
     for (let level = 0; level < height; level++) {
       const key = index;
 
+      const isLeft = index % 2n === 0n;
+      const siblingKey = isLeft ? index + 1n : index - 1n;
+
       // eslint-disable-next-line no-await-in-loop
       const value = await this.parent.getNode(key, level);
+      const sibling = await this.parent.getNode(siblingKey, level);
       if (level === 0) {
-        log.debug(`Preloaded ${key} -> ${value ?? "-"}`);
+        log.debug(`Preloaded ${key} @ ${level} -> ${value ?? "-"}`);
       }
       if (value !== undefined) {
-        (this.nodes[level] ??= {})[key.toString()] = value;
+        this.setNode(key, level, value);
+      }
+      if(sibling !== undefined) {
+        this.setNode(siblingKey, level, sibling);
       }
       index /= 2n;
     }

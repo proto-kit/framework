@@ -18,11 +18,10 @@ export function assert(condition: Bool, message?: string) {
   const previousStatus = executionContext.current().result.status;
   const status = Provable.if(previousStatus, Bool, condition, previousStatus);
 
-  if (!status.toBoolean()) {
+  if (!condition.toBoolean()) {
     log.debug("Assertion failed: ", message);
+    executionContext.setStatusMessage(message);
   }
 
-  // const status = previousStatus.and(condition);
   executionContext.setStatus(status);
-  executionContext.setStatusMessage(message);
 }

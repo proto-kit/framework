@@ -6,7 +6,7 @@ import {
   Option,
   ProvableStateTransition,
   DefaultProvableHashList,
-  StateTransitionProvableBatch, CachedMerkleTreeStore
+  StateTransitionProvableBatch, CachedMerkleTreeStore, InMemoryMerkleTreeStorage
 } from "../src/index";
 import {
   RollupMerkleTree,
@@ -108,7 +108,7 @@ describe("stateTransition", () => {
   ])("should pass without throwing", async (transitions) => {
     expect.assertions(2);
 
-    const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
+    const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
 
     // Is ignored because overwritten by first transition
     tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
@@ -168,7 +168,7 @@ describe("stateTransition", () => {
     async (transitions, index) => {
       expect.assertions(1);
 
-      const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
+      const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
 
       // Is ignored because overwritten by first transition
       tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);

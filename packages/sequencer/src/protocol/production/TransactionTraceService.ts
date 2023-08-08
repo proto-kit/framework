@@ -170,6 +170,7 @@ export class TransactionTraceService {
     toStateRoot: Field;
   }> {
     const keys = this.allKeys(stateTransitions);
+
     await Promise.all(
       keys.map(async (key) => {
         await merkleStore.preloadKey(key.toBigInt());

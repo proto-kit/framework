@@ -98,7 +98,10 @@ export class StateTransitionTask
       input.publicInput,
       StateTransitionProvableBatch.fromTransitions(stBatch)
     );
-    log.debug("STTask output:", output);
+    log.debug(
+      "STTask output:",
+      StateTransitionProverPublicOutput.toJSON(output)
+    );
 
     const proof = await this.executionContext
       .current()
@@ -266,6 +269,7 @@ export class BlockProvingTask
             publicInput: BlockProverPublicInput.fromJSON(
               jsonReadyObject.params.publicInput
             ),
+
             executionData: BlockProverExecutionData.fromJSON(
               jsonReadyObject.params.executionData
             ),

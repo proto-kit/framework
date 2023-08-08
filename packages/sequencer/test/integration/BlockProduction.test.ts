@@ -8,10 +8,9 @@ import { Fieldable, InMemoryStateService, Runtime } from "@proto-kit/module";
 // TODO this is acutally a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
-import { Path } from "@proto-kit/protocol";
-import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
+import { Path, VanillaProtocol } from "@proto-kit/protocol";
+import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { log } from "@proto-kit/common";
-import { VanillaProtocol } from "@proto-kit/protocol/src/protocol/Protocol";
 
 import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
