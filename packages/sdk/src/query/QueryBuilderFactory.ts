@@ -64,6 +64,20 @@ export type Query<RuntimeModules extends RuntimeModulesRecord> = {
 };
 
 export class QueryBuilderFactory {
+  public static isStateMap(
+    property: any
+  ): asserts property is StateMap<any, any> {
+    if ((property as any)?.constructor?.name !== StateMap.name) {
+      throw new Error("Property is not a StateMap");
+    }
+  }
+
+  public static isState(property: any): asserts property is State<any> {
+    if ((property as any)?.constructor?.name !== State.name) {
+      throw new Error("Property is not a StateMap");
+    }
+  }
+
   public static fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
     runtime: Runtime<RuntimeModules>,
     queryTransportModule: QueryTransportModule
@@ -78,7 +92,9 @@ export class QueryBuilderFactory {
 
         for (const propertyName in runtimeModule) {
           const property = runtimeModule[propertyName];
-          if (property instanceof StateMap) {
+
+          if ((property as any)?.constructor.name === StateMap.name) {
+            QueryBuilderFactory.isStateMap(property);
             (query as any)[runtimeModuleName as any] = {
               ...(query as any)[runtimeModuleName as any],
 
@@ -94,7 +110,8 @@ export class QueryBuilderFactory {
             };
           }
 
-          if (property instanceof State) {
+          if ((property as any)?.constructor.name === State.name) {
+            QueryBuilderFactory.isState(property);
             (query as any)[runtimeModuleName as any] = {
               ...(query as any)[runtimeModuleName as any],
 
