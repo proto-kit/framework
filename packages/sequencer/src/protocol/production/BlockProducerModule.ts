@@ -38,7 +38,7 @@ export interface StateRecord {
 
 export interface TransactionTrace {
   runtimeProver: RuntimeProofParameters;
-  stateTransitionProver: StateTransitionProofParameters;
+  stateTransitionProver: StateTransitionProofParameters[];
   blockProver: BlockProverParameters;
 }
 

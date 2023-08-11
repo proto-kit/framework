@@ -10,11 +10,11 @@ import {
   ProvableStateTransition,
   // eslint-disable-next-line @typescript-eslint/no-shadow
   ReturnType,
-  RuntimeTransaction,
+  RuntimeTransaction, StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput,
+  StateTransitionProverPublicOutput
 } from "@proto-kit/protocol";
 import { Proof } from "snarkyjs";
 import {
@@ -22,10 +22,15 @@ import {
   Runtime,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/module";
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
+import { inject, injectable, Lifecycle, scoped, singleton } from "tsyringe";
+import {
+  CompileArtifact,
+  log, PlainZkProgram,
+  ProvableMethodExecutionContext,
+  ZkProgrammable
+} from "@proto-kit/common";
 
-import { ProofTaskSerializer } from "../../../helpers/utils";
+import { PairProofTaskSerializer, PairTuple, ProofTaskSerializer } from "../../../helpers/utils";
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
 import {
   MappingTask,
@@ -43,148 +48,11 @@ import {
   RuntimeProofParametersSerializer,
 } from "./RuntimeTaskParameters";
 import { PreFilledWitnessProvider } from "./providers/PreFilledWitnessProvider";
+import { Task } from "../../../worker/flow/Task";
+import { CompileRegistry } from "./CompileRegistry";
 
-type StateTransitionProof = Proof<
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
->;
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-
-@injectable()
-@scoped(Lifecycle.ContainerScoped)
-export class StateTransitionTask
-  implements MappingTask<StateTransitionProofParameters, StateTransitionProof>
-{
-  protected readonly stateTransitionProver: StateTransitionProvable;
-
-  public constructor(
-    @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
-    private readonly executionContext: ProvableMethodExecutionContext
-  ) {
-    this.stateTransitionProver = this.protocol.stateTransitionProver;
-  }
-
-  public inputSerializer(): TaskSerializer<StateTransitionProofParameters> {
-    return new StateTransitionParametersSerializer();
-  }
-
-  public resultSerializer(): TaskSerializer<StateTransitionProof> {
-    return new ProofTaskSerializer(this.stateTransitionProver.zkProgram.Proof);
-  }
-
-  public name(): string {
-    return "stateTransitionProof";
-  }
-
-  public async map(
-    input: StateTransitionProofParameters
-  ): Promise<StateTransitionProof> {
-    const witnessProvider = new PreFilledWitnessProvider(input.merkleWitnesses);
-
-    const { witnessProviderReference } = this.stateTransitionProver;
-    const previousProvider = witnessProviderReference.getWitnessProvider();
-    witnessProviderReference.setWitnessProvider(witnessProvider);
-
-    const stBatch = input.batch.slice();
-    Array.from({
-      length: ProtocolConstants.stateTransitionProverBatchSize - stBatch.length,
-    }).forEach(() => {
-      stBatch.push(ProvableStateTransition.dummy());
-    });
-
-    const output = this.stateTransitionProver.runBatch(
-      input.publicInput,
-      StateTransitionProvableBatch.fromTransitions(stBatch)
-    );
-    log.debug(
-      "STTask output:",
-      StateTransitionProverPublicOutput.toJSON(output)
-    );
-
-    const proof = await this.executionContext
-      .current()
-      .result.prove<StateTransitionProof>();
-
-    if (previousProvider !== undefined) {
-      witnessProviderReference.setWitnessProvider(previousProvider);
-    }
-    return proof;
-  }
-
-  public async prepare(): Promise<void> {
-    await this.stateTransitionProver.zkProgram.compile();
-  }
-}
-
-@injectable()
-@scoped(Lifecycle.ContainerScoped)
-export class RuntimeProvingTask
-  implements MappingTask<RuntimeProofParameters, RuntimeProof>
-{
-  protected readonly runtimeZkProgrammable =
-    this.runtime.zkProgrammable.zkProgram;
-
-  public constructor(
-    @inject("Runtime") protected readonly runtime: Runtime<never>,
-    private readonly executionContext: RuntimeMethodExecutionContext
-  ) {}
-
-  public inputSerializer(): TaskSerializer<RuntimeProofParameters> {
-    return new RuntimeProofParametersSerializer();
-  }
-
-  public resultSerializer(): TaskSerializer<RuntimeProof> {
-    return new ProofTaskSerializer(this.runtimeZkProgrammable.Proof);
-  }
-
-  public name(): string {
-    return "runtimeProof";
-  }
-
-  public async map(input: RuntimeProofParameters): Promise<RuntimeProof> {
-    const method = this.runtime.getMethodById(input.tx.methodId.toBigInt());
-
-    const [moduleName, methodName] = this.runtime.getMethodNameFromId(
-      input.tx.methodId.toBigInt()
-    );
-
-    const parameterDecoder = MethodParameterDecoder.fromMethod(
-      this.runtime.resolve(moduleName),
-      methodName
-    );
-    const decodedArguments = parameterDecoder.fromFields(input.tx.args);
-
-    const prefilledStateService = new PreFilledStateService(input.state);
-    this.runtime.stateServiceProvider.setCurrentStateService(
-      prefilledStateService
-    );
-
-    // Set network state and transaction for the runtimemodule to access
-    const runtimeTransaction = RuntimeTransaction.fromProtocolTransaction(
-      input.tx.toProtocolTransaction()
-    );
-    const contextInputs = {
-      networkState: input.networkState,
-      transaction: runtimeTransaction,
-    };
-    this.executionContext.setup(contextInputs);
-
-    method(...decodedArguments);
-    const { result } = this.executionContext.current();
-
-    this.executionContext.setup(contextInputs);
-    const proof = await result.prove<RuntimeProof>();
-
-    this.runtime.stateServiceProvider.resetToDefault();
-    return proof;
-  }
-
-  public async prepare(): Promise<void> {
-    await this.runtimeZkProgrammable.compile();
-  }
-}
 
 export interface BlockProverParameters {
   publicInput: BlockProverPublicInput;
@@ -199,8 +67,43 @@ export type BlockProvingTaskParameters = PairingDerivedInput<
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+export class BlockReductionTask implements Task<PairTuple<BlockProof>, BlockProof> {
+  private readonly blockProver: BlockProvable;
+
+  public constructor(
+    @inject("Protocol")
+    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly executionContext: ProvableMethodExecutionContext,
+    private readonly compileRegistry: CompileRegistry
+  ) {
+    this.blockProver = this.protocol.blockProver;
+  }
+
+  public inputSerializer(): TaskSerializer<PairTuple<BlockProof>> {
+    return new PairProofTaskSerializer(this.blockProver.zkProgram.Proof);
+  }
+
+  public name = "blockReduction";
+
+  public resultSerializer(): TaskSerializer<BlockProof> {
+    return new ProofTaskSerializer(this.blockProver.zkProgram.Proof);
+  }
+
+  public async compute(input: PairTuple<BlockProof>): Promise<BlockProof> {
+    const [r1, r2] = input;
+    this.blockProver.merge(r1.publicInput, r1, r2);
+    return await this.executionContext.current().result.prove<BlockProof>();
+  }
+
+  public async prepare(): Promise<void> {
+    await this.compileRegistry.compile("BlockProver", this.blockProver.zkProgram)
+  }
+}
+
+@injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class BlockProvingTask
-  implements MapReduceTask<BlockProvingTaskParameters, BlockProof>
+  implements Task<BlockProvingTaskParameters, BlockProof>
 {
   private readonly stateTransitionProver: StateTransitionProvable;
 
@@ -213,16 +116,15 @@ export class BlockProvingTask
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>,
     @inject("Runtime") private readonly runtime: Runtime<never>,
-    private readonly executionContext: ProvableMethodExecutionContext
+    private readonly executionContext: ProvableMethodExecutionContext,
+    private readonly compileRegistry: CompileRegistry
   ) {
     this.stateTransitionProver = protocol.stateTransitionProver;
 
     this.blockProver = this.protocol.blockProver;
   }
 
-  public name(): string {
-    return "block";
-  }
+  public name = "block";
 
   public inputSerializer(): TaskSerializer<BlockProvingTaskParameters> {
     const stProofSerializer = new ProofTaskSerializer(
@@ -279,24 +181,24 @@ export class BlockProvingTask
     };
   }
 
-  public reducible(r1: BlockProof, r2: BlockProof): boolean {
-    return this.orderedReducible(r1, r2) || this.orderedReducible(r2, r1);
-  }
-
-  private orderedReducible(r1: BlockProof, r2: BlockProof): boolean {
-    return r1.publicOutput.stateRoot
-      .equals(r2.publicInput.stateRoot)
-      .and(
-        r1.publicOutput.transactionsHash.equals(r2.publicInput.transactionsHash)
-      )
-      .toBoolean();
-  }
+  // public reducible(r1: BlockProof, r2: BlockProof): boolean {
+  //   return this.orderedReducible(r1, r2) || this.orderedReducible(r2, r1);
+  // }
+  //
+  // private orderedReducible(r1: BlockProof, r2: BlockProof): boolean {
+  //   return r1.publicOutput.stateRoot
+  //     .equals(r2.publicInput.stateRoot)
+  //     .and(
+  //       r1.publicOutput.transactionsHash.equals(r2.publicInput.transactionsHash)
+  //     )
+  //     .toBoolean();
+  // }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
     return new ProofTaskSerializer(this.blockProver.zkProgram.Proof);
   }
 
-  public async map(
+  public async compute(
     input: PairingDerivedInput<
       StateTransitionProof,
       RuntimeProof,
@@ -316,11 +218,6 @@ export class BlockProvingTask
 
   public async prepare(): Promise<void> {
     // Compile
-    await this.blockProver.zkProgram.compile();
-  }
-
-  public async reduce(r1: BlockProof, r2: BlockProof): Promise<BlockProof> {
-    this.blockProver.merge(r1.publicInput, r1, r2);
-    return await this.executionContext.current().result.prove<BlockProof>();
+    await this.compileRegistry.compile("BlockProver", this.blockProver.zkProgram)
   }
 }

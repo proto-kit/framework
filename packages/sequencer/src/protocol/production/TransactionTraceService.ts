@@ -7,8 +7,11 @@ import {
 } from "@proto-kit/module";
 import {
   CachedMerkleTreeStore,
+  DefaultProvableHashList,
   NetworkState,
+  ProtocolConstants,
   ProvableHashList,
+  ProvableStateTransition,
   RollupMerkleTree,
   RollupMerkleWitness,
   RuntimeTransaction,
@@ -24,6 +27,8 @@ import { ComputedBlockTransaction } from "../../storage/model/Block";
 import { CachedStateService } from "./execution/CachedStateService";
 import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
+import chunk from "lodash/chunk";
+import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -109,8 +114,14 @@ export class TransactionTraceService {
     );
     const { stateTransitions, status, statusMessage } = executionResult;
 
+    console.log(
+      stateTransitions.map((x) =>
+        ProvableStateTransition.toJSON(x.toProvable())
+      )
+    );
+
     // Step 3
-    const { witnesses, fromStateRoot } = await this.createMerkleTrace(
+    const { stParameters, fromStateRoot } = await this.createMerkleTrace(
       stateServices.merkleStore,
       stateTransitions
     );
@@ -125,16 +136,7 @@ export class TransactionTraceService {
         networkState,
       },
 
-      stateTransitionProver: {
-        publicInput: {
-          stateRoot: fromStateRoot,
-          stateTransitionsHash: Field(0),
-        },
-
-        batch: stateTransitions.map((transition) => transition.toProvable()),
-
-        merkleWitnesses: witnesses,
-      },
+      stateTransitionProver: stParameters,
 
       blockProver: {
         publicInput: {
@@ -165,9 +167,8 @@ export class TransactionTraceService {
     merkleStore: CachedMerkleTreeStore,
     stateTransitions: StateTransition<unknown>[]
   ): Promise<{
-    witnesses: RollupMerkleWitness[];
+    stParameters: StateTransitionProofParameters[];
     fromStateRoot: Field;
-    toStateRoot: Field;
   }> {
     const keys = this.allKeys(stateTransitions);
 
@@ -178,27 +179,58 @@ export class TransactionTraceService {
     );
 
     const tree = new RollupMerkleTree(merkleStore);
+    const batchFromStateRoot = tree.getRoot();
 
-    const fromStateRoot = tree.getRoot();
+    const transitionsList = new DefaultProvableHashList(
+      ProvableStateTransition
+    );
 
-    const witnesses = stateTransitions.map((transition, index) => {
-      const witness = tree.getWitness(transition.path.toBigInt());
+    const stParameters = chunk(
+      stateTransitions,
+      ProtocolConstants.stateTransitionProverBatchSize
+    ).map<StateTransitionProofParameters>((chunk) => {
+      const fromStateRoot = tree.getRoot();
+      const fromTransitionsHash = transitionsList.commitment;
 
-      const provableTransition = transition.toProvable();
+      const merkleWitnesses = chunk.map((transition, index) => {
+        const witness = tree.getWitness(transition.path.toBigInt());
 
-      if (transition.to.isSome.toBoolean()) {
-        tree.setLeaf(
-          provableTransition.path.toBigInt(),
-          provableTransition.to.value
+        const provableTransition = transition.toProvable();
+
+        if (transition.to.isSome.toBoolean()) {
+          tree.setLeaf(
+            provableTransition.path.toBigInt(),
+            provableTransition.to.value
+          );
+        }
+
+        transitionsList.pushIf(
+          provableTransition,
+          provableTransition.path.equals(Field(0)).not()
         );
-      }
-      return witness;
+
+        return witness;
+      });
+
+      // console.log(
+      //   "Paths:",
+      //   witnesses.map((witness) => witness.calculateIndex().toString())
+      // );
+
+      return {
+        merkleWitnesses,
+        batch: chunk.map((st) => st.toProvable()),
+
+        publicInput: {
+          stateRoot: fromStateRoot,
+          stateTransitionsHash: fromTransitionsHash,
+        },
+      };
     });
 
     return {
-      witnesses,
-      fromStateRoot,
-      toStateRoot: tree.getRoot(),
+      stParameters,
+      fromStateRoot: batchFromStateRoot,
     };
   }
 
