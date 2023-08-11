@@ -1,8 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
 
-import { TextEncoder, TextDecoder } from "node:util";
-
 import { Circuit, Field, Poseidon, Proof } from "snarkyjs";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
@@ -46,6 +44,7 @@ export function notInCircuit(): MethodDecorator {
 export function stringToField(value: string, throwOnOverflow = false) {
   const fieldSize = Field.sizeInBytes();
 
+  // eslint-disable-next-line putout/putout
   const encoder = new TextEncoder();
 
   const stringBytes = Array.from(encoder.encode(value));
@@ -95,6 +94,7 @@ export function fieldToString(value: Field | bigint): string {
 
   bytes = bytes.slice(0, zeroesStart);
 
+  // eslint-disable-next-line putout/putout
   const decoder = new TextDecoder();
 
   return decoder.decode(new Uint8Array(bytes));

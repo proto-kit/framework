@@ -5,7 +5,7 @@ export * from "./sequencer/builder/DependencyFactory";
 export * from "./worker/manager/ReducableTask";
 export * from "./worker/manager/MapReduceFlow";
 export * from "./worker/manager/PairingMapReduceFlow";
-export * from "./worker/queue/BullQueue";
+// export * from "./worker/queue/BullQueue";
 export * from "./worker/queue/TaskQueue";
 export * from "./worker/worker/TaskWorker";
 export * from "./protocol/baselayer/BaseLayer";
