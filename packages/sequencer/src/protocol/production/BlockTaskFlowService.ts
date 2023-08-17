@@ -22,6 +22,7 @@ import {
   BlockProvingTask,
   BlockReductionTask,
 } from "./tasks/BlockProvingTask";
+import { log } from "@proto-kit/common";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -122,8 +123,6 @@ export class BlockTaskFlowService {
   ) {
     const reductionInfo = flow.state.stReduction[index];
 
-    console.log(reductionInfo.queue.length);
-
     if (reductionInfo.queue.length >= 2) {
       const taskParameters: PairTuple<StateTransitionProof> = [
         reductionInfo.queue[0],
@@ -134,6 +133,11 @@ export class BlockTaskFlowService {
         this.stateTransitionReductionTask,
         taskParameters,
         async (result) => {
+          reductionInfo.numMergesCompleted += 1;
+          log.debug(
+            `${reductionInfo.numMergesCompleted} from ${reductionInfo.numProofs} ST Reductions completed `
+          );
+
           if (
             reductionInfo.numMergesCompleted ===
             reductionInfo.numProofs - 1
@@ -142,7 +146,6 @@ export class BlockTaskFlowService {
             flow.state.pairings[index].stProof = result;
             await this.pushPairing(flow, index);
           } else {
-            reductionInfo.numMergesCompleted += 1;
             reductionInfo.queue.push(result);
             await this.resolveSTReduction(flow, index);
           }
