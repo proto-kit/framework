@@ -43,7 +43,9 @@ export class PreFilledWitnessProvider
     //   throw errors.noWitnessAvailable();
     // }
 
-    if (!witness.calculateIndex().equals(key).toBoolean()) {
+    const computedKey = witness.calculateIndex();
+    console.log("Computed Key for witness", computedKey.toString());
+    if (!computedKey.equals(key).toBoolean()) {
       throw errors.keysDoNotMatch();
     }
     this.cursor += 1;

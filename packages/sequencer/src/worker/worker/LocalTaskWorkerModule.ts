@@ -8,11 +8,15 @@ import {
 import { TaskQueue } from "../queue/TaskQueue";
 import {
   BlockProvingTask,
-  RuntimeProvingTask,
-  StateTransitionTask,
+  BlockReductionTask,
 } from "../../protocol/production/tasks/BlockProvingTask";
+import {
+  StateTransitionReductionTask,
+  StateTransitionTask,
+} from "../../protocol/production/tasks/StateTransitionTask";
+import { RuntimeProvingTask } from "../../protocol/production/tasks/RuntimeProvingTask";
 
-import { TaskWorker } from "./TaskWorker";
+import { FlowTaskWorker } from "./FlowTaskWorker";
 
 /**
  * This module spins up a worker in the current local node instance.
@@ -25,8 +29,10 @@ export class LocalTaskWorkerModule extends SequencerModule<object> {
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,
     private readonly stateTransitionTask: StateTransitionTask,
+    private readonly stateTransitionReductionTask: StateTransitionReductionTask,
     private readonly runtimeProvingTask: RuntimeProvingTask,
     private readonly blockProvingTask: BlockProvingTask,
+    private readonly blockReductionTask: BlockReductionTask,
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>
   ) {
@@ -34,10 +40,13 @@ export class LocalTaskWorkerModule extends SequencerModule<object> {
   }
 
   public async start(): Promise<void> {
-    const worker = new TaskWorker(this.taskQueue);
-    worker.addMapTask("block", this.stateTransitionTask);
-    worker.addMapTask("block", this.runtimeProvingTask);
-    worker.addMapReduceTask("block", this.blockProvingTask);
+    const worker = new FlowTaskWorker(this.taskQueue, [
+      this.stateTransitionTask,
+      this.stateTransitionReductionTask,
+      this.runtimeProvingTask,
+      this.blockProvingTask,
+      this.blockReductionTask,
+    ]);
     worker
       .start()
       // eslint-disable-next-line max-len

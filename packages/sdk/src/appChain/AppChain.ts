@@ -12,7 +12,6 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
-  dependency,
   Sequencer,
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
@@ -20,8 +19,8 @@ import {
   NetworkState,
   Protocol,
   ProtocolModulesRecord,
-  ProtocolTransaction,
   RuntimeTransaction,
+  StateTransitionWitnessProviderReference
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { UnsignedTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
@@ -30,7 +29,6 @@ import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { StateTransitionWitnessProviderReference } from "@proto-kit/protocol";
 import { QueryBuilderFactory } from "../query/QueryBuilderFactory";
 import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
 
@@ -219,16 +217,11 @@ export class AppChain<
         useValue: reference,
       }
     );
-    this.sequencer.dependencyContainer.register(
-      "StateTransitionWitnessProviderReference",
-      {
-        useValue: reference,
-      }
-    );
 
     this.sequencer.registerValue({
       Runtime: this.runtime,
       Protocol: this.protocol,
+      StateTransitionWitnessProviderReference: reference,
     });
 
     await this.sequencer.start();

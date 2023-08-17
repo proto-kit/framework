@@ -8,7 +8,7 @@ import {
   StateMap,
 } from "@proto-kit/module";
 import { Presets } from "@proto-kit/common";
-import { Provable, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, Provable, PublicKey, UInt64 } from "snarkyjs";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option } from "@proto-kit/protocol";
 
@@ -65,6 +65,7 @@ export class Balance extends RuntimeModule<object> {
 
     Provable.log("Sender:", address);
     Provable.log("Balance:", balance.isSome, balance.value);
+    Provable.log("BlockHeight:", this.network.block.height);
 
     assert(blockHeight.equals(this.network.block.height));
 

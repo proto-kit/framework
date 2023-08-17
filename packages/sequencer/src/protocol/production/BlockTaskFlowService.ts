@@ -3,23 +3,44 @@ import { Proof } from "snarkyjs";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  MethodPublicOutput, StateTransitionProof,
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
+  MethodPublicOutput,
+  StateTransitionProof,
 } from "@proto-kit/protocol";
 
 import { TaskQueue } from "../../worker/queue/TaskQueue";
+import { Flow, FlowCreator } from "../../worker/flow/Flow";
+import { PairTuple } from "../../helpers/utils";
 
-import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
-import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import type { TransactionTrace } from "./BlockProducerModule";
-import { FlowCreator } from "../../worker/flow/Flow";
-import { StateTransitionReductionTask, StateTransitionTask } from "./tasks/StateTransitionTask";
+import {
+  StateTransitionReductionTask,
+  StateTransitionTask,
+} from "./tasks/StateTransitionTask";
 import { RuntimeProvingTask } from "./tasks/RuntimeProvingTask";
-import { BlockProvingTask, BlockReductionTask } from "./tasks/BlockProvingTask";
+import {
+  BlockProverParameters,
+  BlockProvingTask,
+  BlockReductionTask,
+} from "./tasks/BlockProvingTask";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
+
+interface ReductionFlowState<ProofType> {
+  numProofs: number;
+  numMergesCompleted: number;
+  queue: ProofType[];
+}
+
+interface BlockProductionFlowState {
+  pairings: {
+    runtimeProof?: RuntimeProof;
+    stProof?: StateTransitionProof;
+    blockArguments: BlockProverParameters;
+  }[];
+  stReduction: ReductionFlowState<StateTransitionProof>[];
+  blockReduction: ReductionFlowState<BlockProof>;
+}
 
 /**
  * We could rename this into BlockCreationStategy and enable the injection of
@@ -28,6 +49,7 @@ type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class BlockTaskFlowService {
+  // eslint-disable-next-line max-params
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,
     private readonly flowCreator: FlowCreator,
@@ -38,167 +60,151 @@ export class BlockTaskFlowService {
     private readonly blockReductionTask: BlockReductionTask
   ) {}
 
+  public async pushPairing(
+    flow: Flow<BlockProductionFlowState>,
+    index: number
+  ) {
+    const { runtimeProof, stProof, blockArguments } =
+      flow.state.pairings[index];
+
+    if (runtimeProof !== undefined && stProof !== undefined) {
+      console.log(`Found pairing ${index}`);
+
+      await flow.pushTask(
+        this.blockProvingTask,
+        {
+          input1: stProof,
+          input2: runtimeProof,
+          params: blockArguments,
+        },
+        async (result) => {
+          flow.state.blockReduction.queue.push(result);
+          await this.resolveBlockReduction(flow);
+        }
+      );
+    }
+  }
+
+  public async resolveBlockReduction(flow: Flow<BlockProductionFlowState>) {
+    const reductions = flow.state.blockReduction;
+
+    console.log(reductions.queue.length);
+
+    if (
+      reductions.numProofs - reductions.numMergesCompleted === 1 &&
+      flow.tasksInProgress === 0
+    ) {
+      flow.resolve(reductions.queue[0]);
+      return;
+    }
+
+    if (reductions.queue.length >= 2) {
+      const taskParameters: PairTuple<BlockProof> = [
+        reductions.queue[0],
+        reductions.queue[1],
+      ];
+      reductions.queue = reductions.queue.slice(2);
+      await flow.pushTask(
+        this.blockReductionTask,
+        taskParameters,
+        async (result) => {
+          flow.state.blockReduction.queue.push(result);
+          flow.state.blockReduction.numMergesCompleted += 1;
+          await this.resolveBlockReduction(flow);
+        }
+      );
+    }
+  }
+
+  public async resolveSTReduction(
+    flow: Flow<BlockProductionFlowState>,
+    index: number
+  ) {
+    const reductionInfo = flow.state.stReduction[index];
+
+    console.log(reductionInfo.queue.length);
+
+    if (reductionInfo.queue.length >= 2) {
+      const taskParameters: PairTuple<StateTransitionProof> = [
+        reductionInfo.queue[0],
+        reductionInfo.queue[1],
+      ];
+      reductionInfo.queue = reductionInfo.queue.slice(2);
+      await flow.pushTask(
+        this.stateTransitionReductionTask,
+        taskParameters,
+        async (result) => {
+          if (
+            reductionInfo.numMergesCompleted ===
+            reductionInfo.numProofs - 1
+          ) {
+            // Do pairing and block task
+            flow.state.pairings[index].stProof = result;
+            await this.pushPairing(flow, index);
+          } else {
+            reductionInfo.numMergesCompleted += 1;
+            reductionInfo.queue.push(result);
+            await this.resolveSTReduction(flow, index);
+          }
+        }
+      );
+    }
+  }
+
   public async executeFlow(
     transactionTraces: TransactionTrace[],
     blockId: number
-  ){
-    const flow = this.flowCreator.createFlow(String(blockId), {
-      pairings: transactionTraces.map<{
-        runtimeProof?: RuntimeProof;
-        // numSTProofs: number;
-        stProof?: StateTransitionProof;
-      }>((trace) => {
-        return {
+  ): Promise<BlockProof> {
+    const flow = this.flowCreator.createFlow<BlockProductionFlowState>(
+      String(blockId),
+      {
+        pairings: transactionTraces.map((trace) => ({
           runtimeProof: undefined,
-          // numSTProofs: trace.stateTransitionProver.length,
           stProof: undefined,
-        };
-      }),
+          blockArguments: trace.blockProver,
+        })),
 
-      stReduction: transactionTraces.map(trace => {
-        return {
-          numSTProofs: trace.stateTransitionProver.length,
+        stReduction: transactionTraces.map((trace) => ({
+          numProofs: trace.stateTransitionProver.length,
           numMergesCompleted: 0,
-          queue: [] as StateTransitionProof[],
-        }
-      }),
+          queue: [],
+        })),
 
-      reductionQueue: new Array<BlockProof>(),
-    });
+        blockReduction: {
+          queue: [],
+          numMergesCompleted: 0,
+          numProofs: transactionTraces.length,
+        },
+      }
+    );
 
-    const computedResult = await flow.withFlow<BlockProof>(async (resolve) => {
-      const resolveStReduction = async (index: number) => {
-        let reductionInfo = flow.state.stReduction[index];
+    return await flow.withFlow<BlockProof>(async () => {
+      await flow.forEach(transactionTraces, async (trace, index) => {
+        await flow.pushTask(
+          this.runtimeProvingTask,
+          trace.runtimeProver,
+          async (result) => {
+            flow.state.pairings[index].runtimeProof = result;
+            await this.pushPairing(flow, index);
+          }
+        );
 
-        console.log(reductionInfo.queue.length);
-
-        while (reductionInfo.queue.length >= 2) {
-          const taskParameters: Pair<StateTransitionProof> = [
-            reductionInfo.queue[0],
-            reductionInfo.queue[1],
-          ];
-          reductionInfo.queue = reductionInfo.queue.slice(2);
+        await flow.forEach(trace.stateTransitionProver, async (stTrace) => {
           await flow.pushTask(
-            reductionTask,
-            taskParameters,
+            this.stateTransitionTask,
+            stTrace,
             async (result) => {
-
-              if (reductionInfo.numMergesCompleted == reductionInfo.numSTProofs - 1) {
-                // Do pairing and block task
-                // resolve(reductionInfo.queue[0]);
+              if (flow.state.stReduction[index].numProofs === 1) {
+                flow.state.pairings[index].stProof = result;
+                await this.pushPairing(flow, index);
               } else {
-                flow.state.reductionQueue.push(result);
-                await resolveReduction();
+                flow.state.stReduction[index].queue.push(result);
+                await this.resolveSTReduction(flow, index);
               }
             }
           );
-        }
-      }
-
-      // const resolveReduction = async () => {
-      //   let reductions = flow.state.reductionQueue;
-      //
-      //   console.log(reductions.length);
-      //
-      //   if (reductions.length === 1 && flow.tasksInProgress === 0) {
-      //     resolve(reductions[0]);
-      //   }
-      //
-      //   while (reductions.length >= 2) {
-      //     const taskParameters: [bigint, bigint] = [
-      //       reductions[0],
-      //       reductions[1],
-      //     ];
-      //     reductions = reductions.slice(2);
-      //     // We additionally have to set it here,
-      //     // because this loop mights be interrupted
-      //     flow.state.reductionQueue = reductions;
-      //     await flow.pushTask(
-      //       reductionTask,
-      //       taskParameters,
-      //       async (result) => {
-      //         flow.state.reductionQueue.push(result);
-      //         await resolveReduction();
-      //       }
-      //     );
-      //   }
-      // };
-
-      // const resolvePairings = async (index: number) => {
-      //   const [first, second] = flow.state.pairings[index];
-      //
-      //   if (first !== undefined && second !== undefined) {
-      //     console.log(`Found pairing ${index}`);
-      //
-      //     await flow.pushTask(
-      //       mulTask,
-      //       {
-      //         input1: first,
-      //         input2: second,
-      //         params: undefined,
-      //       },
-      //       async (result) => {
-      //         flow.state.reductionQueue.push(result);
-      //         await resolveReduction();
-      //       }
-      //     );
-      //   }
-      // };
-
-      // const
-
-      await flow.forEach(transactionTraces, async (trace, index) => {
-        await flow.pushTask(this.runtimeProvingTask, trace.runtimeProver, async (result) => {
-          flow.state.pairings[index].runtimeProof = result;
-          await resolvePairings(index);
         });
-
-        await flow.forEach(trace.stateTransitionProver, async (stTrace) => {
-          await flow.pushTask(this.stateTransitionTask, stTrace, async (result) => {
-            flow.state.stReduction[index].queue.push(result);
-            await resolveStReduction(index);
-          });
-        })
       });
     });
-  }
-
-  public async executeBlockCreation(
-    transactionTraces: TransactionTrace[],
-    blockId: number
-  ): Promise<Proof<BlockProverPublicInput, BlockProverPublicOutput>> {
-    // Init tasks based on traces
-    const mappedInputs = transactionTraces.map<
-      [
-        StateTransitionProofParameters,
-        RuntimeProofParameters,
-        BlockProverParameters
-      ]
-    >((trace) => [
-      trace.stateTransitionProver,
-      trace.runtimeProver,
-      trace.blockProver,
-    ]);
-
-    // eslint-disable-next-line no-warning-comments
-    // TODO Find solution for multiple parallel blocks
-    const flow = new PairingMapReduceFlow(this.taskQueue, "block", {
-      firstPairing: this.stateTransitionTask,
-      secondPairing: this.runtimeProvingTask,
-      reducingTask: this.blockProvingTask,
-    });
-
-    const taskIds = mappedInputs.map((input) => input[1].tx.hash().toString());
-
-    const proof = await flow.executePairingMapReduce(
-      String(blockId),
-      mappedInputs,
-      taskIds
-    );
-
-    // Exceptions?
-    await flow.close();
-
-    return proof;
   }
 }

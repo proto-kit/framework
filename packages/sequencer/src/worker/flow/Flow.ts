@@ -3,6 +3,13 @@ import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { TaskPayload } from "../manager/ReducableTask";
 
+const errors = {
+  resolveNotDefined: () =>
+    new Error(
+      "The resolve callback has not been initialized yet. Call .withFlow() first!"
+    ),
+};
+
 @injectable()
 // ResolutionScoped => We want a new instance every time we resolve it
 @scoped(Lifecycle.ResolutionScoped)
@@ -41,7 +48,7 @@ export class ConnectionHolder implements Closeable {
     queue: string,
     listener: (payload: TaskPayload) => Promise<void>
   ) {
-    if(this.listeners[queue] === undefined){
+    if (this.listeners[queue] === undefined) {
       this.listeners[queue] = {};
     }
     this.listeners[queue][flowId] = listener;
@@ -118,7 +125,16 @@ export class Flow<State> implements Closeable {
 
   private taskCounter = 0;
 
+  private resolveFunction?: (result: any) => void;
+
   public tasksInProgress = 0;
+
+  public resolve<Result>(result: Result) {
+    if (this.resolveFunction === undefined) {
+      throw errors.resolveNotDefined();
+    }
+    this.resolveFunction(result);
+  }
 
   public async pushTask<Input, Result>(
     task: Task<Input, Result>,
@@ -173,6 +189,7 @@ export class Flow<State> implements Closeable {
     ) => Promise<void>
   ): Promise<Result> {
     return await new Promise<Result>((resolve, reject) => {
+      this.resolveFunction = resolve;
       void executor(resolve, reject);
     });
   }

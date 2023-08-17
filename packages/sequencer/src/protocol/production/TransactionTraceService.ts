@@ -262,6 +262,8 @@ export class TransactionTraceService {
     };
     executionContext.setup(contextInputs);
 
+    // eslint-disable-next-line no-warning-comments
+    // TODO Manually disable proofsEnabled for the first execution
     method(...args);
 
     const { stateTransitions } = executionContext.current().result;
@@ -301,12 +303,15 @@ export class TransactionTraceService {
 
     const executionResult = executionContext.current().result;
 
+    log.debug("STs:", executionResult.stateTransitions.map(x => x.toJSON()))
+
     // Update the stateservice (only if the tx succeeded)
     if (executionResult.status.toBoolean()) {
       await Promise.all(
         // Use updated stateTransitions since only they will have the
         // right values
         executionResult.stateTransitions.map(async (st) => {
+          console.log("Setting async:", st.path.toString(), st.to.toJSON());
           await stateService.setAsync(st.path, st.to.toFields());
         })
       );
