@@ -7,11 +7,15 @@ import {
   runtimeMethod,
   assert,
 } from "@proto-kit/module";
-import { Provable, PublicKey, UInt64 } from "snarkyjs";
+import { Provable, PublicKey, Struct, UInt64 } from "snarkyjs";
 
 interface BalancesConfig {
   totalSupply: UInt64;
 }
+
+class Test extends Struct({
+  test: UInt64,
+}) {}
 
 @runtimeModule()
 export class Balances extends RuntimeModule<BalancesConfig> {
@@ -19,6 +23,8 @@ export class Balances extends RuntimeModule<BalancesConfig> {
     PublicKey,
     UInt64
   );
+
+  @state() public test = State.from<Test>(Test);
 
   @state() public circulatingSupply = State.from<UInt64>(UInt64);
 

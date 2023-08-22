@@ -40,6 +40,7 @@ export class AppChainTransaction {
     this.hasUnsignedTransaction(this.transaction);
     const signatureData = this.transaction.getSignatureData();
     const signature = await this.signer.sign(signatureData);
+    console.log("has signed", signature.toBase58());
     this.transaction = this.transaction.signed(signature);
   }
 

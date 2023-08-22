@@ -26,3 +26,4 @@ export * from "./protocol/production/execution/MerkleStoreWitnessProvider";
 export * from "./worker/worker/LocalTaskWorkerModule";
 export * from "./protocol/baselayer/NoopBaseLayer";
 export * from "./worker/queue/LocalTaskQueue";
+export * from "./storage/model/Block";

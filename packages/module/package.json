@@ -29,7 +29,7 @@
     "@types/lodash": "^4.14.194"
   },
   "peerDependencies": {
-    "snarkyjs": "0.11.0",
+    "snarkyjs": "0.12.0",
     "tsyringe": "^4.7.0"
   },
   "gitHead": "51206808f0eba77c4ad8c1af476a6dbdd478d2a3"

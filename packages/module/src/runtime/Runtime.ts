@@ -279,6 +279,8 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     );
   }
 
+  public test?: string;
+
   /**
    * Add a name and other respective properties required by RuntimeModules,
    * that come from the current Runtime

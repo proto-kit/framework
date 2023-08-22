@@ -45,6 +45,8 @@ export class RuntimeModule<Config> extends ConfigurableModule<Config> {
 
   public name?: string;
 
+  public test?: number;
+
   public runtime?: Runtime<RuntimeModulesRecord>;
 
   private getInputs(): RuntimeMethodExecutionData {

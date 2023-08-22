@@ -16,7 +16,7 @@ export class InMemorySigner
   extends AppChainModule<InMemorySignerConfig>
   implements Signer
 {
-  public constructor(public signer: PrivateKey) {
+  public constructor() {
     super();
   }
 

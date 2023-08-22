@@ -23,7 +23,7 @@
     "typescript-memoize": "^1.1.1"
   },
   "peerDependencies": {
-    "snarkyjs": "0.11.0",
+    "snarkyjs": "0.12.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

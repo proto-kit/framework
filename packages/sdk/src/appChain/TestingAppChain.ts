@@ -21,6 +21,7 @@ import {
 import { PrivateKey, PublicKey } from "snarkyjs";
 import { container } from "tsyringe";
 import { InMemoryQueryTransportModule } from "../query/InMemoryQueryTransportModule";
+import { AuroSigner } from "../transaction/AuroSigner";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
@@ -75,9 +76,20 @@ export class TestingAppChain<
       protocol: VanillaProtocol.create() as any,
 
       modules: {
-        Signer: InMemorySigner,
+        // Signer: InMemorySigner,
+        Signer: AuroSigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: InMemoryQueryTransportModule,
+      },
+      config: {
+        // Signer: {
+        //   signer: PrivateKey.fromBase58(
+        //     "EKEEQvuAqoPWHTip9nGGo4b335BrAtBstwTbaT3L3hZyBjQoQFAw"
+        //   ),
+        // },
+        Signer: {},
+        TransactionSender: {},
+        QueryTransportModule: {},
       },
     });
   }
