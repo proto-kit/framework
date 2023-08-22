@@ -50,6 +50,7 @@ interface ComputedBlockMetadata {
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
+  blockWithoutTxs: () => new Error("Can't create a block with zero transactions"),
 };
 
 /**
@@ -179,6 +180,10 @@ export class BlockProducerModule extends SequencerModule<object> {
     merkleStore: CachedMerkleTreeStore;
     computedTransactions: ComputedBlockTransaction[];
   }> {
+    if (txs.length === 0) {
+      throw errors.blockWithoutTxs();
+    }
+
     const stateServices = {
       stateService: new CachedStateService(this.asyncStateService),
       merkleStore: new CachedMerkleTreeStore(this.merkleStore),
