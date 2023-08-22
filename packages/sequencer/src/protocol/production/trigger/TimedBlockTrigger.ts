@@ -5,6 +5,7 @@ import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { BlockProducerModule } from "../BlockProducerModule";
 
 import { BlockTrigger } from "./BlockTrigger";
+import { Mempool } from "../../../mempool/Mempool";
 
 export interface BlockTimeConfig {
   blocktime: number;
@@ -21,14 +22,18 @@ export class TimedBlockTrigger
 
   public constructor(
     @inject("BlockProducerModule")
-    private readonly blockProducerModule: BlockProducerModule
+    private readonly blockProducerModule: BlockProducerModule,
+    @inject("Mempool")
+    private readonly mempool: Mempool
   ) {
     super();
   }
 
   public async start(): Promise<void> {
     this.interval = setInterval(() => {
-      void this.blockProducerModule.createBlock();
+      if (this.mempool.getTxs().txs.length > 0) {
+        void this.blockProducerModule.createBlock();
+      }
     }, this.config.blocktime);
   }
 
