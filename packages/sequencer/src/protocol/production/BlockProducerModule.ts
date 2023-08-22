@@ -38,7 +38,7 @@ export interface StateRecord {
 
 export interface TransactionTrace {
   runtimeProver: RuntimeProofParameters;
-  stateTransitionProver: StateTransitionProofParameters;
+  stateTransitionProver: StateTransitionProofParameters[];
   blockProver: BlockProverParameters;
 }
 
@@ -199,10 +199,7 @@ export class BlockProducerModule extends SequencerModule<object> {
     );
     const traces = traceResults.map((result) => result.trace);
 
-    const proof = await this.blockFlowService.executeBlockCreation(
-      traces,
-      blockId
-    );
+    const proof = await this.blockFlowService.executeFlow(traces, blockId);
 
     return {
       proof,

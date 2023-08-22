@@ -1,5 +1,5 @@
 import { Field, Proof } from "snarkyjs";
-import { Subclass } from "@proto-kit/protocol";
+import { StateTransitionProof, Subclass } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../worker/manager/ReducableTask";
 
@@ -11,6 +11,8 @@ export function distinct<Value>(
   return array.indexOf(value) === index;
 }
 
+type JsonProof = ReturnType<typeof Proof.prototype.toJSON>;
+
 export class ProofTaskSerializer<PublicInputType, PublicOutputType>
   implements TaskSerializer<Proof<PublicInputType, PublicOutputType>>
 {
@@ -21,8 +23,14 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
   ) {}
 
   public toJSON(proof: Proof<PublicInputType, PublicOutputType>): string {
+    return JSON.stringify(this.toJSONProof(proof));
+  }
+
+  public toJSONProof(
+    proof: Proof<PublicInputType, PublicOutputType>
+  ): JsonProof {
     if (proof.proof === "mock-proof") {
-      return JSON.stringify({
+      return {
         publicInput: this.proofClass.publicInputType
           // eslint-disable-next-line max-len
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-explicit-any
@@ -37,16 +45,19 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
 
         maxProofsVerified: proof.maxProofsVerified,
         proof: "mock-proof",
-      });
+      };
     }
-    return JSON.stringify(proof.toJSON());
+    return proof.toJSON();
   }
 
   public fromJSON(json: string): Proof<PublicInputType, PublicOutputType> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const jsonProof: ReturnType<typeof Proof.prototype.toJSON> =
-      JSON.parse(json);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return this.fromJSONProof(JSON.parse(json));
+  }
 
+  public fromJSONProof(
+    jsonProof: JsonProof
+  ): Proof<PublicInputType, PublicOutputType> {
     if (jsonProof.proof === "mock-proof") {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const publicInput: PublicInputType =
@@ -69,5 +80,36 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.proofClass.fromJSON(jsonProof);
+  }
+}
+
+export type PairTuple<Type> = [Type, Type];
+
+export class PairProofTaskSerializer<PublicInputType, PublicOutputType>
+  implements TaskSerializer<PairTuple<Proof<PublicInputType, PublicOutputType>>>
+{
+  private readonly proofSerializer = new ProofTaskSerializer(this.proofClass);
+
+  public constructor(
+    private readonly proofClass: Subclass<
+      typeof Proof<PublicInputType, PublicOutputType>
+    >
+  ) {}
+
+  public fromJSON(
+    json: string
+  ): PairTuple<Proof<PublicInputType, PublicOutputType>> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const array: [JsonProof, JsonProof] = JSON.parse(json);
+    return [
+      this.proofSerializer.fromJSONProof(array[0]),
+      this.proofSerializer.fromJSONProof(array[1]),
+    ];
+  }
+
+  public toJSON(input: PairTuple<Proof<PublicInputType, PublicOutputType>>): string {
+    return JSON.stringify(
+      input.map((element) => this.proofSerializer.toJSONProof(element))
+    );
   }
 }

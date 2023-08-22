@@ -130,4 +130,14 @@ export class Option<Value> {
       value: this.treeValue,
     });
   }
+
+  public toJSON() {
+    return {
+      isSome: this.isSome.toBoolean(),
+      value: `[${this.valueType
+        .toFields(this.value)
+        .map((field) => field.toString())
+        .reduce((a, b) => `${a}, ${b}`)}]`,
+    };
+  }
 }

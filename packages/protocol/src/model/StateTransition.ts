@@ -69,4 +69,12 @@ export class StateTransition<Value> {
       to: this.to.toProvable(),
     });
   }
+
+  public toJSON() {
+    return {
+      path: this.path.toString(),
+      from: this.from.toJSON(),
+      to: this.to.toJSON(),
+    };
+  }
 }
