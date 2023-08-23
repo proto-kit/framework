@@ -3,9 +3,9 @@ import { inject, injectable } from "tsyringe";
 import { Closeable } from "../../../worker/queue/TaskQueue";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { BlockProducerModule } from "../BlockProducerModule";
+import { Mempool } from "../../../mempool/Mempool";
 
 import { BlockTrigger } from "./BlockTrigger";
-import { Mempool } from "../../../mempool/Mempool";
 
 export interface BlockTimeConfig {
   blocktime: number;

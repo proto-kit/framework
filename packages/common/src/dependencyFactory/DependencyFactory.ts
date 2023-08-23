@@ -1,6 +1,6 @@
 import { DependencyContainer, injectable, Lifecycle } from "tsyringe";
+
 import { TypedClass } from "../types";
-import { ConfigurableModule } from "../config/ConfigurableModule";
 
 const errors = {
   descriptorUndefined: () =>

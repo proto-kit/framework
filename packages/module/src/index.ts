@@ -10,3 +10,4 @@ export * from "./state/StateMap";
 export * from "./state/StateServiceProvider";
 export * from "./state/decorator";
 export * from "./method/MethodParameterDecoder";
+export * from "./runtime/MethodIdResolver";

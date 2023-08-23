@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,max-lines */
 import { Experimental } from "snarkyjs";
-import { container, DependencyContainer, injectable } from "tsyringe";
+import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
   ModuleContainer,
@@ -13,9 +13,7 @@ import {
   WithZkProgrammable,
   AreProofsEnabled,
 } from "@proto-kit/common";
-import {
-  MethodPublicOutput,
-} from "@proto-kit/protocol";
+import { MethodPublicOutput } from "@proto-kit/protocol";
 
 import {
   combineMethodName,
@@ -25,10 +23,10 @@ import {
 } from "../method/runtimeMethod.js";
 import { StateService } from "../state/InMemoryStateService.js";
 import { StateServiceProvider } from "../state/StateServiceProvider";
+import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 import { RuntimeModule } from "./RuntimeModule.js";
 import { MethodIdResolver } from "./MethodIdResolver";
-import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -253,7 +251,9 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    * @param methodId The encoded name of the method to call.
    * Encoding: "stringToField(module.name) << 128 + stringToField(method-name)"
    */
-  public getMethodById(methodId: bigint): ((...args: unknown[]) => unknown) | undefined {
+  public getMethodById(
+    methodId: bigint
+  ): ((...args: unknown[]) => unknown) | undefined {
     const methodDescriptor = this.container
       .resolve<MethodIdResolver>("MethodIdResolver")
       .getMethodNameFromId(methodId);

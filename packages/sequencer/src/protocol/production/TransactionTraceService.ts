@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   MethodParameterDecoder,
@@ -13,12 +14,13 @@ import {
   ProvableHashList,
   ProvableStateTransition,
   RollupMerkleTree,
-  RollupMerkleWitness,
   RuntimeTransaction,
   StateTransition,
 } from "@proto-kit/protocol";
 import { Field } from "snarkyjs";
 import { log } from "@proto-kit/common";
+import chunk from "lodash/chunk";
+import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinct } from "../../helpers/utils";
@@ -27,9 +29,7 @@ import { ComputedBlockTransaction } from "../../storage/model/Block";
 import { CachedStateService } from "./execution/CachedStateService";
 import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
-import chunk from "lodash/chunk";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
-import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -58,15 +58,11 @@ export class TransactionTraceService {
     method: (...args: unknown[]) => unknown;
     args: unknown[];
   } {
-    console.log(`MethodId: ${tx.methodId.toBigInt()}`);
     const methodDescriptors = this.runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
       .getMethodNameFromId(tx.methodId.toBigInt());
 
     const method = this.runtime.getMethodById(tx.methodId.toBigInt());
-
-    console.log(methodDescriptors);
-    console.log(method);
 
     if (methodDescriptors === undefined || method === undefined) {
       throw errors.methodIdNotFound(tx.methodId.toString());
@@ -195,7 +191,7 @@ export class TransactionTraceService {
     );
 
     const tree = new RollupMerkleTree(merkleStore);
-    const batchFromStateRoot = tree.getRoot();
+    const fromStateRoot = tree.getRoot();
 
     const transitionsList = new DefaultProvableHashList(
       ProvableStateTransition
@@ -204,11 +200,11 @@ export class TransactionTraceService {
     const stParameters = chunk(
       stateTransitions,
       ProtocolConstants.stateTransitionProverBatchSize
-    ).map<StateTransitionProofParameters>((chunk) => {
-      const fromStateRoot = tree.getRoot();
-      const fromTransitionsHash = transitionsList.commitment;
+    ).map<StateTransitionProofParameters>((currentChunk) => {
+      const stateRoot = tree.getRoot();
+      const stateTransitionsHash = transitionsList.commitment;
 
-      const merkleWitnesses = chunk.map((transition, index) => {
+      const merkleWitnesses = currentChunk.map((transition) => {
         const witness = tree.getWitness(transition.path.toBigInt());
 
         const provableTransition = transition.toProvable();
@@ -235,21 +231,22 @@ export class TransactionTraceService {
 
       return {
         merkleWitnesses,
-        batch: chunk.map((st) => st.toProvable()),
+        batch: currentChunk.map((st) => st.toProvable()),
 
         publicInput: {
-          stateRoot: fromStateRoot,
-          stateTransitionsHash: fromTransitionsHash,
+          stateRoot,
+          stateTransitionsHash,
         },
       };
     });
 
     return {
       stParameters,
-      fromStateRoot: batchFromStateRoot,
+      fromStateRoot,
     };
   }
 
+  // eslint-disable-next-line max-statements
   private async executeRuntimeMethod(
     stateService: CachedStateService,
     tx: PendingTransaction,

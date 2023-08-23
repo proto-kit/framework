@@ -5,50 +5,26 @@ import {
   BlockProverPublicOutput,
   MethodPublicOutput,
   Protocol,
-  ProtocolConstants,
   ProtocolModulesRecord,
-  ProvableStateTransition,
   // eslint-disable-next-line @typescript-eslint/no-shadow
   ReturnType,
-  RuntimeTransaction, StateTransitionProof,
+  StateTransitionProof,
   StateTransitionProvable,
-  StateTransitionProvableBatch,
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
 } from "@proto-kit/protocol";
 import { Proof } from "snarkyjs";
-import {
-  MethodParameterDecoder,
-  Runtime,
-  RuntimeMethodExecutionContext,
-} from "@proto-kit/module";
-import { inject, injectable, Lifecycle, scoped, singleton } from "tsyringe";
-import {
-  CompileArtifact,
-  log, PlainZkProgram,
-  ProvableMethodExecutionContext,
-  ZkProgrammable
-} from "@proto-kit/common";
+import { Runtime } from "@proto-kit/module";
+import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { ProvableMethodExecutionContext } from "@proto-kit/common";
 
-import { PairProofTaskSerializer, PairTuple, ProofTaskSerializer } from "../../../helpers/utils";
+import {
+  PairProofTaskSerializer,
+  PairTuple,
+  ProofTaskSerializer,
+} from "../../../helpers/utils";
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
-import {
-  MappingTask,
-  MapReduceTask,
-  TaskSerializer,
-} from "../../../worker/manager/ReducableTask";
-
-import { PreFilledStateService } from "./providers/PreFilledStateService";
-import {
-  StateTransitionParametersSerializer,
-  StateTransitionProofParameters,
-} from "./StateTransitionTaskParameters";
-import {
-  RuntimeProofParameters,
-  RuntimeProofParametersSerializer,
-} from "./RuntimeTaskParameters";
-import { PreFilledWitnessProvider } from "./providers/PreFilledWitnessProvider";
+import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { Task } from "../../../worker/flow/Task";
+
 import { CompileRegistry } from "./CompileRegistry";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
@@ -67,8 +43,12 @@ export type BlockProvingTaskParameters = PairingDerivedInput<
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
-export class BlockReductionTask implements Task<PairTuple<BlockProof>, BlockProof> {
+export class BlockReductionTask
+  implements Task<PairTuple<BlockProof>, BlockProof>
+{
   private readonly blockProver: BlockProvable;
+
+  public name = "blockReduction";
 
   public constructor(
     @inject("Protocol")
@@ -83,8 +63,6 @@ export class BlockReductionTask implements Task<PairTuple<BlockProof>, BlockProo
     return new PairProofTaskSerializer(this.blockProver.zkProgram.Proof);
   }
 
-  public name = "blockReduction";
-
   public resultSerializer(): TaskSerializer<BlockProof> {
     return new ProofTaskSerializer(this.blockProver.zkProgram.Proof);
   }
@@ -96,7 +74,10 @@ export class BlockReductionTask implements Task<PairTuple<BlockProof>, BlockProo
   }
 
   public async prepare(): Promise<void> {
-    await this.compileRegistry.compile("BlockProver", this.blockProver.zkProgram)
+    await this.compileRegistry.compile(
+      "BlockProver",
+      this.blockProver.zkProgram
+    );
   }
 }
 
@@ -112,6 +93,8 @@ export class BlockProvingTask
   private readonly runtimeProofType =
     this.runtime.zkProgrammable.zkProgram.Proof;
 
+  public name = "block";
+
   public constructor(
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>,
@@ -123,8 +106,6 @@ export class BlockProvingTask
 
     this.blockProver = this.protocol.blockProver;
   }
-
-  public name = "block";
 
   public inputSerializer(): TaskSerializer<BlockProvingTaskParameters> {
     const stProofSerializer = new ProofTaskSerializer(
@@ -181,19 +162,6 @@ export class BlockProvingTask
     };
   }
 
-  // public reducible(r1: BlockProof, r2: BlockProof): boolean {
-  //   return this.orderedReducible(r1, r2) || this.orderedReducible(r2, r1);
-  // }
-  //
-  // private orderedReducible(r1: BlockProof, r2: BlockProof): boolean {
-  //   return r1.publicOutput.stateRoot
-  //     .equals(r2.publicInput.stateRoot)
-  //     .and(
-  //       r1.publicOutput.transactionsHash.equals(r2.publicInput.transactionsHash)
-  //     )
-  //     .toBoolean();
-  // }
-
   public resultSerializer(): TaskSerializer<BlockProof> {
     return new ProofTaskSerializer(this.blockProver.zkProgram.Proof);
   }
@@ -216,8 +184,12 @@ export class BlockProvingTask
     return await this.executionContext.current().result.prove<BlockProof>();
   }
 
+  // eslint-disable-next-line sonarjs/no-identical-functions
   public async prepare(): Promise<void> {
     // Compile
-    await this.compileRegistry.compile("BlockProver", this.blockProver.zkProgram)
+    await this.compileRegistry.compile(
+      "BlockProver",
+      this.blockProver.zkProgram
+    );
   }
 }

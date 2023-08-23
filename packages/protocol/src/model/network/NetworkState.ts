@@ -8,8 +8,6 @@ export class NetworkState extends Struct({
   block: CurrentBlock,
 }) {
   public hash(): Field {
-    return Poseidon.hash([
-      ...CurrentBlock.toFields(this.block)
-    ])
+    return Poseidon.hash(CurrentBlock.toFields(this.block));
   }
 }

@@ -213,9 +213,10 @@ describe("block production", () => {
     expect(block?.txs[0].statusMessage).toBe("Condition not met");
   }, 30_000);
 
-  const numberTxs = 2;
+  const numberTxs = 3;
 
   it("should produce block with multiple transaction", async () => {
+    // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(5 + 2 * numberTxs);
 
     const privateKey = PrivateKey.random();

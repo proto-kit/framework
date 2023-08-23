@@ -1,9 +1,9 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
 
-import { TextEncoder, TextDecoder } from "node:util";
+import { TextEncoder } from "node:util";
 
-import { Circuit, Field, Poseidon, Proof } from "snarkyjs";
+import { Field, Poseidon, Provable } from "snarkyjs";
 import floor from "lodash/floor";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
@@ -31,7 +31,7 @@ export function notInCircuit(): MethodDecorator {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const childFunction = descriptor.value;
     descriptor.value = function value(this: any, ...args: any[]) {
-      if (Circuit.inCheckedComputation() || Circuit.inProver()) {
+      if (Provable.inCheckedComputation() || Provable.inProver()) {
         throw new Error(
           `Method ${propertyKey.toString()} is supposed to be only called outside of the circuit`
         );
@@ -70,12 +70,12 @@ export function stringToField(value: string) {
       () => []
     )
   );
-  const fields = chunks.map((x) => {
+  const fields = chunks.map((x) =>
     // We have to add a zero at the highest byte here, because a Field is
     // a bit smaller than 2^256
     // console.log(x.concat([0]).length);
-    return Field.fromBytes(x.concat([0]));
-  });
+    Field.fromBytes(x.concat([0]))
+  );
   return Poseidon.hash(fields);
 }
 

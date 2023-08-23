@@ -6,6 +6,7 @@ import {
   MethodPublicOutput,
   StateTransitionProof,
 } from "@proto-kit/protocol";
+import { log } from "@proto-kit/common";
 
 import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { Flow, FlowCreator } from "../../worker/flow/Flow";
@@ -22,7 +23,6 @@ import {
   BlockProvingTask,
   BlockReductionTask,
 } from "./tasks/BlockProvingTask";
-import { log } from "@proto-kit/common";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -136,8 +136,8 @@ export class BlockTaskFlowService {
 
     if (reductions.queue.length >= 2) {
       const { availableReductions, touchedIndizes } =
-        this.resolveReducibleTasks(reductions.queue, (a, b) => {
-          return a.publicOutput.stateRoot
+        this.resolveReducibleTasks(reductions.queue, (a, b) =>
+          a.publicOutput.stateRoot
             .equals(b.publicInput.stateRoot)
             .and(
               a.publicOutput.transactionsHash.equals(
@@ -149,9 +149,12 @@ export class BlockTaskFlowService {
                 b.publicInput.networkStateHash
               )
             )
-            .toBoolean();
-        });
+            .toBoolean()
+        );
 
+      // I don't know exactly what this rule wants from me, I suspect
+      // it complains bcs the function is called forEach
+      // eslint-disable-next-line unicorn/no-array-method-this-argument
       await flow.forEach(availableReductions, async (reduction) => {
         const taskParameters: PairTuple<BlockProof> = [
           reduction.r1,
@@ -182,17 +185,18 @@ export class BlockTaskFlowService {
 
     if (reductionInfo.queue.length >= 2) {
       const { availableReductions, touchedIndizes } =
-        this.resolveReducibleTasks(reductionInfo.queue, (a, b) => {
-          return a.publicOutput.stateRoot
+        this.resolveReducibleTasks(reductionInfo.queue, (a, b) =>
+          a.publicOutput.stateRoot
             .equals(b.publicInput.stateRoot)
             .and(
               a.publicOutput.stateTransitionsHash.equals(
                 b.publicInput.stateTransitionsHash
               )
             )
-            .toBoolean();
-        });
+            .toBoolean()
+        );
 
+      // eslint-disable-next-line unicorn/no-array-method-this-argument
       await flow.forEach(availableReductions, async (reduction) => {
         const taskParameters: PairTuple<StateTransitionProof> = [
           reduction.r1,
@@ -257,6 +261,7 @@ export class BlockTaskFlowService {
     );
 
     return await flow.withFlow<BlockProof>(async () => {
+      // eslint-disable-next-line unicorn/no-array-method-this-argument
       await flow.forEach(transactionTraces, async (trace, index) => {
         await flow.pushTask(
           this.runtimeProvingTask,
@@ -267,6 +272,7 @@ export class BlockTaskFlowService {
           }
         );
 
+        // eslint-disable-next-line unicorn/no-array-method-this-argument
         await flow.forEach(trace.stateTransitionProver, async (stTrace) => {
           await flow.pushTask(
             this.stateTransitionTask,

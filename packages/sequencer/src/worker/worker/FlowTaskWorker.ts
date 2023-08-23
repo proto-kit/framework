@@ -1,12 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import groupBy from "lodash/groupBy";
-import { ArrayElement, log } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 
-import {
-  AbstractTask,
-  MappingTask,
-  TaskPayload,
-} from "../manager/ReducableTask";
+import { TaskPayload } from "../manager/ReducableTask";
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
 import { Task } from "../flow/Task";
 
@@ -91,12 +85,12 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       await task.prepare();
     }
 
-    this.workers = this.tasks.map((task: Task<unknown, unknown>) => {
-      return this.initHandler<
+    this.workers = this.tasks.map((task: Task<unknown, unknown>) =>
+      this.initHandler<
         InferTaskInput<typeof task>,
         InferTaskOutput<typeof task>
-      >(task);
-    });
+      >(task)
+    );
   }
 
   public async close() {

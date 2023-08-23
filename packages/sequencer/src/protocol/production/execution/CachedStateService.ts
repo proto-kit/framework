@@ -70,7 +70,6 @@ export class CachedStateService
 
     // Set all cached values on parent
     const promises = Object.entries(values).map(async (value) => {
-      // console.log("Merging:", value[0], value[1]?.map(x => x.toString()).reduce((a, b) => `${a}, ${b}`));
       await parent.setAsync(Field(value[0]), value[1]);
     });
     await Promise.all(promises);

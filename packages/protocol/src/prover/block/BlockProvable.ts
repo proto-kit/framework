@@ -1,8 +1,8 @@
-import { Field, Proof, Struct, UInt64 } from "snarkyjs";
+import { Field, Proof, Struct } from "snarkyjs";
+import { ZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
-import { ZkProgrammable } from "@proto-kit/common";
 import { ProtocolTransaction } from "../../model/transaction/ProtocolTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
 

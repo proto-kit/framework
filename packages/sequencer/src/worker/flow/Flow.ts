@@ -1,7 +1,9 @@
-import { Task } from "./Task";
-import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+
+import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { TaskPayload } from "../manager/ReducableTask";
+
+import { Task } from "./Task";
 
 const errors = {
   resolveNotDefined: () =>
@@ -28,6 +30,22 @@ export class ConnectionHolder implements Closeable {
     @inject("TaskQueue") private readonly queueImpl: TaskQueue
   ) {}
 
+  public registerListener(
+    flowId: string,
+    queue: string,
+    listener: (payload: TaskPayload) => Promise<void>
+  ) {
+    if (this.listeners[queue] === undefined) {
+      this.listeners[queue] = {};
+    }
+    this.listeners[queue][flowId] = listener;
+  }
+
+  public unregisterListener(flowId: string, queue: string) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete this.listeners[queue][flowId];
+  }
+
   private async openQueue(name: string): Promise<InstantiatedQueue> {
     const queue = await this.queueImpl.getQueue(name);
     await queue.onCompleted(async (payload) => {
@@ -43,21 +61,6 @@ export class ConnectionHolder implements Closeable {
     }
   }
 
-  public registerListener(
-    flowId: string,
-    queue: string,
-    listener: (payload: TaskPayload) => Promise<void>
-  ) {
-    if (this.listeners[queue] === undefined) {
-      this.listeners[queue] = {};
-    }
-    this.listeners[queue][flowId] = listener;
-  }
-
-  public unregisterListener(flowId: string, queue: string) {
-    delete this.listeners[queue][flowId];
-  }
-
   public async getQueue(name: string) {
     if (this.queues[name] !== undefined) {
       return this.queues[name];
@@ -68,7 +71,7 @@ export class ConnectionHolder implements Closeable {
   }
 
   async close() {
-    //TODO
+    // TODO
   }
 }
 
@@ -128,12 +131,19 @@ export class Flow<State> implements Closeable {
     }
   }
 
-  private async resolveResponse(response: TaskPayload){
+  public resolve<Result>(result: Result) {
+    if (this.resolveFunction === undefined) {
+      throw errors.resolveNotDefined();
+    }
+    this.resolveFunction(result);
+  }
+
+  private async resolveResponse(response: TaskPayload) {
     if (response.taskId !== undefined) {
       const resolveFunction = this.resultsPending[response.taskId];
 
       if (!this.erroredOut) {
-        if (response.status === "error"){
+        if (response.status === "error") {
           this.erroredOut = true;
           throw new Error(`Error in worker: ${response.payload}`);
         }
@@ -144,13 +154,6 @@ export class Flow<State> implements Closeable {
         }
       }
     }
-  }
-
-  public resolve<Result>(result: Result) {
-    if (this.resolveFunction === undefined) {
-      throw errors.resolveNotDefined();
-    }
-    this.resolveFunction(result);
   }
 
   public async pushTask<Input, Result>(
@@ -194,7 +197,7 @@ export class Flow<State> implements Closeable {
 
   public async forEach<Type>(
     inputs: Type[],
-    fun: (input: Type, index: number, arr: Type[]) => Promise<void>
+    fun: (input: Type, index: number, array: Type[]) => Promise<void>
   ) {
     const promises = inputs.map(fun);
     await Promise.all(promises);

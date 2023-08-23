@@ -1,22 +1,19 @@
-import { Circuit, Struct } from "snarkyjs";
+import { Provable, Struct } from "snarkyjs";
+
+import { constants } from "../Constants";
 
 import { ProvableStateTransition } from "./StateTransition.js";
-import { constants } from "../Constants";
 
 /**
  * A Batch of StateTransitions to be consumed by the StateTransitionProver
  * to prove multiple STs at once
  */
 export class StateTransitionProvableBatch extends Struct({
-  batch: Circuit.array(
+  batch: Provable.Array(
     ProvableStateTransition,
     constants.stateTransitionProverBatchSize
   ),
 }) {
-  private constructor(object: { batch: ProvableStateTransition[] }) {
-    super(object);
-  }
-
   public static fromTransitions(
     transitions: ProvableStateTransition[]
   ): StateTransitionProvableBatch {
@@ -27,5 +24,9 @@ export class StateTransitionProvableBatch extends Struct({
     }
 
     return new StateTransitionProvableBatch({ batch: array });
+  }
+
+  private constructor(object: { batch: ProvableStateTransition[] }) {
+    super(object);
   }
 }

@@ -1,4 +1,4 @@
-import { Bool, Field, FlexibleProvable, Struct } from "snarkyjs";
+import { FlexibleProvable } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,

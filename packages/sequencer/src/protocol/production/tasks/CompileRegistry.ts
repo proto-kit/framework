@@ -11,7 +11,6 @@ export class CompileRegistry {
     name: string,
     zkProgram: { compile: () => Promise<CompileArtifact> }
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.compilationPromises[name] === undefined) {
       this.compilationPromises[name] = zkProgram.compile();
     }
