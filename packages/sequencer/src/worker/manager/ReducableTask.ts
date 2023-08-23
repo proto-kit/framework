@@ -71,6 +71,7 @@ export const JSONTaskSerializer = {
 };
 
 export interface TaskPayload {
+  status?: "error" | "success";
   name: string;
   payload: string;
   taskId?: string;

@@ -31,6 +31,7 @@ import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { QueryBuilderFactory } from "../query/QueryBuilderFactory";
 import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
+import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -179,7 +180,7 @@ export class AppChain<
 
     const argsFields = args.flatMap((arg) => arg.toFields(arg));
     const unsignedTransaction = new UnsignedTransaction({
-      methodId: Field(this.runtime.getMethodId(moduleName, methodName)),
+      methodId: Field(this.runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver").getMethodId(moduleName, methodName)),
       args: argsFields,
       nonce: UInt64.from(0),
       sender,
@@ -224,6 +225,7 @@ export class AppChain<
       StateTransitionWitnessProviderReference: reference,
     });
 
+    this.runtime.start();
     await this.sequencer.start();
   }
 

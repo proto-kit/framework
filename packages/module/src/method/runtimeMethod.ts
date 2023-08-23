@@ -92,6 +92,7 @@ export function combineMethodName(
 }
 
 export const runtimeMethodMetadataKey = "yab-method";
+export const runtimeMethodNamesMetadataKey = "proto-kit-runtime-methods";
 
 /**
  * Checks the metadata of the provided runtime module and its method,
@@ -119,6 +120,18 @@ export function runtimeMethod() {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    let data: string[] | undefined = Reflect.getMetadata(
+      runtimeMethodNamesMetadataKey,
+      target
+    );
+    if (data !== undefined) {
+      data.push(methodName);
+    } else {
+      data = [methodName];
+    }
+    Reflect.defineMetadata(runtimeMethodNamesMetadataKey, data, target);
 
     Reflect.defineMetadata(runtimeMethodMetadataKey, true, target, methodName);
 

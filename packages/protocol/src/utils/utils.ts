@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
 
 import { Circuit, Field, Poseidon, Proof } from "snarkyjs";
+import floor from "lodash/floor";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
   ...args: any[]
@@ -41,63 +42,46 @@ export function notInCircuit(): MethodDecorator {
   };
 }
 
-export function stringToField(value: string, throwOnOverflow = false) {
-  const fieldSize = Field.sizeInBytes();
+export function stringToField(value: string) {
+  const fieldSize = Field.sizeInBytes() - 1;
 
-  // eslint-disable-next-line putout/putout
+  // Encode string as byte[]
   const encoder = new TextEncoder();
-
   const stringBytes = Array.from(encoder.encode(value));
 
+  // Add padding in case the string is not a multiple of Field.sizeInBytes
   const padding = Array.from<number>({
-    length: fieldSize - stringBytes.length,
+    length: fieldSize - (stringBytes.length % fieldSize),
   }).fill(0);
-  const data = stringBytes.concat(padding);
+  const data = stringBytes.concat(padding).reverse();
 
-  if (data.length > fieldSize) {
-    if (throwOnOverflow) {
-      throw new Error(
-        "Trying to encode a stringt that is larger than 256 bits"
-      );
-    }
-
-    // Hash the result Field[] to reduce it to
-    const chunks = data.reduce<number[][]>((a, b, index) => {
-      const arrayIndex = index / fieldSize;
-      if (a.length <= arrayIndex) {
-        a.push([]);
-      }
+  // Hash the result Field[] to reduce it to
+  const chunks = data.reduce<number[][]>(
+    (a, b, index) => {
+      const arrayIndex = floor(index / fieldSize);
       a[arrayIndex].push(b);
       return a;
-    }, []);
-    return Poseidon.hash(chunks.map((x) => Field.fromBytes(x)));
-  }
+    },
 
-  return Field.fromBytes(data);
+    // eslint-disable-next-line array-func/from-map
+    Array.from<number[]>({ length: floor(data.length / fieldSize) }).map(
+      () => []
+    )
+  );
+  const fields = chunks.map((x) => {
+    // We have to add a zero at the highest byte here, because a Field is
+    // a bit smaller than 2^256
+    // console.log(x.concat([0]).length);
+    return Field.fromBytes(x.concat([0]));
+  });
+  return Poseidon.hash(fields);
 }
 
-/**
- * Note: This only works for strings that have been encoded using the `throwOnOverflow` set to true
- */
-export function fieldToString(value: Field | bigint): string {
+export function singleFieldToString(value: Field | bigint): string {
   if (typeof value === "bigint") {
     value = Field(value);
   }
-  let bytes = Field.toBytes(value);
-  // Find start of padded zeroes in order to remove them.
-  const zeroesStart =
-    bytes.length -
-    bytes
-      .slice()
-      .reverse()
-      .findIndex((element) => element !== 0);
-
-  bytes = bytes.slice(0, zeroesStart);
-
-  // eslint-disable-next-line putout/putout
-  const decoder = new TextDecoder();
-
-  return decoder.decode(new Uint8Array(bytes));
+  return value.toString();
 }
 
 export function noop(): void {}

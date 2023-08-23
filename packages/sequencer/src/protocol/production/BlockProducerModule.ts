@@ -126,7 +126,16 @@ export class BlockProducerModule extends SequencerModule<object> {
 
   private async tryProduceBlock(): Promise<ComputedBlockMetadata | undefined> {
     if (!this.productionInProgress) {
-      return await this.produceBlock();
+      try {
+        return await this.produceBlock();
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          this.productionInProgress = false;
+          throw error;
+        } else {
+          log.error(error);
+        }
+      }
     }
     return undefined;
   }

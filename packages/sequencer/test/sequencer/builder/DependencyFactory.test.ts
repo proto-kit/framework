@@ -5,7 +5,7 @@ import {
   dependency,
   DependencyFactory,
   dependencyFactory,
-} from "../../../src/sequencer/builder/DependencyFactory";
+} from "../../../../common/src/dependencyFactory/DependencyFactory";
 
 class DummyDependency {
   public constructor(public dummyString: string) {}

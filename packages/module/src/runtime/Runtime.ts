@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment */
 import { Experimental } from "snarkyjs";
-import { DependencyContainer, injectable } from "tsyringe";
+import { container, DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
   ModuleContainer,
@@ -13,11 +13,7 @@ import {
   WithZkProgrammable,
   AreProofsEnabled,
 } from "@proto-kit/common";
-import {
-  fieldToString,
-  stringToField,
-  MethodPublicOutput,
-} from "@proto-kit/protocol";
+import { MethodPublicOutput } from "@proto-kit/protocol";
 
 import {
   combineMethodName,
@@ -29,6 +25,8 @@ import { StateService } from "../state/InMemoryStateService.js";
 import { StateServiceProvider } from "../state/StateServiceProvider";
 
 import { RuntimeModule } from "./RuntimeModule.js";
+import { MethodIdResolver } from "./MethodIdResolver";
+import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -217,9 +215,17 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     super(definition);
     this.definition = definition;
     this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
-    // this.registerValue({
-    //   Runtime: this,
-    // });
+
+    // this.registerDependencyFactories([MethodIdFactory]);
+  }
+
+  // eslint-disable-next-line no-warning-comments
+  // TODO Remove after changing DFs to type-based approach
+  public start() {
+    this.registerValue({
+      Runtime: this,
+    });
+    this.registerDependencyFactories([MethodIdFactory]);
   }
 
   public get appChain(): AreProofsEnabled | undefined {
@@ -245,8 +251,17 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    * @param methodId The encoded name of the method to call.
    * Encoding: "stringToField(module.name) << 128 + stringToField(method-name)"
    */
-  public getMethodById(methodId: bigint): (...args: unknown[]) => unknown {
-    const [moduleName, methodName] = this.getMethodNameFromId(methodId);
+  public getMethodById(
+    methodId: bigint
+  ): ((...args: unknown[]) => unknown) | undefined {
+    const methodDescriptor = this.container
+      .resolve<MethodIdResolver>("MethodIdResolver")
+      .getMethodNameFromId(methodId);
+
+    if (methodDescriptor === undefined) {
+      return undefined;
+    }
+    const [moduleName, methodName] = methodDescriptor;
 
     this.isValidModuleName(this.definition.modules, moduleName);
     const module = this.resolve(moduleName);
@@ -262,30 +277,12 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     return (method as (...args: unknown[]) => unknown).bind(module);
   }
 
-  public getMethodNameFromId(methodId: bigint): [string, string] {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    const moduleName = fieldToString(methodId >> 128n);
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    const methodName = fieldToString(methodId % 2n ** 128n);
-
-    return [moduleName, methodName];
-  }
-
-  public getMethodId(moduleName: string, methodName: string): bigint {
-    return (
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      (stringToField(moduleName).toBigInt() << 128n) +
-      stringToField(methodName).toBigInt()
-    );
-  }
-
-  public test?: string;
-
   /**
    * Add a name and other respective properties required by RuntimeModules,
    * that come from the current Runtime
    *
-   * @param name - Name of the runtime module to decorate
+   * @param moduleName - Name of the runtime module to decorate
+   * @param containedModule
    */
   public decorateModule(
     moduleName: StringKeyOf<Modules>,

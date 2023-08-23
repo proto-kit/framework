@@ -86,6 +86,22 @@ interface CompletedCallback<Input, Result> {
 }
 
 export class Flow<State> implements Closeable {
+  // Indicates whether this flow has received one error and has
+  // therefore cancelled
+  private erroredOut = false;
+
+  private readonly registeredListeners: string[] = [];
+
+  private resultsPending: {
+    [key: string]: (payload: TaskPayload) => void;
+  } = {};
+
+  private taskCounter = 0;
+
+  private resolveFunction?: (result: any) => void;
+
+  public tasksInProgress = 0;
+
   public constructor(
     private readonly connectionHolder: ConnectionHolder,
     private readonly flowId: string,
@@ -105,29 +121,30 @@ export class Flow<State> implements Closeable {
         this.flowId,
         queue,
         async (payload) => {
-          if (payload.taskId !== undefined) {
-            const resolveFn = this.resultsPending[payload.taskId];
-            if (resolveFn !== undefined) {
-              delete this.resultsPending[payload.taskId];
-              resolveFn(payload);
-            }
-          }
+          await this.resolveResponse(payload);
         }
       );
       this.registeredListeners.push(queue);
     }
   }
 
-  private registeredListeners: string[] = [];
-  private resultsPending: {
-    [key: string]: (payload: TaskPayload) => void;
-  } = {};
+  private async resolveResponse(response: TaskPayload){
+    if (response.taskId !== undefined) {
+      const resolveFunction = this.resultsPending[response.taskId];
 
-  private taskCounter = 0;
+      if (!this.erroredOut) {
+        if (response.status === "error"){
+          this.erroredOut = true;
+          throw new Error(`Error in worker: ${response.payload}`);
+        }
 
-  private resolveFunction?: (result: any) => void;
-
-  public tasksInProgress = 0;
+        if (resolveFunction !== undefined) {
+          delete this.resultsPending[response.taskId];
+          resolveFunction(response);
+        }
+      }
+    }
+  }
 
   public resolve<Result>(result: Result) {
     if (this.resolveFunction === undefined) {
@@ -165,6 +182,7 @@ export class Flow<State> implements Closeable {
 
     this.tasksInProgress += 1;
 
+    // eslint-disable-next-line @typescript-eslint/promise-function-async
     const callback = (returnPayload: TaskPayload) => {
       console.log(`Completed ${returnPayload.name}`);
       const decoded = task.resultSerializer().fromJSON(returnPayload.payload);

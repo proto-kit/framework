@@ -39,7 +39,7 @@ export class UnsignedTransaction {
     return Poseidon.hash([
       this.methodId,
       ...this.sender.toFields(),
-      this.nonce.value,
+      ...this.nonce.toFields(),
       this.argsHash(),
     ]);
   }

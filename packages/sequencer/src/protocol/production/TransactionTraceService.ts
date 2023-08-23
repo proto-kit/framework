@@ -29,6 +29,12 @@ import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
 import chunk from "lodash/chunk";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
+import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
+
+const errors = {
+  methodIdNotFound: (methodId: string) =>
+    new Error(`Can't find runtime method with id ${methodId}`),
+};
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -52,11 +58,21 @@ export class TransactionTraceService {
     method: (...args: unknown[]) => unknown;
     args: unknown[];
   } {
+    console.log(`MethodId: ${tx.methodId.toBigInt()}`);
+    const methodDescriptors = this.runtime.dependencyContainer
+      .resolve<MethodIdResolver>("MethodIdResolver")
+      .getMethodNameFromId(tx.methodId.toBigInt());
+
     const method = this.runtime.getMethodById(tx.methodId.toBigInt());
 
-    const [moduleName, methodName] = this.runtime.getMethodNameFromId(
-      tx.methodId.toBigInt()
-    );
+    console.log(methodDescriptors);
+    console.log(method);
+
+    if (methodDescriptors === undefined || method === undefined) {
+      throw errors.methodIdNotFound(tx.methodId.toString());
+    }
+
+    const [moduleName, methodName] = methodDescriptors;
 
     const parameterDecoder = MethodParameterDecoder.fromMethod(
       this.runtime.resolve(moduleName),
@@ -303,7 +319,10 @@ export class TransactionTraceService {
 
     const executionResult = executionContext.current().result;
 
-    log.debug("STs:", executionResult.stateTransitions.map(x => x.toJSON()))
+    log.debug(
+      "STs:",
+      executionResult.stateTransitions.map((x) => x.toJSON())
+    );
 
     // Update the stateservice (only if the tx succeeded)
     if (executionResult.status.toBoolean()) {

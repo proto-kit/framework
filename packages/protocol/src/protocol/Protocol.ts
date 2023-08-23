@@ -79,7 +79,7 @@ export class Protocol<
     return protocol;
   }
 
-  protected decorateModule(
+  public decorateModule(
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {

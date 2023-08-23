@@ -50,20 +50,35 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
 
       // Use first handler that returns a non-undefined result
       const input = task.inputSerializer().fromJSON(data.payload);
-      const output: Output = await task.compute(input);
 
-      if (output === undefined) {
-        throw errors.notComputable(data.name);
+      try {
+        const output: Output = await task.compute(input);
+
+        if (output === undefined) {
+          throw errors.notComputable(data.name);
+        }
+
+        const result: TaskPayload = {
+          status: "success",
+          taskId: data.taskId,
+          flowId: data.flowId,
+          name: data.name,
+          payload: task.resultSerializer().toJSON(output),
+        };
+
+        return result;
+      } catch (error: unknown) {
+        const payload =
+          error instanceof Error ? error.message : JSON.stringify(error);
+
+        return {
+          status: "error",
+          taskId: data.taskId,
+          flowId: data.flowId,
+          name: data.name,
+          payload,
+        };
       }
-
-      const result: TaskPayload = {
-        taskId: data.taskId,
-        flowId: data.flowId,
-        name: data.name,
-        payload: task.resultSerializer().toJSON(output),
-      };
-
-      return result;
     });
   }
 

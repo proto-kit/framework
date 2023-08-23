@@ -1,5 +1,6 @@
-import { TypedClass } from "@proto-kit/common";
 import { DependencyContainer, injectable, Lifecycle } from "tsyringe";
+import { TypedClass } from "../types";
+import { ConfigurableModule } from "../config/ConfigurableModule";
 
 const errors = {
   descriptorUndefined: () =>
@@ -43,7 +44,7 @@ export abstract class DependencyFactory {
 
     for (const [key, useFactory] of Object.entries(dependencies)) {
       container.register(`${key}_singleton-prototype`, {
-        useFactory,
+        useFactory: useFactory.bind(this),
       });
 
       const upperCaseKey = key.charAt(0).toUpperCase() + key.slice(1);
@@ -58,6 +59,43 @@ export abstract class DependencyFactory {
     }
   }
 }
+
+// type DTypes = { [key: string]: TypedClass<unknown> }
+// type Factories<T extends DTypes> = {
+//   [key in keyof T]: T[key] extends TypedClass<infer R> ? () => R : never
+// }
+//
+// export abstract class DF2<Types extends DTypes> {
+//   public constructor(private factories: Factories<Types>) {
+//
+//   }
+//   generateDependencies(): Types {
+//     let x = this.factories;
+//     return {} as Types;
+//   }
+// }
+
+// export function DF2C<T extends Types>(object: Factories<T>): T {
+//   const c = class C extends DF2<T>{
+//     generateDependencies(): T {
+//       return undefined;
+//     }
+//   }
+//   return new c();
+// }
+
+// class DF2I extends DF2<{x: typeof ConfigurableModule}> {
+//   constructor() {
+//     super({
+//       x: this.x
+//     });
+//   }
+//
+//   x(): ConfigurableModule<any> {
+//     return {} as ConfigurableModule<any>;
+//   }
+//
+// }
 
 export function dependency() {
   return function decorator<Target extends DependencyFactory, Dependency>(

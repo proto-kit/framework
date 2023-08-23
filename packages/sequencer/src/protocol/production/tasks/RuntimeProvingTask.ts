@@ -7,6 +7,7 @@ import { ProofTaskSerializer } from "../../../helpers/utils";
 import { PreFilledStateService } from "./providers/PreFilledStateService";
 import { MethodPublicOutput, RuntimeTransaction } from "@proto-kit/protocol";
 import { Proof } from "snarkyjs";
+import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -36,9 +37,15 @@ export class RuntimeProvingTask
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
     const method = this.runtime.getMethodById(input.tx.methodId.toBigInt());
 
-    const [moduleName, methodName] = this.runtime.getMethodNameFromId(
-      input.tx.methodId.toBigInt()
-    );
+    const methodDescriptors = this.runtime.dependencyContainer
+      .resolve<MethodIdResolver>("MethodIdResolver")
+      .getMethodNameFromId(input.tx.methodId.toBigInt());
+
+    if (methodDescriptors === undefined || method === undefined) {
+      throw new Error(`MethodId not found ${input.tx.methodId.toString()}`);
+    }
+    
+    const [moduleName, methodName] = methodDescriptors;
 
     const parameterDecoder = MethodParameterDecoder.fromMethod(
       this.runtime.resolve(moduleName),
