@@ -11,11 +11,9 @@ import {
   Protocol,
   ProtocolModulesRecord,
 } from "@proto-kit/protocol/src/protocol/Protocol";
-import { StateTransitionWitnessProviderReference } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
-import { DependencyFactory } from "../../../../common/src/dependencyFactory/DependencyFactory";
 import { MockStorageDependencyFactory } from "../../storage/MockStorageDependencyFactory";
 
 import { Sequenceable } from "./Sequenceable";
@@ -58,9 +56,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    */
   public async start() {
     // Define DependencyFactories and initialize them
-    const factories = [
-      MockStorageDependencyFactory,
-    ];
+    const factories = [MockStorageDependencyFactory];
     this.registerDependencyFactories(factories);
 
     // Set default STWitnessProvider inside protocol

@@ -3,12 +3,12 @@ import {
   InMemoryMerkleTreeStorage,
   noop,
 } from "@proto-kit/protocol";
-
 import {
   dependency,
   DependencyFactory,
   dependencyFactory,
 } from "@proto-kit/common";
+
 import { AsyncStateService } from "../protocol/production/state/AsyncStateService";
 import { CachedStateService } from "../protocol/production/execution/CachedStateService";
 

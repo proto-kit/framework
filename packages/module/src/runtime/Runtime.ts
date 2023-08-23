@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,max-lines */
 import { Experimental } from "snarkyjs";
-import { container, DependencyContainer, injectable } from "tsyringe";
+import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
   ModuleContainer,
@@ -23,10 +23,10 @@ import {
 } from "../method/runtimeMethod.js";
 import { StateService } from "../state/InMemoryStateService.js";
 import { StateServiceProvider } from "../state/StateServiceProvider";
+import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 import { RuntimeModule } from "./RuntimeModule.js";
 import { MethodIdResolver } from "./MethodIdResolver";
-import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 /**
  * Record of modules accepted by the Runtime module container.

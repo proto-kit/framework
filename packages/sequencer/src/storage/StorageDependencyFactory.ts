@@ -1,10 +1,7 @@
 import { inject } from "tsyringe";
 import { AsyncMerkleTreeStore } from "@proto-kit/protocol";
+import { DependencyFactory, dependencyFactory } from "@proto-kit/common";
 
-import {
-  DependencyFactory,
-  dependencyFactory,
-} from "../../../common/src/dependencyFactory/DependencyFactory";
 import { AsyncStateService } from "../protocol/production/state/AsyncStateService";
 
 import { Database } from "./Database";

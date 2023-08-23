@@ -1,4 +1,5 @@
-import { ComputedBlock } from "../../storage/model/Block";
+import { noop } from "@proto-kit/protocol";
+
 import {
   SequencerModule,
   sequencerModule,
@@ -7,8 +8,15 @@ import {
 import { BaseLayer } from "./BaseLayer";
 
 @sequencerModule()
-export class NoopBaseLayer extends SequencerModule<{}> implements BaseLayer {
-  public async blockProduced(block: ComputedBlock): Promise<void> {}
+export class NoopBaseLayer
+  extends SequencerModule<object>
+  implements BaseLayer
+{
+  public async blockProduced(): Promise<void> {
+    noop();
+  }
 
-  public async start(): Promise<void> {}
+  public async start(): Promise<void> {
+    noop();
+  }
 }

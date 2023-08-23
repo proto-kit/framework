@@ -182,7 +182,12 @@ export class BlockProver
       networkStateHash: publicInput.networkStateHash,
     };
 
-    const stateTo = this.applyTransaction(state, stateProof, appProof, executionData);
+    const stateTo = this.applyTransaction(
+      state,
+      stateProof,
+      appProof,
+      executionData
+    );
 
     return new BlockProverPublicOutput({
       stateRoot: stateTo.stateRoot,

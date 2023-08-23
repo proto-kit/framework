@@ -132,12 +132,15 @@ export class Option<Value> {
   }
 
   public toJSON() {
+    const valueContent = this.valueType
+      .toFields(this.value)
+      .map((field) => field.toString())
+      .reduce((a, b) => `${a}, ${b}`);
+
     return {
       isSome: this.isSome.toBoolean(),
-      value: `[${this.valueType
-        .toFields(this.value)
-        .map((field) => field.toString())
-        .reduce((a, b) => `${a}, ${b}`)}]`,
+
+      value: `[${valueContent}]`,
     };
   }
 }

@@ -4,9 +4,9 @@ import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
 import log from "loglevel";
 
 import { StringKeyOf, TypedClass } from "../types";
+import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
-import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>

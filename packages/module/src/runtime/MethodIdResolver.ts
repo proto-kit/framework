@@ -29,7 +29,8 @@ export class MethodIdResolver {
           moduleName;
 
         runtime.resolve(moduleName).runtimeMethodNames.forEach((methodName) => {
-          dict[(stringToField(methodName).toBigInt() % modulus).toString()] = methodName;
+          dict[(stringToField(methodName).toBigInt() % modulus).toString()] =
+            methodName;
         });
         return dict;
       },
@@ -42,6 +43,8 @@ export class MethodIdResolver {
     const methodNameHash = singleFieldToString(methodId % modulus);
 
     const moduleName: string | undefined = this.dictionary[moduleNameHash];
+
+    // eslint-disable-next-line no-warning-comments
     // TODO Replace by throwing exception?
     if (moduleName === undefined) {
       return undefined;
@@ -61,7 +64,7 @@ export class MethodIdResolver {
     this.runtime.assertIsValidModuleName(this.modules, moduleName);
 
     return (
-      ((stringToField(moduleName).toBigInt() % modulus) << offset) +
+      (stringToField(moduleName).toBigInt() % modulus << offset) +
       (stringToField(methodName).toBigInt() % modulus)
     );
   }

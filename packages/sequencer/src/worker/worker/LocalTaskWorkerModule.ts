@@ -26,6 +26,7 @@ import { FlowTaskWorker } from "./FlowTaskWorker";
  */
 @sequencerModule()
 export class LocalTaskWorkerModule extends SequencerModule<object> {
+  // eslint-disable-next-line max-params
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,
     private readonly stateTransitionTask: StateTransitionTask,

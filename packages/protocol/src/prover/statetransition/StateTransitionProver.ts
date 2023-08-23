@@ -1,5 +1,6 @@
 import { Experimental, Field, Provable, SelfProof } from "snarkyjs";
-import { inject, injectable } from "tsyringe";
+import { injectable } from "tsyringe";
+import { PlainZkProgram, provableMethod } from "@proto-kit/common";
 
 import {
   MerkleTreeUtils,
@@ -12,20 +13,15 @@ import {
 import { ProvableStateTransition } from "../../model/StateTransition";
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
 import { constants } from "../../Constants";
+import { ProtocolModule } from "../../protocol/ProtocolModule";
 
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
-import {
-  AreProofsEnabled,
-  PlainZkProgram,
-  provableMethod,
-} from "@proto-kit/common";
 import {
   StateTransitionProvable,
   StateTransitionProverPublicInput,
   StateTransitionProof,
   StateTransitionProverPublicOutput,
 } from "./StateTransitionProvable";
-import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
 
 const errors = {
@@ -78,6 +74,8 @@ export class StateTransitionProver
     StateTransitionProverPublicInput,
     StateTransitionProverPublicOutput
   > {
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-this-alias,consistent-this,unicorn/no-this-assignment
     const instance = this;
 
     const program = Experimental.ZkProgram({
@@ -219,11 +217,10 @@ export class StateTransitionProver
       batch
     );
 
-    const output = new StateTransitionProverPublicOutput({
+    return new StateTransitionProverPublicOutput({
       stateRoot: result.stateRoot,
       stateTransitionsHash: result.stateTransitionList.commitment,
     });
-    return output;
   }
 
   @provableMethod()

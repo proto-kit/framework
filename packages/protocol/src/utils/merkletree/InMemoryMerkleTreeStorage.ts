@@ -1,5 +1,4 @@
-// eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-magic-numbers,@typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 import { log } from "@proto-kit/common";
 
 import { RollupMerkleTree } from "./RollupMerkleTree.js";
@@ -49,8 +48,8 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
     this.writeCache = {};
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   public async preloadKey(index: bigint): Promise<void> {
-    log.debug(`Preloading MT ${index}`);
     // Algo from RollupMerkleTree.getWitness()
     const { leafCount, height } = RollupMerkleTree;
 
@@ -68,6 +67,7 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
 
       // eslint-disable-next-line no-await-in-loop
       const value = await this.parent.getNode(key, level);
+      // eslint-disable-next-line no-await-in-loop
       const sibling = await this.parent.getNode(siblingKey, level);
       if (level === 0) {
         log.debug(`Preloaded ${key} @ ${level} -> ${value ?? "-"}`);
@@ -75,7 +75,7 @@ export class CachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
       if (value !== undefined) {
         this.setNode(key, level, value);
       }
-      if(sibling !== undefined) {
+      if (sibling !== undefined) {
         this.setNode(siblingKey, level, sibling);
       }
       index /= 2n;

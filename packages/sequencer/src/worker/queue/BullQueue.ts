@@ -6,7 +6,6 @@ import { log } from "@proto-kit/common";
 import { TaskPayload } from "../manager/ReducableTask";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
-import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 
 /**
  * TaskQueue implementation for BullMQ

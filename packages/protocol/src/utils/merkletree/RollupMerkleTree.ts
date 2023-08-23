@@ -2,9 +2,10 @@
 /* eslint-disable line-comment-position */
 /* eslint-disable no-inline-comments */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { Bool, Circuit, Field, Poseidon, Struct } from "snarkyjs";
+import { Bool, Field, Poseidon, Provable, Struct } from "snarkyjs";
 
 import { notInCircuit } from "../utils";
+
 import { MerkleTreeStore } from "./MerkleTreeStore";
 
 // external API
@@ -20,8 +21,8 @@ export { maybeSwap };
  * for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
  */
 class RollupMerkleWitness extends Struct({
-  path: Circuit.array(Field, 256 - 1),
-  isLeft: Circuit.array(Bool, 256 - 1),
+  path: Provable.Array(Field, 256 - 1),
+  isLeft: Provable.Array(Bool, 256 - 1),
 }) {
   public static height = 256;
 
@@ -58,7 +59,11 @@ class RollupMerkleWitness extends Struct({
 
     // eslint-disable-next-line no-underscore-dangle
     for (let index_ = 1; index_ < n; ++index_) {
-      index = Circuit.if(this.isLeft[index_ - 1], index, index.add(powerOfTwo));
+      index = Provable.if(
+        this.isLeft[index_ - 1],
+        index,
+        index.add(powerOfTwo)
+      );
       powerOfTwo = powerOfTwo.mul(2);
     }
 

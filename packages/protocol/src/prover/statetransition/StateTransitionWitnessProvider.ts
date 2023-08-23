@@ -18,7 +18,7 @@ export interface StateTransitionWitnessProvider {
 export class NoOpStateTransitionWitnessProvider
   implements StateTransitionWitnessProvider
 {
-  public getWitness(key: Field): RollupMerkleWitness {
+  public getWitness(): RollupMerkleWitness {
     return new RollupMerkleWitness({ path: [], isLeft: [] });
   }
 }

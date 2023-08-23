@@ -50,7 +50,8 @@ interface ComputedBlockMetadata {
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
-  blockWithoutTxs: () => new Error("Can't create a block with zero transactions"),
+  blockWithoutTxs: () =>
+    new Error("Can't create a block with zero transactions"),
 };
 
 /**

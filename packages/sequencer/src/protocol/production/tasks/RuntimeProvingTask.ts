@@ -1,13 +1,22 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { Task } from "../../../worker/flow/Task";
-import { RuntimeProofParameters, RuntimeProofParametersSerializer } from "./RuntimeTaskParameters";
-import { MethodParameterDecoder, Runtime, RuntimeMethodExecutionContext } from "@proto-kit/module";
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
-import { ProofTaskSerializer } from "../../../helpers/utils";
-import { PreFilledStateService } from "./providers/PreFilledStateService";
+import {
+  MethodIdResolver,
+  MethodParameterDecoder,
+  Runtime,
+  RuntimeMethodExecutionContext,
+} from "@proto-kit/module";
 import { MethodPublicOutput, RuntimeTransaction } from "@proto-kit/protocol";
 import { Proof } from "snarkyjs";
-import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
+
+import { Task } from "../../../worker/flow/Task";
+import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { ProofTaskSerializer } from "../../../helpers/utils";
+
+import {
+  RuntimeProofParameters,
+  RuntimeProofParametersSerializer,
+} from "./RuntimeTaskParameters";
+import { PreFilledStateService } from "./providers/PreFilledStateService";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -18,6 +27,8 @@ export class RuntimeProvingTask
 {
   protected readonly runtimeZkProgrammable =
     this.runtime.zkProgrammable.zkProgram;
+
+  public name = "runtimeProof";
 
   public constructor(
     @inject("Runtime") protected readonly runtime: Runtime<never>,
@@ -32,8 +43,6 @@ export class RuntimeProvingTask
     return new ProofTaskSerializer(this.runtimeZkProgrammable.Proof);
   }
 
-  public name = "runtimeProof";
-
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
     const method = this.runtime.getMethodById(input.tx.methodId.toBigInt());
 
@@ -44,7 +53,7 @@ export class RuntimeProvingTask
     if (methodDescriptors === undefined || method === undefined) {
       throw new Error(`MethodId not found ${input.tx.methodId.toString()}`);
     }
-    
+
     const [moduleName, methodName] = methodDescriptors;
 
     const parameterDecoder = MethodParameterDecoder.fromMethod(
@@ -59,12 +68,12 @@ export class RuntimeProvingTask
     );
 
     // Set network state and transaction for the runtimemodule to access
-    const runtimeTransaction = RuntimeTransaction.fromProtocolTransaction(
+    const transaction = RuntimeTransaction.fromProtocolTransaction(
       input.tx.toProtocolTransaction()
     );
     const contextInputs = {
       networkState: input.networkState,
-      transaction: runtimeTransaction,
+      transaction,
     };
     this.executionContext.setup(contextInputs);
 

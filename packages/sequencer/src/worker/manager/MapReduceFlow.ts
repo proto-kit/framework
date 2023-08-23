@@ -221,7 +221,6 @@ export class MapReduceFlow<Input, Result> implements Closeable {
 
       await queue.onCompleted(async (payload) => {
         const listener = this.onCompletedListeners[payload.flowId];
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (listener !== undefined) {
           await listener(payload);
         }

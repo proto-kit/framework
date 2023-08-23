@@ -7,13 +7,13 @@ import {
   RuntimeMethodExecutionData,
 } from "../method/RuntimeMethodExecutionContext";
 import { StateService } from "../state/InMemoryStateService";
+import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
 import type {
   Runtime,
   RuntimeDefinition,
   RuntimeModulesRecord,
 } from "./Runtime";
-import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
 const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
@@ -57,10 +57,13 @@ export class RuntimeModule<Config> extends ConfigurableModule<Config> {
 
   public constructor() {
     super();
-    const methodNames: string[] | undefined = Reflect.getMetadata(runtimeMethodNamesMetadataKey, this)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const methodNames: string[] | undefined = Reflect.getMetadata(
+      runtimeMethodNamesMetadataKey,
+      this
+    );
     this.runtimeMethodNames = methodNames ?? [];
   }
-
 
   private getInputs(): RuntimeMethodExecutionData {
     const { input } = container.resolve<RuntimeMethodExecutionContext>(

@@ -1,5 +1,5 @@
 import { Field, Proof } from "snarkyjs";
-import { StateTransitionProof, Subclass } from "@proto-kit/protocol";
+import { Subclass } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../worker/manager/ReducableTask";
 
@@ -86,7 +86,8 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
 export type PairTuple<Type> = [Type, Type];
 
 export class PairProofTaskSerializer<PublicInputType, PublicOutputType>
-  implements TaskSerializer<PairTuple<Proof<PublicInputType, PublicOutputType>>>
+  implements
+    TaskSerializer<PairTuple<Proof<PublicInputType, PublicOutputType>>>
 {
   private readonly proofSerializer = new ProofTaskSerializer(this.proofClass);
 
@@ -107,7 +108,9 @@ export class PairProofTaskSerializer<PublicInputType, PublicOutputType>
     ];
   }
 
-  public toJSON(input: PairTuple<Proof<PublicInputType, PublicOutputType>>): string {
+  public toJSON(
+    input: PairTuple<Proof<PublicInputType, PublicOutputType>>
+  ): string {
     return JSON.stringify(
       input.map((element) => this.proofSerializer.toJSONProof(element))
     );

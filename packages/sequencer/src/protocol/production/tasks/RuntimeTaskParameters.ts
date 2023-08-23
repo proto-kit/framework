@@ -47,6 +47,7 @@ export class RuntimeProofParametersSerializer
     } = JSON.parse(json);
     return {
       tx: PendingTransaction.fromJSON(jsonReadyObject.tx),
+
       networkState: new NetworkState(
         NetworkState.fromJSON(jsonReadyObject.networkState)
       ),
