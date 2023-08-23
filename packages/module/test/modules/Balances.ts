@@ -48,4 +48,9 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
   }
+
+  @runtimeMethod()
+  public setBalanceIf() {
+
+  }
 }

@@ -61,6 +61,43 @@ export class BlockTaskFlowService {
     private readonly blockReductionTask: BlockReductionTask
   ) {}
 
+  private resolveReducibleTasks<Type>(
+    pendingInputs: Type[],
+    reducible: (a: Type, b: Type) => boolean
+  ): {
+    availableReductions: { r1: Type; r2: Type }[];
+    touchedIndizes: number[];
+  } {
+    const res: { r1: Type; r2: Type }[] = [];
+
+    const touchedIndizes: number[] = [];
+
+    for (const [index, first] of pendingInputs.entries()) {
+      const secondIndex = pendingInputs.findIndex(
+        (second, index2) =>
+          index2 > index &&
+          (reducible(first, second) || reducible(second, first))
+      );
+
+      if (secondIndex > 0) {
+        const r2 = pendingInputs[secondIndex];
+        pendingInputs = pendingInputs.filter(
+          (unused, index2) => index2 !== index && index2 !== secondIndex
+        );
+
+        const [firstElement, secondElement] = reducible(first, r2)
+          ? [first, r2]
+          : [r2, first];
+
+        // eslint-disable-next-line putout/putout
+        res.push({ r1: firstElement, r2: secondElement });
+        touchedIndizes.push(index, secondIndex);
+      }
+    }
+
+    return { availableReductions: res, touchedIndizes };
+  }
+
   public async pushPairing(
     flow: Flow<BlockProductionFlowState>,
     index: number
@@ -89,8 +126,6 @@ export class BlockTaskFlowService {
   public async resolveBlockReduction(flow: Flow<BlockProductionFlowState>) {
     const reductions = flow.state.blockReduction;
 
-    console.log(reductions.queue.length);
-
     if (
       reductions.numProofs - reductions.numMergesCompleted === 1 &&
       flow.tasksInProgress === 0
@@ -100,19 +135,41 @@ export class BlockTaskFlowService {
     }
 
     if (reductions.queue.length >= 2) {
-      const taskParameters: PairTuple<BlockProof> = [
-        reductions.queue[0],
-        reductions.queue[1],
-      ];
-      reductions.queue = reductions.queue.slice(2);
-      await flow.pushTask(
-        this.blockReductionTask,
-        taskParameters,
-        async (result) => {
-          flow.state.blockReduction.queue.push(result);
-          flow.state.blockReduction.numMergesCompleted += 1;
-          await this.resolveBlockReduction(flow);
-        }
+      const { availableReductions, touchedIndizes } =
+        this.resolveReducibleTasks(reductions.queue, (a, b) => {
+          return a.publicOutput.stateRoot
+            .equals(b.publicInput.stateRoot)
+            .and(
+              a.publicOutput.transactionsHash.equals(
+                b.publicInput.transactionsHash
+              )
+            )
+            .and(
+              a.publicInput.networkStateHash.equals(
+                b.publicInput.networkStateHash
+              )
+            )
+            .toBoolean();
+        });
+
+      await flow.forEach(availableReductions, async (reduction) => {
+        const taskParameters: PairTuple<BlockProof> = [
+          reduction.r1,
+          reduction.r2,
+        ];
+        await flow.pushTask(
+          this.blockReductionTask,
+          taskParameters,
+          async (result) => {
+            flow.state.blockReduction.queue.push(result);
+            flow.state.blockReduction.numMergesCompleted += 1;
+            await this.resolveBlockReduction(flow);
+          }
+        );
+      });
+
+      reductions.queue = reductions.queue.filter(
+        (ignored, index) => !touchedIndizes.includes(index)
       );
     }
   }
@@ -124,33 +181,51 @@ export class BlockTaskFlowService {
     const reductionInfo = flow.state.stReduction[index];
 
     if (reductionInfo.queue.length >= 2) {
-      const taskParameters: PairTuple<StateTransitionProof> = [
-        reductionInfo.queue[0],
-        reductionInfo.queue[1],
-      ];
-      reductionInfo.queue = reductionInfo.queue.slice(2);
-      await flow.pushTask(
-        this.stateTransitionReductionTask,
-        taskParameters,
-        async (result) => {
-          reductionInfo.numMergesCompleted += 1;
-          log.debug(
-            `${reductionInfo.numMergesCompleted} from ${reductionInfo.numProofs} ST Reductions completed `
-          );
+      const { availableReductions, touchedIndizes } =
+        this.resolveReducibleTasks(reductionInfo.queue, (a, b) => {
+          return a.publicOutput.stateRoot
+            .equals(b.publicInput.stateRoot)
+            .and(
+              a.publicOutput.stateTransitionsHash.equals(
+                b.publicInput.stateTransitionsHash
+              )
+            )
+            .toBoolean();
+        });
 
-          if (
-            reductionInfo.numMergesCompleted ===
-            reductionInfo.numProofs - 1
-          ) {
-            // Do pairing and block task
-            flow.state.pairings[index].stProof = result;
-            await this.pushPairing(flow, index);
-          } else {
-            reductionInfo.queue.push(result);
-            await this.resolveSTReduction(flow, index);
+      await flow.forEach(availableReductions, async (reduction) => {
+        const taskParameters: PairTuple<StateTransitionProof> = [
+          reduction.r1,
+          reduction.r2,
+        ];
+
+        await flow.pushTask(
+          this.stateTransitionReductionTask,
+          taskParameters,
+          async (result) => {
+            reductionInfo.numMergesCompleted += 1;
+            log.debug(
+              `${reductionInfo.numMergesCompleted} from ${reductionInfo.numProofs} ST Reductions completed `
+            );
+
+            if (
+              reductionInfo.numMergesCompleted ===
+              reductionInfo.numProofs - 1
+            ) {
+              // Do pairing and block task
+              flow.state.pairings[index].stProof = result;
+              await this.pushPairing(flow, index);
+            } else {
+              reductionInfo.queue.push(result);
+              await this.resolveSTReduction(flow, index);
+            }
           }
-        }
-      );
+        );
+
+        reductionInfo.queue = reductionInfo.queue.filter(
+          (ignored, queueIndex) => !touchedIndizes.includes(queueIndex)
+        );
+      });
     }
   }
 

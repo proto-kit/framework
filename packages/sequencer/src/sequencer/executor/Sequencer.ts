@@ -15,7 +15,7 @@ import { StateTransitionWitnessProviderReference } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
-import { DependencyFactory } from "../builder/DependencyFactory";
+import { DependencyFactory } from "../../../../common/src/dependencyFactory/DependencyFactory";
 import { MockStorageDependencyFactory } from "../../storage/MockStorageDependencyFactory";
 
 import { Sequenceable } from "./Sequenceable";
@@ -58,14 +58,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    */
   public async start() {
     // Define DependencyFactories and initialize them
-    const factories: TypedClass<DependencyFactory>[] = [
+    const factories = [
       MockStorageDependencyFactory,
     ];
-    factories.forEach((factory) => {
-      this.dependencyContainer
-        .resolve(factory)
-        .initDependencies(this.dependencyContainer);
-    });
+    this.registerDependencyFactories(factories);
 
     // Set default STWitnessProvider inside protocol
     // eslint-disable-next-line no-warning-comments,max-len

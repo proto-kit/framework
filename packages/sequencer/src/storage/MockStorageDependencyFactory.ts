@@ -8,7 +8,7 @@ import {
   dependency,
   DependencyFactory,
   dependencyFactory,
-} from "../sequencer/builder/DependencyFactory";
+} from "@proto-kit/common";
 import { AsyncStateService } from "../protocol/production/state/AsyncStateService";
 import { CachedStateService } from "../protocol/production/execution/CachedStateService";
 

@@ -6,6 +6,7 @@ import log from "loglevel";
 import { StringKeyOf, TypedClass } from "../types";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
+import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -169,6 +170,18 @@ export class ModuleContainer<
         this.onAfterModuleResolution(moduleName);
       }
     }
+  }
+
+  /**
+   * Inject a set of dependencies using the given list of DependencyFactories
+   * This method should be called during startup
+   */
+  protected registerDependencyFactories(
+    factories: TypedClass<DependencyFactory>[]
+  ) {
+    factories.forEach((factory) => {
+      this.container.resolve(factory).initDependencies(this.container);
+    });
   }
 
   /**

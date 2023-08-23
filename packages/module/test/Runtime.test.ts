@@ -1,23 +1,29 @@
-import { InMemoryStateService, Runtime } from "../src";
-import { Balances } from "./modules/Balances";
 import { Bool } from "snarkyjs";
 
-describe("runtime", () => {
+import { InMemoryStateService, Runtime } from "../src";
 
+import { Balances } from "./modules/Balances";
+
+describe("runtime", () => {
   it("should encode methodnames correctly", () => {
+    expect.assertions(2);
+
     const runtime = Runtime.from({
       state: new InMemoryStateService(),
+
       modules: {
-        Balances: Balances
+        Balances,
       },
+
       config: {
         Balances: {
-          test: Bool(true)
-        }
-      }
-    })
+          test: Bool(true),
+        },
+      },
+    });
 
-    const balances = runtime.resolve("Balances")
+    const balances = runtime.resolve("Balances");
+
     expect(balances).toBeDefined();
 
     console.log(Object.keys(balances));
@@ -26,12 +32,13 @@ describe("runtime", () => {
     const moduleName = "Balances";
     const methodName = "getTotalSupply";
 
-    const methodId = runtime.getMethodId(moduleName, methodName);
-    const method = runtime.getMethodById(methodId)
+    const methodId = runtime.methodIdResolver.getMethodId(
+      moduleName,
+      methodName
+    );
+    const method = runtime.getMethodById(methodId);
 
     // eslint-disable-next-line jest/no-restricted-matchers
     expect(method).toBeDefined();
-
-  })
-
-})
+  });
+});

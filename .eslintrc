@@ -126,6 +126,9 @@
       {
         "allow": ["<<", ">>", ">>>"]
       }
+    ],
+    "@typescript-eslint/no-unnecessary-condition": [
+      "off"
     ]
   },
 

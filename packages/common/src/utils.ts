@@ -8,3 +8,11 @@ export function requireTrue(
       : errorOrFunction;
   }
 }
+
+export function range(startOrEnd: number, end: number | undefined): number[] {
+  if (end === undefined) {
+    end = startOrEnd;
+    startOrEnd = 0;
+  }
+  return Array.from({ length: end - startOrEnd }, (ignored, index) => index);
+}

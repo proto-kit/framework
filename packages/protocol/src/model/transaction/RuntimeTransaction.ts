@@ -8,16 +8,19 @@ import { ProtocolTransaction } from "./ProtocolTransaction";
  * For example, we don't want to expose the signature or args as fields.
  */
 export class RuntimeTransaction extends Struct({
+  methodId: Field,
   nonce: UInt64,
   sender: PublicKey,
   argsHash: Field,
 }) {
   public static fromProtocolTransaction({
+    methodId,
     nonce,
     sender,
     argsHash,
   }: ProtocolTransaction): RuntimeTransaction {
     return new RuntimeTransaction({
+      methodId,
       nonce,
       sender,
       argsHash,
@@ -26,8 +29,9 @@ export class RuntimeTransaction extends Struct({
 
   public hash(): Field {
     return Poseidon.hash([
-      ...this.nonce.toFields(),
+      this.methodId,
       ...this.sender.toFields(),
+      ...this.nonce.toFields(),
       this.argsHash,
     ]);
   }

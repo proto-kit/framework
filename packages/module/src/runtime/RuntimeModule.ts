@@ -13,6 +13,7 @@ import type {
   RuntimeDefinition,
   RuntimeModulesRecord,
 } from "./Runtime";
+import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
 const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
@@ -37,6 +38,11 @@ export class RuntimeModule<Config> extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 
   /**
+   * Holds all method names that are callable throw transactions
+   */
+  public readonly runtimeMethodNames: string[] = [];
+
+  /**
    * This property exists only to typecheck that the RuntimeModule
    * was extended correctly in e.g. a decorator. We need at least
    * one non-optional property in this class to make the typechecking work.
@@ -46,6 +52,13 @@ export class RuntimeModule<Config> extends ConfigurableModule<Config> {
   public name?: string;
 
   public runtime?: Runtime<RuntimeModulesRecord>;
+
+  public constructor() {
+    super();
+    const methodNames: string[] | undefined = Reflect.getMetadata(runtimeMethodNamesMetadataKey, this)
+    this.runtimeMethodNames = methodNames ?? [];
+  }
+
 
   private getInputs(): RuntimeMethodExecutionData {
     const { input } = container.resolve<RuntimeMethodExecutionContext>(
