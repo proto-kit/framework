@@ -129,7 +129,8 @@
     ],
     "@typescript-eslint/no-unnecessary-condition": [
       "off"
-    ]
+    ],
+    "nodejs/declare": "off"
   },
 
   "overrides": [
