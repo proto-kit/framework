@@ -3,8 +3,6 @@ export * from "./mempool/Mempool";
 export * from "./mempool/PendingTransaction";
 export * from "./mempool/CompressedSignature";
 export * from "./mempool/private/PrivateMempool";
-export * from "./mempool/graphql/MempoolModule";
-export * from "./mempool/graphql/MempoolResolver";
 export * from "./sequencer/executor/Sequencer";
 export * from "./sequencer/executor/Sequenceable";
 export * from "./sequencer/builder/SequencerModule";

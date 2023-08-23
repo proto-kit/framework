@@ -1,8 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
 
-import { TextEncoder } from "node:util";
-
 import { Field, Poseidon, Provable } from "snarkyjs";
 import floor from "lodash/floor";
 
