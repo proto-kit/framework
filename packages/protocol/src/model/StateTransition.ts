@@ -1,6 +1,6 @@
 import { Field, Struct } from "snarkyjs";
 
-import { Option, ProvableOption } from "./Option.js";
+import { Option, ProvableOption, ToFieldable } from "./Option.js";
 
 /**
  * Provable representation of a State Transition, used to
@@ -29,12 +29,15 @@ export class ProvableStateTransition extends Struct({
  * Generic state transition that constraints the current method circuit
  * to external state, by providing a state anchor.
  */
-export class StateTransition<Value> {
-  public static from<Value>(path: Field, fromValue: Option<Value>) {
+export class StateTransition<Value extends ToFieldable> {
+  public static from<Value extends ToFieldable>(
+    path: Field,
+    fromValue: Option<Value>
+  ) {
     return new StateTransition(path, fromValue, Option.none());
   }
 
-  public static fromTo<Value>(
+  public static fromTo<Value extends ToFieldable>(
     path: Field,
     fromValue: Option<Value>,
     toValue: Option<Value>

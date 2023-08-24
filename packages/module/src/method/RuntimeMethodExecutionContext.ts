@@ -1,6 +1,10 @@
 import { Bool } from "snarkyjs";
 import { singleton } from "tsyringe";
-import type { StateTransition, NetworkState } from "@proto-kit/protocol";
+import type {
+  StateTransition,
+  NetworkState,
+  ToFieldable,
+} from "@proto-kit/protocol";
 import {
   ProvableMethodExecutionContext,
   ProvableMethodExecutionResult,
@@ -56,7 +60,9 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    * Adds an in-method generated state transition to the current context
    * @param stateTransition - State transition to add to the context
    */
-  public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
+  public addStateTransition<Value extends ToFieldable>(
+    stateTransition: StateTransition<Value>
+  ) {
     this.assertSetupCalled();
     this.result.stateTransitions.push(stateTransition);
   }

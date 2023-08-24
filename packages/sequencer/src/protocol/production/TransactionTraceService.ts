@@ -15,7 +15,7 @@ import {
   ProvableStateTransition,
   RollupMerkleTree,
   RuntimeTransaction,
-  StateTransition,
+  StateTransition, ToFieldable
 } from "@proto-kit/protocol";
 import { Field } from "snarkyjs";
 import { log } from "@proto-kit/common";
@@ -45,7 +45,7 @@ export class TransactionTraceService {
     @inject("Runtime") private readonly runtime: Runtime<never>
   ) {}
 
-  private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
+  private allKeys(stateTransitions: StateTransition<ToFieldable>[]): Field[] {
     // We have to do the distinct with strings because
     // array.indexOf() doesn't work with fields
     return stateTransitions
@@ -177,7 +177,7 @@ export class TransactionTraceService {
 
   private async createMerkleTrace(
     merkleStore: CachedMerkleTreeStore,
-    stateTransitions: StateTransition<unknown>[]
+    stateTransitions: StateTransition<ToFieldable>[]
   ): Promise<{
     stParameters: StateTransitionProofParameters[];
     fromStateRoot: Field;
