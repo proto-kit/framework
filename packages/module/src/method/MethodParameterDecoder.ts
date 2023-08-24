@@ -45,7 +45,9 @@ export class MethodParameterDecoder {
     if (fields.length < this.fieldSize) {
       throw errors.fieldLengthNotMatching(this.fieldSize, fields.length);
     }
+
     let stack = fields.slice();
+
     return this.types.map((type) => {
       const numberFieldsNeeded =
         type.prototype._fields?.length ?? type.sizeInFields?.() ?? -1;
@@ -63,6 +65,6 @@ export class MethodParameterDecoder {
       .map(
         (type) => type.prototype._fields?.length ?? type.sizeInFields?.() ?? 0
       )
-      .reduce((a, b) => a + b);
+      .reduce((a, b) => a + b, 0);
   }
 }
