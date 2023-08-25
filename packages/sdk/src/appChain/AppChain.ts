@@ -11,16 +11,13 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-} from "@proto-kit/sequencer";
+import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
 import {
   NetworkState,
   Protocol,
   ProtocolModulesRecord,
   RuntimeTransaction,
-  StateTransitionWitnessProviderReference
+  StateTransitionWitnessProviderReference,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { UnsignedTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
@@ -148,7 +145,11 @@ export class AppChain<
     this.configure(config.appChain);
   }
 
-  public transaction(sender: PublicKey, callback: () => void) {
+  public transaction(
+    sender: PublicKey,
+    callback: () => void,
+    options?: { nonce?: number }
+  ) {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -156,7 +157,7 @@ export class AppChain<
     executionContext.setup({
       transaction: {
         sender,
-        nonce: UInt64.from(0),
+        nonce: UInt64.from(options?.nonce ?? 0),
         argsHash: Field(0),
       } as unknown as RuntimeTransaction,
 
@@ -180,9 +181,13 @@ export class AppChain<
 
     const argsFields = args.flatMap((arg) => arg.toFields(arg));
     const unsignedTransaction = new UnsignedTransaction({
-      methodId: Field(this.runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver").getMethodId(moduleName, methodName)),
+      methodId: Field(
+        this.runtime.dependencyContainer
+          .resolve<MethodIdResolver>("MethodIdResolver")
+          .getMethodId(moduleName, methodName)
+      ),
       args: argsFields,
-      nonce: UInt64.from(0),
+      nonce: UInt64.from(options?.nonce ?? 0),
       sender,
     });
 
