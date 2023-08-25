@@ -50,7 +50,11 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   }
 
   @runtimeMethod()
-  public setBalanceIf() {
+  public transientState() {
+    const totalSupply = this.totalSupply.get();
+    this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(100));
 
+    const totalSupply2 = this.totalSupply.get();
+    this.totalSupply.set(totalSupply2.orElse(UInt64.zero).add(100));
   }
 }

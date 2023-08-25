@@ -7,7 +7,7 @@ import {
   State,
   StateMap,
 } from "@proto-kit/module";
-import { Presets } from "@proto-kit/common";
+import { Presets, range } from "@proto-kit/common";
 import { Bool, Provable, PublicKey, UInt64 } from "snarkyjs";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option } from "@proto-kit/protocol";
@@ -71,5 +71,13 @@ export class Balance extends RuntimeModule<object> {
 
     const newBalance = balance.value.add(value);
     this.balances.set(address, newBalance);
+  }
+
+  @runtimeMethod()
+  public lotOfSTs() {
+    range(0, 2).forEach(() => {
+      const supply = this.totalSupply.get().orElse(UInt64.zero);
+      this.totalSupply.set(supply.add(UInt64.from(100)));
+    });
   }
 }

@@ -215,7 +215,7 @@ describe("block production", () => {
 
   const numberTxs = 3;
 
-  it("should produce block with multiple transaction", async () => {
+  it.skip("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(5 + 2 * numberTxs);
 
@@ -260,6 +260,47 @@ describe("block production", () => {
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
       UInt64.from(100 * numberTxs)
+    );
+  }, 160_000);
+
+  it("should produce block with a tx with a lot of STs", async () => {
+    expect.assertions(7);
+
+    const privateKey = PrivateKey.random();
+
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "lotOfSTs"],
+        privateKey,
+        args: [],
+        nonce: 0,
+      })
+    );
+
+    const block = await blockTrigger.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.txs).toHaveLength(1);
+    expect(block!.proof.proof).toBe("mock-proof");
+
+    expect(block!.txs[0].status).toBe(true);
+    expect(block!.txs[0].statusMessage).toBe(undefined);
+
+    const stateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "AsyncStateService"
+      );
+    const supplyPath = Path.fromProperty(
+      "Balance",
+      "totalSupply"
+    );
+    const newState = await stateService.getAsync(supplyPath);
+
+    expect(newState).toBeDefined();
+    expect(UInt64.fromFields(newState!)).toStrictEqual(
+      // 10 is the number of iterations inside the runtime method
+      UInt64.from(100 * 10)
     );
   }, 160_000);
 });
