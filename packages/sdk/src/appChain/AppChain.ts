@@ -10,8 +10,13 @@ import {
   Runtime,
   RuntimeMethodExecutionContext,
   RuntimeModulesRecord,
+  MethodIdResolver,
 } from "@proto-kit/module";
-import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
+import {
+  Sequencer,
+  SequencerModulesRecord,
+  UnsignedTransaction,
+} from "@proto-kit/sequencer";
 import {
   NetworkState,
   Protocol,
@@ -20,7 +25,6 @@ import {
   StateTransitionWitnessProviderReference,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
-import { UnsignedTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
 import { Field, PublicKey, UInt64 } from "snarkyjs";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
@@ -28,7 +32,6 @@ import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { QueryBuilderFactory } from "../query/QueryBuilderFactory";
 import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
-import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>

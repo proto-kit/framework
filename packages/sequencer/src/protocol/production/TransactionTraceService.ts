@@ -5,6 +5,7 @@ import {
   Runtime,
   RuntimeMethodExecutionContext,
   RuntimeProvableMethodExecutionResult,
+  MethodIdResolver,
 } from "@proto-kit/module";
 import {
   CachedMerkleTreeStore,
@@ -20,7 +21,6 @@ import {
 import { Field } from "snarkyjs";
 import { log } from "@proto-kit/common";
 import chunk from "lodash/chunk";
-import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinct } from "../../helpers/utils";

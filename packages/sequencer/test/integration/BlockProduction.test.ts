@@ -1,7 +1,12 @@
 // eslint-disable-next-line max-len
 /* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects */
 import "reflect-metadata";
-import { Fieldable, InMemoryStateService, Runtime } from "@proto-kit/module";
+import {
+  Fieldable,
+  InMemoryStateService,
+  Runtime,
+  MethodIdResolver,
+} from "@proto-kit/module";
 // eslint-disable-next-line no-warning-comments
 // TODO this is actually a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -24,7 +29,6 @@ import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerMo
 
 import { Balance } from "./mocks/Balance";
 import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
-import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;

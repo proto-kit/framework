@@ -5,8 +5,8 @@ import {
   PrivateMempool,
   Sequencer,
   SequencerModulesRecord,
+  PendingTransaction,
 } from "@proto-kit/sequencer";
-import { PendingTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
 import { inject, injectable } from "tsyringe";
 import { AppChain, AppChainModulesRecord } from "../appChain/AppChain";
 import { AppChainModule } from "../appChain/AppChainModule";

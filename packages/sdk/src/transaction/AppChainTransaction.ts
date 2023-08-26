@@ -1,8 +1,6 @@
 /* eslint-disable import/no-unused-modules */
-import {
-  PendingTransaction,
-  UnsignedTransaction,
-} from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
+import { PendingTransaction, UnsignedTransaction } from "@proto-kit/sequencer";
+
 import { Signer } from "./InMemorySigner";
 import { TransactionSender } from "./InMemoryTransactionSender";
 
