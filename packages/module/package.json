@@ -17,8 +17,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@proto-kit/common": "0.1.1-develop.160+5120680",
-    "@proto-kit/protocol": "0.1.1-develop.160+5120680",
+    "@proto-kit/common": "*",
+    "@proto-kit/protocol": "*",
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",

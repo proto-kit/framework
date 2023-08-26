@@ -28,9 +28,9 @@
     "@types/node": "^20.2.5"
   },
   "dependencies": {
-    "@proto-kit/common": "0.1.1-develop.160+5120680",
-    "@proto-kit/module": "0.1.1-develop.160+5120680",
-    "@proto-kit/protocol": "0.1.1-develop.160+5120680",
+    "@proto-kit/common": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/protocol": "*",
     "@types/ws": "^8.5.4",
     "bullmq": "^3.15.0",
     "class-validator": "^0.14.0",
