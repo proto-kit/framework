@@ -106,7 +106,7 @@ export class BlockTaskFlowService {
       flow.state.pairings[index];
 
     if (runtimeProof !== undefined && stProof !== undefined) {
-      console.log(`Found pairing ${index}`);
+      log.debug(`Found pairing ${index}`);
 
       await flow.pushTask(
         this.blockProvingTask,

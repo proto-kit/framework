@@ -5,6 +5,7 @@ import {
   StateTransitionWitnessProvider,
 } from "@proto-kit/protocol";
 import { Field } from "snarkyjs";
+import { log } from "@proto-kit/common";
 
 const errors = {
   noWitnessAvailable: () =>
@@ -44,7 +45,7 @@ export class PreFilledWitnessProvider
     // }
 
     const computedKey = witness.calculateIndex();
-    console.log("Computed Key for witness", computedKey.toString());
+    log.debug("Computed Key for witness", computedKey.toString());
     if (!computedKey.equals(key).toBoolean()) {
       throw errors.keysDoNotMatch();
     }

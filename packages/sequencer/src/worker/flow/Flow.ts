@@ -1,4 +1,5 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { log } from "@proto-kit/common";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { TaskPayload } from "../manager/ReducableTask";
@@ -173,7 +174,7 @@ export class Flow<State> implements Closeable {
     this.taskCounter += 1;
     const taskId = String(this.taskCounter);
 
-    console.log(`Pushing ${task.name}`);
+    log.debug(`Pushing ${task.name}`);
 
     await queue.addTask({
       // eslint-disable-next-line putout/putout
@@ -187,7 +188,7 @@ export class Flow<State> implements Closeable {
 
     // eslint-disable-next-line @typescript-eslint/promise-function-async
     const callback = (returnPayload: TaskPayload) => {
-      console.log(`Completed ${returnPayload.name}`);
+      log.debug(`Completed ${returnPayload.name}`);
       const decoded = task.resultSerializer().fromJSON(returnPayload.payload);
       this.tasksInProgress -= 1;
       return completed?.(decoded, input);

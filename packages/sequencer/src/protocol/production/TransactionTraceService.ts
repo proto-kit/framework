@@ -126,7 +126,7 @@ export class TransactionTraceService {
     );
     const { stateTransitions, status, statusMessage } = executionResult;
 
-    console.log(
+    log.debug(
       stateTransitions.map((x) =>
         ProvableStateTransition.toJSON(x.toProvable())
       )
@@ -327,7 +327,7 @@ export class TransactionTraceService {
         // Use updated stateTransitions since only they will have the
         // right values
         executionResult.stateTransitions.map(async (st) => {
-          console.log("Setting async:", st.path.toString(), st.to.toJSON());
+          log.debug("Setting async:", st.path.toString(), st.to.toJSON());
           await stateService.setAsync(st.path, st.to.toFields());
         })
       );

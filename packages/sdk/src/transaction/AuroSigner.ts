@@ -23,17 +23,14 @@ export class AuroSignerHandler {
 
   public handleSignRequests() {
     const listener = (message: MessageEvent<any>) => {
-      console.log("window received REQUEST_SIGNATURE", message.data);
       if (
         message.data?.type === ("REQUEST_SIGNATURE" satisfies Message["type"])
       ) {
-        console.log("please sign", message.data.data);
         (window as any).mina
           .signFields({
             message: message.data.data,
           })
           .then(({ signature }: { signature: string }) => {
-            console.log("window sending RESPONSE_SIGNATURE", signature);
             this.worker.postMessage({
               type: "RESPONSE_SIGNATURE",
               data: signature,
@@ -53,12 +50,10 @@ export class AuroSigner extends AppChainModule<unknown> implements Signer {
 
     return await new Promise(async (resolve) => {
       const listener = async (message: MessageEvent<any>) => {
-        console.log("received signature", message.data);
         if (
           message.data?.type == ("RESPONSE_SIGNATURE" satisfies Message["type"])
         ) {
           const signature = Signature.fromBase58(message.data.data);
-          console.log("resolving with signature", signature);
           self.removeEventListener("message", listener);
 
           return resolve(signature);
@@ -67,10 +62,6 @@ export class AuroSigner extends AppChainModule<unknown> implements Signer {
 
       self.addEventListener("message", listener);
 
-      console.log(
-        "sending REQUEST_SIGNATURE",
-        signatureData.map((f) => f.toString())
-      );
       self.postMessage({
         type: "REQUEST_SIGNATURE",
         data: signatureData.map((field) => field.toString()),
