@@ -99,6 +99,12 @@ export class TestingAppChain<
     });
   }
 
+  public useAuroSigner() {
+    this.registerModules({
+      Signer: AuroSigner,
+    });
+  }
+
   public async produceBlock() {
     const blockTrigger = this.sequencer.resolveOrFail(
       "BlockTrigger",
