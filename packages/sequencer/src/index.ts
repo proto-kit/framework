@@ -37,3 +37,4 @@ export * from "./protocol/production/trigger/TimedBlockTrigger";
 export * from "./protocol/production/BlockProducerModule";
 export * from "./protocol/production/BlockTaskFlowService";
 export * from "./protocol/production/TransactionTraceService";
+export * from "./storage/model/Block";

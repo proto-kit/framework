@@ -16,7 +16,6 @@ import {
   TaskQueue,
   LocalTaskQueue,
   SequencerModulesRecord,
-  BlockTrigger,
 } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "snarkyjs";
 import { container } from "tsyringe";
@@ -76,17 +75,12 @@ export class TestingAppChain<
       protocol: VanillaProtocol.create() as any,
 
       modules: {
-        // Signer: InMemorySigner,
-        Signer: AuroSigner,
+        Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: InMemoryQueryTransportModule,
       },
+
       config: {
-        // Signer: {
-        //   signer: PrivateKey.fromBase58(
-        //     "EKEEQvuAqoPWHTip9nGGo4b335BrAtBstwTbaT3L3hZyBjQoQFAw"
-        //   ),
-        // },
         Signer: {},
         TransactionSender: {},
         QueryTransportModule: {},
