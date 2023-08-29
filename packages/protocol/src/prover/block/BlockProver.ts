@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { Experimental, Field, type Proof, Provable, SelfProof } from "snarkyjs";
-import { inject, injectable } from "tsyringe";
+import { inject, injectable, injectAll } from "tsyringe";
 import {
   PlainZkProgram,
   provableMethod,
@@ -25,6 +25,7 @@ import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
 } from "./BlockProvable";
+import { BlockModule } from "../../protocol/BlockModule";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -75,7 +76,9 @@ export class BlockProver
       StateTransitionProverPublicOutput
     >,
     @inject("Runtime")
-    private readonly runtime: WithZkProgrammable<void, MethodPublicOutput>
+    private readonly runtime: WithZkProgrammable<void, MethodPublicOutput>,
+    @injectAll("BlockModule")
+    private readonly blockModules: BlockModule[]
   ) {
     super();
   }
@@ -87,6 +90,8 @@ export class BlockProver
    * @param state The from-state of the BlockProver
    * @param stateTransitionProof
    * @param appProof
+   * @param transaction
+   * @param networkState
    * @returns The new BlockProver-state to be used as public output
    */
   public applyTransaction(

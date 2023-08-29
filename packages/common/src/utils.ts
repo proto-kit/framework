@@ -1,4 +1,4 @@
-import { Field, FlexibleProvablePure } from "snarkyjs";
+import { Field, FlexibleProvable, FlexibleProvablePure } from "snarkyjs";
 
 export function requireTrue(
   condition: boolean,
@@ -26,7 +26,7 @@ export function range(startOrEnd: number, end: number | undefined): number[] {
  * @param valueType - Value type to generate the dummy value for
  * @returns Dummy value for the given value type
  */
-export function dummyValue<Value>(
+export function dummyValuePure<Value>(
   valueType: FlexibleProvablePure<Value>
 ): Value {
   const length = valueType.sizeInFields();
@@ -34,4 +34,14 @@ export function dummyValue<Value>(
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return valueType.fromFields(fields) as Value;
+}
+
+export function dummyValue<Value>(
+  valueType: FlexibleProvable<Value>
+): Value {
+  const length = valueType.sizeInFields();
+  const fields = Array.from({ length }, () => Field(0));
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return valueType.fromFields(fields, []) as Value;
 }

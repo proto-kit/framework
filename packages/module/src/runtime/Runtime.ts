@@ -13,19 +13,21 @@ import {
   WithZkProgrammable,
   AreProofsEnabled,
 } from "@proto-kit/common";
-import { MethodPublicOutput } from "@proto-kit/protocol";
+import {
+  MethodPublicOutput,
+  StateServiceProvider,
+  StateService,
+} from "@proto-kit/protocol";
 
 import {
   combineMethodName,
   isRuntimeMethod,
   toWrappedMethod,
   WrappedMethod,
-} from "../method/runtimeMethod.js";
-import { StateService } from "../state/InMemoryStateService.js";
-import { StateServiceProvider } from "../state/StateServiceProvider";
+} from "../method/runtimeMethod";
 import { MethodIdFactory } from "../factories/MethodIdFactory";
 
-import { RuntimeModule } from "./RuntimeModule.js";
+import { RuntimeModule } from "./RuntimeModule";
 import { MethodIdResolver } from "./MethodIdResolver";
 
 /**
@@ -47,7 +49,10 @@ const errors = {
  * Definition / required arguments for the Runtime class
  */
 export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
-  state: StateService;
+  /**
+   * @deprecated
+   */
+  state?: StateService;
   modules: Modules;
   config?: ModulesConfig<Modules>;
 }
@@ -200,9 +205,8 @@ export class Runtime<Modules extends RuntimeModulesRecord>
 
   public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
 
-  // eslint-disable-next-line no-warning-comments
-  // TODO DI
   private readonly stateServiceProviderInstance = new StateServiceProvider(
+    // eslint-disable-next-line etc/no-deprecated
     this.definition.state
   );
 
@@ -215,8 +219,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     super(definition);
     this.definition = definition;
     this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
-
-    // this.registerDependencyFactories([MethodIdFactory]);
   }
 
   // eslint-disable-next-line no-warning-comments

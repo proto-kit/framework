@@ -1,14 +1,25 @@
 import type { Field, FlexibleProvablePure } from "snarkyjs";
-import { Path, type Option, ToFieldable } from "@proto-kit/protocol";
 import { Mixin } from "ts-mixer";
 
-import { State, WithRuntime, WithPath } from "./State.js";
+import { Path } from "../model/Path";
+import { Option } from "../model/Option";
+
+import {
+  State,
+  WithStateServiceProvider,
+  WithPath,
+  WithContextType,
+} from "./State";
 
 /**
  * Map-like wrapper for state
  */
 // eslint-disable-next-line new-cap
-export class StateMap<KeyType, ValueType extends ToFieldable> extends Mixin(WithPath, WithRuntime) {
+export class StateMap<KeyType, ValueType> extends Mixin(
+  WithPath,
+  WithStateServiceProvider,
+  WithContextType
+) {
   /**
    * Create a new state map with the given key and value types
    *
@@ -16,7 +27,7 @@ export class StateMap<KeyType, ValueType extends ToFieldable> extends Mixin(With
    * @param valueType - Type to be stored as a value
    * @returns State map with provided key and value types.
    */
-  public static from<KeyType, ValueType extends ToFieldable>(
+  public static from<KeyType, ValueType>(
     keyType: FlexibleProvablePure<KeyType>,
     valueType: FlexibleProvablePure<ValueType>
   ) {
@@ -44,10 +55,12 @@ export class StateMap<KeyType, ValueType extends ToFieldable> extends Mixin(With
   public get(key: KeyType): Option<ValueType> {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
-    this.hasRuntimeOrFail();
+    this.hasStateServiceOrFail();
+    this.hasContextTypeOrFail();
 
     state.path = this.getPath(key);
-    state.runtime = this.runtime;
+    state.stateServiceProvider = this.stateServiceProvider;
+    state.contextType = this.contextType;
     return state.get();
   }
 
@@ -60,10 +73,11 @@ export class StateMap<KeyType, ValueType extends ToFieldable> extends Mixin(With
   public set(key: KeyType, value: ValueType) {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
-    this.hasRuntimeOrFail();
+    this.hasStateServiceOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
-    state.runtime = this.runtime;
+    state.stateServiceProvider = this.stateServiceProvider;
+    state.contextType = this.contextType;
     state.set(value);
   }
 }

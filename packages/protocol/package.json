@@ -21,6 +21,7 @@
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
+    "ts-mixer": "^6.0.3",
     "tsyringe": "^4.7.0"
   },
   "peerDependencies": {

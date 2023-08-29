@@ -10,11 +10,15 @@ import {
   UInt64,
 } from "snarkyjs";
 import { container } from "tsyringe";
-import { type ProvableStateTransition, Path, MethodPublicOutput } from "@proto-kit/protocol";
+import {
+  type ProvableStateTransition,
+  Path,
+  MethodPublicOutput,
+  StateService, NetworkState, RuntimeTransaction
+} from "@proto-kit/protocol";
 
 import {
   InMemoryStateService,
-  StateService,
 } from "../../src/state/InMemoryStateService.js";
 import {
   Runtime,

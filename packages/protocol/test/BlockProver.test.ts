@@ -48,6 +48,7 @@ describe("blockProver", () => {
         transactionHash,
         stateTransitionsHash: sthash,
         status: Bool(true),
+        networkStateHash: Field(0)
       }),
 
       proof: "",

@@ -1,12 +1,11 @@
 import { ConfigurableModule, Presets } from "@proto-kit/common";
 import { container, injectable } from "tsyringe";
-import { NetworkState, RuntimeTransaction } from "@proto-kit/protocol";
+import { NetworkState, RuntimeTransaction, StateService } from "@proto-kit/protocol";
 
 import {
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
 } from "../method/RuntimeMethodExecutionContext";
-import { StateService } from "../state/InMemoryStateService";
 import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
 import type {

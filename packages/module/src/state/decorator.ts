@@ -1,8 +1,7 @@
-import { Path, ToFieldable } from "@proto-kit/protocol";
+import { Path, State, ToFieldable } from "@proto-kit/protocol";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
-
-import type { State } from "./State.js";
+import { RuntimeMethodExecutionContext } from "../method/RuntimeMethodExecutionContext";
 
 const errors = {
   missingName: (className: string) =>
@@ -52,7 +51,8 @@ export function state() {
           // eslint-disable-next-line no-warning-comments
           // TODO: why is this complaining about `any`?
 
-          value.runtime = self.runtime;
+          value.stateServiceProvider = self.runtime.stateServiceProvider;
+          value.contextType = RuntimeMethodExecutionContext;
         }
         return value;
       },

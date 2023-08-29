@@ -1,13 +1,12 @@
 import "reflect-metadata";
 import { Bool, PublicKey, UInt64 } from "snarkyjs";
 import { container } from "tsyringe";
-import { NetworkState, Option, RuntimeTransaction } from "@proto-kit/protocol";
+import { NetworkState, Option, RuntimeTransaction, StateService } from "@proto-kit/protocol";
 
 import {
   InMemoryStateService,
   Runtime,
   RuntimeMethodExecutionContext,
-  StateService,
 } from "../../src";
 
 import { Admin } from "./Admin";

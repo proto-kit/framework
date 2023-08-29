@@ -6,7 +6,7 @@ import {
   StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
-import { DependencyContainer } from "tsyringe";
+import { DependencyContainer, Lifecycle } from "tsyringe";
 
 import {
   BlockProvable,
@@ -20,8 +20,11 @@ import {
   StateTransitionProverPublicOutput,
 } from "../prover/statetransition/StateTransitionProvable";
 import { BlockProver } from "../prover/block/BlockProver";
+import { StateServiceProvider } from "../state/StateServiceProvider";
+import { StateService } from "../state/StateService";
 
 import { ProtocolModule } from "./ProtocolModule";
+import type { BlockModule } from "./BlockModule";
 
 export type GenericProtocolModuleRecord = ModulesRecord<
   TypedClass<ProtocolModule<any, any>>
@@ -49,6 +52,12 @@ export interface ProtocolModulesRecord
 
 export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   modules: Modules;
+  blockModules: TypedClass<BlockModule>[];
+
+  /**
+   * @deprecated
+   */
+  state?: StateService;
   // config: ModulesConfig<Modules>
 }
 
@@ -77,6 +86,36 @@ export class Protocol<
     protocol.configure(emptyConfig as ModulesConfig<Modules>);
 
     return protocol;
+  }
+
+  public definition: ProtocolDefinition<Modules>;
+
+  private readonly stateServiceProviderInstance = new StateServiceProvider(
+    // eslint-disable-next-line etc/no-deprecated
+    this.definition.state
+  );
+
+  public constructor(definition: ProtocolDefinition<Modules>) {
+    super(definition);
+    this.definition = definition;
+
+    // Register the BlockModules seperately since we need to
+    // inject them differently later
+    definition.blockModules.forEach((useClass) => {
+      this.container.register(
+        "BlockModule",
+        { useClass },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
+    });
+  }
+
+  public get stateService(): StateService {
+    return this.stateServiceProviderInstance.stateService;
+  }
+
+  public get stateServiceProvider(): StateServiceProvider {
+    return this.stateServiceProviderInstance;
   }
 
   public decorateModule(
@@ -124,6 +163,8 @@ export const VanillaProtocol = {
         StateTransitionProver,
         BlockProver,
       },
+
+      blockModules: [],
     });
   },
 };

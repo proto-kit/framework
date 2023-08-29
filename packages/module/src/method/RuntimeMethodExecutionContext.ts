@@ -1,15 +1,12 @@
 import { Bool } from "snarkyjs";
 import { singleton } from "tsyringe";
-import type {
+import {
   StateTransition,
   NetworkState,
-  ToFieldable,
+  TransitionMethodExecutionContext,
+  TransitionMethodExecutionResult,
+  RuntimeTransaction,
 } from "@proto-kit/protocol";
-import {
-  ProvableMethodExecutionContext,
-  ProvableMethodExecutionResult,
-} from "@proto-kit/common";
-import { RuntimeTransaction } from "@proto-kit/protocol/src/model/transaction/RuntimeTransaction";
 
 const errors = {
   setupNotCalled: () =>
@@ -18,10 +15,7 @@ const errors = {
     ),
 };
 
-export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutionResult {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public stateTransitions: StateTransition<any>[] = [];
-
+export class RuntimeProvableMethodExecutionResult extends TransitionMethodExecutionResult {
   public status: Bool = Bool(true);
 
   public statusMessage?: string;
@@ -38,7 +32,7 @@ export interface RuntimeMethodExecutionData {
  * into the context without any unnecessary 'prop drilling'.
  */
 @singleton()
-export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContext {
+export class RuntimeMethodExecutionContext extends TransitionMethodExecutionContext {
   public methods: string[] = [];
 
   public input: RuntimeMethodExecutionData | undefined;
@@ -60,11 +54,9 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    * Adds an in-method generated state transition to the current context
    * @param stateTransition - State transition to add to the context
    */
-  public addStateTransition<Value extends ToFieldable>(
-    stateTransition: StateTransition<Value>
-  ) {
+  public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
     this.assertSetupCalled();
-    this.result.stateTransitions.push(stateTransition);
+    super.addStateTransition(stateTransition);
   }
 
   /**

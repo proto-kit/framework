@@ -11,7 +11,7 @@ import {
 import { runtimeModule } from "../src/module/decorator";
 import { RuntimeModule } from "../src/runtime/RuntimeModule";
 import { state } from "../src/state/decorator";
-import { StateMap } from "../src/state/StateMap";
+import { StateMap } from "../../protocol/src/state/StateMap";
 
 interface BalancesConfig {}
 @runtimeModule()
