@@ -25,6 +25,7 @@ import {
 } from "./StateTransitionTaskParameters";
 import { PreFilledWitnessProvider } from "./providers/PreFilledWitnessProvider";
 import { CompileRegistry } from "./CompileRegistry";
+import { Field } from "snarkyjs";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -67,6 +68,12 @@ export class StateTransitionTask
     }).forEach(() => {
       stBatch.push(ProvableStateTransition.dummy());
     });
+
+    console.log("Task paths:");
+    console.log(stBatch.map(st => ProvableStateTransition.toJSON(st)))
+    console.log(input.merkleWitnesses[0].calculateRoot(Field(0)).toString());
+
+    console.log("STTask Input:", input.publicInput.stateRoot.toString());
 
     const output = this.stateTransitionProver.runBatch(
       input.publicInput,

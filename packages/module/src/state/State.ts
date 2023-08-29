@@ -73,34 +73,39 @@ export class State<Value extends ToFieldable> extends Mixin(
     this.hasRuntimeOrFail();
     this.hasPathOrFail();
 
-    const { path } = this;
+    const { path, runtime, valueType } = this;
 
     const { stateTransitions } = container
       .resolve(RuntimeMethodExecutionContext)
       .current().result;
 
     // First try to find a match inside already created stateTransitions
-    let value = stateTransitions
-      .filter((transition) =>
-        transition.path.equals(path).and(transition.to.isSome).toBoolean()
-      )
-      .reduce<Value | undefined>((latestValue, transition) => {
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return transition.to.value as Value;
-      }, undefined);
+    const previousMutatingTransitions = stateTransitions.filter((transition) =>
+      transition.path.equals(path).and(transition.to.isSome).toBoolean()
+    );
+    const pmtLength = previousMutatingTransitions.length;
+
+    let value =
+      pmtLength > 0
+        ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          (previousMutatingTransitions[pmtLength - 1].to.value as Value)
+        : undefined;
+
+    if (value !== undefined) {
+      return { value, isSome: Bool(true) };
+    }
 
     // If the value is still undefined, look it up in the stateService
-    const fields = this.runtime.stateService.get(path);
+    const fields = runtime.stateService.get(path);
     if (fields) {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      value = this.valueType.fromFields(fields) as Value;
+      value = valueType.fromFields(fields) as Value;
     }
 
     if (value !== undefined) {
       return { value, isSome: Bool(true) };
     }
-    return { value: dummyValue(this.valueType), isSome: Bool(true) };
+    return { value: dummyValue(valueType), isSome: Bool(false) };
   }
 
   /**

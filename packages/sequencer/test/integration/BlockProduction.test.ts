@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-len
-/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects */
+/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects,max-lines */
 import "reflect-metadata";
 import { Fieldable, InMemoryStateService, Runtime } from "@proto-kit/module";
 // eslint-disable-next-line no-warning-comments
@@ -264,7 +264,7 @@ describe("block production", () => {
   }, 160_000);
 
   it("should produce block with a tx with a lot of STs", async () => {
-    expect.assertions(7);
+    expect.assertions(9);
 
     const privateKey = PrivateKey.random();
 
@@ -302,5 +302,18 @@ describe("block production", () => {
       // 10 is the number of iterations inside the runtime method
       UInt64.from(100 * 10)
     );
-  }, 160_000);
+
+    const pk2 = PublicKey.from({ x: Field(2), isOdd: Bool(false) })
+    const balanceModule = runtime.resolve("Balance");
+    const balancesPath = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      pk2
+    );
+
+    const newBalance = await stateService.getAsync(balancesPath);
+
+    expect(newBalance).toBeDefined();
+    expect(UInt64.fromFields(newBalance!)).toStrictEqual(UInt64.from(200));
+  }, 360_000);
 });
