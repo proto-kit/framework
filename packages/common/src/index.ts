@@ -9,3 +9,7 @@ export * from "./zkProgrammable/provableMethod";
 export * from "./utils";
 export * from "./dependencyFactory/DependencyFactory";
 export * from "./log";
+export * from "./types/UInt";
+export * from "./types/UInt112";
+export * from "./types/UInt224";
+export * from "./types/PrecisionHelper";
