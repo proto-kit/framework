@@ -1,5 +1,5 @@
 import { Field, Proof, Struct } from "snarkyjs";
-import { ZkProgrammable } from "@proto-kit/common";
+import { WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
@@ -29,7 +29,7 @@ export class BlockProverExecutionData extends Struct({
 }) {}
 
 export interface BlockProvable
-  extends ZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput> {
+  extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput> {
   proveTransaction: (
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,

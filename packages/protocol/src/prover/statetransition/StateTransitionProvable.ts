@@ -1,5 +1,5 @@
 import { Field, Proof, Struct } from "snarkyjs";
-import { ZkProgrammable } from "@proto-kit/common";
+import { WithZkProgrammable, ZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
 
@@ -7,11 +7,13 @@ import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnes
 
 export class StateTransitionProverPublicInput extends Struct({
   stateTransitionsHash: Field,
+  protocolTransitionsHash: Field,
   stateRoot: Field,
 }) {}
 
 export class StateTransitionProverPublicOutput extends Struct({
   stateTransitionsHash: Field,
+  protocolTransitionsHash: Field,
   stateRoot: Field,
 }) {}
 
@@ -21,7 +23,7 @@ export type StateTransitionProof = Proof<
 >;
 
 export interface StateTransitionProvable
-  extends ZkProgrammable<
+  extends WithZkProgrammable<
     StateTransitionProverPublicInput,
     StateTransitionProverPublicOutput
   > {
