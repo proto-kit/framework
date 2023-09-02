@@ -1,7 +1,7 @@
 import { Bool, Provable } from "snarkyjs";
 import { container } from "tsyringe";
 
-import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext";
+import { RuntimeMethodExecutionContext } from "@proto-kit/protocol";
 import { log } from "@proto-kit/common";
 
 /**

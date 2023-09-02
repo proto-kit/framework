@@ -20,7 +20,7 @@ describe("stateTransition", () => {
     tree: RollupMerkleTree,
     transitions: ProvableStateTransition[]
   ) {
-    const batch = StateTransitionProvableBatch.fromTransitions(transitions);
+    const batch = StateTransitionProvableBatch.fromTransitions(transitions, []);
 
     const temporaryTree = new RollupMerkleTree(
       new CachedMerkleTreeStore(tree.store)

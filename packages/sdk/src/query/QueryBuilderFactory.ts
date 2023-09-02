@@ -9,9 +9,8 @@ import { StringKeyOf } from "@proto-kit/common";
 import {
   Runtime,
   RuntimeModulesRecord,
-  State,
-  StateMap,
 } from "@proto-kit/module";
+import { State, StateMap } from "@proto-kit/protocol";
 import { QueryTransportModule } from "./InMemoryQueryTransportModule";
 
 type StateMapKey<Type> = Type extends StateMap<infer Key, any> ? Key : Type;

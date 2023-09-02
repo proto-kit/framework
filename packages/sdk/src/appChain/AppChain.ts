@@ -8,7 +8,6 @@ import {
 } from "@proto-kit/common";
 import {
   Runtime,
-  RuntimeMethodExecutionContext,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
@@ -20,6 +19,7 @@ import {
   Protocol,
   ProtocolModulesRecord,
   RuntimeTransaction,
+  RuntimeMethodExecutionContext,
   StateTransitionWitnessProviderReference
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";

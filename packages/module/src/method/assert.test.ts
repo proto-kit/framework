@@ -4,7 +4,7 @@ import { Bool } from "snarkyjs";
 import { container } from "tsyringe";
 
 import { assert } from "./assert.js";
-import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext.js";
+import { RuntimeMethodExecutionContext } from "../../../protocol/src/state/context/RuntimeMethodExecutionContext.js";
 
 describe("assert", () => {
   const defaultStatusMessage = "something went wrong";

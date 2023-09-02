@@ -2,10 +2,12 @@ import { ModulesConfig } from "@proto-kit/common";
 import {
   InMemoryStateService,
   Runtime,
-  RuntimeMethodExecutionContext,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
-import { ProtocolModulesRecord, VanillaProtocol } from "@proto-kit/protocol";
+import {
+  ProtocolModulesRecord,
+  VanillaProtocol,
+} from "@proto-kit/protocol";
 import {
   PrivateMempool,
   Sequencer,
@@ -18,8 +20,7 @@ import {
   SequencerModulesRecord,
   BlockTrigger,
 } from "@proto-kit/sequencer";
-import { PrivateKey, PublicKey } from "snarkyjs";
-import { container } from "tsyringe";
+import { PrivateKey } from "snarkyjs";
 import { InMemoryQueryTransportModule } from "../query/InMemoryQueryTransportModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
