@@ -15,7 +15,7 @@ export interface RuntimeProofParameters {
   state: DecodedState;
 }
 
-interface JSONEncodableState {
+export interface JSONEncodableState {
   [key: string]: string[] | undefined;
 }
 
@@ -27,12 +27,11 @@ export class RuntimeProofParametersSerializer
       tx: parameters.tx.toJSON(),
       networkState: NetworkState.toJSON(parameters.networkState),
 
-      state: Object.entries(parameters.state).reduce<JSONEncodableState>(
-        (aggregator, entry) => {
-          aggregator[entry[0]] = entry[1]?.map((field) => field.toString());
-          return aggregator;
-        },
-        {}
+      state: Object.fromEntries(
+        Object.entries(parameters.state).map(([key, value]) => [
+          key,
+          value?.map((v) => v.toString()),
+        ])
       ),
     };
     return JSON.stringify(jsonReadyObject);
@@ -52,14 +51,11 @@ export class RuntimeProofParametersSerializer
         NetworkState.fromJSON(jsonReadyObject.networkState)
       ),
 
-      state: Object.entries(jsonReadyObject.state).reduce<DecodedState>(
-        (aggregator, entry) => {
-          aggregator[entry[0]] = entry[1]?.map((encodedField) =>
-            Field(encodedField)
-          );
-          return aggregator;
-        },
-        {}
+      state: Object.fromEntries(
+        Object.entries(jsonReadyObject.state).map(([key, values]) => [
+          key,
+          values?.map((encodedField) => Field(encodedField)),
+        ])
       ),
     };
   }

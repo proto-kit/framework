@@ -26,13 +26,10 @@ import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
 } from "./BlockProvable";
-import { ProtocolMethodExecutionContext } from "../../state/context/ProtocolMethodExecutionContext";
-import {
-  ProvableStateTransition,
-  StateTransition,
-} from "../../model/StateTransition";
+import { ProvableStateTransition } from "../../model/StateTransition";
 import { ProvableTransactionHook } from "../../protocol/ProvableTransactionHook";
-import { RuntimeMethodExecutionContext } from "@proto-kit/module";
+import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethodExecutionContext";
+import { Protocol, ProtocolModulesRecord } from "../../protocol/Protocol";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -77,7 +74,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput>,
+    public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
     private readonly blockModules: ProvableTransactionHook[]
   ) {
     super();
@@ -291,10 +288,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     BlockProverPublicInput,
     BlockProverPublicOutput
   > {
-    const { prover } = this;
-    const StateTransitionProofClass =
-      prover.stateTransitionProver.zkProgram.Proof;
-    const RuntimeProofClass = prover.runtime.zkProgrammable.zkProgram.Proof;
+    const { prover, stateTransitionProver, runtime } = this;
+    const StateTransitionProofClass = stateTransitionProver.zkProgram.Proof;
+    const RuntimeProofClass = runtime.zkProgram.Proof;
 
     const proveTransaction = prover.proveTransaction.bind(prover);
     const merge = prover.merge.bind(prover);
@@ -370,21 +366,22 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
 
   public constructor(
     @inject("StateTransitionProver")
-    public readonly stateTransitionProver: ZkProgrammable<
+    public readonly stateTransitionProver: WithZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
     @inject("Runtime")
     public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput>,
     @injectAll("ProvableTransactionHook")
-    private readonly blockModules: ProvableTransactionHook[]
+    transactionHooks: ProvableTransactionHook[]
   ) {
     super();
     this.zkProgrammable = new BlockProverProgrammable(
       this,
-      stateTransitionProver,
-      runtime,
-      blockModules
+      stateTransitionProver.zkProgrammable,
+      runtime.zkProgrammable,
+      transactionHooks
+      // protocol.dependencyContainer.resolveAll("P rovableTransactionHook")
     );
   }
 

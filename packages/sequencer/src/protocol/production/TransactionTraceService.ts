@@ -1,30 +1,37 @@
 /* eslint-disable max-lines */
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { inject, injectable, injectAll, Lifecycle, scoped } from "tsyringe";
 import {
   MethodParameterDecoder,
   Runtime,
-  RuntimeMethodExecutionContext,
-  RuntimeProvableMethodExecutionResult,
+  RuntimeModule,
+  MethodIdResolver
 } from "@proto-kit/module";
 import {
+  BlockProverExecutionData,
   CachedMerkleTreeStore,
   DefaultProvableHashList,
   NetworkState,
+  Protocol,
   ProtocolConstants,
   ProvableHashList,
   ProvableStateTransition,
+  ProvableStateTransitionType,
+  ProvableTransactionHook,
   RollupMerkleTree,
   RuntimeTransaction,
+  StateService,
   StateTransition,
-  ToFieldable,
+  StateTransitionType,
+  RuntimeMethodExecutionContext,
+  RuntimeProvableMethodExecutionResult,
+  RuntimeMethodExecutionData,
 } from "@proto-kit/protocol";
-import { Field } from "snarkyjs";
-import { log } from "@proto-kit/common";
+import { Bool, Field } from "snarkyjs";
+import { AreProofsEnabled, log } from "@proto-kit/common";
 import chunk from "lodash/chunk";
-import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import { distinct } from "../../helpers/utils";
+import { distinct, distinctByString } from "../../helpers/utils";
 import { ComputedBlockTransaction } from "../../storage/model/Block";
 
 import { CachedStateService } from "./execution/CachedStateService";
@@ -42,22 +49,25 @@ const errors = {
 export class TransactionTraceService {
   private readonly dummyStateService = new DummyStateService();
 
-  public constructor(
-    @inject("Runtime") private readonly runtime: Runtime<never>
-  ) {}
+  private readonly transactionHooks: ProvableTransactionHook[];
 
-  private allKeys(stateTransitions: StateTransition<ToFieldable>[]): Field[] {
+  public constructor(
+    @inject("Runtime") private readonly runtime: Runtime<never>,
+    @inject("Protocol") private readonly protocol: Protocol<never>
+  ) {
+    this.transactionHooks = protocol.dependencyContainer.resolveAll("ProvableTransactionHook");
+  }
+
+  private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
     // We have to do the distinct with strings because
     // array.indexOf() doesn't work with fields
-    return stateTransitions
-      .map((st) => st.path.toString())
-      .filter(distinct)
-      .map((string) => Field(string));
+    return stateTransitions.map((st) => st.path).filter(distinctByString);
   }
 
   private decodeTransaction(tx: PendingTransaction): {
     method: (...args: unknown[]) => unknown;
     args: unknown[];
+    module: RuntimeModule<unknown>;
   } {
     const methodDescriptors = this.runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
@@ -70,9 +80,10 @@ export class TransactionTraceService {
     }
 
     const [moduleName, methodName] = methodDescriptors;
+    const module: RuntimeModule<unknown> = this.runtime.resolve(moduleName);
 
     const parameterDecoder = MethodParameterDecoder.fromMethod(
-      this.runtime.resolve(moduleName),
+      module,
       methodName
     );
     const args = parameterDecoder.fromFields(tx.args);
@@ -80,7 +91,56 @@ export class TransactionTraceService {
     return {
       method,
       args,
+      module,
     };
+  }
+
+  private retrieveStateRecord(
+    stateService: StateService,
+    keys: Field[]
+  ): StateRecord {
+    // This has to be this detailed bc the CachedStateService collects state
+    // over the whole block, but we are only interested in the keys touched
+    // by this tx
+    return keys
+      .map<[string, Field[] | undefined]>((key) => [
+        key.toString(),
+        stateService.get(key),
+      ])
+      .reduce<StateRecord>((a, b) => {
+        const [recordKey, value] = b;
+        a[recordKey] = value;
+        return a;
+      }, {});
+  }
+
+  private async applyTransitions(
+    stateService: CachedStateService,
+    stateTransitions: StateTransition<unknown>[]
+  ): Promise<void> {
+    await Promise.all(
+      // Use updated stateTransitions since only they will have the
+      // right values
+      stateTransitions
+        .filter((st) => st.to.isSome.toBoolean())
+        .map(async (st) => {
+          console.log("Setting async:", st.path.toString(), st.to.toJSON());
+          await stateService.setAsync(st.path, st.to.toFields());
+        })
+    );
+  }
+
+  private getAppChainForModule(
+    module: RuntimeModule<unknown>
+  ): AreProofsEnabled {
+    if (module.runtime === undefined) {
+      throw new Error("Runtime on RuntimeModule not set");
+    }
+    if (module.runtime.appChain === undefined) {
+      throw new Error("AppChain on Runtime not set");
+    }
+    const { appChain } = module.runtime;
+    return appChain;
   }
 
   /**
@@ -120,19 +180,23 @@ export class TransactionTraceService {
     // );
 
     // Step 1 & 2
-    const { executionResult, startingState } = await this.executeRuntimeMethod(
+    const { executionResult, startingState } = await this.createExecutionTrace(
       stateServices.stateService,
       tx,
       networkState
     );
-    const { stateTransitions, status, statusMessage } = executionResult;
+    const { stateTransitions, protocolTransitions, status, statusMessage } =
+      executionResult;
 
     console.log(stateTransitions.map((x) => x.toJSON()));
+    console.log(protocolTransitions.map((x) => x.toJSON()));
 
     // Step 3
     const { stParameters, fromStateRoot } = await this.createMerkleTrace(
       stateServices.merkleStore,
-      stateTransitions
+      stateTransitions,
+      protocolTransitions,
+      status.toBoolean()
     );
 
     const transactionsHash = bundleTracker.commitment;
@@ -141,7 +205,7 @@ export class TransactionTraceService {
     const trace: TransactionTrace = {
       runtimeProver: {
         tx,
-        state: startingState,
+        state: startingState.runtime,
         networkState,
       },
 
@@ -158,6 +222,7 @@ export class TransactionTraceService {
           networkState,
           transaction: tx.toProtocolTransaction(),
         },
+        startingState: startingState.protocol,
       },
     };
 
@@ -174,7 +239,9 @@ export class TransactionTraceService {
 
   private async createMerkleTrace(
     merkleStore: CachedMerkleTreeStore,
-    stateTransitions: StateTransition<ToFieldable>[]
+    stateTransitions: StateTransition<unknown>[],
+    protocolTransitions: StateTransition<unknown>[],
+    runtimeSuccess: boolean
   ): Promise<{
     stParameters: StateTransitionProofParameters[];
     fromStateRoot: Field;
@@ -193,28 +260,56 @@ export class TransactionTraceService {
     const transitionsList = new DefaultProvableHashList(
       ProvableStateTransition
     );
+    const protocolTransitionsList = new DefaultProvableHashList(
+      ProvableStateTransition
+    );
+
+    const allTransitions = stateTransitions
+      .map<[StateTransition<unknown>, boolean]>((transition) => [
+        transition,
+        StateTransitionType.normal,
+      ])
+      .concat(
+        protocolTransitions.map((protocolTransition) => [
+          protocolTransition,
+          StateTransitionType.protocol,
+        ])
+      );
 
     const stParameters = chunk(
-      stateTransitions,
+      allTransitions,
       ProtocolConstants.stateTransitionProverBatchSize
     ).map<StateTransitionProofParameters>((currentChunk, index) => {
+      //
       const stateRoot = tree.getRoot();
       console.log(`Root step ${index}:`, stateRoot.toString());
-      const stateTransitionsHash = transitionsList.commitment;
 
-      const merkleWitnesses = currentChunk.map((transition) => {
+      const stateTransitionsHash = transitionsList.commitment;
+      const protocolTransitionsHash = protocolTransitionsList.commitment;
+
+      // Map all STs to traces for current chunk
+      const merkleWitnesses = currentChunk.map(([transition, type]) => {
         const witness = tree.getWitness(transition.path.toBigInt());
 
         const provableTransition = transition.toProvable();
 
-        if (provableTransition.to.isSome.toBoolean()) {
+        // eslint-disable-next-line max-len
+        // Only apply ST if it is either of type protocol or the runtime succeeded
+        if (
+          provableTransition.to.isSome.toBoolean() &&
+          (StateTransitionType.isProtocol(type) || runtimeSuccess)
+        ) {
           tree.setLeaf(
             provableTransition.path.toBigInt(),
             provableTransition.to.value
           );
         }
 
-        transitionsList.pushIf(
+        // Push transition to respective hashlist
+        (StateTransitionType.isNormal(type)
+          ? transitionsList
+          : protocolTransitionsList
+        ).pushIf(
           provableTransition,
           provableTransition.path.equals(Field(0)).not()
         );
@@ -229,11 +324,19 @@ export class TransactionTraceService {
 
       return {
         merkleWitnesses,
-        batch: currentChunk.map((st) => st.toProvable()),
+
+        // eslint-disable-next-line putout/putout
+        stateTransitions: currentChunk.map(([st, type]) => {
+          return {
+            transition: st.toProvable(),
+            type: new ProvableStateTransitionType({ type: Bool(type) }),
+          };
+        }),
 
         publicInput: {
           stateRoot,
           stateTransitionsHash,
+          protocolTransitionsHash,
         },
       };
     });
@@ -244,98 +347,195 @@ export class TransactionTraceService {
     };
   }
 
-  // eslint-disable-next-line max-statements
-  private async executeRuntimeMethod(
-    stateService: CachedStateService,
-    tx: PendingTransaction,
-    networkState: NetworkState
-  ): Promise<{
-    executionResult: RuntimeProvableMethodExecutionResult;
-    startingState: StateRecord;
-  }> {
-    const { method, args } = this.decodeTransaction(tx);
+  private executeRuntimeMethod(
+    method: (...args: unknown[]) => unknown,
+    args: unknown[],
+    contextInputs: RuntimeMethodExecutionData
+  ): RuntimeProvableMethodExecutionResult {
+    // Set up context
+    const executionContext = this.runtime.dependencyContainer.resolve(
+      RuntimeMethodExecutionContext
+    );
+    executionContext.setup(contextInputs);
 
+    // Execute method
+    method(...args);
+
+    const runtimeResult = executionContext.current().result;
+
+    // Clear executionContext
+    executionContext.clear();
+
+    return runtimeResult;
+  }
+
+  private executeProtocolHooks(
+    runtimeContextInputs: RuntimeMethodExecutionData,
+    blockContextInputs: BlockProverExecutionData
+  ): RuntimeProvableMethodExecutionResult {
+    // Set up context
+    const executionContext = this.runtime.dependencyContainer.resolve(
+      RuntimeMethodExecutionContext
+    );
+    executionContext.setup(runtimeContextInputs);
+
+    this.transactionHooks.forEach((transactionHook) => {
+      transactionHook.onTransaction(blockContextInputs);
+    });
+
+    const protocolResult = executionContext.current().result;
+    executionContext.clear();
+
+    return protocolResult;
+  }
+
+  private extractAccessedKeys(
+    method: (...args: unknown[]) => unknown,
+    args: unknown[],
+    runtimeContextInputs: RuntimeMethodExecutionData,
+    blockContextInputs: BlockProverExecutionData
+  ): {
+    runtimeKeys: Field[];
+    protocolKeys: Field[];
+  } {
     // Execute the first time with dummy service
     this.runtime.stateServiceProvider.setCurrentStateService(
       this.dummyStateService
     );
 
-    const executionContext = this.runtime.dependencyContainer.resolve(
-      RuntimeMethodExecutionContext
+    const { stateTransitions } = this.executeRuntimeMethod(
+      method,
+      args,
+      runtimeContextInputs
     );
-    // Set network state and transaction for the runtimemodule to access
-    const contextInputs = {
+    const protocolTransitions = this.executeProtocolHooks(
+      runtimeContextInputs,
+      blockContextInputs
+    ).stateTransitions;
+
+    log.debug(`Got ${stateTransitions.length} StateTransitions`);
+    log.debug(`Got ${protocolTransitions.length} ProtocolStateTransitions`);
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    // log.debug(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
+
+    return {
+      runtimeKeys: this.allKeys(stateTransitions),
+      protocolKeys: this.allKeys(protocolTransitions),
+    };
+  }
+
+  // eslint-disable-next-line max-statements
+  private async createExecutionTrace(
+    stateService: CachedStateService,
+    tx: PendingTransaction,
+    networkState: NetworkState
+  ): Promise<{
+    executionResult: {
+      stateTransitions: StateTransition<unknown>[];
+      protocolTransitions: StateTransition<unknown>[];
+      status: Bool;
+      statusMessage?: string;
+    };
+    startingState: {
+      runtime: StateRecord;
+      protocol: StateRecord;
+    };
+  }> {
+    const { method, args, module } = this.decodeTransaction(tx);
+
+    // Disable proof generation for tracing
+    const appChain = this.getAppChainForModule(module);
+    const previousProofsEnabled = appChain.areProofsEnabled;
+    appChain.setProofsEnabled(false);
+
+    const blockContextInputs = {
+      transaction: tx.toProtocolTransaction(),
+      networkState,
+    };
+    const runtimeContextInputs = {
       networkState,
 
       transaction: RuntimeTransaction.fromProtocolTransaction(
-        tx.toProtocolTransaction()
+        blockContextInputs.transaction
       ),
     };
-    executionContext.setup(contextInputs);
-
-    // eslint-disable-next-line no-warning-comments
-    // TODO Manually disable proofsEnabled for the first execution
-    method(...args);
-
-    const { stateTransitions } = executionContext.current().result;
-    const accessedKeys = this.allKeys(stateTransitions);
-
-    log.debug("Got", stateTransitions.length, "StateTransitions");
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    log.debug(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
+    const { runtimeKeys, protocolKeys } = this.extractAccessedKeys(
+      method,
+      args,
+      runtimeContextInputs,
+      blockContextInputs
+    );
 
     // Preload keys
-    await stateService.preloadKeys(accessedKeys);
+    await stateService.preloadKeys(
+      runtimeKeys.concat(protocolKeys).filter(distinctByString)
+    );
 
     // Get starting state
-    // This has to be this detailed bc the CachedStateService collects state
-    // over the whole block, but we are only interested in the keys touched
-    // by this tx
-    const startingState = accessedKeys
-      .map<[string, Field[] | undefined]>((key) => [
-        key.toString(),
-        stateService.get(key),
-      ])
-      .reduce<StateRecord>((a, b) => {
-        const [recordKey, value] = b;
-        a[recordKey] = value;
-        return a;
-      }, {});
+    const startingRuntimeState = this.retrieveStateRecord(
+      stateService,
+      runtimeKeys
+    );
 
-    // Execute second time with preloaded state
+    // Execute second time with preloaded state. The following steps
+    // generate and apply the correct STs with the right values
     this.runtime.stateServiceProvider.setCurrentStateService(stateService);
-    // We have to set it a second time here, because the inputs are cleared
-    // in afterMethod()
-    executionContext.setup(contextInputs);
+    this.protocol.stateServiceProvider.setCurrentStateService(stateService);
 
-    method(...args);
-
-    this.runtime.stateServiceProvider.resetToDefault();
-
-    const executionResult = executionContext.current().result;
+    const runtimeResult = this.executeRuntimeMethod(
+      method,
+      args,
+      runtimeContextInputs
+    );
 
     log.debug(
       "STs:",
-      executionResult.stateTransitions.map((x) => x.toJSON())
+      runtimeResult.stateTransitions.map((x) => x.toJSON())
     );
 
-    // Update the stateservice (only if the tx succeeded)
-    if (executionResult.status.toBoolean()) {
-      await Promise.all(
-        // Use updated stateTransitions since only they will have the
-        // right values
-        executionResult.stateTransitions
-          .filter((st) => st.to.isSome.toBoolean())
-          .map(async (st) => {
-            console.log("Setting async:", st.path.toString(), st.to.toJSON());
-            await stateService.setAsync(st.path, st.to.toFields());
-          })
-      );
+    // Apply runtime STs (only if the tx succeeded)
+    if (runtimeResult.status.toBoolean()) {
+      await this.applyTransitions(stateService, runtimeResult.stateTransitions);
     }
 
+    const startingProtocolState = this.retrieveStateRecord(
+      stateService,
+      protocolKeys
+    );
+
+    const protocolResult = this.executeProtocolHooks(
+      runtimeContextInputs,
+      blockContextInputs
+    );
+
+    log.debug(
+      "PSTs:",
+      protocolResult.stateTransitions.map((x) => x.toJSON())
+    );
+
+    // Apply protocol STs
+    await this.applyTransitions(stateService, protocolResult.stateTransitions);
+
+    // Reset global stateservice
+    this.runtime.stateServiceProvider.resetToDefault();
+    this.protocol.stateServiceProvider.resetToDefault();
+    // Reset proofs enabled
+    appChain.setProofsEnabled(previousProofsEnabled);
+
     return {
-      executionResult,
-      startingState,
+      executionResult: {
+        stateTransitions: runtimeResult.stateTransitions,
+        protocolTransitions: protocolResult.stateTransitions,
+        status: runtimeResult.status,
+        statusMessage: runtimeResult.statusMessage,
+      },
+
+      startingState: {
+        // eslint-disable-next-line putout/putout
+        runtime: startingRuntimeState,
+        // eslint-disable-next-line putout/putout
+        protocol: startingProtocolState,
+      },
     };
   }
 }

@@ -3,9 +3,12 @@ import {
   MethodIdResolver,
   MethodParameterDecoder,
   Runtime,
-  RuntimeMethodExecutionContext,
 } from "@proto-kit/module";
-import { MethodPublicOutput, RuntimeTransaction } from "@proto-kit/protocol";
+import {
+  MethodPublicOutput,
+  RuntimeTransaction,
+  RuntimeMethodExecutionContext,
+} from "@proto-kit/protocol";
 import { Proof } from "snarkyjs";
 
 import { Task } from "../../../worker/flow/Task";

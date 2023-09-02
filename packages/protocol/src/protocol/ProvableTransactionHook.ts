@@ -1,9 +1,7 @@
 import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 
-import { ProtocolModule } from "./ProtocolModule";
+import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
-export abstract class ProvableTransactionHook extends ProtocolModule {
+export abstract class ProvableTransactionHook extends TransitioningProtocolModule {
   public abstract onTransaction(executionData: BlockProverExecutionData): void;
-
-  public name?: string;
 }

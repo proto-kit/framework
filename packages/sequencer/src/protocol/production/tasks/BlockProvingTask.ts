@@ -11,7 +11,7 @@ import {
   StateTransitionProof,
   StateTransitionProvable,
 } from "@proto-kit/protocol";
-import { Proof } from "snarkyjs";
+import { Field, Proof } from "snarkyjs";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -26,6 +26,8 @@ import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { Task } from "../../../worker/flow/Task";
 
 import { CompileRegistry } from "./CompileRegistry";
+import { StateRecord } from "../BlockProducerModule";
+import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -33,6 +35,7 @@ type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 export interface BlockProverParameters {
   publicInput: BlockProverPublicInput;
   executionData: BlockProverExecutionData;
+  startingState: DecodedState;
 }
 
 export type BlockProvingTaskParameters = PairingDerivedInput<
@@ -60,11 +63,15 @@ export class BlockReductionTask
   }
 
   public inputSerializer(): TaskSerializer<PairTuple<BlockProof>> {
-    return new PairProofTaskSerializer(this.blockProver.zkProgram.Proof);
+    return new PairProofTaskSerializer(
+      this.blockProver.zkProgrammable.zkProgram.Proof
+    );
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(this.blockProver.zkProgram.Proof);
+    return new ProofTaskSerializer(
+      this.blockProver.zkProgrammable.zkProgram.Proof
+    );
   }
 
   public async compute(input: PairTuple<BlockProof>): Promise<BlockProof> {
@@ -76,7 +83,7 @@ export class BlockReductionTask
   public async prepare(): Promise<void> {
     await this.compileRegistry.compile(
       "BlockProver",
-      this.blockProver.zkProgram
+      this.blockProver.zkProgrammable.zkProgram
     );
   }
 }
@@ -109,7 +116,7 @@ export class BlockProvingTask
 
   public inputSerializer(): TaskSerializer<BlockProvingTaskParameters> {
     const stProofSerializer = new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgram.Proof
+      this.stateTransitionProver.zkProgrammable.zkProgram.Proof
     );
     const runtimeProofSerializer = new ProofTaskSerializer(
       this.runtimeProofType
@@ -128,6 +135,13 @@ export class BlockProvingTask
             executionData: BlockProverExecutionData.toJSON(
               input.params.executionData
             ),
+
+            startingState: Object.fromEntries<string[] | undefined>(
+              Object.entries(input.params.startingState).map(([key, value]) => [
+                key,
+                value?.map((field) => field.toString()),
+              ])
+            ),
           },
         };
         return JSON.stringify(jsonReadyObject);
@@ -141,6 +155,7 @@ export class BlockProvingTask
           params: {
             publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
             executionData: ReturnType<typeof BlockProverExecutionData.toJSON>;
+            startingState: JSONEncodableState;
           };
         } = JSON.parse(json);
 
@@ -156,6 +171,15 @@ export class BlockProvingTask
             executionData: BlockProverExecutionData.fromJSON(
               jsonReadyObject.params.executionData
             ),
+
+            startingState: Object.fromEntries<Field[] | undefined>(
+              Object.entries(jsonReadyObject.params.startingState).map(
+                ([key, value]) => [
+                  key,
+                  value?.map((encodedField) => Field(encodedField)),
+                ]
+              )
+            ),
           },
         };
       },
@@ -163,7 +187,9 @@ export class BlockProvingTask
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(this.blockProver.zkProgram.Proof);
+    return new ProofTaskSerializer(
+      this.blockProver.zkProgrammable.zkProgram.Proof
+    );
   }
 
   public async compute(
@@ -189,7 +215,7 @@ export class BlockProvingTask
     // Compile
     await this.compileRegistry.compile(
       "BlockProver",
-      this.blockProver.zkProgram
+      this.blockProver.zkProgrammable.zkProgram
     );
   }
 }

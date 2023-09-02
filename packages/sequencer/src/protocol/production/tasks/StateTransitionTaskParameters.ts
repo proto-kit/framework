@@ -1,20 +1,28 @@
 import {
   ProvableStateTransition,
+  ProvableStateTransitionType,
   RollupMerkleWitness,
   StateTransitionProverPublicInput,
 } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { Bool } from "snarkyjs";
 
 export interface StateTransitionProofParameters {
   publicInput: StateTransitionProverPublicInput;
-  batch: ProvableStateTransition[];
+  stateTransitions: {
+    transition: ProvableStateTransition;
+    type: ProvableStateTransitionType;
+  }[];
   merkleWitnesses: RollupMerkleWitness[];
 }
 
 interface StateTransitionParametersJSON {
   publicInput: ReturnType<typeof StateTransitionProverPublicInput.toJSON>;
-  batch: ReturnType<typeof ProvableStateTransition.toJSON>[];
+  stateTransitions: {
+    transition: ReturnType<typeof ProvableStateTransition.toJSON>;
+    type: boolean;
+  }[];
   merkleWitnesses: ReturnType<typeof RollupMerkleWitness.toJSON>[];
 }
 
@@ -27,12 +35,17 @@ export class StateTransitionParametersSerializer
         parameters.publicInput
       ),
 
-      batch: parameters.batch.map((st) => ProvableStateTransition.toJSON(st)),
+      stateTransitions: parameters.stateTransitions.map((st) => {
+        return {
+          transition: ProvableStateTransition.toJSON(st.transition),
+          type: st.type.type.toBoolean(),
+        };
+      }),
 
       merkleWitnesses: parameters.merkleWitnesses.map((witness) =>
         RollupMerkleWitness.toJSON(witness)
       ),
-    });
+    } as StateTransitionParametersJSON);
   }
 
   public fromJSON(json: string): StateTransitionProofParameters {
@@ -44,10 +57,15 @@ export class StateTransitionParametersSerializer
         parsed.publicInput
       ),
 
-      batch: parsed.batch.map(
-        (st) =>
-          new ProvableStateTransition(ProvableStateTransition.fromJSON(st))
-      ),
+      stateTransitions: parsed.stateTransitions.map((st) => {
+        return {
+          transition: new ProvableStateTransition(
+            ProvableStateTransition.fromJSON(st.transition)
+          ),
+
+          type: new ProvableStateTransitionType({ type: Bool(st.type) }),
+        };
+      }),
 
       merkleWitnesses: parsed.merkleWitnesses.map(
         (witness) =>

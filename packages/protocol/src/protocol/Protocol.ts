@@ -17,6 +17,7 @@ import { StateService } from "../state/StateService";
 
 import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
+import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
 
 export type GenericProtocolModuleRecord = ModulesRecord<
   TypedClass<ProtocolModule>
@@ -87,6 +88,7 @@ export class Protocol<
 
     // Register the BlockModules seperately since we need to
     // inject them differently later
+    let atLeastOneTransactionHookRegistered = false;
     Object.entries(definition.modules).forEach(([key, value]) => {
       if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
         this.container.register(
@@ -94,8 +96,21 @@ export class Protocol<
           { useToken: key },
           { lifecycle: Lifecycle.ContainerScoped }
         );
+        atLeastOneTransactionHookRegistered = true;
       }
     });
+
+    // We need this so that tsyringe doesn't throw when no hooks are registered
+    if (!atLeastOneTransactionHookRegistered) {
+      this.container.register(
+        "ProvableTransactionHook",
+        { useClass: NoopTransactionHook },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
+    }
+    // this.container.afterResolution<ProvableTransactionHook>("ProvableTransactionHook", (token, result) => {
+    //   if ()
+    // })
   }
 
   public get stateService(): StateService {
@@ -113,7 +128,12 @@ export class Protocol<
     log.debug(`Decorated ${moduleName}`);
     containedModule.protocol = this;
 
+    log.debug(
+      "Is instanceof:",
+      containedModule instanceof ProvableTransactionHook
+    );
     if (containedModule instanceof ProvableTransactionHook) {
+      console.log(`Setting name to ${moduleName}`);
       containedModule.name = moduleName;
     }
 
@@ -146,12 +166,13 @@ export class Protocol<
 }
 
 export const VanillaProtocol = {
-  create(){
-    return VanillaProtocol.from({});
+  create(stateService?: StateService) {
+    return VanillaProtocol.from({}, stateService);
   },
 
   from<AdditonalModules extends GenericProtocolModuleRecord>(
-    additionalModules: AdditonalModules
+    additionalModules: AdditonalModules,
+    stateService?: StateService
   ): Protocol<
     AdditonalModules & {
       StateTransitionProver: typeof StateTransitionProver;
@@ -164,6 +185,7 @@ export const VanillaProtocol = {
         BlockProver,
         ...additionalModules,
       },
+      state: stateService,
     });
   },
 };

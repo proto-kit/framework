@@ -1,7 +1,10 @@
-import { Path, State, ToFieldable } from "@proto-kit/protocol";
+import {
+  Path,
+  State,
+  RuntimeMethodExecutionContext,
+} from "@proto-kit/protocol";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
-import { RuntimeMethodExecutionContext } from "../method/RuntimeMethodExecutionContext";
 
 const errors = {
   missingName: (className: string) =>
@@ -27,7 +30,7 @@ export function state() {
     propertyKey: string
   ) => {
     // eslint-disable-next-line @typescript-eslint/init-declarations
-    let value: State<ToFieldable> | undefined;
+    let value: State<unknown> | undefined;
 
     Object.defineProperty(target, propertyKey, {
       enumerable: true,
@@ -57,7 +60,7 @@ export function state() {
         return value;
       },
 
-      set: (newValue: State<ToFieldable>) => {
+      set: (newValue: State<unknown>) => {
         value = newValue;
       },
     });

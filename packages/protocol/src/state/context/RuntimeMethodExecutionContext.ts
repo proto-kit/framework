@@ -1,12 +1,9 @@
 import { Bool } from "snarkyjs";
 import { singleton } from "tsyringe";
-import {
-  StateTransition,
-  NetworkState,
-  TransitionMethodExecutionContext,
-  TransitionMethodExecutionResult,
-  RuntimeTransaction,
-} from "@proto-kit/protocol";
+import { ProvableMethodExecutionContext, ProvableMethodExecutionResult } from "@proto-kit/common";
+import { StateTransition } from "../../model/StateTransition";
+import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
+import { NetworkState } from "../../model/network/NetworkState";
 
 const errors = {
   setupNotCalled: () =>
@@ -15,7 +12,10 @@ const errors = {
     ),
 };
 
-export class RuntimeProvableMethodExecutionResult extends TransitionMethodExecutionResult {
+export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutionResult {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public stateTransitions: StateTransition<any>[] = [];
+
   public status: Bool = Bool(true);
 
   public statusMessage?: string;
@@ -32,7 +32,7 @@ export interface RuntimeMethodExecutionData {
  * into the context without any unnecessary 'prop drilling'.
  */
 @singleton()
-export class RuntimeMethodExecutionContext extends TransitionMethodExecutionContext {
+export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContext {
   public methods: string[] = [];
 
   public input: RuntimeMethodExecutionData | undefined;
@@ -56,7 +56,7 @@ export class RuntimeMethodExecutionContext extends TransitionMethodExecutionCont
    */
   public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
     this.assertSetupCalled();
-    super.addStateTransition(stateTransition);
+    this.result.stateTransitions.push(stateTransition);
   }
 
   /**
