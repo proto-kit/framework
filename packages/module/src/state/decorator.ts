@@ -1,8 +1,4 @@
-import {
-  Path,
-  State,
-  RuntimeMethodExecutionContext,
-} from "@proto-kit/protocol";
+import { Path, State } from "@proto-kit/protocol";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
@@ -55,7 +51,6 @@ export function state() {
           // TODO: why is this complaining about `any`?
 
           value.stateServiceProvider = self.runtime.stateServiceProvider;
-          value.contextType = RuntimeMethodExecutionContext;
         }
         return value;
       },

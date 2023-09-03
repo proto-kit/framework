@@ -4,12 +4,7 @@ import { Mixin } from "ts-mixer";
 import { Path } from "../model/Path";
 import { Option } from "../model/Option";
 
-import {
-  State,
-  WithStateServiceProvider,
-  WithPath,
-  WithContextType,
-} from "./State";
+import { State, WithStateServiceProvider, WithPath } from "./State";
 
 /**
  * Map-like wrapper for state
@@ -17,8 +12,7 @@ import {
 // eslint-disable-next-line new-cap
 export class StateMap<KeyType, ValueType> extends Mixin(
   WithPath,
-  WithStateServiceProvider,
-  WithContextType
+  WithStateServiceProvider
 ) {
   /**
    * Create a new state map with the given key and value types
@@ -56,11 +50,9 @@ export class StateMap<KeyType, ValueType> extends Mixin(
     const state = State.from(this.valueType);
     this.hasPathOrFail();
     this.hasStateServiceOrFail();
-    this.hasContextTypeOrFail();
 
     state.path = this.getPath(key);
     state.stateServiceProvider = this.stateServiceProvider;
-    state.contextType = this.contextType;
     return state.get();
   }
 
@@ -77,7 +69,6 @@ export class StateMap<KeyType, ValueType> extends Mixin(
 
     state.path = Path.fromKey(this.path, this.keyType, key);
     state.stateServiceProvider = this.stateServiceProvider;
-    state.contextType = this.contextType;
     state.set(value);
   }
 }

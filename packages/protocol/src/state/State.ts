@@ -1,16 +1,14 @@
-/* eslint-disable new-cap,max-classes-per-file */
-
 import { Mixin } from "ts-mixer";
 import { Bool, Field, Provable, type FlexibleProvablePure } from "snarkyjs";
 import { container } from "tsyringe";
-import { dummyValue, TypedClass } from "@proto-kit/common";
+import { dummyValue } from "@proto-kit/common";
 
 import { Path } from "../model/Path";
 import { Option } from "../model/Option";
 import { StateTransition } from "../model/StateTransition";
 
-import { TransitionMethodExecutionContext } from "./context/TransitionMethodExecutionContext";
 import { StateServiceProvider } from "./StateServiceProvider";
+import { RuntimeMethodExecutionContext } from "./context/RuntimeMethodExecutionContext";
 
 export class WithPath {
   public path?: Field;
@@ -38,28 +36,10 @@ export class WithStateServiceProvider {
   }
 }
 
-export class WithContextType {
-  public contextType?: TypedClass<TransitionMethodExecutionContext>;
-
-  public hasContextTypeOrFail(): asserts this is {
-    contextType: TypedClass<TransitionMethodExecutionContext>;
-  } {
-    if (!this.contextType) {
-      throw new Error(
-        "Could not find 'contextType', did you forget to add '@state' to your state property?"
-      );
-    }
-  }
-}
-
 /**
  * Utilities for runtime module state, such as get/set
  */
-export class State<Value> extends Mixin(
-  WithPath,
-  WithStateServiceProvider,
-  WithContextType
-) {
+export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
   /**
    * Creates a new state wrapper for the provided value type.
    *
@@ -77,12 +57,11 @@ export class State<Value> extends Mixin(
   private getState(): { value: Value; isSome: Bool } {
     this.hasStateServiceOrFail();
     this.hasPathOrFail();
-    this.hasContextTypeOrFail();
 
-    const { path, stateServiceProvider, valueType, contextType } = this;
+    const { path, stateServiceProvider, valueType } = this;
 
     const { stateTransitions } = container
-      .resolve(contextType)
+      .resolve(RuntimeMethodExecutionContext)
       .current().result;
 
     // First try to find a match inside already created stateTransitions
@@ -140,11 +119,12 @@ export class State<Value> extends Mixin(
     const option = this.witnessState();
 
     this.hasPathOrFail();
-    this.hasContextTypeOrFail();
 
     const stateTransition = StateTransition.from(this.path, option);
 
-    container.resolve(this.contextType).addStateTransition(stateTransition);
+    container
+      .resolve(RuntimeMethodExecutionContext)
+      .addStateTransition(stateTransition);
 
     return option;
   }
@@ -166,7 +146,6 @@ export class State<Value> extends Mixin(
     const toOption = Option.from(Bool(true), value, this.valueType);
 
     this.hasPathOrFail();
-    this.hasContextTypeOrFail();
 
     const stateTransition = StateTransition.fromTo(
       this.path,
@@ -174,6 +153,8 @@ export class State<Value> extends Mixin(
       toOption
     );
 
-    container.resolve(this.contextType).addStateTransition(stateTransition);
+    container
+      .resolve(RuntimeMethodExecutionContext)
+      .addStateTransition(stateTransition);
   }
 }

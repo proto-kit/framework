@@ -1,7 +1,6 @@
 import { State } from "../State";
 import { ToFieldable } from "../../model/Option";
 import { Path } from "../../model/Path";
-import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecutionContext";
 import { TransitioningProtocolModule } from "../../protocol/TransitioningProtocolModule";
 
 const errors = {
@@ -52,7 +51,6 @@ export function protocolState() {
         if (value) {
           value.path = path;
           value.stateServiceProvider = self.protocol.stateServiceProvider;
-          value.contextType = RuntimeMethodExecutionContext;
         }
         return value;
       },
