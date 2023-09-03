@@ -1,5 +1,4 @@
 import {
-  assert,
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
@@ -8,7 +7,7 @@ import {
 import { Presets, range } from "@proto-kit/common";
 import { Bool, Field, Provable, PublicKey, UInt64 } from "snarkyjs";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
-import { Option, State, StateMap } from "@proto-kit/protocol";
+import { Option, State, StateMap, assert } from "@proto-kit/protocol";
 
 @runtimeModule()
 export class Balance extends RuntimeModule<object> {

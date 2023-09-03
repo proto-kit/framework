@@ -4,7 +4,7 @@ import {
   MethodParameterDecoder,
   Runtime,
   RuntimeModule,
-  MethodIdResolver
+  MethodIdResolver,
 } from "@proto-kit/module";
 import {
   BlockProverExecutionData,
@@ -31,7 +31,7 @@ import { AreProofsEnabled, log } from "@proto-kit/common";
 import chunk from "lodash/chunk";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import { distinct, distinctByString } from "../../helpers/utils";
+import { distinctByString } from "../../helpers/utils";
 import { ComputedBlockTransaction } from "../../storage/model/Block";
 
 import { CachedStateService } from "./execution/CachedStateService";
@@ -55,7 +55,9 @@ export class TransactionTraceService {
     @inject("Runtime") private readonly runtime: Runtime<never>,
     @inject("Protocol") private readonly protocol: Protocol<never>
   ) {
-    this.transactionHooks = protocol.dependencyContainer.resolveAll("ProvableTransactionHook");
+    this.transactionHooks = protocol.dependencyContainer.resolveAll(
+      "ProvableTransactionHook"
+    );
   }
 
   private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
@@ -371,13 +373,17 @@ export class TransactionTraceService {
 
   private executeProtocolHooks(
     runtimeContextInputs: RuntimeMethodExecutionData,
-    blockContextInputs: BlockProverExecutionData
+    blockContextInputs: BlockProverExecutionData,
+    runUnchecked = false
   ): RuntimeProvableMethodExecutionResult {
     // Set up context
     const executionContext = this.runtime.dependencyContainer.resolve(
       RuntimeMethodExecutionContext
     );
     executionContext.setup(runtimeContextInputs);
+    if (runUnchecked) {
+      executionContext.setSimulated(true);
+    }
 
     this.transactionHooks.forEach((transactionHook) => {
       transactionHook.onTransaction(blockContextInputs);
@@ -410,7 +416,8 @@ export class TransactionTraceService {
     );
     const protocolTransitions = this.executeProtocolHooks(
       runtimeContextInputs,
-      blockContextInputs
+      blockContextInputs,
+      true
     ).stateTransitions;
 
     log.debug(`Got ${stateTransitions.length} StateTransitions`);

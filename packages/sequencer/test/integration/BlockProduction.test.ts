@@ -7,9 +7,13 @@ import { Fieldable, InMemoryStateService, Runtime } from "@proto-kit/module";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
 import {
+  AccountState,
   AccountStateModule,
+  BlockProver,
   Path,
+  Protocol,
   ProvableTransactionHook,
+  StateTransitionProver,
   VanillaProtocol
 } from "@proto-kit/protocol";
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
@@ -40,6 +44,12 @@ describe("block production", () => {
     BlockProducerModule: typeof BlockProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
   }>;
+
+  let protocol: Protocol<{
+    AccountStateModule: typeof AccountStateModule,
+    BlockProver: typeof BlockProver,
+    StateTransitionProver: typeof StateTransitionProver
+  }>
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -85,10 +95,12 @@ describe("block production", () => {
       useValue: new LocalTaskQueue(0),
     });
 
+    protocol = VanillaProtocol.from({ AccountStateModule }, stateService);
+
     const app = AppChain.from({
       runtime,
       sequencer,
-      protocol: VanillaProtocol.from({ AccountStateModule }, stateService),
+      protocol,
       modules: {},
     });
 
@@ -124,7 +136,7 @@ describe("block production", () => {
 
   // eslint-disable-next-line max-statements
   it.only("should produce a dummy block proof", async () => {
-    expect.assertions(14);
+    expect.assertions(16);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -161,6 +173,18 @@ describe("block production", () => {
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
+
+    // Check that nonce has been set
+    const accountModule = protocol.resolve("AccountStateModule");
+    const accountStatePath = Path.fromKey(
+      accountModule.accountState.path!,
+      accountModule.accountState.keyType,
+      publicKey
+    );
+    const newAccountState = await stateService.getAsync(accountStatePath);
+
+    expect(newAccountState).toBeDefined();
+    expect(AccountState.fromFields(newAccountState!).nonce.toBigInt()).toBe(1n);
 
     // Second tx
     mempool.add(

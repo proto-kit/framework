@@ -11,7 +11,7 @@ import {
   StateTransitionProof,
   StateTransitionProvable,
 } from "@proto-kit/protocol";
-import { Field, Proof } from "snarkyjs";
+import { Field, Proof, Provable } from "snarkyjs";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -28,6 +28,7 @@ import { Task } from "../../../worker/flow/Task";
 import { CompileRegistry } from "./CompileRegistry";
 import { StateRecord } from "../BlockProducerModule";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
+import { PreFilledStateService } from "./providers/PreFilledStateService";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -201,12 +202,23 @@ export class BlockProvingTask
   ): Promise<BlockProof> {
     const stateTransitionProof = input.input1;
     const runtimeProof = input.input2;
+
+    const prefilledStateService = new PreFilledStateService(
+      input.params.startingState
+    );
+    this.protocol.stateServiceProvider.setCurrentStateService(
+      prefilledStateService
+    );
+
     this.blockProver.proveTransaction(
       input.params.publicInput,
       stateTransitionProof,
       runtimeProof,
       input.params.executionData
     );
+
+    this.runtime.stateServiceProvider.resetToDefault();
+
     return await this.executionContext.current().result.prove<BlockProof>();
   }
 

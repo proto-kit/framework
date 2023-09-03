@@ -42,6 +42,8 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
 
   public override result = new RuntimeProvableMethodExecutionResult();
 
+  private isSimulated: boolean = false;
+
   private assertSetupCalled(): asserts this is {
     input: RuntimeMethodExecutionData;
   } {
@@ -64,6 +66,9 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setStatusMessage(message?: string) {
     this.assertSetupCalled();
+    if (this.isSimulated) {
+      return;
+    }
     this.result.statusMessage ??= message;
   }
 
@@ -72,6 +77,9 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setStatus(status: Bool) {
     this.assertSetupCalled();
+    if (this.isSimulated) {
+      return;
+    }
     this.result.status = status;
   }
 
@@ -80,6 +88,10 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setup(input: RuntimeMethodExecutionData) {
     this.input = input;
+  }
+
+  public setSimulated(simulated: boolean) {
+    this.isSimulated = simulated;
   }
 
   /**
@@ -91,8 +103,11 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
 
   public afterMethod() {
     super.afterMethod();
-    this.lastInput = this.input;
-    this.input = undefined;
+    if (this.isFinished) {
+      this.lastInput = this.input;
+      this.input = undefined;
+      this.isSimulated = false;
+    }
   }
 
   /**

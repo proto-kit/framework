@@ -1,9 +1,10 @@
-import { PublicKey, Struct, UInt64 } from "snarkyjs";
+import { Provable, PublicKey, Struct, UInt64 } from "snarkyjs";
 
 import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { StateMap } from "../state/StateMap";
 import { protocolState } from "../state/protocol/ProtocolState";
 import { ProvableTransactionHook } from "../protocol/ProvableTransactionHook";
+import { assert } from "../state/assert/assert";
 
 export class AccountState extends Struct({
   nonce: UInt64,
@@ -18,7 +19,9 @@ export class AccountStateModule extends ProvableTransactionHook {
       .orElse(new AccountState({ nonce: UInt64.zero }));
 
     const currentNonce = accountState.nonce;
-    currentNonce.equals(transaction.nonce).assertTrue("Nonce not matching");
+    Provable.log("Current Nonce", currentNonce);
+    Provable.log("Tx Nonce", transaction.nonce);
+    assert(currentNonce.equals(transaction.nonce), "Nonce not matching");
 
     this.accountState.set(
       transaction.sender,

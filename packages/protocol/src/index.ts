@@ -23,6 +23,7 @@ export * from "./protocol/Protocol";
 export * from "./protocol/ProtocolModule";
 export * from "./protocol/TransitioningProtocolModule";
 export * from "./protocol/ProvableTransactionHook";
+export * from "./state/assert/assert";
 export * from "./state/context/ProtocolMethodExecutionContext";
 export * from "./state/context/TransitionMethodExecutionContext";
 export * from "./state/context/RuntimeMethodExecutionContext";

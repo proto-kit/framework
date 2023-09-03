@@ -1,4 +1,4 @@
-export * from "./method/assert";
+export * from "../../protocol/src/state/assert/assert";
 export * from "./method/runtimeMethod";
 export * from "./module/decorator";
 export * from "./runtime/RuntimeModule";

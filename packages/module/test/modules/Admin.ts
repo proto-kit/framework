@@ -3,7 +3,7 @@ import { PublicKey } from "snarkyjs";
 import { runtimeModule } from "../../src/module/decorator.js";
 import { RuntimeModule } from "../../src/runtime/RuntimeModule.js";
 import { runtimeMethod } from "../../src/method/runtimeMethod.js";
-import { assert } from "../../src/method/assert.js";
+import { assert } from "@proto-kit/protocol";
 
 interface AdminConfig {
   publicKey: string;

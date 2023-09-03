@@ -191,6 +191,17 @@ export class BlockProverProgrammable extends ZkProgrammable<
   ) {
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.clear();
+
+    // Setup context for potential calls to runtime methods.
+    // This way they can use this.transaction etc. while still having provable
+    // integrity between data
+    executionContext.setup({
+      transaction: RuntimeTransaction.fromProtocolTransaction(
+        executionData.transaction
+      ),
+
+      networkState: executionData.networkState,
+    });
     executionContext.beforeMethod("", "", []);
 
     this.blockModules.forEach((module) => {
@@ -199,9 +210,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     executionContext.afterMethod();
 
-    const transitions = executionContext
-      .current()
-      .result.stateTransitions.map((transition) => transition.toProvable());
+    const { stateTransitions, status, statusMessage } =
+      executionContext.current().result;
+
+    status.assertTrue(statusMessage);
+
+    const transitions = stateTransitions.map((transition) =>
+      transition.toProvable()
+    );
 
     const hashList = new DefaultProvableHashList(
       ProvableStateTransition,
