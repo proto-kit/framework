@@ -8,19 +8,18 @@ import {
 } from "@proto-kit/common";
 import {
   Runtime,
+  RuntimeModule,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-} from "@proto-kit/sequencer";
+import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
 import {
   NetworkState,
   Protocol,
   ProtocolModulesRecord,
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
-  StateTransitionWitnessProviderReference
+  StateTransitionWitnessProviderReference,
+  ProtocolModule,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { UnsignedTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction";
@@ -29,7 +28,7 @@ import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { QueryBuilderFactory } from "../query/QueryBuilderFactory";
+import { Query, QueryBuilderFactory } from "../query/QueryBuilderFactory";
 import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
 import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
@@ -94,16 +93,22 @@ export class AppChain<
     return new AppChain(definition);
   }
 
-  public get query() {
+  public get query(): Query<RuntimeModule<unknown>, RuntimeModules> & {
+    protocol: Query<ProtocolModule, ProtocolModules>;
+  } {
     const queryTransportModule = this.resolveOrFail(
       "QueryTransportModule",
       InMemoryQueryTransportModule
     );
 
-    return QueryBuilderFactory.fromRuntime(
-      this.definition.runtime,
-      queryTransportModule
-    );
+    return {
+      ...QueryBuilderFactory.fromRuntime(
+        this.definition.runtime,
+        queryTransportModule
+      ),
+
+      protocol: {} as unknown as Query<ProtocolModule, ProtocolModules>,
+    };
   }
 
   public constructor(
@@ -141,14 +146,17 @@ export class AppChain<
       ProtocolModules,
       AppChainModules
     >
-  ) {
+  ): void {
     this.runtime.configure(config.runtime);
     this.sequencer.configure(config.sequencer);
     this.protocol.configure(config.protocol);
     this.configure(config.appChain);
   }
 
-  public transaction(sender: PublicKey, callback: () => void) {
+  public transaction(
+    sender: PublicKey,
+    callback: () => void
+  ): AppChainTransaction {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -180,7 +188,11 @@ export class AppChain<
 
     const argsFields = args.flatMap((arg) => arg.toFields(arg));
     const unsignedTransaction = new UnsignedTransaction({
-      methodId: Field(this.runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver").getMethodId(moduleName, methodName)),
+      methodId: Field(
+        this.runtime.dependencyContainer
+          .resolve<MethodIdResolver>("MethodIdResolver")
+          .getMethodId(moduleName, methodName)
+      ),
       args: argsFields,
       nonce: UInt64.from(0),
       sender,

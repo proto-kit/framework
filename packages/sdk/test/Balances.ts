@@ -1,13 +1,12 @@
 import {
   RuntimeModule,
-  State,
   runtimeModule,
   state,
-  StateMap,
   runtimeMethod,
   assert,
 } from "@proto-kit/module";
 import { Provable, PublicKey, UInt64 } from "snarkyjs";
+import { State, StateMap } from "@proto-kit/protocol";
 
 interface BalancesConfig {
   totalSupply: UInt64;
