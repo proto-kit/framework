@@ -1,6 +1,6 @@
 import { Field, Struct } from "snarkyjs";
 
-import { Option, ProvableOption, ToFieldable } from "./Option.js";
+import { Option, ProvableOption } from "./Option";
 
 /**
  * Provable representation of a State Transition, used to

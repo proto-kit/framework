@@ -14,16 +14,12 @@ import {
   type ProvableStateTransition,
   Path,
   MethodPublicOutput,
-  StateService, NetworkState, RuntimeTransaction
+  StateService,
+  RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 
-import {
-  InMemoryStateService,
-} from "../../src/state/InMemoryStateService.js";
-import {
-  Runtime,
-  RuntimeMethodExecutionContext,
-} from "../../src";
+import { InMemoryStateService } from "../../src/state/InMemoryStateService.js";
+import { Runtime } from "../../src";
 
 import { Balances } from "./Balances.js";
 import { Admin } from "./Admin.js";

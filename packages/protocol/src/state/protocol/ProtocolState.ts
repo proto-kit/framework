@@ -1,5 +1,4 @@
 import { State } from "../State";
-import { ToFieldable } from "../../model/Option";
 import { Path } from "../../model/Path";
 import { TransitioningProtocolModule } from "../../protocol/TransitioningProtocolModule";
 

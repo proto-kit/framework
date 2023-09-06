@@ -1,7 +1,6 @@
 import {
   Bool,
   Field,
-  FlexibleProvable,
   type FlexibleProvablePure,
   Poseidon,
   Provable,
@@ -16,10 +15,6 @@ export class ProvableOption extends Struct({
     this.isSome = Bool(true);
     return this;
   }
-}
-
-export interface ToFieldable {
-  toFields: () => Field[];
 }
 
 /**

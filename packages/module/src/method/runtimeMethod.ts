@@ -1,13 +1,18 @@
-import { FlexibleProvable } from "snarkyjs";
+import { Poseidon } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,
   DefaultProvableHashList,
   ProvableStateTransition,
   MethodPublicOutput,
-  RuntimeMethodExecutionContext
+  RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
-import { DecoratedMethod, toProver, ZkProgrammable } from "@proto-kit/common";
+import {
+  DecoratedMethod,
+  toProver,
+  ZkProgrammable,
+  ToFieldable,
+} from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
@@ -45,7 +50,8 @@ export type WrappedMethod = (...args: unknown[]) => MethodPublicOutput;
 export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
-  moduleMethod: (...args: unknown[]) => unknown
+  moduleMethod: (...args: unknown[]) => unknown,
+  methodArgs: ToFieldable[]
 ) {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
     RuntimeMethodExecutionContext
@@ -63,6 +69,15 @@ export function toWrappedMethod(
     if (input === undefined) {
       throw errors.methodInputsNotProvided();
     }
+
+    // Assert that the argsHash that has been signed matches the given arguments
+    const argsHash = Poseidon.hash(
+      methodArgs.flatMap((argument) => argument.toFields())
+    );
+    input.transaction.argsHash.assertEquals(
+      argsHash,
+      "argsHash and therefore arguments of transaction and runtime call does not match"
+    );
 
     const transactionHash = input.transaction.hash();
     const networkStateHash = input.networkState.hash();
@@ -139,7 +154,7 @@ export function runtimeMethod() {
 
     descriptor.value = function value(
       this: RuntimeModule<unknown>,
-      ...args: FlexibleProvable<unknown>[]
+      ...args: ToFieldable[]
     ) {
       const constructorName = this.constructor.name;
 
@@ -153,6 +168,7 @@ export function runtimeMethod() {
       const simulatedWrappedMethod = Reflect.apply(toWrappedMethod, this, [
         methodName,
         simulatedMethod,
+        args,
       ]);
 
       /**
