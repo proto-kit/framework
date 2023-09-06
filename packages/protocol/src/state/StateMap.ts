@@ -24,7 +24,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(
   public static from<KeyType, ValueType>(
     keyType: FlexibleProvablePure<KeyType>,
     valueType: FlexibleProvablePure<ValueType>
-  ) {
+  ): StateMap<KeyType, ValueType> {
     return new StateMap<KeyType, ValueType>(keyType, valueType);
   }
 
@@ -62,7 +62,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    * @param key - Key to store the value under
    * @param value - Value to be stored under the given key
    */
-  public set(key: KeyType, value: ValueType) {
+  public set(key: KeyType, value: ValueType): void {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
     this.hasStateServiceOrFail();

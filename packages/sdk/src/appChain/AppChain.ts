@@ -29,7 +29,7 @@ import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { Query, QueryBuilderFactory } from "../query/QueryBuilderFactory";
-import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
+import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
 
 export type AppChainModulesRecord = ModulesRecord<
@@ -93,21 +93,25 @@ export class AppChain<
     return new AppChain(definition);
   }
 
-  public get query(): Query<RuntimeModule<unknown>, RuntimeModules> & {
+  public get query(): {
+    runtime: Query<RuntimeModule<unknown>, RuntimeModules>;
     protocol: Query<ProtocolModule, ProtocolModules>;
   } {
     const queryTransportModule = this.resolveOrFail(
       "QueryTransportModule",
-      InMemoryQueryTransportModule
+      StateServiceQueryModule
     );
 
     return {
-      ...QueryBuilderFactory.fromRuntime(
+      runtime: QueryBuilderFactory.fromRuntime(
         this.definition.runtime,
         queryTransportModule
       ),
 
-      protocol: {} as unknown as Query<ProtocolModule, ProtocolModules>,
+      protocol: QueryBuilderFactory.fromProtocol(
+        this.definition.protocol,
+        queryTransportModule
+      ),
     };
   }
 

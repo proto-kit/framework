@@ -154,8 +154,8 @@ describe("testing app chain", () => {
     /**
      * Observe new state after the block has been produced
      */
-    const balance = await appChain.query.Balances.balances.get(sender);
-    const balanceBob = await appChain.query.Balances.balances.get(bob);
+    const balance = await appChain.query.runtime.Balances.balances.get(sender);
+    const balanceBob = await appChain.query.runtime.Balances.balances.get(bob);
 
     Provable.log("balances", {
       balance,

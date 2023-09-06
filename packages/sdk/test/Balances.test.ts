@@ -1,7 +1,9 @@
 import { PrivateKey, UInt64 } from "snarkyjs";
 import { log } from "@proto-kit/common";
-import { RollupMerkleTree } from "@proto-kit/protocol";
-import { RuntimeMethodExecutionContext } from "@proto-kit/module";
+import {
+  RollupMerkleTree,
+  RuntimeMethodExecutionContext,
+} from "@proto-kit/protocol";
 import { MockAsyncMerkleTreeStore } from "@proto-kit/module/test/state/MockAsyncMerkleStore";
 
 import { TestingAppChain } from "@proto-kit/sdk";

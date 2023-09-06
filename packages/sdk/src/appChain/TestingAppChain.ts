@@ -5,8 +5,10 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
-  ProtocolModulesRecord,
-  VanillaProtocol,
+  AccountStateModule,
+  BlockProver,
+  StateTransitionProver,
+  VanillaProtocol
 } from "@proto-kit/protocol";
 import {
   PrivateMempool,
@@ -21,7 +23,7 @@ import {
   BlockTrigger,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "snarkyjs";
-import { InMemoryQueryTransportModule } from "../query/InMemoryQueryTransportModule";
+import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
@@ -32,7 +34,11 @@ export class TestingAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
-  ProtocolModulesRecord,
+  { 
+    StateTransitionProver: typeof StateTransitionProver;
+    BlockProver: typeof BlockProver,
+    AccountStateModule: typeof AccountStateModule
+  },
   SequencerModulesRecord,
   AppChainModulesRecord
 > {
@@ -73,12 +79,12 @@ export class TestingAppChain<
     return new TestingAppChain({
       runtime,
       sequencer: sequencer as any,
-      protocol: VanillaProtocol.create() as any,
+      protocol: VanillaProtocol.from({ AccountStateModule }),
 
       modules: {
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
-        QueryTransportModule: InMemoryQueryTransportModule,
+        QueryTransportModule: StateServiceQueryModule,
       },
     });
   }

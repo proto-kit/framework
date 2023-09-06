@@ -11,7 +11,7 @@ export class AccountState extends Struct({
 }) {}
 
 export class AccountStateModule extends ProvableTransactionHook {
-  @protocolState() public accountState = StateMap.from(PublicKey, AccountState);
+  @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(PublicKey, AccountState);
 
   public onTransaction({ transaction }: BlockProverExecutionData): void {
     const accountState = this.accountState
