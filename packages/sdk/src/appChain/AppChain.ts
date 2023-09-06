@@ -11,7 +11,11 @@ import {
   RuntimeModule,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
-import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
+import {
+  BlockStorage,
+  Sequencer,
+  SequencerModulesRecord,
+} from "@proto-kit/sequencer";
 import {
   NetworkState,
   Protocol,
@@ -29,8 +33,12 @@ import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { Query, QueryBuilderFactory } from "../query/QueryBuilderFactory";
-import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
+import {
+  QueryTransportModule,
+  StateServiceQueryModule,
+} from "../query/StateServiceQueryModule";
 import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
+import { NetworkStateQuery } from "../query/NetworkStateQuery";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -96,10 +104,15 @@ export class AppChain<
   public get query(): {
     runtime: Query<RuntimeModule<unknown>, RuntimeModules>;
     protocol: Query<ProtocolModule, ProtocolModules>;
+    network: NetworkStateQuery;
   } {
     const queryTransportModule = this.resolveOrFail(
       "QueryTransportModule",
       StateServiceQueryModule
+    );
+
+    const network = new NetworkStateQuery(
+      this.sequencer.dependencyContainer.resolve<BlockStorage>("BlockStorage")
     );
 
     return {
@@ -112,6 +125,8 @@ export class AppChain<
         this.definition.protocol,
         queryTransportModule
       ),
+
+      network,
     };
   }
 

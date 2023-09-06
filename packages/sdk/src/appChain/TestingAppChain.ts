@@ -8,7 +8,7 @@ import {
   AccountStateModule,
   BlockProver,
   StateTransitionProver,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import {
   PrivateMempool,
@@ -23,21 +23,21 @@ import {
   BlockTrigger,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "snarkyjs";
+
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
+
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
-// eslint-disable-next-line max-len
-// eslint-disable-next-line @shopify/no-fully-static-classes, @typescript-eslint/no-extraneous-class
 export class TestingAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
-  { 
+  {
     StateTransitionProver: typeof StateTransitionProver;
-    BlockProver: typeof BlockProver,
-    AccountStateModule: typeof AccountStateModule
+    BlockProver: typeof BlockProver;
+    AccountStateModule: typeof AccountStateModule;
   },
   SequencerModulesRecord,
   AppChainModulesRecord
