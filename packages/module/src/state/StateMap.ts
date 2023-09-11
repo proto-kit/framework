@@ -1,5 +1,5 @@
 import type { Field, FlexibleProvablePure } from "snarkyjs";
-import { Path, type Option } from "@proto-kit/protocol";
+import { Path, type Option, ToFieldable } from "@proto-kit/protocol";
 import { Mixin } from "ts-mixer";
 
 import { State, WithRuntime, WithPath } from "./State.js";
@@ -8,7 +8,7 @@ import { State, WithRuntime, WithPath } from "./State.js";
  * Map-like wrapper for state
  */
 // eslint-disable-next-line new-cap
-export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithRuntime) {
+export class StateMap<KeyType, ValueType extends ToFieldable> extends Mixin(WithPath, WithRuntime) {
   /**
    * Create a new state map with the given key and value types
    *
@@ -16,7 +16,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(WithPath, WithRuntime) {
    * @param valueType - Type to be stored as a value
    * @returns State map with provided key and value types.
    */
-  public static from<KeyType, ValueType>(
+  public static from<KeyType, ValueType extends ToFieldable>(
     keyType: FlexibleProvablePure<KeyType>,
     valueType: FlexibleProvablePure<ValueType>
   ) {

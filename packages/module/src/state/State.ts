@@ -3,7 +3,7 @@
 import { Mixin } from "ts-mixer";
 import { Bool, Field, Provable, type FlexibleProvablePure } from "snarkyjs";
 import { container } from "tsyringe";
-import { Option, StateTransition, type Path } from "@proto-kit/protocol";
+import { Option, StateTransition, type Path, ToFieldable } from "@proto-kit/protocol";
 
 import { PartialRuntime } from "../runtime/RuntimeModule.js";
 import { RuntimeMethodExecutionContext } from "../method/RuntimeMethodExecutionContext.js";
@@ -37,14 +37,14 @@ export class WithRuntime {
 /**
  * Utilities for runtime module state, such as get/set
  */
-export class State<Value> extends Mixin(WithPath, WithRuntime) {
+export class State<Value extends ToFieldable> extends Mixin(WithPath, WithRuntime) {
   /**
    * Creates a new state wrapper for the provided value type.
    *
    * @param valueType - Type of value to be stored (e.g. UInt64, Struct, ...)
    * @returns New state for the given value type.
    */
-  public static from<Value>(valueType: FlexibleProvablePure<Value>) {
+  public static from<Value extends ToFieldable>(valueType: FlexibleProvablePure<Value>) {
     return new State<Value>(valueType);
   }
 

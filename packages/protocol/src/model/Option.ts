@@ -17,10 +17,14 @@ export class ProvableOption extends Struct({
   }
 }
 
+export interface ToFieldable {
+  toFields: () => Field[];
+}
+
 /**
  * Option facilitating in-circuit values that may or may not exist.
  */
-export class Option<Value> {
+export class Option<Value extends ToFieldable> {
   /**
    * Creates a new Option from the provided parameters
    *
@@ -29,7 +33,7 @@ export class Option<Value> {
    * @param valueType
    * @returns New option from the provided parameters.
    */
-  public static from<Value>(
+  public static from<Value extends ToFieldable>(
     isSome: Bool,
     value: Value,
     valueType: FlexibleProvablePure<Value>
@@ -44,7 +48,7 @@ export class Option<Value> {
    * @param valueType
    * @returns New option from the provided parameters.
    */
-  public static fromValue<Value>(
+  public static fromValue<Value extends ToFieldable>(
     value: Value,
     valueType: FlexibleProvablePure<Value>
   ) {
@@ -129,6 +133,14 @@ export class Option<Value> {
       isSome: this.isSome,
       value: this.treeValue,
     });
+  }
+
+  /**
+   * @returns Returns the value of this option if it isSome,
+   * otherwise returns the given defaultValue
+   */
+  public orElse(defaultValue: Value): Value {
+    return Provable.if(this.isSome, this.value, defaultValue);
   }
 
   public toJSON() {
