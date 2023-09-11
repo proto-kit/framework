@@ -12,6 +12,9 @@ export type Message =
   | {
       type: "RESPONSE_SIGNATURE";
       data: string;
+    }
+  | {
+      type: "ERROR_SIGNATURE";
     };
 
 export class AuroSignerHandler {
@@ -29,6 +32,11 @@ export class AuroSignerHandler {
         (window as any).mina
           .signFields({
             message: message.data.data,
+          })
+          .catch(() => {
+            this.worker.postMessage({
+              type: "ERROR_SIGNATURE",
+            } satisfies Message);
           })
           .then(({ signature }: { signature: string }) => {
             this.worker.postMessage({
