@@ -34,12 +34,11 @@ import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { QueryBuilderFactory, Query } from "../query/QueryBuilderFactory";
-import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
 import {
   QueryTransportModule,
   StateServiceQueryModule,
 } from "../query/StateServiceQueryModule";
-import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
+
 import { NetworkStateQuery } from "../query/NetworkStateQuery";
 
 export type AppChainModulesRecord = ModulesRecord<

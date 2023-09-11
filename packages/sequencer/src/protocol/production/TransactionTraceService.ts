@@ -3,12 +3,12 @@ import { inject, injectable, injectAll, Lifecycle, scoped } from "tsyringe";
 import {
   MethodParameterDecoder,
   Runtime,
-  RuntimeMethodExecutionContext,
-  RuntimeProvableMethodExecutionResult,
   RuntimeModule,
   MethodIdResolver,
 } from "@proto-kit/module";
 import {
+  RuntimeMethodExecutionContext,
+  RuntimeProvableMethodExecutionResult,
   BlockProverExecutionData,
   CachedMerkleTreeStore,
   DefaultProvableHashList,
@@ -24,8 +24,6 @@ import {
   StateService,
   StateTransition,
   StateTransitionType,
-  RuntimeMethodExecutionContext,
-  RuntimeProvableMethodExecutionResult,
   RuntimeMethodExecutionData,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "snarkyjs";

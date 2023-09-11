@@ -23,7 +23,6 @@ import {
 } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "snarkyjs";
 import { container } from "tsyringe";
-import { InMemoryQueryTransportModule } from "../query/InMemoryQueryTransportModule";
 import { AuroSigner } from "../transaction/AuroSigner";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
