@@ -1,12 +1,24 @@
 /* eslint-disable new-cap */
 
 import { Mixin } from "ts-mixer";
-import { Bool, Field, Provable, type FlexibleProvablePure } from "snarkyjs";
+import {
+  Bool,
+  Field,
+  Provable,
+  type FlexibleProvablePure,
+  Struct,
+} from "snarkyjs";
 import { container } from "tsyringe";
-import { Option, StateTransition, type Path, ToFieldable } from "@proto-kit/protocol";
+import {
+  Option,
+  StateTransition,
+  type Path,
+  ToFieldable,
+} from "@proto-kit/protocol";
 
 import { PartialRuntime } from "../runtime/RuntimeModule.js";
 import { RuntimeMethodExecutionContext } from "../method/RuntimeMethodExecutionContext.js";
+import { dummyValue } from "@proto-kit/common";
 
 export class WithPath {
   public path?: Field;
@@ -37,35 +49,63 @@ export class WithRuntime {
 /**
  * Utilities for runtime module state, such as get/set
  */
-export class State<Value extends ToFieldable> extends Mixin(WithPath, WithRuntime) {
+export class State<Value extends ToFieldable> extends Mixin(
+  WithPath,
+  WithRuntime
+) {
   /**
    * Creates a new state wrapper for the provided value type.
    *
    * @param valueType - Type of value to be stored (e.g. UInt64, Struct, ...)
    * @returns New state for the given value type.
    */
-  public static from<Value extends ToFieldable>(valueType: FlexibleProvablePure<Value>) {
-    return new State<Value>(valueType);
-  }
-
-  /**
-   * Computes a dummy value for the given value type.
-   *
-   * @param valueType - Value type to generate the dummy value for
-   * @returns Dummy value for the given value type
-   */
-  public static dummyValue<Value>(
+  public static from<Value extends ToFieldable>(
     valueType: FlexibleProvablePure<Value>
-  ): Value {
-    const length = valueType.sizeInFields();
-    const fields = Array.from({ length }, () => Field(0));
-
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return valueType.fromFields(fields) as Value;
+  ) {
+    return new State<Value>(valueType);
   }
 
   public constructor(public valueType: FlexibleProvablePure<Value>) {
     super();
+  }
+
+  private getState(): { value: Value; isSome: Bool } {
+    this.hasRuntimeOrFail();
+    this.hasPathOrFail();
+
+    const { path, runtime, valueType } = this;
+
+    const { stateTransitions } = container
+      .resolve(RuntimeMethodExecutionContext)
+      .current().result;
+
+    // First try to find a match inside already created stateTransitions
+    const previousMutatingTransitions = stateTransitions.filter((transition) =>
+      transition.path.equals(path).and(transition.to.isSome).toBoolean()
+    );
+    const pmtLength = previousMutatingTransitions.length;
+
+    let value =
+      pmtLength > 0
+        ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          (previousMutatingTransitions[pmtLength - 1].to.value as Value)
+        : undefined;
+
+    if (value !== undefined) {
+      return { value, isSome: Bool(true) };
+    }
+
+    // If the value is still undefined, look it up in the stateService
+    const fields = runtime.stateService.get(path);
+    if (fields) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      value = valueType.fromFields(fields) as Value;
+    }
+
+    if (value !== undefined) {
+      return { value, isSome: Bool(true) };
+    }
+    return { value: dummyValue(valueType), isSome: Bool(false) };
   }
 
   /**
@@ -77,27 +117,12 @@ export class State<Value extends ToFieldable> extends Mixin(WithPath, WithRuntim
   private witnessState() {
     // get the value from storage, or return a dummy value instead
     const value = Provable.witness(this.valueType, () => {
-      this.hasRuntimeOrFail();
-      this.hasPathOrFail();
-
-      const fields = this.runtime.stateService.get(this.path);
-      if (fields) {
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return this.valueType.fromFields(fields) as Value;
-      }
-
-      return State.dummyValue(this.valueType);
+      return this.getState().value;
     });
 
     // check if the value exists in the storage or not
     const isSome = Provable.witness(Bool, () => {
-      this.hasRuntimeOrFail();
-      this.hasPathOrFail();
-
-      const fields = this.runtime.stateService.get(this.path);
-
-      return Bool(fields !== undefined);
+      return this.getState().isSome;
     });
 
     return Option.from(isSome, value, this.valueType);

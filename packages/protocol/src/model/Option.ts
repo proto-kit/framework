@@ -1,3 +1,4 @@
+import { dummyValue } from "@proto-kit/common";
 import {
   Bool,
   Field,
@@ -60,28 +61,6 @@ export class Option<Value extends ToFieldable> {
    */
   public static none() {
     return new Option(Bool(false), Field(0), Field);
-  }
-
-  public static dummyValueFields<Value>(
-    valueType: FlexibleProvablePure<Value>
-  ): Field[] {
-    const length = valueType.sizeInFields();
-    return Array.from({ length }, () => Field(0));
-  }
-
-  /**
-   * Computes a dummy value for the given value type.
-   *
-   * @param valueType - Value type to generate the dummy value for
-   * @returns Dummy value for the given value type
-   */
-  public static dummyValue<Value>(
-    valueType: FlexibleProvablePure<Value>
-  ): Value {
-    const fields = Option.dummyValueFields(valueType);
-
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return valueType.fromFields(fields) as Value;
   }
 
   public isForcedSome = Bool(false);

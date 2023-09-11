@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-len
-/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects */
+/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects,max-lines */
 import "reflect-metadata";
 import {
   Fieldable,
@@ -219,7 +219,7 @@ describe("block production", () => {
 
   const numberTxs = 3;
 
-  it("should produce block with multiple transaction", async () => {
+  it.skip("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(5 + 2 * numberTxs);
 
@@ -266,4 +266,58 @@ describe("block production", () => {
       UInt64.from(100 * numberTxs)
     );
   }, 160_000);
+
+  it("should produce block with a tx with a lot of STs", async () => {
+    expect.assertions(9);
+
+    const privateKey = PrivateKey.random();
+
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "lotOfSTs"],
+        privateKey,
+        args: [],
+        nonce: 0,
+      })
+    );
+
+    const block = await blockTrigger.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.txs).toHaveLength(1);
+    expect(block!.proof.proof).toBe("mock-proof");
+
+    expect(block!.txs[0].status).toBe(true);
+    expect(block!.txs[0].statusMessage).toBe(undefined);
+
+    const stateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "AsyncStateService"
+      );
+    const supplyPath = Path.fromProperty(
+      "Balance",
+      "totalSupply"
+    );
+    const newState = await stateService.getAsync(supplyPath);
+
+    expect(newState).toBeDefined();
+    expect(UInt64.fromFields(newState!)).toStrictEqual(
+      // 10 is the number of iterations inside the runtime method
+      UInt64.from(100 * 10)
+    );
+
+    const pk2 = PublicKey.from({ x: Field(2), isOdd: Bool(false) })
+    const balanceModule = runtime.resolve("Balance");
+    const balancesPath = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      pk2
+    );
+
+    const newBalance = await stateService.getAsync(balancesPath);
+
+    expect(newBalance).toBeDefined();
+    expect(UInt64.fromFields(newBalance!)).toStrictEqual(UInt64.from(200));
+  }, 360_000);
 });

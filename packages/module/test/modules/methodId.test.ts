@@ -56,7 +56,6 @@ describe("methodId", () => {
     ["Admin", "isAdminWithAVeryVeryVeryVeryLongName"],
     ["Balance", "getTotalSupply"],
     ["Balance", "getBalance"],
-    ["Balance", "setBalanceIf"],
   ])(
     "should pass and encode correctly",
     (givenModuleName, givenMethodName) => {

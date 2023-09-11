@@ -7,8 +7,8 @@ import {
   State,
   StateMap,
 } from "@proto-kit/module";
-import { Presets } from "@proto-kit/common";
-import { Bool, Provable, PublicKey, UInt64 } from "snarkyjs";
+import { Presets, range } from "@proto-kit/common";
+import { Bool, Field, Provable, PublicKey, UInt64 } from "snarkyjs";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option } from "@proto-kit/protocol";
 
@@ -71,5 +71,17 @@ export class Balance extends RuntimeModule<object> {
 
     const newBalance = balance.value.add(value);
     this.balances.set(address, newBalance);
+  }
+
+  @runtimeMethod()
+  public lotOfSTs() {
+    range(0, 10).forEach((index) => {
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      const pk = PublicKey.from({ x: Field(index % 5), isOdd: Bool(false) });
+      const value = this.balances.get(pk);
+      this.balances.set(pk, value.orElse(UInt64.zero).add(100));
+      const supply = this.totalSupply.get().orElse(UInt64.zero);
+      this.totalSupply.set(supply.add(UInt64.from(100)));
+    });
   }
 }

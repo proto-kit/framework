@@ -16,7 +16,8 @@ import {
   ProvableStateTransition,
   RollupMerkleTree,
   RuntimeTransaction,
-  StateTransition, ToFieldable
+  StateTransition,
+  ToFieldable,
 } from "@proto-kit/protocol";
 import { Field } from "snarkyjs";
 import { log } from "@proto-kit/common";
@@ -200,8 +201,9 @@ export class TransactionTraceService {
     const stParameters = chunk(
       stateTransitions,
       ProtocolConstants.stateTransitionProverBatchSize
-    ).map<StateTransitionProofParameters>((currentChunk) => {
+    ).map<StateTransitionProofParameters>((currentChunk, index) => {
       const stateRoot = tree.getRoot();
+      console.log(`Root step ${index}:`, stateRoot.toString());
       const stateTransitionsHash = transitionsList.commitment;
 
       const merkleWitnesses = currentChunk.map((transition) => {
@@ -209,7 +211,7 @@ export class TransactionTraceService {
 
         const provableTransition = transition.toProvable();
 
-        if (transition.to.isSome.toBoolean()) {
+        if (provableTransition.to.isSome.toBoolean()) {
           tree.setLeaf(
             provableTransition.path.toBigInt(),
             provableTransition.to.value
@@ -224,10 +226,10 @@ export class TransactionTraceService {
         return witness;
       });
 
-      // console.log(
-      //   "Paths:",
-      //   witnesses.map((witness) => witness.calculateIndex().toString())
-      // );
+      console.log(
+        "Paths:",
+        merkleWitnesses.map((witness) => witness.calculateIndex().toString())
+      );
 
       return {
         merkleWitnesses,
@@ -326,10 +328,12 @@ export class TransactionTraceService {
       await Promise.all(
         // Use updated stateTransitions since only they will have the
         // right values
-        executionResult.stateTransitions.map(async (st) => {
-          log.debug("Setting async:", st.path.toString(), st.to.toJSON());
-          await stateService.setAsync(st.path, st.to.toFields());
-        })
+        executionResult.stateTransitions
+          .filter((st) => st.to.isSome.toBoolean())
+          .map(async (st) => {
+            log.debug("Setting async:", st.path.toString(), st.to.toJSON());
+            await stateService.setAsync(st.path, st.to.toFields());
+          })
       );
     }
 

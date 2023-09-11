@@ -1,4 +1,4 @@
-import { Path } from "@proto-kit/protocol";
+import { Path, ToFieldable } from "@proto-kit/protocol";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
@@ -28,7 +28,7 @@ export function state() {
     propertyKey: string
   ) => {
     // eslint-disable-next-line @typescript-eslint/init-declarations
-    let value: State<unknown> | undefined;
+    let value: State<ToFieldable> | undefined;
 
     Object.defineProperty(target, propertyKey, {
       enumerable: true,
@@ -57,7 +57,7 @@ export function state() {
         return value;
       },
 
-      set: (newValue: State<unknown>) => {
+      set: (newValue: State<ToFieldable>) => {
         value = newValue;
       },
     });

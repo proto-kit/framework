@@ -187,10 +187,13 @@ export class StateTransitionProver
       .or(transition.from.isSome.not())
       .assertTrue(errors.merkleWitnessNotCorrect(index));
 
+    const t = Date.now();
     const newRoot = MerkleTreeUtils.computeRoot(
       treeWitness,
       transition.to.value
     );
+    Provable.log("Compute root took", Date.now() - t, "ms");
+
     state.stateRoot = Provable.if(
       transition.to.isSome,
       newRoot,

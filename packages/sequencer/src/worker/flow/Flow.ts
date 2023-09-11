@@ -103,6 +103,7 @@ export class Flow<State> implements Closeable {
   private taskCounter = 0;
 
   private resolveFunction?: (result: any) => void;
+  private errorFunction?: (error: Error) => void;
 
   public tasksInProgress = 0;
 
@@ -145,8 +146,12 @@ export class Flow<State> implements Closeable {
 
       if (!this.erroredOut) {
         if (response.status === "error") {
+          console.log("Got error in Flow");
           this.erroredOut = true;
-          throw new Error(`Error in worker: ${response.payload}`);
+          this.errorFunction?.(
+            new Error(`Error in worker: ${response.payload}`)
+          );
+          return;
         }
 
         if (resolveFunction !== undefined) {
@@ -212,6 +217,7 @@ export class Flow<State> implements Closeable {
   ): Promise<Result> {
     return await new Promise<Result>((resolve, reject) => {
       this.resolveFunction = resolve;
+      this.errorFunction = reject;
       void executor(resolve, reject);
     });
   }
