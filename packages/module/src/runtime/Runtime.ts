@@ -12,6 +12,7 @@ import {
   PlainZkProgram,
   WithZkProgrammable,
   AreProofsEnabled,
+  log,
 } from "@yab/common";
 
 import {
@@ -164,6 +165,26 @@ export class RuntimeZkProgrammable<
       verify: program.verify.bind(program),
       Proof: SelfProof,
       methods,
+      analyze,
+
+      toPretty: () => {
+        Reflect.apply(analyze, this, []).forEach(
+          ({ methodName, analysis: methodAnalysis }) => {
+            const inputs = methodAnalysis.inputs.map(
+              // eslint-disable-next-line max-len
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/consistent-type-assertions
+              (input) => (input as any).name
+            );
+
+            log.info(`
+  Method: ${methodName}
+  Rows: ${methodAnalysis.rows},
+  Gates: ${methodAnalysis.gates.length}
+  Inputs: [${inputs.join(", ")}]
+  `);
+          }
+        );
+      },
     };
   }
 }
