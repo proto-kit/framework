@@ -207,7 +207,7 @@ export class AppChain<
       );
     }
 
-    const argsFields = args.flatMap((arg) => arg.toFields(arg));
+    const argsFields = args.flatMap((arg) => arg.toFields());
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
         this.runtime.dependencyContainer
