@@ -1,9 +1,9 @@
 import {
   Bool,
-  Circuit,
   Field,
   type FlexibleProvablePure,
   Poseidon,
+  Provable,
   Struct,
 } from "snarkyjs";
 
@@ -93,7 +93,7 @@ export class Option<Value> {
   }
 
   public forceSome() {
-    this.isForcedSome = Circuit.if(this.isSome, Bool(false), Bool(true));
+    this.isForcedSome = Provable.if(this.isSome, Bool(false), Bool(true));
     this.isSome = Bool(true);
   }
 
@@ -103,7 +103,7 @@ export class Option<Value> {
   public get treeValue() {
     const treeValue = Poseidon.hash(this.valueType.toFields(this.value));
 
-    return Circuit.if(
+    return Provable.if(
       this.isSome.and(this.isForcedSome.not()),
       treeValue,
       Field(0)

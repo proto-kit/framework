@@ -3,14 +3,15 @@ import { PublicKey } from "snarkyjs";
 import {
   assert,
   InMemoryStateService,
-  method,
   Runtime,
+  runtimeMethod,
   RuntimeModule,
   runtimeModule,
   RuntimeModulesRecord,
 } from "@yab/module";
 import { Sequencer, sequencerModule, SequencerModule } from "@yab/sequencer";
 import { inject } from "tsyringe";
+import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
 
 import { AppChain } from "../../src";
 
@@ -20,7 +21,7 @@ interface AdminConfig {
 
 @runtimeModule()
 class Admin extends RuntimeModule<AdminConfig> {
-  @method()
+  @runtimeMethod()
   public isAdmin(publicKey: PublicKey) {
     const admin = PublicKey.fromBase58(this.config.publicKey);
     assert(admin.equals(publicKey));
@@ -75,6 +76,7 @@ describe("appChain", () => {
     const appChain = AppChain.from({
       runtime,
       sequencer,
+      protocol: VanillaProtocol.create(),
     });
 
     appChain.configure({

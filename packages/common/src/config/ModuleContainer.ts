@@ -1,26 +1,23 @@
 import "reflect-metadata";
 
 import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
+import log from "loglevel";
 
 import { StringKeyOf, TypedClass } from "../types";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 
-export const errors = {
-  configNotSet: (moduleName: string) =>
-    new Error(
-      `Trying to retrieve config of ${moduleName}, which was not yet set`
-    ),
-
+const errors = {
   configNotSetInContainer: (moduleName: string) =>
     new Error(
       `Trying to get config of ${moduleName}, but it was not yet set in the module container`
     ),
 
-  onlyStringModuleNames: (moduleName: NonNullable<unknown>) =>
+  onlyValidModuleNames: (moduleName: NonNullable<unknown>) =>
     new Error(
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      `Only string module names, using ${typeof moduleName} instead: ${moduleName.toString()}`
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string,@typescript-eslint/restrict-template-expressions
+      `Only known module names are allowed, using unknown module name: ${moduleName}`
     ),
 
   unableToDecorateModule: (moduleName: InjectionToken<unknown>) =>
@@ -38,6 +35,8 @@ export const errors = {
       as a runtime module for this chain: ${name}`
     ),
 };
+
+export const ModuleContainerErrors = errors;
 
 // determines that a module should be configurable by default
 export type BaseModuleType = TypedClass<Configurable<unknown>>;
@@ -129,12 +128,16 @@ export class ModuleContainer<Modules extends ModulesRecord> {
    * otherwise it may be just string e.g. when modules are iterated over
    * using e.g. a for loop.
    */
-  protected isValidModuleName(
+  public assertIsValidModuleName(
     modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
+    this.isValidModuleName(modules, moduleName);
+  }
+
+  public isValidModuleName(modules: Modules, moduleName: string) {
     if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-      throw errors.onlyStringModuleNames(moduleName);
+      throw errors.onlyValidModuleNames(moduleName);
     }
   }
 
@@ -148,7 +151,9 @@ export class ModuleContainer<Modules extends ModulesRecord> {
   protected registerModules(modules: Modules) {
     for (const moduleName in modules) {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-        this.isValidModuleName(modules, moduleName);
+        this.assertIsValidModuleName(modules, moduleName);
+
+        log.trace(`Registering module: ${moduleName}`);
 
         this.container.register(
           moduleName,
@@ -164,6 +169,8 @@ export class ModuleContainer<Modules extends ModulesRecord> {
    * Register a non-module value into the current container
    * @param modules
    */
+  // eslint-disable-next-line no-warning-comments
+  // TODO Rename to plural since object is param
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
       this.container.register(moduleName, { useValue });

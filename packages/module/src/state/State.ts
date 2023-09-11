@@ -1,12 +1,12 @@
 /* eslint-disable new-cap */
 
 import { Mixin } from "ts-mixer";
-import { Bool, Circuit, Field, type FlexibleProvablePure } from "snarkyjs";
+import { Bool, Field, Provable, type FlexibleProvablePure } from "snarkyjs";
 import { container } from "tsyringe";
 import { Option, StateTransition, type Path } from "@yab/protocol";
 
-import { MethodExecutionContext } from "../method/MethodExecutionContext.js";
 import { PartialRuntime } from "../runtime/RuntimeModule.js";
+import { RuntimeMethodExecutionContext } from "../method/RuntimeMethodExecutionContext.js";
 
 export class WithPath {
   public path?: Field;
@@ -76,7 +76,7 @@ export class State<Value> extends Mixin(WithPath, WithRuntime) {
    */
   private witnessState() {
     // get the value from storage, or return a dummy value instead
-    const value = Circuit.witness(this.valueType, () => {
+    const value = Provable.witness(this.valueType, () => {
       this.hasRuntimeOrFail();
       this.hasPathOrFail();
 
@@ -91,7 +91,7 @@ export class State<Value> extends Mixin(WithPath, WithRuntime) {
     });
 
     // check if the value exists in the storage or not
-    const isSome = Circuit.witness(Bool, () => {
+    const isSome = Provable.witness(Bool, () => {
       this.hasRuntimeOrFail();
       this.hasPathOrFail();
 
@@ -117,7 +117,7 @@ export class State<Value> extends Mixin(WithPath, WithRuntime) {
     const stateTransition = StateTransition.from(this.path, option);
 
     container
-      .resolve(MethodExecutionContext)
+      .resolve(RuntimeMethodExecutionContext)
       .addStateTransition(stateTransition);
 
     return option;
@@ -148,7 +148,7 @@ export class State<Value> extends Mixin(WithPath, WithRuntime) {
     );
 
     container
-      .resolve(MethodExecutionContext)
+      .resolve(RuntimeMethodExecutionContext)
       .addStateTransition(stateTransition);
   }
 }

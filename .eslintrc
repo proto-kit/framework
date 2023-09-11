@@ -4,7 +4,7 @@
   "plugins": ["@typescript-eslint"],
   "root": true,
   "parserOptions": {
-    "project": ["./tsconfig.json", "./tsconfig.test.json"]
+    "project": ["./tsconfig.json"]
   },
   "ignorePatterns": [
     "jest.config.cjs",
@@ -34,7 +34,14 @@
     "new-cap": [
       "error",
       {
-        "capIsNewExceptions": ["Field", "Bool", "Struct", "ZkProgram"]
+        "capIsNewExceptions": [
+          "Field",
+          "Bool",
+          "Struct",
+          "ZkProgram",
+          "Memoize",
+          "Proof"
+        ]
       }
     ],
     "@typescript-eslint/prefer-readonly-parameter-types": "off",

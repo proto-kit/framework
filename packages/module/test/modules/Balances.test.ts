@@ -1,15 +1,26 @@
 /* eslint-disable max-lines */
 import "reflect-metadata";
-import { Bool, Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
+import {
+  Bool,
+  Field,
+  Poseidon,
+  PrivateKey,
+  Proof,
+  PublicKey,
+  UInt64,
+} from "snarkyjs";
 import { container } from "tsyringe";
 import { type ProvableStateTransition, Path } from "@yab/protocol";
 
-import { MethodExecutionContext } from "../../src/method/MethodExecutionContext.js";
 import {
   InMemoryStateService,
   StateService,
 } from "../../src/state/InMemoryStateService.js";
-import { Runtime } from "../../src";
+import {
+  MethodPublicOutput,
+  Runtime,
+  RuntimeMethodExecutionContext,
+} from "../../src";
 
 import { Balances } from "./Balances.js";
 import { Admin } from "./Admin.js";
@@ -50,6 +61,14 @@ describe("balances", () => {
       },
     });
 
+    runtime.appChain = {
+      areProofsEnabled: false,
+
+      setProofsEnabled(areProofsEnabled) {
+        this.areProofsEnabled = areProofsEnabled;
+      },
+    };
+
     runtime.configure({
       Admin: {
         publicKey: PublicKey.empty().toBase58(),
@@ -72,50 +91,35 @@ describe("balances", () => {
   describe("compile and prove", () => {
     beforeAll(createChain);
 
-    afterAll(() => {
-      runtime.setProofsEnabled(false);
-    });
-
     // Disabled until we implement a mechanism to enable/disable compiling tests
-    it.skip("should compile and prove a method execution", async () => {
+    it("should compile and prove a method execution", async () => {
       expect.assertions(3);
 
-      const executionContext = container.resolve(MethodExecutionContext);
+      runtime.zkProgrammable.appChain?.setProofsEnabled(true);
+
+      const executionContext = container.resolve(RuntimeMethodExecutionContext);
       const expectedStateTransitionsHash =
         "1439144406936083177718146178121957896974210157062549589517697792374542035761";
       const expectedStatus = true;
 
-      runtime.setProofsEnabled(true);
-      const precompiled = runtime.precompile();
-      precompiled.toPretty();
-
-      await runtime.compile();
+      await runtime.zkProgrammable.zkProgram.compile();
 
       balances.getTotalSupply();
 
       const { result } = executionContext.current();
-      const { prove } = result;
 
-      const proof = await prove?.();
+      const proof = await result.prove<Proof<undefined, MethodPublicOutput>>();
 
-      // eslint-disable-next-line jest/no-conditional-in-test
-      if (!runtime.program) {
-        throw new Error("Program compilation has failed");
-      }
+      const verified = await runtime.zkProgrammable.zkProgram.verify(proof);
 
-      // eslint-disable-next-line jest/no-conditional-in-test
-      if (!proof) {
-        throw new Error("Proof generation has failed");
-      }
-
-      const verified = await runtime.program.verify(proof);
+      runtime.zkProgrammable.appChain?.setProofsEnabled(false);
 
       expect(verified).toBe(true);
 
-      expect(proof.publicInput.stateTransitionsHash.toString()).toStrictEqual(
+      expect(proof.publicOutput.stateTransitionsHash.toString()).toStrictEqual(
         expectedStateTransitionsHash
       );
-      expect(proof.publicInput.status.toBoolean()).toBe(expectedStatus);
+      expect(proof.publicOutput.status.toBoolean()).toBe(expectedStatus);
     }, 180_000);
   });
 
@@ -126,7 +130,9 @@ describe("balances", () => {
       let stateTransitions: ProvableStateTransition[];
 
       beforeEach(() => {
-        const executionContext = container.resolve(MethodExecutionContext);
+        const executionContext = container.resolve(
+          RuntimeMethodExecutionContext
+        );
         balances.getTotalSupply();
 
         stateTransitions = executionContext
@@ -179,7 +185,9 @@ describe("balances", () => {
       });
 
       beforeEach(() => {
-        const executionContext = container.resolve(MethodExecutionContext);
+        const executionContext = container.resolve(
+          RuntimeMethodExecutionContext
+        );
         balances.getTotalSupply();
 
         stateTransitions = executionContext
@@ -227,7 +235,9 @@ describe("balances", () => {
       let stateTransitions: ProvableStateTransition[];
 
       beforeEach(() => {
-        const executionContext = container.resolve(MethodExecutionContext);
+        const executionContext = container.resolve(
+          RuntimeMethodExecutionContext
+        );
         balances.setTotalSupply();
 
         stateTransitions = executionContext
@@ -285,7 +295,9 @@ describe("balances", () => {
       const address = PrivateKey.random().toPublicKey();
 
       beforeEach(() => {
-        const executionContext = container.resolve(MethodExecutionContext);
+        const executionContext = container.resolve(
+          RuntimeMethodExecutionContext
+        );
         balances.getBalance(address);
 
         stateTransitions = executionContext

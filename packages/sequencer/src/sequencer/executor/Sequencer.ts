@@ -8,6 +8,14 @@ import {
 } from "@yab/common";
 import { Runtime, RuntimeModulesRecord } from "@yab/module";
 import { injectable } from "tsyringe";
+import {
+  Protocol,
+  ProtocolModulesRecord,
+} from "@yab/protocol/src/protocol/Protocol";
+import {
+  StateTransitionWitnessProvider,
+  StateTransitionWitnessProviderReference,
+} from "@yab/protocol";
 
 import { SequencerModule } from "../builder/SequencerModule";
 
@@ -37,15 +45,32 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     return this.container.resolve<Runtime<RuntimeModulesRecord>>("Runtime");
   }
 
+  public get protocol(): Protocol<ProtocolModulesRecord> {
+    return this.container.resolve<Protocol<ProtocolModulesRecord>>("Protocol");
+  }
+
   /**
    * Starts the sequencer by iterating over all provided
    * modules to start each
    */
   public async start() {
+    // Set default STWitnessProvider inside protocol
+    const witnessProviderReference = this.protocol.dependencyContainer.resolve(
+      StateTransitionWitnessProviderReference
+    );
+    const witnessProvider =
+      this.container.resolve<StateTransitionWitnessProvider>(
+        "StateTransitionWitnessProvider"
+      );
+    witnessProviderReference.setWitnessProvider(witnessProvider);
+
+    console.log("starting sequencer 2", this.definition.modules);
+
     const moduleClassNames = Object.values(this.definition.modules).map(
       (clazz) => clazz.name
     );
     log.info("Starting sequencer...", moduleClassNames);
+
     for (const moduleName in this.definition.modules) {
       const sequencerModule = this.resolve(moduleName);
 

@@ -5,7 +5,7 @@ import { Presets } from "@yab/common";
 import { State } from "../../src/state/State.js";
 import { state } from "../../src/state/decorator.js";
 import { StateMap } from "../../src/state/StateMap.js";
-import { RuntimeModule, method, runtimeModule } from "../../src";
+import { RuntimeModule, runtimeMethod, runtimeModule } from "../../src";
 
 import { Admin } from "./Admin.js";
 
@@ -32,19 +32,19 @@ export class Balances extends RuntimeModule<BalancesConfig> {
     super();
   }
 
-  @method()
+  @runtimeMethod()
   public getTotalSupply() {
     this.totalSupply.get();
   }
 
-  @method()
+  @runtimeMethod()
   public setTotalSupply() {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
     this.admin.isAdmin(PublicKey.empty());
   }
 
-  @method()
+  @runtimeMethod()
   public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
   }

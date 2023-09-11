@@ -4,14 +4,14 @@ import { Bool } from "snarkyjs";
 import { container } from "tsyringe";
 
 import { assert } from "./assert.js";
-import { MethodExecutionContext } from "./MethodExecutionContext.js";
+import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext.js";
 
 describe("assert", () => {
   const defaultStatusMessage = "something went wrong";
-  const executionContext = container.resolve(MethodExecutionContext);
+  const executionContext = container.resolve(RuntimeMethodExecutionContext);
 
   beforeEach(() => {
-    executionContext.beforeMethod("test");
+    executionContext.beforeMethod("testConstructor", "test");
   });
 
   afterEach(() => {
