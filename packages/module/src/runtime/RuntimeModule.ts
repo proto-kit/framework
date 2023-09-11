@@ -52,8 +52,6 @@ export class RuntimeModule<Config> extends ConfigurableModule<Config> {
 
   public name?: string;
 
-  public test?: number;
-
   public runtime?: Runtime<RuntimeModulesRecord>;
 
   public constructor() {
