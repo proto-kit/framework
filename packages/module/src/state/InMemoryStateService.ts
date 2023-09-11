@@ -1,9 +1,5 @@
 import { Field } from "snarkyjs";
-
-export interface StateService {
-  get: (key: Field) => Field[] | undefined;
-  set: (key: Field, value: Field[] | undefined) => void;
-}
+import { StateService } from "@proto-kit/protocol";
 
 /**
  * Naive implementation of a StateService for testing purposes

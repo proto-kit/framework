@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import {
   RuntimeModule,
-  StateMap,
   runtimeMethod,
   state,
   runtimeModule,
@@ -10,6 +9,7 @@ import { Field, Group, Poseidon, PublicKey, Token } from "snarkyjs";
 import { Balance, Balances, TokenId } from "./Balances";
 import assert from "assert";
 import { inject } from "tsyringe";
+import { StateMap } from "@proto-kit/protocol";
 
 export const errors = {
   poolExists: () => "Pool already exists",

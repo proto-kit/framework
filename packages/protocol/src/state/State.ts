@@ -1,24 +1,14 @@
-/* eslint-disable new-cap */
-
 import { Mixin } from "ts-mixer";
-import {
-  Bool,
-  Field,
-  Provable,
-  type FlexibleProvablePure,
-  Struct,
-} from "snarkyjs";
+import { Bool, Field, Provable, type FlexibleProvablePure } from "snarkyjs";
 import { container } from "tsyringe";
-import {
-  Option,
-  StateTransition,
-  type Path,
-  ToFieldable,
-} from "@proto-kit/protocol";
-
-import { PartialRuntime } from "../runtime/RuntimeModule.js";
-import { RuntimeMethodExecutionContext } from "../method/RuntimeMethodExecutionContext.js";
 import { dummyValue } from "@proto-kit/common";
+
+import { Path } from "../model/Path";
+import { Option } from "../model/Option";
+import { StateTransition } from "../model/StateTransition";
+
+import { StateServiceProvider } from "./StateServiceProvider";
+import { RuntimeMethodExecutionContext } from "./context/RuntimeMethodExecutionContext";
 
 export class WithPath {
   public path?: Field;
@@ -32,15 +22,15 @@ export class WithPath {
   }
 }
 
-export class WithRuntime {
-  public runtime?: PartialRuntime;
+export class WithStateServiceProvider {
+  public stateServiceProvider?: StateServiceProvider;
 
-  public hasRuntimeOrFail(): asserts this is {
-    runtime: PartialRuntime;
+  public hasStateServiceOrFail(): asserts this is {
+    stateServiceProvider: StateServiceProvider;
   } {
-    if (!this.runtime) {
+    if (!this.stateServiceProvider) {
       throw new Error(
-        "Could not find 'runtime', did you forget to add '@state' to your state property?"
+        "Could not find 'stateServiceProvider', did you forget to add '@state' to your state property?"
       );
     }
   }
@@ -49,19 +39,14 @@ export class WithRuntime {
 /**
  * Utilities for runtime module state, such as get/set
  */
-export class State<Value extends ToFieldable> extends Mixin(
-  WithPath,
-  WithRuntime
-) {
+export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
   /**
    * Creates a new state wrapper for the provided value type.
    *
    * @param valueType - Type of value to be stored (e.g. UInt64, Struct, ...)
    * @returns New state for the given value type.
    */
-  public static from<Value extends ToFieldable>(
-    valueType: FlexibleProvablePure<Value>
-  ) {
+  public static from<Value>(valueType: FlexibleProvablePure<Value>) {
     return new State<Value>(valueType);
   }
 
@@ -70,10 +55,10 @@ export class State<Value extends ToFieldable> extends Mixin(
   }
 
   private getState(): { value: Value; isSome: Bool } {
-    this.hasRuntimeOrFail();
+    this.hasStateServiceOrFail();
     this.hasPathOrFail();
 
-    const { path, runtime, valueType } = this;
+    const { path, stateServiceProvider, valueType } = this;
 
     const { stateTransitions } = container
       .resolve(RuntimeMethodExecutionContext)
@@ -96,7 +81,7 @@ export class State<Value extends ToFieldable> extends Mixin(
     }
 
     // If the value is still undefined, look it up in the stateService
-    const fields = runtime.stateService.get(path);
+    const fields = stateServiceProvider.stateService.get(path);
     if (fields) {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       value = valueType.fromFields(fields) as Value;
@@ -116,14 +101,10 @@ export class State<Value extends ToFieldable> extends Mixin(
    */
   private witnessState() {
     // get the value from storage, or return a dummy value instead
-    const value = Provable.witness(this.valueType, () => {
-      return this.getState().value;
-    });
+    const value = Provable.witness(this.valueType, () => this.getState().value);
 
     // check if the value exists in the storage or not
-    const isSome = Provable.witness(Bool, () => {
-      return this.getState().isSome;
-    });
+    const isSome = Provable.witness(Bool, () => this.getState().isSome);
 
     return Option.from(isSome, value, this.valueType);
   }

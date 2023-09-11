@@ -1,4 +1,4 @@
-import { Field, FlexibleProvablePure } from "snarkyjs";
+import { Field, FlexibleProvable, FlexibleProvablePure } from "snarkyjs";
 
 export function requireTrue(
   condition: boolean,

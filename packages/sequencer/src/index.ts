@@ -38,3 +38,4 @@ export * from "./protocol/production/BlockProducerModule";
 export * from "./protocol/production/BlockTaskFlowService";
 export * from "./protocol/production/TransactionTraceService";
 export * from "./storage/model/Block";
+export * from "./storage/repositories/BlockStorage";

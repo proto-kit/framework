@@ -10,6 +10,7 @@ import {
   StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
 import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
+import { Field } from "snarkyjs";
 
 import { Task } from "../../../worker/flow/Task";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
@@ -25,7 +26,6 @@ import {
 } from "./StateTransitionTaskParameters";
 import { PreFilledWitnessProvider } from "./providers/PreFilledWitnessProvider";
 import { CompileRegistry } from "./CompileRegistry";
-import { Field } from "snarkyjs";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -50,7 +50,9 @@ export class StateTransitionTask
   }
 
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
-    return new ProofTaskSerializer(this.stateTransitionProver.zkProgram.Proof);
+    return new ProofTaskSerializer(
+      this.stateTransitionProver.zkProgrammable.zkProgram.Proof
+    );
   }
 
   public async compute(
@@ -62,22 +64,26 @@ export class StateTransitionTask
     const previousProvider = witnessProviderReference.getWitnessProvider();
     witnessProviderReference.setWitnessProvider(witnessProvider);
 
-    const stBatch = input.batch.slice();
-    Array.from({
-      length: ProtocolConstants.stateTransitionProverBatchSize - stBatch.length,
-    }).forEach(() => {
-      stBatch.push(ProvableStateTransition.dummy());
-    });
+    const stBatch = input.stateTransitions.slice();
+    // Array.from({
+    //   length: ProtocolConstants.stateTransitionProverBatchSize - stBatch.length,
+    // }).forEach(() => {
+    //   stBatch.push({
+    //     ProvableStateTransition.dummy()
+    //   });
+    // });
 
     console.log("Task paths:");
-    console.log(stBatch.map(st => ProvableStateTransition.toJSON(st)))
+    console.log(
+      stBatch.map((st) => ProvableStateTransition.toJSON(st.transition))
+    );
     console.log(input.merkleWitnesses[0].calculateRoot(Field(0)).toString());
 
     console.log("STTask Input:", input.publicInput.stateRoot.toString());
 
     const output = this.stateTransitionProver.runBatch(
       input.publicInput,
-      StateTransitionProvableBatch.fromTransitions(stBatch)
+      StateTransitionProvableBatch.fromMappings(stBatch)
     );
     log.debug(
       "STTask output:",
@@ -97,7 +103,7 @@ export class StateTransitionTask
   public async prepare(): Promise<void> {
     await this.compileRegistry.compile(
       "StateTransitionProver",
-      this.stateTransitionProver.zkProgram
+      this.stateTransitionProver.zkProgrammable.zkProgram
     );
   }
 }
@@ -122,12 +128,14 @@ export class StateTransitionReductionTask
 
   public inputSerializer(): TaskSerializer<PairTuple<StateTransitionProof>> {
     return new PairProofTaskSerializer(
-      this.stateTransitionProver.zkProgram.Proof
+      this.stateTransitionProver.zkProgrammable.zkProgram.Proof
     );
   }
 
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
-    return new ProofTaskSerializer(this.stateTransitionProver.zkProgram.Proof);
+    return new ProofTaskSerializer(
+      this.stateTransitionProver.zkProgrammable.zkProgram.Proof
+    );
   }
 
   public async compute(
@@ -144,7 +152,7 @@ export class StateTransitionReductionTask
   public async prepare(): Promise<void> {
     await this.compileRegistry.compile(
       "StateTransitionProver",
-      this.stateTransitionProver.zkProgram
+      this.stateTransitionProver.zkProgrammable.zkProgram
     );
   }
 }

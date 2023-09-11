@@ -11,7 +11,16 @@ import {
 // TODO this is actually a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
-import { Path, VanillaProtocol } from "@proto-kit/protocol";
+import {
+  AccountState,
+  AccountStateModule,
+  BlockProver,
+  Path,
+  Protocol,
+  ProvableTransactionHook,
+  StateTransitionProver,
+  VanillaProtocol
+} from "@proto-kit/protocol";
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { log, range } from "@proto-kit/common";
 
@@ -40,6 +49,12 @@ describe("block production", () => {
     BlockTrigger: typeof ManualBlockTrigger;
   }>;
 
+  let protocol: Protocol<{
+    AccountStateModule: typeof AccountStateModule,
+    BlockProver: typeof BlockProver,
+    StateTransitionProver: typeof StateTransitionProver
+  }>
+
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
 
@@ -47,6 +62,8 @@ describe("block production", () => {
     // container.reset();
 
     log.setLevel("TRACE");
+
+    const stateService = new InMemoryStateService()
 
     runtime = Runtime.from({
       modules: {
@@ -57,7 +74,7 @@ describe("block production", () => {
         Balance: {},
       },
 
-      state: new InMemoryStateService(),
+      state: stateService,
     });
 
     sequencer = Sequencer.from({
@@ -82,10 +99,12 @@ describe("block production", () => {
       useValue: new LocalTaskQueue(0),
     });
 
+    protocol = VanillaProtocol.from({ AccountStateModule }, stateService);
+
     const app = AppChain.from({
       runtime,
       sequencer,
-      protocol: VanillaProtocol.create(),
+      protocol,
       modules: {},
     });
 
@@ -114,9 +133,14 @@ describe("block production", () => {
     }).sign(spec.privateKey);
   }
 
+  it("test", () => {
+    const module = new AccountStateModule()
+    console.log(module instanceof ProvableTransactionHook);
+  })
+
   // eslint-disable-next-line max-statements
-  it.skip("should produce a dummy block proof", async () => {
-    expect.assertions(14);
+  it.only("should produce a dummy block proof", async () => {
+    expect.assertions(16);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -154,13 +178,25 @@ describe("block production", () => {
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
 
+    // Check that nonce has been set
+    const accountModule = protocol.resolve("AccountStateModule");
+    const accountStatePath = Path.fromKey(
+      accountModule.accountState.path!,
+      accountModule.accountState.keyType,
+      publicKey
+    );
+    const newAccountState = await stateService.getAsync(accountStatePath);
+
+    expect(newAccountState).toBeDefined();
+    expect(AccountState.fromFields(newAccountState!).nonce.toBigInt()).toBe(1n);
+
     // Second tx
     mempool.add(
       createTransaction({
         method: ["Balance", "addBalanceToSelf"],
         privateKey,
         args: [UInt64.from(100), UInt64.from(2)],
-        nonce: 0,
+        nonce: 1,
       })
     );
 
@@ -182,7 +218,7 @@ describe("block production", () => {
   }, 60_000);
 
   // TODO Fix the error that we get when execution this after the first test
-  it.skip("should reject tx and not apply the state", async () => {
+  it("should reject tx and not apply the state", async () => {
     expect.assertions(3);
 
     const privateKey = PrivateKey.random();
@@ -219,20 +255,20 @@ describe("block production", () => {
 
   const numberTxs = 3;
 
-  it.skip("should produce block with multiple transaction", async () => {
+  it("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(5 + 2 * numberTxs);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
 
-    range(0, numberTxs).forEach(() => {
+    range(0, numberTxs).forEach((index) => {
       mempool.add(
         createTransaction({
           method: ["Balance", "addBalanceToSelf"],
           privateKey,
           args: [UInt64.from(100), UInt64.from(1)],
-          nonce: 0,
+          nonce: index,
         })
       );
     });

@@ -1,6 +1,6 @@
 import { Bool } from "snarkyjs";
 
-import { InMemoryStateService, Runtime } from "../src";
+import { InMemoryStateService, MethodIdResolver, Runtime } from "../src";
 
 import { Balances } from "./modules/Balances";
 
@@ -32,7 +32,7 @@ describe("runtime", () => {
     const moduleName = "Balances";
     const methodName = "getTotalSupply";
 
-    const methodId = runtime.methodIdResolver.getMethodId(
+    const methodId = runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver").getMethodId(
       moduleName,
       methodName
     );

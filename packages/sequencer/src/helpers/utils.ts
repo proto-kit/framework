@@ -11,6 +11,14 @@ export function distinct<Value>(
   return array.indexOf(value) === index;
 }
 
+export function distinctByString<Value extends { toString: () => string }> (
+  value: Value,
+  index: number,
+  array: Value[]
+): boolean {
+  return array.findIndex((it) => it.toString() === value.toString()) === index;
+}
+
 type JsonProof = ReturnType<typeof Proof.prototype.toJSON>;
 
 export class ProofTaskSerializer<PublicInputType, PublicOutputType>

@@ -14,7 +14,7 @@ export interface QueryTransportModule {
 }
 
 @injectable()
-export class InMemoryQueryTransportModule
+export class StateServiceQueryModule
   extends AppChainModule<unknown>
   implements QueryTransportModule
 {

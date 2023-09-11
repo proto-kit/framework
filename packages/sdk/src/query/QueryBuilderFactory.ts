@@ -1,35 +1,27 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/consistent-type-assertions */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable guard-for-in */
-/* eslint-disable @shopify/no-fully-static-classes */
-/* eslint-disable import/no-unused-modules */
-import { StringKeyOf } from "@proto-kit/common";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable putout/putout */
+import { TypedClass } from "@proto-kit/common";
 import {
   Runtime,
+  RuntimeModule,
   RuntimeModulesRecord,
+} from "@proto-kit/module";
+import {
+  Protocol,
+  ProtocolModule,
+  ProtocolModulesRecord,
   State,
   StateMap,
-} from "@proto-kit/module";
-import { QueryTransportModule } from "./InMemoryQueryTransportModule";
+} from "@proto-kit/protocol";
 
-type StateMapKey<Type> = Type extends StateMap<infer Key, any> ? Key : Type;
-type StateMapValue<Type> = Type extends StateMap<any, infer Value>
-  ? Value
-  : Type;
-type StateValue<Type> = Type extends State<infer Value> ? Value : Type;
+import type { QueryTransportModule } from "./StateServiceQueryModule";
 
-export type PickByType<T, Value> = {
-  [P in keyof T as T[P] extends Value | undefined ? P : never]: T[P];
-};
-
-export type Override<T, TypeToReplace, TypeToReplaceWith> = {
-  [K in keyof T]: T[K] extends Record<string, unknown>
-    ? Override<T[K], TypeToReplace, TypeToReplaceWith>
-    : T[K] extends TypeToReplace
-    ? TypeToReplaceWith
-    : T[K];
+export type PickByType<Type, Value> = {
+  [Key in keyof Type as Type[Key] extends Value | undefined
+    ? Key
+    : never]: Type[Key];
 };
 
 export interface QueryGetterState<Value> {
@@ -40,98 +32,130 @@ export interface QueryGetterStateMap<Key, Value> {
   get: (key: Key) => Promise<Value | undefined>;
 }
 
-export type Query<RuntimeModules extends RuntimeModulesRecord> = {
-  [K in StringKeyOf<RuntimeModules>]: {
-    [L in keyof PickByType<
-      InstanceType<RuntimeModules[K]>,
-      State<any>
-    >]: QueryGetterState<
-      StateValue<PickByType<InstanceType<RuntimeModules[K]>, State<any>>[L]>
-    >;
-  } & {
-    [L in keyof PickByType<
-      InstanceType<RuntimeModules[K]>,
-      StateMap<any, any>
-    >]: QueryGetterStateMap<
-      StateMapKey<
-        PickByType<InstanceType<RuntimeModules[K]>, StateMap<any, any>>[L]
-      >,
-      StateMapValue<
-        PickByType<InstanceType<RuntimeModules[K]>, StateMap<any, any>>[L]
-      >
-    >;
-  };
+export type PickStateProperties<Type> = PickByType<Type, State<any>>;
+
+export type PickStateMapProperties<Type> = PickByType<Type, StateMap<any, any>>;
+
+export type MapStateToQuery<StateProperty> = StateProperty extends State<
+  infer Value
+>
+  ? QueryGetterState<Value>
+  : never;
+
+export type MapStateMapToQuery<StateProperty> = StateProperty extends StateMap<
+  infer Key,
+  infer Value
+>
+  ? QueryGetterStateMap<Key, Value>
+  : never;
+
+export type ModuleQuery<Module> = {
+  [Key in keyof PickStateMapProperties<Module>]: MapStateMapToQuery<
+    PickStateMapProperties<Module>[Key]
+  >;
+} & {
+  [Key in keyof PickStateProperties<Module>]: MapStateToQuery<
+    PickStateProperties<Module>[Key]
+  >;
 };
 
-export class QueryBuilderFactory {
-  public static isStateMap(
-    property: any
-  ): asserts property is StateMap<any, any> {
-    if ((property as any)?.constructor?.name !== StateMap.name) {
-      throw new Error("Property is not a StateMap");
-    }
-  }
+export type Query<
+  ModuleType,
+  RuntimeModules extends Record<string, TypedClass<ModuleType>>
+> = {
+  [Key in keyof RuntimeModules]: ModuleQuery<InstanceType<RuntimeModules[Key]>>;
+};
 
-  public static isState(property: any): asserts property is State<any> {
-    if ((property as any)?.constructor?.name !== State.name) {
-      throw new Error("Property is not a StateMap");
-    }
-  }
+export const QueryBuilderFactory = {
+  // eslint-disable-next-line sonarjs/cognitive-complexity
+  fillQuery<Module>(
+    runtimeModule: Module,
+    queryTransportModule: QueryTransportModule
+  ): ModuleQuery<Module> {
+    let query = {} as ModuleQuery<Module>;
 
-  public static fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
+    for (const propertyName in runtimeModule) {
+      const property = runtimeModule[propertyName];
+      if (property instanceof StateMap) {
+        query = {
+          ...query,
+
+          [propertyName]: {
+            get: async (key: any) => {
+              const path = property.getPath(key);
+              const fields = await queryTransportModule.get(path);
+              return fields ? property.valueType.fromFields(fields) : undefined;
+            },
+          },
+        };
+      }
+
+      if (property instanceof State) {
+        query = {
+          ...query,
+
+          [propertyName]: {
+            get: async () => {
+              // eslint-disable-next-line max-len
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const path = property.path!;
+              const fields = await queryTransportModule.get(path);
+
+              return fields ? property.valueType.fromFields(fields) : undefined;
+            },
+          },
+        };
+      }
+    }
+    return query;
+  },
+
+  fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
     runtime: Runtime<RuntimeModules>,
     queryTransportModule: QueryTransportModule
-  ) {
-    return runtime.moduleNames.reduce<Query<typeof runtime.definition.modules>>(
-      (query, runtimeModuleName) => {
-        runtime.isValidModuleName(
-          runtime.definition.modules,
-          runtimeModuleName
+  ): Query<RuntimeModule<unknown>, RuntimeModules> {
+    const { modules } = runtime.definition;
+
+    return Object.keys(modules).reduce<
+      Query<RuntimeModule<unknown>, RuntimeModules>
+    >((query, runtimeModuleName: keyof RuntimeModules) => {
+      runtime.isValidModuleName(modules, runtimeModuleName);
+
+      const runtimeModule = runtime.resolve(runtimeModuleName);
+
+      query[runtimeModuleName] = QueryBuilderFactory.fillQuery(
+        runtimeModule,
+        queryTransportModule
+      );
+
+      return query;
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line @typescript-eslint/prefer-reduce-type-parameter,@typescript-eslint/consistent-type-assertions
+    }, {} as any);
+  },
+
+  fromProtocol<ProtocolModules extends ProtocolModulesRecord>(
+    runtime: Protocol<ProtocolModules>,
+    queryTransportModule: QueryTransportModule
+  ): Query<ProtocolModule, ProtocolModules> {
+    const { modules } = runtime.definition;
+
+    return Object.keys(modules).reduce<Query<ProtocolModule, ProtocolModules>>(
+      (query, protocolModuleName: keyof ProtocolModules) => {
+        runtime.isValidModuleName(modules, protocolModuleName);
+
+        const protocolModule = runtime.resolve(protocolModuleName);
+
+        query[protocolModuleName] = QueryBuilderFactory.fillQuery(
+          protocolModule,
+          queryTransportModule
         );
-        const runtimeModule = runtime.resolve(runtimeModuleName);
-
-        for (const propertyName in runtimeModule) {
-          const property = runtimeModule[propertyName];
-
-          if ((property as any)?.constructor.name === StateMap.name) {
-            QueryBuilderFactory.isStateMap(property);
-            (query as any)[runtimeModuleName as any] = {
-              ...(query as any)[runtimeModuleName as any],
-
-              [propertyName]: {
-                get: async (key: any) => {
-                  const path = property.getPath(key);
-                  const fields = await queryTransportModule.get(path);
-                  return fields
-                    ? property.valueType.fromFields(fields)
-                    : undefined;
-                },
-              },
-            };
-          }
-
-          if ((property as any)?.constructor.name === State.name) {
-            QueryBuilderFactory.isState(property);
-            (query as any)[runtimeModuleName as any] = {
-              ...(query as any)[runtimeModuleName as any],
-
-              [propertyName]: {
-                get: async () => {
-                  const path = property.path!;
-                  const fields = await queryTransportModule.get(path);
-
-                  return fields
-                    ? property.valueType.fromFields(fields)
-                    : undefined;
-                },
-              },
-            };
-          }
-        }
 
         return query;
       },
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line @typescript-eslint/prefer-reduce-type-parameter,@typescript-eslint/consistent-type-assertions
       {} as any
     );
-  }
-}
+  },
+};

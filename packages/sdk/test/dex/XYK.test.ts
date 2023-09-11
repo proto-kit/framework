@@ -1,5 +1,4 @@
-import { RuntimeModulesRecord } from "@proto-kit/module";
-import { AppChain, Query, TestingAppChain } from "@proto-kit/sdk";
+import { TestingAppChain } from "../../src/index";
 import { PrivateKey } from "snarkyjs";
 import { Balance, Balances, BalancesKey, TokenId } from "./Balances";
 import { XYK } from "./XYK";
@@ -61,14 +60,14 @@ describe("xyk", () => {
 
     await chain.produceBlock();
 
-    const balanceA = await chain.query.Balances.balances.get(
+    const balanceA = await chain.query.runtime.Balances.balances.get(
       new BalancesKey({
         tokenId: tokenAId,
         address: alice,
       })
     );
 
-    const balanceB = await chain.query.Balances.balances.get(
+    const balanceB = await chain.query.runtime.Balances.balances.get(
       new BalancesKey({
         tokenId: tokenBId,
         address: alice,

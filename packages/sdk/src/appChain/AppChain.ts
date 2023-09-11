@@ -8,11 +8,12 @@ import {
 } from "@proto-kit/common";
 import {
   Runtime,
-  RuntimeMethodExecutionContext,
+  RuntimeModule,
   RuntimeModulesRecord,
   MethodIdResolver,
 } from "@proto-kit/module";
 import {
+  BlockStorage,
   Sequencer,
   SequencerModulesRecord,
   UnsignedTransaction,
@@ -22,7 +23,9 @@ import {
   Protocol,
   ProtocolModulesRecord,
   RuntimeTransaction,
+  RuntimeMethodExecutionContext,
   StateTransitionWitnessProviderReference,
+  ProtocolModule,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { Field, PublicKey, UInt64 } from "snarkyjs";
@@ -30,8 +33,14 @@ import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { QueryBuilderFactory } from "../query/QueryBuilderFactory";
+import { QueryBuilderFactory, Query } from "../query/QueryBuilderFactory";
 import { InMemoryQueryTransportModule } from "./../query/InMemoryQueryTransportModule";
+import {
+  QueryTransportModule,
+  StateServiceQueryModule,
+} from "../query/StateServiceQueryModule";
+import { MethodIdResolver } from "@proto-kit/module/dist/runtime/MethodIdResolver";
+import { NetworkStateQuery } from "../query/NetworkStateQuery";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -94,16 +103,33 @@ export class AppChain<
     return new AppChain(definition);
   }
 
-  public get query() {
+  public get query(): {
+    runtime: Query<RuntimeModule<unknown>, RuntimeModules>;
+    protocol: Query<ProtocolModule, ProtocolModules>;
+    network: NetworkStateQuery;
+  } {
     const queryTransportModule = this.resolveOrFail(
       "QueryTransportModule",
-      InMemoryQueryTransportModule
+      StateServiceQueryModule
     );
 
-    return QueryBuilderFactory.fromRuntime(
-      this.definition.runtime,
-      queryTransportModule
+    const network = new NetworkStateQuery(
+      this.sequencer.dependencyContainer.resolve<BlockStorage>("BlockStorage")
     );
+
+    return {
+      runtime: QueryBuilderFactory.fromRuntime(
+        this.definition.runtime,
+        queryTransportModule
+      ),
+
+      protocol: QueryBuilderFactory.fromProtocol(
+        this.definition.protocol,
+        queryTransportModule
+      ),
+
+      network,
+    };
   }
 
   public constructor(
@@ -141,7 +167,7 @@ export class AppChain<
       ProtocolModules,
       AppChainModules
     >
-  ) {
+  ): void {
     this.runtime.configure(config.runtime);
     this.sequencer.configure(config.sequencer);
     this.protocol.configure(config.protocol);

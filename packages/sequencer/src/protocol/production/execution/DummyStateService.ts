@@ -1,6 +1,5 @@
-import { StateService } from "@proto-kit/module";
 import { Field } from "snarkyjs";
-import { noop } from "@proto-kit/protocol";
+import { noop, StateService } from "@proto-kit/protocol";
 
 export class DummyStateService implements StateService {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -1,15 +1,9 @@
 import { Bool } from "snarkyjs";
 import { singleton } from "tsyringe";
-import type {
-  StateTransition,
-  NetworkState,
-  ToFieldable,
-} from "@proto-kit/protocol";
-import {
-  ProvableMethodExecutionContext,
-  ProvableMethodExecutionResult,
-} from "@proto-kit/common";
-import { RuntimeTransaction } from "@proto-kit/protocol/src/model/transaction/RuntimeTransaction";
+import { ProvableMethodExecutionContext, ProvableMethodExecutionResult } from "@proto-kit/common";
+import { StateTransition } from "../../model/StateTransition";
+import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
+import { NetworkState } from "../../model/network/NetworkState";
 
 const errors = {
   setupNotCalled: () =>
@@ -48,6 +42,8 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
 
   public override result = new RuntimeProvableMethodExecutionResult();
 
+  private isSimulated: boolean = false;
+
   private assertSetupCalled(): asserts this is {
     input: RuntimeMethodExecutionData;
   } {
@@ -60,9 +56,7 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    * Adds an in-method generated state transition to the current context
    * @param stateTransition - State transition to add to the context
    */
-  public addStateTransition<Value extends ToFieldable>(
-    stateTransition: StateTransition<Value>
-  ) {
+  public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
     this.assertSetupCalled();
     this.result.stateTransitions.push(stateTransition);
   }
@@ -72,6 +66,9 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setStatusMessage(message?: string) {
     this.assertSetupCalled();
+    if (this.isSimulated) {
+      return;
+    }
     this.result.statusMessage ??= message;
   }
 
@@ -80,6 +77,9 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setStatus(status: Bool) {
     this.assertSetupCalled();
+    if (this.isSimulated) {
+      return;
+    }
     this.result.status = status;
   }
 
@@ -88,6 +88,10 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setup(input: RuntimeMethodExecutionData) {
     this.input = input;
+  }
+
+  public setSimulated(simulated: boolean) {
+    this.isSimulated = simulated;
   }
 
   /**
@@ -99,8 +103,11 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
 
   public afterMethod() {
     super.afterMethod();
-    this.lastInput = this.input;
-    this.input = undefined;
+    if (this.isFinished) {
+      this.lastInput = this.input;
+      this.input = undefined;
+      this.isSimulated = false;
+    }
   }
 
   /**

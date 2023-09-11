@@ -6,36 +6,27 @@ import {
   StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
-import { DependencyContainer } from "tsyringe";
+import { DependencyContainer, Lifecycle } from "tsyringe";
 
-import {
-  BlockProvable,
-  BlockProverPublicInput,
-  BlockProverPublicOutput,
-} from "../prover/block/BlockProvable";
+import { BlockProvable } from "../prover/block/BlockProvable";
 import { StateTransitionProver } from "../prover/statetransition/StateTransitionProver";
-import {
-  StateTransitionProvable,
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput,
-} from "../prover/statetransition/StateTransitionProvable";
+import { StateTransitionProvable } from "../prover/statetransition/StateTransitionProvable";
 import { BlockProver } from "../prover/block/BlockProver";
+import { StateServiceProvider } from "../state/StateServiceProvider";
+import { StateService } from "../state/StateService";
 
 import { ProtocolModule } from "./ProtocolModule";
+import { ProvableTransactionHook } from "./ProvableTransactionHook";
+import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
 
 export type GenericProtocolModuleRecord = ModulesRecord<
-  TypedClass<ProtocolModule<any, any>>
+  TypedClass<ProtocolModule>
 >;
 
-interface BlockProverType
-  extends ProtocolModule<BlockProverPublicInput, BlockProverPublicOutput>,
-    BlockProvable {}
+interface BlockProverType extends ProtocolModule, BlockProvable {}
 
 interface StateTransitionProverType
-  extends ProtocolModule<
-      StateTransitionProverPublicInput,
-      StateTransitionProverPublicOutput
-    >,
+  extends ProtocolModule,
     StateTransitionProvable {}
 
 export interface ProtocolCustomModulesRecord {
@@ -49,6 +40,11 @@ export interface ProtocolModulesRecord
 
 export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   modules: Modules;
+
+  /**
+   * @deprecated
+   */
+  state?: StateService;
   // config: ModulesConfig<Modules>
 }
 
@@ -79,12 +75,67 @@ export class Protocol<
     return protocol;
   }
 
+  public definition: ProtocolDefinition<Modules>;
+
+  private readonly stateServiceProviderInstance = new StateServiceProvider(
+    // eslint-disable-next-line etc/no-deprecated
+    this.definition.state
+  );
+
+  public constructor(definition: ProtocolDefinition<Modules>) {
+    super(definition);
+    this.definition = definition;
+
+    // Register the BlockModules seperately since we need to
+    // inject them differently later
+    let atLeastOneTransactionHookRegistered = false;
+    Object.entries(definition.modules).forEach(([key, value]) => {
+      if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
+        this.container.register(
+          "ProvableTransactionHook",
+          { useToken: key },
+          { lifecycle: Lifecycle.ContainerScoped }
+        );
+        atLeastOneTransactionHookRegistered = true;
+      }
+    });
+
+    // We need this so that tsyringe doesn't throw when no hooks are registered
+    if (!atLeastOneTransactionHookRegistered) {
+      this.container.register(
+        "ProvableTransactionHook",
+        { useClass: NoopTransactionHook },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
+    }
+    // this.container.afterResolution<ProvableTransactionHook>("ProvableTransactionHook", (token, result) => {
+    //   if ()
+    // })
+  }
+
+  public get stateService(): StateService {
+    return this.stateServiceProviderInstance.stateService;
+  }
+
+  public get stateServiceProvider(): StateServiceProvider {
+    return this.stateServiceProviderInstance;
+  }
+
   public decorateModule(
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
     log.debug(`Decorated ${moduleName}`);
     containedModule.protocol = this;
+
+    log.debug(
+      "Is instanceof:",
+      containedModule instanceof ProvableTransactionHook
+    );
+    if (containedModule instanceof ProvableTransactionHook) {
+      console.log(`Setting name to ${moduleName}`);
+      containedModule.name = moduleName;
+    }
 
     super.decorateModule(moduleName, containedModule);
   }
@@ -115,15 +166,26 @@ export class Protocol<
 }
 
 export const VanillaProtocol = {
-  create(): Protocol<{
-    StateTransitionProver: typeof StateTransitionProver;
-    BlockProver: typeof BlockProver;
-  }> {
+  create(stateService?: StateService) {
+    return VanillaProtocol.from({}, stateService);
+  },
+
+  from<AdditonalModules extends GenericProtocolModuleRecord>(
+    additionalModules: AdditonalModules,
+    stateService?: StateService
+  ): Protocol<
+    AdditonalModules & {
+      StateTransitionProver: typeof StateTransitionProver;
+      BlockProver: typeof BlockProver;
+    }
+  > {
     return Protocol.from({
       modules: {
         StateTransitionProver,
         BlockProver,
+        ...additionalModules,
       },
+      state: stateService,
     });
   },
 };

@@ -21,8 +21,7 @@
     "@proto-kit/protocol": "*",
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
-    "reflect-metadata": "^0.1.13",
-    "ts-mixer": "^6.0.3"
+    "reflect-metadata": "^0.1.13"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",

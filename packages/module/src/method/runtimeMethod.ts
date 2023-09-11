@@ -5,12 +5,11 @@ import {
   DefaultProvableHashList,
   ProvableStateTransition,
   MethodPublicOutput,
+  RuntimeMethodExecutionContext
 } from "@proto-kit/protocol";
 import { DecoratedMethod, toProver, ZkProgrammable } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
-
-import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext.js";
 
 const errors = {
   runtimeNotProvided: (name: string) =>

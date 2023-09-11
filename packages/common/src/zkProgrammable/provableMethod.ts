@@ -2,7 +2,7 @@ import { FlexibleProvable } from "snarkyjs";
 import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
-import type { ZkProgrammable } from "./ZkProgrammable";
+import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
 
 // eslint-disable-next-line etc/prefer-interface
 export type DecoratedMethod = (...args: unknown[]) => unknown;
@@ -58,8 +58,10 @@ export function provableMethod(
     ProvableMethodExecutionContext
   )
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <Target extends ZkProgrammable<any, any>>(
+  return <
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Target extends WithZkProgrammable<any, any> | ZkProgrammable<any, any>
+  >(
     target: Target,
     methodName: string,
     descriptor: PropertyDescriptor

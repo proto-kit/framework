@@ -6,16 +6,19 @@ import {
   RuntimeModule,
   runtimeModule,
   state,
-  StateMap,
-  State,
   assert,
-  RuntimeMethodExecutionContext,
 } from "@proto-kit/module";
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
 import { container, inject } from "tsyringe";
-import { exec } from "child_process";
 import { log } from "@proto-kit/common";
 import { randomUUID } from "crypto";
+import {
+  MapStateMapToQuery, MapStateToQuery,
+  ModuleQuery,
+  PickStateMapProperties,
+  PickStateProperties
+} from "../../src";
+import { State, StateMap } from "@proto-kit/protocol";
 
 log.setLevel("ERROR");
 
@@ -151,8 +154,8 @@ describe("testing app chain", () => {
     /**
      * Observe new state after the block has been produced
      */
-    const balance = await appChain.query.Balances.balances.get(sender);
-    const balanceBob = await appChain.query.Balances.balances.get(bob);
+    const balance = await appChain.query.runtime.Balances.balances.get(sender);
+    const balanceBob = await appChain.query.runtime.Balances.balances.get(bob);
 
     Provable.log("balances", {
       balance,

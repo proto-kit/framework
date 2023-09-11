@@ -1,18 +1,19 @@
-import { Path, State } from "@proto-kit/protocol";
-
-import type { RuntimeModule } from "../runtime/RuntimeModule.js";
+import { State } from "../State";
+import { ToFieldable } from "../../model/Option";
+import { Path } from "../../model/Path";
+import { TransitioningProtocolModule } from "../../protocol/TransitioningProtocolModule";
 
 const errors = {
   missingName: (className: string) =>
     new Error(
       `Unable to provide a unique identifier for state, ${className} is missing a name. 
-      Did you forget to extend your runtime module with 'extends RuntimeModule'?`
+      Did you forget to extend your block module with 'extends ...Hook'?`
     ),
 
-  missingRuntime: (className: string) =>
+  missingProtocol: (className: string) =>
     new Error(
-      `Unable to provide 'runtime' for state, ${className} is missing a name. 
-      Did you forget to extend your runtime module with 'extends RuntimeModule'?`
+      `Unable to provide 'procotol' for state, ${className} is missing a name. 
+      Did you forget to extend your block module with 'extends ...Hook'?`
     ),
 };
 
@@ -20,9 +21,9 @@ const errors = {
  * Decorates a runtime module property as state, passing down some
  * underlying values to improve developer experience.
  */
-export function state() {
-  return <TargetRuntimeModule extends RuntimeModule<unknown>>(
-    target: TargetRuntimeModule,
+export function protocolState() {
+  return <TargetTransitioningModule extends TransitioningProtocolModule>(
+    target: TargetTransitioningModule,
     propertyKey: string
   ) => {
     // eslint-disable-next-line @typescript-eslint/init-declarations
@@ -34,23 +35,22 @@ export function state() {
       get: function get() {
         // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const self = this as TargetRuntimeModule;
+        const self = this as TargetTransitioningModule;
 
         if (self.name === undefined) {
           throw errors.missingName(self.constructor.name);
         }
 
-        if (!self.runtime) {
-          throw errors.missingRuntime(self.constructor.name);
+        if (!self.protocol) {
+          throw errors.missingProtocol(self.constructor.name);
         }
 
+        // eslint-disable-next-line no-warning-comments
+        // TODO Add Prefix?
         const path = Path.fromProperty(self.name, propertyKey);
         if (value) {
           value.path = path;
-          // eslint-disable-next-line no-warning-comments
-          // TODO: why is this complaining about `any`?
-
-          value.stateServiceProvider = self.runtime.stateServiceProvider;
+          value.stateServiceProvider = self.protocol.stateServiceProvider;
         }
         return value;
       },

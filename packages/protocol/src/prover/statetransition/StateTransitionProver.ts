@@ -1,6 +1,12 @@
+/* eslint-disable max-lines */
 import { Experimental, Field, Provable, SelfProof } from "snarkyjs";
 import { injectable } from "tsyringe";
-import { PlainZkProgram, provableMethod } from "@proto-kit/common";
+import {
+  AreProofsEnabled,
+  PlainZkProgram,
+  provableMethod,
+  ZkProgrammable,
+} from "@proto-kit/common";
 
 import {
   MerkleTreeUtils,
@@ -11,7 +17,10 @@ import {
   ProvableHashList,
 } from "../../utils/ProvableHashList";
 import { ProvableStateTransition } from "../../model/StateTransition";
-import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
+import {
+  ProvableStateTransitionType,
+  StateTransitionProvableBatch,
+} from "../../model/StateTransitionProvableBatch";
 import { constants } from "../../Constants";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 
@@ -30,6 +39,9 @@ const errors = {
   stateTransitionsHashNotMatching: (step: string) =>
     `State transitions hash not matching ${step}`,
 
+  protocolTransitionsHashNotMatching: (step: string) =>
+    `Protocol transitions hash not matching ${step}`,
+
   merkleWitnessNotCorrect: (index: number) =>
     `MerkleWitness not valid for StateTransition (${index})`,
 
@@ -44,6 +56,7 @@ const errors = {
 interface StateTransitionProverExecutionState {
   stateRoot: Field;
   stateTransitionList: ProvableHashList<ProvableStateTransition>;
+  protocolTransitionList: ProvableHashList<ProvableStateTransition>;
 }
 
 const StateTransitionSelfProofClass = SelfProof<
@@ -55,19 +68,20 @@ const StateTransitionSelfProofClass = SelfProof<
  * StateTransitionProver is the prover that proves the application of some state
  * transitions and checks and updates their merkle-tree entries
  */
-@injectable()
-export class StateTransitionProver
-  extends ProtocolModule<
-    StateTransitionProverPublicInput,
-    StateTransitionProverPublicOutput
-  >
-  implements StateTransitionProvable
-{
+export class StateTransitionProverProgrammable extends ZkProgrammable<
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput
+> {
   public constructor(
-    // Injected
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    private readonly stateTransitionProver: StateTransitionProver,
     public readonly witnessProviderReference: StateTransitionWitnessProviderReference
   ) {
     super();
+  }
+
+  public get appChain(): AreProofsEnabled | undefined {
+    return this.stateTransitionProver.appChain;
   }
 
   public zkProgramFactory(): PlainZkProgram<
@@ -141,6 +155,7 @@ export class StateTransitionProver
   public applyTransitions(
     stateRoot: Field,
     stateTransitionCommitmentFrom: Field,
+    protocolTransitionCommitmentFrom: Field,
     transitionBatch: StateTransitionProvableBatch
   ): StateTransitionProverExecutionState {
     const state: StateTransitionProverExecutionState = {
@@ -150,15 +165,21 @@ export class StateTransitionProver
         ProvableStateTransition,
         stateTransitionCommitmentFrom
       ),
+
+      protocolTransitionList: new DefaultProvableHashList(
+        ProvableStateTransition,
+        protocolTransitionCommitmentFrom
+      ),
     };
 
     const transitions = transitionBatch.batch;
+    const types = transitionBatch.transitionTypes;
     for (
       let index = 0;
       index < constants.stateTransitionProverBatchSize;
       index++
     ) {
-      this.applyTransition(state, transitions[index], index);
+      this.applyTransition(state, transitions[index], types[index], index);
     }
 
     return state;
@@ -171,6 +192,7 @@ export class StateTransitionProver
   public applyTransition(
     state: StateTransitionProverExecutionState,
     transition: ProvableStateTransition,
+    type: ProvableStateTransitionType,
     index = 0
   ) {
     const treeWitness = Provable.witness(RollupMerkleWitness, () =>
@@ -200,9 +222,15 @@ export class StateTransitionProver
       state.stateRoot
     );
 
+    const isNotDummy = transition.path.equals(Field(0)).not();
+
     state.stateTransitionList.pushIf(
       transition,
-      transition.path.equals(Field(0)).not()
+      isNotDummy.and(type.isNormal())
+    );
+    state.protocolTransitionList.pushIf(
+      transition,
+      isNotDummy.and(type.isProtocol())
     );
   }
 
@@ -217,12 +245,14 @@ export class StateTransitionProver
     const result = this.applyTransitions(
       publicInput.stateRoot,
       publicInput.stateTransitionsHash,
+      publicInput.protocolTransitionsHash,
       batch
     );
 
     return new StateTransitionProverPublicOutput({
       stateRoot: result.stateRoot,
       stateTransitionsHash: result.stateTransitionList.commitment,
+      protocolTransitionsHash: result.protocolTransitionList.commitment,
     });
   }
 
@@ -255,9 +285,56 @@ export class StateTransitionProver
       errors.stateTransitionsHashNotMatching("proof1.to -> proof2.from")
     );
 
+    // Check Protocol ST list
+    publicInput.protocolTransitionsHash.assertEquals(
+      proof1.publicInput.protocolTransitionsHash,
+      errors.protocolTransitionsHashNotMatching(
+        "publicInput.from -> proof1.from"
+      )
+    );
+    proof1.publicOutput.protocolTransitionsHash.assertEquals(
+      proof2.publicInput.protocolTransitionsHash,
+      errors.protocolTransitionsHashNotMatching("proof1.to -> proof2.from")
+    );
+
     return new StateTransitionProverPublicInput({
       stateRoot: proof2.publicOutput.stateRoot,
       stateTransitionsHash: proof2.publicOutput.stateTransitionsHash,
+      protocolTransitionsHash: proof2.publicOutput.protocolTransitionsHash,
     });
+  }
+}
+
+@injectable()
+export class StateTransitionProver
+  extends ProtocolModule
+  implements StateTransitionProvable
+{
+  public readonly zkProgrammable: StateTransitionProverProgrammable;
+
+  public constructor(
+    // Injected
+    public readonly witnessProviderReference: StateTransitionWitnessProviderReference
+  ) {
+    super();
+    this.zkProgrammable = new StateTransitionProverProgrammable(
+      this,
+      witnessProviderReference
+    );
+  }
+
+  public runBatch(
+    publicInput: StateTransitionProverPublicInput,
+    batch: StateTransitionProvableBatch
+  ): StateTransitionProverPublicOutput {
+    return this.zkProgrammable.runBatch(publicInput, batch);
+  }
+
+  public merge(
+    publicInput: StateTransitionProverPublicInput,
+    proof1: StateTransitionProof,
+    proof2: StateTransitionProof
+  ): StateTransitionProverPublicOutput {
+    return this.zkProgrammable.merge(publicInput, proof1, proof2);
   }
 }

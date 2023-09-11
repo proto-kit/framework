@@ -1,7 +1,7 @@
-import { dummyValue } from "@proto-kit/common";
 import {
   Bool,
   Field,
+  FlexibleProvable,
   type FlexibleProvablePure,
   Poseidon,
   Provable,
@@ -25,7 +25,7 @@ export interface ToFieldable {
 /**
  * Option facilitating in-circuit values that may or may not exist.
  */
-export class Option<Value extends ToFieldable> {
+export class Option<Value> {
   /**
    * Creates a new Option from the provided parameters
    *
@@ -34,7 +34,7 @@ export class Option<Value extends ToFieldable> {
    * @param valueType
    * @returns New option from the provided parameters.
    */
-  public static from<Value extends ToFieldable>(
+  public static from<Value>(
     isSome: Bool,
     value: Value,
     valueType: FlexibleProvablePure<Value>
@@ -49,7 +49,7 @@ export class Option<Value extends ToFieldable> {
    * @param valueType
    * @returns New option from the provided parameters.
    */
-  public static fromValue<Value extends ToFieldable>(
+  public static fromValue<Value>(
     value: Value,
     valueType: FlexibleProvablePure<Value>
   ) {
@@ -119,7 +119,12 @@ export class Option<Value extends ToFieldable> {
    * otherwise returns the given defaultValue
    */
   public orElse(defaultValue: Value): Value {
-    return Provable.if(this.isSome, this.value, defaultValue);
+    return Provable.if<Value>(
+      this.isSome,
+      this.valueType,
+      this.value,
+      defaultValue
+    );
   }
 
   public toJSON() {
