@@ -214,7 +214,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       treeWitness,
       transition.to.value
     );
-    Provable.log("Compute root took", Date.now() - t, "ms");
 
     state.stateRoot = Provable.if(
       transition.to.isSome,
