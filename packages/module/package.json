@@ -17,8 +17,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@proto-kit/common": "*",
-    "@proto-kit/protocol": "*",
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13"
@@ -28,6 +26,8 @@
     "@types/lodash": "^4.14.194"
   },
   "peerDependencies": {
+    "@proto-kit/common": "*",
+    "@proto-kit/protocol": "*",
     "snarkyjs": "0.12.0",
     "tsyringe": "^4.7.0"
   },
