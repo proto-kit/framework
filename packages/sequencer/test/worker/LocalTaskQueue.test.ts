@@ -2,8 +2,7 @@ import "reflect-metadata";
 import { afterEach, describe, jest } from "@jest/globals";
 
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
-import { InstantiatedQueue, TaskPayload } from "../../src";
-import { sleep } from "../../dist/test/worker/LocalTaskQueue";
+import { TaskPayload } from "../../src";
 
 describe("localTaskQueue", () => {
   let taskQueue: LocalTaskQueue;
@@ -25,9 +24,7 @@ describe("localTaskQueue", () => {
 
       const queue = await taskQueue.getQueue("testQueue");
 
-      const spy = jest.fn<
-        (result: { taskId: string; payload: TaskPayload }) => Promise<void>
-      >(async () => {
+      const spy = jest.fn<(payload: TaskPayload) => Promise<void>>(async () => {
         await Promise.resolve();
       });
 
@@ -38,6 +35,7 @@ describe("localTaskQueue", () => {
         await queue.addTask({
           name: String(index),
           payload: String(input),
+          flowId: "0",
         });
       }
 
@@ -45,14 +43,18 @@ describe("localTaskQueue", () => {
 
       for (const [index, input] of inputs.entries()) {
         expect(spy).toHaveBeenNthCalledWith(index + 1, {
-          taskId: String(index + 1),
-
-          payload: {
-            name: String(index),
-            payload: String(input),
-          },
+          name: String(index),
+          payload: String(input),
+          flowId: "0",
         });
       }
     }
   );
 });
+
+async function sleep(ms: number) {
+  // eslint-disable-next-line promise/avoid-new
+  return await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}

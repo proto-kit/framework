@@ -1,30 +1,113 @@
-import { Circuit, Struct } from "snarkyjs";
+import { Bool, Provable, Struct } from "snarkyjs";
+
+import { constants } from "../Constants";
 
 import { ProvableStateTransition } from "./StateTransition.js";
+import { range } from "@proto-kit/common";
 
-const constants = {
-  stateTransitionProverBatchSize: 8,
-};
+export class StateTransitionType {
+  public static readonly normal = true;
+  public static readonly protocol = false;
+
+  public static isNormal(type: boolean) {
+    return type === StateTransitionType.normal;
+  }
+
+  public static isProtocol(type: boolean) {
+    return type === StateTransitionType.protocol;
+  }
+}
+
+export class ProvableStateTransitionType extends Struct({
+  type: Bool,
+}) {
+  public static get normal(): ProvableStateTransitionType {
+    return new ProvableStateTransitionType({
+      type: Bool(StateTransitionType.normal),
+    });
+  }
+
+  public static get protocol(): ProvableStateTransitionType {
+    return new ProvableStateTransitionType({
+      type: Bool(StateTransitionType.protocol),
+    });
+  }
+
+  public isNormal(): Bool {
+    return this.type;
+  }
+
+  public isProtocol(): Bool {
+    return this.type.not();
+  }
+}
 
 /**
  * A Batch of StateTransitions to be consumed by the StateTransitionProver
  * to prove multiple STs at once
+ *
+ * transitionType:
+ * true == normal ST, false == protocol ST
  */
 export class StateTransitionProvableBatch extends Struct({
-  batch: Circuit.array(
+  batch: Provable.Array(
     ProvableStateTransition,
     constants.stateTransitionProverBatchSize
   ),
+
+  transitionTypes: Provable.Array(
+    ProvableStateTransitionType,
+    constants.stateTransitionProverBatchSize
+  ),
 }) {
-  public static fromTransitions(
-    transitions: ProvableStateTransition[]
+  public static fromMappings(
+    transitions: {
+      transition: ProvableStateTransition;
+      type: ProvableStateTransitionType;
+    }[]
   ): StateTransitionProvableBatch {
-    const array = transitions.slice();
+    const batch = transitions.map((entry) => entry.transition);
+    const transitionTypes = transitions.map((entry) => entry.type);
+
+    while (batch.length < constants.stateTransitionProverBatchSize) {
+      batch.push(ProvableStateTransition.dummy());
+      transitionTypes.push(ProvableStateTransitionType.normal);
+    }
+    return new StateTransitionProvableBatch({
+      batch,
+      transitionTypes,
+    });
+  }
+
+  public static fromTransitions(
+    transitions: ProvableStateTransition[],
+    protocolTransitions: ProvableStateTransition[]
+  ): StateTransitionProvableBatch {
+    const array = transitions.slice().concat(protocolTransitions);
+
+    const transitionTypes = range(0, transitions.length)
+      .map(() => ProvableStateTransitionType.normal)
+      .concat(
+        range(0, protocolTransitions.length).map(
+          () => ProvableStateTransitionType.protocol
+        )
+      );
 
     while (array.length < constants.stateTransitionProverBatchSize) {
       array.push(ProvableStateTransition.dummy());
+      transitionTypes.push(ProvableStateTransitionType.normal);
     }
 
-    return new StateTransitionProvableBatch({ batch: array });
+    return new StateTransitionProvableBatch({
+      batch: array,
+      transitionTypes,
+    });
+  }
+
+  private constructor(object: {
+    batch: ProvableStateTransition[];
+    transitionTypes: ProvableStateTransitionType[];
+  }) {
+    super(object);
   }
 }

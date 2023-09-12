@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import groupBy from "lodash/groupBy";
-import { ArrayElement, log } from "@yab/common";
+import { ArrayElement, log } from "@proto-kit/common";
 
 import {
   AbstractTask,
@@ -132,6 +132,7 @@ export class TaskWorker implements Closeable {
       name: payload.name,
       payload: serializer.toJSON(result),
       taskId: payload.taskId,
+      flowId: payload.flowId,
     };
   }
 
@@ -147,6 +148,7 @@ export class TaskWorker implements Closeable {
       name: payload.name,
       payload: task.resultSerializer().toJSON(result),
       taskId: payload.taskId,
+      flowId: payload.flowId,
     };
   }
 

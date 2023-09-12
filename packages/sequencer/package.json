@@ -1,6 +1,6 @@
 {
-  "name": "@yab/sequencer",
-  "version": "0.1.8",
+  "name": "@proto-kit/sequencer",
+  "version": "0.1.1-develop.160+5120680",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -19,7 +19,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "snarkyjs": "0.11.0",
+    "snarkyjs": "0.12.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {
@@ -28,12 +28,13 @@
     "@types/node": "^20.2.5"
   },
   "dependencies": {
+    "@proto-kit/common": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/protocol": "*",
     "@types/ws": "^8.5.4",
-    "@yab/module": "*",
-    "@yab/protocol": "*",
-    "@yab/common": "*",
     "bullmq": "^3.15.0",
     "class-validator": "^0.14.0",
+    "lodash": "^4.17.21",
     "fastify": "^4.17.0",
     "graphql": "16.6.0",
     "mercurius": "^13.0.0",
@@ -42,5 +43,6 @@
   },
   "resolutions": {
     "graphql": "16.6.0"
-  }
+  },
+  "gitHead": "51206808f0eba77c4ad8c1af476a6dbdd478d2a3"
 }

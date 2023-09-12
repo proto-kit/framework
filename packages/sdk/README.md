@@ -1,6 +1,6 @@
 # YAB: SDK
 
-## AppChain
+SDK for developing privacy enabled application chains.
 
 To use an appchain, you should use the following syntax as provided by this example:
 

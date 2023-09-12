@@ -1,98 +1,168 @@
+/* eslint-disable max-statements */
 import "reflect-metadata";
-import { PublicKey } from "snarkyjs";
+import { PrivateKey, PublicKey, UInt64, Provable } from "snarkyjs";
 import {
-  assert,
-  InMemoryStateService,
-  Runtime,
   runtimeMethod,
   RuntimeModule,
   runtimeModule,
-  RuntimeModulesRecord,
-} from "@yab/module";
-import { Sequencer, sequencerModule, SequencerModule } from "@yab/sequencer";
-import { inject } from "tsyringe";
-import { VanillaProtocol } from "@yab/protocol/src/protocol/Protocol";
+  state,
+  assert,
+} from "@proto-kit/module";
+import { TestingAppChain } from "../../src/appChain/TestingAppChain";
+import { container, inject } from "tsyringe";
+import { log } from "@proto-kit/common";
+import { randomUUID } from "crypto";
+import {
+  MapStateMapToQuery, MapStateToQuery,
+  ModuleQuery,
+  PickStateMapProperties,
+  PickStateProperties
+} from "../../src";
+import { State, StateMap } from "@proto-kit/protocol";
 
-import { AppChain } from "../../src";
+log.setLevel("ERROR");
 
-interface AdminConfig {
-  publicKey: string;
+export interface AdminConfig {
+  admin: PublicKey;
 }
 
 @runtimeModule()
-class Admin extends RuntimeModule<AdminConfig> {
-  @runtimeMethod()
-  public isAdmin(publicKey: PublicKey) {
-    const admin = PublicKey.fromBase58(this.config.publicKey);
-    assert(admin.equals(publicKey));
+export class Admin extends RuntimeModule<AdminConfig> {
+  public id = randomUUID();
+
+  public isSenderAdmin() {
+    assert(
+      this.transaction.sender.equals(this.config.admin),
+      "Sender is not admin"
+    );
   }
 }
 
-interface MempoolConfig {
-  test: string;
+interface BalancesConfig {
+  totalSupply: UInt64;
 }
 
-@sequencerModule()
-class Mempool extends SequencerModule<MempoolConfig> {
-  public constructor(
-    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
-  ) {
+@runtimeModule()
+class Balances extends RuntimeModule<BalancesConfig> {
+  @state() public totalSupply = State.from<UInt64>(UInt64);
+
+  @state() public balances = StateMap.from<PublicKey, UInt64>(
+    PublicKey,
+    UInt64
+  );
+
+  public constructor(@inject("Admin") public admin: Admin) {
+    console.log("admin injected", admin.id);
     super();
   }
 
-  public async start() {
-    // for test purposes retrieve the configured runtime module and call it
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const admin = this.runtime.resolve("Admin") as unknown as Admin;
+  @runtimeMethod()
+  public addBalance(address: PublicKey, balance: UInt64) {
+    Provable.log("admin", {
+      admin: this.admin.config.admin,
+    });
+    const totalSupply = this.totalSupply.get();
 
-    admin.isAdmin(PublicKey.empty());
+    const newTotalSupply = totalSupply.value.add(balance);
+    const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
+      this.config.totalSupply
+    );
+
+    this.totalSupply.set(newTotalSupply);
+
+    Provable.log("isSupplyNotOverflown", isSupplyNotOverflown);
+    Provable.log("config total supply", this.config.totalSupply);
+
+    assert(
+      isSupplyNotOverflown,
+      "Adding the balance would overflow the total supply"
+    );
+
+    Provable.log({
+      address,
+      sender: this.transaction.sender,
+    });
+    const isSender = this.transaction.sender.equals(address);
+    assert(isSender, "Address is not the sender");
+
+    const currentBalance = this.balances.get(address);
+
+    const newBalance = currentBalance.value.add(balance);
+
+    this.balances.set(address, newBalance);
   }
 }
 
-describe("appChain", () => {
-  it("should compose appchain correctly", async () => {
-    expect.assertions(0);
+describe("testing app chain", () => {
+  it("should enable a complete transaction roundtrip", async () => {
+    expect.assertions(2);
 
-    const runtime = Runtime.from({
-      state: new InMemoryStateService(),
+    console.time("test");
+    const signer = PrivateKey.random();
+    const sender = signer.toPublicKey();
 
-      modules: {
-        Admin,
-      },
-    });
+    /**
+     * Setup the app chain for testing purposes,
+     * using the provided runtime modules
+     */
+    const appChain = TestingAppChain.fromRuntime({
+      modules: { Admin, Balances },
 
-    runtime.configure({
-      Admin: {
-        publicKey: "1",
-      },
-    });
-
-    const sequencer = Sequencer.from({
-      modules: {
-        Mempool,
-      },
-    });
-
-    const appChain = AppChain.from({
-      runtime,
-      sequencer,
-      protocol: VanillaProtocol.create(),
-    });
-
-    appChain.configure({
-      runtime: {
+      config: {
         Admin: {
-          publicKey: PublicKey.empty().toBase58(),
+          admin: sender,
         },
-      },
 
-      sequencer: {
-        Mempool: {
-          test: "test",
+        Balances: {
+          totalSupply: UInt64.from(1000),
         },
       },
     });
 
+    /**
+     *  Setup the transaction signer / sender
+     */
+    appChain.setSigner(signer);
+
+    // start the chain, sequencer is now accepting transactions
     await appChain.start();
-  });
+
+    /**
+     * Resolve the registred 'Balances' module and
+     * send a transaction to `addBalance` for sender
+     */
+    const balances = appChain.runtime.resolve("Balances");
+    const bob = PrivateKey.random().toPublicKey();
+    console.log("TRYING IN TRANSACTION");
+    // prepare a transaction invoking `Balances.setBalance`
+    const transaction = appChain.transaction(sender, () => {
+      balances.addBalance(sender, UInt64.from(1000));
+    });
+
+    await transaction.sign();
+    await transaction.send();
+
+    console.log("PRODUCING BLOCK NOW");
+
+    /**
+     * Produce the next block from pending transactions in the mempool
+     */
+    const block = await appChain.produceBlock();
+
+    expect(block?.txs[0].status).toBe(true);
+
+    /**
+     * Observe new state after the block has been produced
+     */
+    const balance = await appChain.query.runtime.Balances.balances.get(sender);
+    const balanceBob = await appChain.query.runtime.Balances.balances.get(bob);
+
+    Provable.log("balances", {
+      balance,
+      balanceBob,
+    });
+
+    expect(balance?.toBigInt()).toBe(1000n);
+    console.timeEnd("test");
+  }, 60_000);
 });

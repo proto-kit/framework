@@ -1,4 +1,4 @@
-import type { Proof } from "snarkyjs";
+import type { FlexibleProvable, Proof } from "snarkyjs";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 
@@ -15,6 +15,8 @@ export class ProvableMethodExecutionResult {
   public moduleName?: string;
 
   public methodName?: string;
+
+  public args?: FlexibleProvable<unknown>[];
 
   public prover?: () => Promise<Proof<unknown, unknown>>;
 
@@ -50,6 +52,8 @@ export class ProvableMethodExecutionContext {
   public result: ProvableMethodExecutionResult =
     new ProvableMethodExecutionResult();
 
+  // eslint-disable-next-line no-warning-comments,max-len
+  // TODO See if we should make this class generic, bc I think we can persist the type
   /**
    * Adds a method prover to the current execution context,
    * which can be collected and ran asynchronously at a later point in time.
@@ -67,12 +71,18 @@ export class ProvableMethodExecutionContext {
    *
    * @param methodName - Name of the method being captured in the context
    */
-  public beforeMethod(moduleName: string, methodName: string) {
+  public beforeMethod(
+    moduleName: string,
+    methodName: string,
+    args: FlexibleProvable<unknown>[]
+  ) {
     if (this.isFinished) {
       this.clear();
       this.result.moduleName = moduleName;
       this.result.methodName = methodName;
+      this.result.args = args;
     }
+
     this.methods.push(methodName);
   }
 

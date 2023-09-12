@@ -1,10 +1,10 @@
 import { Bool, PublicKey, UInt64 } from "snarkyjs";
-import { Option } from "@yab/protocol";
-import { Presets } from "@yab/common";
+import { Option } from "@proto-kit/protocol";
+import { Presets } from "@proto-kit/common";
 
-import { State } from "../../src/state/State.js";
+import { State } from "../../../protocol/src/state/State.js";
 import { state } from "../../src/state/decorator.js";
-import { StateMap } from "../../src/state/StateMap.js";
+import { StateMap } from "../../../protocol/src/state/StateMap.js";
 import { RuntimeModule, runtimeMethod, runtimeModule } from "../../src";
 
 import { Admin } from "./Admin.js";
@@ -41,11 +41,20 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   public setTotalSupply() {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(PublicKey.empty());
+    this.admin.isAdmin(this.transaction.sender);
   }
 
   @runtimeMethod()
   public getBalance(address: PublicKey): Option<UInt64> {
     return this.balances.get(address);
+  }
+
+  @runtimeMethod()
+  public transientState() {
+    const totalSupply = this.totalSupply.get();
+    this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(100));
+
+    const totalSupply2 = this.totalSupply.get();
+    this.totalSupply.set(totalSupply2.orElse(UInt64.zero).add(100));
   }
 }

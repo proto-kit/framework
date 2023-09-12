@@ -1,9 +1,8 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
 
-import { TextEncoder } from "node:util";
-
-import { Circuit, Field, Poseidon, Proof } from "snarkyjs";
+import { Field, Poseidon, Provable } from "snarkyjs";
+import floor from "lodash/floor";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
   ...args: any[]
@@ -30,7 +29,7 @@ export function notInCircuit(): MethodDecorator {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const childFunction = descriptor.value;
     descriptor.value = function value(this: any, ...args: any[]) {
-      if (Circuit.inCheckedComputation() || Circuit.inProver()) {
+      if (Provable.inCheckedComputation() || Provable.inProver()) {
         throw new Error(
           `Method ${propertyKey.toString()} is supposed to be only called outside of the circuit`
         );
@@ -44,29 +43,45 @@ export function notInCircuit(): MethodDecorator {
 }
 
 export function stringToField(value: string) {
-  const fieldSize = Field.sizeInBytes();
+  const fieldSize = Field.sizeInBytes() - 1;
 
+  // Encode string as byte[]
   const encoder = new TextEncoder();
-
   const stringBytes = Array.from(encoder.encode(value));
 
+  // Add padding in case the string is not a multiple of Field.sizeInBytes
   const padding = Array.from<number>({
-    length: fieldSize - stringBytes.length,
+    length: fieldSize - (stringBytes.length % fieldSize),
   }).fill(0);
-  const data = stringBytes.concat(padding);
+  const data = stringBytes.concat(padding).reverse();
 
-  if (data.length > fieldSize) {
-    const chunks = data.reduce<number[][]>((a, b, index) => {
-      const arrayIndex = index / fieldSize;
-      if (a.length <= arrayIndex) {
-        a.push([]);
-      }
+  // Hash the result Field[] to reduce it to
+  const chunks = data.reduce<number[][]>(
+    (a, b, index) => {
+      const arrayIndex = floor(index / fieldSize);
       a[arrayIndex].push(b);
       return a;
-    }, []);
-    return Poseidon.hash(chunks.map((x) => Field.fromBytes(x)));
+    },
+
+    // eslint-disable-next-line array-func/from-map
+    Array.from<number[]>({ length: floor(data.length / fieldSize) }).map(
+      () => []
+    )
+  );
+  const fields = chunks.map((x) =>
+    // We have to add a zero at the highest byte here, because a Field is
+    // a bit smaller than 2^256
+    // console.log(x.concat([0]).length);
+    Field.fromBytes(x.concat([0]))
+  );
+  return Poseidon.hash(fields);
+}
+
+export function singleFieldToString(value: Field | bigint): string {
+  if (typeof value === "bigint") {
+    value = Field(value);
   }
-  return Field.fromBytes(data);
+  return value.toString();
 }
 
 export function noop(): void {}

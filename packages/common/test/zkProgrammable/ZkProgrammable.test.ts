@@ -207,6 +207,10 @@ describe("zkProgrammable", () => {
         const verified = await testProgrammable.zkProgram.verify(proof);
 
         expect(verified).toBe(shouldVerifyMockProofs);
+
+        // Check if toJSON works on mockproofs
+        // const json = proof.toJSON();
+        // expect(json).toBeDefined();
       });
     }
   );

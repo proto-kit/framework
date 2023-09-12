@@ -1,19 +1,24 @@
-import { Bool, Field, Struct } from "snarkyjs";
+import { FlexibleProvable } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,
   DefaultProvableHashList,
   ProvableStateTransition,
-} from "@yab/protocol";
-import { DecoratedMethod, toProver, ZkProgrammable } from "@yab/common";
+  MethodPublicOutput,
+  RuntimeMethodExecutionContext
+} from "@proto-kit/protocol";
+import { DecoratedMethod, toProver, ZkProgrammable } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
-
-import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext.js";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
     new Error(`Runtime was not provided for module: ${name}`),
+
+  methodInputsNotProvided: () =>
+    new Error(
+      "Method execution inputs not provided, provide them via context.inputs"
+    ),
 };
 
 export function toStateTransitionsHash(
@@ -34,13 +39,6 @@ export function toStateTransitionsHash(
     .toField();
 }
 
-// temrporarily here until available as export from @yab/protocol
-export class MethodPublicOutput extends Struct({
-  stateTransitionsHash: Field,
-  status: Bool,
-  transactionHash: Field,
-}) {}
-
 // eslint-disable-next-line etc/prefer-interface
 export type WrappedMethod = (...args: unknown[]) => MethodPublicOutput;
 
@@ -57,14 +55,23 @@ export function toWrappedMethod(
     Reflect.apply(moduleMethod, this, args);
     const {
       result: { stateTransitions, status },
+      input,
     } = executionContext.current();
 
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
 
+    if (input === undefined) {
+      throw errors.methodInputsNotProvided();
+    }
+
+    const transactionHash = input.transaction.hash();
+    const networkStateHash = input.networkState.hash();
+
     return new MethodPublicOutput({
       stateTransitionsHash,
       status,
-      transactionHash: Field(0),
+      transactionHash,
+      networkStateHash,
     });
   };
 
@@ -84,6 +91,7 @@ export function combineMethodName(
 }
 
 export const runtimeMethodMetadataKey = "yab-method";
+export const runtimeMethodNamesMetadataKey = "proto-kit-runtime-methods";
 
 /**
  * Checks the metadata of the provided runtime module and its method,
@@ -112,6 +120,18 @@ export function runtimeMethod() {
       RuntimeMethodExecutionContext
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    let data: string[] | undefined = Reflect.getMetadata(
+      runtimeMethodNamesMetadataKey,
+      target
+    );
+    if (data !== undefined) {
+      data.push(methodName);
+    } else {
+      data = [methodName];
+    }
+    Reflect.defineMetadata(runtimeMethodNamesMetadataKey, data, target);
+
     Reflect.defineMetadata(runtimeMethodMetadataKey, true, target, methodName);
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -119,7 +139,7 @@ export function runtimeMethod() {
 
     descriptor.value = function value(
       this: RuntimeModule<unknown>,
-      ...args: unknown[]
+      ...args: FlexibleProvable<unknown>[]
     ) {
       const constructorName = this.constructor.name;
 
@@ -142,10 +162,11 @@ export function runtimeMethod() {
        */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       async function prover(this: ZkProgrammable<any, any>) {
-        executionContext.beforeMethod(constructorName, methodName);
+        executionContext.beforeMethod(constructorName, methodName, args);
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
           simulatedWrappedMethod,
+          false,
           ...args
         ).bind(this);
         // eslint-disable-next-line @typescript-eslint/init-declarations
@@ -160,7 +181,7 @@ export function runtimeMethod() {
         return result;
       }
 
-      executionContext.beforeMethod(constructorName, methodName);
+      executionContext.beforeMethod(constructorName, methodName, args);
 
       if (executionContext.isTopLevel) {
         if (!this.runtime) {

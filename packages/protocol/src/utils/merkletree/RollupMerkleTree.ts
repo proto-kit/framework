@@ -2,9 +2,11 @@
 /* eslint-disable line-comment-position */
 /* eslint-disable no-inline-comments */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { Bool, Circuit, Field, Poseidon, Struct } from "snarkyjs";
+import { Bool, Field, Poseidon, Provable, Struct } from "snarkyjs";
 
 import { notInCircuit } from "../utils";
+
+import { MerkleTreeStore } from "./MerkleTreeStore";
 
 // external API
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -14,36 +16,13 @@ export { RollupMerkleTree, RollupMerkleWitness };
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
 export { maybeSwap };
 
-// eslint-disable-next-line etc/no-t
-export interface Virtualizable<T> {
-  parent: T;
-
-  virtualize: () => T;
-}
-
-export interface MerkleTreeStore extends Virtualizable<MerkleTreeStore> {
-  openTransaction: () => void;
-
-  commit: () => void;
-
-  setNodeAsync: (key: bigint, level: number, value: bigint) => Promise<void>;
-
-  getNodeAsync: (key: bigint, level: number) => Promise<bigint | undefined>;
-}
-
-export interface SyncMerkleTreeStore extends MerkleTreeStore {
-  setNode: (key: bigint, level: number, value: bigint) => void;
-
-  getNode: (key: bigint, level: number) => bigint | undefined;
-}
-
 /**
  * The {@link BaseMerkleWitness} class defines a circuit-compatible base class
  * for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
  */
 class RollupMerkleWitness extends Struct({
-  path: Circuit.array(Field, 256 - 1),
-  isLeft: Circuit.array(Bool, 256 - 1),
+  path: Provable.Array(Field, 256 - 1),
+  isLeft: Provable.Array(Bool, 256 - 1),
 }) {
   public static height = 256;
 
@@ -80,7 +59,11 @@ class RollupMerkleWitness extends Struct({
 
     // eslint-disable-next-line no-underscore-dangle
     for (let index_ = 1; index_ < n; ++index_) {
-      index = Circuit.if(this.isLeft[index_ - 1], index, index.add(powerOfTwo));
+      index = Provable.if(
+        this.isLeft[index_ - 1],
+        index,
+        index.add(powerOfTwo)
+      );
       powerOfTwo = powerOfTwo.mul(2);
     }
 
@@ -111,9 +94,9 @@ class RollupMerkleTree {
 
   private readonly zeroes: bigint[];
 
-  public readonly store: SyncMerkleTreeStore;
+  public readonly store: MerkleTreeStore;
 
-  public constructor(store: SyncMerkleTreeStore) {
+  public constructor(store: MerkleTreeStore) {
     this.store = store;
     // eslint-disable-next-line @shopify/prefer-class-properties
     this.zeroes = [0n];
@@ -166,7 +149,6 @@ class RollupMerkleTree {
     if (index >= this.leafCount) {
       index %= this.leafCount;
     }
-    this.store.openTransaction();
     this.setNode(0, index, leaf);
     let currentIndex = index;
     for (let level = 1; level < RollupMerkleTree.height; level += 1) {
@@ -177,7 +159,6 @@ class RollupMerkleTree {
 
       this.setNode(level, currentIndex, Poseidon.hash([left, right]));
     }
-    this.store.commit();
   }
 
   /**

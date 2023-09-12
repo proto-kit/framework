@@ -3,15 +3,15 @@ import "reflect-metadata";
 import { Bool } from "snarkyjs";
 import { container } from "tsyringe";
 
-import { assert } from "./assert.js";
-import { RuntimeMethodExecutionContext } from "./RuntimeMethodExecutionContext.js";
+import { assert } from "./assert";
+import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecutionContext";
 
 describe("assert", () => {
   const defaultStatusMessage = "something went wrong";
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
 
   beforeEach(() => {
-    executionContext.beforeMethod("testConstructor", "test");
+    executionContext.beforeMethod("testConstructor", "test", []);
   });
 
   afterEach(() => {

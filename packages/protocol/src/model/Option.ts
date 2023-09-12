@@ -1,6 +1,7 @@
 import {
   Bool,
   Field,
+  FlexibleProvable,
   type FlexibleProvablePure,
   Poseidon,
   Provable,
@@ -15,6 +16,10 @@ export class ProvableOption extends Struct({
     this.isSome = Bool(true);
     return this;
   }
+}
+
+export interface ToFieldable {
+  toFields: () => Field[];
 }
 
 /**
@@ -58,28 +63,6 @@ export class Option<Value> {
     return new Option(Bool(false), Field(0), Field);
   }
 
-  public static dummyValueFields<Value>(
-    valueType: FlexibleProvablePure<Value>
-  ): Field[] {
-    const length = valueType.sizeInFields();
-    return Array.from({ length }, () => Field(0));
-  }
-
-  /**
-   * Computes a dummy value for the given value type.
-   *
-   * @param valueType - Value type to generate the dummy value for
-   * @returns Dummy value for the given value type
-   */
-  public static dummyValue<Value>(
-    valueType: FlexibleProvablePure<Value>
-  ): Value {
-    const fields = Option.dummyValueFields(valueType);
-
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return valueType.fromFields(fields) as Value;
-  }
-
   public isForcedSome = Bool(false);
 
   public constructor(
@@ -111,6 +94,17 @@ export class Option<Value> {
   }
 
   /**
+   * Returns the `to`-value as decoded as a list of fields
+   * Not in circuit
+   */
+  public toFields(): Field[] {
+    if (this.isSome.toBoolean()) {
+      return this.valueType.toFields(this.value);
+    }
+    return [Field(0)];
+  }
+
+  /**
    * @returns Provable representation of the current option.
    */
   public toProvable() {
@@ -118,5 +112,31 @@ export class Option<Value> {
       isSome: this.isSome,
       value: this.treeValue,
     });
+  }
+
+  /**
+   * @returns Returns the value of this option if it isSome,
+   * otherwise returns the given defaultValue
+   */
+  public orElse(defaultValue: Value): Value {
+    return Provable.if<Value>(
+      this.isSome,
+      this.valueType,
+      this.value,
+      defaultValue
+    );
+  }
+
+  public toJSON() {
+    const valueContent = this.valueType
+      .toFields(this.value)
+      .map((field) => field.toString())
+      .reduce((a, b) => `${a}, ${b}`);
+
+    return {
+      isSome: this.isSome.toBoolean(),
+
+      value: `[${valueContent}]`,
+    };
   }
 }

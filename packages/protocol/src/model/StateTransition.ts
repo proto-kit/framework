@@ -1,6 +1,6 @@
 import { Field, Struct } from "snarkyjs";
 
-import { Option, ProvableOption } from "./Option.js";
+import { Option, ProvableOption, ToFieldable } from "./Option.js";
 
 /**
  * Provable representation of a State Transition, used to
@@ -68,5 +68,13 @@ export class StateTransition<Value> {
       from: this.from.toProvable(),
       to: this.to.toProvable(),
     });
+  }
+
+  public toJSON() {
+    return {
+      path: this.path.toString(),
+      from: this.from.toJSON(),
+      to: this.to.toJSON(),
+    };
   }
 }

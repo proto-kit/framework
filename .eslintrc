@@ -120,7 +120,17 @@
         "allowBlockStart": true
       }
     ],
-    "@typescript-eslint/prefer-function-type": "off"
+    "@typescript-eslint/prefer-function-type": "off",
+    "no-bitwise": [
+      "error",
+      {
+        "allow": ["<<", ">>", ">>>"]
+      }
+    ],
+    "@typescript-eslint/no-unnecessary-condition": [
+      "off"
+    ],
+    "nodejs/declare": "off"
   },
 
   "overrides": [

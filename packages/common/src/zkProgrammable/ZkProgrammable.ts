@@ -1,8 +1,6 @@
-import { Experimental, FlexibleProvablePure } from "snarkyjs";
-import { Proof } from "snarkyjs/dist/node/lib/proof_system";
+import { Experimental, FlexibleProvablePure, Proof } from "snarkyjs";
 import { Memoize } from "typescript-memoize";
 
-// eslint-disable-next-line import/no-cycle
 import { mockProof } from "./provableMethod";
 
 const errors = {
@@ -93,7 +91,7 @@ export abstract class ZkProgrammable<
   PublicInput = undefined,
   PublicOutput = void
 > {
-  public abstract appChain?: AreProofsEnabled;
+  public abstract get appChain(): AreProofsEnabled | undefined;
 
   public abstract zkProgramFactory(): PlainZkProgram<PublicInput, PublicOutput>;
 

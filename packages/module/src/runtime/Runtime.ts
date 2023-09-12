@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,max-lines */
 import { Experimental } from "snarkyjs";
-import { injectable } from "tsyringe";
+import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
   ModuleContainer,
@@ -12,19 +12,23 @@ import {
   PlainZkProgram,
   WithZkProgrammable,
   AreProofsEnabled,
-  log,
-} from "@yab/common";
+} from "@proto-kit/common";
+import {
+  MethodPublicOutput,
+  StateServiceProvider,
+  StateService,
+} from "@proto-kit/protocol";
 
 import {
   combineMethodName,
   isRuntimeMethod,
-  MethodPublicOutput,
   toWrappedMethod,
   WrappedMethod,
-} from "../method/runtimeMethod.js";
-import { StateService } from "../state/InMemoryStateService.js";
+} from "../method/runtimeMethod";
+import { MethodIdFactory } from "../factories/MethodIdFactory";
 
-import { RuntimeModule } from "./RuntimeModule.js";
+import { RuntimeModule } from "./RuntimeModule";
+import { MethodIdResolver } from "./MethodIdResolver";
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -36,11 +40,19 @@ export type RuntimeModulesRecord = ModulesRecord<
   TypedClass<RuntimeModule<unknown>>
 >;
 
+const errors = {
+  methodNotFound: (methodKey: string) =>
+    new Error(`Unable to find method with id ${methodKey}`),
+};
+
 /**
  * Definition / required arguments for the Runtime class
  */
 export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
-  state: StateService;
+  /**
+   * @deprecated
+   */
+  state?: StateService;
   modules: Modules;
   config?: ModulesConfig<Modules>;
 }
@@ -65,7 +77,11 @@ export class RuntimeZkProgrammable<
         method: WrappedMethod;
       }
     >;
-    const { runtime } = this;
+    // We need to use explicit type annotations here,
+    // therefore we can't use destructuring
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define,prefer-destructuring,putout/putout
+    const runtime: Runtime<Modules> = this.runtime;
 
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
@@ -95,8 +111,6 @@ export class RuntimeZkProgrammable<
 
         const moduleMethods = modulePrototypeMethods.reduce<Methods>(
           (allModuleMethods, methodName) => {
-            // eslint-disable-next-line max-len
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/strict-boolean-expressions
             if (isRuntimeMethod(runtimeModule, methodName)) {
               const combinedMethodName = combineMethodName(
                 runtimeModuleName,
@@ -187,11 +201,14 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof Experimental.ZkProgram>;
 
-  public appChain?: AreProofsEnabled;
-
   public definition: RuntimeDefinition<Modules>;
 
   public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
+
+  private readonly stateServiceProviderInstance = new StateServiceProvider(
+    // eslint-disable-next-line etc/no-deprecated
+    this.definition.state
+  );
 
   /**
    * Creates a new Runtime from the provided config
@@ -202,16 +219,72 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     super(definition);
     this.definition = definition;
     this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
-    // this.registerValue({
-    //   Runtime: this,
-    // });
+  }
+
+  // eslint-disable-next-line no-warning-comments
+  // TODO Remove after changing DFs to type-based approach
+  public start() {
+    this.registerValue({
+      Runtime: this,
+    });
+    this.registerDependencyFactories([MethodIdFactory]);
+  }
+
+  public get appChain(): AreProofsEnabled | undefined {
+    return this.container.resolve<AreProofsEnabled>("AppChain");
+  }
+
+  public get stateService(): StateService {
+    return this.stateServiceProviderInstance.stateService;
+  }
+
+  public get stateServiceProvider(): StateServiceProvider {
+    return this.stateServiceProviderInstance;
+  }
+
+  /**
+   * @returns The dependency injection container of this runtime
+   */
+  public get dependencyContainer(): DependencyContainer {
+    return this.container;
+  }
+
+  /**
+   * @param methodId The encoded name of the method to call.
+   * Encoding: "stringToField(module.name) << 128 + stringToField(method-name)"
+   */
+  public getMethodById(
+    methodId: bigint
+  ): ((...args: unknown[]) => unknown) | undefined {
+    const methodDescriptor = this.container
+      .resolve<MethodIdResolver>("MethodIdResolver")
+      .getMethodNameFromId(methodId);
+
+    if (methodDescriptor === undefined) {
+      return undefined;
+    }
+    const [moduleName, methodName] = methodDescriptor;
+
+    this.isValidModuleName(this.definition.modules, moduleName);
+    const module = this.resolve(moduleName);
+
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-member-access
+    const method = (module as any)[methodName];
+    if (method === undefined) {
+      throw errors.methodNotFound(`${moduleName}.${methodName}`);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return (method as (...args: unknown[]) => unknown).bind(module);
   }
 
   /**
    * Add a name and other respective properties required by RuntimeModules,
    * that come from the current Runtime
    *
-   * @param name - Name of the runtime module to decorate
+   * @param moduleName - Name of the runtime module to decorate
+   * @param containedModule
    */
   public decorateModule(
     moduleName: StringKeyOf<Modules>,

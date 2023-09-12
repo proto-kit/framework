@@ -6,14 +6,13 @@ import {
   Option,
   ProvableStateTransition,
   DefaultProvableHashList,
-  StateTransitionProvableBatch,
+  StateTransitionProvableBatch, CachedMerkleTreeStore, InMemoryMerkleTreeStorage
 } from "../src/index";
 import {
   RollupMerkleTree,
   type RollupMerkleWitness,
 } from "../src/utils/merkletree/RollupMerkleTree.js";
 import { StateTransitionProver } from "../src/prover/statetransition/StateTransitionProver.js";
-import { MemoryMerkleTreeStorage } from "../src/utils/merkletree/MemoryMerkleTreeStorage.js";
 import type { StateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 
 describe("stateTransition", () => {
@@ -21,11 +20,10 @@ describe("stateTransition", () => {
     tree: RollupMerkleTree,
     transitions: ProvableStateTransition[]
   ) {
-    const batch = StateTransitionProvableBatch.fromTransitions(transitions);
+    const batch = StateTransitionProvableBatch.fromTransitions(transitions, []);
 
     const temporaryTree = new RollupMerkleTree(
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      tree.store.virtualize() as MemoryMerkleTreeStorage
+      new CachedMerkleTreeStore(tree.store)
     );
     const startRoot = temporaryTree.getRoot();
 
@@ -110,7 +108,7 @@ describe("stateTransition", () => {
   ])("should pass without throwing", async (transitions) => {
     expect.assertions(2);
 
-    const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
+    const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
 
     // Is ignored because overwritten by first transition
     tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
@@ -170,7 +168,7 @@ describe("stateTransition", () => {
     async (transitions, index) => {
       expect.assertions(1);
 
-      const tree = new RollupMerkleTree(new MemoryMerkleTreeStorage());
+      const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
 
       // Is ignored because overwritten by first transition
       tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);

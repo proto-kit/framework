@@ -1,45 +1,114 @@
 import "reflect-metadata";
-import { Bool, Field, Poseidon, Proof } from "snarkyjs";
 import {
-  container as globalContainer,
-  type DependencyContainer,
-} from "tsyringe";
-
-import { MethodPublicOutput } from "@yab/protocol";
+  Bool,
+  Experimental,
+  Field,
+  PrivateKey,
+  Proof,
+  UInt64,
+} from "snarkyjs";
 
 import {
   BlockProver,
   type BlockProverState,
-} from "../src/prover/block/BlockProver.js";
-import { NoOpStateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
+} from "../src/prover/block/BlockProver";
+import { NoOpStateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider";
 import {
   StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
+  StateTransitionProverPublicOutput,
 } from "../src/prover/statetransition/StateTransitionProvable";
 import { BlockProverPublicInput } from "../src/prover/block/BlockProvable";
+import {
+  AreProofsEnabled,
+  PlainZkProgram,
+  WithZkProgrammable,
+  ZkProgrammable,
+} from "@proto-kit/common";
+import ZkProgram = Experimental.ZkProgram;
+import { UnsignedTransaction } from "@proto-kit/sequencer";
+import { AccountStateModule } from "../src/blockmodules/AccountStateModule";
+import { container } from "tsyringe";
+import {
+  BlockModule, DefaultProvableHashList,
+  MethodPublicOutput,
+  NetworkState,
+  Protocol, ProtocolMethodExecutionContext,
+  ProtocolTransaction, ProvableStateTransition, RuntimeTransaction,
+  StateTransitionProver
+} from "../src";
 
 type BlockProverProofPair = [
   Proof<void, MethodPublicOutput>,
   Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>
 ];
 
+class MockAppChain implements AreProofsEnabled {
+  public areProofsEnabled: boolean = false;
+
+  setProofsEnabled(areProofsEnabled: boolean): void {
+    this.areProofsEnabled = areProofsEnabled;
+  }
+}
+
+class RuntimeZkProgrammable extends ZkProgrammable<
+  undefined,
+  MethodPublicOutput
+> {
+  get appChain(): AreProofsEnabled | undefined {
+    return new MockAppChain();
+  }
+
+  zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
+    const program = Experimental.ZkProgram({
+      publicOutput: MethodPublicOutput,
+      methods: {},
+    });
+
+    return {
+      compile: program.compile,
+      verify: program.verify,
+      methods: {},
+      Proof: ZkProgram.Proof(program),
+    };
+  }
+}
+
+class RuntimeMock implements WithZkProgrammable<undefined, MethodPublicOutput> {
+  zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput> =
+    new RuntimeZkProgrammable();
+}
+
 describe("blockProver", () => {
-  let container: DependencyContainer;
+  const networkState = new NetworkState({
+    block: {
+      height: UInt64.zero,
+    },
+  });
+
+  const protocol = Protocol.from({
+    modules: {
+      StateTransitionProver: StateTransitionProver,
+      BlockProver: BlockProver,
+    },
+    blockModules: [AccountStateModule],
+  });
 
   beforeEach(() => {
-    const childContainer = globalContainer.createChildContainer();
-    childContainer.register(
-      "StateTransitionWitnessProvider",
-      NoOpStateTransitionWitnessProvider
-    );
-    container = childContainer;
+    protocol.registerValue({
+      StateTransitionWitnessProvider: new NoOpStateTransitionWitnessProvider(),
+      Runtime: new RuntimeMock(),
+    });
   });
 
   function generateTestProofs(
     fromStateRoot: Field,
-    toStateRoot: Field
+    toStateRoot: Field,
+    protocolHash: Field,
+    tx: ProtocolTransaction,
+    networkState: NetworkState
   ): BlockProverProofPair {
-    const transactionHash = Poseidon.hash([Field(12_345)]);
+    const transactionHash =
+      RuntimeTransaction.fromProtocolTransaction(tx).hash();
     const sthash = Field(123);
 
     const appProof = new Proof<undefined, MethodPublicOutput>({
@@ -48,20 +117,26 @@ describe("blockProver", () => {
         transactionHash,
         stateTransitionsHash: sthash,
         status: Bool(true),
+        networkStateHash: networkState.hash(),
       }),
 
       proof: "",
       maxProofsVerified: 2,
     });
 
-    const stProof = new Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>({
+    const stProof = new Proof<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >({
       publicInput: new StateTransitionProverPublicInput({
         stateTransitionsHash: Field(0),
+        protocolTransitionsHash: Field(0),
         stateRoot: fromStateRoot,
       }),
       publicOutput: new StateTransitionProverPublicOutput({
         stateTransitionsHash: sthash,
-        stateRoot: toStateRoot
+        protocolTransitionsHash: protocolHash,
+        stateRoot: toStateRoot,
       }),
 
       proof: "",
@@ -71,48 +146,85 @@ describe("blockProver", () => {
     return [appProof, stProof];
   }
 
-  it("should pass with valid inputs", () => {
-    expect.assertions(0);
-
-    const blockProver = container.resolve(BlockProver);
-
-    const fromState = Field(1);
-    const toState = Field(2);
-
-    const [appProof, stProof] = generateTestProofs(fromState, toState);
-
-    const state: BlockProverState = {
-      stateRoot: fromState,
-      transactionsHash: Field(0),
-    };
-    blockProver.applyTransaction(state, stProof, appProof);
-  });
-
   it("previously applied transaction should also pass with derived publicInputs", () => {
     expect.assertions(2);
 
-    const blockProver = container.resolve(BlockProver);
+    const priv = PrivateKey.random();
+
+    const tx = new UnsignedTransaction({
+      methodId: Field(0),
+      args: [Field(0)],
+      nonce: UInt64.zero,
+      sender: priv.toPublicKey(),
+    })
+      .sign(priv)
+      .toProtocolTransaction();
+
+    const executionData = {
+      networkState,
+      transaction: tx,
+    };
+
+    // const asmodule = protocol.resolve()
+
+    protocol.dependencyContainer
+      .resolveAll<BlockModule>("BlockModule")
+      .forEach((module) => {
+        module.createTransitions(executionData);
+      });
+
+    const hashList = new DefaultProvableHashList(ProvableStateTransition);
+
+    container
+      .resolve(ProtocolMethodExecutionContext)
+      .current()
+      .result.stateTransitions.map((x) => x.toProvable())
+      .forEach((st) => {
+        hashList.push(st);
+      });
+
+    const blockProver = protocol.resolve("BlockProver");
 
     const fromState = Field(1);
     const toState = Field(2);
 
-    const [appProof, stProof] = generateTestProofs(fromState, toState);
+    const [appProof, stProof] = generateTestProofs(
+      fromState,
+      toState,
+      hashList.commitment,
+      tx,
+      networkState
+    );
 
     const fromProverState: BlockProverState = {
       stateRoot: fromState,
       transactionsHash: Field(0),
+      networkStateHash: networkState.hash(),
     };
-    const toProverState = { ...fromProverState };
-    blockProver.applyTransaction(toProverState, stProof, appProof);
+
+    const toProverState = blockProver.applyTransaction(
+      fromProverState,
+      stProof,
+      appProof,
+      executionData
+    );
 
     const publicInput = new BlockProverPublicInput({
       stateRoot: fromProverState.stateRoot,
       transactionsHash: fromProverState.transactionsHash,
+      networkStateHash: networkState.hash(),
     });
 
-    const publicOutput = blockProver.proveTransaction(publicInput, stProof, appProof);
+    const publicOutput = blockProver.proveTransaction(
+      publicInput,
+      stProof,
+      appProof,
+      { networkState, transaction: tx }
+    );
 
     expect(publicOutput.stateRoot).toStrictEqual(toProverState.stateRoot);
-    expect(publicOutput.transactionsHash).toStrictEqual(toProverState.transactionsHash);
+    expect(publicOutput.transactionsHash).toStrictEqual(
+      toProverState.transactionsHash
+    );
   });
 });

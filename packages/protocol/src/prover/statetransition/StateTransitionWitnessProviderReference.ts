@@ -1,4 +1,5 @@
 import { injectable, Lifecycle, scoped } from "tsyringe";
+
 import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider";
 
 @injectable()

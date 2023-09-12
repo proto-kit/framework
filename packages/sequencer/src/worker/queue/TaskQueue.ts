@@ -32,9 +32,6 @@ export interface InstantiatedQueue extends Closeable {
    * Registers a listener for the completion of jobs
    */
   onCompleted: (
-    listener: (result: {
-      taskId: string;
-      payload: TaskPayload;
-    }) => Promise<void>
+    listener: (payload: TaskPayload) => Promise<void>
   ) => Promise<void>;
 }

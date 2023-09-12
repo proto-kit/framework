@@ -1,8 +1,8 @@
+import { FlexibleProvable } from "snarkyjs";
 import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
-// eslint-disable-next-line import/no-cycle
-import { ZkProgrammable } from "./ZkProgrammable";
+import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
 
 // eslint-disable-next-line etc/prefer-interface
 export type DecoratedMethod = (...args: unknown[]) => unknown;
@@ -12,6 +12,7 @@ export const mockProof = "mock-proof";
 export function toProver(
   methodName: string,
   simulatedMethod: DecoratedMethod,
+  isFirstParameterPublicInput: boolean,
   ...args: unknown[]
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,7 +31,7 @@ export function toProver(
 
       // eslint-disable-next-line no-warning-comments
       // TODO: provide undefined if public input is not used
-      publicInput: args[0],
+      publicInput: isFirstParameterPublicInput ? args[0] : undefined,
       publicOutput,
 
       /**
@@ -47,16 +48,20 @@ export function toProver(
  * if proofs are enabled or not, either runs the respective zkProgram prover,
  * or simulates the method execution and issues a mock proof.
  *
+ * @param isFirstParameterPublicInput
  * @param executionContext
  * @returns
  */
 export function provableMethod(
+  isFirstParameterPublicInput = true,
   executionContext: ProvableMethodExecutionContext = container.resolve<ProvableMethodExecutionContext>(
     ProvableMethodExecutionContext
   )
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <Target extends ZkProgrammable<any, any>>(
+  return <
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Target extends WithZkProgrammable<any, any> | ZkProgrammable<any, any>
+  >(
     target: Target,
     methodName: string,
     descriptor: PropertyDescriptor
@@ -66,11 +71,16 @@ export function provableMethod(
 
     descriptor.value = function value(
       this: ZkProgrammable<unknown, unknown>,
-      ...args: unknown[]
+      ...args: FlexibleProvable<unknown>[]
     ) {
-      const prover = toProver(methodName, simulatedMethod, ...args);
+      const prover = toProver(
+        methodName,
+        simulatedMethod,
+        isFirstParameterPublicInput,
+        ...args
+      );
 
-      executionContext.beforeMethod(this.constructor.name, methodName);
+      executionContext.beforeMethod(this.constructor.name, methodName, args);
 
       /**
        * Check if the method is called at the top level,

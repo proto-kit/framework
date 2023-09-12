@@ -1,3 +1,5 @@
+import { log } from "@proto-kit/common";
+
 import { TaskQueue } from "../queue/TaskQueue";
 
 import { MapReduceFlow, TASKS_REDUCE_SUFFIX } from "./MapReduceFlow";
@@ -134,6 +136,7 @@ export class PairingMapReduceFlow<
    * to identify submitted tasks.
    */
   public async executePairingMapReduce(
+    flowId: string,
     inputs: [Input1, Input2, AdditionalParameters][],
     taskIds: string[]
   ) {
@@ -143,6 +146,7 @@ export class PairingMapReduceFlow<
     //    push the paired result tuples as tasks (normal map)
     // 3. Reduce
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     const start = async (resolve: (type: Result) => void) => {
       const { queue, task } = this;
       this.assertQueueNotNull(queue);
@@ -154,12 +158,16 @@ export class PairingMapReduceFlow<
         output2: task.secondPairing.resultSerializer(),
       };
       const mapReduceInputSerializer = task.reducingTask.inputSerializer();
+      const mapReduceOutputSerializer = task.reducingTask.resultSerializer();
 
       // Collects all matching pairs of calculated inputs
       const pairingCollector = this.createNewPairingCollector(inputs, taskIds);
 
       // Add listener
-      await queue.onCompleted(async ({ payload }) => {
+      this.onCompletedListeners[flowId] = async (payload) => {
+        log.debug(
+          `Got payload name: ${payload.name} with id ${payload.taskId ?? "-"}`
+        );
         switch (payload.name) {
           // This case gets triggered when a result of a pair-task comes back
           case task.firstPairing.name():
@@ -185,6 +193,7 @@ export class PairingMapReduceFlow<
               await queue.addTask({
                 name: task.reducingTask.name(),
                 payload: mapReduceInputSerializer.toJSON(resultingTask),
+                flowId,
               });
             }
 
@@ -192,22 +201,30 @@ export class PairingMapReduceFlow<
           }
           case task.reducingTask.name(): {
             // Handle mapping result and delegate new input to MapReduceRunner
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const parsedResult: Result = JSON.parse(payload.payload);
+            const parsedResult: Result = mapReduceOutputSerializer.fromJSON(
+              payload.payload
+            );
 
-            await super.addInput(parsedResult);
+            // This should prevent a non-resolvablility issue when you only have
+            // one input pair and therefore there will be no reduction step
+            if (inputs.length === 1) {
+              resolve(parsedResult);
+              return;
+            }
+
+            await super.addInput(flowId, parsedResult);
 
             break;
           }
           case `${task.reducingTask.name()}${TASKS_REDUCE_SUFFIX}`: {
-            await super.handleCompletedReducingStep(payload, resolve);
+            await super.handleCompletedReducingStep(flowId, payload, resolve);
             break;
           }
           default: {
             throw errors.unknownTask(payload.name);
           }
         }
-      });
+      };
 
       // Push inputs (step 1)
       const taskPushPromises = inputs.flatMap(async (input, index) => {
@@ -218,12 +235,14 @@ export class PairingMapReduceFlow<
           name: task.firstPairing.name(),
           payload: pairingSerializers.input1.toJSON(input[0]),
           taskId,
+          flowId,
         });
         // Push second pairing element
         const promise2 = await queue.addTask({
           name: task.secondPairing.name(),
           payload: pairingSerializers.input2.toJSON(input[1]),
           taskId,
+          flowId,
         });
 
         return await Promise.all([promise1, promise2]);
@@ -232,6 +251,6 @@ export class PairingMapReduceFlow<
       // Await all addTask() calls before continuing
       await Promise.all(taskPushPromises);
     };
-    return await this.executeFlowWithQueue(start);
+    return await this.executeFlowWithQueue(flowId, start);
   }
 }

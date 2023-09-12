@@ -4,7 +4,7 @@ import {
   StaticConfigurableModule,
   TypedClass,
   Presets,
-} from "@yab/common";
+} from "@proto-kit/common";
 import { injectable } from "tsyringe";
 
 /**

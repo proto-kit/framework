@@ -1,6 +1,13 @@
+/* eslint-disable max-lines */
 import { Experimental, Field, type Proof, Provable, SelfProof } from "snarkyjs";
-import { injectable } from "tsyringe";
-import { AreProofsEnabled, PlainZkProgram, provableMethod, ZkProgrammable } from "@yab/common";
+import { container, inject, injectable, injectAll } from "tsyringe";
+import {
+  AreProofsEnabled,
+  PlainZkProgram,
+  provableMethod,
+  WithZkProgrammable,
+  ZkProgrammable,
+} from "@proto-kit/common";
 
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
@@ -10,13 +17,19 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "../statetransition/StateTransitionProvable";
+import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 
 import {
   BlockProvable,
+  BlockProverExecutionData,
   BlockProverProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
 } from "./BlockProvable";
+import { ProvableStateTransition } from "../../model/StateTransition";
+import { ProvableTransactionHook } from "../../protocol/ProvableTransactionHook";
+import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethodExecutionContext";
+import { Protocol, ProtocolModulesRecord } from "../../protocol/Protocol";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -42,28 +55,33 @@ export interface BlockProverState {
    * will at the end equal the bundle hash
    */
   transactionsHash: Field;
+
+  /**
+   * The network state which gives access to values such as blockHeight
+   * This value is the same for the whole batch (L2 block)
+   */
+  networkStateHash: Field;
 }
 
-/**
- * BlockProver class, which aggregates a AppChainProof and
- * a StateTransitionProof into a single BlockProof, that can
- * then be merged to be committed to the base-layer contract
- */
-@injectable()
-export class BlockProver
-  extends ProtocolModule<BlockProverPublicInput, BlockProverPublicInput>
-  implements BlockProvable
-{
-  public appChain?: AreProofsEnabled;
-
+export class BlockProverProgrammable extends ZkProgrammable<
+  BlockProverPublicInput,
+  BlockProverPublicOutput
+> {
   public constructor(
-    private readonly stateTransitionProver: ZkProgrammable<
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    private readonly prover: BlockProver,
+    public readonly stateTransitionProver: ZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    private readonly runtime: ZkProgrammable<void, MethodPublicOutput>
+    public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
+    private readonly blockModules: ProvableTransactionHook[]
   ) {
     super();
+  }
+
+  public get appChain(): AreProofsEnabled | undefined {
+    return this.prover.appChain;
   }
 
   /**
@@ -73,6 +91,7 @@ export class BlockProver
    * @param state The from-state of the BlockProver
    * @param stateTransitionProof
    * @param appProof
+   * @param executionData
    * @returns The new BlockProver-state to be used as public output
    */
   public applyTransaction(
@@ -81,12 +100,18 @@ export class BlockProver
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    appProof: Proof<void, MethodPublicOutput>
+    appProof: Proof<void, MethodPublicOutput>,
+    executionData: BlockProverExecutionData
   ): BlockProverState {
+    const { transaction, networkState } = executionData;
+
     appProof.verify();
     stateTransitionProof.verify();
 
     const stateTo = { ...state };
+
+    // eslint-disable-next-line no-warning-comments
+    // TODO Check methodId?
 
     // Checks for the stateTransitionProof and appProof matching
     stateTransitionProof.publicInput.stateTransitionsHash.assertEquals(
@@ -110,6 +135,36 @@ export class BlockProver
       stateTransitionProof.publicInput.stateRoot
     );
 
+    // Apply protocol state transitions
+    this.assertProtocolTransitions(stateTransitionProof, executionData);
+
+    // Check transaction signature
+    transaction
+      .validateSignature()
+      .assertTrue("Transaction signature not valid");
+
+    // Check if the methodId is correct
+    // to do
+
+    // Check transaction integrity against appProof
+    const blockTransactionHash =
+      RuntimeTransaction.fromProtocolTransaction(transaction).hash();
+
+    blockTransactionHash.assertEquals(
+      appProof.publicOutput.transactionHash,
+      "Transactions provided in AppProof and BlockProof do not match"
+    );
+
+    // Check network state integrity against appProof
+    state.networkStateHash.assertEquals(
+      appProof.publicOutput.networkStateHash,
+      "Network state does not match state used in AppProof"
+    );
+    state.networkStateHash.assertEquals(
+      networkState.hash(),
+      "Network state provided to BlockProver does not match the publicInput"
+    );
+
     // Append tx to transaction list
     const transactionList = new DefaultProvableHashList(
       Field,
@@ -124,22 +179,84 @@ export class BlockProver
     return stateTo;
   }
 
+  // eslint-disable-next-line no-warning-comments, max-len
+  // TODO How does this interact with the RuntimeMethodExecutionContext when executing runtimemethods?
+
+  public assertProtocolTransitions(
+    stateTransitionProof: Proof<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >,
+    executionData: BlockProverExecutionData
+  ) {
+    const executionContext = container.resolve(RuntimeMethodExecutionContext);
+    executionContext.clear();
+
+    // Setup context for potential calls to runtime methods.
+    // This way they can use this.transaction etc. while still having provable
+    // integrity between data
+    executionContext.setup({
+      transaction: RuntimeTransaction.fromProtocolTransaction(
+        executionData.transaction
+      ),
+
+      networkState: executionData.networkState,
+    });
+    executionContext.beforeMethod("", "", []);
+
+    this.blockModules.forEach((module) => {
+      module.onTransaction(executionData);
+    });
+
+    executionContext.afterMethod();
+
+    const { stateTransitions, status, statusMessage } =
+      executionContext.current().result;
+
+    status.assertTrue(statusMessage);
+
+    const transitions = stateTransitions.map((transition) =>
+      transition.toProvable()
+    );
+
+    const hashList = new DefaultProvableHashList(
+      ProvableStateTransition,
+      stateTransitionProof.publicInput.protocolTransitionsHash
+    );
+
+    transitions.forEach((transition) => {
+      hashList.push(transition);
+    });
+
+    stateTransitionProof.publicOutput.protocolTransitionsHash.assertEquals(
+      hashList.commitment,
+      "ProtocolTransitionsHash not matching the generated protocol transitions"
+    );
+  }
+
   @provableMethod()
   public proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    appProof: Proof<void, MethodPublicOutput>
+    appProof: Proof<void, MethodPublicOutput>,
+    executionData: BlockProverExecutionData
   ): BlockProverPublicOutput {
     const state: BlockProverState = {
       transactionsHash: publicInput.transactionsHash,
       stateRoot: publicInput.stateRoot,
+      networkStateHash: publicInput.networkStateHash,
     };
 
-    this.applyTransaction(state, stateProof, appProof);
+    const stateTo = this.applyTransaction(
+      state,
+      stateProof,
+      appProof,
+      executionData
+    );
 
     return new BlockProverPublicOutput({
-      stateRoot: state.stateRoot,
-      transactionsHash: state.transactionsHash,
+      stateRoot: stateTo.stateRoot,
+      transactionsHash: stateTo.transactionsHash,
     });
   }
 
@@ -187,12 +304,12 @@ export class BlockProver
     BlockProverPublicInput,
     BlockProverPublicOutput
   > {
-    const StateTransitionProofClass =
-      this.stateTransitionProver.zkProgram.Proof;
-    const RuntimeProofClass = this.runtime.zkProgram.Proof;
+    const { prover, stateTransitionProver, runtime } = this;
+    const StateTransitionProofClass = stateTransitionProver.zkProgram.Proof;
+    const RuntimeProofClass = runtime.zkProgram.Proof;
 
-    const proveTransaction = this.proveTransaction.bind(this);
-    const merge = this.merge.bind(this);
+    const proveTransaction = prover.proveTransaction.bind(prover);
+    const merge = prover.merge.bind(prover);
 
     const program = Experimental.ZkProgram({
       publicInput: BlockProverPublicInput,
@@ -200,14 +317,24 @@ export class BlockProver
 
       methods: {
         proveTransaction: {
-          privateInputs: [StateTransitionProofClass, RuntimeProofClass],
+          privateInputs: [
+            StateTransitionProofClass,
+            RuntimeProofClass,
+            BlockProverExecutionData,
+          ],
 
           method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
-            appProof: Proof<void, MethodPublicOutput>
+            appProof: Proof<void, MethodPublicOutput>,
+            executionData: BlockProverExecutionData
           ) {
-            return proveTransaction(publicInput, stateProof, appProof);
+            return proveTransaction(
+              publicInput,
+              stateProof,
+              appProof,
+              executionData
+            );
           },
         },
 
@@ -241,5 +368,58 @@ export class BlockProver
       Proof: SelfProofClass,
       methods,
     };
+  }
+}
+
+/**
+ * BlockProver class, which aggregates a AppChainProof and
+ * a StateTransitionProof into a single BlockProof, that can
+ * then be merged to be committed to the base-layer contract
+ */
+@injectable()
+export class BlockProver extends ProtocolModule implements BlockProvable {
+  public zkProgrammable: BlockProverProgrammable;
+
+  public constructor(
+    @inject("StateTransitionProver")
+    public readonly stateTransitionProver: WithZkProgrammable<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >,
+    @inject("Runtime")
+    public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput>,
+    @injectAll("ProvableTransactionHook")
+    transactionHooks: ProvableTransactionHook[]
+  ) {
+    super();
+    this.zkProgrammable = new BlockProverProgrammable(
+      this,
+      stateTransitionProver.zkProgrammable,
+      runtime.zkProgrammable,
+      transactionHooks
+      // protocol.dependencyContainer.resolveAll("P rovableTransactionHook")
+    );
+  }
+
+  public merge(
+    publicInput: BlockProverPublicInput,
+    proof1: BlockProverProof,
+    proof2: BlockProverProof
+  ): BlockProverPublicOutput {
+    return this.zkProgrammable.merge(publicInput, proof1, proof2);
+  }
+
+  public proveTransaction(
+    publicInput: BlockProverPublicInput,
+    stateProof: StateTransitionProof,
+    appProof: Proof<void, MethodPublicOutput>,
+    executionData: BlockProverExecutionData
+  ): BlockProverPublicOutput {
+    return this.zkProgrammable.proveTransaction(
+      publicInput,
+      stateProof,
+      appProof,
+      executionData
+    );
   }
 }

@@ -4,6 +4,7 @@ import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
 import log from "loglevel";
 
 import { StringKeyOf, TypedClass } from "../types";
+import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 
@@ -72,7 +73,9 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
  */
-export class ModuleContainer<Modules extends ModulesRecord> {
+export class ModuleContainer<
+  Modules extends ModulesRecord
+> extends ConfigurableModule<unknown> {
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -83,6 +86,7 @@ export class ModuleContainer<Modules extends ModulesRecord> {
   protected readonly container = container.createChildContainer();
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
+    super();
     // register all provided modules when the container is created
     this.registerModules(definition.modules);
   }
@@ -135,7 +139,10 @@ export class ModuleContainer<Modules extends ModulesRecord> {
     this.isValidModuleName(modules, moduleName);
   }
 
-  public isValidModuleName(modules: Modules, moduleName: string) {
+  public isValidModuleName(
+    modules: Modules,
+    moduleName: number | string | symbol
+  ): asserts moduleName is StringKeyOf<Modules> {
     if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }
@@ -153,7 +160,7 @@ export class ModuleContainer<Modules extends ModulesRecord> {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.assertIsValidModuleName(modules, moduleName);
 
-        log.trace(`Registering module: ${moduleName}`);
+        log.debug(`Registering module: ${moduleName}`);
 
         this.container.register(
           moduleName,
@@ -163,6 +170,18 @@ export class ModuleContainer<Modules extends ModulesRecord> {
         this.onAfterModuleResolution(moduleName);
       }
     }
+  }
+
+  /**
+   * Inject a set of dependencies using the given list of DependencyFactories
+   * This method should be called during startup
+   */
+  protected registerDependencyFactories(
+    factories: TypedClass<DependencyFactory>[]
+  ) {
+    factories.forEach((factory) => {
+      this.container.resolve(factory).initDependencies(this.container);
+    });
   }
 
   /**
@@ -205,6 +224,20 @@ export class ModuleContainer<Modules extends ModulesRecord> {
     return this.container.resolve<InstanceType<Modules[ResolvableModuleName]>>(
       moduleName
     );
+  }
+
+  public resolveOrFail<ModuleType>(
+    moduleName: string,
+    moduleType: TypedClass<ModuleType>
+  ) {
+    const instance = this.container.resolve<ModuleType>(moduleName);
+    const isValidModuleInstance = instance instanceof moduleType;
+
+    if (!isValidModuleInstance) {
+      throw new Error("Incompatible module instance");
+    }
+
+    return instance;
   }
 
   /**

@@ -10,14 +10,17 @@ import {
   UInt64,
 } from "snarkyjs";
 import { container } from "tsyringe";
-import { type ProvableStateTransition, Path } from "@yab/protocol";
+import {
+  type ProvableStateTransition,
+  Path,
+  MethodPublicOutput,
+  StateService, NetworkState, RuntimeTransaction
+} from "@proto-kit/protocol";
 
 import {
   InMemoryStateService,
-  StateService,
 } from "../../src/state/InMemoryStateService.js";
 import {
-  MethodPublicOutput,
   Runtime,
   RuntimeMethodExecutionContext,
 } from "../../src";
@@ -61,13 +64,15 @@ describe("balances", () => {
       },
     });
 
-    runtime.appChain = {
-      areProofsEnabled: false,
+    runtime.dependencyContainer.register("AppChain", {
+      useValue: {
+        areProofsEnabled: false,
 
-      setProofsEnabled(areProofsEnabled) {
-        this.areProofsEnabled = areProofsEnabled;
+        setProofsEnabled(areProofsEnabled: boolean) {
+          this.areProofsEnabled = areProofsEnabled;
+        },
       },
-    };
+    });
 
     runtime.configure({
       Admin: {

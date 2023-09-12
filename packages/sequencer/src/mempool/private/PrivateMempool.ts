@@ -1,13 +1,15 @@
-/* eslint-disable import/no-unused-modules */
 import { Field, Poseidon } from "snarkyjs";
+import { noop } from "@proto-kit/protocol";
 
 import type { Mempool, MempoolCommitment } from "../Mempool.js";
 import type { PendingTransaction } from "../PendingTransaction.js";
+import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 
-export class PrivateMempool implements Mempool {
+export class PrivateMempool extends SequencerModule<object> implements Mempool {
   public commitment: Field;
 
   public constructor(private queue: PendingTransaction[] = []) {
+    super();
     this.commitment = Field(0);
   }
 
@@ -37,7 +39,15 @@ export class PrivateMempool implements Mempool {
     };
   }
 
-  public clear() {
-    this.queue = [];
+  public removeTxs(txs: PendingTransaction[]): boolean {
+    const { length } = this.queue;
+    this.queue = this.queue.filter((tx) => !txs.includes(tx));
+    // Check that all elements have been removed and were in the mempool prior
+    // eslint-disable-next-line unicorn/consistent-destructuring
+    return length === this.queue.length + txs.length;
+  }
+
+  public async start(): Promise<void> {
+    noop();
   }
 }

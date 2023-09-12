@@ -19,4 +19,5 @@ export interface Mempool {
   getTxs: () => { txs: PendingTransaction[]; commitment: MempoolCommitment };
 
   // Add stuff for witness generation
+  removeTxs: (txs: PendingTransaction[]) => boolean;
 }

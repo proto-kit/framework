@@ -7,6 +7,7 @@ import {
   Signature,
   UInt64,
 } from "snarkyjs";
+import { ProtocolTransaction } from "@proto-kit/protocol";
 
 export class UnsignedTransaction {
   public methodId: Field;
@@ -37,14 +38,17 @@ export class UnsignedTransaction {
     return Poseidon.hash([
       this.methodId,
       ...this.sender.toFields(),
-      this.nonce.value,
+      ...this.nonce.toFields(),
       this.argsHash(),
     ]);
   }
 
   public getSignatureData(): Field[] {
-    // Could also be the raw elements, not sure
-    return [this.hash()];
+    return ProtocolTransaction.getSignatureData({
+      nonce: this.nonce,
+      methodId: this.methodId,
+      argsHash: this.argsHash(),
+    });
   }
 
   public sign(privateKey: PrivateKey): PendingTransaction {
@@ -114,5 +118,15 @@ export class PendingTransaction extends UnsignedTransaction {
         s: this.signature.s.toJSON(),
       },
     };
+  }
+
+  public toProtocolTransaction(): ProtocolTransaction {
+    return new ProtocolTransaction({
+      methodId: this.methodId,
+      nonce: this.nonce,
+      argsHash: Poseidon.hash(this.args),
+      sender: this.sender,
+      signature: this.signature,
+    });
   }
 }

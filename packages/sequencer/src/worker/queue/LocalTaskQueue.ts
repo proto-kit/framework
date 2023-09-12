@@ -1,4 +1,5 @@
-import { noop } from "@yab/protocol";
+import { noop } from "@proto-kit/protocol";
+import { log } from "@proto-kit/common";
 
 import { TaskPayload } from "../manager/ReducableTask";
 
@@ -11,7 +12,7 @@ async function sleep(ms: number) {
 
 // Had to extract it to here bc eslint would ruin the code
 interface QueueListener {
-  (result: { taskId: string; payload: TaskPayload }): Promise<void>;
+  (payload: TaskPayload): Promise<void>;
 }
 
 export class LocalTaskQueue implements TaskQueue {
@@ -30,7 +31,7 @@ export class LocalTaskQueue implements TaskQueue {
     [key: string]: QueueListener[];
   } = {};
 
-  public constructor(private readonly simulatedDuration: number) {}
+  public constructor(private readonly simulatedDuration?: number) {}
 
   private workNextTasks() {
     Object.entries(this.queues).forEach((queue) => {
@@ -42,12 +43,11 @@ export class LocalTaskQueue implements TaskQueue {
           // eslint-disable-next-line max-len
           // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
           void this.workers[queueName].handler(task.payload).then((payload) => {
-            console.log("Got", JSON.stringify(payload));
+            log.debug("LocalTaskQueue got", JSON.stringify(payload));
             // Notify listeners about result
             const listenerPromises = this.listeners[queueName].map(
               async (listener) => {
-                console.log("Got 1 listener");
-                await listener({ payload, taskId: task.taskId });
+                await listener(payload);
               }
             );
             void Promise.all(listenerPromises);
@@ -67,7 +67,7 @@ export class LocalTaskQueue implements TaskQueue {
       busy: false,
 
       handler: async (data: TaskPayload) => {
-        await sleep(this.simulatedDuration);
+        await sleep(this.simulatedDuration ?? 0);
 
         return await executor(data);
       },
@@ -102,17 +102,15 @@ export class LocalTaskQueue implements TaskQueue {
 
       // eslint-disable-next-line putout/putout
       onCompleted: async (
-        listener: (result: {
-          taskId: string;
-          payload: TaskPayload;
-        }) => Promise<void>
+        listener: (payload: TaskPayload) => Promise<void>
       ): Promise<void> => {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         (this.listeners[queueName] ??= []).push(listener);
       },
 
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
-      async close(): Promise<void> {},
+      close: async () => {
+        noop();
+      },
     };
   }
 }

@@ -1,4 +1,4 @@
-import { Field, Poseidon, FlexibleProvablePure } from "snarkyjs";
+import { Field, Poseidon, FlexibleProvablePure, Bool, Provable } from "snarkyjs";
 
 /**
  * Utilities for creating a hash list from a given value type.
@@ -23,6 +23,15 @@ export abstract class ProvableHashList<Value> {
       this.commitment,
       ...this.valueType.toFields(value),
     ]);
+    return this;
+  }
+
+  public pushIf(value: Value, condition: Bool) {
+    const newCommitment = this.hash([
+      this.commitment,
+      ...this.valueType.toFields(value),
+    ]);
+    this.commitment = Provable.if(condition, newCommitment, this.commitment);
     return this;
   }
 
