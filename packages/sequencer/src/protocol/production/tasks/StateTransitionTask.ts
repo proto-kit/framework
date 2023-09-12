@@ -73,14 +73,6 @@ export class StateTransitionTask
     //   });
     // });
 
-    console.log("Task paths:");
-    console.log(
-      stBatch.map((st) => ProvableStateTransition.toJSON(st.transition))
-    );
-    console.log(input.merkleWitnesses[0].calculateRoot(Field(0)).toString());
-
-    console.log("STTask Input:", input.publicInput.stateRoot.toString());
-
     const output = this.stateTransitionProver.runBatch(
       input.publicInput,
       StateTransitionProvableBatch.fromMappings(stBatch)
