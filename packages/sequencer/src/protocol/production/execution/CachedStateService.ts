@@ -1,6 +1,6 @@
-import { InMemoryStateService } from "@proto-kit/module";
 import { Field } from "snarkyjs";
 import { log } from "@proto-kit/common";
+import { InMemoryStateService } from "@proto-kit/module";
 
 import { AsyncStateService } from "../state/AsyncStateService";
 
