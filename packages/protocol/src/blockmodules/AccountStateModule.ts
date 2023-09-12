@@ -11,7 +11,10 @@ export class AccountState extends Struct({
 }) {}
 
 export class AccountStateModule extends ProvableTransactionHook {
-  @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(PublicKey, AccountState);
+  @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
+    PublicKey,
+    AccountState
+  );
 
   public onTransaction({ transaction }: BlockProverExecutionData): void {
     const accountState = this.accountState
@@ -19,8 +22,7 @@ export class AccountStateModule extends ProvableTransactionHook {
       .orElse(new AccountState({ nonce: UInt64.zero }));
 
     const currentNonce = accountState.nonce;
-    Provable.log("Current Nonce", currentNonce);
-    Provable.log("Tx Nonce", transaction.nonce);
+
     assert(currentNonce.equals(transaction.nonce), "Nonce not matching");
 
     this.accountState.set(
