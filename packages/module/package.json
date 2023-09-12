@@ -2,7 +2,7 @@
   "name": "@proto-kit/module",
   "license": "MIT",
   "private": false,
-  "version": "0.1.1-develop.160+5120680",
+  "version": "0.1.1-develop.241+b5c9a48",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -31,5 +31,5 @@
     "snarkyjs": "0.12.0",
     "tsyringe": "^4.7.0"
   },
-  "gitHead": "51206808f0eba77c4ad8c1af476a6dbdd478d2a3"
+  "gitHead": "b5c9a487e4a45b2b9a0f2e59cd18ecb4b8854e73"
 }

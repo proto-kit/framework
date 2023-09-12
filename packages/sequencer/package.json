@@ -1,6 +1,6 @@
 {
   "name": "@proto-kit/sequencer",
-  "version": "0.1.1-develop.160+5120680",
+  "version": "0.1.1-develop.241+b5c9a48",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -19,11 +19,11 @@
     "access": "public"
   },
   "peerDependencies": {
-    "snarkyjs": "0.12.0",
-    "tsyringe": "^4.7.0",
     "@proto-kit/common": "*",
     "@proto-kit/module": "*",
-    "@proto-kit/protocol": "*"
+    "@proto-kit/protocol": "*",
+    "snarkyjs": "0.12.0",
+    "tsyringe": "^4.7.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
@@ -34,9 +34,9 @@
     "@types/ws": "^8.5.4",
     "bullmq": "^3.15.0",
     "class-validator": "^0.14.0",
-    "lodash": "^4.17.21",
     "fastify": "^4.17.0",
     "graphql": "16.6.0",
+    "lodash": "^4.17.21",
     "mercurius": "^13.0.0",
     "reflect-metadata": "^0.1.13",
     "type-graphql": "^2.0.0-beta.1"
@@ -44,5 +44,5 @@
   "resolutions": {
     "graphql": "16.6.0"
   },
-  "gitHead": "51206808f0eba77c4ad8c1af476a6dbdd478d2a3"
+  "gitHead": "b5c9a487e4a45b2b9a0f2e59cd18ecb4b8854e73"
 }
