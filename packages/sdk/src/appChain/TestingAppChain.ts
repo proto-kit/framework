@@ -78,7 +78,11 @@ export class TestingAppChain<
     return new TestingAppChain({
       runtime,
       sequencer: sequencer as any,
-      protocol: VanillaProtocol.from({ AccountStateModule }),
+
+      protocol: VanillaProtocol.from(
+        { AccountStateModule },
+        new InMemoryStateService()
+      ),
 
       modules: {
         Signer: InMemorySigner,
