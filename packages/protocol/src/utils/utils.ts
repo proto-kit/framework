@@ -71,7 +71,6 @@ export function stringToField(value: string) {
   const fields = chunks.map((x) =>
     // We have to add a zero at the highest byte here, because a Field is
     // a bit smaller than 2^256
-    // console.log(x.concat([0]).length);
     Field.fromBytes(x.concat([0]))
   );
   return Poseidon.hash(fields);

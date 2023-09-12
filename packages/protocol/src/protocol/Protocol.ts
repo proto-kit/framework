@@ -133,7 +133,6 @@ export class Protocol<
       containedModule instanceof ProvableTransactionHook
     );
     if (containedModule instanceof ProvableTransactionHook) {
-      console.log(`Setting name to ${moduleName}`);
       containedModule.name = moduleName;
     }
 

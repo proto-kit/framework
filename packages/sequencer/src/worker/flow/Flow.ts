@@ -146,7 +146,6 @@ export class Flow<State> implements Closeable {
 
       if (!this.erroredOut) {
         if (response.status === "error") {
-          console.log("Got error in Flow");
           this.erroredOut = true;
           this.errorFunction?.(
             new Error(`Error in worker: ${response.payload}`)

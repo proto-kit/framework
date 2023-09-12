@@ -126,7 +126,6 @@ export class TransactionTraceService {
       stateTransitions
         .filter((st) => st.to.isSome.toBoolean())
         .map(async (st) => {
-          console.log("Setting async:", st.path.toString(), st.to.toJSON());
           await stateService.setAsync(st.path, st.to.toFields());
         })
     );
@@ -287,7 +286,6 @@ export class TransactionTraceService {
     ).map<StateTransitionProofParameters>((currentChunk, index) => {
       //
       const stateRoot = tree.getRoot();
-      console.log(`Root step ${index}:`, stateRoot.toString());
 
       const stateTransitionsHash = transitionsList.commitment;
       const protocolTransitionsHash = protocolTransitionsList.commitment;
@@ -321,11 +319,6 @@ export class TransactionTraceService {
 
         return witness;
       });
-
-      console.log(
-        "Paths:",
-        merkleWitnesses.map((witness) => witness.calculateIndex().toString())
-      );
 
       return {
         merkleWitnesses,
