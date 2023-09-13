@@ -61,7 +61,7 @@ describe("block production", () => {
   beforeEach(async () => {
     // container.reset();
 
-    log.setLevel("TRACE");
+    log.setLevel("DEBUG");
 
     const stateService = new InMemoryStateService()
 

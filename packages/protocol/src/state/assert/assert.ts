@@ -3,7 +3,6 @@ import { container } from "tsyringe";
 import { log } from "@proto-kit/common";
 
 import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecutionContext";
-import { exec } from "child_process";
 
 /**
  * Maintains an execution status of the current runtime module method,
@@ -17,6 +16,8 @@ import { exec } from "child_process";
 export function assert(condition: Bool, message?: string) {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
+  console.log(Bool.toFields(condition)[0].toString());
+  console.log(Bool.toFields(previousStatus)[0].toString());
   const status = Provable.if(previousStatus, Bool, condition, previousStatus);
 
   if (!condition.toBoolean()) {

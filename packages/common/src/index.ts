@@ -6,5 +6,4 @@ export * from "./zkProgrammable/ProvableMethodExecutionContext";
 export * from "./zkProgrammable/provableMethod";
 export * from "./utils";
 export * from "./dependencyFactory/DependencyFactory";
-// eslint-disable-next-line import/no-unused-modules
-export { default as log } from "loglevel";
+export * from "./log";
