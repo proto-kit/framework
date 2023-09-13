@@ -16,8 +16,6 @@ import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecution
 export function assert(condition: Bool, message?: string) {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
-  console.log(Bool.toFields(condition)[0].toString());
-  console.log(Bool.toFields(previousStatus)[0].toString());
   const status = Provable.if(previousStatus, Bool, condition, previousStatus);
 
   if (!condition.toBoolean()) {

@@ -61,7 +61,7 @@ describe("block production", () => {
   beforeEach(async () => {
     // container.reset();
 
-    log.setLevel("DEBUG");
+    log.setLevel(log.levels.DEBUG);
 
     const stateService = new InMemoryStateService()
 
@@ -200,7 +200,7 @@ describe("block production", () => {
       })
     );
 
-    console.log("Starting second block");
+    log.info("Starting second block");
 
     block = await blockTrigger.produceBlock();
 

@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-import loglevel from "loglevel";
+/* eslint-disable @typescript-eslint/unbound-method, putout/putout */
+import loglevel, { LogLevelDesc } from "loglevel";
 import { Provable } from "snarkyjs";
 
 function logProvable(
@@ -47,5 +47,33 @@ export const log = {
     },
   },
 
-  ...loglevel,
+  info: (...args: unknown[]) => {
+    loglevel.info(...args);
+  },
+
+  debug: (...args: unknown[]) => {
+    loglevel.debug(...args);
+  },
+
+  error: (...args: unknown[]) => {
+    loglevel.error(...args);
+  },
+
+  trace: (...args: unknown[]) => {
+    loglevel.trace(...args);
+  },
+
+  warn: (...args: unknown[]) => {
+    loglevel.warn(...args);
+  },
+
+  setLevel: (level: LogLevelDesc) => {
+    loglevel.setLevel(level);
+  },
+
+  get levels() {
+    return loglevel.levels;
+  },
+
+  getLevel: () => loglevel.getLevel(),
 };

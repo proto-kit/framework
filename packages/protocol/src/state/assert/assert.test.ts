@@ -18,7 +18,7 @@ describe("assert", () => {
     executionContext.setup({
       transaction: undefined as unknown as RuntimeTransaction,
       networkState: undefined as unknown as NetworkState,
-    })
+    });
   });
 
   afterEach(() => {
