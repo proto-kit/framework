@@ -1,4 +1,4 @@
-import { Poseidon } from "snarkyjs";
+import { Field, Poseidon } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -15,6 +15,7 @@ import {
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
+import { MethodIdResolver } from "../runtime/MethodIdResolver";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -23,6 +24,13 @@ const errors = {
   methodInputsNotProvided: () =>
     new Error(
       "Method execution inputs not provided, provide them via context.inputs"
+    ),
+
+  runtimeNameNotSet: () => new Error("Runtime name was not set"),
+
+  fieldNotConstant: (name: string) =>
+    new Error(
+      `In-circuit field ${name} not a constant, this is likely a framework bug`
     ),
 };
 
@@ -51,7 +59,7 @@ export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown,
-  methodArgs: ToFieldable[]
+  methodArguments: ToFieldable[]
 ) {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
     RuntimeMethodExecutionContext
@@ -70,10 +78,39 @@ export function toWrappedMethod(
       throw errors.methodInputsNotProvided();
     }
 
-    // Assert that the argsHash that has been signed matches the given arguments
-    const argsHash = Poseidon.hash(
-      methodArgs.flatMap((argument) => argument.toFields())
+    const { name, runtime } = this;
+
+    if (name === undefined) {
+      throw errors.runtimeNameNotSet();
+    }
+    if (runtime === undefined) {
+      throw errors.runtimeNotProvided(name);
+    }
+
+    // Assert that the given transaction has the correct methodId
+    const methodIdResolver =
+      runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver");
+    const thisMethodId = Field(methodIdResolver.getMethodId(name, methodName));
+    if (!thisMethodId.isConstant()) {
+      throw errors.fieldNotConstant("methodId");
+    }
+
+    input.transaction.methodId.assertEquals(
+      thisMethodId,
+      "Runtimemethod called with wrong methodId on the transaction object"
     );
+
+    // Assert that the argsHash that has been signed matches the given arguments
+    // We can use js-if here, because methodArguments is statically sizes
+    // i.e. the result of the if-statement will be the same for all executions
+    // of this method
+    const argsHash =
+      methodArguments.length > 0
+        ? Poseidon.hash(
+            methodArguments.flatMap((argument) => argument.toFields())
+          )
+        : Field(0);
+
     input.transaction.argsHash.assertEquals(
       argsHash,
       "argsHash and therefore arguments of transaction and runtime call does not match"
