@@ -7,6 +7,7 @@ import {
   StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProvableBatch,
+  StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
 import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -77,10 +78,10 @@ export class StateTransitionTask
       input.publicInput,
       StateTransitionProvableBatch.fromMappings(stBatch)
     );
-    log.debug(
-      "STTask output:",
-      StateTransitionProverPublicOutput.toJSON(output)
-    );
+    log.debug("STTask public io:", {
+      input: StateTransitionProverPublicInput.toJSON(input.publicInput),
+      output: StateTransitionProverPublicOutput.toJSON(output),
+    });
 
     const proof = await this.executionContext
       .current()

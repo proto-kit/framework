@@ -110,9 +110,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     const stateTo = { ...state };
 
-    // eslint-disable-next-line no-warning-comments
-    // TODO Check methodId?
-
     // Checks for the stateTransitionProof and appProof matching
     stateTransitionProof.publicInput.stateTransitionsHash.assertEquals(
       Field(0),
@@ -124,15 +121,21 @@ export class BlockProverProgrammable extends ZkProgrammable<
       errors.stateTransitionsHashNotEqual()
     );
 
-    // Apply state if status success
+    // Assert from state roots
     state.stateRoot.assertEquals(
       stateTransitionProof.publicInput.stateRoot,
       errors.propertyNotMatching("from state root")
     );
+    state.stateRoot.assertEquals(
+      stateTransitionProof.publicInput.protocolStateRoot,
+      errors.propertyNotMatching("from protocol state root")
+    );
+
+    // Apply state if status success
     stateTo.stateRoot = Provable.if(
       appProof.publicOutput.status,
       stateTransitionProof.publicOutput.stateRoot,
-      stateTransitionProof.publicInput.stateRoot
+      stateTransitionProof.publicOutput.protocolStateRoot
     );
 
     // Apply protocol state transitions
@@ -142,9 +145,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     transaction
       .validateSignature()
       .assertTrue("Transaction signature not valid");
-
-    // Check if the methodId is correct
-    // to do
 
     // Check transaction integrity against appProof
     const blockTransactionHash =

@@ -14,10 +14,10 @@ import { AppChain } from "@proto-kit/sdk";
 import {
   AccountState,
   AccountStateModule,
-  BlockProver,
+  BlockProver, CachedMerkleTreeStore, InMemoryMerkleTreeStorage,
   Path,
   Protocol,
-  ProvableTransactionHook,
+  ProvableTransactionHook, RollupMerkleTree,
   StateTransitionProver,
   VanillaProtocol
 } from "@proto-kit/protocol";
@@ -50,10 +50,10 @@ describe("block production", () => {
   }>;
 
   let protocol: Protocol<{
-    AccountStateModule: typeof AccountStateModule,
-    BlockProver: typeof BlockProver,
-    StateTransitionProver: typeof StateTransitionProver
-  }>
+    AccountStateModule: typeof AccountStateModule;
+    BlockProver: typeof BlockProver;
+    StateTransitionProver: typeof StateTransitionProver;
+  }>;
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -63,7 +63,7 @@ describe("block production", () => {
 
     log.setLevel("TRACE");
 
-    const stateService = new InMemoryStateService()
+    const stateService = new InMemoryStateService();
 
     runtime = Runtime.from({
       modules: {
@@ -133,13 +133,8 @@ describe("block production", () => {
     }).sign(spec.privateKey);
   }
 
-  it("test", () => {
-    const module = new AccountStateModule()
-    console.log(module instanceof ProvableTransactionHook);
-  })
-
   // eslint-disable-next-line max-statements
-  it.only("should produce a dummy block proof", async () => {
+  it("should produce a dummy block proof", async () => {
     expect.assertions(16);
 
     const privateKey = PrivateKey.random();
@@ -160,7 +155,7 @@ describe("block production", () => {
 
     expect(block!.txs).toHaveLength(1);
     expect(block!.txs[0].status).toBe(true);
-    expect(block!.txs[0].statusMessage).toBe(undefined);
+    expect(block!.txs[0].statusMessage).toBeUndefined();
     expect(block!.proof.proof).toBe("mock-proof");
 
     const stateService =
@@ -208,7 +203,7 @@ describe("block production", () => {
 
     expect(block!.txs).toHaveLength(1);
     expect(block!.txs[0].status).toBe(true);
-    expect(block!.txs[0].statusMessage).toBe(undefined);
+    expect(block!.txs[0].statusMessage).toBeUndefined();
     expect(block!.proof.proof).toBe("mock-proof");
 
     const state2 = await stateService.getAsync(balancesPath);
@@ -234,6 +229,9 @@ describe("block production", () => {
 
     let block = await blockTrigger.produceBlock();
 
+    expect(block?.txs[0].status).toBe(false);
+    expect(block?.txs[0].statusMessage).toBe("Condition not met");
+
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
         "AsyncStateService"
@@ -248,9 +246,6 @@ describe("block production", () => {
 
     // Assert that state is not set
     expect(newState).toBeUndefined();
-
-    expect(block?.txs[0].status).toBe(false);
-    expect(block?.txs[0].statusMessage).toBe("Condition not met");
   }, 30_000);
 
   const numberTxs = 3;
@@ -303,7 +298,7 @@ describe("block production", () => {
     );
   }, 160_000);
 
-  it("should produce block with a tx with a lot of STs", async () => {
+  it.only("should produce block with a tx with a lot of STs", async () => {
     expect.assertions(9);
 
     const privateKey = PrivateKey.random();
@@ -331,10 +326,7 @@ describe("block production", () => {
       sequencer.dependencyContainer.resolve<AsyncStateService>(
         "AsyncStateService"
       );
-    const supplyPath = Path.fromProperty(
-      "Balance",
-      "totalSupply"
-    );
+    const supplyPath = Path.fromProperty("Balance", "totalSupply");
     const newState = await stateService.getAsync(supplyPath);
 
     expect(newState).toBeDefined();
@@ -343,7 +335,7 @@ describe("block production", () => {
       UInt64.from(100 * 10)
     );
 
-    const pk2 = PublicKey.from({ x: Field(2), isOdd: Bool(false) })
+    const pk2 = PublicKey.from({ x: Field(2), isOdd: Bool(false) });
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
       balanceModule.balances.path!,

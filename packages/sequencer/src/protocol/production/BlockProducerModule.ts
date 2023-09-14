@@ -220,7 +220,7 @@ export class BlockProducerModule extends SequencerModule<object> {
       proof,
       stateSerivce: stateServices.stateService,
       merkleStore: stateServices.merkleStore,
-      computedTransactions: traceResults.map((result) => result.txStatus),
+      computedTransactions: traceResults.map((result) => result.computedTxs),
     };
   }
 }

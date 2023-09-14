@@ -189,6 +189,11 @@ export class BlockTaskFlowService {
           a.publicOutput.stateRoot
             .equals(b.publicInput.stateRoot)
             .and(
+              a.publicOutput.protocolStateRoot.equals(
+                b.publicInput.protocolStateRoot
+              )
+            )
+            .and(
               a.publicOutput.stateTransitionsHash.equals(
                 b.publicInput.stateTransitionsHash
               )

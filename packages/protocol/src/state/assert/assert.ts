@@ -1,9 +1,8 @@
-import { Bool, Provable } from "snarkyjs";
+import { Bool } from "snarkyjs";
 import { container } from "tsyringe";
 import { log } from "@proto-kit/common";
 
 import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecutionContext";
-import { exec } from "child_process";
 
 /**
  * Maintains an execution status of the current runtime module method,
@@ -17,7 +16,7 @@ import { exec } from "child_process";
 export function assert(condition: Bool, message?: string) {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
-  const status = Provable.if(previousStatus, Bool, condition, previousStatus);
+  const status = condition.and(previousStatus);
 
   if (!condition.toBoolean()) {
     log.debug("Assertion failed: ", message);
