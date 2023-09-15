@@ -40,6 +40,7 @@ import {
 } from "../query/StateServiceQueryModule";
 
 import { NetworkStateQuery } from "../query/NetworkStateQuery";
+import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -77,14 +78,11 @@ export interface AppChainConfig<
  * AppChain acts as a wrapper connecting Runtime, Protocol and Sequencer
  */
 export class AppChain<
-    RuntimeModules extends RuntimeModulesRecord,
-    ProtocolModules extends ProtocolModulesRecord,
-    SequencerModules extends SequencerModulesRecord,
-    AppChainModules extends AppChainModulesRecord
-  >
-  extends ModuleContainer<AppChainModules>
-  implements AreProofsEnabled
-{
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
+> extends ModuleContainer<AppChainModules> {
   // alternative AppChain constructor
   public static from<
     RuntimeModules extends RuntimeModulesRecord,
@@ -145,6 +143,7 @@ export class AppChain<
       Runtime: this.definition.runtime,
       Protocol: this.definition.protocol,
     });
+    this.registerDependencyFactories([AreProofsEnabledFactory]);
   }
 
   public get runtime(): Runtime<RuntimeModules> {
@@ -238,39 +237,14 @@ export class AppChain<
       container.registerValue({ AppChain: this });
     });
 
-    this.protocol.registerValue({
-      Runtime: this.runtime,
-    });
-
-    // Hacky workaround to get protocol and sequencer to have
+    // Workaround to get protocol and sequencer to have
     // access to the same WitnessProviderReference
     const reference = new StateTransitionWitnessProviderReference();
-    this.protocol.dependencyContainer.register(
-      "StateTransitionWitnessProviderReference",
-      {
-        useValue: reference,
-      }
-    );
-
-    this.sequencer.registerValue({
-      Runtime: this.runtime,
-      Protocol: this.protocol,
+    this.registerValue({
       StateTransitionWitnessProviderReference: reference,
     });
 
     this.runtime.start();
     await this.sequencer.start();
-  }
-
-  // eslint-disable-next-line no-warning-comments
-  // TODO
-  private proofsEnabled: boolean = false;
-
-  public get areProofsEnabled(): boolean {
-    return this.proofsEnabled;
-  }
-
-  public setProofsEnabled(areProofsEnabled: boolean): void {
-    this.proofsEnabled = areProofsEnabled;
   }
 }
