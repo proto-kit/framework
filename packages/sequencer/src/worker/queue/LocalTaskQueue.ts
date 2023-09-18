@@ -1,5 +1,4 @@
-import { noop } from "@proto-kit/protocol";
-import { log } from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
 
 import { TaskPayload } from "../manager/ReducableTask";
 

@@ -1,12 +1,12 @@
 import {
   AsyncMerkleTreeStore,
   InMemoryMerkleTreeStorage,
-  noop,
 } from "@proto-kit/protocol";
 import {
   dependency,
   DependencyFactory,
   dependencyFactory,
+  noop,
 } from "@proto-kit/common";
 
 import { AsyncStateService } from "../protocol/production/state/AsyncStateService";
