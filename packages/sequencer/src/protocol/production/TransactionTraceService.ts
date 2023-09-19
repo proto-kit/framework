@@ -126,6 +126,12 @@ export class TransactionTraceService {
       stateTransitions
         .filter((st) => st.to.isSome.toBoolean())
         .map(async (st) => {
+          console.log(
+            `Applying ${st.path.toString()} -> ${st.to
+              .toFields()
+              .map((x) => x.toString())
+              .reduce((a, b) => a + "," + b)}`
+          );
           await stateService.setAsync(st.path, st.to.toFields());
         })
     );
@@ -174,7 +180,7 @@ export class TransactionTraceService {
     bundleTracker: ProvableHashList<Field>
   ): Promise<{
     trace: TransactionTrace;
-    txStatus: ComputedBlockTransaction;
+    computedTxs: ComputedBlockTransaction;
   }> {
     // this.witnessProviderReference.setWitnessProvider(
     //   new MerkleStoreWitnessProvider(stateServices.merkleStore)
@@ -188,12 +194,6 @@ export class TransactionTraceService {
     );
     const { stateTransitions, protocolTransitions, status, statusMessage } =
       executionResult;
-
-    log.debug(
-      stateTransitions.map((x) =>
-        ProvableStateTransition.toJSON(x.toProvable())
-      )
-    );
 
     // Step 3
     const { stParameters, fromStateRoot } = await this.createMerkleTrace(
@@ -226,6 +226,7 @@ export class TransactionTraceService {
           networkState,
           transaction: tx.toProtocolTransaction(),
         },
+
         startingState: startingState.protocol,
       },
     };
@@ -233,7 +234,7 @@ export class TransactionTraceService {
     return {
       trace,
 
-      txStatus: {
+      computedTxs: {
         tx,
         status: status.toBoolean(),
         statusMessage,
@@ -259,7 +260,7 @@ export class TransactionTraceService {
     );
 
     const tree = new RollupMerkleTree(merkleStore);
-    const fromStateRoot = tree.getRoot();
+    const initialRoot = tree.getRoot();
 
     const transitionsList = new DefaultProvableHashList(
       ProvableStateTransition
@@ -268,24 +269,27 @@ export class TransactionTraceService {
       ProvableStateTransition
     );
 
-    const allTransitions = stateTransitions
-      .map<[StateTransition<unknown>, boolean]>((transition) => [
-        transition,
-        StateTransitionType.normal,
+    const allTransitions = protocolTransitions
+      .map<[StateTransition<unknown>, boolean]>((protocolTransition) => [
+        protocolTransition,
+        StateTransitionType.protocol,
       ])
       .concat(
-        protocolTransitions.map((protocolTransition) => [
-          protocolTransition,
-          StateTransitionType.protocol,
+        stateTransitions.map((transition) => [
+          transition,
+          StateTransitionType.normal,
         ])
       );
+
+    let stateRoot = initialRoot;
+    let protocolStateRoot = initialRoot;
 
     const stParameters = chunk(
       allTransitions,
       ProtocolConstants.stateTransitionProverBatchSize
     ).map<StateTransitionProofParameters>((currentChunk, index) => {
-      //
-      const stateRoot = tree.getRoot();
+      const fromStateRoot = stateRoot;
+      const fromProtocolStateRoot = protocolStateRoot;
 
       const stateTransitionsHash = transitionsList.commitment;
       const protocolTransitionsHash = protocolTransitionsList.commitment;
@@ -306,6 +310,11 @@ export class TransactionTraceService {
             provableTransition.path.toBigInt(),
             provableTransition.to.value
           );
+
+          stateRoot = tree.getRoot();
+          if (StateTransitionType.isProtocol(type)) {
+            protocolStateRoot = stateRoot;
+          }
         }
 
         // Push transition to respective hashlist
@@ -332,7 +341,8 @@ export class TransactionTraceService {
         }),
 
         publicInput: {
-          stateRoot,
+          stateRoot: fromStateRoot,
+          protocolStateRoot: fromProtocolStateRoot,
           stateTransitionsHash,
           protocolTransitionsHash,
         },
@@ -341,7 +351,7 @@ export class TransactionTraceService {
 
     return {
       stParameters,
-      fromStateRoot,
+      fromStateRoot: initialRoot,
     };
   }
 
@@ -362,6 +372,7 @@ export class TransactionTraceService {
     const runtimeResult = executionContext.current().result;
 
     // Clear executionContext
+    executionContext.afterMethod();
     executionContext.clear();
 
     return runtimeResult;
@@ -386,6 +397,7 @@ export class TransactionTraceService {
     });
 
     const protocolResult = executionContext.current().result;
+    executionContext.afterMethod();
     executionContext.clear();
 
     return protocolResult;
@@ -474,33 +486,12 @@ export class TransactionTraceService {
       runtimeKeys.concat(protocolKeys).filter(distinctByString)
     );
 
-    // Get starting state
-    const startingRuntimeState = this.retrieveStateRecord(
-      stateService,
-      runtimeKeys
-    );
-
     // Execute second time with preloaded state. The following steps
     // generate and apply the correct STs with the right values
     this.runtime.stateServiceProvider.setCurrentStateService(stateService);
     this.protocol.stateServiceProvider.setCurrentStateService(stateService);
 
-    const runtimeResult = this.executeRuntimeMethod(
-      method,
-      args,
-      runtimeContextInputs
-    );
-
-    log.debug(
-      "STs:",
-      runtimeResult.stateTransitions.map((x) => x.toJSON())
-    );
-
-    // Apply runtime STs (only if the tx succeeded)
-    if (runtimeResult.status.toBoolean()) {
-      await this.applyTransitions(stateService, runtimeResult.stateTransitions);
-    }
-
+    // Get starting protocol state
     const startingProtocolState = this.retrieveStateRecord(
       stateService,
       protocolKeys
@@ -518,6 +509,29 @@ export class TransactionTraceService {
 
     // Apply protocol STs
     await this.applyTransitions(stateService, protocolResult.stateTransitions);
+
+    // Now do the same for runtime STs
+    // Get starting state
+    const startingRuntimeState = this.retrieveStateRecord(
+      stateService,
+      runtimeKeys
+    );
+
+    const runtimeResult = this.executeRuntimeMethod(
+      method,
+      args,
+      runtimeContextInputs
+    );
+
+    log.debug(
+      "STs:",
+      runtimeResult.stateTransitions.map((x) => x.toJSON())
+    );
+
+    // Apply runtime STs (only if the tx succeeded)
+    if (runtimeResult.status.toBoolean()) {
+      await this.applyTransitions(stateService, runtimeResult.stateTransitions);
+    }
 
     // Reset global stateservice
     this.runtime.stateServiceProvider.resetToDefault();

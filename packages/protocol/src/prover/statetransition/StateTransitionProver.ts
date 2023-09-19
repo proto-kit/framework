@@ -3,6 +3,7 @@ import { Experimental, Field, Provable, SelfProof } from "snarkyjs";
 import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
+  log,
   PlainZkProgram,
   provableMethod,
   ZkProgrammable,
@@ -34,13 +35,8 @@ import {
 import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
 
 const errors = {
-  stateRootNotMatching: (step: string) => `StateRoots not matching ${step}`,
-
-  stateTransitionsHashNotMatching: (step: string) =>
-    `State transitions hash not matching ${step}`,
-
-  protocolTransitionsHashNotMatching: (step: string) =>
-    `Protocol transitions hash not matching ${step}`,
+  propertyNotMatching: (property: string, step: string) =>
+    `${property} not matching ${step}`,
 
   merkleWitnessNotCorrect: (index: number) =>
     `MerkleWitness not valid for StateTransition (${index})`,
@@ -49,12 +45,11 @@ const errors = {
     new Error(
       "WitnessProvider not set, set it before you use StateTransitionProvider"
     ),
-
-  propertyNotMatching: (propertyName: string) => `${propertyName} not matching`,
 };
 
 interface StateTransitionProverExecutionState {
   stateRoot: Field;
+  protocolStateRoot: Field;
   stateTransitionList: ProvableHashList<ProvableStateTransition>;
   protocolTransitionList: ProvableHashList<ProvableStateTransition>;
 }
@@ -154,12 +149,14 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
    */
   public applyTransitions(
     stateRoot: Field,
+    protocolStateRoot: Field,
     stateTransitionCommitmentFrom: Field,
     protocolTransitionCommitmentFrom: Field,
     transitionBatch: StateTransitionProvableBatch
   ): StateTransitionProverExecutionState {
     const state: StateTransitionProverExecutionState = {
       stateRoot,
+      protocolStateRoot,
 
       stateTransitionList: new DefaultProvableHashList(
         ProvableStateTransition,
@@ -209,7 +206,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       .or(transition.from.isSome.not())
       .assertTrue(errors.merkleWitnessNotCorrect(index));
 
-    const t = Date.now();
     const newRoot = MerkleTreeUtils.computeRoot(
       treeWitness,
       transition.to.value
@@ -219,6 +215,14 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       transition.to.isSome,
       newRoot,
       state.stateRoot
+    );
+
+    // Only update protocol state root if ST is also of type protocol
+    // Since protocol STs are all at the start of the batch, this works
+    state.protocolStateRoot = Provable.if(
+      transition.to.isSome.and(type.isProtocol()),
+      newRoot,
+      state.protocolStateRoot
     );
 
     const isNotDummy = transition.path.equals(Field(0)).not();
@@ -243,6 +247,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   ): StateTransitionProverPublicOutput {
     const result = this.applyTransitions(
       publicInput.stateRoot,
+      publicInput.protocolStateRoot,
       publicInput.stateTransitionsHash,
       publicInput.protocolTransitionsHash,
       batch
@@ -252,6 +257,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       stateRoot: result.stateRoot,
       stateTransitionsHash: result.stateTransitionList.commitment,
       protocolTransitionsHash: result.protocolTransitionList.commitment,
+      protocolStateRoot: result.protocolStateRoot,
     });
   }
 
@@ -267,39 +273,66 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     // Check state
     publicInput.stateRoot.assertEquals(
       proof1.publicInput.stateRoot,
-      errors.stateRootNotMatching("publicInput.from -> proof1.from")
+      errors.propertyNotMatching("stateRoot", "publicInput.from -> proof1.from")
     );
     proof1.publicOutput.stateRoot.assertEquals(
       proof2.publicInput.stateRoot,
-      errors.stateRootNotMatching("proof1.to -> proof2.from")
+      errors.propertyNotMatching("stateRoot", "proof1.to -> proof2.from")
     );
 
     // Check ST list
     publicInput.stateTransitionsHash.assertEquals(
       proof1.publicInput.stateTransitionsHash,
-      errors.stateTransitionsHashNotMatching("publicInput.from -> proof1.from")
+      errors.propertyNotMatching(
+        "stateTransitionsHash",
+        "publicInput.from -> proof1.from"
+      )
     );
     proof1.publicOutput.stateTransitionsHash.assertEquals(
       proof2.publicInput.stateTransitionsHash,
-      errors.stateTransitionsHashNotMatching("proof1.to -> proof2.from")
+      errors.propertyNotMatching(
+        "stateTransitionsHash",
+        "proof1.to -> proof2.from"
+      )
     );
 
     // Check Protocol ST list
     publicInput.protocolTransitionsHash.assertEquals(
       proof1.publicInput.protocolTransitionsHash,
-      errors.protocolTransitionsHashNotMatching(
+      errors.propertyNotMatching(
+        "protocolTransitionsHash",
         "publicInput.from -> proof1.from"
       )
     );
     proof1.publicOutput.protocolTransitionsHash.assertEquals(
       proof2.publicInput.protocolTransitionsHash,
-      errors.protocolTransitionsHashNotMatching("proof1.to -> proof2.from")
+      errors.propertyNotMatching(
+        "protocolTransitionsHash",
+        "proof1.to -> proof2.from"
+      )
+    );
+
+    // Check protocol state root
+    publicInput.protocolStateRoot.assertEquals(
+      proof1.publicInput.protocolStateRoot,
+      errors.propertyNotMatching(
+        "protocolStateRoot",
+        "publicInput.from -> proof1.from"
+      )
+    );
+    proof1.publicOutput.protocolStateRoot.assertEquals(
+      proof2.publicInput.protocolStateRoot,
+      errors.propertyNotMatching(
+        "protocolStateRoot",
+        "proof1.to -> proof2.from"
+      )
     );
 
     return new StateTransitionProverPublicInput({
       stateRoot: proof2.publicOutput.stateRoot,
       stateTransitionsHash: proof2.publicOutput.stateTransitionsHash,
       protocolTransitionsHash: proof2.publicOutput.protocolTransitionsHash,
+      protocolStateRoot: proof2.publicOutput.protocolStateRoot,
     });
   }
 }

@@ -1,12 +1,13 @@
 import { Bool, Provable, Struct } from "snarkyjs";
+import { range } from "@proto-kit/common";
 
 import { constants } from "../Constants";
 
 import { ProvableStateTransition } from "./StateTransition.js";
-import { range } from "@proto-kit/common";
 
 export class StateTransitionType {
   public static readonly normal = true;
+
   public static readonly protocol = false;
 
   public static isNormal(type: boolean) {
@@ -68,6 +69,17 @@ export class StateTransitionProvableBatch extends Struct({
   ): StateTransitionProvableBatch {
     const batch = transitions.map((entry) => entry.transition);
     const transitionTypes = transitions.map((entry) => entry.type);
+
+    // Check that order is correct
+    let normalSTsStarted = false;
+    transitionTypes.forEach((x) => {
+      if (!normalSTsStarted && x.isNormal().toBoolean()) {
+        normalSTsStarted = true;
+      }
+      if (normalSTsStarted && x.isProtocol().toBoolean()) {
+        throw new Error("Order in initializing STBatch not correct");
+      }
+    });
 
     while (batch.length < constants.stateTransitionProverBatchSize) {
       batch.push(ProvableStateTransition.dummy());

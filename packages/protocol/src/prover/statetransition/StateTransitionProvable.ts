@@ -9,12 +9,14 @@ export class StateTransitionProverPublicInput extends Struct({
   stateTransitionsHash: Field,
   protocolTransitionsHash: Field,
   stateRoot: Field,
+  protocolStateRoot: Field,
 }) {}
 
 export class StateTransitionProverPublicOutput extends Struct({
   stateTransitionsHash: Field,
   protocolTransitionsHash: Field,
   stateRoot: Field,
+  protocolStateRoot: Field,
 }) {}
 
 export type StateTransitionProof = Proof<
