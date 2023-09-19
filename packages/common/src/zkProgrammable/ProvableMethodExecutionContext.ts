@@ -2,6 +2,8 @@ import type { FlexibleProvable, Proof } from "snarkyjs";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 
+import { ToFieldable } from "../utils";
+
 const errors = {
   moduleOrMethodNameNotSet: () => new Error("Module or method name not set"),
 
@@ -16,7 +18,7 @@ export class ProvableMethodExecutionResult {
 
   public methodName?: string;
 
-  public args?: FlexibleProvable<unknown>[];
+  public args?: ToFieldable[];
 
   public prover?: () => Promise<Proof<unknown, unknown>>;
 
@@ -74,7 +76,7 @@ export class ProvableMethodExecutionContext {
   public beforeMethod(
     moduleName: string,
     methodName: string,
-    args: FlexibleProvable<unknown>[]
+    args: ToFieldable[]
   ) {
     if (this.isFinished) {
       this.clear();

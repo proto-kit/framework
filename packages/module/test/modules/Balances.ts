@@ -1,11 +1,8 @@
 import { Bool, PublicKey, UInt64 } from "snarkyjs";
-import { Option } from "@proto-kit/protocol";
+import { Option, State, StateMap } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 
-import { State } from "../../../protocol/src/state/State.js";
-import { state } from "../../src/state/decorator.js";
-import { StateMap } from "../../../protocol/src/state/StateMap.js";
-import { RuntimeModule, runtimeMethod, runtimeModule } from "../../src";
+import { RuntimeModule, runtimeMethod, runtimeModule, state } from "../../src";
 
 import { Admin } from "./Admin.js";
 

@@ -3,6 +3,7 @@ import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
 import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
+import { ToFieldable } from "../utils";
 
 // eslint-disable-next-line etc/prefer-interface
 export type DecoratedMethod = (...args: unknown[]) => unknown;
@@ -71,7 +72,7 @@ export function provableMethod(
 
     descriptor.value = function value(
       this: ZkProgrammable<unknown, unknown>,
-      ...args: FlexibleProvable<unknown>[]
+      ...args: ToFieldable[]
     ) {
       const prover = toProver(
         methodName,

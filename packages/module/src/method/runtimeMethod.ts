@@ -1,15 +1,21 @@
-import { FlexibleProvable } from "snarkyjs";
+import { Field, Poseidon } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,
   DefaultProvableHashList,
   ProvableStateTransition,
   MethodPublicOutput,
-  RuntimeMethodExecutionContext
+  RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
-import { DecoratedMethod, toProver, ZkProgrammable } from "@proto-kit/common";
+import {
+  DecoratedMethod,
+  toProver,
+  ZkProgrammable,
+  ToFieldable,
+} from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
+import { MethodIdResolver } from "../runtime/MethodIdResolver";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -18,6 +24,13 @@ const errors = {
   methodInputsNotProvided: () =>
     new Error(
       "Method execution inputs not provided, provide them via context.inputs"
+    ),
+
+  runtimeNameNotSet: () => new Error("Runtime name was not set"),
+
+  fieldNotConstant: (name: string) =>
+    new Error(
+      `In-circuit field ${name} not a constant, this is likely a framework bug`
     ),
 };
 
@@ -45,7 +58,8 @@ export type WrappedMethod = (...args: unknown[]) => MethodPublicOutput;
 export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
-  moduleMethod: (...args: unknown[]) => unknown
+  moduleMethod: (...args: unknown[]) => unknown,
+  methodArguments: ToFieldable[]
 ) {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
     RuntimeMethodExecutionContext
@@ -63,6 +77,44 @@ export function toWrappedMethod(
     if (input === undefined) {
       throw errors.methodInputsNotProvided();
     }
+
+    const { name, runtime } = this;
+
+    if (name === undefined) {
+      throw errors.runtimeNameNotSet();
+    }
+    if (runtime === undefined) {
+      throw errors.runtimeNotProvided(name);
+    }
+
+    // Assert that the given transaction has the correct methodId
+    const methodIdResolver =
+      runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver");
+    const thisMethodId = Field(methodIdResolver.getMethodId(name, methodName));
+    if (!thisMethodId.isConstant()) {
+      throw errors.fieldNotConstant("methodId");
+    }
+
+    input.transaction.methodId.assertEquals(
+      thisMethodId,
+      "Runtimemethod called with wrong methodId on the transaction object"
+    );
+
+    // Assert that the argsHash that has been signed matches the given arguments
+    // We can use js-if here, because methodArguments is statically sizes
+    // i.e. the result of the if-statement will be the same for all executions
+    // of this method
+    const argsHash =
+      methodArguments.length > 0
+        ? Poseidon.hash(
+            methodArguments.flatMap((argument) => argument.toFields())
+          )
+        : Field(0);
+
+    input.transaction.argsHash.assertEquals(
+      argsHash,
+      "argsHash and therefore arguments of transaction and runtime call does not match"
+    );
 
     const transactionHash = input.transaction.hash();
     const networkStateHash = input.networkState.hash();
@@ -139,7 +191,7 @@ export function runtimeMethod() {
 
     descriptor.value = function value(
       this: RuntimeModule<unknown>,
-      ...args: FlexibleProvable<unknown>[]
+      ...args: ToFieldable[]
     ) {
       const constructorName = this.constructor.name;
 
@@ -153,6 +205,7 @@ export function runtimeMethod() {
       const simulatedWrappedMethod = Reflect.apply(toWrappedMethod, this, [
         methodName,
         simulatedMethod,
+        args,
       ]);
 
       /**
