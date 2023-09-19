@@ -4,8 +4,8 @@ import {
   RuntimeModule,
   state,
 } from "@proto-kit/module";
-import { Presets, range } from "@proto-kit/common";
-import { Bool, Field, Provable, PublicKey, UInt64 } from "snarkyjs";
+import { log, Presets, range } from "@proto-kit/common";
+import { Bool, Field, PublicKey, UInt64 } from "snarkyjs";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert } from "@proto-kit/protocol";
 
@@ -50,7 +50,9 @@ export class Balance extends RuntimeModule<object> {
   @runtimeMethod()
   public addBalance(address: PublicKey, value: UInt64) {
     const balance = this.balances.get(address);
-    Provable.log("Balance:", balance.isSome, balance.value);
+
+    log.provable.debug("Balance:", balance.isSome, balance.value);
+
     const newBalance = balance.value.add(value);
     this.balances.set(address, newBalance);
   }
@@ -60,9 +62,9 @@ export class Balance extends RuntimeModule<object> {
     const address = this.transaction.sender;
     const balance = this.balances.get(address);
 
-    Provable.log("Sender:", address);
-    Provable.log("Balance:", balance.isSome, balance.value);
-    Provable.log("BlockHeight:", this.network.block.height);
+    log.provable.debug("Sender:", address);
+    log.provable.debug("Balance:", balance.isSome, balance.value);
+    log.provable.debug("BlockHeight:", this.network.block.height);
 
     assert(blockHeight.equals(this.network.block.height));
 

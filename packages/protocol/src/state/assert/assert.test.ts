@@ -5,6 +5,8 @@ import { container } from "tsyringe";
 
 import { assert } from "./assert";
 import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecutionContext";
+import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
+import { NetworkState } from "../../model/network/NetworkState";
 
 describe("assert", () => {
   const defaultStatusMessage = "something went wrong";
@@ -12,6 +14,11 @@ describe("assert", () => {
 
   beforeEach(() => {
     executionContext.beforeMethod("testConstructor", "test", []);
+
+    executionContext.setup({
+      transaction: undefined as unknown as RuntimeTransaction,
+      networkState: undefined as unknown as NetworkState,
+    });
   });
 
   afterEach(() => {

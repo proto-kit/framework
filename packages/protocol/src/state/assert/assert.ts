@@ -3,7 +3,6 @@ import { container } from "tsyringe";
 import { log } from "@proto-kit/common";
 
 import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecutionContext";
-import { exec } from "child_process";
 
 /**
  * Maintains an execution status of the current runtime module method,
