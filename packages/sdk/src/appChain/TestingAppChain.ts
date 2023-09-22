@@ -80,7 +80,9 @@ export class TestingAppChain<
       sequencer: sequencer as any,
 
       protocol: VanillaProtocol.from(
-        { AccountStateModule },
+        {
+          // AccountStateModule
+        } as any,
         new InMemoryStateService()
       ),
 
