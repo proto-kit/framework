@@ -168,10 +168,9 @@ class RollupMerkleTree {
    * @param index Position of the leaf node.
    * @returns The witness that belongs to the leaf.
    */
-  @notInCircuit()
   public getWitness(index: bigint): RollupMerkleWitness {
     if (index >= this.leafCount) {
-      index %= this.leafCount;
+      throw new Error("Index too large for merkle height");
     }
     const path = [];
     const isLefts = [];
