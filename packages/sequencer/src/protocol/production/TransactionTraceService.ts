@@ -251,7 +251,7 @@ export class TransactionTraceService {
     stParameters: StateTransitionProofParameters[];
     fromStateRoot: Field;
   }> {
-    const keys = this.allKeys(stateTransitions);
+    const keys = this.allKeys(protocolTransitions.concat(stateTransitions));
 
     await Promise.all(
       keys.map(async (key) => {
@@ -296,9 +296,9 @@ export class TransactionTraceService {
 
       // Map all STs to traces for current chunk
       const merkleWitnesses = currentChunk.map(([transition, type]) => {
-        const witness = tree.getWitness(transition.path.toBigInt());
-
         const provableTransition = transition.toProvable();
+
+        const witness = tree.getWitness(provableTransition.path.toBigInt());
 
         // eslint-disable-next-line max-len
         // Only apply ST if it is either of type protocol or the runtime succeeded

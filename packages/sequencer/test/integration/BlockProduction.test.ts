@@ -14,12 +14,15 @@ import { AppChain } from "@proto-kit/sdk";
 import {
   AccountState,
   AccountStateModule,
-  BlockProver, CachedMerkleTreeStore, InMemoryMerkleTreeStorage,
+  BlockProver,
+  CachedMerkleTreeStore,
+  InMemoryMerkleTreeStorage,
   Path,
   Protocol,
-  ProvableTransactionHook, RollupMerkleTree,
+  ProvableTransactionHook,
+  RollupMerkleTree,
   StateTransitionProver,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import { log, range } from "@proto-kit/common";
@@ -61,7 +64,7 @@ describe("block production", () => {
   beforeEach(async () => {
     // container.reset();
 
-    log.setLevel(log.levels.DEBUG);
+    log.setLevel(log.levels.ERROR);
 
     const stateService = new InMemoryStateService();
 
@@ -298,7 +301,47 @@ describe("block production", () => {
     );
   }, 160_000);
 
-  it.only("should produce block with a tx with a lot of STs", async () => {
+  it.only.each([
+    [
+      "EKFZbsQfNiqjDiWGU7G3TVPauS3s9YgWgayMzjkEaDTEicsY9poM",
+      "EKFdtp8D6mP3aFvCMRa75LPaUBn1QbmEs1YjTPXYLTNeqPYtnwy2",
+    ],
+    [
+      "EKE8hTdmVrYisQSc5oqeM7inCA2fFCvZ8Y5K2CPfV4NBwSJtxads",
+      "EKFct4rQwPV9N9F2J1oogaWrZLD1c5apyn997ncsmSKjoJCFDMsQ",
+    ],
+  ])(
+    "dex repro",
+    async ([pk1string, pk2string]) => {
+      const pk1 = PrivateKey.fromBase58(pk1string);
+      const pk2 = PrivateKey.fromBase58(pk2string);
+
+      mempool.add(
+        createTransaction({
+          method: ["Balance", "setBalanceIf"],
+          privateKey: pk1,
+          args: [pk1.toPublicKey(), UInt64.from(100), Bool(true)],
+          nonce: 0,
+        })
+      );
+
+      await blockTrigger.produceBlock();
+
+      mempool.add(
+        createTransaction({
+          method: ["Balance", "setBalanceIf"],
+          privateKey: pk2,
+          args: [pk2.toPublicKey(), UInt64.from(200), Bool(true)],
+          nonce: 0,
+        })
+      );
+
+      await blockTrigger.produceBlock();
+    },
+    60000
+  );
+
+  it("should produce block with a tx with a lot of STs", async () => {
     expect.assertions(9);
 
     const privateKey = PrivateKey.random();
