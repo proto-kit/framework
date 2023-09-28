@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Experimental, Field, Provable, SelfProof } from "snarkyjs";
+import { Bool, Experimental, Field, Provable, SelfProof } from "snarkyjs";
 import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
@@ -38,8 +38,8 @@ const errors = {
   propertyNotMatching: (property: string, step: string) =>
     `${property} not matching ${step}`,
 
-  merkleWitnessNotCorrect: (index: number) =>
-    `MerkleWitness not valid for StateTransition (${index})`,
+  merkleWitnessNotCorrect: (index: number, type: string) =>
+    `MerkleWitness not valid for StateTransition (${index}, type ${type})`,
 
   noWitnessProviderSet: () =>
     new Error(
@@ -202,9 +202,15 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       transition.path,
       transition.from.value
     );
+
     membershipValid
       .or(transition.from.isSome.not())
-      .assertTrue(errors.merkleWitnessNotCorrect(index));
+      .assertTrue(
+        errors.merkleWitnessNotCorrect(
+          index,
+          type.isNormal().toBoolean() ? "normal" : "protocol"
+        )
+      );
 
     const newRoot = MerkleTreeUtils.computeRoot(
       treeWitness,

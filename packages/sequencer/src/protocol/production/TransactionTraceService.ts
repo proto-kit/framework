@@ -126,12 +126,6 @@ export class TransactionTraceService {
       stateTransitions
         .filter((st) => st.to.isSome.toBoolean())
         .map(async (st) => {
-          console.log(
-            `Applying ${st.path.toString()} -> ${st.to
-              .toFields()
-              .map((x) => x.toString())
-              .reduce((a, b) => a + "," + b)}`
-          );
           await stateService.setAsync(st.path, st.to.toFields());
         })
     );
