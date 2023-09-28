@@ -7,6 +7,7 @@ import {
   DefaultProvableHashList,
   NetworkState,
   noop,
+  ReturnType,
 } from "@proto-kit/protocol";
 import { Field, Proof, UInt64 } from "snarkyjs";
 import { log, requireTrue } from "@proto-kit/common";
@@ -201,17 +202,21 @@ export class BlockProducerModule extends SequencerModule<object> {
 
     const bundleTracker = new DefaultProvableHashList(Field);
 
-    const traceResults = await Promise.all(
-      txs.map(
-        async (tx) =>
-          await this.traceService.createTrace(
-            tx,
-            stateServices,
-            networkState,
-            bundleTracker
-          )
-      )
-    );
+    const traceResults: ReturnType<
+      typeof TransactionTraceService
+    >["createTrace"][] = [];
+
+    for (const tx of txs) {
+      // eslint-disable-next-line no-await-in-loop
+      const result = await this.traceService.createTrace(
+        tx,
+        stateServices,
+        networkState,
+        bundleTracker
+      );
+      traceResults.push(result);
+    }
+
     const traces = traceResults.map((result) => result.trace);
 
     const proof = await this.blockFlowService.executeFlow(traces, blockId);
