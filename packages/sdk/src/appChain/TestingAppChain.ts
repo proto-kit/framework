@@ -29,15 +29,17 @@ import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
+type TestAppChainProtocolModules = {
+  StateTransitionProver: typeof StateTransitionProver;
+  BlockProver: typeof BlockProver;
+  AccountStateModule: typeof AccountStateModule;
+};
+
 export class TestingAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
-  {
-    StateTransitionProver: typeof StateTransitionProver;
-    BlockProver: typeof BlockProver;
-    AccountStateModule: typeof AccountStateModule;
-  },
+  TestAppChainProtocolModules,
   SequencerModulesRecord,
   AppChainModulesRecord
 > {
@@ -60,6 +62,7 @@ export class TestingAppChain<
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         BlockTrigger: ManualBlockTrigger,
+        TaskQueue: LocalTaskQueue,
       },
 
       config: {
@@ -68,11 +71,11 @@ export class TestingAppChain<
         BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
-      },
-    });
 
-    sequencer.dependencyContainer.register<TaskQueue>("TaskQueue", {
-      useValue: new LocalTaskQueue(0),
+        TaskQueue: {
+          simulatedDuration: 0,
+        },
+      },
     });
 
     return new TestingAppChain({

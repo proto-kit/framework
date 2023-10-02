@@ -39,7 +39,7 @@ describe("transient state", () => {
       },
     });
 
-    runtime.dependencyContainer.register("AppChain", {
+    runtime.dependencyContainer.register("AreProofsEnabled", {
       useValue: {
         areProofsEnabled: false,
 

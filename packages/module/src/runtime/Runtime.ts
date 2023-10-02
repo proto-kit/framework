@@ -29,6 +29,7 @@ import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 import { RuntimeModule } from "./RuntimeModule";
 import { MethodIdResolver } from "./MethodIdResolver";
+import { RuntimeEnvironment } from "./RuntimeEnvironment";
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -190,12 +191,18 @@ export class RuntimeZkProgrammable<
 @injectable()
 export class Runtime<Modules extends RuntimeModulesRecord>
   extends ModuleContainer<Modules>
-  implements WithZkProgrammable<undefined, MethodPublicOutput>
+  implements
+    WithZkProgrammable<undefined, MethodPublicOutput>,
+    RuntimeEnvironment
 {
   public static from<Modules extends RuntimeModulesRecord>(
     definition: RuntimeDefinition<Modules>
-  ) {
-    return new Runtime(definition);
+  ): TypedClass<Runtime<Modules>> {
+    return class RuntimeScoped extends Runtime<Modules> {
+      public constructor() {
+        super(definition);
+      }
+    };
   }
 
   // runtime modules composed into a ZkProgram
@@ -231,7 +238,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   }
 
   public get appChain(): AreProofsEnabled | undefined {
-    return this.container.resolve<AreProofsEnabled>("AppChain");
+    return this.container.resolve<AreProofsEnabled>("AreProofsEnabled");
   }
 
   public get stateService(): StateService {
@@ -240,6 +247,10 @@ export class Runtime<Modules extends RuntimeModulesRecord>
 
   public get stateServiceProvider(): StateServiceProvider {
     return this.stateServiceProviderInstance;
+  }
+
+  public get methodIdResolver(): MethodIdResolver {
+    return this.container.resolve<MethodIdResolver>("MethodIdResolver");
   }
 
   /**

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
-  AreProofsEnabled,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
@@ -52,9 +51,9 @@ export interface AppChainDefinition<
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > {
-  runtime: Runtime<RuntimeModules>;
-  protocol: Protocol<ProtocolModules>;
-  sequencer: Sequencer<SequencerModules>;
+  runtime: TypedClass<Runtime<RuntimeModules>>;
+  protocol: TypedClass<Protocol<ProtocolModules>>;
+  sequencer: TypedClass<Sequencer<SequencerModules>>;
   modules: AppChainModules;
   config?: ModulesConfig<AppChainModules>;
 }
@@ -64,8 +63,8 @@ export interface AppChainDefinition<
  */
 export interface AppChainConfig<
   RuntimeModules extends RuntimeModulesRecord,
-  SequencerModules extends SequencerModulesRecord,
   ProtocolModules extends ProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > {
   runtime: ModulesConfig<RuntimeModules>;
@@ -116,12 +115,12 @@ export class AppChain<
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
-        this.definition.runtime,
+        this.resolveOrFail("Runtime", Runtime<RuntimeModules>),
         queryTransportModule
       ),
 
       protocol: QueryBuilderFactory.fromProtocol(
-        this.definition.protocol,
+        this.resolveOrFail("Runtime", Protocol<ProtocolModules>),
         queryTransportModule
       ),
 
@@ -138,31 +137,40 @@ export class AppChain<
     >
   ) {
     super(definition);
-    this.registerValue({
-      Sequencer: this.definition.sequencer,
+    this.registerClasses({
       Runtime: this.definition.runtime,
       Protocol: this.definition.protocol,
+      Sequencer: this.definition.sequencer,
     });
     this.registerDependencyFactories([AreProofsEnabledFactory]);
   }
 
   public get runtime(): Runtime<RuntimeModules> {
-    return this.definition.runtime;
+    return this.resolveOrFail<Runtime<RuntimeModules>>(
+      "Runtime",
+      Runtime<RuntimeModules>
+    );
   }
 
   public get sequencer(): Sequencer<SequencerModules> {
-    return this.definition.sequencer;
+    return this.resolveOrFail<Sequencer<SequencerModules>>(
+      "Sequencer",
+      Sequencer<SequencerModules>
+    );
   }
 
   public get protocol(): Protocol<ProtocolModules> {
-    return this.definition.protocol;
+    return this.resolveOrFail<Protocol<ProtocolModules>>(
+      "Protocol",
+      Protocol<ProtocolModules>
+    );
   }
 
   public configureAll(
     config: AppChainConfig<
       RuntimeModules,
-      SequencerModules,
       ProtocolModules,
+      SequencerModules,
       AppChainModules
     >
   ): void {
@@ -233,6 +241,16 @@ export class AppChain<
    * Starts the appchain and cross-registers runtime to sequencer
    */
   public async start() {
+    super.start(() => container);
+    // this.registerValue({
+    //   Sequencer: this.definition.sequencer,
+    //   Runtime: this.definition.runtime,
+    //   Protocol: this.definition.protocol,
+    // });
+    this.registerDependencyFactories([AreProofsEnabledFactory]);
+
+    // TODO Remove?
+    // I think the best solution would be to make AreProofsEnabled a module, therefore we dont have to inject the modulecontainer anywhere (which is a antipattern)
     [this.runtime, this.protocol, this.sequencer].forEach((container) => {
       container.registerValue({ AppChain: this });
     });
@@ -244,7 +262,7 @@ export class AppChain<
       StateTransitionWitnessProviderReference: reference,
     });
 
-    this.runtime.start();
-    await this.sequencer.start();
+    // this.runtime.start();
+    // await this.sequencer.start();
   }
 }

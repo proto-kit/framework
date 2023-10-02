@@ -1,4 +1,5 @@
 import {
+  AreProofsEnabled,
   log,
   ModuleContainer,
   ModulesConfig,
@@ -18,6 +19,7 @@ import { StateService } from "../state/StateService";
 import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
 import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
+import { ProtocolEnvironment } from "./ProtocolEnvironment";
 
 export type GenericProtocolModuleRecord = ModulesRecord<
   TypedClass<ProtocolModule>
@@ -48,31 +50,39 @@ export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   // config: ModulesConfig<Modules>
 }
 
-export class Protocol<
-  Modules extends ProtocolModulesRecord
-> extends ModuleContainer<Modules> {
+export class Protocol<Modules extends ProtocolModulesRecord>
+  extends ModuleContainer<Modules>
+  implements ProtocolEnvironment
+{
   // .from() to create Protocol
   public static from<Modules extends ProtocolModulesRecord>(
     modules: ProtocolDefinition<Modules>
-  ) {
-    const protocol = new Protocol(modules);
+  ): TypedClass<Protocol<Modules>> {
+    class ScopedProtocol extends Protocol<Modules> {
+      public constructor() {
+        super(modules);
 
-    // Set empty config for all modules, since we don't have that feature yet
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment
-    const emptyConfig = Object.keys(modules.modules).reduce<any>(
-      (agg, item: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        agg[item] = {};
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return agg;
-      },
-      {}
-    );
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    protocol.configure(emptyConfig as ModulesConfig<Modules>);
+        // eslint-disable-next-line max-len
+        // Set empty config for all modules, since we don't have that feature yet
+        // eslint-disable-next-line max-len
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment
+        const emptyConfig = Object.keys(modules.modules).reduce<any>(
+          (agg, item: string) => {
+            // eslint-disable-next-line max-len
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            agg[item] = {};
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            return agg;
+          },
+          {}
+        );
+        // eslint-disable-next-line max-len
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        this.configure(emptyConfig as ModulesConfig<Modules>);
+      }
+    }
 
-    return protocol;
+    return ScopedProtocol;
   }
 
   public definition: ProtocolDefinition<Modules>;
@@ -108,9 +118,6 @@ export class Protocol<
         { lifecycle: Lifecycle.ContainerScoped }
       );
     }
-    // this.container.afterResolution<ProvableTransactionHook>("ProvableTransactionHook", (token, result) => {
-    //   if ()
-    // })
   }
 
   public get stateService(): StateService {
@@ -128,10 +135,6 @@ export class Protocol<
     log.debug(`Decorated ${moduleName}`);
     containedModule.protocol = this;
 
-    log.debug(
-      "Is instanceof:",
-      containedModule instanceof ProvableTransactionHook
-    );
     if (containedModule instanceof ProvableTransactionHook) {
       containedModule.name = moduleName;
     }
@@ -162,6 +165,10 @@ export class Protocol<
       InstanceType<Modules["StateTransitionProver"]>
     >("StateTransitionProver");
   }
+
+  public getAreProofsEnabled(): AreProofsEnabled {
+    return this.container.resolve<AreProofsEnabled>("AreProofsEnabled");
+  }
 }
 
 export const VanillaProtocol = {
@@ -172,11 +179,13 @@ export const VanillaProtocol = {
   from<AdditonalModules extends GenericProtocolModuleRecord>(
     additionalModules: AdditonalModules,
     stateService?: StateService
-  ): Protocol<
-    AdditonalModules & {
-      StateTransitionProver: typeof StateTransitionProver;
-      BlockProver: typeof BlockProver;
-    }
+  ): TypedClass<
+    Protocol<
+      AdditonalModules & {
+        StateTransitionProver: typeof StateTransitionProver;
+        BlockProver: typeof BlockProver;
+      }
+    >
   > {
     return Protocol.from({
       modules: {
