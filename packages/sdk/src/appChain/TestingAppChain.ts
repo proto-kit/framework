@@ -22,8 +22,6 @@ import {
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "snarkyjs";
-import { container } from "tsyringe";
-import { AuroSigner } from "../transaction/AuroSigner";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
@@ -113,12 +111,12 @@ export class TestingAppChain<
       QueryTransportModule: {},
     });
   }
-
-  public useAuroSigner() {
-    this.registerModules({
-      Signer: AuroSigner,
-    });
-  }
+  //
+  // public useAuroSigner() {
+  //   this.registerModules({
+  //     Signer: AuroSigner,
+  //   });
+  // }
 
   public async produceBlock() {
     const blockTrigger = this.sequencer.resolveOrFail(

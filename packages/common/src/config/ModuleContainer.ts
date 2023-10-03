@@ -14,6 +14,7 @@ import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
+import { ChildContainerStartable } from "./ChildContainerStartable";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -47,7 +48,9 @@ const errors = {
 export const ModuleContainerErrors = errors;
 
 // determines that a module should be configurable by default
-export type BaseModuleType = TypedClass<Configurable<unknown>>;
+export type BaseModuleType = TypedClass<
+  ChildContainerStartable & Configurable<unknown>
+>;
 
 // allows to specify what kind of modules can be passed into a container
 export interface ModulesRecord<
@@ -106,7 +109,7 @@ export class ModuleContainer<
   private static readonly moduleDecorationFrequency: Frequency = "Once";
 
   // DI container holding all the registered modules
-  protected providedContainer?: DependencyContainer = undefined;
+  private providedContainer?: DependencyContainer = undefined;
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
@@ -174,33 +177,13 @@ export class ModuleContainer<
     }
   }
 
-  public isModuleContainer(
-    module: BaseModuleType | ModuleContainable
-  ): boolean {
-    return module instanceof ModuleContainer;
-  }
-
-  public assertIsModuleContainer(
-    module: BaseModuleType | ModuleContainable
-  ): asserts module is ModuleContainable {
-    if (!this.isModuleContainer(module)) {
-      throw new Error("Module is not a module container");
-    }
-  }
-
-  public assertIsModuleClass(
-    module: BaseModuleType | ModuleContainable
-  ): asserts module is BaseModuleType {
-    if (this.isModuleContainer(module)) {
-      throw new Error("Module is not a module-type class reference");
-    }
-  }
-
   public assertContainerInitialized(
     container: DependencyContainer | undefined
   ): asserts container is DependencyContainer {
     if (container === undefined) {
-      throw new Error("DependencyContainer not set");
+      throw new Error(
+        "DependencyContainer not set. Be sure to only call DI-related function in start() and not inside the constructor."
+      );
     }
   }
 
@@ -220,22 +203,12 @@ export class ModuleContainer<
 
         const definitionEntry = modules[moduleName];
 
-        if (this.isModuleContainer(definitionEntry)) {
-          this.assertIsModuleContainer(definitionEntry);
-          // If dependency is a modulecontainer itself, start it up
-          definitionEntry.start(() => this.container.createChildContainer());
-
-          this.container.register(moduleName, { useValue: definitionEntry });
-        } else {
-          this.assertIsModuleClass(definitionEntry);
-
-          this.container.register(
-            moduleName,
-            { useClass: definitionEntry },
-            { lifecycle: Lifecycle.ContainerScoped }
-          );
-          this.onAfterModuleResolution(moduleName);
-        }
+        this.container.register(
+          moduleName,
+          { useClass: definitionEntry },
+          { lifecycle: Lifecycle.ContainerScoped }
+        );
+        this.onAfterModuleResolution(moduleName);
       }
     }
   }
@@ -349,6 +322,8 @@ export class ModuleContainer<
           throw errors.unableToDecorateModule(containedModuleName);
         }
         this.decorateModule(moduleName, containedModule);
+
+        containedModule.create(() => this.container.createChildContainer());
       },
       { frequency: ModuleContainer.moduleDecorationFrequency }
     );
@@ -359,7 +334,7 @@ export class ModuleContainer<
    * This method will be called whenever the underlying container fully
    * initialized
    */
-  public start(childContainerProvider: ChildContainerProvider): void {
+  public create(childContainerProvider: ChildContainerProvider): void {
     this.providedContainer = childContainerProvider();
 
     // register all provided modules when the container is created

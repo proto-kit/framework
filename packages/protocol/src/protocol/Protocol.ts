@@ -1,11 +1,11 @@
 import {
-  AreProofsEnabled,
+  AreProofsEnabled, ChildContainerProvider,
   log,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
   StringKeyOf,
-  TypedClass,
+  TypedClass
 } from "@proto-kit/common";
 import { DependencyContainer, Lifecycle } from "tsyringe";
 
@@ -58,31 +58,11 @@ export class Protocol<Modules extends ProtocolModulesRecord>
   public static from<Modules extends ProtocolModulesRecord>(
     modules: ProtocolDefinition<Modules>
   ): TypedClass<Protocol<Modules>> {
-    class ScopedProtocol extends Protocol<Modules> {
+    return class ScopedProtocol extends Protocol<Modules> {
       public constructor() {
         super(modules);
-
-        // eslint-disable-next-line max-len
-        // Set empty config for all modules, since we don't have that feature yet
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment
-        const emptyConfig = Object.keys(modules.modules).reduce<any>(
-          (agg, item: string) => {
-            // eslint-disable-next-line max-len
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            agg[item] = {};
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            return agg;
-          },
-          {}
-        );
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        this.configure(emptyConfig as ModulesConfig<Modules>);
       }
     }
-
-    return ScopedProtocol;
   }
 
   public definition: ProtocolDefinition<Modules>;
@@ -95,29 +75,6 @@ export class Protocol<Modules extends ProtocolModulesRecord>
   public constructor(definition: ProtocolDefinition<Modules>) {
     super(definition);
     this.definition = definition;
-
-    // Register the BlockModules seperately since we need to
-    // inject them differently later
-    let atLeastOneTransactionHookRegistered = false;
-    Object.entries(definition.modules).forEach(([key, value]) => {
-      if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
-        this.container.register(
-          "ProvableTransactionHook",
-          { useToken: key },
-          { lifecycle: Lifecycle.ContainerScoped }
-        );
-        atLeastOneTransactionHookRegistered = true;
-      }
-    });
-
-    // We need this so that tsyringe doesn't throw when no hooks are registered
-    if (!atLeastOneTransactionHookRegistered) {
-      this.container.register(
-        "ProvableTransactionHook",
-        { useClass: NoopTransactionHook },
-        { lifecycle: Lifecycle.ContainerScoped }
-      );
-    }
   }
 
   public get stateService(): StateService {
@@ -168,6 +125,49 @@ export class Protocol<Modules extends ProtocolModulesRecord>
 
   public getAreProofsEnabled(): AreProofsEnabled {
     return this.container.resolve<AreProofsEnabled>("AreProofsEnabled");
+  }
+
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+
+
+    // Register the BlockModules seperately since we need to
+    // inject them differently later
+    let atLeastOneTransactionHookRegistered = false;
+    Object.entries(this.definition.modules).forEach(([key, value]) => {
+      if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
+        this.container.register(
+          "ProvableTransactionHook",
+          { useToken: key },
+          { lifecycle: Lifecycle.ContainerScoped }
+        );
+        atLeastOneTransactionHookRegistered = true;
+      }
+    });
+
+    // We need this so that tsyringe doesn't throw when no hooks are registered
+    if (!atLeastOneTransactionHookRegistered) {
+      this.container.register(
+        "ProvableTransactionHook",
+        { useClass: NoopTransactionHook },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
+    }
+
+    // Set empty config for all modules, since we don't have that feature yet
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment
+    const emptyConfig = Object.keys(this.definition.modules).reduce<any>(
+      (agg, item: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        agg[item] = {};
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return agg;
+      },
+      {}
+    );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    this.configure(emptyConfig as ModulesConfig<Modules>);
   }
 }
 

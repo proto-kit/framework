@@ -1,3 +1,8 @@
+import { noop } from "../utils";
+
+import { ChildContainerProvider } from "./ChildContainerProvider";
+import { ChildContainerStartable } from "./ChildContainerStartable";
+
 const errors = {
   configNotSet: (moduleName: string) =>
     new Error(
@@ -17,7 +22,9 @@ export interface Configurable<Config> {
 /**
  * Used by various module sub-types that may need to be configured
  */
-export class ConfigurableModule<Config> implements Configurable<Config> {
+export class ConfigurableModule<Config>
+  implements Configurable<Config>, ChildContainerStartable
+{
   /**
    * Store the config separately, so that we can apply additional
    * checks when retrieving it via the getter
@@ -35,6 +42,11 @@ export class ConfigurableModule<Config> implements Configurable<Config> {
   // set the config
   public set config(config: Config) {
     this.currentConfig = config;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public create(childContainerProvider: ChildContainerProvider): void {
+    noop();
   }
 }
 

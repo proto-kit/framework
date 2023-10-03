@@ -137,12 +137,6 @@ export class AppChain<
     >
   ) {
     super(definition);
-    this.registerClasses({
-      Runtime: this.definition.runtime,
-      Protocol: this.definition.protocol,
-      Sequencer: this.definition.sequencer,
-    });
-    this.registerDependencyFactories([AreProofsEnabledFactory]);
   }
 
   public get runtime(): Runtime<RuntimeModules> {
@@ -241,19 +235,21 @@ export class AppChain<
    * Starts the appchain and cross-registers runtime to sequencer
    */
   public async start() {
-    super.start(() => container);
-    // this.registerValue({
-    //   Sequencer: this.definition.sequencer,
-    //   Runtime: this.definition.runtime,
-    //   Protocol: this.definition.protocol,
-    // });
+    super.create(() => container);
+
+    this.registerClasses({
+      Runtime: this.definition.runtime,
+      Protocol: this.definition.protocol,
+      Sequencer: this.definition.sequencer,
+    });
+
+    // TODO fix correct module shit here
+
     this.registerDependencyFactories([AreProofsEnabledFactory]);
 
     // TODO Remove?
     // I think the best solution would be to make AreProofsEnabled a module, therefore we dont have to inject the modulecontainer anywhere (which is a antipattern)
-    [this.runtime, this.protocol, this.sequencer].forEach((container) => {
-      container.registerValue({ AppChain: this });
-    });
+    this.registerValue({ AppChain: this });
 
     // Workaround to get protocol and sequencer to have
     // access to the same WitnessProviderReference
