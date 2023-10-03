@@ -38,7 +38,7 @@ export class TestingAppChain<
 > extends AppChain<
   RuntimeModules,
   TestAppChainProtocolModules,
-  SequencerModulesRecord,
+  any,
   AppChainModulesRecord
 > {
   public static fromRuntime<
@@ -78,7 +78,7 @@ export class TestingAppChain<
 
     return new TestingAppChain({
       runtime,
-      sequencer: sequencer as any,
+      sequencer,
 
       protocol: VanillaProtocol.from(
         {

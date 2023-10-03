@@ -130,7 +130,6 @@ export class Protocol<Modules extends ProtocolModulesRecord>
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
 
-
     // Register the BlockModules seperately since we need to
     // inject them differently later
     let atLeastOneTransactionHookRegistered = false;

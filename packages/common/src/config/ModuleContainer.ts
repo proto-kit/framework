@@ -64,18 +64,6 @@ export interface ModuleContainable {
   start: (childContainerProvider: ChildContainerProvider) => void;
 }
 
-// export type ModuleOnlyDefinition<Definition extends ModulesRecord> = {
-//   [key in keyof Definition]: Definition[key] extends TypedClass<unknown>
-//     ? Definition[key]
-//     : never;
-// };
-
-// Since we now can provide classos or modulecontainer instances as defintion,
-// we need to distinguish both cases
-// export type ModuleInstanceType<
-//   Type extends BaseModuleType
-// > = Type extends BaseModuleType ? InstanceType<Type> : Type;
-
 // config record derived from the provided modules and their config types
 export type ModulesConfig<Modules extends ModulesRecord> = {
   // this will translate into = key: module name, value: module.config
@@ -182,7 +170,7 @@ export class ModuleContainer<
   ): asserts container is DependencyContainer {
     if (container === undefined) {
       throw new Error(
-        "DependencyContainer not set. Be sure to only call DI-related function in start() and not inside the constructor."
+        "DependencyContainer not set. Be sure to only call DI-related function in create() and not inside the constructor."
       );
     }
   }
@@ -285,7 +273,10 @@ export class ModuleContainer<
     const isValidModuleInstance = instance instanceof moduleType;
 
     if (!isValidModuleInstance) {
-      throw new Error("Incompatible module instance");
+      console.log(instance);
+      throw new Error(
+        `Incompatible module instance ("${moduleName}" not instanceof ${moduleType.name})`
+      );
     }
 
     return instance;
@@ -323,7 +314,11 @@ export class ModuleContainer<
         }
         this.decorateModule(moduleName, containedModule);
 
-        containedModule.create(() => this.container.createChildContainer());
+        containedModule.create(() => {
+          const container = this.container.createChildContainer();
+          container.reset();
+          return container;
+        });
       },
       { frequency: ModuleContainer.moduleDecorationFrequency }
     );

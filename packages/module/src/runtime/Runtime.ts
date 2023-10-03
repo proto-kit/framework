@@ -11,7 +11,7 @@ import {
   ZkProgrammable,
   PlainZkProgram,
   WithZkProgrammable,
-  AreProofsEnabled,
+  AreProofsEnabled, ChildContainerProvider
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -230,10 +230,11 @@ export class Runtime<Modules extends RuntimeModulesRecord>
 
   // eslint-disable-next-line no-warning-comments
   // TODO Remove after changing DFs to type-based approach
-  public start() {
-    this.registerValue({
-      Runtime: this,
-    });
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+
+    console.log("Registering create()");
+
     this.registerDependencyFactories([MethodIdFactory]);
   }
 

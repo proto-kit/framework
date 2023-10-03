@@ -58,6 +58,39 @@ export interface AppChainDefinition<
   config?: ModulesConfig<AppChainModules>;
 }
 
+export type ExpandAppChainModules<
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
+> = {
+  Runtime: TypedClass<Runtime<RuntimeModules>>;
+  Protocol: TypedClass<Protocol<ProtocolModules>>;
+  Sequencer: TypedClass<Sequencer<SequencerModules>>;
+} & AppChainModules;
+
+export type ExpandAppChainDefinition<
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
+> = {
+  modules: ExpandAppChainModules<
+    RuntimeModules,
+    ProtocolModules,
+    SequencerModules,
+    AppChainModules
+  >;
+  config?: ModulesConfig<
+    ExpandAppChainModules<
+      RuntimeModules,
+      ProtocolModules,
+      SequencerModules,
+      AppChainModules
+    >
+  >;
+};
+
 /**
  * Definition of required arguments for AppChain
  */
@@ -68,8 +101,8 @@ export interface AppChainConfig<
   AppChainModules extends AppChainModulesRecord
 > {
   runtime: ModulesConfig<RuntimeModules>;
-  sequencer: ModulesConfig<SequencerModules>;
   protocol: ModulesConfig<ProtocolModules>;
+  sequencer: ModulesConfig<SequencerModules>;
   appChain: ModulesConfig<AppChainModules>;
 }
 
@@ -81,7 +114,14 @@ export class AppChain<
   ProtocolModules extends ProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
-> extends ModuleContainer<AppChainModules> {
+> extends ModuleContainer<
+  ExpandAppChainModules<
+    RuntimeModules,
+    ProtocolModules,
+    SequencerModules,
+    AppChainModules
+  >
+> {
   // alternative AppChain constructor
   public static from<
     RuntimeModules extends RuntimeModulesRecord,
@@ -97,6 +137,51 @@ export class AppChain<
     >
   ) {
     return new AppChain(definition);
+  }
+
+  public definition: ExpandAppChainDefinition<
+    RuntimeModules,
+    ProtocolModules,
+    SequencerModules,
+    AppChainModules
+  >;
+
+  public constructor(
+    definition: AppChainDefinition<
+      RuntimeModules,
+      ProtocolModules,
+      SequencerModules,
+      AppChainModules
+    >
+  ) {
+    const expandedDefinition: ExpandAppChainDefinition<
+      RuntimeModules,
+      ProtocolModules,
+      SequencerModules,
+      AppChainModules
+    > = {
+      modules: {
+        Runtime: definition.runtime,
+        Sequencer: definition.sequencer,
+        Protocol: definition.protocol,
+        ...definition.modules,
+      },
+      config: {
+        Runtime: {},
+        Sequencer: {},
+        Protocol: {},
+        ...definition.config,
+      } as ModulesConfig<
+        ExpandAppChainModules<
+          RuntimeModules,
+          ProtocolModules,
+          SequencerModules,
+          AppChainModules
+        >
+      >,
+    };
+    super(expandedDefinition);
+    this.definition = expandedDefinition;
   }
 
   public get query(): {
@@ -128,36 +213,16 @@ export class AppChain<
     };
   }
 
-  public constructor(
-    public definition: AppChainDefinition<
-      RuntimeModules,
-      ProtocolModules,
-      SequencerModules,
-      AppChainModules
-    >
-  ) {
-    super(definition);
-  }
-
   public get runtime(): Runtime<RuntimeModules> {
-    return this.resolveOrFail<Runtime<RuntimeModules>>(
-      "Runtime",
-      Runtime<RuntimeModules>
-    );
+    return this.resolve("Runtime");
   }
 
   public get sequencer(): Sequencer<SequencerModules> {
-    return this.resolveOrFail<Sequencer<SequencerModules>>(
-      "Sequencer",
-      Sequencer<SequencerModules>
-    );
+    return this.resolve("Sequencer");
   }
 
   public get protocol(): Protocol<ProtocolModules> {
-    return this.resolveOrFail<Protocol<ProtocolModules>>(
-      "Protocol",
-      Protocol<ProtocolModules>
-    );
+    return this.resolve("Protocol");
   }
 
   public configureAll(
@@ -171,7 +236,12 @@ export class AppChain<
     this.runtime.configure(config.runtime);
     this.sequencer.configure(config.sequencer);
     this.protocol.configure(config.protocol);
-    this.configure(config.appChain);
+    this.configure({
+      Runtime: {},
+      Sequencer: {},
+      Protocol: {},
+      ...config.appChain,
+    } as Parameters<typeof this.configure>[0]);
   }
 
   public transaction(
@@ -237,11 +307,11 @@ export class AppChain<
   public async start() {
     super.create(() => container);
 
-    this.registerClasses({
-      Runtime: this.definition.runtime,
-      Protocol: this.definition.protocol,
-      Sequencer: this.definition.sequencer,
-    });
+    // this.registerClasses({
+    //   Runtime: this.definition.modules.runtime,
+    //   Protocol: this.definition.modules.protocol,
+    //   Sequencer: this.definition.modules.sequencer,
+    // });
 
     // TODO fix correct module shit here
 
@@ -259,6 +329,6 @@ export class AppChain<
     });
 
     // this.runtime.start();
-    // await this.sequencer.start();
+    await this.sequencer.start();
   }
 }
