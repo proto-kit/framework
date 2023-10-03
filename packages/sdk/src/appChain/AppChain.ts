@@ -307,13 +307,14 @@ export class AppChain<
   public async start() {
     super.create(() => container);
 
-    // this.registerClasses({
-    //   Runtime: this.definition.modules.runtime,
-    //   Protocol: this.definition.modules.protocol,
-    //   Sequencer: this.definition.modules.sequencer,
-    // });
-
-    // TODO fix correct module shit here
+    // These three statements are crucial for dependencies inside any of these
+    // components to access their siblings inside their constructor.
+    // This is because when it is the first time they are resolved, create()
+    // will not be called until after the constructor finished because of
+    // how tsyringe handles hooks
+    this.resolve("Runtime");
+    this.resolve("Protocol");
+    this.resolve("Sequencer");
 
     this.registerDependencyFactories([AreProofsEnabledFactory]);
 
