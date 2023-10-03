@@ -318,10 +318,6 @@ export class AppChain<
 
     this.registerDependencyFactories([AreProofsEnabledFactory]);
 
-    // TODO Remove?
-    // I think the best solution would be to make AreProofsEnabled a module, therefore we dont have to inject the modulecontainer anywhere (which is a antipattern)
-    this.registerValue({ AppChain: this });
-
     // Workaround to get protocol and sequencer to have
     // access to the same WitnessProviderReference
     const reference = new StateTransitionWitnessProviderReference();
