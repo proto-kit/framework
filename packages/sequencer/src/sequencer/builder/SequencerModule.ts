@@ -18,13 +18,6 @@ export abstract class SequencerModule<
   public static presets: Presets<unknown> = {};
 
   /**
-   * This property exists only to typecheck that the SequencerModule
-   * was extended correctly in e.g. a decorator. We need at least
-   * one non-optional property in this class to make the typechecking work.
-   */
-  public isSequencerModule = true;
-
-  /**
    * Start the module and all it's functionality.
    * The returned Promise has to resolve after initialization, since it will block in the sequencer init.
    * That means that you mustn't await server.start() for example.
