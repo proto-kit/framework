@@ -1,10 +1,7 @@
-import { singleFieldToString, stringToField } from "@proto-kit/protocol";
+import { stringToField } from "@proto-kit/protocol";
+import { Poseidon } from "snarkyjs";
 
 import type { Runtime, RuntimeModulesRecord } from "./Runtime";
-
-const offset = 128n;
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
-const modulus = 2n ** (offset - 1n);
 
 /**
  * How do we encode MethodIds
@@ -15,47 +12,40 @@ const modulus = 2n ** (offset - 1n);
  * ]
  */
 export class MethodIdResolver {
-  private readonly dictionary: { [key: string]: string } = {};
+  private readonly dictionary: {
+    [key: string]: { moduleName: string; methodName: string };
+  } = {};
 
   public constructor(
     private readonly runtime: Runtime<RuntimeModulesRecord>,
     private readonly modules: RuntimeModulesRecord
   ) {
-    this.dictionary = runtime.runtimeModuleNames.reduce<Record<string, string>>(
-      (dict, moduleName) => {
-        this.runtime.assertIsValidModuleName(modules, moduleName);
+    this.dictionary = runtime.runtimeModuleNames.reduce<
+      Record<string, { moduleName: string; methodName: string }>
+    >((dict, moduleName) => {
+      this.runtime.assertIsValidModuleName(modules, moduleName);
 
-        dict[(stringToField(moduleName).toBigInt() % modulus).toString()] =
-          moduleName;
+      runtime.resolve(moduleName).runtimeMethodNames.forEach((methodName) => {
+        dict[this.getMethodId(moduleName, methodName).toString()] = {
+          moduleName,
+          methodName,
+        };
+      });
 
-        runtime.resolve(moduleName).runtimeMethodNames.forEach((methodName) => {
-          dict[(stringToField(methodName).toBigInt() % modulus).toString()] =
-            methodName;
-        });
-        return dict;
-      },
-      {}
-    );
+      return dict;
+    }, {});
   }
 
   public getMethodNameFromId(methodId: bigint): [string, string] | undefined {
-    const moduleNameHash = singleFieldToString(methodId >> offset);
-    const methodNameHash = singleFieldToString(methodId % modulus);
-
-    const moduleName: string | undefined = this.dictionary[moduleNameHash];
+    const { moduleName, methodName } = this.dictionary[methodId.toString()];
 
     // eslint-disable-next-line no-warning-comments
     // TODO Replace by throwing exception?
-    if (moduleName === undefined) {
+    if (moduleName === undefined || methodName === undefined) {
       return undefined;
     }
+
     this.runtime.assertIsValidModuleName(this.modules, moduleName);
-
-    const methodName: string | undefined = this.dictionary[methodNameHash];
-
-    if (methodName === undefined) {
-      return undefined;
-    }
 
     return [moduleName, methodName];
   }
@@ -63,9 +53,9 @@ export class MethodIdResolver {
   public getMethodId(moduleName: string, methodName: string): bigint {
     this.runtime.assertIsValidModuleName(this.modules, moduleName);
 
-    return (
-      (stringToField(moduleName).toBigInt() % modulus << offset) +
-      (stringToField(methodName).toBigInt() % modulus)
-    );
+    return Poseidon.hash([
+      stringToField(moduleName),
+      stringToField(methodName),
+    ]).toBigInt();
   }
 }
