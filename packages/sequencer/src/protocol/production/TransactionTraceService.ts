@@ -278,6 +278,8 @@ export class TransactionTraceService {
     let stateRoot = initialRoot;
     let protocolStateRoot = initialRoot;
 
+    // console.log(`Starting root ${stateRoot.toString()}`);
+
     const stParameters = chunk(
       allTransitions,
       ProtocolConstants.stateTransitionProverBatchSize
@@ -293,6 +295,12 @@ export class TransactionTraceService {
         const provableTransition = transition.toProvable();
 
         const witness = tree.getWitness(provableTransition.path.toBigInt());
+
+        // console.log(
+        //   `Calculated root ${witness
+        //     .calculateRoot(provableTransition.from.value)
+        //     .toString()}`
+        // );
 
         // eslint-disable-next-line max-len
         // Only apply ST if it is either of type protocol or the runtime succeeded
@@ -342,6 +350,8 @@ export class TransactionTraceService {
         },
       };
     });
+
+    // console.log(`Ending root ${tree.getRoot().toString()}`);
 
     return {
       stParameters,

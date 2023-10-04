@@ -203,6 +203,12 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       transition.from.value
     );
 
+    // if (!membershipValid.toBoolean()) {
+    //   console.log(
+    //     `Merklewitness error ${root1.toString()} ${root2.toString()}`
+    //   );
+    // }
+
     membershipValid
       .or(transition.from.isSome.not())
       .assertTrue(

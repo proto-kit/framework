@@ -234,6 +234,18 @@ export namespace MerkleTreeUtils {
     return root.equals(root2);
   }
 
+  export function checkMembershipGetRoots(
+    witness: RollupMerkleWitness,
+    root: Field,
+    key: Field,
+    value: Field
+  ): [Bool, Field, Field] {
+    const root2 = witness.calculateRoot(value);
+    const key2 = witness.calculateIndex();
+    key.assertEquals(key2, "Keys of MerkleWitness does not match");
+    return [root.equals(root2), root, root2];
+  }
+
   export function computeRoot(
     witness: RollupMerkleWitness,
     value: Field
