@@ -4,12 +4,8 @@ import { Poseidon } from "snarkyjs";
 import type { Runtime, RuntimeModulesRecord } from "./Runtime";
 
 /**
- * How do we encode MethodIds
- * A MethodId is defined as the following in little-endian
- * [0
- *   ...hash(stringToField(moduleName))[0..128],
- *   ...hash(stringToField(methodName))[0..128]
- * ]
+ * Please see `getMethodId` to learn more about
+ * methodId encoding
  */
 export class MethodIdResolver {
   private readonly dictionary: {
