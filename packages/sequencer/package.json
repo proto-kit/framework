@@ -12,7 +12,8 @@
     "test:ci": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js  ./test",
     "test:watch": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js ./test --watch",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
-    "start": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/src/entry.js"
+    "start": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/src/entry.js",
+    "graphql": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/graphql.js"
   },
   "main": "dist/index.js",
   "publishConfig": {
@@ -34,15 +35,12 @@
     "@types/ws": "^8.5.4",
     "bullmq": "^3.15.0",
     "class-validator": "^0.14.0",
-    "fastify": "^4.17.0",
-    "graphql": "16.6.0",
+    "fastify": "^4.23.2",
+    "graphql": "^16.7.1",
     "lodash": "^4.17.21",
-    "mercurius": "^13.0.0",
+    "mercurius": "^13.1.0",
     "reflect-metadata": "^0.1.13",
-    "type-graphql": "^2.0.0-beta.1"
-  },
-  "resolutions": {
-    "graphql": "16.6.0"
+    "type-graphql": "^2.0.0-beta.3"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }

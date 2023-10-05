@@ -1,5 +1,6 @@
 import type { UnTypedClass } from "@proto-kit/protocol";
+import { ConfigurableModule } from "@proto-kit/common";
 
-export interface GraphqlModule {
-  resolverType: UnTypedClass;
+export abstract class GraphqlModule<Config> extends ConfigurableModule<Config> {
+  abstract resolverType: UnTypedClass;
 }

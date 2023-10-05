@@ -3,9 +3,9 @@ import { Arg, Field, InputType, Mutation, Query, Resolver } from "type-graphql";
 import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
 
-import { Mempool } from "../Mempool.js";
-import { PendingTransaction } from "../PendingTransaction.js";
-import type { GraphqlModule } from "../../graphql/GraphqlModule.js";
+import { Mempool } from "../../mempool/Mempool.js";
+import { PendingTransaction } from "../../mempool/PendingTransaction.js";
+import { GraphqlModule } from "../GraphqlModule.js";
 
 @InputType()
 class Signature {
@@ -59,12 +59,13 @@ class TransactionObject {
 
 @injectable()
 @Resolver(TransactionObject)
-export class MempoolResolver implements GraphqlModule {
+export class MempoolResolver extends GraphqlModule<object> {
   public resolverType = MempoolResolver;
 
   private readonly mempool: Mempool;
 
-  public constructor(@inject("mempool") mempool: Mempool) {
+  public constructor(@inject("Mempool") mempool: Mempool) {
+    super();
     this.mempool = mempool;
   }
 
@@ -89,11 +90,11 @@ export class MempoolResolver implements GraphqlModule {
     return "unknown";
   }
 
-  // @Query()
-  // transactions(){
-  //     let tx = this.mempool.getTxs().txs
-  //     tx.map(x => x.)
-  // }
+  @Query(() => [String])
+  public transactions(){
+      let tx = this.mempool.getTxs().txs
+      return tx.map(x => x.hash().toString())
+  }
 
   // @Query(returns => [TransactionObject])
   // transaction(
