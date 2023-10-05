@@ -1,5 +1,5 @@
-/* eslint-disable max-lines */
-import { inject, injectable, injectAll, Lifecycle, scoped } from "tsyringe";
+/* eslint-disable max-lines,@typescript-eslint/init-declarations */
+import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   MethodParameterDecoder,
   Runtime,
@@ -38,6 +38,7 @@ import { CachedStateService } from "./execution/CachedStateService";
 import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
+import { AsyncStateService } from "./state/AsyncStateService";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -382,6 +383,79 @@ export class TransactionTraceService {
     return runtimeResult;
   }
 
+  /**
+   * Simulates a certain Context-aware method through multiple rounds.
+   *
+   * For a method that emits n Statetransitions, we execute it n times,
+   * where for every i-th iteration, we collect the i-th ST that has
+   * been emitted and preload the corresponding key.
+   */
+  private async simulateMultiRound(
+    method: () => void,
+    contextInputs: RuntimeMethodExecutionData,
+    parentStateService: AsyncStateService
+  ): Promise<RuntimeProvableMethodExecutionResult> {
+    // Set up context
+    const executionContext = this.runtime.dependencyContainer.resolve(
+      RuntimeMethodExecutionContext
+    );
+
+    let numberMethodSTs: number | undefined;
+    let collectedSTs = 0;
+
+    const touchedKeys: string[] = [];
+
+    let lastRuntimeResult: RuntimeProvableMethodExecutionResult;
+
+    do {
+      executionContext.setup(contextInputs);
+      executionContext.setSimulated(true);
+
+      const stateService = new CachedStateService(parentStateService);
+      this.runtime.stateServiceProvider.setCurrentStateService(stateService);
+      this.protocol.stateServiceProvider.setCurrentStateService(stateService);
+
+      // Preload previously determined keys
+      // eslint-disable-next-line no-await-in-loop
+      await stateService.preloadKeys(
+        touchedKeys.map((fieldString) => Field(fieldString))
+      );
+
+      // Execute method
+      method();
+
+      lastRuntimeResult = executionContext.current().result;
+
+      // Clear executionContext
+      executionContext.afterMethod();
+      executionContext.clear();
+
+      const { stateTransitions } = lastRuntimeResult;
+
+      console.log(stateTransitions.map((st) => st.toJSON()));
+      console.log(collectedSTs);
+
+      const latestST = stateTransitions.at(collectedSTs);
+
+      if (
+        latestST !== undefined &&
+        !touchedKeys.includes(latestST.path.toString())
+      ) {
+        touchedKeys.push(latestST.path.toString());
+      }
+
+      if (numberMethodSTs === undefined) {
+        numberMethodSTs = stateTransitions.length;
+      }
+      collectedSTs += 1;
+
+      this.runtime.stateServiceProvider.popCurrentStateService();
+      this.protocol.stateServiceProvider.popCurrentStateService();
+    } while (collectedSTs < numberMethodSTs);
+
+    return lastRuntimeResult;
+  }
+
   private executeProtocolHooks(
     runtimeContextInputs: RuntimeMethodExecutionData,
     blockContextInputs: BlockProverExecutionData,
@@ -407,35 +481,44 @@ export class TransactionTraceService {
     return protocolResult;
   }
 
-  private extractAccessedKeys(
+  private async extractAccessedKeys(
     method: (...args: unknown[]) => unknown,
     args: unknown[],
     runtimeContextInputs: RuntimeMethodExecutionData,
-    blockContextInputs: BlockProverExecutionData
-  ): {
+    blockContextInputs: BlockProverExecutionData,
+    parentStateService: AsyncStateService
+  ): Promise<{
     runtimeKeys: Field[];
     protocolKeys: Field[];
-  } {
+  }> {
     // Execute the first time with dummy service
-    this.runtime.stateServiceProvider.setCurrentStateService(
-      this.dummyStateService
+    // this.runtime.stateServiceProvider.setCurrentStateService(
+    //   this.dummyStateService
+    // );
+
+    // TODO unsafe to re-use params here?
+    const { stateTransitions } = await this.simulateMultiRound(
+      () => {
+        method(...args);
+      },
+      runtimeContextInputs,
+      parentStateService
     );
 
-    const { stateTransitions } = this.executeRuntimeMethod(
-      method,
-      args,
-      runtimeContextInputs
-    );
-    const protocolTransitions = this.executeProtocolHooks(
+    const protocolSimulationResult = await this.simulateMultiRound(
+      () => {
+        this.transactionHooks.forEach((transactionHook) => {
+          transactionHook.onTransaction(blockContextInputs);
+        });
+      },
       runtimeContextInputs,
-      blockContextInputs,
-      true
-    ).stateTransitions;
+      parentStateService
+    );
+
+    const protocolTransitions = protocolSimulationResult.stateTransitions;
 
     log.debug(`Got ${stateTransitions.length} StateTransitions`);
     log.debug(`Got ${protocolTransitions.length} ProtocolStateTransitions`);
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    // log.debug(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
 
     return {
       runtimeKeys: this.allKeys(stateTransitions),
@@ -478,11 +561,18 @@ export class TransactionTraceService {
         blockContextInputs.transaction
       ),
     };
-    const { runtimeKeys, protocolKeys } = this.extractAccessedKeys(
+
+    const { runtimeKeys, protocolKeys } = await this.extractAccessedKeys(
       method,
       args,
       runtimeContextInputs,
-      blockContextInputs
+      blockContextInputs,
+      stateService
+    );
+
+    console.log(
+      "Keys:",
+      runtimeKeys.concat(protocolKeys).map((x) => x.toString())
     );
 
     // Preload keys
@@ -538,8 +628,8 @@ export class TransactionTraceService {
     }
 
     // Reset global stateservice
-    this.runtime.stateServiceProvider.resetToDefault();
-    this.protocol.stateServiceProvider.resetToDefault();
+    this.runtime.stateServiceProvider.popCurrentStateService();
+    this.protocol.stateServiceProvider.popCurrentStateService();
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
 

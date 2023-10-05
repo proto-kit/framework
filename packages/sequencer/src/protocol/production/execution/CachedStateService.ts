@@ -12,7 +12,10 @@ export class CachedStateService
   extends InMemoryStateService
   implements AsyncStateService
 {
-  public constructor(private readonly parent: AsyncStateService | undefined) {
+  public constructor(
+    private readonly parent: AsyncStateService | undefined,
+    private readonly debugLogs: boolean = false
+  ) {
     super();
   }
 
@@ -32,13 +35,15 @@ export class CachedStateService
     // Only preload it if it hasn't been preloaded previously
     if (this.parent !== undefined && this.get(key) === undefined) {
       const value = await this.parent.getAsync(key);
-      log.debug(
-        `Preloading ${key.toString()}: ${
-          // eslint-disable-next-line max-len
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-          value?.map((element) => element.toString()) ?? []
-        }`
-      );
+      if (this.debugLogs) {
+        log.debug(
+          `Preloading ${key.toString()}: ${
+            // eslint-disable-next-line max-len
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            value?.map((element) => element.toString()) ?? []
+          }`
+        );
+      }
       this.set(key, value);
     }
   }
@@ -52,7 +57,7 @@ export class CachedStateService
   }
 
   public async getAsync(key: Field): Promise<Field[] | undefined> {
-    return this.get(key);
+    return this.get(key) ?? this.parent?.getAsync(key);
   }
 
   public async setAsync(key: Field, value: Field[] | undefined): Promise<void> {
