@@ -496,6 +496,8 @@ export class TransactionTraceService {
     //   this.dummyStateService
     // );
 
+    const start = new Date().getTime();
+
     // TODO unsafe to re-use params here?
     const { stateTransitions } = await this.simulateMultiRound(
       () => {
@@ -504,6 +506,8 @@ export class TransactionTraceService {
       runtimeContextInputs,
       parentStateService
     );
+    const end = new Date().getTime();
+    console.log(`Simulation took ${end - start}ms`);
 
     const protocolSimulationResult = await this.simulateMultiRound(
       () => {
