@@ -4,8 +4,10 @@ import {
   state,
   runtimeModule,
 } from "@proto-kit/module";
-import { Field, Provable, PublicKey, Struct, UInt64 } from "snarkyjs";
+
 import { StateMap, assert } from "@proto-kit/protocol";
+
+import { Field, Provable, PublicKey, Struct, UInt64 } from "snarkyjs";
 
 export const errors = {
   senderNotFrom: () => "Sender does not match 'from'",
@@ -16,7 +18,9 @@ export class TokenId extends Field {}
 export class BalancesKey extends Struct({
   tokenId: TokenId,
   address: PublicKey,
-}) {}
+}) {
+  test() {}
+}
 
 export class Balance extends UInt64 {}
 
@@ -27,11 +31,13 @@ export class Balances extends RuntimeModule<unknown> {
     Balance
   );
 
-  public getBalance(tokenId: TokenId, address: PublicKey): UInt64 {
+  public getBalance(tokenId: TokenId, address: PublicKey): Balance {
     const key = new BalancesKey({ tokenId, address });
     const balanceOption = this.balances.get(key);
+
     return Provable.if(
       balanceOption.isSome,
+      Balance,
       balanceOption.value,
       Balance.from(0)
     );
@@ -59,7 +65,7 @@ export class Balances extends RuntimeModule<unknown> {
     const paddedFrombalance = fromBalance.add(amount);
     const safeFromBalance = Provable.if(
       fromBalanceIsSufficient,
-      UInt64,
+      Balance,
       fromBalance,
       paddedFrombalance
     );

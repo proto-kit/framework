@@ -10,7 +10,6 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeProvableMethodExecutionResult,
   BlockProverExecutionData,
-  CachedMerkleTreeStore,
   DefaultProvableHashList,
   NetworkState,
   Protocol,
@@ -39,6 +38,10 @@ import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { AsyncStateService } from "./state/AsyncStateService";
+import {
+  CachedMerkleTreeStore,
+  SyncCachedMerkleTreeStore
+} from "./execution/CachedMerkleTreeStore";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -248,6 +251,10 @@ export class TransactionTraceService {
   }> {
     const keys = this.allKeys(protocolTransitions.concat(stateTransitions));
 
+    const runtimeSimulationMerkleStore = new SyncCachedMerkleTreeStore(
+      merkleStore
+    );
+
     await Promise.all(
       keys.map(async (key) => {
         await merkleStore.preloadKey(key.toBigInt());
@@ -255,6 +262,8 @@ export class TransactionTraceService {
     );
 
     const tree = new RollupMerkleTree(merkleStore);
+    const runtimeTree = new RollupMerkleTree(runtimeSimulationMerkleStore);
+    // const runtimeTree = new RollupMerkleTree(merkleStore);
     const initialRoot = tree.getRoot();
 
     const transitionsList = new DefaultProvableHashList(
@@ -293,28 +302,31 @@ export class TransactionTraceService {
 
       // Map all STs to traces for current chunk
       const merkleWitnesses = currentChunk.map(([transition, type]) => {
+        // Select respective tree (whether type is protocol
+        // (which will be applied no matter what)
+        // or runtime (which might be thrown away)
+        const usedTree = StateTransitionType.isProtocol(type)
+          ? tree
+          : runtimeTree;
+
         const provableTransition = transition.toProvable();
 
-        const witness = tree.getWitness(provableTransition.path.toBigInt());
+        const witness = usedTree.getWitness(provableTransition.path.toBigInt());
 
+        // console.log(witness.toShortenedEntries());
         // console.log(
         //   `Calculated root ${witness
         //     .calculateRoot(provableTransition.from.value)
         //     .toString()}`
         // );
 
-        // eslint-disable-next-line max-len
-        // Only apply ST if it is either of type protocol or the runtime succeeded
-        if (
-          provableTransition.to.isSome.toBoolean() &&
-          (StateTransitionType.isProtocol(type) || runtimeSuccess)
-        ) {
-          tree.setLeaf(
+        if (provableTransition.to.isSome.toBoolean()) {
+          usedTree.setLeaf(
             provableTransition.path.toBigInt(),
             provableTransition.to.value
           );
 
-          stateRoot = tree.getRoot();
+          stateRoot = usedTree.getRoot();
           if (StateTransitionType.isProtocol(type)) {
             protocolStateRoot = stateRoot;
           }
@@ -351,6 +363,12 @@ export class TransactionTraceService {
         },
       };
     });
+
+    // If runtime succeeded, merge runtime changes into parent,
+    // otherwise throw them away
+    if (runtimeSuccess) {
+      runtimeSimulationMerkleStore.mergeIntoParent();
+    }
 
     // console.log(`Ending root ${tree.getRoot().toString()}`);
 
@@ -432,8 +450,8 @@ export class TransactionTraceService {
 
       const { stateTransitions } = lastRuntimeResult;
 
-      console.log(stateTransitions.map((st) => st.toJSON()));
-      console.log(collectedSTs);
+      // console.log(stateTransitions.map((st) => st.toJSON()));
+      // console.log(collectedSTs);
 
       const latestST = stateTransitions.at(collectedSTs);
 

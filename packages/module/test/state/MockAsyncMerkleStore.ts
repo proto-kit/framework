@@ -1,4 +1,8 @@
-import { AsyncMerkleTreeStore, InMemoryMerkleTreeStorage, noop } from "@proto-kit/protocol";
+import {
+  AsyncMerkleTreeStore,
+  InMemoryMerkleTreeStorage,
+  noop,
+} from "@proto-kit/protocol";
 
 export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
   public readonly store = new InMemoryMerkleTreeStorage();
@@ -11,14 +15,14 @@ export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
     noop();
   }
 
-  public async getNode(
+  public async getNodeAsync(
     key: bigint,
     level: number
   ): Promise<bigint | undefined> {
     return this.store.getNode(key, level);
   }
 
-  public async setNode(
+  public async setNodeAsync(
     key: bigint,
     level: number,
     value: bigint

@@ -3,6 +3,7 @@
 /* eslint-disable no-inline-comments */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 import { Bool, Field, Poseidon, Provable, Struct } from "snarkyjs";
+import { range } from "@proto-kit/common";
 
 import { notInCircuit } from "../utils";
 
@@ -68,6 +69,14 @@ class RollupMerkleWitness extends Struct({
     }
 
     return index;
+  }
+
+  public toShortenedEntries() {
+    return range(0, 5)
+      .concat(range(251, 255))
+      .map((index) =>
+        [this.path[index].toString(), this.isLeft[index].toString()].toString()
+      );
   }
 }
 
