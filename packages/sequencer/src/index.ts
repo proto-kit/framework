@@ -39,3 +39,6 @@ export * from "./protocol/production/BlockTaskFlowService";
 export * from "./protocol/production/TransactionTraceService";
 export * from "./storage/model/Block";
 export * from "./storage/repositories/BlockStorage";
+export * from "./helpers/query/QueryTransportModule";
+export * from "./helpers/query/QueryBuilderFactory";
+export * from "./helpers/query/NetworkStateQuery";

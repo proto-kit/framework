@@ -12,10 +12,10 @@ import {
   MethodIdResolver,
 } from "@proto-kit/module";
 import {
-  BlockStorage,
+  BlockStorage, NetworkStateQuery, Query, QueryBuilderFactory,
   Sequencer,
   SequencerModulesRecord,
-  UnsignedTransaction,
+  UnsignedTransaction
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -28,17 +28,15 @@ import {
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
+
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
-import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { QueryBuilderFactory, Query } from "../query/QueryBuilderFactory";
 import {
-  QueryTransportModule,
   StateServiceQueryModule,
 } from "../query/StateServiceQueryModule";
 
-import { NetworkStateQuery } from "../query/NetworkStateQuery";
+import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
@@ -58,23 +56,24 @@ export interface AppChainDefinition<
   config?: ModulesConfig<AppChainModules>;
 }
 
+// eslint-disable-next-line etc/prefer-interface
 export type ExpandAppChainModules<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
-> = {
+> = AppChainModules & {
   Runtime: TypedClass<Runtime<RuntimeModules>>;
   Protocol: TypedClass<Protocol<ProtocolModules>>;
   Sequencer: TypedClass<Sequencer<SequencerModules>>;
-} & AppChainModules;
+};
 
-export type ExpandAppChainDefinition<
+export interface ExpandAppChainDefinition<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
-> = {
+> {
   modules: ExpandAppChainModules<
     RuntimeModules,
     ProtocolModules,
@@ -89,7 +88,7 @@ export type ExpandAppChainDefinition<
       AppChainModules
     >
   >;
-};
+}
 
 /**
  * Definition of required arguments for AppChain
@@ -166,6 +165,7 @@ export class AppChain<
         Protocol: definition.protocol,
         ...definition.modules,
       },
+
       config: {
         Runtime: {},
         Sequencer: {},

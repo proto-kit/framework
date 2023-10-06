@@ -15,8 +15,7 @@ import {
   State,
   StateMap,
 } from "@proto-kit/protocol";
-
-import type { QueryTransportModule } from "./StateServiceQueryModule";
+import { QueryTransportModule } from "./QueryTransportModule";
 
 export type PickByType<Type, Value> = {
   [Key in keyof Type as Type[Key] extends Value | undefined
