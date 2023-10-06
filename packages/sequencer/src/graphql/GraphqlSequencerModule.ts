@@ -5,13 +5,14 @@ import {
 
 import {
   ChildContainerProvider,
-  Configurable,
+  Configurable, log,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord, StringKeyOf,
   TypedClass
 } from "@proto-kit/common";
 import { GraphqlServer } from "./GraphqlServer";
+import { GraphqlModule, SchemaGeneratingGraphqlModule } from "./GraphqlModule";
 
 export type GraphqlModulesRecord = ModulesRecord<any>;
 
@@ -31,8 +32,13 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
 
   public async start(): Promise<void> {
     for (const moduleName in this.definition.modules){
-      const module = this.resolve(moduleName);
-      this.graphqlServer!.registerModule(module)
+      const module: GraphqlModule<unknown> = this.resolve(moduleName);
+      this.graphqlServer!.registerModule(module);
+
+      if (module instanceof SchemaGeneratingGraphqlModule) {
+        log.debug(`Registering manual schema for ${moduleName}`);
+        this.graphqlServer!.registerSchema(module.generateSchema());
+      }
     }
     void this.graphqlServer!.startServer();
   }

@@ -6,6 +6,8 @@ import mercurius, { MercuriusOptions } from "mercurius";
 import type { GraphqlModule } from "./GraphqlModule";
 import { SequencerModule } from "../sequencer/builder/SequencerModule";
 import { noop } from "@proto-kit/common";
+import { GraphQLSchema } from "graphql/type";
+import { stitchSchemas } from "@graphql-tools/stitch";
 
 interface GraphqlServerOptions {
   host: string;
@@ -15,6 +17,7 @@ interface GraphqlServerOptions {
 @injectable()
 export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
   private readonly modules: GraphqlModule<unknown>[] = [];
+  private readonly schemas: GraphQLSchema[] = [];
 
   // public constructor(@injectAll("GraphqlModule") modules: GraphqlModule[]) {
   //   this.modules = modules;
@@ -24,13 +27,17 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     this.modules.push(module);
   }
 
+  public registerSchema(schema: GraphQLSchema) {
+    this.schemas.push(schema);
+  }
+
   public async start() {
     noop();
   }
 
   public async startServer() {
     // Building schema
-    const schema = buildSchemaSync({
+    const resolverSchema = buildSchemaSync({
       resolvers: [
         this.modules[0].resolverType,
         ...this.modules.slice(1).map((x) => x.resolverType),
@@ -46,7 +53,15 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
       },
     });
 
-    const app = fastify({ logger: { level: 'info' } });
+    const schema = [resolverSchema, ...this.schemas].reduce(
+      (schema1, schema2) => {
+        return stitchSchemas({
+          subschemas: [{ schema: schema1 }, { schema: schema2 }],
+        });
+      }
+    );
+
+    const app = fastify({ logger: { level: "info" } });
 
     const options: FastifyRegisterOptions<MercuriusOptions> = {
       schema,
