@@ -40,7 +40,7 @@ import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParam
 import { AsyncStateService } from "./state/AsyncStateService";
 import {
   CachedMerkleTreeStore,
-  SyncCachedMerkleTreeStore
+  SyncCachedMerkleTreeStore,
 } from "./execution/CachedMerkleTreeStore";
 
 const errors = {
@@ -288,8 +288,6 @@ export class TransactionTraceService {
     let stateRoot = initialRoot;
     let protocolStateRoot = initialRoot;
 
-    // console.log(`Starting root ${stateRoot.toString()}`);
-
     const stParameters = chunk(
       allTransitions,
       ProtocolConstants.stateTransitionProverBatchSize
@@ -312,13 +310,6 @@ export class TransactionTraceService {
         const provableTransition = transition.toProvable();
 
         const witness = usedTree.getWitness(provableTransition.path.toBigInt());
-
-        // console.log(witness.toShortenedEntries());
-        // console.log(
-        //   `Calculated root ${witness
-        //     .calculateRoot(provableTransition.from.value)
-        //     .toString()}`
-        // );
 
         if (provableTransition.to.isSome.toBoolean()) {
           usedTree.setLeaf(
@@ -369,8 +360,6 @@ export class TransactionTraceService {
     if (runtimeSuccess) {
       runtimeSimulationMerkleStore.mergeIntoParent();
     }
-
-    // console.log(`Ending root ${tree.getRoot().toString()}`);
 
     return {
       stParameters,
@@ -450,9 +439,6 @@ export class TransactionTraceService {
 
       const { stateTransitions } = lastRuntimeResult;
 
-      // console.log(stateTransitions.map((st) => st.toJSON()));
-      // console.log(collectedSTs);
-
       const latestST = stateTransitions.at(collectedSTs);
 
       if (
@@ -514,8 +500,6 @@ export class TransactionTraceService {
     //   this.dummyStateService
     // );
 
-    const start = new Date().getTime();
-
     // TODO unsafe to re-use params here?
     const { stateTransitions } = await this.simulateMultiRound(
       () => {
@@ -524,8 +508,6 @@ export class TransactionTraceService {
       runtimeContextInputs,
       parentStateService
     );
-    const end = new Date().getTime();
-    console.log(`Simulation took ${end - start}ms`);
 
     const protocolSimulationResult = await this.simulateMultiRound(
       () => {
@@ -590,11 +572,6 @@ export class TransactionTraceService {
       runtimeContextInputs,
       blockContextInputs,
       stateService
-    );
-
-    console.log(
-      "Keys:",
-      runtimeKeys.concat(protocolKeys).map((x) => x.toString())
     );
 
     // Preload keys
