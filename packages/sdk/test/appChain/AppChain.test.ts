@@ -6,19 +6,13 @@ import {
   RuntimeModule,
   runtimeModule,
   state,
-  assert,
 } from "@proto-kit/module";
-import { TestingAppChain } from "../../src/appChain/TestingAppChain";
+import { TestingAppChain } from "../../src/index";
 import { container, inject } from "tsyringe";
 import { log } from "@proto-kit/common";
 import { randomUUID } from "crypto";
-import {
-  MapStateMapToQuery, MapStateToQuery,
-  ModuleQuery,
-  PickStateMapProperties,
-  PickStateProperties
-} from "../../src";
-import { State, StateMap } from "@proto-kit/protocol";
+
+import { State, StateMap, assert } from "@proto-kit/protocol";
 
 log.setLevel("ERROR");
 

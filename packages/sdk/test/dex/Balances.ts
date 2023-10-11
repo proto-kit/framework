@@ -3,10 +3,9 @@ import {
   runtimeMethod,
   state,
   runtimeModule,
-  assert,
 } from "@proto-kit/module";
 import { Field, Provable, PublicKey, Struct, UInt64 } from "snarkyjs";
-import { StateMap } from "@proto-kit/protocol";
+import { StateMap, assert } from "@proto-kit/protocol";
 
 export const errors = {
   senderNotFrom: () => "Sender does not match 'from'",
