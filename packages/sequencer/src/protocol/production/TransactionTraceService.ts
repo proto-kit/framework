@@ -495,11 +495,6 @@ export class TransactionTraceService {
     runtimeKeys: Field[];
     protocolKeys: Field[];
   }> {
-    // Execute the first time with dummy service
-    // this.runtime.stateServiceProvider.setCurrentStateService(
-    //   this.dummyStateService
-    // );
-
     // TODO unsafe to re-use params here?
     const { stateTransitions } = await this.simulateMultiRound(
       () => {

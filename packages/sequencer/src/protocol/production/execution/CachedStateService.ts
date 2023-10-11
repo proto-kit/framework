@@ -13,8 +13,7 @@ export class CachedStateService
   implements AsyncStateService
 {
   public constructor(
-    private readonly parent: AsyncStateService | undefined,
-    private readonly debugLogs: boolean = false
+    private readonly parent: AsyncStateService | undefined
   ) {
     super();
   }
@@ -35,15 +34,13 @@ export class CachedStateService
     // Only preload it if it hasn't been preloaded previously
     if (this.parent !== undefined && this.get(key) === undefined) {
       const value = await this.parent.getAsync(key);
-      if (this.debugLogs) {
-        log.debug(
-          `Preloading ${key.toString()}: ${
-            // eslint-disable-next-line max-len
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-            value?.map((element) => element.toString()) ?? []
-          }`
-        );
-      }
+      log.debug(
+        `Preloading ${key.toString()}: ${
+          // eslint-disable-next-line max-len
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          value?.map((element) => element.toString()) ?? []
+        }`
+      );
       this.set(key, value);
     }
   }
