@@ -134,16 +134,16 @@ export const QueryBuilderFactory = {
   },
 
   fromProtocol<ProtocolModules extends ProtocolModulesRecord>(
-    runtime: Protocol<ProtocolModules>,
+    protocol: Protocol<ProtocolModules>,
     queryTransportModule: QueryTransportModule
   ): Query<ProtocolModule<unknown>, ProtocolModules> {
-    const { modules } = runtime.definition;
+    const { modules } = protocol.definition;
 
     return Object.keys(modules).reduce<Query<ProtocolModule<unknown>, ProtocolModules>>(
       (query, protocolModuleName: keyof ProtocolModules) => {
-        runtime.isValidModuleName(modules, protocolModuleName);
+        protocol.isValidModuleName(modules, protocolModuleName);
 
-        const protocolModule = runtime.resolve(protocolModuleName);
+        const protocolModule = protocol.resolve(protocolModuleName);
 
         query[protocolModuleName] = QueryBuilderFactory.fillQuery(
           protocolModule,

@@ -11,6 +11,7 @@ import log from "loglevel";
 
 import { StringKeyOf, TypedClass } from "../types";
 import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
+import { MakeEmptyObjectsOptional } from "../utils";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
@@ -80,6 +81,7 @@ export type ModulesConfig<Modules extends ModulesRecord> = {
   > extends Configurable<infer Config>
     ? Config
     : never;
+  // ? MakeEmptyObjectsOptional<Config>
 };
 
 /**
@@ -97,7 +99,7 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
  */
 export class ModuleContainer<
   Modules extends ModulesRecord
-> extends ConfigurableModule<unknown> {
+> extends ConfigurableModule<ModulesConfig<Modules>> {
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -195,11 +197,11 @@ export class ModuleContainer<
 
         log.debug(`Registering module: ${moduleName}`);
 
-        const definitionEntry = modules[moduleName];
+        const useClass = modules[moduleName];
 
         this.container.register(
           moduleName,
-          { useClass: definitionEntry },
+          { useClass },
           { lifecycle: Lifecycle.ContainerScoped }
         );
         this.onAfterModuleResolution(moduleName);
@@ -250,6 +252,12 @@ export class ModuleContainer<
    * @param config
    */
   public configure(config: ModulesConfig<Modules>) {
+    this.definition.config = config;
+  }
+
+  // eslint-disable-next-line accessor-pairs
+  public set config(config: ModulesConfig<Modules>) {
+    super.config = config;
     this.definition.config = config;
   }
 

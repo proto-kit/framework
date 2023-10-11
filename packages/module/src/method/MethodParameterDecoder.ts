@@ -39,6 +39,10 @@ export class MethodParameterDecoder {
     return new MethodParameterDecoder(paramtypes);
   }
 
+  public static fieldSize(type: FromFieldClass): number | undefined {
+    return type.prototype._fields?.length ?? type.sizeInFields?.();
+  }
+
   private constructor(private readonly types: FromFieldClass[]) {}
 
   public fromFields(fields: Field[]): Fieldable[] {
@@ -49,8 +53,7 @@ export class MethodParameterDecoder {
     let stack = fields.slice();
 
     return this.types.map((type) => {
-      const numberFieldsNeeded =
-        type.prototype._fields?.length ?? type.sizeInFields?.() ?? -1;
+      const numberFieldsNeeded = MethodParameterDecoder.fieldSize(type) ?? -1;
       if (numberFieldsNeeded === -1) {
         throw errors.typeNotCompatible(type.name);
       }
@@ -62,9 +65,7 @@ export class MethodParameterDecoder {
 
   public get fieldSize(): number {
     return this.types
-      .map(
-        (type) => type.prototype._fields?.length ?? type.sizeInFields?.() ?? 0
-      )
+      .map((type) => MethodParameterDecoder.fieldSize(type) ?? 0)
       .reduce((a, b) => a + b, 0);
   }
 }
