@@ -151,7 +151,6 @@ export class BlockProducerModule extends SequencerModule<object> {
     const { txs } = this.mempool.getTxs();
 
     const networkState = this.createNetworkState(lastHeight);
-
     const block = await this.computeBlock(txs, networkState, lastHeight + 1);
 
     requireTrue(this.mempool.removeTxs(txs), errors.txRemovalFailed);
@@ -220,7 +219,6 @@ export class BlockProducerModule extends SequencerModule<object> {
     const traces = traceResults.map((result) => result.trace);
 
     const proof = await this.blockFlowService.executeFlow(traces, blockId);
-
     return {
       proof,
       stateSerivce: stateServices.stateService,

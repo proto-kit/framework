@@ -46,15 +46,11 @@ class Balances extends RuntimeModule<BalancesConfig> {
   );
 
   public constructor(@inject("Admin") public admin: Admin) {
-    console.log("admin injected", admin.id);
     super();
   }
 
   @runtimeMethod()
   public addBalance(address: PublicKey, balance: UInt64) {
-    Provable.log("admin", {
-      admin: this.admin.config.admin,
-    });
     const totalSupply = this.totalSupply.get();
 
     const newTotalSupply = totalSupply.value.add(balance);
@@ -64,18 +60,11 @@ class Balances extends RuntimeModule<BalancesConfig> {
 
     this.totalSupply.set(newTotalSupply);
 
-    Provable.log("isSupplyNotOverflown", isSupplyNotOverflown);
-    Provable.log("config total supply", this.config.totalSupply);
-
     assert(
       isSupplyNotOverflown,
       "Adding the balance would overflow the total supply"
     );
 
-    Provable.log({
-      address,
-      sender: this.transaction.sender,
-    });
     const isSender = this.transaction.sender.equals(address);
     assert(isSender, "Address is not the sender");
 
@@ -91,7 +80,6 @@ describe("testing app chain", () => {
   it("should enable a complete transaction roundtrip", async () => {
     expect.assertions(2);
 
-    console.time("test");
     const signer = PrivateKey.random();
     const sender = signer.toPublicKey();
 
@@ -126,8 +114,6 @@ describe("testing app chain", () => {
      * send a transaction to `addBalance` for sender
      */
     const balances = appChain.runtime.resolve("Balances");
-    const bob = PrivateKey.random().toPublicKey();
-    console.log("TRYING IN TRANSACTION");
     // prepare a transaction invoking `Balances.setBalance`
     const transaction = appChain.transaction(sender, () => {
       balances.addBalance(sender, UInt64.from(1000));
@@ -135,8 +121,6 @@ describe("testing app chain", () => {
 
     await transaction.sign();
     await transaction.send();
-
-    console.log("PRODUCING BLOCK NOW");
 
     /**
      * Produce the next block from pending transactions in the mempool
@@ -149,14 +133,7 @@ describe("testing app chain", () => {
      * Observe new state after the block has been produced
      */
     const balance = await appChain.query.runtime.Balances.balances.get(sender);
-    const balanceBob = await appChain.query.runtime.Balances.balances.get(bob);
-
-    Provable.log("balances", {
-      balance,
-      balanceBob,
-    });
 
     expect(balance?.toBigInt()).toBe(1000n);
-    console.timeEnd("test");
   }, 60_000);
 });

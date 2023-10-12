@@ -40,20 +40,25 @@ class TransactionObject {
   public signature: Signature;
 
   @Field(() => [String])
-  public args: string[];
+  public argsFields: string[];
+
+  @Field(() => [String])
+  public argsJSON: string[];
 
   public constructor(
     methodId: string,
     sender: string,
     nonce: string,
     signature: Signature,
-    args: string[]
+    argsFields: string[],
+    argsJSON: string[]
   ) {
     this.methodId = methodId;
     this.sender = sender;
     this.nonce = nonce;
     this.signature = signature;
-    this.args = args;
+    this.argsFields = argsFields;
+    this.argsJSON = argsJSON;
   }
 }
 
@@ -88,26 +93,4 @@ export class MempoolResolver implements GraphqlModule {
 
     return "unknown";
   }
-
-  // @Query()
-  // transactions(){
-  //     let tx = this.mempool.getTxs().txs
-  //     tx.map(x => x.)
-  // }
-
-  // @Query(returns => [TransactionObject])
-  // transaction(
-  //     @Arg("hash") hash: string
-  // ){
-  //
-  // eslint-disable-next-line max-len
-  //     let tx = this.mempool.getTxs().txs.find(x => x.hash().toString() === hash) //TODO Not very performant
-  //
-  //     if(tx){
-  //         let parsed = tx.toJSON()
-  //         return [parsed]
-  //     }else{
-  //         return []
-  //     }
-  // }
 }

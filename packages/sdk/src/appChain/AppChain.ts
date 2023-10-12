@@ -28,7 +28,14 @@ import {
   ProtocolModule,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
-import { Field, FlexibleProvable, PublicKey, UInt64 } from "snarkyjs";
+import {
+  Field,
+  FlexibleProvable,
+  PublicKey,
+  Struct,
+  UInt64,
+  ProvableExtended,
+} from "snarkyjs";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
@@ -208,10 +215,12 @@ export class AppChain<
     }
 
     // forgive me, i'll fix this type issue soon
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const runtimeModule = this.runtime.resolve(moduleName as any);
 
     // find types of args for the runtime method thats being called
-    const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const parameterTypes: ProvableExtended<unknown>[] = Reflect.getMetadata(
       "design:paramtypes",
       runtimeModule,
       methodName
@@ -221,8 +230,12 @@ export class AppChain<
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((arg, index) =>
-      paramTypes[index].toFields(arg)
+    const argsFields = args.flatMap((argument, index) =>
+      parameterTypes[index].toFields(argument)
+    );
+
+    const argsJSON = args.map((argument, index) =>
+      JSON.stringify(parameterTypes[index].toJSON(argument))
     );
 
     const unsignedTransaction = new UnsignedTransaction({
@@ -232,7 +245,8 @@ export class AppChain<
           .getMethodId(moduleName, methodName)
       ),
 
-      args: argsFields,
+      argsFields,
+      argsJSON,
       nonce: UInt64.from(options?.nonce ?? 0),
       sender,
     });

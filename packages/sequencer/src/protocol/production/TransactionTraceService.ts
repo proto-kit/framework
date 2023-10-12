@@ -92,7 +92,7 @@ export class TransactionTraceService {
       module,
       methodName
     );
-    const args = parameterDecoder.fromFields(tx.args);
+    const args = parameterDecoder.fromJSON(tx.argsJSON);
 
     return {
       method,
