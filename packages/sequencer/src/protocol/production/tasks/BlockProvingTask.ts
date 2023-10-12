@@ -217,7 +217,7 @@ export class BlockProvingTask
       input.params.executionData
     );
 
-    this.runtime.stateServiceProvider.resetToDefault();
+    this.protocol.stateServiceProvider.popCurrentStateService();
 
     return await this.executionContext.current().result.prove<BlockProof>();
   }

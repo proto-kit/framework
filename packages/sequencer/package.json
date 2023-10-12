@@ -1,6 +1,6 @@
 {
   "name": "@proto-kit/sequencer",
-  "version": "0.1.1-develop.241+b5c9a48",
+  "version": "0.1.1-develop.267+b252853",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -44,5 +44,5 @@
   "resolutions": {
     "graphql": "16.6.0"
   },
-  "gitHead": "b5c9a487e4a45b2b9a0f2e59cd18ecb4b8854e73"
+  "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }

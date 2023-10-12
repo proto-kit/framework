@@ -7,7 +7,7 @@ import {
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import { TestingAppChain } from "../../src/appChain/TestingAppChain";
+import { TestingAppChain } from "../../src/index";
 import { container, inject } from "tsyringe";
 import { log } from "@proto-kit/common";
 import { randomUUID } from "crypto";

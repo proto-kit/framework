@@ -15,7 +15,7 @@ import { CachedStateService } from "../protocol/production/execution/CachedState
 import { StorageDependencyFactory } from "./StorageDependencyFactory";
 import { BlockStorage } from "./repositories/BlockStorage";
 
-class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
+export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
   private readonly store = new InMemoryMerkleTreeStorage();
 
   public commit(): void {
@@ -26,14 +26,14 @@ class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
     noop();
   }
 
-  public async getNode(
+  public async getNodeAsync(
     key: bigint,
     level: number
   ): Promise<bigint | undefined> {
     return this.store.getNode(key, level);
   }
 
-  public async setNode(
+  public async setNodeAsync(
     key: bigint,
     level: number,
     value: bigint

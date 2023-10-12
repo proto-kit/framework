@@ -16,7 +16,7 @@ export function range(startOrEnd: number, end: number | undefined): number[] {
     end = startOrEnd;
     startOrEnd = 0;
   }
-  return Array.from({ length: end - startOrEnd }, (ignored, index) => index);
+  return Array.from({ length: end - startOrEnd }, (ignored, index) => index + startOrEnd);
 }
 
 /**

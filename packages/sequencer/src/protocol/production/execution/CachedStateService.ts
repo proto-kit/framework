@@ -12,7 +12,9 @@ export class CachedStateService
   extends InMemoryStateService
   implements AsyncStateService
 {
-  public constructor(private readonly parent: AsyncStateService | undefined) {
+  public constructor(
+    private readonly parent: AsyncStateService | undefined
+  ) {
     super();
   }
 
@@ -52,7 +54,7 @@ export class CachedStateService
   }
 
   public async getAsync(key: Field): Promise<Field[] | undefined> {
-    return this.get(key);
+    return this.get(key) ?? this.parent?.getAsync(key);
   }
 
   public async setAsync(key: Field, value: Field[] | undefined): Promise<void> {

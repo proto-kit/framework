@@ -27,7 +27,7 @@ import {
   ProtocolModule,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
-import { Field, PublicKey, UInt64 } from "snarkyjs";
+import { Field, FlexibleProvable, PublicKey, UInt64 } from "snarkyjs";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
@@ -278,13 +278,31 @@ export class AppChain<
       );
     }
 
-    const argsFields = args.flatMap((arg) => arg.toFields());
+    // forgive me, i'll fix this type issue soon
+    const runtimeModule = this.runtime.resolve(moduleName as any);
+
+    // find types of args for the runtime method thats being called
+    const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
+      "design:paramtypes",
+      runtimeModule,
+      methodName
+    );
+
+    /**
+     * Use the type info obtained previously to convert
+     * the args passed to fields
+     */
+    const argsFields = args.flatMap((arg, index) =>
+      paramTypes[index].toFields(arg)
+    );
+
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
         this.runtime.dependencyContainer
           .resolve<MethodIdResolver>("MethodIdResolver")
           .getMethodId(moduleName, methodName)
       ),
+
       args: argsFields,
       nonce: UInt64.from(options?.nonce ?? 0),
       sender,

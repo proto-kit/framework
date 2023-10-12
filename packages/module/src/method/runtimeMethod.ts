@@ -1,4 +1,4 @@
-import { Field, Poseidon } from "snarkyjs";
+import { Field, FlexibleProvable, Poseidon } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -99,16 +99,26 @@ export function toWrappedMethod(
       "Runtimemethod called with wrong methodId on the transaction object"
     );
 
+    const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
+      "design:paramtypes",
+      this,
+      methodName
+    );
+
+    /**
+     * Use the type info obtained previously to convert
+     * the args passed to fields
+     */
+    const argsFields = args.flatMap((arg, index) =>
+      paramTypes[index].toFields(arg as any)
+    );
+
     // Assert that the argsHash that has been signed matches the given arguments
     // We can use js-if here, because methodArguments is statically sizes
     // i.e. the result of the if-statement will be the same for all executions
     // of this method
     const argsHash =
-      methodArguments.length > 0
-        ? Poseidon.hash(
-            methodArguments.flatMap((argument) => argument.toFields())
-          )
-        : Field(0);
+      methodArguments.length > 0 ? Poseidon.hash(argsFields) : Field(0);
 
     input.transaction.argsHash.assertEquals(
       argsHash,

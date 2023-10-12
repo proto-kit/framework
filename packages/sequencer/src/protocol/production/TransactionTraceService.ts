@@ -1,5 +1,5 @@
-/* eslint-disable max-lines */
-import { inject, injectable, injectAll, Lifecycle, scoped } from "tsyringe";
+/* eslint-disable max-lines,@typescript-eslint/init-declarations */
+import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   MethodParameterDecoder,
   Runtime,
@@ -10,7 +10,6 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeProvableMethodExecutionResult,
   BlockProverExecutionData,
-  CachedMerkleTreeStore,
   DefaultProvableHashList,
   NetworkState,
   Protocol,
@@ -38,6 +37,11 @@ import { CachedStateService } from "./execution/CachedStateService";
 import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
 import { DummyStateService } from "./execution/DummyStateService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
+import { AsyncStateService } from "./state/AsyncStateService";
+import {
+  CachedMerkleTreeStore,
+  SyncCachedMerkleTreeStore,
+} from "./execution/CachedMerkleTreeStore";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -247,6 +251,10 @@ export class TransactionTraceService {
   }> {
     const keys = this.allKeys(protocolTransitions.concat(stateTransitions));
 
+    const runtimeSimulationMerkleStore = new SyncCachedMerkleTreeStore(
+      merkleStore
+    );
+
     await Promise.all(
       keys.map(async (key) => {
         await merkleStore.preloadKey(key.toBigInt());
@@ -254,6 +262,8 @@ export class TransactionTraceService {
     );
 
     const tree = new RollupMerkleTree(merkleStore);
+    const runtimeTree = new RollupMerkleTree(runtimeSimulationMerkleStore);
+    // const runtimeTree = new RollupMerkleTree(merkleStore);
     const initialRoot = tree.getRoot();
 
     const transitionsList = new DefaultProvableHashList(
@@ -290,22 +300,24 @@ export class TransactionTraceService {
 
       // Map all STs to traces for current chunk
       const merkleWitnesses = currentChunk.map(([transition, type]) => {
+        // Select respective tree (whether type is protocol
+        // (which will be applied no matter what)
+        // or runtime (which might be thrown away)
+        const usedTree = StateTransitionType.isProtocol(type)
+          ? tree
+          : runtimeTree;
+
         const provableTransition = transition.toProvable();
 
-        const witness = tree.getWitness(provableTransition.path.toBigInt());
+        const witness = usedTree.getWitness(provableTransition.path.toBigInt());
 
-        // eslint-disable-next-line max-len
-        // Only apply ST if it is either of type protocol or the runtime succeeded
-        if (
-          provableTransition.to.isSome.toBoolean() &&
-          (StateTransitionType.isProtocol(type) || runtimeSuccess)
-        ) {
-          tree.setLeaf(
+        if (provableTransition.to.isSome.toBoolean()) {
+          usedTree.setLeaf(
             provableTransition.path.toBigInt(),
             provableTransition.to.value
           );
 
-          stateRoot = tree.getRoot();
+          stateRoot = usedTree.getRoot();
           if (StateTransitionType.isProtocol(type)) {
             protocolStateRoot = stateRoot;
           }
@@ -343,6 +355,12 @@ export class TransactionTraceService {
       };
     });
 
+    // If runtime succeeded, merge runtime changes into parent,
+    // otherwise throw them away
+    if (runtimeSuccess) {
+      runtimeSimulationMerkleStore.mergeIntoParent();
+    }
+
     return {
       stParameters,
       fromStateRoot: initialRoot,
@@ -372,6 +390,76 @@ export class TransactionTraceService {
     return runtimeResult;
   }
 
+  /**
+   * Simulates a certain Context-aware method through multiple rounds.
+   *
+   * For a method that emits n Statetransitions, we execute it n times,
+   * where for every i-th iteration, we collect the i-th ST that has
+   * been emitted and preload the corresponding key.
+   */
+  private async simulateMultiRound(
+    method: () => void,
+    contextInputs: RuntimeMethodExecutionData,
+    parentStateService: AsyncStateService
+  ): Promise<RuntimeProvableMethodExecutionResult> {
+    // Set up context
+    const executionContext = this.runtime.dependencyContainer.resolve(
+      RuntimeMethodExecutionContext
+    );
+
+    let numberMethodSTs: number | undefined;
+    let collectedSTs = 0;
+
+    const touchedKeys: string[] = [];
+
+    let lastRuntimeResult: RuntimeProvableMethodExecutionResult;
+
+    do {
+      executionContext.setup(contextInputs);
+      executionContext.setSimulated(true);
+
+      const stateService = new CachedStateService(parentStateService);
+      this.runtime.stateServiceProvider.setCurrentStateService(stateService);
+      this.protocol.stateServiceProvider.setCurrentStateService(stateService);
+
+      // Preload previously determined keys
+      // eslint-disable-next-line no-await-in-loop
+      await stateService.preloadKeys(
+        touchedKeys.map((fieldString) => Field(fieldString))
+      );
+
+      // Execute method
+      method();
+
+      lastRuntimeResult = executionContext.current().result;
+
+      // Clear executionContext
+      executionContext.afterMethod();
+      executionContext.clear();
+
+      const { stateTransitions } = lastRuntimeResult;
+
+      const latestST = stateTransitions.at(collectedSTs);
+
+      if (
+        latestST !== undefined &&
+        !touchedKeys.includes(latestST.path.toString())
+      ) {
+        touchedKeys.push(latestST.path.toString());
+      }
+
+      if (numberMethodSTs === undefined) {
+        numberMethodSTs = stateTransitions.length;
+      }
+      collectedSTs += 1;
+
+      this.runtime.stateServiceProvider.popCurrentStateService();
+      this.protocol.stateServiceProvider.popCurrentStateService();
+    } while (collectedSTs < numberMethodSTs);
+
+    return lastRuntimeResult;
+  }
+
   private executeProtocolHooks(
     runtimeContextInputs: RuntimeMethodExecutionData,
     blockContextInputs: BlockProverExecutionData,
@@ -397,35 +485,39 @@ export class TransactionTraceService {
     return protocolResult;
   }
 
-  private extractAccessedKeys(
+  private async extractAccessedKeys(
     method: (...args: unknown[]) => unknown,
     args: unknown[],
     runtimeContextInputs: RuntimeMethodExecutionData,
-    blockContextInputs: BlockProverExecutionData
-  ): {
+    blockContextInputs: BlockProverExecutionData,
+    parentStateService: AsyncStateService
+  ): Promise<{
     runtimeKeys: Field[];
     protocolKeys: Field[];
-  } {
-    // Execute the first time with dummy service
-    this.runtime.stateServiceProvider.setCurrentStateService(
-      this.dummyStateService
+  }> {
+    // TODO unsafe to re-use params here?
+    const { stateTransitions } = await this.simulateMultiRound(
+      () => {
+        method(...args);
+      },
+      runtimeContextInputs,
+      parentStateService
     );
 
-    const { stateTransitions } = this.executeRuntimeMethod(
-      method,
-      args,
-      runtimeContextInputs
-    );
-    const protocolTransitions = this.executeProtocolHooks(
+    const protocolSimulationResult = await this.simulateMultiRound(
+      () => {
+        this.transactionHooks.forEach((transactionHook) => {
+          transactionHook.onTransaction(blockContextInputs);
+        });
+      },
       runtimeContextInputs,
-      blockContextInputs,
-      true
-    ).stateTransitions;
+      parentStateService
+    );
+
+    const protocolTransitions = protocolSimulationResult.stateTransitions;
 
     log.debug(`Got ${stateTransitions.length} StateTransitions`);
     log.debug(`Got ${protocolTransitions.length} ProtocolStateTransitions`);
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    // log.debug(`Touched keys: [${accessedKeys.map((x) => x.toString())}]`);
 
     return {
       runtimeKeys: this.allKeys(stateTransitions),
@@ -468,11 +560,13 @@ export class TransactionTraceService {
         blockContextInputs.transaction
       ),
     };
-    const { runtimeKeys, protocolKeys } = this.extractAccessedKeys(
+
+    const { runtimeKeys, protocolKeys } = await this.extractAccessedKeys(
       method,
       args,
       runtimeContextInputs,
-      blockContextInputs
+      blockContextInputs,
+      stateService
     );
 
     // Preload keys
@@ -528,8 +622,8 @@ export class TransactionTraceService {
     }
 
     // Reset global stateservice
-    this.runtime.stateServiceProvider.resetToDefault();
-    this.protocol.stateServiceProvider.resetToDefault();
+    this.runtime.stateServiceProvider.popCurrentStateService();
+    this.protocol.stateServiceProvider.popCurrentStateService();
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
 
