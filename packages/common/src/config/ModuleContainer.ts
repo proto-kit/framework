@@ -60,10 +60,6 @@ export interface ModulesRecord<
   [name: string]: ModuleType;
 }
 
-export interface ModuleContainable {
-  start: (childContainerProvider: ChildContainerProvider) => void;
-}
-
 // config record derived from the provided modules and their config types
 export type ModulesConfig<Modules extends ModulesRecord> = {
   // this will translate into = key: module name, value: module.config
