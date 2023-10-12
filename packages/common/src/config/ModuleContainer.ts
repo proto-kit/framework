@@ -11,7 +11,6 @@ import log from "loglevel";
 
 import { StringKeyOf, TypedClass } from "../types";
 import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
-import { MakeEmptyObjectsOptional } from "../utils";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
