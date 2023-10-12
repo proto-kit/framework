@@ -1,5 +1,5 @@
 import { buildSchemaSync } from "type-graphql";
-import { container, injectable } from "tsyringe";
+import { DependencyContainer, injectable } from "tsyringe";
 import { FastifyRegisterOptions, fastify } from "fastify";
 import mercurius, { MercuriusOptions } from "mercurius";
 
@@ -17,11 +17,22 @@ interface GraphqlServerOptions {
 @injectable()
 export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
   private readonly modules: GraphqlModule<unknown>[] = [];
+
   private readonly schemas: GraphQLSchema[] = [];
 
-  // public constructor(@injectAll("GraphqlModule") modules: GraphqlModule[]) {
-  //   this.modules = modules;
-  // }
+  private dependencyContainer?: DependencyContainer;
+
+  public setContext(container: DependencyContainer) {
+    this.dependencyContainer = container;
+  }
+
+  private assertDependencyContainerSet(
+    container: DependencyContainer | undefined
+  ): asserts container is DependencyContainer {
+    if (container === undefined) {
+      throw new Error("DependencyContainer for GraphqlServer not set");
+    }
+  }
 
   public registerModule(module: GraphqlModule<unknown>) {
     this.modules.push(module);
@@ -36,17 +47,20 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
   }
 
   public async startServer() {
+    const { dependencyContainer, modules } = this;
+    this.assertDependencyContainerSet(dependencyContainer);
+
     // Building schema
     const resolverSchema = buildSchemaSync({
       resolvers: [
-        this.modules[0].resolverType,
-        ...this.modules.slice(1).map((x) => x.resolverType),
+        modules[0].resolverType,
+        ...modules.slice(1).map((x) => x.resolverType),
       ],
 
       // resolvers: [MempoolResolver as Function],
       // eslint-disable-next-line max-len
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-return
-      container: { get: (cls) => container.resolve(cls) },
+      container: { get: (cls) => dependencyContainer.resolve(cls) },
 
       validate: {
         enableDebugMessages: true,
