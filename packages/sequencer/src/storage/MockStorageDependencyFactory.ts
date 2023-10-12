@@ -13,7 +13,8 @@ import { AsyncStateService } from "../protocol/production/state/AsyncStateServic
 import { CachedStateService } from "../protocol/production/execution/CachedStateService";
 
 import { StorageDependencyFactory } from "./StorageDependencyFactory";
-import { BlockStorage } from "./repositories/BlockStorage";
+import { BlockStorage, HistoricalBlockStorage } from "./repositories/BlockStorage";
+import { ComputedBlock } from "./model/Block";
 
 export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
   private readonly store = new InMemoryMerkleTreeStorage();
@@ -42,15 +43,19 @@ export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
   }
 }
 
-class MockBlockStorage implements BlockStorage {
-  private height = 0;
+class MockBlockStorage implements BlockStorage, HistoricalBlockStorage {
+  private readonly blocks: ComputedBlock[] = [];
 
   public async getCurrentBlockHeight(): Promise<number> {
-    return this.height;
+    return this.blocks.length;
   }
 
-  public async setBlockHeight(number: number): Promise<void> {
-    this.height = number;
+  public async getBlockAt(height: number): Promise<ComputedBlock | undefined> {
+    return this.blocks.at(height);
+  }
+
+  public async pushBlock(block: ComputedBlock): Promise<void> {
+    this.blocks.push(block);
   }
 }
 

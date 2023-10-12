@@ -1,5 +1,5 @@
 /* eslint-disable new-cap,id-length */
-import { Arg, Field, InputType, Mutation, Query, Resolver } from "type-graphql";
+import { Arg, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
 
@@ -7,8 +7,9 @@ import { Mempool } from "../../mempool/Mempool.js";
 import { PendingTransaction } from "../../mempool/PendingTransaction.js";
 import { GraphqlModule } from "../GraphqlModule.js";
 
-@InputType()
-class Signature {
+@ObjectType()
+@InputType("SignatureInput")
+export class Signature {
   @Field()
   @IsNumberString()
   public r: string;
@@ -23,8 +24,9 @@ class Signature {
   }
 }
 
-@InputType()
-class TransactionObject {
+@ObjectType()
+@InputType("TransactionObjectInput")
+export class TransactionObject {
   @Field()
   @IsNumberString()
   public methodId: string;
@@ -54,6 +56,11 @@ class TransactionObject {
     this.nonce = nonce;
     this.signature = signature;
     this.args = args;
+  }
+
+  public static fromServiceLayerModel(pt: PendingTransaction) {
+    const { methodId, sender, nonce, signature, args } = pt.toJSON();
+    return new TransactionObject(methodId, sender, nonce, signature, args);
   }
 }
 
@@ -91,9 +98,9 @@ export class MempoolResolver extends GraphqlModule<object> {
   }
 
   @Query(() => [String])
-  public transactions(){
-      let tx = this.mempool.getTxs().txs
-      return tx.map(x => x.hash().toString())
+  public transactions() {
+    let tx = this.mempool.getTxs().txs;
+    return tx.map((x) => x.hash().toString());
   }
 
   // @Query(returns => [TransactionObject])

@@ -15,7 +15,8 @@ import {
   GraphqlSequencerModule, GraphqlServer, MempoolResolver,
   PrivateMempool, QueryGraphqlModule,
   Sequencer,
-  UnsignedTransaction
+  UnsignedTransaction,
+  BlockStorageResolver
 } from "@proto-kit/sequencer";
 import { AppChain } from "./appChain/AppChain";
 import { StateServiceQueryModule } from "./query/StateServiceQueryModule";
@@ -89,11 +90,13 @@ const appChain = AppChain.from({
         modules: {
           MempoolResolver,
           QueryGraphqlModule,
+          BlockStorageResolver
         },
 
         config: {
           MempoolResolver: {},
           QueryGraphqlModule: {},
+          BlockStorageResolver: {}
         },
       }),
     },
@@ -122,7 +125,8 @@ appChain.configure({
 
     Graphql: {
       QueryGraphqlModule: {},
-      MempoolResolver: {}
+      MempoolResolver: {},
+      BlockStorageResolver: {}
     },
     Mempool: {},
   },
