@@ -19,7 +19,9 @@ export function assert(condition: Bool, message?: string) {
   const status = condition.and(previousStatus);
 
   if (!condition.toBoolean()) {
-    log.debug("Assertion failed: ", message);
+    if (!executionContext.current().isSimulated) {
+      log.debug("Assertion failed: ", message);
+    }
     executionContext.setStatusMessage(message);
   }
 

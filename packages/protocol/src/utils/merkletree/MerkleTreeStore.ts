@@ -3,9 +3,9 @@ export interface AsyncMerkleTreeStore {
 
   commit: () => void;
 
-  setNode: (key: bigint, level: number, value: bigint) => Promise<void>;
+  setNodeAsync: (key: bigint, level: number, value: bigint) => Promise<void>;
 
-  getNode: (key: bigint, level: number) => Promise<bigint | undefined>;
+  getNodeAsync: (key: bigint, level: number) => Promise<bigint | undefined>;
 }
 
 export interface MerkleTreeStore {

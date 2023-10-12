@@ -86,7 +86,7 @@ export class RuntimeProvingTask
     this.executionContext.setup(contextInputs);
     const proof = await result.prove<RuntimeProof>();
 
-    this.runtime.stateServiceProvider.resetToDefault();
+    this.runtime.stateServiceProvider.popCurrentStateService();
     return proof;
   }
 

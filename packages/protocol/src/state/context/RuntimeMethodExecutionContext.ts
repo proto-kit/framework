@@ -119,6 +119,7 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
       isFinished: this.isFinished,
       result: this.result,
       input: this.lastInput,
+      isSimulated: this.isSimulated,
     };
   }
 }

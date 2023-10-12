@@ -3,7 +3,6 @@ import {
   AsyncMerkleTreeStore,
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  CachedMerkleTreeStore,
   DefaultProvableHashList,
   NetworkState,
   noop,
@@ -32,6 +31,7 @@ import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
+import { CachedMerkleTreeStore } from "./execution/CachedMerkleTreeStore";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
