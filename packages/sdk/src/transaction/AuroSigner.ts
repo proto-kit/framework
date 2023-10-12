@@ -38,11 +38,17 @@ export class AuroSignerHandler {
               type: "ERROR_SIGNATURE",
             } satisfies Message);
           })
-          .then(({ signature }: { signature: string }) => {
-            this.worker.postMessage({
-              type: "RESPONSE_SIGNATURE",
-              data: signature,
-            } satisfies Message);
+          .then((response: { signature: string } | undefined) => {
+            if (response?.signature) {
+              this.worker.postMessage({
+                type: "RESPONSE_SIGNATURE",
+                data: response.signature,
+              } satisfies Message);
+            } else {
+              this.worker.postMessage({
+                type: "ERROR_SIGNATURE",
+              } satisfies Message);
+            }
           });
       }
     };
@@ -56,7 +62,7 @@ export class AuroSigner extends AppChainModule<unknown> implements Signer {
   public async sign(signatureData: any[]): Promise<any> {
     const { Signature } = await import("snarkyjs");
 
-    return await new Promise(async (resolve) => {
+    return await new Promise(async (resolve, reject) => {
       const listener = async (message: MessageEvent<any>) => {
         if (
           message.data?.type == ("RESPONSE_SIGNATURE" satisfies Message["type"])
@@ -65,6 +71,14 @@ export class AuroSigner extends AppChainModule<unknown> implements Signer {
           self.removeEventListener("message", listener);
 
           return resolve(signature);
+        }
+
+        if (
+          message.data?.type == ("ERROR_SIGNATURE" satisfies Message["type"])
+        ) {
+          self.removeEventListener("message", listener);
+
+          return reject();
         }
       };
 
