@@ -7,7 +7,7 @@ import {
 } from "@proto-kit/common";
 
 @injectable()
-export class AreProofsEnabledImpl implements AreProofsEnabled {
+export class InMemoryAreProofsEnabled implements AreProofsEnabled {
   private proofsEnabled = false;
 
   public get areProofsEnabled(): boolean {
@@ -23,6 +23,6 @@ export class AreProofsEnabledImpl implements AreProofsEnabled {
 export class AreProofsEnabledFactory extends DependencyFactory {
   @dependency()
   public areProofsEnabled(): AreProofsEnabled {
-    return new AreProofsEnabledImpl();
+    return new InMemoryAreProofsEnabled();
   }
 }

@@ -35,10 +35,6 @@ export class LocalTaskQueue extends SequencerModule<LocalTaskQueueConfig> implem
     [key: string]: QueueListener[];
   } = {};
 
-  public constructor() {
-    super();
-  }
-
   private workNextTasks() {
     Object.entries(this.queues).forEach((queue) => {
       const [queueName, tasks] = queue;
