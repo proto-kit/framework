@@ -14,7 +14,7 @@ import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
-import { ChildContainerStartable } from "./ChildContainerStartable";
+import { ChildContainerCreatable } from "./ChildContainerCreatable";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -43,14 +43,26 @@ const errors = {
       attempting to inject a dependency that is not registered 
       as a runtime module for this chain: ${name}`
     ),
+
+  dependencyContainerNotSet: (className: string) =>
+    new Error(
+      `DependencyContainer not set. Be sure to only call DI-related function in create() and not inside the constructor. (${className})`
+    ),
+
+  validModuleInstance: (moduleName: string, moduleTypeName: string) =>
+    new Error(
+      `Incompatible module instance ("${moduleName}" not instanceof ${moduleTypeName})`
+    ),
 };
 
 export const ModuleContainerErrors = errors;
 
+export interface BaseModuleInstanceType
+  extends ChildContainerCreatable,
+    Configurable<unknown> {}
+
 // determines that a module should be configurable by default
-export type BaseModuleType = TypedClass<
-  ChildContainerStartable & Configurable<unknown>
->;
+export type BaseModuleType = TypedClass<BaseModuleInstanceType>;
 
 // allows to specify what kind of modules can be passed into a container
 export interface ModulesRecord<
@@ -165,9 +177,7 @@ export class ModuleContainer<
     container: DependencyContainer | undefined
   ): asserts container is DependencyContainer {
     if (container === undefined) {
-      throw new Error(
-        "DependencyContainer not set. Be sure to only call DI-related function in create() and not inside the constructor."
-      );
+      throw errors.dependencyContainerNotSet(this.constructor.name);
     }
   }
 
@@ -269,10 +279,7 @@ export class ModuleContainer<
     const isValidModuleInstance = instance instanceof moduleType;
 
     if (!isValidModuleInstance) {
-      console.log(instance);
-      throw new Error(
-        `Incompatible module instance ("${moduleName}" not instanceof ${moduleType.name})`
-      );
+      throw errors.validModuleInstance(moduleName, moduleType.name);
     }
 
     return instance;

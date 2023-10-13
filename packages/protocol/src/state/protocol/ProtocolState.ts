@@ -21,7 +21,9 @@ const errors = {
  * underlying values to improve developer experience.
  */
 export function protocolState() {
-  return <TargetTransitioningModule extends TransitioningProtocolModule>(
+  return <
+    TargetTransitioningModule extends TransitioningProtocolModule<unknown>
+  >(
     target: TargetTransitioningModule,
     propertyKey: string
   ) => {

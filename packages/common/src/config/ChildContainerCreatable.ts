@@ -1,5 +1,5 @@
 import { ChildContainerProvider } from "./ChildContainerProvider";
 
-export interface ChildContainerStartable {
+export interface ChildContainerCreatable {
   create: (childContainerProvider: ChildContainerProvider) => void;
 }

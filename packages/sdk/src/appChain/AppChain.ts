@@ -186,7 +186,7 @@ export class AppChain<
 
   public get query(): {
     runtime: Query<RuntimeModule<unknown>, RuntimeModules>;
-    protocol: Query<ProtocolModule, ProtocolModules>;
+    protocol: Query<ProtocolModule<unknown>, ProtocolModules>;
     network: NetworkStateQuery;
   } {
     const queryTransportModule = this.resolveOrFail(

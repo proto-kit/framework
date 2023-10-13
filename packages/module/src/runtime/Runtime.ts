@@ -191,9 +191,7 @@ export class RuntimeZkProgrammable<
 @injectable()
 export class Runtime<Modules extends RuntimeModulesRecord>
   extends ModuleContainer<Modules>
-  implements
-    WithZkProgrammable<undefined, MethodPublicOutput>,
-    RuntimeEnvironment
+  implements RuntimeEnvironment
 {
   public static from<Modules extends RuntimeModulesRecord>(
     definition: RuntimeDefinition<Modules>
@@ -232,8 +230,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   // TODO Remove after changing DFs to type-based approach
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
-
-    console.log("Registering create()");
 
     this.registerDependencyFactories([MethodIdFactory]);
   }

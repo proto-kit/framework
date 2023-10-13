@@ -1,11 +1,12 @@
 import {
-  AreProofsEnabled, ChildContainerProvider,
+  AreProofsEnabled,
+  ChildContainerProvider,
   log,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
   StringKeyOf,
-  TypedClass
+  TypedClass,
 } from "@proto-kit/common";
 import { DependencyContainer, Lifecycle } from "tsyringe";
 
@@ -22,13 +23,13 @@ import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
 
 export type GenericProtocolModuleRecord = ModulesRecord<
-  TypedClass<ProtocolModule>
+  TypedClass<ProtocolModule<unknown>>
 >;
 
-interface BlockProverType extends ProtocolModule, BlockProvable {}
+interface BlockProverType extends ProtocolModule<object>, BlockProvable {}
 
 interface StateTransitionProverType
-  extends ProtocolModule,
+  extends ProtocolModule<object>,
     StateTransitionProvable {}
 
 export interface ProtocolCustomModulesRecord {
@@ -47,7 +48,7 @@ export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
    * @deprecated
    */
   state?: StateService;
-  // config: ModulesConfig<Modules>
+  config?: ModulesConfig<Modules>;
 }
 
 export class Protocol<Modules extends ProtocolModulesRecord>
@@ -62,7 +63,7 @@ export class Protocol<Modules extends ProtocolModulesRecord>
       public constructor() {
         super(modules);
       }
-    }
+    };
   }
 
   public definition: ProtocolDefinition<Modules>;
@@ -152,31 +153,29 @@ export class Protocol<Modules extends ProtocolModulesRecord>
         { lifecycle: Lifecycle.ContainerScoped }
       );
     }
-
-    // Set empty config for all modules, since we don't have that feature yet
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment
-    const emptyConfig = Object.keys(this.definition.modules).reduce<any>(
-      (agg, item: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        agg[item] = {};
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return agg;
-      },
-      {}
-    );
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    this.configure(emptyConfig as ModulesConfig<Modules>);
   }
 }
 
 export const VanillaProtocol = {
   create(stateService?: StateService) {
-    return VanillaProtocol.from({}, stateService);
+    return VanillaProtocol.from(
+      {},
+      {
+        BlockProver: {},
+        StateTransitionProver: {},
+      },
+      stateService
+    );
   },
 
   from<AdditonalModules extends GenericProtocolModuleRecord>(
     additionalModules: AdditonalModules,
+    config: ModulesConfig<
+      AdditonalModules & {
+        StateTransitionProver: typeof StateTransitionProver;
+        BlockProver: typeof BlockProver;
+      }
+    >,
     stateService?: StateService
   ): TypedClass<
     Protocol<
@@ -192,6 +191,8 @@ export const VanillaProtocol = {
         BlockProver,
         ...additionalModules,
       },
+
+      config,
       state: stateService,
     });
   },

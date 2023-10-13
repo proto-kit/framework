@@ -75,7 +75,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicOutput
     >,
     public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
-    private readonly blockModules: ProvableTransactionHook[]
+    private readonly blockModules: ProvableTransactionHook<unknown>[]
   ) {
     super();
   }
@@ -377,7 +377,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
  * then be merged to be committed to the base-layer contract
  */
 @injectable()
-export class BlockProver extends ProtocolModule implements BlockProvable {
+export class BlockProver extends ProtocolModule<object> implements BlockProvable {
   public zkProgrammable: BlockProverProgrammable;
 
   public constructor(
@@ -389,7 +389,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     @inject("Runtime")
     public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput>,
     @injectAll("ProvableTransactionHook")
-    transactionHooks: ProvableTransactionHook[]
+    transactionHooks: ProvableTransactionHook<unknown>[]
   ) {
     super();
     this.zkProgrammable = new BlockProverProgrammable(

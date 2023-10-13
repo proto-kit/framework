@@ -84,7 +84,8 @@ export class TestingAppChain<
         {
           // AccountStateModule
         } as any,
-        new InMemoryStateService()
+        {},
+        new InMemoryStateService(),
       ),
 
       modules: {

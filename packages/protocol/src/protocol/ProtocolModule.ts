@@ -1,18 +1,15 @@
 import {
   AreProofsEnabled,
   ChildContainerProvider,
-  ChildContainerStartable,
-  Configurable,
+  ConfigurableModule,
   noop,
 } from "@proto-kit/common";
 
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
 
-export abstract class ProtocolModule
-  implements Configurable<unknown>, ChildContainerStartable
-{
-  public config = {};
-
+export abstract class ProtocolModule<
+  Config
+> extends ConfigurableModule<Config> {
   public protocol?: ProtocolEnvironment;
 
   public get appChain(): AreProofsEnabled | undefined {

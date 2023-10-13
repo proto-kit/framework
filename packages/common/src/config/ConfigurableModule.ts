@@ -1,7 +1,7 @@
 import { noop } from "../utils";
 
 import { ChildContainerProvider } from "./ChildContainerProvider";
-import { ChildContainerStartable } from "./ChildContainerStartable";
+import type { BaseModuleInstanceType } from "./ModuleContainer";
 
 const errors = {
   configNotSet: (moduleName: string) =>
@@ -23,7 +23,7 @@ export interface Configurable<Config> {
  * Used by various module sub-types that may need to be configured
  */
 export class ConfigurableModule<Config>
-  implements Configurable<Config>, ChildContainerStartable
+  implements BaseModuleInstanceType
 {
   /**
    * Store the config separately, so that we can apply additional
