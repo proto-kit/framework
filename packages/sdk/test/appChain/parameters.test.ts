@@ -1,4 +1,5 @@
 /* eslint-disable max-statements */
+// eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import {
   PrivateKey,
@@ -9,6 +10,7 @@ import {
   Signature,
   MerkleMap,
   MerkleMapWitness,
+  Experimental,
 } from "snarkyjs";
 import {
   runtimeMethod,
@@ -19,7 +21,9 @@ import {
 import { TestingAppChain } from "../../src/index";
 import { log } from "@proto-kit/common";
 import { assert, State, StateMap } from "@proto-kit/protocol";
-import { Test } from "snarkyjs/dist/node/snarky";
+import { dummyBase64Proof } from "../../../../node_modules/snarkyjs/dist/node/lib/proof_system";
+import { Program } from "typescript";
+import { Proof } from "snarkyjs/dist/node/lib/circuit";
 
 log.setLevel("ERROR");
 
@@ -33,13 +37,43 @@ class Ballot extends Struct({
   ballot: Provable.Array(UInt64, BALLOT_LENGTH),
 }) {
   public static empty(): Ballot {
-    const ballot = new Array(10).fill(UInt64.from(0));
+    const ballot = Array(10).fill(UInt64.from(0));
     return new Ballot({ ballot });
   }
 }
 
 const map = new MerkleMap();
 const witness = map.getWitness(Field(0));
+
+function foo(publicInput: Field) {
+  return Field(0);
+}
+const program = Experimental.ZkProgram({
+  publicOutput: Field,
+  publicInput: Field,
+
+  methods: {
+    foo: {
+      privateInputs: [],
+      // eslint-disable-next-line putout/putout
+      method: foo,
+    },
+  },
+});
+
+class ProgramProof extends Experimental.ZkProgram.Proof(program) {}
+
+const dummy = await dummyBase64Proof();
+const proof = new ProgramProof({
+  proof: dummy,
+  publicOutput: Field(0),
+  publicInput: Field(0),
+  maxProofsVerified: 1,
+});
+
+console.log("dummy", dummy);
+const jsonProof = proof.toJSON();
+console.log("jsonProof", jsonProof);
 
 @runtimeModule()
 class TestRuntime extends RuntimeModule<unknown> {
@@ -55,6 +89,7 @@ class TestRuntime extends RuntimeModule<unknown> {
     signature: Signature,
     ballot: Ballot,
     witness: MerkleMapWitness
+    // proof: ProgramProof
   ) {
     const valid = signature.verify(
       this.transaction.sender,
@@ -110,6 +145,7 @@ describe("testing app chain", () => {
         signature,
         Ballot.empty(),
         witness
+        // proof
       );
     });
 

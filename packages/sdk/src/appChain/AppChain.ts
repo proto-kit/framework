@@ -35,6 +35,7 @@ import {
   Struct,
   UInt64,
   ProvableExtended,
+  Proof,
 } from "snarkyjs";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
@@ -230,13 +231,22 @@ export class AppChain<
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((argument, index) =>
-      parameterTypes[index].toFields(argument)
-    );
+    const argsFields = args.flatMap((argument, index) => {
+      if (argument instanceof Proof) {
+        return Field(0);
+      } else {
+        return parameterTypes[index].toFields(argument as any);
+      }
+    });
 
-    const argsJSON = args.map((argument, index) =>
-      JSON.stringify(parameterTypes[index].toJSON(argument))
-    );
+    const argsJSON = args.map((argument, index) => {
+      if (argument instanceof Proof) {
+        console.log("proof", argument);
+        return JSON.stringify(argument.toJSON());
+      } else {
+        return JSON.stringify(parameterTypes[index].toJSON(argument));
+      }
+    });
 
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(

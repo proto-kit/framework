@@ -1,4 +1,5 @@
-import { Field, FlexibleProvable, Poseidon } from "snarkyjs";
+/* eslint-disable max-statements */
+import { Field, FlexibleProvable, Poseidon, Proof } from "snarkyjs";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -100,7 +101,7 @@ export function toWrappedMethod(
       "Runtimemethod called with wrong methodId on the transaction object"
     );
 
-    const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
+    const parameterTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
       "design:paramtypes",
       this,
       methodName
@@ -110,9 +111,13 @@ export function toWrappedMethod(
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((arg, index) =>
-      paramTypes[index].toFields(arg as any)
-    );
+    const argsFields = args.flatMap((argument, index) => {
+      if (argument instanceof Proof) {
+        return Field(0);
+      } else {
+        return parameterTypes[index].toFields(argument as any);
+      }
+    });
 
     // Assert that the argsHash that has been signed matches the given arguments
     // We can use js-if here, because methodArguments is statically sizes
