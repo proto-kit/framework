@@ -7,6 +7,8 @@ import {
   Field,
   Struct,
   Signature,
+  MerkleMap,
+  MerkleMapWitness,
 } from "snarkyjs";
 import {
   runtimeMethod,
@@ -27,12 +29,17 @@ class TestStruct extends Struct({
 }) {}
 
 const BALLOT_LENGTH = 10;
-class Ballot extends Struct(Provable.Array(UInt64, BALLOT_LENGTH)) {
+class Ballot extends Struct({
+  ballot: Provable.Array(UInt64, BALLOT_LENGTH),
+}) {
   public static empty(): Ballot {
-    const uints = new Array(10).fill(UInt64.from(0));
-    return new Ballot(uints);
+    const ballot = new Array(10).fill(UInt64.from(0));
+    return new Ballot({ ballot });
   }
 }
+
+const map = new MerkleMap();
+const witness = map.getWitness(Field(0));
 
 @runtimeModule()
 class TestRuntime extends RuntimeModule<unknown> {
@@ -46,7 +53,8 @@ class TestRuntime extends RuntimeModule<unknown> {
     uInt64: UInt64,
     struct: TestStruct,
     signature: Signature,
-    ballot: Ballot
+    ballot: Ballot,
+    witness: MerkleMapWitness
   ) {
     const valid = signature.verify(
       this.transaction.sender,
@@ -55,7 +63,12 @@ class TestRuntime extends RuntimeModule<unknown> {
     assert(valid, "Signature invalid");
     this.test1.set(field);
     this.ballots.get(Field(1));
-    // this.ballots.set(Field(1), ballot);
+    this.ballots.set(Field(1), ballot);
+
+    const [root, key] = witness.computeRootAndKey(Field(0));
+    const knownRoot = Provable.witness(Field, () => map.getRoot());
+    assert(root.equals(knownRoot), "Root missmatch");
+    assert(key.equals(Field(0)), "Key missmatch");
   }
 }
 
@@ -90,7 +103,14 @@ describe("testing app chain", () => {
 
     const signature = Signature.create(signer, TestStruct.toFields(struct));
     const transaction = appChain.transaction(sender, () => {
-      runtime.test(Field(0), UInt64.from(0), struct, signature, Ballot.empty());
+      runtime.test(
+        Field(0),
+        UInt64.from(0),
+        struct,
+        signature,
+        Ballot.empty(),
+        witness
+      );
     });
 
     await transaction.sign();
