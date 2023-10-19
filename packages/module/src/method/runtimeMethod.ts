@@ -113,7 +113,10 @@ export function toWrappedMethod(
      */
     const argsFields = args.flatMap((argument, index) => {
       if (argument instanceof Proof) {
-        return Field(0);
+        return [
+          ...argument.publicInput?.toFields(),
+          ...argument.publicOutput?.toFields(),
+        ];
       } else {
         return parameterTypes[index].toFields(argument as any);
       }

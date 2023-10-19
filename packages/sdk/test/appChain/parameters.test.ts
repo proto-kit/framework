@@ -22,8 +22,8 @@ import { TestingAppChain } from "../../src/index";
 import { log } from "@proto-kit/common";
 import { assert, State, StateMap } from "@proto-kit/protocol";
 import { dummyBase64Proof } from "../../../../node_modules/snarkyjs/dist/node/lib/proof_system";
-import { Program } from "typescript";
-import { Proof } from "snarkyjs/dist/node/lib/circuit";
+
+import { Pickles } from "../../../../node_modules/snarkyjs/dist/node/snarky";
 
 log.setLevel("ERROR");
 
@@ -63,17 +63,13 @@ const program = Experimental.ZkProgram({
 
 class ProgramProof extends Experimental.ZkProgram.Proof(program) {}
 
-const dummy = await dummyBase64Proof();
+const [, dummy] = Pickles.proofOfBase64(await dummyBase64Proof(), 2);
 const proof = new ProgramProof({
   proof: dummy,
   publicOutput: Field(0),
   publicInput: Field(0),
-  maxProofsVerified: 1,
+  maxProofsVerified: 2,
 });
-
-console.log("dummy", dummy);
-const jsonProof = proof.toJSON();
-console.log("jsonProof", jsonProof);
 
 @runtimeModule()
 class TestRuntime extends RuntimeModule<unknown> {
@@ -88,8 +84,8 @@ class TestRuntime extends RuntimeModule<unknown> {
     struct: TestStruct,
     signature: Signature,
     ballot: Ballot,
-    witness: MerkleMapWitness
-    // proof: ProgramProof
+    witness: MerkleMapWitness,
+    proof: ProgramProof
   ) {
     const valid = signature.verify(
       this.transaction.sender,
@@ -104,6 +100,8 @@ class TestRuntime extends RuntimeModule<unknown> {
     const knownRoot = Provable.witness(Field, () => map.getRoot());
     assert(root.equals(knownRoot), "Root missmatch");
     assert(key.equals(Field(0)), "Key missmatch");
+
+    proof.verify();
   }
 }
 
@@ -144,8 +142,8 @@ describe("testing app chain", () => {
         struct,
         signature,
         Ballot.empty(),
-        witness
-        // proof
+        witness,
+        proof
       );
     });
 
