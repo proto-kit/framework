@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Bool, Field, Provable, UInt64 } from "snarkyjs";
+import { Bool, Field, Provable, UInt64 } from "o1js";
 import { container } from "tsyringe";
 
 import {

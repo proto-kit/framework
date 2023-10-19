@@ -27,7 +27,7 @@
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
     "reflect-metadata": "^0.1.13",
-    "snarkyjs": "0.12.0",
+    "o1js": "0.13.1",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

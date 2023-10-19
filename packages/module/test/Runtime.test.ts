@@ -1,4 +1,4 @@
-import { Bool } from "snarkyjs";
+import { Bool } from "o1js";
 
 import { InMemoryStateService, MethodIdResolver, Runtime } from "../src";
 
@@ -32,10 +32,9 @@ describe("runtime", () => {
     const moduleName = "Balances";
     const methodName = "getTotalSupply";
 
-    const methodId = runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver").getMethodId(
-      moduleName,
-      methodName
-    );
+    const methodId = runtime.dependencyContainer
+      .resolve<MethodIdResolver>("MethodIdResolver")
+      .getMethodId(moduleName, methodName);
     const method = runtime.getMethodById(methodId);
 
     // eslint-disable-next-line jest/no-restricted-matchers

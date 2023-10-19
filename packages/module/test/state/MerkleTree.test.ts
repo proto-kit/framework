@@ -5,7 +5,7 @@ import {
 } from "@proto-kit/protocol";
 import { MockAsyncMerkleTreeStore } from "./MockAsyncMerkleStore";
 import { beforeEach } from "@jest/globals";
-import { Field, Poseidon } from "snarkyjs";
+import { Field, Poseidon } from "o1js";
 import { log } from "@proto-kit/common";
 
 describe("cachedMerkleTree", () => {

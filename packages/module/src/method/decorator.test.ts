@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { Bool, Field } from "snarkyjs";
+import { Bool, Field } from "o1js";
 import { Option, StateTransition } from "@proto-kit/protocol";
 
 import { toStateTransitionsHash } from "./runtimeMethod.js";

@@ -1,5 +1,5 @@
 import { stringToField } from "@proto-kit/protocol";
-import { Poseidon } from "snarkyjs";
+import { Poseidon } from "o1js";
 
 import type { Runtime, RuntimeModulesRecord } from "./Runtime";
 

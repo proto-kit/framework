@@ -1,18 +1,15 @@
 import "reflect-metadata";
-import { Bool, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, PublicKey, UInt64 } from "o1js";
 import { container } from "tsyringe";
 import {
   NetworkState,
   Option,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
-  StateService
+  StateService,
 } from "@proto-kit/protocol";
 
-import {
-  InMemoryStateService,
-  Runtime
-} from "../../src";
+import { InMemoryStateService, Runtime } from "../../src";
 
 import { Admin } from "./Admin";
 import { Balances } from "./Balances";

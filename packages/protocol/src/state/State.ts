@@ -1,5 +1,5 @@
 import { Mixin } from "ts-mixer";
-import { Bool, Field, Provable, type FlexibleProvablePure } from "snarkyjs";
+import { Bool, Field, Provable, type FlexibleProvablePure } from "o1js";
 import { container } from "tsyringe";
 import { dummyValue } from "@proto-kit/common";
 

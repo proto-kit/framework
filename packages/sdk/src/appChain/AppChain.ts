@@ -28,7 +28,7 @@ import {
   ProtocolModule,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
-import { Field, FlexibleProvable, PublicKey, UInt64 } from "snarkyjs";
+import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";

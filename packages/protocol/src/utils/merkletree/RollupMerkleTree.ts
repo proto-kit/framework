@@ -2,7 +2,7 @@
 /* eslint-disable line-comment-position */
 /* eslint-disable no-inline-comments */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { Bool, Field, Poseidon, Provable, Struct } from "snarkyjs";
+import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
 import { range } from "@proto-kit/common";
 
 import { notInCircuit } from "../utils";

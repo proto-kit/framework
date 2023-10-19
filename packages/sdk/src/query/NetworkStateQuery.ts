@@ -1,7 +1,7 @@
 import { injectable } from "tsyringe";
 import { NetworkState } from "@proto-kit/protocol";
 import { BlockStorage } from "@proto-kit/sequencer";
-import { UInt64 } from "snarkyjs";
+import { UInt64 } from "o1js";
 
 @injectable()
 export class NetworkStateQuery {

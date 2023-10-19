@@ -1,12 +1,5 @@
 import "reflect-metadata";
-import {
-  Bool,
-  Experimental,
-  Field,
-  PrivateKey,
-  Proof,
-  UInt64,
-} from "snarkyjs";
+import { Bool, Experimental, Field, PrivateKey, Proof, UInt64 } from "o1js";
 
 import {
   BlockProver,
@@ -29,12 +22,16 @@ import { UnsignedTransaction } from "@proto-kit/sequencer";
 import { AccountStateModule } from "../src/blockmodules/AccountStateModule";
 import { container } from "tsyringe";
 import {
-  BlockModule, DefaultProvableHashList,
+  BlockModule,
+  DefaultProvableHashList,
   MethodPublicOutput,
   NetworkState,
-  Protocol, ProtocolMethodExecutionContext,
-  ProtocolTransaction, ProvableStateTransition, RuntimeTransaction,
-  StateTransitionProver
+  Protocol,
+  ProtocolMethodExecutionContext,
+  ProtocolTransaction,
+  ProvableStateTransition,
+  RuntimeTransaction,
+  StateTransitionProver,
 } from "../src";
 
 type BlockProverProofPair = [

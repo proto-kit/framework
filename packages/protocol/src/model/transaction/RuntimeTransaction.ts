@@ -1,4 +1,4 @@
-import { Field, Poseidon, PublicKey, Struct, UInt64 } from "snarkyjs";
+import { Field, Poseidon, PublicKey, Struct, UInt64 } from "o1js";
 
 import { ProtocolTransaction } from "./ProtocolTransaction";
 

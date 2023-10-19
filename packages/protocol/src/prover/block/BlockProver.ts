@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Experimental, Field, type Proof, Provable, SelfProof } from "snarkyjs";
+import { Experimental, Field, type Proof, Provable, SelfProof } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
   AreProofsEnabled,

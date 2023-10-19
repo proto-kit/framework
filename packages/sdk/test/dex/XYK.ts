@@ -15,7 +15,7 @@ import {
   Provable,
   SmartContract,
   Struct,
-} from "snarkyjs";
+} from "o1js";
 import { Balance, Balances, TokenId } from "./Balances";
 import { inject } from "tsyringe";
 

@@ -24,7 +24,7 @@ import {
   StateTransitionProver,
   VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
 import { log, range } from "@proto-kit/common";
 
 import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";

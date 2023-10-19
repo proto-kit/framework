@@ -1,4 +1,4 @@
-import { Experimental, FlexibleProvablePure, Proof } from "snarkyjs";
+import { Experimental, FlexibleProvablePure, Proof } from "o1js";
 import { Memoize } from "typescript-memoize";
 
 import { mockProof } from "./provableMethod";

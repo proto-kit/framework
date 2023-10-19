@@ -1,6 +1,6 @@
 /* eslint-disable max-statements */
 import "reflect-metadata";
-import { PrivateKey, PublicKey, UInt64, Provable } from "snarkyjs";
+import { PrivateKey, PublicKey, UInt64, Provable } from "o1js";
 import {
   runtimeMethod,
   RuntimeModule,

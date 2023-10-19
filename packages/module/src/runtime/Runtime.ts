@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,max-lines */
-import { Experimental } from "snarkyjs";
+import { Experimental } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,

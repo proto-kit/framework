@@ -5,7 +5,7 @@ import {
   state,
 } from "@proto-kit/module";
 import { log, Presets, range } from "@proto-kit/common";
-import { Bool, Field, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, Field, PublicKey, UInt64 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert } from "@proto-kit/protocol";
 

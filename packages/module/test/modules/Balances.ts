@@ -1,4 +1,4 @@
-import { Bool, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, PublicKey, UInt64 } from "o1js";
 import { Option, State, StateMap } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 

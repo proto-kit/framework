@@ -1,4 +1,4 @@
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 import { noop, StateService } from "@proto-kit/protocol";
 
 export class DummyStateService implements StateService {

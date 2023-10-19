@@ -1,5 +1,5 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { Proof } from "snarkyjs";
+import { Proof } from "o1js";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,

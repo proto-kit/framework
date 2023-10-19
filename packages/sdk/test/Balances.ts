@@ -5,7 +5,7 @@ import {
   runtimeMethod,
   assert,
 } from "@proto-kit/module";
-import { Provable, PublicKey, Struct, UInt64 } from "snarkyjs";
+import { Provable, PublicKey, Struct, UInt64 } from "o1js";
 import { State, StateMap } from "@proto-kit/protocol";
 
 interface BalancesConfig {

@@ -1,4 +1,4 @@
-import { Bool } from "snarkyjs";
+import { Bool } from "o1js";
 import { container } from "tsyringe";
 import { log } from "@proto-kit/common";
 

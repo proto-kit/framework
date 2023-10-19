@@ -1,5 +1,5 @@
 /* eslint-disable import/no-unused-modules */
-import { Field, PrivateKey, Signature } from "snarkyjs";
+import { Field, PrivateKey, Signature } from "o1js";
 import { injectable } from "tsyringe";
 import { AppChainModule } from "../appChain/AppChainModule";
 

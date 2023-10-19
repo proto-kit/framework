@@ -9,7 +9,7 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
-import { Proof } from "snarkyjs";
+import { Proof } from "o1js";
 
 import { Task } from "../../../worker/flow/Task";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";

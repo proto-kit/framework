@@ -1,10 +1,10 @@
 import { TestingAppChain } from "@proto-kit/sdk";
-import { Field, PrivateKey, Provable, PublicKey } from "snarkyjs";
+import { Field, PrivateKey, Provable, PublicKey } from "o1js";
 import { Balance, Balances, BalancesKey, TokenId } from "./Balances";
 import { PoolKey, XYK } from "./XYK";
 import log from "loglevel";
 
-log.setLevel("DEBUG")
+log.setLevel("DEBUG");
 
 type RuntimeModules = {
   Balances: typeof Balances;

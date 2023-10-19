@@ -1,4 +1,4 @@
-import { Field, Proof, Struct } from "snarkyjs";
+import { Field, Proof, Struct } from "o1js";
 import { WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";

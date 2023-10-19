@@ -6,7 +6,7 @@ import {
   PublicKey,
   Signature,
   UInt64,
-} from "snarkyjs";
+} from "o1js";
 import { ProtocolTransaction } from "@proto-kit/protocol";
 
 export class UnsignedTransaction {

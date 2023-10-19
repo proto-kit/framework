@@ -1,4 +1,4 @@
-import { FlexibleProvable } from "snarkyjs";
+import { FlexibleProvable } from "o1js";
 import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";

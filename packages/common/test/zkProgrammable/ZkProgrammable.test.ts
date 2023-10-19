@@ -3,7 +3,7 @@ import "reflect-metadata";
 // eslint-disable-next-line @typescript-eslint/no-shadow
 import { jest } from "@jest/globals";
 import { container } from "tsyringe";
-import { Experimental, Field, Struct, Proof } from "snarkyjs";
+import { Experimental, Field, Struct, Proof } from "o1js";
 
 import {
   mockProof,

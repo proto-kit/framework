@@ -1,4 +1,4 @@
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 import { NetworkState, ReturnType } from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../../mempool/PendingTransaction";

@@ -6,7 +6,7 @@ import {
   Signature,
   Struct,
   UInt64,
-} from "snarkyjs";
+} from "o1js";
 
 function argsToHash(...args: FlexibleProvable<any>[]): Field {
   const fields = args.flatMap((argument) => argument.toFields(argument));

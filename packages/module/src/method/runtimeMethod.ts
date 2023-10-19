@@ -1,4 +1,4 @@
-import { Field, FlexibleProvable, Poseidon } from "snarkyjs";
+import { Field, FlexibleProvable, Poseidon } from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,

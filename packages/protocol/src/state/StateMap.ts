@@ -1,4 +1,4 @@
-import type { Field, FlexibleProvablePure } from "snarkyjs";
+import type { Field, FlexibleProvablePure } from "o1js";
 import { Mixin } from "ts-mixer";
 
 import { Path } from "../model/Path";
