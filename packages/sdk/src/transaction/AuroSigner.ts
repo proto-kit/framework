@@ -2,7 +2,6 @@
 import { injectable } from "tsyringe";
 import { AppChainModule } from "../appChain/AppChainModule";
 import { Signer } from "./InMemorySigner";
-import * as Comlink from "comlink";
 
 export type Message =
   | {

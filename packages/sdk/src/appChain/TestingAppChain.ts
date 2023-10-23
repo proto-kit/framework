@@ -22,23 +22,23 @@ import {
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "snarkyjs";
-import { container } from "tsyringe";
-import { AuroSigner } from "../transaction/AuroSigner";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
+type TestAppChainProtocolModules = {
+  StateTransitionProver: typeof StateTransitionProver;
+  BlockProver: typeof BlockProver;
+  AccountStateModule: typeof AccountStateModule;
+};
+
 export class TestingAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
-  {
-    StateTransitionProver: typeof StateTransitionProver;
-    BlockProver: typeof BlockProver;
-    AccountStateModule: typeof AccountStateModule;
-  },
-  SequencerModulesRecord,
+  TestAppChainProtocolModules,
+  any,
   AppChainModulesRecord
 > {
   public static fromRuntime<
@@ -60,6 +60,7 @@ export class TestingAppChain<
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         BlockTrigger: ManualBlockTrigger,
+        TaskQueue: LocalTaskQueue,
       },
 
       config: {
@@ -68,22 +69,23 @@ export class TestingAppChain<
         BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
-      },
-    });
 
-    sequencer.dependencyContainer.register<TaskQueue>("TaskQueue", {
-      useValue: new LocalTaskQueue(0),
+        TaskQueue: {
+          simulatedDuration: 0,
+        },
+      },
     });
 
     return new TestingAppChain({
       runtime,
-      sequencer: sequencer as any,
+      sequencer,
 
       protocol: VanillaProtocol.from(
         {
           // AccountStateModule
         } as any,
-        new InMemoryStateService()
+        {},
+        new InMemoryStateService(),
       ),
 
       modules: {
@@ -110,12 +112,12 @@ export class TestingAppChain<
       QueryTransportModule: {},
     });
   }
-
-  public useAuroSigner() {
-    this.registerModules({
-      Signer: AuroSigner,
-    });
-  }
+  //
+  // public useAuroSigner() {
+  //   this.registerModules({
+  //     Signer: AuroSigner,
+  //   });
+  // }
 
   public async produceBlock() {
     const blockTrigger = this.sequencer.resolveOrFail(

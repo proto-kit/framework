@@ -1,8 +1,5 @@
-import {
-  AsyncMerkleTreeStore,
-  InMemoryMerkleTreeStorage,
-  noop,
-} from "@proto-kit/protocol";
+import { AsyncMerkleTreeStore, InMemoryMerkleTreeStorage } from "@proto-kit/protocol";
+import { noop } from "@proto-kit/common";
 
 export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
   public readonly store = new InMemoryMerkleTreeStorage();

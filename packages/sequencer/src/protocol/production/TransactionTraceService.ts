@@ -53,7 +53,7 @@ const errors = {
 export class TransactionTraceService {
   private readonly dummyStateService = new DummyStateService();
 
-  private readonly transactionHooks: ProvableTransactionHook[];
+  private readonly transactionHooks: ProvableTransactionHook<unknown>[];
 
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<never>,

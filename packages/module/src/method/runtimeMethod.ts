@@ -88,8 +88,7 @@ export function toWrappedMethod(
     }
 
     // Assert that the given transaction has the correct methodId
-    const methodIdResolver =
-      runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver");
+    const { methodIdResolver } = runtime;
     const thisMethodId = Field(methodIdResolver.getMethodId(name, methodName));
     if (!thisMethodId.isConstant()) {
       throw errors.fieldNotConstant("methodId");

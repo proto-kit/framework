@@ -60,7 +60,7 @@ describe("balances", () => {
       },
     });
 
-    runtime.dependencyContainer.register("AppChain", {
+    runtime.dependencyContainer.register("AreProofsEnabled", {
       useValue: {
         areProofsEnabled: false,
 

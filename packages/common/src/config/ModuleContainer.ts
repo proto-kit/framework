@@ -1,12 +1,20 @@
+/* eslint-disable max-lines */
 import "reflect-metadata";
 
-import { container, Frequency, InjectionToken, Lifecycle } from "tsyringe";
+import {
+  DependencyContainer,
+  Frequency,
+  InjectionToken,
+  Lifecycle,
+} from "tsyringe";
 import log from "loglevel";
 
 import { StringKeyOf, TypedClass } from "../types";
 import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
+import { ChildContainerProvider } from "./ChildContainerProvider";
+import { ChildContainerCreatable } from "./ChildContainerCreatable";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -35,12 +43,26 @@ const errors = {
       attempting to inject a dependency that is not registered 
       as a runtime module for this chain: ${name}`
     ),
+
+  dependencyContainerNotSet: (className: string) =>
+    new Error(
+      `DependencyContainer not set. Be sure to only call DI-related function in create() and not inside the constructor. (${className})`
+    ),
+
+  validModuleInstance: (moduleName: string, moduleTypeName: string) =>
+    new Error(
+      `Incompatible module instance ("${moduleName}" not instanceof ${moduleTypeName})`
+    ),
 };
 
 export const ModuleContainerErrors = errors;
 
+export interface BaseModuleInstanceType
+  extends ChildContainerCreatable,
+    Configurable<unknown> {}
+
 // determines that a module should be configurable by default
-export type BaseModuleType = TypedClass<Configurable<unknown>>;
+export type BaseModuleType = TypedClass<BaseModuleInstanceType>;
 
 // allows to specify what kind of modules can be passed into a container
 export interface ModulesRecord<
@@ -83,12 +105,10 @@ export class ModuleContainer<
   private static readonly moduleDecorationFrequency: Frequency = "Once";
 
   // DI container holding all the registered modules
-  protected readonly container = container.createChildContainer();
+  private providedContainer?: DependencyContainer = undefined;
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
-    // register all provided modules when the container is created
-    this.registerModules(definition.modules);
   }
 
   /**
@@ -127,6 +147,11 @@ export class ModuleContainer<
     });
   }
 
+  protected get container(): DependencyContainer {
+    this.assertContainerInitialized(this.providedContainer);
+    return this.providedContainer;
+  }
+
   /**
    * Assert that the iterated `moduleName` is of ModuleName type,
    * otherwise it may be just string e.g. when modules are iterated over
@@ -148,6 +173,14 @@ export class ModuleContainer<
     }
   }
 
+  public assertContainerInitialized(
+    container: DependencyContainer | undefined
+  ): asserts container is DependencyContainer {
+    if (container === undefined) {
+      throw errors.dependencyContainerNotSet(this.constructor.name);
+    }
+  }
+
   /**
    * Register modules into the current container, and registers
    * a respective resolution hook in order to decorate the module
@@ -162,9 +195,11 @@ export class ModuleContainer<
 
         log.debug(`Registering module: ${moduleName}`);
 
+        const definitionEntry = modules[moduleName];
+
         this.container.register(
           moduleName,
-          { useClass: modules[moduleName] },
+          { useClass: definitionEntry },
           { lifecycle: Lifecycle.ContainerScoped }
         );
         this.onAfterModuleResolution(moduleName);
@@ -193,6 +228,16 @@ export class ModuleContainer<
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
       this.container.register(moduleName, { useValue });
+    });
+  }
+
+  protected registerClasses(modules: Record<string, TypedClass<unknown>>) {
+    Object.entries(modules).forEach(([moduleName, useClass]) => {
+      this.container.register(
+        moduleName,
+        { useClass },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
     });
   }
 
@@ -234,7 +279,7 @@ export class ModuleContainer<
     const isValidModuleInstance = instance instanceof moduleType;
 
     if (!isValidModuleInstance) {
-      throw new Error("Incompatible module instance");
+      throw errors.validModuleInstance(moduleName, moduleType.name);
     }
 
     return instance;
@@ -271,8 +316,30 @@ export class ModuleContainer<
           throw errors.unableToDecorateModule(containedModuleName);
         }
         this.decorateModule(moduleName, containedModule);
+
+        containedModule.create(() => {
+          const container = this.container.createChildContainer();
+          container.reset();
+          return container;
+        });
       },
       { frequency: ModuleContainer.moduleDecorationFrequency }
     );
+  }
+
+  /**
+   * This is a placeholder for individual modules to override.
+   * This method will be called whenever the underlying container fully
+   * initialized
+   */
+  public create(childContainerProvider: ChildContainerProvider): void {
+    this.providedContainer = childContainerProvider();
+
+    // register all provided modules when the container is created
+    this.registerModules(this.definition.modules);
+
+    this.registerValue({
+      ChildContainerProvider: () => this.container.createChildContainer(),
+    });
   }
 }

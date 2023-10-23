@@ -1,9 +1,9 @@
-import { noop } from "@proto-kit/protocol";
-import { log } from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
 
 import { TaskPayload } from "../manager/ReducableTask";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
+import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 
 async function sleep(ms: number) {
   // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
@@ -15,7 +15,11 @@ interface QueueListener {
   (payload: TaskPayload): Promise<void>;
 }
 
-export class LocalTaskQueue implements TaskQueue {
+export interface LocalTaskQueueConfig {
+  simulatedDuration?: number;
+}
+
+export class LocalTaskQueue extends SequencerModule<LocalTaskQueueConfig> implements TaskQueue {
   private queues: {
     [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
@@ -30,8 +34,6 @@ export class LocalTaskQueue implements TaskQueue {
   private readonly listeners: {
     [key: string]: QueueListener[];
   } = {};
-
-  public constructor(private readonly simulatedDuration?: number) {}
 
   private workNextTasks() {
     Object.entries(this.queues).forEach((queue) => {
@@ -67,7 +69,7 @@ export class LocalTaskQueue implements TaskQueue {
       busy: false,
 
       handler: async (data: TaskPayload) => {
-        await sleep(this.simulatedDuration ?? 0);
+        await sleep(this.config.simulatedDuration ?? 0);
 
         return await executor(data);
       },
@@ -112,5 +114,9 @@ export class LocalTaskQueue implements TaskQueue {
         noop();
       },
     };
+  }
+
+  public async start(): Promise<void> {
+    noop();
   }
 }
