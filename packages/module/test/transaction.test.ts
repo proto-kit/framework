@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { PrivateKey, Proof, PublicKey, UInt64 } from "snarkyjs";
+import { PrivateKey, Proof, PublicKey, UInt64 } from "o1js";
 import { container } from "tsyringe";
 import {
   InMemoryStateService,

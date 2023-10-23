@@ -1,4 +1,4 @@
-import { PrivateKey, UInt64 } from "snarkyjs";
+import { PrivateKey, UInt64 } from "o1js";
 import { log } from "@proto-kit/common";
 import {
   RollupMerkleTree,

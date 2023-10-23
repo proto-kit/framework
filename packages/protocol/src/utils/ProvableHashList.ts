@@ -1,4 +1,4 @@
-import { Field, Poseidon, FlexibleProvablePure, Bool, Provable } from "snarkyjs";
+import { Field, Poseidon, FlexibleProvablePure, Bool, Provable } from "o1js";
 
 /**
  * Utilities for creating a hash list from a given value type.

@@ -1,17 +1,22 @@
 import { InMemoryStateService, Runtime } from "@proto-kit/module";
 import {
-  BlockProducerModule, LocalTaskQueue,
+  BlockProducerModule,
+  LocalTaskQueue,
   LocalTaskWorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
-  Sequencer, TaskQueue
+  Sequencer,
+  TaskQueue,
 } from "../../src";
 import { log } from "@proto-kit/common";
 import { Balance } from "./mocks/Balance";
 import { AppChain } from "@proto-kit/sdk";
-import { StateTransitionProverPublicInput, VanillaProtocol } from "@proto-kit/protocol";
-import { Circuit, Provable } from "snarkyjs";
+import {
+  StateTransitionProverPublicInput,
+  VanillaProtocol,
+} from "@proto-kit/protocol";
+import { Circuit, Provable } from "o1js";
 
 describe("circuit size", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
@@ -67,6 +72,5 @@ describe("circuit size", () => {
     await app.start();
   });
 
-  it("print out constraint sizes for all circuits", async () => {
-  })
-})
+  it("print out constraint sizes for all circuits", async () => {});
+});

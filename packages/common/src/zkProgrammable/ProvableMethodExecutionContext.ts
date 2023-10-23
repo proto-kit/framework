@@ -1,4 +1,4 @@
-import type { FlexibleProvable, Proof } from "snarkyjs";
+import type { FlexibleProvable, Proof } from "o1js";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 

@@ -1,4 +1,4 @@
-import { PublicKey } from "snarkyjs";
+import { PublicKey } from "o1js";
 
 import { runtimeModule } from "../../src/module/decorator.js";
 import { RuntimeModule } from "../../src/runtime/RuntimeModule.js";

@@ -5,7 +5,7 @@ import {
   Poseidon,
   Provable,
   Struct,
-} from "snarkyjs";
+} from "o1js";
 
 export class ProvableOption extends Struct({
   isSome: Bool,

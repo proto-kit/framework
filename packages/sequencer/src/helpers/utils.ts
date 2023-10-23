@@ -1,4 +1,4 @@
-import { Field, Proof } from "snarkyjs";
+import { Field, Proof } from "o1js";
 import { Subclass } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../worker/manager/ReducableTask";
@@ -11,7 +11,7 @@ export function distinct<Value>(
   return array.indexOf(value) === index;
 }
 
-export function distinctByString<Value extends { toString: () => string }> (
+export function distinctByString<Value extends { toString: () => string }>(
   value: Value,
   index: number,
   array: Value[]

@@ -1,4 +1,4 @@
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 import { log } from "@proto-kit/common";
 import { InMemoryStateService } from "@proto-kit/module";
 
@@ -12,9 +12,7 @@ export class CachedStateService
   extends InMemoryStateService
   implements AsyncStateService
 {
-  public constructor(
-    private readonly parent: AsyncStateService | undefined
-  ) {
+  public constructor(private readonly parent: AsyncStateService | undefined) {
     super();
   }
 

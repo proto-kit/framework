@@ -11,7 +11,7 @@ import {
   StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
 import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 
 import { Task } from "../../../worker/flow/Task";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";

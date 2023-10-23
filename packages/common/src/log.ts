@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method, putout/putout */
 import loglevel, { LogLevelDesc } from "loglevel";
-import { Provable } from "snarkyjs";
+import { Provable } from "o1js";
 
 function logProvable(
   logFunction: (...args: unknown[]) => void,

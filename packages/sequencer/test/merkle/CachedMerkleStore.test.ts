@@ -1,11 +1,11 @@
 import { RollupMerkleTree } from "@proto-kit/protocol";
 import { beforeEach, expect } from "@jest/globals";
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 
 import { MockAsyncMerkleTreeStore } from "../../src/storage/MockStorageDependencyFactory";
 import {
   CachedMerkleTreeStore,
-  SyncCachedMerkleTreeStore
+  SyncCachedMerkleTreeStore,
 } from "../../src/protocol/production/execution/CachedMerkleTreeStore";
 
 describe("cached merkle store", () => {
@@ -65,6 +65,8 @@ describe("cached merkle store", () => {
     const cachedStore = new CachedMerkleTreeStore(mainStore);
     await cachedStore.preloadKey(15n);
 
-    expect(new RollupMerkleTree(cachedStore).getRoot().toString()).toBe(tree2.getRoot().toString());
+    expect(new RollupMerkleTree(cachedStore).getRoot().toString()).toBe(
+      tree2.getRoot().toString()
+    );
   });
 });

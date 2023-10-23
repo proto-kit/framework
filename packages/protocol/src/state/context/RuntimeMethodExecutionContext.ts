@@ -1,6 +1,9 @@
-import { Bool } from "snarkyjs";
+import { Bool } from "o1js";
 import { singleton } from "tsyringe";
-import { ProvableMethodExecutionContext, ProvableMethodExecutionResult } from "@proto-kit/common";
+import {
+  ProvableMethodExecutionContext,
+  ProvableMethodExecutionResult,
+} from "@proto-kit/common";
 import { StateTransition } from "../../model/StateTransition";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../../model/network/NetworkState";

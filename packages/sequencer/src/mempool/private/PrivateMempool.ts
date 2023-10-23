@@ -1,4 +1,4 @@
-import { Field, Poseidon } from "snarkyjs";
+import { Field, Poseidon } from "o1js";
 import { noop } from "@proto-kit/common";
 
 import type { Mempool, MempoolCommitment } from "../Mempool.js";

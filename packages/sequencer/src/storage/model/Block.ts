@@ -2,7 +2,7 @@ import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
 } from "@proto-kit/protocol";
-import { Proof } from "snarkyjs";
+import { Proof } from "o1js";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 

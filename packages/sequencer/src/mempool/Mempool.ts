@@ -1,4 +1,4 @@
-import type { Field } from "snarkyjs";
+import type { Field } from "o1js";
 
 import type { PendingTransaction } from "./PendingTransaction.js";
 

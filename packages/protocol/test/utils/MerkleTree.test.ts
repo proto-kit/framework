@@ -1,5 +1,5 @@
 import { MockAsyncMerkleTreeStore } from "@proto-kit/module/test/state/MockAsyncMerkleStore";
-import { Field, Provable } from "snarkyjs";
+import { Field, Provable } from "o1js";
 
 import { CachedMerkleTreeStore, RollupMerkleTree } from "../../src";
 import { log } from "@proto-kit/common";

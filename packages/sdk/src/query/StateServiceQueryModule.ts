@@ -4,7 +4,7 @@ import {
   Sequencer,
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 
 import { AppChainModule } from "../appChain/AppChainModule";

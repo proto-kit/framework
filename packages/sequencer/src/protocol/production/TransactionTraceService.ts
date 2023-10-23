@@ -25,7 +25,7 @@ import {
   StateTransitionType,
   RuntimeMethodExecutionData,
 } from "@proto-kit/protocol";
-import { Bool, Field } from "snarkyjs";
+import { Bool, Field } from "o1js";
 import { AreProofsEnabled, log } from "@proto-kit/common";
 import chunk from "lodash/chunk";
 

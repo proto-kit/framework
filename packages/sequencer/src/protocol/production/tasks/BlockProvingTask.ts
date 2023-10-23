@@ -11,7 +11,7 @@ import {
   StateTransitionProof,
   StateTransitionProvable,
 } from "@proto-kit/protocol";
-import { Field, Proof, Provable } from "snarkyjs";
+import { Field, Proof, Provable } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";

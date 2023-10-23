@@ -1,5 +1,5 @@
 /* eslint-disable no-underscore-dangle */
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 
 import { RuntimeModule } from "../runtime/RuntimeModule";
 

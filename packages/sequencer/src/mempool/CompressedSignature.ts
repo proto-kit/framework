@@ -1,4 +1,4 @@
-import { type Field, Scalar, Signature } from "snarkyjs";
+import { type Field, Scalar, Signature } from "o1js";
 import { notInCircuit } from "@proto-kit/protocol";
 
 /**

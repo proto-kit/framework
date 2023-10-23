@@ -1,4 +1,4 @@
-import { Bool, Field, PublicKey, Signature, Struct, UInt64 } from "snarkyjs";
+import { Bool, Field, PublicKey, Signature, Struct, UInt64 } from "o1js";
 
 export class ProtocolTransaction extends Struct({
   methodId: Field,

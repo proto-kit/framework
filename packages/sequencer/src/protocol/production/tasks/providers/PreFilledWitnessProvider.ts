@@ -4,7 +4,7 @@ import {
   RollupMerkleWitness,
   StateTransitionWitnessProvider,
 } from "@proto-kit/protocol";
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 import { log } from "@proto-kit/common";
 
 const errors = {
