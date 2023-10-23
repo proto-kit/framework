@@ -5,11 +5,10 @@ import {
   BlockProverPublicOutput,
   DefaultProvableHashList,
   NetworkState,
-  noop,
   ReturnType,
 } from "@proto-kit/protocol";
 import { Field, Proof, UInt64 } from "o1js";
-import { log, requireTrue } from "@proto-kit/common";
+import { log, requireTrue, noop } from "@proto-kit/common";
 
 import {
   sequencerModule,
@@ -51,6 +50,7 @@ interface ComputedBlockMetadata {
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
+
   blockWithoutTxs: () =>
     new Error("Can't create a block with zero transactions"),
 };

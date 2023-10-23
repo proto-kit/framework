@@ -38,6 +38,9 @@ export function dummyValue<Value>(
   return valueType.fromFields(fields) as Value;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+export function noop(): void {}
+
 export interface ToFieldable {
   toFields: () => Field[];
 }

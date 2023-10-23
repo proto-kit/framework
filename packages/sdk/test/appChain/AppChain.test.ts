@@ -11,8 +11,7 @@ import { TestingAppChain } from "../../src/index";
 import { container, inject } from "tsyringe";
 import { log } from "@proto-kit/common";
 import { randomUUID } from "crypto";
-
-import { State, StateMap, assert } from "@proto-kit/protocol";
+import { assert, State, StateMap } from "@proto-kit/protocol";
 
 log.setLevel("ERROR");
 

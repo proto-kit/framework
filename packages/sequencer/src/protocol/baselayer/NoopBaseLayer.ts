@@ -1,4 +1,4 @@
-import { noop } from "@proto-kit/protocol";
+import { noop } from "@proto-kit/common";
 
 import {
   SequencerModule,

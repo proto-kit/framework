@@ -34,8 +34,12 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    */
   public static from<Modules extends SequencerModulesRecord>(
     definition: ModuleContainerDefinition<Modules>
-  ) {
-    return new Sequencer(definition);
+  ): TypedClass<Sequencer<Modules>> {
+    return class ScopedSequencer extends Sequencer<Modules> {
+      public constructor() {
+        super(definition);
+      }
+    };
   }
 
   public get runtime(): Runtime<RuntimeModulesRecord> {

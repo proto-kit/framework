@@ -15,6 +15,7 @@ import type {
   RuntimeDefinition,
   RuntimeModulesRecord,
 } from "./Runtime";
+import { RuntimeEnvironment } from "./RuntimeEnvironment";
 
 const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
@@ -52,7 +53,7 @@ export class RuntimeModule<Config> extends ConfigurableModule<Config> {
 
   public name?: string;
 
-  public runtime?: Runtime<RuntimeModulesRecord>;
+  public runtime?: RuntimeEnvironment;
 
   public constructor() {
     super();

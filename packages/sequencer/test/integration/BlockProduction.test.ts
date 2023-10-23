@@ -15,12 +15,8 @@ import {
   AccountState,
   AccountStateModule,
   BlockProver,
-  CachedMerkleTreeStore,
-  InMemoryMerkleTreeStorage,
   Path,
   Protocol,
-  ProvableTransactionHook,
-  RollupMerkleTree,
   StateTransitionProver,
   VanillaProtocol,
 } from "@proto-kit/protocol";
@@ -35,7 +31,6 @@ import {
   AsyncStateService,
   BlockProducerModule,
   ManualBlockTrigger,
-  TaskQueue,
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -50,6 +45,7 @@ describe("block production", () => {
     BaseLayer: typeof NoopBaseLayer;
     BlockProducerModule: typeof BlockProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
+    TaskQueue: typeof LocalTaskQueue;
   }>;
 
   let protocol: Protocol<{
@@ -64,11 +60,11 @@ describe("block production", () => {
   beforeEach(async () => {
     // container.reset();
 
-    log.setLevel(log.levels.ERROR);
+    log.setLevel(log.levels.DEBUG);
 
     const stateService = new InMemoryStateService();
 
-    runtime = Runtime.from({
+    const runtimeClass = Runtime.from({
       modules: {
         Balance,
       },
@@ -80,13 +76,14 @@ describe("block production", () => {
       state: stateService,
     });
 
-    sequencer = Sequencer.from({
+    const sequencerClass = Sequencer.from({
       modules: {
         Mempool: PrivateMempool,
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         BlockTrigger: ManualBlockTrigger,
+        TaskQueue: LocalTaskQueue,
       },
 
       config: {
@@ -95,24 +92,35 @@ describe("block production", () => {
         BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
+        TaskQueue: {},
       },
     });
 
-    sequencer.dependencyContainer.register<TaskQueue>("TaskQueue", {
-      useValue: new LocalTaskQueue(0),
-    });
+    console.log(new sequencerClass() instanceof Sequencer<{
+      Mempool: typeof PrivateMempool;
+      LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
+      BaseLayer: typeof NoopBaseLayer;
+      BlockProducerModule: typeof BlockProducerModule;
+      BlockTrigger: typeof ManualBlockTrigger;
+      TaskQueue: typeof LocalTaskQueue;
+    }>);
 
-    protocol = VanillaProtocol.from({ AccountStateModule }, stateService);
+    const protocolClass = VanillaProtocol.from(
+      { AccountStateModule },
+      stateService
+    );
 
     const app = AppChain.from({
-      runtime,
-      sequencer,
-      protocol,
+      runtime: runtimeClass,
+      sequencer: sequencerClass,
+      protocol: protocolClass,
       modules: {},
     });
 
     // Start AppChain
     await app.start();
+
+    ({ runtime, sequencer, protocol } = app);
 
     blockTrigger = sequencer.resolve("BlockTrigger");
     mempool = sequencer.resolve("Mempool");
@@ -253,7 +261,7 @@ describe("block production", () => {
 
   const numberTxs = 3;
 
-  it("should produce block with multiple transaction", async () => {
+  it.only("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(5 + 2 * numberTxs);
 
@@ -301,7 +309,7 @@ describe("block production", () => {
     );
   }, 160_000);
 
-  it.only.each([
+  it.each([
     [
       "EKFZbsQfNiqjDiWGU7G3TVPauS3s9YgWgayMzjkEaDTEicsY9poM",
       "EKFdtp8D6mP3aFvCMRa75LPaUBn1QbmEs1YjTPXYLTNeqPYtnwy2",
