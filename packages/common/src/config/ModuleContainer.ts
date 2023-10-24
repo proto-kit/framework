@@ -335,11 +335,11 @@ export class ModuleContainer<
   public create(childContainerProvider: ChildContainerProvider): void {
     this.providedContainer = childContainerProvider();
 
-    // register all provided modules when the container is created
-    this.registerModules(this.definition.modules);
-
     this.registerValue({
       ChildContainerProvider: () => this.container.createChildContainer(),
     });
+
+    // register all provided modules when the container is created
+    this.registerModules(this.definition.modules);
   }
 }
