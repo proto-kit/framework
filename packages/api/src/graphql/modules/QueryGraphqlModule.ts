@@ -33,8 +33,8 @@ import {
   QueryBuilderFactory,
   QueryGetterState,
   QueryGetterStateMap,
-} from "../../helpers/query/QueryBuilderFactory";
-import { QueryTransportModule } from "../../helpers/query/QueryTransportModule";
+} from "@proto-kit/sequencer/dist/helpers/query/QueryBuilderFactory";
+import { QueryTransportModule } from "@proto-kit/sequencer/dist/helpers/query/QueryTransportModule";
 import { SchemaGeneratingGraphqlModule } from "../GraphqlModule";
 import {
   BaseModuleType,
@@ -46,8 +46,8 @@ import {
   TypedClass,
 } from "@proto-kit/common";
 import { ObjMap } from "graphql/jsutils/ObjMap";
-import { NetworkStateQuery } from "../../helpers/query/NetworkStateQuery";
-import { BlockStorage } from "../../storage/repositories/BlockStorage";
+import { NetworkStateQuery } from "@proto-kit/sequencer/dist/helpers/query/NetworkStateQuery";
+import { BlockStorage } from "@proto-kit/sequencer/dist/storage/repositories/BlockStorage";
 
 interface ProvableExtension<T, TJson = any> {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };

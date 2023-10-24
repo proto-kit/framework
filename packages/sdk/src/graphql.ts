@@ -1,23 +1,34 @@
 import "reflect-metadata";
 import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
 import {
-  InMemoryStateService,
   Runtime,
   runtimeMethod,
   RuntimeModule,
-  runtimeModule, RuntimeModulesRecord,
-  state
+  runtimeModule,
+  state,
 } from "@proto-kit/module";
-import { AccountStateModule, Option, State, StateMap, VanillaProtocol } from "@proto-kit/protocol";
+import {
+  AccountStateModule,
+  Option,
+  State,
+  StateMap,
+  VanillaProtocol,
+} from "@proto-kit/protocol";
 import { Presets, log } from "@proto-kit/common";
 import {
   AsyncStateService,
-  GraphqlSequencerModule, GraphqlServer, MempoolResolver,
-  PrivateMempool, QueryGraphqlModule,
+  PrivateMempool,
   Sequencer,
   UnsignedTransaction,
-  BlockStorageResolver
 } from "@proto-kit/sequencer";
+import {
+  BlockStorageResolver,
+  GraphqlSequencerModule,
+  GraphqlServer,
+  MempoolResolver,
+  QueryGraphqlModule,
+} from "@proto-kit/api";
+
 import { AppChain } from "./appChain/AppChain";
 import { StateServiceQueryModule } from "./query/StateServiceQueryModule";
 import { InMemorySigner } from "./transaction/InMemorySigner";
@@ -65,21 +76,18 @@ export class Balances extends RuntimeModule<object> {
   }
 }
 
-const stateservice = new InMemoryStateService()
-
 const appChain = AppChain.from({
   runtime: Runtime.from({
     modules: {
       Balances,
     },
-    state: stateservice,
 
     config: {
       Balances: {},
     },
   }),
 
-  protocol: VanillaProtocol.from({ AccountStateModule }, stateservice),
+  protocol: VanillaProtocol.from({ AccountStateModule }),
 
   sequencer: Sequencer.from({
     modules: {
@@ -90,33 +98,36 @@ const appChain = AppChain.from({
         modules: {
           MempoolResolver,
           QueryGraphqlModule,
-          BlockStorageResolver
+          BlockStorageResolver,
         },
 
         config: {
           MempoolResolver: {},
           QueryGraphqlModule: {},
-          BlockStorageResolver: {}
+          BlockStorageResolver: {},
         },
       }),
     },
   }),
+
   modules: {
     Signer: InMemorySigner,
     TransactionSender: InMemoryTransactionSender,
     QueryTransportModule: StateServiceQueryModule,
-  }
-})
+  },
+});
 
 appChain.configure({
   Runtime: {
-    Balances: {}
+    Balances: {},
   },
+
   Protocol: {
     BlockProver: {},
     StateTransitionProver: {},
-    AccountStateModule: {}
+    AccountStateModule: {},
   },
+
   Sequencer: {
     GraphqlServer: {
       port: 8080,
@@ -126,28 +137,34 @@ appChain.configure({
     Graphql: {
       QueryGraphqlModule: {},
       MempoolResolver: {},
-      BlockStorageResolver: {}
+      BlockStorageResolver: {},
     },
+
     Mempool: {},
   },
+
   TransactionSender: {},
   QueryTransportModule: {},
+
   Signer: {
-    signer: PrivateKey.random()
-  }
-})
+    signer: PrivateKey.random(),
+  },
+});
 
 await appChain.start();
 
-const pk = PublicKey.fromBase58("B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP");
+const pk = PublicKey.fromBase58(
+  "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
+);
 console.log(pk.toJSON());
-
-const gql = appChain.sequencer.resolve("Graphql").resolve("BlockStorageResolver")
 
 const balances = appChain.runtime.resolve("Balances");
 
 console.log("Path:", balances.balances.getPath(pk).toString());
 
-const asyncState = appChain.sequencer.dependencyContainer.resolve<AsyncStateService>("AsyncStateService")
-await asyncState.setAsync(balances.balances.getPath(pk), [Field(100)])
-await asyncState.setAsync(balances.totalSupply.path!, [Field(10000)])
+const asyncState =
+  appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
+    "AsyncStateService"
+  );
+await asyncState.setAsync(balances.balances.getPath(pk), [Field(100)]);
+await asyncState.setAsync(balances.totalSupply.path!, [Field(10_000)]);

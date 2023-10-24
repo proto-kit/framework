@@ -1,13 +1,13 @@
 import { buildSchemaSync } from "type-graphql";
 import { DependencyContainer, injectable } from "tsyringe";
-import { FastifyRegisterOptions, fastify } from "fastify";
-import mercurius, { MercuriusOptions } from "mercurius";
 
 import type { GraphqlModule } from "./GraphqlModule";
-import { SequencerModule } from "../sequencer/builder/SequencerModule";
-import { noop } from "@proto-kit/common";
+import { SequencerModule } from "@proto-kit/sequencer/dist/sequencer/builder/SequencerModule";
+import { log, noop } from "@proto-kit/common";
 import { GraphQLSchema } from "graphql/type";
 import { stitchSchemas } from "@graphql-tools/stitch";
+import { createYoga } from "graphql-yoga";
+import Koa from "koa";
 
 interface GraphqlServerOptions {
   host: string;
@@ -75,35 +75,34 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
       }
     );
 
-    const app = fastify({ logger: { level: "info" } });
+    const app = new Koa();
 
-    const options: FastifyRegisterOptions<MercuriusOptions> = {
-      schema,
+    const yoga = createYoga<Koa.ParameterizedContext>({
+      schema: schema,
       graphiql: true,
+    });
 
-      errorFormatter: (executionResult, context) => {
-        const log = context.reply ? context.reply.log : context.app.log;
-        const errors = executionResult.errors.map((error) => {
-          error.extensions.exception = error.originalError;
-          Object.defineProperty(error, "extensions", { enumerable: true });
-          return error;
-        });
-        log.info({ err: executionResult.errors }, "Argument Validation Error");
-        return {
-          statusCode: 201,
+    // Bind GraphQL Yoga to `/graphql` endpoint
+    app.use(async (ctx) => {
+      // Second parameter adds Koa's context into GraphQL Context
+      const response = await yoga.handleNodeRequest(ctx.req, ctx);
 
-          response: {
-            data: executionResult.data,
-            errors,
-          },
-        };
-      },
-    };
+      // Set status code
+      ctx.status = response.status;
 
-    await app.register(mercurius, options);
+      // Set headers
+      response.headers.forEach((value, key) => {
+        ctx.append(key, value);
+      });
+
+      // Converts ReadableStream to a NodeJS Stream
+      ctx.body = response.body;
+    });
 
     const { port, host } = this.config;
 
-    await app.listen({ port, host });
+    app.listen({ port, host }, () => {
+      log.info(`GraphQL Server listening on ${host}:${port}`);
+    });
   }
 }
