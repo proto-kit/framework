@@ -1,10 +1,14 @@
 import "reflect-metadata";
-import { MethodIdResolver, Runtime, runtimeModule, RuntimeModule } from "@proto-kit/module";
+import {
+  MethodIdResolver,
+  Runtime,
+  runtimeModule,
+  RuntimeModule,
+} from "@proto-kit/module";
 import { ChildContainerProvider, log } from "@proto-kit/common";
 import { AppChain, AppChainModule } from "../../src";
 import { Protocol, ProtocolModule, VanillaProtocol } from "@proto-kit/protocol";
 import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
-import { MethodIdFactory } from "@proto-kit/module/dist/factories/MethodIdFactory";
 
 class TestRuntimeModule extends RuntimeModule<object> {
   public initialized = false;
@@ -19,7 +23,7 @@ class TestRuntimeModule extends RuntimeModule<object> {
   }
 }
 
-class TestProtocolModule extends ProtocolModule {
+class TestProtocolModule extends ProtocolModule<object> {
   public initialized = false;
 
   public create() {
@@ -61,9 +65,16 @@ describe("modularization", () => {
           TestRuntimeModule: {},
         },
       }),
-      protocol: VanillaProtocol.from({
-        TestProtocolModule,
-      }),
+      protocol: VanillaProtocol.from(
+        {
+          TestProtocolModule,
+        },
+        {
+          TestProtocolModule: {},
+          BlockProver: {},
+          StateTransitionProver: {},
+        }
+      ),
       sequencer: Sequencer.from({
         modules: {
           TestSequencerModule,
@@ -90,7 +101,9 @@ describe("modularization", () => {
       true
     );
 
-    expect(appChain.runtime.dependencyContainer.isRegistered("Runtime")).toBe(false);
+    expect(appChain.runtime.dependencyContainer.isRegistered("Runtime")).toBe(
+      false
+    );
 
     // Tests that the DependencyFactory got executed
     expect(

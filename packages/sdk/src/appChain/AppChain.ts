@@ -205,7 +205,7 @@ export class AppChain<
       ),
 
       protocol: QueryBuilderFactory.fromProtocol(
-        this.resolveOrFail("Runtime", Protocol<ProtocolModules>),
+        this.resolveOrFail("Protocol", Protocol<ProtocolModules>),
         queryTransportModule
       ),
 
@@ -323,7 +323,7 @@ export class AppChain<
    * Starts the appchain and cross-registers runtime to sequencer
    */
   public async start() {
-    super.create(() => container);
+    this.create(() => container);
 
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.

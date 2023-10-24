@@ -17,13 +17,9 @@ import {
   NoopBaseLayer,
   BlockProducerModule,
   ManualBlockTrigger,
-  TaskQueue,
   LocalTaskQueue,
-  SequencerModulesRecord,
 } from "@proto-kit/sequencer";
-import { PrivateKey, PublicKey } from "o1js";
-import { container } from "tsyringe";
-import { AuroSigner } from "../transaction/AuroSigner";
+import { PrivateKey } from "o1js";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
@@ -32,7 +28,7 @@ import { AppChain, AppChainModulesRecord } from "./AppChain";
 type TestAppChainProtocolModules = {
   StateTransitionProver: typeof StateTransitionProver;
   BlockProver: typeof BlockProver;
-  AccountStateModule: typeof AccountStateModule;
+  // AccountStateModule: typeof AccountStateModule;
 };
 
 export class TestingAppChain<
@@ -85,8 +81,11 @@ export class TestingAppChain<
       protocol: VanillaProtocol.from(
         {
           // AccountStateModule
-        } as any,
-        {},
+        },
+        {
+          BlockProver: {},
+          StateTransitionProver: {}
+        },
         new InMemoryStateService(),
       ),
 
@@ -112,6 +111,9 @@ export class TestingAppChain<
 
       TransactionSender: {},
       QueryTransportModule: {},
+      Runtime: {},
+      Protocol: {},
+      Sequencer: {}
     });
   }
   //
