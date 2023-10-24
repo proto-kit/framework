@@ -84,9 +84,9 @@ export class TestingAppChain<
         },
         {
           BlockProver: {},
-          StateTransitionProver: {}
+          StateTransitionProver: {},
         },
-        new InMemoryStateService(),
+        new InMemoryStateService()
       ),
 
       modules: {
@@ -113,7 +113,7 @@ export class TestingAppChain<
       QueryTransportModule: {},
       Runtime: {},
       Protocol: {},
-      Sequencer: {}
+      Sequencer: {},
     });
   }
   //

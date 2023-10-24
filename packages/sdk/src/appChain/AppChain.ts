@@ -296,10 +296,16 @@ export class AppChain<
      */
     const argsFields = args.flatMap((argument, index) => {
       if (argument instanceof Proof) {
-        return [
-          ...argument.publicInput?.toFields(),
-          ...argument.publicOutput?.toFields(),
-        ];
+        const publicOutputType = (parameterTypes[index] as any)
+          ?.publicOutputType;
+        const publicInputType = (parameterTypes[index] as any)?.publicInputType;
+
+        const inputFields =
+          publicInputType?.toFields(argument.publicInput) ?? [];
+        const outputFields =
+          publicOutputType?.toFields(argument.publicOutput) ?? [];
+
+        return [...inputFields, ...outputFields];
       } else {
         return parameterTypes[index].toFields(argument as any);
       }
@@ -307,7 +313,6 @@ export class AppChain<
 
     const argsJSON = args.map((argument, index) => {
       if (argument instanceof Proof) {
-        console.log("proof", argument);
         return JSON.stringify(argument.toJSON());
       } else {
         return JSON.stringify(parameterTypes[index].toJSON(argument));

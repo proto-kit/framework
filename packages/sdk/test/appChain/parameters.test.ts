@@ -11,7 +11,7 @@ import {
   MerkleMap,
   MerkleMapWitness,
   Experimental,
-} from "snarkyjs";
+} from "o1js";
 import {
   runtimeMethod,
   RuntimeModule,
@@ -21,9 +21,9 @@ import {
 import { TestingAppChain } from "../../src/index";
 import { log } from "@proto-kit/common";
 import { assert, State, StateMap } from "@proto-kit/protocol";
-import { dummyBase64Proof } from "../../../../node_modules/snarkyjs/dist/node/lib/proof_system";
+import { dummyBase64Proof } from "o1js/dist/node/lib/proof_system";
 
-import { Pickles } from "../../../../node_modules/snarkyjs/dist/node/snarky";
+import { Pickles } from "o1js/dist/node/snarky";
 
 log.setLevel("ERROR");
 

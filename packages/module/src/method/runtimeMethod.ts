@@ -1,4 +1,10 @@
-import { Field, FlexibleProvable, Poseidon, Proof } from "o1js";
+import {
+  Field,
+  FlexibleProvable,
+  Poseidon,
+  Proof,
+  ProvableExtended,
+} from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -99,7 +105,7 @@ export function toWrappedMethod(
       "Runtimemethod called with wrong methodId on the transaction object"
     );
 
-    const parameterTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
+    const parameterTypes: ProvableExtended<unknown>[] = Reflect.getMetadata(
       "design:paramtypes",
       this,
       methodName
@@ -111,10 +117,16 @@ export function toWrappedMethod(
      */
     const argsFields = args.flatMap((argument, index) => {
       if (argument instanceof Proof) {
-        return [
-          ...argument.publicInput?.toFields(),
-          ...argument.publicOutput?.toFields(),
-        ];
+        const publicOutputType = (parameterTypes[index] as any)
+          ?.publicOutputType;
+        const publicInputType = (parameterTypes[index] as any)?.publicInputType;
+
+        const inputFields =
+          publicInputType?.toFields(argument.publicInput) ?? [];
+        const outputFields =
+          publicOutputType?.toFields(argument.publicOutput) ?? [];
+
+        return [...inputFields, ...outputFields];
       } else {
         return parameterTypes[index].toFields(argument as any);
       }
