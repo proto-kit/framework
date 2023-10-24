@@ -46,8 +46,6 @@ export class TestingAppChain<
     config: ModulesConfig<RuntimeModules>;
   }) {
     const runtime = Runtime.from({
-      state: new InMemoryStateService(),
-
       ...definition,
     });
 
@@ -86,7 +84,6 @@ export class TestingAppChain<
           BlockProver: {},
           StateTransitionProver: {}
         },
-        new InMemoryStateService(),
       ),
 
       modules: {

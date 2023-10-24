@@ -12,10 +12,13 @@ import {
   MethodIdResolver,
 } from "@proto-kit/module";
 import {
-  BlockStorage, NetworkStateQuery, Query, QueryBuilderFactory,
+  BlockStorage,
+  NetworkStateQuery,
+  Query,
+  QueryBuilderFactory,
   Sequencer,
   SequencerModulesRecord,
-  UnsignedTransaction
+  UnsignedTransaction,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -32,12 +35,11 @@ import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import {
-  StateServiceQueryModule,
-} from "../query/StateServiceQueryModule";
+import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 
 import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
+import { MockStorageDependencyFactory } from "@proto-kit/sequencer/dist/storage/MockStorageDependencyFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -325,6 +327,11 @@ export class AppChain<
   public async start() {
     this.create(() => container);
 
+    this.registerDependencyFactories([
+      AreProofsEnabledFactory,
+      MockStorageDependencyFactory,
+    ]);
+
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.
     // This is because when it is the first time they are resolved, create()
@@ -334,14 +341,12 @@ export class AppChain<
     this.resolve("Protocol");
     this.resolve("Sequencer");
 
-    this.registerDependencyFactories([AreProofsEnabledFactory]);
-
-    // Workaround to get protocol and sequencer to have
-    // access to the same WitnessProviderReference
-    const reference = new StateTransitionWitnessProviderReference();
-    this.registerValue({
-      StateTransitionWitnessProviderReference: reference,
-    });
+    // // Workaround to get protocol and sequencer to have
+    // // access to the same WitnessProviderReference
+    // const reference = new StateTransitionWitnessProviderReference();
+    // this.registerValue({
+    //   StateTransitionWitnessProviderReference: reference,
+    // });
 
     // this.runtime.start();
     await this.sequencer.start();
