@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { Bool } from "snarkyjs";
+import { Bool } from "o1js";
 import { container } from "tsyringe";
 
 import { assert } from "./assert";

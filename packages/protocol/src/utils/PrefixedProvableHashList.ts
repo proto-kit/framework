@@ -1,4 +1,4 @@
-import { Field, FlexibleProvablePure, Poseidon } from "snarkyjs";
+import { Field, FlexibleProvablePure, Poseidon } from "o1js";
 
 import { ProvableHashList } from "./ProvableHashList.js";
 import { stringToField } from "./utils";

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Bool, Field } from "snarkyjs";
+import { Bool, Field } from "o1js";
 import { beforeAll, beforeEach } from "@jest/globals";
 
 import { Runtime } from "../../src/runtime/Runtime";
@@ -56,21 +56,19 @@ describe("methodId", () => {
     ["Admin", "isAdminWithAVeryVeryVeryVeryLongName"],
     ["Balance", "getTotalSupply"],
     ["Balance", "getBalance"],
-  ])(
-    "should pass and encode correctly",
-    (givenModuleName, givenMethodName) => {
-      expect.assertions(2);
+  ])("should pass and encode correctly", (givenModuleName, givenMethodName) => {
+    expect.assertions(2);
 
-      const methodId = resolver.getMethodId(givenModuleName, givenMethodName);
+    const methodId = resolver.getMethodId(givenModuleName, givenMethodName);
 
-      const [moduleName, methodName] = resolver.getMethodNameFromId(
-        methodId
-      ) ?? [undefined, undefined];
+    const [moduleName, methodName] = resolver.getMethodNameFromId(methodId) ?? [
+      undefined,
+      undefined,
+    ];
 
-      expect(moduleName).toBe(givenModuleName);
-      expect(methodName).toBe(givenMethodName);
-    }
-  );
+    expect(moduleName).toBe(givenModuleName);
+    expect(methodName).toBe(givenMethodName);
+  });
 
   it("should fail for invalid module name", () => {
     expect.assertions(1);

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Bool, Field, PublicKey, UInt64 } from "snarkyjs";
+import { Bool, Field, PublicKey, UInt64 } from "o1js";
 import {
   NetworkState,
   RuntimeMethodExecutionContext,

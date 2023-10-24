@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Bool, Experimental, Field, Provable, SelfProof } from "snarkyjs";
+import { Bool, Experimental, Field, Provable, SelfProof } from "o1js";
 import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
@@ -345,7 +345,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
 @injectable()
 export class StateTransitionProver
-  extends ProtocolModule
+  extends ProtocolModule<object>
   implements StateTransitionProvable
 {
   public readonly zkProgrammable: StateTransitionProverProgrammable;

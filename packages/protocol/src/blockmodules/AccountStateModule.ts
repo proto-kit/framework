@@ -1,4 +1,4 @@
-import { Provable, PublicKey, Struct, UInt64 } from "snarkyjs";
+import { Provable, PublicKey, Struct, UInt64 } from "o1js";
 
 import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { StateMap } from "../state/StateMap";
@@ -10,7 +10,7 @@ export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
-export class AccountStateModule extends ProvableTransactionHook {
+export class AccountStateModule extends ProvableTransactionHook<object> {
   @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState

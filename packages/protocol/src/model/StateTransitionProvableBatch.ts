@@ -1,4 +1,4 @@
-import { Bool, Provable, Struct } from "snarkyjs";
+import { Bool, Provable, Struct } from "o1js";
 import { range } from "@proto-kit/common";
 
 import { constants } from "../Constants";

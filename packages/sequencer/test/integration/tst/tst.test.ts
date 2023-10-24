@@ -1,26 +1,31 @@
-import { Poseidon, PrivateKey, UInt32, Encoding, UInt64, Field } from "snarkyjs";
+import { Poseidon, PrivateKey, UInt32, Encoding, UInt64, Field } from "o1js";
 import { NFTKey, tst } from "./tst";
 import { log, range } from "@proto-kit/common";
 import {
   AppChain,
   InMemorySigner,
   InMemoryTransactionSender,
-  StateServiceQueryModule
+  StateServiceQueryModule,
 } from "@proto-kit/sdk";
 import {
   Fieldable,
   InMemoryStateService,
   MethodIdResolver,
   Runtime,
-  RuntimeModulesRecord
+  RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
   AsyncStateService,
-  BlockProducerModule, BlockTrigger, LocalTaskQueue,
-  LocalTaskWorkerModule, ManualBlockTrigger,
+  BlockProducerModule,
+  BlockTrigger,
+  LocalTaskQueue,
+  LocalTaskWorkerModule,
+  ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
-  Sequencer, TaskQueue, UnsignedTransaction
+  Sequencer,
+  TaskQueue,
+  UnsignedTransaction,
 } from "../../../src";
 import {
   AccountStateModule,
@@ -92,7 +97,7 @@ describe("TST", () => {
       useValue: new LocalTaskQueue(0),
     });
 
-    protocol = VanillaProtocol.from({  }, stateService);
+    protocol = VanillaProtocol.from({}, stateService);
 
     const app = AppChain.from({
       runtime,
@@ -159,7 +164,7 @@ describe("TST", () => {
         args: [bob, publicKey, UInt32.from(0)],
         nonce: 1,
       })
-    )
+    );
 
     const block = await blockTrigger.produceBlock();
 

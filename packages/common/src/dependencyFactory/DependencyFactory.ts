@@ -1,6 +1,7 @@
 import { DependencyContainer, injectable, Lifecycle } from "tsyringe";
 
 import { TypedClass } from "../types";
+import { log } from "../log";
 
 const errors = {
   descriptorUndefined: () =>
@@ -55,6 +56,10 @@ export abstract class DependencyFactory {
           useToken: `${key}_singleton-prototype`,
         },
         { lifecycle: Lifecycle.ContainerScoped }
+      );
+
+      log.debug(
+        `Registered dependency ${upperCaseKey} from factory ${this.constructor.name}`
       );
     }
   }

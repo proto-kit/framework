@@ -1,4 +1,5 @@
-import { FlexibleProvable, ProvableExtended } from "snarkyjs";
+/* eslint-disable no-underscore-dangle */
+import { FlexibleProvable, ProvableExtended } from "o1js";
 
 import { RuntimeModule } from "../runtime/RuntimeModule";
 

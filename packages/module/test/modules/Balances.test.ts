@@ -8,7 +8,7 @@ import {
   Proof,
   PublicKey,
   UInt64,
-} from "snarkyjs";
+} from "o1js";
 import { container } from "tsyringe";
 import {
   type ProvableStateTransition,
@@ -60,7 +60,7 @@ describe("balances", () => {
       },
     });
 
-    runtime.dependencyContainer.register("AppChain", {
+    runtime.dependencyContainer.register("AreProofsEnabled", {
       useValue: {
         areProofsEnabled: false,
 

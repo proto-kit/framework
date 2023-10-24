@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 
 import { stringToField } from "../src";
 

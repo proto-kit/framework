@@ -1,10 +1,9 @@
 import {
   AsyncMerkleTreeStore,
   InMemoryMerkleTreeStorage, MerkleTreeStore,
-  noop,
   RollupMerkleTree
 } from "@proto-kit/protocol";
-import { log } from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
 
 export class CachedMerkleTreeStore
   extends InMemoryMerkleTreeStorage

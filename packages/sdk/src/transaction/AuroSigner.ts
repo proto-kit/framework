@@ -2,7 +2,6 @@
 import { injectable } from "tsyringe";
 import { AppChainModule } from "../appChain/AppChainModule";
 import { Signer } from "./InMemorySigner";
-import * as Comlink from "comlink";
 
 export type Message =
   | {
@@ -60,7 +59,7 @@ export class AuroSignerHandler {
 @injectable()
 export class AuroSigner extends AppChainModule<unknown> implements Signer {
   public async sign(signatureData: any[]): Promise<any> {
-    const { Signature } = await import("snarkyjs");
+    const { Signature } = await import("o1js");
 
     return await new Promise(async (resolve, reject) => {
       const listener = async (message: MessageEvent<any>) => {

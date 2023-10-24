@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,max-lines */
-import { Experimental } from "snarkyjs";
+import { Experimental } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
@@ -11,7 +11,7 @@ import {
   ZkProgrammable,
   PlainZkProgram,
   WithZkProgrammable,
-  AreProofsEnabled,
+  AreProofsEnabled, ChildContainerProvider
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -29,6 +29,7 @@ import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 import { RuntimeModule } from "./RuntimeModule";
 import { MethodIdResolver } from "./MethodIdResolver";
+import { RuntimeEnvironment } from "./RuntimeEnvironment";
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -190,12 +191,16 @@ export class RuntimeZkProgrammable<
 @injectable()
 export class Runtime<Modules extends RuntimeModulesRecord>
   extends ModuleContainer<Modules>
-  implements WithZkProgrammable<undefined, MethodPublicOutput>
+  implements RuntimeEnvironment
 {
   public static from<Modules extends RuntimeModulesRecord>(
     definition: RuntimeDefinition<Modules>
-  ) {
-    return new Runtime(definition);
+  ): TypedClass<Runtime<Modules>> {
+    return class RuntimeScoped extends Runtime<Modules> {
+      public constructor() {
+        super(definition);
+      }
+    };
   }
 
   // runtime modules composed into a ZkProgram
@@ -223,15 +228,14 @@ export class Runtime<Modules extends RuntimeModulesRecord>
 
   // eslint-disable-next-line no-warning-comments
   // TODO Remove after changing DFs to type-based approach
-  public start() {
-    this.registerValue({
-      Runtime: this,
-    });
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+
     this.registerDependencyFactories([MethodIdFactory]);
   }
 
   public get appChain(): AreProofsEnabled | undefined {
-    return this.container.resolve<AreProofsEnabled>("AppChain");
+    return this.container.resolve<AreProofsEnabled>("AreProofsEnabled");
   }
 
   public get stateService(): StateService {
@@ -240,6 +244,10 @@ export class Runtime<Modules extends RuntimeModulesRecord>
 
   public get stateServiceProvider(): StateServiceProvider {
     return this.stateServiceProviderInstance;
+  }
+
+  public get methodIdResolver(): MethodIdResolver {
+    return this.container.resolve<MethodIdResolver>("MethodIdResolver");
   }
 
   /**

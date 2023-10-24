@@ -1,6 +1,6 @@
 /* eslint-disable max-statements */
 import "reflect-metadata";
-import { PrivateKey, PublicKey, UInt64, Provable } from "snarkyjs";
+import { PrivateKey, PublicKey, UInt64, Provable } from "o1js";
 import {
   runtimeMethod,
   RuntimeModule,
@@ -11,8 +11,7 @@ import { TestingAppChain } from "../../src/index";
 import { container, inject } from "tsyringe";
 import { log } from "@proto-kit/common";
 import { randomUUID } from "crypto";
-
-import { State, StateMap, assert } from "@proto-kit/protocol";
+import { assert, State, StateMap } from "@proto-kit/protocol";
 
 log.setLevel("ERROR");
 
@@ -75,6 +74,8 @@ class Balances extends RuntimeModule<BalancesConfig> {
     this.balances.set(address, newBalance);
   }
 }
+
+log.setLevel(log.levels.DEBUG)
 
 describe("testing app chain", () => {
   it("should enable a complete transaction roundtrip", async () => {

@@ -1,4 +1,6 @@
 import {
+  AreProofsEnabled,
+  ChildContainerProvider,
   log,
   ModuleContainer,
   ModulesConfig,
@@ -18,15 +20,16 @@ import { StateService } from "../state/StateService";
 import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
 import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
+import { ProtocolEnvironment } from "./ProtocolEnvironment";
 
 export type GenericProtocolModuleRecord = ModulesRecord<
-  TypedClass<ProtocolModule>
+  TypedClass<ProtocolModule<unknown>>
 >;
 
-interface BlockProverType extends ProtocolModule, BlockProvable {}
+interface BlockProverType extends ProtocolModule<object>, BlockProvable {}
 
 interface StateTransitionProverType
-  extends ProtocolModule,
+  extends ProtocolModule<object>,
     StateTransitionProvable {}
 
 export interface ProtocolCustomModulesRecord {
@@ -45,34 +48,22 @@ export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
    * @deprecated
    */
   state?: StateService;
-  // config: ModulesConfig<Modules>
+  config?: ModulesConfig<Modules>;
 }
 
-export class Protocol<
-  Modules extends ProtocolModulesRecord
-> extends ModuleContainer<Modules> {
+export class Protocol<Modules extends ProtocolModulesRecord>
+  extends ModuleContainer<Modules>
+  implements ProtocolEnvironment
+{
   // .from() to create Protocol
   public static from<Modules extends ProtocolModulesRecord>(
     modules: ProtocolDefinition<Modules>
-  ) {
-    const protocol = new Protocol(modules);
-
-    // Set empty config for all modules, since we don't have that feature yet
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment
-    const emptyConfig = Object.keys(modules.modules).reduce<any>(
-      (agg, item: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        agg[item] = {};
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return agg;
-      },
-      {}
-    );
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    protocol.configure(emptyConfig as ModulesConfig<Modules>);
-
-    return protocol;
+  ): TypedClass<Protocol<Modules>> {
+    return class ScopedProtocol extends Protocol<Modules> {
+      public constructor() {
+        super(modules);
+      }
+    };
   }
 
   public definition: ProtocolDefinition<Modules>;
@@ -85,32 +76,6 @@ export class Protocol<
   public constructor(definition: ProtocolDefinition<Modules>) {
     super(definition);
     this.definition = definition;
-
-    // Register the BlockModules seperately since we need to
-    // inject them differently later
-    let atLeastOneTransactionHookRegistered = false;
-    Object.entries(definition.modules).forEach(([key, value]) => {
-      if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
-        this.container.register(
-          "ProvableTransactionHook",
-          { useToken: key },
-          { lifecycle: Lifecycle.ContainerScoped }
-        );
-        atLeastOneTransactionHookRegistered = true;
-      }
-    });
-
-    // We need this so that tsyringe doesn't throw when no hooks are registered
-    if (!atLeastOneTransactionHookRegistered) {
-      this.container.register(
-        "ProvableTransactionHook",
-        { useClass: NoopTransactionHook },
-        { lifecycle: Lifecycle.ContainerScoped }
-      );
-    }
-    // this.container.afterResolution<ProvableTransactionHook>("ProvableTransactionHook", (token, result) => {
-    //   if ()
-    // })
   }
 
   public get stateService(): StateService {
@@ -128,10 +93,6 @@ export class Protocol<
     log.debug(`Decorated ${moduleName}`);
     containedModule.protocol = this;
 
-    log.debug(
-      "Is instanceof:",
-      containedModule instanceof ProvableTransactionHook
-    );
     if (containedModule instanceof ProvableTransactionHook) {
       containedModule.name = moduleName;
     }
@@ -162,21 +123,67 @@ export class Protocol<
       InstanceType<Modules["StateTransitionProver"]>
     >("StateTransitionProver");
   }
+
+  public getAreProofsEnabled(): AreProofsEnabled {
+    return this.container.resolve<AreProofsEnabled>("AreProofsEnabled");
+  }
+
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+
+    // Register the BlockModules seperately since we need to
+    // inject them differently later
+    let atLeastOneTransactionHookRegistered = false;
+    Object.entries(this.definition.modules).forEach(([key, value]) => {
+      if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
+        this.container.register(
+          "ProvableTransactionHook",
+          { useToken: key },
+          { lifecycle: Lifecycle.ContainerScoped }
+        );
+        atLeastOneTransactionHookRegistered = true;
+      }
+    });
+
+    // We need this so that tsyringe doesn't throw when no hooks are registered
+    if (!atLeastOneTransactionHookRegistered) {
+      this.container.register(
+        "ProvableTransactionHook",
+        { useClass: NoopTransactionHook },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
+    }
+  }
 }
 
 export const VanillaProtocol = {
   create(stateService?: StateService) {
-    return VanillaProtocol.from({}, stateService);
+    return VanillaProtocol.from(
+      {},
+      {
+        BlockProver: {},
+        StateTransitionProver: {},
+      },
+      stateService
+    );
   },
 
   from<AdditonalModules extends GenericProtocolModuleRecord>(
     additionalModules: AdditonalModules,
+    config: ModulesConfig<
+      AdditonalModules & {
+        StateTransitionProver: typeof StateTransitionProver;
+        BlockProver: typeof BlockProver;
+      }
+    >,
     stateService?: StateService
-  ): Protocol<
-    AdditonalModules & {
-      StateTransitionProver: typeof StateTransitionProver;
-      BlockProver: typeof BlockProver;
-    }
+  ): TypedClass<
+    Protocol<
+      AdditonalModules & {
+        StateTransitionProver: typeof StateTransitionProver;
+        BlockProver: typeof BlockProver;
+      }
+    >
   > {
     return Protocol.from({
       modules: {
@@ -184,6 +191,8 @@ export const VanillaProtocol = {
         BlockProver,
         ...additionalModules,
       },
+
+      config,
       state: stateService,
     });
   },

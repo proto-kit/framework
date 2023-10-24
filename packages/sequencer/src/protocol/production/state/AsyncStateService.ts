@@ -1,4 +1,4 @@
-import { Field } from "snarkyjs";
+import { Field } from "o1js";
 
 /**
  * This Interface should be implemented for services that store the state

@@ -1,4 +1,4 @@
-import type { Field } from "snarkyjs";
+import type { Field } from "o1js";
 import { injectable } from "tsyringe";
 
 import { RollupMerkleWitness } from "../../utils/merkletree/RollupMerkleTree.js";

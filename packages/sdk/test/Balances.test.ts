@@ -1,14 +1,14 @@
-import { PrivateKey, UInt64 } from "snarkyjs";
+import { PrivateKey, UInt64 } from "o1js";
 import { log } from "@proto-kit/common";
 import {
   RollupMerkleTree,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
-import { MockAsyncMerkleTreeStore } from "@proto-kit/module/test/state/MockAsyncMerkleStore";
 
 import { TestingAppChain } from "@proto-kit/sdk";
 
 import { Balances } from "./Balances";
+import { MockAsyncMerkleTreeStore } from "@proto-kit/module/test/state/MockAsyncMerkleStore";
 
 describe("balances", () => {
   // eslint-disable-next-line max-statements
@@ -66,7 +66,7 @@ describe("balances", () => {
       tree.getRoot().toBigInt()
     );
 
-    const aliceBalance1 = await appChain.query.Balances.balances.get(alice);
+    const aliceBalance1 = await appChain.query.runtime.Balances.balances.get(alice);
 
     expect(block1?.txs[0].status).toBe(true);
     expect(aliceBalance1?.toBigInt()).toBe(1000n);
@@ -87,8 +87,8 @@ describe("balances", () => {
 
     expect(block2?.txs[0].status).toBe(true);
 
-    const aliceBalance2 = await appChain.query.Balances.balances.get(alice);
-    const bobBalance1 = await appChain.query.Balances.balances.get(bob);
+    const aliceBalance2 = await appChain.query.runtime.Balances.balances.get(alice);
+    const bobBalance1 = await appChain.query.runtime.Balances.balances.get(bob);
 
     expect(aliceBalance2?.toBigInt()).toBe(900n);
     expect(bobBalance1?.toBigInt()).toBe(100n);

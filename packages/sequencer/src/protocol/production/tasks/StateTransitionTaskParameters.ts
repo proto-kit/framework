@@ -6,7 +6,7 @@ import {
 } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
-import { Bool } from "snarkyjs";
+import { Bool } from "o1js";
 
 export interface StateTransitionProofParameters {
   publicInput: StateTransitionProverPublicInput;

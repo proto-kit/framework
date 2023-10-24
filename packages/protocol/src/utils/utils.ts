@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return,@typescript-eslint/no-empty-function */
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return */
 
-import { Field, Poseidon, Provable } from "snarkyjs";
+import { Field, Poseidon, Provable } from "o1js";
 import floor from "lodash/floor";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
@@ -82,5 +82,3 @@ export function singleFieldToString(value: Field | bigint): string {
   }
   return value.toString();
 }
-
-export function noop(): void {}

@@ -1,4 +1,4 @@
-import { Field, Struct } from "snarkyjs";
+import { Field, Struct } from "o1js";
 
 import { Option, ProvableOption } from "./Option";
 

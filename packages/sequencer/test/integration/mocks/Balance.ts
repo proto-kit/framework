@@ -8,12 +8,12 @@ import { log, Presets, range } from "@proto-kit/common";
 import {
   Bool,
   Field,
-  Provable,
   PublicKey,
-  Signature,
-  Struct,
   UInt64,
-} from "snarkyjs";
+  Struct,
+  Provable,
+  Signature,
+} from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert } from "@proto-kit/protocol";
 

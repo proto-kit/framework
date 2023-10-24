@@ -1,7 +1,7 @@
 import { runtimeMethod, RuntimeModule, state } from "@proto-kit/module";
 import { StateMap } from "@proto-kit/protocol";
 import assert from "assert";
-import { Bool, Field, PublicKey, Struct, UInt32 } from "snarkyjs";
+import { Bool, Field, PublicKey, Struct, UInt32 } from "o1js";
 
 export class NFTKey extends Struct({
   collection: PublicKey,

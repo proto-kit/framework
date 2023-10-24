@@ -1,4 +1,4 @@
-import { Field, Poseidon, Struct, UInt64 } from "snarkyjs";
+import { Field, Poseidon, Struct, UInt64 } from "o1js";
 
 export class CurrentBlock extends Struct({
   height: UInt64,

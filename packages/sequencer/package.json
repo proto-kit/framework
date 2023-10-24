@@ -22,7 +22,7 @@
     "@proto-kit/common": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
-    "snarkyjs": "0.12.0",
+    "o1js": "0.13.1",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

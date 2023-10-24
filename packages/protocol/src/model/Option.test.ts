@@ -1,4 +1,4 @@
-import { Bool, Field, Poseidon } from "snarkyjs";
+import { Bool, Field, Poseidon } from "o1js";
 
 import { Option } from "./Option";
 

@@ -1,5 +1,7 @@
 export * from "./config/ModuleContainer";
 export * from "./config/ConfigurableModule";
+export * from "./config/ChildContainerProvider";
+export * from "./config/ChildContainerCreatable";
 export * from "./types";
 export * from "./zkProgrammable/ZkProgrammable";
 export * from "./zkProgrammable/ProvableMethodExecutionContext";

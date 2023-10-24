@@ -1,20 +1,23 @@
 import {
   AreProofsEnabled,
-  Configurable,
+  ChildContainerProvider,
+  ConfigurableModule,
+  noop,
 } from "@proto-kit/common";
 
-import type { Protocol, ProtocolModulesRecord } from "./Protocol";
+import { ProtocolEnvironment } from "./ProtocolEnvironment";
 
-export abstract class ProtocolModule
-  implements Configurable<unknown>
-{
-  public config = {};
-
-  public protocol?: Protocol<ProtocolModulesRecord>;
+export abstract class ProtocolModule<
+  Config
+> extends ConfigurableModule<Config> {
+  public protocol?: ProtocolEnvironment;
 
   public get appChain(): AreProofsEnabled | undefined {
-    return this.protocol?.dependencyContainer.resolve<AreProofsEnabled>(
-      "AppChain"
-    );
+    return this.protocol?.getAreProofsEnabled();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public create(childContainerProvider: ChildContainerProvider): void {
+    noop();
   }
 }

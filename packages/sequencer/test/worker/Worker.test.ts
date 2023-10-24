@@ -107,7 +107,11 @@ describe("worker", () => {
   }
 
   function createLocalQueue(): LocalTaskQueue {
-    return new LocalTaskQueue(100);
+    const queue = new LocalTaskQueue();
+    queue.config = {
+      simulatedDuration: 100,
+    };
+    return queue;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

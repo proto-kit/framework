@@ -1,12 +1,14 @@
 import "reflect-metadata";
-import { Bool, Field } from "snarkyjs";
+import { Bool, Field } from "o1js";
 import { container } from "tsyringe";
 
 import {
   Option,
   ProvableStateTransition,
   DefaultProvableHashList,
-  StateTransitionProvableBatch, CachedMerkleTreeStore, InMemoryMerkleTreeStorage
+  StateTransitionProvableBatch,
+  CachedMerkleTreeStore,
+  InMemoryMerkleTreeStorage,
 } from "../src/index";
 import {
   RollupMerkleTree,

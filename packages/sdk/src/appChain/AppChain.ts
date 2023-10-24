@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
-  AreProofsEnabled,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
@@ -28,15 +27,7 @@ import {
   ProtocolModule,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
-import {
-  Field,
-  FlexibleProvable,
-  PublicKey,
-  Struct,
-  UInt64,
-  ProvableExtended,
-  Proof,
-} from "snarkyjs";
+import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
@@ -48,6 +39,7 @@ import {
 } from "../query/StateServiceQueryModule";
 
 import { NetworkStateQuery } from "../query/NetworkStateQuery";
+import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -59,25 +51,58 @@ export interface AppChainDefinition<
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > {
-  runtime: Runtime<RuntimeModules>;
-  protocol: Protocol<ProtocolModules>;
-  sequencer: Sequencer<SequencerModules>;
+  runtime: TypedClass<Runtime<RuntimeModules>>;
+  protocol: TypedClass<Protocol<ProtocolModules>>;
+  sequencer: TypedClass<Sequencer<SequencerModules>>;
   modules: AppChainModules;
   config?: ModulesConfig<AppChainModules>;
 }
+
+export type ExpandAppChainModules<
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
+> = {
+  Runtime: TypedClass<Runtime<RuntimeModules>>;
+  Protocol: TypedClass<Protocol<ProtocolModules>>;
+  Sequencer: TypedClass<Sequencer<SequencerModules>>;
+} & AppChainModules;
+
+export type ExpandAppChainDefinition<
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
+> = {
+  modules: ExpandAppChainModules<
+    RuntimeModules,
+    ProtocolModules,
+    SequencerModules,
+    AppChainModules
+  >;
+  config?: ModulesConfig<
+    ExpandAppChainModules<
+      RuntimeModules,
+      ProtocolModules,
+      SequencerModules,
+      AppChainModules
+    >
+  >;
+};
 
 /**
  * Definition of required arguments for AppChain
  */
 export interface AppChainConfig<
   RuntimeModules extends RuntimeModulesRecord,
-  SequencerModules extends SequencerModulesRecord,
   ProtocolModules extends ProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > {
   runtime: ModulesConfig<RuntimeModules>;
-  sequencer: ModulesConfig<SequencerModules>;
   protocol: ModulesConfig<ProtocolModules>;
+  sequencer: ModulesConfig<SequencerModules>;
   appChain: ModulesConfig<AppChainModules>;
 }
 
@@ -85,14 +110,18 @@ export interface AppChainConfig<
  * AppChain acts as a wrapper connecting Runtime, Protocol and Sequencer
  */
 export class AppChain<
-    RuntimeModules extends RuntimeModulesRecord,
-    ProtocolModules extends ProtocolModulesRecord,
-    SequencerModules extends SequencerModulesRecord,
-    AppChainModules extends AppChainModulesRecord
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
+> extends ModuleContainer<
+  ExpandAppChainModules<
+    RuntimeModules,
+    ProtocolModules,
+    SequencerModules,
+    AppChainModules
   >
-  extends ModuleContainer<AppChainModules>
-  implements AreProofsEnabled
-{
+> {
   // alternative AppChain constructor
   public static from<
     RuntimeModules extends RuntimeModulesRecord,
@@ -110,9 +139,54 @@ export class AppChain<
     return new AppChain(definition);
   }
 
+  public definition: ExpandAppChainDefinition<
+    RuntimeModules,
+    ProtocolModules,
+    SequencerModules,
+    AppChainModules
+  >;
+
+  public constructor(
+    definition: AppChainDefinition<
+      RuntimeModules,
+      ProtocolModules,
+      SequencerModules,
+      AppChainModules
+    >
+  ) {
+    const expandedDefinition: ExpandAppChainDefinition<
+      RuntimeModules,
+      ProtocolModules,
+      SequencerModules,
+      AppChainModules
+    > = {
+      modules: {
+        Runtime: definition.runtime,
+        Sequencer: definition.sequencer,
+        Protocol: definition.protocol,
+        ...definition.modules,
+      },
+      config: {
+        Runtime: {},
+        Sequencer: {},
+        Protocol: {},
+        ...definition.config,
+      } as ModulesConfig<
+        ExpandAppChainModules<
+          RuntimeModules,
+          ProtocolModules,
+          SequencerModules,
+          AppChainModules
+        >
+      >,
+    };
+    super(expandedDefinition);
+    this.definition = expandedDefinition;
+  }
+
   public get query(): {
     runtime: Query<RuntimeModule<unknown>, RuntimeModules>;
-    protocol: Query<ProtocolModule, ProtocolModules>;
+    protocol: Query<ProtocolModule<unknown>, ProtocolModules>;
     network: NetworkStateQuery;
   } {
     const queryTransportModule = this.resolveOrFail(
@@ -126,12 +200,12 @@ export class AppChain<
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
-        this.definition.runtime,
+        this.resolveOrFail("Runtime", Runtime<RuntimeModules>),
         queryTransportModule
       ),
 
       protocol: QueryBuilderFactory.fromProtocol(
-        this.definition.protocol,
+        this.resolveOrFail("Protocol", Protocol<ProtocolModules>),
         queryTransportModule
       ),
 
@@ -139,46 +213,35 @@ export class AppChain<
     };
   }
 
-  public constructor(
-    public definition: AppChainDefinition<
-      RuntimeModules,
-      ProtocolModules,
-      SequencerModules,
-      AppChainModules
-    >
-  ) {
-    super(definition);
-    this.registerValue({
-      Sequencer: this.definition.sequencer,
-      Runtime: this.definition.runtime,
-      Protocol: this.definition.protocol,
-    });
-  }
-
   public get runtime(): Runtime<RuntimeModules> {
-    return this.definition.runtime;
+    return this.resolve("Runtime");
   }
 
   public get sequencer(): Sequencer<SequencerModules> {
-    return this.definition.sequencer;
+    return this.resolve("Sequencer");
   }
 
   public get protocol(): Protocol<ProtocolModules> {
-    return this.definition.protocol;
+    return this.resolve("Protocol");
   }
 
   public configureAll(
     config: AppChainConfig<
       RuntimeModules,
-      SequencerModules,
       ProtocolModules,
+      SequencerModules,
       AppChainModules
     >
   ): void {
     this.runtime.configure(config.runtime);
     this.sequencer.configure(config.sequencer);
     this.protocol.configure(config.protocol);
-    this.configure(config.appChain);
+    this.configure({
+      Runtime: {},
+      Sequencer: {},
+      Protocol: {},
+      ...config.appChain,
+    } as Parameters<typeof this.configure>[0]);
   }
 
   public transaction(
@@ -279,43 +342,27 @@ export class AppChain<
    * Starts the appchain and cross-registers runtime to sequencer
    */
   public async start() {
-    [this.runtime, this.protocol, this.sequencer].forEach((container) => {
-      container.registerValue({ AppChain: this });
-    });
+    this.create(() => container);
 
-    this.protocol.registerValue({
-      Runtime: this.runtime,
-    });
+    // These three statements are crucial for dependencies inside any of these
+    // components to access their siblings inside their constructor.
+    // This is because when it is the first time they are resolved, create()
+    // will not be called until after the constructor finished because of
+    // how tsyringe handles hooks
+    this.resolve("Runtime");
+    this.resolve("Protocol");
+    this.resolve("Sequencer");
 
-    // Hacky workaround to get protocol and sequencer to have
+    this.registerDependencyFactories([AreProofsEnabledFactory]);
+
+    // Workaround to get protocol and sequencer to have
     // access to the same WitnessProviderReference
     const reference = new StateTransitionWitnessProviderReference();
-    this.protocol.dependencyContainer.register(
-      "StateTransitionWitnessProviderReference",
-      {
-        useValue: reference,
-      }
-    );
-
-    this.sequencer.registerValue({
-      Runtime: this.runtime,
-      Protocol: this.protocol,
+    this.registerValue({
       StateTransitionWitnessProviderReference: reference,
     });
 
-    this.runtime.start();
+    // this.runtime.start();
     await this.sequencer.start();
-  }
-
-  // eslint-disable-next-line no-warning-comments
-  // TODO
-  private proofsEnabled: boolean = false;
-
-  public get areProofsEnabled(): boolean {
-    return this.proofsEnabled;
-  }
-
-  public setProofsEnabled(areProofsEnabled: boolean): void {
-    this.proofsEnabled = areProofsEnabled;
   }
 }

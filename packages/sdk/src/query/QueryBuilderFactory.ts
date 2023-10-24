@@ -137,10 +137,10 @@ export const QueryBuilderFactory = {
   fromProtocol<ProtocolModules extends ProtocolModulesRecord>(
     runtime: Protocol<ProtocolModules>,
     queryTransportModule: QueryTransportModule
-  ): Query<ProtocolModule, ProtocolModules> {
+  ): Query<ProtocolModule<unknown>, ProtocolModules> {
     const { modules } = runtime.definition;
 
-    return Object.keys(modules).reduce<Query<ProtocolModule, ProtocolModules>>(
+    return Object.keys(modules).reduce<Query<ProtocolModule<unknown>, ProtocolModules>>(
       (query, protocolModuleName: keyof ProtocolModules) => {
         runtime.isValidModuleName(modules, protocolModuleName);
 
