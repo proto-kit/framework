@@ -3,8 +3,8 @@ import { Arg, Field, InputType, Mutation, ObjectType, Query, Resolver } from "ty
 import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
 
-import { Mempool } from "@proto-kit/sequencer/dist/mempool/Mempool.js";
-import { PendingTransaction } from "@proto-kit/sequencer/dist/mempool/PendingTransaction.js";
+import { Mempool } from "@proto-kit/sequencer";
+import { PendingTransaction } from "@proto-kit/sequencer";
 import { GraphqlModule } from "../GraphqlModule.js";
 
 @ObjectType()

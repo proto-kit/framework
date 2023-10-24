@@ -2,7 +2,7 @@ import { buildSchemaSync } from "type-graphql";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import type { GraphqlModule } from "./GraphqlModule";
-import { SequencerModule } from "@proto-kit/sequencer/dist/sequencer/builder/SequencerModule";
+import { SequencerModule } from "@proto-kit/sequencer";
 import { log, noop } from "@proto-kit/common";
 import { GraphQLSchema } from "graphql/type";
 import { stitchSchemas } from "@graphql-tools/stitch";

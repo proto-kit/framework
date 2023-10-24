@@ -27,6 +27,7 @@
   },
   "peerDependencies": {
     "@proto-kit/common": "*",
+    "@proto-kit/sequencer": "*",
     "snarkyjs": "0.12.0",
     "tsyringe": "^4.7.0"
   },

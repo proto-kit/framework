@@ -1,4 +1,4 @@
-import { SequencerModule } from "@proto-kit/sequencer/dist/sequencer/builder/SequencerModule.js";
+import { SequencerModule } from "@proto-kit/sequencer";
 
 import {
   ChildContainerProvider,

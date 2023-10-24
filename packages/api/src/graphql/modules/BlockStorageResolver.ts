@@ -13,11 +13,9 @@ import { TransactionObject } from "./MempoolResolver";
 import {
   BlockStorage,
   HistoricalBlockStorage,
-} from "@proto-kit/sequencer/dist/storage/repositories/BlockStorage";
-import {
   ComputedBlock,
   ComputedBlockTransaction,
-} from "@proto-kit/sequencer/dist/storage/model/Block";
+} from "@proto-kit/sequencer";
 
 @ObjectType()
 export class ComputedBlockTransactionModel {
