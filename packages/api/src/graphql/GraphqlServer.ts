@@ -1,7 +1,7 @@
-import { buildSchemaSync } from "type-graphql";
+import { buildSchemaSync, NonEmptyArray } from "type-graphql";
 import { DependencyContainer, injectable } from "tsyringe";
 import { SequencerModule } from "@proto-kit/sequencer";
-import { log, noop } from "@proto-kit/common";
+import { log, noop, TypedClass } from "@proto-kit/common";
 import { GraphQLSchema } from "graphql/type";
 import { stitchSchemas } from "@graphql-tools/stitch";
 import { createYoga } from "graphql-yoga";
@@ -14,9 +14,18 @@ interface GraphqlServerOptions {
   port: number;
 }
 
+function assertArrayIsNotEmpty<T>(
+  array: readonly T[],
+  errorMessage: string
+): asserts array is NonEmptyArray<T> {
+  if (array.length === 0) {
+    throw new Error(errorMessage);
+  }
+}
+
 @injectable()
 export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
-  private readonly modules: GraphqlModule<unknown>[] = [];
+  private readonly modules: TypedClass<GraphqlModule<unknown>>[] = [];
 
   private readonly schemas: GraphQLSchema[] = [];
 
@@ -34,7 +43,7 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     }
   }
 
-  public registerModule(module: GraphqlModule<unknown>) {
+  public registerModule(module: TypedClass<GraphqlModule<unknown>>) {
     this.modules.push(module);
   }
 
@@ -50,12 +59,14 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     const { dependencyContainer, modules } = this;
     this.assertDependencyContainerSet(dependencyContainer);
 
+    assertArrayIsNotEmpty(
+      modules,
+      "At least one module has to be provided to GraphqlServer"
+    );
+
     // Building schema
     const resolverSchema = buildSchemaSync({
-      resolvers: [
-        modules[0].resolverType,
-        ...modules.slice(1).map((x) => x.resolverType),
-      ],
+      resolvers: modules,
 
       // resolvers: [MempoolResolver as Function],
       // eslint-disable-next-line max-len

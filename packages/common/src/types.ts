@@ -1,6 +1,8 @@
 // allows to reference interfaces as 'classes' rather than instances
 export type TypedClass<Class> = new (...args: any[]) => Class;
 
+export type UnTypedClass = new (...args: any[]) => any;
+
 /**
  * Using simple `keyof Target` would result into the key
  * being `string | number | symbol`, but we want just a `string`

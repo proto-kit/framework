@@ -12,7 +12,7 @@ import {
 } from "@proto-kit/common";
 
 import { GraphqlServer } from "./GraphqlServer";
-import { GraphqlModule, SchemaGeneratingGraphqlModule } from "./GraphqlModule";
+import { SchemaGeneratingGraphqlModule } from "./GraphqlModule";
 
 export type GraphqlModulesRecord = ModulesRecord<any>;
 
@@ -52,11 +52,18 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
 
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
-      const module: GraphqlModule<unknown> = this.resolve(moduleName);
-      this.graphqlServer.registerModule(module);
+      const moduleClass = this.definition.modules[moduleName];
+      this.graphqlServer.registerModule(moduleClass);
 
-      if (module instanceof SchemaGeneratingGraphqlModule) {
+      if (
+        Object.prototype.isPrototypeOf.call(
+          SchemaGeneratingGraphqlModule,
+          moduleClass
+        )
+      ) {
         log.debug(`Registering manual schema for ${moduleName}`);
+        const module: SchemaGeneratingGraphqlModule<unknown> =
+          this.resolve(moduleName);
         this.graphqlServer.registerSchema(module.generateSchema());
       }
     }

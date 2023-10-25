@@ -16,17 +16,18 @@ import {
 } from "@proto-kit/protocol";
 import { Presets, log } from "@proto-kit/common";
 import {
-  AsyncStateService,
+  AsyncStateService, BlockProducerModule, LocalTaskQueue, LocalTaskWorkerModule, NoopBaseLayer,
   PrivateMempool,
-  Sequencer,
-  UnsignedTransaction,
+  Sequencer, TimedBlockTrigger,
+  UnsignedTransaction
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
-  QueryGraphqlModule,
+  NodeStatusResolver,
+  QueryGraphqlModule
 } from "@proto-kit/api";
 
 import { AppChain } from "./appChain/AppChain";
@@ -96,18 +97,25 @@ const appChain = AppChain.from({
     modules: {
       Mempool: PrivateMempool,
       GraphqlServer,
+      LocalTaskWorkerModule,
+      BaseLayer: NoopBaseLayer,
+      BlockProducerModule,
+      BlockTrigger: TimedBlockTrigger,
+      TaskQueue: LocalTaskQueue,
 
       Graphql: GraphqlSequencerModule.from({
         modules: {
           MempoolResolver,
           QueryGraphqlModule,
           BlockStorageResolver,
+          NodeStatusResolver,
         },
 
         config: {
           MempoolResolver: {},
           QueryGraphqlModule: {},
           BlockStorageResolver: {},
+          NodeStatusResolver: {},
         },
       }),
     },
@@ -141,9 +149,18 @@ appChain.configure({
       QueryGraphqlModule: {},
       MempoolResolver: {},
       BlockStorageResolver: {},
+      NodeStatusResolver: {}
     },
 
     Mempool: {},
+    BlockProducerModule: {},
+    LocalTaskWorkerModule: {},
+    BaseLayer: {},
+    TaskQueue: {},
+
+    BlockTrigger: {
+      blocktime: 5000
+    },
   },
 
   TransactionSender: {},

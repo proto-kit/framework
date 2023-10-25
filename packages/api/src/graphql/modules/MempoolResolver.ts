@@ -12,7 +12,7 @@ import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
 import { Mempool, PendingTransaction } from "@proto-kit/sequencer";
 
-import { GraphqlModule } from "../GraphqlModule.js";
+import { graphqlModule, GraphqlModule } from "../GraphqlModule.js";
 
 @ObjectType()
 @InputType("SignatureInput")
@@ -71,11 +71,8 @@ export class TransactionObject {
   }
 }
 
-@injectable()
-@Resolver(TransactionObject)
+@graphqlModule()
 export class MempoolResolver extends GraphqlModule<object> {
-  public resolverType = MempoolResolver;
-
   private readonly mempool: Mempool;
 
   public constructor(@inject("Mempool") mempool: Mempool) {

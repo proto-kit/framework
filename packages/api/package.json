@@ -18,11 +18,13 @@
   },
   "dependencies": {
     "@graphql-tools/stitch": "^9.0.3",
-    "lodash": "^4.17.21",
-    "reflect-metadata": "^0.1.13",
+    "@types/humanize-duration": "^3.27.2",
     "class-validator": "^0.14.0",
     "graphql": "16.6.0",
     "graphql-scalars": "^1.22.4",
+    "humanize-duration": "^3.30.0",
+    "lodash": "^4.17.21",
+    "reflect-metadata": "^0.1.13",
     "type-graphql": "2.0.0-beta.1"
   },
   "peerDependencies": {

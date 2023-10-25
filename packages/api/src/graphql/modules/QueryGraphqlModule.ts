@@ -37,7 +37,7 @@ import {
   NetworkStateQuery,
   BlockStorage
 } from "@proto-kit/sequencer";
-import { SchemaGeneratingGraphqlModule } from "../GraphqlModule";
+import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
 import {
   BaseModuleType,
   log,
@@ -62,13 +62,10 @@ interface AnyJson {
   [key: string]: any;
 }
 
-@injectable()
-@Resolver()
+@graphqlModule()
 export class QueryGraphqlModule<
   RuntimeModules extends RuntimeModulesRecord
 > extends SchemaGeneratingGraphqlModule<object> {
-  public resolverType = QueryGraphqlModule;
-
   public constructor(
     @inject("QueryTransportModule")
     private readonly queryTransportModule: QueryTransportModule,
@@ -265,8 +262,6 @@ export class QueryGraphqlModule<
 
         if (stateProperty instanceof StateMap) {
           // StateMap
-          console.log("StateMap");
-
           moduleTypes[fieldKey] = this.generateStateMapResolver(
             `${namePrefix}${fieldKey}`,
             query[fieldKey],

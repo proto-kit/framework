@@ -15,7 +15,7 @@ import {
   ComputedBlockTransaction,
 } from "@proto-kit/sequencer";
 
-import { GraphqlModule } from "../GraphqlModule";
+import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
 import { TransactionObject } from "./MempoolResolver";
 
@@ -72,11 +72,8 @@ export class ComputedBlockModel {
   }
 }
 
-@injectable()
-@Resolver(ComputedBlockModel)
+@graphqlModule()
 export class BlockStorageResolver extends GraphqlModule<object> {
-  public resolverType = BlockStorageResolver;
-
   // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
