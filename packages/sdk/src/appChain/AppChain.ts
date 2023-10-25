@@ -19,6 +19,7 @@ import {
   Sequencer,
   SequencerModulesRecord,
   UnsignedTransaction,
+  MockStorageDependencyFactory
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -26,7 +27,6 @@ import {
   ProtocolModulesRecord,
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
-  StateTransitionWitnessProviderReference,
   ProtocolModule,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
@@ -39,7 +39,6 @@ import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 
 import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
-import { MockStorageDependencyFactory } from "@proto-kit/sequencer/dist/storage/MockStorageDependencyFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>

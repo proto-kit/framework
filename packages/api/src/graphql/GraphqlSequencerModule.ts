@@ -1,5 +1,6 @@
-import { SequencerModule } from "@proto-kit/sequencer";
+import assert from "node:assert";
 
+import { SequencerModule } from "@proto-kit/sequencer";
 import {
   ChildContainerProvider,
   Configurable,
@@ -7,12 +8,11 @@ import {
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
-  StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
+
 import { GraphqlServer } from "./GraphqlServer";
 import { GraphqlModule, SchemaGeneratingGraphqlModule } from "./GraphqlModule";
-import assert from "assert";
 
 export type GraphqlModulesRecord = ModulesRecord<any>;
 

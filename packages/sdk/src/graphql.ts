@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Field, PrivateKey, PublicKey, UInt64 } from "snarkyjs";
+import { Field, PrivateKey, PublicKey, UInt64 } from "o1js";
 import {
   Runtime,
   runtimeMethod,
@@ -87,7 +87,10 @@ const appChain = AppChain.from({
     },
   }),
 
-  protocol: VanillaProtocol.from({ AccountStateModule }),
+  protocol: VanillaProtocol.from(
+    { AccountStateModule },
+    { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
+  ),
 
   sequencer: Sequencer.from({
     modules: {

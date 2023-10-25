@@ -7,10 +7,7 @@ import {
   log,
 } from "@proto-kit/common";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
-import {
-  Protocol,
-  ProtocolModulesRecord,
-} from "@proto-kit/protocol/src/protocol/Protocol";
+import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";

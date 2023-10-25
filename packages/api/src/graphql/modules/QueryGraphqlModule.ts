@@ -26,7 +26,7 @@ import {
   State,
   StateMap,
 } from "@proto-kit/protocol";
-import { Field, FlexibleProvablePure } from "snarkyjs";
+import { Field, FlexibleProvablePure } from "o1js";
 
 import {
   Query,
@@ -40,12 +40,10 @@ import {
 import { SchemaGeneratingGraphqlModule } from "../GraphqlModule";
 import {
   BaseModuleType,
-  Configurable,
   log,
   ModuleContainer,
   ModulesRecord,
   range,
-  TypedClass,
 } from "@proto-kit/common";
 import { ObjMap } from "graphql/jsutils/ObjMap";
 

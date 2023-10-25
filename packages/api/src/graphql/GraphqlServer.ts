@@ -1,13 +1,13 @@
 import { buildSchemaSync } from "type-graphql";
 import { DependencyContainer, injectable } from "tsyringe";
-
-import type { GraphqlModule } from "./GraphqlModule";
 import { SequencerModule } from "@proto-kit/sequencer";
 import { log, noop } from "@proto-kit/common";
 import { GraphQLSchema } from "graphql/type";
 import { stitchSchemas } from "@graphql-tools/stitch";
 import { createYoga } from "graphql-yoga";
 import Koa from "koa";
+
+import type { GraphqlModule } from "./GraphqlModule";
 
 interface GraphqlServerOptions {
   host: string;
@@ -68,17 +68,16 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     });
 
     const schema = [resolverSchema, ...this.schemas].reduce(
-      (schema1, schema2) => {
-        return stitchSchemas({
+      (schema1, schema2) =>
+        stitchSchemas({
           subschemas: [{ schema: schema1 }, { schema: schema2 }],
-        });
-      }
+        })
     );
 
     const app = new Koa();
 
     const yoga = createYoga<Koa.ParameterizedContext>({
-      schema: schema,
+      schema,
       graphiql: true,
     });
 
