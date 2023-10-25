@@ -33,15 +33,13 @@ import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinctByString } from "../../helpers/utils";
 import { ComputedBlockTransaction } from "../../storage/model/Block";
 
-import { CachedStateService } from "./execution/CachedStateService";
 import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
-import { DummyStateService } from "./execution/DummyStateService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
-import { AsyncStateService } from "./state/AsyncStateService";
-import {
-  CachedMerkleTreeStore,
-  SyncCachedMerkleTreeStore,
-} from "./execution/CachedMerkleTreeStore";
+import { DummyStateService } from "../../state/state/DummyStateService";
+import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
+import { CachedStateService } from "../../state/state/CachedStateService";
+import { SyncCachedMerkleTreeStore } from "../../state/merkle/SyncCachedMerkleTreeStore";
+import { AsyncStateService } from "../../state/async/AsyncStateService";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>

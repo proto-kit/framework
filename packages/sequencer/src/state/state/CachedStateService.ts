@@ -1,8 +1,8 @@
 import { Field } from "o1js";
-import { log } from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
 import { InMemoryStateService } from "@proto-kit/module";
 
-import { AsyncStateService } from "../state/AsyncStateService";
+import { AsyncStateService } from "../async/AsyncStateService";
 
 const errors = {
   parentIsUndefined: () => new Error("Parent StateService is undefined"),
@@ -26,6 +26,14 @@ export class CachedStateService
     if (parent === undefined) {
       throw errors.parentIsUndefined();
     }
+  }
+
+  public commit(): void {
+    noop();
+  }
+
+  public openTransaction(): void {
+    noop();
   }
 
   public async preloadKey(key: Field) {

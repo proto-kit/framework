@@ -1,5 +1,4 @@
 import {
-  AsyncMerkleTreeStore,
   InMemoryMerkleTreeStorage,
   StateServiceProvider,
   StateTransitionWitnessProviderReference,
@@ -11,8 +10,9 @@ import {
   noop,
 } from "@proto-kit/common";
 
-import { AsyncStateService } from "../protocol/production/state/AsyncStateService";
-import { CachedStateService } from "../protocol/production/execution/CachedStateService";
+import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
+import { CachedStateService } from "../state/state/CachedStateService";
+import { AsyncStateService } from "../state/async/AsyncStateService";
 
 import { StorageDependencyFactory } from "./StorageDependencyFactory";
 import {

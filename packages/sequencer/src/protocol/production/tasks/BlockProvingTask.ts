@@ -27,7 +27,7 @@ import { Task } from "../../../worker/flow/Task";
 
 import { CompileRegistry } from "./CompileRegistry";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
-import { PreFilledStateService } from "./providers/PreFilledStateService";
+import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;

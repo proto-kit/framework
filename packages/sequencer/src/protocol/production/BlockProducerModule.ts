@@ -1,6 +1,5 @@
 import { inject } from "tsyringe";
 import {
-  AsyncMerkleTreeStore,
   BlockProverPublicInput,
   BlockProverPublicOutput,
   DefaultProvableHashList,
@@ -22,15 +21,16 @@ import {
   ComputedBlock,
   ComputedBlockTransaction,
 } from "../../storage/model/Block";
+import { CachedStateService } from "../../state/state/CachedStateService";
+import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
+import { AsyncStateService } from "../../state/async/AsyncStateService";
+import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 
-import { AsyncStateService } from "./state/AsyncStateService";
-import { CachedStateService } from "./execution/CachedStateService";
+import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
-import { BlockProverParameters } from "./tasks/BlockProvingTask";
-import { CachedMerkleTreeStore } from "./execution/CachedMerkleTreeStore";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
