@@ -4,32 +4,31 @@ import { noop } from "@proto-kit/common";
 import type { Mempool, MempoolCommitment } from "../Mempool.js";
 import type { PendingTransaction } from "../PendingTransaction.js";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
+import { TransactionValidator } from "../verification/TransactionValidator";
 
 export class PrivateMempool extends SequencerModule<object> implements Mempool {
   public commitment: Field;
 
-  public constructor(private queue: PendingTransaction[] = []) {
+  private queue: PendingTransaction[] = [];
+
+  public constructor(
+    private readonly transactionValidator: TransactionValidator
+  ) {
     super();
     this.commitment = Field(0);
   }
 
-  public validateTx(tx: PendingTransaction): boolean {
-    const valid = tx.signature.verify(tx.sender, tx.getSignatureData());
-
-    return valid.toBoolean();
-  }
-
   public add(tx: PendingTransaction): MempoolCommitment {
-    if (this.validateTx(tx)) {
+    const [txValid, error] = this.transactionValidator.validateTx(tx);
+    if (txValid) {
       this.queue.push(tx);
 
       // Figure out how to generalize this
       this.commitment = Poseidon.hash([this.commitment, tx.hash()]);
 
       return { transactionsHash: this.commitment };
-    } else {
-      throw new Error("Valdiation of tx failed");
     }
+    throw new Error(`Valdiation of tx failed: ${error ?? "unknown error"}`);
   }
 
   public getTxs(): {

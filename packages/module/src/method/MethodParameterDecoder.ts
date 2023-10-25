@@ -30,11 +30,18 @@ const errors = {
 
 export class MethodParameterDecoder {
   public static fromMethod(target: RuntimeModule<unknown>, methodName: string) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const paramtypes = Reflect.getMetadata(
       "design:paramtypes",
       target,
       methodName
-    );
+    ) as FromFieldClass[] | undefined;
+
+    if (paramtypes === undefined) {
+      throw new Error(
+        `Method with name ${methodName} doesn't exist on this module`
+      );
+    }
 
     return new MethodParameterDecoder(paramtypes);
   }
