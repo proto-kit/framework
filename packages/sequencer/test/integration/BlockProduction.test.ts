@@ -5,11 +5,7 @@ import "reflect-metadata";
 // TODO this is actually a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
-import {
-  Fieldable,
-  Runtime,
-  MethodIdResolver,
-} from "@proto-kit/module";
+import { Fieldable, Runtime, MethodIdResolver } from "@proto-kit/module";
 import {
   AccountState,
   AccountStateModule,
@@ -93,7 +89,7 @@ describe("block production", () => {
 
     const protocolClass = VanillaProtocol.from(
       { AccountStateModule },
-      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
+      { StateTransitionProver: {}, BlockProver: {}, AccountStateModule: {} }
     );
 
     const app = AppChain.from({
@@ -101,6 +97,25 @@ describe("block production", () => {
       sequencer: sequencerClass,
       protocol: protocolClass,
       modules: {},
+    });
+
+    app.configure({
+      Sequencer: {
+        BlockTrigger: {},
+        Mempool: {},
+        BlockProducerModule: {},
+        LocalTaskWorkerModule: {},
+        BaseLayer: {},
+        TaskQueue: {},
+      },
+      Runtime: {
+        Balance: {},
+      },
+      Protocol: {
+        AccountStateModule: {},
+        BlockProver: {},
+        StateTransitionProver: {},
+      },
     });
 
     // Start AppChain
