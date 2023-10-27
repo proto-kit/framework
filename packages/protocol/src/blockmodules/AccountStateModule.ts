@@ -23,8 +23,6 @@ export class AccountStateModule extends ProvableTransactionHook<Record<string, n
 
     const currentNonce = accountState.nonce;
 
-    console.log(`Current Nonce ${currentNonce.toString()}, tx: ${transaction.nonce.toString()}`);
-
     assert(currentNonce.equals(transaction.nonce), "Nonce not matching");
 
     this.accountState.set(
