@@ -1,13 +1,17 @@
-import { AppChainModule } from "../appChain/AppChainModule";
+// eslint-disable-next-line max-len
+/* eslint-disable @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any */
 import { QueryTransportModule } from "@proto-kit/sequencer";
 import { Field } from "o1js";
-import { GraphqlClient } from "./GraphqlClient";
 import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
 
+import { AppChainModule } from "../appChain/AppChainModule";
+
+import { GraphqlClient } from "./GraphqlClient";
+
 function assertStringArray(array: any): asserts array is string[] {
   if (
-    array["length"] === undefined ||
+    array.length === undefined ||
     (array.length > 0 && typeof array[0] !== "string")
   ) {
     throw new Error("Array is not a string[]");
@@ -32,26 +36,20 @@ export class GraphqlQueryTransportModule
       }
     `;
 
-    console.log(`Trying to fetch ${key.toString()}`);
-
     const queryResult = await this.graphqlClient.client
       .query(query, { path: key.toString() })
       .toPromise();
 
-    console.log("Finished fetching");
+    if (queryResult.error === undefined) {
+      const stringArray = queryResult.data?.state;
 
-    if(queryResult.error === undefined){
-      const stringArray = queryResult.data?.state
-
-      if(stringArray === undefined || stringArray === null){
+      if (stringArray === undefined || stringArray === null) {
         return undefined;
       }
 
-      assertStringArray(stringArray)
+      assertStringArray(stringArray);
       return stringArray.map((string) => Field(string));
-    } else {
-      console.log(queryResult.error);
-      throw new Error(queryResult.error.message)
     }
+    throw new Error(queryResult.error.message);
   }
 }
