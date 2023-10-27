@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-assignment,putout/putout,max-lines,guard-for-in,@typescript-eslint/consistent-type-assertions */
-import { inject, injectable } from "tsyringe";
-import { Resolver } from "type-graphql";
+import { inject } from "tsyringe";
+import { Arg, Query as GraphqlQuery } from "type-graphql";
 import {
   GraphQLBoolean,
   GraphQLFieldConfig,
@@ -35,7 +35,7 @@ import {
   QueryGetterStateMap,
   QueryTransportModule,
   NetworkStateQuery,
-  BlockStorage
+  BlockStorage,
 } from "@proto-kit/sequencer";
 import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
 import {
@@ -76,6 +76,12 @@ export class QueryGraphqlModule<
     private readonly blockStorage: BlockStorage
   ) {
     super();
+  }
+
+  @GraphqlQuery(() => [String], { nullable: true })
+  public async state(@Arg("path") path: string): Promise<string[] | undefined> {
+    const value = await this.queryTransportModule.get(Field(path));
+    return value?.map((field) => field.toString());
   }
 
   private jsonPrimitiveToGraphqlType(value: any): GraphQLScalarType {

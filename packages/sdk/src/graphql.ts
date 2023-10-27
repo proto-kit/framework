@@ -77,114 +77,121 @@ export class Balances extends RuntimeModule<object> {
   }
 }
 
-const appChain = AppChain.from({
-  runtime: Runtime.from({
-    modules: {
-      Balances,
-    },
+export async function startServer() {
 
-    config: {
+  const appChain = AppChain.from({
+    runtime: Runtime.from({
+      modules: {
+        Balances,
+      },
+
+      config: {
+        Balances: {},
+      },
+    }),
+
+    protocol: VanillaProtocol.from(
+      { AccountStateModule },
+      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
+    ),
+
+    sequencer: Sequencer.from({
+      modules: {
+        Mempool: PrivateMempool,
+        GraphqlServer,
+        LocalTaskWorkerModule,
+        BaseLayer: NoopBaseLayer,
+        BlockProducerModule,
+        BlockTrigger: TimedBlockTrigger,
+        TaskQueue: LocalTaskQueue,
+
+        Graphql: GraphqlSequencerModule.from({
+          modules: {
+            MempoolResolver,
+            QueryGraphqlModule,
+            BlockStorageResolver,
+            NodeStatusResolver,
+          },
+
+          config: {
+            MempoolResolver: {},
+            QueryGraphqlModule: {},
+            BlockStorageResolver: {},
+            NodeStatusResolver: {},
+          },
+        }),
+      },
+    }),
+
+    modules: {
+      Signer: InMemorySigner,
+      TransactionSender: InMemoryTransactionSender,
+      QueryTransportModule: StateServiceQueryModule,
+    },
+  });
+
+  appChain.configure({
+    Runtime: {
       Balances: {},
     },
-  }),
 
-  protocol: VanillaProtocol.from(
-    { AccountStateModule },
-    { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
-  ),
-
-  sequencer: Sequencer.from({
-    modules: {
-      Mempool: PrivateMempool,
-      GraphqlServer,
-      LocalTaskWorkerModule,
-      BaseLayer: NoopBaseLayer,
-      BlockProducerModule,
-      BlockTrigger: TimedBlockTrigger,
-      TaskQueue: LocalTaskQueue,
-
-      Graphql: GraphqlSequencerModule.from({
-        modules: {
-          MempoolResolver,
-          QueryGraphqlModule,
-          BlockStorageResolver,
-          NodeStatusResolver,
-        },
-
-        config: {
-          MempoolResolver: {},
-          QueryGraphqlModule: {},
-          BlockStorageResolver: {},
-          NodeStatusResolver: {},
-        },
-      }),
-    },
-  }),
-
-  modules: {
-    Signer: InMemorySigner,
-    TransactionSender: InMemoryTransactionSender,
-    QueryTransportModule: StateServiceQueryModule,
-  },
-});
-
-appChain.configure({
-  Runtime: {
-    Balances: {},
-  },
-
-  Protocol: {
-    BlockProver: {},
-    StateTransitionProver: {},
-    AccountStateModule: {},
-  },
-
-  Sequencer: {
-    GraphqlServer: {
-      port: 8080,
-      host: "0.0.0.0",
+    Protocol: {
+      BlockProver: {},
+      StateTransitionProver: {},
+      AccountStateModule: {},
     },
 
-    Graphql: {
-      QueryGraphqlModule: {},
-      MempoolResolver: {},
-      BlockStorageResolver: {},
-      NodeStatusResolver: {}
+    Sequencer: {
+      GraphqlServer: {
+        port: 8080,
+        host: "0.0.0.0",
+      },
+
+      Graphql: {
+        QueryGraphqlModule: {},
+        MempoolResolver: {},
+        BlockStorageResolver: {},
+        NodeStatusResolver: {}
+      },
+
+      Mempool: {},
+      BlockProducerModule: {},
+      LocalTaskWorkerModule: {},
+      BaseLayer: {},
+      TaskQueue: {},
+
+      BlockTrigger: {
+        blocktime: 5000
+      },
     },
 
-    Mempool: {},
-    BlockProducerModule: {},
-    LocalTaskWorkerModule: {},
-    BaseLayer: {},
-    TaskQueue: {},
+    TransactionSender: {},
+    QueryTransportModule: {},
 
-    BlockTrigger: {
-      blocktime: 5000
+    Signer: {
+      signer: PrivateKey.random(),
     },
-  },
+  });
 
-  TransactionSender: {},
-  QueryTransportModule: {},
+  await appChain.start();
 
-  Signer: {
-    signer: PrivateKey.random(),
-  },
-});
-
-await appChain.start();
-
-const pk = PublicKey.fromBase58(
-  "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
-);
-console.log(pk.toJSON());
-
-const balances = appChain.runtime.resolve("Balances");
-
-console.log("Path:", balances.balances.getPath(pk).toString());
-
-const asyncState =
-  appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
-    "AsyncStateService"
+  const pk = PublicKey.fromBase58(
+    "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   );
-await asyncState.setAsync(balances.balances.getPath(pk), [Field(100)]);
-await asyncState.setAsync(balances.totalSupply.path!, [Field(10_000)]);
+  console.log(pk.toJSON());
+
+  const balances = appChain.runtime.resolve("Balances");
+
+  console.log("Path:", balances.balances.getPath(pk).toString());
+
+  const asyncState =
+    appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
+      "AsyncStateService"
+    );
+  await asyncState.setAsync(balances.balances.getPath(pk), [Field(100)]);
+  await asyncState.setAsync(balances.totalSupply.path!, [Field(10_000)]);
+
+  return appChain
+}
+
+// await startServer();
