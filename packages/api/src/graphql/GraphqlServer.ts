@@ -79,6 +79,14 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
       },
     });
 
+    // eslint-disable-next-line no-warning-comments
+    // TODO Injection token of Graphql Container not respected atm, only class is used
+
+    // Instantiate all modules at startup
+    modules.forEach((module) => {
+      dependencyContainer?.resolve(module);
+    });
+
     const schema = [resolverSchema, ...this.schemas].reduce(
       (schema1, schema2) =>
         stitchSchemas({

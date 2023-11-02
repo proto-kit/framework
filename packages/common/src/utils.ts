@@ -44,3 +44,8 @@ export function noop(): void {}
 export interface ToFieldable {
   toFields: () => Field[];
 }
+
+export async function sleep(ms: number) {
+  // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}

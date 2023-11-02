@@ -1,6 +1,3 @@
-/* eslint-disable import/no-unused-modules */
-import { RuntimeModulesRecord } from "@proto-kit/module";
-import { ProtocolModulesRecord } from "@proto-kit/protocol/src/protocol/Protocol";
 import {
   PrivateMempool,
   Sequencer,
@@ -8,7 +5,7 @@ import {
   PendingTransaction,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
-import { AppChain, AppChainModulesRecord } from "../appChain/AppChain";
+
 import { AppChainModule } from "../appChain/AppChainModule";
 
 export interface TransactionSender extends AppChainModule<unknown> {

@@ -28,7 +28,7 @@ export class PrivateMempool extends SequencerModule<object> implements Mempool {
 
       return { transactionsHash: this.commitment };
     } else {
-      throw new Error("Valdiation of tx failed");
+      throw new Error("Validation of tx failed");
     }
   }
 
