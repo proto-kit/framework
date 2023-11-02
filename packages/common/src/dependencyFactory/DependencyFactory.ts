@@ -41,7 +41,6 @@ export abstract class DependencyFactory {
   public initDependencies(container: DependencyContainer) {
     const dependencies =
       globalFactoryDependencies.get(this.constructor.name) ?? {};
-    globalFactoryDependencies.delete(this.constructor.name);
 
     for (const [key, useFactory] of Object.entries(dependencies)) {
       container.register(`${key}_singleton-prototype`, {

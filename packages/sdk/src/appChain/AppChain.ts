@@ -30,7 +30,7 @@ import {
   RuntimeMethodExecutionContext,
   ProtocolModule,
 } from "@proto-kit/protocol";
-import { container } from "tsyringe";
+import { container, DependencyContainer } from "tsyringe";
 import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
@@ -322,8 +322,8 @@ export class AppChain<
   /**
    * Starts the appchain and cross-registers runtime to sequencer
    */
-  public async start() {
-    this.create(() => container);
+  public async start(dependencyContainer: DependencyContainer = container) {
+    this.create(() => dependencyContainer);
 
     this.registerDependencyFactories([
       AreProofsEnabledFactory,

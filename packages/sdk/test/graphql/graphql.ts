@@ -30,10 +30,11 @@ import {
   QueryGraphqlModule
 } from "@proto-kit/api";
 
-import { AppChain } from "./appChain/AppChain";
-import { StateServiceQueryModule } from "./query/StateServiceQueryModule";
-import { InMemorySigner } from "./transaction/InMemorySigner";
-import { InMemoryTransactionSender } from "./transaction/InMemoryTransactionSender";
+import { AppChain } from "../../src/appChain/AppChain";
+import { StateServiceQueryModule } from "../../src/query/StateServiceQueryModule";
+import { InMemorySigner } from "../../src/transaction/InMemorySigner";
+import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
+import { container } from "tsyringe";
 
 log.setLevel(log.levels.INFO);
 
@@ -174,7 +175,7 @@ export async function startServer() {
     },
   });
 
-  await appChain.start();
+  await appChain.start(container.createChildContainer());
 
   const pk = PublicKey.fromBase58(
     "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"

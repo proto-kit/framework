@@ -9,17 +9,24 @@ import {
 } from "@proto-kit/module";
 import {
   AccountStateModule,
-  Option, ReturnType,
+  Option,
+  ReturnType,
   State,
   StateMap,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Presets, log } from "@proto-kit/common";
+import { Presets, log, sleep } from "@proto-kit/common";
 import {
-  AsyncStateService, BlockProducerModule, LocalTaskQueue, LocalTaskWorkerModule, NoopBaseLayer,
-  PrivateMempool, QueryTransportModule,
-  Sequencer, TimedBlockTrigger,
-  UnsignedTransaction
+  AsyncStateService,
+  BlockProducerModule,
+  LocalTaskQueue,
+  LocalTaskWorkerModule,
+  NoopBaseLayer,
+  PrivateMempool,
+  QueryTransportModule,
+  Sequencer,
+  TimedBlockTrigger,
+  UnsignedTransaction,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -27,20 +34,21 @@ import {
   GraphqlServer,
   MempoolResolver,
   NodeStatusResolver,
-  QueryGraphqlModule
+  QueryGraphqlModule,
 } from "@proto-kit/api";
 
-import { startServer, Balances } from "../src/graphql";
+import { startServer, Balances } from "./graphql";
 import { beforeAll } from "@jest/globals";
 import {
   AppChain,
   InMemorySigner,
   InMemoryTransactionSender,
-  StateServiceQueryModule
-} from "../src";
-import { GraphqlTransactionSender } from "../src/graphql/GraphqlTransactionSender";
-import { GraphqlQueryTransportModule } from "../src/graphql/GraphqlQueryTransportModule";
-import { GraphqlClient } from "../src/graphql/GraphqlClient";
+  StateServiceQueryModule,
+} from "../../src";
+import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSender";
+import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
+import { GraphqlClient } from "../../src/graphql/GraphqlClient";
+import { container } from "tsyringe";
 
 log.setLevel(log.levels.INFO);
 
@@ -59,8 +67,7 @@ function createNewTx(methodId: Field) {
   return tx;
 }
 
-function prepare(){
-
+function prepare() {
   const appChain = AppChain.from({
     runtime: Runtime.from({
       modules: {
@@ -87,7 +94,7 @@ function prepare(){
       Signer: InMemorySigner,
       TransactionSender: GraphqlTransactionSender,
       QueryTransportModule: GraphqlQueryTransportModule,
-      GraphqlClient
+      GraphqlClient,
     },
   });
 
@@ -109,7 +116,7 @@ function prepare(){
     TransactionSender: {},
     QueryTransportModule: {},
     GraphqlClient: {
-      url: "http://127.0.0.1:8080/graphql"
+      url: "http://127.0.0.1:8080/graphql",
     },
 
     Signer: {
@@ -117,42 +124,50 @@ function prepare(){
     },
   });
 
-  return appChain
+  return appChain;
 }
 
-describe("graphql client test", function() {
-
-  let appChain: ReturnType<typeof prepare> | undefined = undefined
+describe("graphql client test", function () {
+  let appChain: ReturnType<typeof prepare> | undefined = undefined;
 
   beforeAll(async () => {
-    // const server = await startServer();
-    //
-    // await sleep(2000);
+    const server = await startServer();
+
+    await sleep(2000);
 
     appChain = prepare();
 
-    await appChain.start();
-  })
+    await appChain.start(container.createChildContainer());
+  });
 
-  it.skip("should retrieve state", async () => {
-    const result = await appChain!.resolve("QueryTransportModule").get(Field(1234))
+  it("should retrieve state", async () => {
+    const result = await appChain!
+      .resolve("QueryTransportModule")
+      .get(Field(1234));
     console.log(`Result: ${result?.toString()}`);
 
-    const totalSupply = await appChain!.query.runtime.Balances.totalSupply.get()
+    const totalSupply =
+      await appChain!.query.runtime.Balances.totalSupply.get();
 
     console.log(totalSupply.toString());
-  }, 60000)
+  }, 60000);
 
   it("should send transaction", async () => {
     const tx = await appChain!.transaction(pk.toPublicKey(), () => {
-      appChain!.runtime.resolve("Balances").setBalance(pk.toPublicKey(), UInt64.from(1000))
-    })
-    await tx.sign()
-    await tx.send()
-  })
-});
+      appChain!.runtime
+        .resolve("Balances")
+        .setBalance(pk.toPublicKey(), UInt64.from(1000));
+    });
+    await tx.sign();
+    await tx.send();
 
-async function sleep(ms: number) {
-  // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
+    await sleep(10000);
+
+    const balance = await appChain!.query.runtime.Balances.balances.get(
+      pk.toPublicKey()
+    );
+
+    expect(balance).toBeDefined();
+    expect(balance!.toBigInt()).toBe(1000n);
+  }, 60000);
+});
