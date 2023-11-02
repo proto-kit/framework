@@ -10,12 +10,18 @@ import {
   RuntimeModule,
   RuntimeModulesRecord,
   MethodIdResolver,
+  MethodIdFactory,
 } from "@proto-kit/module";
 import {
   BlockStorage,
+  NetworkStateQuery,
+  Query,
+  QueryBuilderFactory,
   Sequencer,
   SequencerModulesRecord,
   UnsignedTransaction,
+  MockStorageDependencyFactory,
+  QueryTransportModule,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -23,22 +29,16 @@ import {
   ProtocolModulesRecord,
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
-  StateTransitionWitnessProviderReference,
   ProtocolModule,
 } from "@proto-kit/protocol";
-import { container } from "tsyringe";
 import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
+import { container, DependencyContainer } from "tsyringe";
+
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
-import { AppChainModule } from "./AppChainModule";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { QueryBuilderFactory, Query } from "../query/QueryBuilderFactory";
-import {
-  QueryTransportModule,
-  StateServiceQueryModule,
-} from "../query/StateServiceQueryModule";
 
-import { NetworkStateQuery } from "../query/NetworkStateQuery";
+import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
@@ -58,23 +58,24 @@ export interface AppChainDefinition<
   config?: ModulesConfig<AppChainModules>;
 }
 
+// eslint-disable-next-line etc/prefer-interface
 export type ExpandAppChainModules<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
-> = {
+> = AppChainModules & {
   Runtime: TypedClass<Runtime<RuntimeModules>>;
   Protocol: TypedClass<Protocol<ProtocolModules>>;
   Sequencer: TypedClass<Sequencer<SequencerModules>>;
-} & AppChainModules;
+};
 
-export type ExpandAppChainDefinition<
+export interface ExpandAppChainDefinition<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
-> = {
+> {
   modules: ExpandAppChainModules<
     RuntimeModules,
     ProtocolModules,
@@ -89,7 +90,7 @@ export type ExpandAppChainDefinition<
       AppChainModules
     >
   >;
-};
+}
 
 /**
  * Definition of required arguments for AppChain
@@ -166,6 +167,7 @@ export class AppChain<
         Protocol: definition.protocol,
         ...definition.modules,
       },
+
       config: {
         Runtime: {},
         Sequencer: {},
@@ -189,9 +191,8 @@ export class AppChain<
     protocol: Query<ProtocolModule<unknown>, ProtocolModules>;
     network: NetworkStateQuery;
   } {
-    const queryTransportModule = this.resolveOrFail(
-      "QueryTransportModule",
-      StateServiceQueryModule
+    const queryTransportModule = this.container.resolve<QueryTransportModule>(
+      "QueryTransportModule"
     );
 
     const network = new NetworkStateQuery(
@@ -346,8 +347,14 @@ export class AppChain<
   /**
    * Starts the appchain and cross-registers runtime to sequencer
    */
-  public async start() {
-    this.create(() => container);
+  public async start(dependencyContainer: DependencyContainer = container) {
+    this.create(() => dependencyContainer);
+
+    this.registerDependencyFactories([
+      AreProofsEnabledFactory,
+      MockStorageDependencyFactory,
+      MethodIdFactory,
+    ]);
 
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.
@@ -358,14 +365,12 @@ export class AppChain<
     this.resolve("Protocol");
     this.resolve("Sequencer");
 
-    this.registerDependencyFactories([AreProofsEnabledFactory]);
-
-    // Workaround to get protocol and sequencer to have
-    // access to the same WitnessProviderReference
-    const reference = new StateTransitionWitnessProviderReference();
-    this.registerValue({
-      StateTransitionWitnessProviderReference: reference,
-    });
+    // // Workaround to get protocol and sequencer to have
+    // // access to the same WitnessProviderReference
+    // const reference = new StateTransitionWitnessProviderReference();
+    // this.registerValue({
+    //   StateTransitionWitnessProviderReference: reference,
+    // });
 
     // this.runtime.start();
     await this.sequencer.start();

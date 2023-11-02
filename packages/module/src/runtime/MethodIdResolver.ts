@@ -1,5 +1,6 @@
 import { stringToField } from "@proto-kit/protocol";
 import { Poseidon } from "o1js";
+import { injectable } from "tsyringe";
 
 import type { Runtime, RuntimeModulesRecord } from "./Runtime";
 
@@ -7,6 +8,7 @@ import type { Runtime, RuntimeModulesRecord } from "./Runtime";
  * Please see `getMethodId` to learn more about
  * methodId encoding
  */
+@injectable()
 export class MethodIdResolver {
   private readonly dictionary: {
     [key: string]: { moduleName: string; methodName: string };
@@ -33,13 +35,13 @@ export class MethodIdResolver {
   }
 
   public getMethodNameFromId(methodId: bigint): [string, string] | undefined {
-    const { moduleName, methodName } = this.dictionary[methodId.toString()];
+    const methodPath = this.dictionary[methodId.toString()];
 
-    // eslint-disable-next-line no-warning-comments
-    // TODO Replace by throwing exception?
-    if (moduleName === undefined || methodName === undefined) {
+    if (methodPath === undefined) {
       return undefined;
     }
+
+    const { moduleName, methodName } = methodPath;
 
     this.runtime.assertIsValidModuleName(this.modules, moduleName);
 

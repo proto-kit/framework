@@ -1,16 +1,15 @@
 // eslint-disable-next-line max-len
 /* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects,max-lines */
 import "reflect-metadata";
-import {
-  Fieldable,
-  InMemoryStateService,
-  Runtime,
-  MethodIdResolver,
-} from "@proto-kit/module";
 // eslint-disable-next-line no-warning-comments
 // TODO this is actually a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
+import {
+  Fieldable,
+  Runtime,
+  MethodIdResolver,
+} from "@proto-kit/module";
 import {
   AccountState,
   AccountStateModule,
@@ -62,8 +61,6 @@ describe("block production", () => {
 
     log.setLevel(log.levels.DEBUG);
 
-    const stateService = new InMemoryStateService();
-
     const runtimeClass = Runtime.from({
       modules: {
         Balance,
@@ -72,8 +69,6 @@ describe("block production", () => {
       config: {
         Balance: {},
       },
-
-      state: stateService,
     });
 
     const sequencerClass = Sequencer.from({
@@ -96,18 +91,9 @@ describe("block production", () => {
       },
     });
 
-    console.log(new sequencerClass() instanceof Sequencer<{
-      Mempool: typeof PrivateMempool;
-      LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
-      BaseLayer: typeof NoopBaseLayer;
-      BlockProducerModule: typeof BlockProducerModule;
-      BlockTrigger: typeof ManualBlockTrigger;
-      TaskQueue: typeof LocalTaskQueue;
-    }>);
-
     const protocolClass = VanillaProtocol.from(
       { AccountStateModule },
-      stateService
+      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
     );
 
     const app = AppChain.from({

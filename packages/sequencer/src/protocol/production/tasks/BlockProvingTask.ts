@@ -26,7 +26,6 @@ import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { Task } from "../../../worker/flow/Task";
 
 import { CompileRegistry } from "./CompileRegistry";
-import { StateRecord } from "../BlockProducerModule";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 import { PreFilledStateService } from "./providers/PreFilledStateService";
 

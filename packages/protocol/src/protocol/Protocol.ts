@@ -43,11 +43,6 @@ export interface ProtocolModulesRecord
 
 export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   modules: Modules;
-
-  /**
-   * @deprecated
-   */
-  state?: StateService;
   config?: ModulesConfig<Modules>;
 }
 
@@ -68,22 +63,17 @@ export class Protocol<Modules extends ProtocolModulesRecord>
 
   public definition: ProtocolDefinition<Modules>;
 
-  private readonly stateServiceProviderInstance = new StateServiceProvider(
-    // eslint-disable-next-line etc/no-deprecated
-    this.definition.state
-  );
-
   public constructor(definition: ProtocolDefinition<Modules>) {
     super(definition);
     this.definition = definition;
   }
 
   public get stateService(): StateService {
-    return this.stateServiceProviderInstance.stateService;
+    return this.stateServiceProvider.stateService;
   }
 
   public get stateServiceProvider(): StateServiceProvider {
-    return this.stateServiceProviderInstance;
+    return this.container.resolve<StateServiceProvider>("StateServiceProvider");
   }
 
   public decorateModule(
@@ -157,14 +147,13 @@ export class Protocol<Modules extends ProtocolModulesRecord>
 }
 
 export const VanillaProtocol = {
-  create(stateService?: StateService) {
+  create() {
     return VanillaProtocol.from(
       {},
       {
         BlockProver: {},
         StateTransitionProver: {},
-      },
-      stateService
+      }
     );
   },
 
@@ -175,8 +164,7 @@ export const VanillaProtocol = {
         StateTransitionProver: typeof StateTransitionProver;
         BlockProver: typeof BlockProver;
       }
-    >,
-    stateService?: StateService
+    >
   ): TypedClass<
     Protocol<
       AdditonalModules & {
@@ -193,7 +181,6 @@ export const VanillaProtocol = {
       },
 
       config,
-      state: stateService,
     });
   },
 };

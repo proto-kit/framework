@@ -19,7 +19,18 @@ export class MethodParameterDecoder {
       methodName
     );
 
+    if (paramtypes === undefined) {
+      throw new Error(
+        `Method with name ${methodName} doesn't exist on this module`
+      );
+    }
+
     return new MethodParameterDecoder(paramtypes);
+  }
+
+  public static fieldSize(type: ProvableExtended<unknown>): number | undefined {
+    // as any, since we shouldn't be using this workaround in the first place
+    return (type as any).prototype._fields?.length ?? type.sizeInFields?.();
   }
 
   private constructor(private readonly types: ProvableExtended<unknown>[]) {}
@@ -41,5 +52,11 @@ export class MethodParameterDecoder {
 
       return value;
     });
+  }
+
+  public get fieldSize(): number {
+    return this.types
+      .map((type) => MethodParameterDecoder.fieldSize(type) ?? 0)
+      .reduce((a, b) => a + b, 0);
   }
 }

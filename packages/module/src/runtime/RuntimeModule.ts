@@ -22,17 +22,6 @@ const errors = {
 };
 
 /**
- * This type exists to carry over certain runtime properties
- * to runtime modules, until we can inject them through DI.
- */
-export interface PartialRuntime
-  extends Pick<Runtime<RuntimeModulesRecord>, "zkProgrammable"> {
-  definition: Pick<RuntimeDefinition<RuntimeModulesRecord>, "state">;
-
-  get stateService(): StateService;
-}
-
-/**
  * Base class for runtime modules providing the necessary utilities.
  */
 @injectable()

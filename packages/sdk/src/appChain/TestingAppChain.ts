@@ -21,6 +21,7 @@ import {
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
+import { AuroSigner } from "../transaction/AuroSigner";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
@@ -46,8 +47,6 @@ export class TestingAppChain<
     config: ModulesConfig<RuntimeModules>;
   }) {
     const runtime = Runtime.from({
-      state: new InMemoryStateService(),
-
       ...definition,
     });
 
@@ -60,21 +59,9 @@ export class TestingAppChain<
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
       },
-
-      config: {
-        BlockTrigger: {},
-        Mempool: {},
-        BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
-        BaseLayer: {},
-
-        TaskQueue: {
-          simulatedDuration: 0,
-        },
-      },
     });
 
-    return new TestingAppChain({
+    const appChain = new TestingAppChain({
       runtime,
       sequencer,
 
@@ -85,8 +72,7 @@ export class TestingAppChain<
         {
           BlockProver: {},
           StateTransitionProver: {},
-        },
-        new InMemoryStateService()
+        }
       ),
 
       modules: {
@@ -94,34 +80,46 @@ export class TestingAppChain<
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
       },
-
-      config: {
-        Signer: {},
-        TransactionSender: {},
-        QueryTransportModule: {},
-      },
     });
+
+    appChain.configure({
+      Runtime: definition.config,
+
+      Sequencer: {
+        BlockTrigger: {},
+        Mempool: {},
+        BlockProducerModule: {},
+        LocalTaskWorkerModule: {},
+        BaseLayer: {},
+
+        TaskQueue: {
+          simulatedDuration: 0,
+        },
+      },
+
+      Protocol: {
+        BlockProver: {},
+        StateTransitionProver: {},
+      },
+
+      Signer: {},
+      TransactionSender: {},
+      QueryTransportModule: {},
+    });
+
+    return appChain;
   }
 
   public setSigner(signer: PrivateKey) {
-    this.configure({
-      Signer: {
-        signer,
-      },
-
-      TransactionSender: {},
-      QueryTransportModule: {},
-      Runtime: {},
-      Protocol: {},
-      Sequencer: {},
-    });
+    const inMemorySigner = this.resolveOrFail("Signer", InMemorySigner);
+    inMemorySigner.config.signer = signer;
   }
-  //
-  // public useAuroSigner() {
-  //   this.registerModules({
-  //     Signer: AuroSigner,
-  //   });
-  // }
+
+  public useAuroSigner() {
+    this.registerModules({
+      Signer: AuroSigner,
+    } as any);
+  }
 
   public async produceBlock() {
     const blockTrigger = this.sequencer.resolveOrFail(

@@ -124,9 +124,9 @@ describe("testing app chain", () => {
       },
     });
 
-    appChain.setSigner(signer);
-
     await appChain.start();
+
+    appChain.setSigner(signer);
 
     const runtime = appChain.runtime.resolve("TestRuntime");
     const struct = new TestStruct({

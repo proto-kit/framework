@@ -5,16 +5,17 @@ import {
   TypedClass,
   ModuleContainerDefinition,
   log,
+  ChildContainerProvider,
 } from "@proto-kit/common";
-import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
-  Protocol,
-  ProtocolModulesRecord,
-} from "@proto-kit/protocol/src/protocol/Protocol";
+  Runtime,
+  RuntimeModulesRecord,
+  MethodIdFactory,
+} from "@proto-kit/module";
+import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
-import { MockStorageDependencyFactory } from "../../storage/MockStorageDependencyFactory";
 
 import { Sequenceable } from "./Sequenceable";
 
@@ -59,10 +60,6 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    * modules to start each
    */
   public async start() {
-    // Define DependencyFactories and initialize them
-    const factories = [MockStorageDependencyFactory];
-    this.registerDependencyFactories(factories);
-
     // Set default STWitnessProvider inside protocol
     // eslint-disable-next-line no-warning-comments,max-len
     // TODO But what is the default? How do we deal with stages states (i.e. simulated state) in the DI container?
@@ -82,10 +79,6 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     );
     log.info("Starting sequencer...");
     log.info("Modules:", moduleClassNames);
-    log.info(
-      "Factories:",
-      factories.map((clazz) => clazz.name)
-    );
 
     for (const moduleName in this.definition.modules) {
       const sequencerModule = this.resolve(moduleName);
