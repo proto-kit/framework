@@ -11,7 +11,8 @@ import {
   ZkProgrammable,
   PlainZkProgram,
   WithZkProgrammable,
-  AreProofsEnabled, ChildContainerProvider
+  AreProofsEnabled,
+  ChildContainerProvider,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -50,10 +51,6 @@ const errors = {
  * Definition / required arguments for the Runtime class
  */
 export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
-  /**
-   * @deprecated
-   */
-  state?: StateService;
   modules: Modules;
   config?: ModulesConfig<Modules>;
 }
@@ -210,11 +207,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
 
   public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
 
-  private readonly stateServiceProviderInstance = new StateServiceProvider(
-    // eslint-disable-next-line etc/no-deprecated
-    this.definition.state
-  );
-
   /**
    * Creates a new Runtime from the provided config
    *
@@ -238,12 +230,14 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     return this.container.resolve<AreProofsEnabled>("AreProofsEnabled");
   }
 
-  public get stateService(): StateService {
-    return this.stateServiceProviderInstance.stateService;
+  public get stateServiceProvider(): StateServiceProvider {
+    return this.dependencyContainer.resolve<StateServiceProvider>(
+      "StateServiceProvider"
+    );
   }
 
-  public get stateServiceProvider(): StateServiceProvider {
-    return this.stateServiceProviderInstance;
+  public get stateService(): StateService {
+    return this.stateServiceProvider.stateService;
   }
 
   public get methodIdResolver(): MethodIdResolver {

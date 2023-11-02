@@ -31,18 +31,9 @@
     "@types/node": "^20.2.5"
   },
   "dependencies": {
-    "@types/ws": "^8.5.4",
     "bullmq": "^3.15.0",
-    "class-validator": "^0.14.0",
-    "fastify": "^4.17.0",
-    "graphql": "16.6.0",
     "lodash": "^4.17.21",
-    "mercurius": "^13.0.0",
-    "reflect-metadata": "^0.1.13",
-    "type-graphql": "^2.0.0-beta.1"
-  },
-  "resolutions": {
-    "graphql": "16.6.0"
+    "reflect-metadata": "^0.1.13"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }

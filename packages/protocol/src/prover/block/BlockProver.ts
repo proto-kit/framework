@@ -289,6 +289,16 @@ export class BlockProverProgrammable extends ZkProgrammable<
       errors.transactionsHashNotMatching("proof1.to -> proof2.from")
     );
 
+    // Check networkhash
+    publicInput.networkStateHash.assertEquals(
+      proof1.publicInput.networkStateHash,
+      errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
+    );
+    publicInput.networkStateHash.assertEquals(
+      proof2.publicInput.networkStateHash,
+      errors.transactionsHashNotMatching("proof1.to -> proof2.from")
+    );
+
     return new BlockProverPublicOutput({
       stateRoot: proof2.publicOutput.stateRoot,
       transactionsHash: proof2.publicOutput.transactionsHash,

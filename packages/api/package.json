@@ -1,5 +1,5 @@
 {
-  "name": "@proto-kit/sdk",
+  "name": "@proto-kit/api",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -10,31 +10,33 @@
     "lint": "eslint ./src ./test",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./src/** ./test/**",
-    "test:watch": "npm run test:file -- ./src/** ./test/** --watch",
-    "graphql": "cd ../api && npm run build && cd ../sdk && npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/graphql.js"
+    "test:watch": "npm run test:file -- ./src/** ./test/** --watch"
   },
   "main": "dist/index.js",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "comlink": "^4.4.1",
+    "@graphql-tools/stitch": "^9.0.3",
+    "@types/humanize-duration": "^3.27.2",
+    "class-validator": "^0.14.0",
+    "graphql": "16.6.0",
+    "graphql-scalars": "^1.22.4",
+    "humanize-duration": "^3.30.0",
     "lodash": "^4.17.21",
-    "loglevel": "^1.8.1"
+    "reflect-metadata": "^0.1.13",
+    "type-graphql": "2.0.0-beta.1"
   },
   "peerDependencies": {
     "@proto-kit/common": "*",
-    "@proto-kit/module": "*",
-    "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
-    "@proto-kit/api": "*",
-    "reflect-metadata": "^0.1.13",
     "o1js": "0.13.1",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
-    "@types/lodash": "^4.14.194"
+    "@types/lodash": "^4.14.194",
+    "@types/ws": "^8.5.4"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }

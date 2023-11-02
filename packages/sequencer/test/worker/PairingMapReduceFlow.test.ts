@@ -1,7 +1,7 @@
 import "reflect-metadata";
 // eslint-disable-next-line @typescript-eslint/no-shadow
 import { afterEach, beforeEach } from "@jest/globals";
-import { noop } from "@proto-kit/protocol";
+import { noop } from "@proto-kit/common";
 
 import {
   JSONTaskSerializer,
@@ -187,7 +187,10 @@ describe("twoStepRunner", () => {
 
       console.log(result);
 
-      const queue = new LocalTaskQueue(100);
+      const queue = new LocalTaskQueue();
+      queue.config = {
+        simulatedDuration: 100,
+      };
 
       // Create worker
       const worker = new TaskWorker(queue);

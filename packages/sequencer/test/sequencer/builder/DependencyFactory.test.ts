@@ -5,7 +5,7 @@ import {
   dependency,
   DependencyFactory,
   dependencyFactory,
-} from "../../../../common/src/dependencyFactory/DependencyFactory";
+} from "@proto-kit/common";
 
 class DummyDependency {
   public constructor(public dummyString: string) {}

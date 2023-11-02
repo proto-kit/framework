@@ -15,8 +15,7 @@ import {
   State,
   StateMap,
 } from "@proto-kit/protocol";
-
-import type { QueryTransportModule } from "./StateServiceQueryModule";
+import { QueryTransportModule } from "./QueryTransportModule";
 
 export type PickByType<Type, Value> = {
   [Key in keyof Type as Type[Key] extends Value | undefined
@@ -135,16 +134,16 @@ export const QueryBuilderFactory = {
   },
 
   fromProtocol<ProtocolModules extends ProtocolModulesRecord>(
-    runtime: Protocol<ProtocolModules>,
+    protocol: Protocol<ProtocolModules>,
     queryTransportModule: QueryTransportModule
   ): Query<ProtocolModule<unknown>, ProtocolModules> {
-    const { modules } = runtime.definition;
+    const { modules } = protocol.definition;
 
     return Object.keys(modules).reduce<Query<ProtocolModule<unknown>, ProtocolModules>>(
       (query, protocolModuleName: keyof ProtocolModules) => {
-        runtime.isValidModuleName(modules, protocolModuleName);
+        protocol.isValidModuleName(modules, protocolModuleName);
 
-        const protocolModule = runtime.resolve(protocolModuleName);
+        const protocolModule = protocol.resolve(protocolModuleName);
 
         query[protocolModuleName] = QueryBuilderFactory.fillQuery(
           protocolModule,

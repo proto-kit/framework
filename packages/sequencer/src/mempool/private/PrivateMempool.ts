@@ -25,8 +25,11 @@ export class PrivateMempool extends SequencerModule<object> implements Mempool {
 
       // Figure out how to generalize this
       this.commitment = Poseidon.hash([this.commitment, tx.hash()]);
+
+      return { transactionsHash: this.commitment };
+    } else {
+      throw new Error("Valdiation of tx failed");
     }
-    return { transactionsHash: this.commitment };
   }
 
   public getTxs(): {

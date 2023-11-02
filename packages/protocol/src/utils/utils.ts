@@ -10,10 +10,6 @@ export type ReturnType<FunctionType extends Function> = FunctionType extends (
   ? Return
   : any;
 
-export type UnTypedClass = new (...args: any[]) => any;
-
-export type TypedClass<Class> = new (...args: any[]) => Class;
-
 export type Subclass<Class extends new (...args: any) => any> = (new (
   ...args: any
 ) => InstanceType<Class>) & {

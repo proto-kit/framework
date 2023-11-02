@@ -62,8 +62,6 @@ describe("block production", () => {
 
     log.setLevel(log.levels.DEBUG);
 
-    const stateService = new InMemoryStateService();
-
     const runtimeClass = Runtime.from({
       modules: {
         Balance,
@@ -72,8 +70,6 @@ describe("block production", () => {
       config: {
         Balance: {},
       },
-
-      state: stateService,
     });
 
     const sequencerClass = Sequencer.from({
@@ -106,8 +102,7 @@ describe("block production", () => {
     }>);
 
     const protocolClass = VanillaProtocol.from(
-      { AccountStateModule },
-      stateService
+      { AccountStateModule }
     );
 
     const app = AppChain.from({

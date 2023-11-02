@@ -47,5 +47,8 @@
     "*.ts": [
       "npm run lint:staged"
     ]
+  },
+  "dependencies": {
+    "graphql-yoga": "^5.0.0"
   }
 }

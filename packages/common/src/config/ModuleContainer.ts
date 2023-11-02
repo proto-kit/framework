@@ -97,7 +97,7 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
  */
 export class ModuleContainer<
   Modules extends ModulesRecord
-> extends ConfigurableModule<unknown> {
+> extends ConfigurableModule<ModulesConfig<Modules>> {
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -195,11 +195,11 @@ export class ModuleContainer<
 
         log.debug(`Registering module: ${moduleName}`);
 
-        const definitionEntry = modules[moduleName];
+        const useClass = modules[moduleName];
 
         this.container.register(
           moduleName,
-          { useClass: definitionEntry },
+          { useClass },
           { lifecycle: Lifecycle.ContainerScoped }
         );
         this.onAfterModuleResolution(moduleName);
@@ -250,6 +250,12 @@ export class ModuleContainer<
    * @param config
    */
   public configure(config: ModulesConfig<Modules>) {
+    this.definition.config = config;
+  }
+
+  // eslint-disable-next-line accessor-pairs
+  public set config(config: ModulesConfig<Modules>) {
+    super.config = config;
     this.definition.config = config;
   }
 

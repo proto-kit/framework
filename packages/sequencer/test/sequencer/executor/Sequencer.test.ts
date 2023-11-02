@@ -4,6 +4,7 @@ import "reflect-metadata";
 import { Sequencer } from "../../../src/sequencer/executor/Sequencer";
 
 import { DummyModule } from "./DummyModule";
+import { container } from "tsyringe";
 
 describe("sequencer", () => {
   it("should inject module and start correctly", async () => {
@@ -12,17 +13,19 @@ describe("sequencer", () => {
     const password = "password123";
     const returnValue = "custom return";
 
-    const sequencer = Sequencer.from({
+    const sequencerClass = Sequencer.from({
       modules: {
-        dummy: DummyModule,
+        dummy: DummyModule
       },
     });
+    const sequencer = new sequencerClass()
+    sequencer.create(() => container)
 
     sequencer.configure({
       dummy: {
         password,
         returnValue,
-      },
+      }
     });
 
     await sequencer.start();

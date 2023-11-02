@@ -111,9 +111,7 @@ export class BlockProducerModule extends SequencerModule<object> {
       await this.applyStateChanges(block);
 
       // Mock for now
-      await this.blockStorage.setBlockHeight(
-        (await this.blockStorage.getCurrentBlockHeight()) + 1
-      );
+      await this.blockStorage.pushBlock(block.block);
 
       // Broadcast result on to baselayer
       await this.baseLayer.blockProduced(block.block);

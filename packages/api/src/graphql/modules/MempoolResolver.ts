@@ -1,14 +1,22 @@
 /* eslint-disable new-cap,id-length */
-import { Arg, Field, InputType, Mutation, Query, Resolver } from "type-graphql";
+import {
+  Arg,
+  Field,
+  InputType,
+  Mutation,
+  ObjectType,
+  Query,
+  Resolver,
+} from "type-graphql";
 import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
+import { Mempool, PendingTransaction } from "@proto-kit/sequencer";
 
-import { Mempool } from "../Mempool.js";
-import { PendingTransaction } from "../PendingTransaction.js";
-import type { GraphqlModule } from "../../graphql/GraphqlModule.js";
+import { graphqlModule, GraphqlModule } from "../GraphqlModule.js";
 
-@InputType()
-class Signature {
+@ObjectType()
+@InputType("SignatureInput")
+export class Signature {
   @Field()
   @IsNumberString()
   public r: string;
@@ -23,8 +31,14 @@ class Signature {
   }
 }
 
-@InputType()
-class TransactionObject {
+@ObjectType()
+@InputType("TransactionObjectInput")
+export class TransactionObject {
+  public static fromServiceLayerModel(pt: PendingTransaction) {
+    const { methodId, sender, nonce, signature, args } = pt.toJSON();
+    return new TransactionObject(methodId, sender, nonce, signature, args);
+  }
+
   @Field()
   @IsNumberString()
   public methodId: string;
@@ -57,15 +71,10 @@ class TransactionObject {
   }
 }
 
-@injectable()
-@Resolver(TransactionObject)
-export class MempoolResolver implements GraphqlModule {
-  public resolverType = MempoolResolver;
-
-  private readonly mempool: Mempool;
-
-  public constructor(@inject("mempool") mempool: Mempool) {
-    this.mempool = mempool;
+@graphqlModule()
+export class MempoolResolver extends GraphqlModule<object> {
+  public constructor(@inject("Mempool") private readonly mempool: Mempool) {
+    super();
   }
 
   @Mutation(() => String)
@@ -89,11 +98,11 @@ export class MempoolResolver implements GraphqlModule {
     return "unknown";
   }
 
-  // @Query()
-  // transactions(){
-  //     let tx = this.mempool.getTxs().txs
-  //     tx.map(x => x.)
-  // }
+  @Query(() => [String])
+  public transactions() {
+    const tx = this.mempool.getTxs().txs;
+    return tx.map((x) => x.hash().toString());
+  }
 
   // @Query(returns => [TransactionObject])
   // transaction(
