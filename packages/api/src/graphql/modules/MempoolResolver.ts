@@ -73,11 +73,8 @@ export class TransactionObject {
 
 @graphqlModule()
 export class MempoolResolver extends GraphqlModule<object> {
-  private readonly mempool: Mempool;
-
-  public constructor(@inject("Mempool") mempool: Mempool) {
+  public constructor(@inject("Mempool") private readonly mempool: Mempool) {
     super();
-    this.mempool = mempool;
   }
 
   @Mutation(() => String)

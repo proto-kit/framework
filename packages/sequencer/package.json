@@ -31,9 +31,7 @@
     "@types/node": "^20.2.5"
   },
   "dependencies": {
-    "@types/koa": "^2.13.10",
     "bullmq": "^3.15.0",
-    "koa": "^2.14.2",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.1.13"
   },

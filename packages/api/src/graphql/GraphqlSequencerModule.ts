@@ -12,9 +12,11 @@ import {
 } from "@proto-kit/common";
 
 import { GraphqlServer } from "./GraphqlServer";
-import { SchemaGeneratingGraphqlModule } from "./GraphqlModule";
+import { GraphqlModule, SchemaGeneratingGraphqlModule } from "./GraphqlModule";
 
-export type GraphqlModulesRecord = ModulesRecord<any>;
+export type GraphqlModulesRecord = ModulesRecord<
+  TypedClass<GraphqlModule<unknown>>
+>;
 
 export interface GraphqlModulesDefintion<
   GraphQLModules extends GraphqlModulesRecord
@@ -48,7 +50,7 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
   public async start(): Promise<void> {
     assert(this.graphqlServer !== undefined);
 
-    this.graphqlServer.setContext(this.container);
+    this.graphqlServer.setContainer(this.container);
 
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
@@ -62,8 +64,11 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
         )
       ) {
         log.debug(`Registering manual schema for ${moduleName}`);
-        const module: SchemaGeneratingGraphqlModule<unknown> =
-          this.resolve(moduleName);
+        // eslint-disable-next-line max-len
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const module = this.resolve(
+          moduleName
+        ) as SchemaGeneratingGraphqlModule<unknown>;
         this.graphqlServer.registerSchema(module.generateSchema());
       }
     }
