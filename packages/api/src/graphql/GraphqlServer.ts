@@ -12,6 +12,7 @@ import type { GraphqlModule } from "./GraphqlModule";
 interface GraphqlServerOptions {
   host: string;
   port: number;
+  graphiql: boolean;
 }
 
 function assertArrayIsNotEmpty<T>(
@@ -31,7 +32,7 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
 
   private dependencyContainer?: DependencyContainer;
 
-  public setContext(container: DependencyContainer) {
+  public setContainer(container: DependencyContainer) {
     this.dependencyContainer = container;
   }
 
@@ -78,6 +79,14 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
       },
     });
 
+    // eslint-disable-next-line no-warning-comments
+    // TODO Injection token of Graphql Container not respected atm, only class is used
+
+    // Instantiate all modules at startup
+    modules.forEach((module) => {
+      dependencyContainer?.resolve(module);
+    });
+
     const schema = [resolverSchema, ...this.schemas].reduce(
       (schema1, schema2) =>
         stitchSchemas({
@@ -89,7 +98,7 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
 
     const yoga = createYoga<Koa.ParameterizedContext>({
       schema,
-      graphiql: true,
+      graphiql: this.config.graphiql,
     });
 
     // Bind GraphQL Yoga to `/graphql` endpoint

@@ -4,7 +4,7 @@ import {
   ModulesRecord,
   TypedClass,
   ModuleContainerDefinition,
-  log,
+  log, ChildContainerProvider
 } from "@proto-kit/common";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";

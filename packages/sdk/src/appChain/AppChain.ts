@@ -19,7 +19,8 @@ import {
   Sequencer,
   SequencerModulesRecord,
   UnsignedTransaction,
-  MockStorageDependencyFactory
+  MockStorageDependencyFactory,
+  QueryTransportModule,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -29,13 +30,12 @@ import {
   RuntimeMethodExecutionContext,
   ProtocolModule,
 } from "@proto-kit/protocol";
-import { container } from "tsyringe";
+import { container, DependencyContainer } from "tsyringe";
 import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 
 import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
@@ -190,9 +190,8 @@ export class AppChain<
     protocol: Query<ProtocolModule<unknown>, ProtocolModules>;
     network: NetworkStateQuery;
   } {
-    const queryTransportModule = this.resolveOrFail(
-      "QueryTransportModule",
-      StateServiceQueryModule
+    const queryTransportModule = this.container.resolve<QueryTransportModule>(
+      "QueryTransportModule"
     );
 
     const network = new NetworkStateQuery(
@@ -283,7 +282,7 @@ export class AppChain<
     const runtimeModule = this.runtime.resolve(moduleName as any);
 
     // find types of args for the runtime method thats being called
-    const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
+    const parameterTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
       "design:paramtypes",
       runtimeModule,
       methodName
@@ -293,8 +292,8 @@ export class AppChain<
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((arg, index) =>
-      paramTypes[index].toFields(arg)
+    const argsFields = args.flatMap((argument, index) =>
+      parameterTypes[index].toFields(argument)
     );
 
     const unsignedTransaction = new UnsignedTransaction({
@@ -323,8 +322,8 @@ export class AppChain<
   /**
    * Starts the appchain and cross-registers runtime to sequencer
    */
-  public async start() {
-    this.create(() => container);
+  public async start(dependencyContainer: DependencyContainer = container) {
+    this.create(() => dependencyContainer);
 
     this.registerDependencyFactories([
       AreProofsEnabledFactory,

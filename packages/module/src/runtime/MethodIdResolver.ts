@@ -33,13 +33,13 @@ export class MethodIdResolver {
   }
 
   public getMethodNameFromId(methodId: bigint): [string, string] | undefined {
-    const { moduleName, methodName } = this.dictionary[methodId.toString()];
+    const methodPath = this.dictionary[methodId.toString()];
 
-    // eslint-disable-next-line no-warning-comments
-    // TODO Replace by throwing exception?
-    if (moduleName === undefined || methodName === undefined) {
+    if (methodPath === undefined) {
       return undefined;
     }
+
+    const { moduleName, methodName } = methodPath;
 
     this.runtime.assertIsValidModuleName(this.modules, moduleName);
 

@@ -24,6 +24,7 @@
     "graphql-scalars": "^1.22.4",
     "humanize-duration": "^3.30.0",
     "lodash": "^4.17.21",
+    "koa": "^2.14.2",
     "reflect-metadata": "^0.1.13",
     "type-graphql": "2.0.0-beta.1"
   },
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@jest/globals": "^29.5.0",
     "@types/lodash": "^4.14.194",
+    "@types/koa": "^2.13.10",
     "@types/ws": "^8.5.4"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
