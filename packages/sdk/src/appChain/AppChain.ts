@@ -1,8 +1,12 @@
+/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
+  ProofTypes,
+  ToFieldableStatic,
+  ToJSONableStatic,
   TypedClass,
 } from "@proto-kit/common";
 import {
@@ -285,7 +289,10 @@ export class AppChain<
 
     // find types of args for the runtime method thats being called
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const parameterTypes: ProvableExtended<unknown>[] = Reflect.getMetadata(
+    const parameterTypes:
+      | ProofTypes[]
+      | ToFieldableStatic[]
+      | ToJSONableStatic[] = Reflect.getMetadata(
       "design:paramtypes",
       runtimeModule,
       methodName
@@ -297,27 +304,32 @@ export class AppChain<
      */
     const argsFields = args.flatMap((argument, index) => {
       if (argument instanceof Proof) {
-        const publicOutputType = (parameterTypes[index] as any)
-          ?.publicOutputType;
-        const publicInputType = (parameterTypes[index] as any)?.publicInputType;
+        const argumentType = parameterTypes[index] as ProofTypes;
+
+        const publicOutputType = argumentType?.publicOutputType;
+
+        const publicInputType = argumentType?.publicInputType;
 
         const inputFields =
           publicInputType?.toFields(argument.publicInput) ?? [];
+
         const outputFields =
           publicOutputType?.toFields(argument.publicOutput) ?? [];
 
         return [...inputFields, ...outputFields];
-      } else {
-        return parameterTypes[index].toFields(argument as any);
       }
+
+      const argumentType = parameterTypes[index] as ToFieldableStatic;
+      return argumentType.toFields(argument);
     });
 
     const argsJSON = args.map((argument, index) => {
       if (argument instanceof Proof) {
         return JSON.stringify(argument.toJSON());
-      } else {
-        return JSON.stringify(parameterTypes[index].toJSON(argument));
       }
+
+      const argumentType = parameterTypes[index] as ToJSONableStatic;
+      return JSON.stringify(argumentType.toJSON(argument));
     });
 
     const unsignedTransaction = new UnsignedTransaction({

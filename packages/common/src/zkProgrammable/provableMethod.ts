@@ -1,12 +1,15 @@
-import { FlexibleProvable } from "o1js";
+import { FlexibleProvable, Proof, ProvableExtended } from "o1js";
 import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
 import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
 import { ToFieldable } from "../utils";
 
+export type O1JSPrimitive = ProvableExtended<unknown> & ToFieldable;
+export type ArgumentTypes = O1JSPrimitive[] | Proof<unknown, unknown>[];
+
 // eslint-disable-next-line etc/prefer-interface
-export type DecoratedMethod = (...args: unknown[]) => unknown;
+export type DecoratedMethod = (...args: ArgumentTypes) => unknown;
 
 export const mockProof = "mock-proof";
 
@@ -14,7 +17,7 @@ export function toProver(
   methodName: string,
   simulatedMethod: DecoratedMethod,
   isFirstParameterPublicInput: boolean,
-  ...args: unknown[]
+  ...args: ArgumentTypes
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return async function prover(this: ZkProgrammable<any, any>) {
@@ -72,7 +75,7 @@ export function provableMethod(
 
     descriptor.value = function value(
       this: ZkProgrammable<unknown, unknown>,
-      ...args: ToFieldable[]
+      ...args: ArgumentTypes
     ) {
       const prover = toProver(
         methodName,
