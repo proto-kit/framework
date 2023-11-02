@@ -80,7 +80,6 @@ export type ModulesConfig<Modules extends ModulesRecord> = {
   > extends Configurable<infer Config>
     ? Config
     : never;
-  // ? MakeEmptyObjectsOptional<Config>
 };
 
 /**

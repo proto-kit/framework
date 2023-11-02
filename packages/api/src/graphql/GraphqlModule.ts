@@ -1,7 +1,4 @@
-import {
-  ConfigurableModule,
-  TypedClass,
-} from "@proto-kit/common";
+import { ConfigurableModule, TypedClass } from "@proto-kit/common";
 import { GraphQLSchema } from "graphql/type";
 import { injectable, Lifecycle, scoped } from "tsyringe";
 import { Resolver } from "type-graphql";
@@ -31,7 +28,7 @@ export abstract class SchemaGeneratingGraphqlModule<
 export function graphqlModule() {
   return (
     /**
-     * Check if the target class extends RuntimeModule, while
+     * Check if the target class extends GraphqlModule, while
      * also providing static config presets
      */
     target: TypedClass<GraphqlModule<unknown>>

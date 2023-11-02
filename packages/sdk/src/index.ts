@@ -7,4 +7,3 @@ export * from "./transaction/AppChainTransaction";
 export * from "./transaction/InMemorySigner";
 export * from "./transaction/InMemoryTransactionSender";
 export * from "./transaction/AuroSigner";
-export * from "./graphql";

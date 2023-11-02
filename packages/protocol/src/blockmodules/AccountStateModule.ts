@@ -10,7 +10,7 @@ export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
-export class AccountStateModule extends ProvableTransactionHook<{}> {
+export class AccountStateModule extends ProvableTransactionHook<Record<string, never>> {
   @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState
