@@ -6,10 +6,12 @@ import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 
 import { Database } from "./Database";
 import { BlockStorage } from "./repositories/BlockStorage";
+import { CachedStateService } from "../state/state/CachedStateService";
 
 export interface StorageDependencyFactory {
   asyncStateService: () => AsyncStateService;
   asyncMerkleStore: () => AsyncMerkleTreeStore;
+  unprovenStateService: () => CachedStateService;
   blockStorage: () => BlockStorage;
 }
 

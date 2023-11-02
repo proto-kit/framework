@@ -6,6 +6,7 @@ import { ComputedBlock } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 
 import { BlockTrigger } from "./BlockTrigger";
+import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 
 @injectable()
 export class ManualBlockTrigger
@@ -14,14 +15,20 @@ export class ManualBlockTrigger
 {
   public constructor(
     @inject("BlockProducerModule")
-    private readonly blockProducerModule: BlockProducerModule
+    private readonly blockProducerModule: BlockProducerModule,
+    @inject("UnprovenProducerModule")
+    private readonly unprovenProducerModule: UnprovenProducerModule
   ) {
     super();
   }
 
   public async produceBlock(): Promise<ComputedBlock | undefined> {
-    return await this.blockProducerModule.createBlock();
+    const unprovenBlock =
+      await this.unprovenProducerModule.tryProduceUnprovenBlock();
+    return await this.blockProducerModule.createBlock([unprovenBlock!]);
   }
+
+  // TODO add unproven & proven distinction
 
   public async start(): Promise<void> {
     noop();

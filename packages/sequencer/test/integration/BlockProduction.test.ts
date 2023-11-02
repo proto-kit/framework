@@ -31,6 +31,9 @@ import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerMo
 
 import { Balance } from "./mocks/Balance";
 import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
+import {
+  UnprovenProducerModule
+} from "../../src/protocol/production/unproven/UnprovenProducerModule";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
@@ -39,6 +42,7 @@ describe("block production", () => {
     LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
     BaseLayer: typeof NoopBaseLayer;
     BlockProducerModule: typeof BlockProducerModule;
+    UnprovenProducerModule: typeof UnprovenProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
     TaskQueue: typeof LocalTaskQueue;
   }>;
@@ -73,6 +77,7 @@ describe("block production", () => {
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
+        UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
       },
@@ -81,6 +86,7 @@ describe("block production", () => {
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
+        UnprovenProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
@@ -103,7 +109,10 @@ describe("block production", () => {
       Sequencer: {
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {},
+        BlockProducerModule: {
+          simulateProvers: true
+        },
+        UnprovenProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
@@ -262,7 +271,7 @@ describe("block production", () => {
 
   const numberTxs = 3;
 
-  it.only("should produce block with multiple transaction", async () => {
+  it("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(5 + 2 * numberTxs);
 

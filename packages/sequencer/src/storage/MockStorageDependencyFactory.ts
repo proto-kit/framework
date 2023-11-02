@@ -95,4 +95,9 @@ export class MockStorageDependencyFactory
   public stateTransitionWitnessProviderReference(): StateTransitionWitnessProviderReference {
     return new StateTransitionWitnessProviderReference();
   }
+
+  @dependency()
+  public unprovenStateService(): CachedStateService {
+    return new CachedStateService(this.asyncService);
+  }
 }
