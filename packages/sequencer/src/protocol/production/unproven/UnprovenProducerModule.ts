@@ -1,26 +1,44 @@
+import { inject } from "tsyringe";
+import { NetworkState } from "@proto-kit/protocol";
+import { UInt64 } from "o1js";
+import {
+  EventEmitter,
+  EventEmittingComponent,
+  EventsRecord,
+  log,
+  noop,
+  requireTrue,
+} from "@proto-kit/common";
+
+import { Mempool } from "../../../mempool/Mempool";
+import { BlockStorage } from "../../../storage/repositories/BlockStorage";
+import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
   sequencerModule,
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
-import { inject } from "tsyringe";
-import { CachedStateService } from "../../../state/state/CachedStateService";
+
 import {
   TransactionExecutionService,
   UnprovenBlock,
 } from "./TransactionExecutionService";
-import { BlockStorage } from "../../../storage/repositories/BlockStorage";
-import { Mempool } from "../../../mempool/Mempool";
-import { NetworkState } from "@proto-kit/protocol";
-import { UInt64 } from "o1js";
-import { log, noop, requireTrue } from "@proto-kit/common";
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
 };
 
+interface UnprovenProducerEvents extends EventsRecord {
+  unprovenBlockProduced: [UnprovenBlock];
+}
+
 @sequencerModule()
-export class UnprovenProducerModule extends SequencerModule<unknown> {
+export class UnprovenProducerModule
+  extends SequencerModule<unknown>
+  implements EventEmittingComponent<UnprovenProducerEvents>
+{
   private productionInProgress = false;
+
+  public events = new EventEmitter<UnprovenProducerEvents>();
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
@@ -43,7 +61,9 @@ export class UnprovenProducerModule extends SequencerModule<unknown> {
   public async tryProduceUnprovenBlock(): Promise<UnprovenBlock | undefined> {
     if (!this.productionInProgress) {
       try {
-        return await this.produceUnprovenBlock();
+        const block = await this.produceUnprovenBlock();
+        this.events.emit("unprovenBlockProduced", [block]);
+        return block;
       } catch (error: unknown) {
         if (error instanceof Error) {
           this.productionInProgress = false;

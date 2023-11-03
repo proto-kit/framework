@@ -167,7 +167,12 @@ export class TransactionExecutionService {
 
     return protocolResult;
   }
-public async createUnprovenBlock(
+
+  /**
+   * Main entry point for creating a unproven block with everything
+   * attached that is needed for tracing
+   */
+  public async createUnprovenBlock(
     stateService: CachedStateService,
     transactions: PendingTransaction[],
     networkState: NetworkState
@@ -175,10 +180,19 @@ public async createUnprovenBlock(
     const executionResults: TransactionExecutionResult[] = [];
 
     for (const tx of transactions) {
-      executionResults.push(
+      try {
         // eslint-disable-next-line no-await-in-loop
-        await this.createExecutionTrace(stateService, tx, networkState)
-      );
+        const executionTrace = await this.createExecutionTrace(
+          stateService,
+          tx,
+          networkState
+        );
+        executionResults.push(executionTrace);
+      } catch (error) {
+        if (error instanceof Error) {
+          log.error("Error in inclusion of tx, skipping", error);
+        }
+      }
     }
 
     return {
@@ -186,8 +200,6 @@ public async createUnprovenBlock(
       networkState,
     };
   }
-
-  
 
   private collectStateDiff(
     stateService: CachedStateService,

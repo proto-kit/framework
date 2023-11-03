@@ -16,9 +16,15 @@ import {
 } from "@proto-kit/protocol";
 import { Presets, log } from "@proto-kit/common";
 import {
-  AsyncStateService, BlockProducerModule, LocalTaskQueue, LocalTaskWorkerModule, NoopBaseLayer,
+  AsyncStateService,
+  BlockProducerModule,
+  LocalTaskQueue,
+  LocalTaskWorkerModule,
+  NoopBaseLayer,
+  PendingTransaction,
   PrivateMempool,
-  Sequencer, TimedBlockTrigger,
+  Sequencer,
+  TimedBlockTrigger,
   UnsignedTransaction
 } from "@proto-kit/sequencer";
 import {
@@ -35,6 +41,9 @@ import { StateServiceQueryModule } from "../../src/query/StateServiceQueryModule
 import { InMemorySigner } from "../../src/transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
 import { container } from "tsyringe";
+import {
+  UnprovenProducerModule
+} from "@proto-kit/sequencer/dist/protocol/production/unproven/UnprovenProducerModule";
 
 log.setLevel(log.levels.INFO);
 
@@ -73,8 +82,9 @@ export class Balances extends RuntimeModule<object> {
   }
 
   @runtimeMethod()
-  public setBalance(address: PublicKey, balance: UInt64) {
-    this.balances.set(address, balance);
+  public addBalance(address: PublicKey, balance: UInt64) {
+    const previous = this.balances.get(address)
+    this.balances.set(address, previous.orElse(UInt64.zero).add(balance));
   }
 }
 
@@ -103,6 +113,7 @@ export async function startServer() {
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
+        UnprovenProducerModule,
         BlockTrigger: TimedBlockTrigger,
         TaskQueue: LocalTaskQueue,
 
@@ -161,9 +172,11 @@ export async function startServer() {
       LocalTaskWorkerModule: {},
       BaseLayer: {},
       TaskQueue: {},
+      UnprovenProducerModule: {},
 
       BlockTrigger: {
-        blocktime: 5000
+        blockInterval: 5000,
+        settlementInterval: 60000,
       },
     },
 
@@ -176,13 +189,21 @@ export async function startServer() {
   });
 
   await appChain.start(container.createChildContainer());
-
   const pk = PublicKey.fromBase58(
     "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   );
   console.log(pk.toJSON());
 
   const balances = appChain.runtime.resolve("Balances");
+
+  // const priv = PrivateKey.random()
+  //
+  // const tx = appChain.transaction(priv.toPublicKey(), () => {
+  //   balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
+  // })
+  // appChain.resolve("Signer").config.signer = priv
+  // await tx.sign();
+  // console.log((tx.transaction as PendingTransaction).toJSON())
 
   console.log("Path:", balances.balances.getPath(pk).toString());
 

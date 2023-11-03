@@ -4,9 +4,11 @@ import { noop } from "@proto-kit/common";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { ComputedBlock } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
+import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
+import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import { UnprovenBlock } from "../unproven/TransactionExecutionService";
 
 import { BlockTrigger } from "./BlockTrigger";
-import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 
 @injectable()
 export class ManualBlockTrigger
@@ -17,18 +19,42 @@ export class ManualBlockTrigger
     @inject("BlockProducerModule")
     private readonly blockProducerModule: BlockProducerModule,
     @inject("UnprovenProducerModule")
-    private readonly unprovenProducerModule: UnprovenProducerModule
+    private readonly unprovenProducerModule: UnprovenProducerModule,
+    @inject("UnprovenBlockQueue")
+    private readonly unprovenBlockQueue: UnprovenBlockQueue
   ) {
     super();
   }
 
+  /**
+   * Produces both an unproven block and immediately produce a
+   * settlement block proof
+   */
   public async produceBlock(): Promise<ComputedBlock | undefined> {
-    const unprovenBlock =
-      await this.unprovenProducerModule.tryProduceUnprovenBlock();
-    return await this.blockProducerModule.createBlock([unprovenBlock!]);
+    await this.produceUnproven();
+    return await this.produceProven();
   }
 
-  // TODO add unproven & proven distinction
+  public async produceProven(): Promise<ComputedBlock | undefined> {
+    const blocks = await this.unprovenBlockQueue.popNewBlocks(true);
+    if (blocks.length > 0) {
+      return await this.blockProducerModule.createBlock(blocks);
+    }
+    return undefined;
+  }
+
+  public async produceUnproven(
+    enqueueInSettlementQueue = true
+  ): Promise<UnprovenBlock | undefined> {
+    const unprovenBlock =
+      await this.unprovenProducerModule.tryProduceUnprovenBlock();
+
+    if (unprovenBlock && enqueueInSettlementQueue) {
+      await this.unprovenBlockQueue.pushBlock(unprovenBlock);
+    }
+
+    return unprovenBlock;
+  }
 
   public async start(): Promise<void> {
     noop();
