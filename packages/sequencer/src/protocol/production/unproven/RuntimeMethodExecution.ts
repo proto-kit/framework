@@ -104,18 +104,24 @@ export class RuntimeMethodExecution {
           parentStateService
         );
 
-        const firstDiffIndex = _.zip(stateTransitions, stateTransitionsFullRun).findIndex(
+        const firstDiffIndex = _.zip(
+          stateTransitions,
+          stateTransitionsFullRun
+        ).findIndex(
           ([st1, st2]) => st1?.path.toString() !== st2?.path.toString()
         );
 
-        if(firstDiffIndex === -1){
+        if (firstDiffIndex === -1) {
           // Abort bcs no dynamic keys are used => use then 1:1
-          return stateTransitionsFullRun
+          return stateTransitionsFullRun;
         } else {
           // here push all known keys up to the first dynamic key
-          // touchedkeys is empty so we don't care about that
-          const additionalKeys = stateTransitionsFullRun.slice(0, firstDiffIndex).map(st => st.path.toString()).filter(distinctByString)
-          touchedKeys.push(...additionalKeys)
+          // touchedkeys is empty, so we don't care about that
+          const additionalKeys = stateTransitionsFullRun
+            .slice(0, firstDiffIndex)
+            .map((st) => st.path.toString())
+            .filter(distinctByString);
+          touchedKeys.push(...additionalKeys);
           collectedSTs = firstDiffIndex - 1;
           lastRuntimeResult = stateTransitions;
           continue;
