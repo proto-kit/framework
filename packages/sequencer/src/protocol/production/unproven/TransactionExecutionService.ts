@@ -1,6 +1,4 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
   BlockProverExecutionData,
   NetworkState,
@@ -14,8 +12,6 @@ import {
   StateTransition,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
-import { StateRecord } from "../BlockProducerModule";
-import { distinctByString } from "../../../helpers/utils";
 import { AreProofsEnabled, log } from "@proto-kit/common";
 import {
   MethodParameterDecoder,
@@ -23,7 +19,14 @@ import {
   RuntimeModule,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
+
+import { PendingTransaction } from "../../../mempool/PendingTransaction";
+import { CachedStateService } from "../../../state/state/CachedStateService";
+import { StateRecord } from "../BlockProducerModule";
+import { distinctByString } from "../../../helpers/utils";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
+
+import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -49,6 +52,8 @@ export interface UnprovenBlock {
 export class TransactionExecutionService {
   private readonly transactionHooks: ProvableTransactionHook<unknown>[];
 
+  private readonly runtimeMethodExecution: RuntimeMethodExecution;
+
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Protocol")
@@ -57,26 +62,12 @@ export class TransactionExecutionService {
     this.transactionHooks = protocol.dependencyContainer.resolveAll(
       "ProvableTransactionHook"
     );
-  }
 
-  public async createUnprovenBlock(
-    stateService: CachedStateService,
-    transactions: PendingTransaction[],
-    networkState: NetworkState
-  ): Promise<UnprovenBlock> {
-    const executionResults: TransactionExecutionResult[] = [];
-
-    for (const tx of transactions) {
-      executionResults.push(
-        // eslint-disable-next-line no-await-in-loop
-        await this.createExecutionTrace(stateService, tx, networkState)
-      );
-    }
-
-    return {
-      transactions: executionResults,
-      networkState,
-    };
+    this.runtimeMethodExecution = new RuntimeMethodExecution(
+      this.runtime,
+      this.protocol,
+      this.runtime.dependencyContainer.resolve(RuntimeMethodExecutionContext)
+    );
   }
 
   private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
@@ -116,21 +107,6 @@ export class TransactionExecutionService {
     };
   }
 
-  private async applyTransitions(
-    stateService: CachedStateService,
-    stateTransitions: StateTransition<unknown>[]
-  ): Promise<void> {
-    await Promise.all(
-      // Use updated stateTransitions since only they will have the
-      // right values
-      stateTransitions
-        .filter((st) => st.to.isSome.toBoolean())
-        .map(async (st) => {
-          await stateService.setAsync(st.path, st.to.toFields());
-        })
-    );
-  }
-
   private getAppChainForModule(
     module: RuntimeModule<unknown>
   ): AreProofsEnabled {
@@ -167,76 +143,6 @@ export class TransactionExecutionService {
     return runtimeResult;
   }
 
-  /**
-   * Simulates a certain Context-aware method through multiple rounds.
-   *
-   * For a method that emits n Statetransitions, we execute it n times,
-   * where for every i-th iteration, we collect the i-th ST that has
-   * been emitted and preload the corresponding key.
-   */
-  private async simulateMultiRound(
-    method: () => void,
-    contextInputs: RuntimeMethodExecutionData,
-    parentStateService: AsyncStateService
-  ): Promise<RuntimeProvableMethodExecutionResult> {
-    // Set up context
-    const executionContext = this.runtime.dependencyContainer.resolve(
-      RuntimeMethodExecutionContext
-    );
-
-    let numberMethodSTs: number | undefined;
-    let collectedSTs = 0;
-
-    const touchedKeys: string[] = [];
-
-    let lastRuntimeResult: RuntimeProvableMethodExecutionResult;
-
-    do {
-      executionContext.setup(contextInputs);
-      executionContext.setSimulated(true);
-
-      const stateService = new CachedStateService(parentStateService);
-      this.runtime.stateServiceProvider.setCurrentStateService(stateService);
-      this.protocol.stateServiceProvider.setCurrentStateService(stateService);
-
-      // Preload previously determined keys
-      // eslint-disable-next-line no-await-in-loop
-      await stateService.preloadKeys(
-        touchedKeys.map((fieldString) => Field(fieldString))
-      );
-
-      // Execute method
-      method();
-
-      lastRuntimeResult = executionContext.current().result;
-
-      // Clear executionContext
-      executionContext.afterMethod();
-      executionContext.clear();
-
-      const { stateTransitions } = lastRuntimeResult;
-
-      const latestST = stateTransitions.at(collectedSTs);
-
-      if (
-        latestST !== undefined &&
-        !touchedKeys.includes(latestST.path.toString())
-      ) {
-        touchedKeys.push(latestST.path.toString());
-      }
-
-      if (numberMethodSTs === undefined) {
-        numberMethodSTs = stateTransitions.length;
-      }
-      collectedSTs += 1;
-
-      this.runtime.stateServiceProvider.popCurrentStateService();
-      this.protocol.stateServiceProvider.popCurrentStateService();
-    } while (collectedSTs < numberMethodSTs);
-
-    return lastRuntimeResult;
-  }
-
   private executeProtocolHooks(
     runtimeContextInputs: RuntimeMethodExecutionData,
     blockContextInputs: BlockProverExecutionData,
@@ -261,6 +167,27 @@ export class TransactionExecutionService {
 
     return protocolResult;
   }
+public async createUnprovenBlock(
+    stateService: CachedStateService,
+    transactions: PendingTransaction[],
+    networkState: NetworkState
+  ): Promise<UnprovenBlock> {
+    const executionResults: TransactionExecutionResult[] = [];
+
+    for (const tx of transactions) {
+      executionResults.push(
+        // eslint-disable-next-line no-await-in-loop
+        await this.createExecutionTrace(stateService, tx, networkState)
+      );
+    }
+
+    return {
+      transactions: executionResults,
+      networkState,
+    };
+  }
+
+  
 
   private collectStateDiff(
     stateService: CachedStateService,
@@ -274,6 +201,25 @@ export class TransactionExecutionService {
     }, {});
   }
 
+  private async applyTransitions(
+    stateService: CachedStateService,
+    stateTransitions: StateTransition<unknown>[]
+  ): Promise<void> {
+    await Promise.all(
+      // Use updated stateTransitions since only they will have the
+      // right values
+      stateTransitions
+        .filter((st) => st.to.isSome.toBoolean())
+        .map(async (st) => {
+          await stateService.setAsync(st.path, st.to.toFields());
+        })
+    );
+  }
+
+  // eslint-disable-next-line no-warning-comments
+  // TODO Here exists a edge-case, where the protocol hooks set
+  // some state that is then consumed by the runtime and used as a key.
+  // In this case, runtime would generate a wrong key here.
   private async extractAccessedKeys(
     method: (...args: unknown[]) => unknown,
     args: unknown[],
@@ -284,26 +230,27 @@ export class TransactionExecutionService {
     runtimeKeys: Field[];
     protocolKeys: Field[];
   }> {
+    // eslint-disable-next-line no-warning-comments
     // TODO unsafe to re-use params here?
-    const { stateTransitions } = await this.simulateMultiRound(
-      () => {
-        method(...args);
-      },
-      runtimeContextInputs,
-      parentStateService
-    );
+    const stateTransitions =
+      await this.runtimeMethodExecution.simulateMultiRound(
+        () => {
+          method(...args);
+        },
+        runtimeContextInputs,
+        parentStateService
+      );
 
-    const protocolSimulationResult = await this.simulateMultiRound(
-      () => {
-        this.transactionHooks.forEach((transactionHook) => {
-          transactionHook.onTransaction(blockContextInputs);
-        });
-      },
-      runtimeContextInputs,
-      parentStateService
-    );
-
-    const protocolTransitions = protocolSimulationResult.stateTransitions;
+    const protocolTransitions =
+      await this.runtimeMethodExecution.simulateMultiRound(
+        () => {
+          this.transactionHooks.forEach((transactionHook) => {
+            transactionHook.onTransaction(blockContextInputs);
+          });
+        },
+        runtimeContextInputs,
+        parentStateService
+      );
 
     log.debug(`Got ${stateTransitions.length} StateTransitions`);
     log.debug(`Got ${protocolTransitions.length} ProtocolStateTransitions`);
@@ -370,7 +317,7 @@ export class TransactionExecutionService {
     // Apply protocol STs
     await this.applyTransitions(stateService, protocolResult.stateTransitions);
 
-    let resultingStateDiff = this.collectStateDiff(
+    let stateDiff = this.collectStateDiff(
       stateService,
       protocolResult.stateTransitions
     );
@@ -390,7 +337,7 @@ export class TransactionExecutionService {
     if (runtimeResult.status.toBoolean()) {
       await this.applyTransitions(stateService, runtimeResult.stateTransitions);
 
-      resultingStateDiff = this.collectStateDiff(
+      stateDiff = this.collectStateDiff(
         stateService,
         protocolResult.stateTransitions.concat(runtimeResult.stateTransitions)
       );
@@ -409,7 +356,7 @@ export class TransactionExecutionService {
       status: runtimeResult.status,
       statusMessage: runtimeResult.statusMessage,
 
-      stateDiff: resultingStateDiff,
+      stateDiff,
     };
   }
 }
