@@ -93,7 +93,7 @@ export class Balances extends RuntimeModule<object> {
 
 export async function startServer() {
 
-  log.setLevel("DEBUG")
+  // log.setLevel("DEBUG")
 
   const appChain = AppChain.from({
     runtime: Runtime.from({
@@ -205,15 +205,6 @@ export async function startServer() {
     "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
   );
 
-  const priv2 = PrivateKey.random();
-
-  const tx2 = appChain.transaction(priv2.toPublicKey(), () => {
-    balances.addBalance(priv2.toPublicKey(), UInt64.from(1000))
-  })
-  appChain.resolve("Signer").config.signer = priv2
-  await tx2.sign();
-  await tx2.send();
-
   const tx = appChain.transaction(priv.toPublicKey(), () => {
     balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
   })
@@ -221,6 +212,12 @@ export async function startServer() {
   await tx.sign();
   await tx.send();
   // console.log((tx.transaction as PendingTransaction).toJSON())
+
+  const tx2 = appChain.transaction(priv.toPublicKey(), () => {
+    balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
+  }, {nonce: 0})
+  await tx2.sign();
+  await tx2.send();
 
   console.log("Path:", balances.balances.getPath(pk).toString());
 

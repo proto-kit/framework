@@ -321,6 +321,14 @@ export class TransactionExecutionService {
       blockContextInputs
     );
 
+    if (!protocolResult.status.toBoolean()) {
+      throw new Error(
+        `Protocol hooks not executable: ${
+          protocolResult.statusMessage ?? "unknown"
+        }`
+      );
+    }
+
     log.debug(
       "PSTs:",
       protocolResult.stateTransitions.map((x) => x.toJSON())
