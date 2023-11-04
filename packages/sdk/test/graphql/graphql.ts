@@ -33,7 +33,7 @@ import {
   GraphqlServer,
   MempoolResolver,
   NodeStatusResolver,
-  QueryGraphqlModule
+  QueryGraphqlModule, UnprovenBlockResolver
 } from "@proto-kit/api";
 
 import { AppChain } from "../../src/appChain/AppChain";
@@ -127,6 +127,7 @@ export async function startServer() {
             MempoolResolver,
             QueryGraphqlModule,
             BlockStorageResolver,
+            UnprovenBlockResolver,
             NodeStatusResolver,
           },
 
@@ -135,6 +136,7 @@ export async function startServer() {
             QueryGraphqlModule: {},
             BlockStorageResolver: {},
             NodeStatusResolver: {},
+            UnprovenBlockResolver: {}
           },
         }),
       },
@@ -169,7 +171,8 @@ export async function startServer() {
         QueryGraphqlModule: {},
         MempoolResolver: {},
         BlockStorageResolver: {},
-        NodeStatusResolver: {}
+        NodeStatusResolver: {},
+        UnprovenBlockResolver: {}
       },
 
       Mempool: {},
@@ -180,8 +183,8 @@ export async function startServer() {
       UnprovenProducerModule: {},
 
       BlockTrigger: {
-        blockInterval: 5000,
-        settlementInterval: 15000,
+        blockInterval: 15000,
+        settlementInterval: 30000,
       },
     },
 

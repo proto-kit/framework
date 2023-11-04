@@ -47,10 +47,15 @@ export class ComputedBlockTransactionModel {
 
 @ObjectType()
 export class ComputedBlockModel {
-  public static fromServiceLayerModel({ txs, proof }: ComputedBlock) {
+  public static fromServiceLayerModel({
+    txs,
+    proof,
+  }: ComputedBlock): ComputedBlockModel {
     return new ComputedBlockModel(
       txs.map((tx) => ComputedBlockTransactionModel.fromServiceLayerModel(tx)),
-      JSON.stringify(proof.toJSON())
+      proof.proof === "mock-proof"
+        ? "mock-proof"
+        : JSON.stringify(proof.toJSON())
     );
   }
 
@@ -76,7 +81,7 @@ export class BlockStorageResolver extends GraphqlModule<object> {
   }
 
   @Query(() => ComputedBlockModel, { nullable: true })
-  public async block(
+  public async settlements(
     @Arg("height", () => Number, { nullable: true })
     height: number | undefined
   ) {

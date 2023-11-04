@@ -135,8 +135,15 @@ export class BlockProducerModule extends SequencerModule<BlockProducerModuleConf
         return await this.produceBlock(unprovenBlocks);
       } catch (error: unknown) {
         if (error instanceof Error) {
+          if (
+            !error.message.includes(
+              "Can't create a block with zero transactions"
+            )
+          ) {
+            log.error(error);
+          }
+
           this.productionInProgress = false;
-          log.error(error);
           throw error;
         } else {
           log.error(error);

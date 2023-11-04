@@ -11,7 +11,7 @@ import { gcd, log } from "@proto-kit/common";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 
 export interface TimedBlockTriggerConfig {
-  settlementInterval: number;
+  settlementInterval?: number;
   blockInterval: number;
   produceEmptyBlocks?: boolean;
 }
@@ -41,20 +41,31 @@ export class TimedBlockTrigger
   public async start(): Promise<void> {
     const { settlementInterval, blockInterval } = this.config;
 
-    const timerInterval = gcd(settlementInterval, blockInterval);
+    const timerInterval =
+      settlementInterval !== undefined
+        ? gcd(settlementInterval, blockInterval)
+        : blockInterval;
 
     let totalTime = 0;
     this.interval = setInterval(async () => {
       totalTime += timerInterval;
 
       try {
+        // Trigger unproven blocks
         if (totalTime % blockInterval === 0) {
           await this.produceUnprovenBlock();
         }
-        if (totalTime % settlementInterval === 0) {
+
+        // Trigger proven (settlement) blocks
+        // Only produce settlements if a time has been set
+        // otherwise treat as unproven-only
+        if (
+          settlementInterval !== undefined &&
+          totalTime % settlementInterval === 0
+        ) {
           await this.produceBlock();
         }
-      } catch(error) {
+      } catch (error) {
         log.error(error);
       }
     }, timerInterval);
