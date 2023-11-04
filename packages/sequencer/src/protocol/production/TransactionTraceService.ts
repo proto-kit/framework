@@ -1,40 +1,23 @@
 /* eslint-disable max-lines,@typescript-eslint/init-declarations */
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { injectable, Lifecycle, scoped } from "tsyringe";
 import {
-  MethodParameterDecoder,
-  Runtime,
-  RuntimeModule,
-  MethodIdResolver,
-} from "@proto-kit/module";
-import {
-  RuntimeMethodExecutionContext,
-  RuntimeProvableMethodExecutionResult,
-  BlockProverExecutionData,
   DefaultProvableHashList,
   NetworkState,
-  Protocol,
   ProtocolConstants,
   ProvableHashList,
   ProvableStateTransition,
   ProvableStateTransitionType,
-  ProvableTransactionHook,
   RollupMerkleTree,
-  RuntimeTransaction,
-  StateService,
   StateTransition,
   StateTransitionType,
-  RuntimeMethodExecutionData,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import chunk from "lodash/chunk";
 
-import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { distinctByString } from "../../helpers/utils";
-import { ComputedBlockTransaction } from "../../storage/model/Block";
 
-import type { StateRecord, TransactionTrace } from "./BlockProducerModule";
+import type { TransactionTrace } from "./BlockProducerModule";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
-import { DummyStateService } from "../../state/state/DummyStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { SyncCachedMerkleTreeStore } from "../../state/merkle/SyncCachedMerkleTreeStore";
@@ -43,11 +26,6 @@ import { TransactionExecutionResult } from "./unproven/TransactionExecutionServi
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionTraceService {
-  public constructor(
-    @inject("Runtime") private readonly runtime: Runtime<never>,
-    @inject("Protocol") private readonly protocol: Protocol<never>
-  ) {}
-
   private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
     // We have to do the distinct with strings because
     // array.indexOf() doesn't work with fields

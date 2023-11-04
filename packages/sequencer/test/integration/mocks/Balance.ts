@@ -49,11 +49,14 @@ export class Balance extends RuntimeModule<object> {
 
   @runtimeMethod()
   public addBalance(address: PublicKey, value: UInt64) {
+    const totalSupply = this.totalSupply.get();
+    this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(value));
+
     const balance = this.balances.get(address);
 
     log.provable.debug("Balance:", balance.isSome, balance.value);
 
-    const newBalance = balance.value.add(value);
+    const newBalance = balance.orElse(UInt64.zero).add(value);
     this.balances.set(address, newBalance);
   }
 
@@ -73,10 +76,10 @@ export class Balance extends RuntimeModule<object> {
   }
 
   @runtimeMethod()
-  public lotOfSTs() {
+  public lotOfSTs(randomArg: Field) {
     range(0, 10).forEach((index) => {
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      const pk = PublicKey.from({ x: Field(index % 5), isOdd: Bool(false) });
+      const pk = PublicKey.from({ x: randomArg.add(Field(index % 5)), isOdd: Bool(false) });
       const value = this.balances.get(pk);
       this.balances.set(pk, value.orElse(UInt64.zero).add(100));
       const supply = this.totalSupply.get().orElse(UInt64.zero);

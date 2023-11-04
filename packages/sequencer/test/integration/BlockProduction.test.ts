@@ -10,8 +10,10 @@ import {
   AccountState,
   AccountStateModule,
   BlockProver,
+  Option,
   Path,
   Protocol,
+  StateTransition,
   StateTransitionProver,
   VanillaProtocol,
 } from "@proto-kit/protocol";
@@ -24,16 +26,14 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule,
-  ManualBlockTrigger,
+  BlockProducerModule, CachedMerkleTreeStore,
+  ManualBlockTrigger, MockAsyncMerkleTreeStore
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
 import { Balance } from "./mocks/Balance";
 import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
-import {
-  UnprovenProducerModule
-} from "../../src/protocol/production/unproven/UnprovenProducerModule";
+import { UnprovenProducerModule } from "../../src/protocol/production/unproven/UnprovenProducerModule";
 import { container } from "tsyringe";
 
 describe("block production", () => {
@@ -53,6 +53,8 @@ describe("block production", () => {
     BlockProver: typeof BlockProver;
     StateTransitionProver: typeof StateTransitionProver;
   }>;
+
+  let appChain: AppChain<any, any, any, any>;
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -111,7 +113,7 @@ describe("block production", () => {
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {
-          simulateProvers: true
+          simulateProvers: true,
         },
         UnprovenProducerModule: {},
         LocalTaskWorkerModule: {},
@@ -130,6 +132,8 @@ describe("block production", () => {
 
     // Start AppChain
     await app.start(container.createChildContainer());
+
+    appChain = app;
 
     ({ runtime, sequencer, protocol } = app);
 
@@ -360,16 +364,18 @@ describe("block production", () => {
     60000
   );
 
-  it.skip("should produce block with a tx with a lot of STs", async () => {
+  it("should produce block with a tx with a lot of STs", async () => {
     expect.assertions(9);
 
     const privateKey = PrivateKey.random();
+
+    const field = Field(100);
 
     mempool.add(
       createTransaction({
         method: ["Balance", "lotOfSTs"],
         privateKey,
-        args: [],
+        args: [field],
         nonce: 0,
       })
     );
@@ -397,7 +403,7 @@ describe("block production", () => {
       UInt64.from(100 * 10)
     );
 
-    const pk2 = PublicKey.from({ x: Field(2), isOdd: Bool(false) });
+    const pk2 = PublicKey.from({ x: field.add(Field(2)), isOdd: Bool(false) });
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
       balanceModule.balances.path!,

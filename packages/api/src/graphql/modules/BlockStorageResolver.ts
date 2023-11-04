@@ -1,12 +1,6 @@
 /* eslint-disable new-cap */
 import { inject, injectable } from "tsyringe";
-import {
-  Arg,
-  Field,
-  ObjectType,
-  Query,
-  Resolver,
-} from "type-graphql";
+import { Arg, Field, ObjectType, Query, Resolver } from "type-graphql";
 import { IsBoolean } from "class-validator";
 import {
   BlockStorage,
@@ -74,7 +68,6 @@ export class ComputedBlockModel {
 
 @graphqlModule()
 export class BlockStorageResolver extends GraphqlModule<object> {
-  // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
     private readonly blockStorage: BlockStorage & HistoricalBlockStorage
@@ -88,7 +81,7 @@ export class BlockStorageResolver extends GraphqlModule<object> {
     height: number | undefined
   ) {
     const blockHeight =
-      height ?? (await this.blockStorage.getCurrentBlockHeight());
+      height ?? (await this.blockStorage.getCurrentBlockHeight()) - 1;
 
     const block = await this.blockStorage.getBlockAt(blockHeight);
 

@@ -14,7 +14,7 @@ import {
   StateMap,
   VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Presets, log } from "@proto-kit/common";
+import { Presets, log, sleep } from "@proto-kit/common";
 import {
   AsyncStateService,
   BlockProducerModule,
@@ -74,7 +74,7 @@ export class Balances extends RuntimeModule<object> {
     UInt64
   );
 
-  @state() public totalSupply = State.from(UInt64);
+  @state() public totalSupply = State.from<UInt64>(UInt64);
 
   @runtimeMethod()
   public getBalance(address: PublicKey): Option<UInt64> {
@@ -83,12 +83,17 @@ export class Balances extends RuntimeModule<object> {
 
   @runtimeMethod()
   public addBalance(address: PublicKey, balance: UInt64) {
+    const totalSupply = this.totalSupply.get()
+    this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(balance));
+
     const previous = this.balances.get(address)
     this.balances.set(address, previous.orElse(UInt64.zero).add(balance));
   }
 }
 
 export async function startServer() {
+
+  log.setLevel("DEBUG")
 
   const appChain = AppChain.from({
     runtime: Runtime.from({
@@ -176,7 +181,7 @@ export async function startServer() {
 
       BlockTrigger: {
         blockInterval: 5000,
-        settlementInterval: 60000,
+        settlementInterval: 15000,
       },
     },
 
@@ -196,23 +201,39 @@ export async function startServer() {
 
   const balances = appChain.runtime.resolve("Balances");
 
-  // const priv = PrivateKey.random()
-  //
-  // const tx = appChain.transaction(priv.toPublicKey(), () => {
-  //   balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
-  // })
-  // appChain.resolve("Signer").config.signer = priv
-  // await tx.sign();
+  const priv = PrivateKey.fromBase58(
+    "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
+  );
+
+  const priv2 = PrivateKey.random();
+
+  const tx2 = appChain.transaction(priv2.toPublicKey(), () => {
+    balances.addBalance(priv2.toPublicKey(), UInt64.from(1000))
+  })
+  appChain.resolve("Signer").config.signer = priv2
+  await tx2.sign();
+  await tx2.send();
+
+  const tx = appChain.transaction(priv.toPublicKey(), () => {
+    balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
+  })
+  appChain.resolve("Signer").config.signer = priv
+  await tx.sign();
+  await tx.send();
   // console.log((tx.transaction as PendingTransaction).toJSON())
 
   console.log("Path:", balances.balances.getPath(pk).toString());
 
-  const asyncState =
-    appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
-      "AsyncStateService"
-    );
-  await asyncState.setAsync(balances.balances.getPath(pk), [Field(100)]);
-  await asyncState.setAsync(balances.totalSupply.path!, [Field(10_000)]);
+  // const asyncState =
+  //   appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
+  //     "AsyncStateService"
+  //   );
+  // await asyncState.setAsync(balances.balances.getPath(pk), [Field(100)]);
+  // await asyncState.setAsync(balances.totalSupply.path!, [Field(10_000)]);
+
+  // appChain.query.runtime.Balances.totalSupply
+
+  // await sleep(30000);
 
   return appChain
 }

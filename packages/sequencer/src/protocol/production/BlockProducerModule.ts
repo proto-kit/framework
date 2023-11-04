@@ -109,7 +109,7 @@ export class BlockProducerModule extends SequencerModule<BlockProducerModuleConf
     const blockMetadata = await this.tryProduceBlock(unprovenBlocks);
 
     if (blockMetadata !== undefined) {
-      log.debug("Batch produced");
+      log.debug(`Batch produced (${blockMetadata.block.txs.length} txs)`);
       // Apply state changes to current StateService
       await this.applyStateChanges(unprovenBlocks, blockMetadata);
 
@@ -136,11 +136,16 @@ export class BlockProducerModule extends SequencerModule<BlockProducerModuleConf
       } catch (error: unknown) {
         if (error instanceof Error) {
           this.productionInProgress = false;
+          log.error(error);
           throw error;
         } else {
           log.error(error);
         }
       }
+    } else {
+      log.debug(
+        "Skipping new block production because production is still in progress"
+      );
     }
     return undefined;
   }

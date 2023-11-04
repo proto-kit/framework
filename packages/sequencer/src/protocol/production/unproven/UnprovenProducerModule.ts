@@ -62,7 +62,10 @@ export class UnprovenProducerModule
     if (!this.productionInProgress) {
       try {
         const block = await this.produceUnprovenBlock();
+
+        log.info(`Produced unproven block (${block.transactions.length} txs)`);
         this.events.emit("unprovenBlockProduced", [block]);
+
         return block;
       } catch (error: unknown) {
         if (error instanceof Error) {
