@@ -21,6 +21,7 @@ import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
 import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
+import { AccountStateModule } from "../blockmodules/AccountStateModule";
 
 export type GenericProtocolModuleRecord = ModulesRecord<
   TypedClass<ProtocolModule<unknown>>
@@ -35,6 +36,7 @@ interface StateTransitionProverType
 export interface ProtocolCustomModulesRecord {
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
+  AccountState: TypedClass<AccountStateModule>;
 }
 
 export interface ProtocolModulesRecord
@@ -153,6 +155,7 @@ export const VanillaProtocol = {
       {
         BlockProver: {},
         StateTransitionProver: {},
+        AccountState: {},
       }
     );
   },
@@ -163,6 +166,7 @@ export const VanillaProtocol = {
       AdditonalModules & {
         StateTransitionProver: typeof StateTransitionProver;
         BlockProver: typeof BlockProver;
+        AccountState: typeof AccountStateModule;
       }
     >
   ): TypedClass<
@@ -170,6 +174,7 @@ export const VanillaProtocol = {
       AdditonalModules & {
         StateTransitionProver: typeof StateTransitionProver;
         BlockProver: typeof BlockProver;
+        AccountState: typeof AccountStateModule;
       }
     >
   > {
@@ -177,6 +182,7 @@ export const VanillaProtocol = {
       modules: {
         StateTransitionProver,
         BlockProver,
+        AccountState: AccountStateModule,
         ...additionalModules,
       },
 

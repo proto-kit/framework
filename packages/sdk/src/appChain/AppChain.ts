@@ -34,6 +34,7 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
+  AccountStateModule,
 } from "@proto-kit/protocol";
 import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
@@ -249,7 +250,7 @@ export class AppChain<
     } as Parameters<typeof this.configure>[0]);
   }
 
-  public transaction(
+  public async transaction(
     sender: PublicKey,
     callback: () => void,
     options?: { nonce?: number }
@@ -332,6 +333,11 @@ export class AppChain<
       return JSON.stringify(argumentType.toJSON(argument));
     });
 
+    const nonce = (
+      await (this.query.protocol.AccountState as any).accountState.get(sender)
+    ).nonce as UInt64 | undefined;
+
+    console.log("nonce", nonce);
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
         this.runtime.dependencyContainer
@@ -341,7 +347,7 @@ export class AppChain<
 
       argsFields,
       argsJSON,
-      nonce: UInt64.from(options?.nonce ?? 0),
+      nonce: nonce ?? UInt64.from(0),
       sender,
     });
 

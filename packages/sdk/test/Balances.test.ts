@@ -66,7 +66,9 @@ describe("balances", () => {
       tree.getRoot().toBigInt()
     );
 
-    const aliceBalance1 = await appChain.query.runtime.Balances.balances.get(alice);
+    const aliceBalance1 = await appChain.query.runtime.Balances.balances.get(
+      alice
+    );
 
     expect(block1?.txs[0].status).toBe(true);
     expect(aliceBalance1?.toBigInt()).toBe(1000n);
@@ -87,7 +89,9 @@ describe("balances", () => {
 
     expect(block2?.txs[0].status).toBe(true);
 
-    const aliceBalance2 = await appChain.query.runtime.Balances.balances.get(alice);
+    const aliceBalance2 = await appChain.query.runtime.Balances.balances.get(
+      alice
+    );
     const bobBalance1 = await appChain.query.runtime.Balances.balances.get(bob);
 
     expect(aliceBalance2?.toBigInt()).toBe(900n);

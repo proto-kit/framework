@@ -1,4 +1,4 @@
-import { ModulesConfig } from "@proto-kit/common";
+import { log, ModulesConfig } from "@proto-kit/common";
 import {
   InMemoryStateService,
   Runtime,
@@ -20,6 +20,9 @@ import {
   LocalTaskQueue,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
+import { GraphqlClient } from "../graphql/GraphqlClient";
+import { GraphqlQueryTransportModule } from "../graphql/GraphqlQueryTransportModule";
+import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { AuroSigner } from "../transaction/AuroSigner";
 import { InMemorySigner } from "../transaction/InMemorySigner";
@@ -32,7 +35,7 @@ type TestAppChainProtocolModules = {
   AccountState: typeof AccountStateModule;
 };
 
-export class TestingAppChain<
+export class ClientAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
@@ -51,24 +54,15 @@ export class TestingAppChain<
     });
 
     const sequencer = Sequencer.from({
-      modules: {
-        Mempool: PrivateMempool,
-        LocalTaskWorkerModule,
-        BaseLayer: NoopBaseLayer,
-        BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-      },
+      modules: {},
     });
 
-    const appChain = new TestingAppChain({
+    const appChain = new ClientAppChain({
       runtime,
       sequencer,
 
       protocol: VanillaProtocol.from(
-        {
-          // AccountStateModule
-        },
+        {},
         {
           AccountState: {},
           BlockProver: {},
@@ -77,9 +71,10 @@ export class TestingAppChain<
       ),
 
       modules: {
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
-        QueryTransportModule: StateServiceQueryModule,
+        GraphqlClient,
+        Signer: AuroSigner,
+        TransactionSender: GraphqlTransactionSender,
+        QueryTransportModule: GraphqlQueryTransportModule,
       },
     });
 
@@ -99,36 +94,25 @@ export class TestingAppChain<
       },
 
       Protocol: {
-        AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
+        AccountState: {},
       },
 
       Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
+
+      GraphqlClient: {
+        url: "http://127.0.0.1:8080/graphql",
+      },
     });
 
     return appChain;
   }
 
-  public setSigner(signer: PrivateKey) {
-    const inMemorySigner = this.resolveOrFail("Signer", InMemorySigner);
-    inMemorySigner.config.signer = signer;
-  }
-
-  public useAuroSigner() {
-    this.registerModules({
-      Signer: AuroSigner,
-    } as any);
-  }
-
-  public async produceBlock() {
-    const blockTrigger = this.sequencer.resolveOrFail(
-      "BlockTrigger",
-      ManualBlockTrigger
-    );
-
-    return await blockTrigger.produceBlock();
+  public async start() {
+    log.setLevel("ERROR");
+    await super.start();
   }
 }
