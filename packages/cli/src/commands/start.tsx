@@ -46,40 +46,11 @@ import {
   TestingAppChain,
 } from "@proto-kit/sdk";
 
-import React, { useState, useEffect, useReducer, useMemo } from "react";
-// eslint-disable-next-line @typescript-eslint/no-shadow
+import React, { useEffect, useReducer, useMemo } from "react";
 // @ts-ignore
-import { render, Text, Newline, Box, Static } from "ink";
+import { render, Text, Box } from "ink";
 // @ts-ignore
-import { Spinner, StatusMessage } from "@inkjs/ui";
-// @ts-ignore
-import Ascii from "ink-ascii";
-
-@runtimeModule()
-export class Balances extends RuntimeModule<object> {
-  /**
-   * We use `satisfies` here in order to be able to access
-   * presets by key in a type safe way.
-   */
-  public static presets = {} satisfies Presets<object>;
-
-  @state() public balances = StateMap.from<PublicKey, UInt64>(
-    PublicKey,
-    UInt64
-  );
-
-  @state() public totalSupply = State.from(UInt64);
-
-  @runtimeMethod()
-  public getBalance(address: PublicKey): Option<UInt64> {
-    return this.balances.get(address);
-  }
-
-  @runtimeMethod()
-  public setBalance(address: PublicKey, balance: UInt64) {
-    this.balances.set(address, balance);
-  }
-}
+import { Spinner } from "@inkjs/ui";
 
 export async function startServer({
   runtime,
@@ -221,13 +192,15 @@ export function reducer(state: CliState, action: Action) {
         ...state,
         isProducingBlock: false,
         blocks: state.blocks.concat([action.block]),
+        countdown,
       };
     }
 
     case "TICK": {
       return {
         ...state,
-        countdown: state.countdown !== 0 ? state.countdown - 1000 : countdown,
+        countdown:
+          state.countdown !== 0 ? state.countdown - 1000 : state.countdown,
       };
     }
 
@@ -303,7 +276,7 @@ export function Server({ configFile }: { configFile: string }) {
     if (!state.isStarted) return;
 
     const intervalId = setInterval(async () => {
-      if (state.isProducingBlock) return;
+      if (state.isProducingBlock || !state.isStarted) return;
       dispatch({ type: "TICK" });
     }, 1000);
 
@@ -316,7 +289,7 @@ export function Server({ configFile }: { configFile: string }) {
   );
 
   useEffect(() => {
-    if (state.countdown !== 0) return;
+    if (state.countdown !== 0 || state.isProducingBlock) return;
     (async () => {
       const trigger = appChain.sequencer.resolveOrFail(
         "BlockTrigger",
@@ -344,7 +317,7 @@ export function Server({ configFile }: { configFile: string }) {
         },
       });
     })();
-  }, [state.countdown, blockHeight]);
+  }, [state.countdown, state.isProducingBlock, blockHeight]);
 
   return (
     <>

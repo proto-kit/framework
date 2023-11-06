@@ -335,7 +335,7 @@ export class AppChain<
 
     const nonce = (
       await (this.query.protocol.AccountState as any).accountState.get(sender)
-    ).nonce as UInt64 | undefined;
+    )?.nonce as UInt64 | undefined;
 
     console.log("nonce", nonce);
     const unsignedTransaction = new UnsignedTransaction({
