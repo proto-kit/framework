@@ -1,12 +1,6 @@
 /* eslint-disable new-cap */
 import { inject, injectable } from "tsyringe";
-import {
-  Arg,
-  Field,
-  ObjectType,
-  Query,
-  Resolver,
-} from "type-graphql";
+import { Arg, Field, ObjectType, Query, Resolver } from "type-graphql";
 import { IsBoolean } from "class-validator";
 import {
   BlockStorage,
@@ -56,7 +50,9 @@ export class ComputedBlockModel {
   public static fromServiceLayerModel({ txs, proof }: ComputedBlock) {
     return new ComputedBlockModel(
       txs.map((tx) => ComputedBlockTransactionModel.fromServiceLayerModel(tx)),
-      JSON.stringify(proof.toJSON())
+      proof.proof === "mock-proof"
+        ? "mock-proof"
+        : JSON.stringify(proof.toJSON())
     );
   }
 
@@ -88,7 +84,7 @@ export class BlockStorageResolver extends GraphqlModule<object> {
     height: number | undefined
   ) {
     const blockHeight =
-      height ?? (await this.blockStorage.getCurrentBlockHeight());
+      height ?? (await this.blockStorage.getCurrentBlockHeight()) - 1;
 
     const block = await this.blockStorage.getBlockAt(blockHeight);
 
