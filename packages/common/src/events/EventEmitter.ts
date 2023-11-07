@@ -17,9 +17,9 @@ export class EventEmitter<Events extends EventsRecord> {
     }
   }
 
-  public on(
-    event: keyof Events,
-    listener: (...args: Events[typeof event]) => void
+  public on<Key extends keyof Events>(
+    event: Key,
+    listener: (...args: Events[Key]) => void
   ) {
     (this.listeners[event] ??= []).push(listener);
   }
