@@ -407,7 +407,6 @@ export class BlockProver extends ProtocolModule<object> implements BlockProvable
       stateTransitionProver.zkProgrammable,
       runtime.zkProgrammable,
       transactionHooks
-      // protocol.dependencyContainer.resolveAll("P rovableTransactionHook")
     );
   }
 
