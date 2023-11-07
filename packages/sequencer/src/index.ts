@@ -28,6 +28,7 @@ export * from "./protocol/production/tasks/StateTransitionTaskParameters";
 export * from "./protocol/production/trigger/BlockTrigger";
 export * from "./protocol/production/trigger/ManualBlockTrigger";
 export * from "./protocol/production/trigger/TimedBlockTrigger";
+export * from "./protocol/production/trigger/AutomaticBlockTrigger";
 export * from "./protocol/production/BlockProducerModule";
 export * from "./protocol/production/BlockTaskFlowService";
 export * from "./protocol/production/TransactionTraceService";
