@@ -28,7 +28,21 @@ export class AutomaticBlockTrigger
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     this.mempool.events.on("transactionAdded", async () => {
       log.info("Transaction received, creating block...");
-      await this.unprovenProducerModule.tryProduceUnprovenBlock();
+      const block = await this.unprovenProducerModule.tryProduceUnprovenBlock();
+
+      // In case the block producer was busy, we need to re-trigger production
+      // as soon as the previous production was finished
+      if (block === undefined) {
+        this.unprovenProducerModule.events.on(
+          "unprovenBlockProduced",
+          async () => {
+            // eslint-disable-next-line max-len
+            // Make sure this comes before await, because otherwise we have a race condition
+            this.unprovenProducerModule.events.offSelf();
+            await this.unprovenProducerModule.tryProduceUnprovenBlock();
+          }
+        );
+      }
     });
   }
 }
