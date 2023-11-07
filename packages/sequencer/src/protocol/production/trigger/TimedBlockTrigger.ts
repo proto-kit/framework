@@ -6,14 +6,19 @@ import { BlockProducerModule } from "../BlockProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
 
 import { BlockTrigger } from "./BlockTrigger";
+import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
+import { gcd, log } from "@proto-kit/common";
+import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 
-export interface BlockTimeConfig {
-  blocktime: number;
+export interface TimedBlockTriggerConfig {
+  settlementInterval?: number;
+  blockInterval: number;
+  produceEmptyBlocks?: boolean;
 }
 
 @injectable()
 export class TimedBlockTrigger
-  extends SequencerModule<BlockTimeConfig>
+  extends SequencerModule<TimedBlockTriggerConfig>
   implements BlockTrigger, Closeable
 {
   // There is no real type for interval ids somehow, so any it is
@@ -23,6 +28,10 @@ export class TimedBlockTrigger
   public constructor(
     @inject("BlockProducerModule")
     private readonly blockProducerModule: BlockProducerModule,
+    @inject("UnprovenProducerModule")
+    private readonly unprovenProducerModule: UnprovenProducerModule,
+    @inject("UnprovenBlockQueue")
+    private readonly unprovenBlockQueue: UnprovenBlockQueue,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
@@ -30,11 +39,57 @@ export class TimedBlockTrigger
   }
 
   public async start(): Promise<void> {
-    this.interval = setInterval(() => {
-      if (this.mempool.getTxs().txs.length > 0) {
-        void this.blockProducerModule.createBlock();
+    const { settlementInterval, blockInterval } = this.config;
+
+    const timerInterval =
+      settlementInterval !== undefined
+        ? gcd(settlementInterval, blockInterval)
+        : blockInterval;
+
+    let totalTime = 0;
+    this.interval = setInterval(async () => {
+      totalTime += timerInterval;
+
+      try {
+        // Trigger unproven blocks
+        if (totalTime % blockInterval === 0) {
+          await this.produceUnprovenBlock();
+        }
+
+        // Trigger proven (settlement) blocks
+        // Only produce settlements if a time has been set
+        // otherwise treat as unproven-only
+        if (
+          settlementInterval !== undefined &&
+          totalTime % settlementInterval === 0
+        ) {
+          await this.produceBlock();
+        }
+      } catch (error) {
+        log.error(error);
       }
-    }, this.config.blocktime);
+    }, timerInterval);
+  }
+
+  private async produceUnprovenBlock() {
+    // Produce a block if either produceEmptyBlocks is true or we have more
+    // than 1 tx in mempool
+    if (
+      this.mempool.getTxs().txs.length > 0 ||
+      (this.config.produceEmptyBlocks ?? true)
+    ) {
+      const block = await this.unprovenProducerModule.tryProduceUnprovenBlock();
+      if (block !== undefined) {
+        await this.unprovenBlockQueue.pushBlock(block);
+      }
+    }
+  }
+
+  private async produceBlock() {
+    const unprovenBlocks = await this.unprovenBlockQueue.popNewBlocks(true);
+    if (unprovenBlocks.length > 0) {
+      void this.blockProducerModule.createBlock(unprovenBlocks);
+    }
   }
 
   public async close(): Promise<void> {

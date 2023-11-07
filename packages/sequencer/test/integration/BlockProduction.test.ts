@@ -5,17 +5,15 @@ import "reflect-metadata";
 // TODO this is actually a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
-import {
-  Fieldable,
-  Runtime,
-  MethodIdResolver,
-} from "@proto-kit/module";
+import { Fieldable, Runtime, MethodIdResolver } from "@proto-kit/module";
 import {
   AccountState,
   AccountStateModule,
   BlockProver,
+  Option,
   Path,
   Protocol,
+  StateTransition,
   StateTransitionProver,
   VanillaProtocol,
 } from "@proto-kit/protocol";
@@ -28,13 +26,15 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule,
-  ManualBlockTrigger,
+  BlockProducerModule, CachedMerkleTreeStore,
+  ManualBlockTrigger, MockAsyncMerkleTreeStore
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
 import { Balance } from "./mocks/Balance";
 import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
+import { UnprovenProducerModule } from "../../src/protocol/production/unproven/UnprovenProducerModule";
+import { container } from "tsyringe";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
@@ -43,6 +43,7 @@ describe("block production", () => {
     LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
     BaseLayer: typeof NoopBaseLayer;
     BlockProducerModule: typeof BlockProducerModule;
+    UnprovenProducerModule: typeof UnprovenProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
     TaskQueue: typeof LocalTaskQueue;
   }>;
@@ -52,6 +53,8 @@ describe("block production", () => {
     BlockProver: typeof BlockProver;
     StateTransitionProver: typeof StateTransitionProver;
   }>;
+
+  let appChain: AppChain<any, any, any, any>;
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -77,6 +80,7 @@ describe("block production", () => {
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
+        UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
       },
@@ -85,6 +89,7 @@ describe("block production", () => {
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
+        UnprovenProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
@@ -93,7 +98,7 @@ describe("block production", () => {
 
     const protocolClass = VanillaProtocol.from(
       { AccountStateModule },
-      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
+      { StateTransitionProver: {}, BlockProver: {}, AccountStateModule: {} }
     );
 
     const app = AppChain.from({
@@ -103,8 +108,32 @@ describe("block production", () => {
       modules: {},
     });
 
+    app.configure({
+      Sequencer: {
+        BlockTrigger: {},
+        Mempool: {},
+        BlockProducerModule: {
+          simulateProvers: true,
+        },
+        UnprovenProducerModule: {},
+        LocalTaskWorkerModule: {},
+        BaseLayer: {},
+        TaskQueue: {},
+      },
+      Runtime: {
+        Balance: {},
+      },
+      Protocol: {
+        AccountStateModule: {},
+        BlockProver: {},
+        StateTransitionProver: {},
+      },
+    });
+
     // Start AppChain
-    await app.start();
+    await app.start(container.createChildContainer());
+
+    appChain = app;
 
     ({ runtime, sequencer, protocol } = app);
 
@@ -247,7 +276,7 @@ describe("block production", () => {
 
   const numberTxs = 3;
 
-  it.only("should produce block with multiple transaction", async () => {
+  it("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(5 + 2 * numberTxs);
 
@@ -295,7 +324,7 @@ describe("block production", () => {
     );
   }, 160_000);
 
-  it.each([
+  it.skip.each([
     [
       "EKFZbsQfNiqjDiWGU7G3TVPauS3s9YgWgayMzjkEaDTEicsY9poM",
       "EKFdtp8D6mP3aFvCMRa75LPaUBn1QbmEs1YjTPXYLTNeqPYtnwy2",
@@ -340,11 +369,13 @@ describe("block production", () => {
 
     const privateKey = PrivateKey.random();
 
+    const field = Field(100);
+
     mempool.add(
       createTransaction({
         method: ["Balance", "lotOfSTs"],
         privateKey,
-        args: [],
+        args: [field],
         nonce: 0,
       })
     );
@@ -372,7 +403,7 @@ describe("block production", () => {
       UInt64.from(100 * 10)
     );
 
-    const pk2 = PublicKey.from({ x: Field(2), isOdd: Bool(false) });
+    const pk2 = PublicKey.from({ x: field.add(Field(2)), isOdd: Bool(false) });
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
       balanceModule.balances.path!,

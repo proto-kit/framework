@@ -47,7 +47,10 @@ export class ComputedBlockTransactionModel {
 
 @ObjectType()
 export class ComputedBlockModel {
-  public static fromServiceLayerModel({ txs, proof }: ComputedBlock) {
+  public static fromServiceLayerModel({
+    txs,
+    proof,
+  }: ComputedBlock): ComputedBlockModel {
     return new ComputedBlockModel(
       txs.map((tx) => ComputedBlockTransactionModel.fromServiceLayerModel(tx)),
       proof.proof === "mock-proof"
@@ -70,7 +73,6 @@ export class ComputedBlockModel {
 
 @graphqlModule()
 export class BlockStorageResolver extends GraphqlModule<object> {
-  // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
     private readonly blockStorage: BlockStorage & HistoricalBlockStorage
@@ -79,7 +81,7 @@ export class BlockStorageResolver extends GraphqlModule<object> {
   }
 
   @Query(() => ComputedBlockModel, { nullable: true })
-  public async block(
+  public async settlements(
     @Arg("height", () => Number, { nullable: true })
     height: number | undefined
   ) {

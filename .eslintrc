@@ -130,7 +130,8 @@
     "@typescript-eslint/no-unnecessary-condition": [
       "off"
     ],
-    "nodejs/declare": "off"
+    "nodejs/declare": "off",
+    "unicorn/prefer-event-target": "off"
   },
 
   "overrides": [
