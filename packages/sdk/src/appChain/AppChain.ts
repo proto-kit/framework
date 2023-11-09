@@ -333,11 +333,11 @@ export class AppChain<
       return JSON.stringify(argumentType.toJSON(argument));
     });
 
-    const nonce = (
-      await (this.query.protocol.AccountState as any).accountState.get(sender)
-    )?.nonce as UInt64 | undefined;
+    const nonce =
+      ((
+        await (this.query.protocol.AccountState as any).accountState.get(sender)
+      )?.nonce as UInt64 | undefined) ?? UInt64.from(0);
 
-    console.log("nonce", nonce);
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
         this.runtime.dependencyContainer
@@ -347,7 +347,7 @@ export class AppChain<
 
       argsFields,
       argsJSON,
-      nonce: nonce ?? UInt64.from(0),
+      nonce,
       sender,
     });
 
