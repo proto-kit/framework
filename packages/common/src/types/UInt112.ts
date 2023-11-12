@@ -1,4 +1,4 @@
-import { Field, UInt32, UInt64 } from "snarkyjs";
+import { Field, UInt32, UInt64 } from "o1js";
 
 import { UIntX } from "./UInt";
 

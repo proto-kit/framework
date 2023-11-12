@@ -9,6 +9,14 @@ describe("uint112", () => {
     expect(uint.value.toBigInt()).toBe(1n);
   });
 
+  it("should mul correctly", () => {
+    expect.assertions(1);
+
+    const uint = UInt112.from(101);
+
+    expect(uint.mul(987654).toBigInt()).toBe(101n * 987654n)
+  });
+
   it("should fail for init with higher value", () => {
     expect.assertions(1);
 

@@ -1,5 +1,5 @@
 import { UIntX } from "./UInt";
-import { Field, UInt32, UInt64 } from "snarkyjs";
+import { Field, UInt32, UInt64 } from "o1js";
 import { UInt112 } from "./UInt112";
 
 export class UInt224 extends UIntX<UInt224> {

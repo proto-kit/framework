@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-magic-numbers,prefer-const,id-length,no-underscore-dangle,putout/putout */
-import { Bool, Field, Provable, Struct, UInt32, UInt64 } from "snarkyjs";
+import { Bool, Field, Provable, Struct, UInt32, UInt64 } from "o1js";
 
 export abstract class UIntX<This extends UIntX<any>> extends Struct({
   value: Field,
