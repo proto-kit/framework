@@ -333,10 +333,13 @@ export class AppChain<
       return JSON.stringify(argumentType.toJSON(argument));
     });
 
-    const nonce =
-      ((
-        await (this.query.protocol.AccountState as any).accountState.get(sender)
-      )?.nonce as UInt64 | undefined) ?? UInt64.from(0);
+    const nonce = options?.nonce
+      ? UInt64.from(options.nonce)
+      : ((
+          await (this.query.protocol.AccountState as any).accountState.get(
+            sender
+          )
+        )?.nonce as UInt64 | undefined) ?? UInt64.from(0);
 
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(

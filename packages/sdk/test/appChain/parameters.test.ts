@@ -135,7 +135,7 @@ describe("testing app chain", () => {
     });
 
     const signature = Signature.create(signer, TestStruct.toFields(struct));
-    const transaction = appChain.transaction(sender, () => {
+    const transaction = await appChain.transaction(sender, () => {
       runtime.test(
         Field(0),
         UInt64.from(0),
