@@ -17,7 +17,10 @@ import {
 import { Mempool } from "../../mempool/Mempool";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { BaseLayer } from "../baselayer/BaseLayer";
-import { BlockStorage } from "../../storage/repositories/BlockStorage";
+import {
+  BlockStorage,
+  HistoricalBlockStorage,
+} from "../../storage/repositories/BlockStorage";
 import {
   ComputedBlock,
   ComputedBlockTransaction,
@@ -31,6 +34,7 @@ import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { CachedMerkleTreeStore } from "./execution/CachedMerkleTreeStore";
+import { last } from "lodash";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
@@ -75,17 +79,24 @@ export class BlockProducerModule extends SequencerModule<object> {
     @inject("AsyncMerkleStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
     @inject("BaseLayer") private readonly baseLayer: BaseLayer,
-    @inject("BlockStorage") private readonly blockStorage: BlockStorage,
+    @inject("BlockStorage")
+    private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
     private readonly traceService: TransactionTraceService,
     private readonly blockFlowService: BlockTaskFlowService
   ) {
     super();
   }
 
-  private createNetworkState(lastHeight: number): NetworkState {
+  private createNetworkState(
+    nextHeight: number,
+    rootHash: Field
+  ): NetworkState {
     return new NetworkState({
       block: {
-        height: UInt64.from(lastHeight + 1),
+        height: UInt64.from(nextHeight),
+      },
+      previous: {
+        rootHash,
       },
     });
   }
@@ -145,10 +156,15 @@ export class BlockProducerModule extends SequencerModule<object> {
 
     // Get next blockheight and therefore taskId
     const lastHeight = await this.blockStorage.getCurrentBlockHeight();
+    const lastBlock = await this.blockStorage.getBlockAt(lastHeight - 1);
 
     const { txs } = this.mempool.getTxs();
 
-    const networkState = this.createNetworkState(lastHeight);
+    const networkState = this.createNetworkState(
+      lastHeight,
+      lastBlock?.proof.publicOutput.stateRoot ?? Field(0)
+    );
+
     const block = await this.computeBlock(txs, networkState, lastHeight + 1);
 
     requireTrue(this.mempool.removeTxs(txs), errors.txRemovalFailed);

@@ -26,11 +26,11 @@ import {
   toWrappedMethod,
   WrappedMethod,
 } from "../method/runtimeMethod";
-import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 import { RuntimeModule } from "./RuntimeModule";
 import { MethodIdResolver } from "./MethodIdResolver";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
+import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -222,6 +222,8 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   // TODO Remove after changing DFs to type-based approach
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
+
+    this.registerDependencyFactories([MethodIdFactory])
   }
 
   public get appChain(): AreProofsEnabled | undefined {

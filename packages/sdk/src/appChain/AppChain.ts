@@ -15,6 +15,7 @@ import {
   RuntimeModulesRecord,
   MethodIdResolver,
   MethodIdFactory,
+  MethodParameterDecoder,
 } from "@proto-kit/module";
 import {
   BlockStorage,
@@ -26,6 +27,7 @@ import {
   UnsignedTransaction,
   MockStorageDependencyFactory,
   QueryTransportModule,
+  HistoricalBlockStorage,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -201,7 +203,9 @@ export class AppChain<
     );
 
     const network = new NetworkStateQuery(
-      this.sequencer.dependencyContainer.resolve<BlockStorage>("BlockStorage")
+      this.sequencer.dependencyContainer.resolve<
+        BlockStorage & HistoricalBlockStorage
+      >("BlockStorage")
     );
 
     return {
@@ -269,6 +273,9 @@ export class AppChain<
       networkState: {
         block: {
           height: UInt64.from(0),
+        },
+        previous: {
+          rootHash: Field(0),
         },
       } as unknown as NetworkState,
     });
@@ -374,7 +381,6 @@ export class AppChain<
     this.registerDependencyFactories([
       AreProofsEnabledFactory,
       MockStorageDependencyFactory,
-      MethodIdFactory,
     ]);
 
     // These three statements are crucial for dependencies inside any of these

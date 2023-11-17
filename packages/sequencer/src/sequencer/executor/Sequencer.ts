@@ -5,13 +5,8 @@ import {
   TypedClass,
   ModuleContainerDefinition,
   log,
-  ChildContainerProvider,
 } from "@proto-kit/common";
-import {
-  Runtime,
-  RuntimeModulesRecord,
-  MethodIdFactory,
-} from "@proto-kit/module";
+import { MethodIdFactory, Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
@@ -72,6 +67,8 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     //     "StateTransitionWitnessProvider"
     //   );
     // witnessProviderReference.setWitnessProvider(witnessProvider);
+
+    this.registerDependencyFactories([MethodIdFactory]);
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(

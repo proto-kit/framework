@@ -34,7 +34,7 @@ import {
   QueryGetterStateMap,
   QueryTransportModule,
   NetworkStateQuery,
-  BlockStorage,
+  BlockStorage, HistoricalBlockStorage
 } from "@proto-kit/sequencer";
 import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
 import {
@@ -72,7 +72,7 @@ export class QueryGraphqlModule<
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>,
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage
+    private readonly blockStorage: BlockStorage & HistoricalBlockStorage
   ) {
     super();
   }
