@@ -40,8 +40,10 @@ export class MerkleWitnessResolver extends GraphqlModule<object> {
   }
 
   @Query(() => MerkleWitnessDTO)
-  public witness(@Arg("path") path: string) {
+  public async witness(@Arg("path") path: string) {
     const syncStore = new CachedMerkleTreeStore(this.treeStore);
+    await syncStore.preloadKey(BigInt(path));
+
     const tree = new RollupMerkleTree(syncStore);
 
     const witness = tree.getWitness(BigInt(path));
