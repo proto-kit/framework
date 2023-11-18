@@ -31,6 +31,7 @@ import {
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
+  MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
 } from "@proto-kit/api";
@@ -45,12 +46,6 @@ log.setLevel(log.levels.INFO);
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
-  /**
-   * We use `satisfies` here in order to be able to access
-   * presets by key in a type safe way.
-   */
-  public static presets = {} satisfies Presets<object>;
-
   @state() public balances = StateMap.from<PublicKey, UInt64>(
     PublicKey,
     UInt64
@@ -82,8 +77,8 @@ export async function startServer() {
     }),
 
     protocol: VanillaProtocol.from(
-      { AccountStateModule },
-      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
+      { AccountState: AccountStateModule },
+      { AccountState: {}, StateTransitionProver: {}, BlockProver: {} }
     ),
 
     sequencer: Sequencer.from({
@@ -102,6 +97,7 @@ export async function startServer() {
             QueryGraphqlModule,
             BlockStorageResolver,
             NodeStatusResolver,
+            MerkleWitnessResolver,
           },
 
           config: {
@@ -109,6 +105,7 @@ export async function startServer() {
             QueryGraphqlModule: {},
             BlockStorageResolver: {},
             NodeStatusResolver: {},
+            MerkleWitnessResolver: {},
           },
         }),
       },
@@ -129,7 +126,7 @@ export async function startServer() {
     Protocol: {
       BlockProver: {},
       StateTransitionProver: {},
-      AccountStateModule: {},
+      AccountState: {},
     },
 
     Sequencer: {
@@ -144,6 +141,7 @@ export async function startServer() {
         MempoolResolver: {},
         BlockStorageResolver: {},
         NodeStatusResolver: {},
+        MerkleWitnessResolver: {},
       },
 
       Mempool: {},

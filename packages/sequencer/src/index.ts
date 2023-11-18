@@ -22,6 +22,7 @@ export * from "./protocol/baselayer/NoopBaseLayer";
 export * from "./protocol/production/execution/CachedStateService";
 export * from "./protocol/production/execution/DummyStateService";
 export * from "./protocol/production/execution/MerkleStoreWitnessProvider";
+export * from "./protocol/production/execution/CachedMerkleTreeStore";
 export * from "./protocol/production/state/AsyncStateService";
 export * from "./protocol/production/tasks/providers/PreFilledStateService";
 export * from "./protocol/production/tasks/providers/PreFilledWitnessProvider";

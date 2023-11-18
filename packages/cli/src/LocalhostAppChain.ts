@@ -22,9 +22,9 @@ import {
   BlockStorageResolver,
   GraphqlSequencerModule,
   GraphqlServer,
-  MempoolResolver,
+  MempoolResolver, MerkleWitnessResolver,
   NodeStatusResolver,
-  QueryGraphqlModule,
+  QueryGraphqlModule
 } from "@proto-kit/api";
 import {
   AppChain,
@@ -78,6 +78,7 @@ export class LocalhostAppChain<
               QueryGraphqlModule,
               BlockStorageResolver,
               NodeStatusResolver,
+              MerkleWitnessResolver
             },
 
             config: {
@@ -85,6 +86,7 @@ export class LocalhostAppChain<
               QueryGraphqlModule: {},
               BlockStorageResolver: {},
               NodeStatusResolver: {},
+              MerkleWitnessResolver: {}
             },
           }),
         },
@@ -118,6 +120,7 @@ export class LocalhostAppChain<
           MempoolResolver: {},
           BlockStorageResolver: {},
           NodeStatusResolver: {},
+          MerkleWitnessResolver: {}
         },
 
         Mempool: {},
