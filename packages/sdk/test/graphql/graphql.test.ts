@@ -1,50 +1,25 @@
 import "reflect-metadata";
-import { Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { Field, PrivateKey, UInt64 } from "o1js";
 import {
-  MethodIdResolver,
   Runtime,
-  runtimeMethod,
-  RuntimeModule,
-  runtimeModule,
-  state,
 } from "@proto-kit/module";
 import {
   AccountStateModule,
-  Option,
   ReturnType,
-  State,
-  StateMap,
   VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Presets, log, sleep } from "@proto-kit/common";
+import { log, sleep } from "@proto-kit/common";
 import {
-  AsyncStateService,
-  BlockProducerModule,
-  LocalTaskQueue,
-  LocalTaskWorkerModule,
-  NoopBaseLayer,
   PrivateMempool,
   QueryTransportModule,
   Sequencer,
-  TimedBlockTrigger,
-  UnsignedTransaction,
 } from "@proto-kit/sequencer";
-import {
-  BlockStorageResolver,
-  GraphqlSequencerModule,
-  GraphqlServer,
-  MempoolResolver,
-  NodeStatusResolver,
-  QueryGraphqlModule,
-} from "@proto-kit/api";
 
 import { startServer, Balances } from "./graphql";
 import { beforeAll } from "@jest/globals";
 import {
   AppChain,
   InMemorySigner,
-  InMemoryTransactionSender,
-  StateServiceQueryModule,
 } from "../../src";
 import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSender";
 import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
@@ -158,4 +133,14 @@ describe("graphql client test", function () {
     expect(balance).toBeDefined();
     expect(balance!.toBigInt()).toBe(1000n);
   }, 60000);
+
+  it.only("should retrieve merkle witness", async () => {
+    expect.assertions(2);
+
+    const witness = await appChain!.query.runtime.Balances.balances.merkleWitness(pk.toPublicKey())
+
+    expect(witness).toBeDefined();
+    // Check if this works, i.e. if it correctly parsed
+    expect(witness!.calculateRoot(Field(0)).toBigInt()).toBeGreaterThanOrEqual(0n)
+  })
 });

@@ -12,9 +12,12 @@ import {
   Protocol,
   ProtocolModule,
   ProtocolModulesRecord,
+  RollupMerkleWitness,
   State,
   StateMap,
 } from "@proto-kit/protocol";
+import { prop } from "o1js";
+
 import { QueryTransportModule } from "./QueryTransportModule";
 
 export type PickByType<Type, Value> = {
@@ -25,10 +28,14 @@ export type PickByType<Type, Value> = {
 
 export interface QueryGetterState<Value> {
   get: () => Promise<Value | undefined>;
+  path: () => string;
+  merkleWitness: () => Promise<RollupMerkleWitness | undefined>;
 }
 
 export interface QueryGetterStateMap<Key, Value> {
   get: (key: Key) => Promise<Value | undefined>;
+  path: (key: Key) => string;
+  merkleWitness: (key: Key) => Promise<RollupMerkleWitness | undefined>;
 }
 
 export type PickStateProperties<Type> = PickByType<Type, State<any>>;
@@ -85,6 +92,13 @@ export const QueryBuilderFactory = {
               const fields = await queryTransportModule.get(path);
               return fields ? property.valueType.fromFields(fields) : undefined;
             },
+
+            path: (key: any) => property.getPath(key),
+
+            merkleWitness: async (key: any) => {
+              const path = property.getPath(key);
+              return await queryTransportModule.merkleWitness(path);
+            },
           },
         };
       }
@@ -101,6 +115,15 @@ export const QueryBuilderFactory = {
               const fields = await queryTransportModule.get(path);
 
               return fields ? property.valueType.fromFields(fields) : undefined;
+            },
+
+            path: () => property.path,
+
+            merkleWitness: async () => {
+              // eslint-disable-next-line max-len
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const path = property.path!;
+              return await queryTransportModule.merkleWitness(path);
             },
           },
         };
@@ -139,7 +162,9 @@ export const QueryBuilderFactory = {
   ): Query<ProtocolModule<unknown>, ProtocolModules> {
     const { modules } = protocol.definition;
 
-    return Object.keys(modules).reduce<Query<ProtocolModule<unknown>, ProtocolModules>>(
+    return Object.keys(modules).reduce<
+      Query<ProtocolModule<unknown>, ProtocolModules>
+    >(
       (query, protocolModuleName: keyof ProtocolModules) => {
         protocol.isValidModuleName(modules, protocolModuleName);
 

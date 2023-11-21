@@ -36,7 +36,6 @@ interface StateTransitionProverType
 export interface ProtocolCustomModulesRecord {
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
-  AccountState: TypedClass<AccountStateModule>;
 }
 
 export interface ProtocolModulesRecord
@@ -151,11 +150,13 @@ export class Protocol<Modules extends ProtocolModulesRecord>
 export const VanillaProtocol = {
   create() {
     return VanillaProtocol.from(
-      {},
+      {
+        AccountStateModule,
+      },
       {
         BlockProver: {},
         StateTransitionProver: {},
-        AccountState: {},
+        AccountStateModule: {},
       }
     );
   },
@@ -163,10 +164,10 @@ export const VanillaProtocol = {
   from<AdditonalModules extends GenericProtocolModuleRecord>(
     additionalModules: AdditonalModules,
     config: ModulesConfig<
-      AdditonalModules & {
+      AdditonalModules &
+      {
         StateTransitionProver: typeof StateTransitionProver;
         BlockProver: typeof BlockProver;
-        AccountState: typeof AccountStateModule;
       }
     >
   ): TypedClass<
@@ -174,7 +175,6 @@ export const VanillaProtocol = {
       AdditonalModules & {
         StateTransitionProver: typeof StateTransitionProver;
         BlockProver: typeof BlockProver;
-        AccountState: typeof AccountStateModule;
       }
     >
   > {
@@ -182,7 +182,6 @@ export const VanillaProtocol = {
       modules: {
         StateTransitionProver,
         BlockProver,
-        AccountState: AccountStateModule,
         ...additionalModules,
       },
 
