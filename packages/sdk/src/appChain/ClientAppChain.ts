@@ -1,39 +1,26 @@
 import { log, ModulesConfig } from "@proto-kit/common";
-import {
-  InMemoryStateService,
-  Runtime,
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
+import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
   AccountStateModule,
   BlockProver,
   StateTransitionProver,
   VanillaProtocol,
 } from "@proto-kit/protocol";
-import {
-  PrivateMempool,
-  Sequencer,
-  LocalTaskWorkerModule,
-  NoopBaseLayer,
-  BlockProducerModule,
-  ManualBlockTrigger,
-  LocalTaskQueue,
-} from "@proto-kit/sequencer";
-import { PrivateKey } from "o1js";
+import { Sequencer } from "@proto-kit/sequencer";
+
 import { GraphqlClient } from "../graphql/GraphqlClient";
 import { GraphqlQueryTransportModule } from "../graphql/GraphqlQueryTransportModule";
 import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
-import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { AuroSigner } from "../transaction/AuroSigner";
-import { InMemorySigner } from "../transaction/InMemorySigner";
-import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
+
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
+// eslint-disable-next-line etc/prefer-interface
 type TestAppChainProtocolModules = {
   StateTransitionProver: typeof StateTransitionProver;
   BlockProver: typeof BlockProver;
   AccountState: typeof AccountStateModule;
-};
+}
 
 export class ClientAppChain<
   RuntimeModules extends RuntimeModulesRecord
@@ -62,7 +49,7 @@ export class ClientAppChain<
       sequencer,
 
       protocol: VanillaProtocol.from(
-        {},
+        { AccountState: AccountStateModule },
         {
           AccountState: {},
           BlockProver: {},

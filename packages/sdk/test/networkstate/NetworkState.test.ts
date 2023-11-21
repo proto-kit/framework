@@ -20,7 +20,7 @@ import {
   VanillaProtocol,
 } from "@proto-kit/protocol";
 import { log } from "@proto-kit/common";
-import { Field, Poseidon, PrivateKey, UInt64 } from "o1js";
+import { Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "o1js";
 import { Balance } from "./Balance";
 import {
   AppChain,

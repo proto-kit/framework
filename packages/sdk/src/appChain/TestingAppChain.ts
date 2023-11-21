@@ -67,7 +67,7 @@ export class TestingAppChain<
 
       protocol: VanillaProtocol.from(
         {
-          // AccountStateModule
+          AccountState: AccountStateModule
         },
         {
           AccountState: {},
