@@ -4,7 +4,7 @@ import { UInt112 } from "./UInt112";
 
 export class UInt224 extends UIntX<UInt224> {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  public static NUM_BITS = 112;
+  public static NUM_BITS = 224;
 
   /**
    * Static method to create a {@link UIntX} with value `0`.
@@ -26,13 +26,13 @@ export class UInt224 extends UIntX<UInt224> {
 
   public static check(x: { value: Field }) {
     const actual = x.value.rangeCheckHelper(UInt224.NUM_BITS);
-    actual.assertEquals(x.value);
+    UIntX.assertionFunction(actual.equals(x.value));
   }
 
   public static from(
-    x: Field | UInt32 | UInt64 | UInt224 | bigint | number | string
+    x: Field | UInt32 | UInt64 | UIntX<any> | bigint | number | string
   ): UInt224 {
-    if (x instanceof UInt64 || x instanceof UInt32 || x instanceof UInt224) {
+    if (x instanceof UInt64 || x instanceof UInt32 || x instanceof UIntX) {
       x = x.value;
     }
     return new UInt224(UInt224.checkConstant(Field(x), UInt224.NUM_BITS));

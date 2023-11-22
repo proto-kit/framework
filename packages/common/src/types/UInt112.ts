@@ -26,7 +26,7 @@ export class UInt112 extends UIntX<UInt112> {
 
   public static check(x: { value: Field }) {
     const actual = x.value.rangeCheckHelper(UInt112.NUM_BITS);
-    actual.assertEquals(x.value);
+    UIntX.assertionFunction(actual.equals(x.value));
   }
 
   public static from(
