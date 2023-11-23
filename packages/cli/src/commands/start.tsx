@@ -61,7 +61,7 @@ export async function startServer({
     runtime,
 
     protocol: VanillaProtocol.from(
-      {},
+      { AccountState: AccountStateModule },
       { AccountState: {}, StateTransitionProver: {}, BlockProver: {} }
     ),
 
