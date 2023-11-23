@@ -6,9 +6,8 @@ import "reflect-metadata";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
 import {
-  Fieldable,
   Runtime,
-  MethodIdResolver,
+  MethodIdResolver, MethodParameterEncoder
 } from "@proto-kit/module";
 import {
   AccountState,
@@ -19,8 +18,8 @@ import {
   StateTransitionProver,
   VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
-import { log, range } from "@proto-kit/common";
+import { Bool, Field, PrivateKey, ProvableExtended, PublicKey, UInt64 } from "o1js";
+import { ArgumentTypes, log, range, ToFieldableStatic, ToJSONableStatic } from "@proto-kit/common";
 
 import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
@@ -48,10 +47,12 @@ describe("block production", () => {
   }>;
 
   let protocol: Protocol<{
-    AccountStateModule: typeof AccountStateModule;
+    AccountState: typeof AccountStateModule;
     BlockProver: typeof BlockProver;
     StateTransitionProver: typeof StateTransitionProver;
   }>;
+
+  let appchain: AppChain<any, any, any, any>;
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -92,8 +93,8 @@ describe("block production", () => {
     });
 
     const protocolClass = VanillaProtocol.from(
-      { AccountStateModule },
-      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
+      { AccountState: AccountStateModule },
+      { AccountState: {}, StateTransitionProver: {}, BlockProver: {} }
     );
 
     const app = AppChain.from({
@@ -103,10 +104,30 @@ describe("block production", () => {
       modules: {},
     });
 
+    app.configure({
+      Runtime: {
+        Balance: {}
+      },
+      Protocol: {
+        AccountState: {},
+        StateTransitionProver: {},
+        BlockProver: {}
+      },
+      Sequencer: {
+        Mempool: {},
+        TaskQueue: {simulatedDuration: 0},
+        BaseLayer: {},
+        LocalTaskWorkerModule: {},
+        BlockProducerModule: {},
+        BlockTrigger: {}
+      }
+    })
+
     // Start AppChain
     await app.start();
 
     ({ runtime, sequencer, protocol } = app);
+    appchain = app;
 
     blockTrigger = sequencer.resolve("BlockTrigger");
     mempool = sequencer.resolve("Mempool");
@@ -115,16 +136,20 @@ describe("block production", () => {
   function createTransaction(spec: {
     privateKey: PrivateKey;
     method: [string, string];
-    args: Fieldable[];
+    args: ArgumentTypes;
     nonce: number;
   }) {
     const methodId = runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
       .getMethodId(spec.method[0], spec.method[1]);
 
+    const decoder = MethodParameterEncoder.fromMethod(runtime.resolve(spec.method[0] as "Balance"), spec.method[1]);
+    const { argsFields, argsJSON } = decoder.encode(spec.args)
+
     return new UnsignedTransaction({
       methodId: Field(methodId),
-      args: spec.args.flatMap((parameter) => parameter.toFields()),
+      argsFields,
+      argsJSON,
       sender: spec.privateKey.toPublicKey(),
       nonce: UInt64.from(spec.nonce),
     }).sign(spec.privateKey);
@@ -171,7 +196,7 @@ describe("block production", () => {
     expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
 
     // Check that nonce has been set
-    const accountModule = protocol.resolve("AccountStateModule");
+    const accountModule = protocol.resolve("AccountState");
     const accountStatePath = Path.fromKey(
       accountModule.accountState.path!,
       accountModule.accountState.keyType,
@@ -187,7 +212,7 @@ describe("block production", () => {
       createTransaction({
         method: ["Balance", "addBalanceToSelf"],
         privateKey,
-        args: [UInt64.from(100), UInt64.from(2)],
+        args: [UInt64.from(100), UInt64.from(1)],
         nonce: 1,
       })
     );
@@ -212,6 +237,8 @@ describe("block production", () => {
   // TODO Fix the error that we get when execution this after the first test
   it("should reject tx and not apply the state", async () => {
     expect.assertions(3);
+
+    log.setLevel("INFO")
 
     const privateKey = PrivateKey.random();
 
@@ -245,7 +272,7 @@ describe("block production", () => {
     expect(newState).toBeUndefined();
   }, 30_000);
 
-  const numberTxs = 3;
+  const numberTxs = 10;
 
   it.only("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
@@ -259,7 +286,7 @@ describe("block production", () => {
         createTransaction({
           method: ["Balance", "addBalanceToSelf"],
           privateKey,
-          args: [UInt64.from(100), UInt64.from(1)],
+          args: [UInt64.from(100), UInt64.from(0)],
           nonce: index,
         })
       );
@@ -273,6 +300,7 @@ describe("block production", () => {
     expect(block!.proof.proof).toBe("mock-proof");
 
     range(0, numberTxs).forEach((index) => {
+      console.log(block!.txs[index].statusMessage);
       expect(block!.txs[index].status).toBe(true);
       expect(block!.txs[index].statusMessage).toBe(undefined);
     });

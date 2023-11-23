@@ -216,9 +216,11 @@ export class BlockProvingTask
       input.params.executionData
     );
 
+    const proof = await this.executionContext.current().result.prove<BlockProof>();
+
     this.protocol.stateServiceProvider.popCurrentStateService();
 
-    return await this.executionContext.current().result.prove<BlockProof>();
+    return proof;
   }
 
   // eslint-disable-next-line sonarjs/no-identical-functions

@@ -10,7 +10,9 @@ export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
-export class AccountStateModule extends ProvableTransactionHook<Record<string, never>> {
+export class AccountStateModule extends ProvableTransactionHook<
+  Record<string, never>
+> {
   @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState
@@ -23,7 +25,10 @@ export class AccountStateModule extends ProvableTransactionHook<Record<string, n
 
     const currentNonce = accountState.nonce;
 
-    assert(currentNonce.equals(transaction.nonce), "Nonce not matching");
+    assert(
+      currentNonce.equals(transaction.nonce),
+      `Nonce not matching: ${currentNonce.toBigInt()} != ${transaction.nonce.toBigInt()}`
+    );
 
     this.accountState.set(
       transaction.sender,
