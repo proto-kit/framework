@@ -58,7 +58,7 @@ export class LocalhostAppChain<
       runtime: Runtime.from(definition),
 
       protocol: VanillaProtocol.from(
-        {},
+        { AccountState: AccountStateModule },
         { AccountState: {}, StateTransitionProver: {}, BlockProver: {} }
       ),
 

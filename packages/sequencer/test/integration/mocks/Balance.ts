@@ -41,8 +41,8 @@ export class Balance extends RuntimeModule<object> {
     this.totalSupply.get();
   }
 
-  @runtimeMethod()
-  public test(a: UInt64, b: Signature, c: MyStruct, d: Struct<unknown>) {}
+  // @runtimeMethod()
+  // public test(a: UInt64, b: Signature, c: MyStruct, d: Struct<unknown>) {}
 
   @runtimeMethod()
   public setTotalSupply() {
@@ -81,7 +81,7 @@ export class Balance extends RuntimeModule<object> {
     log.provable.debug("Balance:", balance.isSome, balance.value);
     log.provable.debug("BlockHeight:", this.network.block.height);
 
-    assert(blockHeight.equals(this.network.block.height));
+    assert(blockHeight.equals(this.network.block.height), `Blockheight doesn't equal given parameter`);
 
     const newBalance = balance.value.add(value);
     this.balances.set(address, newBalance);

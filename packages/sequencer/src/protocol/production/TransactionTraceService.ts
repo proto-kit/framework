@@ -1,7 +1,7 @@
 /* eslint-disable max-lines,@typescript-eslint/init-declarations */
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
-  MethodParameterDecoder,
+  MethodParameterEncoder,
   Runtime,
   RuntimeModule,
   MethodIdResolver,
@@ -88,11 +88,11 @@ export class TransactionTraceService {
     const [moduleName, methodName] = methodDescriptors;
     const module: RuntimeModule<unknown> = this.runtime.resolve(moduleName);
 
-    const parameterDecoder = MethodParameterDecoder.fromMethod(
+    const parameterEncoder = MethodParameterEncoder.fromMethod(
       module,
       methodName
     );
-    const args = parameterDecoder.fromJSON(tx.argsJSON);
+    const args = parameterEncoder.decode(tx.argsJSON);
 
     return {
       method,

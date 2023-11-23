@@ -1,7 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import {
   MethodIdResolver,
-  MethodParameterDecoder,
+  MethodParameterEncoder,
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
@@ -32,7 +32,7 @@ export class TransactionValidator {
 
     // Check if parameters are decodable
     const runtimeModule = this.runtime.resolve(methodPath[0]);
-    const decoder = MethodParameterDecoder.fromMethod(
+    const encoder = MethodParameterEncoder.fromMethod(
       runtimeModule,
       methodPath[1]
     );
