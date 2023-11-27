@@ -2,14 +2,17 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers,prefer-const,id-length,no-underscore-dangle,putout/putout */
 import { Bool, Field, Provable, Struct, UInt32, UInt64 } from "o1js";
 import { assert } from "@proto-kit/protocol";
+import bigintSqrt from "bigint-isqrt";
 
 export abstract class UIntX<This extends UIntX<any>> extends Struct({
   value: Field,
 }) {
   public readonly NUM_BITS: number;
 
-  protected static readonly assertionFunction: (bool: Bool, msg?: string) => void =
-    assert;
+  protected static readonly assertionFunction: (
+    bool: Bool,
+    msg?: string
+  ) => void = assert;
   // private readonly assertion_fn: (bool: Bool, msg?: string) => void = (bool, msg) => { bool.assertTrue(msg) }
 
   public static checkConstant(x: Field, numBits: number) {
@@ -132,6 +135,80 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    */
   public div(y: This | bigint | number): This {
     return this.divMod(y).quotient;
+  }
+
+  /**
+   * Implements a non-overflowing square-root with rest.
+   * Normal Field.sqrt() provides the sqrt as it is defined by the finite field operations.
+   * This implementation however mimics the natural-numbers style of sqrt to be used
+   * inside applications with the tradeoff that it also returns a "rest" that indicates
+   * the amount the actual result is off (since we floor the result to stay inside the ff).
+   *
+   * Some assertions are hard-failing, because they represent malicious witness values
+   *
+   * @returns sqrt: The non-overflowing sqrt
+   * @returns rest: The remainder indicating how far off the result is from the "real" sqrt
+   */
+  public sqrtMod(): { sqrt: This; rest: This } {
+    let x = this.value;
+
+    if (x.isConstant()) {
+      const xn = x.toBigInt();
+      const sqrt = bigintSqrt(xn);
+      const rest = xn - sqrt * sqrt;
+      return {
+        sqrt: this.impls.creator(Field(sqrt)),
+        rest: this.impls.creator(Field(rest)),
+      };
+    }
+
+    const sqrtField = Provable.witness(Field, () => {
+      const sqrtn = bigintSqrt(x.toBigInt());
+      return Field(sqrtn);
+    });
+
+    sqrtField
+      .rangeCheckHelper(this.NUM_BITS)
+      .assertEquals(sqrtField, "Sqrt output overflowing");
+
+    // Range check included here?
+    const sqrt = this.impls.creator(sqrtField);
+
+    const rest = Provable.witness(Field, () => {
+      const sqrtn = sqrtField.toBigInt();
+      return Field(x.toBigInt() - sqrtn * sqrtn);
+    });
+
+    rest
+      .rangeCheckHelper(this.NUM_BITS)
+      .assertEquals(rest, "Sqrt rest output overflowing");
+
+    const square = sqrtField.mul(sqrtField);
+
+    const nextSqrt = sqrtField.add(1);
+    const nextLargerSquare = nextSqrt.mul(nextSqrt);
+
+    // We assert that the rest is not larger than the minimum it needs to be
+    // Therefore we assert that the sqrt is the highest possible candidate
+    rest.assertLessThan(
+      nextLargerSquare.sub(square),
+      "There exists a larger sqrt solution than provided witness"
+    );
+
+    // Assert that sqrt*sqrt+rest == x
+    x.assertEquals(square.add(rest), "Square evaluation failed");
+
+    return {
+      sqrt,
+      rest: this.impls.creator(rest),
+    };
+  }
+
+  /**
+   * Wraps sqrtMod() by only returning the sqrt and omitting the rest field.
+   */
+  public sqrtFloor(): This {
+    return this.sqrtMod().sqrt
   }
 
   /**

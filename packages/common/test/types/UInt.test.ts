@@ -3,6 +3,7 @@ import { UInt112 } from "../../src";
 import { container } from "tsyringe";
 import { RuntimeMethodExecutionContext } from "@proto-kit/protocol";
 import { beforeEach } from "@jest/globals";
+import bigintsqrt from "bigint-isqrt";
 
 describe("uint112", () => {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
@@ -10,7 +11,7 @@ describe("uint112", () => {
   beforeEach(() => {
     executionContext.clear();
     executionContext.setup({} as any);
-  })
+  });
 
   it("should initialize correctly", () => {
     expect.assertions(2);
@@ -26,7 +27,7 @@ describe("uint112", () => {
 
     const uint = UInt112.from(101);
 
-    expect(uint.mul(987654).toBigInt()).toBe(101n * 987654n)
+    expect(uint.mul(987654).toBigInt()).toBe(101n * 987654n);
     expect(executionContext.result.status.toBoolean()).toBe(true);
   });
 
@@ -58,4 +59,16 @@ describe("uint112", () => {
 
     expect(executionContext.result.status.toBoolean()).toBe(false);
   });
+
+  it.each([5n, 0n, 101n, 2n ** 112n - 1n])(
+    "should provide correct sqrt",
+    (input) => {
+      const uint = UInt112.from(input);
+
+      const { sqrt, rest } = uint.sqrtMod();
+
+      expect(sqrt.toBigInt()).toBe(bigintsqrt(input));
+      expect(rest.toBigInt()).toBe(input - bigintsqrt(input) ** 2n);
+    }
+  );
 });
