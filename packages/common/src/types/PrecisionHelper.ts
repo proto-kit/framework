@@ -2,6 +2,10 @@ import { UInt112 } from "./UInt112";
 import { UInt224 } from "./UInt224";
 
 export class PrecisionUInt112 extends UInt112 {
+  public static fromUInt112(uint: UInt112){
+    return new PrecisionUInt112(uint.value)
+  }
+
   public static get precision(): PrecisionUInt112 {
     return new PrecisionUInt112(UInt112.MAXINT().value);
   }
