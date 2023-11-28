@@ -2,14 +2,15 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
   StateTransition,
+  ProtocolEnvironment,
 } from "@proto-kit/protocol";
+import { RuntimeEnvironment } from "@proto-kit/module";
+import _ from "lodash";
+import { Field } from "o1js";
+
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { CachedStateService } from "../../../state/state/CachedStateService";
-import { Field } from "o1js";
-import { RuntimeEnvironment } from "@proto-kit/module/dist/runtime/RuntimeEnvironment";
-import { ProtocolEnvironment } from "@proto-kit/protocol/dist/protocol/ProtocolEnvironment";
 import { distinctByString } from "../../../helpers/utils";
-import _ from "lodash";
 
 export class RuntimeMethodExecution {
   public constructor(
@@ -24,17 +25,16 @@ export class RuntimeMethodExecution {
     contextInputs: RuntimeMethodExecutionData,
     parentStateService: AsyncStateService
   ): Promise<StateTransition<unknown>[]> {
-    const { executionContext } = this;
+    const { executionContext, runtime, protocol } = this;
 
     executionContext.setup(contextInputs);
     executionContext.setSimulated(true);
 
     const stateService = new CachedStateService(parentStateService);
-    this.runtime.stateServiceProvider.setCurrentStateService(stateService);
-    this.protocol.stateServiceProvider.setCurrentStateService(stateService);
+    runtime.stateServiceProvider.setCurrentStateService(stateService);
+    protocol.stateServiceProvider.setCurrentStateService(stateService);
 
     // Preload previously determined keys
-    // eslint-disable-next-line no-await-in-loop
     await stateService.preloadKeys(
       touchedKeys.map((fieldString) => Field(fieldString))
     );
@@ -42,16 +42,14 @@ export class RuntimeMethodExecution {
     // Execute method
     method();
 
-    const lastRuntimeResult = executionContext.current().result;
+    const { stateTransitions } = executionContext.current().result;
 
     // Clear executionContext
     executionContext.afterMethod();
     executionContext.clear();
 
-    this.runtime.stateServiceProvider.popCurrentStateService();
-    this.protocol.stateServiceProvider.popCurrentStateService();
-
-    const { stateTransitions } = lastRuntimeResult;
+    runtime.stateServiceProvider.popCurrentStateService();
+    protocol.stateServiceProvider.popCurrentStateService();
 
     return stateTransitions;
   }
@@ -68,9 +66,6 @@ export class RuntimeMethodExecution {
     contextInputs: RuntimeMethodExecutionData,
     parentStateService: AsyncStateService
   ): Promise<StateTransition<unknown>[]> {
-    // Set up context
-    const executionContext = this.executionContext;
-
     let numberMethodSTs: number | undefined;
     let collectedSTs = 0;
 
@@ -79,6 +74,7 @@ export class RuntimeMethodExecution {
     let lastRuntimeResult: StateTransition<unknown>[];
 
     do {
+      // eslint-disable-next-line no-await-in-loop
       const stateTransitions = await this.executeMethodWithKeys(
         touchedKeys,
         method,

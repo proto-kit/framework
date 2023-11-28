@@ -21,6 +21,7 @@ export * from "./model/MethodPublicOutput";
 export * from "./prover/statetransition/StateTransitionWitnessProviderReference";
 export * from "./protocol/Protocol";
 export * from "./protocol/ProtocolModule";
+export * from "./protocol/ProtocolEnvironment";
 export * from "./protocol/TransitioningProtocolModule";
 export * from "./protocol/ProvableTransactionHook";
 export * from "./state/context/ProtocolMethodExecutionContext";

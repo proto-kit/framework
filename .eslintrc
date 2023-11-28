@@ -49,7 +49,7 @@
       "error",
       {
         "min": 2,
-        "exceptions": ["i", "j", "x", "a", "b"]
+        "exceptions": ["i", "j", "x", "a", "b", "_"]
       }
     ],
     "import/prefer-default-export": "off",
