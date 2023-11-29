@@ -95,7 +95,7 @@ export class UnprovenProducerModule
   }> {
     const { txs } = this.mempool.getTxs();
 
-    const latestMetadata = await this.unprovenBlockQueue.popNewestMetadata();
+    const latestMetadata = await this.unprovenBlockQueue.getNewestMetadata();
 
     if (latestMetadata === undefined) {
       log.debug(
