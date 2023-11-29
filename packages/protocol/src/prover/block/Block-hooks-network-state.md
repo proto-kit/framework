@@ -11,3 +11,14 @@ provided from the outside and follows rules that somehow rely on verification on
 In order to transition between sub-states intra-batch, we have a *from* and a *to* network state that are hashed and encoded inside the proofs public input.
 
 To maintain flexibility, network state parameters will be supplied by the sequencer and the full state will then be produced in-circuit.
+
+# Hooks
+
+We implement two different types of hooks
+
+`beforeBundle()`
+`afterBundle()`
+
+Currently, they receive as parameters:
+- The current NetworkState
+- THe current state of the blockprover including stateRoot and transactionsHash
