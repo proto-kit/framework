@@ -8,6 +8,7 @@ import { range } from "@proto-kit/common";
 import { notInCircuit } from "../utils";
 
 import { MerkleTreeStore } from "./MerkleTreeStore";
+import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
 
 // external API
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -96,6 +97,12 @@ class RollupMerkleWitness extends Struct({
  */
 class RollupMerkleTree {
   public static height = 256;
+
+  public static EMPTY_ROOT = new RollupMerkleTree(
+    new InMemoryMerkleTreeStorage()
+  )
+    .getRoot()
+    .toBigInt();
 
   public static get leafCount(): bigint {
     return 2n ** BigInt(RollupMerkleTree.height - 1);

@@ -69,7 +69,7 @@ export class Balance extends RuntimeModule<object> {
     log.provable.debug("Balance:", balance.isSome, balance.value);
     log.provable.debug("BlockHeight:", this.network.block.height);
 
-    assert(blockHeight.equals(this.network.block.height));
+    assert(blockHeight.equals(this.network.block.height), `Blockheight not matching ${blockHeight.toString()} !== ${this.network.block.height.toString()}`);
 
     const newBalance = balance.value.add(value);
     this.balances.set(address, newBalance);

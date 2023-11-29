@@ -1,5 +1,13 @@
 /* eslint-disable max-lines */
-import { Experimental, Field, type Proof, Provable, SelfProof } from "o1js";
+import {
+  Bool,
+  Experimental,
+  Field,
+  type Proof,
+  Provable,
+  SelfProof,
+  Struct,
+} from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
   AreProofsEnabled,
@@ -30,6 +38,9 @@ import { ProvableStateTransition } from "../../model/StateTransition";
 import { ProvableTransactionHook } from "../../protocol/ProvableTransactionHook";
 import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethodExecutionContext";
 import { Protocol, ProtocolModulesRecord } from "../../protocol/Protocol";
+import { ProvableBlockHook } from "../../protocol/ProvableBlockHook";
+import { NetworkState } from "../../model/network/NetworkState";
+import { BundleTransactionPosition } from "./BundleTransactionPosition";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -75,7 +86,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicOutput
     >,
     public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
-    private readonly blockModules: ProvableTransactionHook<unknown>[]
+    private readonly transactionHooks: ProvableTransactionHook<unknown>[],
+    private readonly blockHooks: ProvableBlockHook<unknown>[]
   ) {
     super();
   }
@@ -165,17 +177,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "Network state provided to BlockProver does not match the publicInput"
     );
 
-    // Append tx to transaction list
-    const transactionList = new DefaultProvableHashList(
-      Field,
-      state.transactionsHash
-    );
-
-    const { transactionHash } = appProof.publicOutput;
-    transactionList.push(transactionHash);
-
-    stateTo.transactionsHash = transactionList.commitment;
-
     return stateTo;
   }
 
@@ -204,7 +205,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     });
     executionContext.beforeMethod("", "", []);
 
-    this.blockModules.forEach((module) => {
+    this.transactionHooks.forEach((module) => {
       module.onTransaction(executionData);
     });
 
@@ -234,6 +235,83 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
   }
 
+  private getBeforeBundleNetworkState(
+    state: BlockProverState,
+    networkState: NetworkState
+  ) {
+    return this.blockHooks.reduce<NetworkState>((networkState, blockHook) => {
+      return blockHook.beforeBundle({
+        state,
+        networkState,
+      });
+    }, networkState);
+  }
+
+  private getAfterBundleNetworkState(
+    state: BlockProverState,
+    networkState: NetworkState
+  ) {
+    return this.blockHooks.reduce<NetworkState>((networkState, blockHook) => {
+      return blockHook.afterBundle({
+        state,
+        networkState,
+      });
+    }, networkState);
+  }
+
+  private addTransactionToBundle(
+    state: BlockProverState,
+    stateTransitionProof: StateTransitionProof,
+    appProof: Proof<void, MethodPublicOutput>,
+    executionData: BlockProverExecutionData
+  ): {
+    state: BlockProverState;
+    networkState: NetworkState;
+    bundleOpened: Bool;
+    bundleClosed: Bool;
+  } {
+    const { bundleTransactionPosition, networkState } = executionData;
+    const stateTo = {
+      ...state,
+    };
+
+    // Execute beforeBlook hooks and apply if it is the first tx of the bundle
+    const beforeHookResult = this.getBeforeBundleNetworkState(
+      state,
+      networkState
+    );
+    const bundleOpened = bundleTransactionPosition.equals(
+      BundleTransactionPosition.fromPositionType("FIRST")
+    );
+    const resultingNetworkState = new NetworkState(
+      Provable.if(bundleOpened, NetworkState, beforeHookResult, networkState)
+    );
+    stateTo.networkStateHash = resultingNetworkState.hash();
+
+    // TODO Modify bundle merkle tree as per specs
+
+    // Append tx to transaction list
+    const transactionList = new DefaultProvableHashList(
+      Field,
+      state.transactionsHash
+    );
+
+    const { transactionHash } = appProof.publicOutput;
+    transactionList.push(transactionHash);
+
+    stateTo.transactionsHash = transactionList.commitment;
+
+    return {
+      state: stateTo,
+      networkState: resultingNetworkState,
+      bundleOpened,
+
+      bundleClosed: bundleTransactionPosition.equals(
+        BundleTransactionPosition.fromPositionType("LAST")
+      ),
+    };
+  }
+
   @provableMethod()
   public proveTransaction(
     publicInput: BlockProverPublicInput,
@@ -247,16 +325,46 @@ export class BlockProverProgrammable extends ZkProgrammable<
       networkStateHash: publicInput.networkStateHash,
     };
 
-    const stateTo = this.applyTransaction(
+    const bundleInclusionResult = this.addTransactionToBundle(
       state,
       stateProof,
       appProof,
       executionData
     );
 
+    const stateTo = this.applyTransaction(
+      bundleInclusionResult.state,
+      stateProof,
+      appProof,
+      {
+        transaction: executionData.transaction,
+        bundleTransactionPosition: executionData.bundleTransactionPosition,
+        networkState: bundleInclusionResult.networkState,
+      }
+    );
+
+    // Apply afterBundle hooks
+    const afterBlockNetworkState = this.getAfterBundleNetworkState(
+      stateTo,
+      bundleInclusionResult.networkState
+    );
+    const bundleClosed = executionData.bundleTransactionPosition.equals(
+      BundleTransactionPosition.fromPositionType("LAST")
+    );
+
+    // We only need the hash here since this computed networkstate
+    // is only used as an input in the next bundle
+    const resultingNetworkStateHash = Provable.if(
+      bundleClosed,
+      afterBlockNetworkState.hash(),
+      stateTo.networkStateHash
+    );
+
     return new BlockProverPublicOutput({
       stateRoot: stateTo.stateRoot,
       transactionsHash: stateTo.transactionsHash,
+      // eslint-disable-next-line putout/putout
+      networkStateHash: resultingNetworkStateHash,
     });
   }
 
@@ -294,7 +402,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       proof1.publicInput.networkStateHash,
       errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
     );
-    publicInput.networkStateHash.assertEquals(
+    proof1.publicOutput.networkStateHash.assertEquals(
       proof2.publicInput.networkStateHash,
       errors.transactionsHashNotMatching("proof1.to -> proof2.from")
     );
@@ -302,6 +410,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     return new BlockProverPublicOutput({
       stateRoot: proof2.publicOutput.stateRoot,
       transactionsHash: proof2.publicOutput.transactionsHash,
+      networkStateHash: proof2.publicOutput.networkStateHash,
     });
   }
 
@@ -387,7 +496,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
  * then be merged to be committed to the base-layer contract
  */
 @injectable()
-export class BlockProver extends ProtocolModule<object> implements BlockProvable {
+export class BlockProver
+  extends ProtocolModule<object>
+  implements BlockProvable
+{
   public zkProgrammable: BlockProverProgrammable;
 
   public constructor(
@@ -399,14 +511,17 @@ export class BlockProver extends ProtocolModule<object> implements BlockProvable
     @inject("Runtime")
     public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput>,
     @injectAll("ProvableTransactionHook")
-    transactionHooks: ProvableTransactionHook<unknown>[]
+    transactionHooks: ProvableTransactionHook<unknown>[],
+    @injectAll("ProvableBlockHook")
+    blockHooks: ProvableBlockHook<unknown>[]
   ) {
     super();
     this.zkProgrammable = new BlockProverProgrammable(
       this,
       stateTransitionProver.zkProgrammable,
       runtime.zkProgrammable,
-      transactionHooks
+      transactionHooks,
+      blockHooks
     );
   }
 

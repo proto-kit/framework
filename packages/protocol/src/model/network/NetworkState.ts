@@ -10,4 +10,12 @@ export class NetworkState extends Struct({
   public hash(): Field {
     return Poseidon.hash(CurrentBlock.toFields(this.block));
   }
+
+  public static empty(){
+    return new NetworkState({
+      block: {
+        height: UInt64.zero,
+      },
+    })
+  }
 }

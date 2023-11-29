@@ -33,7 +33,8 @@
   "dependencies": {
     "bullmq": "^3.15.0",
     "lodash": "^4.17.21",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "ts-pattern": "^4.3.0"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }

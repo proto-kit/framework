@@ -1,6 +1,5 @@
 import { inject } from "tsyringe";
-import { NetworkState } from "@proto-kit/protocol";
-import { UInt64 } from "o1js";
+import { NetworkState, RollupMerkleTree } from "@proto-kit/protocol";
 import {
   EventEmitter,
   EventEmittingComponent,
@@ -11,16 +10,19 @@ import {
 } from "@proto-kit/common";
 
 import { Mempool } from "../../../mempool/Mempool";
-import { BlockStorage } from "../../../storage/repositories/BlockStorage";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
   sequencerModule,
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
+import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import { PendingTransaction } from "../../../mempool/PendingTransaction";
+import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 
 import {
   TransactionExecutionService,
   UnprovenBlock,
+  UnprovenBlockMetadata,
 } from "./TransactionExecutionService";
 
 const errors = {
@@ -42,20 +44,22 @@ export class UnprovenProducerModule
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @inject("BlockStorage") private readonly blockStorage: BlockStorage,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: CachedStateService,
+    @inject("UnprovenMerkleStore")
+    private readonly unprovenMerkleStore: CachedMerkleTreeStore,
+    @inject("UnprovenBlockQueue")
+    private readonly unprovenBlockQueue: UnprovenBlockQueue,
     private readonly executionService: TransactionExecutionService
   ) {
     super();
   }
 
-  private createNetworkState(lastHeight: number): NetworkState {
-    return new NetworkState({
-      block: {
-        height: UInt64.from(lastHeight + 1),
-      },
-    });
+  private createEmptyMetadata(): UnprovenBlockMetadata {
+    return {
+      resultingNetworkState: NetworkState.empty(),
+      resultingStateRoot: RollupMerkleTree.EMPTY_ROOT,
+    };
   }
 
   public async tryProduceUnprovenBlock(): Promise<UnprovenBlock | undefined> {
@@ -65,6 +69,12 @@ export class UnprovenProducerModule
 
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
         this.events.emit("unprovenBlockProduced", [block]);
+
+        // Generate metadata for next block
+        // eslint-disable-next-line no-warning-comments
+        // TODO: make async of production in the future
+        const metadata = await this.executionService.generateMetadataForNextBlock(block, this.unprovenMerkleStore, true)
+        await this.unprovenBlockQueue.pushMetadata(metadata);
 
         return block;
       } catch (error: unknown) {
@@ -79,22 +89,38 @@ export class UnprovenProducerModule
     return undefined;
   }
 
+  private async collectProductionData(): Promise<{
+    txs: PendingTransaction[];
+    metadata: UnprovenBlockMetadata;
+  }> {
+    const { txs } = this.mempool.getTxs();
+
+    const latestMetadata = await this.unprovenBlockQueue.popNewestMetadata();
+
+    if (latestMetadata === undefined) {
+      log.debug(
+        "No unproven block metadata given, assuming first block, generating genesis metadata"
+      );
+    }
+    const metadata = latestMetadata ?? this.createEmptyMetadata();
+
+    return {
+      txs,
+      metadata,
+    };
+  }
+
   private async produceUnprovenBlock(): Promise<UnprovenBlock> {
     this.productionInProgress = true;
 
-    // Get next blockheight and therefore taskId
-    const lastHeight = await this.blockStorage.getCurrentBlockHeight();
-
-    const { txs } = this.mempool.getTxs();
-
-    const networkState = this.createNetworkState(lastHeight);
+    const { txs, metadata } = await this.collectProductionData();
 
     const stateService = new CachedStateService(this.unprovenStateService);
 
     const block = await this.executionService.createUnprovenBlock(
       stateService,
       txs,
-      networkState
+      metadata
     );
 
     this.productionInProgress = false;
