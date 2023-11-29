@@ -35,7 +35,7 @@ export class GraphqlNetworkStateTransportModule
       .toPromise();
 
     if (queryResult.error === undefined) {
-      const json = queryResult.data?.network;
+      const json = queryResult.data?.network?.unproven;
 
       if (json === undefined || json === null) {
         throw new Error("Received no data and no error")

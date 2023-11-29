@@ -49,6 +49,9 @@ import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSe
 import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
 import { GraphqlClient } from "../../src/graphql/GraphqlClient";
 import { container } from "tsyringe";
+import {
+  GraphqlNetworkStateTransportModule
+} from "../../src/graphql/GraphqlNetworkStateTransportModule";
 
 log.setLevel(log.levels.INFO);
 
@@ -94,6 +97,7 @@ function prepare() {
       Signer: InMemorySigner,
       TransactionSender: GraphqlTransactionSender,
       QueryTransportModule: GraphqlQueryTransportModule,
+      NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
       GraphqlClient,
     },
   });
@@ -115,6 +119,8 @@ function prepare() {
 
     TransactionSender: {},
     QueryTransportModule: {},
+    NetworkStateTransportModule: {},
+
     GraphqlClient: {
       url: "http://127.0.0.1:8080/graphql",
     },
@@ -149,14 +155,14 @@ describe("graphql client test", function () {
     const totalSupply =
       await appChain!.query.runtime.Balances.totalSupply.get();
 
-    console.log(totalSupply.toString());
+    console.log(totalSupply!.toString());
   }, 60000);
 
   it("should send transaction", async () => {
     const tx = await appChain!.transaction(pk.toPublicKey(), () => {
       appChain!.runtime
         .resolve("Balances")
-        .setBalance(pk.toPublicKey(), UInt64.from(1000));
+        .addBalance(pk.toPublicKey(), UInt64.from(1000));
     });
     await tx.sign();
     await tx.send();
@@ -170,4 +176,13 @@ describe("graphql client test", function () {
     expect(balance).toBeDefined();
     expect(balance!.toBigInt()).toBe(1000n);
   }, 60000);
+
+  it.only("should fetch networkstate correctly", async () => {
+    expect.assertions(2);
+
+    const state = await appChain!.query.network.unproven;
+
+    expect(state).toBeDefined();
+    expect(state.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
+  });
 });
