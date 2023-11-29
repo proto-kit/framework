@@ -67,6 +67,11 @@ export class UnprovenProducerModule
       try {
         const block = await this.produceUnprovenBlock();
 
+        if (block === undefined) {
+          log.info("No transactions in mempool, skipping production");
+          return undefined;
+        }
+
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
         this.events.emit("unprovenBlockProduced", [block]);
 
@@ -110,10 +115,15 @@ export class UnprovenProducerModule
     };
   }
 
-  private async produceUnprovenBlock(): Promise<UnprovenBlock> {
+  private async produceUnprovenBlock(): Promise<UnprovenBlock | undefined> {
     this.productionInProgress = true;
 
     const { txs, metadata } = await this.collectProductionData();
+
+    // Skip production if no transactions are available for now
+    if (txs.length === 0) {
+      return undefined;
+    }
 
     const stateService = new CachedStateService(this.unprovenStateService);
 
