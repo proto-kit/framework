@@ -248,7 +248,7 @@ export class AppChain<
     sender: PublicKey,
     callback: () => void,
     options?: { nonce?: number }
-  ) {
+  ): AppChainTransaction {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );

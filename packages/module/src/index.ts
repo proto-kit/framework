@@ -7,3 +7,4 @@ export * from "./state/InMemoryStateService";
 export * from "./state/decorator";
 export * from "./method/MethodParameterDecoder";
 export * from "./runtime/MethodIdResolver";
+export * from "./factories/MethodIdFactory";

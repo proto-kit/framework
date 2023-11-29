@@ -4,16 +4,15 @@ import {
   ModulesRecord,
   TypedClass,
   ModuleContainerDefinition,
-  log, ChildContainerProvider
+  log,
 } from "@proto-kit/common";
-import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
+import { Runtime, RuntimeModulesRecord, MethodIdFactory } from "@proto-kit/module";
 import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
 
 import { Sequenceable } from "./Sequenceable";
-import { MethodIdFactory } from "@proto-kit/module/dist/factories/MethodIdFactory";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
