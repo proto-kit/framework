@@ -43,6 +43,7 @@ export * from "./storage/StorageDependencyFactory";
 export * from "./helpers/query/QueryTransportModule";
 export * from "./helpers/query/QueryBuilderFactory";
 export * from "./helpers/query/NetworkStateQuery";
+export * from "./helpers/query/NetworkStateTransportModule";
 export * from "./state/prefilled/PreFilledStateService";
 export * from "./state/prefilled/PreFilledWitnessProvider";
 export * from "./state/async/AsyncMerkleTreeStore";
