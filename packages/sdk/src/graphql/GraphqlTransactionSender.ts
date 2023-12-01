@@ -1,13 +1,16 @@
-import { AppChainModule } from "../appChain/AppChainModule";
 import { inject, injectable } from "tsyringe";
-import { GraphqlClient } from "./GraphqlClient";
-import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { PendingTransaction } from "@proto-kit/sequencer";
 import { gql } from "@urql/core";
+import { NoConfig } from "@proto-kit/common";
+
+import { TransactionSender } from "../transaction/InMemoryTransactionSender";
+import { AppChainModule } from "../appChain/AppChainModule";
+
+import { GraphqlClient } from "./GraphqlClient";
 
 @injectable()
 export class GraphqlTransactionSender
-  extends AppChainModule<Record<string, never>>
+  extends AppChainModule<NoConfig>
   implements TransactionSender
 {
   public constructor(
@@ -22,10 +25,10 @@ export class GraphqlTransactionSender
         submitTx(tx: $tx)
       }
     `;
-    const txJson = transaction.toJSON();
+    const tx = transaction.toJSON();
 
     const queryResult = await this.graphqlClient.client
-      .mutation(query, { tx: txJson })
+      .mutation(query, { tx })
       .toPromise();
 
     if (queryResult.error === undefined) {

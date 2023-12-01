@@ -4,6 +4,7 @@ import { QueryTransportModule } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
+import { NoConfig } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -20,7 +21,7 @@ function assertStringArray(array: any): asserts array is string[] {
 
 @injectable()
 export class GraphqlQueryTransportModule
-  extends AppChainModule<Record<string, never>>
+  extends AppChainModule<NoConfig>
   implements QueryTransportModule
 {
   public constructor(
