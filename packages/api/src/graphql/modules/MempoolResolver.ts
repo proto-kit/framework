@@ -11,6 +11,7 @@ import {
 import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
 import { Mempool, PendingTransaction } from "@proto-kit/sequencer";
+import { NoConfig } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule.js";
 
@@ -72,7 +73,7 @@ export class TransactionObject {
 }
 
 @graphqlModule()
-export class MempoolResolver extends GraphqlModule<object> {
+export class MempoolResolver extends GraphqlModule<NoConfig> {
   public constructor(@inject("Mempool") private readonly mempool: Mempool) {
     super();
   }

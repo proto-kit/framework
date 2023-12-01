@@ -1,5 +1,5 @@
 import { Field, ObjectType, Query } from "type-graphql";
-import { ChildContainerProvider } from "@proto-kit/common";
+import { ChildContainerProvider, NoConfig } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 import { NodeStatus, NodeStatusService } from "../services/NodeStatusService";
@@ -35,7 +35,7 @@ export class NodeStatusObject {
 }
 
 @graphqlModule()
-export class NodeStatusResolver extends GraphqlModule<object> {
+export class NodeStatusResolver extends GraphqlModule<NoConfig> {
   public constructor(private readonly nodeStatusService: NodeStatusService) {
     super();
   }
