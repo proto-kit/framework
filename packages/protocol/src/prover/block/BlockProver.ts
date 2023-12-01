@@ -3,6 +3,7 @@ import { Experimental, Field, type Proof, Provable, SelfProof } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
   AreProofsEnabled,
+  NoConfig,
   PlainZkProgram,
   provableMethod,
   WithZkProgrammable,
@@ -387,7 +388,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
  * then be merged to be committed to the base-layer contract
  */
 @injectable()
-export class BlockProver extends ProtocolModule<object> implements BlockProvable {
+export class BlockProver
+  extends ProtocolModule<NoConfig>
+  implements BlockProvable
+{
   public zkProgrammable: BlockProverProgrammable;
 
   public constructor(

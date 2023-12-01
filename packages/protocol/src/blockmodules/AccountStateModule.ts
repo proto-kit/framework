@@ -5,12 +5,13 @@ import { StateMap } from "../state/StateMap";
 import { protocolState } from "../state/protocol/ProtocolState";
 import { ProvableTransactionHook } from "../protocol/ProvableTransactionHook";
 import { assert } from "../state/assert/assert";
+import { NoConfig } from "@proto-kit/common";
 
 export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
-export class AccountStateModule extends ProvableTransactionHook<Record<string, never>> {
+export class AccountStateModule extends ProvableTransactionHook<NoConfig> {
   @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState

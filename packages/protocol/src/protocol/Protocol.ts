@@ -4,9 +4,9 @@ import {
   log,
   ModuleContainer,
   ModulesConfig,
-  ModulesRecord,
+  ModulesRecord, NoConfig,
   StringKeyOf,
-  TypedClass,
+  TypedClass
 } from "@proto-kit/common";
 import { DependencyContainer, Lifecycle } from "tsyringe";
 
@@ -26,10 +26,10 @@ export type GenericProtocolModuleRecord = ModulesRecord<
   TypedClass<ProtocolModule<unknown>>
 >;
 
-interface BlockProverType extends ProtocolModule<object>, BlockProvable {}
+interface BlockProverType extends ProtocolModule<NoConfig>, BlockProvable {}
 
 interface StateTransitionProverType
-  extends ProtocolModule<object>,
+  extends ProtocolModule<NoConfig>,
     StateTransitionProvable {}
 
 export interface ProtocolCustomModulesRecord {
