@@ -1,6 +1,6 @@
 import { inject } from "tsyringe";
 import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
-import { noop } from "@proto-kit/common";
+import { NoConfig, noop } from "@proto-kit/common";
 
 import {
   sequencerModule,
@@ -26,7 +26,7 @@ import { FlowTaskWorker } from "./FlowTaskWorker";
  * cloud workers.
  */
 @sequencerModule()
-export class LocalTaskWorkerModule extends SequencerModule<object> {
+export class LocalTaskWorkerModule extends SequencerModule<NoConfig> {
   // eslint-disable-next-line max-params
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,

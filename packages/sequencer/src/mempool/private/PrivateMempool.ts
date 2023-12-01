@@ -1,12 +1,15 @@
 import { Field, Poseidon } from "o1js";
-import { noop } from "@proto-kit/common";
+import { NoConfig, noop } from "@proto-kit/common";
 
 import type { Mempool, MempoolCommitment } from "../Mempool.js";
 import type { PendingTransaction } from "../PendingTransaction.js";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 import { TransactionValidator } from "../verification/TransactionValidator";
 
-export class PrivateMempool extends SequencerModule<object> implements Mempool {
+export class PrivateMempool
+  extends SequencerModule<NoConfig>
+  implements Mempool
+{
   public commitment: Field;
 
   private queue: PendingTransaction[] = [];
