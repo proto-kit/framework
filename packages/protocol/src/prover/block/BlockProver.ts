@@ -87,6 +87,8 @@ function maxField() {
   return Field(Field.ORDER - 1n);
 }
 
+export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
+
 export class BlockProverProgrammable extends ZkProgrammable<
   BlockProverPublicInput,
   BlockProverPublicOutput

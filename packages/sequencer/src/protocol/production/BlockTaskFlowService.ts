@@ -1,8 +1,7 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Bool, Field, Proof } from "o1js";
 import {
-  BlockProverPublicInput,
-  BlockProverPublicOutput,
+  BlockProof,
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
@@ -33,7 +32,6 @@ import {
 } from "./tasks/NewBlockTask";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
-type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 interface ReductionFlowState<ProofType> {
   numProofs: number;

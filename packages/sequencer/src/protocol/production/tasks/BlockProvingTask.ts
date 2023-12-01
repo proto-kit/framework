@@ -1,4 +1,5 @@
 import {
+  BlockProof,
   BlockProvable,
   BlockProverExecutionData,
   BlockProverPublicInput,
@@ -30,7 +31,6 @@ import { CompileRegistry } from "./CompileRegistry";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
-type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export interface BlockProverParameters {
   publicInput: BlockProverPublicInput;
