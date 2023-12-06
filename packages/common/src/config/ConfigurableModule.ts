@@ -24,7 +24,7 @@ export type NoConfig = Record<string, never>;
 /**
  * Used by various module sub-types that may need to be configured
  */
-export class ConfigurableModule<Config>
+export class ConfigurableModule<Config = NoConfig>
   implements BaseModuleInstanceType
 {
   /**
@@ -35,7 +35,6 @@ export class ConfigurableModule<Config>
 
   // retrieve the existing config
   public get config(): Config {
-    console.log("C", this.currentConfig);
     if (this.currentConfig === undefined) {
       throw errors.configNotSet(this.constructor.name);
     }

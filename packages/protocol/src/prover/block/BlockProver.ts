@@ -3,7 +3,6 @@ import { Experimental, Field, type Proof, Provable, SelfProof } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
   AreProofsEnabled,
-  NoConfig,
   PlainZkProgram,
   provableMethod,
   WithZkProgrammable,
@@ -30,7 +29,6 @@ import {
 import { ProvableStateTransition } from "../../model/StateTransition";
 import { ProvableTransactionHook } from "../../protocol/ProvableTransactionHook";
 import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethodExecutionContext";
-import { Protocol, ProtocolModulesRecord } from "../../protocol/Protocol";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -389,7 +387,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
  */
 @injectable()
 export class BlockProver
-  extends ProtocolModule<NoConfig>
+  extends ProtocolModule
   implements BlockProvable
 {
   public zkProgrammable: BlockProverProgrammable;

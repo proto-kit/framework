@@ -1,5 +1,4 @@
 import { PublicKey, Struct, UInt64 } from "o1js";
-import { NoConfig } from "@proto-kit/common";
 
 import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { StateMap } from "../state/StateMap";
@@ -11,7 +10,7 @@ export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
-export class AccountStateModule extends ProvableTransactionHook<NoConfig> {
+export class AccountStateModule extends ProvableTransactionHook {
   @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState

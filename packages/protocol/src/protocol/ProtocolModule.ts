@@ -1,14 +1,14 @@
 import {
   AreProofsEnabled,
   ChildContainerProvider,
-  ConfigurableModule,
-  noop,
+  ConfigurableModule, NoConfig,
+  noop
 } from "@proto-kit/common";
 
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
 
 export abstract class ProtocolModule<
-  Config
+  Config = NoConfig
 > extends ConfigurableModule<Config> {
   public protocol?: ProtocolEnvironment;
 

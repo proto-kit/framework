@@ -1,6 +1,5 @@
 import { Field, PrivateKey, Signature } from "o1js";
 import { injectable } from "tsyringe";
-import { NoConfig } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 

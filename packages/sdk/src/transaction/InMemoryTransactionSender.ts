@@ -5,7 +5,6 @@ import {
   PendingTransaction,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
-import { NoConfig } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -15,7 +14,7 @@ export interface TransactionSender extends AppChainModule<unknown> {
 
 @injectable()
 export class InMemoryTransactionSender
-  extends AppChainModule<NoConfig>
+  extends AppChainModule
   implements TransactionSender
 {
   public mempool: PrivateMempool;

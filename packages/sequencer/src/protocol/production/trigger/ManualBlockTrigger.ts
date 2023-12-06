@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { NoConfig, noop } from "@proto-kit/common";
+import { noop } from "@proto-kit/common";
 
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { ComputedBlock } from "../../../storage/model/Block";
@@ -9,7 +9,7 @@ import { BlockTrigger } from "./BlockTrigger";
 
 @injectable()
 export class ManualBlockTrigger
-  extends SequencerModule<NoConfig>
+  extends SequencerModule
   implements BlockTrigger
 {
   public constructor(

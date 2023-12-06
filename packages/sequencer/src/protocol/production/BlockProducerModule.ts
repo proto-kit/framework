@@ -8,7 +8,7 @@ import {
   ReturnType,
 } from "@proto-kit/protocol";
 import { Field, Proof, UInt64 } from "o1js";
-import { log, requireTrue, noop, NoConfig } from "@proto-kit/common";
+import { log, requireTrue, noop } from "@proto-kit/common";
 
 import {
   sequencerModule,
@@ -64,7 +64,7 @@ const errors = {
  * 2.
  */
 @sequencerModule()
-export class BlockProducerModule extends SequencerModule<NoConfig> {
+export class BlockProducerModule extends SequencerModule {
   private productionInProgress = false;
 
   // eslint-disable-next-line max-params

@@ -276,12 +276,10 @@ export class ModuleContainer<
 
   // eslint-disable-next-line accessor-pairs
   public set config(config: ModulesConfig<Modules>) {
-    console.log("Config before", this.currentConfig);
     super.config = merge<
       ModulesConfig<Modules> | NoConfig,
       ModulesConfig<Modules>
     >(this.currentConfig ?? {}, config);
-    console.log("Config after", this.currentConfig);
   }
 
   /**

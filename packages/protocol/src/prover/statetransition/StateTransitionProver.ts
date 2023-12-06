@@ -4,7 +4,6 @@ import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
   log,
-  NoConfig,
   PlainZkProgram,
   provableMethod,
   ZkProgrammable,
@@ -346,7 +345,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
 @injectable()
 export class StateTransitionProver
-  extends ProtocolModule<NoConfig>
+  extends ProtocolModule
   implements StateTransitionProvable
 {
   public readonly zkProgrammable: StateTransitionProverProgrammable;

@@ -1,4 +1,4 @@
-import { NoConfig, noop } from "@proto-kit/common";
+import { noop } from "@proto-kit/common";
 
 import {
   SequencerModule,
@@ -9,7 +9,7 @@ import { BaseLayer } from "./BaseLayer";
 
 @sequencerModule()
 export class NoopBaseLayer
-  extends SequencerModule<NoConfig>
+  extends SequencerModule
   implements BaseLayer
 {
   public async blockProduced(): Promise<void> {

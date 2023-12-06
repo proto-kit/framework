@@ -43,7 +43,6 @@ import {
   log,
   ModuleContainer,
   ModulesRecord,
-  NoConfig,
   range,
 } from "@proto-kit/common";
 import { ObjMap } from "graphql/jsutils/ObjMap";
@@ -66,7 +65,7 @@ interface AnyJson {
 @graphqlModule()
 export class QueryGraphqlModule<
   RuntimeModules extends RuntimeModulesRecord
-> extends SchemaGeneratingGraphqlModule<NoConfig> {
+> extends SchemaGeneratingGraphqlModule {
   public constructor(
     @inject("QueryTransportModule")
     private readonly queryTransportModule: QueryTransportModule,

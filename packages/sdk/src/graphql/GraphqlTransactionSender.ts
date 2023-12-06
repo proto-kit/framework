@@ -1,7 +1,6 @@
 import { inject, injectable } from "tsyringe";
 import { PendingTransaction } from "@proto-kit/sequencer";
 import { gql } from "@urql/core";
-import { NoConfig } from "@proto-kit/common";
 
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChainModule } from "../appChain/AppChainModule";
@@ -10,7 +9,7 @@ import { GraphqlClient } from "./GraphqlClient";
 
 @injectable()
 export class GraphqlTransactionSender
-  extends AppChainModule<NoConfig>
+  extends AppChainModule
   implements TransactionSender
 {
   public constructor(

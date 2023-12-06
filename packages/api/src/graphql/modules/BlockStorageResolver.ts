@@ -8,7 +8,6 @@ import {
   ComputedBlock,
   ComputedBlockTransaction,
 } from "@proto-kit/sequencer";
-import { NoConfig } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
@@ -70,7 +69,7 @@ export class ComputedBlockModel {
 }
 
 @graphqlModule()
-export class BlockStorageResolver extends GraphqlModule<NoConfig> {
+export class BlockStorageResolver extends GraphqlModule {
   // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")

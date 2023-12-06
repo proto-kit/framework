@@ -6,13 +6,12 @@ import {
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
-import { NoConfig } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
 export class StateServiceQueryModule
-  extends AppChainModule<NoConfig>
+  extends AppChainModule
   implements QueryTransportModule
 {
   public constructor(
