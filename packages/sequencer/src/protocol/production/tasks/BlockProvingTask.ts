@@ -6,12 +6,11 @@ import {
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
-  // eslint-disable-next-line @typescript-eslint/no-shadow
   ReturnType,
   StateTransitionProof,
   StateTransitionProvable,
 } from "@proto-kit/protocol";
-import { Field, Proof, Provable } from "o1js";
+import { Field, Proof } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -27,7 +26,7 @@ import { Task } from "../../../worker/flow/Task";
 
 import { CompileRegistry } from "./CompileRegistry";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
-import { PreFilledStateService } from "./providers/PreFilledStateService";
+import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -192,6 +191,22 @@ export class BlockProvingTask
     );
   }
 
+  private async executeWithPrefilledStateService<Return>(
+    startingState: DecodedState,
+    callback: () => Promise<Return>
+  ): Promise<Return> {
+    const prefilledStateService = new PreFilledStateService(startingState);
+    this.protocol.stateServiceProvider.setCurrentStateService(
+      prefilledStateService
+    );
+
+    const returnValue = await callback();
+
+    this.protocol.stateServiceProvider.popCurrentStateService();
+
+    return returnValue;
+  }
+
   public async compute(
     input: PairingDerivedInput<
       StateTransitionProof,
@@ -202,23 +217,24 @@ export class BlockProvingTask
     const stateTransitionProof = input.input1;
     const runtimeProof = input.input2;
 
-    const prefilledStateService = new PreFilledStateService(
-      input.params.startingState
-    );
-    this.protocol.stateServiceProvider.setCurrentStateService(
-      prefilledStateService
+    await this.executeWithPrefilledStateService(
+      input.params.startingState,
+      // eslint-disable-next-line putout/putout
+      async () => {
+        this.blockProver.proveTransaction(
+          input.params.publicInput,
+          stateTransitionProof,
+          runtimeProof,
+          input.params.executionData
+        );
+      }
     );
 
-    this.blockProver.proveTransaction(
-      input.params.publicInput,
-      stateTransitionProof,
-      runtimeProof,
-      input.params.executionData
+    return await this.executeWithPrefilledStateService(
+      input.params.startingState,
+      async () =>
+        await this.executionContext.current().result.prove<BlockProof>()
     );
-
-    this.protocol.stateServiceProvider.popCurrentStateService();
-
-    return await this.executionContext.current().result.prove<BlockProof>();
   }
 
   // eslint-disable-next-line sonarjs/no-identical-functions

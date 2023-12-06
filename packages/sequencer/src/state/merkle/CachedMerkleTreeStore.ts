@@ -1,9 +1,9 @@
 import {
-  AsyncMerkleTreeStore,
-  InMemoryMerkleTreeStorage, MerkleTreeStore,
+  InMemoryMerkleTreeStorage,
   RollupMerkleTree
 } from "@proto-kit/protocol";
 import { log, noop } from "@proto-kit/common";
+import { AsyncMerkleTreeStore } from "../async/AsyncMerkleTreeStore";
 
 export class CachedMerkleTreeStore
   extends InMemoryMerkleTreeStorage
@@ -122,43 +122,5 @@ export class CachedMerkleTreeStore
     return (
       this.getNode(key, level) ?? (await this.parent.getNodeAsync(key, level))
     );
-  }
-}
-
-export class SyncCachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
-  private writeCache: {
-    [key: number]: {
-      [key: string]: bigint;
-    };
-  } = {};
-
-  public constructor(private readonly parent: MerkleTreeStore) {
-    super();
-  }
-
-  public getNode(key: bigint, level: number): bigint | undefined {
-    return super.getNode(key, level) ?? this.parent.getNode(key, level);
-  }
-
-  public setNode(key: bigint, level: number, value: bigint) {
-    super.setNode(key, level, value);
-    (this.writeCache[level] ??= {})[key.toString()] = value;
-  }
-
-  public mergeIntoParent() {
-    if (Object.keys(this.writeCache).length === 0) {
-      return;
-    }
-
-    const { height } = RollupMerkleTree;
-    const nodes = this.writeCache
-
-    Array.from({ length: height }).forEach((ignored, level) =>
-      Object.entries(nodes[level]).forEach((entry) => {
-        this.parent.setNode(BigInt(entry[0]), level, entry[1]);
-      })
-    );
-
-    this.writeCache = {}
   }
 }
