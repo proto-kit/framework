@@ -55,14 +55,6 @@ const errors = {
     new Error("Can't create a block with zero transactions"),
 };
 
-export interface BlockProducerModuleConfig {
-  /**
-   * Toggles whether on tracing, the block and state transitions provers
-   * should run a simulation
-   */
-  simulateProvers?: boolean;
-}
-
 /**
  * The BlockProducerModule has the resposiblity to oversee the block production
  * and combine all necessary parts for that to happen. The flow roughly follows
@@ -72,7 +64,9 @@ export interface BlockProducerModuleConfig {
  * 2.
  */
 @sequencerModule()
-export class BlockProducerModule extends SequencerModule<BlockProducerModuleConfig> {
+export class BlockProducerModule extends SequencerModule<
+  Record<string, never>
+> {
   private productionInProgress = false;
 
   public constructor(

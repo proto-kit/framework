@@ -1,14 +1,15 @@
 import { inject, injectable } from "tsyringe";
+import { log } from "@proto-kit/common";
+import gcd from "compute-gcd";
 
 import { Closeable } from "../../../worker/queue/TaskQueue";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
+import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 
 import { BlockTrigger } from "./BlockTrigger";
-import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
-import { gcd, log } from "@proto-kit/common";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 
 export interface TimedBlockTriggerConfig {
   settlementInterval?: number;
