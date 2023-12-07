@@ -235,24 +235,24 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
   }
 
-  private getBeforeBundleNetworkState(
+  private getBeforeBlockNetworkState(
     state: BlockProverState,
     networkState: NetworkState
   ) {
     return this.blockHooks.reduce<NetworkState>((networkState, blockHook) => {
-      return blockHook.beforeBundle({
+      return blockHook.beforeBlock({
         state,
         networkState,
       });
     }, networkState);
   }
 
-  private getAfterBundleNetworkState(
+  private getAfterBlockNetworkState(
     state: BlockProverState,
     networkState: NetworkState
   ) {
     return this.blockHooks.reduce<NetworkState>((networkState, blockHook) => {
-      return blockHook.afterBundle({
+      return blockHook.afterBlock({
         state,
         networkState,
       });
@@ -276,7 +276,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     };
 
     // Execute beforeBlook hooks and apply if it is the first tx of the bundle
-    const beforeHookResult = this.getBeforeBundleNetworkState(
+    const beforeHookResult = this.getBeforeBlockNetworkState(
       state,
       networkState
     );
@@ -343,8 +343,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
       }
     );
 
-    // Apply afterBundle hooks
-    const afterBlockNetworkState = this.getAfterBundleNetworkState(
+    // Apply afterBlock hooks
+    const afterBlockNetworkState = this.getAfterBlockNetworkState(
       stateTo,
       bundleInclusionResult.networkState
     );

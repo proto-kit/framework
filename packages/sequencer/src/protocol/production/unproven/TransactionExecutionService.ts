@@ -201,7 +201,7 @@ export class TransactionExecutionService {
 
     const networkState = this.blockHooks.reduce<NetworkState>(
       (state, hook) =>
-        hook.beforeBundle({
+        hook.beforeBlock({
           networkState: metadata.resultingNetworkState,
 
           state: {
@@ -287,7 +287,7 @@ export class TransactionExecutionService {
 
     const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
       (networkState, hook) =>
-        hook.afterBundle({
+        hook.afterBlock({
           state,
           networkState,
         }),

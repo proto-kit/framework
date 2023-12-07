@@ -1,12 +1,12 @@
 import { NetworkState } from "../model/network/NetworkState";
 import {
-  AfterBundleParameters,
-  BeforeBundleParameters,
+  AfterBlockParameters,
+  BeforeBlockParameters,
   ProvableBlockHook,
 } from "../protocol/ProvableBlockHook";
 
 export class BlockHeightHook extends ProvableBlockHook<Record<string, never>> {
-  public afterBundle({ networkState }: AfterBundleParameters): NetworkState {
+  public afterBlock({ networkState }: AfterBlockParameters): NetworkState {
     return new NetworkState({
       block: {
         height: networkState.block.height.add(1),
@@ -14,7 +14,7 @@ export class BlockHeightHook extends ProvableBlockHook<Record<string, never>> {
     });
   }
 
-  public beforeBundle(blockData: BeforeBundleParameters): NetworkState {
+  public beforeBlock(blockData: BeforeBlockParameters): NetworkState {
     return blockData.networkState;
   }
 }
