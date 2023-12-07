@@ -8,7 +8,7 @@ import { ToFieldable } from "../utils";
 // eslint-disable-next-line etc/prefer-interface
 export type DecoratedMethod = (...args: unknown[]) => unknown;
 
-export const mockProof = "mock-proof";
+export const MOCK_PROOF = "mock-proof";
 
 export function toProver(
   methodName: string,
@@ -28,7 +28,7 @@ export function toProver(
     const publicOutput = Reflect.apply(simulatedMethod, this, args);
 
     return new this.zkProgram.Proof({
-      proof: mockProof,
+      proof: MOCK_PROOF,
 
       // eslint-disable-next-line no-warning-comments
       // TODO: provide undefined if public input is not used
