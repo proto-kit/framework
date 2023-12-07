@@ -3,10 +3,7 @@ import { beforeEach, expect } from "@jest/globals";
 import { Field } from "o1js";
 
 import { MockAsyncMerkleTreeStore } from "../../src/storage/MockStorageDependencyFactory";
-import {
-  CachedMerkleTreeStore,
-  SyncCachedMerkleTreeStore,
-} from "../../src/protocol/production/execution/CachedMerkleTreeStore";
+import { CachedMerkleTreeStore, SyncCachedMerkleTreeStore } from "../../src";
 
 describe("cached merkle store", () => {
   const mainStore = new MockAsyncMerkleTreeStore();

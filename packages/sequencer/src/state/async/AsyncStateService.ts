@@ -6,6 +6,11 @@ import { Field } from "o1js";
  * CachedStateService to preload keys for In-Circuit usage.
  */
 export interface AsyncStateService {
+  openTransaction: () => void;
+
+  commit: () => void;
+
   setAsync: (key: Field, value: Field[] | undefined) => Promise<void>;
+
   getAsync: (key: Field) => Promise<Field[] | undefined>;
 }

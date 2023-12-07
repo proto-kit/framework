@@ -4,9 +4,7 @@ import { NetworkState, ReturnType } from "@proto-kit/protocol";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 
-export interface DecodedState {
-  [key: string]: Field[] | undefined;
-}
+export type DecodedState = Record<string, Field[] | undefined>;
 
 export interface RuntimeProofParameters {
   // publicInput: MethodPublicInput;

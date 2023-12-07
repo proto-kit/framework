@@ -19,7 +19,7 @@ import {
   RuntimeProofParameters,
   RuntimeProofParametersSerializer,
 } from "./RuntimeTaskParameters";
-import { PreFilledStateService } from "./providers/PreFilledStateService";
+import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 

@@ -25,7 +25,7 @@ import {
   StateTransitionParametersSerializer,
   StateTransitionProofParameters,
 } from "./StateTransitionTaskParameters";
-import { PreFilledWitnessProvider } from "./providers/PreFilledWitnessProvider";
+import { PreFilledWitnessProvider } from "../../../state/prefilled/PreFilledWitnessProvider";
 import { CompileRegistry } from "./CompileRegistry";
 
 @injectable()
