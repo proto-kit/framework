@@ -1,5 +1,5 @@
 {
-  "name": "@proto-kit/common",
+  "name": "@proto-kit/library",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -17,10 +17,11 @@
     "access": "public"
   },
   "dependencies": {
+    "@proto-kit/protocol": "*",
+    "bigint-isqrt": "^0.3.2",
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
-    "reflect-metadata": "^0.1.13",
-    "typescript-memoize": "^1.1.1"
+    "reflect-metadata": "^0.1.13"
   },
   "peerDependencies": {
     "o1js": "0.13.1",
