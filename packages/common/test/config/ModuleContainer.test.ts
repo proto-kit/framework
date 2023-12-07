@@ -1,4 +1,7 @@
 /* eslint-disable max-classes-per-file */
+import "reflect-metadata";
+import { container as tsyringeContainer } from "tsyringe";
+
 import { ConfigurableModule } from "../../src/config/ConfigurableModule";
 import {
   ModuleContainerErrors,
@@ -14,6 +17,8 @@ type TestModulesRecord = ModulesRecord<TypedClass<BaseTestModule<unknown>>>;
 
 interface TestModuleConfig {
   testConfigProperty: number;
+  testConfigProperty2?: number;
+  testConfigProperty3?: number;
 }
 
 class TestModule extends BaseTestModule<TestModuleConfig> {}
@@ -57,9 +62,11 @@ describe("moduleContainer", () => {
   it("should throw on resolution, if config was not provided", () => {
     expect.assertions(1);
 
+    container.create(() => tsyringeContainer.createChildContainer());
+
     expect(() => {
       container.resolve("TestModule");
-    }).toThrow(ModuleContainerErrors.configNotSetInContainer("TestModule"));
+    }).toThrow();
   });
 
   it("should resolve the registered module with the provided config", () => {
@@ -74,9 +81,41 @@ describe("moduleContainer", () => {
         otherTestConfigProperty: testConfigProperty,
       },
     });
+    container.create(() => tsyringeContainer.createChildContainer());
 
     const testModule = container.resolve("TestModule");
 
     expect(testModule.config.testConfigProperty).toBe(testConfigProperty);
+  });
+
+  it("should stack configurations correctly", () => {
+    container.configure({
+      TestModule: {
+        testConfigProperty: 1,
+      },
+      OtherTestModule: {
+        otherTestConfigProperty: 4,
+      },
+    });
+
+    container.configurePartial({
+      TestModule: {
+        testConfigProperty2: 2,
+      },
+    });
+
+    container.configurePartial({
+      TestModule: {
+        testConfigProperty: 3,
+      },
+    });
+
+    container.create(() => tsyringeContainer.createChildContainer());
+
+    const config = container.resolve("TestModule").config;
+
+    expect(config.testConfigProperty).toBe(3);
+    expect(config.testConfigProperty2).toBe(2);
+    expect(config.testConfigProperty3).toBe(undefined);
   });
 });

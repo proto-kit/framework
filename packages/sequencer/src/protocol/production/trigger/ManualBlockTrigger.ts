@@ -12,7 +12,7 @@ import { BlockTrigger } from "./BlockTrigger";
 
 @injectable()
 export class ManualBlockTrigger
-  extends SequencerModule<object>
+  extends SequencerModule
   implements BlockTrigger
 {
   public constructor(

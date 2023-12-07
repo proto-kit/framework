@@ -26,10 +26,10 @@ export type GenericProtocolModuleRecord = ModulesRecord<
   TypedClass<ProtocolModule<unknown>>
 >;
 
-interface BlockProverType extends ProtocolModule<object>, BlockProvable {}
+interface BlockProverType extends ProtocolModule, BlockProvable {}
 
 interface StateTransitionProverType
-  extends ProtocolModule<object>,
+  extends ProtocolModule,
     StateTransitionProvable {}
 
 export interface ProtocolCustomModulesRecord {

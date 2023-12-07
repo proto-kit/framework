@@ -29,7 +29,6 @@ import {
 import { ProvableStateTransition } from "../../model/StateTransition";
 import { ProvableTransactionHook } from "../../protocol/ProvableTransactionHook";
 import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethodExecutionContext";
-import { Protocol, ProtocolModulesRecord } from "../../protocol/Protocol";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -387,7 +386,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
  * then be merged to be committed to the base-layer contract
  */
 @injectable()
-export class BlockProver extends ProtocolModule<object> implements BlockProvable {
+export class BlockProver
+  extends ProtocolModule
+  implements BlockProvable
+{
   public zkProgrammable: BlockProverProgrammable;
 
   public constructor(

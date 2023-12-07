@@ -20,7 +20,7 @@ function assertStringArray(array: any): asserts array is string[] {
 
 @injectable()
 export class GraphqlQueryTransportModule
-  extends AppChainModule<Record<string, never>>
+  extends AppChainModule
   implements QueryTransportModule
 {
   public constructor(

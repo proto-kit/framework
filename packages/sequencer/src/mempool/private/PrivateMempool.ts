@@ -7,7 +7,10 @@ import { sequencerModule, SequencerModule } from "../../sequencer/builder/Sequen
 import { TransactionValidator } from "../verification/TransactionValidator";
 
 @sequencerModule()
-export class PrivateMempool extends SequencerModule<object> implements Mempool {
+export class PrivateMempool
+  extends SequencerModule
+  implements Mempool
+{
   public commitment: Field;
 
   private queue: PendingTransaction[] = [];

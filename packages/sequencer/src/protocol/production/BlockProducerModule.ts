@@ -64,9 +64,7 @@ const errors = {
  * 2.
  */
 @sequencerModule()
-export class BlockProducerModule extends SequencerModule<
-  Record<string, never>
-> {
+export class BlockProducerModule extends SequencerModule {
   private productionInProgress = false;
 
   public constructor(

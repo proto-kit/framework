@@ -9,7 +9,7 @@ import { BaseLayer } from "./BaseLayer";
 
 @sequencerModule()
 export class NoopBaseLayer
-  extends SequencerModule<object>
+  extends SequencerModule
   implements BaseLayer
 {
   public async blockProduced(): Promise<void> {

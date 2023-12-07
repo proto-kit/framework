@@ -73,7 +73,8 @@ export class ComputedBlockModel {
 }
 
 @graphqlModule()
-export class BlockStorageResolver extends GraphqlModule<object> {
+export class BlockStorageResolver extends GraphqlModule {
+  // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
     private readonly blockStorage: BlockStorage & HistoricalBlockStorage
