@@ -1,7 +1,7 @@
 import { Experimental, FlexibleProvablePure, Proof } from "o1js";
 import { Memoize } from "typescript-memoize";
 
-import { mockProof } from "./provableMethod";
+import { MOCK_PROOF } from "./provableMethod";
 
 const errors = {
   appChainNotSet: (name: string) =>
@@ -67,11 +67,12 @@ export function verifyToMockable<PublicInput, PublicOutput>(
       return verified;
     }
 
-    return proof.proof === mockProof;
+    return proof.proof === MOCK_PROOF;
   };
 }
 
-export const mockVerificationKey = "mock-verification-key";
+export const MOCK_VERIFICATION_KEY = "mock-verification-key";
+
 export function compileToMockable(
   compile: Compile,
   { areProofsEnabled }: AreProofsEnabled
@@ -82,7 +83,7 @@ export function compileToMockable(
     }
 
     return {
-      verificationKey: mockVerificationKey,
+      verificationKey: MOCK_VERIFICATION_KEY,
     };
   };
 }

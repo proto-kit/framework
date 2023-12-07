@@ -18,6 +18,7 @@ import {
   BlockProducerModule,
   ManualBlockTrigger,
   LocalTaskQueue,
+  UnprovenProducerModule
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
@@ -55,6 +56,7 @@ export class TestingAppChain<
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
+        UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
       },
@@ -65,6 +67,7 @@ export class TestingAppChain<
         BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
+        UnprovenProducerModule: {},
 
         TaskQueue: {
           simulatedDuration: 0,
@@ -72,7 +75,7 @@ export class TestingAppChain<
       },
     });
 
-    return new TestingAppChain({
+    const appchain = new TestingAppChain({
       runtime,
       sequencer,
 
@@ -90,14 +93,36 @@ export class TestingAppChain<
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
+      }
+    });
+
+    appchain.configure({
+      Runtime: definition.config,
+
+      Sequencer: {
+        BlockTrigger: {},
+        Mempool: {},
+        BlockProducerModule: {},
+        LocalTaskWorkerModule: {},
+        BaseLayer: {},
+        UnprovenProducerModule: {},
+
+        TaskQueue: {
+          simulatedDuration: 0,
+        },
       },
 
-      config: {
-        Signer: {},
-        TransactionSender: {},
-        QueryTransportModule: {},
+      Protocol: {
+        BlockProver: {},
+        StateTransitionProver: {},
       },
+
+      Signer: {},
+      TransactionSender: {},
+      QueryTransportModule: {},
     });
+
+    return appchain;
   }
 
   public setSigner(signer: PrivateKey) {
@@ -126,6 +151,6 @@ export class TestingAppChain<
       ManualBlockTrigger
     );
 
-    return await blockTrigger.produceBlock();
+    return await blockTrigger.produceUnproven(true);
   }
 }

@@ -13,6 +13,7 @@ import { DependencyContainer, injectable } from "tsyringe";
 import { SequencerModule } from "../builder/SequencerModule";
 
 import { Sequenceable } from "./Sequenceable";
+import { MethodIdFactory } from "@proto-kit/module/dist/factories/MethodIdFactory";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -67,6 +68,8 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     //     "StateTransitionWitnessProvider"
     //   );
     // witnessProviderReference.setWitnessProvider(witnessProvider);
+
+    this.registerDependencyFactories([MethodIdFactory]);
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(

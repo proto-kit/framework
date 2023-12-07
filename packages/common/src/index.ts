@@ -9,3 +9,5 @@ export * from "./zkProgrammable/provableMethod";
 export * from "./utils";
 export * from "./dependencyFactory/DependencyFactory";
 export * from "./log";
+export * from "./events/EventEmittingComponent";
+export * from "./events/EventEmitter";

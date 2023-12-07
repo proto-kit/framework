@@ -1,8 +1,12 @@
-import { MockAsyncMerkleTreeStore } from "@proto-kit/module/test/state/MockAsyncMerkleStore";
-import { Field, Provable } from "o1js";
+import { Field } from "o1js";
 
-import { CachedMerkleTreeStore, RollupMerkleTree } from "../../src";
+import { RollupMerkleTree } from "@proto-kit/protocol";
 import { log } from "@proto-kit/common";
+import {
+  CachedMerkleTreeStore,
+  MockAsyncMerkleTreeStore,
+  SyncCachedMerkleTreeStore
+} from "../../src";
 
 describe("merkle tree caching", () => {
   it("should cache, merge and cache again correctly", async () => {

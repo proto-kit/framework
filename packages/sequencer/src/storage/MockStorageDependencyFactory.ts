@@ -20,6 +20,11 @@ import {
   HistoricalBlockStorage,
 } from "./repositories/BlockStorage";
 import { ComputedBlock } from "./model/Block";
+import {
+  HistoricalUnprovenBlockStorage, UnprovenBlockQueue,
+  UnprovenBlockStorage
+} from "./repositories/UnprovenBlockStorage";
+import { UnprovenBlock } from "../protocol/production/unproven/TransactionExecutionService";
 
 export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
   private readonly store = new InMemoryMerkleTreeStorage();
@@ -64,12 +69,42 @@ class MockBlockStorage implements BlockStorage, HistoricalBlockStorage {
   }
 }
 
+class MockUnprovenBlockStorage
+  implements UnprovenBlockStorage, HistoricalUnprovenBlockStorage
+{
+  private readonly blocks: UnprovenBlock[] = [];
+
+  private cursor = 0;
+
+  public async getBlockAt(height: number): Promise<UnprovenBlock | undefined> {
+    return this.blocks.at(height);
+  }
+
+  public async getCurrentBlockHeight(): Promise<number> {
+    return this.blocks.length;
+  }
+
+  public async popNewBlocks(remove: boolean): Promise<UnprovenBlock[]> {
+    const slice = this.blocks.slice(this.cursor);
+    if (remove) {
+      this.cursor = this.blocks.length;
+    }
+    return slice;
+  }
+
+  public async pushBlock(block: UnprovenBlock): Promise<void> {
+    this.blocks.push(block);
+  }
+}
+
 @dependencyFactory()
 export class MockStorageDependencyFactory
   extends DependencyFactory
   implements StorageDependencyFactory
 {
   private readonly asyncService = new CachedStateService(undefined);
+
+  private readonly blockStorageQueue = new MockUnprovenBlockStorage();
 
   @dependency()
   public asyncMerkleStore(): AsyncMerkleTreeStore {
@@ -87,6 +122,16 @@ export class MockStorageDependencyFactory
   }
 
   @dependency()
+  public unprovenBlockQueue(): UnprovenBlockQueue {
+    return this.blockStorageQueue;
+  }
+
+  @dependency()
+  public unprovenBlockStorage(): UnprovenBlockStorage {
+    return this.blockStorageQueue;
+  }
+
+  @dependency()
   public stateServiceProvider(): StateServiceProvider {
     return new StateServiceProvider(this.asyncService);
   }
@@ -94,5 +139,10 @@ export class MockStorageDependencyFactory
   @dependency()
   public stateTransitionWitnessProviderReference(): StateTransitionWitnessProviderReference {
     return new StateTransitionWitnessProviderReference();
+  }
+
+  @dependency()
+  public unprovenStateService(): CachedStateService {
+    return new CachedStateService(this.asyncService);
   }
 }

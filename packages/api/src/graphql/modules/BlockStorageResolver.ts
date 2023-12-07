@@ -8,6 +8,7 @@ import {
   ComputedBlock,
   ComputedBlockTransaction,
 } from "@proto-kit/sequencer";
+import { MOCK_PROOF } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
@@ -47,10 +48,13 @@ export class ComputedBlockTransactionModel {
 
 @ObjectType()
 export class ComputedBlockModel {
-  public static fromServiceLayerModel({ txs, proof }: ComputedBlock) {
+  public static fromServiceLayerModel({
+    txs,
+    proof,
+  }: ComputedBlock): ComputedBlockModel {
     return new ComputedBlockModel(
       txs.map((tx) => ComputedBlockTransactionModel.fromServiceLayerModel(tx)),
-      proof.proof === "mock-proof"
+      proof.proof === MOCK_PROOF
         ? "mock-proof"
         : JSON.stringify(proof.toJSON())
     );
@@ -70,7 +74,6 @@ export class ComputedBlockModel {
 
 @graphqlModule()
 export class BlockStorageResolver extends GraphqlModule<object> {
-  // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
     private readonly blockStorage: BlockStorage & HistoricalBlockStorage
@@ -79,7 +82,7 @@ export class BlockStorageResolver extends GraphqlModule<object> {
   }
 
   @Query(() => ComputedBlockModel, { nullable: true })
-  public async block(
+  public async settlements(
     @Arg("height", () => Number, { nullable: true })
     height: number | undefined
   ) {
