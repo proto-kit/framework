@@ -12,7 +12,7 @@ export * from "./utils/PrefixedProvableHashList.js";
 export * from "./utils/utils";
 export * from "./prover/block/BlockProver";
 export * from "./prover/block/BlockProvable";
-export * from "./prover/block/BundleTransactionPosition";
+export * from "./prover/block/BlockTransactionPosition";
 export * from "./prover/statetransition/StateTransitionProver";
 export * from "./prover/statetransition/StateTransitionProvable";
 export * from "./prover/statetransition/StateTransitionWitnessProvider";
@@ -24,7 +24,6 @@ export * from "./prover/statetransition/StateTransitionWitnessProviderReference"
 export * from "./protocol/Protocol";
 export * from "./protocol/ProtocolModule";
 export * from "./protocol/ProtocolEnvironment";
-export * from "./protocol/TransitioningProtocolModule";
 export * from "./protocol/ProvableTransactionHook";
 export * from "./protocol/ProvableBlockHook";
 export * from "./state/context/ProtocolMethodExecutionContext";

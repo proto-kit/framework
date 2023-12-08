@@ -6,12 +6,12 @@ import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 export interface BeforeBlockParameters {
   state: BlockProverState;
   networkState: NetworkState;
-};
+}
 
 export interface AfterBlockParameters {
   state: BlockProverState;
   networkState: NetworkState;
-};
+}
 
 // Purpose is to validate transition from -> to network state
 export abstract class ProvableBlockHook<

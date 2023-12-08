@@ -5,7 +5,7 @@ import {
   DefaultProvableHashList,
   NetworkState,
   RollupMerkleTree,
-  BundleTransactionPosition
+  BlockTransactionPosition,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { log, noop } from "@proto-kit/common";
@@ -238,7 +238,7 @@ export class BlockProducerModule extends SequencerModule<
       const bundle = bundleWithMetadata.block;
       const txs = bundle.transactions;
       for (const [index, tx] of txs.entries()) {
-        const bundlePosition = BundleTransactionPosition.positionTypeFromIndex(
+        const bundlePosition = BlockTransactionPosition.positionTypeFromIndex(
           index,
           txs.length
         );
@@ -262,8 +262,6 @@ export class BlockProducerModule extends SequencerModule<
           result.blockProver.executionData.networkState =
             previousMetadata.resultingNetworkState;
         }
-
-        console.log("Executing with networkState", NetworkState.toJSON(result.blockProver.executionData.networkState));
 
         traces.push(result);
       }
