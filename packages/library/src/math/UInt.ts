@@ -49,9 +49,9 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       throw new Error("Can only create rangechecks for multiples of 16 bits");
     }
 
-    if (bits <= 64) {
+    if (bits === 256) {
       throw new Error(
-        "For numBits 32 and 64 use UInt32 and UInt64 respectively"
+        "Usage with 256 bits forbidden, this would lead to unexpected behaviour"
       );
     }
 
@@ -79,26 +79,26 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    *
    * `x.divMod(y)` returns the quotient and the remainder.
    */
-  public divMod(y: This | bigint | number | string) {
+  public divMod(divisor: This | bigint | number | string) {
     let x = this.value;
-    let y_ = this.impls.from(y).value;
+    let divisor_ = this.impls.from(divisor).value;
 
-    if (this.value.isConstant() && y_.isConstant()) {
+    if (this.value.isConstant() && divisor_.isConstant()) {
       let xn = x.toBigInt();
-      let yn = y_.toBigInt();
-      let q = xn / yn;
-      let r = xn - q * yn;
+      let divisorn = divisor_.toBigInt();
+      let q = xn / divisorn;
+      let r = xn - q * divisorn;
       return {
         quotient: this.impls.creator(Field(q)),
         rest: this.impls.creator(Field(r)),
       };
     }
 
-    y_ = y_.seal();
+    divisor_ = divisor_.seal();
 
     let q = Provable.witness(
       Field,
-      () => new Field(x.toBigInt() / y_.toBigInt())
+      () => new Field(x.toBigInt() / divisor_.toBigInt())
     );
 
     UIntX.assertionFunction(
@@ -106,9 +106,15 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       "Divison overflowing"
     );
 
+    if (this.NUM_BITS * 2 > 255) {
+      // Prevents overflows over the finite field boundary for applicable uints
+      divisor_.assertLessThan(x, "Divisor too large");
+      q.assertLessThan(x, "Quotient too large");
+    }
+
     // eslint-disable-next-line no-warning-comments
     // TODO: Could be a bit more efficient
-    let r = x.sub(q.mul(y_)).seal();
+    let r = x.sub(q.mul(divisor_)).seal();
 
     UIntX.assertionFunction(
       r.rangeCheckHelper(this.NUM_BITS).equals(r),
@@ -119,7 +125,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     let q_ = this.impls.creator(q);
 
     UIntX.assertionFunction(
-      r_.lessThan(this.impls.creator(y_)),
+      r_.lessThan(this.impls.creator(divisor_)),
       "Divison failure, remainder larger than divisor"
     );
 
@@ -167,6 +173,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       return Field(sqrtn);
     });
 
+    // Sqrt fits into (NUM_BITS / 2) bits
     sqrtField
       .rangeCheckHelper(this.NUM_BITS)
       .assertEquals(sqrtField, "Sqrt output overflowing");
@@ -184,6 +191,10 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       .assertEquals(rest, "Sqrt rest output overflowing");
 
     const square = sqrtField.mul(sqrtField);
+
+    if (this.NUM_BITS * 2 > 255) {
+      square.assertGreaterThan(sqrtField, "Sqrt result overflowing");
+    }
 
     const nextSqrt = sqrtField.add(1);
     const nextLargerSquare = nextSqrt.mul(nextSqrt);
@@ -208,7 +219,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    * Wraps sqrtMod() by only returning the sqrt and omitting the rest field.
    */
   public sqrtFloor(): This {
-    return this.sqrtMod().sqrt
+    return this.sqrtMod().sqrt;
   }
 
   /**
@@ -226,6 +237,12 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    */
   public mul(y: This | bigint | number) {
     let z = this.value.mul(this.impls.from(y).value);
+
+    if (this.NUM_BITS * 2 > 255) {
+      // Only one is enough
+      z.assertGreaterThan(this.value, "Multiplication overflowing");
+    }
+
     UIntX.assertionFunction(
       z.rangeCheckHelper(this.NUM_BITS).equals(z),
       "Multiplication overflowing"
