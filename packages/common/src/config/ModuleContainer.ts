@@ -15,6 +15,11 @@ import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 import { Configurable, ConfigurableModule } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
+import { EventEmitter } from "../events/EventEmitter";
+import {
+  EventEmittingComponent,
+  EventsRecord,
+} from "../events/EventEmittingComponent";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -91,6 +96,16 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   config?: ModulesConfig<Modules>;
 }
 
+export type ContainerEvents<Modules extends ModulesRecord> = {
+  [Key in StringKeyOf<Modules>]: InstanceType<
+    Modules[Key]
+  > extends EventEmittingComponent<infer Events>
+    ? EventEmitter<Events>
+    : InstanceType<Modules[Key]> extends ModuleContainer<infer NestedModules>
+    ? ContainerEvents<NestedModules>
+    : never;
+};
+
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
@@ -115,6 +130,7 @@ export class ModuleContainer<
    * @returns list of module names
    */
   public get moduleNames() {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return Object.keys(this.definition.modules);
   }
 
@@ -205,6 +221,22 @@ export class ModuleContainer<
         this.onAfterModuleResolution(moduleName);
       }
     }
+  }
+
+  public get events(): ContainerEvents<Modules> {
+    const moduleNames = this.moduleNames as StringKeyOf<Modules>[];
+    moduleNames.reduce<ContainerEvents<Modules>>((acc, key) => {
+      const module = this.resolve(key);
+      if ((module as any)["events"] !== undefined) {
+        const eventemitting = module as EventEmittingComponent<
+          Modules[typeof key] extends EventEmittingComponent<infer Events>
+            ? Events
+            : never
+        >;
+        acc[key] = eventemitting.events;
+      }
+      return acc;
+    }, {});
   }
 
   /**
