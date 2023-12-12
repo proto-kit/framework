@@ -4,6 +4,15 @@ import { Bool, Field, Provable, Struct, UInt64 } from "o1js";
 import { assert } from "@proto-kit/protocol";
 import bigintSqrt from "bigint-isqrt";
 
+const errors = {
+  usageWith256BitsForbidden: () =>
+    new Error(
+      "Usage with 256 bits forbidden, this would lead to unexpected behaviour"
+    ),
+  canOnlyCreateMultiplesOf16Bits: () =>
+    new Error("Can only create rangechecks for multiples of 16 bits"),
+};
+
 export abstract class UIntX<This extends UIntX<any>> extends Struct({
   value: Field,
 }) {
@@ -45,13 +54,11 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     super({ value });
 
     if (bits % 16 !== 0) {
-      throw new Error("Can only create rangechecks for multiples of 16 bits");
+      throw errors.canOnlyCreateMultiplesOf16Bits();
     }
 
     if (bits === 256) {
-      throw new Error(
-        "Usage with 256 bits forbidden, this would lead to unexpected behaviour"
-      );
+      throw errors.usageWith256BitsForbidden();
     }
 
     this.NUM_BITS = bits;
@@ -144,15 +151,18 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
 
   /**
    * Implements a non-overflowing square-root with rest.
-   * Normal Field.sqrt() provides the sqrt as it is defined by the finite field operations.
-   * This implementation however mimics the natural-numbers style of sqrt to be used
-   * inside applications with the tradeoff that it also returns a "rest" that indicates
-   * the amount the actual result is off (since we floor the result to stay inside the ff).
+   * Normal Field.sqrt() provides the sqrt as it is defined by the finite
+   * field operations. This implementation however mimics the natural-numbers
+   * style of sqrt to be used inside applications with the tradeoff that it
+   * also returns a "rest" that indicates the amount the actual result is off
+   * (since we floor the result to stay inside the ff).
    *
-   * Some assertions are hard-failing, because they represent malicious witness values
+   * Some assertions are hard-failing, because they represent malicious
+   * witness values
    *
    * @returns sqrt: The non-overflowing sqrt
-   * @returns rest: The remainder indicating how far off the result is from the "real" sqrt
+   * @returns rest: The remainder indicating how far off the result
+   * is from the "real" sqrt
    */
   public sqrtMod(): { sqrt: This; rest: This } {
     let x = this.value;
