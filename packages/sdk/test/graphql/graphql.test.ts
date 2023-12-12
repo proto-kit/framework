@@ -177,7 +177,7 @@ describe("graphql client test", function () {
     expect(balance!.toBigInt()).toBe(1000n);
   }, 60000);
 
-  it.only("should fetch networkstate correctly", async () => {
+  it("should fetch networkstate correctly", async () => {
     expect.assertions(2);
 
     const state = await appChain!.query.network.unproven;
