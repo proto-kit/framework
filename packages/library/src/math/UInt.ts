@@ -1,19 +1,16 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-magic-numbers,prefer-const,id-length,no-underscore-dangle,putout/putout */
-import { Bool, Field, Provable, Struct, UInt32, UInt64 } from "o1js";
+import { Bool, Field, Provable, Struct, UInt64 } from "o1js";
 import { assert } from "@proto-kit/protocol";
 import bigintSqrt from "bigint-isqrt";
 
 export abstract class UIntX<This extends UIntX<any>> extends Struct({
   value: Field,
 }) {
-  public readonly NUM_BITS: number;
-
   protected static readonly assertionFunction: (
     bool: Bool,
     msg?: string
   ) => void = assert;
-  // private readonly assertion_fn: (bool: Bool, msg?: string) => void = (bool, msg) => { bool.assertTrue(msg) }
 
   public static checkConstant(x: Field, numBits: number) {
     if (!x.isConstant()) {
@@ -29,11 +26,13 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
   }
 
   /**
-   * Creates a {@link UInt64} with a value of 18,446,744,073,709,551,615.
+   * Creates a {@link UIntX} with a value of 18,446,744,073,709,551,615.
    */
   protected static maxIntField(numBits: number): Field {
     return Field((1n << BigInt(numBits)) - 1n);
   }
+
+  public readonly NUM_BITS: number;
 
   protected constructor(
     value: Field,
@@ -67,7 +66,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
   }
 
   /**
-   * Turns the {@link UInt64} into a {@link BigInt}.
+   * Turns the {@link UIntX} into a {@link BigInt}.
    * @returns
    */
   public toBigInt() {
@@ -236,10 +235,11 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    * Multiplication with overflow checking.
    */
   public mul(y: This | bigint | number) {
-    let z = this.value.mul(this.impls.from(y).value);
+    let yField = this.impls.from(y).value;
+    let z = this.value.mul(yField);
 
     if (this.NUM_BITS * 2 > 255) {
-      // Only one is enough
+      // Only one should be enough
       z.assertGreaterThan(this.value, "Multiplication overflowing");
     }
 
@@ -275,7 +275,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
   }
 
   /**
-   * Checks if a {@link UInt64} is less than or equal to another one.
+   * Checks if a {@link UIntX} is less than or equal to another one.
    */
   public lessThanOrEqual(y: This) {
     if (this.value.isConstant() && y.value.isConstant()) {
@@ -283,15 +283,15 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     }
     let xMinusY = this.value.sub(y.value).seal();
     let yMinusX = xMinusY.neg();
-    let xMinusYFits = xMinusY.rangeCheckHelper(UInt64.NUM_BITS).equals(xMinusY);
-    let yMinusXFits = yMinusX.rangeCheckHelper(UInt64.NUM_BITS).equals(yMinusX);
+    let xMinusYFits = xMinusY.rangeCheckHelper(this.NUM_BITS).equals(xMinusY);
+    let yMinusXFits = yMinusX.rangeCheckHelper(this.NUM_BITS).equals(yMinusX);
     UIntX.assertionFunction(xMinusYFits.or(yMinusXFits));
     // x <= y if y - x fits in 64 bits
     return yMinusXFits;
   }
 
   /**
-   * Asserts that a {@link UInt64} is less than or equal to another one.
+   * Asserts that a {@link UIntX} is less than or equal to another one.
    */
   public assertLessThanOrEqual(y: This, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
@@ -301,64 +301,62 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
         if (message !== undefined) {
           throw new Error(message);
         }
-        throw new Error(
-          `UInt64.assertLessThanOrEqual: expected ${x0} <= ${y0}`
-        );
+        throw new Error(`UIntX.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
       }
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
     UIntX.assertionFunction(
-      yMinusX.rangeCheckHelper(UInt64.NUM_BITS).equals(yMinusX),
+      yMinusX.rangeCheckHelper(this.NUM_BITS).equals(yMinusX),
       message
     );
   }
 
   /**
    *
-   * Checks if a {@link UInt64} is less than another one.
+   * Checks if a {@link UIntX} is less than another one.
    */
   public lessThan(y: This) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
   }
 
   /**
-   * Asserts that a {@link UInt64} is less than another one.
+   * Asserts that a {@link UIntX} is less than another one.
    */
   public assertLessThan(y: This, message?: string) {
     UIntX.assertionFunction(this.lessThan(y), message);
   }
 
   /**
-   * Checks if a {@link UInt64} is greater than another one.
+   * Checks if a {@link UIntX} is greater than another one.
    */
   public greaterThan(y: This) {
     return y.lessThan(this);
   }
 
   /**
-   * Asserts that a {@link UInt64} is greater than another one.
+   * Asserts that a {@link UIntX} is greater than another one.
    */
   public assertGreaterThan(y: This, message?: string) {
     y.assertLessThan(this, message);
   }
 
   /**
-   * Checks if a {@link UInt64} is greater than or equal to another one.
+   * Checks if a {@link UIntX} is greater than or equal to another one.
    */
   public greaterThanOrEqual(y: This) {
     return this.lessThan(y).not();
   }
 
   /**
-   * Asserts that a {@link UInt64} is greater than or equal to another one.
+   * Asserts that a {@link UIntX} is greater than or equal to another one.
    */
   public assertGreaterThanOrEqual(y: This, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
 
   /**
-   * Turns the {@link UInt64} into a {@link UInt32}, asserting that it fits in 32 bits.
+   * Turns the {@link UIntX} into a {@link UInt64}, asserting that it fits in 32 bits.
    */
   public toUInt64() {
     let uint64 = new UInt64(this.value);
@@ -368,9 +366,6 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
 
   /**
    * Turns the {@link UIntX} into a {@link UInt64}, clamping to the 64 bits range if it's too large.
-   * ```ts
-   * UInt64.from(4294967296).toUInt32Clamped().toString(); // "4294967295"
-   * ```
    */
   public toUInt64Clamped() {
     let max = (1n << 64n) - 1n;
