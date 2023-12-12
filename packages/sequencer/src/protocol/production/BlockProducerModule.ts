@@ -5,7 +5,7 @@ import {
   DefaultProvableHashList,
   NetworkState,
   RollupMerkleTree,
-  BundleTransactionPosition
+  BlockTransactionPosition,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { log, noop } from "@proto-kit/common";
@@ -58,14 +58,6 @@ const errors = {
     new Error("Can't create a block with zero transactions"),
 };
 
-export interface BlockProducerModuleConfig {
-  /**
-   * Toggles whether on tracing, the block and state transitions provers
-   * should run a simulation
-   */
-  simulateProvers?: boolean;
-}
-
 /**
  * The BlockProducerModule has the resposiblity to oversee the block production
  * and combine all necessary parts for that to happen. The flow roughly follows
@@ -75,7 +67,9 @@ export interface BlockProducerModuleConfig {
  * 2.
  */
 @sequencerModule()
-export class BlockProducerModule extends SequencerModule<BlockProducerModuleConfig> {
+export class BlockProducerModule extends SequencerModule<
+  Record<string, never>
+> {
   private productionInProgress = false;
 
   public constructor(
@@ -244,7 +238,7 @@ export class BlockProducerModule extends SequencerModule<BlockProducerModuleConf
       const bundle = bundleWithMetadata.block;
       const txs = bundle.transactions;
       for (const [index, tx] of txs.entries()) {
-        const bundlePosition = BundleTransactionPosition.positionTypeFromIndex(
+        const bundlePosition = BlockTransactionPosition.positionTypeFromIndex(
           index,
           txs.length
         );
@@ -268,8 +262,6 @@ export class BlockProducerModule extends SequencerModule<BlockProducerModuleConf
           result.blockProver.executionData.networkState =
             previousMetadata.resultingNetworkState;
         }
-
-        console.log("Executing with networkState", NetworkState.toJSON(result.blockProver.executionData.networkState));
 
         traces.push(result);
       }

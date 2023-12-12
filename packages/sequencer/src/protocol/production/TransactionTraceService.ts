@@ -9,8 +9,8 @@ import {
   RollupMerkleTree,
   StateTransition,
   StateTransitionType,
-  BundleTransactionPosition,
-  BundleTransactionPositionType
+  BlockTransactionPosition,
+  BlockTransactionPositionType,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import chunk from "lodash/chunk";
@@ -87,7 +87,7 @@ export class TransactionTraceService {
     },
     networkState: NetworkState,
     bundleTracker: ProvableHashList<Field>,
-    bundlePosition: BundleTransactionPositionType
+    bundlePosition: BlockTransactionPositionType
   ): Promise<TransactionTrace> {
     const { stateTransitions, protocolTransitions, status, tx } =
       executionResult;
@@ -137,9 +137,8 @@ export class TransactionTraceService {
         executionData: {
           networkState,
           transaction: tx.toProtocolTransaction(),
-
-          bundleTransactionPosition:
-            BundleTransactionPosition.fromPositionType(bundlePosition),
+          transactionPosition:
+            BlockTransactionPosition.fromPositionType(bundlePosition),
         },
 
         startingState: protocolStartingState,

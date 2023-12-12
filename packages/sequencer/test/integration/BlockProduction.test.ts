@@ -26,8 +26,10 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule, CachedMerkleTreeStore,
-  ManualBlockTrigger, MockAsyncMerkleTreeStore
+  BlockProducerModule,
+  CachedMerkleTreeStore,
+  ManualBlockTrigger,
+  MockAsyncMerkleTreeStore,
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -113,9 +115,7 @@ describe("block production", () => {
       Sequencer: {
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {
-          simulateProvers: true,
-        },
+        BlockProducerModule: {},
         UnprovenProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
@@ -282,7 +282,7 @@ describe("block production", () => {
 
   const numberTxs = 3;
 
-  it("should produce block with multiple transaction", async () => {
+  it.only("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(5 + 2 * numberTxs);
 

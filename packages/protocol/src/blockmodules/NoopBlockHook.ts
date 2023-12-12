@@ -1,16 +1,16 @@
 import {
-  AfterBundleParameters,
-  BeforeBundleParameters,
+  AfterBlockParameters,
+  BeforeBlockParameters,
   ProvableBlockHook
 } from "../protocol/ProvableBlockHook";
 import { NetworkState } from "../model/network/NetworkState";
 
 export class NoopBlockHook extends ProvableBlockHook<Record<string, never>>{
-  public afterBundle(blockData: AfterBundleParameters): NetworkState {
+  public afterBlock(blockData: AfterBlockParameters): NetworkState {
     return blockData.networkState;
   }
 
-  public beforeBundle(blockData: BeforeBundleParameters): NetworkState {
+  public beforeBlock(blockData: BeforeBlockParameters): NetworkState {
     return blockData.networkState;
   }
 }

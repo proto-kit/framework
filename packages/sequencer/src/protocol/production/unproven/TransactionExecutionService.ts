@@ -14,8 +14,8 @@ import {
   RuntimeProvableMethodExecutionResult,
   RuntimeTransaction,
   StateTransition,
-  BundleTransactionPosition,
-  BundleTransactionPositionType,
+  BlockTransactionPosition,
+  BlockTransactionPositionType,
   ProvableBlockHook,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
@@ -201,7 +201,7 @@ export class TransactionExecutionService {
 
     const networkState = this.blockHooks.reduce<NetworkState>(
       (state, hook) =>
-        hook.beforeBundle({
+        hook.beforeBlock({
           networkState: metadata.resultingNetworkState,
 
           state: {
@@ -217,7 +217,7 @@ export class TransactionExecutionService {
       try {
         // Determine position in bundle (first, middle, last)
         const transactionPosition =
-          BundleTransactionPosition.positionTypeFromIndex(
+          BlockTransactionPosition.positionTypeFromIndex(
             index,
             transactions.length
           );
@@ -287,7 +287,7 @@ export class TransactionExecutionService {
 
     const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
       (networkState, hook) =>
-        hook.afterBundle({
+        hook.afterBlock({
           state,
           networkState,
         }),
@@ -377,7 +377,7 @@ export class TransactionExecutionService {
     stateService: CachedStateService,
     tx: PendingTransaction,
     networkState: NetworkState,
-    transactionPosition: BundleTransactionPositionType
+    transactionPosition: BlockTransactionPositionType
   ): Promise<TransactionExecutionResult> {
     const { method, args, module } = this.decodeTransaction(tx);
 
@@ -390,8 +390,8 @@ export class TransactionExecutionService {
       transaction: tx.toProtocolTransaction(),
       networkState,
 
-      bundleTransactionPosition:
-        BundleTransactionPosition.fromPositionType(transactionPosition),
+      transactionPosition:
+        BlockTransactionPosition.fromPositionType(transactionPosition),
     };
     const runtimeContextInputs = {
       networkState,

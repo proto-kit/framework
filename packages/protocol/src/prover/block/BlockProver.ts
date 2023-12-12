@@ -40,7 +40,7 @@ import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethod
 import { Protocol, ProtocolModulesRecord } from "../../protocol/Protocol";
 import { ProvableBlockHook } from "../../protocol/ProvableBlockHook";
 import { NetworkState } from "../../model/network/NetworkState";
-import { BundleTransactionPosition } from "./BundleTransactionPosition";
+import { BlockTransactionPosition } from "./BlockTransactionPosition";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -235,24 +235,24 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
   }
 
-  private getBeforeBundleNetworkState(
+  private getBeforeBlockNetworkState(
     state: BlockProverState,
     networkState: NetworkState
   ) {
     return this.blockHooks.reduce<NetworkState>((networkState, blockHook) => {
-      return blockHook.beforeBundle({
+      return blockHook.beforeBlock({
         state,
         networkState,
       });
     }, networkState);
   }
 
-  private getAfterBundleNetworkState(
+  private getAfterBlockNetworkState(
     state: BlockProverState,
     networkState: NetworkState
   ) {
     return this.blockHooks.reduce<NetworkState>((networkState, blockHook) => {
-      return blockHook.afterBundle({
+      return blockHook.afterBlock({
         state,
         networkState,
       });
@@ -270,18 +270,18 @@ export class BlockProverProgrammable extends ZkProgrammable<
     bundleOpened: Bool;
     bundleClosed: Bool;
   } {
-    const { bundleTransactionPosition, networkState } = executionData;
+    const { transactionPosition, networkState } = executionData;
     const stateTo = {
       ...state,
     };
 
     // Execute beforeBlook hooks and apply if it is the first tx of the bundle
-    const beforeHookResult = this.getBeforeBundleNetworkState(
+    const beforeHookResult = this.getBeforeBlockNetworkState(
       state,
       networkState
     );
-    const bundleOpened = bundleTransactionPosition.equals(
-      BundleTransactionPosition.fromPositionType("FIRST")
+    const bundleOpened = transactionPosition.equals(
+      BlockTransactionPosition.fromPositionType("FIRST")
     );
     const resultingNetworkState = new NetworkState(
       Provable.if(bundleOpened, NetworkState, beforeHookResult, networkState)
@@ -306,8 +306,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
       networkState: resultingNetworkState,
       bundleOpened,
 
-      bundleClosed: bundleTransactionPosition.equals(
-        BundleTransactionPosition.fromPositionType("LAST")
+      bundleClosed: transactionPosition.equals(
+        BlockTransactionPosition.fromPositionType("LAST")
       ),
     };
   }
@@ -338,18 +338,18 @@ export class BlockProverProgrammable extends ZkProgrammable<
       appProof,
       {
         transaction: executionData.transaction,
-        bundleTransactionPosition: executionData.bundleTransactionPosition,
+        transactionPosition: executionData.transactionPosition,
         networkState: bundleInclusionResult.networkState,
       }
     );
 
-    // Apply afterBundle hooks
-    const afterBlockNetworkState = this.getAfterBundleNetworkState(
+    // Apply afterBlock hooks
+    const afterBlockNetworkState = this.getAfterBlockNetworkState(
       stateTo,
       bundleInclusionResult.networkState
     );
-    const bundleClosed = executionData.bundleTransactionPosition.equals(
-      BundleTransactionPosition.fromPositionType("LAST")
+    const bundleClosed = executionData.transactionPosition.equals(
+      BlockTransactionPosition.fromPositionType("LAST")
     );
 
     // We only need the hash here since this computed networkstate

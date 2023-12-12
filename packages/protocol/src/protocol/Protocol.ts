@@ -24,6 +24,11 @@ import { ProtocolEnvironment } from "./ProtocolEnvironment";
 import { ProvableBlockHook } from "./ProvableBlockHook";
 import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
 
+const PROTOCOL_INJECTION_TOKENS = {
+  ProvableTransactionHook: "ProvableTransactionHook",
+  ProvableBlockHook: "ProvableBlockHook",
+};
+
 export type GenericProtocolModuleRecord = ModulesRecord<
   TypedClass<ProtocolModule<unknown>>
 >;
@@ -130,7 +135,7 @@ export class Protocol<Modules extends ProtocolModulesRecord>
     Object.entries(this.definition.modules).forEach(([key, value]) => {
       if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
         this.container.register(
-          "ProvableTransactionHook",
+          PROTOCOL_INJECTION_TOKENS.ProvableTransactionHook,
           { useToken: key },
           { lifecycle: Lifecycle.ContainerScoped }
         );
@@ -138,7 +143,7 @@ export class Protocol<Modules extends ProtocolModulesRecord>
       }
       if (Object.prototype.isPrototypeOf.call(ProvableBlockHook, value)) {
         this.container.register(
-          "ProvableBlockHook",
+          PROTOCOL_INJECTION_TOKENS.ProvableBlockHook,
           { useToken: key },
           { lifecycle: Lifecycle.ContainerScoped }
         );
@@ -149,14 +154,14 @@ export class Protocol<Modules extends ProtocolModulesRecord>
     // We need this so that tsyringe doesn't throw when no hooks are registered
     if (!atLeastOneTransactionHookRegistered) {
       this.container.register(
-        "ProvableTransactionHook",
+        PROTOCOL_INJECTION_TOKENS.ProvableTransactionHook,
         { useClass: NoopTransactionHook },
         { lifecycle: Lifecycle.ContainerScoped }
       );
     }
     if (!atLeastOneBlockHookRegistered) {
       this.container.register(
-        "ProvableBlockHook",
+        PROTOCOL_INJECTION_TOKENS.ProvableBlockHook,
         { useClass: NoopBlockHook },
         { lifecycle: Lifecycle.ContainerScoped }
       );
