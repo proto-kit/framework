@@ -49,25 +49,32 @@ export class ComputedBlockTransactionModel {
 @ObjectType()
 export class ComputedBlockModel {
   public static fromServiceLayerModel({
-    txs,
+    bundles,
     proof,
   }: ComputedBlock): ComputedBlockModel {
     return new ComputedBlockModel(
-      txs.map((tx) => ComputedBlockTransactionModel.fromServiceLayerModel(tx)),
+      bundles.map((bundle) =>
+        bundle.map((tx) =>
+          ComputedBlockTransactionModel.fromServiceLayerModel(tx)
+        )
+      ),
       proof.proof === MOCK_PROOF
         ? "mock-proof"
         : JSON.stringify(proof.toJSON())
     );
   }
 
-  @Field(() => [ComputedBlockTransactionModel])
-  public txs: ComputedBlockTransactionModel[];
+  @Field(() => [[ComputedBlockTransactionModel]])
+  public bundles: ComputedBlockTransactionModel[][];
 
   @Field()
   public proof: string;
 
-  public constructor(txs: ComputedBlockTransactionModel[], proof: string) {
-    this.txs = txs;
+  public constructor(
+    bundles: ComputedBlockTransactionModel[][],
+    proof: string
+  ) {
+    this.bundles = bundles;
     this.proof = proof;
   }
 }

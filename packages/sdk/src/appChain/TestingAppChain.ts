@@ -1,6 +1,5 @@
 import { ModulesConfig } from "@proto-kit/common";
 import {
-  InMemoryStateService,
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
@@ -21,9 +20,12 @@ import {
   UnprovenProducerModule
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
+
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
+import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
+
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
 type TestAppChainProtocolModules = {
@@ -93,6 +95,7 @@ export class TestingAppChain<
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
+        NetworkStateTransportModule: BlockStorageNetworkStateModule,
       }
     });
 
@@ -120,6 +123,7 @@ export class TestingAppChain<
       Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
+      NetworkStateTransportModule: {}
     });
 
     return appchain;
@@ -133,6 +137,7 @@ export class TestingAppChain<
 
       TransactionSender: {},
       QueryTransportModule: {},
+      NetworkStateTransportModule: {},
       Runtime: {},
       Protocol: {},
       Sequencer: {}

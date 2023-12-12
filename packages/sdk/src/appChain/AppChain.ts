@@ -12,7 +12,6 @@ import {
   MethodIdResolver,
 } from "@proto-kit/module";
 import {
-  BlockStorage,
   NetworkStateQuery,
   Query,
   QueryBuilderFactory,
@@ -21,6 +20,7 @@ import {
   UnsignedTransaction,
   MockStorageDependencyFactory,
   QueryTransportModule,
+  NetworkStateTransportModule,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -194,9 +194,12 @@ export class AppChain<
       "QueryTransportModule"
     );
 
-    const network = new NetworkStateQuery(
-      this.sequencer.dependencyContainer.resolve<BlockStorage>("BlockStorage")
-    );
+    const networkStateTransportModule =
+      this.container.resolve<NetworkStateTransportModule>(
+        "NetworkStateTransportModule"
+      );
+
+    const network = new NetworkStateQuery(networkStateTransportModule);
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(

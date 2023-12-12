@@ -95,6 +95,10 @@ class MockUnprovenBlockStorage
     return this.blocks.length;
   }
 
+  public async getLatestBlock(): Promise<UnprovenBlock | undefined> {
+    return await this.getBlockAt((await this.getCurrentBlockHeight()) - 1);
+  }
+
   public async popNewBlocks(
     remove: boolean
   ): Promise<UnprovenBlockWithPreviousMetadata[]> {
@@ -121,7 +125,7 @@ class MockUnprovenBlockStorage
     this.blocks.push(block);
   }
 
-  public async popNewestMetadata(): Promise<UnprovenBlockMetadata | undefined> {
+  public async getNewestMetadata(): Promise<UnprovenBlockMetadata | undefined> {
     return this.metadata.length > 0 ? this.metadata.at(-1) : undefined;
   }
 
