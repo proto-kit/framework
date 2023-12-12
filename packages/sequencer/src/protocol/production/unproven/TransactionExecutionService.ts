@@ -1,17 +1,24 @@
+/* eslint-disable max-lines */
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProverExecutionData,
+  BlockProverState,
+  DefaultProvableHashList,
   NetworkState,
   Protocol,
   ProtocolModulesRecord,
   ProvableTransactionHook,
+  RollupMerkleTree,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
   RuntimeProvableMethodExecutionResult,
   RuntimeTransaction,
   StateTransition,
+  BlockTransactionPosition,
+  BlockTransactionPositionType,
+  ProvableBlockHook,
 } from "@proto-kit/protocol";
-import { Bool, Field } from "o1js";
+import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log } from "@proto-kit/common";
 import {
   MethodParameterDecoder,
@@ -22,9 +29,10 @@ import {
 
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { CachedStateService } from "../../../state/state/CachedStateService";
-import { StateRecord } from "../BlockProducerModule";
 import { distinctByString } from "../../../helpers/utils";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
+import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
+import type { StateRecord } from "../BlockProducerModule";
 
 import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
 
@@ -45,12 +53,20 @@ export interface TransactionExecutionResult {
 export interface UnprovenBlock {
   networkState: NetworkState;
   transactions: TransactionExecutionResult[];
+  transactionsHash: Field;
+}
+
+export interface UnprovenBlockMetadata {
+  resultingStateRoot: bigint;
+  resultingNetworkState: NetworkState;
 }
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionExecutionService {
   private readonly transactionHooks: ProvableTransactionHook<unknown>[];
+
+  private readonly blockHooks: ProvableBlockHook<unknown>[];
 
   private readonly runtimeMethodExecution: RuntimeMethodExecution;
 
@@ -62,6 +78,8 @@ export class TransactionExecutionService {
     this.transactionHooks = protocol.dependencyContainer.resolveAll(
       "ProvableTransactionHook"
     );
+    this.blockHooks =
+      protocol.dependencyContainer.resolveAll("ProvableBlockHook");
 
     this.runtimeMethodExecution = new RuntimeMethodExecution(
       this.runtime,
@@ -175,19 +193,47 @@ export class TransactionExecutionService {
   public async createUnprovenBlock(
     stateService: CachedStateService,
     transactions: PendingTransaction[],
-    networkState: NetworkState
+    metadata: UnprovenBlockMetadata
   ): Promise<UnprovenBlock> {
     const executionResults: TransactionExecutionResult[] = [];
 
-    for (const tx of transactions) {
+    const transactionsHashList = new DefaultProvableHashList(Field);
+
+    const networkState = this.blockHooks.reduce<NetworkState>(
+      (state, hook) =>
+        hook.beforeBlock({
+          networkState: metadata.resultingNetworkState,
+
+          state: {
+            stateRoot: Field(metadata.resultingStateRoot),
+            networkStateHash: metadata.resultingNetworkState.hash(),
+            transactionsHash: Field(0),
+          },
+        }),
+      new NetworkState(metadata.resultingNetworkState)
+    );
+
+    for (const [index, tx] of transactions.entries()) {
       try {
+        // Determine position in bundle (first, middle, last)
+        const transactionPosition =
+          BlockTransactionPosition.positionTypeFromIndex(
+            index,
+            transactions.length
+          );
+
+        // Create execution trace
         // eslint-disable-next-line no-await-in-loop
         const executionTrace = await this.createExecutionTrace(
           stateService,
           tx,
-          networkState
+          networkState,
+          transactionPosition
         );
+
+        // Push result to results and transaction onto bundle-hash
         executionResults.push(executionTrace);
+        transactionsHashList.push(tx.hash());
       } catch (error) {
         if (error instanceof Error) {
           log.error("Error in inclusion of tx, skipping", error);
@@ -198,6 +244,59 @@ export class TransactionExecutionService {
     return {
       transactions: executionResults,
       networkState,
+      transactionsHash: transactionsHashList.commitment,
+    };
+  }
+
+  public async generateMetadataForNextBlock(
+    block: UnprovenBlock,
+    merkleTreeStore: CachedMerkleTreeStore,
+    modifyTreeStore = true
+  ): Promise<UnprovenBlockMetadata> {
+    // Flatten diff list into a single diff by applying them over each other
+    const combinedDiff = block.transactions
+      .map((tx) => tx.stateDiff)
+      .reduce<StateRecord>((accumulator, diff) => {
+        // accumulator properties will be overwritten by diff's values
+        return Object.assign(accumulator, diff);
+      }, {});
+
+    // If we modify the parent store, we use it, otherwise we abstract over it.
+    const inMemoryStore = modifyTreeStore
+      ? merkleTreeStore
+      : new CachedMerkleTreeStore(merkleTreeStore);
+    const tree = new RollupMerkleTree(inMemoryStore);
+
+    for (const key of Object.keys(combinedDiff)) {
+      // eslint-disable-next-line no-await-in-loop
+      await inMemoryStore.preloadKey(BigInt(key));
+    }
+
+    Object.entries(combinedDiff).forEach(([key, state]) => {
+      const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
+      tree.setLeaf(BigInt(key), treeValue);
+    });
+
+    const stateRoot = tree.getRoot();
+
+    const state: BlockProverState = {
+      stateRoot,
+      transactionsHash: block.transactionsHash,
+      networkStateHash: block.networkState.hash(),
+    };
+
+    const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
+      (networkState, hook) =>
+        hook.afterBlock({
+          state,
+          networkState,
+        }),
+      block.networkState
+    );
+
+    return {
+      resultingNetworkState,
+      resultingStateRoot: stateRoot.toBigInt(),
     };
   }
 
@@ -277,7 +376,8 @@ export class TransactionExecutionService {
   private async createExecutionTrace(
     stateService: CachedStateService,
     tx: PendingTransaction,
-    networkState: NetworkState
+    networkState: NetworkState,
+    transactionPosition: BlockTransactionPositionType
   ): Promise<TransactionExecutionResult> {
     const { method, args, module } = this.decodeTransaction(tx);
 
@@ -286,9 +386,12 @@ export class TransactionExecutionService {
     const previousProofsEnabled = appChain.areProofsEnabled;
     appChain.setProofsEnabled(false);
 
-    const blockContextInputs = {
+    const blockContextInputs: BlockProverExecutionData = {
       transaction: tx.toProtocolTransaction(),
       networkState,
+
+      transactionPosition:
+        BlockTransactionPosition.fromPositionType(transactionPosition),
     };
     const runtimeContextInputs = {
       networkState,

@@ -8,14 +8,14 @@ import { AppChain } from "@proto-kit/sdk";
 import { Fieldable, Runtime, MethodIdResolver } from "@proto-kit/module";
 import {
   AccountState,
-  AccountStateModule,
+  AccountStateModule, BlockHeightHook,
   BlockProver,
   Option,
   Path,
   Protocol,
   StateTransition,
   StateTransitionProver,
-  VanillaProtocol,
+  VanillaProtocol
 } from "@proto-kit/protocol";
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
 import { log, range } from "@proto-kit/common";
@@ -52,6 +52,7 @@ describe("block production", () => {
 
   let protocol: Protocol<{
     AccountStateModule: typeof AccountStateModule;
+    BlockHeightHook: typeof BlockHeightHook;
     BlockProver: typeof BlockProver;
     StateTransitionProver: typeof StateTransitionProver;
   }>;
@@ -99,8 +100,8 @@ describe("block production", () => {
     });
 
     const protocolClass = VanillaProtocol.from(
-      { AccountStateModule },
-      { StateTransitionProver: {}, BlockProver: {}, AccountStateModule: {} }
+      { AccountStateModule, BlockHeightHook },
+      { StateTransitionProver: {}, BlockProver: {}, AccountStateModule: {}, BlockHeightHook: {} }
     );
 
     const app = AppChain.from({
@@ -127,6 +128,7 @@ describe("block production", () => {
         AccountStateModule: {},
         BlockProver: {},
         StateTransitionProver: {},
+        BlockHeightHook: {}
       },
     });
 
@@ -160,8 +162,8 @@ describe("block production", () => {
   }
 
   // eslint-disable-next-line max-statements
-  it("should produce a dummy block proof", async () => {
-    expect.assertions(16);
+  it.only("should produce a dummy block proof", async () => {
+    expect.assertions(18);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -179,9 +181,10 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    expect(block!.txs).toHaveLength(1);
-    expect(block!.txs[0].status).toBe(true);
-    expect(block!.txs[0].statusMessage).toBeUndefined();
+    expect(block!.bundles).toHaveLength(1);
+    expect(block!.bundles[0]).toHaveLength(1);
+    expect(block!.bundles[0][0].status).toBe(true);
+    expect(block!.bundles[0][0].statusMessage).toBeUndefined();
     expect(block!.proof.proof).toBe("mock-proof");
 
     const stateService =
@@ -216,7 +219,7 @@ describe("block production", () => {
       createTransaction({
         method: ["Balance", "addBalanceToSelf"],
         privateKey,
-        args: [UInt64.from(100), UInt64.from(2)],
+        args: [UInt64.from(100), UInt64.from(1)],
         nonce: 1,
       })
     );
@@ -227,9 +230,12 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    expect(block!.txs).toHaveLength(1);
-    expect(block!.txs[0].status).toBe(true);
-    expect(block!.txs[0].statusMessage).toBeUndefined();
+    expect(block!.bundles).toHaveLength(1);
+    expect(block!.bundles[0]).toHaveLength(1);
+    console.log(block!.bundles[0][0]);
+    console.log(block!.bundles[0][0].statusMessage);
+    expect(block!.bundles[0][0].status).toBe(true);
+    expect(block!.bundles[0][0].statusMessage).toBeUndefined();
     expect(block!.proof.proof).toBe("mock-proof");
 
     const state2 = await stateService.getAsync(balancesPath);
@@ -255,8 +261,8 @@ describe("block production", () => {
 
     let block = await blockTrigger.produceBlock();
 
-    expect(block?.txs[0].status).toBe(false);
-    expect(block?.txs[0].statusMessage).toBe("Condition not met");
+    expect(block?.bundles[0][0].status).toBe(false);
+    expect(block?.bundles[0][0].statusMessage).toBe("Condition not met");
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
@@ -298,12 +304,13 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    expect(block!.txs).toHaveLength(numberTxs);
+    expect(block!.bundles).toHaveLength(0);
+    expect(block!.bundles[0]).toHaveLength(numberTxs);
     expect(block!.proof.proof).toBe("mock-proof");
 
     range(0, numberTxs).forEach((index) => {
-      expect(block!.txs[index].status).toBe(true);
-      expect(block!.txs[index].statusMessage).toBe(undefined);
+      expect(block!.bundles[0][index].status).toBe(true);
+      expect(block!.bundles[0][index].statusMessage).toBe(undefined);
     });
 
     const stateService =
@@ -384,11 +391,12 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    expect(block!.txs).toHaveLength(1);
+    expect(block!.bundles).toHaveLength(1);
+    expect(block!.bundles[0]).toHaveLength(1);
     expect(block!.proof.proof).toBe("mock-proof");
 
-    expect(block!.txs[0].status).toBe(true);
-    expect(block!.txs[0].statusMessage).toBe(undefined);
+    expect(block!.bundles[0][0].status).toBe(true);
+    expect(block!.bundles[0][0].statusMessage).toBe(undefined);
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(

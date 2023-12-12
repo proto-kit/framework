@@ -1,4 +1,3 @@
-/* eslint-disable max-lines,@typescript-eslint/init-declarations */
 import { injectable, Lifecycle, scoped } from "tsyringe";
 import {
   DefaultProvableHashList,
@@ -10,18 +9,20 @@ import {
   RollupMerkleTree,
   StateTransition,
   StateTransitionType,
+  BlockTransactionPosition,
+  BlockTransactionPositionType,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import chunk from "lodash/chunk";
 
 import { distinctByString } from "../../helpers/utils";
-
-import type { TransactionTrace } from "./BlockProducerModule";
-import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { SyncCachedMerkleTreeStore } from "../../state/merkle/SyncCachedMerkleTreeStore";
-import { TransactionExecutionResult } from "./unproven/TransactionExecutionService";
+
+import type { TransactionTrace } from "./BlockProducerModule";
+import type { TransactionExecutionResult } from "./unproven/TransactionExecutionService";
+import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -85,7 +86,8 @@ export class TransactionTraceService {
       merkleStore: CachedMerkleTreeStore;
     },
     networkState: NetworkState,
-    bundleTracker: ProvableHashList<Field>
+    bundleTracker: ProvableHashList<Field>,
+    bundlePosition: BlockTransactionPositionType
   ): Promise<TransactionTrace> {
     const { stateTransitions, protocolTransitions, status, tx } =
       executionResult;
@@ -135,6 +137,8 @@ export class TransactionTraceService {
         executionData: {
           networkState,
           transaction: tx.toProtocolTransaction(),
+          transactionPosition:
+            BlockTransactionPosition.fromPositionType(bundlePosition),
         },
 
         startingState: protocolStartingState,

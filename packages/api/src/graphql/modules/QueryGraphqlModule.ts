@@ -27,7 +27,6 @@ import {
   StateMap,
 } from "@proto-kit/protocol";
 import { Field, FlexibleProvablePure } from "o1js";
-
 import {
   Query,
   QueryBuilderFactory,
@@ -35,9 +34,8 @@ import {
   QueryGetterStateMap,
   QueryTransportModule,
   NetworkStateQuery,
-  BlockStorage,
+  NetworkStateTransportModule,
 } from "@proto-kit/sequencer";
-import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
 import {
   BaseModuleType,
   log,
@@ -46,6 +44,8 @@ import {
   range,
 } from "@proto-kit/common";
 import { ObjMap } from "graphql/jsutils/ObjMap";
+
+import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
 
 interface ProvableExtension<T, TJson = any> {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
@@ -69,11 +69,11 @@ export class QueryGraphqlModule<
   public constructor(
     @inject("QueryTransportModule")
     private readonly queryTransportModule: QueryTransportModule,
+    @inject("NetworkStateTransportModule")
+    private readonly networkStateTransportModule: NetworkStateTransportModule,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModules>,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
-    @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage
+    private readonly protocol: Protocol<ProtocolModulesRecord>
   ) {
     super();
   }
@@ -322,7 +322,7 @@ export class QueryGraphqlModule<
       "Protocol"
     );
 
-    const networkQuery = new NetworkStateQuery(this.blockStorage);
+    const networkQuery = new NetworkStateQuery(this.networkStateTransportModule);
     const networkType = this.flexiblePureToGraphql(
       NetworkState,
       "Network",
@@ -352,8 +352,24 @@ export class QueryGraphqlModule<
         },
 
         network: {
-          type: networkType,
-          resolve: async () => await networkQuery.currentNetworkState,
+          type: new GraphQLObjectType({
+            name: "network",
+            fields: {
+              unproven: {
+                type: networkType,
+                resolve: () => networkQuery.unproven,
+              },
+              staged: {
+                type: networkType,
+                resolve: () => networkQuery.stagedUnproven,
+              },
+              proven: {
+                type: networkType,
+                resolve: () => networkQuery.proven,
+              },
+            },
+          }),
+          resolve: () => true,
         },
       },
     });

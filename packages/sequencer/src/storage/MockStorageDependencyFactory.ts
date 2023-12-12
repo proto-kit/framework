@@ -13,6 +13,12 @@ import {
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedStateService } from "../state/state/CachedStateService";
 import { AsyncStateService } from "../state/async/AsyncStateService";
+import {
+  UnprovenBlock,
+  UnprovenBlockMetadata,
+} from "../protocol/production/unproven/TransactionExecutionService";
+import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
+import { UnprovenBlockWithPreviousMetadata } from "../protocol/production/BlockProducerModule";
 
 import { StorageDependencyFactory } from "./StorageDependencyFactory";
 import {
@@ -21,10 +27,10 @@ import {
 } from "./repositories/BlockStorage";
 import { ComputedBlock } from "./model/Block";
 import {
-  HistoricalUnprovenBlockStorage, UnprovenBlockQueue,
-  UnprovenBlockStorage
+  HistoricalUnprovenBlockStorage,
+  UnprovenBlockQueue,
+  UnprovenBlockStorage,
 } from "./repositories/UnprovenBlockStorage";
-import { UnprovenBlock } from "../protocol/production/unproven/TransactionExecutionService";
 
 export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
   private readonly store = new InMemoryMerkleTreeStorage();
@@ -70,9 +76,14 @@ class MockBlockStorage implements BlockStorage, HistoricalBlockStorage {
 }
 
 class MockUnprovenBlockStorage
-  implements UnprovenBlockStorage, HistoricalUnprovenBlockStorage
+  implements
+    UnprovenBlockStorage,
+    HistoricalUnprovenBlockStorage,
+    UnprovenBlockQueue
 {
   private readonly blocks: UnprovenBlock[] = [];
+
+  private readonly metadata: UnprovenBlockMetadata[] = [];
 
   private cursor = 0;
 
@@ -84,16 +95,42 @@ class MockUnprovenBlockStorage
     return this.blocks.length;
   }
 
-  public async popNewBlocks(remove: boolean): Promise<UnprovenBlock[]> {
+  public async getLatestBlock(): Promise<UnprovenBlock | undefined> {
+    return await this.getBlockAt((await this.getCurrentBlockHeight()) - 1);
+  }
+
+  public async popNewBlocks(
+    remove: boolean
+  ): Promise<UnprovenBlockWithPreviousMetadata[]> {
     const slice = this.blocks.slice(this.cursor);
+
+    // eslint-disable-next-line putout/putout
+    let metadata: (UnprovenBlockMetadata | undefined)[] = this.metadata.slice(
+      Math.max(this.cursor - 1, 0)
+    );
+    if (this.cursor === 0) {
+      metadata = [undefined, ...metadata];
+    }
+
     if (remove) {
       this.cursor = this.blocks.length;
     }
-    return slice;
+    return slice.map((block, index) => ({
+      block,
+      lastBlockMetadata: metadata[index],
+    }));
   }
 
   public async pushBlock(block: UnprovenBlock): Promise<void> {
     this.blocks.push(block);
+  }
+
+  public async getNewestMetadata(): Promise<UnprovenBlockMetadata | undefined> {
+    return this.metadata.length > 0 ? this.metadata.at(-1) : undefined;
+  }
+
+  public async pushMetadata(metadata: UnprovenBlockMetadata): Promise<void> {
+    this.metadata.push(metadata);
   }
 }
 
@@ -104,11 +141,13 @@ export class MockStorageDependencyFactory
 {
   private readonly asyncService = new CachedStateService(undefined);
 
+  private readonly merkleStore = new MockAsyncMerkleTreeStore();
+
   private readonly blockStorageQueue = new MockUnprovenBlockStorage();
 
   @dependency()
   public asyncMerkleStore(): AsyncMerkleTreeStore {
-    return new MockAsyncMerkleTreeStore();
+    return this.merkleStore;
   }
 
   @dependency()
@@ -144,5 +183,10 @@ export class MockStorageDependencyFactory
   @dependency()
   public unprovenStateService(): CachedStateService {
     return new CachedStateService(this.asyncService);
+  }
+
+  @dependency()
+  public unprovenMerkleStore(): CachedMerkleTreeStore {
+    return new CachedMerkleTreeStore(this.merkleStore);
   }
 }

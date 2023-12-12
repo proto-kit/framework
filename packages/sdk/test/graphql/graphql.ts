@@ -8,11 +8,11 @@ import {
   state,
 } from "@proto-kit/module";
 import {
-  AccountStateModule,
+  AccountStateModule, BlockHeightHook,
   Option,
   State,
   StateMap,
-  VanillaProtocol,
+  VanillaProtocol
 } from "@proto-kit/protocol";
 import { Presets, log, sleep } from "@proto-kit/common";
 import {
@@ -44,6 +44,7 @@ import { container } from "tsyringe";
 import {
   UnprovenProducerModule
 } from "@proto-kit/sequencer/dist/protocol/production/unproven/UnprovenProducerModule";
+import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
 
 log.setLevel(log.levels.INFO);
 
@@ -107,8 +108,8 @@ export async function startServer() {
     }),
 
     protocol: VanillaProtocol.from(
-      { AccountStateModule },
-      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
+      { AccountStateModule, BlockHeightHook },
+      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {}, BlockHeightHook: {} }
     ),
 
     sequencer: Sequencer.from({
@@ -146,6 +147,7 @@ export async function startServer() {
       Signer: InMemorySigner,
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,
+      NetworkStateTransportModule: BlockStorageNetworkStateModule,
     },
   });
 
@@ -158,6 +160,7 @@ export async function startServer() {
       BlockProver: {},
       StateTransitionProver: {},
       AccountStateModule: {},
+      BlockHeightHook: {},
     },
 
     Sequencer: {
@@ -190,6 +193,7 @@ export async function startServer() {
 
     TransactionSender: {},
     QueryTransportModule: {},
+    NetworkStateTransportModule: {},
 
     Signer: {
       signer: PrivateKey.random(),
