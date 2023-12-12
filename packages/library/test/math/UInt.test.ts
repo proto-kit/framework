@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { UInt112 } from "../../src";
+import { UInt112 } from "@proto-kit/common";
 import { container } from "tsyringe";
 import { RuntimeMethodExecutionContext } from "@proto-kit/protocol";
 import { beforeEach } from "@jest/globals";
