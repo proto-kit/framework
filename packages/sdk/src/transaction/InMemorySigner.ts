@@ -1,9 +1,9 @@
-/* eslint-disable import/no-unused-modules */
 import { Field, PrivateKey, Signature } from "o1js";
 import { injectable } from "tsyringe";
+
 import { AppChainModule } from "../appChain/AppChainModule";
 
-export interface Signer extends AppChainModule<unknown> {
+export interface Signer {
   sign: (signatureData: Field[]) => Promise<Signature>;
 }
 

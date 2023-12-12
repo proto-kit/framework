@@ -8,11 +8,16 @@ import {
   Lifecycle,
 } from "tsyringe";
 import log from "loglevel";
+import merge from "lodash/merge";
 
 import { StringKeyOf, TypedClass } from "../types";
 import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
 
-import { Configurable, ConfigurableModule } from "./ConfigurableModule";
+import {
+  Configurable,
+  ConfigurableModule,
+  NoConfig,
+} from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
 
@@ -78,8 +83,14 @@ export type ModulesConfig<Modules extends ModulesRecord> = {
   [ConfigKey in StringKeyOf<Modules>]: InstanceType<
     Modules[ConfigKey]
   > extends Configurable<infer Config>
-    ? Config
+    ? Config extends NoConfig
+      ? Config | undefined
+      : Config
     : never;
+};
+
+export type RecursivePartial<T> = {
+  [Key in keyof T]?: T[Key] extends object ? RecursivePartial<T[Key]> : T[Key];
 };
 
 /**
@@ -109,6 +120,9 @@ export class ModuleContainer<
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
+    if (definition.config !== undefined) {
+      this.config = definition.config;
+    }
   }
 
   /**
@@ -250,13 +264,22 @@ export class ModuleContainer<
    * @param config
    */
   public configure(config: ModulesConfig<Modules>) {
-    this.definition.config = config;
+    this.config = config;
+  }
+
+  public configurePartial(config: RecursivePartial<ModulesConfig<Modules>>) {
+    this.config = merge<
+      ModulesConfig<Modules> | NoConfig,
+      RecursivePartial<ModulesConfig<Modules>>
+    >(this.currentConfig ?? {}, config);
   }
 
   // eslint-disable-next-line accessor-pairs
   public set config(config: ModulesConfig<Modules>) {
-    super.config = config;
-    this.definition.config = config;
+    super.config = merge<
+      ModulesConfig<Modules> | NoConfig,
+      ModulesConfig<Modules>
+    >(this.currentConfig ?? {}, config);
   }
 
   /**
@@ -299,14 +322,19 @@ export class ModuleContainer<
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
-    const config = this.definition.config?.[moduleName];
+    // Has to be super.config, getters behave really weird when subtyping
+    const config = super.config?.[moduleName];
 
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config) {
       throw errors.configNotSetInContainer(moduleName.toString());
     }
 
-    containedModule.config = config;
+    if (containedModule instanceof ModuleContainer) {
+      containedModule.configure(config);
+    } else {
+      containedModule.config = config;
+    }
   }
 
   /**

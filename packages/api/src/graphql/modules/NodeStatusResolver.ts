@@ -41,7 +41,7 @@ export class NodeStatusObject {
 }
 
 @graphqlModule()
-export class NodeStatusResolver extends GraphqlModule<object> {
+export class NodeStatusResolver extends GraphqlModule {
   public constructor(private readonly nodeStatusService: NodeStatusService) {
     super();
   }

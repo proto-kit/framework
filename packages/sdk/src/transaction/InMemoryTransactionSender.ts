@@ -14,7 +14,7 @@ export interface TransactionSender extends AppChainModule<unknown> {
 
 @injectable()
 export class InMemoryTransactionSender
-  extends AppChainModule<unknown>
+  extends AppChainModule
   implements TransactionSender
 {
   public mempool: PrivateMempool;

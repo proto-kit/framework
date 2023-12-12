@@ -65,7 +65,7 @@ interface AnyJson {
 @graphqlModule()
 export class QueryGraphqlModule<
   RuntimeModules extends RuntimeModulesRecord
-> extends SchemaGeneratingGraphqlModule<object> {
+> extends SchemaGeneratingGraphqlModule {
   public constructor(
     @inject("QueryTransportModule")
     private readonly queryTransportModule: QueryTransportModule,

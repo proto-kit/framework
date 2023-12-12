@@ -345,7 +345,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
 @injectable()
 export class StateTransitionProver
-  extends ProtocolModule<object>
+  extends ProtocolModule
   implements StateTransitionProvable
 {
   public readonly zkProgrammable: StateTransitionProverProgrammable;

@@ -37,7 +37,6 @@ import {
 import { ProvableStateTransition } from "../../model/StateTransition";
 import { ProvableTransactionHook } from "../../protocol/ProvableTransactionHook";
 import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethodExecutionContext";
-import { Protocol, ProtocolModulesRecord } from "../../protocol/Protocol";
 import { ProvableBlockHook } from "../../protocol/ProvableBlockHook";
 import { NetworkState } from "../../model/network/NetworkState";
 import { BlockTransactionPosition } from "./BlockTransactionPosition";
@@ -497,7 +496,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
  */
 @injectable()
 export class BlockProver
-  extends ProtocolModule<object>
+  extends ProtocolModule
   implements BlockProvable
 {
   public zkProgrammable: BlockProverProgrammable;
