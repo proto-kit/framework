@@ -8,7 +8,10 @@ import {
   RuntimeMethodExecutionData,
 } from "@proto-kit/protocol";
 
-import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
+import {
+  RuntimeMethodExecutionDataStruct,
+  runtimeMethodNamesMetadataKey,
+} from "../method/runtimeMethod";
 
 import type {
   Runtime,
@@ -16,6 +19,7 @@ import type {
   RuntimeModulesRecord,
 } from "./Runtime";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
+import { Provable } from "o1js";
 
 const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
@@ -57,14 +61,16 @@ export class RuntimeModule<
   }
 
   private getInputs(): RuntimeMethodExecutionData {
-    const { input } = container.resolve<RuntimeMethodExecutionContext>(
-      RuntimeMethodExecutionContext
-    );
+    return Provable.witness(RuntimeMethodExecutionDataStruct, () => {
+      const { input } = container.resolve<RuntimeMethodExecutionContext>(
+        RuntimeMethodExecutionContext
+      );
+      if (input === undefined) {
+        throw errors.inputDataNotSet();
+      }
 
-    if (input === undefined) {
-      throw errors.inputDataNotSet();
-    }
-    return input;
+      return input;
+    });
   }
 
   public get transaction(): RuntimeTransaction {

@@ -163,6 +163,8 @@ export class RuntimeZkProgrammable<
       methods: sortedRuntimeMethods,
     });
 
+    console.log("analyze runtime", program.analyzeMethods());
+
     const SelfProof = Experimental.ZkProgram.Proof(program);
 
     const methods = Object.keys(sortedRuntimeMethods).reduce<

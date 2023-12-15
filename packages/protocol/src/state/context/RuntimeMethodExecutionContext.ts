@@ -108,7 +108,7 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     super.afterMethod();
     if (this.isFinished) {
       this.lastInput = this.input;
-      this.input = undefined;
+      // this.input = undefined;
       this.isSimulated = false;
     }
   }

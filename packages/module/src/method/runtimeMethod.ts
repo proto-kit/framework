@@ -1,4 +1,5 @@
-import { Field, FlexibleProvable, Poseidon } from "o1js";
+/* eslint-disable max-statements */
+import { Field, FlexibleProvable, Poseidon, Provable, Struct } from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -6,6 +7,9 @@ import {
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
+  RuntimeTransaction,
+  RuntimeMethodExecutionData,
+  NetworkState,
 } from "@proto-kit/protocol";
 import {
   DecoratedMethod,
@@ -55,11 +59,18 @@ export function toStateTransitionsHash(
 // eslint-disable-next-line etc/prefer-interface
 export type WrappedMethod = (...args: unknown[]) => MethodPublicOutput;
 
+export class RuntimeMethodExecutionDataStruct
+  extends Struct({
+    transaction: RuntimeTransaction,
+    networkState: NetworkState,
+  })
+  implements RuntimeMethodExecutionData {}
+
 export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown,
-  methodArguments: ToFieldable[]
+  methodArguments?: ToFieldable[]
 ) {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
     RuntimeMethodExecutionContext
@@ -69,14 +80,18 @@ export function toWrappedMethod(
     Reflect.apply(moduleMethod, this, args);
     const {
       result: { stateTransitions, status },
-      input,
     } = executionContext.current();
 
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
 
-    if (input === undefined) {
-      throw errors.methodInputsNotProvided();
-    }
+    const input = Provable.witness(RuntimeMethodExecutionDataStruct, () => {
+      const { input } = executionContext.current();
+      if (input === undefined) {
+        throw errors.methodInputsNotProvided();
+      }
+
+      return input;
+    });
 
     const { name, runtime } = this;
 
@@ -118,7 +133,7 @@ export function toWrappedMethod(
     // i.e. the result of the if-statement will be the same for all executions
     // of this method
     const argsHash =
-      methodArguments.length > 0 ? Poseidon.hash(argsFields) : Field(0);
+      (methodArguments ?? []).length > 0 ? Poseidon.hash(argsFields) : Field(0);
 
     input.transaction.argsHash.assertEquals(
       argsHash,
