@@ -3,9 +3,9 @@ import "reflect-metadata";
 
 import {
   DependencyContainer,
-  Frequency,
+  Frequency, injectable,
   InjectionToken,
-  Lifecycle,
+  Lifecycle
 } from "tsyringe";
 import log from "loglevel";
 
@@ -225,7 +225,7 @@ export class ModuleContainer<
 
   public get events(): ContainerEvents<Modules> {
     const moduleNames = this.moduleNames as StringKeyOf<Modules>[];
-    moduleNames.reduce<ContainerEvents<Modules>>((acc, key) => {
+    const events = moduleNames.reduce<any>((acc, key) => {
       const module = this.resolve(key);
       if ((module as any)["events"] !== undefined) {
         const eventemitting = module as EventEmittingComponent<
@@ -237,6 +237,7 @@ export class ModuleContainer<
       }
       return acc;
     }, {});
+    return events as ContainerEvents<Modules>
   }
 
   /**
