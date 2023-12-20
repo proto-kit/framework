@@ -2,12 +2,14 @@
 /* eslint-disable line-comment-position */
 /* eslint-disable no-inline-comments */
 /* eslint-disable @typescript-eslint/no-magic-numbers */
-import { Bool, Field, Poseidon, Provable, ProvablePure, Struct } from "o1js";
+/* eslint-disable @typescript-eslint/method-signature-style */
+import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
+
+import { range } from "../utils";
+import { TypedClass } from "../types";
 
 import { MerkleTreeStore } from "./MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
-import { TypedClass } from "../types";
-import { range } from "../utils";
 
 class StructTemplate extends Struct({
   path: Provable.Array(Field, 0),
@@ -85,7 +87,7 @@ export interface AbstractMerkleTree {
 }
 
 export interface AbstractMerkleTreeClass {
-  new(...args: any[]): AbstractMerkleTree;
+  new (...args: any[]): AbstractMerkleTree;
 
   WITNESS: TypedClass<AbstractMerkleWitness> & typeof StructTemplate;
 
@@ -93,7 +95,7 @@ export interface AbstractMerkleTreeClass {
 
   EMPTY_ROOT: bigint;
 
-  get leafCount(): bigint
+  get leafCount(): bigint;
 }
 
 /**
@@ -109,6 +111,11 @@ export interface AbstractMerkleTreeClass {
  * zero knowledge programming!
  *
  * Levels are indexed from leaves (level 0) to root (level N - 1).
+ *
+ * This function takes a height as argument and returns a class
+ * that implements a merkletree with that specified height.
+ *
+ * It also holds the Witness class under tree.WITNESS
  */
 export function createMerkleTree(height: number): AbstractMerkleTreeClass {
   /**
