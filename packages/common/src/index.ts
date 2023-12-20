@@ -11,3 +11,6 @@ export * from "./dependencyFactory/DependencyFactory";
 export * from "./log";
 export * from "./events/EventEmittingComponent";
 export * from "./events/EventEmitter";
+export * from "./trees/MerkleTreeStore";
+export * from "./trees/InMemoryMerkleTreeStorage";
+export * from "./trees/RollupMerkleTree";
