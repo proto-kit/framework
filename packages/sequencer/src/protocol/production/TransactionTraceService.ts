@@ -6,12 +6,12 @@ import {
   ProvableHashList,
   ProvableStateTransition,
   ProvableStateTransitionType,
-  RollupMerkleTree,
   StateTransition,
   StateTransitionType,
   BlockTransactionPosition,
   BlockTransactionPositionType,
 } from "@proto-kit/protocol";
+import { RollupMerkleTree } from "@proto-kit/common";
 import { Bool, Field } from "o1js";
 import chunk from "lodash/chunk";
 

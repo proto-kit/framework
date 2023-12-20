@@ -8,7 +8,6 @@ import {
   Protocol,
   ProtocolModulesRecord,
   ProvableTransactionHook,
-  RollupMerkleTree,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
   RuntimeProvableMethodExecutionResult,
@@ -19,7 +18,7 @@ import {
   ProvableBlockHook,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
-import { AreProofsEnabled, log } from "@proto-kit/common";
+import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
 import {
   MethodParameterDecoder,
   Runtime,
