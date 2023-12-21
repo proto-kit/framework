@@ -6,17 +6,22 @@ import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import { ProtocolTransaction } from "../../model/transaction/ProtocolTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
 import { BlockTransactionPosition } from "./BlockTransactionPosition";
+import { BlockHashMerkleTreeWitness } from "./acummulators/BlockHashMerkleTree";
 
 export class BlockProverPublicInput extends Struct({
   transactionsHash: Field,
   stateRoot: Field,
   networkStateHash: Field,
+  blockHashRoot: Field,
+  eternalTransactionsHash: Field,
 }) {}
 
 export class BlockProverPublicOutput extends Struct({
   transactionsHash: Field,
   stateRoot: Field,
   networkStateHash: Field,
+  blockHashRoot: Field,
+  eternalTransactionsHash: Field,
 }) {}
 
 export type BlockProverProof = Proof<
@@ -28,6 +33,7 @@ export class BlockProverExecutionData extends Struct({
   transaction: ProtocolTransaction,
   networkState: NetworkState,
   transactionPosition: BlockTransactionPosition,
+  blockHashWitness: BlockHashMerkleTreeWitness,
 }) {}
 
 export interface BlockProvable
