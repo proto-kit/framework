@@ -36,7 +36,7 @@ export class ManualBlockTrigger
   }
 
   public async produceProven(): Promise<ComputedBlock | undefined> {
-    const blocks = await this.unprovenBlockQueue.popNewBlocks(true);
+    const blocks = await this.unprovenBlockQueue.getNewBlocks();
     if (blocks.length > 0) {
       return await this.blockProducerModule.createBlock(blocks);
     }

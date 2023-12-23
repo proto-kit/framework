@@ -9,7 +9,7 @@ import {
 export interface UnprovenBlockQueue {
   pushBlock: (block: UnprovenBlock) => Promise<void>;
   pushMetadata: (metadata: UnprovenBlockMetadata) => Promise<void>;
-  popNewBlocks: (remove: boolean) => Promise<UnprovenBlockWithPreviousMetadata[]>;
+  getNewBlocks: () => Promise<UnprovenBlockWithPreviousMetadata[]>;
   getNewestMetadata: () => Promise<UnprovenBlockMetadata | undefined>;
 }
 

@@ -87,7 +87,7 @@ export class TimedBlockTrigger
   }
 
   private async produceBlock() {
-    const unprovenBlocks = await this.unprovenBlockQueue.popNewBlocks(true);
+    const unprovenBlocks = await this.unprovenBlockQueue.getNewBlocks();
     if (unprovenBlocks.length > 0) {
       void this.blockProducerModule.createBlock(unprovenBlocks);
     }
