@@ -6,7 +6,6 @@ import { Option, OptionBase } from "@proto-kit/protocol";
  */
 export class UntypedOption extends OptionBase {
   public static fromOption<Value>(option: Option<Value> | Option<Field>) {
-    console.log(`Issome ${option.isSome.toBoolean()}`)
     return new UntypedOption(
       option.isSome,
       option.encodeValueToFields(),

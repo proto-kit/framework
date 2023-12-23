@@ -35,6 +35,7 @@ import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeSto
 import type { StateRecord } from "../BlockProducerModule";
 
 import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
+import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -43,10 +44,14 @@ const errors = {
 
 export interface TransactionExecutionResult {
   tx: PendingTransaction;
-  stateTransitions: StateTransition<unknown>[];
-  protocolTransitions: StateTransition<unknown>[];
+  stateTransitions: UntypedStateTransition[];
+  protocolTransitions: UntypedStateTransition[];
   status: Bool;
   statusMessage?: string;
+  /**
+   * TODO Remove
+   * @deprecated
+   */
   stateDiff: StateRecord;
 }
 
@@ -476,10 +481,16 @@ export class TransactionExecutionService {
 
     return {
       tx,
-      stateTransitions: runtimeResult.stateTransitions,
-      protocolTransitions: protocolResult.stateTransitions,
       status: runtimeResult.status,
       statusMessage: runtimeResult.statusMessage,
+
+      stateTransitions: runtimeResult.stateTransitions.map((st) =>
+        UntypedStateTransition.fromStateTransition(st)
+      ),
+
+      protocolTransitions: protocolResult.stateTransitions.map((st) =>
+        UntypedStateTransition.fromStateTransition(st)
+      ),
 
       stateDiff,
     };
