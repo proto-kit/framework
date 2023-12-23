@@ -6,9 +6,10 @@ import { ConfigurableModule } from "../../src/config/ConfigurableModule";
 import {
   ModuleContainerErrors,
   ModuleContainer,
-  ModulesRecord,
+  ModulesRecord, DependenciesFromModules, MergeObjects, ResolvableModules
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
+import { DependencyFactory2 } from "../../src";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -21,13 +22,25 @@ interface TestModuleConfig {
   testConfigProperty3?: number;
 }
 
-class TestModule extends BaseTestModule<TestModuleConfig> {}
+class TestModule extends BaseTestModule<TestModuleConfig> implements DependencyFactory2 {
+  public dependencies() {
+    return {
+      dependencyModule1: {
+        type: OtherTestModule
+      }
+    };
+  }
+}
 
 interface OtherTestModuleConfig {
   otherTestConfigProperty: number;
 }
 
-class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {}
+class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {
+  x() {
+    return ""
+  }
+}
 
 /**
  * Showcases a wrongly typed/defined module as
@@ -40,6 +53,15 @@ class WrongTestModule {}
 class TestModuleContainer<
   Modules extends TestModulesRecord
 > extends ModuleContainer<Modules> {}
+
+type inferred = DependenciesFromModules<{
+  TestModule: typeof TestModule;
+  OtherTestModule: typeof OtherTestModule;
+}>;
+
+// const merged2T: merged2 = {
+//   dependencyModule1: ""
+// }
 
 describe("moduleContainer", () => {
   let container: TestModuleContainer<{
@@ -86,6 +108,9 @@ describe("moduleContainer", () => {
     const testModule = container.resolve("TestModule");
 
     expect(testModule.config.testConfigProperty).toBe(testConfigProperty);
+
+    const dependency = container.resolve("dependencyModule1");
+    dependency.x();
   });
 
   it("should stack configurations correctly", () => {

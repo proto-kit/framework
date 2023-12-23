@@ -2,6 +2,10 @@ import { DependencyContainer, injectable, Lifecycle } from "tsyringe";
 
 import { TypedClass } from "../types";
 import { log } from "../log";
+import { SequencerModule } from "@proto-kit/sequencer";
+import { InMemoryStateService } from "@proto-kit/module";
+import { ConfigurableModule } from "../config/ConfigurableModule";
+import { BaseModuleInstanceType, BaseModuleType } from "../config/ModuleContainer";
 
 const errors = {
   descriptorUndefined: () =>
@@ -63,6 +67,55 @@ export abstract class DependencyFactory {
     }
   }
 }
+
+export type DependencyDeclaration =
+  | { type: TypedClass<unknown> }
+  | { instance: unknown };
+export type DependencyRecord = Record<string, DependencyDeclaration>;
+
+export interface DependencyFactory2 {
+  dependencies(): DependencyRecord;
+}
+
+class Factory extends SequencerModule implements DependencyFactory2 {
+  start(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  dependencies() {
+    return {
+      stateService: {
+        type: InMemoryStateService,
+      },
+    };
+  }
+}
+
+export type TypeFromDependencyDeclaration<
+  Declaration extends DependencyDeclaration
+> = Declaration extends { type: TypedClass<unknown> }
+  ? Declaration["type"] extends TypedClass<infer Class>
+    ? Class
+    : never
+  : Declaration extends { instance: unknown }
+  ? Declaration["instance"]
+  : never;
+
+export type MapDependencyRecordToTypes<Record extends DependencyRecord> = {
+  [Key in keyof Record]: TypedClass<TypeFromDependencyDeclaration<Record[Key]>>;
+};
+
+export type InferDependencies<Class extends BaseModuleInstanceType> =
+  Class extends DependencyFactory2
+    ? MapDependencyRecordToTypes<ReturnType<Class["dependencies"]>>
+    : never;
+
+type Deps = InferDependencies<Factory>;
+// type ClassType = TypeFromDependencyDeclaration<Deps["stateService"]>;
+
+// export abstract class DependencyFactory2 {
+//   abstract
+// }
 
 // type DTypes = { [key: string]: TypedClass<unknown> }
 // type Factories<T extends DTypes> = {
