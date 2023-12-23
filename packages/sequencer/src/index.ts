@@ -19,6 +19,8 @@ export * from "./worker/worker/FlowTaskWorker";
 export * from "./worker/worker/LocalTaskWorkerModule";
 export * from "./protocol/baselayer/BaseLayer";
 export * from "./protocol/baselayer/NoopBaseLayer";
+export * from "./protocol/production/helpers/UntypedOption";
+export * from "./protocol/production/helpers/UntypedStateTransition";
 export * from "./protocol/production/tasks/BlockProvingTask";
 export * from "./protocol/production/tasks/CompileRegistry";
 export * from "./protocol/production/tasks/RuntimeProvingTask";
