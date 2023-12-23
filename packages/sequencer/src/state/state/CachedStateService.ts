@@ -28,11 +28,11 @@ export class CachedStateService
     }
   }
 
-  public commit(): void {
+  public async commit(): Promise<void> {
     noop();
   }
 
-  public openTransaction(): void {
+  public async openTransaction(): Promise<void> {
     noop();
   }
 

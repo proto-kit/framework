@@ -10,7 +10,11 @@ import {
   noop,
 } from "@proto-kit/common";
 
-import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
+import {
+  AsyncMerkleTreeStore,
+  MerkleTreeNode,
+  MerkleTreeNodeQuery,
+} from "../state/async/AsyncMerkleTreeStore";
 import { CachedStateService } from "../state/state/CachedStateService";
 import { AsyncStateService } from "../state/async/AsyncStateService";
 import {
@@ -35,27 +39,24 @@ import {
 export class MockAsyncMerkleTreeStore implements AsyncMerkleTreeStore {
   private readonly store = new InMemoryMerkleTreeStorage();
 
-  public commit(): void {
+  public async commit(): Promise<void> {
     noop();
   }
 
-  public openTransaction(): void {
+  public async openTransaction(): Promise<void> {
     noop();
   }
 
-  public async getNodeAsync(
-    key: bigint,
-    level: number
-  ): Promise<bigint | undefined> {
-    return this.store.getNode(key, level);
+  public async getNodesAsync(
+    nodes: MerkleTreeNodeQuery[]
+  ): Promise<(bigint | undefined)[]> {
+    return nodes.map(({ key, level }) => this.store.getNode(key, level));
   }
 
-  public async setNodeAsync(
-    key: bigint,
-    level: number,
-    value: bigint
-  ): Promise<void> {
-    this.store.setNode(key, level, value);
+  public writeNodes(nodes: MerkleTreeNode[]): void {
+    nodes.forEach(({ key, level, value }) =>
+      this.store.setNode(key, level, value)
+    );
   }
 }
 
@@ -99,9 +100,7 @@ class MockUnprovenBlockStorage
     return await this.getBlockAt((await this.getCurrentBlockHeight()) - 1);
   }
 
-  public async popNewBlocks(
-    remove: boolean
-  ): Promise<UnprovenBlockWithPreviousMetadata[]> {
+  public async getNewBlocks(): Promise<UnprovenBlockWithPreviousMetadata[]> {
     const slice = this.blocks.slice(this.cursor);
 
     // eslint-disable-next-line putout/putout
@@ -112,9 +111,10 @@ class MockUnprovenBlockStorage
       metadata = [undefined, ...metadata];
     }
 
-    if (remove) {
-      this.cursor = this.blocks.length;
-    }
+    // This assumes that getNewBlocks() is only called once per block prod cycle
+    // TODO query batch storage which the last proven block was instead
+    this.cursor = this.blocks.length;
+
     return slice.map((block, index) => ({
       block,
       lastBlockMetadata: metadata[index],
