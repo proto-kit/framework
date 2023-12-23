@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model State {
+  path   BigInt @id
+  values BigInt[]
+}
+
+model TreeElement {
+  key   Decimal @db.Decimal(78, 0)
+  level Int @db.SmallInt
+  value Decimal @db.Decimal(78, 0)
+
+  @@id([key, level])
+}
+
+model Transaction {
+  hash String @id
+
+  methodId String
+  sender String
+  nonce String
+  args String[]
+  signature_r String
+  signature_s String
+
+  executionResult TransactionExecutionResult?
+}
+
+model TransactionExecutionResult {
+  stateTransitions Json @db.Json
+  protocolTransitions Json @db.Json
+  status Boolean
+  statusMessage String?
+
+  tx Transaction @relation(fields: [txHash], references: [hash])
+  txHash String @id
+
+  block Block @relation(fields: [blockHash], references: [transactionsHash])
+  blockHash String
+}
+
+model Block {
+  transactionsHash String @id
+
+  networkState Json @db.Json
+  height Int
+
+  transactions TransactionExecutionResult[]
+
+  batch Batch? @relation(fields: [batchHeight], references: [height])
+  batchHeight Int?
+}
+
+model Batch {
+  height Int @id
+
+  proof String
+
+  blocks Block[]
+}
+
+model UnprovenBlockMetadata {
+  height Int @id
+  resultingStateRoot String
+  resultingNetworkState Json @db.Json
+}
