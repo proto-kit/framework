@@ -124,8 +124,9 @@ export type DependenciesFromModules<Modules extends ModulesRecord> =
       : never;
   }>;
 
-export type FilterNeverValues<Record> = {
-  [Key in keyof Record as Record[Key] extends never ? never : Key]: Record[Key];
+// Removes all keys with a "never" value from an object
+export type FilterNeverValues<Type extends Record<string, unknown>> = {
+  [Key in keyof Type as Type[Key] extends never ? never : Key]: Type[Key];
 };
 
 export type ResolvableModules<Modules extends ModulesRecord> = Modules &
