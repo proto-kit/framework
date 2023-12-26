@@ -13,9 +13,9 @@ import {
 import log from "loglevel";
 import merge from "lodash/merge";
 
-import { StringKeyOf, TypedClass } from "../types";
+import { MergeObjects, StringKeyOf, TypedClass } from "../types";
 import {
-  DependencyFactory2,
+  DependencyFactory,
   InferDependencies,
 } from "../dependencyFactory/DependencyFactory";
 
@@ -108,31 +108,22 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   config?: ModulesConfig<Modules>;
 }
 
-type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
-  x: infer I
-) => void
-  ? I
-  : never;
-
-export type MergeObjects<R extends Record<string, unknown>> =
-  UnionToIntersection<R[keyof R]>;
-
-// type M = MergeObjects<{ s: { x: 2 }; d: { y: number } }>;
-
-export type DependenciesFromModules<Modules extends ModulesRecord> =
-  FilterNeverValues<{
-    [Key in keyof Modules]: Modules[Key] extends TypedClass<DependencyFactory2>
-      ? InferDependencies<InstanceType<Modules[Key]>>
-      : never;
-  }>;
-
 // Removes all keys with a "never" value from an object
 export type FilterNeverValues<Type extends Record<string, unknown>> = {
   [Key in keyof Type as Type[Key] extends never ? never : Key]: Type[Key];
 };
 
-export type ResolvableModules<Modules extends ModulesRecord> = Modules &
-  MergeObjects<DependenciesFromModules<Modules>>;
+export type DependenciesFromModules<Modules extends ModulesRecord> =
+  FilterNeverValues<{
+    [Key in keyof Modules]: Modules[Key] extends TypedClass<DependencyFactory>
+      ? InferDependencies<InstanceType<Modules[Key]>>
+      : never;
+  }>;
+
+export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
+  DependenciesFromModules<Modules>
+> &
+  Modules;
 
 /**
  * Reusable module container facilitating registration, resolution
@@ -257,11 +248,9 @@ export class ModuleContainer<
    * Inject a set of dependencies using the given list of DependencyFactories
    * This method should be called during startup
    */
-  protected registerDependencyFactories(
-    factories: StringKeyOf<Modules>[]
-  ) {
+  protected registerDependencyFactories(factories: StringKeyOf<Modules>[]) {
     factories.forEach((factoryName) => {
-      this.resolve(factoryName)
+      this.resolve(factoryName);
     });
   }
 
@@ -369,7 +358,8 @@ export class ModuleContainer<
     }
   }
 
-  private isDependencyFactory(type: any): type is DependencyFactory2 {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private isDependencyFactory(type: any): type is DependencyFactory {
     return "dependencies" in type;
   }
 

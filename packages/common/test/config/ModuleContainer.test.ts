@@ -2,14 +2,17 @@
 import "reflect-metadata";
 import { container as tsyringeContainer, inject, injectable } from "tsyringe";
 
-import { ConfigurableModule, NoConfig } from "../../src/config/ConfigurableModule";
 import {
-  ModuleContainerErrors,
+  ConfigurableModule,
+  NoConfig,
+} from "../../src/config/ConfigurableModule";
+import {
   ModuleContainer,
-  ModulesRecord, DependenciesFromModules, MergeObjects, ResolvableModules
+  ModulesRecord,
+  DependenciesFromModules,
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { ChildContainerProvider, DependencyFactory2 } from "../../src";
+import { ChildContainerProvider, DependencyFactory } from "../../src";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -29,16 +32,19 @@ class ChildModule extends BaseTestModule<NoConfig> {
   }
 
   x() {
-    return "dependency factory works"
+    return "dependency factory works";
   }
 }
 
-class TestModule extends BaseTestModule<TestModuleConfig> implements DependencyFactory2 {
+class TestModule
+  extends BaseTestModule<TestModuleConfig>
+  implements DependencyFactory
+{
   public dependencies() {
     return {
       dependencyModule1: {
-        useClass: ChildModule
-      }
+        useClass: ChildModule,
+      },
     };
   }
 }
@@ -49,7 +55,7 @@ interface OtherTestModuleConfig {
 
 class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {
   x() {
-    return ""
+    return "";
   }
 }
 
@@ -66,7 +72,7 @@ class TestModuleContainer<
 > extends ModuleContainer<Modules> {
   create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
-    this.registerDependencyFactories(["TestModule" as any])
+    this.registerDependencyFactories(["TestModule" as any]);
   }
 }
 
@@ -112,8 +118,8 @@ describe("moduleContainer", () => {
 
     const dm = container.resolve("dependencyModule1");
     expect(dm.x()).toBe("dependency factory works");
-    expect(dm.testModule).toBeDefined()
-  })
+    expect(dm.testModule).toBeDefined();
+  });
 
   it("should throw on resolution, if config was not provided", () => {
     expect.assertions(1);
