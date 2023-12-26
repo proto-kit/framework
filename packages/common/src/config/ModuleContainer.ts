@@ -3,9 +3,10 @@ import "reflect-metadata";
 
 import {
   DependencyContainer,
-  Frequency, injectable,
+  Frequency,
+  injectable,
   InjectionToken,
-  Lifecycle
+  Lifecycle,
 } from "tsyringe";
 import log from "loglevel";
 
@@ -20,6 +21,9 @@ import {
   EventEmittingComponent,
   EventsRecord,
 } from "../events/EventEmittingComponent";
+import { EventEmitterProxy } from "../events/EventEmitterProxy";
+import { memoize } from "lodash";
+import { Memoize } from "typescript-memoize";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -95,16 +99,6 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   // config is optional, as it may be provided by the parent/wrapper class
   config?: ModulesConfig<Modules>;
 }
-
-export type ContainerEvents<Modules extends ModulesRecord> = {
-  [Key in StringKeyOf<Modules>]: InstanceType<
-    Modules[Key]
-  > extends EventEmittingComponent<infer Events>
-    ? EventEmitter<Events>
-    : InstanceType<Modules[Key]> extends ModuleContainer<infer NestedModules>
-    ? ContainerEvents<NestedModules>
-    : never;
-};
 
 /**
  * Reusable module container facilitating registration, resolution
@@ -223,21 +217,10 @@ export class ModuleContainer<
     }
   }
 
-  public get events(): ContainerEvents<Modules> {
-    const moduleNames = this.moduleNames as StringKeyOf<Modules>[];
-    const events = moduleNames.reduce<any>((acc, key) => {
-      const module = this.resolve(key);
-      if ((module as any)["events"] !== undefined) {
-        const eventemitting = module as EventEmittingComponent<
-          Modules[typeof key] extends EventEmittingComponent<infer Events>
-            ? Events
-            : never
-        >;
-        acc[key] = eventemitting.events;
-      }
-      return acc;
-    }, {});
-    return events as ContainerEvents<Modules>
+  private eventEmitterProxy = new EventEmitterProxy<Modules>(this);
+
+  public get events(): EventEmitterProxy<Modules> {
+    return this.eventEmitterProxy;
   }
 
   /**
