@@ -1,11 +1,15 @@
-import { DependencyContainer, injectable, Lifecycle } from "tsyringe";
+import {
+  ClassProvider,
+  DependencyContainer,
+  FactoryProvider,
+  injectable,
+  Lifecycle,
+  ValueProvider
+} from "tsyringe";
 
 import { TypedClass } from "../types";
 import { log } from "../log";
-import { SequencerModule } from "@proto-kit/sequencer";
-import { InMemoryStateService } from "@proto-kit/module";
-import { ConfigurableModule } from "../config/ConfigurableModule";
-import { BaseModuleInstanceType, BaseModuleType } from "../config/ModuleContainer";
+import { BaseModuleInstanceType } from "../config/ModuleContainer";
 
 const errors = {
   descriptorUndefined: () =>
@@ -69,36 +73,40 @@ export abstract class DependencyFactory {
 }
 
 export type DependencyDeclaration =
-  | { type: TypedClass<unknown> }
-  | { instance: unknown };
+  | ClassProvider<unknown>
+  | ValueProvider<unknown>
+  | FactoryProvider<unknown>
 export type DependencyRecord = Record<string, DependencyDeclaration>;
 
 export interface DependencyFactory2 {
   dependencies(): DependencyRecord;
 }
 
-class Factory extends SequencerModule implements DependencyFactory2 {
-  start(): Promise<void> {
-    return Promise.resolve(undefined);
-  }
+// class Factory extends SequencerModule implements DependencyFactory2 {
+//   start(): Promise<void> {
+//     return Promise.resolve(undefined);
+//   }
+//
+//   dependencies() {
+//     return {
+//       stateService: {
+//         useClass: InMemoryStateService,
+//       },
+//     };
+//   }
+// }
 
-  dependencies() {
-    return {
-      stateService: {
-        type: InMemoryStateService,
-      },
-    };
-  }
-}
-
+// TODO Maybe use infer instead of indexed type access
 export type TypeFromDependencyDeclaration<
   Declaration extends DependencyDeclaration
-> = Declaration extends { type: TypedClass<unknown> }
-  ? Declaration["type"] extends TypedClass<infer Class>
+> = Declaration extends ClassProvider<unknown>
+  ? Declaration["useClass"] extends TypedClass<infer Class>
     ? Class
     : never
-  : Declaration extends { instance: unknown }
-  ? Declaration["instance"]
+  : Declaration extends ValueProvider<unknown>
+  ? Declaration["useValue"]
+  : Declaration extends FactoryProvider<unknown>
+  ? ReturnType<Declaration["useFactory"]>
   : never;
 
 export type MapDependencyRecordToTypes<Record extends DependencyRecord> = {
@@ -110,7 +118,7 @@ export type InferDependencies<Class extends BaseModuleInstanceType> =
     ? MapDependencyRecordToTypes<ReturnType<Class["dependencies"]>>
     : never;
 
-type Deps = InferDependencies<Factory>;
+// type Deps = InferDependencies<Factory>;
 // type ClassType = TypeFromDependencyDeclaration<Deps["stateService"]>;
 
 // export abstract class DependencyFactory2 {

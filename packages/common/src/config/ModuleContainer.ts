@@ -5,6 +5,9 @@ import {
   DependencyContainer,
   Frequency,
   InjectionToken,
+  isClassProvider,
+  isFactoryProvider,
+  isValueProvider,
   Lifecycle,
 } from "tsyringe";
 import log from "loglevel";
@@ -12,7 +15,6 @@ import merge from "lodash/merge";
 
 import { StringKeyOf, TypedClass } from "../types";
 import {
-  DependencyFactory,
   DependencyFactory2,
   InferDependencies,
 } from "../dependencyFactory/DependencyFactory";
@@ -256,10 +258,10 @@ export class ModuleContainer<
    * This method should be called during startup
    */
   protected registerDependencyFactories(
-    factories: TypedClass<DependencyFactory>[]
+    factories: StringKeyOf<Modules>[]
   ) {
-    factories.forEach((factory) => {
-      this.container.resolve(factory).initDependencies(this.container);
+    factories.forEach((factoryName) => {
+      this.resolve(factoryName)
     });
   }
 
@@ -367,6 +369,10 @@ export class ModuleContainer<
     }
   }
 
+  private isDependencyFactory(type: any): type is DependencyFactory2 {
+    return "dependencies" in type;
+  }
+
   /**
    * Handle module resolution, e.g. by decorating resolved modules
    * @param moduleName
@@ -386,6 +392,21 @@ export class ModuleContainer<
           container.reset();
           return container;
         });
+
+        if (this.isDependencyFactory(containedModule)) {
+          const dependencies = containedModule.dependencies();
+          Object.entries(dependencies).forEach(([key, declaration]) => {
+            if (isValueProvider(declaration)) {
+              this.container.register(key, declaration);
+            } else if (isFactoryProvider(declaration)) {
+              this.container.register(key, declaration);
+            } else if (isClassProvider(declaration)) {
+              this.container.register(key, declaration);
+            } else {
+              throw new Error("Above if-statement is exhaustive");
+            }
+          });
+        }
       },
       { frequency: ModuleContainer.moduleDecorationFrequency }
     );

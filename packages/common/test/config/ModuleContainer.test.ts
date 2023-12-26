@@ -1,15 +1,15 @@
 /* eslint-disable max-classes-per-file */
 import "reflect-metadata";
-import { container as tsyringeContainer } from "tsyringe";
+import { container as tsyringeContainer, inject, injectable } from "tsyringe";
 
-import { ConfigurableModule } from "../../src/config/ConfigurableModule";
+import { ConfigurableModule, NoConfig } from "../../src/config/ConfigurableModule";
 import {
   ModuleContainerErrors,
   ModuleContainer,
   ModulesRecord, DependenciesFromModules, MergeObjects, ResolvableModules
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { DependencyFactory2 } from "../../src";
+import { ChildContainerProvider, DependencyFactory2 } from "../../src";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -22,11 +22,22 @@ interface TestModuleConfig {
   testConfigProperty3?: number;
 }
 
+@injectable()
+class ChildModule extends BaseTestModule<NoConfig> {
+  public constructor(@inject("TestModule") public readonly testModule: any) {
+    super();
+  }
+
+  x() {
+    return "dependency factory works"
+  }
+}
+
 class TestModule extends BaseTestModule<TestModuleConfig> implements DependencyFactory2 {
   public dependencies() {
     return {
       dependencyModule1: {
-        type: OtherTestModule
+        useClass: ChildModule
       }
     };
   }
@@ -52,7 +63,12 @@ class WrongTestModule {}
 
 class TestModuleContainer<
   Modules extends TestModulesRecord
-> extends ModuleContainer<Modules> {}
+> extends ModuleContainer<Modules> {
+  create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+    this.registerDependencyFactories(["TestModule" as any])
+  }
+}
 
 type inferred = DependenciesFromModules<{
   TestModule: typeof TestModule;
@@ -80,6 +96,24 @@ describe("moduleContainer", () => {
       },
     });
   });
+
+  it.only("should resolve dependency factory dependencies correctly", () => {
+    container.configure({
+      TestModule: {
+        testConfigProperty,
+      },
+
+      OtherTestModule: {
+        otherTestConfigProperty: testConfigProperty,
+      },
+    });
+
+    container.create(() => tsyringeContainer.createChildContainer());
+
+    const dm = container.resolve("dependencyModule1");
+    expect(dm.x()).toBe("dependency factory works");
+    expect(dm.testModule).toBeDefined()
+  })
 
   it("should throw on resolution, if config was not provided", () => {
     expect.assertions(1);
