@@ -12,6 +12,9 @@ import {
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
+  GraphQLList,
+  GraphQLInputType,
+  GraphQLOutputType,
 } from "graphql/type";
 import {
   FromFieldClass,
@@ -46,6 +49,7 @@ import {
 import { ObjMap } from "graphql/jsutils/ObjMap";
 
 import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
+import isArray from "lodash/isArray";
 
 interface ProvableExtension<T, TJson = any> {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
@@ -101,6 +105,22 @@ export class QueryGraphqlModule<
     throw new Error(`Can't decode type ${typeof value}`);
   }
 
+  private inputArray(value: AnyJson, name: string): GraphQLInputType {
+    if (value["length"] === undefined || value["length"] <= 0) {
+      throw new Error(
+        "Dummy array not initialized correctly. Did you define Provable.Array() with length 0?"
+      );
+    }
+    const valueType = value[0];
+    return new GraphQLList(
+      typeof valueType === "object"
+        ? isArray(valueType)
+          ? this.inputArray(valueType, name + "_object")
+          : this.inputJsonToGraphQl(valueType, name + "_object")
+        : this.jsonPrimitiveToGraphqlType(valueType)
+    );
+  }
+
   private inputJsonToGraphQl(
     json: AnyJson,
     name: string
@@ -111,7 +131,9 @@ export class QueryGraphqlModule<
       fields[key] = {
         type:
           typeof value === "object"
-            ? this.inputJsonToGraphQl(value, key)
+            ? isArray(value)
+              ? this.inputArray(value, key)
+              : this.inputJsonToGraphQl(value, key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -122,6 +144,22 @@ export class QueryGraphqlModule<
     });
   }
 
+  private graphqlArray(value: AnyJson, name: string): GraphQLOutputType {
+    if (value["length"] === undefined || value["length"] <= 0) {
+      throw new Error(
+        "Dummy array not initialized correctly. Did you define Provable.Array() with length 0?"
+      );
+    }
+    const valueType = value[0];
+    return new GraphQLList(
+      typeof valueType === "object"
+        ? isArray(valueType)
+          ? this.graphqlArray(valueType, name + "_object")
+          : this.jsonToGraphQl(valueType, name + "_object")
+        : this.jsonPrimitiveToGraphqlType(valueType)
+    );
+  }
+
   private jsonToGraphQl(json: any, name: string): GraphQLObjectType {
     const fields: { [key: string]: GraphQLFieldConfig<unknown, unknown> } = {};
 
@@ -129,7 +167,9 @@ export class QueryGraphqlModule<
       fields[key] = {
         type:
           typeof value === "object"
-            ? this.jsonToGraphQl(value, key)
+            ? isArray(value)
+              ? this.graphqlArray(value, key)
+              : this.jsonToGraphQl(value, key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -194,6 +234,10 @@ export class QueryGraphqlModule<
 
       resolve: async (source, args: { key: any }) => {
         try {
+          if(args.key === undefined){
+            throw new Error("Specifying a key is mandatory");
+          }
+
           const provableKey = (
             stateMap.keyType as ProvableExtension<Key | NonMethods<Key>>
           ).fromJSON(args.key) as Key;
@@ -322,7 +366,9 @@ export class QueryGraphqlModule<
       "Protocol"
     );
 
-    const networkQuery = new NetworkStateQuery(this.networkStateTransportModule);
+    const networkQuery = new NetworkStateQuery(
+      this.networkStateTransportModule
+    );
     const networkType = this.flexiblePureToGraphql(
       NetworkState,
       "Network",
