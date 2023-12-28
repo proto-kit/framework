@@ -16,7 +16,7 @@ import {
 import { UnprovenBlockMetadataMapper } from "./mappers/UnprovenBlockMetadataMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
 
-export class PrismaUnprovenBlockQueue
+export class PrismaBlockStorage
   implements
     UnprovenBlockQueue,
     UnprovenBlockStorage,
@@ -29,11 +29,11 @@ export class PrismaUnprovenBlockQueue
     private readonly blockMapper: BlockMapper
   ) {}
 
-  public async getBlockAt(height: number): Promise<UnprovenBlock | undefined> {
+  private async getBlockByQuery(
+    where: { height: number } | { transactionsHash: string }
+  ): Promise<UnprovenBlock | undefined> {
     const result = await this.connection.client.block.findFirst({
-      where: {
-        height,
-      },
+      where,
       include: {
         transactions: {
           include: {
@@ -54,6 +54,16 @@ export class PrismaUnprovenBlockQueue
       ...this.blockMapper.mapIn(result),
       transactions,
     };
+  }
+
+  public async getBlockAt(height: number): Promise<UnprovenBlock | undefined> {
+    return await this.getBlockByQuery({ height });
+  }
+
+  public async getBlock(
+    transactionsHash: string
+  ): Promise<UnprovenBlock | undefined> {
+    return await this.getBlockByQuery({ transactionsHash });
   }
 
   public async pushBlock(block: UnprovenBlock): Promise<void> {

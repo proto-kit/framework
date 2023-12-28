@@ -94,7 +94,7 @@ export class Balances extends RuntimeModule<object> {
 
 export async function startServer() {
 
-  // log.setLevel("DEBUG")
+  log.setLevel("DEBUG")
 
   const appChain = AppChain.from({
     runtime: Runtime.from({
@@ -222,7 +222,7 @@ export async function startServer() {
 
   const tx2 = appChain.transaction(priv.toPublicKey(), () => {
     balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
-  }, {nonce: 0})
+  }, {nonce: 1})
   await tx2.sign();
   await tx2.send();
 

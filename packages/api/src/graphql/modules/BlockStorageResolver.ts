@@ -1,4 +1,3 @@
-/* eslint-disable new-cap */
 import { inject, injectable } from "tsyringe";
 import { Arg, Field, ObjectType, Query, Resolver } from "type-graphql";
 import { IsBoolean } from "class-validator";
@@ -54,6 +53,7 @@ export class ComputedBlockTransactionModel {
 export class ComputedBlockModel {
   public static fromServiceLayerModel(
     { bundles, proof }: ComputedBlock,
+    // eslint-disable-next-line putout/putout
     blocks: (UnprovenBlockModel | undefined)[]
   ): ComputedBlockModel {
     return new ComputedBlockModel(
@@ -100,6 +100,7 @@ export class BlockStorageResolver extends GraphqlModule {
     if (batch !== undefined) {
       const blocks = await Promise.all(
         batch.bundles.map((bundle) =>
+          // TODO Find a graphql-native way of doing this relational 1-n mapping
           this.unprovenResolver.block(undefined, bundle)
         )
       );
