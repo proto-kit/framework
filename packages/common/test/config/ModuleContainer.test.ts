@@ -12,7 +12,7 @@ import {
   DependenciesFromModules,
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { ChildContainerProvider, DependencyFactory } from "../../src";
+import { ChildContainerProvider, DependencyFactory, DependencyRecord } from "../../src";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -43,9 +43,9 @@ class TestModule
   public dependencies() {
     return {
       dependencyModule1: {
-        useClass: ChildModule,
+        useClass: ChildModule
       },
-    };
+    } satisfies DependencyRecord;
   }
 }
 

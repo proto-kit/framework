@@ -385,15 +385,25 @@ export class ModuleContainer<
 
         if (this.isDependencyFactory(containedModule)) {
           const dependencies = containedModule.dependencies();
+
           Object.entries(dependencies).forEach(([key, declaration]) => {
-            if (isValueProvider(declaration)) {
-              this.container.register(key, declaration);
-            } else if (isFactoryProvider(declaration)) {
-              this.container.register(key, declaration);
-            } else if (isClassProvider(declaration)) {
-              this.container.register(key, declaration);
+            if (
+              !this.container.isRegistered(key) ||
+              declaration.forceOverwrite === true
+            ) {
+              // Find correct provider type and call respective register
+              if (isValueProvider(declaration)) {
+                this.container.register(key, declaration);
+              } else if (isFactoryProvider(declaration)) {
+                this.container.register(key, declaration);
+              } else if (isClassProvider(declaration)) {
+                this.container.register(key, declaration);
+              } else {
+                // Can never be reached
+                throw new Error("Above if-statement is exhaustive");
+              }
             } else {
-              throw new Error("Above if-statement is exhaustive");
+              log.debug(`Dependency ${key} already registered, skipping`);
             }
           });
         }

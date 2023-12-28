@@ -16,7 +16,10 @@ export type DependencyDeclaration =
   | FactoryProvider<unknown>
   | ValueProvider<unknown>;
 
-export type DependencyRecord = Record<string, DependencyDeclaration>;
+export type DependencyRecord = Record<
+  string,
+  DependencyDeclaration & { forceOverwrite?: boolean }
+>;
 
 /**
  * This is an abstract class for creating DependencyFactories, a pattern
