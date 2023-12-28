@@ -132,6 +132,10 @@ class MockUnprovenBlockStorage
   public async pushMetadata(metadata: UnprovenBlockMetadata): Promise<void> {
     this.metadata.push(metadata);
   }
+
+  public async getBlock(transactionsHash: string): Promise<UnprovenBlock | undefined> {
+    return this.blocks.find(block => block.transactionsHash.toString() === transactionsHash);
+  }
 }
 
 @dependencyFactory()

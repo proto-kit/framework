@@ -1,8 +1,4 @@
-import {
-  BlockProverPublicInput,
-  BlockProverPublicOutput,
-} from "@proto-kit/protocol";
-import { Proof } from "o1js";
+import { JsonProof } from "o1js";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 
@@ -13,6 +9,6 @@ export interface ComputedBlockTransaction {
 }
 
 export interface ComputedBlock {
-  proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-  bundles: ComputedBlockTransaction[][];
+  proof: JsonProof;
+  bundles: string[];
 }

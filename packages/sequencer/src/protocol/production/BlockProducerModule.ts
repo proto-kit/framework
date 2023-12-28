@@ -179,18 +179,12 @@ export class BlockProducerModule extends SequencerModule {
     this.productionInProgress = false;
 
     const computedBundles = unprovenBlocks.map((bundle) =>
-      bundle.block.transactions.map((tx) => {
-        return {
-          tx: tx.tx,
-          status: tx.status.toBoolean(),
-          statusMessage: tx.statusMessage,
-        };
-      })
+      bundle.block.transactionsHash.toString()
     );
 
     return {
       block: {
-        proof: block.proof,
+        proof: block.proof.toJSON(),
         bundles: computedBundles,
       },
 

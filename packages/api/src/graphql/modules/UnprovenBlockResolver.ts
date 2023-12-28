@@ -21,7 +21,8 @@ export class UnprovenBlockModel {
           status: tx.status.toBoolean(),
           statusMessage: tx.statusMessage,
         })
-      )
+      ),
+      unprovenBlock.transactionsHash.toString()
     );
   }
 
@@ -31,9 +32,17 @@ export class UnprovenBlockModel {
   @Field(() => [ComputedBlockTransactionModel])
   txs: ComputedBlockTransactionModel[];
 
-  private constructor(height: number, txs: ComputedBlockTransactionModel[]) {
+  @Field()
+  transactionsHash: string;
+
+  private constructor(
+    height: number,
+    txs: ComputedBlockTransactionModel[],
+    transactionsHash: string
+  ) {
     this.height = height;
     this.txs = txs;
+    this.transactionsHash = transactionsHash;
   }
 }
 
@@ -50,12 +59,20 @@ export class UnprovenBlockResolver extends GraphqlModule<object> {
   @Query(() => UnprovenBlockModel, { nullable: true })
   public async block(
     @Arg("height", () => Number, { nullable: true })
-    height: number | undefined
+    height: number | undefined,
+    @Arg("transactionsHash", () => String, { nullable: true })
+    transactionsHash: string | undefined
   ) {
-    const blockHeight =
-      height ?? (await this.blockStorage.getCurrentBlockHeight()) - 1;
+    let block: UnprovenBlock | undefined;
 
-    const block = await this.blockStorage.getBlockAt(blockHeight);
+    if (transactionsHash !== undefined) {
+      block = await this.blockStorage.getBlock(transactionsHash);
+    } else {
+      const blockHeight =
+        height ?? (await this.blockStorage.getCurrentBlockHeight()) - 1;
+
+      block = await this.blockStorage.getBlockAt(blockHeight);
+    }
 
     if (block !== undefined) {
       return UnprovenBlockModel.fromServiceLayerModel(block);

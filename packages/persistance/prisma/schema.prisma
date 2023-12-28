@@ -64,7 +64,7 @@ model Block {
 model Batch {
   height Int @id
 
-  proof String
+  proof Json @db.Json
 
   blocks Block[]
 }
