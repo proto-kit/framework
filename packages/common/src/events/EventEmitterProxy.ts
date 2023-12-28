@@ -1,17 +1,12 @@
-import { EventEmitter } from "./EventEmitter";
-import {
+import type {
   BaseModuleType,
   ModuleContainer,
   ModulesRecord,
 } from "../config/ModuleContainer";
-import { StringKeyOf } from "../types";
-import { EventEmittingComponent, EventsRecord } from "./EventEmittingComponent";
+import { StringKeyOf, UnionToIntersection } from "../types";
 
-type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
-  x: infer I
-) => void
-  ? I
-  : never;
+import { EventEmitter } from "./EventEmitter";
+import { EventEmittingComponent, EventsRecord } from "./EventEmittingComponent";
 
 export type CastToEventsRecord<Record> = Record extends EventsRecord
   ? Record
@@ -35,11 +30,8 @@ export type FlattenedContainerEvents<Modules extends ModulesRecord> =
   FlattenObject<ContainerEvents<Modules>>;
 
 export class EventEmitterProxy<
-  Modules extends ModulesRecord,
-  // TODO Remove as input
-> extends EventEmitter<CastToEventsRecord<
-  FlattenedContainerEvents<Modules>
->> {
+  Modules extends ModulesRecord
+> extends EventEmitter<CastToEventsRecord<FlattenedContainerEvents<Modules>>> {
   public constructor(private readonly container: ModuleContainer<Modules>) {
     super();
     container.moduleNames.forEach((moduleName) => {
@@ -49,7 +41,7 @@ export class EventEmitterProxy<
         const module = container.resolve(moduleName);
         if (this.isEventEmitter(module)) {
           module.events.onAll((events: any, args: unknown[]) => {
-            this.emit(events, ...(args as any ));
+            this.emit(events, ...(args as any));
           });
         }
       }

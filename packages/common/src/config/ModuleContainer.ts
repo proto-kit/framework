@@ -126,7 +126,6 @@ export class ModuleContainer<
    * @returns list of module names
    */
   public get moduleNames() {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return Object.keys(this.definition.modules);
   }
 
@@ -173,7 +172,7 @@ export class ModuleContainer<
     modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    if(!this.isValidModuleName(modules, moduleName)){
+    if (!this.isValidModuleName(modules, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }
   }
@@ -182,7 +181,7 @@ export class ModuleContainer<
     modules: Modules,
     moduleName: number | string | symbol
   ): moduleName is StringKeyOf<Modules> {
-    return Object.prototype.hasOwnProperty.call(modules, moduleName)
+    return Object.prototype.hasOwnProperty.call(modules, moduleName);
   }
 
   public assertContainerInitialized(

@@ -73,12 +73,17 @@ export class UnprovenProducerModule
         }
 
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
-        this.events.emit("unprovenBlockProduced", [block]);
+        this.events.emit("unprovenBlockProduced", block);
 
         // Generate metadata for next block
         // eslint-disable-next-line no-warning-comments
         // TODO: make async of production in the future
-        const metadata = await this.executionService.generateMetadataForNextBlock(block, this.unprovenMerkleStore, true)
+        const metadata =
+          await this.executionService.generateMetadataForNextBlock(
+            block,
+            this.unprovenMerkleStore,
+            true
+          );
         await this.unprovenBlockQueue.pushMetadata(metadata);
 
         return block;

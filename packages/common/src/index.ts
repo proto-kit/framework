@@ -11,3 +11,4 @@ export * from "./dependencyFactory/DependencyFactory";
 export * from "./log";
 export * from "./events/EventEmittingComponent";
 export * from "./events/EventEmitter";
+export * from "./events/EventEmitterProxy";
