@@ -116,6 +116,8 @@ export class ModuleContainer<
   // DI container holding all the registered modules
   private providedContainer?: DependencyContainer = undefined;
 
+  private eventEmitterProxy: EventEmitterProxy<Modules> | undefined = undefined;
+
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
   }
@@ -171,16 +173,16 @@ export class ModuleContainer<
     modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    this.isValidModuleName(modules, moduleName);
+    if(!this.isValidModuleName(modules, moduleName)){
+      throw errors.onlyValidModuleNames(moduleName);
+    }
   }
 
   public isValidModuleName(
     modules: Modules,
     moduleName: number | string | symbol
-  ): asserts moduleName is StringKeyOf<Modules> {
-    if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-      throw errors.onlyValidModuleNames(moduleName);
-    }
+  ): moduleName is StringKeyOf<Modules> {
+    return Object.prototype.hasOwnProperty.call(modules, moduleName)
   }
 
   public assertContainerInitialized(
@@ -217,10 +219,9 @@ export class ModuleContainer<
     }
   }
 
-  private eventEmitterProxy = new EventEmitterProxy<Modules>(this);
-
   public get events(): EventEmitterProxy<Modules> {
-    return this.eventEmitterProxy;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return this.eventEmitterProxy!;
   }
 
   /**
@@ -363,5 +364,7 @@ export class ModuleContainer<
 
     // register all provided modules when the container is created
     this.registerModules(this.definition.modules);
+
+    this.eventEmitterProxy = new EventEmitterProxy<Modules>(this);
   }
 }

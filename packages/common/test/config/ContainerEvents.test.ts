@@ -7,13 +7,15 @@ import {
   EventEmittingComponent,
   EventsRecord,
   ModuleContainer,
-  ModulesRecord, TypedClass
+  ModulesRecord,
+  TypedClass,
 } from "../../src";
 import { injectable, container as tsyringeContainer } from "tsyringe";
 import {
+  CastToEventsRecord,
   ContainerEvents,
   FlattenedContainerEvents,
-  FlattenObject
+  FlattenObject,
 } from "../../src/events/EventEmitterProxy";
 
 class TestContainer<
@@ -38,34 +40,47 @@ interface TestEvents2 extends EventsRecord {
 
 class TestModule2
   extends ConfigurableModule<{}>
-  implements BaseModuleInstanceType, EventEmittingComponent<TestEvents2> {
-  events = new EventEmitter()
+  implements BaseModuleInstanceType, EventEmittingComponent<TestEvents2>
+{
+  events = new EventEmitter<TestEvents2>();
 }
 
 type X = {
-  test: TypedClass<TestModule>,
-  test2: TypedClass<TestModule2>
-}
-type Y = FlattenObject<ContainerEvents<X>>
-type Z = FlattenedContainerEvents<X>
-const y: Y = {
-  test: ["asd"],
-  // test2: [2]
-}
+  test: TypedClass<TestModule>;
+  test2: TypedClass<TestModule2>;
+};
+type Y = FlattenObject<ContainerEvents<X>>;
+type Z = CastToEventsRecord<FlattenedContainerEvents<X>>;
+// const y: Y = {
+//   test: ["asd"],
+//   // test2: [2]
+// }
 
 describe("test event propagation", () => {
-  it("should work corretly", () => {
+  it("should propagate events up", () => {
+    expect.assertions(1);
+
     const container = new TestContainer({
       modules: {
         test: TestModule,
-        test2: TestModule2
-      }
-    })
+        test2: TestModule2,
+      },
+    });
 
-    container.create(() => tsyringeContainer.createChildContainer())
+    container.configure({
+      test: {},
+      test2: {}
+    });
 
-    container.events.on("test", (s: unknown) => {
+    container.create(() => tsyringeContainer.createChildContainer());
 
-    })
+    const testvalue = "testString123";
+
+    container.events.on("test", (value: string) => {
+      expect(value).toStrictEqual(testvalue);
+    });
+
+    const module = container.resolve("test");
+    module.events.emit("test", testvalue);
   });
 });
