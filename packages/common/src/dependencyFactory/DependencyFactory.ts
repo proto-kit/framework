@@ -11,14 +11,14 @@ import { TypedClass } from "../types";
 import { log } from "../log";
 import { BaseModuleInstanceType } from "../config/ModuleContainer";
 
-export type DependencyDeclaration =
-  | ClassProvider<unknown>
-  | FactoryProvider<unknown>
-  | ValueProvider<unknown>;
+export type DependencyDeclaration<Dependency> =
+  | ClassProvider<Dependency>
+  | FactoryProvider<Dependency>
+  | ValueProvider<Dependency>;
 
 export type DependencyRecord = Record<
   string,
-  DependencyDeclaration & { forceOverwrite?: boolean }
+  DependencyDeclaration<unknown> & { forceOverwrite?: boolean }
 >;
 
 /**
@@ -34,21 +34,12 @@ export type DependencyRecord = Record<
  * deps that are necessary for the sequencer to work.
  */
 export interface DependencyFactory {
-  dependencies(): DependencyRecord;
+  dependencies: () => DependencyRecord;
 }
 
-// TODO Maybe use infer instead of indexed type access
 export type TypeFromDependencyDeclaration<
-  Declaration extends DependencyDeclaration
-> = Declaration extends ClassProvider<unknown>
-  ? Declaration["useClass"] extends TypedClass<infer Class>
-    ? Class
-    : never
-  : Declaration extends ValueProvider<unknown>
-  ? Declaration["useValue"]
-  : Declaration extends FactoryProvider<unknown>
-  ? ReturnType<Declaration["useFactory"]>
-  : never;
+  Declaration extends DependencyDeclaration<unknown>
+> = Declaration extends ClassProvider<infer Dependency> ? Dependency : never;
 
 export type MapDependencyRecordToTypes<Record extends DependencyRecord> = {
   [Key in keyof Record]: TypedClass<TypeFromDependencyDeclaration<Record[Key]>>;

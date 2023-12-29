@@ -43,7 +43,7 @@ class TestModule
   public dependencies() {
     return {
       dependencyModule1: {
-        useClass: ChildModule
+        useClass: ChildModule,
       },
     } satisfies DependencyRecord;
   }
@@ -54,7 +54,7 @@ interface OtherTestModuleConfig {
 }
 
 class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {
-  x() {
+  public x() {
     return "";
   }
 }
@@ -70,7 +70,7 @@ class WrongTestModule {}
 class TestModuleContainer<
   Modules extends TestModulesRecord
 > extends ModuleContainer<Modules> {
-  create(childContainerProvider: ChildContainerProvider) {
+  public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
     this.registerDependencyFactories(["TestModule" as any]);
   }
@@ -117,6 +117,7 @@ describe("moduleContainer", () => {
     container.create(() => tsyringeContainer.createChildContainer());
 
     const dm = container.resolve("dependencyModule1");
+
     expect(dm.x()).toBe("dependency factory works");
     expect(dm.testModule).toBeDefined();
   });
