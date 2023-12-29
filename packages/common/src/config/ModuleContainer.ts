@@ -5,6 +5,7 @@ import {
   DependencyContainer,
   Frequency,
   InjectionToken,
+  instancePerContainerCachingFactory,
   isClassProvider,
   isFactoryProvider,
   isValueProvider,
@@ -395,9 +396,17 @@ export class ModuleContainer<
               if (isValueProvider(declaration)) {
                 this.container.register(key, declaration);
               } else if (isFactoryProvider(declaration)) {
-                this.container.register(key, declaration);
+                // this enables us to have a singletoned factory
+                // that returns the same instance for each resolve
+                this.container.register(key, {
+                  useFactory: instancePerContainerCachingFactory(
+                    declaration.useFactory
+                  ),
+                });
               } else if (isClassProvider(declaration)) {
-                this.container.register(key, declaration);
+                this.container.register(key, declaration, {
+                  lifecycle: Lifecycle.Singleton,
+                });
               } else {
                 // Can never be reached
                 throw new Error("Above if-statement is exhaustive");
