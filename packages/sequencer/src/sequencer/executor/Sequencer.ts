@@ -68,7 +68,9 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     //   );
     // witnessProviderReference.setWitnessProvider(witnessProvider);
 
-    this.registerDependencyFactories([MethodIdFactory]);
+    this.useDependencyFactory(
+      this.container.resolve(MethodIdFactory)
+    );
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(

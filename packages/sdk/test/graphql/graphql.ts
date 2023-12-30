@@ -17,7 +17,7 @@ import {
 import { Presets, log, sleep } from "@proto-kit/common";
 import {
   AsyncStateService,
-  BlockProducerModule,
+  BlockProducerModule, InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   NoopBaseLayer,
@@ -114,6 +114,7 @@ export async function startServer() {
 
     sequencer: Sequencer.from({
       modules: {
+        Database: InMemoryDatabase,
         Mempool: PrivateMempool,
         GraphqlServer,
         LocalTaskWorkerModule,
@@ -178,6 +179,7 @@ export async function startServer() {
         UnprovenBlockResolver: {}
       },
 
+      Database: {},
       Mempool: {},
       BlockProducerModule: {},
       LocalTaskWorkerModule: {},

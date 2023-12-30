@@ -1,9 +1,8 @@
 import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
-  dependency,
-  dependencyFactory,
   DependencyFactory,
+  DependencyRecord,
 } from "@proto-kit/common";
 
 @injectable()
@@ -19,10 +18,12 @@ export class InMemoryAreProofsEnabled implements AreProofsEnabled {
   }
 }
 
-@dependencyFactory()
-export class AreProofsEnabledFactory extends DependencyFactory {
-  @dependency()
-  public areProofsEnabled(): AreProofsEnabled {
-    return new InMemoryAreProofsEnabled();
+export class AreProofsEnabledFactory implements DependencyFactory {
+  public dependencies() {
+    return {
+      areProofsEnabled: {
+        useClass: InMemoryAreProofsEnabled,
+      },
+    } satisfies DependencyRecord;
   }
 }

@@ -2,7 +2,7 @@ import { RollupMerkleTree } from "@proto-kit/protocol";
 import { beforeEach, expect } from "@jest/globals";
 import { Field } from "o1js";
 
-import { MockAsyncMerkleTreeStore } from "../../src/storage/MockStorageDependencyFactory";
+import { MockAsyncMerkleTreeStore } from "../../src/storage/inmemory/InMemoryDatabase";
 import { CachedMerkleTreeStore, SyncCachedMerkleTreeStore } from "../../src";
 
 describe("cached merkle store", () => {

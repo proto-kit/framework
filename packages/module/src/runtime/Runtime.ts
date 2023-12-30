@@ -223,7 +223,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
 
-    this.registerDependencyFactories([MethodIdFactory]);
+     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
   }
 
   public get appChain(): AreProofsEnabled | undefined {
@@ -258,9 +258,8 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public getMethodById(
     methodId: bigint
   ): ((...args: unknown[]) => unknown) | undefined {
-    const methodDescriptor = this.container
-      .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodNameFromId(methodId);
+    const methodDescriptor =
+      this.methodIdResolver.getMethodNameFromId(methodId);
 
     if (methodDescriptor === undefined) {
       return undefined;
