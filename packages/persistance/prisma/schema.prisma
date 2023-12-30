@@ -11,8 +11,11 @@ datasource db {
 }
 
 model State {
-  path   BigInt @id
-  values BigInt[]
+  path   Decimal @db.Decimal(78, 0)
+  values Decimal[] @db.Decimal(78, 0)
+  mask   String @db.VarChar(256)
+
+  @@id([path, mask])
 }
 
 model TreeElement {
