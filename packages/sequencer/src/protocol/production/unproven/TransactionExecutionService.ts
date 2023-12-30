@@ -16,7 +16,8 @@ import {
   StateTransition,
   BlockTransactionPosition,
   BlockTransactionPositionType,
-  ProvableBlockHook, StateServiceProvider
+  ProvableBlockHook,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log } from "@proto-kit/common";
@@ -36,6 +37,7 @@ import type { StateRecord } from "../BlockProducerModule";
 
 import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -199,7 +201,7 @@ export class TransactionExecutionService {
    * attached that is needed for tracing
    */
   public async createUnprovenBlock(
-    stateService: CachedStateService,
+    stateService: AsyncStateService,
     transactions: PendingTransaction[],
     metadata: UnprovenBlockMetadata
   ): Promise<UnprovenBlock> {
@@ -258,7 +260,7 @@ export class TransactionExecutionService {
 
   public async generateMetadataForNextBlock(
     block: UnprovenBlock,
-    merkleTreeStore: CachedMerkleTreeStore,
+    merkleTreeStore: AsyncMerkleTreeStore,
     modifyTreeStore = true
   ): Promise<UnprovenBlockMetadata> {
     // Flatten diff list into a single diff by applying them over each other
@@ -269,10 +271,7 @@ export class TransactionExecutionService {
         return Object.assign(accumulator, diff);
       }, {});
 
-    // If we modify the parent store, we use it, otherwise we abstract over it.
-    const inMemoryStore = modifyTreeStore
-      ? merkleTreeStore
-      : new CachedMerkleTreeStore(merkleTreeStore);
+    const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
     const tree = new RollupMerkleTree(inMemoryStore);
 
     for (const key of Object.keys(combinedDiff)) {
@@ -301,6 +300,10 @@ export class TransactionExecutionService {
         }),
       block.networkState
     );
+
+    if (modifyTreeStore) {
+      await inMemoryStore.mergeIntoParent();
+    }
 
     return {
       resultingNetworkState,
@@ -382,11 +385,13 @@ export class TransactionExecutionService {
 
   // eslint-disable-next-line max-statements
   private async createExecutionTrace(
-    stateService: CachedStateService,
+    asyncStateService: AsyncStateService,
     tx: PendingTransaction,
     networkState: NetworkState,
     transactionPosition: BlockTransactionPositionType
   ): Promise<TransactionExecutionResult> {
+    const cachedStateService = new CachedStateService(asyncStateService);
+
     const { method, args, module } = this.decodeTransaction(tx);
 
     // Disable proof generation for tracing
@@ -414,17 +419,17 @@ export class TransactionExecutionService {
       args,
       runtimeContextInputs,
       blockContextInputs,
-      stateService
+      asyncStateService
     );
 
     // Preload keys
-    await stateService.preloadKeys(
+    await cachedStateService.preloadKeys(
       runtimeKeys.concat(protocolKeys).filter(distinctByString)
     );
 
     // Execute second time with preloaded state. The following steps
     // generate and apply the correct STs with the right values
-    this.stateServiceProvider.setCurrentStateService(stateService);
+    this.stateServiceProvider.setCurrentStateService(cachedStateService);
 
     const protocolResult = this.executeProtocolHooks(
       runtimeContextInputs,
@@ -445,10 +450,13 @@ export class TransactionExecutionService {
     );
 
     // Apply protocol STs
-    await this.applyTransitions(stateService, protocolResult.stateTransitions);
+    await this.applyTransitions(
+      cachedStateService,
+      protocolResult.stateTransitions
+    );
 
     let stateDiff = this.collectStateDiff(
-      stateService,
+      cachedStateService,
       protocolResult.stateTransitions
     );
 
@@ -465,10 +473,13 @@ export class TransactionExecutionService {
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
-      await this.applyTransitions(stateService, runtimeResult.stateTransitions);
+      await this.applyTransitions(
+        cachedStateService,
+        runtimeResult.stateTransitions
+      );
 
       stateDiff = this.collectStateDiff(
-        stateService,
+        cachedStateService,
         protocolResult.stateTransitions.concat(runtimeResult.stateTransitions)
       );
     }
@@ -478,6 +489,8 @@ export class TransactionExecutionService {
 
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
+
+    await cachedStateService.mergeIntoParent();
 
     return {
       tx,

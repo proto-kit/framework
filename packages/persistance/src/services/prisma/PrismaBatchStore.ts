@@ -1,16 +1,19 @@
-import { ProvenBatchStorage } from "@proto-kit/sequencer/dist/storage/repositories/ProvenBatchStorage";
-import { ComputedBlock, HistoricalBlockStorage } from "@proto-kit/sequencer";
+import {
+  ComputedBlock,
+  HistoricalBlockStorage,
+  BlockStorage,
+} from "@proto-kit/sequencer";
 import { Prisma } from "@prisma/client";
+import { inject, injectable } from "tsyringe";
 
-import { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
+import type { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
 
 import { BatchMapper } from "./mappers/BatchMapper";
 
-export class PrismaBatchStore
-  implements ProvenBatchStorage, HistoricalBlockStorage
-{
+@injectable()
+export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
   public constructor(
-    private readonly connection: PrismaDatabaseConnection,
+    @inject("Database") private readonly connection: PrismaDatabaseConnection,
     private readonly batchMapper: BatchMapper
   ) {}
 
@@ -36,7 +39,7 @@ export class PrismaBatchStore
     return this.batchMapper.mapIn([batch, blocks]);
   }
 
-  public async getCurrentHeight(): Promise<number> {
+  public async getCurrentBlockHeight(): Promise<number> {
     const batch = await this.connection.client.batch.aggregate({
       _max: {
         height: true,
@@ -46,7 +49,7 @@ export class PrismaBatchStore
   }
 
   public async pushBlock(block: ComputedBlock): Promise<void> {
-    const height = await this.getCurrentHeight();
+    const height = await this.getCurrentBlockHeight();
 
     const [entity] = this.batchMapper.mapOut(block);
     await this.connection.client.batch.create({

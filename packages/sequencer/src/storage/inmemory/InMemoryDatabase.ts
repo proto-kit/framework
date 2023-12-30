@@ -15,25 +15,22 @@ import {
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
 import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
+import { InMemoryStateService } from "@proto-kit/module";
 
 @sequencerModule()
 export class InMemoryDatabase
   extends SequencerModule
   implements StorageDependencyFactory
 {
-  private readonly asyncService = new CachedStateService(undefined);
-
-  private readonly merkleStore = new InMemoryAsyncMerkleTreeStore();
-
   private readonly blockStorageQueue = new InMemoryBlockStorage();
 
   public dependencies(): StorageDependencyMinimumDependencies {
     return {
       asyncMerkleStore: {
-        useValue: this.merkleStore,
+        useClass: InMemoryAsyncMerkleTreeStore,
       },
       asyncStateService: {
-        useValue: this.asyncService,
+        useFactory: () => new CachedStateService(undefined),
       },
       blockStorage: {
         useClass: InMemoryBatchStorage,
@@ -45,10 +42,10 @@ export class InMemoryDatabase
         useValue: this.blockStorageQueue,
       },
       unprovenStateService: {
-        useFactory: () => new CachedStateService(this.asyncService),
+        useFactory: () => new CachedStateService(undefined),
       },
       unprovenMerkleStore: {
-        useFactory: () => new CachedMerkleTreeStore(this.merkleStore),
+        useClass: InMemoryAsyncMerkleTreeStore,
       },
     };
   }

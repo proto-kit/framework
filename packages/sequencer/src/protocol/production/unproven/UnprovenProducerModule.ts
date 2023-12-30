@@ -24,6 +24,8 @@ import {
   UnprovenBlock,
   UnprovenBlockMetadata,
 } from "./TransactionExecutionService";
+import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
+import { AsyncStateService } from "../../../state/async/AsyncStateService";
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
@@ -45,9 +47,9 @@ export class UnprovenProducerModule
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
     @inject("UnprovenStateService")
-    private readonly unprovenStateService: CachedStateService,
+    private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenMerkleStore")
-    private readonly unprovenMerkleStore: CachedMerkleTreeStore,
+    private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
     @inject("UnprovenBlockQueue")
     private readonly unprovenBlockQueue: UnprovenBlockQueue,
     private readonly executionService: TransactionExecutionService

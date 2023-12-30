@@ -6,8 +6,6 @@ import {
 
 import { AsyncStateService } from "../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
-import { CachedStateService } from "../state/state/CachedStateService";
-import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
 
 import { BlockStorage } from "./repositories/BlockStorage";
 import {
@@ -21,8 +19,8 @@ export interface StorageDependencyMinimumDependencies extends DependencyRecord {
   blockStorage: DependencyDeclaration<BlockStorage>;
   unprovenBlockQueue: DependencyDeclaration<UnprovenBlockQueue>;
   unprovenBlockStorage: DependencyDeclaration<UnprovenBlockStorage>;
-  unprovenStateService: DependencyDeclaration<CachedStateService>;
-  unprovenMerkleStore: DependencyDeclaration<CachedMerkleTreeStore>;
+  unprovenStateService: DependencyDeclaration<AsyncStateService>;
+  unprovenMerkleStore: DependencyDeclaration<AsyncMerkleTreeStore>;
 }
 
 export interface StorageDependencyFactory extends DependencyFactory {

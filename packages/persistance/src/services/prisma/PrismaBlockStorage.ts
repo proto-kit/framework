@@ -7,15 +7,19 @@ import {
   UnprovenBlockStorage,
   UnprovenBlockWithPreviousMetadata,
 } from "@proto-kit/sequencer";
-import { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
-import { TransactionExecutionResultMapper } from "./mappers/TransactionMapper";
 import {
   Prisma,
   TransactionExecutionResult as DBTransactionExecutionResult,
 } from "@prisma/client";
+import { inject, injectable } from "tsyringe";
+
+import type { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
+
+import { TransactionExecutionResultMapper } from "./mappers/TransactionMapper";
 import { UnprovenBlockMetadataMapper } from "./mappers/UnprovenBlockMetadataMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
 
+@injectable()
 export class PrismaBlockStorage
   implements
     UnprovenBlockQueue,
@@ -23,7 +27,7 @@ export class PrismaBlockStorage
     HistoricalUnprovenBlockStorage
 {
   public constructor(
-    private readonly connection: PrismaDatabaseConnection,
+    @inject("Database") private readonly connection: PrismaDatabaseConnection,
     private readonly transactionResultMapper: TransactionExecutionResultMapper,
     private readonly blockMetadataMapper: UnprovenBlockMetadataMapper,
     private readonly blockMapper: BlockMapper
@@ -125,7 +129,7 @@ export class PrismaBlockStorage
         height: true,
       },
     });
-    // TODO I have no idea what this should give in case no block are in the DB. Document properly
+    // TODO I have no idea what this should give in case no blocks are in the DB. Document properly
     return (result?._max.height ?? -1) + 1;
   }
 
