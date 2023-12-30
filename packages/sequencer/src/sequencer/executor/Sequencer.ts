@@ -6,7 +6,11 @@ import {
   ModuleContainerDefinition,
   log,
 } from "@proto-kit/common";
-import { Runtime, RuntimeModulesRecord, MethodIdFactory } from "@proto-kit/module";
+import {
+  Runtime,
+  RuntimeModulesRecord,
+  MethodIdFactory,
+} from "@proto-kit/module";
 import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
@@ -85,6 +89,25 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       );
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
+    }
+  }
+
+  public async close(): Promise<void> {
+    let counter = 0;
+
+    const { modules } = this.definition;
+    const totalModules = Object.keys(modules).length;
+
+    for (const moduleName in modules) {
+      const sequencerModule = this.resolve(moduleName);
+
+      log.info(
+        `Closing sequencer module ${moduleName} (${
+          sequencerModule.constructor.name
+        }) ${++counter}/${totalModules}`
+      );
+      // eslint-disable-next-line no-await-in-loop
+      await sequencerModule.close();
     }
   }
 }

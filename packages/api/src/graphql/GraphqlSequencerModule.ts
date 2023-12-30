@@ -8,6 +8,7 @@ import {
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
+  noop,
   TypedClass,
 } from "@proto-kit/common";
 
@@ -73,5 +74,9 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
       }
     }
     void this.graphqlServer.startServer();
+  }
+
+  public async close(): Promise<void> {
+    noop();
   }
 }

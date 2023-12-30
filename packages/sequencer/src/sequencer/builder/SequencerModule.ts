@@ -4,7 +4,7 @@ import {
   StaticConfigurableModule,
   TypedClass,
   Presets,
-  NoConfig,
+  NoConfig, noop
 } from "@proto-kit/common";
 import { injectable } from "tsyringe";
 
@@ -24,6 +24,15 @@ export abstract class SequencerModule<
    * That means that you mustn't await server.start() for example.
    */
   public abstract start(): Promise<void>;
+
+  /**
+   * Close() is called by the sequencer when the appchain or the sequencer
+   * is in the process of stopping.
+   * Possible usages are stopping of API services, closing of database connections, ...
+   */
+  public async close(): Promise<void> {
+    noop();
+  }
 }
 
 /**
