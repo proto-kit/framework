@@ -352,4 +352,8 @@ export class AppChain<
     // this.runtime.start();
     await this.sequencer.start();
   }
+
+  public async close(): Promise<void> {
+    await this.sequencer.close();
+  }
 }
