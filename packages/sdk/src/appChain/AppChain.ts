@@ -20,6 +20,7 @@ import {
   UnsignedTransaction,
   QueryTransportModule,
   NetworkStateTransportModule,
+  DummyStateService,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -28,6 +29,7 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
 import { container, DependencyContainer } from "tsyringe";
 import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
@@ -270,7 +272,14 @@ export class AppChain<
       } as unknown as NetworkState,
     });
 
+    const stateServiceProvider = this.container.resolve<StateServiceProvider>(
+      "StateServiceProvider"
+    );
+    stateServiceProvider.setCurrentStateService(new DummyStateService());
+
     callback();
+
+    stateServiceProvider.popCurrentStateService();
 
     const { methodName, moduleName, args } = executionContext.current().result;
 

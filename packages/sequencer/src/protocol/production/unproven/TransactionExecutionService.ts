@@ -16,7 +16,7 @@ import {
   StateTransition,
   BlockTransactionPosition,
   BlockTransactionPositionType,
-  ProvableBlockHook,
+  ProvableBlockHook, StateServiceProvider
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log } from "@proto-kit/common";
@@ -73,7 +73,10 @@ export class TransactionExecutionService {
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>
+    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    // Coming in from the appchain scope (accessible by protocol & runtime)
+    @inject("StateServiceProvider")
+    private readonly stateServiceProvider: StateServiceProvider
   ) {
     this.transactionHooks = protocol.dependencyContainer.resolveAll(
       "ProvableTransactionHook"
@@ -416,8 +419,7 @@ export class TransactionExecutionService {
 
     // Execute second time with preloaded state. The following steps
     // generate and apply the correct STs with the right values
-    this.runtime.stateServiceProvider.setCurrentStateService(stateService);
-    this.protocol.stateServiceProvider.setCurrentStateService(stateService);
+    this.stateServiceProvider.setCurrentStateService(stateService);
 
     const protocolResult = this.executeProtocolHooks(
       runtimeContextInputs,
@@ -467,8 +469,8 @@ export class TransactionExecutionService {
     }
 
     // Reset global stateservice
-    this.runtime.stateServiceProvider.popCurrentStateService();
-    this.protocol.stateServiceProvider.popCurrentStateService();
+    this.stateServiceProvider.popCurrentStateService();
+
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
 

@@ -17,7 +17,7 @@ import {
 import { Presets, log, sleep } from "@proto-kit/common";
 import {
   AsyncStateService,
-  BlockProducerModule,
+  BlockProducerModule, InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   NoopBaseLayer,
@@ -114,6 +114,7 @@ export async function startServer() {
 
     sequencer: Sequencer.from({
       modules: {
+        Database: InMemoryDatabase,
         Mempool: PrivateMempool,
         GraphqlServer,
         LocalTaskWorkerModule,
@@ -178,6 +179,7 @@ export async function startServer() {
         UnprovenBlockResolver: {}
       },
 
+      Database: {},
       Mempool: {},
       BlockProducerModule: {},
       LocalTaskWorkerModule: {},
@@ -222,7 +224,7 @@ export async function startServer() {
 
   const tx2 = appChain.transaction(priv.toPublicKey(), () => {
     balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
-  }, {nonce: 0})
+  }, {nonce: 1})
   await tx2.sign();
   await tx2.send();
 

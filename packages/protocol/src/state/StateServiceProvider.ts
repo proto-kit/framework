@@ -14,14 +14,6 @@ const errors = {
 export class StateServiceProvider {
   private readonly stateServiceStack: StateService[] = [];
 
-  public constructor(
-    @inject("StateService") private readonly baseStateService?: StateService
-  ) {
-    if (baseStateService !== undefined) {
-      this.stateServiceStack.push(baseStateService);
-    }
-  }
-
   public get stateService(): StateService {
     if (this.stateServiceStack.length === 0) {
       throw errors.stateServiceNotSet();
@@ -37,8 +29,8 @@ export class StateServiceProvider {
   }
 
   public popCurrentStateService() {
-    if (this.stateServiceStack.length === 1) {
-      log.trace("Trying to pop last available (root) stateservice");
+    if (this.stateServiceStack.length === 0) {
+      log.trace("Trying to pop from empty state-service stack");
       return;
     }
     this.stateServiceStack.pop();
