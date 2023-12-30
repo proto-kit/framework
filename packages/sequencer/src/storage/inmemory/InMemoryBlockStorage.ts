@@ -33,9 +33,7 @@ export class InMemoryBlockStorage
     return await this.getBlockAt((await this.getCurrentBlockHeight()) - 1);
   }
 
-  public async popNewBlocks(
-    remove: boolean
-  ): Promise<UnprovenBlockWithPreviousMetadata[]> {
+  public async getNewBlocks(): Promise<UnprovenBlockWithPreviousMetadata[]> {
     const slice = this.blocks.slice(this.cursor);
 
     // eslint-disable-next-line putout/putout
@@ -46,9 +44,10 @@ export class InMemoryBlockStorage
       metadata = [undefined, ...metadata];
     }
 
-    if (remove) {
-      this.cursor = this.blocks.length;
-    }
+    // This assumes that getNewBlocks() is only called once per block prod cycle
+    // TODO query batch storage which the last proven block was instead
+    this.cursor = this.blocks.length;
+
     return slice.map((block, index) => ({
       block,
       lastBlockMetadata: metadata[index],
@@ -65,5 +64,9 @@ export class InMemoryBlockStorage
 
   public async pushMetadata(metadata: UnprovenBlockMetadata): Promise<void> {
     this.metadata.push(metadata);
+  }
+
+  public async getBlock(transactionsHash: string): Promise<UnprovenBlock | undefined> {
+    return this.blocks.find(block => block.transactionsHash.toString() === transactionsHash);
   }
 }
