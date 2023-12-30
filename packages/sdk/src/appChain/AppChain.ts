@@ -18,7 +18,6 @@ import {
   Sequencer,
   SequencerModulesRecord,
   UnsignedTransaction,
-  MockStorageDependencyFactory,
   QueryTransportModule,
   NetworkStateTransportModule,
 } from "@proto-kit/sequencer";
@@ -39,6 +38,7 @@ import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 
 import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
+import { SharedDependencyFactory } from "./SharedDependencyFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -328,10 +328,8 @@ export class AppChain<
   public async start(dependencyContainer: DependencyContainer = container) {
     this.create(() => dependencyContainer);
 
-    this.registerDependencyFactories([
-      AreProofsEnabledFactory,
-      MockStorageDependencyFactory,
-    ]);
+    this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
+    this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
 
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.

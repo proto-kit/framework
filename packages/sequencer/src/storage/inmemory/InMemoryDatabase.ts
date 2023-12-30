@@ -1,40 +1,26 @@
 /* eslint-disable ext/lines-between-object-properties */
-import {
-  InMemoryMerkleTreeStorage,
-  StateServiceProvider,
-  StateTransitionWitnessProviderReference,
-} from "@proto-kit/protocol";
-import { DependencyFactory, noop } from "@proto-kit/common";
+import { noop } from "@proto-kit/common";
 
-import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { CachedStateService } from "../../state/state/CachedStateService";
-import { AsyncStateService } from "../../state/async/AsyncStateService";
-import {
-  UnprovenBlock,
-  UnprovenBlockMetadata,
-} from "../../protocol/production/unproven/TransactionExecutionService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
-import { UnprovenBlockWithPreviousMetadata } from "../../protocol/production/BlockProducerModule";
-
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../../sequencer/builder/SequencerModule";
 import {
   StorageDependencyFactory,
   StorageDependencyMinimumDependencies,
 } from "../StorageDependencyFactory";
-import {
-  BlockStorage,
-  HistoricalBlockStorage,
-} from "../repositories/BlockStorage";
-import { ComputedBlock } from "../model/Block";
-import {
-  HistoricalUnprovenBlockStorage,
-  UnprovenBlockQueue,
-  UnprovenBlockStorage,
-} from "../repositories/UnprovenBlockStorage";
+
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
 import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 
-export class InMemoryDatabase implements StorageDependencyFactory {
+@sequencerModule()
+export class InMemoryDatabase
+  extends SequencerModule
+  implements StorageDependencyFactory
+{
   private readonly asyncService = new CachedStateService(undefined);
 
   private readonly merkleStore = new InMemoryAsyncMerkleTreeStore();
@@ -58,12 +44,6 @@ export class InMemoryDatabase implements StorageDependencyFactory {
       unprovenBlockStorage: {
         useValue: this.blockStorageQueue,
       },
-      stateServiceProvider: {
-        useFactory: () => new StateServiceProvider(this.asyncService),
-      },
-      stateTransitionWitnessProviderReference: {
-        useClass: StateTransitionWitnessProviderReference,
-      },
       unprovenStateService: {
         useFactory: () => new CachedStateService(this.asyncService),
       },
@@ -71,5 +51,9 @@ export class InMemoryDatabase implements StorageDependencyFactory {
         useFactory: () => new CachedMerkleTreeStore(this.merkleStore),
       },
     };
+  }
+
+  public async start(): Promise<void> {
+    noop();
   }
 }
