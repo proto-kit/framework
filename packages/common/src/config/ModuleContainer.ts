@@ -372,10 +372,12 @@ export class ModuleContainer<
    * @param factory
    * @private
    */
-  private useDependencyFactory(factory: DependencyFactory) {
+  protected useDependencyFactory(factory: DependencyFactory) {
     const dependencies = factory.dependencies();
 
-    Object.entries(dependencies).forEach(([key, declaration]) => {
+    Object.entries(dependencies).forEach(([rawKey, declaration]) => {
+      const key = rawKey.charAt(0).toUpperCase() + rawKey.slice(1);
+
       if (
         !this.container.isRegistered(key) ||
         declaration.forceOverwrite === true
