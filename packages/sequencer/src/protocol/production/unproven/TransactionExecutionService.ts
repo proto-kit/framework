@@ -441,7 +441,11 @@ export class TransactionExecutionService {
 
     log.debug(
       "PSTs:",
-      protocolResult.stateTransitions.map((x) => x.toJSON())
+      JSON.stringify(
+        protocolResult.stateTransitions.map((x) => x.toJSON()),
+        null,
+        2
+      )
     );
 
     // Apply protocol STs
@@ -460,7 +464,11 @@ export class TransactionExecutionService {
 
     log.debug(
       "STs:",
-      runtimeResult.stateTransitions.map((x) => x.toJSON())
+      JSON.stringify(
+        runtimeResult.stateTransitions.map((x) => x.toJSON()),
+        null,
+        2
+      )
     );
 
     // Apply runtime STs (only if the tx succeeded)

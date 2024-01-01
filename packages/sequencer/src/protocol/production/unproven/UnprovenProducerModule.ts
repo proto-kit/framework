@@ -125,10 +125,8 @@ export class UnprovenProducerModule
       return undefined;
     }
 
-    const stateService = new CachedStateService(this.unprovenStateService);
-
     const block = await this.executionService.createUnprovenBlock(
-      stateService,
+      this.unprovenStateService,
       txs,
       metadata
     );
