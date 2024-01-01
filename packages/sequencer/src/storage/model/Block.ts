@@ -9,6 +9,6 @@ export interface ComputedBlockTransaction {
 }
 
 export interface ComputedBlock {
-  proof: JsonProof;
+  proof: JsonProof | { proof: "mock-proof" };
   bundles: string[];
 }

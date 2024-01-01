@@ -184,7 +184,10 @@ export class BlockProducerModule extends SequencerModule {
 
     return {
       block: {
-        proof: block.proof.toJSON(),
+        proof:
+          block.proof.proof === "mock-proof"
+            ? { proof: "mock-proof" }
+            : block.proof.toJSON(),
         bundles: computedBundles,
       },
 
