@@ -17,10 +17,67 @@ export class ProvableOption extends Struct({
   }
 }
 
+export abstract class OptionBase {
+  protected abstract encodeValueToFields(): Field[];
+
+  protected abstract clone(): OptionBase;
+
+  public constructor(public isSome: Bool, public isForcedSome: Bool) {}
+
+  public forceSome() {
+    this.isForcedSome = Provable.if(this.isSome, Bool(false), Bool(true));
+    this.isSome = Bool(true);
+  }
+
+  /**
+   * @returns Tree representation of the current value
+   */
+  public get treeValue() {
+    const treeValue = Poseidon.hash(this.encodeValueToFields());
+
+    return Provable.if(
+      this.isSome.and(this.isForcedSome.not()),
+      treeValue,
+      Field(0)
+    );
+  }
+
+  /**
+   * Returns the `to`-value as decoded as a list of fields
+   * Not in circuit
+   */
+  public toFields(): Field[] {
+    if (this.isSome.toBoolean()) {
+      return this.encodeValueToFields();
+    }
+    return [Field(0)];
+  }
+
+  /**
+   * @returns Provable representation of the current option.
+   */
+  public toProvable() {
+    return new ProvableOption({
+      isSome: this.isSome,
+      value: this.treeValue,
+    });
+  }
+
+  public toJSON() {
+    const value = this.encodeValueToFields().map((field) => field.toString());
+
+    return {
+      isSome: this.isSome.toBoolean(),
+      isForcedSome: this.isForcedSome.toBoolean(),
+      value,
+    };
+  }
+}
+
 /**
  * Option facilitating in-circuit values that may or may not exist.
  */
-export class Option<Value> {
+export class Option<Value> extends OptionBase {
   /**
    * Creates a new Option from the provided parameters
    *
@@ -58,55 +115,21 @@ export class Option<Value> {
     return new Option(Bool(false), Field(0), Field);
   }
 
-  public isForcedSome = Bool(false);
-
   public constructor(
-    public isSome: Bool,
+    isSome: Bool,
     public value: Value,
-    public valueType: FlexibleProvablePure<Value>
-  ) {}
+    public valueType: FlexibleProvablePure<Value>,
+    isForcedSome = Bool(false)
+  ) {
+    super(isSome, isForcedSome);
+  }
 
-  public clone() {
+  public encodeValueToFields(): Field[] {
+    return this.valueType.toFields(this.value);
+  }
+
+  public clone(): Option<Value> {
     return new Option(this.isSome, this.value, this.valueType);
-  }
-
-  public forceSome() {
-    this.isForcedSome = Provable.if(this.isSome, Bool(false), Bool(true));
-    this.isSome = Bool(true);
-  }
-
-  /**
-   * @returns Tree representation of the current value
-   */
-  public get treeValue() {
-    const treeValue = Poseidon.hash(this.valueType.toFields(this.value));
-
-    return Provable.if(
-      this.isSome.and(this.isForcedSome.not()),
-      treeValue,
-      Field(0)
-    );
-  }
-
-  /**
-   * Returns the `to`-value as decoded as a list of fields
-   * Not in circuit
-   */
-  public toFields(): Field[] {
-    if (this.isSome.toBoolean()) {
-      return this.valueType.toFields(this.value);
-    }
-    return [Field(0)];
-  }
-
-  /**
-   * @returns Provable representation of the current option.
-   */
-  public toProvable() {
-    return new ProvableOption({
-      isSome: this.isSome,
-      value: this.treeValue,
-    });
   }
 
   /**
@@ -120,18 +143,5 @@ export class Option<Value> {
       this.value,
       defaultValue
     );
-  }
-
-  public toJSON() {
-    const valueContent = this.valueType
-      .toFields(this.value)
-      .map((field) => field.toString())
-      .reduce((a, b) => `${a}, ${b}`);
-
-    return {
-      isSome: this.isSome.toBoolean(),
-
-      value: `[${valueContent}]`,
-    };
   }
 }
