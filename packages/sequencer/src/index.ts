@@ -37,6 +37,7 @@ export * from "./protocol/production/unproven/RuntimeMethodExecution";
 export * from "./protocol/production/unproven/TransactionExecutionService";
 export * from "./protocol/production/unproven/UnprovenProducerModule";
 export * from "./storage/model/Block";
+export * from "./storage/model/UnprovenBlock";
 export * from "./storage/repositories/BlockStorage";
 export * from "./storage/repositories/UnprovenBlockStorage";
 export * from "./storage/inmemory/InMemoryDatabase";

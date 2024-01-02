@@ -85,6 +85,18 @@ export class TransactionExecutionService {
     return stateTransitions.map((st) => st.path).filter(distinctByString);
   }
 
+  private collectStateDiff(
+    stateTransitions: UntypedStateTransition[]
+  ): StateRecord {
+    return stateTransitions.reduce<Record<string, Field[] | undefined>>(
+      (state, st) => {
+        state[st.path.toString()] = st.toValue.value;
+        return state;
+      },
+      {}
+    );
+  }
+
   private decodeTransaction(tx: PendingTransaction): {
     method: (...args: unknown[]) => unknown;
     args: unknown[];
@@ -246,7 +258,12 @@ export class TransactionExecutionService {
   ): Promise<UnprovenBlockMetadata> {
     // Flatten diff list into a single diff by applying them over each other
     const combinedDiff = block.transactions
-      .map((tx) => tx.stateDiff)
+      .map((tx) => {
+        const transitions = tx.protocolTransitions.concat(
+          tx.status.toBoolean() ? tx.stateTransitions : []
+        );
+        return this.collectStateDiff(transitions);
+      })
       .reduce<StateRecord>((accumulator, diff) => {
         // accumulator properties will be overwritten by diff's values
         return Object.assign(accumulator, diff);
@@ -290,18 +307,6 @@ export class TransactionExecutionService {
       resultingNetworkState,
       resultingStateRoot: stateRoot.toBigInt(),
     };
-  }
-
-  private collectStateDiff(
-    stateService: CachedStateService,
-    stateTransitions: StateTransition<unknown>[]
-  ): StateRecord {
-    const keys = this.allKeys(stateTransitions);
-
-    return keys.reduce<Record<string, Field[] | undefined>>((state, key) => {
-      state[key.toString()] = stateService.get(key);
-      return state;
-    }, {});
   }
 
   private async applyTransitions(
@@ -440,11 +445,6 @@ export class TransactionExecutionService {
       protocolResult.stateTransitions
     );
 
-    let stateDiff = this.collectStateDiff(
-      cachedStateService,
-      protocolResult.stateTransitions
-    );
-
     const runtimeResult = this.executeRuntimeMethod(
       method,
       args,
@@ -465,11 +465,6 @@ export class TransactionExecutionService {
       await this.applyTransitions(
         cachedStateService,
         runtimeResult.stateTransitions
-      );
-
-      stateDiff = this.collectStateDiff(
-        cachedStateService,
-        protocolResult.stateTransitions.concat(runtimeResult.stateTransitions)
       );
     }
 
@@ -492,9 +487,7 @@ export class TransactionExecutionService {
 
       protocolTransitions: protocolResult.stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
-      ),
-
-      stateDiff,
+      )
     };
   }
 }

@@ -43,8 +43,7 @@ export class TransactionExecutionResultMapper
       status: Bool(executionResult.status),
       statusMessage: executionResult.statusMessage ?? undefined,
       stateTransitions: this.stArrayMapper.mapIn(executionResult.stateTransitions),
-      protocolTransitions: this.stArrayMapper.mapIn(executionResult.protocolTransitions),
-      stateDiff: {}
+      protocolTransitions: this.stArrayMapper.mapIn(executionResult.protocolTransitions)
     };
   }
 

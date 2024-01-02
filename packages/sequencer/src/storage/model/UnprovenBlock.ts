@@ -3,7 +3,6 @@ import { NetworkState } from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { UntypedStateTransition } from "../../protocol/production/helpers/UntypedStateTransition";
-import { StateRecord } from "../../protocol/production/BlockProducerModule";
 
 export interface TransactionExecutionResult {
   tx: PendingTransaction;
@@ -11,11 +10,6 @@ export interface TransactionExecutionResult {
   protocolTransitions: UntypedStateTransition[];
   status: Bool;
   statusMessage?: string;
-  /**
-   * TODO Remove
-   * @deprecated
-   */
-  stateDiff: StateRecord;
 }
 
 export interface UnprovenBlock {
