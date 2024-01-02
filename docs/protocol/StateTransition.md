@@ -12,14 +12,18 @@ If the option is in `from`, it indicates whether the precondition should be enfo
 If the option is in `to`, it indicated whether the `value` should be written to the tree or skipped
 
 - `value`: A Provable object that should be stored or preconditioned
-- `enforceEmpty`:
+
+- `enforceEmpty`: This value can be true if the value contains a dummy value and means "this option wants to enforce that the tree value is empty (i.e. 0)".
+So there can be two cases:
+  (isSome: true, value: [0, 0, ...], enforceEmpty: false) - this checks that the tree value is hash([0, 0]), so the state has saved the value 0.
+  (isSome: true, value: [0, 0, ...], enforceEmpty: true) - this checks that the tree value is 0, so the state is empty.
 
 
 # Provable STs & Options
 
 The provable STs and Option variants contain the semantics of the original (non-provable) objects,
 but normalize them to a format that is usable in the state tree. 
-This means that the `value` will be hashed into a single field element and there exists no `isForcedSome` in this context.
+This means that the `value` will be hashed into a single field element and there exists no `enforceEmpty` in this context.
 
 #### Examples:
 
