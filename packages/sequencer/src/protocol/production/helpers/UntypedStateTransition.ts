@@ -11,8 +11,8 @@ export class UntypedStateTransition {
   public static fromStateTransition<Value>(st: StateTransition<Value>) {
     return new UntypedStateTransition(
       st.path,
-      UntypedOption.fromOption(st.fromValue),
-      UntypedOption.fromOption(st.toValue)
+      UntypedOption.fromOption(st.from),
+      UntypedOption.fromOption(st.to)
     );
   }
 
@@ -46,7 +46,7 @@ export class UntypedStateTransition {
     return new ProvableStateTransition({
       path: this.path,
       from: this.fromValue.toProvable(),
-      to: this.fromValue.toProvable(),
+      to: this.toValue.toProvable(),
     });
   }
 

@@ -106,7 +106,9 @@ export class TransactionTraceService {
       stateTransitions
     );
 
-    this.applyTransitions(stateServices.stateService, stateTransitions);
+    if (status.toBoolean()) {
+      this.applyTransitions(stateServices.stateService, stateTransitions);
+    }
 
     // Step 3
     const { stParameters, fromStateRoot } = await this.createMerkleTrace(

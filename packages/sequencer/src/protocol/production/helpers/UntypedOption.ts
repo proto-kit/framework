@@ -9,32 +9,32 @@ export class UntypedOption extends OptionBase {
     return new UntypedOption(
       option.isSome,
       option.encodeValueToFields(),
-      option.isForcedSome
+      option.enforceEmpty
     );
   }
 
   public static fromJSON({
     isSome,
     value,
-    isForcedSome,
+    enforceEmpty,
   }: {
     isSome: boolean;
     value: string[];
-    isForcedSome: boolean;
+    enforceEmpty: boolean;
   }): UntypedOption {
     return new UntypedOption(
       Bool(isSome),
-      value.map((v) => Field(v)),
-      Bool(isForcedSome)
+      value.map((fieldString) => Field(fieldString)),
+      Bool(enforceEmpty)
     );
   }
 
-  public constructor(isSome: Bool, public value: Field[], isForcedSome: Bool) {
-    super(isSome, isForcedSome);
+  public constructor(isSome: Bool, public value: Field[], enforceEmpty: Bool) {
+    super(isSome, enforceEmpty);
   }
 
   public clone() {
-    return new UntypedOption(this.isSome, this.value, this.isForcedSome);
+    return new UntypedOption(this.isSome, this.value, this.enforceEmpty);
   }
 
   protected encodeValueToFields(): Field[] {

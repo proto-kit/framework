@@ -1,7 +1,7 @@
 import { Mixin } from "ts-mixer";
-import { Bool, Field, Provable, type FlexibleProvablePure } from "o1js";
+import { Bool, Field, Provable, type FlexibleProvablePure, Struct } from "o1js";
 import { container } from "tsyringe";
-import { dummyValue } from "@proto-kit/common";
+import { dummyValue, TypedClass } from "@proto-kit/common";
 
 import { Path } from "../model/Path";
 import { Option } from "../model/Option";
@@ -54,7 +54,14 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
     super();
   }
 
-  private getState(): { value: Value; isSome: Bool } {
+  /**
+   * Returns the state that is currently the current state tree
+   * value: The value-fields, or if not state was found, dummy values
+   * valueExists: Whether the values where found in the state or not
+   * (Basically, whether the value-fields are dummy values or actual values
+   * @private
+   */
+  private getState(): { value: Value; valueExists: Bool } {
     this.hasStateServiceOrFail();
     this.hasPathOrFail();
 
@@ -77,7 +84,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
         : undefined;
 
     if (value !== undefined) {
-      return { value, isSome: Bool(true) };
+      return { value, valueExists: Bool(true) };
     }
 
     // If the value is still undefined, look it up in the stateService
@@ -88,9 +95,9 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
     }
 
     if (value !== undefined) {
-      return { value, isSome: Bool(true) };
+      return { value, valueExists: Bool(true) };
     }
-    return { value: dummyValue(valueType), isSome: Bool(false) };
+    return { value: dummyValue(valueType), valueExists: Bool(false) };
   }
 
   /**
@@ -99,14 +106,20 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @returns Optional value of the current state
    */
-  private witnessState() {
+  private witnessFromState() {
     // get the value from storage, or return a dummy value instead
     const value = Provable.witness(this.valueType, () => this.getState().value);
 
     // check if the value exists in the storage or not
-    const isSome = Provable.witness(Bool, () => this.getState().isSome);
+    const valueExists = Provable.witness(
+      Bool,
+      () => this.getState().valueExists
+    );
 
-    return Option.from(isSome, value, this.valueType);
+    // Since this function will only be used for the from-options we alway
+    // have isSome: true and enforceSome will tell us whether the value
+    // is a dummy value or not
+    return Option.from(Bool(true), value, valueExists.not(), this.valueType);
   }
 
   /**
@@ -116,7 +129,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * @returns Option representation of the current state.
    */
   public get(): Option<Value> {
-    const option = this.witnessState();
+    const option = this.witnessFromState();
 
     this.hasPathOrFail();
 
@@ -142,8 +155,8 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    */
   public set(value: Value) {
     // link the transition to the current state
-    const fromOption = this.witnessState();
-    const toOption = Option.from(Bool(true), value, this.valueType);
+    const fromOption = this.witnessFromState();
+    const toOption = Option.fromValue(value, this.valueType);
 
     this.hasPathOrFail();
 
