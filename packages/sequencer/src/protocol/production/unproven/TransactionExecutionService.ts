@@ -494,7 +494,7 @@ export class TransactionExecutionService {
 
       protocolTransitions: protocolResult.stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
-      )
+      ),
     };
   }
 }

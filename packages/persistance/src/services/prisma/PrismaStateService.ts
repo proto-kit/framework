@@ -1,11 +1,11 @@
 import { AsyncStateService } from "@proto-kit/sequencer";
 import { Field } from "o1js";
-import { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
 import { inject, injectable } from "tsyringe";
 import { Prisma } from "@prisma/client";
 import { noop } from "@proto-kit/common";
 
-@injectable()
+import type { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
+
 export class PrismaStateService implements AsyncStateService {
   private cache: [Field, Field[] | undefined][] = [];
 
@@ -14,7 +14,7 @@ export class PrismaStateService implements AsyncStateService {
    * @param mask A indicator to which masking level the values belong
    */
   public constructor(
-    @inject("Database") private readonly connection: PrismaDatabaseConnection,
+    private readonly connection: PrismaDatabaseConnection,
     private readonly mask: string = "base"
   ) {}
 

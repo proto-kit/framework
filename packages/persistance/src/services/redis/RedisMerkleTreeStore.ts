@@ -8,12 +8,11 @@ import { inject, injectable } from "tsyringe";
 
 import { RedisConnection } from "../../RedisConnection";
 
-@injectable()
 export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   private cache: MerkleTreeNode[] = [];
 
   public constructor(
-    @inject("Redis") private readonly connection: RedisConnection,
+    private readonly connection: RedisConnection,
     private readonly mask: string = "base"
   ) {}
 
@@ -32,7 +31,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     const array: [string, string][] = this.cache.map(
       ({ key, level, value }) => [this.getKey({ key, level }), value.toString()]
     );
-    console.log(`Took ${Date.now() - start} ms`);
+    console.log(`Committing ${array.length} kv-pairs took ${Date.now() - start} ms`);
 
     const start2 = Date.now();
 
@@ -41,7 +40,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     }
 
     try {
-      console.log(array.slice(0, 5).flat(1));
+      // console.log(array.slice(0, 5).flat(1));
       await this.connection.client!.mSet(array.flat(1));
     } catch (e) {
       if (e instanceof Error) {

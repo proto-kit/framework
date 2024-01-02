@@ -33,7 +33,7 @@ export class RedisConnection
   > {
     return {
       asyncMerkleStore: {
-        useClass: RedisMerkleTreeStore,
+        useFactory: () => new RedisMerkleTreeStore(this),
       },
       unprovenMerkleStore: {
         useFactory: () => new RedisMerkleTreeStore(this, "unproven"),

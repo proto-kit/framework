@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import {
+  sequencerModule,
   SequencerModule,
-  StorageDependencyMinimumDependencies,
+  StorageDependencyMinimumDependencies
 } from "@proto-kit/sequencer";
 import { DependencyFactory, noop } from "@proto-kit/common";
 
@@ -9,6 +10,7 @@ import { PrismaStateService } from "./services/prisma/PrismaStateService";
 import { PrismaBatchStore } from "./services/prisma/PrismaBatchStore";
 import { PrismaBlockStorage } from "./services/prisma/PrismaBlockStorage";
 
+@sequencerModule()
 export class PrismaDatabaseConnection
   extends SequencerModule
   implements DependencyFactory
@@ -21,7 +23,7 @@ export class PrismaDatabaseConnection
   > {
     return {
       asyncStateService: {
-        useClass: PrismaStateService,
+        useFactory: () => new PrismaStateService(this),
       },
       blockStorage: {
         useClass: PrismaBatchStore,
