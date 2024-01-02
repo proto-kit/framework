@@ -19,9 +19,9 @@ import { distinctByString } from "../../helpers/utils";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { SyncCachedMerkleTreeStore } from "../../state/merkle/SyncCachedMerkleTreeStore";
+import type { TransactionExecutionResult } from "../../storage/model/UnprovenBlock";
 
 import type { TransactionTrace } from "./BlockProducerModule";
-import type { TransactionExecutionResult } from "./unproven/TransactionExecutionService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
 

@@ -5,8 +5,8 @@ import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { ComputedBlock } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
+import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
-import { UnprovenBlock } from "../unproven/TransactionExecutionService";
 
 import { BlockTrigger } from "./BlockTrigger";
 

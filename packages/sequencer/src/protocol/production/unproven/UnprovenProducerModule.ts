@@ -10,22 +10,19 @@ import {
 } from "@proto-kit/common";
 
 import { Mempool } from "../../../mempool/Mempool";
-import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
   sequencerModule,
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
+import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
+import { AsyncStateService } from "../../../state/async/AsyncStateService";
+import { UnprovenBlock, UnprovenBlockMetadata } from "../../../storage/model/UnprovenBlock";
 
 import {
   TransactionExecutionService,
-  UnprovenBlock,
-  UnprovenBlockMetadata,
 } from "./TransactionExecutionService";
-import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
-import { AsyncStateService } from "../../../state/async/AsyncStateService";
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),

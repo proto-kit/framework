@@ -1,10 +1,5 @@
-import {
-  UnprovenBlock,
-  UnprovenBlockMetadata
-} from "../../protocol/production/unproven/TransactionExecutionService";
-import {
-  UnprovenBlockWithPreviousMetadata
-} from "../../protocol/production/BlockProducerModule";
+import { UnprovenBlockWithPreviousMetadata } from "../../protocol/production/BlockProducerModule";
+import type { UnprovenBlock, UnprovenBlockMetadata } from "../model/UnprovenBlock";
 
 export interface UnprovenBlockQueue {
   pushBlock: (block: UnprovenBlock) => Promise<void>;

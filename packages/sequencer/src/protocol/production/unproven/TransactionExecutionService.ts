@@ -38,35 +38,16 @@ import type { StateRecord } from "../BlockProducerModule";
 import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
+import {
+  TransactionExecutionResult,
+  UnprovenBlock,
+  UnprovenBlockMetadata,
+} from "../../../storage/model/UnprovenBlock";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
     new Error(`Can't find runtime method with id ${methodId}`),
 };
-
-export interface TransactionExecutionResult {
-  tx: PendingTransaction;
-  stateTransitions: UntypedStateTransition[];
-  protocolTransitions: UntypedStateTransition[];
-  status: Bool;
-  statusMessage?: string;
-  /**
-   * TODO Remove
-   * @deprecated
-   */
-  stateDiff: StateRecord;
-}
-
-export interface UnprovenBlock {
-  networkState: NetworkState;
-  transactions: TransactionExecutionResult[];
-  transactionsHash: Field;
-}
-
-export interface UnprovenBlockMetadata {
-  resultingStateRoot: bigint;
-  resultingNetworkState: NetworkState;
-}
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

@@ -21,16 +21,16 @@ import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
+import {
+  UnprovenBlock,
+  UnprovenBlockMetadata,
+} from "../../storage/model/UnprovenBlock";
 
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
-import {
-  UnprovenBlock,
-  UnprovenBlockMetadata,
-} from "./unproven/TransactionExecutionService";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;

@@ -3,10 +3,10 @@ import {
   UnprovenBlockQueue,
   UnprovenBlockStorage,
 } from "../repositories/UnprovenBlockStorage";
-import {
+import type {
   UnprovenBlock,
   UnprovenBlockMetadata,
-} from "../../protocol/production/unproven/TransactionExecutionService";
+} from "../model/UnprovenBlock";
 import { UnprovenBlockWithPreviousMetadata } from "../../protocol/production/BlockProducerModule";
 
 export class InMemoryBlockStorage
@@ -66,7 +66,11 @@ export class InMemoryBlockStorage
     this.metadata.push(metadata);
   }
 
-  public async getBlock(transactionsHash: string): Promise<UnprovenBlock | undefined> {
-    return this.blocks.find(block => block.transactionsHash.toString() === transactionsHash);
+  public async getBlock(
+    transactionsHash: string
+  ): Promise<UnprovenBlock | undefined> {
+    return this.blocks.find(
+      (block) => block.transactionsHash.toString() === transactionsHash
+    );
   }
 }
