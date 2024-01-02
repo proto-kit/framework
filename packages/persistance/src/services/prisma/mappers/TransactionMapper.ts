@@ -22,7 +22,10 @@ export class TransactionMapper
   public mapOut(input: PendingTransaction): DBTransaction {
     const json = input.toJSON();
     return {
-      ...json,
+      methodId: json.methodId,
+      nonce: json.nonce,
+      sender: json.sender,
+      args: json.args,
       signature_r: json.signature.r,
       signature_s: json.signature.s,
       hash: input.hash().toString()

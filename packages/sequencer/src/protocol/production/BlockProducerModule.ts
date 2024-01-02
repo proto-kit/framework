@@ -142,8 +142,15 @@ export class BlockProducerModule extends SequencerModule {
   ): Promise<ComputedBlockMetadata | undefined> {
     if (!this.productionInProgress) {
       try {
-        return await this.produceBlock(unprovenBlocks);
+        this.productionInProgress = true;
+
+        const block = await this.produceBlock(unprovenBlocks);
+
+        this.productionInProgress = false;
+
+        return block;
       } catch (error: unknown) {
+        this.productionInProgress = false;
         if (error instanceof Error) {
           if (
             !error.message.includes(
@@ -153,7 +160,6 @@ export class BlockProducerModule extends SequencerModule {
             log.error(error);
           }
 
-          this.productionInProgress = false;
           throw error;
         } else {
           log.error(error);
@@ -170,14 +176,10 @@ export class BlockProducerModule extends SequencerModule {
   private async produceBlock(
     unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
   ): Promise<ComputedBlockMetadata | undefined> {
-    this.productionInProgress = true;
-
     const blockId =
       unprovenBlocks[0].block.networkState.block.height.toBigInt();
 
     const block = await this.computeBlock(unprovenBlocks, Number(blockId));
-
-    this.productionInProgress = false;
 
     const computedBundles = unprovenBlocks.map((bundle) =>
       bundle.block.transactionsHash.toString()

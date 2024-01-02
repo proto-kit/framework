@@ -72,6 +72,8 @@ export class UnprovenProducerModule
           return undefined;
         }
 
+        await this.unprovenBlockQueue.pushBlock(block);
+
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
         this.events.emit("unprovenBlockProduced", [block]);
 

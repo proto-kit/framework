@@ -79,10 +79,7 @@ export class TimedBlockTrigger
       this.mempool.getTxs().txs.length > 0 ||
       (this.config.produceEmptyBlocks ?? true)
     ) {
-      const block = await this.unprovenProducerModule.tryProduceUnprovenBlock();
-      if (block !== undefined) {
-        await this.unprovenBlockQueue.pushBlock(block);
-      }
+      await this.unprovenProducerModule.tryProduceUnprovenBlock();
     }
   }
 

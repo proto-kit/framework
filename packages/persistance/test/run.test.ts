@@ -1,20 +1,69 @@
+import "reflect-metadata";
 import { describe } from "@jest/globals";
 import { PrismaDatabaseConnection } from "../src/PrismaDatabaseConnection";
 import { PrismaStateService } from "../src/services/prisma/PrismaStateService";
-import { Field } from "o1js";
-import { PrismaMerkleTreeStore } from "../src";
-import { CachedMerkleTreeStore } from "@proto-kit/sequencer";
-import { RollupMerkleTree } from "@proto-kit/protocol";
+import { Bool, Field, PrivateKey, PublicKey, Signature } from "o1js";
+import { PrismaBlockStorage, PrismaMerkleTreeStore } from "../src";
+import {
+  CachedMerkleTreeStore,
+  PendingTransaction,
+  UnprovenBlock,
+  UntypedStateTransition,
+} from "@proto-kit/sequencer";
+import {
+  NetworkState,
+  Option,
+  RollupMerkleTree,
+  StateTransition,
+} from "@proto-kit/protocol";
 import { RedisConnection } from "../src/RedisConnection";
 import { RedisMerkleTreeStore } from "../src/services/redis/RedisMerkleTreeStore";
+import { container } from "tsyringe";
 
 describe("prisma", () => {
+  it.only("block", async () => {
+    const db = new PrismaDatabaseConnection();
+    const c = container.createChildContainer();
+    c.register("Database", { useValue: db });
+
+    const storage = c.resolve(PrismaBlockStorage);
+    const block: UnprovenBlock = {
+      transactionsHash: Field("123"),
+      transactions: [
+        {
+          status: Bool(true),
+          stateTransitions: [
+            UntypedStateTransition.fromStateTransition(
+              StateTransition.fromTo(
+                Field(555),
+                Option.fromValue(Field(5), Field),
+                Option.fromValue(Field(10), Field)
+              )
+            ),
+          ],
+          protocolTransitions: [],
+          tx: PendingTransaction.fromJSON({
+            nonce: "1",
+            args: ["535"],
+            methodId: "0",
+            sender: PrivateKey.random().toPublicKey().toBase58(),
+            signature: Signature.create(PrivateKey.random(), [
+              Field(0),
+            ]).toJSON(),
+          }),
+        },
+      ],
+      networkState: NetworkState.empty(),
+    };
+    await storage.pushBlock(block);
+  });
+
   it("merkle store", async () => {
     const db = new RedisConnection();
     db.config = {
       url: "redis://localhost:6379/",
       password: "password",
-    }
+    };
     await db.start();
     const store = new RedisMerkleTreeStore(db);
 

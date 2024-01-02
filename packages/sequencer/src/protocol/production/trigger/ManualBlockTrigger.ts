@@ -42,17 +42,8 @@ export class ManualBlockTrigger
     return undefined;
   }
 
-  public async produceUnproven(
-    enqueueInSettlementQueue = true
-  ): Promise<UnprovenBlock | undefined> {
-    const unprovenBlock =
-      await this.unprovenProducerModule.tryProduceUnprovenBlock();
-
-    if (unprovenBlock && enqueueInSettlementQueue) {
-      await this.unprovenBlockQueue.pushBlock(unprovenBlock);
-    }
-
-    return unprovenBlock;
+  public async produceUnproven(): Promise<UnprovenBlock | undefined> {
+    return await this.unprovenProducerModule.tryProduceUnprovenBlock();
   }
 
   public async start(): Promise<void> {
