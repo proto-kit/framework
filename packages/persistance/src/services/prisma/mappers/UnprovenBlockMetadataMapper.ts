@@ -1,8 +1,9 @@
 import { singleton } from "tsyringe";
-import { ObjectMapper } from "../../../ObjectMapper";
 import { UnprovenBlockMetadata } from "@proto-kit/sequencer";
 import { UnprovenBlockMetadata as DBUnprovenBlockMetadata } from "@prisma/client";
 import { NetworkState } from "@proto-kit/protocol";
+
+import { ObjectMapper } from "../../../ObjectMapper";
 
 @singleton()
 export class UnprovenBlockMetadataMapper
@@ -20,6 +21,7 @@ export class UnprovenBlockMetadataMapper
       resultingNetworkState: new NetworkState(
         NetworkState.fromJSON(input.resultingNetworkState as any)
       ),
+      blockTransactionsHash: BigInt(input.blockTransactionHash),
     };
   }
 
@@ -28,6 +30,7 @@ export class UnprovenBlockMetadataMapper
   ): Omit<DBUnprovenBlockMetadata, "height"> {
     return {
       resultingStateRoot: input.resultingStateRoot.toString(),
+      blockTransactionHash: input.blockTransactionsHash.toString(),
 
       resultingNetworkState: NetworkState.toJSON(input.resultingNetworkState),
     };

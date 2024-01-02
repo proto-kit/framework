@@ -95,6 +95,7 @@ export class BlockProducerModule extends SequencerModule {
     return {
       resultingNetworkState: NetworkState.empty(),
       resultingStateRoot: RollupMerkleTree.EMPTY_ROOT,
+      blockTransactionsHash: 0n,
     };
   }
 

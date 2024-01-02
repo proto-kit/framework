@@ -15,7 +15,10 @@ import { inject, injectable } from "tsyringe";
 
 import type { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
 
-import { TransactionExecutionResultMapper } from "./mappers/TransactionMapper";
+import {
+  TransactionExecutionResultMapper,
+  TransactionMapper,
+} from "./mappers/TransactionMapper";
 import { UnprovenBlockMetadataMapper } from "./mappers/UnprovenBlockMetadataMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
 
@@ -29,12 +32,13 @@ export class PrismaBlockStorage
   public constructor(
     @inject("Database") private readonly connection: PrismaDatabaseConnection,
     private readonly transactionResultMapper: TransactionExecutionResultMapper,
+    private readonly transactionMapper: TransactionMapper,
     private readonly blockMetadataMapper: UnprovenBlockMetadataMapper,
     private readonly blockMapper: BlockMapper
   ) {}
 
   private async getBlockByQuery(
-    where: { height: number } | { transactionsHash: string }
+    where: { height: number } | { parent: null } | { transactionsHash: string }
   ): Promise<UnprovenBlock | undefined> {
     const result = await this.connection.client.block.findFirst({
       where,
@@ -71,6 +75,8 @@ export class PrismaBlockStorage
   }
 
   public async pushBlock(block: UnprovenBlock): Promise<void> {
+    console.log(`Pushing block`, block.transactions.map(x => x.tx.hash().toString()))
+
     const transactions = block.transactions.map<DBTransactionExecutionResult>(
       (tx) => {
         const encoded = this.transactionResultMapper.mapOut(tx);
@@ -83,33 +89,42 @@ export class PrismaBlockStorage
 
     const encodedBlock = this.blockMapper.mapOut(block);
 
-    const result = await this.connection.client.block.create({
-      data: {
-        ...encodedBlock,
-        networkState: encodedBlock.networkState as Prisma.InputJsonValue,
+    await this.connection.client.$transaction([
+      this.connection.client.transaction.createMany({
+        data: block.transactions.map((txr) =>
+          this.transactionMapper.mapOut(txr.tx)
+        ),
+      }),
 
-        transactions: {
-          createMany: {
-            data: transactions.map((tx) => {
-              return {
-                ...tx,
-                stateTransitions: tx.stateTransitions as Prisma.InputJsonValue,
-                protocolTransitions:
-                  tx.protocolTransitions as Prisma.InputJsonValue,
-              };
-            }),
+      this.connection.client.block.create({
+        data: {
+          ...encodedBlock,
+          networkState: encodedBlock.networkState as Prisma.InputJsonObject,
+
+          transactions: {
+            createMany: {
+              data: transactions.map((tx) => {
+                return {
+                  status: tx.status,
+                  statusMessage: tx.statusMessage,
+                  txHash: tx.txHash,
+
+                  stateTransitions:
+                    tx.stateTransitions as Prisma.InputJsonArray,
+                  protocolTransitions:
+                    tx.protocolTransitions as Prisma.InputJsonArray,
+                };
+              }),
+            },
           },
-        },
 
-        batchHeight: undefined,
-      },
-    });
+          batchHeight: undefined,
+        },
+      }),
+    ]);
   }
 
   public async pushMetadata(metadata: UnprovenBlockMetadata): Promise<void> {
-    // TODO Save this DB trip
-    const height = await this.getCurrentBlockHeight();
-
     const encoded = this.blockMetadataMapper.mapOut(metadata);
 
     await this.connection.client.unprovenBlockMetadata.create({
@@ -118,11 +133,12 @@ export class PrismaBlockStorage
           encoded.resultingNetworkState as Prisma.InputJsonValue,
 
         resultingStateRoot: encoded.resultingStateRoot,
-        height: height - 1,
+        blockTransactionHash: encoded.blockTransactionHash,
       },
     });
   }
 
+  // TODO Phase out and replace with getLatestBlock().network.height
   public async getCurrentBlockHeight(): Promise<number> {
     const result = await this.connection.client.block.aggregate({
       _max: {
@@ -134,20 +150,20 @@ export class PrismaBlockStorage
   }
 
   public async getLatestBlock(): Promise<UnprovenBlock | undefined> {
-    const height = await this.getCurrentBlockHeight();
-    if (height > 0) {
-      return await this.getBlockAt(height - 1);
-    }
-    return undefined;
+    return this.getBlockByQuery({ parent: null });
   }
 
   public async getNewestMetadata(): Promise<UnprovenBlockMetadata | undefined> {
-    const height = await this.getCurrentBlockHeight();
+    const latestBlock = await this.getLatestBlock();
+
+    if (latestBlock === undefined) {
+      return undefined;
+    }
 
     const result = await this.connection.client.unprovenBlockMetadata.findFirst(
       {
         where: {
-          height,
+          blockTransactionHash: latestBlock.transactionsHash.toString(),
         },
       }
     );
@@ -162,35 +178,22 @@ export class PrismaBlockStorage
   public async getNewBlocks(): Promise<UnprovenBlockWithPreviousMetadata[]> {
     const blocks = await this.connection.client.block.findMany({
       where: {
-        // eslint-disable-next-line unicorn/no-null
         batch: null,
+      },
+      include: {
+        metadata: true,
       },
       orderBy: {
         height: Prisma.SortOrder.asc,
       },
     });
 
-    const minUnbatchedBlock = blocks
-      .map((b) => b.height)
-      .reduce((a, b) => (a < b ? a : b));
-
-    const metadata =
-      await this.connection.client.unprovenBlockMetadata.findMany({
-        where: {
-          height: {
-            gte: minUnbatchedBlock,
-          },
-        },
-      });
-
     return blocks.map((block, index) => {
-      const correspondingMetadata = metadata.find(
-        (entry) => entry.height == block.height - 1
-      );
+      const correspondingMetadata = block.metadata;
       return {
         block: this.blockMapper.mapIn(block),
         lastBlockMetadata:
-          correspondingMetadata !== undefined
+          correspondingMetadata !== null
             ? this.blockMetadataMapper.mapIn(correspondingMetadata)
             : undefined,
       };

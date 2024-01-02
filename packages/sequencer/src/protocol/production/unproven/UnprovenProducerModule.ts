@@ -58,6 +58,7 @@ export class UnprovenProducerModule
     return {
       resultingNetworkState: NetworkState.empty(),
       resultingStateRoot: RollupMerkleTree.EMPTY_ROOT,
+      blockTransactionsHash: 0n,
     };
   }
 

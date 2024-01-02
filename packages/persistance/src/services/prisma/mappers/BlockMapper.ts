@@ -17,6 +17,10 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
       ),
 
       transactionsHash: Field(input.transactionsHash),
+      previousBlockTransactionsHash:
+        input.parentTransactionsHash !== null
+          ? Field(input.parentTransactionsHash)
+          : undefined,
     };
   }
 
@@ -25,6 +29,7 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
       height: Number(input.networkState.block.height.toBigInt()),
       networkState: NetworkState.toJSON(input.networkState),
       transactionsHash: input.transactionsHash.toString(),
+      parentTransactionsHash: input.previousBlockTransactionsHash?.toString() ?? null,
       batchHeight: null,
     };
   }

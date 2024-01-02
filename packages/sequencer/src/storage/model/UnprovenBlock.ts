@@ -16,9 +16,11 @@ export interface UnprovenBlock {
   networkState: NetworkState;
   transactions: TransactionExecutionResult[];
   transactionsHash: Field;
+  previousBlockTransactionsHash: Field | undefined;
 }
 
 export interface UnprovenBlockMetadata {
   resultingStateRoot: bigint;
   resultingNetworkState: NetworkState;
+  blockTransactionsHash: bigint;
 }

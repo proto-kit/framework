@@ -58,7 +58,12 @@ model Block {
   networkState Json @db.Json
   height Int
 
+  parentTransactionsHash String? @unique
+  parent Block? @relation("Parent", fields: [parentTransactionsHash], references: [transactionsHash])
+  successor Block? @relation("Parent")
+
   transactions TransactionExecutionResult[]
+  metadata UnprovenBlockMetadata?
 
   batch Batch? @relation(fields: [batchHeight], references: [height])
   batchHeight Int?
@@ -73,7 +78,9 @@ model Batch {
 }
 
 model UnprovenBlockMetadata {
-  height Int @id
+  blockTransactionHash String @id @unique
   resultingStateRoot String
   resultingNetworkState Json @db.Json
+
+  block Block? @relation(fields: [blockTransactionHash], references: [transactionsHash])
 }

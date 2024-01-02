@@ -244,10 +244,16 @@ export class TransactionExecutionService {
       }
     }
 
+    const previousBlockTransactionsHash =
+      metadata.blockTransactionsHash === 0n
+        ? undefined
+        : Field(metadata.blockTransactionsHash);
+
     return {
       transactions: executionResults,
       networkState,
       transactionsHash: transactionsHashList.commitment,
+      previousBlockTransactionsHash,
     };
   }
 
@@ -306,6 +312,7 @@ export class TransactionExecutionService {
     return {
       resultingNetworkState,
       resultingStateRoot: stateRoot.toBigInt(),
+      blockTransactionsHash: block.transactionsHash.toBigInt(),
     };
   }
 
