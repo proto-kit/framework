@@ -77,10 +77,12 @@ export class CachedStateService
     this.assertParentNotNull(parent);
 
     // Set all cached values on parent
+    await parent.openTransaction();
     const promises = Object.entries(values).map(async (value) => {
       await parent.setAsync(Field(value[0]), value[1]);
     });
     await Promise.all(promises);
+    await parent.commit();
     // Clear cache
     this.values = {};
   }

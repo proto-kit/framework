@@ -53,7 +53,10 @@ const errors = {
   stateRootNotMatching: (step: string) => `StateRoots not matching ${step}`,
 
   transactionsHashNotMatching: (step: string) =>
-    `transactions hash not matching ${step}`,
+    `Transactions hash not matching ${step}`,
+
+  networkStateHashNotMatching: (step: string) =>
+    `Network satte hash not matching ${step}`,
 };
 
 export interface BlockProverState {
@@ -324,6 +327,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
       networkStateHash: publicInput.networkStateHash,
     };
 
+    state.networkStateHash.assertEquals(
+      executionData.networkState.hash(),
+      "ExecutionData Networkstate doesn't equal public input hash"
+    );
+
     const bundleInclusionResult = this.addTransactionToBundle(
       state,
       stateProof,
@@ -399,11 +407,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Check networkhash
     publicInput.networkStateHash.assertEquals(
       proof1.publicInput.networkStateHash,
-      errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
+      errors.networkStateHashNotMatching("publicInput.from -> proof1.from")
     );
     proof1.publicOutput.networkStateHash.assertEquals(
       proof2.publicInput.networkStateHash,
-      errors.transactionsHashNotMatching("proof1.to -> proof2.from")
+      errors.networkStateHashNotMatching("proof1.to -> proof2.from")
     );
 
     return new BlockProverPublicOutput({
@@ -495,10 +503,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
  * then be merged to be committed to the base-layer contract
  */
 @injectable()
-export class BlockProver
-  extends ProtocolModule
-  implements BlockProvable
-{
+export class BlockProver extends ProtocolModule implements BlockProvable {
   public zkProgrammable: BlockProverProgrammable;
 
   public constructor(

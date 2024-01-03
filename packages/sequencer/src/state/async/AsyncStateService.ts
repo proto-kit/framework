@@ -10,6 +10,7 @@ export interface AsyncStateService {
 
   commit: () => Promise<void>;
 
+  // TODO Make sync, we have openTx and commit() for the actual writing operations
   setAsync: (key: Field, value: Field[] | undefined) => Promise<void>;
 
   getAsync: (key: Field) => Promise<Field[] | undefined>;

@@ -21,6 +21,7 @@ import {
 } from "./mappers/TransactionMapper";
 import { UnprovenBlockMetadataMapper } from "./mappers/UnprovenBlockMetadataMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
+import { filterNonNull } from "@proto-kit/common";
 
 @injectable()
 export class PrismaBlockStorage
@@ -75,7 +76,10 @@ export class PrismaBlockStorage
   }
 
   public async pushBlock(block: UnprovenBlock): Promise<void> {
-    console.log(`Pushing block`, block.transactions.map(x => x.tx.hash().toString()))
+    console.log(
+      `Pushing block`,
+      block.transactions.map((x) => x.tx.hash().toString())
+    );
 
     const transactions = block.transactions.map<DBTransactionExecutionResult>(
       (tx) => {
@@ -181,19 +185,46 @@ export class PrismaBlockStorage
         batch: null,
       },
       include: {
-        metadata: true,
+        transactions: {
+          include: {
+            tx: true,
+          },
+        },
       },
       orderBy: {
         height: Prisma.SortOrder.asc,
       },
     });
 
+    const blockHashes = blocks
+      .map((block) => block.parentTransactionsHash)
+      .filter(filterNonNull);
+    const metadata =
+      await this.connection.client.unprovenBlockMetadata.findMany({
+        where: {
+          blockTransactionHash: {
+            in: blockHashes,
+          },
+        },
+      });
+
     return blocks.map((block, index) => {
-      const correspondingMetadata = block.metadata;
+      const transactions = block.transactions.map<TransactionExecutionResult>(
+        (txresult) => {
+          return this.transactionResultMapper.mapIn([txresult, txresult.tx]);
+        }
+      );
+      const decodedBlock = this.blockMapper.mapIn(block);
+      decodedBlock.transactions = transactions;
+
+      const correspondingMetadata = metadata.find(
+        (candidate) =>
+          candidate.blockTransactionHash === block.parentTransactionsHash
+      );
       return {
-        block: this.blockMapper.mapIn(block),
+        block: decodedBlock,
         lastBlockMetadata:
-          correspondingMetadata !== null
+          correspondingMetadata !== undefined
             ? this.blockMetadataMapper.mapIn(correspondingMetadata)
             : undefined,
       };

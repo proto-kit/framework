@@ -49,3 +49,13 @@ export async function sleep(ms: number) {
   // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export function filterNonNull<Type>(value: Type | null): value is Type {
+  return value !== null;
+}
+
+export function filterNonUndefined<Type>(
+  value: Type | undefined
+): value is Type {
+  return value !== null;
+}
