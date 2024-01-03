@@ -40,7 +40,7 @@ export class CachedStateService
     // Only preload it if it hasn't been preloaded previously
     if (this.parent !== undefined && this.get(key) === undefined) {
       const value = await this.parent.getAsync(key);
-      log.debug(
+      log.trace(
         `Preloading ${key.toString()}: ${
           // eslint-disable-next-line max-len
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -78,8 +78,8 @@ export class CachedStateService
 
     // Set all cached values on parent
     await parent.openTransaction();
-    const promises = Object.entries(values).map(async (value) => {
-      await parent.setAsync(Field(value[0]), value[1]);
+    const promises = Object.entries(values).map(async ([key, value]) => {
+      await parent.setAsync(Field(key), value);
     });
     await Promise.all(promises);
     await parent.commit();

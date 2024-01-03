@@ -39,7 +39,7 @@ export const log = {
     },
 
     trace: (...args: unknown[]) => {
-      logProvable(loglevel.trace, ...args);
+      logProvable(log.trace, ...args);
     },
 
     warn: (...args: unknown[]) => {
@@ -60,7 +60,11 @@ export const log = {
   },
 
   trace: (...args: unknown[]) => {
-    loglevel.trace(...args);
+    // Loglevel prints the stack trace by default. To still be able to use trace
+    // inside out application, we use the level, but call debug() under the hood
+    if (loglevel.getLevel() >= loglevel.levels.TRACE) {
+      loglevel.debug(...args);
+    }
   },
 
   warn: (...args: unknown[]) => {

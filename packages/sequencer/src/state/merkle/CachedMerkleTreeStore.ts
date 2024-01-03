@@ -77,7 +77,7 @@ export class CachedMerkleTreeStore
           level,
         });
         if (level === 0) {
-          log.debug(`Queued preloading of ${key} @ ${level}`);
+          log.trace(`Queued preloading of ${key} @ ${level}`);
         }
       }
 
