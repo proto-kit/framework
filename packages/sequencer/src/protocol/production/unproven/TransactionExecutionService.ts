@@ -197,7 +197,7 @@ export class TransactionExecutionService {
     stateService: AsyncStateService,
     transactions: PendingTransaction[],
     metadata: UnprovenBlockMetadata
-  ): Promise<UnprovenBlock> {
+  ): Promise<UnprovenBlock | undefined> {
     const executionResults: TransactionExecutionResult[] = [];
 
     const transactionsHashList = new DefaultProvableHashList(Field);
@@ -239,9 +239,16 @@ export class TransactionExecutionService {
         transactionsHashList.push(tx.hash());
       } catch (error) {
         if (error instanceof Error) {
-          log.error("Error in inclusion of tx, skipping", error);
+          log.info("Error in inclusion of tx, skipping", error);
         }
       }
+    }
+
+    if (executionResults.length === 0) {
+      log.info(
+        "After sequencing, block has no sequencable transactions left, skipping block"
+      );
+      return undefined;
     }
 
     const previousBlockTransactionsHash =

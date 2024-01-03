@@ -8,24 +8,28 @@ import {
   state,
 } from "@proto-kit/module";
 import {
-  AccountStateModule, BlockHeightHook,
+  AccountStateModule,
+  BlockHeightHook,
   Option,
   State,
   StateMap,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import { Presets, log, sleep } from "@proto-kit/common";
 import {
   AsyncStateService,
-  BlockProducerModule, InMemoryDatabase,
+  BlockProducerModule,
+  InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
+  ManualBlockTrigger,
   NoopBaseLayer,
   PendingTransaction,
   PrivateMempool,
   Sequencer,
-  TimedBlockTrigger, UnprovenProducerModule,
-  UnsignedTransaction
+  TimedBlockTrigger,
+  UnprovenProducerModule,
+  UnsignedTransaction,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -33,18 +37,22 @@ import {
   GraphqlServer,
   MempoolResolver,
   NodeStatusResolver,
-  QueryGraphqlModule, UnprovenBlockResolver
+  QueryGraphqlModule,
+  UnprovenBlockResolver,
 } from "@proto-kit/api";
 
 import { container } from "tsyringe";
-import { PrismaDatabaseConnection } from "@proto-kit/persistance";
+import {
+  PrismaBlockStorage,
+  PrismaDatabaseConnection,
+} from "@proto-kit/persistance";
 import { RedisConnection } from "@proto-kit/persistance/dist/RedisConnection";
 import {
   AppChain,
   BlockStorageNetworkStateModule,
   InMemorySigner,
   InMemoryTransactionSender,
-  StateServiceQueryModule
+  StateServiceQueryModule,
 } from "@proto-kit/sdk";
 
 log.setLevel(log.levels.INFO);
@@ -85,17 +93,16 @@ export class Balances extends RuntimeModule<object> {
 
   @runtimeMethod()
   public addBalance(address: PublicKey, balance: UInt64) {
-    const totalSupply = this.totalSupply.get()
+    const totalSupply = this.totalSupply.get();
     this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(balance));
 
-    const previous = this.balances.get(address)
+    const previous = this.balances.get(address);
     this.balances.set(address, previous.orElse(UInt64.zero).add(balance));
   }
 }
 
 export async function startServer() {
-
-  log.setLevel("INFO")
+  log.setLevel("DEBUG");
 
   const appChain = AppChain.from({
     runtime: Runtime.from({
@@ -110,20 +117,27 @@ export async function startServer() {
 
     protocol: VanillaProtocol.from(
       { AccountStateModule, BlockHeightHook },
-      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {}, BlockHeightHook: {} }
+      {
+        AccountStateModule: {},
+        StateTransitionProver: {},
+        BlockProver: {},
+        BlockHeightHook: {},
+      }
     ),
 
     sequencer: Sequencer.from({
       modules: {
-        Database: PrismaDatabaseConnection,
-        Redis: RedisConnection,
+        // Database: PrismaDatabaseConnection,
+        // Redis: RedisConnection,
+        Database: InMemoryDatabase,
         Mempool: PrivateMempool,
         GraphqlServer,
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         UnprovenProducerModule,
-        BlockTrigger: TimedBlockTrigger,
+        // BlockTrigger: TimedBlockTrigger,
+        BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
 
         Graphql: GraphqlSequencerModule.from({
@@ -140,7 +154,7 @@ export async function startServer() {
             QueryGraphqlModule: {},
             BlockStorageResolver: {},
             NodeStatusResolver: {},
-            UnprovenBlockResolver: {}
+            UnprovenBlockResolver: {},
           },
         }),
       },
@@ -170,7 +184,7 @@ export async function startServer() {
       GraphqlServer: {
         port: 8080,
         host: "0.0.0.0",
-        graphiql: true
+        graphiql: true,
       },
 
       Graphql: {
@@ -178,13 +192,13 @@ export async function startServer() {
         MempoolResolver: {},
         BlockStorageResolver: {},
         NodeStatusResolver: {},
-        UnprovenBlockResolver: {}
+        UnprovenBlockResolver: {},
       },
 
-      Redis: {
-        url: "redis://localhost:6379/",
-        password: "password",
-      },
+      // Redis: {
+      //   url: "redis://localhost:6379/",
+      //   password: "password",
+      // },
 
       Database: {},
       Mempool: {},
@@ -195,8 +209,8 @@ export async function startServer() {
       UnprovenProducerModule: {},
 
       BlockTrigger: {
-        blockInterval: 15000,
-        settlementInterval: 30000,
+        // blockInterval: 15000,
+        // settlementInterval: 30000,
       },
     },
 
@@ -210,10 +224,17 @@ export async function startServer() {
   });
 
   await appChain.start(container.createChildContainer());
+
   const pk = PublicKey.fromBase58(
     "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   );
   console.log(pk.toJSON());
+
+  // const storage = appChain.sequencer.dependencyContainer.resolve<PrismaBlockStorage>("UnprovenBlockQueue");
+  // const b = await storage.getNewBlocks()
+  // console.log()
+
+  // await appChain.sequencer.resolve("BlockTrigger").produceProven();
 
   const balances = appChain.runtime.resolve("Balances");
 
@@ -222,24 +243,50 @@ export async function startServer() {
   );
 
   const tx = appChain.transaction(priv.toPublicKey(), () => {
-    balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
-  })
-  appChain.resolve("Signer").config.signer = priv
+    balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+  });
+  appChain.resolve("Signer").config.signer = priv;
   await tx.sign();
   await tx.send();
   // console.log((tx.transaction as PendingTransaction).toJSON())
 
-  const tx2 = appChain.transaction(priv.toPublicKey(), () => {
-    balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
-  }, {nonce: 1})
+  const tx2 = appChain.transaction(
+    priv.toPublicKey(),
+    () => {
+      balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+    },
+    { nonce: 1 }
+  );
   await tx2.sign();
   await tx2.send();
 
-  const { txs } = appChain.sequencer.resolve("Mempool").getTxs()
-  console.log(txs.map(tx => tx.toJSON()))
-  console.log(txs.map(tx => tx.hash().toString()))
+  const { txs } = appChain.sequencer.resolve("Mempool").getTxs();
+  console.log(txs.map((tx) => tx.toJSON()));
+  console.log(txs.map((tx) => tx.hash().toString()));
 
   console.log("Path:", balances.balances.getPath(pk).toString());
+
+  const trigger = appChain.sequencer.resolve("BlockTrigger");
+  await trigger.produceBlock();
+
+  for (let i = 0; i < 10; i++) {
+    const tx3 = appChain.transaction(
+      priv.toPublicKey(),
+      () => {
+        balances.addBalance(PrivateKey.random().toPublicKey(), UInt64.from((i + 1) * 1000));
+      },
+      { nonce: i + 2 }
+    );
+    await tx3.sign();
+    await tx3.send();
+
+    await trigger.produceUnproven();
+
+    // await trigger.produceProven();
+    if (i % 2 === 1) {
+      await trigger.produceProven();
+    }
+  }
 
   // const asyncState =
   //   appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
@@ -252,7 +299,7 @@ export async function startServer() {
 
   // await sleep(30000);
 
-  return appChain
+  return appChain;
 }
 
 // await startServer();

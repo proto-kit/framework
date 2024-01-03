@@ -39,7 +39,7 @@ export class PrismaBlockStorage
   ) {}
 
   private async getBlockByQuery(
-    where: { height: number } | { parent: null } | { transactionsHash: string }
+    where: { height: number } | { transactionsHash: string }
   ): Promise<UnprovenBlock | undefined> {
     const result = await this.connection.client.block.findFirst({
       where,
@@ -154,7 +154,19 @@ export class PrismaBlockStorage
   }
 
   public async getLatestBlock(): Promise<UnprovenBlock | undefined> {
-    return this.getBlockByQuery({ parent: null });
+    const latestBlock = await this.connection.client.$queryRaw<
+      { transactionsHash: string }[]
+    >`SELECT b1."transactionsHash" FROM "Block" b1 
+        LEFT JOIN "Block" child ON child."parentTransactionsHash" = b1."transactionsHash"
+        WHERE child IS NULL LIMIT 1`;
+
+    if (latestBlock.length === 0) {
+      return undefined;
+    }
+
+    return await this.getBlockByQuery({
+      transactionsHash: latestBlock[0].transactionsHash,
+    });
   }
 
   public async getNewestMetadata(): Promise<UnprovenBlockMetadata | undefined> {

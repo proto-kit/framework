@@ -175,7 +175,7 @@ export class BlockProducerModule extends SequencerModule {
 
   private async produceBlock(
     unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
-  ): Promise<ComputedBlockMetadata | undefined> {
+  ): Promise<ComputedBlockMetadata> {
     const blockId =
       unprovenBlocks[0].block.networkState.block.height.toBigInt();
 
@@ -259,6 +259,10 @@ export class BlockProducerModule extends SequencerModule {
 
           result.blockProver.executionData.networkState =
             previousMetadata.resultingNetworkState;
+          result.blockProver.publicInput.networkStateHash =
+            previousMetadata.resultingNetworkState.hash();
+          // We don't set it to runtimeProver.networkState here, because the
+          // runtime consumes the networkstate after the beforeBlock() hook
         }
 
         traces.push(result);

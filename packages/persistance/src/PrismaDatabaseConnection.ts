@@ -23,7 +23,7 @@ export class PrismaDatabaseConnection
   > {
     return {
       asyncStateService: {
-        useFactory: () => new PrismaStateService(this),
+        useFactory: () => new PrismaStateService(this, "batch"),
       },
       blockStorage: {
         useClass: PrismaBatchStore,

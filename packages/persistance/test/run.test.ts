@@ -54,6 +54,7 @@ describe("prisma", () => {
         },
       ],
       networkState: NetworkState.empty(),
+      previousBlockTransactionsHash: undefined
     };
     await storage.pushBlock(block);
   });

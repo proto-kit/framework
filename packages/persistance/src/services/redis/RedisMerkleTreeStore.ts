@@ -3,7 +3,7 @@ import {
   MerkleTreeNode,
   MerkleTreeNodeQuery,
 } from "@proto-kit/sequencer";
-import { noop } from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 
 import { RedisConnection } from "../../RedisConnection";
@@ -31,7 +31,6 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     const array: [string, string][] = this.cache.map(
       ({ key, level, value }) => [this.getKey({ key, level }), value.toString()]
     );
-    console.log(`Committing ${array.length} kv-pairs took ${Date.now() - start} ms`);
 
     const start2 = Date.now();
 
@@ -51,9 +50,11 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
         console.log(e);
       }
     }
-
-    console.log(`Took ${Date.now() - start2} ms`);
-    // console.log(`Rows: ${rows}`);
+    log.debug(
+      `Committing ${array.length} kv-pairs took ${
+        Date.now() - start
+      } ms (preparing the input was ${start2 - start} ms)`
+    );
 
     this.cache = [];
   }

@@ -15,7 +15,7 @@ export class PrismaStateService implements AsyncStateService {
    */
   public constructor(
     private readonly connection: PrismaDatabaseConnection,
-    private readonly mask: string = "base"
+    private readonly mask: string
   ) {}
 
   public async commit(): Promise<void> {
@@ -35,6 +35,7 @@ export class PrismaStateService implements AsyncStateService {
           path: {
             in: this.cache.map((x) => new Prisma.Decimal(x[0].toString())),
           },
+          mask: this.mask,
         },
       }),
       client.state.createMany({
