@@ -25,8 +25,6 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   }
 
   public async commit(): Promise<void> {
-    // TODO Filter distinct
-
     const start = Date.now();
     const array: [string, string][] = this.cache.map(
       ({ key, level, value }) => [this.getKey({ key, level }), value.toString()]
@@ -71,5 +69,22 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
 
   public writeNodes(nodes: MerkleTreeNode[]): void {
     this.cache = this.cache.concat(nodes);
+    // TODO Filter distinct
+    // We might not even need this, since the distinctness filter might already
+    // be implicitely done by the layer above (i.e. cachedmtstore)
+
+    // const concat = this.cache.concat(nodes);
+    // const reversed = concat.slice().reverse();
+    // this.cache = concat.filter((node, index) => {
+    //   const reversedIndex = concat.length - 1 - index;
+    //   // We find the last item with that particular (key + value) id.
+    //   // This is the one we want to use.
+    //   const foundIndex = reversed.findIndex(
+    //     ({ key, value }) => key === node.key && value === node.value
+    //   );
+    //   // Now we only take this item is the found item
+    //   return foundIndex === reversedIndex;
+    // });
+    // console.log(`Reduced ${concat.length} to ${this.cache.length} items to write`)
   }
 }

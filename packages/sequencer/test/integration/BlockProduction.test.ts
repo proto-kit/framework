@@ -366,56 +366,58 @@ describe("block production", () => {
     );
   }, 160_000);
 
-  it("should produce multiple blocks with multiple batches with multiple transactions", async () => {
-    const batches = 2;
-    const blocksPerBatch = 2;
-    const txsPerBlock = 2;
+  it.each([
+    [2, 2, 1],
+    [2, 2, 2],
+  ])(
+    "should produce multiple blocks with multiple batches with multiple transactions",
+    async (batches, blocksPerBatch, txsPerBlock) => {
+      expect.assertions(2 * batches + 3 * batches * blocksPerBatch);
 
-    // expect.assertions((2 * batches) + (3 * batches * blocksPerBatch));
-    expect.assertions(16);
+      const sender = PrivateKey.random();
 
-    const sender = PrivateKey.random();
+      const keys = range(0, batches * blocksPerBatch * txsPerBlock).map(() =>
+        PrivateKey.random()
+      );
 
-    const keys = range(0, batches * blocksPerBatch * txsPerBlock).map(() =>
-      PrivateKey.random()
-    );
+      const increment = 100;
 
-    const increment = 100;
+      let iterationIndex = 0;
 
-    let iterationIndex = 0;
+      for (let i = 0; i < batches; i++) {
+        for (let j = 0; j < blocksPerBatch; j++) {
+          for (let k = 0; k < txsPerBlock; k++) {
+            mempool.add(
+              createTransaction({
+                method: ["Balance", "addBalance"],
+                privateKey: sender,
+                args: [
+                  keys[iterationIndex].toPublicKey(),
+                  UInt64.from(increment * iterationIndex),
+                ],
+                nonce: iterationIndex,
+              })
+            );
 
-    for (let i = 0; i < batches; i++) {
-      for (let j = 0; j < blocksPerBatch; j++) {
-        for (let k = 0; k < txsPerBlock; k++) {
-          mempool.add(
-            createTransaction({
-              method: ["Balance", "addBalance"],
-              privateKey: sender,
-              args: [
-                keys[iterationIndex].toPublicKey(),
-                UInt64.from(increment * iterationIndex),
-              ],
-              nonce: iterationIndex,
-            })
-          );
+            iterationIndex += 1;
+          }
 
-          iterationIndex += 1;
+          // Produce block
+          const block = await blockTrigger.produceUnproven();
+
+          expect(block).toBeDefined();
+          expect(block!.transactions).toHaveLength(txsPerBlock);
+          expect(block!.transactions[0].status.toBoolean()).toBe(true);
         }
 
-        // Produce block
-        const block = await blockTrigger.produceUnproven();
+        const batch = await blockTrigger.produceProven();
 
-        expect(block).toBeDefined();
-        expect(block!.transactions).toHaveLength(txsPerBlock);
-        expect(block!.transactions[0].status.toBoolean()).toBe(true);
+        expect(batch).toBeDefined();
+        expect(batch!.bundles).toHaveLength(blocksPerBatch);
       }
-
-      const batch = await blockTrigger.produceProven();
-
-      expect(batch).toBeDefined();
-      expect(batch!.bundles).toHaveLength(blocksPerBatch);
-    }
-  }, 500_000);
+    },
+    500_000
+  );
 
   it("should produce block with a tx with a lot of STs", async () => {
     expect.assertions(11);

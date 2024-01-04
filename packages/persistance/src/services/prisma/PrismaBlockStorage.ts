@@ -21,7 +21,7 @@ import {
 } from "./mappers/TransactionMapper";
 import { UnprovenBlockMetadataMapper } from "./mappers/UnprovenBlockMetadataMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
-import { filterNonNull } from "@proto-kit/common";
+import { filterNonNull, log } from "@proto-kit/common";
 
 @injectable()
 export class PrismaBlockStorage
@@ -76,8 +76,8 @@ export class PrismaBlockStorage
   }
 
   public async pushBlock(block: UnprovenBlock): Promise<void> {
-    console.log(
-      `Pushing block`,
+    log.trace(
+      `Pushing block to DB. Txs:`,
       block.transactions.map((x) => x.tx.hash().toString())
     );
 
