@@ -127,17 +127,17 @@ export async function startServer() {
 
     sequencer: Sequencer.from({
       modules: {
-        // Database: PrismaDatabaseConnection,
-        // Redis: RedisConnection,
-        Database: InMemoryDatabase,
+        Database: PrismaDatabaseConnection,
+        Redis: RedisConnection,
+        // Database: InMemoryDatabase,
         Mempool: PrivateMempool,
         GraphqlServer,
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         UnprovenProducerModule,
-        // BlockTrigger: TimedBlockTrigger,
-        BlockTrigger: ManualBlockTrigger,
+        BlockTrigger: TimedBlockTrigger,
+        // BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
 
         Graphql: GraphqlSequencerModule.from({
@@ -195,10 +195,10 @@ export async function startServer() {
         UnprovenBlockResolver: {},
       },
 
-      // Redis: {
-      //   url: "redis://localhost:6379/",
-      //   password: "password",
-      // },
+      Redis: {
+        url: "redis://localhost:6379/",
+        password: "password",
+      },
 
       Database: {},
       Mempool: {},
@@ -209,8 +209,8 @@ export async function startServer() {
       UnprovenProducerModule: {},
 
       BlockTrigger: {
-        // blockInterval: 15000,
-        // settlementInterval: 30000,
+        blockInterval: 15000,
+        settlementInterval: 30000,
       },
     },
 
@@ -242,50 +242,82 @@ export async function startServer() {
     "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
   );
 
-  const tx = appChain.transaction(priv.toPublicKey(), () => {
-    balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
-  });
-  appChain.resolve("Signer").config.signer = priv;
-  await tx.sign();
-  await tx.send();
-  // console.log((tx.transaction as PendingTransaction).toJSON())
+  // const tx = appChain.transaction(priv.toPublicKey(), () => {
+  //   balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+  // });
+  // appChain.resolve("Signer").config.signer = priv;
+  // await tx.sign();
+  // await tx.send();
+  // // console.log((tx.transaction as PendingTransaction).toJSON())
+  //
+  // const tx2 = appChain.transaction(
+  //   priv.toPublicKey(),
+  //   () => {
+  //     balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+  //   },
+  //   { nonce: 1 }
+  // );
+  // await tx2.sign();
+  // await tx2.send();
+  //
+  // const { txs } = appChain.sequencer.resolve("Mempool").getTxs();
+  // console.log(txs.map((tx) => tx.toJSON()));
+  // console.log(txs.map((tx) => tx.hash().toString()));
+  //
+  // console.log("Path:", balances.balances.getPath(pk).toString());
 
-  const tx2 = appChain.transaction(
-    priv.toPublicKey(),
-    () => {
+  // const trigger = appChain.sequencer.resolve("BlockTrigger");
+  // await trigger.produceBlock();
+  //
+  // for (let i = 0; i < 12; i++) {
+  //   const tx3 = appChain.transaction(
+  //     priv.toPublicKey(),
+  //     () => {
+  //       balances.addBalance(PrivateKey.random().toPublicKey(), UInt64.from((i + 1) * 1000));
+  //     },
+  //     { nonce: i + 2 }
+  //   );
+  //   await tx3.sign();
+  //   await tx3.send();
+  //
+  //
+  //   // await trigger.produceProven();
+  //   if (i % 2 === 1) {
+  //     await trigger.produceUnproven();
+  //     if (i % 4 == 3) {
+  //       await trigger.produceProven();
+  //     }
+  //   }
+  // }
+
+  const as = await appChain.query.protocol.AccountStateModule.accountState.get(priv.toPublicKey());
+  let nonce = Number(as!.nonce.toBigInt())
+  console.log(nonce)
+
+  while(true){
+    const tx = appChain.transaction(priv.toPublicKey(), () => {
       balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
-    },
-    { nonce: 1 }
-  );
-  await tx2.sign();
-  await tx2.send();
+    }, { nonce: nonce });
+    appChain.resolve("Signer").config.signer = priv;
+    await tx.sign();
+    await tx.send();
+    // console.log((tx.transaction as PendingTransaction).toJSON())
 
-  const { txs } = appChain.sequencer.resolve("Mempool").getTxs();
-  console.log(txs.map((tx) => tx.toJSON()));
-  console.log(txs.map((tx) => tx.hash().toString()));
-
-  console.log("Path:", balances.balances.getPath(pk).toString());
-
-  const trigger = appChain.sequencer.resolve("BlockTrigger");
-  await trigger.produceBlock();
-
-  for (let i = 0; i < 10; i++) {
-    const tx3 = appChain.transaction(
+    const tx2 = appChain.transaction(
       priv.toPublicKey(),
       () => {
-        balances.addBalance(PrivateKey.random().toPublicKey(), UInt64.from((i + 1) * 1000));
+        balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
       },
-      { nonce: i + 2 }
+      { nonce: nonce + 1 }
     );
-    await tx3.sign();
-    await tx3.send();
+    await tx2.sign();
+    await tx2.send();
 
-    await trigger.produceUnproven();
+    nonce += 2;
 
-    // await trigger.produceProven();
-    if (i % 2 === 1) {
-      await trigger.produceProven();
-    }
+    console.log("Added 2 txs to mempool")
+
+    await sleep(15000);
   }
 
   // const asyncState =
