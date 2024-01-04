@@ -145,7 +145,7 @@ export class BlockTaskFlowService {
               )
             )
             .and(
-              a.publicInput.networkStateHash.equals(
+              a.publicOutput.networkStateHash.equals(
                 b.publicInput.networkStateHash
               )
             )

@@ -8,14 +8,15 @@ import { AppChain } from "@proto-kit/sdk";
 import { Fieldable, Runtime, MethodIdResolver } from "@proto-kit/module";
 import {
   AccountState,
-  AccountStateModule, BlockHeightHook,
+  AccountStateModule,
+  BlockHeightHook,
   BlockProver,
   Option,
   Path,
   Protocol,
   StateTransition,
   StateTransitionProver,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
 import { log, range } from "@proto-kit/common";
@@ -26,8 +27,9 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule, InMemoryDatabase,
-  ManualBlockTrigger
+  BlockProducerModule,
+  InMemoryDatabase,
+  ManualBlockTrigger,
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -90,7 +92,12 @@ describe("block production", () => {
 
     const protocolClass = VanillaProtocol.from(
       { AccountStateModule, BlockHeightHook },
-      { StateTransitionProver: {}, BlockProver: {}, AccountStateModule: {}, BlockHeightHook: {} }
+      {
+        StateTransitionProver: {},
+        BlockProver: {},
+        AccountStateModule: {},
+        BlockHeightHook: {},
+      }
     );
 
     const app = AppChain.from({
@@ -118,7 +125,7 @@ describe("block production", () => {
         AccountStateModule: {},
         BlockProver: {},
         StateTransitionProver: {},
-        BlockHeightHook: {}
+        BlockHeightHook: {},
       },
     });
 
@@ -176,7 +183,7 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
-    let batch = await blockTrigger.produceProven()
+    let batch = await blockTrigger.produceProven();
 
     expect(batch).toBeDefined();
 
@@ -188,7 +195,10 @@ describe("block production", () => {
         "AsyncStateService"
       );
 
-    const unprovenStateService = sequencer.dependencyContainer.resolve<AsyncStateService>("UnprovenStateService")
+    const unprovenStateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "UnprovenStateService"
+      );
 
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
@@ -202,7 +212,9 @@ describe("block production", () => {
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
-    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(UInt64.from(100));
+    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(
+      UInt64.from(100)
+    );
 
     // Check that nonce has been set
     const accountModule = protocol.resolve("AccountStateModule");
@@ -320,11 +332,15 @@ describe("block production", () => {
       expect(block!.transactions[index].status.toBoolean()).toBe(true);
       expect(block!.transactions[index].statusMessage).toBe(undefined);
 
-      const transitions = block!.transactions[index].stateTransitions
+      const transitions = block!.transactions[index].stateTransitions;
 
       const fromBalance = increment * index;
-      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance))
-      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance + increment))
+      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(
+        BigInt(fromBalance)
+      );
+      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(
+        BigInt(fromBalance + increment)
+      );
     });
 
     const batch = await blockTrigger.produceProven();
@@ -349,6 +365,57 @@ describe("block production", () => {
       UInt64.from(100 * numberTxs)
     );
   }, 160_000);
+
+  it("should produce multiple blocks with multiple batches with multiple transactions", async () => {
+    const batches = 2;
+    const blocksPerBatch = 2;
+    const txsPerBlock = 2;
+
+    // expect.assertions((2 * batches) + (3 * batches * blocksPerBatch));
+    expect.assertions(16);
+
+    const sender = PrivateKey.random();
+
+    const keys = range(0, batches * blocksPerBatch * txsPerBlock).map(() =>
+      PrivateKey.random()
+    );
+
+    const increment = 100;
+
+    let iterationIndex = 0;
+
+    for (let i = 0; i < batches; i++) {
+      for (let j = 0; j < blocksPerBatch; j++) {
+        for (let k = 0; k < txsPerBlock; k++) {
+          mempool.add(
+            createTransaction({
+              method: ["Balance", "addBalance"],
+              privateKey: sender,
+              args: [
+                keys[iterationIndex].toPublicKey(),
+                UInt64.from(increment * iterationIndex),
+              ],
+              nonce: iterationIndex,
+            })
+          );
+
+          iterationIndex += 1;
+        }
+
+        // Produce block
+        const block = await blockTrigger.produceUnproven();
+
+        expect(block).toBeDefined();
+        expect(block!.transactions).toHaveLength(txsPerBlock);
+        expect(block!.transactions[0].status.toBoolean()).toBe(true);
+      }
+
+      const batch = await blockTrigger.produceProven();
+
+      expect(batch).toBeDefined();
+      expect(batch!.bundles).toHaveLength(blocksPerBatch);
+    }
+  }, 500_000);
 
   it("should produce block with a tx with a lot of STs", async () => {
     expect.assertions(11);
