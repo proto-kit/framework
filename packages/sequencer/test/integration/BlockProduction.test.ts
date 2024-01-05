@@ -301,7 +301,7 @@ describe("block production", () => {
     expect(newState).toBeUndefined();
   }, 30_000);
 
-  const numberTxs = 2;
+  const numberTxs = 3;
 
   it("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
