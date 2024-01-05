@@ -313,7 +313,7 @@ export class QueryGraphqlModule<
         if (stateProperty instanceof StateMap) {
           // StateMap
           moduleTypes[fieldKey] = this.generateStateMapResolver(
-            `${namePrefix}${fieldKey}`,
+            `${namePrefix}${key}${fieldKey}`,
             query[fieldKey],
             stateProperty
           );
@@ -321,7 +321,7 @@ export class QueryGraphqlModule<
         } else if (stateProperty instanceof State) {
           // State
           moduleTypes[fieldKey] = this.generateStateResolver(
-            `${namePrefix}${fieldKey}`,
+            `${namePrefix}${key}${fieldKey}`,
             query[fieldKey],
             stateProperty
           );
