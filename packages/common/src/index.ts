@@ -14,3 +14,4 @@ export * from "./events/EventEmitter";
 export * from "./trees/MerkleTreeStore";
 export * from "./trees/InMemoryMerkleTreeStorage";
 export * from "./trees/RollupMerkleTree";
+export * from "./events/EventEmitterProxy";

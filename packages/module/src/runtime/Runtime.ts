@@ -267,7 +267,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     }
     const [moduleName, methodName] = methodDescriptor;
 
-    this.isValidModuleName(this.definition.modules, moduleName);
+    this.assertIsValidModuleName(this.definition.modules, moduleName);
     const module = this.resolve(moduleName);
 
     // eslint-disable-next-line max-len

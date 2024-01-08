@@ -1,10 +1,6 @@
 import type { EventEmitter } from "./EventEmitter";
 
-export type EventPayload = unknown[];
-
-export interface EventsRecord {
-  [key: string]: EventPayload;
-}
+export type EventsRecord = Record<string, unknown[]>;
 
 export interface EventEmittingComponent<Events extends EventsRecord> {
   events: EventEmitter<Events>;
