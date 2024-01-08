@@ -2,7 +2,7 @@
 /* eslint-disable guard-for-in */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable putout/putout */
-import { TypedClass } from "@proto-kit/common";
+import { StringKeyOf, TypedClass } from "@proto-kit/common";
 import {
   Runtime,
   RuntimeModule,
@@ -65,6 +65,10 @@ export type Query<
   [Key in keyof RuntimeModules]: ModuleQuery<InstanceType<RuntimeModules[Key]>>;
 };
 
+function isStringKeyOf(key: string | number | symbol): key is string {
+  return typeof key === "string";
+}
+
 export const QueryBuilderFactory = {
   // eslint-disable-next-line sonarjs/cognitive-complexity
   fillQuery<Module>(
@@ -117,8 +121,8 @@ export const QueryBuilderFactory = {
 
     return Object.keys(modules).reduce<
       Query<RuntimeModule<unknown>, RuntimeModules>
-    >((query, runtimeModuleName: keyof RuntimeModules) => {
-      runtime.isValidModuleName(modules, runtimeModuleName);
+    >((query, runtimeModuleName: string) => {
+      runtime.assertIsValidModuleName(modules, runtimeModuleName);
 
       const runtimeModule = runtime.resolve(runtimeModuleName);
 
@@ -139,9 +143,11 @@ export const QueryBuilderFactory = {
   ): Query<ProtocolModule<unknown>, ProtocolModules> {
     const { modules } = protocol.definition;
 
-    return Object.keys(modules).reduce<Query<ProtocolModule<unknown>, ProtocolModules>>(
-      (query, protocolModuleName: keyof ProtocolModules) => {
-        protocol.isValidModuleName(modules, protocolModuleName);
+    return Object.keys(modules).reduce<
+      Query<ProtocolModule<unknown>, ProtocolModules>
+    >(
+      (query, protocolModuleName: string) => {
+        protocol.assertIsValidModuleName(modules, protocolModuleName);
 
         const protocolModule = protocol.resolve(protocolModuleName);
 

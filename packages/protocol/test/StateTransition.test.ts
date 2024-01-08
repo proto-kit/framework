@@ -13,7 +13,7 @@ import {
 import {
   RollupMerkleTree,
   type RollupMerkleWitness,
-} from "../src/utils/merkletree/RollupMerkleTree.js";
+} from "../../common/src/trees/RollupMerkleTree.js";
 import { StateTransitionProver } from "../src/prover/statetransition/StateTransitionProver.js";
 import type { StateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
 

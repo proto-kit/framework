@@ -1,8 +1,10 @@
 import {
+  log,
+  noop,
   InMemoryMerkleTreeStorage,
-  RollupMerkleTree
-} from "@proto-kit/protocol";
-import { log, noop } from "@proto-kit/common";
+  RollupMerkleTree,
+} from "@proto-kit/common";
+
 import { AsyncMerkleTreeStore } from "../async/AsyncMerkleTreeStore";
 
 export class CachedMerkleTreeStore
@@ -47,7 +49,7 @@ export class CachedMerkleTreeStore
   // eslint-disable-next-line sonarjs/cognitive-complexity
   public async preloadKey(index: bigint): Promise<void> {
     // Algo from RollupMerkleTree.getWitness()
-    const { leafCount, height } = RollupMerkleTree;
+    const { leafCount, HEIGHT } = RollupMerkleTree;
 
     if (index >= leafCount) {
       index %= leafCount;
@@ -55,7 +57,7 @@ export class CachedMerkleTreeStore
 
     // eslint-disable-next-line no-warning-comments,max-len
     // TODO Not practical at the moment. Improve pattern when implementing DB storage
-    for (let level = 0; level < height; level++) {
+    for (let level = 0; level < HEIGHT; level++) {
       const key = index;
 
       const isLeft = index % 2n === 0n;
@@ -92,10 +94,10 @@ export class CachedMerkleTreeStore
     }
 
     this.parent.openTransaction();
-    const { height } = RollupMerkleTree;
+    const { HEIGHT } = RollupMerkleTree;
     const nodes = this.getWrittenNodes();
 
-    const promises = Array.from({ length: height }).flatMap((ignored, level) =>
+    const promises = Array.from({ length: HEIGHT }).flatMap((ignored, level) =>
       Object.entries(nodes[level]).map(async (entry) => {
         await this.parent.setNodeAsync(BigInt(entry[0]), level, entry[1]);
       })
