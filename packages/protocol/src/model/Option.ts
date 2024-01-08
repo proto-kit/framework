@@ -119,9 +119,9 @@ export class Option<Value> extends OptionBase {
     isSome: Bool,
     public value: Value,
     public valueType: FlexibleProvablePure<Value>,
-    enforceEmpty = Bool(false)
+    isForcedSome = Bool(false)
   ) {
-    super(isSome, enforceEmpty);
+    super(isSome, isForcedSome);
   }
 
   public encodeValueToFields(): Field[] {
