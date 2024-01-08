@@ -17,3 +17,9 @@ export type StringKeyOf<Target extends object> = Extract<keyof Target, string> &
 export type ArrayElement<ArrayType extends readonly unknown[]> =
   // eslint-disable-next-line putout/putout
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+
+export type UnionToIntersection<Union> = (
+  Union extends any ? (x: Union) => void : never
+) extends (x: infer Intersection) => void
+  ? Intersection
+  : never;
