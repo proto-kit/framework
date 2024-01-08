@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { NetworkState, RollupMerkleTree } from "@proto-kit/protocol";
+import { NetworkState } from "@proto-kit/protocol";
 import {
   EventEmitter,
   EventEmittingComponent,
@@ -7,6 +7,7 @@ import {
   log,
   noop,
   requireTrue,
+  RollupMerkleTree,
 } from "@proto-kit/common";
 
 import { Mempool } from "../../../mempool/Mempool";

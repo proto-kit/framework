@@ -4,11 +4,10 @@ import {
   BlockProverPublicOutput,
   DefaultProvableHashList,
   NetworkState,
-  RollupMerkleTree,
   BlockTransactionPosition,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
-import { log, noop } from "@proto-kit/common";
+import { log, noop, RollupMerkleTree } from "@proto-kit/common";
 
 import {
   sequencerModule,
