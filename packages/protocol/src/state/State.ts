@@ -54,6 +54,13 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
     super();
   }
 
+  /**
+   * Returns the state that is currently the current state tree
+   * value: The value-fields, or if not state was found, dummy values
+   * isSome: Whether the values where found in the state or not
+   * (Basically, whether the value-fields are dummy values or actual values
+   * @private
+   */
   private getState(): { value: Value; isSome: Bool } {
     this.hasStateServiceOrFail();
     this.hasPathOrFail();
@@ -99,7 +106,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @returns Optional value of the current state
    */
-  private witnessState() {
+  private witnessFromState() {
     // get the value from storage, or return a dummy value instead
     const value = Provable.witness(this.valueType, () => this.getState().value);
 
@@ -116,7 +123,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * @returns Option representation of the current state.
    */
   public get(): Option<Value> {
-    const option = this.witnessState();
+    const option = this.witnessFromState();
 
     this.hasPathOrFail();
 
@@ -142,8 +149,8 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    */
   public set(value: Value) {
     // link the transition to the current state
-    const fromOption = this.witnessState();
-    const toOption = Option.from(Bool(true), value, this.valueType);
+    const fromOption = this.witnessFromState();
+    const toOption = Option.fromValue(value, this.valueType);
 
     this.hasPathOrFail();
 
