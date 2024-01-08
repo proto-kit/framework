@@ -18,7 +18,7 @@ export class ProvableOption extends Struct({
 }
 
 export abstract class OptionBase {
-  protected constructor(public isSome: Bool, public enforceEmpty: Bool) {}
+  protected constructor(public isSome: Bool, public isForcedSome: Bool) {}
 
   protected abstract encodeValueToFields(): Field[];
 
@@ -30,10 +30,16 @@ export abstract class OptionBase {
   public get treeValue() {
     const treeValue = Poseidon.hash(this.encodeValueToFields());
 
-    // We only return the value if enforceEmpty is false
-    // If it is true, we return 0, since enforceEmpty will only be set
-    // if isSome: true and the value: some dummy value
-    return Provable.if(this.enforceEmpty, Field(0), treeValue);
+    return Provable.if(
+      this.isSome.and(this.isForcedSome.not()),
+      treeValue,
+      Field(0)
+    );
+  }
+
+  public forceSome() {
+    this.isForcedSome = Provable.if(this.isSome, Bool(false), Bool(true));
+    this.isSome = Bool(true);
   }
 
   /**
@@ -62,7 +68,7 @@ export abstract class OptionBase {
 
     return {
       isSome: this.isSome.toBoolean(),
-      enforceEmpty: this.enforceEmpty.toBoolean(),
+      isForcedSome: this.isForcedSome.toBoolean(),
       value,
     };
   }
@@ -77,17 +83,15 @@ export class Option<Value> extends OptionBase {
    *
    * @param isSome
    * @param value
-   * @param enforceEmpty
    * @param valueType
    * @returns New option from the provided parameters.
    */
   public static from<Value>(
     isSome: Bool,
     value: Value,
-    enforceEmpty: Bool,
     valueType: FlexibleProvablePure<Value>
   ) {
-    return new Option(isSome, value, valueType, enforceEmpty);
+    return new Option(isSome, value, valueType);
   }
 
   /**
@@ -101,7 +105,7 @@ export class Option<Value> extends OptionBase {
     value: Value,
     valueType: FlexibleProvablePure<Value>
   ) {
-    return this.from(Bool(true), value, Bool(false), valueType);
+    return this.from(Bool(true), value, valueType);
   }
 
   /**
@@ -129,7 +133,7 @@ export class Option<Value> extends OptionBase {
       this.isSome,
       this.value,
       this.valueType,
-      this.enforceEmpty
+      this.isForcedSome
     );
   }
 
