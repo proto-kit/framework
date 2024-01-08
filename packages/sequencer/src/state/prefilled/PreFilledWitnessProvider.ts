@@ -1,11 +1,10 @@
+import { StateTransitionWitnessProvider } from "@proto-kit/protocol";
 import {
   InMemoryMerkleTreeStorage,
   RollupMerkleTree,
-  RollupMerkleWitness,
-  StateTransitionWitnessProvider,
-} from "@proto-kit/protocol";
+  RollupMerkleTreeWitness,
+} from "@proto-kit/common";
 import { Field } from "o1js";
-import { log } from "@proto-kit/common";
 
 const errors = {
   noWitnessAvailable: () =>
@@ -18,16 +17,16 @@ const errors = {
 export class PreFilledWitnessProvider
   implements StateTransitionWitnessProvider
 {
-  private readonly witnesses: RollupMerkleWitness[];
+  private readonly witnesses: RollupMerkleTreeWitness[];
 
   private cursor = 0;
 
-  public constructor(witnesses: RollupMerkleWitness[]) {
+  public constructor(witnesses: RollupMerkleTreeWitness[]) {
     // Reverse so that we can conviniently .pop() one-by-one
     this.witnesses = witnesses;
   }
 
-  public getWitness(key: Field): RollupMerkleWitness {
+  public getWitness(key: Field): RollupMerkleTreeWitness {
     // dummy ST
     if (key.equals(Field(0)).toBoolean()) {
       // return some witness here, it won't get checked in the circuit

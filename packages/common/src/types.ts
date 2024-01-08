@@ -21,7 +21,7 @@ export type ArrayElement<ArrayType extends readonly unknown[]> =
 /**
  * Transforms X | Y => X & Y
  */
-type UnionToIntersection<Union> = (
+export type UnionToIntersection<Union> = (
   Union extends any ? (x: Union) => void : never
 ) extends (x: infer Intersection) => void
   ? Intersection
