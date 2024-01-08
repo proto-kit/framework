@@ -45,7 +45,7 @@ class TestModule
       dependencyModule1: {
         useClass: ChildModule,
       },
-    } satisfies DependencyRecord;
+    };
   }
 }
 
