@@ -18,8 +18,14 @@ export type ArrayElement<ArrayType extends readonly unknown[]> =
   // eslint-disable-next-line putout/putout
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
 
+/**
+ * Transforms X | Y => X & Y
+ */
 export type UnionToIntersection<Union> = (
   Union extends any ? (x: Union) => void : never
 ) extends (x: infer Intersection) => void
   ? Intersection
   : never;
+
+export type MergeObjects<Input extends Record<string, unknown>> =
+  UnionToIntersection<Input[keyof Input]>;
