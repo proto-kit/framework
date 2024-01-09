@@ -53,11 +53,13 @@ export interface UnprovenBlock {
   networkState: NetworkState;
   transactions: TransactionExecutionResult[];
   transactionsHash: Field;
+  eternalTransactionsHash: bigint
 }
 
 export interface UnprovenBlockMetadata {
   resultingStateRoot: bigint;
   resultingNetworkState: NetworkState;
+  resultingBlockHashRoot: bigint;
 }
 
 @injectable()
@@ -197,20 +199,9 @@ export class TransactionExecutionService {
     const executionResults: TransactionExecutionResult[] = [];
 
     const transactionsHashList = new DefaultProvableHashList(Field);
+    const eternalTransactionsHashList = new DefaultProvableHashList(Field, );
 
-    const networkState = this.blockHooks.reduce<NetworkState>(
-      (state, hook) =>
-        hook.beforeBlock({
-          networkState: metadata.resultingNetworkState,
-
-          state: {
-            stateRoot: Field(metadata.resultingStateRoot),
-            networkStateHash: metadata.resultingNetworkState.hash(),
-            transactionsHash: Field(0),
-          },
-        }),
-      new NetworkState(metadata.resultingNetworkState)
-    );
+    const networkState = new NetworkState(metadata.resultingNetworkState);
 
     for (const [index, tx] of transactions.entries()) {
       try {
@@ -244,6 +235,7 @@ export class TransactionExecutionService {
       transactions: executionResults,
       networkState,
       transactionsHash: transactionsHashList.commitment,
+      eternalTransactionsHash:
     };
   }
 
@@ -282,6 +274,7 @@ export class TransactionExecutionService {
       stateRoot,
       transactionsHash: block.transactionsHash,
       networkStateHash: block.networkState.hash(),
+      eternalTransactionsHash: block.
     };
 
     const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
