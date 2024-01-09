@@ -1,8 +1,5 @@
 import { ModulesConfig } from "@proto-kit/common";
-import {
-  Runtime,
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
+import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
   AccountStateModule,
   BlockProver,
@@ -17,7 +14,8 @@ import {
   BlockProducerModule,
   ManualBlockTrigger,
   LocalTaskQueue,
-  UnprovenProducerModule
+  UnprovenProducerModule,
+  InMemoryDatabase,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
 
@@ -54,6 +52,7 @@ export class TestingAppChain<
 
     const sequencer = Sequencer.from({
       modules: {
+        Database: InMemoryDatabase,
         Mempool: PrivateMempool,
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
@@ -64,6 +63,7 @@ export class TestingAppChain<
       },
 
       config: {
+        Database: {},
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
@@ -87,8 +87,8 @@ export class TestingAppChain<
         },
         {
           BlockProver: {},
-          StateTransitionProver: {}
-        },
+          StateTransitionProver: {},
+        }
       ),
 
       modules: {
@@ -96,7 +96,7 @@ export class TestingAppChain<
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
         NetworkStateTransportModule: BlockStorageNetworkStateModule,
-      }
+      },
     });
 
     appchain.configure({
@@ -123,7 +123,7 @@ export class TestingAppChain<
       Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
-      NetworkStateTransportModule: {}
+      NetworkStateTransportModule: {},
     });
 
     return appchain;
@@ -140,7 +140,7 @@ export class TestingAppChain<
       NetworkStateTransportModule: {},
       Runtime: {},
       Protocol: {},
-      Sequencer: {}
+      Sequencer: {},
     });
   }
   //
