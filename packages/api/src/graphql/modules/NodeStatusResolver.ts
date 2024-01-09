@@ -10,7 +10,8 @@ export class NodeStatusObject {
     return new NodeStatusObject(
       status.uptime,
       status.uptimeHumanReadable,
-      status.height
+      status.height,
+      status.settlements
     );
   }
 
@@ -21,21 +22,26 @@ export class NodeStatusObject {
   public height: number;
 
   @Field()
+  public settlements: number;
+
+  @Field()
   public uptimeHumanReadable: string;
 
   public constructor(
     uptime: number,
     uptimeHumanReadable: string,
-    height: number
+    height: number,
+    settlements: number
   ) {
     this.uptime = uptime;
     this.uptimeHumanReadable = uptimeHumanReadable;
     this.height = height;
+    this.settlements = settlements;
   }
 }
 
 @graphqlModule()
-export class NodeStatusResolver extends GraphqlModule<object> {
+export class NodeStatusResolver extends GraphqlModule {
   public constructor(private readonly nodeStatusService: NodeStatusService) {
     super();
   }

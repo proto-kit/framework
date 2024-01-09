@@ -12,6 +12,9 @@ import {
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
+  GraphQLList,
+  GraphQLInputType,
+  GraphQLOutputType,
 } from "graphql/type";
 import {
   MethodParameterDecoder,
@@ -34,9 +37,8 @@ import {
   QueryGetterStateMap,
   QueryTransportModule,
   NetworkStateQuery,
-  BlockStorage,
+  NetworkStateTransportModule,
 } from "@proto-kit/sequencer";
-import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
 import {
   BaseModuleType,
   log,
@@ -45,6 +47,9 @@ import {
   range,
 } from "@proto-kit/common";
 import { ObjMap } from "graphql/jsutils/ObjMap";
+
+import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
+import isArray from "lodash/isArray";
 
 interface ProvableExtension<T, TJson = any> {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
@@ -64,15 +69,15 @@ interface AnyJson {
 @graphqlModule()
 export class QueryGraphqlModule<
   RuntimeModules extends RuntimeModulesRecord
-> extends SchemaGeneratingGraphqlModule<object> {
+> extends SchemaGeneratingGraphqlModule {
   public constructor(
     @inject("QueryTransportModule")
     private readonly queryTransportModule: QueryTransportModule,
+    @inject("NetworkStateTransportModule")
+    private readonly networkStateTransportModule: NetworkStateTransportModule,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModules>,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
-    @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage
+    private readonly protocol: Protocol<ProtocolModulesRecord>
   ) {
     super();
   }
@@ -100,6 +105,22 @@ export class QueryGraphqlModule<
     throw new Error(`Can't decode type ${typeof value}`);
   }
 
+  private inputArray(value: AnyJson, name: string): GraphQLInputType {
+    if (value["length"] === undefined || value["length"] <= 0) {
+      throw new Error(
+        "Dummy array not initialized correctly. Did you define Provable.Array() with length 0?"
+      );
+    }
+    const valueType = value[0];
+    return new GraphQLList(
+      typeof valueType === "object"
+        ? isArray(valueType)
+          ? this.inputArray(valueType, name + "_object")
+          : this.inputJsonToGraphQl(valueType, name + "_object")
+        : this.jsonPrimitiveToGraphqlType(valueType)
+    );
+  }
+
   private inputJsonToGraphQl(
     json: AnyJson,
     name: string
@@ -110,7 +131,9 @@ export class QueryGraphqlModule<
       fields[key] = {
         type:
           typeof value === "object"
-            ? this.inputJsonToGraphQl(value, key)
+            ? isArray(value)
+              ? this.inputArray(value, key)
+              : this.inputJsonToGraphQl(value, key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -121,6 +144,22 @@ export class QueryGraphqlModule<
     });
   }
 
+  private graphqlArray(value: AnyJson, name: string): GraphQLOutputType {
+    if (value["length"] === undefined || value["length"] <= 0) {
+      throw new Error(
+        "Dummy array not initialized correctly. Did you define Provable.Array() with length 0?"
+      );
+    }
+    const valueType = value[0];
+    return new GraphQLList(
+      typeof valueType === "object"
+        ? isArray(valueType)
+          ? this.graphqlArray(valueType, name + "_object")
+          : this.jsonToGraphQl(valueType, name + "_object")
+        : this.jsonPrimitiveToGraphqlType(valueType)
+    );
+  }
+
   private jsonToGraphQl(json: any, name: string): GraphQLObjectType {
     const fields: { [key: string]: GraphQLFieldConfig<unknown, unknown> } = {};
 
@@ -128,7 +167,9 @@ export class QueryGraphqlModule<
       fields[key] = {
         type:
           typeof value === "object"
-            ? this.jsonToGraphQl(value, key)
+            ? isArray(value)
+              ? this.graphqlArray(value, key)
+              : this.jsonToGraphQl(value, key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -192,6 +233,10 @@ export class QueryGraphqlModule<
 
       resolve: async (source, args: { key: any }) => {
         try {
+          if (args.key === undefined) {
+            throw new Error("Specifying a key is mandatory");
+          }
+
           const provableKey = (
             stateMap.keyType as ProvableExtension<Key | NonMethods<Key>>
           ).fromJSON(args.key) as Key;
@@ -267,7 +312,7 @@ export class QueryGraphqlModule<
         if (stateProperty instanceof StateMap) {
           // StateMap
           moduleTypes[fieldKey] = this.generateStateMapResolver(
-            `${namePrefix}${fieldKey}`,
+            `${namePrefix}${key}${fieldKey}`,
             query[fieldKey],
             stateProperty
           );
@@ -275,7 +320,7 @@ export class QueryGraphqlModule<
         } else if (stateProperty instanceof State) {
           // State
           moduleTypes[fieldKey] = this.generateStateResolver(
-            `${namePrefix}${fieldKey}`,
+            `${namePrefix}${key}${fieldKey}`,
             query[fieldKey],
             stateProperty
           );
@@ -320,7 +365,9 @@ export class QueryGraphqlModule<
       "Protocol"
     );
 
-    const networkQuery = new NetworkStateQuery(this.blockStorage);
+    const networkQuery = new NetworkStateQuery(
+      this.networkStateTransportModule
+    );
     const networkType = this.flexiblePureToGraphql(
       NetworkState,
       "Network",
@@ -350,8 +397,24 @@ export class QueryGraphqlModule<
         },
 
         network: {
-          type: networkType,
-          resolve: async () => await networkQuery.currentNetworkState,
+          type: new GraphQLObjectType({
+            name: "network",
+            fields: {
+              unproven: {
+                type: networkType,
+                resolve: () => networkQuery.unproven,
+              },
+              staged: {
+                type: networkType,
+                resolve: () => networkQuery.stagedUnproven,
+              },
+              proven: {
+                type: networkType,
+                resolve: () => networkQuery.proven,
+              },
+            },
+          }),
+          resolve: () => true,
         },
       },
     });

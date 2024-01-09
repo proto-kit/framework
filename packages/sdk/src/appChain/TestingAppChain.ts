@@ -1,9 +1,5 @@
 import { ModulesConfig } from "@proto-kit/common";
-import {
-  InMemoryStateService,
-  Runtime,
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
+import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
   AccountStateModule,
   BlockProver,
@@ -18,12 +14,15 @@ import {
   BlockProducerModule,
   ManualBlockTrigger,
   LocalTaskQueue,
+  UnprovenProducerModule,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
+
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
-import { AuroSigner } from "../transaction/AuroSigner";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
+import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
+
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
 type TestAppChainProtocolModules = {
@@ -44,7 +43,7 @@ export class TestingAppChain<
     RuntimeModules extends RuntimeModulesRecord
   >(definition: {
     modules: RuntimeModules;
-    config: ModulesConfig<RuntimeModules>;
+    config?: ModulesConfig<RuntimeModules>;
   }) {
     const runtime = Runtime.from({
       ...definition,
@@ -56,6 +55,7 @@ export class TestingAppChain<
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
+        UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
       },
@@ -79,6 +79,7 @@ export class TestingAppChain<
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
+        NetworkStateTransportModule: BlockStorageNetworkStateModule,
       },
     });
 
@@ -91,6 +92,7 @@ export class TestingAppChain<
         BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
+        UnprovenProducerModule: {},
 
         TaskQueue: {
           simulatedDuration: 0,
@@ -105,20 +107,25 @@ export class TestingAppChain<
       Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
+      NetworkStateTransportModule: {},
     });
 
     return appChain;
   }
 
   public setSigner(signer: PrivateKey) {
-    const inMemorySigner = this.resolveOrFail("Signer", InMemorySigner);
-    inMemorySigner.config.signer = signer;
-  }
+    this.configure({
+      Signer: {
+        signer,
+      },
 
-  public useAuroSigner() {
-    this.registerModules({
-      Signer: AuroSigner,
-    } as any);
+      TransactionSender: {},
+      QueryTransportModule: {},
+      NetworkStateTransportModule: {},
+      Runtime: {},
+      Protocol: {},
+      Sequencer: {},
+    });
   }
 
   public async produceBlock() {
@@ -127,6 +134,6 @@ export class TestingAppChain<
       ManualBlockTrigger
     );
 
-    return await blockTrigger.produceBlock();
+    return await blockTrigger.produceUnproven(true);
   }
 }

@@ -1,4 +1,4 @@
-import { ConfigurableModule, Presets } from "@proto-kit/common";
+import { ConfigurableModule, NoConfig, Presets } from "@proto-kit/common";
 import { container, injectable } from "tsyringe";
 import {
   NetworkState,
@@ -25,7 +25,9 @@ const errors = {
  * Base class for runtime modules providing the necessary utilities.
  */
 @injectable()
-export class RuntimeModule<Config> extends ConfigurableModule<Config> {
+export class RuntimeModule<
+  Config = NoConfig
+> extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 
   /**

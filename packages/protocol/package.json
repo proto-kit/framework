@@ -25,7 +25,8 @@
   "peerDependencies": {
     "@proto-kit/common": "*",
     "o1js": "0.13.1",
-    "tsyringe": "^4.7.0"
+    "tsyringe": "^4.7.0",
+    "ts-pattern": "^4.3.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",

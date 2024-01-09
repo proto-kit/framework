@@ -57,7 +57,7 @@ export class AuroSignerHandler {
 }
 
 @injectable()
-export class AuroSigner extends AppChainModule<unknown> implements Signer {
+export class AuroSigner extends AppChainModule implements Signer {
   public async sign(signatureData: any[]): Promise<any> {
     const { Signature } = await import("o1js");
 

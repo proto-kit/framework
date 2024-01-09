@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file, import/no-unused-modules */
 import "reflect-metadata";
 import {
   RuntimeModule,
@@ -5,19 +6,11 @@ import {
   state,
   runtimeModule,
 } from "@proto-kit/module";
-import { StateMap, State, assert } from "@proto-kit/protocol";
-
-import {
-  Field,
-  Group,
-  Poseidon,
-  PublicKey,
-  Provable,
-  SmartContract,
-  Struct,
-} from "o1js";
-import { Balance, Balances, TokenId } from "./Balances";
+import { StateMap, assert } from "@proto-kit/protocol";
+import { Field, Group, Poseidon, PublicKey, Provable, Struct } from "o1js";
 import { inject } from "tsyringe";
+
+import { Balance, Balances, TokenId } from "./Balances";
 
 export const errors = {
   poolExists: () => "Pool already exists",
@@ -25,17 +18,6 @@ export const errors = {
   tokenOutAmountTooLow: () => "Token out amount too low",
   tokenInAmountTooHigh: () => "Token in amount too high",
 };
-
-export class LPTokenId extends TokenId {
-  public static fromTokenIdPair(
-    tokenIdIn: TokenId,
-    tokenIdOut: TokenId
-  ): TokenId {
-    return TokenId.from(
-      Poseidon.hash(TokenPair.toFields(TokenPair.from(tokenIdIn, tokenIdOut)))
-    );
-  }
-}
 
 export class TokenPair extends Struct({
   tokenIdIn: TokenId,
@@ -47,6 +29,17 @@ export class TokenPair extends Struct({
       TokenPair,
       new TokenPair({ tokenIdIn, tokenIdOut }),
       new TokenPair({ tokenIdIn: tokenIdOut, tokenIdOut: tokenIdIn })
+    );
+  }
+}
+
+export class LPTokenId extends TokenId {
+  public static fromTokenIdPair(
+    tokenIdIn: TokenId,
+    tokenIdOut: TokenId
+  ): TokenId {
+    return TokenId.from(
+      Poseidon.hash(TokenPair.toFields(TokenPair.from(tokenIdIn, tokenIdOut)))
     );
   }
 }
@@ -63,15 +56,14 @@ export class PoolKey extends PublicKey {
       y: { x0 },
     } = Poseidon.hashToGroup(TokenPair.toFields(tokenPair));
 
-    const key = PoolKey.fromGroup(Group.fromFields([x, x0]));
-
-    return key;
+    return PoolKey.fromGroup(Group.fromFields([x, x0]));
   }
 }
 
 @runtimeModule()
 export class XYK extends RuntimeModule<unknown> {
   public static defaultPoolValue = Field(0);
+
   @state() public pools = StateMap.from<PoolKey, Field>(PoolKey, Field);
 
   public constructor(@inject("Balances") public balances: Balances) {
@@ -138,16 +130,7 @@ export class XYK extends RuntimeModule<unknown> {
     const numerator = tokenOutReserve.mul(tokenInAmountIn);
     const denominator = tokenInReserve.add(tokenInAmountIn);
 
-    const tokenOutAmountOut = numerator.div(denominator);
-
-    // Provable.log("calculateTokenOutAmountOutFromReserves", {
-    //   tokenInReserve,
-    //   tokenOutReserve,
-    //   tokenInAmountIn,
-    //   tokenOutAmountOut,
-    // });
-
-    return tokenOutAmountOut;
+    return numerator.div(denominator);
   }
 
   public calculateTokenInAmountIn(
@@ -175,7 +158,7 @@ export class XYK extends RuntimeModule<unknown> {
     const tokenOutReserveIsSufficient =
       tokenOutReserve.greaterThanOrEqual(tokenOutAmountOut);
 
-    const safeTokenOutReserve = Provable.if(
+    const safeTokenOutReserve = Provable.if<Balance>(
       tokenOutReserveIsSufficient,
       Balance,
       tokenOutReserve,
@@ -187,7 +170,7 @@ export class XYK extends RuntimeModule<unknown> {
     const denominator = safeTokenOutReserve.sub(tokenOutAmountOut);
 
     const denominatorIsSafe = denominator.greaterThan(Balance.from(0));
-    const safeDenominator = Provable.if(
+    const safeDenominator = Provable.if<Balance>(
       denominatorIsSafe,
       Balance,
       denominator,
@@ -196,16 +179,7 @@ export class XYK extends RuntimeModule<unknown> {
 
     assert(denominatorIsSafe);
 
-    const tokenInAmountIn = numerator.div(safeDenominator);
-
-    // Provable.log("calculateTokenInAmountInFromReserves", {
-    //   tokenInReserve,
-    //   tokenOutReserve,
-    //   tokenInAmountIn,
-    //   tokenOutAmountOut,
-    // });
-
-    return tokenInAmountIn;
+    return numerator.div(safeDenominator);
   }
 
   @runtimeMethod()

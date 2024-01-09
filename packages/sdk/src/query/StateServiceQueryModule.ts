@@ -1,9 +1,8 @@
-/* eslint-disable import/no-unused-modules */
 import {
   AsyncStateService,
   QueryTransportModule,
   Sequencer,
-  SequencerModulesRecord
+  SequencerModulesRecord,
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
@@ -12,7 +11,7 @@ import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
 export class StateServiceQueryModule
-  extends AppChainModule<unknown>
+  extends AppChainModule
   implements QueryTransportModule
 {
   public constructor(

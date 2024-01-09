@@ -1,11 +1,13 @@
-import { ConfigurableModule, TypedClass } from "@proto-kit/common";
+import { ConfigurableModule, NoConfig, TypedClass } from "@proto-kit/common";
 import { GraphQLSchema } from "graphql/type";
 import { injectable, Lifecycle, scoped } from "tsyringe";
 import { Resolver } from "type-graphql";
 
 const graphqlModuleMetadataKey = "graphqlModule";
 
-export abstract class GraphqlModule<Config> extends ConfigurableModule<Config> {
+export abstract class GraphqlModule<
+  Config = NoConfig
+> extends ConfigurableModule<Config> {
   public constructor() {
     super();
 
@@ -20,7 +22,7 @@ export abstract class GraphqlModule<Config> extends ConfigurableModule<Config> {
 }
 
 export abstract class SchemaGeneratingGraphqlModule<
-  Config
+  Config = NoConfig
 > extends GraphqlModule<Config> {
   public abstract generateSchema(): GraphQLSchema;
 }

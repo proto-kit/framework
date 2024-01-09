@@ -17,15 +17,15 @@ import {
   MethodIdFactory,
 } from "@proto-kit/module";
 import {
-  BlockStorage,
   NetworkStateQuery,
   Query,
   QueryBuilderFactory,
   Sequencer,
   SequencerModulesRecord,
   UnsignedTransaction,
-  MockStorageDependencyFactory,
   QueryTransportModule,
+  NetworkStateTransportModule,
+  DummyStateService,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -34,6 +34,7 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
 import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
@@ -44,6 +45,7 @@ import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 
 import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
+import { SharedDependencyFactory } from "./SharedDependencyFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -199,9 +201,12 @@ export class AppChain<
       "QueryTransportModule"
     );
 
-    const network = new NetworkStateQuery(
-      this.sequencer.dependencyContainer.resolve<BlockStorage>("BlockStorage")
-    );
+    const networkStateTransportModule =
+      this.container.resolve<NetworkStateTransportModule>(
+        "NetworkStateTransportModule"
+      );
+
+    const network = new NetworkStateQuery(networkStateTransportModule);
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
@@ -253,7 +258,7 @@ export class AppChain<
     sender: PublicKey,
     callback: () => void,
     options?: { nonce?: number }
-  ) {
+  ): AppChainTransaction {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -272,7 +277,14 @@ export class AppChain<
       } as unknown as NetworkState,
     });
 
+    const stateServiceProvider = this.container.resolve<StateServiceProvider>(
+      "StateServiceProvider"
+    );
+    stateServiceProvider.setCurrentStateService(new DummyStateService());
+
     callback();
+
+    stateServiceProvider.popCurrentStateService();
 
     const { methodName, moduleName, args } = executionContext.current().result;
 
@@ -362,11 +374,8 @@ export class AppChain<
   public async start(dependencyContainer: DependencyContainer = container) {
     this.create(() => dependencyContainer);
 
-    this.registerDependencyFactories([
-      AreProofsEnabledFactory,
-      MockStorageDependencyFactory,
-      MethodIdFactory,
-    ]);
+    this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
+    this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
 
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.
@@ -384,6 +393,10 @@ export class AppChain<
     //   StateTransitionWitnessProviderReference: reference,
     // });
 
+    // console.log("creating sequencer");
+    // this.sequencer.create(() => this.container);
+
+    console.log("starting sequencer");
     // this.runtime.start();
     await this.sequencer.start();
   }

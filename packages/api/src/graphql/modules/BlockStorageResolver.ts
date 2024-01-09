@@ -1,12 +1,6 @@
 /* eslint-disable new-cap */
 import { inject, injectable } from "tsyringe";
-import {
-  Arg,
-  Field,
-  ObjectType,
-  Query,
-  Resolver,
-} from "type-graphql";
+import { Arg, Field, ObjectType, Query, Resolver } from "type-graphql";
 import { IsBoolean } from "class-validator";
 import {
   BlockStorage,
@@ -14,6 +8,7 @@ import {
   ComputedBlock,
   ComputedBlockTransaction,
 } from "@proto-kit/sequencer";
+import { MOCK_PROOF } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
@@ -53,27 +48,39 @@ export class ComputedBlockTransactionModel {
 
 @ObjectType()
 export class ComputedBlockModel {
-  public static fromServiceLayerModel({ txs, proof }: ComputedBlock) {
+  public static fromServiceLayerModel({
+    bundles,
+    proof,
+  }: ComputedBlock): ComputedBlockModel {
     return new ComputedBlockModel(
-      txs.map((tx) => ComputedBlockTransactionModel.fromServiceLayerModel(tx)),
-      JSON.stringify(proof.toJSON())
+      bundles.map((bundle) =>
+        bundle.map((tx) =>
+          ComputedBlockTransactionModel.fromServiceLayerModel(tx)
+        )
+      ),
+      proof.proof === MOCK_PROOF
+        ? "mock-proof"
+        : JSON.stringify(proof.toJSON())
     );
   }
 
-  @Field(() => [ComputedBlockTransactionModel])
-  public txs: ComputedBlockTransactionModel[];
+  @Field(() => [[ComputedBlockTransactionModel]])
+  public bundles: ComputedBlockTransactionModel[][];
 
   @Field()
   public proof: string;
 
-  public constructor(txs: ComputedBlockTransactionModel[], proof: string) {
-    this.txs = txs;
+  public constructor(
+    bundles: ComputedBlockTransactionModel[][],
+    proof: string
+  ) {
+    this.bundles = bundles;
     this.proof = proof;
   }
 }
 
 @graphqlModule()
-export class BlockStorageResolver extends GraphqlModule<object> {
+export class BlockStorageResolver extends GraphqlModule {
   // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
@@ -83,12 +90,12 @@ export class BlockStorageResolver extends GraphqlModule<object> {
   }
 
   @Query(() => ComputedBlockModel, { nullable: true })
-  public async block(
+  public async settlements(
     @Arg("height", () => Number, { nullable: true })
     height: number | undefined
   ) {
     const blockHeight =
-      height ?? (await this.blockStorage.getCurrentBlockHeight());
+      height ?? (await this.blockStorage.getCurrentBlockHeight()) - 1;
 
     const block = await this.blockStorage.getBlockAt(blockHeight);
 
