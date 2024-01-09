@@ -257,8 +257,10 @@ export class ModuleContainer<
   }
 
   public get events(): EventEmitterProxy<Modules> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return this.eventEmitterProxy!;
+    if (this.eventEmitterProxy === undefined) {
+      this.eventEmitterProxy = new EventEmitterProxy<Modules>(this);
+    }
+    return this.eventEmitterProxy;
   }
 
   /**
@@ -465,7 +467,5 @@ export class ModuleContainer<
 
     // register all provided modules when the container is created
     this.registerModules(this.definition.modules);
-
-    this.eventEmitterProxy = new EventEmitterProxy<Modules>(this);
   }
 }
