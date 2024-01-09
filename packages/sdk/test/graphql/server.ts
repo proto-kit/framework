@@ -22,6 +22,7 @@ import {
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
+  ManualBlockTrigger,
   NoopBaseLayer,
   PendingTransaction,
   PrivateMempool,
@@ -47,8 +48,6 @@ import { container } from "tsyringe";
 import { UnprovenProducerModule } from "@proto-kit/sequencer/dist/protocol/production/unproven/UnprovenProducerModule";
 import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
 import { MessageBoard, Post } from "./Post";
-
-log.setLevel(log.levels.INFO);
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
@@ -94,15 +93,7 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from(
-      { AccountStateModule, BlockHeightHook },
-      {
-        AccountStateModule: {},
-        StateTransitionProver: {},
-        BlockProver: {},
-        BlockHeightHook: {},
-      }
-    ),
+    protocol: VanillaProtocol.from({ AccountStateModule, BlockHeightHook }),
 
     sequencer: Sequencer.from({
       modules: {
@@ -113,7 +104,7 @@ export async function startServer() {
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         UnprovenProducerModule,
-        BlockTrigger: TimedBlockTrigger,
+        BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
 
         Graphql: GraphqlSequencerModule.from({
@@ -179,11 +170,7 @@ export async function startServer() {
       BaseLayer: {},
       TaskQueue: {},
       UnprovenProducerModule: {},
-
-      BlockTrigger: {
-        blockInterval: 15000,
-        settlementInterval: 30000,
-      },
+      BlockTrigger: {},
     },
 
     TransactionSender: {},
@@ -199,7 +186,6 @@ export async function startServer() {
   const pk = PublicKey.fromBase58(
     "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   );
-  console.log(pk.toJSON());
 
   const balances = appChain.runtime.resolve("Balances");
 
@@ -207,15 +193,14 @@ export async function startServer() {
     "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
   );
 
-  const tx = appChain.transaction(priv.toPublicKey(), () => {
+  const tx = await appChain.transaction(priv.toPublicKey(), () => {
     balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
   });
   appChain.resolve("Signer").config.signer = priv;
   await tx.sign();
   await tx.send();
-  // console.log((tx.transaction as PendingTransaction).toJSON())
 
-  const tx2 = appChain.transaction(
+  const tx2 = await appChain.transaction(
     priv.toPublicKey(),
     () => {
       balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
@@ -225,20 +210,5 @@ export async function startServer() {
   await tx2.sign();
   await tx2.send();
 
-  console.log("Path:", balances.balances.getPath(pk).toString());
-
-  // const asyncState =
-  //   appChain.sequencer.dependencyContainer.resolve<AsyncStateService>(
-  //     "AsyncStateService"
-  //   );
-  // await asyncState.setAsync(balances.balances.getPath(pk), [Field(100)]);
-  // await asyncState.setAsync(balances.totalSupply.path!, [Field(10_000)]);
-
-  // appChain.query.runtime.Balances.totalSupply
-
-  // await sleep(30000);
-
   return appChain;
 }
-
-// await startServer();

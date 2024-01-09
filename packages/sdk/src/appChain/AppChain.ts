@@ -169,8 +169,8 @@ export class AppChain<
     > = {
       modules: {
         Runtime: definition.runtime,
-        Sequencer: definition.sequencer,
         Protocol: definition.protocol,
+        Sequencer: definition.sequencer,
         ...definition.modules,
       },
 
@@ -235,30 +235,12 @@ export class AppChain<
     return this.resolve("Protocol");
   }
 
-  public configureAll(
-    config: AppChainConfig<
-      RuntimeModules,
-      ProtocolModules,
-      SequencerModules,
-      AppChainModules
-    >
-  ): void {
-    this.runtime.configure(config.runtime);
-    this.sequencer.configure(config.sequencer);
-    this.protocol.configure(config.protocol);
-    this.configure({
-      Runtime: {},
-      Sequencer: {},
-      Protocol: {},
-      ...config.appChain,
-    } as Parameters<typeof this.configure>[0]);
-  }
-
-  public transaction(
+  // eslint-disable-next-line max-statements, sonarjs/cognitive-complexity
+  public async transaction(
     sender: PublicKey,
     callback: () => void,
     options?: { nonce?: number }
-  ): AppChainTransaction {
+  ): Promise<AppChainTransaction> {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -344,6 +326,8 @@ export class AppChain<
       return JSON.stringify(argumentType.toJSON(argument));
     });
 
+    const nonce = options?.nonce ? UInt64.from(options.nonce) : UInt64.from(0);
+
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
         this.runtime.dependencyContainer
@@ -353,7 +337,7 @@ export class AppChain<
 
       argsFields,
       argsJSON,
-      nonce: UInt64.from(options?.nonce ?? 0),
+      nonce,
       sender,
     });
 
@@ -396,7 +380,6 @@ export class AppChain<
     // console.log("creating sequencer");
     // this.sequencer.create(() => this.container);
 
-    console.log("starting sequencer");
     // this.runtime.start();
     await this.sequencer.start();
   }

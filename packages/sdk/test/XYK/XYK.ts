@@ -199,7 +199,12 @@ export class XYK extends RuntimeModule<unknown> {
     );
 
     const isTokenOutAmountTooLow =
-      tokenOutAmountOut.lessThan(minTokenOutAmountOut);
+      tokenOutAmountOut.greaterThanOrEqual(minTokenOutAmountOut);
+
+    Provable.log("tokenOutAmountOut", {
+      tokenOutAmountOut,
+      minTokenOutAmountOut,
+    });
 
     assert(isTokenOutAmountTooLow, errors.tokenOutAmountTooLow());
 
@@ -235,7 +240,12 @@ export class XYK extends RuntimeModule<unknown> {
     );
 
     const isTokenInInAmountTooHigh =
-      tokenInAmountIn.greaterThan(maxTokenInAmountIn);
+      tokenInAmountIn.lessThanOrEqual(maxTokenInAmountIn);
+
+    Provable.log("tokenInAmountIn", {
+      tokenInAmountIn,
+      maxTokenInAmountIn,
+    });
 
     assert(isTokenInInAmountTooHigh, errors.tokenInAmountTooHigh());
 

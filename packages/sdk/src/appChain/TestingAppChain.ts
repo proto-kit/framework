@@ -15,6 +15,8 @@ import {
   ManualBlockTrigger,
   LocalTaskQueue,
   UnprovenProducerModule,
+  InMemoryDatabase,
+  SequencerModulesRecord,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
 
@@ -28,29 +30,27 @@ import { AppChain, AppChainModulesRecord } from "./AppChain";
 type TestAppChainProtocolModules = {
   StateTransitionProver: typeof StateTransitionProver;
   BlockProver: typeof BlockProver;
-  // AccountStateModule: typeof AccountStateModule;
 };
 
 export class TestingAppChain<
-  RuntimeModules extends RuntimeModulesRecord
+  RuntimeModules extends RuntimeModulesRecord,
+  SequencerModules extends SequencerModulesRecord
 > extends AppChain<
   RuntimeModules,
   TestAppChainProtocolModules,
-  any,
+  SequencerModules,
   AppChainModulesRecord
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord
-  >(definition: {
-    modules: RuntimeModules;
-    config?: ModulesConfig<RuntimeModules>;
-  }) {
+  >(definition: { modules: RuntimeModules }) {
     const runtime = Runtime.from({
       ...definition,
     });
 
     const sequencer = Sequencer.from({
       modules: {
+        Database: InMemoryDatabase,
         Mempool: PrivateMempool,
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
@@ -63,17 +63,10 @@ export class TestingAppChain<
 
     const appChain = new TestingAppChain({
       runtime,
-      sequencer,
 
-      protocol: VanillaProtocol.from(
-        {
-          // AccountStateModule
-        },
-        {
-          BlockProver: {},
-          StateTransitionProver: {},
-        }
-      ),
+      protocol: VanillaProtocol.from({}),
+
+      sequencer,
 
       modules: {
         Signer: InMemorySigner,
@@ -83,10 +76,9 @@ export class TestingAppChain<
       },
     });
 
-    appChain.configure({
-      Runtime: definition.config,
-
+    appChain.configurePartial({
       Sequencer: {
+        Database: {},
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
@@ -114,18 +106,8 @@ export class TestingAppChain<
   }
 
   public setSigner(signer: PrivateKey) {
-    this.configure({
-      Signer: {
-        signer,
-      },
-
-      TransactionSender: {},
-      QueryTransportModule: {},
-      NetworkStateTransportModule: {},
-      Runtime: {},
-      Protocol: {},
-      Sequencer: {},
-    });
+    const inMemorySigner = this.resolveOrFail("Signer", InMemorySigner);
+    inMemorySigner.config.signer = signer;
   }
 
   public async produceBlock() {

@@ -22,6 +22,7 @@ import {
   BlockProducerModule,
   LocalTaskQueue,
   LocalTaskWorkerModule,
+  ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
   QueryTransportModule,
@@ -38,7 +39,7 @@ import {
   QueryGraphqlModule,
 } from "@proto-kit/api";
 
-import { startServer, Balances } from "./graphql";
+import { startServer, Balances } from "./server";
 import { beforeAll } from "@jest/globals";
 import {
   AppChain,
@@ -50,11 +51,7 @@ import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSe
 import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
 import { GraphqlClient } from "../../src/graphql/GraphqlClient";
 import { container } from "tsyringe";
-import {
-  GraphqlNetworkStateTransportModule
-} from "../../src/graphql/GraphqlNetworkStateTransportModule";
-
-log.setLevel(log.levels.INFO);
+import { GraphqlNetworkStateTransportModule } from "../../src/graphql/GraphqlNetworkStateTransportModule";
 
 const pk = PrivateKey.random();
 
@@ -70,10 +67,9 @@ function prepare() {
       },
     }),
 
-    protocol: VanillaProtocol.from(
-      { AccountStateModule },
-      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {} }
-    ),
+    protocol: VanillaProtocol.from({
+      AccountStateModule,
+    }),
 
     sequencer: Sequencer.from({
       modules: {
@@ -96,9 +92,9 @@ function prepare() {
     },
 
     Protocol: {
+      AccountStateModule: {},
       BlockProver: {},
       StateTransitionProver: {},
-      AccountStateModule: {},
     },
 
     Sequencer: {
@@ -123,27 +119,30 @@ function prepare() {
 
 describe("graphql client test", function () {
   let appChain: ReturnType<typeof prepare> | undefined = undefined;
+  let server: Awaited<ReturnType<typeof startServer>>;
+  let trigger: ManualBlockTrigger;
 
   beforeAll(async () => {
-    const server = await startServer();
+    server = await startServer();
 
     await sleep(2000);
 
     appChain = prepare();
 
-    await appChain.start(container.createChildContainer());
+    await appChain.start();
+
+    trigger = server.sequencer.resolveOrFail(
+      "BlockTrigger",
+      ManualBlockTrigger
+    );
+    await trigger.produceUnproven();
   });
 
   it("should retrieve state", async () => {
-    const result = await appChain!
-      .resolve("QueryTransportModule")
-      .get(Field(1234));
-    console.log(`Result: ${result?.toString()}`);
-
     const totalSupply =
       await appChain!.query.runtime.Balances.totalSupply.get();
 
-    console.log(totalSupply!.toString());
+    expect(totalSupply?.toString()).toBe("2000");
   }, 60000);
 
   it("should send transaction", async () => {
@@ -155,7 +154,7 @@ describe("graphql client test", function () {
     await tx.sign();
     await tx.send();
 
-    await sleep(10000);
+    await trigger.produceUnproven();
 
     const balance = await appChain!.query.runtime.Balances.balances.get(
       pk.toPublicKey()
@@ -172,5 +171,9 @@ describe("graphql client test", function () {
 
     expect(state).toBeDefined();
     expect(state.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
+  });
+
+  afterAll(async () => {
+    server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
   });
 });

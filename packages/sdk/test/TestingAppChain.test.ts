@@ -7,13 +7,11 @@ import {
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import { TestingAppChain } from "../../src/index";
+import { TestingAppChain } from "../src/index";
 import { container, inject } from "tsyringe";
 import { log } from "@proto-kit/common";
 import { randomUUID } from "crypto";
 import { assert, State, StateMap } from "@proto-kit/protocol";
-
-log.setLevel("ERROR");
 
 export interface AdminConfig {
   admin: PublicKey;
@@ -75,7 +73,7 @@ class Balances extends RuntimeModule<BalancesConfig> {
   }
 }
 
-log.setLevel(log.levels.DEBUG)
+log.setLevel(log.levels.DEBUG);
 
 describe("testing app chain", () => {
   it("should enable a complete transaction roundtrip", async () => {
@@ -90,8 +88,10 @@ describe("testing app chain", () => {
      */
     const appChain = TestingAppChain.fromRuntime({
       modules: { Admin, Balances },
+    });
 
-      config: {
+    appChain.configurePartial({
+      Runtime: {
         Admin: {
           admin: sender,
         },
@@ -102,13 +102,13 @@ describe("testing app chain", () => {
       },
     });
 
+    // start the chain, sequencer is now accepting transactions
+    await appChain.start();
+
     /**
      *  Setup the transaction signer / sender
      */
     appChain.setSigner(signer);
-
-    // start the chain, sequencer is now accepting transactions
-    await appChain.start();
 
     /**
      * Resolve the registred 'Balances' module and
@@ -116,7 +116,7 @@ describe("testing app chain", () => {
      */
     const balances = appChain.runtime.resolve("Balances");
     // prepare a transaction invoking `Balances.setBalance`
-    const transaction = appChain.transaction(sender, () => {
+    const transaction = await appChain.transaction(sender, () => {
       balances.addBalance(sender, UInt64.from(1000));
     });
 
@@ -128,7 +128,7 @@ describe("testing app chain", () => {
      */
     const block = await appChain.produceBlock();
 
-    expect(block?.txs[0].status).toBe(true);
+    expect(block?.transactions[0].status.toBoolean()).toBe(true);
 
     /**
      * Observe new state after the block has been produced

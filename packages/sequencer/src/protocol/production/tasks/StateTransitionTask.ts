@@ -28,8 +28,6 @@ import {
 import { PreFilledWitnessProvider } from "../../../state/prefilled/PreFilledWitnessProvider";
 import { CompileRegistry } from "./CompileRegistry";
 
-console.log("injectable StateTransitionTask");
-
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class StateTransitionTask

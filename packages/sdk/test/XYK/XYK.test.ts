@@ -1,15 +1,12 @@
 /* eslint-disable unicorn/filename-case */
-import { PrivateKey, Provable, PublicKey } from "o1js";
+import { PrivateKey, Provable, PublicKey, UInt64 } from "o1js";
 import log from "loglevel";
 import { RuntimeModulesRecord } from "@proto-kit/module";
 
-import { TestingAppChain } from "@proto-kit/sdk";
+import { TestingAppChain } from "../../src/appChain/TestingAppChain";
 
 import { Balance, Balances, BalancesKey, TokenId } from "./Balances";
 import { PoolKey, XYK } from "./XYK";
-
-// eslint-disable-next-line jest/require-hook
-// log.setLevel("DEBUG");
 
 interface RuntimeModules extends RuntimeModulesRecord {
   Balances: typeof Balances;
@@ -30,7 +27,7 @@ describe("xyk", () => {
 
   const pool = PoolKey.fromTokenIdPair(tokenInId, tokenOutId);
 
-  let chain: TestingAppChain<RuntimeModules>;
+  let chain: TestingAppChain<RuntimeModules, any>;
 
   let balances: Balances;
   let xyk: XYK;
@@ -57,49 +54,43 @@ describe("xyk", () => {
         Balances,
         XYK,
       },
+    });
 
-      config: {
-        Balances: {},
+    chain.configurePartial({
+      Runtime: {
+        Balances: {
+          totalSupply: UInt64.from(1_000_000n),
+        },
         XYK: {},
       },
     });
 
-    chain.setSigner(aliceKey);
-
     await chain.start();
+
+    chain.setSigner(aliceKey);
 
     balances = chain.runtime.resolve("Balances");
     xyk = chain.runtime.resolve("XYK");
   }, 30_000);
 
-  it.only("should mint balance for alice", async () => {
+  it("should mint balance for alice", async () => {
     expect.assertions(2);
 
-    const tx1 = chain.transaction(
-      alice,
-      () => {
-        balances.mint(tokenInId, alice, Balance.from(balanceToMint));
-      },
-      { nonce }
-    );
+    const tx1 = await chain.transaction(alice, () => {
+      balances.mint(tokenInId, alice, Balance.from(balanceToMint));
+    });
 
     await tx1.sign();
     await tx1.send();
-    nonce += 1;
 
-    await chain.produceBlock();
+    const block = await chain.produceBlock();
 
-    const tx2 = chain.transaction(
-      alice,
-      () => {
-        balances.mint(tokenOutId, alice, Balance.from(balanceToMint));
-      },
-      { nonce }
-    );
+    const tx2 = await chain.transaction(alice, () => {
+      balances.mint(tokenOutId, alice, Balance.from(balanceToMint));
+    });
 
     await tx2.sign();
     await tx2.send();
-    nonce += 1;
 
     await chain.produceBlock();
 
@@ -113,22 +104,17 @@ describe("xyk", () => {
   it("should create a pool", async () => {
     expect.assertions(2);
 
-    const tx = chain.transaction(
-      alice,
-      () => {
-        xyk.createPool(
-          tokenInId,
-          tokenOutId,
-          Balance.from(initialLiquidityA),
-          Balance.from(initialLiquidityB)
-        );
-      },
-      { nonce }
-    );
+    const tx = await chain.transaction(alice, () => {
+      xyk.createPool(
+        tokenInId,
+        tokenOutId,
+        Balance.from(initialLiquidityA),
+        Balance.from(initialLiquidityB)
+      );
+    });
 
     await tx.sign();
     await tx.send();
-    nonce += 1;
 
     await chain.produceBlock();
 
@@ -145,22 +131,17 @@ describe("xyk", () => {
     const balanceInBefore = await getBalance(tokenInId, alice);
     const balanceOutBefore = await getBalance(tokenOutId, alice);
 
-    const tx = chain.transaction(
-      alice,
-      () => {
-        xyk.sell(
-          tokenInId,
-          tokenOutId,
-          Balance.from(balanceToSell),
-          Balance.from(10_000n)
-        );
-      },
-      { nonce }
-    );
+    const tx = await chain.transaction(alice, () => {
+      xyk.sell(
+        tokenInId,
+        tokenOutId,
+        Balance.from(balanceToSell),
+        Balance.from(100n)
+      );
+    });
 
     await tx.sign();
     await tx.send();
-    nonce += 1;
 
     await chain.produceBlock();
 
@@ -192,7 +173,7 @@ describe("xyk", () => {
     const balanceInBefore = await getBalance(tokenInId, alice);
     const balanceOutBefore = await getBalance(tokenOutId, alice);
 
-    const tx = chain.transaction(
+    const tx = await chain.transaction(
       alice,
       () => {
         xyk.buy(
@@ -209,9 +190,7 @@ describe("xyk", () => {
     await tx.send();
     nonce += 1;
 
-    const block = await chain.produceBlock();
-    console.log(block?.transactions[0].statusMessage);
-    console.log(block?.transactions[0].status);
+    await chain.produceBlock();
 
     const balanceInAfter = await getBalance(tokenInId, alice);
     const balanceOutAfter = await getBalance(tokenOutId, alice);

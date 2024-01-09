@@ -21,7 +21,9 @@ export class StateServiceQueryModule
   }
 
   public get asyncStateService(): AsyncStateService {
-    return this.sequencer.dependencyContainer.resolve("AsyncStateService");
+    return this.sequencer.dependencyContainer.resolve<AsyncStateService>(
+      "UnprovenStateService"
+    );
   }
 
   public async get(key: Field) {

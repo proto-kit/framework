@@ -171,23 +171,11 @@ export class Protocol<Modules extends ProtocolModulesRecord>
 
 export const VanillaProtocol = {
   create() {
-    return VanillaProtocol.from(
-      {},
-      {
-        BlockProver: {},
-        StateTransitionProver: {},
-      }
-    );
+    return VanillaProtocol.from({});
   },
 
   from<AdditonalModules extends GenericProtocolModuleRecord>(
-    additionalModules: AdditonalModules,
-    config: ModulesConfig<
-      AdditonalModules & {
-        StateTransitionProver: typeof StateTransitionProver;
-        BlockProver: typeof BlockProver;
-      }
-    >
+    additionalModules: AdditonalModules
   ): TypedClass<
     Protocol<
       AdditonalModules & {
@@ -202,8 +190,6 @@ export const VanillaProtocol = {
         BlockProver,
         ...additionalModules,
       },
-
-      config,
     });
   },
 };

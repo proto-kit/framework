@@ -9,6 +9,8 @@ import Koa from "koa";
 
 import type { GraphqlModule } from "./GraphqlModule";
 
+type Server = ReturnType<Koa["listen"]>;
+
 interface GraphqlServerOptions {
   host: string;
   port: number;
@@ -31,6 +33,8 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
   private readonly schemas: GraphQLSchema[] = [];
 
   private dependencyContainer?: DependencyContainer;
+
+  private server?: Server;
 
   public setContainer(container: DependencyContainer) {
     this.dependencyContainer = container;
@@ -120,8 +124,12 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
 
     const { port, host } = this.config;
 
-    app.listen({ port, host }, () => {
+    this.server = app.listen({ port, host }, () => {
       log.info(`GraphQL Server listening on ${host}:${port}`);
     });
+  }
+
+  public close() {
+    this.server?.close();
   }
 }

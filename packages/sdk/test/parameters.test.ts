@@ -18,14 +18,12 @@ import {
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import { TestingAppChain } from "../../src/index";
+import { TestingAppChain } from "../src/index";
 import { log } from "@proto-kit/common";
 import { assert, State, StateMap } from "@proto-kit/protocol";
 import { dummyBase64Proof } from "o1js/dist/node/lib/proof_system";
 
 import { Pickles } from "o1js/dist/node/snarky";
-
-log.setLevel("ERROR");
 
 class TestStruct extends Struct({
   foo: Field,
@@ -105,8 +103,8 @@ class TestRuntime extends RuntimeModule<unknown> {
   }
 }
 
-describe("testing app chain", () => {
-  it("should enable a complete transaction roundtrip", async () => {
+describe("parameters", () => {
+  it("should accept various provable transaction arguments", async () => {
     expect.assertions(1);
 
     const signer = PrivateKey.random();
@@ -118,8 +116,10 @@ describe("testing app chain", () => {
      */
     const appChain = TestingAppChain.fromRuntime({
       modules: { TestRuntime },
+    });
 
-      config: {
+    appChain.configurePartial({
+      Runtime: {
         TestRuntime: {},
       },
     });
@@ -135,7 +135,7 @@ describe("testing app chain", () => {
     });
 
     const signature = Signature.create(signer, TestStruct.toFields(struct));
-    const transaction = appChain.transaction(sender, () => {
+    const transaction = await appChain.transaction(sender, () => {
       runtime.test(
         Field(0),
         UInt64.from(0),
@@ -152,6 +152,6 @@ describe("testing app chain", () => {
 
     const block = await appChain.produceBlock();
 
-    expect(block?.txs[0].status).toBe(true);
+    expect(block?.transactions[0].status.toBoolean()).toBe(true);
   }, 60_000);
 });
