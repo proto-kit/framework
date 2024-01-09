@@ -131,7 +131,8 @@
       "off"
     ],
     "nodejs/declare": "off",
-    "unicorn/prefer-event-target": "off"
+    "unicorn/prefer-event-target": "off",
+    "putout/putout": "off"
   },
 
   "overrides": [

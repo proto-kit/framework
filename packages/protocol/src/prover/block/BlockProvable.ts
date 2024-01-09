@@ -32,8 +32,6 @@ export type BlockProverProof = Proof<
 export class BlockProverExecutionData extends Struct({
   transaction: ProtocolTransaction,
   networkState: NetworkState,
-  transactionPosition: BlockTransactionPosition,
-  blockHashWitness: BlockHashMerkleTreeWitness,
 }) {}
 
 export interface BlockProvable
@@ -43,6 +41,14 @@ export interface BlockProvable
     stateProof: StateTransitionProof,
     appProof: Proof<void, MethodPublicOutput>,
     executionData: BlockProverExecutionData
+  ) => BlockProverPublicOutput;
+
+  newBlock: (
+    publicInput: BlockProverPublicInput,
+    networkState: NetworkState,
+    lastBlockWitness: BlockHashMerkleTreeWitness,
+    nextBlockWitness: BlockHashMerkleTreeWitness,
+    stateTransitionProof: StateTransitionProof
   ) => BlockProverPublicOutput;
 
   merge: (
