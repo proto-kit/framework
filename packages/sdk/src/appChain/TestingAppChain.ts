@@ -1,9 +1,5 @@
 import { ModulesConfig } from "@proto-kit/common";
-import {
-  InMemoryStateService,
-  Runtime,
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
+import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
   AccountStateModule,
   BlockProver,
@@ -18,12 +14,17 @@ import {
   BlockProducerModule,
   ManualBlockTrigger,
   LocalTaskQueue,
+  UnprovenProducerModule,
+  InMemoryDatabase,
+  SequencerModulesRecord,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
+
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
-import { AuroSigner } from "../transaction/AuroSigner";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
+import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
+
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
 type TestAppChainProtocolModules = {
@@ -33,29 +34,29 @@ type TestAppChainProtocolModules = {
 };
 
 export class TestingAppChain<
-  RuntimeModules extends RuntimeModulesRecord
+  RuntimeModules extends RuntimeModulesRecord,
+  SequencerModules extends SequencerModulesRecord
 > extends AppChain<
   RuntimeModules,
   TestAppChainProtocolModules,
-  any,
+  SequencerModules,
   AppChainModulesRecord
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord
-  >(definition: {
-    modules: RuntimeModules;
-    config: ModulesConfig<RuntimeModules>;
-  }) {
+  >(definition: { modules: RuntimeModules }) {
     const runtime = Runtime.from({
       ...definition,
     });
 
     const sequencer = Sequencer.from({
       modules: {
+        Database: InMemoryDatabase,
         Mempool: PrivateMempool,
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
+        UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
       },
@@ -63,35 +64,28 @@ export class TestingAppChain<
 
     const appChain = new TestingAppChain({
       runtime,
-      sequencer,
 
-      protocol: VanillaProtocol.from(
-        {
-          // AccountStateModule
-        },
-        {
-          AccountState: {},
-          BlockProver: {},
-          StateTransitionProver: {},
-        }
-      ),
+      protocol: VanillaProtocol.from({}),
+
+      sequencer,
 
       modules: {
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
+        NetworkStateTransportModule: BlockStorageNetworkStateModule,
       },
     });
 
-    appChain.configure({
-      Runtime: definition.config,
-
+    appChain.configurePartial({
       Sequencer: {
+        Database: {},
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
+        UnprovenProducerModule: {},
 
         TaskQueue: {
           simulatedDuration: 0,
@@ -107,6 +101,7 @@ export class TestingAppChain<
       Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
+      NetworkStateTransportModule: {},
     });
 
     return appChain;
@@ -117,18 +112,12 @@ export class TestingAppChain<
     inMemorySigner.config.signer = signer;
   }
 
-  public useAuroSigner() {
-    this.registerModules({
-      Signer: AuroSigner,
-    } as any);
-  }
-
   public async produceBlock() {
     const blockTrigger = this.sequencer.resolveOrFail(
       "BlockTrigger",
       ManualBlockTrigger
     );
 
-    return await blockTrigger.produceBlock();
+    return await blockTrigger.produceUnproven(true);
   }
 }

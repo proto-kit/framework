@@ -14,5 +14,5 @@ export interface ComputedBlockTransaction {
 
 export interface ComputedBlock {
   proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-  txs: ComputedBlockTransaction[];
+  bundles: ComputedBlockTransaction[][];
 }

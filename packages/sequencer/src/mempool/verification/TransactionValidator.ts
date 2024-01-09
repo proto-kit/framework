@@ -11,9 +11,7 @@ import { PendingTransaction } from "../PendingTransaction";
 @injectable()
 export class TransactionValidator {
   public constructor(
-    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
-    @inject("MethodIdResolver")
-    private readonly methodIdResolver: MethodIdResolver
+    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {}
 
   private validateMethod(tx: PendingTransaction): string | undefined {
@@ -22,7 +20,7 @@ export class TransactionValidator {
     // We don't actually need to use runtime.getMethodById here, bcs the
     // module name validation happens inside getMethodNameFromId
     // and also in the next step
-    const methodPath = this.methodIdResolver.getMethodNameFromId(
+    const methodPath = this.runtime.methodIdResolver.getMethodNameFromId(
       tx.methodId.toBigInt()
     );
 

@@ -57,10 +57,7 @@ export class LocalhostAppChain<
     const appChain = AppChain.from({
       runtime: Runtime.from(definition),
 
-      protocol: VanillaProtocol.from(
-        {},
-        { AccountState: {}, StateTransitionProver: {}, BlockProver: {} }
-      ),
+      protocol: VanillaProtocol.from({}),
 
       sequencer: Sequencer.from({
         modules: {
@@ -97,8 +94,9 @@ export class LocalhostAppChain<
       },
     });
 
-    appChain.configure({
-      Runtime: definition.config,
+    // @ts-ignore
+    appChain.configurePartial({
+      Runtime: definition.config as any,
 
       Protocol: {
         BlockProver: {},
@@ -126,9 +124,7 @@ export class LocalhostAppChain<
         BaseLayer: {},
         TaskQueue: {},
 
-        BlockTrigger: {
-          blocktime: 5000,
-        },
+        BlockTrigger: {},
       },
 
       TransactionSender: {},

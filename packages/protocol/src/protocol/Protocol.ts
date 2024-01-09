@@ -22,15 +22,22 @@ import { ProvableTransactionHook } from "./ProvableTransactionHook";
 import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
 import { AccountStateModule } from "../blockmodules/AccountStateModule";
+import { ProvableBlockHook } from "./ProvableBlockHook";
+import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
+
+const PROTOCOL_INJECTION_TOKENS = {
+  ProvableTransactionHook: "ProvableTransactionHook",
+  ProvableBlockHook: "ProvableBlockHook",
+};
 
 export type GenericProtocolModuleRecord = ModulesRecord<
   TypedClass<ProtocolModule<unknown>>
 >;
 
-interface BlockProverType extends ProtocolModule<object>, BlockProvable {}
+interface BlockProverType extends ProtocolModule, BlockProvable {}
 
 interface StateTransitionProverType
-  extends ProtocolModule<object>,
+  extends ProtocolModule,
     StateTransitionProvable {}
 
 export interface ProtocolCustomModulesRecord {
@@ -126,22 +133,38 @@ export class Protocol<Modules extends ProtocolModulesRecord>
     // Register the BlockModules seperately since we need to
     // inject them differently later
     let atLeastOneTransactionHookRegistered = false;
+    let atLeastOneBlockHookRegistered = false;
     Object.entries(this.definition.modules).forEach(([key, value]) => {
       if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
         this.container.register(
-          "ProvableTransactionHook",
+          PROTOCOL_INJECTION_TOKENS.ProvableTransactionHook,
           { useToken: key },
           { lifecycle: Lifecycle.ContainerScoped }
         );
         atLeastOneTransactionHookRegistered = true;
+      }
+      if (Object.prototype.isPrototypeOf.call(ProvableBlockHook, value)) {
+        this.container.register(
+          PROTOCOL_INJECTION_TOKENS.ProvableBlockHook,
+          { useToken: key },
+          { lifecycle: Lifecycle.ContainerScoped }
+        );
+        atLeastOneBlockHookRegistered = true;
       }
     });
 
     // We need this so that tsyringe doesn't throw when no hooks are registered
     if (!atLeastOneTransactionHookRegistered) {
       this.container.register(
-        "ProvableTransactionHook",
+        PROTOCOL_INJECTION_TOKENS.ProvableTransactionHook,
         { useClass: NoopTransactionHook },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
+    }
+    if (!atLeastOneBlockHookRegistered) {
+      this.container.register(
+        PROTOCOL_INJECTION_TOKENS.ProvableBlockHook,
+        { useClass: NoopBlockHook },
         { lifecycle: Lifecycle.ContainerScoped }
       );
     }
@@ -150,25 +173,11 @@ export class Protocol<Modules extends ProtocolModulesRecord>
 
 export const VanillaProtocol = {
   create() {
-    return VanillaProtocol.from(
-      {},
-      {
-        BlockProver: {},
-        StateTransitionProver: {},
-        AccountState: {},
-      }
-    );
+    return VanillaProtocol.from({});
   },
 
   from<AdditonalModules extends GenericProtocolModuleRecord>(
-    additionalModules: AdditonalModules,
-    config: ModulesConfig<
-      AdditonalModules & {
-        StateTransitionProver: typeof StateTransitionProver;
-        BlockProver: typeof BlockProver;
-        AccountState: typeof AccountStateModule;
-      }
-    >
+    additionalModules: AdditonalModules
   ): TypedClass<
     Protocol<
       AdditonalModules & {
@@ -185,8 +194,6 @@ export const VanillaProtocol = {
         AccountState: AccountStateModule,
         ...additionalModules,
       },
-
-      config,
     });
   },
 };

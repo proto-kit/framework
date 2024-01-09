@@ -20,7 +20,7 @@ import { Presets, log, TypedClass } from "@proto-kit/common";
 import {
   AsyncStateService,
   BlockProducerModule,
-  ComputedBlock,
+  UnprovenBlock,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   ManualBlockTrigger,
@@ -60,10 +60,7 @@ export async function startServer({
   const appChain = AppChain.from({
     runtime,
 
-    protocol: VanillaProtocol.from(
-      {},
-      { AccountState: {}, StateTransitionProver: {}, BlockProver: {} }
-    ),
+    protocol: VanillaProtocol.from({}),
 
     sequencer: Sequencer.from({
       modules: {
@@ -131,9 +128,7 @@ export async function startServer({
       BaseLayer: {},
       TaskQueue: {},
 
-      BlockTrigger: {
-        blocktime: 5000,
-      },
+      BlockTrigger: {},
     },
 
     TransactionSender: {},
@@ -151,15 +146,15 @@ export async function startServer({
 
 let appChain: AppChain<any, any, any, any>;
 
-export interface ComputedBlockExtras {
-  block?: ComputedBlock;
+export interface UnprovenBlockExtras {
+  block?: UnprovenBlock;
   blockError?: string;
   height: number;
   duration: number;
 }
 
 export interface CliState {
-  blocks: ComputedBlockExtras[];
+  blocks: UnprovenBlockExtras[];
   isProducingBlock: boolean;
   isStarted: boolean;
   countdown: number;
@@ -168,7 +163,7 @@ export interface CliState {
 export type Action =
   | { type: "HAS_STARTED" }
   | { type: "PRODUCING_BLOCK" }
-  | { type: "BLOCK_PRODUCED"; block: ComputedBlockExtras }
+  | { type: "BLOCK_PRODUCED"; block: UnprovenBlockExtras }
   | { type: "TICK" };
 
 export function reducer(state: CliState, action: Action) {
@@ -301,7 +296,8 @@ export function Server({ configFile }: { configFile: string }) {
       let block;
 
       try {
-        block = await trigger.produceBlock();
+        const [unprovenBlock] = await trigger.produceBlock();
+        block = unprovenBlock;
       } catch (e: any) {
         blockError = e.message;
       }

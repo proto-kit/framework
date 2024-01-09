@@ -5,7 +5,6 @@ import {
   TypedClass,
   ModuleContainerDefinition,
   log,
-  ChildContainerProvider,
 } from "@proto-kit/common";
 import {
   Runtime,
@@ -72,6 +71,8 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     //     "StateTransitionWitnessProvider"
     //   );
     // witnessProviderReference.setWitnessProvider(witnessProvider);
+
+    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(

@@ -85,7 +85,7 @@ export class TransactionObject {
 }
 
 @graphqlModule()
-export class MempoolResolver extends GraphqlModule<object> {
+export class MempoolResolver extends GraphqlModule {
   public constructor(@inject("Mempool") private readonly mempool: Mempool) {
     super();
   }

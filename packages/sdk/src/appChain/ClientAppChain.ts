@@ -61,14 +61,7 @@ export class ClientAppChain<
       runtime,
       sequencer,
 
-      protocol: VanillaProtocol.from(
-        {},
-        {
-          AccountState: {},
-          BlockProver: {},
-          StateTransitionProver: {},
-        }
-      ),
+      protocol: VanillaProtocol.from({}),
 
       modules: {
         GraphqlClient,

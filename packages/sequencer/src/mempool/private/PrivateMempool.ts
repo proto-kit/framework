@@ -11,7 +11,7 @@ import { TransactionValidator } from "../verification/TransactionValidator";
 import { injectable } from "tsyringe";
 
 @sequencerModule()
-export class PrivateMempool extends SequencerModule<object> implements Mempool {
+export class PrivateMempool extends SequencerModule implements Mempool {
   public commitment: Field;
 
   private queue: PendingTransaction[] = [];
