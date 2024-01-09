@@ -73,8 +73,6 @@ class Balances extends RuntimeModule<BalancesConfig> {
   }
 }
 
-log.setLevel(log.levels.DEBUG);
-
 describe("testing app chain", () => {
   it("should enable a complete transaction roundtrip", async () => {
     expect.assertions(2);

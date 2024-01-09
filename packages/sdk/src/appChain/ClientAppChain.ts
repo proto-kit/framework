@@ -1,5 +1,9 @@
-import { ModulesConfig } from "@proto-kit/common";
-import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
+import { log, ModulesConfig } from "@proto-kit/common";
+import {
+  InMemoryStateService,
+  Runtime,
+  RuntimeModulesRecord,
+} from "@proto-kit/module";
 import {
   AccountStateModule,
   BlockProver,
@@ -14,17 +18,15 @@ import {
   BlockProducerModule,
   ManualBlockTrigger,
   LocalTaskQueue,
-  UnprovenProducerModule,
-  InMemoryDatabase,
-  SequencerModulesRecord,
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
-
+import { GraphqlClient } from "../graphql/GraphqlClient";
+import { GraphqlQueryTransportModule } from "../graphql/GraphqlQueryTransportModule";
+import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
+import { AuroSigner } from "../transaction/AuroSigner";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
-import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
-
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
 type TestAppChainProtocolModules = {
@@ -33,59 +35,51 @@ type TestAppChainProtocolModules = {
   AccountState: typeof AccountStateModule;
 };
 
-export class TestingAppChain<
-  RuntimeModules extends RuntimeModulesRecord,
-  SequencerModules extends SequencerModulesRecord
+export class ClientAppChain<
+  RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
   TestAppChainProtocolModules,
-  SequencerModules,
+  any,
   AppChainModulesRecord
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord
-  >(definition: { modules: RuntimeModules }) {
+  >(definition: {
+    modules: RuntimeModules;
+    config: ModulesConfig<RuntimeModules>;
+  }) {
     const runtime = Runtime.from({
       ...definition,
     });
 
     const sequencer = Sequencer.from({
-      modules: {
-        Database: InMemoryDatabase,
-        Mempool: PrivateMempool,
-        LocalTaskWorkerModule,
-        BaseLayer: NoopBaseLayer,
-        BlockProducerModule,
-        UnprovenProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-      },
+      modules: {},
     });
 
-    const appChain = new TestingAppChain({
+    const appChain = new ClientAppChain({
       runtime,
+      sequencer,
 
       protocol: VanillaProtocol.from({}),
 
-      sequencer,
-
       modules: {
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
-        QueryTransportModule: StateServiceQueryModule,
-        NetworkStateTransportModule: BlockStorageNetworkStateModule,
+        GraphqlClient,
+        Signer: AuroSigner,
+        TransactionSender: GraphqlTransactionSender,
+        QueryTransportModule: GraphqlQueryTransportModule,
       },
     });
 
-    appChain.configurePartial({
+    appChain.configure({
+      Runtime: definition.config,
+
       Sequencer: {
-        Database: {},
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
-        UnprovenProducerModule: {},
 
         TaskQueue: {
           simulatedDuration: 0,
@@ -93,31 +87,25 @@ export class TestingAppChain<
       },
 
       Protocol: {
-        AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
+        AccountState: {},
       },
 
       Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
-      NetworkStateTransportModule: {},
+
+      GraphqlClient: {
+        url: "http://127.0.0.1:8080/graphql",
+      },
     });
 
     return appChain;
   }
 
-  public setSigner(signer: PrivateKey) {
-    const inMemorySigner = this.resolveOrFail("Signer", InMemorySigner);
-    inMemorySigner.config.signer = signer;
-  }
-
-  public async produceBlock() {
-    const blockTrigger = this.sequencer.resolveOrFail(
-      "BlockTrigger",
-      ManualBlockTrigger
-    );
-
-    return await blockTrigger.produceUnproven(true);
+  public async start() {
+    log.setLevel("ERROR");
+    await super.start();
   }
 }

@@ -1,11 +1,15 @@
 import { PrivateKey, UInt64 } from "o1js";
-import { RuntimeMethodExecutionContext } from "@proto-kit/protocol";
+import {
+  RuntimeMethodExecutionContext,
+  StateServiceProvider,
+} from "@proto-kit/protocol";
 
 import { TestingAppChain } from "@proto-kit/sdk";
 
 import { Balances } from "./Balances";
 import { MockAsyncMerkleTreeStore, RollupMerkleTree } from "@proto-kit/common";
 import { ManualBlockTrigger } from "@proto-kit/sequencer";
+import { InMemoryStateService } from "@proto-kit/module";
 
 describe("blockProof", () => {
   // eslint-disable-next-line max-statements
@@ -49,7 +53,30 @@ describe("blockProof", () => {
     );
     const transitions = context.current().result.stateTransitions;
 
-    [transitions[1], transitions[3]].forEach((st) => {
+    const stateService = new InMemoryStateService();
+
+    const stateServiceProvider = new StateServiceProvider();
+    stateServiceProvider.setCurrentStateService(stateService);
+
+    appChain.protocol.registerValue({
+      StateServiceProvider: stateServiceProvider,
+    });
+
+    context.setup({} as any);
+
+    // eslint-disable-next-line max-len
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/consistent-type-assertions
+    appChain.protocol.resolve("AccountState").onTransaction({
+      transaction: {
+        sender: alice,
+        nonce: UInt64.from(0),
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    const protocolSTs = context.current().result.stateTransitions;
+
+    [transitions[1], transitions[3], ...protocolSTs].forEach((st) => {
       const provable = st.toProvable();
       tree.setLeaf(provable.path.toBigInt(), provable.to.value);
     });

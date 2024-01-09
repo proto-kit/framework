@@ -93,7 +93,7 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from({ AccountStateModule, BlockHeightHook }),
+    protocol: VanillaProtocol.from({ BlockHeightHook }),
 
     sequencer: Sequencer.from({
       modules: {
@@ -144,7 +144,7 @@ export async function startServer() {
     Protocol: {
       BlockProver: {},
       StateTransitionProver: {},
-      AccountStateModule: {},
+      AccountState: {},
       BlockHeightHook: {},
     },
 

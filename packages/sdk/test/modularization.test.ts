@@ -52,8 +52,6 @@ class TestAppChainModule extends AppChainModule<object> {
   }
 }
 
-log.setLevel(log.levels.DEBUG);
-
 describe("modularization", () => {
   it("should initialize all modules correctly", async () => {
     const appChain = AppChain.from({

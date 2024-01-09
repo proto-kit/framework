@@ -67,9 +67,7 @@ function prepare() {
       },
     }),
 
-    protocol: VanillaProtocol.from({
-      AccountStateModule,
-    }),
+    protocol: VanillaProtocol.from({}),
 
     sequencer: Sequencer.from({
       modules: {
@@ -92,7 +90,7 @@ function prepare() {
     },
 
     Protocol: {
-      AccountStateModule: {},
+      AccountState: {},
       BlockProver: {},
       StateTransitionProver: {},
     },
@@ -118,7 +116,7 @@ function prepare() {
 }
 
 describe("graphql client test", function () {
-  let appChain: ReturnType<typeof prepare> | undefined = undefined;
+  let appChain: ReturnType<typeof prepare>;
   let server: Awaited<ReturnType<typeof startServer>>;
   let trigger: ManualBlockTrigger;
 
@@ -138,16 +136,23 @@ describe("graphql client test", function () {
     await trigger.produceUnproven();
   });
 
+  afterAll(async () => {
+    server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
+  });
+
   it("should retrieve state", async () => {
-    const totalSupply =
-      await appChain!.query.runtime.Balances.totalSupply.get();
+    expect.assertions(1);
+
+    const totalSupply = await appChain.query.runtime.Balances.totalSupply.get();
 
     expect(totalSupply?.toString()).toBe("2000");
-  }, 60000);
+  }, 60_000);
 
   it("should send transaction", async () => {
-    const tx = await appChain!.transaction(pk.toPublicKey(), () => {
-      appChain!.runtime
+    expect.assertions(1);
+
+    const tx = await appChain.transaction(pk.toPublicKey(), () => {
+      appChain.runtime
         .resolve("Balances")
         .addBalance(pk.toPublicKey(), UInt64.from(1000));
     });
@@ -156,24 +161,18 @@ describe("graphql client test", function () {
 
     await trigger.produceUnproven();
 
-    const balance = await appChain!.query.runtime.Balances.balances.get(
+    const balance = await appChain.query.runtime.Balances.balances.get(
       pk.toPublicKey()
     );
 
-    expect(balance).toBeDefined();
-    expect(balance!.toBigInt()).toBe(1000n);
-  }, 60000);
+    expect(balance?.toBigInt()).toBe(1000n);
+  }, 60_000);
 
   it("should fetch networkstate correctly", async () => {
-    expect.assertions(2);
+    expect.assertions(1);
 
-    const state = await appChain!.query.network.unproven;
+    const state = await appChain.query.network.unproven;
 
-    expect(state).toBeDefined();
     expect(state.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
-  });
-
-  afterAll(async () => {
-    server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
   });
 });
