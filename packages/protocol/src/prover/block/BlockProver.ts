@@ -86,6 +86,8 @@ export interface BlockProverState {
   eternalTransactionsHash: Field;
 }
 
+const maxField = () => Field(Field.ORDER - 1n);
+
 export class BlockProverProgrammable extends ZkProgrammable<
   BlockProverPublicInput,
   BlockProverPublicOutput
@@ -136,6 +138,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     // Checks for the stateTransitionProof and appProof matching
     stateTransitionProof.publicInput.stateTransitionsHash.assertEquals(
+      Field(0),
+      errors.stateProofNotStartingAtZero()
+    );
+    stateTransitionProof.publicInput.protocolTransitionsHash.assertEquals(
       Field(0),
       errors.stateProofNotStartingAtZero()
     );
@@ -249,7 +255,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
   private executeBlockHooks(
     state: BlockProverState,
-    inputNetworkState: NetworkState
+    inputNetworkState: NetworkState,
+    type: "afterBlock" | "beforeBlock"
   ): {
     networkState: NetworkState;
     stateTransitions: StateTransition<unknown>[];
@@ -268,10 +275,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
           networkState,
         });
 
-        return blockHook.afterBlock({
-          state,
-          networkState,
-        });
+        if (type === "beforeBlock") {
+          return blockHook.beforeBlock(networkState, state);
+        } else if (type === "afterBlock") {
+          return blockHook.afterBlock(networkState, state);
+        } else {
+          throw new Error("Unreachable");
+        }
       },
       inputNetworkState
     );
@@ -328,11 +338,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     executionData: BlockProverExecutionData
   ): BlockProverPublicOutput {
     const state: BlockProverState = {
-      transactionsHash: publicInput.transactionsHash,
-      stateRoot: publicInput.stateRoot,
-      networkStateHash: publicInput.networkStateHash,
-      blockHashRoot: publicInput.blockHashRoot,
-      eternalTransactionsHash: publicInput.eternalTransactionsHash,
+      ...publicInput,
     };
 
     const bundleInclusionState = this.addTransactionToBundle(
@@ -348,140 +354,158 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
 
     return new BlockProverPublicOutput({
-      stateRoot: stateTo.stateRoot,
-      transactionsHash: stateTo.transactionsHash,
-      networkStateHash: stateTo.networkStateHash,
-      blockHashRoot: stateTo.blockHashRoot,
-      eternalTransactionsHash: stateTo.eternalTransactionsHash,
+      ...stateTo,
+      blockNumber: maxField(),
+      closed: Bool(false),
     });
   }
 
+  // public openBlock() {}
+  //
+  // public closeBlock() {}
+
+  private assertSTProofInput(
+    stateTransitionProof: StateTransitionProof,
+    stateRoot: Field
+  ) {
+    stateTransitionProof.publicInput.stateTransitionsHash.assertEquals(
+      Field(0),
+      errors.stateProofNotStartingAtZero()
+    );
+    stateTransitionProof.publicInput.protocolTransitionsHash.assertEquals(
+      Field(0),
+      errors.stateProofNotStartingAtZero()
+    );
+
+    // Assert from state roots
+    stateRoot.assertEquals(
+      stateTransitionProof.publicInput.stateRoot,
+      errors.propertyNotMatching("from state root")
+    );
+  }
+
   @provableMethod()
-  public newBlock(
+  public proveBlock(
     publicInput: BlockProverPublicInput,
     networkState: NetworkState,
-    lastBlockWitness: BlockHashMerkleTreeWitness,
-    nextBlockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof
+    blockWitness: BlockHashMerkleTreeWitness,
+    stateTransitionProof: StateTransitionProof,
+    transactionProof: BlockProverProof
   ): {
     output: BlockProverPublicOutput;
     networkState: NetworkState;
   } {
-    const lastBlockHash = publicInput.transactionsHash;
+    const state: BlockProverState = {
+      ...publicInput,
+    };
 
-    networkState
-      .hash()
-      .assertEquals(
-        publicInput.networkStateHash,
-        "Network state not matching with publicInput"
-      );
+    // 1. Make assertions about the inputs
+    publicInput.transactionsHash.assertEquals(Field(0));
+    publicInput.networkStateHash.assertEquals(networkState.hash());
+
+    transactionProof.publicInput.transactionsHash.assertEquals(Field(0));
+    transactionProof.publicInput.blockHashRoot.assertEquals(Field(0));
+    transactionProof.publicOutput.blockHashRoot.assertEquals(Field(0));
+    transactionProof.publicInput.networkStateHash.assertEquals(
+      transactionProof.publicOutput.networkStateHash
+    );
+    transactionProof.publicInput.eternalTransactionsHash.assertEquals(
+      state.eternalTransactionsHash
+    );
+
+    // Verify ST Proof only if STs have been emitted,
+    // otherwise we can input a dummy proof
+    const stsEmitted = stateTransitionProof.publicOutput.stateTransitionsHash
+      .equals(0)
+      .and(stateTransitionProof.publicOutput.protocolTransitionsHash.equals(0))
+      .not();
+    stateTransitionProof.verifyIf(stsEmitted);
+
+    this.assertSTProofInput(stateTransitionProof, state.stateRoot);
+
+    // 2. Execute beforeBlock hooks
+    const beforeBlockResult = this.executeBlockHooks(
+      state,
+      networkState,
+      "beforeBlock"
+    );
+
+    const beforeBlockHashList = new DefaultProvableHashList(
+      ProvableStateTransition
+    );
+    beforeBlockResult.stateTransitions.forEach((st) => {
+      beforeBlockHashList.push(st.toProvable());
+    });
+
+    // We are reusing protocolSTs here as beforeBlock STs
+    // TODO Not possible atm bcs we can't have a seperation between
+    // protocol/runtime state roots, which we would for both before and after
+    // to be able to emit STs
+
+    // stateTransitionProof.publicInput.protocolTransitionsHash.assertEquals(
+    //   beforeBlockHashList.commitment
+    // );
+    // state.stateRoot = stateTransitionProof.publicInput.protocolStateRoot;
+
+    // For now
+    beforeBlockHashList.commitment.assertEquals(Field(0));
+
+    // 4. Apply TX-type BlockProof
+    transactionProof.publicInput.networkStateHash.assertEquals(
+      beforeBlockResult.networkState.hash()
+    );
+    transactionProof.publicInput.stateRoot.assertEquals(state.stateRoot);
+
+    state.stateRoot = transactionProof.publicOutput.stateRoot;
+    state.transactionsHash = transactionProof.publicOutput.transactionsHash;
+    state.eternalTransactionsHash =
+      transactionProof.publicOutput.eternalTransactionsHash;
+
+    // 5. Execute afterBlock hooks
+    const afterBlockResult = this.executeBlockHooks(
+      state,
+      beforeBlockResult.networkState,
+      "afterBlock"
+    );
+
+    const afterBlockHashList = new DefaultProvableHashList(
+      ProvableStateTransition
+    );
+    afterBlockResult.stateTransitions.forEach((st) => {
+      afterBlockHashList.push(st.toProvable());
+    });
+
+    state.networkStateHash = afterBlockResult.networkState.hash();
+
+    // We are reusing runtime STs here as afterBlock STs
+    stateTransitionProof.publicInput.stateTransitionsHash.assertEquals(
+      afterBlockHashList.commitment
+    );
+    state.stateRoot = stateTransitionProof.publicInput.stateRoot;
+
+    // 6. Close block
 
     // Calculate the new block index
-    const nextIndex = nextBlockWitness.calculateIndex();
+    const blockIndex = blockWitness.calculateIndex();
 
-    // This checks a few things:
-    // 1. that the previous block hasn't been closed yet
-    // 2. through (1), that we operate on the latest block
-    //    (since all others are already closed)
-    const witnessValid = lastBlockWitness
-      .calculateRoot(
-        new BlockHashTreeEntry({
-          transactionsHash: Field(0),
-          closed: Bool(false),
-        }).hash()
-      )
-      .equals(publicInput.blockHashRoot);
+    blockWitness
+      .calculateRoot(Field(0))
+      .assertEquals(publicInput.blockHashRoot);
 
-    // Either the witness was valid, or it is the genesis block,
-    // in which case we don't check it (since there is no parent block)
-    witnessValid
-      .or(nextIndex.equals(0))
-      .assertTrue("lastBlockWitness wasn't valid (nor is it the genesis block");
-
-    // This checks that the lastWitness.index is exactly: nextWitness.index - 1
-    const lastIndex = Provable.if(
-      nextIndex.equals(0),
-      Field(0),
-      nextIndex.sub(1)
-    );
-    lastBlockWitness
-      .calculateIndex()
-      .assertEquals(lastIndex, "Index of last witness not matching");
-
-    // Close the current block
-    const rootHashAfterClosing = lastBlockWitness.calculateRoot(
+    state.blockHashRoot = blockWitness.calculateRoot(
       new BlockHashTreeEntry({
-        transactionsHash: lastBlockHash,
+        transactionsHash: state.transactionsHash,
         closed: Bool(true),
       }).hash()
     );
 
-    // Check if the nextBlockWitness is valid under the new root
-    // (i.e. if it has the correct altered sibling for the last block in it)
-    nextBlockWitness
-      .checkMembership(rootHashAfterClosing, nextIndex, Field(0))
-      .assertTrue("Next block witness not valid with new root");
-
-    // Open new block
-    const resultingRootHash = nextBlockWitness.calculateRoot(
-      new BlockHashTreeEntry({
-        transactionsHash: Field(0),
-        closed: Bool(false),
-      }).hash()
-    );
-
-    // Execute beforeBlock hooks
-    const state: BlockProverState = {
-      ...publicInput,
-    };
-    const beforeBlockResult = this.executeBlockHooks(state, networkState);
-
-    // Put all generated Statetransitions into hashlist
-    const transitionsHashList = new DefaultProvableHashList(
-      ProvableStateTransition
-    );
-    beforeBlockResult.stateTransitions
-      .map((st) => st.toProvable())
-      .forEach((st) => {
-        transitionsHashList.push(st);
-      });
-
-    // Verify ST Proof only if STs have been emitted,
-    // otherwise we can input a dummy proof
-    const stsEmitted = transitionsHashList.toField().equals(0).not();
-    stateTransitionProof.verifyIf(stsEmitted);
-
-    // Assert correct inputs of ST Proof
-    stateTransitionProof.publicInput.stateRoot.assertEquals(
-      state.stateRoot,
-      "ST Proof not matching input state root"
-    );
-    stateTransitionProof.publicInput.stateTransitionsHash.assertEquals(
-      Field(0),
-      "ST Proof input ST hash must be 0"
-    );
-
-    const newState: BlockProverState = {
-      // If the STProof has been verified, take its result,
-      // otherwise carry over as-is
-      stateRoot: Provable.if(
-        stsEmitted,
-        stateTransitionProof.publicOutput.stateRoot,
-        state.stateRoot
-      ),
-
-      networkStateHash: beforeBlockResult.networkState.hash(),
-      transactionsHash: Field(0),
-      eternalTransactionsHash: state.eternalTransactionsHash,
-      blockHashRoot: resultingRootHash,
-    };
-
-    const output = new BlockProverPublicOutput({
-      ...newState,
-    });
     return {
-      output,
-      networkState: beforeBlockResult.networkState,
+      output: new BlockProverPublicOutput({
+        ...state,
+        blockNumber: blockIndex,
+        closed: Bool(true),
+      }),
+      networkState: afterBlockResult.networkState,
     };
   }
 
@@ -544,12 +568,55 @@ export class BlockProverProgrammable extends ZkProgrammable<
       errors.transactionsHashNotMatching("proof1.to -> proof2.from")
     );
 
+    // Assert closed indicator matches
+    // (i.e. we can only merge TX-Type and Block-Type with each other)
+    proof1.publicOutput.closed.assertEquals(
+      proof2.publicOutput.closed,
+      "Closed indicators not matching"
+    );
+
+    // Either
+    // blockNumbers are unset and proofs are unclosed or
+    // both blocks are closed, then they have to increment or
+    // one block is closed, then height has to be the same
+
+    // Imperative algo would look like
+    // if(proof1.height == MAX && proof2.height == MAX){
+    //   assert !proof1.closed && !proof2.closed;
+    // }else if(proof1.closed && proof2.closed){
+    //   assert proof1.height + 1 == proof2.height
+    // // next one is omitted for now
+    // }else if(proof1.closed || proof2.closed{
+    //   assert proof1.height == proof2.height
+    // }
+
+    const proof1Height = proof1.publicOutput.blockNumber;
+    const proof1Closed = proof1.publicOutput.closed;
+    const proof2Height = proof2.publicOutput.blockNumber;
+    const proof2Closed = proof2.publicOutput.closed;
+
+    const isValidTransactionMerge = proof1Height
+      .equals(maxField())
+      .and(proof2Height.equals(proof1Height))
+      .and(proof1Closed.or(proof2Closed).not());
+
+    const isValidClosedMerge = proof1Closed
+      .and(proof2Closed)
+      .and(proof1Height.add(1).equals(proof2Height));
+
+    isValidTransactionMerge
+      .or(isValidClosedMerge)
+      .assertTrue("Invalid BlockProof merge");
+
     return new BlockProverPublicOutput({
       stateRoot: proof2.publicOutput.stateRoot,
       transactionsHash: proof2.publicOutput.transactionsHash,
       networkStateHash: proof2.publicOutput.networkStateHash,
       blockHashRoot: proof2.publicOutput.blockHashRoot,
       eternalTransactionsHash: proof2.publicOutput.eternalTransactionsHash,
+      // Provable.if(isValidClosedMerge, Bool(true), Bool(false));
+      closed: isValidClosedMerge,
+      blockNumber: proof2Height,
     });
   }
 
@@ -675,19 +742,19 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     );
   }
 
-  public newBlock(
+  public proveBlock(
     publicInput: BlockProverPublicInput,
     networkState: NetworkState,
-    lastBlockWitness: BlockHashMerkleTreeWitness,
-    nextBlockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof
+    blockWitness: BlockHashMerkleTreeWitness,
+    stateTransitionProof: StateTransitionProof,
+    transactionProof: BlockProverProof
   ): BlockProverPublicOutput {
-    return this.zkProgrammable.newBlock(
+    return this.zkProgrammable.proveBlock(
       publicInput,
       networkState,
-      lastBlockWitness,
-      nextBlockWitness,
-      stateTransitionProof
+      blockWitness,
+      stateTransitionProof,
+      transactionProof
     ).output;
   }
 

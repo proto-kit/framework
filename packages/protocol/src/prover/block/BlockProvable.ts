@@ -14,6 +14,7 @@ export class BlockProverPublicInput extends Struct({
   networkStateHash: Field,
   blockHashRoot: Field,
   eternalTransactionsHash: Field,
+  // closed: Bool,
 }) {}
 
 export class BlockProverPublicOutput extends Struct({
@@ -22,6 +23,8 @@ export class BlockProverPublicOutput extends Struct({
   networkStateHash: Field,
   blockHashRoot: Field,
   eternalTransactionsHash: Field,
+  closed: Bool,
+  blockNumber: Field,
 }) {}
 
 export type BlockProverProof = Proof<
@@ -43,12 +46,12 @@ export interface BlockProvable
     executionData: BlockProverExecutionData
   ) => BlockProverPublicOutput;
 
-  newBlock: (
+  proveBlock: (
     publicInput: BlockProverPublicInput,
     networkState: NetworkState,
-    lastBlockWitness: BlockHashMerkleTreeWitness,
-    nextBlockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof
+    blockWitness: BlockHashMerkleTreeWitness,
+    stateTransitionProof: StateTransitionProof,
+    transactionProof: BlockProverProof
   ) => BlockProverPublicOutput;
 
   merge: (
