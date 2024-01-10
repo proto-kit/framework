@@ -25,6 +25,7 @@ import {
   UnprovenBlock,
   UnprovenBlockMetadata,
 } from "./TransactionExecutionService";
+import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
@@ -51,6 +52,8 @@ export class UnprovenProducerModule
     private readonly unprovenMerkleStore: CachedMerkleTreeStore,
     @inject("UnprovenBlockQueue")
     private readonly unprovenBlockQueue: UnprovenBlockQueue,
+    @inject("BlockTreeStore")
+    private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly executionService: TransactionExecutionService
   ) {
     super();
@@ -58,8 +61,11 @@ export class UnprovenProducerModule
 
   private createEmptyMetadata(): UnprovenBlockMetadata {
     return {
-      resultingNetworkState: NetworkState.empty(),
-      resultingStateRoot: RollupMerkleTree.EMPTY_ROOT,
+      networkState: NetworkState.empty(),
+      stateRoot: RollupMerkleTree.EMPTY_ROOT,
+      blockHashRoot: RollupMerkleTree.EMPTY_ROOT,
+      height: 0n,
+      eternalTransactionsHash: 0n,
     };
   }
 
@@ -83,6 +89,7 @@ export class UnprovenProducerModule
           await this.executionService.generateMetadataForNextBlock(
             block,
             this.unprovenMerkleStore,
+            this.blockTreeStore,
             true
           );
         await this.unprovenBlockQueue.pushMetadata(metadata);

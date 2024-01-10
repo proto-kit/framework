@@ -189,4 +189,9 @@ export class MockStorageDependencyFactory
   public unprovenMerkleStore(): CachedMerkleTreeStore {
     return new CachedMerkleTreeStore(this.merkleStore);
   }
+
+  @dependency()
+  public blockTreeStore(): AsyncMerkleTreeStore {
+    return new MockAsyncMerkleTreeStore();
+  }
 }

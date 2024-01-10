@@ -87,7 +87,7 @@ export interface AbstractMerkleTree {
 }
 
 export interface AbstractMerkleTreeClass {
-  new (...args: any[]): AbstractMerkleTree;
+  new (store: MerkleTreeStore): AbstractMerkleTree;
 
   WITNESS: TypedClass<AbstractMerkleWitness> & typeof StructTemplate;
 
