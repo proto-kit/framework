@@ -1,6 +1,6 @@
 /* eslint-disable */
 import "reflect-metadata";
-import { Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { Field, PrivateKey, Provable, PublicKey, UInt64 } from "o1js";
 import {
   Runtime,
   runtimeMethod,
@@ -48,9 +48,11 @@ import {
 
 import React, { useEffect, useReducer, useMemo } from "react";
 // @ts-ignore
-import { render, Text, Box } from "ink";
+import { render, Text, Box, Static } from "ink";
 // @ts-ignore
 import { Spinner } from "@inkjs/ui";
+
+log.setLevel("ERROR");
 
 export async function startServer({
   runtime,
@@ -149,8 +151,10 @@ let appChain: AppChain<any, any, any, any>;
 export interface UnprovenBlockExtras {
   block?: UnprovenBlock;
   blockError?: string;
+  logs: string[];
   height: number;
   duration: number;
+  time: string;
 }
 
 export interface CliState {
@@ -186,7 +190,11 @@ export function reducer(state: CliState, action: Action) {
       return {
         ...state,
         isProducingBlock: false,
-        blocks: state.blocks.concat([action.block]),
+        blocks: state.blocks
+          .filter(
+            (block) => block.logs.length || block.block?.transactions.length
+          )
+          .concat([action.block]),
         countdown,
       };
     }
@@ -215,16 +223,22 @@ export const initialState: CliState = {
 
 export function Welcome() {
   return (
-    <Box flexDirection={"column"} borderStyle="single" padding="1" width="50%">
-      <Box marginBottom={1}>
+    <Box>
+      <Text> </Text>
+      <Box
+        flexDirection={"column"}
+        marginTop={1}
+        borderStyle="single"
+        width="60%"
+      >
         <Text bold>Protokit sandbox network</Text>
+        <Text>
+          <Text bold>Sequencer API:</Text> http://localhost:8080/graphql
+        </Text>
+        <Text>
+          <Text bold>GraphiQL UI:</Text> http://localhost:8080/graphql
+        </Text>
       </Box>
-      <Text>
-        <Text bold>Sequencer API:</Text> http://localhost:8080/graphql
-      </Text>
-      <Text>
-        <Text bold>GraphiQL UI:</Text> http://localhost:8080/graphql
-      </Text>
     </Box>
   );
 }
@@ -232,23 +246,52 @@ export function Welcome() {
 export function Blocks({ blocks }: { blocks: CliState["blocks"] }) {
   return (
     <Box flexDirection={"column"} marginTop={1}>
-      {blocks.map((block, index) => (
+      {blocks.map((block: UnprovenBlockExtras, index: number) => (
         <Box
           flexDirection={"column"}
-          key={index}
+          key={block.time}
           width={"100%"}
           marginBottom={1}
         >
           <Text>
-            <Text>{block.blockError ? "❌" : "✅"}</Text>
-            <Text bold> Block #{block.height}</Text> ({block.duration}ms)
+            <Text color="gray" dimColor>
+              [{block.time}]
+            </Text>{" "}
+            <Text>
+              {block.blockError
+                ? "❌"
+                : block.block?.transactions.length
+                ? "✅"
+                : "⚠️"}
+              {"  "}
+            </Text>
+            <Text bold>Block #{block.height}</Text> ({block.duration}ms)
           </Text>
+
           {block.blockError ? (
             <Box>
               <Text>Error: {block.blockError}</Text>
             </Box>
           ) : (
             <></>
+          )}
+
+          {block.logs ? (
+            <Box flexDirection="column">
+              {block.logs.map((log, index) => (
+                <Text key={index}>{log.trim()}</Text>
+              ))}
+            </Box>
+          ) : (
+            <Box></Box>
+          )}
+
+          {!block.block?.transactions.length ? (
+            <Box>
+              <Text>Skipping block production, no transactions found.</Text>
+            </Box>
+          ) : (
+            <Box></Box>
           )}
         </Box>
       ))}
@@ -290,17 +333,34 @@ export function Server({ configFile }: { configFile: string }) {
         "BlockTrigger",
         ManualBlockTrigger
       );
+
       dispatch({ type: "PRODUCING_BLOCK" });
       const timeStart = Date.now();
       let blockError;
       let block;
+      let logs: any[] = [];
+
+      const originalWriteOut = process.stdout.write;
+      process.stdout.write = (...args: any[]) => {
+        logs.push(args[0].toString());
+        return true;
+      };
+
+      const originalWriteErr = process.stderr.write;
+      process.stderr.write = (...args: any[]) => {
+        logs.push(args[0].toString());
+        return true;
+      };
 
       try {
-        const [unprovenBlock] = await trigger.produceBlock();
+        const unprovenBlock = await trigger.produceUnproven();
         block = unprovenBlock;
       } catch (e: any) {
         blockError = e.message;
       }
+
+      process.stdout.write = originalWriteOut;
+      process.stderr.write = originalWriteErr;
 
       const timeEnd = Date.now() - timeStart;
       dispatch({
@@ -308,17 +368,21 @@ export function Server({ configFile }: { configFile: string }) {
         block: {
           block,
           blockError,
-          height: blockHeight + 1,
+          logs,
+          height: Number(block?.networkState.block.height.toString() ?? "0"),
           duration: timeEnd,
+          time: new Date().toLocaleTimeString(),
         },
       });
     })();
   }, [state.countdown, state.isProducingBlock, blockHeight]);
 
   return (
-    <>
-      <Welcome />
-      <Blocks blocks={state.blocks} />
+    <Box flexDirection="column">
+      <Welcome></Welcome>
+      <Box>
+        <Blocks blocks={state.blocks} />
+      </Box>
       <Box>
         {!state.isStarted ? (
           <Spinner label="Starting chain..." />
@@ -330,10 +394,12 @@ export function Server({ configFile }: { configFile: string }) {
           />
         )}
       </Box>
-    </>
+    </Box>
   );
 }
 
 export function start(argv: { configFile: string }) {
-  render(<Server configFile={`${process.cwd()}/${argv.configFile}`} />);
+  render(<Server configFile={`${process.cwd()}/${argv.configFile}`} />, {
+    patchConsole: false,
+  });
 }

@@ -90,11 +90,12 @@ export class UnprovenProducerModule
         return block;
       } catch (error: unknown) {
         if (error instanceof Error) {
-          this.productionInProgress = false;
           throw error;
         } else {
           log.error(error);
         }
+      } finally {
+        this.productionInProgress = false;
       }
     }
     return undefined;

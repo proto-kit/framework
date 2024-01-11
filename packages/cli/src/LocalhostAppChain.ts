@@ -10,6 +10,7 @@ import {
 import { ModulesConfig } from "@proto-kit/common";
 import {
   BlockProducerModule,
+  InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   ManualBlockTrigger,
@@ -17,6 +18,7 @@ import {
   PrivateMempool,
   Sequencer,
   SequencerModulesRecord,
+  UnprovenProducerModule,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -25,6 +27,7 @@ import {
   MempoolResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
+  UnprovenBlockResolver,
 } from "@proto-kit/api";
 import {
   AppChain,
@@ -32,6 +35,7 @@ import {
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
+  BlockStorageNetworkStateModule,
 } from "@proto-kit/sdk";
 
 type LocalhostAppChainProtocolModules = {
@@ -50,22 +54,21 @@ export class LocalhostAppChain<
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord
-  >(definition: {
-    modules: RuntimeModules;
-    config: ModulesConfig<RuntimeModules>;
-  }) {
-    const appChain = AppChain.from({
+  >(definition: { modules: RuntimeModules }) {
+    const appChain = LocalhostAppChain.from({
       runtime: Runtime.from(definition),
 
       protocol: VanillaProtocol.from({}),
 
       sequencer: Sequencer.from({
         modules: {
+          Database: InMemoryDatabase,
           Mempool: PrivateMempool,
           GraphqlServer,
           LocalTaskWorkerModule,
           BaseLayer: NoopBaseLayer,
           BlockProducerModule,
+          UnprovenProducerModule,
           BlockTrigger: ManualBlockTrigger,
           TaskQueue: LocalTaskQueue,
 
@@ -75,28 +78,20 @@ export class LocalhostAppChain<
               QueryGraphqlModule,
               BlockStorageResolver,
               NodeStatusResolver,
-            },
-
-            config: {
-              MempoolResolver: {},
-              QueryGraphqlModule: {},
-              BlockStorageResolver: {},
-              NodeStatusResolver: {},
+              UnprovenBlockResolver,
             },
           }),
         },
       }),
 
       modules: {
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
+        NetworkStateTransportModule: BlockStorageNetworkStateModule,
       },
     });
 
-    // @ts-ignore
-    appChain.configurePartial({
-      Runtime: definition.config as any,
+    appChain.configure({
+      ...appChain.config,
 
       Protocol: {
         BlockProver: {},
@@ -105,6 +100,9 @@ export class LocalhostAppChain<
       },
 
       Sequencer: {
+        Database: {},
+        UnprovenProducerModule: {},
+
         GraphqlServer: {
           port: 8080,
           host: "0.0.0.0",
@@ -116,6 +114,7 @@ export class LocalhostAppChain<
           MempoolResolver: {},
           BlockStorageResolver: {},
           NodeStatusResolver: {},
+          UnprovenBlockResolver: {},
         },
 
         Mempool: {},
@@ -123,16 +122,11 @@ export class LocalhostAppChain<
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
-
         BlockTrigger: {},
       },
 
-      TransactionSender: {},
       QueryTransportModule: {},
-
-      Signer: {
-        signer: PrivateKey.random(),
-      },
+      NetworkStateTransportModule: {},
     });
 
     return appChain;

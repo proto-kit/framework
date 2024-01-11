@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unused-modules */
 import { ModulesConfig, Presets, TypedClass } from "@proto-kit/common";
 import {
   Runtime,
@@ -37,11 +38,16 @@ export class Balances extends RuntimeModule<object> {
   }
 }
 
-export default LocalhostAppChain.fromRuntime({
+const appChain = LocalhostAppChain.fromRuntime({
   modules: {
     Balances,
   },
-  config: {
+});
+
+appChain.configurePartial({
+  Runtime: {
     Balances: {},
   },
 });
+
+export default appChain;
