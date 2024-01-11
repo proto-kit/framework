@@ -258,9 +258,8 @@ export class ModuleContainer<
 
   public get events(): EventEmitterProxy<Modules> {
     if (this.eventEmitterProxy === undefined) {
-      this.eventEmitterProxy = new EventEmitterProxy(this);
+      this.eventEmitterProxy = new EventEmitterProxy<Modules>(this);
     }
-
     return this.eventEmitterProxy;
   }
 
