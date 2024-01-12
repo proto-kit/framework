@@ -94,14 +94,14 @@ export class CachedMerkleTreeStore
     }
 
     this.parent.openTransaction();
-    const { HEIGHT } = RollupMerkleTree;
     const nodes = this.getWrittenNodes();
 
-    const promises = Array.from({ length: HEIGHT }).flatMap((ignored, level) =>
-      Object.entries(nodes[level]).map(async (entry) => {
+    const promises = Object.keys(nodes).flatMap((levelString) => {
+      const level = Number(levelString);
+      return Object.entries(nodes[level]).map(async (entry) => {
         await this.parent.setNodeAsync(BigInt(entry[0]), level, entry[1]);
-      })
-    );
+      });
+    });
 
     await Promise.all(promises);
 
