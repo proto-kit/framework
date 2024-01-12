@@ -434,13 +434,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
     stateTransitionProof.verifyIf(stsEmitted);
 
     // Verify Transaction proof if it has at least 1 tx
-    transactionProof.verifyIf(
-      // TODO
-      // Should be enough right?
-      transactionProof.publicOutput.transactionsHash.equals(Field(0))
-      // alternative:
-      // transactionProof.publicInput.equals(transactionProof.publicOutput)
+    // We have to compare the whole input and output because we can make no
+    // assumptions about the values, since it can be an arbitrary dummy-proof
+    const txProofOutput = transactionProof.publicOutput;
+    const verifyTransactionProof = txProofOutput.equals(
+      transactionProof.publicInput,
+      txProofOutput.closed,
+      txProofOutput.blockNumber
     );
+    transactionProof.verifyIf(verifyTransactionProof);
 
     // 2. Execute beforeBlock hooks
     const beforeBlockResult = this.executeBlockHooks(
@@ -457,16 +459,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
     });
 
     // We are reusing protocolSTs here as beforeBlock STs
-    // TODO Not possible atm bcs we can't have a seperation between
-    // protocol/runtime state roots, which we would for both before and after
-    // to be able to emit STs
+    // TODO Not possible atm bcs we can't have a seperation between protocol/runtime state roots,
+    // which we would for both before and after to be able to emit STs
 
     // stateTransitionProof.publicInput.protocolTransitionsHash.assertEquals(
     //   beforeBlockHashList.commitment
     // );
     // state.stateRoot = stateTransitionProof.publicInput.protocolStateRoot;
 
-    // For now
+    // TODO Only for now
     beforeBlockHashList.commitment.assertEquals(
       Field(0),
       "beforeBlock() cannot emit state transitions yet"

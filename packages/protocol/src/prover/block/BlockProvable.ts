@@ -25,7 +25,23 @@ export class BlockProverPublicOutput extends Struct({
   eternalTransactionsHash: Field,
   closed: Bool,
   blockNumber: Field,
-}) {}
+}) {
+  public equals(
+    input: BlockProverPublicInput,
+    closed: Bool,
+    blockNumber: Field
+  ): Bool {
+    const output2 = BlockProverPublicOutput.toFields({
+      ...input,
+      closed,
+      blockNumber,
+    });
+    const output1 = BlockProverPublicOutput.toFields(this);
+    return output1
+      .map((value1, index) => value1.equals(output2[index]))
+      .reduce((a, b) => a.and(b));
+  }
+}
 
 export type BlockProverProof = Proof<
   BlockProverPublicInput,

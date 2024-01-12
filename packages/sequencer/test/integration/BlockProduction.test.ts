@@ -338,9 +338,62 @@ describe("block production", () => {
     );
   }, 160_000);
 
-  it.skip("Should produce a block with a mix of failing and succeeding transactions", () => {
-    //TODO
-  });
+  it("Should produce a block with a mix of failing and succeeding transactions", async () => {
+    expect.assertions(6);
+
+    const pk1 = PrivateKey.random();
+    const pk2 = PrivateKey.random();
+
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "setBalanceIf"],
+        privateKey: pk1,
+        args: [pk1.toPublicKey(), UInt64.from(100), Bool(false)],
+        nonce: 0,
+      })
+    );
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "setBalanceIf"],
+        privateKey: pk2,
+        args: [pk2.toPublicKey(), UInt64.from(100), Bool(true)],
+        nonce: 0,
+      })
+    );
+
+    const block = await blockTrigger.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.bundles).toHaveLength(1);
+    expect(block!.bundles[0]).toHaveLength(2);
+
+    const stateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "AsyncStateService"
+      );
+    const balanceModule = runtime.resolve("Balance");
+    const balancesPath1 = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      pk1.toPublicKey()
+    );
+    const newState1 = await stateService.getAsync(balancesPath1);
+
+    expect(newState1).toBeUndefined();
+
+    const balancesPath2 = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      pk2.toPublicKey()
+    );
+    const newState2 = await stateService.getAsync(balancesPath2);
+
+    expect(newState2).toBeDefined();
+    expect(UInt64.fromFields(newState2!)).toStrictEqual(
+      UInt64.from(100)
+    );
+  }, 120_000);
 
   it.skip.each([
     [
