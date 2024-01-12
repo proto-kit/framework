@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { NetworkState } from "@proto-kit/protocol";
+import { BlockHashMerkleTree, NetworkState } from "@proto-kit/protocol";
 import {
   EventEmitter,
   EventEmittingComponent,
@@ -24,8 +24,10 @@ import {
   TransactionExecutionService,
   UnprovenBlock,
   UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
 } from "./TransactionExecutionService";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
+import { Field } from "o1js";
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
@@ -35,9 +37,13 @@ interface UnprovenProducerEvents extends EventsRecord {
   unprovenBlockProduced: [UnprovenBlock];
 }
 
+export interface BlockConfig {
+  allowEmptyBlock?: boolean;
+}
+
 @sequencerModule()
 export class UnprovenProducerModule
-  extends SequencerModule<unknown>
+  extends SequencerModule<BlockConfig>
   implements EventEmittingComponent<UnprovenProducerEvents>
 {
   private productionInProgress = false;
@@ -59,14 +65,8 @@ export class UnprovenProducerModule
     super();
   }
 
-  private createEmptyMetadata(): UnprovenBlockMetadata {
-    return {
-      networkState: NetworkState.empty(),
-      stateRoot: RollupMerkleTree.EMPTY_ROOT,
-      blockHashRoot: RollupMerkleTree.EMPTY_ROOT,
-      height: 0n,
-      eternalTransactionsHash: 0n,
-    };
+  private allowEmptyBlock() {
+    return this.config.allowEmptyBlock ?? true;
   }
 
   public async tryProduceUnprovenBlock(): Promise<UnprovenBlock | undefined> {
@@ -75,7 +75,11 @@ export class UnprovenProducerModule
         const block = await this.produceUnprovenBlock();
 
         if (block === undefined) {
-          log.info("No transactions in mempool, skipping production");
+          if (!this.allowEmptyBlock()) {
+            log.info("No transactions in mempool, skipping production");
+          } else {
+            log.error("Something wrong happened, skipping block");
+          }
           return undefined;
         }
 
@@ -109,18 +113,18 @@ export class UnprovenProducerModule
 
   private async collectProductionData(): Promise<{
     txs: PendingTransaction[];
-    metadata: UnprovenBlockMetadata;
+    metadata: UnprovenBlockWithMetadata;
   }> {
     const { txs } = this.mempool.getTxs();
 
-    const latestMetadata = await this.unprovenBlockQueue.getNewestMetadata();
+    const parentBlock = await this.unprovenBlockQueue.getLatestBlock();
 
-    if (latestMetadata === undefined) {
+    if (parentBlock === undefined) {
       log.debug(
         "No unproven block metadata given, assuming first block, generating genesis metadata"
       );
     }
-    const metadata = latestMetadata ?? this.createEmptyMetadata();
+    const metadata = parentBlock ?? UnprovenBlockWithMetadata.createEmpty();
 
     return {
       txs,
@@ -134,7 +138,7 @@ export class UnprovenProducerModule
     const { txs, metadata } = await this.collectProductionData();
 
     // Skip production if no transactions are available for now
-    if (txs.length === 0) {
+    if (txs.length === 0 && !this.allowEmptyBlock()) {
       return undefined;
     }
 

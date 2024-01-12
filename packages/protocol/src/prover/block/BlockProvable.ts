@@ -5,8 +5,8 @@ import { StateTransitionProof } from "../statetransition/StateTransitionProvable
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import { ProtocolTransaction } from "../../model/transaction/ProtocolTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
-import { BlockTransactionPosition } from "./BlockTransactionPosition";
-import { BlockHashMerkleTreeWitness } from "./acummulators/BlockHashMerkleTree";
+
+import { BlockHashMerkleTreeWitness } from "./accummulators/BlockHashMerkleTree";
 
 export class BlockProverPublicInput extends Struct({
   transactionsHash: Field,

@@ -3,6 +3,7 @@ import { Task } from "../../../worker/flow/Task";
 import {
   BlockProvable,
   BlockProverExecutionData,
+  BlockProverProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
   NetworkState,
@@ -18,20 +19,28 @@ import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 import { CompileRegistry } from "./CompileRegistry";
-import { DecodedStateSerializer } from "./BlockProvingTask";
+import {
+  BlockProverParameters,
+  DecodedStateSerializer,
+} from "./BlockProvingTask";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
+import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
 
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
-export type NewBlockProvingParameters = {
+export type NewBlockProverParameters = {
   publicInput: BlockProverPublicInput;
   networkState: NetworkState;
-  lastBlockWitness: BlockHashMerkleTreeWitness;
-  nextBlockWitness: BlockHashMerkleTreeWitness;
-  stateTransitionProof: StateTransitionProof;
+  blockWitness: BlockHashMerkleTreeWitness;
   startingState: DecodedState;
 };
+
+export type NewBlockProvingParameters = PairingDerivedInput<
+  StateTransitionProof,
+  BlockProof,
+  NewBlockProverParameters
+>;
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -71,28 +80,23 @@ export class NewBlockTask
   }
 
   public async compute(input: NewBlockProvingParameters): Promise<BlockProof> {
-    const {
-      publicInput,
-      lastBlockWitness,
-      nextBlockWitness,
-      networkState,
-      stateTransitionProof,
-      startingState,
-    } = input;
+    const { input1, input2, params } = input;
+    const { networkState, blockWitness, startingState, publicInput } = params;
 
-    await this.executeWithPrefilledStateService(
-      startingState,
-      // eslint-disable-next-line putout/putout
-      async () => {
-        this.blockProver.newBlock(
+    await this.executeWithPrefilledStateService(startingState, async () => {
+      try {
+        this.blockProver.proveBlock(
           publicInput,
           networkState,
-          lastBlockWitness,
-          nextBlockWitness,
-          stateTransitionProof
+          blockWitness,
+          input1,
+          input2
         );
+      }catch(e: unknown){
+        console.log(e);
+        throw e;
       }
-    );
+    });
 
     return await this.executeWithPrefilledStateService(
       startingState,
@@ -106,52 +110,64 @@ export class NewBlockTask
       this.stateTransitionProver.zkProgrammable.zkProgram.Proof
     );
 
+    const blockProofSerializer = new ProofTaskSerializer(
+      this.blockProver.zkProgrammable.zkProgram.Proof
+    );
+
     type JsonType = {
-      publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
-      networkState: ReturnType<typeof NetworkState.toJSON>;
-      lastBlockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
-      nextBlockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
-      stateTransitionProof: string;
-      startingState: JSONEncodableState;
+      input1: string;
+      input2: string;
+      params: {
+        publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
+        networkState: ReturnType<typeof NetworkState.toJSON>;
+        blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
+        startingState: JSONEncodableState;
+      };
     };
 
     return {
       toJSON: (input: NewBlockProvingParameters) => {
         return JSON.stringify({
-          publicInput: BlockProverPublicInput.toJSON(input.publicInput),
-          networkState: NetworkState.toJSON(input.networkState),
-          lastBlockWitness: BlockHashMerkleTreeWitness.toJSON(
-            input.lastBlockWitness
-          ),
-          nextBlockWitness: BlockHashMerkleTreeWitness.toJSON(
-            input.nextBlockWitness
-          ),
-          stateTransitionProof: stProofSerializer.toJSON(
-            input.stateTransitionProof
-          ),
-          startingState: DecodedStateSerializer.toJSON(input.startingState),
+          input1: stProofSerializer.toJSON(input.input1),
+          input2: blockProofSerializer.toJSON(input.input2),
+
+          params: {
+            publicInput: BlockProverPublicInput.toJSON(
+              input.params.publicInput
+            ),
+            networkState: NetworkState.toJSON(input.params.networkState),
+            blockWitness: BlockHashMerkleTreeWitness.toJSON(
+              input.params.blockWitness
+            ),
+            startingState: DecodedStateSerializer.toJSON(
+              input.params.startingState
+            ),
+          },
         } satisfies JsonType);
       },
 
       fromJSON: (json: string) => {
         const jsonObject: JsonType = JSON.parse(json);
         return {
-          publicInput: BlockProverPublicInput.fromJSON(jsonObject.publicInput),
-          networkState: new NetworkState(
-            NetworkState.fromJSON(jsonObject.networkState)
-          ),
-          lastBlockWitness: new BlockHashMerkleTreeWitness(
-            BlockHashMerkleTreeWitness.fromJSON(jsonObject.lastBlockWitness)
-          ),
-          nextBlockWitness: new BlockHashMerkleTreeWitness(
-            BlockHashMerkleTreeWitness.fromJSON(jsonObject.nextBlockWitness)
-          ),
-          stateTransitionProof: stProofSerializer.fromJSON(
-            jsonObject.stateTransitionProof
-          ),
-          startingState: DecodedStateSerializer.fromJSON(
-            jsonObject.startingState
-          ),
+          input1: stProofSerializer.fromJSON(jsonObject.input1),
+          input2: blockProofSerializer.fromJSON(jsonObject.input2),
+
+          params: {
+            publicInput: BlockProverPublicInput.fromJSON(
+              jsonObject.params.publicInput
+            ),
+            networkState: new NetworkState(
+              NetworkState.fromJSON(jsonObject.params.networkState)
+            ),
+            blockWitness: new BlockHashMerkleTreeWitness(
+              BlockHashMerkleTreeWitness.fromJSON(
+                jsonObject.params.blockWitness
+              )
+            ),
+            startingState: DecodedStateSerializer.fromJSON(
+              jsonObject.params.startingState
+            ),
+          },
         };
       },
     };

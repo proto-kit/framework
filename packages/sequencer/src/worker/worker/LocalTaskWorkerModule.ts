@@ -18,6 +18,7 @@ import {
 import { RuntimeProvingTask } from "../../protocol/production/tasks/RuntimeProvingTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
+import { NewBlockTask } from "../../protocol/production/tasks/NewBlockTask";
 
 /**
  * This module spins up a worker in the current local node instance.
@@ -35,6 +36,7 @@ export class LocalTaskWorkerModule extends SequencerModule {
     private readonly runtimeProvingTask: RuntimeProvingTask,
     private readonly blockProvingTask: BlockProvingTask,
     private readonly blockReductionTask: BlockReductionTask,
+    private readonly blockBuildingTask: NewBlockTask,
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>
   ) {
@@ -48,6 +50,7 @@ export class LocalTaskWorkerModule extends SequencerModule {
       this.runtimeProvingTask,
       this.blockProvingTask,
       this.blockReductionTask,
+      this.blockBuildingTask
     ]);
     worker
       .start()

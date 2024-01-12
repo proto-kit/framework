@@ -8,14 +8,16 @@ import { AppChain } from "@proto-kit/sdk";
 import { Fieldable, Runtime, MethodIdResolver } from "@proto-kit/module";
 import {
   AccountState,
-  AccountStateModule, BlockHeightHook,
+  AccountStateModule,
+  BlockHeightHook,
   BlockProver,
+  NetworkState,
   Option,
   Path,
   Protocol,
   StateTransition,
   StateTransitionProver,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
 import { log, range } from "@proto-kit/common";
@@ -101,7 +103,12 @@ describe("block production", () => {
 
     const protocolClass = VanillaProtocol.from(
       { AccountStateModule, BlockHeightHook },
-      { StateTransitionProver: {}, BlockProver: {}, AccountStateModule: {}, BlockHeightHook: {} }
+      {
+        StateTransitionProver: {},
+        BlockProver: {},
+        AccountStateModule: {},
+        BlockHeightHook: {},
+      }
     );
 
     const app = AppChain.from({
@@ -128,7 +135,7 @@ describe("block production", () => {
         AccountStateModule: {},
         BlockProver: {},
         StateTransitionProver: {},
-        BlockHeightHook: {}
+        BlockHeightHook: {},
       },
     });
 
@@ -162,7 +169,7 @@ describe("block production", () => {
   }
 
   // eslint-disable-next-line max-statements
-  it.only("should produce a dummy block proof", async () => {
+  it("should produce a dummy block proof", async () => {
     expect.assertions(18);
 
     const privateKey = PrivateKey.random();
@@ -280,11 +287,11 @@ describe("block production", () => {
     expect(newState).toBeUndefined();
   }, 30_000);
 
-  const numberTxs = 3;
+  const numberTxs = 2;
 
-  it.only("should produce block with multiple transaction", async () => {
+  it("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
-    expect.assertions(5 + 2 * numberTxs);
+    expect.assertions(6 + 2 * numberTxs);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -294,7 +301,7 @@ describe("block production", () => {
         createTransaction({
           method: ["Balance", "addBalanceToSelf"],
           privateKey,
-          args: [UInt64.from(100), UInt64.from(1)],
+          args: [UInt64.from(100), UInt64.from(0)],
           nonce: index,
         })
       );
@@ -304,7 +311,7 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    expect(block!.bundles).toHaveLength(0);
+    expect(block!.bundles).toHaveLength(1);
     expect(block!.bundles[0]).toHaveLength(numberTxs);
     expect(block!.proof.proof).toBe("mock-proof");
 
@@ -330,6 +337,10 @@ describe("block production", () => {
       UInt64.from(100 * numberTxs)
     );
   }, 160_000);
+
+  it.skip("Should produce a block with a mix of failing and succeeding transactions", () => {
+    //TODO
+  });
 
   it.skip.each([
     [
@@ -371,8 +382,30 @@ describe("block production", () => {
     60000
   );
 
+  it("should produce empty block", async () => {
+    expect.assertions(3);
+
+    const block = await blockTrigger.produceBlock();
+
+    const startingNetworkState = new NetworkState({
+      block: {
+        height: UInt64.zero,
+      },
+    });
+
+    const endingNetworkState = new NetworkState({
+      block: {
+        height: UInt64.from(1)
+      }
+    })
+
+    expect(block!.bundles.length).toBe(1);
+    expect(block!.proof.publicInput.networkStateHash.toString()).toStrictEqual(startingNetworkState.hash().toString())
+    expect(block!.proof.publicOutput.networkStateHash.toString()).toStrictEqual(endingNetworkState.hash().toString())
+  });
+
   it("should produce block with a tx with a lot of STs", async () => {
-    expect.assertions(9);
+    expect.assertions(10);
 
     const privateKey = PrivateKey.random();
 

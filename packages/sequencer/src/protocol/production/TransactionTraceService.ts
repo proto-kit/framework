@@ -1,5 +1,6 @@
 import { injectable, Lifecycle, scoped } from "tsyringe";
 import {
+  BlockProverPublicInput,
   DefaultProvableHashList,
   NetworkState,
   ProtocolConstants,
@@ -7,9 +8,8 @@ import {
   ProvableStateTransition,
   ProvableStateTransitionType,
   StateTransition,
+  StateTransitionProverPublicInput,
   StateTransitionType,
-  BlockTransactionPosition,
-  BlockTransactionPositionType,
 } from "@proto-kit/protocol";
 import { RollupMerkleTree } from "@proto-kit/common";
 import { Bool, Field } from "o1js";
@@ -21,8 +21,13 @@ import { CachedStateService } from "../../state/state/CachedStateService";
 import { SyncCachedMerkleTreeStore } from "../../state/merkle/SyncCachedMerkleTreeStore";
 
 import type { TransactionTrace } from "./BlockProducerModule";
-import type { TransactionExecutionResult } from "./unproven/TransactionExecutionService";
+import type {
+  TransactionExecutionResult,
+  UnprovenBlockWithMetadata,
+} from "./unproven/TransactionExecutionService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
+import { BlockTrace } from "./BlockProducerModule";
+import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -59,6 +64,84 @@ export class TransactionTraceService {
       });
   }
 
+  public async createBlockTrace(
+    traces: TransactionTrace[],
+    stateServices: {
+      stateService: CachedStateService;
+      merkleStore: CachedMerkleTreeStore;
+    },
+    blockHashTreeStore: AsyncMerkleTreeStore,
+    beforeBlockStateRoot: Field,
+    block: UnprovenBlockWithMetadata
+  ): Promise<BlockTrace> {
+    const stateTransitions = block.metadata.blockStateTransitions;
+
+    const startingState = await this.collectStartingState(
+      stateServices.stateService,
+      stateTransitions
+    );
+
+    let stParameters: StateTransitionProofParameters[], fromStateRoot: Field;
+
+    if (stateTransitions.length > 0) {
+      this.applyTransitions(stateServices.stateService, stateTransitions);
+
+      ({ stParameters, fromStateRoot } = await this.createMerkleTrace(
+        stateServices.merkleStore,
+        stateTransitions,
+        [],
+        true
+      ));
+    } else {
+      await stateServices.merkleStore.preloadKey(0n);
+
+      fromStateRoot = Field(
+        stateServices.merkleStore.getNode(0n, RollupMerkleTree.HEIGHT - 1) ??
+          RollupMerkleTree.EMPTY_ROOT
+      );
+
+      stParameters = [
+        {
+          stateTransitions: [],
+          merkleWitnesses: [],
+
+          publicInput: new StateTransitionProverPublicInput({
+            stateRoot: fromStateRoot,
+            protocolStateRoot: fromStateRoot,
+            stateTransitionsHash: Field(0),
+            protocolTransitionsHash: Field(0),
+          }),
+        },
+      ];
+    }
+
+    const fromNetworkState = block.block.networkState.before;
+
+    const publicInput = new BlockProverPublicInput({
+      transactionsHash: Field(0),
+      networkStateHash: fromNetworkState.hash(),
+      stateRoot: beforeBlockStateRoot,
+      blockHashRoot: block.block.fromBlockHashRoot,
+      eternalTransactionsHash: block.block.fromEternalTransactionsHash,
+    });
+
+    // const treeIndex = block.block.height.toBigInt();
+    // const cached = new CachedMerkleTreeStore(blockHashStateService);
+    // await cached.preloadKey(treeIndex);
+
+    return {
+      transactions: traces,
+      stateTransitionProver: stParameters,
+
+      block: {
+        networkState: fromNetworkState,
+        publicInput,
+        blockWitness: block.metadata.blockHashWitness,
+        startingState,
+      },
+    };
+  }
+
   /**
    * What is in a trace?
    * A trace has two parts:
@@ -79,7 +162,7 @@ export class TransactionTraceService {
    * 3. We retrieve merkle witnesses for each step and put them into
    * StateTransitionProveParams
    */
-  public async createTrace(
+  public async createTransactionTrace(
     executionResult: TransactionExecutionResult,
     stateServices: {
       stateService: CachedStateService;
@@ -87,7 +170,7 @@ export class TransactionTraceService {
     },
     networkState: NetworkState,
     bundleTracker: ProvableHashList<Field>,
-    bundlePosition: BlockTransactionPositionType
+    eternalBundleTracker: ProvableHashList<Field>
   ): Promise<TransactionTrace> {
     const { stateTransitions, protocolTransitions, status, tx } =
       executionResult;
@@ -105,7 +188,9 @@ export class TransactionTraceService {
       stateTransitions
     );
 
-    this.applyTransitions(stateServices.stateService, stateTransitions);
+    if (status.toBoolean()) {
+      this.applyTransitions(stateServices.stateService, stateTransitions);
+    }
 
     // Step 3
     const { stParameters, fromStateRoot } = await this.createMerkleTrace(
@@ -116,7 +201,9 @@ export class TransactionTraceService {
     );
 
     const transactionsHash = bundleTracker.commitment;
+    const eternalTransactionsHash = eternalBundleTracker.commitment;
     bundleTracker.push(tx.hash());
+    eternalBundleTracker.push(tx.hash());
 
     return {
       runtimeProver: {
@@ -131,14 +218,14 @@ export class TransactionTraceService {
         publicInput: {
           stateRoot: fromStateRoot,
           transactionsHash,
+          eternalTransactionsHash,
           networkStateHash: networkState.hash(),
+          blockHashRoot: Field(0),
         },
 
         executionData: {
           networkState,
           transaction: tx.toProtocolTransaction(),
-          transactionPosition:
-            BlockTransactionPosition.fromPositionType(bundlePosition),
         },
 
         startingState: protocolStartingState,
