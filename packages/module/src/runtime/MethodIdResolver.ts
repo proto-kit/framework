@@ -1,5 +1,6 @@
 import { stringToField } from "@proto-kit/protocol";
 import { Poseidon } from "o1js";
+import { inject, injectable } from "tsyringe";
 
 import type { Runtime, RuntimeModulesRecord } from "./Runtime";
 
@@ -7,15 +8,17 @@ import type { Runtime, RuntimeModulesRecord } from "./Runtime";
  * Please see `getMethodId` to learn more about
  * methodId encoding
  */
+@injectable()
 export class MethodIdResolver {
   private readonly dictionary: {
     [key: string]: { moduleName: string; methodName: string };
   } = {};
 
   public constructor(
-    private readonly runtime: Runtime<RuntimeModulesRecord>,
-    private readonly modules: RuntimeModulesRecord
+    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {
+    const { modules } = runtime.definition;
+
     this.dictionary = runtime.runtimeModuleNames.reduce<
       Record<string, { moduleName: string; methodName: string }>
     >((dict, moduleName) => {
@@ -41,13 +44,19 @@ export class MethodIdResolver {
 
     const { moduleName, methodName } = methodPath;
 
-    this.runtime.assertIsValidModuleName(this.modules, moduleName);
+    this.runtime.assertIsValidModuleName(
+      this.runtime.definition.modules,
+      moduleName
+    );
 
     return [moduleName, methodName];
   }
 
   public getMethodId(moduleName: string, methodName: string): bigint {
-    this.runtime.assertIsValidModuleName(this.modules, moduleName);
+    this.runtime.assertIsValidModuleName(
+      this.runtime.definition.modules,
+      moduleName
+    );
 
     return Poseidon.hash([
       stringToField(moduleName),

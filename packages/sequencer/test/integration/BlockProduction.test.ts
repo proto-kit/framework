@@ -28,10 +28,8 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule,
-  CachedMerkleTreeStore,
-  ManualBlockTrigger,
-  MockAsyncMerkleTreeStore,
+  BlockProducerModule, InMemoryDatabase,
+  ManualBlockTrigger
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -81,6 +79,7 @@ describe("block production", () => {
 
     const sequencerClass = Sequencer.from({
       modules: {
+        Database: InMemoryDatabase,
         Mempool: PrivateMempool,
         LocalTaskWorkerModule,
         BaseLayer: NoopBaseLayer,
@@ -88,16 +87,6 @@ describe("block production", () => {
         UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
-      },
-
-      config: {
-        BlockTrigger: {},
-        Mempool: {},
-        BlockProducerModule: {},
-        UnprovenProducerModule: {},
-        LocalTaskWorkerModule: {},
-        BaseLayer: {},
-        TaskQueue: {},
       },
     });
 
@@ -120,6 +109,7 @@ describe("block production", () => {
 
     app.configure({
       Sequencer: {
+        Database: {},
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
@@ -170,7 +160,7 @@ describe("block production", () => {
 
   // eslint-disable-next-line max-statements
   it("should produce a dummy block proof", async () => {
-    expect.assertions(18);
+    expect.assertions(21);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -184,20 +174,29 @@ describe("block production", () => {
       })
     );
 
-    let block = await blockTrigger.produceBlock();
+    // let [block, batch] = await blockTrigger.produceBlock();
+    let block = await blockTrigger.produceUnproven();
 
     expect(block).toBeDefined();
 
-    expect(block!.bundles).toHaveLength(1);
-    expect(block!.bundles[0]).toHaveLength(1);
-    expect(block!.bundles[0][0].status).toBe(true);
-    expect(block!.bundles[0][0].statusMessage).toBeUndefined();
-    expect(block!.proof.proof).toBe("mock-proof");
+    expect(block!.transactions).toHaveLength(1);
+    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].statusMessage).toBeUndefined();
+
+    let batch = await blockTrigger.produceProven()
+
+    expect(batch).toBeDefined();
+
+    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.proof.proof).toBe("mock-proof");
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
         "AsyncStateService"
       );
+
+    const unprovenStateService = sequencer.dependencyContainer.resolve<AsyncStateService>("UnprovenStateService")
+
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
       balanceModule.balances.path!,
@@ -205,9 +204,12 @@ describe("block production", () => {
       publicKey
     );
     const newState = await stateService.getAsync(balancesPath);
+    const newUnprovenState = await unprovenStateService.getAsync(balancesPath);
 
     expect(newState).toBeDefined();
+    expect(newUnprovenState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
+    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(UInt64.from(100));
 
     // Check that nonce has been set
     const accountModule = protocol.resolve("AccountStateModule");
@@ -233,17 +235,18 @@ describe("block production", () => {
 
     log.info("Starting second block");
 
-    block = await blockTrigger.produceBlock();
+    [block, batch] = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();
 
-    expect(block!.bundles).toHaveLength(1);
-    expect(block!.bundles[0]).toHaveLength(1);
-    console.log(block!.bundles[0][0]);
-    console.log(block!.bundles[0][0].statusMessage);
-    expect(block!.bundles[0][0].status).toBe(true);
-    expect(block!.bundles[0][0].statusMessage).toBeUndefined();
-    expect(block!.proof.proof).toBe("mock-proof");
+    expect(block!.transactions).toHaveLength(1);
+    console.log(block!.transactions[0]);
+    console.log(block!.transactions[0].statusMessage);
+    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].statusMessage).toBeUndefined();
+
+    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.proof.proof).toBe("mock-proof");
 
     const state2 = await stateService.getAsync(balancesPath);
 
@@ -253,7 +256,7 @@ describe("block production", () => {
 
   // TODO Fix the error that we get when execution this after the first test
   it("should reject tx and not apply the state", async () => {
-    expect.assertions(3);
+    expect.assertions(4);
 
     const privateKey = PrivateKey.random();
 
@@ -266,14 +269,18 @@ describe("block production", () => {
       })
     );
 
-    let block = await blockTrigger.produceBlock();
+    const [block, batch] = await blockTrigger.produceBlock();
 
-    expect(block?.bundles[0][0].status).toBe(false);
-    expect(block?.bundles[0][0].statusMessage).toBe("Condition not met");
+    expect(block?.transactions[0].status.toBoolean()).toBe(false);
+    expect(block?.transactions[0].statusMessage).toBe("Condition not met");
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
         "AsyncStateService"
+      );
+    const unprovenStateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "UnprovenStateService"
       );
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
@@ -281,9 +288,11 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       PublicKey.empty()
     );
+    const unprovenState = await unprovenStateService.getAsync(balancesPath);
     const newState = await stateService.getAsync(balancesPath);
 
     // Assert that state is not set
+    expect(unprovenState).toBeUndefined();
     expect(newState).toBeUndefined();
   }, 30_000);
 
@@ -291,34 +300,44 @@ describe("block production", () => {
 
   it("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
-    expect.assertions(6 + 2 * numberTxs);
+    expect.assertions(6 + 4 * numberTxs);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
+
+    const increment = 100;
 
     range(0, numberTxs).forEach((index) => {
       mempool.add(
         createTransaction({
           method: ["Balance", "addBalanceToSelf"],
           privateKey,
-          args: [UInt64.from(100), UInt64.from(0)],
+          args: [UInt64.from(increment), UInt64.from(0)],
           nonce: index,
         })
       );
     });
 
-    const block = await blockTrigger.produceBlock();
+    const block = await blockTrigger.produceUnproven();
 
     expect(block).toBeDefined();
-
-    expect(block!.bundles).toHaveLength(1);
-    expect(block!.bundles[0]).toHaveLength(numberTxs);
-    expect(block!.proof.proof).toBe("mock-proof");
+    expect(block!.transactions).toHaveLength(numberTxs);
 
     range(0, numberTxs).forEach((index) => {
-      expect(block!.bundles[0][index].status).toBe(true);
-      expect(block!.bundles[0][index].statusMessage).toBe(undefined);
+      expect(block!.transactions[index].status.toBoolean()).toBe(true);
+      expect(block!.transactions[index].statusMessage).toBe(undefined);
+
+      const transitions = block!.transactions[index].stateTransitions
+
+      const fromBalance = increment * index;
+      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance))
+      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance + increment))
     });
+
+    const batch = await blockTrigger.produceProven();
+
+    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.proof.proof).toBe("mock-proof");
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
@@ -337,6 +356,7 @@ describe("block production", () => {
       UInt64.from(100 * numberTxs)
     );
   }, 160_000);
+
 
   it("Should produce a block with a mix of failing and succeeding transactions", async () => {
     expect.assertions(6);
@@ -435,30 +455,8 @@ describe("block production", () => {
     60000
   );
 
-  it("should produce empty block", async () => {
-    expect.assertions(3);
-
-    const block = await blockTrigger.produceBlock();
-
-    const startingNetworkState = new NetworkState({
-      block: {
-        height: UInt64.zero,
-      },
-    });
-
-    const endingNetworkState = new NetworkState({
-      block: {
-        height: UInt64.from(1)
-      }
-    })
-
-    expect(block!.bundles.length).toBe(1);
-    expect(block!.proof.publicInput.networkStateHash.toString()).toStrictEqual(startingNetworkState.hash().toString())
-    expect(block!.proof.publicOutput.networkStateHash.toString()).toStrictEqual(endingNetworkState.hash().toString())
-  });
-
   it("should produce block with a tx with a lot of STs", async () => {
-    expect.assertions(10);
+    expect.assertions(11);
 
     const privateKey = PrivateKey.random();
 
@@ -473,16 +471,18 @@ describe("block production", () => {
       })
     );
 
-    const block = await blockTrigger.produceBlock();
+    const [block, batch] = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();
+    expect(batch).toBeDefined();
 
-    expect(block!.bundles).toHaveLength(1);
-    expect(block!.bundles[0]).toHaveLength(1);
-    expect(block!.proof.proof).toBe("mock-proof");
+    expect(block!.transactions).toHaveLength(1);
 
-    expect(block!.bundles[0][0].status).toBe(true);
-    expect(block!.bundles[0][0].statusMessage).toBe(undefined);
+    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].statusMessage).toBe(undefined);
+
+    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.proof.proof).toBe("mock-proof");
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(

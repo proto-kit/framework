@@ -4,14 +4,22 @@ import "reflect-metadata";
 import {
   DependencyContainer,
   Frequency,
+  injectable,
   InjectionToken,
+  instancePerContainerCachingFactory,
+  isClassProvider,
+  isFactoryProvider,
+  isValueProvider,
   Lifecycle,
 } from "tsyringe";
 import log from "loglevel";
 import merge from "lodash/merge";
 
-import { StringKeyOf, TypedClass } from "../types";
-import { DependencyFactory } from "../dependencyFactory/DependencyFactory";
+import { MergeObjects, StringKeyOf, TypedClass } from "../types";
+import {
+  DependencyFactory,
+  InferDependencies,
+} from "../dependencyFactory/DependencyFactory";
 
 import {
   Configurable,
@@ -20,6 +28,14 @@ import {
 } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
+import { EventEmitter } from "../events/EventEmitter";
+import {
+  EventEmittingComponent,
+  EventsRecord,
+} from "../events/EventEmittingComponent";
+import { EventEmitterProxy } from "../events/EventEmitterProxy";
+import { memoize } from "lodash";
+import { Memoize } from "typescript-memoize";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -102,6 +118,23 @@ export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   config?: ModulesConfig<Modules>;
 }
 
+// Removes all keys with a "never" value from an object
+export type FilterNeverValues<Type extends Record<string, unknown>> = {
+  [Key in keyof Type as Type[Key] extends never ? never : Key]: Type[Key];
+};
+
+export type DependenciesFromModules<Modules extends ModulesRecord> =
+  FilterNeverValues<{
+    [Key in keyof Modules]: Modules[Key] extends TypedClass<DependencyFactory>
+      ? InferDependencies<InstanceType<Modules[Key]>>
+      : never;
+  }>;
+
+export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
+  DependenciesFromModules<Modules>
+> &
+  Modules;
+
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
@@ -117,6 +150,8 @@ export class ModuleContainer<
 
   // DI container holding all the registered modules
   private providedContainer?: DependencyContainer = undefined;
+
+  private eventEmitterProxy: EventEmitterProxy<Modules> | undefined = undefined;
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
@@ -175,16 +210,16 @@ export class ModuleContainer<
     modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    this.isValidModuleName(modules, moduleName);
+    if (!this.isValidModuleName(modules, moduleName)) {
+      throw errors.onlyValidModuleNames(moduleName);
+    }
   }
 
   public isValidModuleName(
     modules: Modules,
     moduleName: number | string | symbol
-  ): asserts moduleName is StringKeyOf<Modules> {
-    if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-      throw errors.onlyValidModuleNames(moduleName);
-    }
+  ): moduleName is StringKeyOf<Modules> {
+    return Object.prototype.hasOwnProperty.call(modules, moduleName);
   }
 
   public assertContainerInitialized(
@@ -221,16 +256,11 @@ export class ModuleContainer<
     }
   }
 
-  /**
-   * Inject a set of dependencies using the given list of DependencyFactories
-   * This method should be called during startup
-   */
-  protected registerDependencyFactories(
-    factories: TypedClass<DependencyFactory>[]
-  ) {
-    factories.forEach((factory) => {
-      this.container.resolve(factory).initDependencies(this.container);
-    });
+  public get events(): EventEmitterProxy<Modules> {
+    if (this.eventEmitterProxy === undefined) {
+      this.eventEmitterProxy = new EventEmitterProxy<Modules>(this);
+    }
+    return this.eventEmitterProxy;
   }
 
   /**
@@ -292,12 +322,12 @@ export class ModuleContainer<
    * @param moduleName
    * @returns
    */
-  public resolve<ResolvableModuleName extends StringKeyOf<Modules>>(
-    moduleName: ResolvableModuleName
-  ): InstanceType<Modules[ResolvableModuleName]> {
-    return this.container.resolve<InstanceType<Modules[ResolvableModuleName]>>(
-      moduleName
-    );
+  public resolve<KeyType extends StringKeyOf<ResolvableModules<Modules>>>(
+    moduleName: KeyType
+  ): InstanceType<ResolvableModules<Modules>[KeyType]> {
+    return this.container.resolve<
+      InstanceType<ResolvableModules<Modules>[KeyType]>
+    >(moduleName);
   }
 
   public resolveOrFail<ModuleType>(
@@ -337,6 +367,64 @@ export class ModuleContainer<
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private isDependencyFactory(type: any): type is DependencyFactory {
+    return "dependencies" in type;
+  }
+
+  /**
+   * Inject a set of dependencies using the given list of DependencyFactories
+   * This method should be called during startup
+   */
+  protected initializeDependencyFactories(factories: StringKeyOf<Modules>[]) {
+    factories.forEach((factoryName) => {
+      this.resolve(factoryName);
+    });
+  }
+
+  /**
+   * Retrieves all dependencies generated by a particular dependencyfactory
+   * and injects them inside this modulecontainer's DI container.
+   * This will be automatically called for every module, but can also be called
+   * explicitly to initialize an extra factory
+   * @param factory
+   * @private
+   */
+  protected useDependencyFactory(factory: DependencyFactory) {
+    const dependencies = factory.dependencies();
+
+    Object.entries(dependencies).forEach(([rawKey, declaration]) => {
+      const key = rawKey.charAt(0).toUpperCase() + rawKey.slice(1);
+
+      if (
+        !this.container.isRegistered(key) ||
+        declaration.forceOverwrite === true
+      ) {
+        // Find correct provider type and call respective register
+        if (isValueProvider(declaration)) {
+          this.container.register(key, declaration);
+        } else if (isFactoryProvider(declaration)) {
+          // this enables us to have a singletoned factory
+          // that returns the same instance for each resolve
+          this.container.register(key, {
+            useFactory: instancePerContainerCachingFactory(
+              declaration.useFactory
+            ),
+          });
+        } else if (isClassProvider(declaration)) {
+          this.container.register(key, declaration, {
+            lifecycle: Lifecycle.Singleton,
+          });
+        } else {
+          // Can never be reached
+          throw new Error("Above if-statement is exhaustive");
+        }
+      } else {
+        log.debug(`Dependency ${key} already registered, skipping`);
+      }
+    });
+  }
+
   /**
    * Handle module resolution, e.g. by decorating resolved modules
    * @param moduleName
@@ -356,6 +444,10 @@ export class ModuleContainer<
           container.reset();
           return container;
         });
+
+        if (this.isDependencyFactory(containedModule)) {
+          this.useDependencyFactory(containedModule);
+        }
       },
       { frequency: ModuleContainer.moduleDecorationFrequency }
     );

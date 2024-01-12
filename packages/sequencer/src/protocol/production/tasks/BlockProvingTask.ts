@@ -7,6 +7,7 @@ import {
   Protocol,
   ProtocolModulesRecord,
   ReturnType,
+  StateServiceProvider,
   StateTransitionProof,
   StateTransitionProvable,
 } from "@proto-kit/protocol";
@@ -23,10 +24,10 @@ import {
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { Task } from "../../../worker/flow/Task";
+import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
 import { CompileRegistry } from "./CompileRegistry";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
-import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -125,6 +126,8 @@ export class BlockProvingTask
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>,
     @inject("Runtime") private readonly runtime: Runtime<never>,
+    @inject("StateServiceProvider")
+    private readonly stateServiceProvider: StateServiceProvider,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
@@ -207,13 +210,11 @@ export class BlockProvingTask
     callback: () => Promise<Return>
   ): Promise<Return> {
     const prefilledStateService = new PreFilledStateService(startingState);
-    this.protocol.stateServiceProvider.setCurrentStateService(
-      prefilledStateService
-    );
+    this.stateServiceProvider.setCurrentStateService(prefilledStateService);
 
     const returnValue = await callback();
 
-    this.protocol.stateServiceProvider.popCurrentStateService();
+    this.stateServiceProvider.popCurrentStateService();
 
     return returnValue;
   }

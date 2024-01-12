@@ -8,18 +8,34 @@ type ListenersHolder<Events extends EventsRecord> = {
 export class EventEmitter<Events extends EventsRecord> {
   private readonly listeners: ListenersHolder<Events> = {};
 
-  public emit(event: keyof Events, ...parameters: Events[typeof event]) {
+  // eslint-disable-next-line putout/putout
+  private readonly wildcardListeners: ((
+    event: keyof Events,
+    args: Events[keyof Events]
+  ) => void)[] = [];
+
+  public emit<Key extends keyof Events>(
+    event: Key,
+    ...parameters: Events[Key]
+  ) {
     const listeners = this.listeners[event];
     if (listeners !== undefined) {
       listeners.forEach((listener) => {
         listener(...parameters);
       });
     }
+    this.wildcardListeners.forEach((wildcardListener) => {
+      wildcardListener(event, parameters);
+    });
   }
 
-  public on(
-    event: keyof Events,
-    listener: (...args: Events[typeof event]) => void
+  public onAll(listener: (event: keyof Events, args: unknown[]) => void): void {
+    this.wildcardListeners.push(listener);
+  }
+
+  public on<Key extends keyof Events>(
+    event: Key,
+    listener: (...args: Events[Key]) => void
   ) {
     (this.listeners[event] ??= []).push(listener);
   }
@@ -28,9 +44,9 @@ export class EventEmitter<Events extends EventsRecord> {
    * Primitive .off() with identity comparison for now.
    * Could be replaced by returning an id in .on() and using that.
    */
-  public off(
-    event: keyof Events,
-    listener: (...args: Events[typeof event]) => void
+  public off<Key extends keyof Events>(
+    event: Key,
+    listener: (...args: Events[Key]) => void
   ) {
     const events = this.listeners[event];
     if (events !== undefined) {

@@ -84,7 +84,7 @@ export class UnprovenProducerModule
         }
 
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
-        this.events.emit("unprovenBlockProduced", [block]);
+        this.events.emit("unprovenBlockProduced", block);
 
         // Generate metadata for next block
         // eslint-disable-next-line no-warning-comments
@@ -142,10 +142,8 @@ export class UnprovenProducerModule
       return undefined;
     }
 
-    const stateService = new CachedStateService(this.unprovenStateService);
-
     const block = await this.executionService.createUnprovenBlock(
-      stateService,
+      this.unprovenStateService,
       txs,
       metadata
     );

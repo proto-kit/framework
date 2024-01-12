@@ -18,9 +18,9 @@ import {
   Sequencer,
   SequencerModulesRecord,
   UnsignedTransaction,
-  MockStorageDependencyFactory,
   QueryTransportModule,
   NetworkStateTransportModule,
+  DummyStateService,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -29,6 +29,7 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
 import { container, DependencyContainer } from "tsyringe";
 import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
@@ -39,6 +40,7 @@ import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 
 import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
+import { SharedDependencyFactory } from "./SharedDependencyFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -270,7 +272,14 @@ export class AppChain<
       } as unknown as NetworkState,
     });
 
+    const stateServiceProvider = this.container.resolve<StateServiceProvider>(
+      "StateServiceProvider"
+    );
+    stateServiceProvider.setCurrentStateService(new DummyStateService());
+
     callback();
+
+    stateServiceProvider.popCurrentStateService();
 
     const { methodName, moduleName, args } = executionContext.current().result;
 
@@ -328,10 +337,8 @@ export class AppChain<
   public async start(dependencyContainer: DependencyContainer = container) {
     this.create(() => dependencyContainer);
 
-    this.registerDependencyFactories([
-      AreProofsEnabledFactory,
-      MockStorageDependencyFactory,
-    ]);
+    this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
+    this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
 
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.

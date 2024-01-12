@@ -73,8 +73,8 @@ export class StateTransition<Value> {
   public toJSON() {
     return {
       path: this.path.toString(),
-      from: this.from.toJSON(),
-      to: this.to.toJSON(),
+      from: this.fromValue.toJSON(),
+      to: this.toValue.toJSON(),
     };
   }
 }

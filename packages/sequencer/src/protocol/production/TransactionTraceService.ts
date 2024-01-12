@@ -26,13 +26,14 @@ import type {
   UnprovenBlockWithMetadata,
 } from "./unproven/TransactionExecutionService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
+import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
 import { BlockTrace } from "./BlockProducerModule";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionTraceService {
-  private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
+  private allKeys(stateTransitions: UntypedStateTransition[]): Field[] {
     // We have to do the distinct with strings because
     // array.indexOf() doesn't work with fields
     return stateTransitions.map((st) => st.path).filter(distinctByString);
@@ -40,7 +41,7 @@ export class TransactionTraceService {
 
   private async collectStartingState(
     stateService: CachedStateService,
-    stateTransitions: StateTransition<unknown>[]
+    stateTransitions: UntypedStateTransition[]
   ): Promise<Record<string, Field[] | undefined>> {
     const keys = this.allKeys(stateTransitions);
     await stateService.preloadKeys(keys);
@@ -53,14 +54,14 @@ export class TransactionTraceService {
 
   private applyTransitions(
     stateService: CachedStateService,
-    stateTransitions: StateTransition<unknown>[]
+    stateTransitions: UntypedStateTransition[]
   ): void {
     // Use updated stateTransitions since only they will have the
     // right values
     stateTransitions
-      .filter((st) => st.to.isSome.toBoolean())
+      .filter((st) => st.toValue.isSome.toBoolean())
       .forEach((st) => {
-        stateService.set(st.path, st.to.toFields());
+        stateService.set(st.path, st.toValue.toFields());
       });
   }
 
@@ -235,8 +236,8 @@ export class TransactionTraceService {
 
   private async createMerkleTrace(
     merkleStore: CachedMerkleTreeStore,
-    stateTransitions: StateTransition<unknown>[],
-    protocolTransitions: StateTransition<unknown>[],
+    stateTransitions: UntypedStateTransition[],
+    protocolTransitions: UntypedStateTransition[],
     runtimeSuccess: boolean
   ): Promise<{
     stParameters: StateTransitionProofParameters[];
@@ -267,7 +268,7 @@ export class TransactionTraceService {
     );
 
     const allTransitions = protocolTransitions
-      .map<[StateTransition<unknown>, boolean]>((protocolTransition) => [
+      .map<[UntypedStateTransition, boolean]>((protocolTransition) => [
         protocolTransition,
         StateTransitionType.protocol,
       ])
