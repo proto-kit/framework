@@ -3,8 +3,7 @@ import {
   noop,
   InMemoryMerkleTreeStorage,
   RollupMerkleTree,
-} from "@proto-kit/protocol";
-import { log, noop } from "@proto-kit/common";
+} from "@proto-kit/common";
 import {
   AsyncMerkleTreeStore,
   MerkleTreeNode,
@@ -108,18 +107,19 @@ export class CachedMerkleTreeStore
     }
 
     await this.parent.openTransaction();
-    const { height } = RollupMerkleTree;
     const nodes = this.getWrittenNodes();
 
     const writes = Object.keys(nodes).flatMap((levelString) => {
       const level = Number(levelString);
-      return Object.entries(nodes[level]).map<MerkleTreeNode>(([key, value]) => {
-        return {
-          key: BigInt(key),
-          level,
-          value,
-        };
-      })
+      return Object.entries(nodes[level]).map<MerkleTreeNode>(
+        ([key, value]) => {
+          return {
+            key: BigInt(key),
+            level,
+            value,
+          };
+        }
+      );
     });
 
     this.parent.writeNodes(writes);
@@ -139,9 +139,7 @@ export class CachedMerkleTreeStore
   public async getNodesAsync(
     nodes: MerkleTreeNodeQuery[]
   ): Promise<(bigint | undefined)[]> {
-    const results = Array<bigint | undefined>(
-      nodes.length
-    ).fill(undefined);
+    const results = Array<bigint | undefined>(nodes.length).fill(undefined);
 
     const toFetch: MerkleTreeNodeQuery[] = [];
 

@@ -15,7 +15,6 @@ import {
   StateTransition,
   ProvableBlockHook,
   BlockHashMerkleTree,
-  BlockHashMerkleTreeWitness,
   StateServiceProvider,
   BlockHashTreeEntry,
 } from "@proto-kit/protocol";
@@ -34,84 +33,20 @@ import { distinctByString } from "../../../helpers/utils";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
-import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
-import type { StateRecord } from "../BlockProducerModule";
-
-import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
-import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import {
   TransactionExecutionResult,
   UnprovenBlock,
   UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
 } from "../../../storage/model/UnprovenBlock";
+import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import type { StateRecord } from "../BlockProducerModule";
+
+import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
     new Error(`Can't find runtime method with id ${methodId}`),
-};
-
-export interface TransactionExecutionResult {
-  tx: PendingTransaction;
-  stateTransitions: UntypedStateTransition[];
-  protocolTransitions: UntypedStateTransition[];
-  status: Bool;
-  statusMessage?: string;
-  /**
-   * TODO Remove
-   * @deprecated
-   */
-  stateDiff: StateRecord;
-}
-
-export interface UnprovenBlock {
-  height: Field;
-  networkState: {
-    before: NetworkState;
-    during: NetworkState;
-  };
-  transactions: TransactionExecutionResult[];
-  transactionsHash: Field;
-  toEternalTransactionsHash: Field;
-  fromEternalTransactionsHash: Field;
-  fromBlockHashRoot: Field;
-}
-
-export interface UnprovenBlockMetadata {
-  stateRoot: bigint;
-  blockHashRoot: bigint;
-  afterNetworkState: NetworkState;
-  blockStateTransitions: UntypedStateTransition[];
-  blockHashWitness: BlockHashMerkleTreeWitness;
-}
-
-export interface UnprovenBlockWithMetadata {
-  block: UnprovenBlock;
-  metadata: UnprovenBlockMetadata;
-}
-
-export const UnprovenBlockWithMetadata = {
-  createEmpty: () =>
-    ({
-      block: {
-        height: Field(0),
-        transactionsHash: Field(0),
-        fromEternalTransactionsHash: Field(0),
-        toEternalTransactionsHash: Field(0),
-        transactions: [],
-        networkState: {
-          before: NetworkState.empty(),
-          during: NetworkState.empty(),
-        },
-        fromBlockHashRoot: Field(BlockHashMerkleTree.EMPTY_ROOT),
-      },
-      metadata: {
-        afterNetworkState: NetworkState.empty(),
-        stateRoot: RollupMerkleTree.EMPTY_ROOT,
-        blockHashRoot: BlockHashMerkleTree.EMPTY_ROOT,
-        blockStateTransitions: [],
-        blockHashWitness: BlockHashMerkleTree.WITNESS.dummy(),
-      },
-    } satisfies UnprovenBlockWithMetadata),
 };
 
 @injectable()
@@ -316,9 +251,9 @@ export class TransactionExecutionService {
     }
 
     const previousBlockTransactionsHash =
-      metadata.blockTransactionsHash === 0n
+      lastMetadata.blockTransactionsHash === 0n
         ? undefined
-        : Field(metadata.blockTransactionsHash);
+        : Field(lastMetadata.blockTransactionsHash);
 
     return {
       transactions: executionResults,
@@ -327,12 +262,12 @@ export class TransactionExecutionService {
       toEternalTransactionsHash: eternalTransactionsHashList.commitment,
       height: lastBlock.height.add(1),
       fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
+      previousBlockTransactionsHash,
 
       networkState: {
         before: new NetworkState(lastMetadata.afterNetworkState),
         during: networkState,
       },
-      previousBlockTransactionsHash,
     };
   }
 

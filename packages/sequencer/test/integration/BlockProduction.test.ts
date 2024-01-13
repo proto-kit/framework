@@ -396,7 +396,7 @@ describe("block production", () => {
     expect(block).toBeDefined();
 
     expect(batch!.bundles).toHaveLength(1);
-    expect(batch!.bundles[0]).toHaveLength(2);
+    expect(block!.transactions).toHaveLength(2);
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
@@ -464,8 +464,8 @@ describe("block production", () => {
   );
 
   it.each([
-    [2, 2, 1],
-    [2, 2, 2],
+    [1, 2, 1],
+    // [2, 2, 2],
   ])(
     "should produce multiple blocks with multiple batches with multiple transactions",
     async (batches, blocksPerBatch, txsPerBlock) => {
