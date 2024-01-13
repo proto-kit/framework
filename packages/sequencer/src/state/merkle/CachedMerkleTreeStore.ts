@@ -1,4 +1,6 @@
 import {
+  log,
+  noop,
   InMemoryMerkleTreeStorage,
   RollupMerkleTree,
 } from "@proto-kit/protocol";
@@ -55,7 +57,7 @@ export class CachedMerkleTreeStore
   // eslint-disable-next-line sonarjs/cognitive-complexity
   public async preloadKey(index: bigint): Promise<void> {
     // Algo from RollupMerkleTree.getWitness()
-    const { leafCount, height } = RollupMerkleTree;
+    const { leafCount, HEIGHT } = RollupMerkleTree;
 
     if (index >= leafCount) {
       index %= leafCount;
@@ -63,7 +65,7 @@ export class CachedMerkleTreeStore
 
     const nodesToRetrieve: MerkleTreeNodeQuery[] = [];
 
-    for (let level = 0; level < height; level++) {
+    for (let level = 0; level < HEIGHT; level++) {
       const key = index;
 
       const isLeft = index % 2n === 0n;
@@ -109,17 +111,16 @@ export class CachedMerkleTreeStore
     const { height } = RollupMerkleTree;
     const nodes = this.getWrittenNodes();
 
-    const writes = Array.from({ length: height })
-      .fill(0)
-      .flatMap((ignored, level) =>
-        Object.entries(nodes[level]).map<MerkleTreeNode>(([key, value]) => {
-          return {
-            key: BigInt(key),
-            level,
-            value,
-          };
-        })
-      );
+    const writes = Object.keys(nodes).flatMap((levelString) => {
+      const level = Number(levelString);
+      return Object.entries(nodes[level]).map<MerkleTreeNode>(([key, value]) => {
+        return {
+          key: BigInt(key),
+          level,
+          value,
+        };
+      })
+    });
 
     this.parent.writeNodes(writes);
 

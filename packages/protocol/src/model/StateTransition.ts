@@ -49,7 +49,9 @@ export class StateTransition<Value> {
   ) {}
 
   public get from() {
-    return this.fromValue.clone();
+    const from = this.fromValue.clone();
+    from.forceSome();
+    return from;
   }
 
   public get to() {
@@ -63,8 +65,8 @@ export class StateTransition<Value> {
   public toProvable(): ProvableStateTransition {
     return new ProvableStateTransition({
       path: this.path,
-      from: this.fromValue.toProvable(),
-      to: this.toValue.toProvable(),
+      from: this.from.toProvable(),
+      to: this.to.toProvable(),
     });
   }
 

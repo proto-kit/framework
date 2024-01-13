@@ -1,14 +1,10 @@
 import {
   ClassProvider,
-  DependencyContainer,
   FactoryProvider,
-  injectable,
-  Lifecycle,
   ValueProvider,
 } from "tsyringe";
 
 import { TypedClass } from "../types";
-import { log } from "../log";
 import { BaseModuleInstanceType } from "../config/ModuleContainer";
 
 export type DependencyDeclaration<Dependency> =
@@ -39,7 +35,7 @@ export interface DependencyFactory {
 
 export type TypeFromDependencyDeclaration<
   Declaration extends DependencyDeclaration<unknown>
-> = Declaration extends ClassProvider<infer Dependency> ? Dependency : never;
+> = Declaration extends DependencyDeclaration<infer Dependency> ? Dependency : never;
 
 export type MapDependencyRecordToTypes<Record extends DependencyRecord> = {
   [Key in keyof Record]: TypedClass<TypeFromDependencyDeclaration<Record[Key]>>;

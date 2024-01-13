@@ -1,5 +1,4 @@
-import { InMemoryMerkleTreeStorage } from "@proto-kit/protocol";
-import { noop } from "@proto-kit/common";
+import { noop, InMemoryMerkleTreeStorage } from "@proto-kit/common";
 
 import {
   AsyncMerkleTreeStore,

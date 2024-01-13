@@ -11,6 +11,7 @@ import {
   AccountStateModule,
   BlockHeightHook,
   BlockProver,
+  NetworkState,
   Option,
   Path,
   Protocol,
@@ -41,6 +42,7 @@ import { container } from "tsyringe";
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<{
+    Database: typeof InMemoryDatabase;
     Mempool: typeof PrivateMempool;
     LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
     BaseLayer: typeof NoopBaseLayer;
@@ -365,6 +367,101 @@ describe("block production", () => {
       UInt64.from(100 * numberTxs)
     );
   }, 160_000);
+
+  it("should produce a block with a mix of failing and succeeding transactions", async () => {
+    expect.assertions(6);
+
+    const pk1 = PrivateKey.random();
+    const pk2 = PrivateKey.random();
+
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "setBalanceIf"],
+        privateKey: pk1,
+        args: [pk1.toPublicKey(), UInt64.from(100), Bool(false)],
+        nonce: 0,
+      })
+    );
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "setBalanceIf"],
+        privateKey: pk2,
+        args: [pk2.toPublicKey(), UInt64.from(100), Bool(true)],
+        nonce: 0,
+      })
+    );
+
+    const [block, batch] = await blockTrigger.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.bundles[0]).toHaveLength(2);
+
+    const stateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "AsyncStateService"
+      );
+    const balanceModule = runtime.resolve("Balance");
+    const balancesPath1 = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      pk1.toPublicKey()
+    );
+    const newState1 = await stateService.getAsync(balancesPath1);
+
+    expect(newState1).toBeUndefined();
+
+    const balancesPath2 = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      pk2.toPublicKey()
+    );
+    const newState2 = await stateService.getAsync(balancesPath2);
+
+    expect(newState2).toBeDefined();
+    expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
+  }, 120_000);
+
+  it.skip.each([
+    [
+      "EKFZbsQfNiqjDiWGU7G3TVPauS3s9YgWgayMzjkEaDTEicsY9poM",
+      "EKFdtp8D6mP3aFvCMRa75LPaUBn1QbmEs1YjTPXYLTNeqPYtnwy2",
+    ],
+    [
+      "EKE8hTdmVrYisQSc5oqeM7inCA2fFCvZ8Y5K2CPfV4NBwSJtxads",
+      "EKFct4rQwPV9N9F2J1oogaWrZLD1c5apyn997ncsmSKjoJCFDMsQ",
+    ],
+  ])(
+    "dex repro",
+    async ([pk1string, pk2string]) => {
+      const pk1 = PrivateKey.fromBase58(pk1string);
+      const pk2 = PrivateKey.fromBase58(pk2string);
+
+      mempool.add(
+        createTransaction({
+          method: ["Balance", "setBalanceIf"],
+          privateKey: pk1,
+          args: [pk1.toPublicKey(), UInt64.from(100), Bool(true)],
+          nonce: 0,
+        })
+      );
+
+      await blockTrigger.produceBlock();
+
+      mempool.add(
+        createTransaction({
+          method: ["Balance", "setBalanceIf"],
+          privateKey: pk2,
+          args: [pk2.toPublicKey(), UInt64.from(200), Bool(true)],
+          nonce: 0,
+        })
+      );
+
+      await blockTrigger.produceBlock();
+    },
+    60000
+  );
 
   it.each([
     [2, 2, 1],

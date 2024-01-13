@@ -21,6 +21,7 @@ export interface StorageDependencyMinimumDependencies extends DependencyRecord {
   unprovenBlockStorage: DependencyDeclaration<UnprovenBlockStorage>;
   unprovenStateService: DependencyDeclaration<AsyncStateService>;
   unprovenMerkleStore: DependencyDeclaration<AsyncMerkleTreeStore>;
+  blockTreeStore: DependencyDeclaration<AsyncMerkleTreeStore>;
 }
 
 export interface StorageDependencyFactory extends DependencyFactory {

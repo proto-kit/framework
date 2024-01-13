@@ -1,3 +1,8 @@
+import {
+  UnprovenBlock,
+  UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
+} from "../../protocol/production/unproven/TransactionExecutionService";
 import { UnprovenBlockWithPreviousMetadata } from "../../protocol/production/BlockProducerModule";
 import type { UnprovenBlock, UnprovenBlockMetadata } from "../model/UnprovenBlock";
 
@@ -5,12 +10,12 @@ export interface UnprovenBlockQueue {
   pushBlock: (block: UnprovenBlock) => Promise<void>;
   pushMetadata: (metadata: UnprovenBlockMetadata) => Promise<void>;
   getNewBlocks: () => Promise<UnprovenBlockWithPreviousMetadata[]>;
-  getNewestMetadata: () => Promise<UnprovenBlockMetadata | undefined>;
+  getLatestBlock: () => Promise<UnprovenBlockWithMetadata | undefined>;
 }
 
 export interface UnprovenBlockStorage {
   getCurrentBlockHeight: () => Promise<number>;
-  getLatestBlock: () => Promise<UnprovenBlock | undefined>;
+  getLatestBlock: () => Promise<UnprovenBlockWithMetadata | undefined>;
   pushBlock: (block: UnprovenBlock) => Promise<void>;
 }
 

@@ -148,7 +148,9 @@ export class Flow<State> implements Closeable {
         if (response.status === "error") {
           this.erroredOut = true;
           this.errorFunction?.(
-            new Error(`Error in worker: ${response.payload}`)
+            new Error(
+              `Error in worker: ${response.payload}, task: ${response.flowId}:${response.taskId}`
+            )
           );
           return;
         }
@@ -192,7 +194,11 @@ export class Flow<State> implements Closeable {
 
     // eslint-disable-next-line @typescript-eslint/promise-function-async
     const callback = (returnPayload: TaskPayload) => {
-      log.debug(`Completed ${returnPayload.name}`);
+      log.debug(
+        `Completed ${returnPayload.name}, task: ${returnPayload.flowId}:${
+          returnPayload?.taskId ?? "-"
+        }`
+      );
       const decoded = task.resultSerializer().fromJSON(returnPayload.payload);
       this.tasksInProgress -= 1;
       return completed?.(decoded, input);

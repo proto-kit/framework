@@ -4,6 +4,7 @@ import "reflect-metadata";
 import {
   DependencyContainer,
   Frequency,
+  injectable,
   InjectionToken,
   instancePerContainerCachingFactory,
   isClassProvider,
@@ -27,6 +28,14 @@ import {
 } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
+import { EventEmitter } from "../events/EventEmitter";
+import {
+  EventEmittingComponent,
+  EventsRecord,
+} from "../events/EventEmittingComponent";
+import { EventEmitterProxy } from "../events/EventEmitterProxy";
+import { memoize } from "lodash";
+import { Memoize } from "typescript-memoize";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -142,6 +151,8 @@ export class ModuleContainer<
   // DI container holding all the registered modules
   private providedContainer?: DependencyContainer = undefined;
 
+  private eventEmitterProxy: EventEmitterProxy<Modules> | undefined = undefined;
+
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
     if (definition.config !== undefined) {
@@ -199,16 +210,16 @@ export class ModuleContainer<
     modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    this.isValidModuleName(modules, moduleName);
+    if (!this.isValidModuleName(modules, moduleName)) {
+      throw errors.onlyValidModuleNames(moduleName);
+    }
   }
 
   public isValidModuleName(
     modules: Modules,
     moduleName: number | string | symbol
-  ): asserts moduleName is StringKeyOf<Modules> {
-    if (!Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-      throw errors.onlyValidModuleNames(moduleName);
-    }
+  ): moduleName is StringKeyOf<Modules> {
+    return Object.prototype.hasOwnProperty.call(modules, moduleName);
   }
 
   public assertContainerInitialized(
@@ -243,6 +254,13 @@ export class ModuleContainer<
         this.onAfterModuleResolution(moduleName);
       }
     }
+  }
+
+  public get events(): EventEmitterProxy<Modules> {
+    if (this.eventEmitterProxy === undefined) {
+      this.eventEmitterProxy = new EventEmitterProxy<Modules>(this);
+    }
+    return this.eventEmitterProxy;
   }
 
   /**

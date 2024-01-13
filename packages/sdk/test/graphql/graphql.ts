@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { CircuitString, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
 import {
   Runtime,
   runtimeMethod,
@@ -45,6 +45,7 @@ import {
   UnprovenProducerModule
 } from "@proto-kit/sequencer/dist/protocol/production/unproven/UnprovenProducerModule";
 import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
+import { MessageBoard, Post } from "./Post";
 
 log.setLevel(log.levels.INFO);
 
@@ -100,10 +101,12 @@ export async function startServer() {
     runtime: Runtime.from({
       modules: {
         Balances,
+        MessageBoard
       },
 
       config: {
         Balances: {},
+        MessageBoard: {}
       },
     }),
 
@@ -155,6 +158,7 @@ export async function startServer() {
   appChain.configure({
     Runtime: {
       Balances: {},
+      MessageBoard: {}
     },
 
     Protocol: {

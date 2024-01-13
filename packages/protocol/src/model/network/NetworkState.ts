@@ -11,11 +11,11 @@ export class NetworkState extends Struct({
     return Poseidon.hash(CurrentBlock.toFields(this.block));
   }
 
-  public static empty(){
+  public static empty() {
     return new NetworkState({
       block: {
         height: UInt64.zero,
       },
-    })
+    });
   }
 }

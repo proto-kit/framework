@@ -47,6 +47,9 @@ export class InMemoryDatabase
       unprovenMerkleStore: {
         useClass: InMemoryAsyncMerkleTreeStore,
       },
+      blockTreeStore: {
+        useClass: InMemoryAsyncMerkleTreeStore
+      }
     };
   }
 

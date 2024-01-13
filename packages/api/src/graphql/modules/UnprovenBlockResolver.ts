@@ -14,7 +14,7 @@ import { ComputedBlockTransactionModel } from "./BlockStorageResolver";
 export class UnprovenBlockModel {
   public static fromServiceLayerModel(unprovenBlock: UnprovenBlock) {
     return new UnprovenBlockModel(
-      Number(unprovenBlock.networkState.block.height.toBigInt()),
+      Number(unprovenBlock.networkState.during.block.height.toBigInt()),
       unprovenBlock.transactions.map((tx) =>
         ComputedBlockTransactionModel.fromServiceLayerModel({
           tx: tx.tx,

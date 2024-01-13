@@ -34,7 +34,7 @@ export class BlockStorageNetworkStateModule extends AppChainModule<
 
   public async getUnprovenNetworkState(): Promise<NetworkState> {
     const latestBlock = await this.unprovenStorage.getLatestBlock();
-    return latestBlock?.networkState ?? NetworkState.empty();
+    return latestBlock?.block.networkState.during ?? NetworkState.empty();
   }
 
   /**
@@ -42,8 +42,8 @@ export class BlockStorageNetworkStateModule extends AppChainModule<
    * with afterBundle() hooks executed
    */
   public async getStagedNetworkState(): Promise<NetworkState> {
-    const metadata = await this.unprovenQueue.getNewestMetadata();
-    return metadata?.resultingNetworkState ?? NetworkState.empty();
+    const metadata = await this.unprovenQueue.getLatestBlock();
+    return metadata?.metadata.afterNetworkState ?? NetworkState.empty();
   }
 
   public async getProvenNetworkState(): Promise<NetworkState> {

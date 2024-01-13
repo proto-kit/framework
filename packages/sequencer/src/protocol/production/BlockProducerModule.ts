@@ -4,11 +4,10 @@ import {
   BlockProverPublicOutput,
   DefaultProvableHashList,
   NetworkState,
-  RollupMerkleTree,
-  BlockTransactionPosition,
+  BlockHashMerkleTreeWitness,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
-import { log, noop } from "@proto-kit/common";
+import { log, noop, RollupMerkleTree } from "@proto-kit/common";
 
 import {
   sequencerModule,
@@ -24,6 +23,7 @@ import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import {
   UnprovenBlock,
   UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
 } from "../../storage/model/UnprovenBlock";
 
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
@@ -31,6 +31,7 @@ import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParam
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
+import { NewBlockProverParameters } from "./tasks/NewBlockTask";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
@@ -42,8 +43,14 @@ export interface TransactionTrace {
   blockProver: BlockProverParameters;
 }
 
+export interface BlockTrace {
+  block: NewBlockProverParameters;
+  stateTransitionProver: StateTransitionProofParameters[];
+  transactions: TransactionTrace[];
+}
+
 export interface UnprovenBlockWithPreviousMetadata {
-  block: UnprovenBlock;
+  block: UnprovenBlockWithMetadata;
   lastBlockMetadata?: UnprovenBlockMetadata;
 }
 
@@ -77,6 +84,8 @@ export class BlockProducerModule extends SequencerModule {
     private readonly merkleStore: AsyncMerkleTreeStore,
     @inject("BaseLayer") private readonly baseLayer: BaseLayer,
     @inject("BlockStorage") private readonly blockStorage: BlockStorage,
+    @inject("BlockTreeStore")
+    private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly traceService: TransactionTraceService,
     private readonly blockFlowService: BlockTaskFlowService
   ) {
@@ -89,14 +98,6 @@ export class BlockProducerModule extends SequencerModule {
   ) {
     await block.stateService.mergeIntoParent();
     await block.merkleStore.mergeIntoParent();
-  }
-
-  private createEmptyMetadata(): UnprovenBlockMetadata {
-    return {
-      resultingNetworkState: NetworkState.empty(),
-      resultingStateRoot: RollupMerkleTree.EMPTY_ROOT,
-      blockTransactionsHash: 0n,
-    };
   }
 
   /**
@@ -119,7 +120,7 @@ export class BlockProducerModule extends SequencerModule {
       );
       // Apply state changes to current StateService
       await this.applyStateChanges(
-        unprovenBlocks.map((data) => data.block),
+        unprovenBlocks.map((data) => data.block.block),
         blockMetadata
       );
 
@@ -175,14 +176,13 @@ export class BlockProducerModule extends SequencerModule {
 
   private async produceBlock(
     unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
-  ): Promise<ComputedBlockMetadata> {
-    const blockId =
-      unprovenBlocks[0].block.networkState.block.height.toBigInt();
+  ): Promise<ComputedBlockMetadata | undefined> {
+    const blockId = unprovenBlocks[0].block.block.height.toBigInt();
 
     const block = await this.computeBlock(unprovenBlocks, Number(blockId));
 
     const computedBundles = unprovenBlocks.map((bundle) =>
-      bundle.block.transactionsHash.toString()
+      bundle.block.block.transactionsHash.toString()
     );
 
     return {
@@ -228,48 +228,46 @@ export class BlockProducerModule extends SequencerModule {
       merkleStore: new CachedMerkleTreeStore(this.merkleStore),
     };
 
-    const bundleTracker = new DefaultProvableHashList(Field);
+    const blockTraces: BlockTrace[] = [];
 
-    const traces: TransactionTrace[] = [];
+    const eternalBundleTracker = new DefaultProvableHashList(
+      Field,
+      bundles[0].block.block.fromEternalTransactionsHash
+    );
 
     for (const bundleWithMetadata of bundles) {
-      const bundle = bundleWithMetadata.block;
-      const txs = bundle.transactions;
-      for (const [index, tx] of txs.entries()) {
-        const bundlePosition = BlockTransactionPosition.positionTypeFromIndex(
-          index,
-          txs.length
-        );
+      const block = bundleWithMetadata.block.block;
+      const txs = block.transactions;
 
+      const bundleTracker = new DefaultProvableHashList(Field);
+
+      const transactionTraces: TransactionTrace[] = [];
+
+      for (const [index, tx] of txs.entries()) {
         // eslint-disable-next-line no-await-in-loop
-        const result = await this.traceService.createTrace(
+        const result = await this.traceService.createTransactionTrace(
           tx,
           stateServices,
-          bundle.networkState,
+          block.networkState.during,
           bundleTracker,
-          bundlePosition
+          eternalBundleTracker
         );
 
-        // Here we override the blockprover input networkstate
-        // if it is the first txs of the bundle
-        // (beforeBlock hooks will alter the networkstate in the prover)
-        if (bundlePosition === "FIRST") {
-          const previousMetadata =
-            bundleWithMetadata.lastBlockMetadata ?? this.createEmptyMetadata();
-
-          result.blockProver.executionData.networkState =
-            previousMetadata.resultingNetworkState;
-          result.blockProver.publicInput.networkStateHash =
-            previousMetadata.resultingNetworkState.hash();
-          // We don't set it to runtimeProver.networkState here, because the
-          // runtime consumes the networkstate after the beforeBlock() hook
-        }
-
-        traces.push(result);
+        transactionTraces.push(result);
       }
+
+      // eslint-disable-next-line no-await-in-loop
+      const blockTrace = await this.traceService.createBlockTrace(
+        transactionTraces,
+        stateServices,
+        this.blockTreeStore,
+        Field(bundleWithMetadata.lastBlockMetadata?.stateRoot ??RollupMerkleTree.EMPTY_ROOT),
+        bundleWithMetadata.block
+      );
+      blockTraces.push(blockTrace);
     }
 
-    const proof = await this.blockFlowService.executeFlow(traces, blockId);
+    const proof = await this.blockFlowService.executeFlow(blockTraces, blockId);
 
     return {
       proof,

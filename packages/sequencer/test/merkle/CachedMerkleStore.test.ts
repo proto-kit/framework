@@ -1,4 +1,4 @@
-import { RollupMerkleTree } from "@proto-kit/protocol";
+import { RollupMerkleTree } from "@proto-kit/common";
 import { beforeEach, expect } from "@jest/globals";
 import { Field } from "o1js";
 
