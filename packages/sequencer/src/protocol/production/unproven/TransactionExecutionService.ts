@@ -74,7 +74,7 @@ export interface UnprovenBlockMetadata {
   stateRoot: bigint;
   blockHashRoot: bigint;
   afterNetworkState: NetworkState;
-  blockStateTransitions: StateTransition<unknown>[];
+  blockStateTransitions: UntypedStateTransition[];
   blockHashWitness: BlockHashMerkleTreeWitness;
 }
 
@@ -382,7 +382,9 @@ export class TransactionExecutionService {
       afterNetworkState: resultingNetworkState,
       stateRoot: stateRoot.toBigInt(),
       blockHashRoot: newBlockHashRoot.toBigInt(),
-      blockStateTransitions: stateTransitions,
+      blockStateTransitions: stateTransitions.map((st) =>
+        UntypedStateTransition.fromStateTransition(st)
+      ),
       blockHashWitness,
     };
   }

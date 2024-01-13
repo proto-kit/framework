@@ -28,8 +28,9 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule, InMemoryDatabase,
-  ManualBlockTrigger
+  BlockProducerModule,
+  InMemoryDatabase,
+  ManualBlockTrigger,
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -41,6 +42,7 @@ import { container } from "tsyringe";
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<{
+    Database: typeof InMemoryDatabase;
     Mempool: typeof PrivateMempool;
     LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
     BaseLayer: typeof NoopBaseLayer;
@@ -183,7 +185,7 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
-    let batch = await blockTrigger.produceProven()
+    let batch = await blockTrigger.produceProven();
 
     expect(batch).toBeDefined();
 
@@ -195,7 +197,10 @@ describe("block production", () => {
         "AsyncStateService"
       );
 
-    const unprovenStateService = sequencer.dependencyContainer.resolve<AsyncStateService>("UnprovenStateService")
+    const unprovenStateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "UnprovenStateService"
+      );
 
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
@@ -209,7 +214,9 @@ describe("block production", () => {
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
-    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(UInt64.from(100));
+    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(
+      UInt64.from(100)
+    );
 
     // Check that nonce has been set
     const accountModule = protocol.resolve("AccountStateModule");
@@ -327,11 +334,15 @@ describe("block production", () => {
       expect(block!.transactions[index].status.toBoolean()).toBe(true);
       expect(block!.transactions[index].statusMessage).toBe(undefined);
 
-      const transitions = block!.transactions[index].stateTransitions
+      const transitions = block!.transactions[index].stateTransitions;
 
       const fromBalance = increment * index;
-      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance))
-      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance + increment))
+      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(
+        BigInt(fromBalance)
+      );
+      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(
+        BigInt(fromBalance + increment)
+      );
     });
 
     const batch = await blockTrigger.produceProven();
@@ -357,8 +368,7 @@ describe("block production", () => {
     );
   }, 160_000);
 
-
-  it("Should produce a block with a mix of failing and succeeding transactions", async () => {
+  it("should produce a block with a mix of failing and succeeding transactions", async () => {
     expect.assertions(6);
 
     const pk1 = PrivateKey.random();
@@ -381,12 +391,12 @@ describe("block production", () => {
       })
     );
 
-    const block = await blockTrigger.produceBlock();
+    const [block, batch] = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();
 
-    expect(block!.bundles).toHaveLength(1);
-    expect(block!.bundles[0]).toHaveLength(2);
+    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.bundles[0]).toHaveLength(2);
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
@@ -410,9 +420,7 @@ describe("block production", () => {
     const newState2 = await stateService.getAsync(balancesPath2);
 
     expect(newState2).toBeDefined();
-    expect(UInt64.fromFields(newState2!)).toStrictEqual(
-      UInt64.from(100)
-    );
+    expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
   }, 120_000);
 
   it.skip.each([

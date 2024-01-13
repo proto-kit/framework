@@ -6,6 +6,7 @@ import {
 import {
   UnprovenBlock,
   UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
 } from "../../protocol/production/unproven/TransactionExecutionService";
 import { UnprovenBlockWithPreviousMetadata } from "../../protocol/production/BlockProducerModule";
 
@@ -29,8 +30,19 @@ export class InMemoryBlockStorage
     return this.blocks.length;
   }
 
-  public async getLatestBlock(): Promise<UnprovenBlock | undefined> {
-    return await this.getBlockAt((await this.getCurrentBlockHeight()) - 1);
+  public async getLatestBlock(): Promise<
+    UnprovenBlockWithMetadata | undefined
+  > {
+    const currentHeight = await this.getCurrentBlockHeight();
+    const block = await this.getBlockAt(currentHeight - 1);
+    const metadata = this.metadata[currentHeight - 1];
+    if (block === undefined) {
+      return undefined;
+    }
+    return {
+      block,
+      metadata,
+    };
   }
 
   public async popNewBlocks(
@@ -38,7 +50,6 @@ export class InMemoryBlockStorage
   ): Promise<UnprovenBlockWithPreviousMetadata[]> {
     const slice = this.blocks.slice(this.cursor);
 
-    // eslint-disable-next-line putout/putout
     let metadata: (UnprovenBlockMetadata | undefined)[] = this.metadata.slice(
       Math.max(this.cursor - 1, 0)
     );
@@ -50,7 +61,10 @@ export class InMemoryBlockStorage
       this.cursor = this.blocks.length;
     }
     return slice.map((block, index) => ({
-      block,
+      block: {
+        block,
+        metadata: metadata[index + 1]!,
+      },
       lastBlockMetadata: metadata[index],
     }));
   }
