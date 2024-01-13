@@ -4,6 +4,7 @@ import {
   InMemoryMerkleTreeStorage,
   RollupMerkleTree,
 } from "@proto-kit/common";
+
 import {
   AsyncMerkleTreeStore,
   MerkleTreeNode,

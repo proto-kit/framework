@@ -46,7 +46,7 @@ interface BlockProductionFlowState {
     runtimeProof?: RuntimeProof;
     stProof?: StateTransitionProof;
     blockArguments: BlockProverParameters;
-  }[];
+  }[][];
 
   blockPairings: {
     blockProof?: BlockProof;
@@ -82,13 +82,14 @@ export class BlockTaskFlowService {
       BlockProvingTaskParameters,
       BlockProof
     >,
-    index: number
+    blockIndex: number,
+    transactionIndex: number
   ) {
     const { runtimeProof, stProof, blockArguments } =
-      flow.state.pairings[index];
+      flow.state.pairings[blockIndex][transactionIndex];
 
     if (runtimeProof !== undefined && stProof !== undefined) {
-      log.debug(`Found pairing ${index}`);
+      log.debug(`Found pairing block: ${blockIndex}, tx: ${transactionIndex}`);
 
       await transactionReductionTask.pushInput({
         input1: stProof,
@@ -151,15 +152,16 @@ export class BlockTaskFlowService {
     blockTraces: BlockTrace[],
     batchId: number
   ): Promise<BlockProof> {
-    const transactionTraces = blockTraces.flatMap((x) => x.transactions);
     const flow = this.flowCreator.createFlow<BlockProductionFlowState>(
       `main-${batchId}`,
       {
-        pairings: transactionTraces.map((trace) => ({
-          runtimeProof: undefined,
-          stProof: undefined,
-          blockArguments: trace.blockProver,
-        })),
+        pairings: blockTraces.map((blockTrace) =>
+          blockTrace.transactions.map((trace) => ({
+            runtimeProof: undefined,
+            stProof: undefined,
+            blockArguments: trace.blockProver,
+          }))
+        ),
 
         blockPairings: blockTraces.map((blockTrace) => ({
           blockProof: undefined,
@@ -171,21 +173,22 @@ export class BlockTaskFlowService {
 
     const blockMergingFlow = new ReductionTaskFlow(
       {
-        name: `batch-merge-${batchId}`,
+        name: `block-${batchId}`,
         inputLength: blockTraces.length,
         mappingTask: this.blockProvingTask,
         reductionTask: this.blockReductionTask,
 
         mergableFunction: (a, b) =>
+          // TODO Proper replication of merge logic
           a.publicOutput.stateRoot
             .equals(b.publicInput.stateRoot)
             .and(
-              a.publicOutput.transactionsHash.equals(
-                b.publicInput.transactionsHash
+              a.publicOutput.blockHashRoot.equals(
+                b.publicInput.blockHashRoot
               )
             )
             .and(
-              a.publicInput.networkStateHash.equals(
+              a.publicOutput.networkStateHash.equals(
                 b.publicInput.networkStateHash
               )
             )
@@ -199,6 +202,106 @@ export class BlockTaskFlowService {
 
     return await flow.withFlow<BlockProof>(async () => {
       await flow.forEach(blockTraces, async (blockTrace, blockNumber) => {
+        if (blockTrace.transactions.length > 0) {
+          const transactionMergingFlow = new ReductionTaskFlow(
+            {
+              name: `tx-${batchId}-${blockNumber}`,
+              inputLength: blockTrace.transactions.length,
+              mappingTask: this.transactionProvingTask,
+              reductionTask: this.blockReductionTask,
+
+              mergableFunction: (a, b) =>
+                a.publicOutput.stateRoot
+                  .equals(b.publicInput.stateRoot)
+                  .and(
+                    a.publicOutput.transactionsHash.equals(
+                      b.publicInput.transactionsHash
+                    )
+                  )
+                  .and(
+                    a.publicInput.networkStateHash.equals(
+                      b.publicInput.networkStateHash
+                    )
+                  )
+                  .toBoolean(),
+            },
+            this.flowCreator
+          );
+          transactionMergingFlow.onCompletion(async (blockProof) => {
+            flow.state.blockPairings[blockNumber].blockProof = blockProof;
+            await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
+          });
+
+          // Execute if the block is empty
+          // eslint-disable-next-line unicorn/no-array-method-this-argument
+          await flow.forEach(
+            blockTrace.transactions,
+            async (trace, transactionIndex) => {
+              // Push runtime task
+              await flow.pushTask(
+                this.runtimeProvingTask,
+                trace.runtimeProver,
+                async (result) => {
+                  flow.state.pairings[blockNumber][
+                    transactionIndex
+                  ].runtimeProof = result;
+                  await this.pushPairing(
+                    flow,
+                    transactionMergingFlow,
+                    blockNumber,
+                    transactionIndex
+                  );
+                }
+              );
+
+              const stReductionFlow = this.createSTMergeFlow(
+                `tx-stproof-${batchId}-${blockNumber}-${transactionIndex}`,
+                trace.stateTransitionProver.length
+              );
+              stReductionFlow.onCompletion(async (result) => {
+                flow.state.pairings[blockNumber][transactionIndex].stProof =
+                  result;
+                await this.pushPairing(
+                  flow,
+                  transactionMergingFlow,
+                  blockNumber,
+                  transactionIndex
+                );
+              });
+              await flow.forEach(trace.stateTransitionProver, async (stp) => {
+                await stReductionFlow.pushInput(stp);
+              });
+            }
+          );
+        } else {
+          const piObject = {
+            stateRoot: blockTrace.block.publicInput.stateRoot,
+            networkStateHash: blockTrace.block.publicInput.networkStateHash,
+            transactionsHash: Field(0),
+            blockHashRoot: Field(0),
+            eternalTransactionsHash:
+              blockTrace.block.publicInput.eternalTransactionsHash,
+          };
+          const publicInput = new BlockProverPublicInput(piObject);
+
+          const publicOutput = new BlockProverPublicOutput({
+            ...piObject,
+            blockNumber: blockTrace.block.blockWitness.calculateIndex(),
+            closed: Bool(true),
+          });
+
+          // Provide a dummy prove is this block is empty
+          const proof =
+            new this.protocol.blockProver.zkProgrammable.zkProgram.Proof({
+              publicInput,
+              publicOutput,
+              proof: MOCK_PROOF,
+              maxProofsVerified: 2,
+            });
+          flow.state.blockPairings[blockNumber].blockProof = proof;
+          await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
+        }
+
         // Push block STs
         if (blockTrace.stateTransitionProver[0].stateTransitions.length === 0) {
           // Build a dummy proof in case no STs have been emitted
@@ -227,91 +330,6 @@ export class BlockTaskFlowService {
           await flow.forEach(blockTrace.stateTransitionProver, async (stp) => {
             await blockSTFlow.pushInput(stp);
           });
-        }
-
-        if (blockTrace.transactions.length > 0) {
-          const transactionMergingFlow = new ReductionTaskFlow(
-            {
-              name: `tx-merge-${batchId}-${blockNumber}`,
-              inputLength: blockTrace.transactions.length,
-              mappingTask: this.transactionProvingTask,
-              reductionTask: this.blockReductionTask,
-
-              mergableFunction: (a, b) =>
-                a.publicOutput.stateRoot
-                  .equals(b.publicInput.stateRoot)
-                  .and(
-                    a.publicOutput.transactionsHash.equals(
-                      b.publicInput.transactionsHash
-                    )
-                  )
-                  .and(
-                    a.publicInput.networkStateHash.equals(
-                      b.publicInput.networkStateHash
-                    )
-                  )
-                  .toBoolean(),
-            },
-            this.flowCreator
-          );
-          transactionMergingFlow.onCompletion(async (blockProof) => {
-            flow.state.blockPairings[blockNumber].blockProof = blockProof;
-            await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
-          });
-
-
-          // Execute if the block is empty
-          // eslint-disable-next-line unicorn/no-array-method-this-argument
-          await flow.forEach(blockTrace.transactions, async (trace, index) => {
-            // Push runtime task
-            await flow.pushTask(
-              this.runtimeProvingTask,
-              trace.runtimeProver,
-              async (result) => {
-                flow.state.pairings[index].runtimeProof = result;
-                await this.pushPairing(flow, transactionMergingFlow, index);
-              }
-            );
-
-            const stReductionFlow = this.createSTMergeFlow(
-              `tx-stproof-${batchId}-${blockNumber}-${index}`,
-              trace.stateTransitionProver.length
-            );
-            stReductionFlow.onCompletion(async (result) => {
-              flow.state.pairings[index].stProof = result;
-              await this.pushPairing(flow, transactionMergingFlow, index);
-            });
-            await flow.forEach(trace.stateTransitionProver, async (stp) => {
-              await stReductionFlow.pushInput(stp);
-            });
-          });
-        } else {
-          const piObject = {
-            stateRoot: blockTrace.block.publicInput.stateRoot,
-            networkStateHash: blockTrace.block.publicInput.networkStateHash,
-            transactionsHash: Field(0),
-            blockHashRoot: Field(0),
-            eternalTransactionsHash:
-              blockTrace.block.publicInput.eternalTransactionsHash,
-          };
-          const publicInput = new BlockProverPublicInput(piObject);
-
-          const publicOutput = new BlockProverPublicOutput({
-            ...piObject,
-            blockNumber: blockTrace.block.blockWitness.calculateIndex(),
-            closed: Bool(true),
-          });
-
-          // Provide a dummy prove is this block is empty
-          const proof =
-            new this.protocol.blockProver.zkProgrammable.zkProgram.Proof({
-              publicInput,
-              publicOutput,
-              proof: MOCK_PROOF,
-              maxProofsVerified: 2,
-            });
-          flow.state.blockPairings[blockNumber].blockProof = proof;
-          await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
         }
       });
     });

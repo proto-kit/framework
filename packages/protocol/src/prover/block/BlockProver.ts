@@ -567,15 +567,20 @@ export class BlockProverProgrammable extends ZkProgrammable<
       errors.stateRootNotMatching("proof1.to -> proof2.from")
     );
 
-    // Check transaction list
-    publicInput.transactionsHash.assertEquals(
-      proof1.publicInput.transactionsHash,
-      errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
-    );
-    proof1.publicOutput.transactionsHash.assertEquals(
-      proof2.publicInput.transactionsHash,
-      errors.transactionsHashNotMatching("proof1.to -> proof2.from")
-    );
+    // Check transaction list hash.
+    // Only assert them if these are tx proofs, skip for closed proofs
+    publicInput.transactionsHash
+      .equals(proof1.publicInput.transactionsHash)
+      .or(proof1.publicOutput.closed)
+      .assertTrue(
+        errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
+      );
+    proof1.publicOutput.transactionsHash
+      .equals(proof2.publicInput.transactionsHash)
+      .or(proof1.publicOutput.closed)
+      .assertTrue(
+        errors.transactionsHashNotMatching("proof1.to -> proof2.from")
+      );
 
     // Check networkhash
     publicInput.networkStateHash.assertEquals(

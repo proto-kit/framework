@@ -463,12 +463,16 @@ describe("block production", () => {
     60000
   );
 
-  it.each([
+  it.only.each([
+    [2, 1, 1],
     [1, 2, 1],
-    // [2, 2, 2],
+    [1, 1, 2],
+    [2, 2, 2],
   ])(
     "should produce multiple blocks with multiple batches with multiple transactions",
     async (batches, blocksPerBatch, txsPerBlock) => {
+      log.setLevel("DEBUG");
+
       expect.assertions(2 * batches + 3 * batches * blocksPerBatch);
 
       const sender = PrivateKey.random();
@@ -490,7 +494,7 @@ describe("block production", () => {
                 privateKey: sender,
                 args: [
                   keys[iterationIndex].toPublicKey(),
-                  UInt64.from(increment * iterationIndex),
+                  UInt64.from(increment * (iterationIndex + 1)),
                 ],
                 nonce: iterationIndex,
               })
