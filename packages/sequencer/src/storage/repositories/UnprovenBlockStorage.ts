@@ -1,15 +1,16 @@
 import {
   UnprovenBlock,
-  UnprovenBlockMetadata, UnprovenBlockWithMetadata
+  UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
 } from "../../protocol/production/unproven/TransactionExecutionService";
-import {
-  UnprovenBlockWithPreviousMetadata
-} from "../../protocol/production/BlockProducerModule";
+import { UnprovenBlockWithPreviousMetadata } from "../../protocol/production/BlockProducerModule";
 
 export interface UnprovenBlockQueue {
   pushBlock: (block: UnprovenBlock) => Promise<void>;
   pushMetadata: (metadata: UnprovenBlockMetadata) => Promise<void>;
-  popNewBlocks: (remove: boolean) => Promise<UnprovenBlockWithPreviousMetadata[]>;
+  popNewBlocks: (
+    remove: boolean
+  ) => Promise<UnprovenBlockWithPreviousMetadata[]>;
   getLatestBlock: () => Promise<UnprovenBlockWithMetadata | undefined>;
 }
 

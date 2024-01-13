@@ -14,7 +14,6 @@ export class BlockProverPublicInput extends Struct({
   networkStateHash: Field,
   blockHashRoot: Field,
   eternalTransactionsHash: Field,
-  // closed: Bool,
 }) {}
 
 export class BlockProverPublicOutput extends Struct({

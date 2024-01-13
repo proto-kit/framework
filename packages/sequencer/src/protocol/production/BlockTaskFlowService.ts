@@ -7,15 +7,13 @@ import {
   Protocol,
   ProtocolModulesRecord,
   StateTransitionProof,
-  StateTransitionProverPublicInput,
 } from "@proto-kit/protocol";
 import { log, MOCK_PROOF } from "@proto-kit/common";
 
 import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { Flow, FlowCreator } from "../../worker/flow/Flow";
-import { PairTuple } from "../../helpers/utils";
 
-import type { BlockTrace, TransactionTrace } from "./BlockProducerModule";
+import type { BlockTrace } from "./BlockProducerModule";
 import {
   StateTransitionReductionTask,
   StateTransitionTask,

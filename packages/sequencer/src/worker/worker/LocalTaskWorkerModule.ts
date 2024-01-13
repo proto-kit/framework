@@ -16,9 +16,9 @@ import {
   StateTransitionTask,
 } from "../../protocol/production/tasks/StateTransitionTask";
 import { RuntimeProvingTask } from "../../protocol/production/tasks/RuntimeProvingTask";
+import { NewBlockTask } from "../../protocol/production/tasks/NewBlockTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
-import { NewBlockTask } from "../../protocol/production/tasks/NewBlockTask";
 
 /**
  * This module spins up a worker in the current local node instance.

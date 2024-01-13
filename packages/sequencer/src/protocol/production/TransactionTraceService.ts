@@ -7,7 +7,6 @@ import {
   ProvableHashList,
   ProvableStateTransition,
   ProvableStateTransitionType,
-  StateTransition,
   StateTransitionProverPublicInput,
   StateTransitionType,
 } from "@proto-kit/protocol";
@@ -19,6 +18,7 @@ import { distinctByString } from "../../helpers/utils";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { SyncCachedMerkleTreeStore } from "../../state/merkle/SyncCachedMerkleTreeStore";
+import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 
 import type { TransactionTrace } from "./BlockProducerModule";
 import type {
@@ -28,7 +28,6 @@ import type {
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
 import { BlockTrace } from "./BlockProducerModule";
-import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

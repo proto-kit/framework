@@ -1,5 +1,4 @@
 import { inject } from "tsyringe";
-import { BlockHashMerkleTree, NetworkState } from "@proto-kit/protocol";
 import {
   EventEmitter,
   EventEmittingComponent,
@@ -7,7 +6,6 @@ import {
   log,
   noop,
   requireTrue,
-  RollupMerkleTree,
 } from "@proto-kit/common";
 
 import { Mempool } from "../../../mempool/Mempool";
@@ -19,15 +17,13 @@ import {
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
+import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 
 import {
   TransactionExecutionService,
   UnprovenBlock,
-  UnprovenBlockMetadata,
   UnprovenBlockWithMetadata,
 } from "./TransactionExecutionService";
-import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
-import { Field } from "o1js";
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),

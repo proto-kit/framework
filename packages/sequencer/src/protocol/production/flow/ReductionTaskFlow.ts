@@ -1,25 +1,36 @@
+import { log } from "@proto-kit/common";
+
 import { Flow, FlowCreator } from "../../../worker/flow/Flow";
 import { Task } from "../../../worker/flow/Task";
 import { PairTuple } from "../../../helpers/utils";
-import { log } from "@proto-kit/common";
 
 interface ReductionState<Output> {
   numMergesCompleted: 0;
   queue: Output[];
 }
 
+/**
+ * This class builds and executes a flow that follows the map-reduce pattern.
+ * This works in 2 steps:
+ * 1. Mapping: Execute the mappingTask to transform from Input -> Output
+ * 2. Reduction: Find suitable pairs and merge them [Output, Output] -> Output
+ *
+ * We use this pattern extensively in our pipeline,
+ */
 export class ReductionTaskFlow<Input, Output> {
-  private flow: Flow<ReductionState<Output>>;
+  private readonly flow: Flow<ReductionState<Output>>;
+
+  private started = false;
 
   public constructor(
-    private options: {
+    private readonly options: {
       name: string;
       inputLength: number;
       mappingTask: Task<Input, Output>;
       reductionTask: Task<PairTuple<Output>, Output>;
       mergableFunction: (a: Output, b: Output) => boolean;
     },
-    private flowCreator: FlowCreator
+    private readonly flowCreator: FlowCreator
   ) {
     this.flow = flowCreator.createFlow<ReductionState<Output>>(options.name, {
       numMergesCompleted: 0,
@@ -70,11 +81,11 @@ export class ReductionTaskFlow<Input, Output> {
       options.inputLength - flow.state.numMergesCompleted === 1 &&
       flow.tasksInProgress === 0
     ) {
-      log.info(`${this.options.name}: Resolved successfully`)
+      log.debug(`${options.name}: Resolved successfully`);
       flow.resolve(flow.state.queue[0]);
       return;
     }
-    log.info(`${this.options.name}: Queue length: ${flow.state.queue.length}`)
+    log.trace(`${options.name}: Queue length: ${flow.state.queue.length}`);
 
     if (flow.state.queue.length >= 2) {
       const { availableReductions, touchedIndizes } =
@@ -102,25 +113,43 @@ export class ReductionTaskFlow<Input, Output> {
     }
   }
 
-  private started = false;
-
-  public async execute(inputs: Input[] = []): Promise<Output> {
+  private async initCompletionCallback(
+    callback: (output: Output) => Promise<void>
+  ) {
+    if (this.started) {
+      throw new Error("Flow already started, use pushInput() to add inputs");
+    }
     this.started = true;
-    return await this.flow.withFlow<Output>(async (resolve, reject) => {
-      inputs.forEach((input) => {
-        this.pushInput(input);
-      });
-    });
-  }
-
-  private async initCompletionCallback(callback: (output: Output) => Promise<void>){
-    const result = await this.flow.withFlow<Output>(async (resolve, reject) => {
-    });
+    const result = await this.flow.withFlow<Output>(async () => {});
     await callback(result);
   }
 
+  /**
+   * Execute the flow using a callback method that is invoked upon
+   * completion of the flow.
+   * Push inputs using pushInput()
+   * @param callback
+   */
   public onCompletion(callback: (output: Output) => Promise<void>) {
     void this.initCompletionCallback(callback);
+  }
+
+  /**
+   * Execute the flow using the returned Promise that resolved when
+   * the flow is finished
+   * @param inputs initial inputs - doesnt have to be the complete set of inputs
+   */
+  public async execute(inputs: Input[] = []): Promise<Output> {
+    if (this.started) {
+      throw new Error("Flow already started, use pushInput() to add inputs");
+    }
+    this.started = true;
+    return await this.flow.withFlow<Output>(async () => {
+      // eslint-disable-next-line unicorn/no-array-method-this-argument
+      await this.flow.forEach(inputs, async (input) => {
+        await this.pushInput(input);
+      });
+    });
   }
 
   public async pushInput(input: Input) {

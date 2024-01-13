@@ -6,7 +6,6 @@ import {
   type Proof,
   Provable,
   SelfProof,
-  Struct,
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
@@ -26,14 +25,6 @@ import {
   StateTransitionProverPublicOutput,
 } from "../statetransition/StateTransitionProvable";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
-
-import {
-  BlockProvable,
-  BlockProverExecutionData,
-  BlockProverProof,
-  BlockProverPublicInput,
-  BlockProverPublicOutput,
-} from "./BlockProvable";
 import {
   ProvableStateTransition,
   StateTransition,
@@ -42,6 +33,14 @@ import { ProvableTransactionHook } from "../../protocol/ProvableTransactionHook"
 import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethodExecutionContext";
 import { ProvableBlockHook } from "../../protocol/ProvableBlockHook";
 import { NetworkState } from "../../model/network/NetworkState";
+
+import {
+  BlockProvable,
+  BlockProverExecutionData,
+  BlockProverProof,
+  BlockProverPublicInput,
+  BlockProverPublicOutput,
+} from "./BlockProvable";
 import {
   BlockHashMerkleTreeWitness,
   BlockHashTreeEntry,
@@ -62,7 +61,7 @@ const errors = {
     `transactions hash not matching ${step}`,
 };
 
-// Should be equal to BlockProver.PublicInput and -Output
+// Should be equal to BlockProver.PublicInput
 export interface BlockProverState {
   // The current state root of the block prover
   stateRoot: Field;
@@ -84,7 +83,9 @@ export interface BlockProverState {
   eternalTransactionsHash: Field;
 }
 
-const maxField = () => Field(Field.ORDER - 1n);
+function maxField() {
+  return Field(Field.ORDER - 1n);
+}
 
 export class BlockProverProgrammable extends ZkProgrammable<
   BlockProverPublicInput,

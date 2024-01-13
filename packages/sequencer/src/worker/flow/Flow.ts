@@ -195,7 +195,9 @@ export class Flow<State> implements Closeable {
     // eslint-disable-next-line @typescript-eslint/promise-function-async
     const callback = (returnPayload: TaskPayload) => {
       log.debug(
-        `Completed ${returnPayload.name} @ flow ${returnPayload.flowId}`
+        `Completed ${returnPayload.name}, task: ${returnPayload.flowId}:${
+          returnPayload?.taskId ?? "-"
+        }`
       );
       const decoded = task.resultSerializer().fromJSON(returnPayload.payload);
       this.tasksInProgress -= 1;

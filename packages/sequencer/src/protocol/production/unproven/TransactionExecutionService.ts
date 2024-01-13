@@ -17,6 +17,7 @@ import {
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
   StateServiceProvider,
+  BlockHashTreeEntry,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
@@ -32,12 +33,11 @@ import { CachedStateService } from "../../../state/state/CachedStateService";
 import { distinctByString } from "../../../helpers/utils";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
+import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
+import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import type { StateRecord } from "../BlockProducerModule";
 
 import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
-import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
-import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
-import { BlockHashTreeEntry } from "@proto-kit/protocol/dist/prover/block/acummulators/BlockHashMerkleTree";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -382,10 +382,11 @@ export class TransactionExecutionService {
       afterNetworkState: resultingNetworkState,
       stateRoot: stateRoot.toBigInt(),
       blockHashRoot: newBlockHashRoot.toBigInt(),
+      blockHashWitness,
+
       blockStateTransitions: stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
-      blockHashWitness,
     };
   }
 
