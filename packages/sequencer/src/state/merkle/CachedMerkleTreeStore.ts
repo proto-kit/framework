@@ -69,7 +69,7 @@ export class CachedMerkleTreeStore
         // eslint-disable-next-line no-await-in-loop
         const value = await this.parent.getNodeAsync(key, level);
         if (level === 0) {
-          log.debug(`Preloaded ${key} @ ${level} -> ${value ?? "-"}`);
+          log.trace(`Preloaded ${key} @ ${level} -> ${value ?? "-"}`);
         }
         if (value !== undefined) {
           this.setNode(key, level, value);

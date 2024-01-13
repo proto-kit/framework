@@ -138,11 +138,17 @@ export class UnprovenProducerModule
       return undefined;
     }
 
+    const cachedStateService = new CachedStateService(
+      this.unprovenStateService
+    );
+
     const block = await this.executionService.createUnprovenBlock(
-      this.unprovenStateService,
+      cachedStateService,
       txs,
       metadata
     );
+
+    await cachedStateService.mergeIntoParent();
 
     this.productionInProgress = false;
 
