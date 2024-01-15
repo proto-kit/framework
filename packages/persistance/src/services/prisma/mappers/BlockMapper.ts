@@ -12,9 +12,19 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
     return {
       transactions: [],
 
-      networkState: new NetworkState(
-        NetworkState.fromJSON(input.networkState as any)
-      ),
+      networkState: {
+        before: new NetworkState(
+          NetworkState.fromJSON(input.beforeNetworkState as any)
+        ),
+        during: new NetworkState(
+          NetworkState.fromJSON(input.duringNetworkState as any)
+        )
+      },
+
+      height: Field(input.height),
+      fromEternalTransactionsHash: Field(input.fromEternalTransactionsHash),
+      toEternalTransactionsHash: Field(input.toEternalTransactionsHash),
+      fromBlockHashRoot: Field(input.fromBlockHashRoot),
 
       transactionsHash: Field(input.transactionsHash),
       previousBlockTransactionsHash:
@@ -26,8 +36,13 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
 
   public mapOut(input: UnprovenBlock): Block {
     return {
-      height: Number(input.networkState.block.height.toBigInt()),
-      networkState: NetworkState.toJSON(input.networkState),
+      height: Number(input.height.toBigInt()),
+      beforeNetworkState: NetworkState.toJSON(input.networkState.before),
+      duringNetworkState: NetworkState.toJSON(input.networkState.during),
+      fromEternalTransactionsHash: input.fromEternalTransactionsHash.toString(),
+      toEternalTransactionsHash: input.toEternalTransactionsHash.toString(),
+      fromBlockHashRoot: input.fromBlockHashRoot.toString(),
+
       transactionsHash: input.transactionsHash.toString(),
       parentTransactionsHash: input.previousBlockTransactionsHash?.toString() ?? null,
       batchHeight: null,

@@ -1,25 +1,38 @@
 import { singleton } from "tsyringe";
 import { UnprovenBlockMetadata } from "@proto-kit/sequencer";
 import { UnprovenBlockMetadata as DBUnprovenBlockMetadata } from "@prisma/client";
-import { NetworkState } from "@proto-kit/protocol";
+import { BlockHashMerkleTreeWitness, NetworkState } from "@proto-kit/protocol";
 
 import { ObjectMapper } from "../../../ObjectMapper";
+import { StateTransitionArrayMapper } from "./StateTransitionMapper";
 
 @singleton()
 export class UnprovenBlockMetadataMapper
   implements
     ObjectMapper<
       UnprovenBlockMetadata,
-      Omit<DBUnprovenBlockMetadata, "height">
+      DBUnprovenBlockMetadata
     >
 {
+  public constructor(
+    private readonly stArrayMapper: StateTransitionArrayMapper
+  ) {}
+
   public mapIn(
-    input: Omit<DBUnprovenBlockMetadata, "height">
+    input: DBUnprovenBlockMetadata
   ): UnprovenBlockMetadata {
     return {
-      resultingStateRoot: BigInt(input.resultingStateRoot),
-      resultingNetworkState: new NetworkState(
-        NetworkState.fromJSON(input.resultingNetworkState as any)
+      afterNetworkState: new NetworkState(
+        NetworkState.fromJSON(input.afterNetworkState as any)
+      ),
+
+      stateRoot: BigInt(input.stateRoot),
+      blockHashRoot: BigInt(input.blockHashRoot),
+      blockHashWitness: new BlockHashMerkleTreeWitness(
+        BlockHashMerkleTreeWitness.fromJSON(input.blockHashWitness as any)
+      ),
+      blockStateTransitions: this.stArrayMapper.mapIn(
+        input.blockStateTransitions
       ),
       blockTransactionsHash: BigInt(input.blockTransactionHash),
     };
@@ -27,12 +40,15 @@ export class UnprovenBlockMetadataMapper
 
   public mapOut(
     input: UnprovenBlockMetadata
-  ): Omit<DBUnprovenBlockMetadata, "height"> {
+  ): DBUnprovenBlockMetadata {
     return {
-      resultingStateRoot: input.resultingStateRoot.toString(),
+      stateRoot: input.stateRoot.toString(),
       blockTransactionHash: input.blockTransactionsHash.toString(),
+      blockHashRoot: input.blockHashRoot.toString(),
 
-      resultingNetworkState: NetworkState.toJSON(input.resultingNetworkState),
+      blockHashWitness: BlockHashMerkleTreeWitness.toJSON(input.blockHashWitness),
+      blockStateTransitions: this.stArrayMapper.mapOut(input.blockStateTransitions),
+      afterNetworkState: NetworkState.toJSON(input.afterNetworkState),
     };
   }
 }

@@ -1,12 +1,15 @@
 import {
+  distinctByString,
   HistoricalUnprovenBlockStorage,
   TransactionExecutionResult,
   UnprovenBlock,
   UnprovenBlockMetadata,
   UnprovenBlockQueue,
   UnprovenBlockStorage,
+  UnprovenBlockWithMetadata,
   UnprovenBlockWithPreviousMetadata,
 } from "@proto-kit/sequencer";
+import { filterNonNull, log } from "@proto-kit/common";
 import {
   Prisma,
   TransactionExecutionResult as DBTransactionExecutionResult,
@@ -21,7 +24,6 @@ import {
 } from "./mappers/TransactionMapper";
 import { UnprovenBlockMetadataMapper } from "./mappers/UnprovenBlockMetadataMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
-import { filterNonNull, log } from "@proto-kit/common";
 
 @injectable()
 export class PrismaBlockStorage
@@ -40,7 +42,7 @@ export class PrismaBlockStorage
 
   private async getBlockByQuery(
     where: { height: number } | { transactionsHash: string }
-  ): Promise<UnprovenBlock | undefined> {
+  ): Promise<UnprovenBlockWithMetadata | undefined> {
     const result = await this.connection.client.block.findFirst({
       where,
       include: {
@@ -49,6 +51,7 @@ export class PrismaBlockStorage
             tx: true,
           },
         },
+        metadata: true,
       },
     });
     if (result === null) {
@@ -59,20 +62,27 @@ export class PrismaBlockStorage
         return this.transactionResultMapper.mapIn([txresult, txresult.tx]);
       }
     );
+    if (result.metadata === undefined || result.metadata === null) {
+      throw new Error(`No Metadata has been set for block ${where} yet`);
+    }
+
     return {
-      ...this.blockMapper.mapIn(result),
-      transactions,
+      block: {
+        ...this.blockMapper.mapIn(result),
+        transactions,
+      },
+      metadata: this.blockMetadataMapper.mapIn(result.metadata),
     };
   }
 
   public async getBlockAt(height: number): Promise<UnprovenBlock | undefined> {
-    return await this.getBlockByQuery({ height });
+    return (await this.getBlockByQuery({ height }))?.block;
   }
 
   public async getBlock(
     transactionsHash: string
   ): Promise<UnprovenBlock | undefined> {
-    return await this.getBlockByQuery({ transactionsHash });
+    return (await this.getBlockByQuery({ transactionsHash }))?.block;
   }
 
   public async pushBlock(block: UnprovenBlock): Promise<void> {
@@ -103,7 +113,10 @@ export class PrismaBlockStorage
       this.connection.client.block.create({
         data: {
           ...encodedBlock,
-          networkState: encodedBlock.networkState as Prisma.InputJsonObject,
+          beforeNetworkState:
+            encodedBlock.beforeNetworkState as Prisma.InputJsonObject,
+          duringNetworkState:
+            encodedBlock.duringNetworkState as Prisma.InputJsonObject,
 
           transactions: {
             createMany: {
@@ -133,11 +146,14 @@ export class PrismaBlockStorage
 
     await this.connection.client.unprovenBlockMetadata.create({
       data: {
-        resultingNetworkState:
-          encoded.resultingNetworkState as Prisma.InputJsonValue,
+        afterNetworkState: encoded.afterNetworkState as Prisma.InputJsonValue,
+        blockHashWitness: encoded.blockHashWitness as Prisma.InputJsonValue,
+        blockStateTransitions:
+          encoded.blockStateTransitions as Prisma.InputJsonValue,
 
-        resultingStateRoot: encoded.resultingStateRoot,
+        stateRoot: encoded.stateRoot,
         blockTransactionHash: encoded.blockTransactionHash,
+        blockHashRoot: encoded.blockHashRoot,
       },
     });
   }
@@ -153,7 +169,9 @@ export class PrismaBlockStorage
     return (result?._max.height ?? -1) + 1;
   }
 
-  public async getLatestBlock(): Promise<UnprovenBlock | undefined> {
+  public async getLatestBlock(): Promise<
+    UnprovenBlockWithMetadata | undefined
+  > {
     const latestBlock = await this.connection.client.$queryRaw<
       { transactionsHash: string }[]
     >`SELECT b1."transactionsHash" FROM "Block" b1 
@@ -167,28 +185,6 @@ export class PrismaBlockStorage
     return await this.getBlockByQuery({
       transactionsHash: latestBlock[0].transactionsHash,
     });
-  }
-
-  public async getNewestMetadata(): Promise<UnprovenBlockMetadata | undefined> {
-    const latestBlock = await this.getLatestBlock();
-
-    if (latestBlock === undefined) {
-      return undefined;
-    }
-
-    const result = await this.connection.client.unprovenBlockMetadata.findFirst(
-      {
-        where: {
-          blockTransactionHash: latestBlock.transactionsHash.toString(),
-        },
-      }
-    );
-
-    if (result === null) {
-      return undefined;
-    }
-
-    return this.blockMetadataMapper.mapIn(result);
   }
 
   public async getNewBlocks(): Promise<UnprovenBlockWithPreviousMetadata[]> {
@@ -209,8 +205,12 @@ export class PrismaBlockStorage
     });
 
     const blockHashes = blocks
-      .map((block) => block.parentTransactionsHash)
-      .filter(filterNonNull);
+      .flatMap((block) => [
+        block.parentTransactionsHash,
+        block.transactionsHash,
+      ])
+      .filter(filterNonNull)
+      .filter(distinctByString);
     const metadata =
       await this.connection.client.unprovenBlockMetadata.findMany({
         where: {
@@ -230,14 +230,27 @@ export class PrismaBlockStorage
       decodedBlock.transactions = transactions;
 
       const correspondingMetadata = metadata.find(
+        (candidate) => candidate.blockTransactionHash === block.transactionsHash
+      );
+
+      if (correspondingMetadata === undefined) {
+        throw new Error(
+          `No Metadata has been set for block ${block.transactionsHash} yet`
+        );
+      }
+
+      const parentMetadata = metadata.find(
         (candidate) =>
           candidate.blockTransactionHash === block.parentTransactionsHash
       );
       return {
-        block: decodedBlock,
+        block: {
+          block: decodedBlock,
+          metadata: this.blockMetadataMapper.mapIn(correspondingMetadata),
+        },
         lastBlockMetadata:
-          correspondingMetadata !== undefined
-            ? this.blockMetadataMapper.mapIn(correspondingMetadata)
+          parentMetadata !== undefined
+            ? this.blockMetadataMapper.mapIn(parentMetadata)
             : undefined,
       };
     });

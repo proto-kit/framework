@@ -55,8 +55,12 @@ model TransactionExecutionResult {
 model Block {
   transactionsHash String @id
 
-  networkState Json @db.Json
+  beforeNetworkState Json @db.Json
+  duringNetworkState Json @db.Json
   height Int
+  fromEternalTransactionsHash String
+  toEternalTransactionsHash String
+  fromBlockHashRoot String
 
   parentTransactionsHash String? @unique
   parent Block? @relation("Parent", fields: [parentTransactionsHash], references: [transactionsHash])
@@ -79,8 +83,12 @@ model Batch {
 
 model UnprovenBlockMetadata {
   blockTransactionHash String @id @unique
-  resultingStateRoot String
-  resultingNetworkState Json @db.Json
+
+  stateRoot String
+  blockHashRoot String
+  afterNetworkState Json @db.Json
+  blockStateTransitions Json @db.Json
+  blockHashWitness Json @db.Json
 
   block Block? @relation(fields: [blockTransactionHash], references: [transactionsHash])
 }
