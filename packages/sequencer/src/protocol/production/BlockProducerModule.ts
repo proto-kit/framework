@@ -114,9 +114,7 @@ export class BlockProducerModule extends SequencerModule {
 
     if (blockMetadata !== undefined) {
       log.debug(
-        `Batch produced (${blockMetadata.block.bundles.length} bundles, ${
-          blockMetadata.block.bundles.flat(1).length
-        } txs)`
+        `Batch produced (${blockMetadata.block.bundles.length} bundles)`
       );
       // Apply state changes to current StateService
       await this.applyStateChanges(

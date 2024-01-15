@@ -244,13 +244,6 @@ export class TransactionExecutionService {
       }
     }
 
-    if (executionResults.length === 0) {
-      log.info(
-        "After sequencing, block has no sequencable transactions left, skipping block"
-      );
-      return undefined;
-    }
-
     const previousBlockTransactionsHash =
       lastMetadata.blockTransactionsHash === 0n
         ? undefined

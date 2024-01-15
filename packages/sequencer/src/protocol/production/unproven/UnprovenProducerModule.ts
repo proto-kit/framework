@@ -21,6 +21,7 @@ import {
   UnprovenBlock,
   UnprovenBlockWithMetadata,
 } from "../../../storage/model/UnprovenBlock";
+import { CachedStateService } from "../../../state/state/CachedStateService";
 
 import { TransactionExecutionService } from "./TransactionExecutionService";
 

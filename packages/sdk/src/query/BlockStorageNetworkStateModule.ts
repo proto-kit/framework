@@ -3,6 +3,7 @@ import {
   BlockStorage,
   HistoricalBlockStorage,
   HistoricalUnprovenBlockStorage,
+  NetworkStateTransportModule,
   Sequencer,
   SequencerModulesRecord,
   UnprovenBlockQueue,
@@ -13,9 +14,10 @@ import { NetworkState } from "@proto-kit/protocol";
 import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
-export class BlockStorageNetworkStateModule extends AppChainModule<
-  Record<string, never>
-> {
+export class BlockStorageNetworkStateModule
+  extends AppChainModule<Record<string, never>>
+  implements NetworkStateTransportModule
+{
   public constructor(
     @inject("Sequencer")
     private readonly sequencer: Sequencer<SequencerModulesRecord>
