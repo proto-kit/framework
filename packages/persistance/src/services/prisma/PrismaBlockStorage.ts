@@ -41,7 +41,7 @@ export class PrismaBlockStorage
   ) {}
 
   private async getBlockByQuery(
-    where: { height: number } | { transactionsHash: string }
+    where: { height: number } | { hash: string }
   ): Promise<UnprovenBlockWithMetadata | undefined> {
     const result = await this.connection.client.block.findFirst({
       where,
@@ -80,9 +80,9 @@ export class PrismaBlockStorage
   }
 
   public async getBlock(
-    transactionsHash: string
+    hash: string
   ): Promise<UnprovenBlock | undefined> {
-    return (await this.getBlockByQuery({ transactionsHash }))?.block;
+    return (await this.getBlockByQuery({ hash }))?.block;
   }
 
   public async pushBlock(block: UnprovenBlock): Promise<void> {
@@ -96,7 +96,7 @@ export class PrismaBlockStorage
         const encoded = this.transactionResultMapper.mapOut(tx);
         return {
           ...encoded[0],
-          blockHash: block.transactionsHash.toString(),
+          blockHash: block.hash.toString(),
         };
       }
     );
@@ -152,7 +152,7 @@ export class PrismaBlockStorage
           encoded.blockStateTransitions as Prisma.InputJsonValue,
 
         stateRoot: encoded.stateRoot,
-        blockTransactionHash: encoded.blockTransactionHash,
+        blockHash: encoded.blockHash,
         blockHashRoot: encoded.blockHashRoot,
       },
     });
@@ -173,9 +173,9 @@ export class PrismaBlockStorage
     UnprovenBlockWithMetadata | undefined
   > {
     const latestBlock = await this.connection.client.$queryRaw<
-      { transactionsHash: string }[]
-    >`SELECT b1."transactionsHash" FROM "Block" b1 
-        LEFT JOIN "Block" child ON child."parentTransactionsHash" = b1."transactionsHash"
+      { hash: string }[]
+    >`SELECT b1."hash" FROM "Block" b1 
+        LEFT JOIN "Block" child ON child."parentHash" = b1."hash"
         WHERE child IS NULL LIMIT 1`;
 
     if (latestBlock.length === 0) {
@@ -183,7 +183,7 @@ export class PrismaBlockStorage
     }
 
     return await this.getBlockByQuery({
-      transactionsHash: latestBlock[0].transactionsHash,
+      hash: latestBlock[0].hash,
     });
   }
 
@@ -206,15 +206,15 @@ export class PrismaBlockStorage
 
     const blockHashes = blocks
       .flatMap((block) => [
-        block.parentTransactionsHash,
-        block.transactionsHash,
+        block.parentHash,
+        block.hash,
       ])
       .filter(filterNonNull)
       .filter(distinctByString);
     const metadata =
       await this.connection.client.unprovenBlockMetadata.findMany({
         where: {
-          blockTransactionHash: {
+          blockHash: {
             in: blockHashes,
           },
         },
@@ -230,18 +230,18 @@ export class PrismaBlockStorage
       decodedBlock.transactions = transactions;
 
       const correspondingMetadata = metadata.find(
-        (candidate) => candidate.blockTransactionHash === block.transactionsHash
+        (candidate) => candidate.blockHash === block.hash
       );
 
       if (correspondingMetadata === undefined) {
         throw new Error(
-          `No Metadata has been set for block ${block.transactionsHash} yet`
+          `No Metadata has been set for block ${block.hash} yet`
         );
       }
 
       const parentMetadata = metadata.find(
         (candidate) =>
-          candidate.blockTransactionHash === block.parentTransactionsHash
+          candidate.blockHash === block.parentHash
       );
       return {
         block: {

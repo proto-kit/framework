@@ -22,9 +22,17 @@ export class UnprovenBlockModel {
           statusMessage: tx.statusMessage,
         })
       ),
-      unprovenBlock.transactionsHash.toString()
+      unprovenBlock.transactionsHash.toString(),
+      unprovenBlock.hash.toString(),
+      unprovenBlock.previousBlockHash?.toString()
     );
   }
+
+  @Field()
+  hash: string;
+
+  @Field({ nullable: true })
+  previousBlockHash: string | undefined;
 
   @Field()
   height: number;
@@ -38,11 +46,15 @@ export class UnprovenBlockModel {
   private constructor(
     height: number,
     txs: ComputedBlockTransactionModel[],
-    transactionsHash: string
+    transactionsHash: string,
+    hash: string,
+    previousBlockHash: string | undefined
   ) {
     this.height = height;
     this.txs = txs;
     this.transactionsHash = transactionsHash;
+    this.hash = hash;
+    this.previousBlockHash = previousBlockHash;
   }
 }
 
@@ -60,13 +72,13 @@ export class UnprovenBlockResolver extends GraphqlModule<object> {
   public async block(
     @Arg("height", () => Number, { nullable: true })
     height: number | undefined,
-    @Arg("transactionsHash", () => String, { nullable: true })
-    transactionsHash: string | undefined
+    @Arg("hash", () => String, { nullable: true })
+    hash: string | undefined
   ) {
     let block: UnprovenBlock | undefined;
 
-    if (transactionsHash !== undefined) {
-      block = await this.blockStorage.getBlock(transactionsHash);
+    if (hash !== undefined) {
+      block = await this.blockStorage.getBlock(hash);
     } else {
       const blockHeight =
         height ?? (await this.blockStorage.getCurrentBlockHeight()) - 1;

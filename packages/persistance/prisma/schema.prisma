@@ -48,13 +48,14 @@ model TransactionExecutionResult {
   tx Transaction @relation(fields: [txHash], references: [hash])
   txHash String @id
 
-  block Block @relation(fields: [blockHash], references: [transactionsHash])
+  block Block @relation(fields: [blockHash], references: [hash])
   blockHash String
 }
 
 model Block {
-  transactionsHash String @id
+  hash String @id
 
+  transactionsHash String
   beforeNetworkState Json @db.Json
   duringNetworkState Json @db.Json
   height Int
@@ -62,8 +63,8 @@ model Block {
   toEternalTransactionsHash String
   fromBlockHashRoot String
 
-  parentTransactionsHash String? @unique
-  parent Block? @relation("Parent", fields: [parentTransactionsHash], references: [transactionsHash])
+  parentHash String? @unique
+  parent Block? @relation("Parent", fields: [parentHash], references: [hash])
   successor Block? @relation("Parent")
 
   transactions TransactionExecutionResult[]
@@ -82,7 +83,7 @@ model Batch {
 }
 
 model UnprovenBlockMetadata {
-  blockTransactionHash String @id @unique
+  blockHash String @id @unique
 
   stateRoot String
   blockHashRoot String
@@ -90,5 +91,5 @@ model UnprovenBlockMetadata {
   blockStateTransitions Json @db.Json
   blockHashWitness Json @db.Json
 
-  block Block? @relation(fields: [blockTransactionHash], references: [transactionsHash])
+  block Block? @relation(fields: [blockHash], references: [hash])
 }

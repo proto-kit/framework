@@ -53,12 +53,11 @@ export class ComputedBlockTransactionModel {
 export class ComputedBlockModel {
   public static fromServiceLayerModel(
     { bundles, proof }: ComputedBlock,
-    // eslint-disable-next-line putout/putout
     blocks: (UnprovenBlockModel | undefined)[]
   ): ComputedBlockModel {
     return new ComputedBlockModel(
       bundles.map(
-        (bundle) => blocks.find((block) => block?.transactionsHash === bundle)!
+        (bundle) => blocks.find((block) => block?.hash === bundle)!
       ),
       proof.proof === MOCK_PROOF ? "mock-proof" : JSON.stringify(proof)
     );

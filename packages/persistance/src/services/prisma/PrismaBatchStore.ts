@@ -25,7 +25,7 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
       include: {
         blocks: {
           select: {
-            transactionsHash: true,
+            hash: true,
           },
         },
       },
@@ -35,7 +35,7 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
       return undefined;
     }
 
-    const blocks = batch.blocks.map((block) => block.transactionsHash);
+    const blocks = batch.blocks.map((block) => block.hash);
     return this.batchMapper.mapIn([batch, blocks]);
   }
 
@@ -57,8 +57,8 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
         proof: entity.proof as Prisma.InputJsonValue,
         height,
         blocks: {
-          connect: block.bundles.map((transactionsHash) => ({
-            transactionsHash,
+          connect: block.bundles.map((hash) => ({
+            hash,
           })),
         },
       },

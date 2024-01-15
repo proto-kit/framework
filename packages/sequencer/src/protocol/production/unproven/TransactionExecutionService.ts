@@ -244,10 +244,10 @@ export class TransactionExecutionService {
       }
     }
 
-    const previousBlockTransactionsHash =
-      lastMetadata.blockTransactionsHash === 0n
+    const previousBlockHash =
+      lastMetadata.blockHash === 0n
         ? undefined
-        : Field(lastMetadata.blockTransactionsHash);
+        : Field(lastMetadata.blockHash);
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
@@ -256,19 +256,26 @@ export class TransactionExecutionService {
       return undefined;
     }
 
-    return {
+    const block: Omit<UnprovenBlock, "hash"> = {
       transactions: executionResults,
       transactionsHash: transactionsHashList.commitment,
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash: eternalTransactionsHashList.commitment,
       height: lastBlock.height.add(1),
       fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
-      previousBlockTransactionsHash,
+      previousBlockHash,
 
       networkState: {
         before: new NetworkState(lastMetadata.afterNetworkState),
         during: networkState,
       },
+    };
+
+    const hash = UnprovenBlock.hash(block);
+
+    return {
+      ...block,
+      hash,
     };
   }
 
@@ -304,7 +311,7 @@ export class TransactionExecutionService {
     }
     // In case the diff is empty, we preload key 0 in order to
     // retrieve the root, which we need later
-    if(Object.keys(combinedDiff).length === 0){
+    if (Object.keys(combinedDiff).length === 0) {
       await inMemoryStore.preloadKey(0n);
     }
 
@@ -366,7 +373,7 @@ export class TransactionExecutionService {
       blockStateTransitions: stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
-      blockTransactionsHash: block.transactionsHash.toBigInt(),
+      blockHash: block.hash.toBigInt(),
     };
   }
 

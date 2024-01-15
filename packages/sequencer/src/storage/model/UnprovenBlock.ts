@@ -1,13 +1,13 @@
-import { Bool, Field } from "o1js";
+import { Bool, Field, Poseidon } from "o1js";
 import {
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
   NetworkState,
 } from "@proto-kit/protocol";
+import { RollupMerkleTree } from "@proto-kit/common";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { UntypedStateTransition } from "../../protocol/production/helpers/UntypedStateTransition";
-import { RollupMerkleTree } from "@proto-kit/common";
 
 export interface TransactionExecutionResult {
   tx: PendingTransaction;
@@ -18,6 +18,8 @@ export interface TransactionExecutionResult {
 }
 
 export interface UnprovenBlock {
+  hash: Field;
+
   height: Field;
   networkState: {
     before: NetworkState;
@@ -28,16 +30,27 @@ export interface UnprovenBlock {
   toEternalTransactionsHash: Field;
   fromEternalTransactionsHash: Field;
   fromBlockHashRoot: Field;
-  previousBlockTransactionsHash: Field | undefined;
+  previousBlockHash: Field | undefined;
 }
 
+export const UnprovenBlock = {
+  calculateHash(height: Field, transactionsHash: Field): Field {
+    return Poseidon.hash([height, transactionsHash]);
+  },
+
+  hash(block: Omit<UnprovenBlock, "hash">): Field {
+    return UnprovenBlock.calculateHash(block.height, block.transactionsHash);
+  },
+};
+
 export interface UnprovenBlockMetadata {
+  blockHash: bigint;
+
   stateRoot: bigint;
   blockHashRoot: bigint;
   afterNetworkState: NetworkState;
   blockStateTransitions: UntypedStateTransition[];
   blockHashWitness: BlockHashMerkleTreeWitness;
-  blockTransactionsHash: bigint;
 }
 
 export interface UnprovenBlockWithMetadata {
@@ -49,6 +62,8 @@ export const UnprovenBlockWithMetadata = {
   createEmpty: () =>
     ({
       block: {
+        hash: Field(0),
+
         height: Field(0),
         transactionsHash: Field(0),
         fromEternalTransactionsHash: Field(0),
@@ -59,7 +74,7 @@ export const UnprovenBlockWithMetadata = {
           during: NetworkState.empty(),
         },
         fromBlockHashRoot: Field(BlockHashMerkleTree.EMPTY_ROOT),
-        previousBlockTransactionsHash: undefined,
+        previousBlockHash: undefined,
       },
       metadata: {
         afterNetworkState: NetworkState.empty(),
@@ -67,7 +82,7 @@ export const UnprovenBlockWithMetadata = {
         blockHashRoot: BlockHashMerkleTree.EMPTY_ROOT,
         blockStateTransitions: [],
         blockHashWitness: BlockHashMerkleTree.WITNESS.dummy(),
-        blockTransactionsHash: 0n,
+        blockHash: 0n,
       },
     } satisfies UnprovenBlockWithMetadata),
 };

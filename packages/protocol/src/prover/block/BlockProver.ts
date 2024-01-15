@@ -2,10 +2,10 @@
 import {
   Bool,
   Experimental,
-  Field,
+  Field, Poseidon,
   type Proof,
   Provable,
-  SelfProof,
+  SelfProof
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
@@ -45,6 +45,7 @@ import {
   BlockHashMerkleTreeWitness,
   BlockHashTreeEntry,
 } from "./accummulators/BlockHashMerkleTree";
+import { UnprovenBlock } from "@proto-kit/sequencer";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -532,7 +533,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     state.blockHashRoot = blockWitness.calculateRoot(
       new BlockHashTreeEntry({
-        transactionsHash: state.transactionsHash,
+        // Mirroring UnprovenBlock.hash()
+        blockHash: Poseidon.hash([blockIndex, state.transactionsHash]),
         closed: Bool(true),
       }).hash()
     );

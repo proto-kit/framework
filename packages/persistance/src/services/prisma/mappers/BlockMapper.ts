@@ -21,15 +21,16 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
         )
       },
 
+      hash: Field(input.hash),
       height: Field(input.height),
       fromEternalTransactionsHash: Field(input.fromEternalTransactionsHash),
       toEternalTransactionsHash: Field(input.toEternalTransactionsHash),
       fromBlockHashRoot: Field(input.fromBlockHashRoot),
 
       transactionsHash: Field(input.transactionsHash),
-      previousBlockTransactionsHash:
-        input.parentTransactionsHash !== null
-          ? Field(input.parentTransactionsHash)
+      previousBlockHash:
+        input.parentHash !== null
+          ? Field(input.parentHash)
           : undefined,
     };
   }
@@ -43,8 +44,9 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
       toEternalTransactionsHash: input.toEternalTransactionsHash.toString(),
       fromBlockHashRoot: input.fromBlockHashRoot.toString(),
 
+      hash: input.hash.toString(),
       transactionsHash: input.transactionsHash.toString(),
-      parentTransactionsHash: input.previousBlockTransactionsHash?.toString() ?? null,
+      parentHash: input.previousBlockHash?.toString() ?? null,
       batchHeight: null,
     };
   }

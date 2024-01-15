@@ -20,5 +20,5 @@ export interface UnprovenBlockStorage {
 
 export interface HistoricalUnprovenBlockStorage {
   getBlockAt: (height: number) => Promise<UnprovenBlock | undefined>;
-  getBlock: (transactionsHash: string) => Promise<UnprovenBlock | undefined>;
+  getBlock: (hash: string) => Promise<UnprovenBlock | undefined>;
 }

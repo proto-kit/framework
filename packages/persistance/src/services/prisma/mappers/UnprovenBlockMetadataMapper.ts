@@ -34,7 +34,7 @@ export class UnprovenBlockMetadataMapper
       blockStateTransitions: this.stArrayMapper.mapIn(
         input.blockStateTransitions
       ),
-      blockTransactionsHash: BigInt(input.blockTransactionHash),
+      blockHash: BigInt(input.blockHash),
     };
   }
 
@@ -43,7 +43,7 @@ export class UnprovenBlockMetadataMapper
   ): DBUnprovenBlockMetadata {
     return {
       stateRoot: input.stateRoot.toString(),
-      blockTransactionHash: input.blockTransactionsHash.toString(),
+      blockHash: input.blockHash.toString(),
       blockHashRoot: input.blockHashRoot.toString(),
 
       blockHashWitness: BlockHashMerkleTreeWitness.toJSON(input.blockHashWitness),

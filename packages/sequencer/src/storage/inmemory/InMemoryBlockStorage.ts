@@ -81,10 +81,10 @@ export class InMemoryBlockStorage
   }
 
   public async getBlock(
-    transactionsHash: string
+    hash: string
   ): Promise<UnprovenBlock | undefined> {
     return this.blocks.find(
-      (block) => block.transactionsHash.toString() === transactionsHash
+      (block) => block.hash.toString() === hash
     );
   }
 }
