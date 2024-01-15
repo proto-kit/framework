@@ -244,8 +244,9 @@ export class TransactionExecutionService {
   public async createUnprovenBlock(
     stateService: CachedStateService,
     transactions: PendingTransaction[],
-    lastBlockWithMetadata: UnprovenBlockWithMetadata
-  ): Promise<UnprovenBlock> {
+    lastBlockWithMetadata: UnprovenBlockWithMetadata,
+    allowEmptyBlocks: boolean
+  ): Promise<UnprovenBlock | undefined> {
     const lastMetadata = lastBlockWithMetadata.metadata;
     const lastBlock = lastBlockWithMetadata.block;
     const executionResults: TransactionExecutionResult[] = [];
@@ -288,6 +289,13 @@ export class TransactionExecutionService {
           log.error("Error in inclusion of tx, skipping", error);
         }
       }
+    }
+
+    if (executionResults.length === 0 && !allowEmptyBlocks) {
+      log.info(
+        "After sequencing, block has no sequencable transactions left, skipping block"
+      );
+      return undefined;
     }
 
     return {
@@ -333,6 +341,12 @@ export class TransactionExecutionService {
       // eslint-disable-next-line no-await-in-loop
       await inMemoryStore.preloadKey(BigInt(key));
     }
+    // In case the diff is empty, we preload key 0 in order to
+    // retrieve the root, which we need later
+    if(Object.keys(combinedDiff).length === 0){
+      await inMemoryStore.preloadKey(0n);
+    }
+
     // TODO This can be optimized a lot (we are only interested in the root at this step)
     await blockHashInMemoryStore.preloadKey(block.height.toBigInt());
 

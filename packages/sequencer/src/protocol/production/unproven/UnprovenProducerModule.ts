@@ -145,7 +145,8 @@ export class UnprovenProducerModule
     const block = await this.executionService.createUnprovenBlock(
       cachedStateService,
       txs,
-      metadata
+      metadata,
+      this.allowEmptyBlock()
     );
 
     await cachedStateService.mergeIntoParent();

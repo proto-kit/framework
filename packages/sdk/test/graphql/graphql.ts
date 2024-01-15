@@ -8,16 +8,18 @@ import {
   state,
 } from "@proto-kit/module";
 import {
-  AccountStateModule, BlockHeightHook,
+  AccountStateModule,
+  BlockHeightHook,
   Option,
   State,
   StateMap,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import { Presets, log, sleep } from "@proto-kit/common";
 import {
   AsyncStateService,
-  BlockProducerModule, InMemoryDatabase,
+  BlockProducerModule,
+  InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   NoopBaseLayer,
@@ -25,7 +27,7 @@ import {
   PrivateMempool,
   Sequencer,
   TimedBlockTrigger,
-  UnsignedTransaction
+  UnsignedTransaction,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -33,7 +35,8 @@ import {
   GraphqlServer,
   MempoolResolver,
   NodeStatusResolver,
-  QueryGraphqlModule, UnprovenBlockResolver
+  QueryGraphqlModule,
+  UnprovenBlockResolver,
 } from "@proto-kit/api";
 
 import { AppChain } from "../../src/appChain/AppChain";
@@ -41,9 +44,7 @@ import { StateServiceQueryModule } from "../../src/query/StateServiceQueryModule
 import { InMemorySigner } from "../../src/transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
 import { container } from "tsyringe";
-import {
-  UnprovenProducerModule
-} from "@proto-kit/sequencer/dist/protocol/production/unproven/UnprovenProducerModule";
+import { UnprovenProducerModule } from "@proto-kit/sequencer/dist/protocol/production/unproven/UnprovenProducerModule";
 import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
 import { MessageBoard, Post } from "./Post";
 
@@ -85,34 +86,38 @@ export class Balances extends RuntimeModule<object> {
 
   @runtimeMethod()
   public addBalance(address: PublicKey, balance: UInt64) {
-    const totalSupply = this.totalSupply.get()
+    const totalSupply = this.totalSupply.get();
     this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(balance));
 
-    const previous = this.balances.get(address)
+    const previous = this.balances.get(address);
     this.balances.set(address, previous.orElse(UInt64.zero).add(balance));
   }
 }
 
 export async function startServer() {
-
-  // log.setLevel("DEBUG")
+  log.setLevel("DEBUG");
 
   const appChain = AppChain.from({
     runtime: Runtime.from({
       modules: {
         Balances,
-        MessageBoard
+        MessageBoard,
       },
 
       config: {
         Balances: {},
-        MessageBoard: {}
+        MessageBoard: {},
       },
     }),
 
     protocol: VanillaProtocol.from(
       { AccountStateModule, BlockHeightHook },
-      { AccountStateModule: {}, StateTransitionProver: {}, BlockProver: {}, BlockHeightHook: {} }
+      {
+        AccountStateModule: {},
+        StateTransitionProver: {},
+        BlockProver: {},
+        BlockHeightHook: {},
+      }
     ),
 
     sequencer: Sequencer.from({
@@ -141,7 +146,7 @@ export async function startServer() {
             QueryGraphqlModule: {},
             BlockStorageResolver: {},
             NodeStatusResolver: {},
-            UnprovenBlockResolver: {}
+            UnprovenBlockResolver: {},
           },
         }),
       },
@@ -158,7 +163,7 @@ export async function startServer() {
   appChain.configure({
     Runtime: {
       Balances: {},
-      MessageBoard: {}
+      MessageBoard: {},
     },
 
     Protocol: {
@@ -172,7 +177,7 @@ export async function startServer() {
       GraphqlServer: {
         port: 8080,
         host: "0.0.0.0",
-        graphiql: true
+        graphiql: true,
       },
 
       Graphql: {
@@ -180,7 +185,7 @@ export async function startServer() {
         MempoolResolver: {},
         BlockStorageResolver: {},
         NodeStatusResolver: {},
-        UnprovenBlockResolver: {}
+        UnprovenBlockResolver: {},
       },
 
       Database: {},
@@ -189,7 +194,10 @@ export async function startServer() {
       LocalTaskWorkerModule: {},
       BaseLayer: {},
       TaskQueue: {},
-      UnprovenProducerModule: {},
+
+      UnprovenProducerModule: {
+        allowEmptyBlock: true,
+      },
 
       BlockTrigger: {
         blockInterval: 15000,
@@ -219,16 +227,20 @@ export async function startServer() {
   );
 
   const tx = appChain.transaction(priv.toPublicKey(), () => {
-    balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
-  })
-  appChain.resolve("Signer").config.signer = priv
+    balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+  });
+  appChain.resolve("Signer").config.signer = priv;
   await tx.sign();
   await tx.send();
   // console.log((tx.transaction as PendingTransaction).toJSON())
 
-  const tx2 = appChain.transaction(priv.toPublicKey(), () => {
-    balances.addBalance(priv.toPublicKey(), UInt64.from(1000))
-  }, {nonce: 1})
+  const tx2 = appChain.transaction(
+    priv.toPublicKey(),
+    () => {
+      balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+    },
+    { nonce: 1 }
+  );
   await tx2.sign();
   await tx2.send();
 
@@ -245,7 +257,7 @@ export async function startServer() {
 
   // await sleep(30000);
 
-  return appChain
+  return appChain;
 }
 
 // await startServer();
