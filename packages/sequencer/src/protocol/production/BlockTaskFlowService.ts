@@ -183,20 +183,25 @@ export class BlockTaskFlowService {
           a.publicOutput.stateRoot
             .equals(b.publicInput.stateRoot)
             .and(
-              a.publicOutput.blockHashRoot.equals(
-                b.publicInput.blockHashRoot
-              )
+              a.publicOutput.blockHashRoot.equals(b.publicInput.blockHashRoot)
             )
             .and(
               a.publicOutput.networkStateHash.equals(
                 b.publicInput.networkStateHash
               )
             )
+            .and(
+              a.publicOutput.eternalTransactionsHash.equals(
+                b.publicInput.eternalTransactionsHash
+              )
+            )
+            .and(a.publicOutput.closed.equals(b.publicOutput.closed))
             .toBoolean(),
       },
       this.flowCreator
     );
     blockMergingFlow.onCompletion(async (result) => {
+      log.debug(`Block generation finished, with proof ${result.proof}`); // TODO Remove result logging
       flow.resolve(result);
     });
 
@@ -275,18 +280,21 @@ export class BlockTaskFlowService {
           );
         } else {
           const piObject = {
-            stateRoot: blockTrace.block.publicInput.stateRoot,
+            stateRoot:
+              blockTrace.stateTransitionProver[0].publicInput.stateRoot,
             networkStateHash: blockTrace.block.publicInput.networkStateHash,
             transactionsHash: Field(0),
             blockHashRoot: Field(0),
+
             eternalTransactionsHash:
               blockTrace.block.publicInput.eternalTransactionsHash,
           };
           const publicInput = new BlockProverPublicInput(piObject);
 
+          // TODO Set publicInput.stateRoot to result after block hooks!
           const publicOutput = new BlockProverPublicOutput({
             ...piObject,
-            blockNumber: blockTrace.block.blockWitness.calculateIndex(),
+            blockNumber: Field(Field.ORDER - 1n),
             closed: Bool(true),
           });
 
@@ -316,6 +324,7 @@ export class BlockTaskFlowService {
                 maxProofsVerified: 2,
               }
             );
+          await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
         } else {
           const blockSTFlow = this.createSTMergeFlow(
             `block-stproof-${batchId}-${blockNumber}`,

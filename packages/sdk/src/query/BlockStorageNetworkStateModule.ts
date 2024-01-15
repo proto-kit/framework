@@ -1,5 +1,8 @@
 import { inject, injectable } from "tsyringe";
 import {
+  BlockStorage,
+  HistoricalBlockStorage,
+  HistoricalUnprovenBlockStorage,
   Sequencer,
   SequencerModulesRecord,
   UnprovenBlockQueue,
@@ -26,10 +29,17 @@ export class BlockStorageNetworkStateModule extends AppChainModule<
     );
   }
 
-  private get unprovenStorage(): UnprovenBlockStorage {
-    return this.sequencer.dependencyContainer.resolve<UnprovenBlockStorage>(
-      "UnprovenBlockStorage"
-    );
+  private get unprovenStorage(): UnprovenBlockStorage &
+    HistoricalUnprovenBlockStorage {
+    return this.sequencer.dependencyContainer.resolve<
+      UnprovenBlockStorage & HistoricalUnprovenBlockStorage
+    >("UnprovenBlockStorage");
+  }
+
+  private get provenStorage(): BlockStorage & HistoricalBlockStorage {
+    return this.sequencer.dependencyContainer.resolve<
+      BlockStorage & HistoricalBlockStorage
+    >("BlockStorage");
   }
 
   public async getUnprovenNetworkState(): Promise<NetworkState> {
@@ -47,6 +57,23 @@ export class BlockStorageNetworkStateModule extends AppChainModule<
   }
 
   public async getProvenNetworkState(): Promise<NetworkState> {
+    const batchHeight = await this.provenStorage.getCurrentBlockHeight();
+    const batch = await this.provenStorage.getBlockAt(batchHeight - 1);
+
+    if (batch !== undefined) {
+      const lastBlock = batch.bundles.at(-1);
+      if (lastBlock === undefined) {
+        throw new Error(
+          "Batches shouldn't be able to generate proofs without bundles"
+        );
+      }
+
+      const block = await this.unprovenStorage.getBlock(lastBlock);
+
+      if (block !== undefined) {
+        return block.networkState.during; // TODO Probably metadata.after?
+      }
+    }
     // We currently do not carry networkstate data with proven blocks
     return NetworkState.empty();
   }

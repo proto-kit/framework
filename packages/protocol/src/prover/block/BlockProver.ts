@@ -367,10 +367,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     });
   }
 
-  // public openBlock() {}
-  //
-  // public closeBlock() {}
-
   private assertSTProofInput(
     stateTransitionProof: StateTransitionProof,
     stateRoot: Field

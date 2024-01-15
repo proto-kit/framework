@@ -261,7 +261,7 @@ export class BlockProducerModule extends SequencerModule {
         transactionTraces,
         stateServices,
         this.blockTreeStore,
-        Field(bundleWithMetadata.lastBlockMetadata?.stateRoot ??RollupMerkleTree.EMPTY_ROOT),
+        Field(bundleWithMetadata.lastBlockMetadata?.stateRoot ?? RollupMerkleTree.EMPTY_ROOT),
         bundleWithMetadata.block
       );
       blockTraces.push(blockTrace);

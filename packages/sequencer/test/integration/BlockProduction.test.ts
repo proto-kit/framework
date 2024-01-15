@@ -368,8 +368,8 @@ describe("block production", () => {
     );
   }, 160_000);
 
-  it("should produce a block with a mix of failing and succeeding transactions", async () => {
-    expect.assertions(6);
+  it("should produce a block with a mix of failing and succeeding transactions and empty blocks", async () => {
+    expect.assertions(8);
 
     const pk1 = PrivateKey.random();
     const pk2 = PrivateKey.random();
@@ -391,11 +391,14 @@ describe("block production", () => {
       })
     );
 
-    const [block, batch] = await blockTrigger.produceBlock();
+    const block = await blockTrigger.produceUnproven();
+    const block2 = await blockTrigger.produceUnproven();
+    const batch = await blockTrigger.produceProven();
 
     expect(block).toBeDefined();
 
-    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.bundles).toHaveLength(2);
+    expect(batch!.bundles[1]).toBe("0");
     expect(block!.transactions).toHaveLength(2);
 
     const stateService =
@@ -421,7 +424,13 @@ describe("block production", () => {
 
     expect(newState2).toBeDefined();
     expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
-  }, 120_000);
+
+    const unproven3 = await blockTrigger.produceUnproven();
+    const unproven4 = await blockTrigger.produceUnproven();
+    const proven2 = await blockTrigger.produceProven()
+
+    expect(proven2?.bundles.length).toBe(2);
+  }, 720_000);
 
   it.skip.each([
     [
@@ -463,7 +472,7 @@ describe("block production", () => {
     60000
   );
 
-  it.only.each([
+  it.each([
     [2, 1, 1],
     [1, 2, 1],
     [1, 1, 2],
