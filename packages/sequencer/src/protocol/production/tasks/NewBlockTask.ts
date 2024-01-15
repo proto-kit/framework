@@ -9,8 +9,8 @@ import {
   ReturnType,
   StateTransitionProof,
   StateTransitionProvable,
+  BlockHashMerkleTreeWitness
 } from "@proto-kit/protocol";
-import { BlockHashMerkleTreeWitness } from "@proto-kit/protocol/dist/prover/block/acummulators/BlockHashMerkleTree";
 import { Proof } from "o1js";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
 

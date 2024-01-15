@@ -70,11 +70,11 @@ export class BlockStorageNetworkStateModule
         );
       }
 
-      const block = await this.unprovenStorage.getBlock(lastBlock);
-
-      if (block !== undefined) {
-        return block.networkState.during; // TODO Probably metadata.after?
-      }
+      // const block = await this.unprovenStorage.getBlock(lastBlock);
+      //
+      // if (block !== undefined) {
+      //   return block.networkState.during; // TODO Probably metadata.after?
+      // }
     }
     // We currently do not carry networkstate data with proven blocks
     return NetworkState.empty();
