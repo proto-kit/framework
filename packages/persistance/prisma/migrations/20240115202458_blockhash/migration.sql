@@ -48,12 +48,18 @@ CREATE TABLE "TransactionExecutionResult" (
 
 -- CreateTable
 CREATE TABLE "Block" (
+    "hash" TEXT NOT NULL,
     "transactionsHash" TEXT NOT NULL,
-    "networkState" JSON NOT NULL,
+    "beforeNetworkState" JSON NOT NULL,
+    "duringNetworkState" JSON NOT NULL,
     "height" INTEGER NOT NULL,
+    "fromEternalTransactionsHash" TEXT NOT NULL,
+    "toEternalTransactionsHash" TEXT NOT NULL,
+    "fromBlockHashRoot" TEXT NOT NULL,
+    "parentHash" TEXT,
     "batchHeight" INTEGER,
 
-    CONSTRAINT "Block_pkey" PRIMARY KEY ("transactionsHash")
+    CONSTRAINT "Block_pkey" PRIMARY KEY ("hash")
 );
 
 -- CreateTable
@@ -66,18 +72,33 @@ CREATE TABLE "Batch" (
 
 -- CreateTable
 CREATE TABLE "UnprovenBlockMetadata" (
-    "height" INTEGER NOT NULL,
-    "resultingStateRoot" TEXT NOT NULL,
-    "resultingNetworkState" JSON NOT NULL,
+    "blockHash" TEXT NOT NULL,
+    "stateRoot" TEXT NOT NULL,
+    "blockHashRoot" TEXT NOT NULL,
+    "afterNetworkState" JSON NOT NULL,
+    "blockStateTransitions" JSON NOT NULL,
+    "blockHashWitness" JSON NOT NULL,
 
-    CONSTRAINT "UnprovenBlockMetadata_pkey" PRIMARY KEY ("height")
+    CONSTRAINT "UnprovenBlockMetadata_pkey" PRIMARY KEY ("blockHash")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Block_parentHash_key" ON "Block"("parentHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UnprovenBlockMetadata_blockHash_key" ON "UnprovenBlockMetadata"("blockHash");
 
 -- AddForeignKey
 ALTER TABLE "TransactionExecutionResult" ADD CONSTRAINT "TransactionExecutionResult_txHash_fkey" FOREIGN KEY ("txHash") REFERENCES "Transaction"("hash") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TransactionExecutionResult" ADD CONSTRAINT "TransactionExecutionResult_blockHash_fkey" FOREIGN KEY ("blockHash") REFERENCES "Block"("transactionsHash") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TransactionExecutionResult" ADD CONSTRAINT "TransactionExecutionResult_blockHash_fkey" FOREIGN KEY ("blockHash") REFERENCES "Block"("hash") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Block" ADD CONSTRAINT "Block_parentHash_fkey" FOREIGN KEY ("parentHash") REFERENCES "Block"("hash") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Block" ADD CONSTRAINT "Block_batchHeight_fkey" FOREIGN KEY ("batchHeight") REFERENCES "Batch"("height") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UnprovenBlockMetadata" ADD CONSTRAINT "UnprovenBlockMetadata_blockHash_fkey" FOREIGN KEY ("blockHash") REFERENCES "Block"("hash") ON DELETE RESTRICT ON UPDATE CASCADE;

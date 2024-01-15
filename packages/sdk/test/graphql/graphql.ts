@@ -47,6 +47,8 @@ import { container } from "tsyringe";
 import { UnprovenProducerModule } from "@proto-kit/sequencer/dist/protocol/production/unproven/UnprovenProducerModule";
 import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
 import { MessageBoard, Post } from "./Post";
+import { PrismaDatabaseConnection } from "@proto-kit/persistance";
+import { RedisConnection } from "@proto-kit/persistance/dist/RedisConnection";
 
 log.setLevel(log.levels.INFO);
 
@@ -122,7 +124,10 @@ export async function startServer() {
 
     sequencer: Sequencer.from({
       modules: {
-        Database: InMemoryDatabase,
+        // Database: InMemoryDatabase,
+        Database: PrismaDatabaseConnection,
+        Redis: RedisConnection,
+
         Mempool: PrivateMempool,
         GraphqlServer,
         LocalTaskWorkerModule,
@@ -189,6 +194,11 @@ export async function startServer() {
       },
 
       Database: {},
+      Redis: {
+        url: "redis://localhost:6379",
+        password: "password",
+      },
+
       Mempool: {},
       BlockProducerModule: {},
       LocalTaskWorkerModule: {},

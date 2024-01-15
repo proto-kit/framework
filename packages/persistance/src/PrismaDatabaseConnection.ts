@@ -39,7 +39,7 @@ export class PrismaDatabaseConnection
 
   public dependencies(): Omit<
     StorageDependencyMinimumDependencies,
-    "asyncMerkleStore" | "unprovenMerkleStore"
+    "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
   > {
     return {
       asyncStateService: {
@@ -56,7 +56,7 @@ export class PrismaDatabaseConnection
       },
       unprovenStateService: {
         useFactory: () => new PrismaStateService(this, "block"),
-      },
+      }
     };
   }
 

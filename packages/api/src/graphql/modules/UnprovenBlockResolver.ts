@@ -31,7 +31,7 @@ export class UnprovenBlockModel {
   @Field()
   hash: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   previousBlockHash: string | undefined;
 
   @Field()

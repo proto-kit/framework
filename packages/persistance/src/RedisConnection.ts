@@ -29,7 +29,7 @@ export class RedisConnection
 
   public dependencies(): Pick<
     StorageDependencyMinimumDependencies,
-    "asyncMerkleStore" | "unprovenMerkleStore"
+    "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
   > {
     return {
       asyncMerkleStore: {
@@ -37,6 +37,9 @@ export class RedisConnection
       },
       unprovenMerkleStore: {
         useFactory: () => new RedisMerkleTreeStore(this, "unproven"),
+      },
+      blockTreeStore: {
+        useFactory: () => new RedisMerkleTreeStore(this, "blockHash"),
       },
     };
   }
