@@ -15,7 +15,8 @@ import {
   StateTransition,
   BlockTransactionPosition,
   BlockTransactionPositionType,
-  ProvableBlockHook, StateServiceProvider
+  ProvableBlockHook,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
@@ -123,7 +124,7 @@ export class TransactionExecutionService {
       module,
       methodName
     );
-    const args = parameterDecoder.fromFields(tx.args);
+    const args = parameterDecoder.fromJSON(tx.argsJSON);
 
     return {
       method,

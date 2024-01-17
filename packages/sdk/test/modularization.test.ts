@@ -6,7 +6,7 @@ import {
   RuntimeModule,
 } from "@proto-kit/module";
 import { ChildContainerProvider, log } from "@proto-kit/common";
-import { AppChain, AppChainModule } from "../../src";
+import { AppChain, AppChainModule } from "../src";
 import { Protocol, ProtocolModule, VanillaProtocol } from "@proto-kit/protocol";
 import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
 
@@ -52,8 +52,6 @@ class TestAppChainModule extends AppChainModule<object> {
   }
 }
 
-log.setLevel(log.levels.DEBUG);
-
 describe("modularization", () => {
   it("should initialize all modules correctly", async () => {
     const appChain = AppChain.from({
@@ -61,29 +59,30 @@ describe("modularization", () => {
         modules: {
           TestRuntimeModule,
         },
-        config: {
-          TestRuntimeModule: {},
-        },
       }),
-      protocol: VanillaProtocol.from(
-        {
-          TestProtocolModule,
-        },
-        {
-          TestProtocolModule: {},
-          BlockProver: {},
-          StateTransitionProver: {},
-        }
-      ),
+      protocol: VanillaProtocol.from({
+        TestProtocolModule,
+      }),
       sequencer: Sequencer.from({
         modules: {
           TestSequencerModule,
         },
-        config: {
-          TestSequencerModule: {},
-        },
       }),
       modules: {},
+    });
+
+    appChain.configurePartial({
+      Runtime: {
+        TestRuntimeModule: {},
+      },
+      Protocol: {
+        TestProtocolModule: {},
+        BlockProver: {},
+        StateTransitionProver: {},
+      },
+      Sequencer: {
+        TestSequencerModule: {},
+      },
     });
 
     await appChain.start();

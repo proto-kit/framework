@@ -1,5 +1,5 @@
 {
-  "name": "@proto-kit/api",
+  "name": "@proto-kit/cli",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -12,36 +12,46 @@
     "test": "npm run test:file -- ./src/** ./test/**",
     "test:watch": "npm run test:file -- ./src/** ./test/** --watch"
   },
-  "main": "dist/index.js",
   "publishConfig": {
     "access": "public"
   },
+  "bin": {
+    "protokit": "dist/src/cli.js"
+  },
+  "main": "dist/src/index.js",
   "dependencies": {
-    "@graphql-tools/stitch": "^9.0.3",
-    "@types/humanize-duration": "^3.27.2",
-    "class-validator": "^0.14.0",
-    "graphql": "16.6.0",
-    "graphql-scalars": "^1.22.4",
-    "humanize-duration": "^3.30.0",
-    "lodash": "^4.17.21",
-    "koa": "^2.14.2",
+    "@inkjs/ui": "^1.0.0",
+    "@types/yargs": "^17.0.29",
+    "figlet": "^1.7.0",
+    "ink": "^4.4.1",
+    "ink-ascii": "^0.0.4",
+    "react": "^18.2.0",
     "reflect-metadata": "^0.1.13",
-    "type-graphql": "2.0.0-beta.1",
-    "graphql-yoga": "^5.0.0"
+    "yargs": "^17.7.2"
   },
   "peerDependencies": {
+    "@proto-kit/api": "*",
     "@proto-kit/common": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
+    "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
-    "o1js": "0.13.1",
-    "tsyringe": "^4.7.0"
+    "o1js": "0.13.1"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
-    "@types/lodash": "^4.14.194",
-    "@types/koa": "^2.13.10",
-    "@types/ws": "^8.5.4"
+    "@proto-kit/api": "*",
+    "@proto-kit/common": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/protocol": "*",
+    "@proto-kit/sdk": "*",
+    "@proto-kit/sequencer": "*",
+    "@types/figlet": "^1.5.7",
+    "@types/ink": "^2.0.3",
+    "@types/node": "^20.8.10",
+    "@types/react": "^18.2.34",
+    "@types/ws": "^8.5.4",
+    "o1js": "0.13.1"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }

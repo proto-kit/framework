@@ -1,8 +1,12 @@
+/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
+  ProofTypes,
+  ToFieldableStatic,
+  ToJSONableStatic,
   TypedClass,
 } from "@proto-kit/common";
 import {
@@ -10,6 +14,7 @@ import {
   RuntimeModule,
   RuntimeModulesRecord,
   MethodIdResolver,
+  MethodIdFactory,
 } from "@proto-kit/module";
 import {
   NetworkStateQuery,
@@ -29,10 +34,11 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
+  AccountStateModule,
   StateServiceProvider,
 } from "@proto-kit/protocol";
+import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
-import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { Signer } from "../transaction/InMemorySigner";
@@ -164,8 +170,8 @@ export class AppChain<
     > = {
       modules: {
         Runtime: definition.runtime,
-        Sequencer: definition.sequencer,
         Protocol: definition.protocol,
+        Sequencer: definition.sequencer,
         ...definition.modules,
       },
 
@@ -230,30 +236,12 @@ export class AppChain<
     return this.resolve("Protocol");
   }
 
-  public configureAll(
-    config: AppChainConfig<
-      RuntimeModules,
-      ProtocolModules,
-      SequencerModules,
-      AppChainModules
-    >
-  ): void {
-    this.runtime.configure(config.runtime);
-    this.sequencer.configure(config.sequencer);
-    this.protocol.configure(config.protocol);
-    this.configure({
-      Runtime: {},
-      Sequencer: {},
-      Protocol: {},
-      ...config.appChain,
-    } as Parameters<typeof this.configure>[0]);
-  }
-
-  public transaction(
+  // eslint-disable-next-line max-statements, sonarjs/cognitive-complexity
+  public async transaction(
     sender: PublicKey,
     callback: () => void,
     options?: { nonce?: number }
-  ): AppChainTransaction {
+  ): Promise<AppChainTransaction> {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -291,10 +279,15 @@ export class AppChain<
     }
 
     // forgive me, i'll fix this type issue soon
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const runtimeModule = this.runtime.resolve(moduleName as any);
 
     // find types of args for the runtime method thats being called
-    const parameterTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const parameterTypes:
+      | ProofTypes[]
+      | ToFieldableStatic[]
+      | ToJSONableStatic[] = Reflect.getMetadata(
       "design:paramtypes",
       runtimeModule,
       methodName
@@ -304,9 +297,43 @@ export class AppChain<
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((argument, index) =>
-      parameterTypes[index].toFields(argument)
-    );
+    const argsFields = args.flatMap((argument, index) => {
+      if (argument instanceof Proof) {
+        const argumentType = parameterTypes[index] as ProofTypes;
+
+        const publicOutputType = argumentType?.publicOutputType;
+
+        const publicInputType = argumentType?.publicInputType;
+
+        const inputFields =
+          publicInputType?.toFields(argument.publicInput) ?? [];
+
+        const outputFields =
+          publicOutputType?.toFields(argument.publicOutput) ?? [];
+
+        return [...inputFields, ...outputFields];
+      }
+
+      const argumentType = parameterTypes[index] as ToFieldableStatic;
+      return argumentType.toFields(argument);
+    });
+
+    const argsJSON = args.map((argument, index) => {
+      if (argument instanceof Proof) {
+        return JSON.stringify(argument.toJSON());
+      }
+
+      const argumentType = parameterTypes[index] as ToJSONableStatic;
+      return JSON.stringify(argumentType.toJSON(argument));
+    });
+
+    const nonce = options?.nonce
+      ? UInt64.from(options.nonce)
+      : ((
+          await (this.query.protocol.AccountState as any).accountState.get(
+            sender
+          )
+        )?.nonce as UInt64 | undefined) ?? UInt64.from(0);
 
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
@@ -315,8 +342,9 @@ export class AppChain<
           .getMethodId(moduleName, methodName)
       ),
 
-      args: argsFields,
-      nonce: UInt64.from(options?.nonce ?? 0),
+      argsFields,
+      argsJSON,
+      nonce,
       sender,
     });
 
@@ -355,6 +383,9 @@ export class AppChain<
     // this.registerValue({
     //   StateTransitionWitnessProviderReference: reference,
     // });
+
+    // console.log("creating sequencer");
+    // this.sequencer.create(() => this.container);
 
     // this.runtime.start();
     await this.sequencer.start();

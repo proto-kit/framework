@@ -17,7 +17,6 @@ import {
   GraphQLOutputType,
 } from "graphql/type";
 import {
-  FromFieldClass,
   MethodParameterDecoder,
   Runtime,
   RuntimeModulesRecord,
@@ -29,7 +28,8 @@ import {
   State,
   StateMap,
 } from "@proto-kit/protocol";
-import { Field, FlexibleProvablePure } from "o1js";
+import { Field, FlexibleProvablePure, ProvableExtended } from "o1js";
+
 import {
   Query,
   QueryBuilderFactory,
@@ -190,13 +190,12 @@ export class QueryGraphqlModule<
   ): GraphQLScalarType | ObjectType {
     // This is a temporary workaround until transport-layer has been
     // switched to json
-    const valueType = type as FlexibleProvablePure<ProvableType> &
-      FromFieldClass &
-      ProvableExtension<any>;
+    const valueType = type as ProvableExtended<unknown>;
     const valueFieldLength = MethodParameterDecoder.fieldSize(valueType);
 
     const dummyValue = valueType.fromFields(
-      range(0, valueFieldLength).map(() => Field(0))
+      range(0, valueFieldLength).map(() => Field(0)),
+      []
     );
     const json = valueType.toJSON(dummyValue);
 
@@ -234,7 +233,7 @@ export class QueryGraphqlModule<
 
       resolve: async (source, args: { key: any }) => {
         try {
-          if(args.key === undefined){
+          if (args.key === undefined) {
             throw new Error("Specifying a key is mandatory");
           }
 

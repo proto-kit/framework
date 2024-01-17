@@ -265,7 +265,6 @@ export class BlockProducerModule extends SequencerModule {
     }
 
     const proof = await this.blockFlowService.executeFlow(traces, blockId);
-
     return {
       proof,
       stateService: stateServices.stateService,
