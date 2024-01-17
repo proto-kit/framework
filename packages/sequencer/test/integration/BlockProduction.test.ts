@@ -8,15 +8,16 @@ import { AppChain } from "@proto-kit/sdk";
 import { Fieldable, Runtime, MethodIdResolver } from "@proto-kit/module";
 import {
   AccountState,
-  AccountStateModule, BlockHeightHook,
+  AccountStateHook,
+  BlockHeightHook,
   BlockProver,
   Option,
   Path,
   Protocol,
   StateTransition,
   StateTransitionProver,
-  VanillaProtocol
 } from "@proto-kit/protocol";
+import { VanillaProtocol } from "@proto-kit/library";
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
 import { log, range } from "@proto-kit/common";
 
@@ -26,8 +27,9 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule, InMemoryDatabase,
-  ManualBlockTrigger
+  BlockProducerModule,
+  InMemoryDatabase,
+  ManualBlockTrigger,
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -49,7 +51,7 @@ describe("block production", () => {
   }>;
 
   let protocol: Protocol<{
-    AccountStateModule: typeof AccountStateModule;
+    AccountStateHook: typeof AccountStateHook;
     BlockHeightHook: typeof BlockHeightHook;
     BlockProver: typeof BlockProver;
     StateTransitionProver: typeof StateTransitionProver;
@@ -88,10 +90,10 @@ describe("block production", () => {
       },
     });
 
-    const protocolClass = VanillaProtocol.from(
-      { AccountStateModule, BlockHeightHook },
-      { StateTransitionProver: {}, BlockProver: {}, AccountStateModule: {}, BlockHeightHook: {} }
-    );
+    const protocolClass = VanillaProtocol.from({
+      AccountStateHook,
+      BlockHeightHook,
+    });
 
     const app = AppChain.from({
       runtime: runtimeClass,
@@ -115,10 +117,10 @@ describe("block production", () => {
         Balance: {},
       },
       Protocol: {
-        AccountStateModule: {},
+        AccountStateHook: {},
         BlockProver: {},
         StateTransitionProver: {},
-        BlockHeightHook: {}
+        BlockHeightHook: {},
       },
     });
 
@@ -176,7 +178,7 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
-    let batch = await blockTrigger.produceProven()
+    let batch = await blockTrigger.produceProven();
 
     expect(batch).toBeDefined();
 
@@ -188,7 +190,10 @@ describe("block production", () => {
         "AsyncStateService"
       );
 
-    const unprovenStateService = sequencer.dependencyContainer.resolve<AsyncStateService>("UnprovenStateService")
+    const unprovenStateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "UnprovenStateService"
+      );
 
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
@@ -202,10 +207,12 @@ describe("block production", () => {
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
-    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(UInt64.from(100));
+    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(
+      UInt64.from(100)
+    );
 
     // Check that nonce has been set
-    const accountModule = protocol.resolve("AccountStateModule");
+    const accountModule = protocol.resolve("AccountStateHook");
     const accountStatePath = Path.fromKey(
       accountModule.accountState.path!,
       accountModule.accountState.keyType,
@@ -320,11 +327,15 @@ describe("block production", () => {
       expect(block!.transactions[index].status.toBoolean()).toBe(true);
       expect(block!.transactions[index].statusMessage).toBe(undefined);
 
-      const transitions = block!.transactions[index].stateTransitions
+      const transitions = block!.transactions[index].stateTransitions;
 
       const fromBalance = increment * index;
-      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance))
-      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance + increment))
+      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(
+        BigInt(fromBalance)
+      );
+      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(
+        BigInt(fromBalance + increment)
+      );
     });
 
     const batch = await blockTrigger.produceProven();

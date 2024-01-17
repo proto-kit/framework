@@ -9,13 +9,13 @@ import {
   state,
 } from "@proto-kit/module";
 import {
-  AccountStateModule,
+  AccountStateHook,
   Option,
   ReturnType,
   State,
   StateMap,
-  VanillaProtocol,
 } from "@proto-kit/protocol";
+import { VanillaProtocol } from "@proto-kit/library";
 import { Presets, log, sleep } from "@proto-kit/common";
 import {
   AsyncStateService,
@@ -93,6 +93,7 @@ function prepare() {
       AccountState: {},
       BlockProver: {},
       StateTransitionProver: {},
+      BlockHeight: {},
     },
 
     Sequencer: {

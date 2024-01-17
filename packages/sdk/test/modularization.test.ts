@@ -7,7 +7,8 @@ import {
 } from "@proto-kit/module";
 import { ChildContainerProvider, log } from "@proto-kit/common";
 import { AppChain, AppChainModule } from "../src";
-import { Protocol, ProtocolModule, VanillaProtocol } from "@proto-kit/protocol";
+import { Protocol, ProtocolModule } from "@proto-kit/protocol";
+import { VanillaProtocol } from "@proto-kit/library";
 import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
 
 class TestRuntimeModule extends RuntimeModule<object> {

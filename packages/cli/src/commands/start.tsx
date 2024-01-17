@@ -9,13 +9,8 @@ import {
   RuntimeModulesRecord,
   state,
 } from "@proto-kit/module";
-import {
-  AccountStateModule,
-  Option,
-  State,
-  StateMap,
-  VanillaProtocol,
-} from "@proto-kit/protocol";
+import { AccountStateHook, Option, State, StateMap } from "@proto-kit/protocol";
+import { VanillaProtocol } from "@proto-kit/library";
 import { Presets, log, TypedClass } from "@proto-kit/common";
 import {
   AsyncStateService,

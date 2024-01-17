@@ -28,13 +28,13 @@ import {
   UnsignedTransaction,
 } from "../../../src";
 import {
-  AccountStateModule,
+  AccountStateHook,
   BlockProver,
   Path,
   Protocol,
   StateTransitionProver,
-  VanillaProtocol,
 } from "@proto-kit/protocol";
+import { VanillaProtocol } from "@proto-kit/library";
 import { Balance } from "../mocks/Balance";
 
 log.setLevel(log.levels.DEBUG);
@@ -50,7 +50,7 @@ describe("TST", () => {
   }>;
 
   let protocol: Protocol<{
-    // AccountStateModule: typeof AccountStateModule;
+    // AccountStateHook: typeof AccountStateHook;
     BlockProver: typeof BlockProver;
     StateTransitionProver: typeof StateTransitionProver;
   }>;

@@ -4,7 +4,7 @@ import {
   StateServiceProvider,
 } from "@proto-kit/protocol";
 
-import { TestingAppChain } from "@proto-kit/sdk";
+import { TestingAppChain } from "../../src/appChain/TestingAppChain";
 
 import { Balances } from "./Balances";
 import { MockAsyncMerkleTreeStore, RollupMerkleTree } from "@proto-kit/common";

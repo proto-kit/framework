@@ -19,7 +19,7 @@ import {
 } from "@proto-kit/common";
 import ZkProgram = Experimental.ZkProgram;
 import { UnsignedTransaction } from "@proto-kit/sequencer";
-import { AccountStateModule } from "../src/blockmodules/AccountStateModule";
+import { AccountStateHook } from "../src/blockmodules/AccountStateHook";
 import { container } from "tsyringe";
 import {
   BlockModule,
@@ -87,7 +87,7 @@ describe("blockProver", () => {
       StateTransitionProver: StateTransitionProver,
       BlockProver: BlockProver,
     },
-    blockModules: [AccountStateModule],
+    blockModules: [AccountStateHook],
   });
 
   beforeEach(() => {

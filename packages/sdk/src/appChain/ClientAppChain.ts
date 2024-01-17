@@ -5,13 +5,14 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
-  AccountStateModule,
+  AccountStateHook,
   BlockProver,
   Protocol,
+  ProtocolModulesRecord,
   StateServiceProvider,
   StateTransitionProver,
-  VanillaProtocol,
 } from "@proto-kit/protocol";
+import { VanillaProtocol } from "@proto-kit/library";
 import {
   PrivateMempool,
   Sequencer,
@@ -34,17 +35,11 @@ import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSen
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 import { container } from "tsyringe";
 
-type TestAppChainProtocolModules = {
-  StateTransitionProver: typeof StateTransitionProver;
-  BlockProver: typeof BlockProver;
-  AccountState: typeof AccountStateModule;
-};
-
 export class ClientAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
-  TestAppChainProtocolModules,
+  ProtocolModulesRecord,
   SequencerModulesRecord,
   AppChainModulesRecord
 > {
@@ -78,6 +73,7 @@ export class ClientAppChain<
         BlockProver: {},
         StateTransitionProver: {},
         AccountState: {},
+        BlockHeight: {},
       },
 
       Signer: {},

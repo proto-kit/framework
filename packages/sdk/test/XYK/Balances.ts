@@ -1,6 +1,11 @@
 /* eslint-disable import/no-unused-modules */
 /* eslint-disable max-classes-per-file */
 import {
+  EventEmitter,
+  EventEmittingComponent,
+  EventsRecord,
+} from "@proto-kit/common";
+import {
   RuntimeModule,
   runtimeMethod,
   state,
@@ -25,12 +30,21 @@ export class BalancesKey extends Struct({
 
 export class Balance extends UInt64 {}
 
+export interface BalancesEvents extends EventsRecord {
+  setBalance: [BalancesKey, Balance];
+}
+
 @runtimeModule()
-export class Balances extends RuntimeModule<unknown> {
+export class Balances
+  extends RuntimeModule<unknown>
+  implements EventEmittingComponent<BalancesEvents>
+{
   @state() public balances = StateMap.from<BalancesKey, Balance>(
     BalancesKey,
     Balance
   );
+
+  public events = new EventEmitter<BalancesEvents>();
 
   public getBalance(tokenId: TokenId, address: PublicKey): Balance {
     const key = new BalancesKey({ tokenId, address });
@@ -46,6 +60,7 @@ export class Balances extends RuntimeModule<unknown> {
 
   public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
     const key = new BalancesKey({ tokenId, address });
+    this.events.emit("setBalance", key, amount);
     this.balances.set(key, amount);
   }
 

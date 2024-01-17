@@ -34,7 +34,7 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
-  AccountStateModule,
+  AccountStateHook,
   StateServiceProvider,
 } from "@proto-kit/protocol";
 import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";

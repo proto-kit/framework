@@ -483,6 +483,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     return {
       compile: program.compile.bind(program),
       verify: program.verify.bind(program),
+      analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProofClass,
       methods,
     };
@@ -495,10 +496,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
  * then be merged to be committed to the base-layer contract
  */
 @injectable()
-export class BlockProver
-  extends ProtocolModule
-  implements BlockProvable
-{
+export class BlockProver extends ProtocolModule implements BlockProvable {
   public zkProgrammable: BlockProverProgrammable;
 
   public constructor(

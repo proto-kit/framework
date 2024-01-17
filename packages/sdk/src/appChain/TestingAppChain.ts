@@ -1,11 +1,12 @@
 import { ModulesConfig } from "@proto-kit/common";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
-  AccountStateModule,
+  AccountStateHook,
   BlockProver,
+  ProtocolModulesRecord,
   StateTransitionProver,
-  VanillaProtocol,
 } from "@proto-kit/protocol";
+import { VanillaProtocol } from "@proto-kit/library";
 import {
   PrivateMempool,
   Sequencer,
@@ -27,18 +28,12 @@ import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStat
 
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
-type TestAppChainProtocolModules = {
-  StateTransitionProver: typeof StateTransitionProver;
-  BlockProver: typeof BlockProver;
-  AccountState: typeof AccountStateModule;
-};
-
 export class TestingAppChain<
   RuntimeModules extends RuntimeModulesRecord,
   SequencerModules extends SequencerModulesRecord
 > extends AppChain<
   RuntimeModules,
-  TestAppChainProtocolModules,
+  ProtocolModulesRecord,
   SequencerModules,
   AppChainModulesRecord
 > {
@@ -96,6 +91,7 @@ export class TestingAppChain<
         AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
+        BlockHeight: {},
       },
 
       Signer: {},

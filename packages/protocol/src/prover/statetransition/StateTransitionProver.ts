@@ -127,6 +127,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     return {
       compile: program.compile.bind(program),
       verify: program.verify.bind(program),
+      analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProofClass,
       methods,
     };

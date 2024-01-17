@@ -19,11 +19,12 @@ import { StateService } from "../state/StateService";
 
 import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
-import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
+import { NoopTransactionHook } from "../hooks/NoopTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
-import { AccountStateModule } from "../blockmodules/AccountStateModule";
+import { AccountStateHook } from "../hooks/AccountStateHook";
 import { ProvableBlockHook } from "./ProvableBlockHook";
-import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
+import { NoopBlockHook } from "../hooks/NoopBlockHook";
+import { BlockHeightHook } from "../hooks/BlockHeightHook";
 
 const PROTOCOL_INJECTION_TOKENS = {
   ProvableTransactionHook: "ProvableTransactionHook",
@@ -40,15 +41,16 @@ interface StateTransitionProverType
   extends ProtocolModule,
     StateTransitionProvable {}
 
-export interface ProtocolCustomModulesRecord {
+export interface MandatoryProtocolModulesRecord {
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
-  AccountState: TypedClass<AccountStateModule>;
+  AccountState: TypedClass<AccountStateHook>;
+  BlockHeight: TypedClass<BlockHeightHook>;
 }
 
 export interface ProtocolModulesRecord
   extends GenericProtocolModuleRecord,
-    ProtocolCustomModulesRecord {}
+    MandatoryProtocolModulesRecord {}
 
 export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   modules: Modules;
@@ -170,30 +172,3 @@ export class Protocol<Modules extends ProtocolModulesRecord>
     }
   }
 }
-
-export const VanillaProtocol = {
-  create() {
-    return VanillaProtocol.from({});
-  },
-
-  from<AdditonalModules extends GenericProtocolModuleRecord>(
-    additionalModules: AdditonalModules
-  ): TypedClass<
-    Protocol<
-      AdditonalModules & {
-        StateTransitionProver: typeof StateTransitionProver;
-        BlockProver: typeof BlockProver;
-        AccountState: typeof AccountStateModule;
-      }
-    >
-  > {
-    return Protocol.from({
-      modules: {
-        StateTransitionProver,
-        BlockProver,
-        AccountState: AccountStateModule,
-        ...additionalModules,
-      },
-    });
-  },
-};

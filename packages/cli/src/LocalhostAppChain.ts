@@ -4,9 +4,11 @@ import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
   BlockProver,
   StateTransitionProver,
-  VanillaProtocol,
-  AccountStateModule,
+  AccountStateHook,
+  ProtocolModule,
+  ProtocolModulesRecord,
 } from "@proto-kit/protocol";
+import { VanillaProtocol } from "@proto-kit/library";
 import { ModulesConfig } from "@proto-kit/common";
 import {
   BlockProducerModule,
@@ -38,17 +40,11 @@ import {
   BlockStorageNetworkStateModule,
 } from "@proto-kit/sdk";
 
-type LocalhostAppChainProtocolModules = {
-  StateTransitionProver: typeof StateTransitionProver;
-  BlockProver: typeof BlockProver;
-  AccountState: typeof AccountStateModule;
-};
-
 export class LocalhostAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
-  LocalhostAppChainProtocolModules,
+  ProtocolModulesRecord,
   SequencerModulesRecord,
   AppChainModulesRecord
 > {
@@ -97,6 +93,7 @@ export class LocalhostAppChain<
         BlockProver: {},
         StateTransitionProver: {},
         AccountState: {},
+        BlockHeight: {},
       },
 
       Sequencer: {
