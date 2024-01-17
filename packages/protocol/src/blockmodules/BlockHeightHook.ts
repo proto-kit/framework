@@ -8,7 +8,6 @@ import {
 
 export class BlockHeightHook extends ProvableBlockHook<Record<string, never>> {
   public afterBlock({ networkState }: AfterBlockParameters): NetworkState {
-    Provable.log("afterBlock", networkState);
     return new NetworkState({
       block: {
         height: networkState.block.height.add(1),
