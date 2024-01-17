@@ -59,9 +59,7 @@ export class TestingAppChain<
 
     const appChain = new TestingAppChain({
       runtime,
-
       protocol: VanillaProtocol.from({}),
-
       sequencer,
 
       modules: {
