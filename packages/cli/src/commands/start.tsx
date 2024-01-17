@@ -152,7 +152,7 @@ export interface UnprovenBlockExtras {
   block?: UnprovenBlock;
   blockError?: string;
   logs: string[];
-  height: number;
+  height?: number;
   duration: number;
   time: string;
 }
@@ -265,7 +265,10 @@ export function Blocks({ blocks }: { blocks: CliState["blocks"] }) {
                 : "⚠️"}
               {"  "}
             </Text>
-            <Text bold>Block #{block.height}</Text> ({block.duration}ms)
+            <Text bold>
+              Block {block.height !== undefined ? `#${block.height}` : "-"}
+            </Text>{" "}
+            ({block.duration}ms)
           </Text>
 
           {block.blockError ? (
@@ -369,7 +372,9 @@ export function Server({ configFile }: { configFile: string }) {
           block,
           blockError,
           logs,
-          height: Number(block?.networkState.block.height.toString() ?? "0"),
+          height: block
+            ? Number(block?.networkState.block.height.toString())
+            : undefined,
           duration: timeEnd,
           time: new Date().toLocaleTimeString(),
         },
