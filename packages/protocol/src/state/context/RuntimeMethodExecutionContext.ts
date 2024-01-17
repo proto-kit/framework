@@ -22,12 +22,21 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
   public status: Bool = Bool(true);
 
   public statusMessage?: string;
+
+  public outgoingMessage?: ProvableRecord;
 }
 
 export interface RuntimeMethodExecutionData {
   transaction: RuntimeTransaction;
   networkState: NetworkState;
+  signature?: Signature;
 }
+
+export class RuntimeMethodExecutionDataStruct extends Struct({
+  transaction: RuntimeTransaction,
+  networkState: NetworkState,
+  signature: Signature,
+}) {}
 
 /**
  * Execution context used to wrap runtime module methods,
@@ -91,6 +100,24 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setup(input: RuntimeMethodExecutionData) {
     this.input = input;
+  }
+
+  public witnessInput(): RuntimeMethodExecutionDataStruct {
+    this.assertSetupCalled();
+    return Provable.witness(RuntimeMethodExecutionDataStruct, () => {
+      // TODO Is that right? Or this.current().input
+      const { transaction, networkState, signature } = this.input!;
+      return new RuntimeMethodExecutionDataStruct({
+        networkState,
+        transaction,
+        signature:
+          signature ??
+          Signature.fromObject({
+            s: Scalar.from(0),
+            r: Field(0),
+          }),
+      });
+    });
   }
 
   public setSimulated(simulated: boolean) {

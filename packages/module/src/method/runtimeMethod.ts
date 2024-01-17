@@ -1,4 +1,4 @@
-import { Field, FlexibleProvable, Poseidon } from "o1js";
+import { Circuit, Field, FlexibleProvable, Poseidon, Provable } from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -6,6 +6,7 @@ import {
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
+  SignedTransaction,
 } from "@proto-kit/protocol";
 import {
   DecoratedMethod,
@@ -15,7 +16,6 @@ import {
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
-import { MethodIdResolver } from "../runtime/MethodIdResolver";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -59,7 +59,10 @@ export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: unknown[]) => unknown,
-  methodArguments: ToFieldable[]
+  methodArguments: ToFieldable[],
+  options: {
+    invocationType: InvocationType;
+  }
 ) {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
     RuntimeMethodExecutionContext
@@ -87,17 +90,53 @@ export function toWrappedMethod(
       throw errors.runtimeNotProvided(name);
     }
 
-    // Assert that the given transaction has the correct methodId
-    const { methodIdResolver } = runtime;
-    const thisMethodId = Field(methodIdResolver.getMethodId(name, methodName));
-    if (!thisMethodId.isConstant()) {
-      throw errors.fieldNotConstant("methodId");
-    }
+    let incomingMessageHash = Field(0);
 
-    input.transaction.methodId.assertEquals(
-      thisMethodId,
-      "Runtimemethod called with wrong methodId on the transaction object"
-    );
+    const { transaction, networkState, signature } =
+      executionContext.witnessInput();
+    const { methodIdResolver } = runtime;
+
+    if (options.invocationType === "SIGNATURE") {
+      // Assert that the given transaction has the correct methodId
+      const thisMethodId = Field(
+        methodIdResolver.getMethodId(name, methodName)
+      );
+      if (!thisMethodId.isConstant()) {
+        throw errors.fieldNotConstant("methodId");
+      }
+
+      transaction.methodId.assertEquals(
+        thisMethodId,
+        "Runtimemethod called with wrong methodId on the transaction object"
+      );
+
+      Provable.asProver(() => {
+        if (signature.r.toBigInt() === 0n) {
+          throw new Error(
+            "Signature not initialized properly in executionContext setup"
+          );
+        }
+      });
+
+      // Check transaction signature
+      new SignedTransaction({
+        transaction,
+        signature,
+      })
+        .validateSignature()
+        .assertTrue("Transaction signature not valid");
+    } else if (options.invocationType === "INCOMING_MESSAGE") {
+      // Append consumed message to publicOutput
+
+      // TODO Do we want it this way or do we want to make it easier to get this value at the Contract level?
+      const messageType = Field(methodIdResolver.getMethodId(name, methodName));
+      const messageHash = [
+        messageType,
+        ...methodArguments.flatMap((x) => x.toFields()),
+      ];
+
+      incomingMessageHash = Poseidon.hash(messageHash);
+    }
 
     const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
       "design:paramtypes",
@@ -120,7 +159,7 @@ export function toWrappedMethod(
     const argsHash =
       methodArguments.length > 0 ? Poseidon.hash(argsFields) : Field(0);
 
-    input.transaction.argsHash.assertEquals(
+    transaction.argsHash.assertEquals(
       argsHash,
       "argsHash and therefore arguments of transaction and runtime call does not match"
     );
@@ -133,6 +172,7 @@ export function toWrappedMethod(
       status,
       transactionHash,
       networkStateHash,
+      incomingMessageHash,
     });
   };
 
@@ -171,7 +211,9 @@ export function isRuntimeMethod(
   );
 }
 
-export function runtimeMethod() {
+type InvocationType = "SIGNATURE" | "INCOMING_MESSAGE";
+
+function runtimeMethodInternal(options: { invocationType: InvocationType }) {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
@@ -215,6 +257,7 @@ export function runtimeMethod() {
         methodName,
         simulatedMethod,
         args,
+        options,
       ]);
 
       /**
@@ -263,4 +306,16 @@ export function runtimeMethod() {
       return result;
     };
   };
+}
+
+export function messageMethod() {
+  return runtimeMethodInternal({
+    invocationType: "INCOMING_MESSAGE",
+  });
+}
+
+export function runtimeMethod() {
+  return runtimeMethodInternal({
+    invocationType: "SIGNATURE",
+  });
 }
