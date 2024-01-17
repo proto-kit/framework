@@ -9,4 +9,5 @@ export class MethodPublicOutput extends Struct({
   status: Bool,
   transactionHash: Field,
   networkStateHash: Field,
+  incomingMessageHash: Field,
 }) {}

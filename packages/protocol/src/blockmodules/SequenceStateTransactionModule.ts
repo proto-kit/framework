@@ -5,7 +5,7 @@ import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { protocolState } from "../state/protocol/ProtocolState";
 import { State } from "../state/State";
 import { DefaultProvableHashList } from "../utils/ProvableHashList";
-import { ProtocolTransaction } from "../model/transaction/ProtocolTransaction";
+import { SignedTransaction } from "../model/transaction/SignedTransaction";
 
 // Future idea to add this functionality as a module
 // This is currently hardcoded in tracing however
@@ -14,7 +14,7 @@ class SequenceStateTransactionModule extends ProvableTransactionHook {
 
   public onTransaction(executionData: BlockProverExecutionData): void {
     const hashList = new DefaultProvableHashList(
-      ProtocolTransaction,
+      SignedTransaction,
       this.sequenceStateTransactionsList.get().orElse(Field(0))
     );
 

@@ -1,7 +1,5 @@
 import { Field, Poseidon, PublicKey, Struct, UInt64 } from "o1js";
 
-import { ProtocolTransaction } from "./ProtocolTransaction";
-
 /**
  * This struct is used to expose transaction information to the runtime method
  * execution. This class has not all data included in transactions on purpose.
@@ -13,20 +11,6 @@ export class RuntimeTransaction extends Struct({
   sender: PublicKey,
   argsHash: Field,
 }) {
-  public static fromProtocolTransaction({
-    methodId,
-    nonce,
-    sender,
-    argsHash,
-  }: ProtocolTransaction): RuntimeTransaction {
-    return new RuntimeTransaction({
-      methodId,
-      nonce,
-      sender,
-      argsHash,
-    });
-  }
-
   public static dummy(): RuntimeTransaction {
     return new RuntimeTransaction({
       methodId: Field(0),
