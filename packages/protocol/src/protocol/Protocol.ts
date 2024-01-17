@@ -24,6 +24,7 @@ import { ProtocolEnvironment } from "./ProtocolEnvironment";
 import { AccountStateModule } from "../blockmodules/AccountStateModule";
 import { ProvableBlockHook } from "./ProvableBlockHook";
 import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
+import { BlockHeightHook } from "../blockmodules/BlockHeightHook";
 
 const PROTOCOL_INJECTION_TOKENS = {
   ProvableTransactionHook: "ProvableTransactionHook",
@@ -178,20 +179,13 @@ export const VanillaProtocol = {
 
   from<AdditonalModules extends GenericProtocolModuleRecord>(
     additionalModules: AdditonalModules
-  ): TypedClass<
-    Protocol<
-      AdditonalModules & {
-        StateTransitionProver: typeof StateTransitionProver;
-        BlockProver: typeof BlockProver;
-        AccountState: typeof AccountStateModule;
-      }
-    >
-  > {
-    return Protocol.from({
+  ): TypedClass<Protocol<ProtocolModulesRecord>> {
+    return Protocol.from<ProtocolModulesRecord>({
       modules: {
         StateTransitionProver,
         BlockProver,
         AccountState: AccountStateModule,
+        BlockHeight: BlockHeightHook,
         ...additionalModules,
       },
     });
