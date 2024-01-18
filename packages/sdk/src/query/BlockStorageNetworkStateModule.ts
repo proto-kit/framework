@@ -1,5 +1,6 @@
 import { inject, injectable } from "tsyringe";
 import {
+  NetworkStateTransportModule,
   Sequencer,
   SequencerModulesRecord,
   UnprovenBlockQueue,
@@ -10,9 +11,10 @@ import { NetworkState } from "@proto-kit/protocol";
 import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
-export class BlockStorageNetworkStateModule extends AppChainModule<
-  Record<string, never>
-> {
+export class BlockStorageNetworkStateModule
+  extends AppChainModule<Record<string, never>>
+  implements NetworkStateTransportModule
+{
   public constructor(
     @inject("Sequencer")
     private readonly sequencer: Sequencer<SequencerModulesRecord>
@@ -32,21 +34,21 @@ export class BlockStorageNetworkStateModule extends AppChainModule<
     );
   }
 
-  public async getUnprovenNetworkState(): Promise<NetworkState> {
+  public async getUnprovenNetworkState() {
     const latestBlock = await this.unprovenStorage.getLatestBlock();
-    return latestBlock?.networkState ?? NetworkState.empty();
+    return latestBlock?.networkState;
   }
 
   /**
    * Staged network state is the networkstate after the latest unproven block
    * with afterBundle() hooks executed
    */
-  public async getStagedNetworkState(): Promise<NetworkState> {
+  public async getStagedNetworkState() {
     const metadata = await this.unprovenQueue.getNewestMetadata();
-    return metadata?.resultingNetworkState ?? NetworkState.empty();
+    return metadata?.resultingNetworkState;
   }
 
-  public async getProvenNetworkState(): Promise<NetworkState> {
+  public async getProvenNetworkState() {
     // We currently do not carry networkstate data with proven blocks
     return NetworkState.empty();
   }
