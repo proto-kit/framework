@@ -2,7 +2,10 @@
 /* eslint-disable guard-for-in */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable putout/putout */
-import { StringKeyOf, TypedClass } from "@proto-kit/common";
+import {
+  TypedClass,
+  RollupMerkleTreeWitness,
+} from "@proto-kit/common";
 import {
   Runtime,
   RuntimeModule,
@@ -12,11 +15,9 @@ import {
   Protocol,
   ProtocolModule,
   ProtocolModulesRecord,
-  RollupMerkleWitness,
   State,
   StateMap,
 } from "@proto-kit/protocol";
-import { prop } from "o1js";
 
 import { QueryTransportModule } from "./QueryTransportModule";
 
@@ -29,13 +30,13 @@ export type PickByType<Type, Value> = {
 export interface QueryGetterState<Value> {
   get: () => Promise<Value | undefined>;
   path: () => string;
-  merkleWitness: () => Promise<RollupMerkleWitness | undefined>;
+  merkleWitness: () => Promise<RollupMerkleTreeWitness | undefined>;
 }
 
 export interface QueryGetterStateMap<Key, Value> {
   get: (key: Key) => Promise<Value | undefined>;
   path: (key: Key) => string;
-  merkleWitness: (key: Key) => Promise<RollupMerkleWitness | undefined>;
+  merkleWitness: (key: Key) => Promise<RollupMerkleTreeWitness | undefined>;
 }
 
 export type PickStateProperties<Type> = PickByType<Type, State<any>>;

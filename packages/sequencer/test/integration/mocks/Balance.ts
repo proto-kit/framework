@@ -41,8 +41,8 @@ export class Balance extends RuntimeModule<object> {
     this.totalSupply.get();
   }
 
-  @runtimeMethod()
-  public test(a: UInt64, b: Signature, c: MyStruct, d: Struct<unknown>) {}
+  // @runtimeMethod()
+  // public test(a: UInt64, b: Signature, c: MyStruct, d: Struct<unknown>) {}
 
   @runtimeMethod()
   public setTotalSupply() {

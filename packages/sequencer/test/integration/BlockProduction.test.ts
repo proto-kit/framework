@@ -5,14 +5,14 @@ import "reflect-metadata";
 // TODO this is actually a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
-import { Fieldable, Runtime, MethodIdResolver } from "@proto-kit/module";
+import { Runtime, MethodIdResolver, MethodParameterEncoder } from "@proto-kit/module";
 import {
   AccountState,
   AccountStateModule, BlockHeightHook,
   BlockProver,
   Option,
   Path,
-  Protocol,
+  Protocol, ReturnType,
   StateTransition,
   StateTransitionProver,
   VanillaProtocol
@@ -46,14 +46,10 @@ describe("block production", () => {
     UnprovenProducerModule: typeof UnprovenProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
     TaskQueue: typeof LocalTaskQueue;
+    Database: typeof InMemoryDatabase;
   }>;
 
-  let protocol: Protocol<{
-    AccountStateModule: typeof AccountStateModule;
-    BlockHeightHook: typeof BlockHeightHook;
-    BlockProver: typeof BlockProver;
-    StateTransitionProver: typeof StateTransitionProver;
-  }>;
+  let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>
 
   let appChain: AppChain<any, any, any, any>;
 
@@ -89,8 +85,7 @@ describe("block production", () => {
     });
 
     const protocolClass = VanillaProtocol.from(
-      { AccountStateModule, BlockHeightHook },
-      { StateTransitionProver: {}, BlockProver: {}, AccountStateModule: {}, BlockHeightHook: {} }
+      { }
     );
 
     const app = AppChain.from({
@@ -115,10 +110,11 @@ describe("block production", () => {
         Balance: {},
       },
       Protocol: {
-        AccountStateModule: {},
+        AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
-        BlockHeightHook: {}
+        BlockHeight: {},
+        LastStateRoot: {},
       },
     });
 
@@ -209,7 +205,7 @@ describe("block production", () => {
     expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(UInt64.from(100));
 
     // Check that nonce has been set
-    const accountModule = protocol.resolve("AccountStateModule");
+    const accountModule = protocol.resolve("AccountState");
     const accountStatePath = Path.fromKey(
       accountModule.accountState.path!,
       accountModule.accountState.keyType,
