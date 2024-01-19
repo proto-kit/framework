@@ -1,17 +1,17 @@
-import { GraphqlModule, graphqlModule } from "../GraphqlModule";
 import { Arg, Field, ObjectType, Query } from "type-graphql";
 import { Length } from "class-validator";
 import { inject } from "tsyringe";
+import { RollupMerkleTree, RollupMerkleTreeWitness } from "@proto-kit/common";
 import {
   AsyncMerkleTreeStore,
-  RollupMerkleTree,
-  RollupMerkleWitness,
-} from "@proto-kit/protocol";
-import { CachedMerkleTreeStore } from "@proto-kit/sequencer/dist/protocol/production/execution/CachedMerkleTreeStore";
+  CachedMerkleTreeStore,
+} from "@proto-kit/sequencer";
+
+import { GraphqlModule, graphqlModule } from "../GraphqlModule";
 
 @ObjectType()
 export class MerkleWitnessDTO {
-  public static fromServiceLayerObject(witness: RollupMerkleWitness) {
+  public static fromServiceLayerObject(witness: RollupMerkleTreeWitness) {
     const siblings = witness.path.map((item) => item.toString());
     const isLefts = witness.isLeft.map((item) => item.toBoolean());
     return new MerkleWitnessDTO(siblings, isLefts);
