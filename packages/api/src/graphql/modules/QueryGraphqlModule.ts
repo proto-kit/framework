@@ -17,7 +17,7 @@ import {
   GraphQLOutputType,
 } from "graphql/type";
 import {
-  MethodParameterDecoder,
+  MethodParameterEncoder,
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
@@ -132,8 +132,8 @@ export class QueryGraphqlModule<
         type:
           typeof value === "object"
             ? isArray(value)
-              ? this.inputArray(value, key)
-              : this.inputJsonToGraphQl(value, key)
+              ? this.inputArray(value, name + "" + key)
+              : this.inputJsonToGraphQl(value, name + "" + key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -168,8 +168,8 @@ export class QueryGraphqlModule<
         type:
           typeof value === "object"
             ? isArray(value)
-              ? this.graphqlArray(value, key)
-              : this.jsonToGraphQl(value, key)
+              ? this.graphqlArray(value, name + "" + key)
+              : this.jsonToGraphQl(value, name + "" + key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -191,7 +191,7 @@ export class QueryGraphqlModule<
     // This is a temporary workaround until transport-layer has been
     // switched to json
     const valueType = type as ProvableExtended<unknown>;
-    const valueFieldLength = MethodParameterDecoder.fieldSize(valueType);
+    const valueFieldLength = MethodParameterEncoder.fieldSize(valueType);
 
     const dummyValue = valueType.fromFields(
       range(0, valueFieldLength).map(() => Field(0)),
