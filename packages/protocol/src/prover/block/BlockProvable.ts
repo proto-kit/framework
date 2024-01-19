@@ -1,4 +1,4 @@
-import { Bool, Field, Proof, Struct } from "o1js";
+import { Bool, Field, Proof, Signature, Struct } from "o1js";
 import { WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
@@ -51,6 +51,7 @@ export type BlockProverProof = Proof<
 
 export class BlockProverExecutionData extends Struct({
   transaction: RuntimeTransaction,
+  signature: Signature,
   networkState: NetworkState,
 }) {}
 

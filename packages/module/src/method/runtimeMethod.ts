@@ -1,4 +1,11 @@
-import { Circuit, Field, FlexibleProvable, Poseidon, Provable } from "o1js";
+import {
+  Bool,
+  Circuit,
+  Field,
+  FlexibleProvable,
+  Poseidon,
+  Provable,
+} from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -90,53 +97,22 @@ export function toWrappedMethod(
       throw errors.runtimeNotProvided(name);
     }
 
-    let incomingMessageHash = Field(0);
-
-    const { transaction, networkState, signature } =
+    const { transaction, networkState } =
       executionContext.witnessInput();
     const { methodIdResolver } = runtime;
 
-    if (options.invocationType === "SIGNATURE") {
-      // Assert that the given transaction has the correct methodId
-      const thisMethodId = Field(
-        methodIdResolver.getMethodId(name, methodName)
-      );
-      if (!thisMethodId.isConstant()) {
-        throw errors.fieldNotConstant("methodId");
-      }
-
-      transaction.methodId.assertEquals(
-        thisMethodId,
-        "Runtimemethod called with wrong methodId on the transaction object"
-      );
-
-      Provable.asProver(() => {
-        if (signature.r.toBigInt() === 0n) {
-          throw new Error(
-            "Signature not initialized properly in executionContext setup"
-          );
-        }
-      });
-
-      // Check transaction signature
-      new SignedTransaction({
-        transaction,
-        signature,
-      })
-        .validateSignature()
-        .assertTrue("Transaction signature not valid");
-    } else if (options.invocationType === "INCOMING_MESSAGE") {
-      // Append consumed message to publicOutput
-
-      // TODO Do we want it this way or do we want to make it easier to get this value at the Contract level?
-      const messageType = Field(methodIdResolver.getMethodId(name, methodName));
-      const messageHash = [
-        messageType,
-        ...methodArguments.flatMap((x) => x.toFields()),
-      ];
-
-      incomingMessageHash = Poseidon.hash(messageHash);
+    // Assert that the given transaction has the correct methodId
+    const thisMethodId = Field(
+      methodIdResolver.getMethodId(name, methodName)
+    );
+    if (!thisMethodId.isConstant()) {
+      throw errors.fieldNotConstant("methodId");
     }
+
+    transaction.methodId.assertEquals(
+      thisMethodId,
+      "Runtimemethod called with wrong methodId on the transaction object"
+    );
 
     const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
       "design:paramtypes",
@@ -164,15 +140,15 @@ export function toWrappedMethod(
       "argsHash and therefore arguments of transaction and runtime call does not match"
     );
 
-    const transactionHash = input.transaction.hash();
-    const networkStateHash = input.networkState.hash();
+    const transactionHash = transaction.hash();
+    const networkStateHash = networkState.hash();
 
     return new MethodPublicOutput({
       stateTransitionsHash,
       status,
       transactionHash,
       networkStateHash,
-      incomingMessageHash,
+      isMessage: Bool(options.invocationType === "INCOMING_MESSAGE"),
     });
   };
 

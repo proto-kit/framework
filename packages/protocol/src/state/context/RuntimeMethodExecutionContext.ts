@@ -1,4 +1,4 @@
-import { Bool } from "o1js";
+import { Bool, Struct } from "o1js";
 import { singleton } from "tsyringe";
 import {
   ProvableMethodExecutionContext,
@@ -22,20 +22,16 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
   public status: Bool = Bool(true);
 
   public statusMessage?: string;
-
-  public outgoingMessage?: ProvableRecord;
 }
 
 export interface RuntimeMethodExecutionData {
   transaction: RuntimeTransaction;
   networkState: NetworkState;
-  signature?: Signature;
 }
 
 export class RuntimeMethodExecutionDataStruct extends Struct({
   transaction: RuntimeTransaction,
   networkState: NetworkState,
-  signature: Signature,
 }) {}
 
 /**
@@ -106,16 +102,10 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     this.assertSetupCalled();
     return Provable.witness(RuntimeMethodExecutionDataStruct, () => {
       // TODO Is that right? Or this.current().input
-      const { transaction, networkState, signature } = this.input!;
+      const { transaction, networkState } = this.input!;
       return new RuntimeMethodExecutionDataStruct({
         networkState,
         transaction,
-        signature:
-          signature ??
-          Signature.fromObject({
-            s: Scalar.from(0),
-            r: Field(0),
-          }),
       });
     });
   }

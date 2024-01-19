@@ -113,7 +113,7 @@ export class BlockProducerModule extends SequencerModule {
     const blockMetadata = await this.tryProduceBlock(unprovenBlocks);
 
     if (blockMetadata !== undefined) {
-      log.debug(
+      log.info(
         `Batch produced (${blockMetadata.block.bundles.length} bundles, ${
           blockMetadata.block.bundles.flat(1).length
         } txs)`

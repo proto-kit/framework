@@ -7,7 +7,7 @@ import {
   Signature,
   UInt64,
 } from "o1js";
-import { ProtocolTransaction } from "@proto-kit/protocol";
+import { RuntimeTransaction, SignedTransaction } from "@proto-kit/protocol";
 
 export class UnsignedTransaction {
   public methodId: Field;
@@ -44,7 +44,7 @@ export class UnsignedTransaction {
   }
 
   public getSignatureData(): Field[] {
-    return ProtocolTransaction.getSignatureData({
+    return SignedTransaction.getSignatureData({
       nonce: this.nonce,
       methodId: this.methodId,
       argsHash: this.argsHash(),
@@ -120,12 +120,15 @@ export class PendingTransaction extends UnsignedTransaction {
     };
   }
 
-  public toProtocolTransaction(): ProtocolTransaction {
-    return new ProtocolTransaction({
-      methodId: this.methodId,
-      nonce: this.nonce,
-      argsHash: Poseidon.hash(this.args),
-      sender: this.sender,
+  public toProtocolTransaction(): SignedTransaction {
+    return new SignedTransaction({
+      transaction: new RuntimeTransaction({
+        methodId: this.methodId,
+        nonce: this.nonce,
+        argsHash: Poseidon.hash(this.args),
+        sender: this.sender,
+      }),
+
       signature: this.signature,
     });
   }

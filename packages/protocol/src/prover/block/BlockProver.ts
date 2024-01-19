@@ -138,7 +138,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     runtimeProof: RuntimeProof,
     executionData: BlockProverExecutionData
   ): BlockProverState {
-    const { transaction, networkState } = executionData;
+    const { transaction, networkState, signature } = executionData;
+
+    const isMessage = runtimeProof.publicOutput.isMessage;
 
     runtimeProof.verify();
     stateTransitionProof.verify();
@@ -192,6 +194,18 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "Transactions provided in AppProof and BlockProof do not match"
     );
 
+    // Check transaction signature
+    new SignedTransaction({
+      transaction,
+      signature,
+    })
+      .validateSignature()
+      .or(isMessage)
+      .assertTrue("Transaction signature not valid");
+
+    // Validate layout of transaction witness
+    transaction.assertTransactionType(isMessage);
+
     // Check network state integrity against appProof
     state.networkStateHash.assertEquals(
       runtimeProof.publicOutput.networkStateHash,
@@ -223,7 +237,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // This way they can use this.transaction etc. while still having provable
     // integrity between data
     executionContext.setup({
-      // TODO The transaction.signature is actually not proven here, it's just a witness
       // That is why we should probably hide it from the transaction context inputs
       transaction: executionData.transaction,
       networkState: executionData.networkState,
@@ -231,7 +244,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     executionContext.beforeMethod("", "", []);
 
     this.transactionHooks.forEach((module) => {
-      module.onTransaction(executionData, runtimeProof);
+      module.onTransaction(executionData);
     });
 
     executionContext.afterMethod();
@@ -278,7 +291,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
         // With the special case that we set the new networkstate for every hook
         // We also have to put in a dummy transaction for network.transaction
         executionContext.setup({
-          transaction: RuntimeTransaction.dummy(),
+          transaction: RuntimeTransaction.dummyTransaction(),
           networkState,
         });
 
@@ -308,6 +321,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
   private addTransactionToBundle(
     state: BlockProverState,
+    isMessage: Bool,
     transactionHash: Field
   ): BlockProverState {
     const stateTo = {
@@ -320,7 +334,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       state.transactionsHash
     );
 
-    transactionList.push(transactionHash);
+    transactionList.pushIf(transactionHash, isMessage.not());
     stateTo.transactionsHash = transactionList.commitment;
 
     // Append tx to eternal transaction list
@@ -331,8 +345,18 @@ export class BlockProverProgrammable extends ZkProgrammable<
       state.eternalTransactionsHash
     );
 
-    eternalTransactionList.push(transactionHash);
+    eternalTransactionList.pushIf(transactionHash, isMessage.not());
     stateTo.eternalTransactionsHash = eternalTransactionList.commitment;
+
+    // Append tx to incomingMessagesHash
+    // TODO Change to prefixed hashlist
+    const incomingMessagesList = new DefaultProvableHashList(
+      Field,
+      state.incomingMessagesHash
+    )
+
+    incomingMessagesList.pushIf(transactionHash, isMessage);
+    state.incomingMessagesHash = incomingMessagesList.commitment;
 
     return stateTo;
   }
@@ -350,6 +374,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     const bundleInclusionState = this.addTransactionToBundle(
       state,
+      runtimeProof.publicOutput.isMessage,
       runtimeProof.publicOutput.transactionHash
     );
 
