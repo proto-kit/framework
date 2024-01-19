@@ -17,7 +17,7 @@ import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
 export class StateServiceQueryModule
-  extends AppChainModule<unknown>
+  extends AppChainModule
   implements QueryTransportModule
 {
   public constructor(
@@ -27,7 +27,9 @@ export class StateServiceQueryModule
   }
 
   public get asyncStateService(): AsyncStateService {
-    return this.sequencer.dependencyContainer.resolve("AsyncStateService");
+    return this.sequencer.dependencyContainer.resolve<AsyncStateService>(
+      "UnprovenStateService"
+    );
   }
 
   public get treeStore(): AsyncMerkleTreeStore {

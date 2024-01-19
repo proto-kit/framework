@@ -14,16 +14,15 @@ import {
   MethodParameterEncoder,
 } from "@proto-kit/module";
 import {
-  BlockStorage,
   NetworkStateQuery,
   Query,
   QueryBuilderFactory,
   Sequencer,
   SequencerModulesRecord,
   UnsignedTransaction,
-  MockStorageDependencyFactory,
   QueryTransportModule,
-  HistoricalBlockStorage,
+  NetworkStateTransportModule,
+  DummyStateService,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -32,8 +31,10 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
+  AccountStateModule,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
-import { Field, PublicKey, UInt64 } from "o1js";
+import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
@@ -42,6 +43,7 @@ import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 
 import { AppChainModule } from "./AppChainModule";
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
+import { SharedDependencyFactory } from "./SharedDependencyFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
   TypedClass<AppChainModule<unknown>>
@@ -165,8 +167,8 @@ export class AppChain<
     > = {
       modules: {
         Runtime: definition.runtime,
-        Sequencer: definition.sequencer,
         Protocol: definition.protocol,
+        Sequencer: definition.sequencer,
         ...definition.modules,
       },
 
@@ -197,11 +199,12 @@ export class AppChain<
       "QueryTransportModule"
     );
 
-    const network = new NetworkStateQuery(
-      this.sequencer.dependencyContainer.resolve<
-        BlockStorage & HistoricalBlockStorage
-      >("BlockStorage")
-    );
+    const networkStateTransportModule =
+      this.container.resolve<NetworkStateTransportModule>(
+        "NetworkStateTransportModule"
+      );
+
+    const network = new NetworkStateQuery(networkStateTransportModule);
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
@@ -230,30 +233,12 @@ export class AppChain<
     return this.resolve("Protocol");
   }
 
-  public configureAll(
-    config: AppChainConfig<
-      RuntimeModules,
-      ProtocolModules,
-      SequencerModules,
-      AppChainModules
-    >
-  ): void {
-    this.runtime.configure(config.runtime);
-    this.sequencer.configure(config.sequencer);
-    this.protocol.configure(config.protocol);
-    this.configure({
-      Runtime: {},
-      Sequencer: {},
-      Protocol: {},
-      ...config.appChain,
-    } as Parameters<typeof this.configure>[0]);
-  }
-
+  // eslint-disable-next-line max-statements, sonarjs/cognitive-complexity
   public async transaction(
     sender: PublicKey,
     callback: () => void,
     options?: { nonce?: number }
-  ) {
+  ): Promise<AppChainTransaction> {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -275,7 +260,14 @@ export class AppChain<
       } as unknown as NetworkState,
     });
 
+    const stateServiceProvider = this.container.resolve<StateServiceProvider>(
+      "StateServiceProvider"
+    );
+    stateServiceProvider.setCurrentStateService(new DummyStateService());
+
     callback();
+
+    stateServiceProvider.popCurrentStateService();
 
     const { methodName, moduleName, args } = executionContext.current().result;
 
@@ -292,9 +284,42 @@ export class AppChain<
 
     const encoder = MethodParameterEncoder.fromMethod(
       runtimeModule,
-      moduleName
+      methodName
     );
-    const { argsFields, argsJSON } = encoder.encode(args);
+
+    /**
+     * Use the type info obtained previously to convert
+     * the args passed to fields
+     */
+    const argsFields = args.flatMap((argument, index) => {
+      if (argument instanceof Proof) {
+        const argumentType = parameterTypes[index] as ProofTypes;
+
+        const publicOutputType = argumentType?.publicOutputType;
+
+        const publicInputType = argumentType?.publicInputType;
+
+        const inputFields =
+          publicInputType?.toFields(argument.publicInput) ?? [];
+
+        const outputFields =
+          publicOutputType?.toFields(argument.publicOutput) ?? [];
+
+        return [...inputFields, ...outputFields];
+      }
+
+      const argumentType = parameterTypes[index] as ToFieldableStatic;
+      return argumentType.toFields(argument);
+    });
+
+    const argsJSON = args.map((argument, index) => {
+      if (argument instanceof Proof) {
+        return JSON.stringify(argument.toJSON());
+      }
+
+      const argumentType = parameterTypes[index] as ToJSONableStatic;
+      return JSON.stringify(argumentType.toJSON(argument));
+    });
 
     const nonce = options?.nonce
       ? UInt64.from(options.nonce)
@@ -334,10 +359,8 @@ export class AppChain<
   public async start(dependencyContainer: DependencyContainer = container) {
     this.create(() => dependencyContainer);
 
-    this.registerDependencyFactories([
-      AreProofsEnabledFactory,
-      MockStorageDependencyFactory,
-    ]);
+    this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
+    this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
 
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.
@@ -354,6 +377,9 @@ export class AppChain<
     // this.registerValue({
     //   StateTransitionWitnessProviderReference: reference,
     // });
+
+    // console.log("creating sequencer");
+    // this.sequencer.create(() => this.container);
 
     // this.runtime.start();
     await this.sequencer.start();

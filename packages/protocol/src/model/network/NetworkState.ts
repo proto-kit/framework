@@ -18,4 +18,12 @@ export class NetworkState extends Struct({
       ...PreviousBlock.toFields(this.previous),
     ]);
   }
+
+  public static empty(){
+    return new NetworkState({
+      block: {
+        height: UInt64.zero,
+      },
+    })
+  }
 }

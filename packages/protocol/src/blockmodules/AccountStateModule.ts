@@ -1,4 +1,4 @@
-import { Provable, PublicKey, Struct, UInt64 } from "o1js";
+import { PublicKey, Struct, UInt64 } from "o1js";
 
 import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { StateMap } from "../state/StateMap";
@@ -10,9 +10,7 @@ export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
-export class AccountStateModule extends ProvableTransactionHook<
-  Record<string, never>
-> {
+export class AccountStateModule extends ProvableTransactionHook {
   @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState
@@ -25,10 +23,7 @@ export class AccountStateModule extends ProvableTransactionHook<
 
     const currentNonce = accountState.nonce;
 
-    assert(
-      currentNonce.equals(transaction.nonce),
-      `Nonce not matching: ${currentNonce.toBigInt()} != ${transaction.nonce.toBigInt()}`
-    );
+    assert(currentNonce.equals(transaction.nonce), "Nonce not matching");
 
     this.accountState.set(
       transaction.sender,

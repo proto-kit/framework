@@ -6,10 +6,12 @@ import {
   StateTransitionProver,
   VanillaProtocol,
   AccountStateModule,
+  ProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import { ModulesConfig } from "@proto-kit/common";
 import {
   BlockProducerModule,
+  InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   ManualBlockTrigger,
@@ -17,14 +19,17 @@ import {
   PrivateMempool,
   Sequencer,
   SequencerModulesRecord,
+  UnprovenProducerModule,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
   GraphqlSequencerModule,
   GraphqlServer,
-  MempoolResolver, MerkleWitnessResolver,
+  MempoolResolver,
+  MerkleWitnessResolver,
   NodeStatusResolver,
-  QueryGraphqlModule
+  QueryGraphqlModule,
+  UnprovenBlockResolver,
 } from "@proto-kit/api";
 import {
   AppChain,
@@ -32,43 +37,34 @@ import {
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
+  BlockStorageNetworkStateModule,
 } from "@proto-kit/sdk";
-
-type LocalhostAppChainProtocolModules = {
-  StateTransitionProver: typeof StateTransitionProver;
-  BlockProver: typeof BlockProver;
-  AccountState: typeof AccountStateModule;
-};
 
 export class LocalhostAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
-  LocalhostAppChainProtocolModules,
+  ProtocolModulesRecord,
   SequencerModulesRecord,
   AppChainModulesRecord
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord
-  >(definition: {
-    modules: RuntimeModules;
-    config: ModulesConfig<RuntimeModules>;
-  }) {
-    const appChain = AppChain.from({
+  >(definition: { modules: RuntimeModules }) {
+    const appChain = LocalhostAppChain.from({
       runtime: Runtime.from(definition),
 
-      protocol: VanillaProtocol.from(
-        { AccountState: AccountStateModule },
-        { AccountState: {}, StateTransitionProver: {}, BlockProver: {} }
-      ),
+      protocol: VanillaProtocol.from({}),
 
       sequencer: Sequencer.from({
         modules: {
+          Database: InMemoryDatabase,
           Mempool: PrivateMempool,
           GraphqlServer,
           LocalTaskWorkerModule,
           BaseLayer: NoopBaseLayer,
           BlockProducerModule,
+          UnprovenProducerModule,
           BlockTrigger: ManualBlockTrigger,
           TaskQueue: LocalTaskQueue,
 
@@ -78,37 +74,33 @@ export class LocalhostAppChain<
               QueryGraphqlModule,
               BlockStorageResolver,
               NodeStatusResolver,
+              UnprovenBlockResolver,
               MerkleWitnessResolver
-            },
-
-            config: {
-              MempoolResolver: {},
-              QueryGraphqlModule: {},
-              BlockStorageResolver: {},
-              NodeStatusResolver: {},
-              MerkleWitnessResolver: {}
             },
           }),
         },
       }),
 
       modules: {
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
+        NetworkStateTransportModule: BlockStorageNetworkStateModule,
       },
     });
 
     appChain.configure({
-      Runtime: definition.config,
+      ...appChain.config,
 
       Protocol: {
         BlockProver: {},
         StateTransitionProver: {},
         AccountState: {},
+        BlockHeight: {},
       },
 
       Sequencer: {
+        Database: {},
+        UnprovenProducerModule: {},
+
         GraphqlServer: {
           port: 8080,
           host: "0.0.0.0",
@@ -120,7 +112,8 @@ export class LocalhostAppChain<
           MempoolResolver: {},
           BlockStorageResolver: {},
           NodeStatusResolver: {},
-          MerkleWitnessResolver: {}
+          MerkleWitnessResolver: {},
+          UnprovenBlockResolver: {},
         },
 
         Mempool: {},
@@ -128,18 +121,11 @@ export class LocalhostAppChain<
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
-
-        BlockTrigger: {
-          blocktime: 5000,
-        },
+        BlockTrigger: {},
       },
 
-      TransactionSender: {},
       QueryTransportModule: {},
-
-      Signer: {
-        signer: PrivateKey.random(),
-      },
+      NetworkStateTransportModule: {},
     });
 
     return appChain;

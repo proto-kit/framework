@@ -30,7 +30,7 @@ function assertBooleanArray(array: any): asserts array is boolean[] {
 
 @injectable()
 export class GraphqlQueryTransportModule
-  extends AppChainModule<Record<string, never>>
+  extends AppChainModule
   implements QueryTransportModule
 {
   public constructor(

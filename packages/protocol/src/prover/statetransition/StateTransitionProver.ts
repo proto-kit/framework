@@ -6,13 +6,10 @@ import {
   log,
   PlainZkProgram,
   provableMethod,
+  RollupMerkleTreeWitness,
   ZkProgrammable,
 } from "@proto-kit/common";
 
-import {
-  MerkleTreeUtils,
-  RollupMerkleWitness,
-} from "../../utils/merkletree/RollupMerkleTree.js";
 import {
   DefaultProvableHashList,
   ProvableHashList,
@@ -25,7 +22,7 @@ import {
 import { constants } from "../../Constants";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 
-import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider.js";
+import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider";
 import {
   StateTransitionProvable,
   StateTransitionProverPublicInput,
@@ -192,12 +189,11 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     type: ProvableStateTransitionType,
     index = 0
   ) {
-    const treeWitness = Provable.witness(RollupMerkleWitness, () =>
+    const witness = Provable.witness(RollupMerkleTreeWitness, () =>
       this.witnessProvider.getWitness(transition.path)
     );
 
-    const membershipValid = MerkleTreeUtils.checkMembership(
-      treeWitness,
+    const membershipValid = witness.checkMembership(
       state.stateRoot,
       transition.path,
       transition.from.value
@@ -212,10 +208,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
         )
       );
 
-    const newRoot = MerkleTreeUtils.computeRoot(
-      treeWitness,
-      transition.to.value
-    );
+    const newRoot = witness.calculateRoot(transition.to.value);
 
     state.stateRoot = Provable.if(
       transition.to.isSome,
@@ -345,7 +338,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
 @injectable()
 export class StateTransitionProver
-  extends ProtocolModule<object>
+  extends ProtocolModule
   implements StateTransitionProvable
 {
   public readonly zkProgrammable: StateTransitionProverProgrammable;

@@ -1,41 +1,51 @@
 import { log, ModulesConfig } from "@proto-kit/common";
-import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
+import {
+  InMemoryStateService,
+  Runtime,
+  RuntimeModulesRecord,
+} from "@proto-kit/module";
 import {
   AccountStateModule,
   BlockProver,
+  Protocol,
+  ProtocolModulesRecord,
+  StateServiceProvider,
   StateTransitionProver,
   VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Sequencer } from "@proto-kit/sequencer";
-
+import {
+  PrivateMempool,
+  Sequencer,
+  LocalTaskWorkerModule,
+  NoopBaseLayer,
+  BlockProducerModule,
+  ManualBlockTrigger,
+  LocalTaskQueue,
+  SequencerModulesRecord,
+} from "@proto-kit/sequencer";
+import { PrivateKey } from "o1js";
 import { GraphqlClient } from "../graphql/GraphqlClient";
 import { GraphqlQueryTransportModule } from "../graphql/GraphqlQueryTransportModule";
+import { GraphqlNetworkStateTransportModule } from "../graphql/GraphqlNetworkStateTransportModule";
 import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
+import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { AuroSigner } from "../transaction/AuroSigner";
-
+import { InMemorySigner } from "../transaction/InMemorySigner";
+import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
-
-// eslint-disable-next-line etc/prefer-interface
-type TestAppChainProtocolModules = {
-  StateTransitionProver: typeof StateTransitionProver;
-  BlockProver: typeof BlockProver;
-  AccountState: typeof AccountStateModule;
-}
+import { container } from "tsyringe";
 
 export class ClientAppChain<
   RuntimeModules extends RuntimeModulesRecord
 > extends AppChain<
   RuntimeModules,
-  TestAppChainProtocolModules,
-  any,
+  ProtocolModulesRecord,
+  SequencerModulesRecord,
   AppChainModulesRecord
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord
-  >(definition: {
-    modules: RuntimeModules;
-    config: ModulesConfig<RuntimeModules>;
-  }) {
+  >(definition: { modules: RuntimeModules }) {
     const runtime = Runtime.from({
       ...definition,
     });
@@ -47,53 +57,47 @@ export class ClientAppChain<
     const appChain = new ClientAppChain({
       runtime,
       sequencer,
-
-      protocol: VanillaProtocol.from(
-        { AccountState: AccountStateModule },
-        {
-          AccountState: {},
-          BlockProver: {},
-          StateTransitionProver: {},
-        }
-      ),
+      protocol: VanillaProtocol.from({}),
 
       modules: {
         GraphqlClient,
         Signer: AuroSigner,
         TransactionSender: GraphqlTransactionSender,
         QueryTransportModule: GraphqlQueryTransportModule,
+        NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
       },
     });
 
     appChain.configure({
-      Runtime: definition.config,
-
-      Sequencer: {
-        BlockTrigger: {},
-        Mempool: {},
-        BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
-        BaseLayer: {},
-
-        TaskQueue: {
-          simulatedDuration: 0,
-        },
-      },
-
       Protocol: {
         BlockProver: {},
         StateTransitionProver: {},
         AccountState: {},
+        BlockHeight: {},
       },
 
       Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
+      NetworkStateTransportModule: {},
 
       GraphqlClient: {
         url: "http://127.0.0.1:8080/graphql",
       },
     });
+
+    /**
+     * Register state service provider globally,
+     * to avoid providing an entire sequencer.
+     *
+     * Alternatively we could register the state service provider
+     * in runtime's container, but i think the event emitter proxy
+     * instantiates runtime/runtime modules before we can register
+     * the mock state service provider.
+     */
+    const stateServiceProvider = new StateServiceProvider();
+    stateServiceProvider.setCurrentStateService(new InMemoryStateService());
+    container.registerInstance("StateServiceProvider", stateServiceProvider);
 
     return appChain;
   }

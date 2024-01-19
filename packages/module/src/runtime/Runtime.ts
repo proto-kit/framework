@@ -26,11 +26,11 @@ import {
   toWrappedMethod,
   WrappedMethod,
 } from "../method/runtimeMethod";
+import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 import { RuntimeModule } from "./RuntimeModule";
 import { MethodIdResolver } from "./MethodIdResolver";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
-import { MethodIdFactory } from "../factories/MethodIdFactory";
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -223,7 +223,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
 
-    this.registerDependencyFactories([MethodIdFactory])
+    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
   }
 
   public get appChain(): AreProofsEnabled | undefined {
@@ -258,16 +258,15 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public getMethodById(
     methodId: bigint
   ): ((...args: unknown[]) => unknown) | undefined {
-    const methodDescriptor = this.container
-      .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodNameFromId(methodId);
+    const methodDescriptor =
+      this.methodIdResolver.getMethodNameFromId(methodId);
 
     if (methodDescriptor === undefined) {
       return undefined;
     }
     const [moduleName, methodName] = methodDescriptor;
 
-    this.isValidModuleName(this.definition.modules, moduleName);
+    this.assertIsValidModuleName(this.definition.modules, moduleName);
     const module = this.resolve(moduleName);
 
     // eslint-disable-next-line max-len

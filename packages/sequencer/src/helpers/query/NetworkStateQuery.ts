@@ -1,33 +1,21 @@
-import { injectable } from "tsyringe";
 import { NetworkState } from "@proto-kit/protocol";
-import { Field, UInt64 } from "o1js";
 
-import {
-  BlockStorage,
-  HistoricalBlockStorage,
-} from "../../storage/repositories/BlockStorage";
+import { NetworkStateTransportModule } from "./NetworkStateTransportModule";
 
-@injectable()
 export class NetworkStateQuery {
   public constructor(
-    private readonly blockService: BlockStorage & HistoricalBlockStorage
+    private readonly transportModule: NetworkStateTransportModule
   ) {}
 
-  public get currentNetworkState(): Promise<NetworkState> {
-    return this.getCurrentNetworkState();
+  public get unproven(): Promise<NetworkState | undefined> {
+    return this.transportModule.getUnprovenNetworkState();
   }
 
-  private async getCurrentNetworkState(): Promise<NetworkState> {
-    const height = await this.blockService.getCurrentBlockHeight();
-    const previous = await this.blockService.getBlockAt(height - 1);
-    return new NetworkState({
-      block: {
-        height: UInt64.from(height),
-      },
+  public get stagedUnproven(): Promise<NetworkState | undefined> {
+    return this.transportModule.getStagedNetworkState();
+  }
 
-      previous: {
-        rootHash: previous?.proof.publicOutput.stateRoot ?? Field(0),
-      },
-    });
+  public get proven(): Promise<NetworkState | undefined> {
+    return this.transportModule.getProvenNetworkState();
   }
 }

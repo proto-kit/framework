@@ -26,7 +26,7 @@ import { FlowTaskWorker } from "./FlowTaskWorker";
  * cloud workers.
  */
 @sequencerModule()
-export class LocalTaskWorkerModule extends SequencerModule<object> {
+export class LocalTaskWorkerModule extends SequencerModule {
   // eslint-disable-next-line max-params
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,

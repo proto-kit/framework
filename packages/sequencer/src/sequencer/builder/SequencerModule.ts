@@ -4,6 +4,7 @@ import {
   StaticConfigurableModule,
   TypedClass,
   Presets,
+  NoConfig,
 } from "@proto-kit/common";
 import { injectable } from "tsyringe";
 
@@ -13,7 +14,7 @@ import { injectable } from "tsyringe";
  * start(): Executed to execute any logic required to start the module
  */
 export abstract class SequencerModule<
-  Config
+  Config = NoConfig
 > extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 

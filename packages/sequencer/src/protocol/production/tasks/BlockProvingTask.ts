@@ -6,12 +6,12 @@ import {
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
-  // eslint-disable-next-line @typescript-eslint/no-shadow
   ReturnType,
+  StateServiceProvider,
   StateTransitionProof,
   StateTransitionProvable,
 } from "@proto-kit/protocol";
-import { Field, Proof, Provable } from "o1js";
+import { Field, Proof } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -24,10 +24,10 @@ import {
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { Task } from "../../../worker/flow/Task";
+import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
 import { CompileRegistry } from "./CompileRegistry";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
-import { PreFilledStateService } from "./providers/PreFilledStateService";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -106,6 +106,8 @@ export class BlockProvingTask
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>,
     @inject("Runtime") private readonly runtime: Runtime<never>,
+    @inject("StateServiceProvider")
+    private readonly stateServiceProvider: StateServiceProvider,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
@@ -192,6 +194,20 @@ export class BlockProvingTask
     );
   }
 
+  private async executeWithPrefilledStateService<Return>(
+    startingState: DecodedState,
+    callback: () => Promise<Return>
+  ): Promise<Return> {
+    const prefilledStateService = new PreFilledStateService(startingState);
+    this.stateServiceProvider.setCurrentStateService(prefilledStateService);
+
+    const returnValue = await callback();
+
+    this.stateServiceProvider.popCurrentStateService();
+
+    return returnValue;
+  }
+
   public async compute(
     input: PairingDerivedInput<
       StateTransitionProof,
@@ -202,25 +218,24 @@ export class BlockProvingTask
     const stateTransitionProof = input.input1;
     const runtimeProof = input.input2;
 
-    const prefilledStateService = new PreFilledStateService(
-      input.params.startingState
+    await this.executeWithPrefilledStateService(
+      input.params.startingState,
+      // eslint-disable-next-line putout/putout
+      async () => {
+        this.blockProver.proveTransaction(
+          input.params.publicInput,
+          stateTransitionProof,
+          runtimeProof,
+          input.params.executionData
+        );
+      }
     );
-    this.protocol.stateServiceProvider.setCurrentStateService(
-      prefilledStateService
+
+    return await this.executeWithPrefilledStateService(
+      input.params.startingState,
+      async () =>
+        await this.executionContext.current().result.prove<BlockProof>()
     );
-
-    this.blockProver.proveTransaction(
-      input.params.publicInput,
-      stateTransitionProof,
-      runtimeProof,
-      input.params.executionData
-    );
-
-    const proof = await this.executionContext.current().result.prove<BlockProof>();
-
-    this.protocol.stateServiceProvider.popCurrentStateService();
-
-    return proof;
   }
 
   // eslint-disable-next-line sonarjs/no-identical-functions
