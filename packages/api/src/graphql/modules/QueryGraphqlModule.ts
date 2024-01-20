@@ -17,7 +17,7 @@ import {
   GraphQLOutputType,
 } from "graphql/type";
 import {
-  MethodParameterEncoder,
+  MethodParameterDecoder,
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
@@ -191,7 +191,7 @@ export class QueryGraphqlModule<
     // This is a temporary workaround until transport-layer has been
     // switched to json
     const valueType = type as ProvableExtended<unknown>;
-    const valueFieldLength = MethodParameterEncoder.fieldSize(valueType);
+    const valueFieldLength = MethodParameterDecoder.fieldSize(valueType);
 
     const dummyValue = valueType.fromFields(
       range(0, valueFieldLength).map(() => Field(0)),
