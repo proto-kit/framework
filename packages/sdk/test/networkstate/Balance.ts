@@ -101,6 +101,6 @@ export class Balance extends RuntimeModule<object> {
   @runtimeMethod()
   public assertLastBlockHash(hash: Field) {
     const lastRootHash = this.network.previous.rootHash;
-    assert(hash.equals(lastRootHash), "Root hash not matching");
+    assert(hash.equals(lastRootHash), `Root hash not matching: ${lastRootHash.toString()}`);
   }
 }

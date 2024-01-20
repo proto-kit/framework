@@ -68,9 +68,9 @@ export type ModuleQuery<Module> = {
 
 export type Query<
   ModuleType,
-  RuntimeModules extends Record<string, TypedClass<ModuleType>>
+  ModuleRecord extends Record<string, TypedClass<ModuleType>>
 > = {
-  [Key in keyof RuntimeModules]: ModuleQuery<InstanceType<RuntimeModules[Key]>>;
+  [Key in keyof ModuleRecord]: ModuleQuery<InstanceType<ModuleRecord[Key]>>;
 };
 
 function isStringKeyOf(key: string | number | symbol): key is string {

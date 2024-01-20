@@ -4,14 +4,11 @@ import {
   QueryTransportModule,
   Sequencer,
   SequencerModulesRecord,
+  AsyncMerkleTreeStore,
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
-import {
-  AsyncMerkleTreeStore,
-  RollupMerkleTree,
-  RollupMerkleWitness,
-} from "@proto-kit/protocol";
+import { RollupMerkleTree, RollupMerkleTreeWitness } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -42,7 +39,7 @@ export class StateServiceQueryModule
 
   public async merkleWitness(
     path: Field
-  ): Promise<RollupMerkleWitness | undefined> {
+  ): Promise<RollupMerkleTreeWitness | undefined> {
     const syncStore = new CachedMerkleTreeStore(this.treeStore);
     await syncStore.preloadKey(path.toBigInt());
 

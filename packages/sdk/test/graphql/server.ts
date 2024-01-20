@@ -25,10 +25,10 @@ import {
   ManualBlockTrigger,
   NoopBaseLayer,
   PendingTransaction,
-  PrivateMempool,
+  PrivateMempool, QueryBuilderFactory,
   Sequencer,
   TimedBlockTrigger,
-  UnsignedTransaction,
+  UnsignedTransaction
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -94,7 +94,7 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from({ BlockHeightHook }),
+    protocol: VanillaProtocol.from({ }),
 
     sequencer: Sequencer.from({
       modules: {
@@ -148,7 +148,8 @@ export async function startServer() {
       BlockProver: {},
       StateTransitionProver: {},
       AccountState: {},
-      BlockHeightHook: {},
+      BlockHeight: {},
+      LastStateRoot: {}
     },
 
     Sequencer: {
@@ -187,6 +188,10 @@ export async function startServer() {
   });
 
   await appChain.start(container.createChildContainer());
+  const protocol = appChain.protocol;
+  protocol.resolve("BlockHeight");
+  const query = QueryBuilderFactory.fromProtocol(protocol, appChain.resolve("QueryTransportModule"));
+
   const pk = PublicKey.fromBase58(
     "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   );

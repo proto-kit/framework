@@ -1,50 +1,29 @@
+import "reflect-metadata";
 import { Runtime } from "@proto-kit/module";
 import {
-  AsyncStateService,
-  BlockProducerModule,
-  LocalTaskQueue,
-  LocalTaskWorkerModule,
   ManualBlockTrigger,
-  NoopBaseLayer,
   PrivateMempool,
-  Sequencer,
   CachedMerkleTreeStore,
+  AsyncMerkleTreeStore,
 } from "@proto-kit/sequencer";
 import {
-  AccountStateModule,
-  AsyncMerkleTreeStore,
-  BlockProver,
-  Protocol,
-  RollupMerkleTree,
-  StateTransitionProver,
-  VanillaProtocol,
+  ReturnType,
+  VanillaProtocol
 } from "@proto-kit/protocol";
-import { log } from "@proto-kit/common";
-import { Field, Poseidon, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { log, RollupMerkleTree } from "@proto-kit/common";
+import { Field, PrivateKey, UInt64 } from "o1js";
 import { Balance } from "./Balance";
 import {
   AppChain,
   InMemorySigner,
-  InMemoryTransactionSender,
-  StateServiceQueryModule,
+  TestingAppChain
 } from "../../src";
+import { container } from "tsyringe";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
-  let sequencer: Sequencer<{
-    Mempool: typeof PrivateMempool;
-    LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
-    BaseLayer: typeof NoopBaseLayer;
-    BlockProducerModule: typeof BlockProducerModule;
-    BlockTrigger: typeof ManualBlockTrigger;
-    TaskQueue: typeof LocalTaskQueue;
-  }>;
 
-  let protocol: Protocol<{
-    AccountState: typeof AccountStateModule;
-    BlockProver: typeof BlockProver;
-    StateTransitionProver: typeof StateTransitionProver;
-  }>;
+  let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -56,51 +35,11 @@ describe("block production", () => {
 
     log.setLevel(log.levels.DEBUG);
 
-    const runtimeClass = Runtime.from({
+    const app = TestingAppChain.fromRuntime({
       modules: {
-        Balance,
-      },
-
-      config: {
-        Balance: {},
-      },
-    });
-
-    const sequencerClass = Sequencer.from({
-      modules: {
-        Mempool: PrivateMempool,
-        LocalTaskWorkerModule,
-        BaseLayer: NoopBaseLayer,
-        BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-      },
-
-      config: {
-        BlockTrigger: {},
-        Mempool: {},
-        BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
-        BaseLayer: {},
-        TaskQueue: {},
-      },
-    });
-
-    const protocolClass = VanillaProtocol.from(
-      { AccountState: AccountStateModule },
-      { AccountState: {}, StateTransitionProver: {}, BlockProver: {} }
-    );
-
-    const app = AppChain.from({
-      runtime: runtimeClass,
-      sequencer: sequencerClass,
-      protocol: protocolClass,
-      modules: {
-        QueryTransportModule: StateServiceQueryModule,
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
-      },
-    });
+        Balance
+      }
+    })
 
     app.configure({
       Runtime: {
@@ -113,11 +52,14 @@ describe("block production", () => {
         BaseLayer: {},
         TaskQueue: {},
         Mempool: {},
+        Database: {},
       },
       Protocol: {
         AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
+        BlockHeight: {},
+        LastStateRoot: {},
       },
       QueryTransportModule: {},
       Signer: {
@@ -126,12 +68,14 @@ describe("block production", () => {
       TransactionSender: {},
     });
 
+
     // Start AppChain
-    await app.start();
+    await app.start(container.createChildContainer());
     appchain = app;
 
-    ({ runtime, sequencer, protocol } = app);
+    ({ runtime, protocol } = app);
 
+    const sequencer = app.sequencer;
     blockTrigger = sequencer.resolve("BlockTrigger");
     mempool = sequencer.resolve("Mempool");
   });
@@ -143,7 +87,7 @@ describe("block production", () => {
     const senderAddress = sender.toPublicKey();
 
     const store =
-      sequencer.dependencyContainer.resolve<AsyncMerkleTreeStore>(
+      appchain.sequencer.dependencyContainer.resolve<AsyncMerkleTreeStore>(
         "AsyncMerkleStore"
       );
     const tree = new RollupMerkleTree(new CachedMerkleTreeStore(store));
@@ -154,11 +98,11 @@ describe("block production", () => {
     await tx.sign();
     await tx.send();
 
-    const block = await blockTrigger.produceBlock();
+    const [block, batch] = await blockTrigger.produceBlock();
 
     const path = runtime.resolve("Balance").balances.getPath(senderAddress);
 
-    const cmt = new CachedMerkleTreeStore(store)
+    const cmt = new CachedMerkleTreeStore(store);
     await cmt.preloadKey(path.toBigInt());
     const tree2 = new RollupMerkleTree(cmt);
     const witness = tree2.getWitness(path.toBigInt());
@@ -176,12 +120,12 @@ describe("block production", () => {
     console.log("Path: " + path.toString());
     console.log(hash.toString());
     console.log(tree.getRoot().toString());
-    console.log(block!.proof.publicOutput.stateRoot.toString());
+    console.log(batch!.proof.publicOutput.stateRoot.toString());
 
-    const block2 = await blockTrigger.produceBlock();
+    const [block2, batch2] = await blockTrigger.produceBlock();
 
-    console.log(block2!.txs[0].statusMessage);
-    expect(block2!.txs[0].status).toBe(true);
+    console.log(block!.transactions[0].statusMessage);
+    expect(block2!.transactions[0].status.toBoolean()).toBe(true);
   }, 60000);
 
   it("should produce a valid block", async () => {
@@ -190,36 +134,36 @@ describe("block production", () => {
     const sender = (appchain.resolve("Signer") as InMemorySigner).config.signer;
 
     const tx = await appchain.transaction(sender.toPublicKey(), () => {
-      runtime.resolve("Balance").assertLastBlockHash(Field(0));
+      runtime.resolve("Balance").assertLastBlockHash(Field(RollupMerkleTree.EMPTY_ROOT));
     });
     await tx.sign();
     await tx.send();
 
-    const block = await blockTrigger.produceBlock();
-    expect(block!.txs[0].status).toBe(true);
+    const [block, batch] = await blockTrigger.produceBlock();
+    expect(block!.transactions[0].status.toBoolean()).toBe(true);
 
     const tx2 = await appchain.transaction(sender.toPublicKey(), () => {
       runtime
         .resolve("Balance")
-        .assertLastBlockHash(block!.proof.publicOutput.stateRoot);
+        .assertLastBlockHash(batch!.proof.publicOutput.stateRoot);
     });
 
     await tx2.sign();
     await tx2.send();
 
-    const block2 = await blockTrigger.produceBlock();
-    expect(block2!.txs[0].status).toBe(true);
+    const [block2, batch2] = await blockTrigger.produceBlock();
+    expect(block2!.transactions[0].status.toBoolean()).toBe(true);
 
     const tx3 = await appchain.transaction(sender.toPublicKey(), () => {
       runtime
         .resolve("Balance")
-        .assertLastBlockHash(block!.proof.publicOutput.stateRoot);
+        .assertLastBlockHash(batch!.proof.publicOutput.stateRoot);
     });
 
     await tx3.sign();
     await tx3.send();
 
-    const block3 = await blockTrigger.produceBlock();
-    expect(block3!.txs[0].status).toBe(false);
+    const [block3, batch3] = await blockTrigger.produceBlock();
+    expect(block3!.transactions[0].status.toBoolean()).toBe(false);
   }, 30000);
 });

@@ -4,7 +4,7 @@ import { QueryTransportModule } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
-import { RollupMerkleWitness } from "@proto-kit/protocol";
+import { RollupMerkleTreeWitness } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -65,7 +65,7 @@ export class GraphqlQueryTransportModule
 
   public async merkleWitness(
     key: Field
-  ): Promise<RollupMerkleWitness | undefined> {
+  ): Promise<RollupMerkleTreeWitness | undefined> {
     const query = gql`
       query Witness($path: String!) {
         witness(path: $path) {
@@ -96,8 +96,8 @@ export class GraphqlQueryTransportModule
       assertStringArray(witnessJson.siblings);
       assertBooleanArray(witnessJson.isLefts);
 
-      return new RollupMerkleWitness(
-        RollupMerkleWitness.fromJSON({
+      return new RollupMerkleTreeWitness(
+        RollupMerkleTreeWitness.fromJSON({
           path: witnessJson.siblings,
           isLeft: witnessJson.isLefts,
         })

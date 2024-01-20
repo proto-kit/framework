@@ -33,6 +33,7 @@ import {
   ProtocolModule,
   AccountStateModule,
   StateServiceProvider,
+  ProtocolCustomModulesRecord,
 } from "@proto-kit/protocol";
 import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
@@ -208,12 +209,12 @@ export class AppChain<
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
-        this.resolveOrFail("Runtime", Runtime<RuntimeModules>),
+        this.runtime,
         queryTransportModule
       ),
 
       protocol: QueryBuilderFactory.fromProtocol(
-        this.resolveOrFail("Protocol", Protocol<ProtocolModules>),
+        this.protocol,
         queryTransportModule
       ),
 
@@ -287,47 +288,20 @@ export class AppChain<
       methodName
     );
 
-    /**
-     * Use the type info obtained previously to convert
-     * the args passed to fields
-     */
-    const argsFields = args.flatMap((argument, index) => {
-      if (argument instanceof Proof) {
-        const argumentType = parameterTypes[index] as ProofTypes;
+    const { argsJSON, argsFields } = encoder.encode(args);
 
-        const publicOutputType = argumentType?.publicOutputType;
-
-        const publicInputType = argumentType?.publicInputType;
-
-        const inputFields =
-          publicInputType?.toFields(argument.publicInput) ?? [];
-
-        const outputFields =
-          publicOutputType?.toFields(argument.publicOutput) ?? [];
-
-        return [...inputFields, ...outputFields];
-      }
-
-      const argumentType = parameterTypes[index] as ToFieldableStatic;
-      return argumentType.toFields(argument);
-    });
-
-    const argsJSON = args.map((argument, index) => {
-      if (argument instanceof Proof) {
-        return JSON.stringify(argument.toJSON());
-      }
-
-      const argumentType = parameterTypes[index] as ToJSONableStatic;
-      return JSON.stringify(argumentType.toJSON(argument));
-    });
+    const retrieveNonce = async (publicKey: PublicKey) => {
+      const query = this.query.protocol as Query<
+        ProtocolModule<unknown>,
+        ProtocolCustomModulesRecord
+      >;
+      const accountState = await query.AccountState.accountState.get(publicKey);
+      return accountState?.nonce;
+    };
 
     const nonce = options?.nonce
       ? UInt64.from(options.nonce)
-      : ((
-          await (this.query.protocol.AccountState as any).accountState.get(
-            sender
-          )
-        )?.nonce as UInt64 | undefined) ?? UInt64.from(0);
+      : (await retrieveNonce(sender)) ?? UInt64.from(0);
 
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(

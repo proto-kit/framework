@@ -28,13 +28,16 @@ export class GraphqlNetworkStateTransportModule
   private async retrieveNetworkState(path: string): Promise<NetworkState> {
     const query = gql`
       query NetworkState {
-          network {
-              ${path} {
-                  block {
-                      height
-                  }
-              }
+        network {
+          ${path} {
+            block {
+              height
+            }
+            previous {
+              rootHash
+            }
           }
+        }
       }
     `;
 

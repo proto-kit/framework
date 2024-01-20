@@ -42,12 +42,13 @@ interface StateTransitionProverType
   extends ProtocolModule,
     StateTransitionProvable {}
 
-export interface ProtocolCustomModulesRecord extends GenericProtocolModuleRecord {
+export interface ProtocolCustomModulesRecord
+  extends GenericProtocolModuleRecord {
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
   AccountState: TypedClass<AccountStateModule>;
-  BlockHeight: TypedClass<BlockHeightHook>,
-  LastStateRoot: TypedClass<LastStateRootBlockHook>,
+  BlockHeight: TypedClass<BlockHeightHook>;
+  LastStateRoot: TypedClass<LastStateRootBlockHook>;
 }
 
 export interface ProtocolModulesRecord
