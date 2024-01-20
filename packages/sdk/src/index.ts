@@ -10,3 +10,5 @@ export * from "./transaction/AuroSigner";
 export * from "./graphql/GraphqlClient";
 export * from "./graphql/GraphqlQueryTransportModule";
 export * from "./graphql/GraphqlTransactionSender";
+export * from "./appChain/ClientAppChain";
+export * from "./query/BlockStorageNetworkStateModule";

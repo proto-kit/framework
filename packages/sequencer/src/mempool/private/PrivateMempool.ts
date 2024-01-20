@@ -3,14 +3,15 @@ import { noop } from "@proto-kit/common";
 
 import type { Mempool, MempoolCommitment } from "../Mempool.js";
 import type { PendingTransaction } from "../PendingTransaction.js";
-import { sequencerModule, SequencerModule } from "../../sequencer/builder/SequencerModule";
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../../sequencer/builder/SequencerModule";
 import { TransactionValidator } from "../verification/TransactionValidator";
+import { injectable } from "tsyringe";
 
 @sequencerModule()
-export class PrivateMempool
-  extends SequencerModule
-  implements Mempool
-{
+export class PrivateMempool extends SequencerModule implements Mempool {
   public commitment: Field;
 
   private queue: PendingTransaction[] = [];

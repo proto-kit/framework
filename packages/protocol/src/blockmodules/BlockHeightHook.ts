@@ -1,3 +1,4 @@
+import { Provable } from "o1js";
 import { NetworkState } from "../model/network/NetworkState";
 import { ProvableBlockHook } from "../protocol/ProvableBlockHook";
 

@@ -16,22 +16,26 @@ export class UnsignedTransaction {
 
   public sender: PublicKey;
 
-  public args: Field[];
+  public argsFields: Field[];
+
+  public argsJSON: string[];
 
   public constructor(data: {
     methodId: Field;
     nonce: UInt64;
     sender: PublicKey;
-    args: Field[];
+    argsFields: Field[];
+    argsJSON: string[];
   }) {
     this.methodId = data.methodId;
     this.nonce = data.nonce;
     this.sender = data.sender;
-    this.args = data.args;
+    this.argsFields = data.argsFields;
+    this.argsJSON = data.argsJSON;
   }
 
   public argsHash(): Field {
-    return Poseidon.hash(this.args);
+    return Poseidon.hash(this.argsFields);
   }
 
   public hash(): Field {
@@ -62,7 +66,8 @@ export class UnsignedTransaction {
       sender: this.sender,
       nonce: this.nonce,
       signature,
-      args: this.args,
+      argsFields: this.argsFields,
+      argsJSON: this.argsJSON,
     });
   }
 }
@@ -71,7 +76,8 @@ interface PendingTransactionJSONType {
   methodId: string;
   nonce: string;
   sender: string;
-  args: string[];
+  argsFields: string[];
+  argsJSON: string[];
   signature: {
     r: string;
     s: string;
@@ -86,8 +92,9 @@ export class PendingTransaction extends UnsignedTransaction {
       methodId: Field.fromJSON(object.methodId),
       nonce: UInt64.from(object.nonce),
       sender: PublicKey.fromBase58(object.sender),
-      args: object.args.map((x) => Field.fromJSON(x)),
+      argsFields: object.argsFields.map((x) => Field.fromJSON(x)),
       signature: Signature.fromJSON(object.signature),
+      argsJSON: object.argsJSON,
     });
   }
 
@@ -98,7 +105,8 @@ export class PendingTransaction extends UnsignedTransaction {
     nonce: UInt64;
     sender: PublicKey;
     signature: Signature;
-    args: Field[];
+    argsFields: Field[];
+    argsJSON: string[];
   }) {
     super(data);
     this.signature = data.signature;
@@ -109,7 +117,7 @@ export class PendingTransaction extends UnsignedTransaction {
       methodId: this.methodId.toJSON(),
       nonce: this.nonce.toString(),
       sender: this.sender.toBase58(),
-      args: this.args.map((x) => x.toJSON()),
+      argsFields: this.argsFields.map((x) => x.toJSON()),
 
       signature: {
         // eslint-disable-next-line id-length
@@ -117,6 +125,8 @@ export class PendingTransaction extends UnsignedTransaction {
         // eslint-disable-next-line id-length
         s: this.signature.s.toJSON(),
       },
+
+      argsJSON: this.argsJSON,
     };
   }
 
@@ -125,7 +135,7 @@ export class PendingTransaction extends UnsignedTransaction {
       transaction: new RuntimeTransaction({
         methodId: this.methodId,
         nonce: this.nonce,
-        argsHash: Poseidon.hash(this.args),
+        argsHash: Poseidon.hash(this.argsFields),
         sender: this.sender,
       }),
 

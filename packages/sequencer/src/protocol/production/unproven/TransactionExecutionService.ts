@@ -13,10 +13,12 @@ import {
   RuntimeProvableMethodExecutionResult,
   RuntimeTransaction,
   StateTransition,
+  BlockTransactionPosition,
+  BlockTransactionPositionType,
   ProvableBlockHook,
+  StateServiceProvider,
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
-  StateServiceProvider,
   BlockHashTreeEntry,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
@@ -167,7 +169,7 @@ export class TransactionExecutionService {
       module,
       methodName
     );
-    const args = parameterDecoder.fromFields(tx.args);
+    const args = parameterDecoder.fromJSON(tx.argsJSON);
 
     return {
       method,
