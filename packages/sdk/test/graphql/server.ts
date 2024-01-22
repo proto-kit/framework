@@ -25,7 +25,7 @@ import {
   ManualBlockTrigger,
   NoopBaseLayer,
   PendingTransaction,
-  PrivateMempool,
+  PrivateMempool, QueryBuilderFactory,
   Sequencer,
   TimedBlockTrigger,
   UnsignedTransaction,
@@ -35,6 +35,7 @@ import {
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
+  MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
   UnprovenBlockResolver,
@@ -95,7 +96,7 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from({ BlockHeightHook }),
+    protocol: VanillaProtocol.from({ }),
 
     sequencer: Sequencer.from({
       modules: {
@@ -106,7 +107,7 @@ export async function startServer() {
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         UnprovenProducerModule,
-        BlockTrigger: ManualBlockTrigger,
+        BlockTrigger: TimedBlockTrigger,
         TaskQueue: LocalTaskQueue,
 
         Graphql: GraphqlSequencerModule.from({
@@ -116,6 +117,7 @@ export async function startServer() {
             BlockStorageResolver,
             UnprovenBlockResolver,
             NodeStatusResolver,
+            MerkleWitnessResolver,
           },
 
           config: {
@@ -123,6 +125,7 @@ export async function startServer() {
             QueryGraphqlModule: {},
             BlockStorageResolver: {},
             NodeStatusResolver: {},
+            MerkleWitnessResolver: {},
             UnprovenBlockResolver: {},
           },
         }),
@@ -147,7 +150,8 @@ export async function startServer() {
       BlockProver: {},
       StateTransitionProver: {},
       AccountState: {},
-      BlockHeightHook: {},
+      BlockHeight: {},
+      LastStateRoot: {}
     },
 
     Sequencer: {
@@ -163,6 +167,7 @@ export async function startServer() {
         BlockStorageResolver: {},
         NodeStatusResolver: {},
         UnprovenBlockResolver: {},
+        MerkleWitnessResolver: {},
       },
 
       Database: {},

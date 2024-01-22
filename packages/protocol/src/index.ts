@@ -1,5 +1,6 @@
 export * from "./blockmodules/AccountStateModule";
 export * from "./blockmodules/BlockHeightHook";
+export * from "./blockmodules/LastStateRootBlockHook";
 export * from "./utils/ProvableHashList";
 export * from "./model/StateTransition";
 export * from "./model/StateTransitionProvableBatch";

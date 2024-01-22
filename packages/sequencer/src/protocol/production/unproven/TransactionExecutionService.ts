@@ -13,18 +13,16 @@ import {
   RuntimeProvableMethodExecutionResult,
   RuntimeTransaction,
   StateTransition,
-  BlockTransactionPosition,
-  BlockTransactionPositionType,
   ProvableBlockHook,
-  StateServiceProvider,
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
+  StateServiceProvider,
   BlockHashTreeEntry,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
 import {
-  MethodParameterDecoder,
+  MethodParameterEncoder,
   Runtime,
   RuntimeModule,
   RuntimeModulesRecord,
@@ -165,11 +163,11 @@ export class TransactionExecutionService {
     const [moduleName, methodName] = methodDescriptors;
     const module: RuntimeModule<unknown> = this.runtime.resolve(moduleName);
 
-    const parameterDecoder = MethodParameterDecoder.fromMethod(
+    const parameterDecoder = MethodParameterEncoder.fromMethod(
       module,
       methodName
     );
-    const args = parameterDecoder.fromJSON(tx.argsJSON);
+    const args = parameterDecoder.decode(tx.argsJSON);
 
     return {
       method,

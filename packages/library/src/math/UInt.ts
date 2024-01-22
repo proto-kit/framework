@@ -15,6 +15,7 @@ const errors = {
 
 export abstract class UIntX<This extends UIntX<any>> extends Struct({
   value: Field,
+  NUM_BITS: Number,
 }) {
   protected static readonly assertionFunction: (
     bool: Bool,
@@ -41,7 +42,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     return Field((1n << BigInt(numBits)) - 1n);
   }
 
-  public readonly NUM_BITS: number;
+  // public readonly NUM_BITS: number;
 
   protected constructor(
     value: Field,
@@ -51,7 +52,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       from: (value: Field | This | bigint | number | string) => This;
     }
   ) {
-    super({ value });
+    super({ value, NUM_BITS: bits });
 
     if (bits % 16 !== 0) {
       throw errors.canOnlyCreateMultiplesOf16Bits();
@@ -60,8 +61,6 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     if (bits === 256) {
       throw errors.usageWith256BitsForbidden();
     }
-
-    this.NUM_BITS = bits;
   }
 
   /**
