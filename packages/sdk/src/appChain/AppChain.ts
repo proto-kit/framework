@@ -346,6 +346,7 @@ export class AppChain<
       argsJSON,
       nonce,
       sender,
+      isMessage: false
     });
 
     const signer = this.container.resolve<Signer>("Signer");

@@ -1,7 +1,13 @@
-import { Bool, Field, PublicKey, Scalar, Signature, Struct, UInt64 } from "o1js";
+import {
+  Bool,
+  Field,
+  Scalar,
+  Signature,
+  Struct,
+  UInt64,
+} from "o1js";
 
 import { RuntimeTransaction } from "./RuntimeTransaction";
-import { UInt64Option } from "./ValueOption";
 
 export class SignedTransaction extends Struct({
   transaction: RuntimeTransaction,
@@ -9,7 +15,7 @@ export class SignedTransaction extends Struct({
 }) {
   public static getSignatureData(args: {
     methodId: Field;
-    nonce: UInt64Option;
+    nonce: UInt64;
     argsHash: Field;
   }): Field[] {
     return [args.methodId, ...args.nonce.value.toFields(), args.argsHash];
@@ -31,7 +37,12 @@ export class SignedTransaction extends Struct({
   }
 
   public getSignatureData(): Field[] {
-    return SignedTransaction.getSignatureData(this.transaction);
+    const { methodId, argsHash, nonce } = this.transaction;
+    return SignedTransaction.getSignatureData({
+      nonce: nonce.value,
+      methodId,
+      argsHash,
+    });
   }
 
   public validateSignature(): Bool {

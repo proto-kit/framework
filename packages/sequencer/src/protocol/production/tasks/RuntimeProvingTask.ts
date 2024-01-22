@@ -71,12 +71,11 @@ export class RuntimeProvingTask
     );
 
     // Set network state and transaction for the runtimemodule to access
-    const transaction = RuntimeTransaction.fromProtocolTransaction(
-      input.tx.toProtocolTransaction()
-    );
+    const transaction = input.tx.toProtocolTransaction();
     const contextInputs = {
       networkState: input.networkState,
-      transaction,
+      transaction: transaction.transaction,
+      signature: transaction.signature,
     };
     this.executionContext.setup(contextInputs);
 

@@ -1,10 +1,11 @@
 /* eslint-disable max-statements */
 import {
+  Bool,
   Field,
   FlexibleProvable,
   Poseidon,
   Proof,
-  ProvableExtended,
+  ProvableExtended
 } from "o1js";
 import { container } from "tsyringe";
 import {
@@ -163,6 +164,9 @@ export function toWrappedMethod(
       "argsHash and therefore arguments of transaction and runtime call does not match"
     );
 
+    const isMessage = Bool(options.invocationType === "INCOMING_MESSAGE");
+    transaction.assertTransactionType(Bool(isMessage));
+
     const transactionHash = transaction.hash();
     const networkStateHash = networkState.hash();
 
@@ -171,7 +175,7 @@ export function toWrappedMethod(
       status,
       transactionHash,
       networkStateHash,
-      isMessage: Bool(options.invocationType === "INCOMING_MESSAGE"),
+      isMessage,
     });
   };
 

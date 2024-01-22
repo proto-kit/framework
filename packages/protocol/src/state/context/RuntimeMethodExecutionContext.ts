@@ -1,4 +1,4 @@
-import { Bool, Struct } from "o1js";
+import { Bool, Provable, Struct } from "o1js";
 import { singleton } from "tsyringe";
 import {
   ProvableMethodExecutionContext,

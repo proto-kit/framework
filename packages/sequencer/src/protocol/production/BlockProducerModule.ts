@@ -235,6 +235,10 @@ export class BlockProducerModule extends SequencerModule {
       Field,
       bundles[0].block.block.fromEternalTransactionsHash
     );
+    const messageTracker = new DefaultProvableHashList(
+      Field,
+      bundles[0].block.block.fromMessagesHash
+    )
 
     for (const bundleWithMetadata of bundles) {
       const block = bundleWithMetadata.block.block;
@@ -251,7 +255,8 @@ export class BlockProducerModule extends SequencerModule {
           stateServices,
           block.networkState.during,
           bundleTracker,
-          eternalBundleTracker
+          eternalBundleTracker,
+          messageTracker
         );
 
         transactionTraces.push(result);
