@@ -57,21 +57,17 @@ export class Balance extends RuntimeModule<object> {
   }
 
   @runtimeMethod()
-  public setBalanceIf(address: PublicKey, value: UInt64, condition: Bool) {
-    assert(condition, "Condition not met");
+  public setBalance(address: PublicKey, value: UInt64) {
     this.balances.set(address, value);
   }
 
   @runtimeMethod()
   public addBalance(address: PublicKey, value: UInt64) {
-    const totalSupply = this.totalSupply.get();
-    this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(value));
-
     const balance = this.balances.get(address);
 
     log.provable.debug("Balance:", balance.isSome, balance.value);
 
-    const newBalance = balance.orElse(UInt64.zero).add(value);
+    const newBalance = balance.value.add(value);
     this.balances.set(address, newBalance);
   }
 
@@ -84,27 +80,27 @@ export class Balance extends RuntimeModule<object> {
     log.provable.debug("Balance:", balance.isSome, balance.value);
     log.provable.debug("BlockHeight:", this.network.block.height);
 
-    assert(
-      blockHeight.equals(this.network.block.height),
-      `Blockheight not matching ${blockHeight.toString()} !== ${this.network.block.height.toString()}`
-    );
+    assert(blockHeight.equals(this.network.block.height));
 
     const newBalance = balance.value.add(value);
     this.balances.set(address, newBalance);
   }
 
   @runtimeMethod()
-  public lotOfSTs(randomArg: Field) {
+  public lotOfSTs() {
     range(0, 10).forEach((index) => {
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      const pk = PublicKey.from({
-        x: randomArg.add(Field(index % 5)),
-        isOdd: Bool(false),
-      });
+      const pk = PublicKey.from({ x: Field(index % 5), isOdd: Bool(false) });
       const value = this.balances.get(pk);
       this.balances.set(pk, value.orElse(UInt64.zero).add(100));
       const supply = this.totalSupply.get().orElse(UInt64.zero);
       this.totalSupply.set(supply.add(UInt64.from(100)));
     });
+  }
+
+  @runtimeMethod()
+  public assertLastBlockHash(hash: Field) {
+    const lastRootHash = this.network.previous.rootHash;
+    assert(hash.equals(lastRootHash), `Root hash not matching: ${lastRootHash.toString()}`);
   }
 }

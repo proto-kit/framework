@@ -90,6 +90,7 @@ export class TestingAppChain<
         BlockProver: {},
         StateTransitionProver: {},
         BlockHeight: {},
+        LastStateRoot: {},
       },
 
       Signer: {},

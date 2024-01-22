@@ -25,16 +25,17 @@ import {
   ManualBlockTrigger,
   NoopBaseLayer,
   PendingTransaction,
-  PrivateMempool,
+  PrivateMempool, QueryBuilderFactory,
   Sequencer,
   TimedBlockTrigger,
-  UnsignedTransaction,
+  UnsignedTransaction
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
+  MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
   UnprovenBlockResolver,
@@ -93,7 +94,7 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from({ BlockHeightHook }),
+    protocol: VanillaProtocol.from({ }),
 
     sequencer: Sequencer.from({
       modules: {
@@ -114,6 +115,7 @@ export async function startServer() {
             BlockStorageResolver,
             UnprovenBlockResolver,
             NodeStatusResolver,
+            MerkleWitnessResolver,
           },
 
           config: {
@@ -121,6 +123,7 @@ export async function startServer() {
             QueryGraphqlModule: {},
             BlockStorageResolver: {},
             NodeStatusResolver: {},
+            MerkleWitnessResolver: {},
             UnprovenBlockResolver: {},
           },
         }),
@@ -145,7 +148,8 @@ export async function startServer() {
       BlockProver: {},
       StateTransitionProver: {},
       AccountState: {},
-      BlockHeightHook: {},
+      BlockHeight: {},
+      LastStateRoot: {}
     },
 
     Sequencer: {
@@ -161,6 +165,7 @@ export async function startServer() {
         BlockStorageResolver: {},
         NodeStatusResolver: {},
         UnprovenBlockResolver: {},
+        MerkleWitnessResolver: {},
       },
 
       Database: {},
@@ -183,6 +188,10 @@ export async function startServer() {
   });
 
   await appChain.start(container.createChildContainer());
+  const protocol = appChain.protocol;
+  protocol.resolve("BlockHeight");
+  const query = QueryBuilderFactory.fromProtocol(protocol, appChain.resolve("QueryTransportModule"));
+
   const pk = PublicKey.fromBase58(
     "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   );

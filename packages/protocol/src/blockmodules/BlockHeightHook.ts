@@ -12,6 +12,7 @@ export class BlockHeightHook extends ProvableBlockHook<Record<string, never>> {
       block: {
         height: networkState.block.height.add(1),
       },
+      previous: networkState.previous
     });
   }
 

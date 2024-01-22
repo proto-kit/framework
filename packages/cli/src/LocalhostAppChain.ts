@@ -26,6 +26,7 @@ import {
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
+  MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
   UnprovenBlockResolver,
@@ -74,6 +75,7 @@ export class LocalhostAppChain<
               BlockStorageResolver,
               NodeStatusResolver,
               UnprovenBlockResolver,
+              MerkleWitnessResolver
             },
           }),
         },
@@ -110,6 +112,7 @@ export class LocalhostAppChain<
           MempoolResolver: {},
           BlockStorageResolver: {},
           NodeStatusResolver: {},
+          MerkleWitnessResolver: {},
           UnprovenBlockResolver: {},
         },
 

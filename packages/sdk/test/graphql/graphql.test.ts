@@ -1,56 +1,21 @@
 import "reflect-metadata";
-import { Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { Field, PrivateKey, UInt64 } from "o1js";
+import { Runtime } from "@proto-kit/module";
+import { ReturnType, VanillaProtocol } from "@proto-kit/protocol";
+import { sleep } from "@proto-kit/common";
 import {
-  MethodIdResolver,
-  Runtime,
-  runtimeMethod,
-  RuntimeModule,
-  runtimeModule,
-  state,
-} from "@proto-kit/module";
-import {
-  AccountStateModule,
-  Option,
-  ReturnType,
-  State,
-  StateMap,
-  VanillaProtocol,
-} from "@proto-kit/protocol";
-import { Presets, log, sleep } from "@proto-kit/common";
-import {
-  AsyncStateService,
-  BlockProducerModule,
-  LocalTaskQueue,
-  LocalTaskWorkerModule,
   ManualBlockTrigger,
-  NoopBaseLayer,
   PrivateMempool,
-  QueryTransportModule,
   Sequencer,
-  TimedBlockTrigger,
-  UnsignedTransaction,
 } from "@proto-kit/sequencer";
-import {
-  BlockStorageResolver,
-  GraphqlSequencerModule,
-  GraphqlServer,
-  MempoolResolver,
-  NodeStatusResolver,
-  QueryGraphqlModule,
-} from "@proto-kit/api";
+import { GraphqlServer } from "@proto-kit/api";
 
-import { startServer, Balances } from "./server";
+import { Balances, startServer } from "./server";
 import { beforeAll } from "@jest/globals";
-import {
-  AppChain,
-  InMemorySigner,
-  InMemoryTransactionSender,
-  StateServiceQueryModule,
-} from "../../src";
+import { AppChain, InMemorySigner } from "../../src";
 import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSender";
 import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
 import { GraphqlClient } from "../../src/graphql/GraphqlClient";
-import { container } from "tsyringe";
 import { GraphqlNetworkStateTransportModule } from "../../src/graphql/GraphqlNetworkStateTransportModule";
 
 const pk = PrivateKey.random();
@@ -93,6 +58,8 @@ function prepare() {
       AccountState: {},
       BlockProver: {},
       StateTransitionProver: {},
+      BlockHeight: {},
+      LastStateRoot: {},
     },
 
     Sequencer: {
@@ -169,10 +136,26 @@ describe("graphql client test", function () {
   }, 60_000);
 
   it("should fetch networkstate correctly", async () => {
-    expect.assertions(1);
+    expect.assertions(2);
 
     const state = await appChain.query.network.unproven;
 
-    expect(state.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
+    expect(state).toBeDefined();
+    expect(state!.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
+  });
+
+  it("should retrieve merkle witness", async () => {
+    expect.assertions(2);
+
+    const witness =
+      await appChain!.query.runtime.Balances.balances.merkleWitness(
+        pk.toPublicKey()
+      );
+
+    expect(witness).toBeDefined();
+    // Check if this works, i.e. if it correctly parsed
+    expect(witness!.calculateRoot(Field(0)).toBigInt()).toBeGreaterThanOrEqual(
+      0n
+    );
   });
 });

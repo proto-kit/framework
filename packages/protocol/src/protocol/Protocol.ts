@@ -25,6 +25,7 @@ import { AccountStateModule } from "../blockmodules/AccountStateModule";
 import { ProvableBlockHook } from "./ProvableBlockHook";
 import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
 import { BlockHeightHook } from "../blockmodules/BlockHeightHook";
+import { LastStateRootBlockHook } from "../blockmodules/LastStateRootBlockHook";
 
 const PROTOCOL_INJECTION_TOKENS = {
   ProvableTransactionHook: "ProvableTransactionHook",
@@ -41,10 +42,13 @@ interface StateTransitionProverType
   extends ProtocolModule,
     StateTransitionProvable {}
 
-export interface ProtocolCustomModulesRecord {
+export interface ProtocolCustomModulesRecord
+  extends GenericProtocolModuleRecord {
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
   AccountState: TypedClass<AccountStateModule>;
+  BlockHeight: TypedClass<BlockHeightHook>;
+  LastStateRoot: TypedClass<LastStateRootBlockHook>;
 }
 
 export interface ProtocolModulesRecord
@@ -179,13 +183,14 @@ export const VanillaProtocol = {
 
   from<AdditonalModules extends GenericProtocolModuleRecord>(
     additionalModules: AdditonalModules
-  ): TypedClass<Protocol<ProtocolModulesRecord>> {
-    return Protocol.from<ProtocolModulesRecord>({
+  ): TypedClass<Protocol<ProtocolCustomModulesRecord & AdditonalModules>> {
+    return Protocol.from<ProtocolCustomModulesRecord & AdditonalModules>({
       modules: {
         StateTransitionProver,
         BlockProver,
         AccountState: AccountStateModule,
         BlockHeight: BlockHeightHook,
+        LastStateRoot: LastStateRootBlockHook,
         ...additionalModules,
       },
     });
