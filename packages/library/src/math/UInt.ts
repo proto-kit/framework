@@ -42,8 +42,6 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     return Field((1n << BigInt(numBits)) - 1n);
   }
 
-  // public readonly NUM_BITS: number;
-
   protected constructor(
     value: Field,
     bits: number,
