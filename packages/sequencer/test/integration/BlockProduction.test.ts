@@ -50,7 +50,6 @@ describe("block production", () => {
     UnprovenProducerModule: typeof UnprovenProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
     TaskQueue: typeof LocalTaskQueue;
-    Database: typeof InMemoryDatabase;
   }>;
 
   let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>
@@ -258,9 +257,9 @@ describe("block production", () => {
 
   // TODO Fix the error that we get when execution this after the first test
   it("should reject tx and not apply the state", async () => {
-    expect.assertions(4);
+    expect.assertions(5);
 
-    log.setLevel("INFO")
+    log.setLevel("INFO");
 
     const privateKey = PrivateKey.random();
 
@@ -268,13 +267,14 @@ describe("block production", () => {
       createTransaction({
         method: ["Balance", "setBalanceIf"],
         privateKey,
-        args: [PublicKey.empty(), UInt64.from(100), Bool(false)],
+        args: [PrivateKey.random().toPublicKey(), UInt64.from(100), Bool(false)],
         nonce: 0,
       })
     );
 
     const [block, batch] = await blockTrigger.produceBlock();
 
+    expect(block?.transactions).toHaveLength(1);
     expect(block?.transactions[0].status.toBoolean()).toBe(false);
     expect(block?.transactions[0].statusMessage).toBe("Condition not met");
 
@@ -395,7 +395,7 @@ describe("block production", () => {
     expect(block).toBeDefined();
 
     expect(batch!.bundles).toHaveLength(2);
-    expect(batch!.bundles[1]).toBe([]);
+    expect(batch!.bundles[1]).toStrictEqual([]);
     expect(block!.transactions).toHaveLength(2);
 
     const stateService =

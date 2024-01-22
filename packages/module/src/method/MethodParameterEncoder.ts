@@ -6,13 +6,15 @@ import {
   ArgumentTypes,
   ProofTypes,
   ToFieldableStatic,
-  ToJSONableStatic
+  ToJSONableStatic,
 } from "@proto-kit/common";
 
 const errors = {
-  typeNotCompatible: (name: string) =>
+  typeNotCompatible: (name: string, error?: string) =>
     new Error(
-      `Cannot decode type ${name}, it has to be either a Struct, CircuitValue or built-in snarkyjs type`
+      `Cannot decode type ${name}, it has to be either a Struct, CircuitValue or built-in snarkyjs type.${
+        error !== undefined ? "Caused by: " + error : ""
+      }`
     ),
 };
 
@@ -54,7 +56,10 @@ export class MethodParameterEncoder {
         value = type.fromJSON(
           JSON.parse(argsJSON[index])
         ) as FlexibleProvable<unknown>;
-      } catch {
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          throw errors.typeNotCompatible(type.constructor.name, e.message);
+        }
         throw errors.typeNotCompatible(type.constructor.name);
       }
 
