@@ -132,8 +132,8 @@ export class QueryGraphqlModule<
         type:
           typeof value === "object"
             ? isArray(value)
-              ? this.inputArray(value, key)
-              : this.inputJsonToGraphQl(value, key)
+              ? this.inputArray(value, name + "" + key)
+              : this.inputJsonToGraphQl(value, name + "" + key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -168,8 +168,8 @@ export class QueryGraphqlModule<
         type:
           typeof value === "object"
             ? isArray(value)
-              ? this.graphqlArray(value, key)
-              : this.jsonToGraphQl(value, key)
+              ? this.graphqlArray(value, name + "" + key)
+              : this.jsonToGraphQl(value, name + "" + key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
