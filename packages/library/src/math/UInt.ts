@@ -61,8 +61,6 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     if (bits === 256) {
       throw errors.usageWith256BitsForbidden();
     }
-
-    // this.NUM_BITS = bits;
   }
 
   /**
