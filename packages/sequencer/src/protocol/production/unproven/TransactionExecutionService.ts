@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { container, inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProverExecutionData,
   BlockProverState,
@@ -92,7 +92,7 @@ export class TransactionExecutionService {
     this.runtimeMethodExecution = new RuntimeMethodExecution(
       this.runtime,
       this.protocol,
-      this.runtime.dependencyContainer.resolve(RuntimeMethodExecutionContext)
+      container.resolve(RuntimeMethodExecutionContext)
     );
   }
 
@@ -152,9 +152,7 @@ export class TransactionExecutionService {
     contextInputs: RuntimeMethodExecutionData
   ): RuntimeProvableMethodExecutionResult {
     // Set up context
-    const executionContext = this.runtime.dependencyContainer.resolve(
-      RuntimeMethodExecutionContext
-    );
+    const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.setup(contextInputs);
 
     // Execute method
@@ -175,9 +173,7 @@ export class TransactionExecutionService {
     runUnchecked = false
   ): RuntimeProvableMethodExecutionResult {
     // Set up context
-    const executionContext = this.runtime.dependencyContainer.resolve(
-      RuntimeMethodExecutionContext
-    );
+    const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.setup(runtimeContextInputs);
     if (runUnchecked) {
       executionContext.setSimulated(true);

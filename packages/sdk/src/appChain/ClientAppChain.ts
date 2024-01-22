@@ -12,7 +12,10 @@ import {
   StateServiceProvider,
   StateTransitionProver,
 } from "@proto-kit/protocol";
-import { VanillaProtocol } from "@proto-kit/library";
+import {
+  VanillaProtocol,
+  VanillaProtocolModulesRecord,
+} from "@proto-kit/library";
 import {
   PrivateMempool,
   Sequencer,
@@ -36,10 +39,11 @@ import { AppChain, AppChainModulesRecord } from "./AppChain";
 import { container } from "tsyringe";
 
 export class ClientAppChain<
-  RuntimeModules extends RuntimeModulesRecord
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord & VanillaProtocolModulesRecord
 > extends AppChain<
   RuntimeModules,
-  ProtocolModulesRecord,
+  ProtocolModules,
   SequencerModulesRecord,
   AppChainModulesRecord
 > {
@@ -57,7 +61,7 @@ export class ClientAppChain<
     const appChain = new ClientAppChain({
       runtime,
       sequencer,
-      protocol: VanillaProtocol.from({}),
+      protocol: VanillaProtocol.create(),
 
       modules: {
         GraphqlClient,

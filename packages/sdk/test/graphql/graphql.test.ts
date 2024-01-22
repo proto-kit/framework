@@ -174,6 +174,6 @@ describe("graphql client test", function () {
 
     const state = await appChain.query.network.unproven;
 
-    expect(state.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
+    expect(state?.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
   });
 });

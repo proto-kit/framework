@@ -5,3 +5,5 @@ export * from "./math/UInt112";
 export * from "./math/UInt224";
 export * from "./math/PrecisionHelper";
 export * from "./protocol/VanillaProtocol";
+export * from "./runtime/Balances";
+export * from "./runtime/VanillaRuntime";

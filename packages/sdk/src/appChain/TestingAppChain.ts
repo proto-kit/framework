@@ -6,7 +6,11 @@ import {
   ProtocolModulesRecord,
   StateTransitionProver,
 } from "@proto-kit/protocol";
-import { VanillaProtocol } from "@proto-kit/library";
+import {
+  VanillaProtocol,
+  VanillaProtocolModulesRecord,
+  VanillaRuntime,
+} from "@proto-kit/library";
 import {
   PrivateMempool,
   Sequencer,
@@ -30,18 +34,19 @@ import { AppChain, AppChainModulesRecord } from "./AppChain";
 
 export class TestingAppChain<
   RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord & VanillaProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord
 > extends AppChain<
   RuntimeModules,
-  ProtocolModulesRecord,
+  ProtocolModules,
   SequencerModules,
   AppChainModulesRecord
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord
   >(definition: { modules: RuntimeModules }) {
-    const runtime = Runtime.from({
-      ...definition,
+    const runtime = VanillaRuntime.from({
+      ...definition.modules,
     });
 
     const sequencer = Sequencer.from({
@@ -59,7 +64,7 @@ export class TestingAppChain<
 
     const appChain = new TestingAppChain({
       runtime,
-      protocol: VanillaProtocol.from({}),
+      protocol: VanillaProtocol.create(),
       sequencer,
 
       modules: {
@@ -71,6 +76,10 @@ export class TestingAppChain<
     });
 
     appChain.configurePartial({
+      Runtime: {
+        Balances: {},
+      },
+
       Sequencer: {
         Database: {},
         BlockTrigger: {},
@@ -90,6 +99,12 @@ export class TestingAppChain<
         BlockProver: {},
         StateTransitionProver: {},
         BlockHeight: {},
+
+        TransactionFee: {
+          baseFee: 1_000_000n,
+          perWeightUnitFee: 1000n,
+          methods: {},
+        },
       },
 
       Signer: {},

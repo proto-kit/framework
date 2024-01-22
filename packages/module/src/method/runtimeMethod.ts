@@ -4,7 +4,9 @@ import {
   FlexibleProvable,
   Poseidon,
   Proof,
+  Provable,
   ProvableExtended,
+  UInt64,
 } from "o1js";
 import { container } from "tsyringe";
 import {
@@ -13,6 +15,7 @@ import {
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
+  RuntimeMethodExecutionDataStruct,
 } from "@proto-kit/protocol";
 import {
   DecoratedMethod,
@@ -28,6 +31,7 @@ import {
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 import { MethodIdResolver } from "../runtime/MethodIdResolver";
+import { state } from "../state/decorator.js";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -81,14 +85,11 @@ export function toWrappedMethod(
     Reflect.apply(moduleMethod, this, args);
     const {
       result: { stateTransitions, status },
-      input,
     } = executionContext.current();
 
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
 
-    if (input === undefined) {
-      throw errors.methodInputsNotProvided();
-    }
+    const input = this.getInputs();
 
     const { name, runtime } = this;
 
@@ -148,7 +149,7 @@ export function toWrappedMethod(
     // i.e. the result of the if-statement will be the same for all executions
     // of this method
     const argsHash =
-      methodArguments.length > 0 ? Poseidon.hash(argsFields) : Field(0);
+      (methodArguments ?? []).length > 0 ? Poseidon.hash(argsFields) : Field(0);
 
     input.transaction.argsHash.assertEquals(
       argsHash,

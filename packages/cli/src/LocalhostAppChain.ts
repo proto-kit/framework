@@ -8,7 +8,10 @@ import {
   ProtocolModule,
   ProtocolModulesRecord,
 } from "@proto-kit/protocol";
-import { VanillaProtocol } from "@proto-kit/library";
+import {
+  VanillaProtocol,
+  VanillaProtocolModulesRecord,
+} from "@proto-kit/library";
 import { ModulesConfig } from "@proto-kit/common";
 import {
   BlockProducerModule,
@@ -41,10 +44,11 @@ import {
 } from "@proto-kit/sdk";
 
 export class LocalhostAppChain<
-  RuntimeModules extends RuntimeModulesRecord
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord & VanillaProtocolModulesRecord
 > extends AppChain<
   RuntimeModules,
-  ProtocolModulesRecord,
+  ProtocolModules,
   SequencerModulesRecord,
   AppChainModulesRecord
 > {
@@ -54,7 +58,7 @@ export class LocalhostAppChain<
     const appChain = LocalhostAppChain.from({
       runtime: Runtime.from(definition),
 
-      protocol: VanillaProtocol.from({}),
+      protocol: VanillaProtocol.create(),
 
       sequencer: Sequencer.from({
         modules: {

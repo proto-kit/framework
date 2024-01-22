@@ -15,6 +15,7 @@ import {
 } from "./Balances";
 import { PoolKey, XYK } from "./XYK";
 import uniqBy from "lodash/uniqBy";
+import { VanillaProtocolModulesRecord } from "@proto-kit/library";
 
 interface RuntimeModules extends RuntimeModulesRecord {
   Balances: typeof Balances;
@@ -35,7 +36,7 @@ describe("xyk", () => {
 
   const pool = PoolKey.fromTokenIdPair(tokenInId, tokenOutId);
 
-  let chain: TestingAppChain<RuntimeModules, any>;
+  let chain: TestingAppChain<RuntimeModules, VanillaProtocolModulesRecord>;
 
   let balances: Balances;
   let xyk: XYK;
