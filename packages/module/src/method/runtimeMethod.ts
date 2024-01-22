@@ -1,4 +1,11 @@
-import { Field, FlexibleProvable, Poseidon } from "o1js";
+/* eslint-disable max-statements */
+import {
+  Field,
+  FlexibleProvable,
+  Poseidon,
+  Proof,
+  ProvableExtended,
+} from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -12,6 +19,11 @@ import {
   toProver,
   ZkProgrammable,
   ToFieldable,
+  ToFieldableStatic,
+  ProofTypes,
+  ArgumentTypes,
+  TypedClass,
+  O1JSPrimitive,
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
@@ -53,13 +65,13 @@ export function toStateTransitionsHash(
 }
 
 // eslint-disable-next-line etc/prefer-interface
-export type WrappedMethod = (...args: unknown[]) => MethodPublicOutput;
+export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
 
 export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
-  moduleMethod: (...args: unknown[]) => unknown,
-  methodArguments: ToFieldable[]
+  moduleMethod: (...args: ArgumentTypes) => unknown,
+  methodArguments: ArgumentTypes
 ) {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
     RuntimeMethodExecutionContext
@@ -99,19 +111,37 @@ export function toWrappedMethod(
       "Runtimemethod called with wrong methodId on the transaction object"
     );
 
-    const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
-      "design:paramtypes",
-      this,
-      methodName
-    );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const parameterTypes: ProofTypes[] | ToFieldableStatic[] =
+      Reflect.getMetadata("design:paramtypes", this, methodName);
 
     /**
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((arg, index) =>
-      paramTypes[index].toFields(arg as any)
-    );
+    const argsFields = args.flatMap((argument, index) => {
+      if (argument instanceof Proof) {
+        // eslint-disable-next-line max-len
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const argumentType = parameterTypes[index] as ProofTypes;
+
+        const publicOutputType = argumentType?.publicOutputType;
+
+        const publicInputType = argumentType?.publicInputType;
+
+        const inputFields =
+          publicInputType?.toFields(argument.publicInput) ?? [];
+
+        const outputFields =
+          publicOutputType?.toFields(argument.publicOutput) ?? [];
+
+        return [...inputFields, ...outputFields];
+      }
+
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const argumentType = parameterTypes[index] as ToFieldableStatic;
+      return argumentType.toFields(argument);
+    });
 
     // Assert that the argsHash that has been signed matches the given arguments
     // We can use js-if here, because methodArguments is statically sizes
@@ -200,7 +230,7 @@ export function runtimeMethod() {
 
     descriptor.value = function value(
       this: RuntimeModule<unknown>,
-      ...args: ToFieldable[]
+      ...args: ArgumentTypes
     ) {
       const constructorName = this.constructor.name;
 

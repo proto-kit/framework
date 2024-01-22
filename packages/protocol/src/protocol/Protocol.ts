@@ -21,8 +21,11 @@ import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
 import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
+import { AccountStateModule } from "../blockmodules/AccountStateModule";
 import { ProvableBlockHook } from "./ProvableBlockHook";
 import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
+import { BlockHeightHook } from "../blockmodules/BlockHeightHook";
+import { LastStateRootBlockHook } from "../blockmodules/LastStateRootBlockHook";
 
 const PROTOCOL_INJECTION_TOKENS = {
   ProvableTransactionHook: "ProvableTransactionHook",
@@ -39,9 +42,13 @@ interface StateTransitionProverType
   extends ProtocolModule,
     StateTransitionProvable {}
 
-export interface ProtocolCustomModulesRecord {
+export interface ProtocolCustomModulesRecord
+  extends GenericProtocolModuleRecord {
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
+  AccountState: TypedClass<AccountStateModule>;
+  BlockHeight: TypedClass<BlockHeightHook>;
+  LastStateRoot: TypedClass<LastStateRootBlockHook>;
 }
 
 export interface ProtocolModulesRecord
@@ -171,39 +178,21 @@ export class Protocol<Modules extends ProtocolModulesRecord>
 
 export const VanillaProtocol = {
   create() {
-    return VanillaProtocol.from(
-      {},
-      {
-        BlockProver: {},
-        StateTransitionProver: {},
-      }
-    );
+    return VanillaProtocol.from({});
   },
 
   from<AdditonalModules extends GenericProtocolModuleRecord>(
-    additionalModules: AdditonalModules,
-    config: ModulesConfig<
-      AdditonalModules & {
-        StateTransitionProver: typeof StateTransitionProver;
-        BlockProver: typeof BlockProver;
-      }
-    >
-  ): TypedClass<
-    Protocol<
-      AdditonalModules & {
-        StateTransitionProver: typeof StateTransitionProver;
-        BlockProver: typeof BlockProver;
-      }
-    >
-  > {
-    return Protocol.from({
+    additionalModules: AdditonalModules
+  ): TypedClass<Protocol<ProtocolCustomModulesRecord & AdditonalModules>> {
+    return Protocol.from<ProtocolCustomModulesRecord & AdditonalModules>({
       modules: {
         StateTransitionProver,
         BlockProver,
+        AccountState: AccountStateModule,
+        BlockHeight: BlockHeightHook,
+        LastStateRoot: LastStateRootBlockHook,
         ...additionalModules,
       },
-
-      config,
     });
   },
 };

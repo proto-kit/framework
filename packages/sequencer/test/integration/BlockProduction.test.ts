@@ -5,7 +5,7 @@ import "reflect-metadata";
 // TODO this is actually a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
-import { Fieldable, Runtime, MethodIdResolver } from "@proto-kit/module";
+import { Runtime, MethodIdResolver, MethodParameterEncoder } from "@proto-kit/module";
 import {
   AccountState,
   AccountStateModule,
@@ -14,13 +14,13 @@ import {
   NetworkState,
   Option,
   Path,
-  Protocol,
+  Protocol, ReturnType,
   StateTransition,
   StateTransitionProver,
   VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
-import { log, range } from "@proto-kit/common";
+import { Bool, Field, PrivateKey, ProvableExtended, PublicKey, UInt64 } from "o1js";
+import { ArgumentTypes, log, range, ToFieldableStatic, ToJSONableStatic } from "@proto-kit/common";
 
 import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
@@ -50,14 +50,10 @@ describe("block production", () => {
     UnprovenProducerModule: typeof UnprovenProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
     TaskQueue: typeof LocalTaskQueue;
+    Database: typeof InMemoryDatabase;
   }>;
 
-  let protocol: Protocol<{
-    AccountStateModule: typeof AccountStateModule;
-    BlockHeightHook: typeof BlockHeightHook;
-    BlockProver: typeof BlockProver;
-    StateTransitionProver: typeof StateTransitionProver;
-  }>;
+  let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>
 
   let appChain: AppChain<any, any, any, any>;
 
@@ -93,13 +89,7 @@ describe("block production", () => {
     });
 
     const protocolClass = VanillaProtocol.from(
-      { AccountStateModule, BlockHeightHook },
-      {
-        StateTransitionProver: {},
-        BlockProver: {},
-        AccountStateModule: {},
-        BlockHeightHook: {},
-      }
+      { }
     );
 
     const app = AppChain.from({
@@ -124,10 +114,11 @@ describe("block production", () => {
         Balance: {},
       },
       Protocol: {
-        AccountStateModule: {},
+        AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
-        BlockHeightHook: {},
+        BlockHeight: {},
+        LastStateRoot: {},
       },
     });
 
@@ -145,16 +136,20 @@ describe("block production", () => {
   function createTransaction(spec: {
     privateKey: PrivateKey;
     method: [string, string];
-    args: Fieldable[];
+    args: ArgumentTypes;
     nonce: number;
   }) {
     const methodId = runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
       .getMethodId(spec.method[0], spec.method[1]);
 
+    const decoder = MethodParameterEncoder.fromMethod(runtime.resolve(spec.method[0] as "Balance"), spec.method[1]);
+    const { argsFields, argsJSON } = decoder.encode(spec.args)
+
     return new UnsignedTransaction({
       methodId: Field(methodId),
-      args: spec.args.flatMap((parameter) => parameter.toFields()),
+      argsFields,
+      argsJSON,
       sender: spec.privateKey.toPublicKey(),
       nonce: UInt64.from(spec.nonce),
     }).sign(spec.privateKey);
@@ -219,7 +214,7 @@ describe("block production", () => {
     );
 
     // Check that nonce has been set
-    const accountModule = protocol.resolve("AccountStateModule");
+    const accountModule = protocol.resolve("AccountState");
     const accountStatePath = Path.fromKey(
       accountModule.accountState.path!,
       accountModule.accountState.keyType,
@@ -264,6 +259,8 @@ describe("block production", () => {
   // TODO Fix the error that we get when execution this after the first test
   it("should reject tx and not apply the state", async () => {
     expect.assertions(4);
+
+    log.setLevel("INFO")
 
     const privateKey = PrivateKey.random();
 

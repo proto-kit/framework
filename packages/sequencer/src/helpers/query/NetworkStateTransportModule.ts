@@ -1,7 +1,7 @@
 import { NetworkState } from "@proto-kit/protocol";
 
 export interface NetworkStateTransportModule {
-  getUnprovenNetworkState: () => Promise<NetworkState>;
-  getStagedNetworkState: () => Promise<NetworkState>;
-  getProvenNetworkState: () => Promise<NetworkState>;
+  getUnprovenNetworkState: () => Promise<NetworkState | undefined>;
+  getStagedNetworkState: () => Promise<NetworkState | undefined>;
+  getProvenNetworkState: () => Promise<NetworkState | undefined>;
 }

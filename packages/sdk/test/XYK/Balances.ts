@@ -1,12 +1,12 @@
+/* eslint-disable import/no-unused-modules */
+/* eslint-disable max-classes-per-file */
 import {
   RuntimeModule,
   runtimeMethod,
   state,
   runtimeModule,
 } from "@proto-kit/module";
-
 import { StateMap, assert } from "@proto-kit/protocol";
-
 import { Field, Provable, PublicKey, Struct, UInt64 } from "o1js";
 
 export const errors = {
@@ -19,7 +19,8 @@ export class BalancesKey extends Struct({
   tokenId: TokenId,
   address: PublicKey,
 }) {
-  test() {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  public test() {}
 }
 
 export class Balance extends UInt64 {}
@@ -35,7 +36,7 @@ export class Balances extends RuntimeModule<unknown> {
     const key = new BalancesKey({ tokenId, address });
     const balanceOption = this.balances.get(key);
 
-    return Provable.if(
+    return Provable.if<Balance>(
       balanceOption.isSome,
       Balance,
       balanceOption.value,
@@ -63,7 +64,7 @@ export class Balances extends RuntimeModule<unknown> {
 
     // used to prevent field underflow during subtraction
     const paddedFrombalance = fromBalance.add(amount);
-    const safeFromBalance = Provable.if(
+    const safeFromBalance = Provable.if<Balance>(
       fromBalanceIsSufficient,
       Balance,
       fromBalance,

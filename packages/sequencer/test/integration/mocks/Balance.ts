@@ -5,9 +5,21 @@ import {
   state,
 } from "@proto-kit/module";
 import { log, Presets, range } from "@proto-kit/common";
-import { Bool, Field, PublicKey, UInt64 } from "o1js";
+import {
+  Bool,
+  Field,
+  PublicKey,
+  UInt64,
+  Struct,
+  Provable,
+  Signature,
+} from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert } from "@proto-kit/protocol";
+
+class MyStruct extends Struct({
+  a: Provable.Array(Field, 10),
+}) {}
 
 @runtimeModule()
 export class Balance extends RuntimeModule<object> {
@@ -28,6 +40,9 @@ export class Balance extends RuntimeModule<object> {
   public getTotalSupply() {
     this.totalSupply.get();
   }
+
+  // @runtimeMethod()
+  // public test(a: UInt64, b: Signature, c: MyStruct, d: Struct<unknown>) {}
 
   @runtimeMethod()
   public setTotalSupply() {

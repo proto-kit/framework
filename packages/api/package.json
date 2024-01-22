@@ -26,7 +26,8 @@
     "lodash": "^4.17.21",
     "koa": "^2.14.2",
     "reflect-metadata": "^0.1.13",
-    "type-graphql": "2.0.0-beta.1"
+    "type-graphql": "2.0.0-beta.1",
+    "graphql-yoga": "^5.0.0"
   },
   "peerDependencies": {
     "@proto-kit/common": "*",

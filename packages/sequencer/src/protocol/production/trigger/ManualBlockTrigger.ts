@@ -30,7 +30,9 @@ export class ManualBlockTrigger
    * Produces both an unproven block and immediately produce a
    * settlement block proof
    */
-  public async produceBlock(): Promise<[UnprovenBlock | undefined, ComputedBlock | undefined]> {
+  public async produceBlock(): Promise<
+    [UnprovenBlock | undefined, ComputedBlock | undefined]
+  > {
     return [await this.produceUnproven(), await this.produceProven()];
   }
 

@@ -45,6 +45,19 @@ export interface ToFieldable {
   toFields: () => Field[];
 }
 
+export interface ToFieldableStatic {
+  toFields: (value: unknown) => Field[];
+}
+
+export interface ToJSONableStatic {
+  toJSON: (value: unknown) => any;
+}
+
+export interface ProofTypes {
+  publicOutputType?: ToFieldableStatic;
+  publicInputType?: ToFieldableStatic;
+}
+
 export async function sleep(ms: number) {
   // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
   await new Promise((resolve) => setTimeout(resolve, ms));
