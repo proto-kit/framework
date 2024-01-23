@@ -46,6 +46,7 @@ import {
   BlockHashTreeEntry,
 } from "./accummulators/BlockHashMerkleTree";
 import { SignedTransaction } from "../../model/transaction/SignedTransaction";
+import { MinaPrefixedProvableHashList } from "../../utils/PrefixedProvableHashList";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -350,8 +351,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     // Append tx to incomingMessagesHash
     // TODO Change to prefixed hashlist
-    const incomingMessagesList = new DefaultProvableHashList(
+    const incomingMessagesList = new MinaPrefixedProvableHashList(
       Field,
+      "MinaZkappSeqEvents**",
       state.incomingMessagesHash
     )
 
