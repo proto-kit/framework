@@ -4,12 +4,15 @@ import { Field, FlexibleProvable, Proof, ProvableExtended } from "o1js";
 import { RuntimeModule } from "../runtime/RuntimeModule";
 import {
   ArgumentTypes,
-  ProofTypes,
+  ProofTypes, ToFieldable,
   ToFieldableStatic,
-  ToJSONableStatic,
+  ToJSONableStatic
 } from "@proto-kit/common";
 
 const errors = {
+  fieldLengthNotMatching: (expected: number, actual: number) =>
+    new Error(`Expected ${expected} field elements, got ${actual}`),
+
   typeNotCompatible: (name: string, error?: string) =>
     new Error(
       `Cannot decode type ${name}, it has to be either a Struct, CircuitValue or built-in snarkyjs type.${
@@ -64,6 +67,24 @@ export class MethodParameterEncoder {
       }
 
       return value;
+    });
+  }
+
+  public decodeFields(fields: Field[]): ArgumentTypes {
+    if (fields.length < this.fieldSize) {
+      throw errors.fieldLengthNotMatching(this.fieldSize, fields.length);
+    }
+
+    let stack = fields.slice();
+
+    return this.types.map((type) => {
+      const numberFieldsNeeded = MethodParameterEncoder.fieldSize(type) ?? -1;
+      if (numberFieldsNeeded === -1) {
+        throw errors.typeNotCompatible(type.constructor.name);
+      }
+      const structFields = stack.slice(0, numberFieldsNeeded);
+      stack = stack.slice(numberFieldsNeeded);
+      return type.fromFields(structFields, []) as ToFieldable;
     });
   }
 

@@ -1,5 +1,14 @@
-import { Bool, Field, Poseidon, Provable, PublicKey, Struct, UInt64 } from "o1js";
+import {
+  Bool,
+  Field,
+  Poseidon,
+  Provable,
+  PublicKey,
+  Struct,
+  UInt64,
+} from "o1js";
 import { PublicKeyOption, UInt64Option } from "./ValueOption";
+import { EMPTY_PUBLICKEY, EMPTY_PUBLICKEY_X } from "@proto-kit/common";
 
 /**
  * This struct is used to expose transaction information to the runtime method
@@ -37,7 +46,7 @@ export class RuntimeTransaction extends Struct({
       methodId,
       argsHash,
       nonce: UInt64Option.notSome(UInt64.zero),
-      sender: PublicKeyOption.notSome(PublicKey.empty()),
+      sender: PublicKeyOption.notSome(EMPTY_PUBLICKEY),
     });
   }
 
@@ -50,7 +59,7 @@ export class RuntimeTransaction extends Struct({
       }),
       sender: new PublicKeyOption({
         isSome: Bool(true),
-        value: PublicKey.empty(),
+        value: EMPTY_PUBLICKEY,
       }),
       argsHash: Field(0),
     });
@@ -65,21 +74,22 @@ export class RuntimeTransaction extends Struct({
     this.sender.isSome
       .equals(isTransaction)
       .assertTrue("Sender is not right option isSome for type");
+    this.sender.value.x
+      .equals(EMPTY_PUBLICKEY_X)
+      .equals(isMessage)
+      .assertTrue("Transaction sender is not set to dummy");
+  }
+
+  public hashData(): Field[] {
+    return [
+      this.methodId,
+      ...this.sender.value.toFields(),
+      ...this.nonce.value.toFields(),
+      this.argsHash,
+    ];
   }
 
   public hash(): Field {
-    const full = Poseidon.hash([
-      this.methodId,
-      this.argsHash,
-      ...this.sender.value.toFields(),
-      ...this.nonce.value.toFields(),
-    ]);
-
-    const partial = Poseidon.hash([
-      this.methodId,
-      this.argsHash,
-    ])
-
-    return Provable.if(this.sender.isSome, full, partial);
+    return Poseidon.hash(this.hashData());
   }
 }

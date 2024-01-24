@@ -2,6 +2,8 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Bool, Field, Proof } from "o1js";
 import {
   BlockProof,
+  BlockProverPublicInput,
+  BlockProverPublicOutput,
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
@@ -286,6 +288,7 @@ export class BlockTaskFlowService {
 
             eternalTransactionsHash:
               blockTrace.block.publicInput.eternalTransactionsHash,
+            incomingMessagesHash: blockTrace.block.publicInput.incomingMessagesHash,
           };
           const publicInput = new BlockProverPublicInput(piObject);
 

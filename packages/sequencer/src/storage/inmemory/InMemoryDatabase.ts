@@ -15,6 +15,8 @@ import {
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
 import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
+import { InMemoryMessageStorage } from "./InMemoryMessageStorage";
+import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
 
 @sequencerModule()
 export class InMemoryDatabase
@@ -51,8 +53,14 @@ export class InMemoryDatabase
         useFactory: () => new CachedMerkleTreeStore(this.merkleStore),
       },
       blockTreeStore: {
-        useClass: InMemoryAsyncMerkleTreeStore
-      }
+        useClass: InMemoryAsyncMerkleTreeStore,
+      },
+      messageStorage: {
+        useClass: InMemoryMessageStorage,
+      },
+      settlementStorage: {
+        useClass: InMemorySettlementStorage,
+      },
     };
   }
 

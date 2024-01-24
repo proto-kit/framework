@@ -5,7 +5,7 @@ import {
   FlexibleProvable,
   Poseidon,
   Proof,
-  ProvableExtended
+  ProvableExtended,
 } from "o1js";
 import { container } from "tsyringe";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
+import { MethodParameterEncoder } from "./MethodParameterEncoder";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -74,7 +75,7 @@ export function toWrappedMethod(
   moduleMethod: (...args: ArgumentTypes) => unknown,
   methodArguments: ArgumentTypes,
   options: {
-    invocationType: InvocationType;
+    invocationType: RuntimeMethodInvocationType;
   }
 ) {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
@@ -103,14 +104,11 @@ export function toWrappedMethod(
       throw errors.runtimeNotProvided(name);
     }
 
-    const { transaction, networkState } =
-      executionContext.witnessInput();
+    const { transaction, networkState } = executionContext.witnessInput();
     const { methodIdResolver } = runtime;
 
     // Assert that the given transaction has the correct methodId
-    const thisMethodId = Field(
-      methodIdResolver.getMethodId(name, methodName)
-    );
+    const thisMethodId = Field(methodIdResolver.getMethodId(name, methodName));
     if (!thisMethodId.isConstant()) {
       throw errors.fieldNotConstant("methodId");
     }
@@ -120,37 +118,11 @@ export function toWrappedMethod(
       "Runtimemethod called with wrong methodId on the transaction object"
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const parameterTypes: ProofTypes[] | ToFieldableStatic[] =
-      Reflect.getMetadata("design:paramtypes", this, methodName);
-
     /**
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((argument, index) => {
-      if (argument instanceof Proof) {
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const argumentType = parameterTypes[index] as ProofTypes;
-
-        const publicOutputType = argumentType?.publicOutputType;
-
-        const publicInputType = argumentType?.publicInputType;
-
-        const inputFields =
-          publicInputType?.toFields(argument.publicInput) ?? [];
-
-        const outputFields =
-          publicOutputType?.toFields(argument.publicOutput) ?? [];
-
-        return [...inputFields, ...outputFields];
-      }
-
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const argumentType = parameterTypes[index] as ToFieldableStatic;
-      return argumentType.toFields(argument);
-    });
+    const { argsFields } = MethodParameterEncoder.fromMethod(this, methodName).encode(args);
 
     // Assert that the argsHash that has been signed matches the given arguments
     // We can use js-if here, because methodArguments is statically sizes
@@ -196,6 +168,7 @@ export function combineMethodName(
 
 export const runtimeMethodMetadataKey = "yab-method";
 export const runtimeMethodNamesMetadataKey = "proto-kit-runtime-methods";
+export const runtimeMethodTypeMetadataKey = "proto-kit-runtime-method-type";
 
 /**
  * Checks the metadata of the provided runtime module and its method,
@@ -214,9 +187,9 @@ export function isRuntimeMethod(
   );
 }
 
-type InvocationType = "SIGNATURE" | "INCOMING_MESSAGE";
+export type RuntimeMethodInvocationType = "SIGNATURE" | "INCOMING_MESSAGE";
 
-function runtimeMethodInternal(options: { invocationType: InvocationType }) {
+function runtimeMethodInternal(options: { invocationType: RuntimeMethodInvocationType }) {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
@@ -239,6 +212,13 @@ function runtimeMethodInternal(options: { invocationType: InvocationType }) {
     Reflect.defineMetadata(runtimeMethodNamesMetadataKey, data, target);
 
     Reflect.defineMetadata(runtimeMethodMetadataKey, true, target, methodName);
+
+    Reflect.defineMetadata(
+      runtimeMethodTypeMetadataKey,
+      options.invocationType,
+      target,
+      methodName
+    );
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const simulatedMethod = descriptor.value as DecoratedMethod;
@@ -311,7 +291,7 @@ function runtimeMethodInternal(options: { invocationType: InvocationType }) {
   };
 }
 
-export function messageMethod() {
+export function runtimeMessage() {
   return runtimeMethodInternal({
     invocationType: "INCOMING_MESSAGE",
   });

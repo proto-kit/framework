@@ -4,7 +4,7 @@ import {
   BlockProverPublicOutput,
   DefaultProvableHashList,
   NetworkState,
-  BlockHashMerkleTreeWitness,
+  BlockHashMerkleTreeWitness, MinaPrefixedProvableHashList
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { log, noop, RollupMerkleTree } from "@proto-kit/common";
@@ -235,10 +235,11 @@ export class BlockProducerModule extends SequencerModule {
       Field,
       bundles[0].block.block.fromEternalTransactionsHash
     );
-    const messageTracker = new DefaultProvableHashList(
+    const messageTracker = new MinaPrefixedProvableHashList(
       Field,
+      "MinaZkappSeqEvents**",
       bundles[0].block.block.fromMessagesHash
-    )
+    );
 
     for (const bundleWithMetadata of bundles) {
       const block = bundleWithMetadata.block.block;
