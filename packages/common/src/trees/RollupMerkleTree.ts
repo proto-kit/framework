@@ -267,7 +267,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
      * @returns The root of the Merkle Tree.
      */
     public getRoot(): Field {
-      return this.getNode(AbstractRollupMerkleTree.HEIGHT - 1, 0n);
+      return this.getNode(AbstractRollupMerkleTree.HEIGHT - 1, 0n).toConstant();
     }
 
     // private in interface

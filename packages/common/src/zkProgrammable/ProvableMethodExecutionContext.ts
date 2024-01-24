@@ -2,8 +2,7 @@ import type { FlexibleProvable, Proof } from "o1js";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 
-import { ToFieldable } from "../utils";
-import { ArgumentTypes } from "./provableMethod";
+import type { ArgumentTypes } from "./provableMethod";
 
 const errors = {
   moduleOrMethodNameNotSet: () => new Error("Module or method name not set"),

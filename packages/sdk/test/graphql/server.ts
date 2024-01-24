@@ -17,18 +17,15 @@ import {
 } from "@proto-kit/protocol";
 import { Presets, log, sleep } from "@proto-kit/common";
 import {
-  AsyncStateService,
   BlockProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
-  ManualBlockTrigger,
   NoopBaseLayer,
-  PendingTransaction,
-  PrivateMempool, QueryBuilderFactory,
+  PrivateMempool,
   Sequencer,
   TimedBlockTrigger,
-  UnsignedTransaction,
+  UnprovenProducerModule
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -46,7 +43,6 @@ import { StateServiceQueryModule } from "../../src/query/StateServiceQueryModule
 import { InMemorySigner } from "../../src/transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
 import { container } from "tsyringe";
-import { UnprovenProducerModule } from "@proto-kit/sequencer/dist/protocol/production/unproven/UnprovenProducerModule";
 import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
 import { MessageBoard, Post } from "./Post";
 

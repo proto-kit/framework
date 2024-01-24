@@ -28,14 +28,7 @@ import {
 } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
-import { EventEmitter } from "../events/EventEmitter";
-import {
-  EventEmittingComponent,
-  EventsRecord,
-} from "../events/EventEmittingComponent";
 import { EventEmitterProxy } from "../events/EventEmitterProxy";
-import { memoize } from "lodash";
-import { Memoize } from "typescript-memoize";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
