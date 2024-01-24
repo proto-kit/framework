@@ -40,7 +40,6 @@ export * from "./storage/model/Block";
 export * from "./storage/model/UnprovenBlock";
 export * from "./storage/repositories/BlockStorage";
 export * from "./storage/repositories/UnprovenBlockStorage";
-export * from "./storage/repositories/TransactionRepository";
 export * from "./storage/inmemory/InMemoryDatabase";
 export * from "./storage/inmemory/InMemoryAsyncMerkleTreeStore";
 export * from "./storage/inmemory/InMemoryBlockStorage";

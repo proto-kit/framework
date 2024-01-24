@@ -352,7 +352,7 @@ export class TransactionExecutionService {
     blockHashTree.setLeaf(
       block.height.toBigInt(),
       new BlockHashTreeEntry({
-        transactionsHash: block.transactionsHash,
+        blockHash: block.transactionsHash,
         closed: Bool(true),
       }).hash()
     );

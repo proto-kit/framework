@@ -45,7 +45,6 @@ import {
   BlockHashMerkleTreeWitness,
   BlockHashTreeEntry,
 } from "./accummulators/BlockHashMerkleTree";
-import { UnprovenBlock } from "@proto-kit/sequencer";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
