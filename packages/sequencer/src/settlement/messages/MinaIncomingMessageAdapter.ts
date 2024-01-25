@@ -1,5 +1,13 @@
 import { inject, injectable } from "tsyringe";
-import { Field, PrivateKey, PublicKey, Signature, UInt64 } from "o1js";
+import {
+  Field,
+  Poseidon,
+  PrivateKey,
+  PublicKey,
+  Signature,
+  UInt32,
+  UInt64,
+} from "o1js";
 import {
   Runtime,
   RuntimeModulesRecord,
@@ -11,6 +19,7 @@ import { PendingTransaction } from "../../mempool/PendingTransaction";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";
+import { RuntimeTransaction } from "@proto-kit/protocol";
 
 @injectable()
 export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
@@ -20,9 +29,12 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {}
 
-  private mapActionToTransactions(action: string[]): PendingTransaction {
-    const fields = action.map((s) => Field(s));
-    const [methodId] = fields;
+  private mapActionToTransactions(
+    tx: RuntimeTransaction,
+    rawArgs: Field[]
+  ): PendingTransaction {
+    // const [methodId] = fields;
+    const { methodId } = tx;
 
     const methodPointer = this.runtime.methodIdResolver.getMethodNameFromId(
       methodId.toBigInt()
@@ -36,10 +48,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     const module = this.runtime.resolve(moduleName);
     const methodEncoder = MethodParameterEncoder.fromMethod(module, methodName);
 
-    const transactionFieldLength = 4;
-    const args = methodEncoder.decodeFields(
-      fields.slice(transactionFieldLength)
-    );
+    const args = methodEncoder.decodeFields(rawArgs);
 
     const { argsJSON, argsFields } = methodEncoder.encode(args);
 
@@ -59,6 +68,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     params: {
       fromActionHash: string;
       toActionHash?: string;
+      fromL1Block: number;
     }
   ): Promise<{
     from: string;
@@ -80,15 +90,38 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       //   : undefined,
     });
 
+    const events = await network.fetchEvents(address, undefined, {
+      from: UInt32.from(Math.max(params.fromL1Block - 5, 0)),
+    });
+
     if ("error" in actions) {
       throw new Error(
         `Error ${actions.error.statusCode}: ${actions.error.statusText}`
       );
     }
 
-    const messages = actions.map((action) =>
-      this.mapActionToTransactions(action.actions[0])
-    );
+    const messages = actions.map((action) => {
+      // Find events corresponding to the transaction to get the raw args
+      const tx = RuntimeTransaction.fromHashData(
+        action.actions[0].map((x) => Field(x))
+      );
+      const correspondingEvent = events
+        .map((event) => {
+          return event.events.find((event2) => {
+            return Poseidon.hash(event2.data.map((x) => Field(x))).equals(
+              tx.argsHash
+            );
+          });
+        })
+        .find((x) => x !== undefined);
+
+      if (correspondingEvent === undefined) {
+        throw new Error("Couldn't find events corresponding to action");
+      }
+      const args = correspondingEvent.data.map((x) => Field(x));
+
+      return this.mapActionToTransactions(tx, args);
+    });
 
     return {
       messages,

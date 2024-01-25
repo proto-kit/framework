@@ -8,6 +8,7 @@ export interface IncomingMessageAdapter {
     params: {
       fromActionHash: string;
       toActionHash?: string;
+      fromL1Block: number;
     }
   ) => Promise<{
     from: string;

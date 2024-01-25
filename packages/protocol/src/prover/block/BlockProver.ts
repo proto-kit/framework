@@ -10,6 +10,7 @@ import {
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
   AreProofsEnabled,
+  hashWithPrefix,
   PlainZkProgram,
   provableMethod,
   WithZkProgrammable,
@@ -46,7 +47,11 @@ import {
   BlockHashTreeEntry,
 } from "./accummulators/BlockHashMerkleTree";
 import { SignedTransaction } from "../../model/transaction/SignedTransaction";
-import { MinaPrefixedProvableHashList } from "../../utils/PrefixedProvableHashList";
+import {
+  emptyActions,
+  MinaPrefixedProvableHashList,
+} from "../../utils/PrefixedProvableHashList";
+import { Actions } from "o1js/dist/node/lib/account_update";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -323,11 +328,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
   private addTransactionToBundle(
     state: BlockProverState,
     isMessage: Bool,
-    transactionHash: Field
+    transaction: RuntimeTransaction
   ): BlockProverState {
     const stateTo = {
       ...state,
     };
+
+    const transactionHash = transaction.hash();
 
     // Append tx to transaction list
     const transactionList = new DefaultProvableHashList(
@@ -350,15 +357,29 @@ export class BlockProverProgrammable extends ZkProgrammable<
     stateTo.eternalTransactionsHash = eternalTransactionList.commitment;
 
     // Append tx to incomingMessagesHash
-    // TODO Change to prefixed hashlist
+    const prefix = "MinaZkappEvent******";
+    console.log(
+      "Tx data",
+      transaction.hashData().map((x) => x.toString())
+    );
+    const actionDataHash = hashWithPrefix(prefix, transaction.hashData());
+    console.log("Actiondatahash", actionDataHash.toString());
+    const actionHash = hashWithPrefix("MinaZkappSeqEvents**", [
+      emptyActions(),
+      actionDataHash,
+    ]);
+    console.log("Actionhash", actionHash.toString());
+
     const incomingMessagesList = new MinaPrefixedProvableHashList(
       Field,
       "MinaZkappSeqEvents**",
       state.incomingMessagesHash
-    )
+    );
+    incomingMessagesList.pushIf(actionHash, isMessage);
 
-    incomingMessagesList.pushIf(transactionHash, isMessage);
-    state.incomingMessagesHash = incomingMessagesList.commitment;
+    console.log("commitment before", state.incomingMessagesHash.toString());
+    stateTo.incomingMessagesHash = incomingMessagesList.commitment;
+    console.log("commitment after", state.incomingMessagesHash.toString());
 
     return stateTo;
   }
@@ -377,7 +398,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const bundleInclusionState = this.addTransactionToBundle(
       state,
       runtimeProof.publicOutput.isMessage,
-      runtimeProof.publicOutput.transactionHash
+      executionData.transaction
     );
 
     const stateTo = this.applyTransaction(
@@ -456,6 +477,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
       state.eternalTransactionsHash,
       "TransactionProof starting eternalTransactionHash not matching"
     );
+    transactionProof.publicInput.incomingMessagesHash.assertEquals(
+      state.incomingMessagesHash,
+      "TransactionProof starting incomingMessagesHash not matching"
+    );
 
     // Verify ST Proof only if STs have been emitted,
     // otherwise we can input a dummy proof
@@ -519,6 +544,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     state.transactionsHash = transactionProof.publicOutput.transactionsHash;
     state.eternalTransactionsHash =
       transactionProof.publicOutput.eternalTransactionsHash;
+    state.incomingMessagesHash =
+      transactionProof.publicOutput.incomingMessagesHash;
 
     // 5. Execute afterBlock hooks
     this.assertSTProofInput(stateTransitionProof, state.stateRoot);

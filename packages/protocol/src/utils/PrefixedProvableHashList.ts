@@ -1,4 +1,5 @@
 import { Field, FlexibleProvablePure, Poseidon } from "o1js";
+import { prefixToField } from "@proto-kit/common";
 
 import { ProvableHashList } from "./ProvableHashList.js";
 import { stringToField } from "./utils";
@@ -20,16 +21,15 @@ export class PrefixedProvableHashList<Value> extends ProvableHashList<Value> {
   }
 }
 
-let encoder = new TextEncoder();
+function salt(prefix: string) {
+  return Poseidon.update(
+    [Field(0), Field(0), Field(0)],
+    [prefixToField(prefix)]
+  ) as [Field, Field, Field];
+}
 
-// Copied from o1js binable.ts:317
-function prefixToField(prefix: string): Field {
-  let fieldSize = Field.sizeInBytes();
-  if (prefix.length >= fieldSize) throw Error("prefix too long");
-  let stringBytes = [...encoder.encode(prefix)];
-  return Field.fromBytes(
-    stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0))
-  );
+export function emptyActions(): Field {
+  return salt('MinaZkappActionsEmpty')[0];
 }
 
 export class MinaPrefixedProvableHashList<
@@ -44,12 +44,8 @@ export class MinaPrefixedProvableHashList<
   }
 
   protected hash(elements: Field[]): Field {
-    const salt = Poseidon.update(
-      [Field(0), Field(0), Field(0)],
-      [prefixToField(this.prefix)]
-    ) as [Field, Field, Field];
-
-    const digest = Poseidon.update(salt, elements);
+    const init = salt(this.prefix);
+    const digest = Poseidon.update(init, elements);
     return digest[0];
   }
 }

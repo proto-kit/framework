@@ -14,6 +14,7 @@ import {
   State,
   state,
   Struct,
+  TokenId,
   UInt32,
   UInt64,
 } from "o1js";
@@ -33,8 +34,8 @@ import {
 } from "@proto-kit/common";
 import { BlockHashMerkleTree } from "../prover/block/accummulators/BlockHashMerkleTree";
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
-import { Withdrawal } from "@proto-kit/sequencer/test/integration/mocks/Withdrawals";
 import { Path } from "../model/Path";
+import { Actions, Events } from "o1js/dist/node/lib/account_update";
 
 class LazyBlockProof extends Proof<
   BlockProverPublicInput,
@@ -52,6 +53,11 @@ class LazyBlockProof extends Proof<
 export type SettlementMethodIdMapping = Record<`${string}.${string}`, bigint>;
 
 export class Deposit extends Struct({
+  address: PublicKey,
+  amount: UInt64,
+}) {}
+
+export class Withdrawal extends Struct({
   address: PublicKey,
   amount: UInt64,
 }) {}
@@ -195,10 +201,10 @@ export class SettlementContract extends SmartContract {
 
     // Assert and apply deposit commitments
     // TODO Enable when we figured out the actionHash construction
-    // promisedMessagesHash.assertEquals(
-    //   blockProof.publicOutput.incomingMessagesHash,
-    //   "Promised messages not honored"
-    // );
+    promisedMessagesHash.assertEquals(
+      blockProof.publicOutput.incomingMessagesHash,
+      "Promised messages not honored"
+    );
     this.honoredMessagesHash.set(promisedMessagesHash);
 
     // Assert and apply new promisedMessagesHash
@@ -214,15 +220,13 @@ export class SettlementContract extends SmartContract {
     value: Type,
     valueType: ProvableExtended<Type>
   ) {
-    const fields = valueType.toFields(value);
+    const args = valueType.toFields(value);
     // Should be the same as RuntimeTransaction.hash
-    const argsHash = Poseidon.hash(fields);
+    const argsHash = Poseidon.hash(args);
     const runtimeTransaction = RuntimeTransaction.fromMessage({
       methodId,
       argsHash,
     });
-    Provable.log(runtimeTransaction);
-    Provable.log("Hash", runtimeTransaction.hash());
     const transactionFields = runtimeTransaction.hashData();
     // console.log(Poseidon.hash([...transactionFields.slice(0, -1), ...fields]))
 
@@ -233,10 +237,21 @@ export class SettlementContract extends SmartContract {
     //   data: [[...transactionFields.slice(0, -1), ...fields]],
     // };
 
-    this.self.body.actions = {
-      hash: Poseidon.hash(transactionFields),
-      data: [transactionFields],
-    };
+    Provable.log(Poseidon.hash(transactionFields));
+    Provable.log("TF", transactionFields);
+    Provable.log("args", args);
+
+    // TODO Replace
+    this.self.body.actions = Actions.pushEvent(
+      this.self.body.actions,
+      transactionFields
+    );
+    this.self.body.events = Events.pushEvent(this.self.body.events, args);
+
+    // {
+    // hash: Poseidon.hash(transactionFields),
+    // data: [transactionFields, args],
+    // };
   }
 
   @method
@@ -267,30 +282,69 @@ export class SettlementContract extends SmartContract {
 
     const mapPath = Path.fromProperty("Withdrawals", "withdrawals");
 
-    for(let i = 0 ; i < OUTGOING_MESSAGE_BATCH_SIZE ; i++) {
+    let accountCreationFeePaid = Field(0);
+
+    for (let i = 0; i < OUTGOING_MESSAGE_BATCH_SIZE; i++) {
       const args = batch.arguments[i];
 
       // Check witness
       const path = Path.fromKey(mapPath, Field, counter);
 
-      args.witness.checkMembership(stateRoot, path, Poseidon.hash(Withdrawal.toFields(args.value)))
+      args.witness
+        .checkMembership(
+          stateRoot,
+          path,
+          Poseidon.hash(Withdrawal.toFields(args.value))
+        )
         .assertTrue("Provided Withdrawal witness not valid");
 
       // Process message
+      const { address, amount } = args.value;
+      const isDummy = address.equals(this.address);
 
+      const tokenAu = this.token.mint({ address, amount });
+      const isNewAccount = tokenAu.account.isNew.getAndAssertEquals();
+      tokenAu.body.balanceChange.magnitude =
+        tokenAu.body.balanceChange.magnitude.sub(
+          Provable.if(isNewAccount, UInt64.from(1e9), UInt64.zero)
+        );
 
-      counter = counter.add(1);
+      accountCreationFeePaid = accountCreationFeePaid.add(
+        Provable.if(isNewAccount, Field(1e9), Field(0))
+      );
+
+      counter = counter.add(Provable.if(isDummy, Field(0), Field(1)));
     }
+
+    this.balance.subInPlace(UInt64.from(accountCreationFeePaid));
 
     this.outgoingMessageCursor.set(counter);
   }
+
+  @method
+  public withdrawFunds(additionUpdate: AccountUpdate) {
+    additionUpdate.body.tokenId.assertEquals(
+      TokenId.default,
+      "Tokenid not default token"
+    );
+    additionUpdate.body.balanceChange.sgn
+      .isPositive()
+      .assertTrue("Sign not correct");
+    const amount = additionUpdate.body.balanceChange.magnitude;
+
+    // Burn tokens
+    this.token.burn({
+      address: additionUpdate.publicKey,
+      amount,
+    });
+
+    // Send mina
+    this.approve(additionUpdate);
+    this.balance.subInPlace(amount);
+  }
 }
 
-export class SettlementTokenOwnerContract extends SmartContract {
-
-
-
-}
+export class SettlementTokenOwnerContract extends SmartContract {}
 
 @injectable()
 export class SettlementContractModule extends ProtocolModule {

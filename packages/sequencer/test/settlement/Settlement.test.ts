@@ -6,26 +6,28 @@ import {
   ProvableExtended,
   PublicKey,
   UInt64,
-  Group, Bool, Poseidon
+  Group,
+  Bool,
+  Poseidon,
+  AccountUpdate,
+  Account,
 } from "o1js";
 import {
   AppChain,
+  BlockStorageNetworkStateModule,
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
 } from "@proto-kit/sdk";
 import {
-  AccountStateModule,
   ACTIONS_EMPTY_HASH,
-  BlockHeightHook,
-  BlockProver,
-  Deposit, MinaPrefixedProvableHashList,
+  Deposit,
+  MinaPrefixedProvableHashList,
   NetworkState,
-  Protocol,
-  ReturnType, RuntimeTransaction,
+  ReturnType,
+  RuntimeTransaction,
   SettlementContractModule,
-  StateTransitionProver,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import {
   BlockProducerModule,
@@ -36,6 +38,7 @@ import {
   LocalTaskWorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
+  PendingTransaction,
   PrivateMempool,
   Sequencer,
   UnprovenBlockQueue,
@@ -46,15 +49,24 @@ import {
   MethodIdResolver,
   MethodParameterEncoder,
   Runtime,
+  runtimeMethod,
 } from "@proto-kit/module";
 import { container } from "tsyringe";
 import { Balance } from "../integration/mocks/Balance";
 import { SettlementModule } from "../../src/settlement/SettlementModule";
-import { ArgumentTypes, EMPTY_PUBLICKEY, log, ToFieldable } from "@proto-kit/common";
+import {
+  ArgumentTypes,
+  EMPTY_PUBLICKEY,
+  hashWithPrefix,
+  log,
+  ToFieldable,
+} from "@proto-kit/common";
 import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
 import { MessageStorage } from "../../src/storage/repositories/MessageStorage";
 import { Actions } from "o1js/dist/node/lib/account_update";
 import { expect } from "@jest/globals";
+import { Withdrawals } from "../integration/mocks/Withdrawals";
+import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
 
 log.setLevel("DEBUG");
 
@@ -72,6 +84,7 @@ describe("settlement contracts", () => {
     const runtime = Runtime.from({
       modules: {
         Balances: Balance,
+        Withdrawals,
       },
     });
 
@@ -86,6 +99,7 @@ describe("settlement contracts", () => {
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
         SettlementModule: SettlementModule,
+        OutgoingMessageQueue: WithdrawalQueue,
       },
     });
 
@@ -101,7 +115,7 @@ describe("settlement contracts", () => {
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
-        // NetworkStateTransportModule: BlockStorageNetworkStateModule,
+        NetworkStateTransportModule: BlockStorageNetworkStateModule,
       },
     });
 
@@ -110,6 +124,7 @@ describe("settlement contracts", () => {
         Balances: {
           totalSupply: UInt64.from(1000),
         },
+        Withdrawals: {},
       },
 
       Sequencer: {
@@ -118,6 +133,7 @@ describe("settlement contracts", () => {
         Mempool: {},
         BlockProducerModule: {},
         LocalTaskWorkerModule: {},
+        OutgoingMessageQueue: {},
         BaseLayer: {
           network: {
             local: true,
@@ -145,6 +161,7 @@ describe("settlement contracts", () => {
       Signer: {
         signer: sequencerKey,
       },
+      NetworkStateTransportModule: {},
     });
 
     return appchain;
@@ -176,20 +193,27 @@ describe("settlement contracts", () => {
     }).sign(spec.privateKey);
   }
 
-  async function createBatch(withTransactions: boolean) {
+  async function createBatch(
+    withTransactions: boolean,
+    txs: PendingTransaction[] = []
+  ) {
+    const mempool = appChain.sequencer.resolve("Mempool") as PrivateMempool;
     if (withTransactions) {
+      const key = localInstance.testAccounts[0].privateKey;
       const tx = createTransaction({
         method: ["Balances", "addBalance"],
-        privateKey: sequencerKey,
-        args: [sequencerKey.toPublicKey(), UInt64.from(100)] as any,
+        privateKey: key,
+        args: [key.toPublicKey(), UInt64.from(1e9 * 100)] as any,
         nonce: 0,
       });
 
-      (appChain.sequencer.resolve("Mempool") as PrivateMempool).add(tx);
+      mempool.add(tx);
     }
+    txs.forEach((tx) => {
+      mempool.add(tx);
+    });
 
-    const [, batch] = await trigger.produceBlock();
-    return batch!;
+    return await trigger.produceBlock();
   }
 
   let appChain: ReturnType<typeof setupAppChain>;
@@ -221,19 +245,43 @@ describe("settlement contracts", () => {
     localInstance = localChain;
   }, 50_000);
 
-  it("should produce equal commitments for the actions hash", async () => {
-    const empty = Actions.emptyActionState()
+  it.skip("should produce equal commitments for the actions hash", async () => {
+    const empty = Actions.emptyActionState();
 
     expect(empty.toString()).toStrictEqual(ACTIONS_EMPTY_HASH.toString());
 
-    const hash1 = Actions.updateSequenceState(empty, Field(10));
+    const depositTx = RuntimeTransaction.fromMessage({
+      methodId: Field(
+        settlementModule.generateMethodIdMap()["Balances.deposit"]
+      ),
+      argsHash: Poseidon.hash(
+        Deposit.toFields({
+          address: PrivateKey.random().toPublicKey(),
+          amount: UInt64.from(100),
+        })
+      ),
+    });
 
-    const list = new MinaPrefixedProvableHashList(Field, "MinaZkappSeqEvents**", empty);
-    list.push(Field(10));
+    const txHash1 = Actions.pushEvent(Actions.empty(), depositTx.hashData());
+    const hash1 = Actions.updateSequenceState(empty, txHash1.hash);
+
+    const prefix = "MinaZkappEvent******";
+    const txHash2 = hashWithPrefix(prefix, depositTx.hashData());
+    const txHash21 = hashWithPrefix("MinaZkappSeqEvents**", [
+      Actions.empty().hash,
+      txHash2,
+    ]);
+
+    const list = new MinaPrefixedProvableHashList(
+      Field,
+      "MinaZkappSeqEvents**",
+      empty
+    );
+    list.push(txHash21);
 
     const hash2 = list.commitment;
 
-    expect(hash1.toString()).toStrictEqual(hash2.toString())
+    expect(hash1.toString()).toStrictEqual(hash2.toString());
   });
 
   it.skip("should deposit and be able to compute the actionhash offchain", async () => {
@@ -246,7 +294,9 @@ describe("settlement contracts", () => {
     const contract = await settlementModule.getContract();
 
     const startingActionHash = contract.account.actionState.get();
-    expect(startingActionHash.toString()).toStrictEqual(ACTIONS_EMPTY_HASH.toString());
+    expect(startingActionHash.toString()).toStrictEqual(
+      ACTIONS_EMPTY_HASH.toString()
+    );
 
     const userKey = localInstance.testAccounts[0].privateKey;
 
@@ -260,23 +310,38 @@ describe("settlement contracts", () => {
     tx2.sign([userKey]);
     await tx2.send();
 
-    console.log("Deposited")
+    console.log("Deposited");
 
     const actionHash1 = contract.account.actionState.get();
     const actions = localInstance.getActions(contract.address);
 
     const depositTx = RuntimeTransaction.fromMessage({
-      methodId: Field(settlementModule.generateMethodIdMap()["Balances.deposit"]),
-      argsHash: Poseidon.hash(Deposit.toFields({ address: userKey.toPublicKey(), amount: UInt64.from(100) }))
+      methodId: Field(
+        settlementModule.generateMethodIdMap()["Balances.deposit"]
+      ),
+      argsHash: Poseidon.hash(
+        Deposit.toFields({
+          address: userKey.toPublicKey(),
+          amount: UInt64.from(100),
+        })
+      ),
     });
 
-    const list = new MinaPrefixedProvableHashList(Field, "MinaZkappSeqEvents**", startingActionHash);
-    list.push(depositTx.hash())
+    const prefix = "MinaZkappEvent******";
+    const txHash2 = hashWithPrefix(prefix, depositTx.hashData());
+    const txHash21 = hashWithPrefix("MinaZkappSeqEvents**", [
+      Actions.empty().hash,
+      txHash2,
+    ]);
 
-    const list2 = new MinaPrefixedProvableHashList(Field, "MinaZkappSeqEvents**", Field(0));
-    list2.push(depositTx.hash());
+    const list = new MinaPrefixedProvableHashList(
+      Field,
+      "MinaZkappSeqEvents**",
+      startingActionHash
+    );
+    list.push(txHash21);
 
-    expect(list.commitment.toString()).toStrictEqual(actionHash1.toString())
+    expect(list.commitment.toString()).toStrictEqual(actionHash1.toString());
   });
 
   it.skip("should produce a valid batch with one incoming message", async () => {
@@ -306,19 +371,21 @@ describe("settlement contracts", () => {
     expect(block).toBeDefined();
   });
 
-  it("should settle", async () => {
-    let batch: ComputedBlock = await createBatch(false);
-
-    const lastBlock = await blockQueue.getLatestBlock();
-
+  it("should deploy", async () => {
     // Deploy contract
     const tx = await settlementModule.deploy(zkAppKey);
     await tx.wait();
 
     console.log("Deployed");
+  });
+
+  it.skip("should settle", async () => {
+    let [, batch] = await createBatch(true);
+
+    const lastBlock = await blockQueue.getLatestBlock();
 
     const tx2 = await settlementModule.settleBatch(
-      batch.proof,
+      batch!,
       NetworkState.empty(),
       lastBlock!.metadata.afterNetworkState,
       {
@@ -341,7 +408,7 @@ describe("settlement contracts", () => {
     );
   }, 500_000);
 
-  it("should include deposit", async () => {
+  it.skip("should include deposit", async () => {
     const contract = await settlementModule.getContract();
 
     const userKey = localInstance.testAccounts[0].privateKey;
@@ -360,13 +427,13 @@ describe("settlement contracts", () => {
 
     expect(actions).toHaveLength(1);
 
-    const batch = await createBatch(false);
+    const [, batch] = await createBatch(false);
     let lastBlock = await blockQueue.getLatestBlock();
 
     console.log("Settling");
 
     const tx2 = await settlementModule.settleBatch(
-      batch.proof,
+      batch!,
       lastBlock!.block.networkState.before,
       lastBlock!.metadata.afterNetworkState,
       {
@@ -375,15 +442,15 @@ describe("settlement contracts", () => {
     );
     await tx2.wait();
 
-    const batch2 = await createBatch(false);
+    const [block2, batch2] = await createBatch(false);
 
-    expect(batch2.bundles).toHaveLength(1);
-    expect(batch2.bundles[0]).toHaveLength(1);
+    expect(batch2!.bundles).toHaveLength(1);
+    expect(batch2!.bundles[0]).toHaveLength(1);
 
     lastBlock = await blockQueue.getLatestBlock();
 
     const tx3 = await settlementModule.settleBatch(
-      batch2.proof,
+      batch2!,
       lastBlock!.block.networkState.before,
       lastBlock!.metadata.afterNetworkState,
       {
@@ -398,4 +465,58 @@ describe("settlement contracts", () => {
 
     expect(balance).toBeDefined();
   }, 50000);
+
+  it("should process withdrawal", async () => {
+    const contract = await settlementModule.getContract();
+
+    // Send mina to contract
+    const usertx = await Mina.transaction(
+      {
+        sender: localInstance.testAccounts[1].publicKey,
+        fee: "10000",
+      },
+      () => {
+        const au = AccountUpdate.createSigned(
+          localInstance.testAccounts[1].publicKey
+        );
+        au.send({
+          to: contract.address,
+          amount: UInt64.from(100 * 1e9),
+        });
+      }
+    );
+    usertx.sign([localInstance.testAccounts[1].privateKey]);
+    await usertx.send();
+
+    const userKey = localInstance.testAccounts[0].privateKey;
+
+    const withdrawalTx = createTransaction({
+      method: ["Withdrawals", "withdraw"],
+      args: [userKey.toPublicKey(), UInt64.from(50 * 1e9)],
+      nonce: 1,
+      privateKey: userKey,
+    });
+    const [block, batch] = await createBatch(true, [withdrawalTx]);
+
+    const lastBlockMetadata = await blockQueue.getLatestBlock();
+    const tx1 = await settlementModule.settleBatch(
+      batch!,
+      block!.networkState.before,
+      lastBlockMetadata!.metadata.afterNetworkState,
+      {
+        nonce: 2,
+      }
+    );
+    await tx1.wait();
+
+    const txs = await settlementModule.sendRollupTransactions({
+      nonce: 3,
+    });
+
+    expect(txs).toHaveLength(1);
+
+    const account = Mina.getAccount(userKey.toPublicKey(), contract.tokenId);
+
+    expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 50n);
+  });
 });

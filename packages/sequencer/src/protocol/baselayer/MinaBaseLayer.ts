@@ -1,4 +1,4 @@
-import { noop } from "@proto-kit/common";
+import { DependencyFactory, DependencyRecord, noop } from "@proto-kit/common";
 
 import { MinaIncomingMessageAdapter } from "../../settlement/messages/MinaIncomingMessageAdapter";
 import { ComputedBlock } from "../../storage/model/Block";
@@ -6,6 +6,7 @@ import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 
 import { BaseLayer } from "./BaseLayer";
 import { Mina } from "o1js";
+import { WithdrawalQueue } from "../../settlement/messages/WithdrawalQueue";
 
 export interface MinaBaseLayerConfig {
   network: {
@@ -17,7 +18,7 @@ export interface MinaBaseLayerConfig {
 
 export class MinaBaseLayer
   extends SequencerModule<MinaBaseLayerConfig>
-  implements BaseLayer
+  implements BaseLayer, DependencyFactory
 {
   public network?: Parameters<typeof Mina.setActiveInstance>[0];
 
@@ -25,6 +26,9 @@ export class MinaBaseLayer
     return {
       IncomingMessageAdapter: {
         useClass: MinaIncomingMessageAdapter,
+      },
+      OutgoingMessageQueue: {
+        useClass: WithdrawalQueue,
       },
     };
   }

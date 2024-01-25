@@ -10,10 +10,9 @@ import {
   Bool,
   Field,
   PublicKey,
-  UInt64,
   Struct,
   Provable,
-  Signature,
+  Signature, UInt64
 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert, Deposit } from "@proto-kit/protocol";

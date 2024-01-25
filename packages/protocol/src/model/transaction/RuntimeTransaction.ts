@@ -89,6 +89,23 @@ export class RuntimeTransaction extends Struct({
     ];
   }
 
+  public static fromHashData(fields: Field[]) {
+    // sender is 2nd and the first element is x (2nd isOdd)
+    const isMessage = fields[1].equals(EMPTY_PUBLICKEY_X);
+    return new RuntimeTransaction({
+      methodId: fields[0],
+      sender: new PublicKeyOption({
+        isSome: isMessage.not(),
+        value: PublicKey.fromFields([fields[1], fields[2]]),
+      }),
+      nonce: new UInt64Option({
+        isSome: isMessage.not(),
+        value: UInt64.fromFields([fields[3]]),
+      }),
+      argsHash: fields[4],
+    });
+  }
+
   public hash(): Field {
     return Poseidon.hash(this.hashData());
   }

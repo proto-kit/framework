@@ -42,10 +42,10 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
     return this.queue.createWorker(queueName, async (data) => {
       log.debug(`Received task in queue ${queueName}`);
 
-      // Use first handler that returns a non-undefined result
-      const input = task.inputSerializer().fromJSON(data.payload);
-
       try {
+        // Use first handler that returns a non-undefined result
+        const input = task.inputSerializer().fromJSON(data.payload);
+
         const output: Output = await task.compute(input);
 
         if (output === undefined) {

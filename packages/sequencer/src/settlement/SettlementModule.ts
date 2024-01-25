@@ -1,10 +1,14 @@
 import {
-  BlockProof,
   NetworkState,
   Protocol,
   ProtocolModulesRecord,
   SettlementContract,
   SettlementContractModule,
+  BATCH_SIGNATURE_PREFIX,
+  SettlementMethodIdMapping,
+  Path,
+  OutgoingMessageArgument,
+  OutgoingMessageArgumentBatch,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -26,14 +30,20 @@ import {
   DeployTaskArgs,
   SettlementDeployTask,
 } from "./tasks/SettlementDeployTask";
-import {
-  BATCH_SIGNATURE_PREFIX,
-  SettlementMethodIdMapping,
-} from "@proto-kit/protocol/src/settlement/SettlementContract";
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../storage/repositories/MessageStorage";
-import { filterNonUndefined, log, noop } from "@proto-kit/common";
+import {
+  DependencyFactory,
+  DependencyRecord,
+  EventEmitter,
+  EventEmittingComponent,
+  EventsRecord,
+  filterNonUndefined,
+  log,
+  noop,
+  RollupMerkleTree,
+} from "@proto-kit/common";
 import {
   MethodIdResolver,
   Runtime,
@@ -42,19 +52,37 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
+import { ComputedBlock } from "../storage/model/Block";
+import {
+  OutgoingMessageQueue,
+  WithdrawalQueue,
+} from "./messages/WithdrawalQueue";
+import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
+import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
   address?: PublicKey;
 }
 
+export interface SettlementModuleEvents extends EventsRecord {
+  settlementSubmitted: [ComputedBlock, Mina.TransactionId];
+}
+
 // const PROPERTY_SETTLEMENT_CONTRACT_ADDRESS = "SETTLEMENT_CONTRACT_ADDRESS";
 
+const SETTLEMENT_BATCH_SIZE = 1;
+
 @sequencerModule()
-export class SettlementModule extends SequencerModule<SettlementModuleConfig> {
+export class SettlementModule
+  extends SequencerModule<SettlementModuleConfig>
+  implements EventEmittingComponent<SettlementModuleEvents>
+{
   private contract?: SettlementContract;
 
   public address?: PublicKey;
+
+  public events = new EventEmitter<SettlementModuleEvents>();
 
   public constructor(
     @inject("BaseLayer")
@@ -72,7 +100,11 @@ export class SettlementModule extends SequencerModule<SettlementModuleConfig> {
     @inject("MessageStorage")
     private readonly messageStorage: MessageStorage,
     @inject("SettlementStorage")
-    private readonly settlementStorage: SettlementStorage
+    private readonly settlementStorage: SettlementStorage,
+    @inject("OutgoingMessageQueue")
+    private readonly outgoingMessageQueue: OutgoingMessageQueue,
+    @inject("AsyncMerkleStore")
+    private readonly merkleTreeStore: AsyncMerkleTreeStore
   ) {
     super();
   }
@@ -131,12 +163,89 @@ export class SettlementModule extends SequencerModule<SettlementModuleConfig> {
       }, {});
   }
 
+  public async sendRollupTransactions(options: { nonce: number }): Promise<
+    {
+      txId: Mina.TransactionId;
+      tx: Mina.Transaction;
+    }[]
+  > {
+    const length = this.outgoingMessageQueue.length();
+    const { feepayer } = this.config;
+
+    const txs: {
+      txId: Mina.TransactionId;
+      tx: Mina.Transaction;
+    }[] = [];
+
+    let nonce = options.nonce;
+
+    const contract = await this.getContract();
+
+    const cachedStore = new CachedMerkleTreeStore(this.merkleTreeStore);
+    const tree = new RollupMerkleTree(cachedStore);
+
+    const basePath = Path.fromProperty("Withdrawal", "withdraw");
+
+    for (let i = 0; i < length; i += SETTLEMENT_BATCH_SIZE) {
+      const batch = this.outgoingMessageQueue.peek(SETTLEMENT_BATCH_SIZE);
+
+      const keys = batch.map((x) =>
+        Path.fromKey(basePath, Field, Field(x.index))
+      );
+      // Preload keys
+      await Promise.all(
+        keys.map((key) => cachedStore.preloadKey(key.toBigInt()))
+      );
+
+      const transactionParamaters = batch.map((message, index) => {
+        const witness = tree.getWitness(keys[index].toBigInt());
+        return new OutgoingMessageArgument({
+          witness,
+          value: message.value,
+        });
+      });
+
+      // TODO Dummys
+
+      const tx = await Mina.transaction(
+        {
+          sender: feepayer.toPublicKey(),
+          nonce,
+          fee: String(0.01 * 1e9),
+          memo: "Protokit settle",
+        },
+        () => {
+          contract.rollupOutgoingMessages(
+            new OutgoingMessageArgumentBatch({
+              arguments: transactionParamaters,
+            })
+          );
+        }
+      );
+
+      tx.sign([feepayer]);
+      await tx.prove();
+      const txId = await tx.send();
+
+      await txId.wait();
+
+      this.outgoingMessageQueue.pop(SETTLEMENT_BATCH_SIZE);
+
+      txs.push({
+        tx,
+        txId,
+      });
+    }
+
+    return txs;
+  }
+
   public async settleBatch(
-    proof: BlockProof,
+    batch: ComputedBlock,
     networkStateFrom: NetworkState,
     networkStateTo: NetworkState,
     options: {
-      nonce?: number
+      nonce?: number;
     } = {}
   ) {
     const contract = await this.getContract();
@@ -158,7 +267,8 @@ export class SettlementModule extends SequencerModule<SettlementModuleConfig> {
       contract.address,
       {
         fromActionHash: fromSequenceStateHash.toString(),
-        toActionHash: latestSequenceStateHash.toString()
+        toActionHash: latestSequenceStateHash.toString(),
+        fromL1Block: Number(lastSettlementL1Block.toString()),
       }
     );
     await this.messageStorage.pushMessages(
@@ -176,7 +286,7 @@ export class SettlementModule extends SequencerModule<SettlementModuleConfig> {
       },
       () => {
         contract.settle(
-          proof,
+          batch.proof,
           signature,
           feepayer.toPublicKey(),
           networkStateFrom,
@@ -192,6 +302,8 @@ export class SettlementModule extends SequencerModule<SettlementModuleConfig> {
     const sent = await tx.send();
 
     log.info(`Settlement transaction send ${sent.hash() ?? "-"}`);
+
+    this.events.emit("settlementSubmitted", batch, sent);
 
     return sent;
   }
@@ -289,6 +401,6 @@ export class SettlementModule extends SequencerModule<SettlementModuleConfig> {
   }
 
   public async start(): Promise<void> {
-    noop()
+    noop();
   }
 }
