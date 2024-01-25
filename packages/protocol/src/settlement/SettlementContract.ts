@@ -62,7 +62,7 @@ export class Withdrawal extends Struct({
   amount: UInt64,
 }) {}
 
-export const OUTGOING_MESSAGE_BATCH_SIZE = 2;
+export const OUTGOING_MESSAGE_BATCH_SIZE = 1;
 
 export class OutgoingMessageArgument extends Struct({
   witness: RollupMerkleTreeWitness,
@@ -322,7 +322,7 @@ export class SettlementContract extends SmartContract {
   }
 
   @method
-  public withdrawFunds(additionUpdate: AccountUpdate) {
+  public redeem(additionUpdate: AccountUpdate) {
     additionUpdate.body.tokenId.assertEquals(
       TokenId.default,
       "Tokenid not default token"

@@ -371,10 +371,14 @@ describe("settlement contracts", () => {
     expect(block).toBeDefined();
   });
 
+  let nonceCounter = 0;
+
   it("should deploy", async () => {
     // Deploy contract
-    const tx = await settlementModule.deploy(zkAppKey);
+    const tx = await settlementModule.deploy(zkAppKey, { nonce: nonceCounter });
     await tx.wait();
+
+    nonceCounter += 2;
 
     console.log("Deployed");
   });
@@ -389,7 +393,7 @@ describe("settlement contracts", () => {
       NetworkState.empty(),
       lastBlock!.metadata.afterNetworkState,
       {
-        nonce: 2,
+        nonce: nonceCounter++,
       }
     );
     await tx2.wait();
@@ -437,7 +441,7 @@ describe("settlement contracts", () => {
       lastBlock!.block.networkState.before,
       lastBlock!.metadata.afterNetworkState,
       {
-        nonce: 3,
+        nonce: nonceCounter++,
       }
     );
     await tx2.wait();
@@ -454,7 +458,7 @@ describe("settlement contracts", () => {
       lastBlock!.block.networkState.before,
       lastBlock!.metadata.afterNetworkState,
       {
-        nonce: 4,
+        nonce: nonceCounter++,
       }
     );
     await tx3.wait();
@@ -504,19 +508,50 @@ describe("settlement contracts", () => {
       block!.networkState.before,
       lastBlockMetadata!.metadata.afterNetworkState,
       {
-        nonce: 2,
+        nonce: nonceCounter++,
       }
     );
     await tx1.wait();
 
     const txs = await settlementModule.sendRollupTransactions({
-      nonce: 3,
+      nonce: nonceCounter++,
     });
 
     expect(txs).toHaveLength(1);
 
-    const account = Mina.getAccount(userKey.toPublicKey(), contract.tokenId);
+    const account = Mina.getAccount(userKey.toPublicKey(), contract.token.id);
 
-    expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 50n);
+    expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 49n);
+  });
+
+  it("should be able to redeem withdrawal", async () => {
+    const contract = await settlementModule.getContract();
+
+    const userKey = localInstance.testAccounts[0].privateKey;
+
+    const balanceBefore = Mina.getAccount(userKey.toPublicKey()).balance.toBigInt();
+
+    const amount = BigInt(1e9 * 49);
+
+    const tx = await Mina.transaction(
+      {
+        sender: userKey.toPublicKey(),
+        nonce: 0,
+        fee: 10000,
+      },
+      () => {
+        const mintAU = AccountUpdate.create(userKey.toPublicKey());
+        mintAU.balance.addInPlace(amount);
+        // mintAU.requireSignature(); // TODO ?
+        contract.redeem(mintAU);
+      }
+    );
+    tx.sign([userKey]);
+    await tx.prove();
+    await tx.send()
+
+    const balanceAfter = Mina.getAccount(userKey.toPublicKey()).balance.toBigInt();
+
+    expect(balanceAfter - balanceBefore).toBe(amount - 10000n);
   });
 });

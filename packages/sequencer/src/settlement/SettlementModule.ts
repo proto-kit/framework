@@ -8,7 +8,7 @@ import {
   SettlementMethodIdMapping,
   Path,
   OutgoingMessageArgument,
-  OutgoingMessageArgumentBatch,
+  OutgoingMessageArgumentBatch, OUTGOING_MESSAGE_BATCH_SIZE
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -71,7 +71,7 @@ export interface SettlementModuleEvents extends EventsRecord {
 
 // const PROPERTY_SETTLEMENT_CONTRACT_ADDRESS = "SETTLEMENT_CONTRACT_ADDRESS";
 
-const SETTLEMENT_BATCH_SIZE = 1;
+// const SETTLEMENT_BATCH_SIZE = 1;
 
 @sequencerModule()
 export class SettlementModule
@@ -184,10 +184,10 @@ export class SettlementModule
     const cachedStore = new CachedMerkleTreeStore(this.merkleTreeStore);
     const tree = new RollupMerkleTree(cachedStore);
 
-    const basePath = Path.fromProperty("Withdrawal", "withdraw");
+    const basePath = Path.fromProperty("Withdrawals", "withdrawals");
 
-    for (let i = 0; i < length; i += SETTLEMENT_BATCH_SIZE) {
-      const batch = this.outgoingMessageQueue.peek(SETTLEMENT_BATCH_SIZE);
+    for (let i = 0; i < length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
+      const batch = this.outgoingMessageQueue.peek(OUTGOING_MESSAGE_BATCH_SIZE);
 
       const keys = batch.map((x) =>
         Path.fromKey(basePath, Field, Field(x.index))
@@ -229,7 +229,7 @@ export class SettlementModule
 
       await txId.wait();
 
-      this.outgoingMessageQueue.pop(SETTLEMENT_BATCH_SIZE);
+      this.outgoingMessageQueue.pop(OUTGOING_MESSAGE_BATCH_SIZE);
 
       txs.push({
         tx,
@@ -308,13 +308,15 @@ export class SettlementModule
     return sent;
   }
 
-  public async deploy(zkappKey: PrivateKey): Promise<Mina.TransactionId> {
+  public async deploy(zkappKey: PrivateKey, options: { nonce?: number } = {}): Promise<Mina.TransactionId> {
     const feepayerKey = this.config.feepayer;
     const feepayer = feepayerKey.toPublicKey();
 
     // await fetchAccount({ publicKey: feepayer });
     const account = Mina.getAccount(feepayer);
-    const nonce = account.nonce;
+    // TODO Figure out how we can abstract away nicely and consistently
+    // const nonce = account.nonce;
+    const nonce = options?.nonce ?? 0;
 
     const flow = this.flowCreator.createFlow<undefined>(
       `deploy-${feepayer.toBase58()}-${nonce.toString()}`,
@@ -352,7 +354,7 @@ export class SettlementModule
     const tx = await Mina.transaction(
       {
         sender: feepayer,
-        nonce: Number(nonce.toString()),
+        nonce,
         fee: String(0.01 * 1e9),
         memo: "Protokit settlement deploy",
       },
@@ -384,7 +386,7 @@ export class SettlementModule
     const tx2 = await Mina.transaction(
       {
         sender: feepayer,
-        nonce: Number(nonce.add(1).toString()),
+        nonce: nonce + 1,
         fee: String(0.01 * 1e9),
         memo: "Protokit settlement init",
       },
