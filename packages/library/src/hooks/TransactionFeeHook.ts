@@ -43,20 +43,21 @@ export const errors = {
  */
 @injectable()
 export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHookConfig> {
-  private readonly balances: Balances;
-
-  private readonly feeAnalyzer: RuntimeFeeAnalyzerService;
-
   public constructor(
     // dependency on runtime, since balances are part of runtime logic
     @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
   ) {
     super();
-    this.balances =
-      this.runtime.dependencyContainer.resolve<Balances>("Balances");
+  }
 
-    this.feeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
-    this.feeAnalyzer.config = this.config;
+  public get balances() {
+    return this.runtime.dependencyContainer.resolve<Balances>("Balances");
+  }
+
+  public get feeAnalyzer() {
+    const feeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
+    feeAnalyzer.config = this.config;
+    return feeAnalyzer;
   }
 
   public transferFee(from: PublicKey, fee: UInt64) {
