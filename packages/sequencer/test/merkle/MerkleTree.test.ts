@@ -1,11 +1,9 @@
 import { Field } from "o1js";
 
-import { RollupMerkleTree } from "@proto-kit/protocol";
+import { RollupMerkleTree } from "@proto-kit/common";
 import { log } from "@proto-kit/common";
 import {
-  CachedMerkleTreeStore,
-  MockAsyncMerkleTreeStore,
-  SyncCachedMerkleTreeStore
+  CachedMerkleTreeStore, InMemoryAsyncMerkleTreeStore
 } from "../../src";
 
 describe("merkle tree caching", () => {
@@ -13,7 +11,7 @@ describe("merkle tree caching", () => {
     expect.assertions(1);
     log.setLevel(log.levels.DEBUG);
 
-    const asyncService = new MockAsyncMerkleTreeStore();
+    const asyncService = new InMemoryAsyncMerkleTreeStore();
     const cachedStore1 = new CachedMerkleTreeStore(asyncService);
     const tree = new RollupMerkleTree(cachedStore1);
 

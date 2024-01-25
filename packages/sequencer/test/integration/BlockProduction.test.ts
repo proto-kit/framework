@@ -151,6 +151,7 @@ describe("block production", () => {
       argsJSON,
       sender: spec.privateKey.toPublicKey(),
       nonce: UInt64.from(spec.nonce),
+      isMessage: false
     }).sign(spec.privateKey);
   }
 
