@@ -3,8 +3,15 @@ import { Field, UInt32, UInt64 } from "o1js";
 import { UInt112 } from "./UInt112";
 
 export class UInt224 extends UIntX<UInt224> {
+  public static get NUM_BITS() {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  public static NUM_BITS = 224;
+  return 224;
+}
+
+  public numBits() {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    return 224;
+  }
 
   /**
    * Static method to create a {@link UIntX} with value `0`.
@@ -39,7 +46,7 @@ export class UInt224 extends UIntX<UInt224> {
   }
 
   public constructor(value: Field) {
-    super(value, UInt224.NUM_BITS, {
+    super(value, {
       creator: (x) => new UInt224(x),
       from: (x) => UInt224.from(x),
     });
