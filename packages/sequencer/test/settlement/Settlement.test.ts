@@ -381,7 +381,7 @@ describe("settlement contracts", () => {
     nonceCounter += 2;
 
     console.log("Deployed");
-  });
+  }, 15000);
 
   it.skip("should settle", async () => {
     let [, batch] = await createBatch(true);

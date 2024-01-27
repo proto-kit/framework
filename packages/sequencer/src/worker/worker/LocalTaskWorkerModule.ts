@@ -38,7 +38,7 @@ export class LocalTaskWorkerModule extends SequencerModule {
     private readonly blockProvingTask: BlockProvingTask,
     private readonly blockReductionTask: BlockReductionTask,
     private readonly blockBuildingTask: NewBlockTask,
-    private readonly contractDeployTask: SettlementDeployTask,
+    // private readonly contractDeployTask: SettlementDeployTask,
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>
   ) {
@@ -53,7 +53,7 @@ export class LocalTaskWorkerModule extends SequencerModule {
       this.blockProvingTask,
       this.blockReductionTask,
       this.blockBuildingTask,
-      this.contractDeployTask,
+      // this.contractDeployTask,
     ]);
     worker
       .start()
