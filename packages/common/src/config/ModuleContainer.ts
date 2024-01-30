@@ -167,6 +167,22 @@ export class ModuleContainer<
     return Object.keys(this.definition.modules);
   }
 
+  // public get modules() {
+  //   this.moduleNames.flatMap((moduleName: string) => {
+  //     this.assertIsValidModuleName(moduleName);
+  //
+  //     const module = this.resolve(moduleName);
+  //     if (this.isDependencyFactory(module)) {
+  //       const dependencyKeys = Object.keys(module.dependencies());
+  //       const modules = dependencyKeys.map((key) => {
+  //         return this.container.resolve(key);
+  //       });
+  //       return [module, ...modules];
+  //     }
+  //     return [module];
+  //   });
+  // }
+
   /**
    * Check if the provided module satisfies the container requirements,
    * such as only injecting other known modules.
@@ -207,10 +223,9 @@ export class ModuleContainer<
    * using e.g. a for loop.
    */
   public assertIsValidModuleName(
-    modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    if (!this.isValidModuleName(modules, moduleName)) {
+    if (!this.isValidModuleName(this.definition.modules, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }
   }
@@ -240,7 +255,7 @@ export class ModuleContainer<
   protected registerModules(modules: Modules) {
     for (const moduleName in modules) {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-        this.assertIsValidModuleName(modules, moduleName);
+        this.assertIsValidModuleName(moduleName);
 
         log.debug(`Registering module: ${moduleName}`);
 
