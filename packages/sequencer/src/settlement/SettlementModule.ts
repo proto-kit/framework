@@ -323,25 +323,6 @@ export class SettlementModule
       undefined
     );
 
-    const input: DeployTaskArgs = {
-      accounts: [
-        {
-          address: account.publicKey,
-          balance: account.balance,
-        },
-      ],
-      network: this.baseLayer.config.network,
-      deployment: {
-        address: zkappKey.toPublicKey(),
-        zkappKey,
-      },
-      transaction: {
-        nonce: Number(nonce.toString()),
-        sender: feepayer,
-        fee: String(0.01 * 1e9),
-      },
-    };
-
     const sm =
       this.protocol.dependencyContainer.resolve<SettlementContractModule>(
         "SettlementContractModule"
@@ -369,6 +350,12 @@ export class SettlementModule
 
     const result = tx;
     await result.prove();
+
+    const input: DeployTaskArgs = {
+      // TODO
+      proofsEnabled: false,
+      transaction: result,
+    };
 
     // const result = await flow.withFlow<Mina.Transaction>(async () => {
     //   await flow.pushTask(this.settlementDeployTask, input, async (result) => {

@@ -3,12 +3,10 @@ import {
   BlockProvable,
   BlockProverExecutionData,
   BlockProverPublicInput,
-  BlockProverPublicOutput,
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
   ReturnType,
-  RuntimeMethodExecutionContext,
   StateServiceProvider,
   StateTransitionProof,
   StateTransitionProvable,
@@ -129,7 +127,7 @@ export class BlockProvingTask
     @inject("Runtime") private readonly runtime: Runtime<never>,
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider,
-    private readonly executionContext: RuntimeMethodExecutionContext,
+    private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
     this.stateTransitionProver = protocol.stateTransitionProver;
@@ -230,12 +228,6 @@ export class BlockProvingTask
     const stateTransitionProof = input.input1;
     const runtimeProof = input.input2;
 
-    const contextInputs = {
-      networkState: input.params.executionData.networkState,
-      transaction: input.params.executionData.transaction,
-    };
-    this.executionContext.setup(contextInputs);
-
     await this.executeWithPrefilledStateService(
       input.params.startingState,
       async () => {
@@ -247,9 +239,6 @@ export class BlockProvingTask
         );
       }
     );
-
-    // Do we need that here for prove()?
-    this.executionContext.setup(contextInputs);
 
     return await this.executeWithPrefilledStateService(
       input.params.startingState,
