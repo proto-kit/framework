@@ -9,7 +9,9 @@ import {
   ReturnType,
   StateTransitionProof,
   StateTransitionProvable,
-  BlockHashMerkleTreeWitness
+  BlockHashMerkleTreeWitness,
+  RuntimeMethodExecutionContext,
+  RuntimeTransaction,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -23,6 +25,7 @@ import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlo
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 import { CompileRegistry } from "./CompileRegistry";
 import { DecodedStateSerializer } from "./BlockProvingTask";
+import * as net from "net";
 
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
@@ -53,7 +56,7 @@ export class NewBlockTask
   public constructor(
     @inject("Protocol")
     private readonly protocol: Protocol<ProtocolModulesRecord>,
-    private readonly executionContext: ProvableMethodExecutionContext,
+    private readonly executionContext: RuntimeMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
     this.stateTransitionProver = protocol.stateTransitionProver;
@@ -160,6 +163,12 @@ export class NewBlockTask
     const { networkState, blockWitness, startingState, publicInput } =
       parameters;
 
+    const contextInputs = {
+      networkState: NetworkState.empty(),
+      transaction: RuntimeTransaction.dummyTransaction(),
+    };
+    this.executionContext.setup(contextInputs);
+
     await this.executeWithPrefilledStateService(startingState, async () => {
       this.blockProver.proveBlock(
         publicInput,
@@ -169,6 +178,8 @@ export class NewBlockTask
         input2
       );
     });
+
+    this.executionContext.setup(contextInputs);
 
     return await this.executeWithPrefilledStateService(
       startingState,
