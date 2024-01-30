@@ -54,8 +54,7 @@ export class CachedMerkleTreeStore
     this.writeCache = {};
   }
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
-  public async preloadKey(index: bigint): Promise<void> {
+  private collectNodesToFetch(index: bigint) {
     // Algo from RollupMerkleTree.getWitness()
     const { leafCount, HEIGHT } = RollupMerkleTree;
 
@@ -91,6 +90,13 @@ export class CachedMerkleTreeStore
       }
       index /= 2n;
     }
+    return nodesToRetrieve;
+  }
+
+  public async preloadKeys(keys: bigint[]) {
+    const nodesToRetrieve = keys.flatMap((key) =>
+      this.collectNodesToFetch(key)
+    );
 
     const results = await this.parent.getNodesAsync(nodesToRetrieve);
     nodesToRetrieve.forEach(({ key, level }, index) => {
@@ -99,6 +105,10 @@ export class CachedMerkleTreeStore
         this.setNode(key, level, value);
       }
     });
+  }
+
+  public async preloadKey(index: bigint): Promise<void> {
+    await this.preloadKeys([index]);
   }
 
   public async mergeIntoParent(): Promise<void> {

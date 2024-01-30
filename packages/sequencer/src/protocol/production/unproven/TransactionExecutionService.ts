@@ -245,9 +245,7 @@ export class TransactionExecutionService {
     }
 
     const previousBlockHash =
-      lastMetadata.blockHash === 0n
-        ? undefined
-        : Field(lastMetadata.blockHash);
+      lastMetadata.blockHash === 0n ? undefined : Field(lastMetadata.blockHash);
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
@@ -305,10 +303,8 @@ export class TransactionExecutionService {
     );
     const blockHashTree = new BlockHashMerkleTree(blockHashInMemoryStore);
 
-    for (const key of Object.keys(combinedDiff)) {
-      // eslint-disable-next-line no-await-in-loop
-      await inMemoryStore.preloadKey(BigInt(key));
-    }
+    await inMemoryStore.preloadKeys(Object.keys(combinedDiff).map(BigInt));
+
     // In case the diff is empty, we preload key 0 in order to
     // retrieve the root, which we need later
     if (Object.keys(combinedDiff).length === 0) {

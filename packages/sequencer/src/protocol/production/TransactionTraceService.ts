@@ -247,11 +247,7 @@ export class TransactionTraceService {
       merkleStore
     );
 
-    await Promise.all(
-      keys.map(async (key) => {
-        await merkleStore.preloadKey(key.toBigInt());
-      })
-    );
+    await merkleStore.preloadKeys(keys.map(key => key.toBigInt()))
 
     const tree = new RollupMerkleTree(merkleStore);
     const runtimeTree = new RollupMerkleTree(runtimeSimulationMerkleStore);
