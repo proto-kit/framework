@@ -19,6 +19,7 @@ import { InMemoryMessageStorage } from "./InMemoryMessageStorage";
 import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
 import { InMemoryStateService } from "@proto-kit/module";
 import { InMemoryTransactionStorage } from "./InMemoryTransactionStorage";
+import { InMemoryTransactionRepository } from "./InMemoryTransactionRepository";
 
 @sequencerModule()
 export class InMemoryDatabase
@@ -60,6 +61,9 @@ export class InMemoryDatabase
       transactionStorage: {
         useClass: InMemoryTransactionStorage,
       },
+      transactionRepository: {
+        useClass: InMemoryTransactionRepository
+      }
     };
   }
 
