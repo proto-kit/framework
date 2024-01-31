@@ -46,7 +46,14 @@ export class RedisConnection
 
   public async init() {
     this.redisClient = createClient(this.config);
-    await this.redisClient.connect();
+    try {
+      await this.redisClient.connect();
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        throw new Error(`Connection to Redis failed: ${e.message}`);
+      }
+      throw e;
+    }
   }
 
   public async start(): Promise<void> {
