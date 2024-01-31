@@ -28,8 +28,18 @@ function salt(prefix: string) {
   ) as [Field, Field, Field];
 }
 
+export const MINA_EVENT_PREFIXES = {
+  event: "MinaZkappEvent******",
+  events: "MinaZkappEvents*****",
+  sequenceEvents: "MinaZkappSeqEvents**",
+};
+
 export function emptyActions(): Field {
-  return salt('MinaZkappActionsEmpty')[0];
+  return salt("MinaZkappActionsEmpty")[0];
+}
+
+export function emptyEvents(): Field {
+  return salt("MinaZkappEventsEmpty")[0];
 }
 
 export class MinaPrefixedProvableHashList<

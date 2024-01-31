@@ -18,8 +18,14 @@ import {
   UInt32,
   UInt64,
 } from "o1js";
-import { ProtocolModule } from "../protocol/ProtocolModule";
+import {
+  hashWithPrefix, prefixToField,
+  RollupMerkleTree,
+  RollupMerkleTreeWitness
+} from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
+
+import { ProtocolModule } from "../protocol/ProtocolModule";
 import { BlockProver } from "../prover/block/BlockProver";
 import {
   BlockProvable,
@@ -27,15 +33,14 @@ import {
   BlockProverPublicOutput,
 } from "../prover/block/BlockProvable";
 import { NetworkState } from "../model/network/NetworkState";
-import {
-  filterNonUndefined,
-  RollupMerkleTree,
-  RollupMerkleTreeWitness,
-} from "@proto-kit/common";
 import { BlockHashMerkleTree } from "../prover/block/accummulators/BlockHashMerkleTree";
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { Path } from "../model/Path";
-import { Actions, Events } from "o1js/dist/node/lib/account_update";
+import {
+  emptyActions,
+  emptyEvents,
+  MINA_EVENT_PREFIXES,
+} from "../utils/PrefixedProvableHashList";
 
 class LazyBlockProof extends Proof<
   BlockProverPublicInput,
@@ -77,7 +82,7 @@ export class OutgoingMessageArgumentBatch extends Struct({
 }) {}
 
 // Some random prefix for the sequencer signature
-export const BATCH_SIGNATURE_PREFIX = Poseidon.hash([Field(87686586)]);
+export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
 export const ACTIONS_EMPTY_HASH = Reducer.initialActionState;
 
@@ -97,7 +102,9 @@ export class SettlementContract extends SmartContract {
   public constructor(
     address: PublicKey,
     private readonly methodIdMappings: Record<string, bigint>,
-    private readonly escapeHatchSlotsInterval = (60 / 3) * 24 // 24 hours // private hooks: ProvableSettlementHook<unknown>[]
+    // 24 hours
+    private readonly escapeHatchSlotsInterval = (60 / 3) * 24
+    // private hooks: ProvableSettlementHook<unknown>[]
   ) {
     super(address);
   }
@@ -227,31 +234,32 @@ export class SettlementContract extends SmartContract {
       methodId,
       argsHash,
     });
-    const transactionFields = runtimeTransaction.hashData();
-    // console.log(Poseidon.hash([...transactionFields.slice(0, -1), ...fields]))
 
-    // const data = Runt
-
-    // this.self.body.actions = {
-    //   hash: runtimeTransaction.hash(),
-    //   data: [[...transactionFields.slice(0, -1), ...fields]],
-    // };
-
-    Provable.log(Poseidon.hash(transactionFields));
-    Provable.log("TF", transactionFields);
-    Provable.log("args", args);
-
-    // TODO Replace
-    this.self.body.actions = Actions.pushEvent(
-      this.self.body.actions,
-      transactionFields
+    // Append tx to incomingMessagesHash
+    const actionData = runtimeTransaction.hashData();
+    const actionDataHash = hashWithPrefix(
+      MINA_EVENT_PREFIXES.event,
+      actionData
     );
-    this.self.body.events = Events.pushEvent(this.self.body.events, args);
+    const actionHash = hashWithPrefix(MINA_EVENT_PREFIXES.sequenceEvents, [
+      emptyActions(),
+      actionDataHash,
+    ]);
 
-    // {
-    // hash: Poseidon.hash(transactionFields),
-    // data: [transactionFields, args],
-    // };
+    this.self.body.actions = {
+      hash: actionHash,
+      data: [actionData],
+    };
+
+    let eventDataHash = hashWithPrefix(MINA_EVENT_PREFIXES.event, args);
+    let eventHash = hashWithPrefix(MINA_EVENT_PREFIXES.events, [
+      emptyEvents(),
+      eventDataHash,
+    ]);
+    this.self.body.events = {
+      hash: eventHash,
+      data: [args],
+    };
   }
 
   @method
@@ -343,8 +351,6 @@ export class SettlementContract extends SmartContract {
     this.balance.subInPlace(amount);
   }
 }
-
-export class SettlementTokenOwnerContract extends SmartContract {}
 
 @injectable()
 export class SettlementContractModule extends ProtocolModule {

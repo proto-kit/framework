@@ -358,17 +358,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     // Append tx to incomingMessagesHash
     const prefix = "MinaZkappEvent******";
-    console.log(
-      "Tx data",
-      transaction.hashData().map((x) => x.toString())
-    );
     const actionDataHash = hashWithPrefix(prefix, transaction.hashData());
-    console.log("Actiondatahash", actionDataHash.toString());
     const actionHash = hashWithPrefix("MinaZkappSeqEvents**", [
       emptyActions(),
       actionDataHash,
     ]);
-    console.log("Actionhash", actionHash.toString());
 
     const incomingMessagesList = new MinaPrefixedProvableHashList(
       Field,
@@ -377,9 +371,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
     incomingMessagesList.pushIf(actionHash, isMessage);
 
-    console.log("commitment before", state.incomingMessagesHash.toString());
     stateTo.incomingMessagesHash = incomingMessagesList.commitment;
-    console.log("commitment after", state.incomingMessagesHash.toString());
 
     return stateTo;
   }

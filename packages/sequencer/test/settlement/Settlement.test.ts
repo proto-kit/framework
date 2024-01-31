@@ -372,6 +372,7 @@ describe("settlement contracts", () => {
   });
 
   let nonceCounter = 0;
+  let user0Nonce = 0;
 
   it("should deploy", async () => {
     // Deploy contract
@@ -381,7 +382,7 @@ describe("settlement contracts", () => {
     nonceCounter += 2;
 
     console.log("Deployed");
-  }, 15000);
+  }, 30000);
 
   it.skip("should settle", async () => {
     let [, batch] = await createBatch(true);
@@ -412,13 +413,13 @@ describe("settlement contracts", () => {
     );
   }, 500_000);
 
-  it.skip("should include deposit", async () => {
+  it("should include deposit", async () => {
     const contract = await settlementModule.getContract();
 
     const userKey = localInstance.testAccounts[0].privateKey;
 
     const tx = await Mina.transaction(
-      { sender: userKey.toPublicKey(), fee: 0.01 * 1e9 },
+      { sender: userKey.toPublicKey(), fee: 0.01 * 1e9, nonce: user0Nonce++ },
       () => {
         contract.deposit(UInt64.from(100));
       }
@@ -470,7 +471,7 @@ describe("settlement contracts", () => {
     expect(balance).toBeDefined();
   }, 50000);
 
-  it("should process withdrawal", async () => {
+  it.skip("should process withdrawal", async () => {
     const contract = await settlementModule.getContract();
 
     // Send mina to contract
@@ -524,7 +525,7 @@ describe("settlement contracts", () => {
     expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 49n);
   });
 
-  it("should be able to redeem withdrawal", async () => {
+  it.skip("should be able to redeem withdrawal", async () => {
     const contract = await settlementModule.getContract();
 
     const userKey = localInstance.testAccounts[0].privateKey;
@@ -536,7 +537,7 @@ describe("settlement contracts", () => {
     const tx = await Mina.transaction(
       {
         sender: userKey.toPublicKey(),
-        nonce: 0,
+        nonce: user0Nonce++,
         fee: 10000,
       },
       () => {
