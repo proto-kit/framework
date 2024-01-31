@@ -28,9 +28,9 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule,
+  BlockProducerModule, BlockStorage, HistoricalBlockStorage,
   InMemoryDatabase,
-  ManualBlockTrigger,
+  ManualBlockTrigger
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -162,7 +162,7 @@ describe("block production", () => {
 
   // eslint-disable-next-line max-statements
   it("should produce a dummy block proof", async () => {
-    expect.assertions(21);
+    expect.assertions(22);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -191,6 +191,11 @@ describe("block production", () => {
 
     expect(batch!.bundles).toHaveLength(1);
     expect(batch!.proof.proof).toBe("mock-proof");
+
+    // Check if the batchstorage has received the block
+    const batchStorage = sequencer.resolve("BlockStorage") as BlockStorage & HistoricalBlockStorage;
+    const retrievedBatch = await batchStorage.getBlockAt(0)
+    expect(retrievedBatch).toBeDefined();
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
