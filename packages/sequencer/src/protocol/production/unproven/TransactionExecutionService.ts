@@ -19,10 +19,15 @@ import {
   StateServiceProvider,
   BlockHashTreeEntry,
   ACTIONS_EMPTY_HASH,
-  MinaPrefixedProvableHashList,
+  MinaActions,
+  MinaActionsHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
-import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
+import {
+  AreProofsEnabled,
+  log,
+  RollupMerkleTree,
+} from "@proto-kit/common";
 import {
   MethodParameterEncoder,
   Runtime,
@@ -262,9 +267,8 @@ export class TransactionExecutionService {
       Field,
       Field(lastBlock.toEternalTransactionsHash)
     );
-    const messagesList = new MinaPrefixedProvableHashList(
-      Field,
-      "MinaZkappSeqEvents**",
+
+    const incomingMessagesList = new MinaActionsHashList(
       Field(lastBlock.toMessagesHash)
     );
 
@@ -298,7 +302,11 @@ export class TransactionExecutionService {
           transactionsHashList.push(tx.hash());
           eternalTransactionsHashList.push(tx.hash());
         } else {
-          messagesList.push(tx.hash());
+          const actionHash = MinaActions.actionHash(
+            tx.toRuntimeTransaction().hashData()
+          );
+
+          incomingMessagesList.push(actionHash);
         }
       } catch (error) {
         if (error instanceof Error) {
@@ -322,7 +330,7 @@ export class TransactionExecutionService {
       height: lastBlock.height.add(1),
       fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
-      toMessagesHash: messagesList.commitment,
+      toMessagesHash: incomingMessagesList.commitment,
 
       networkState: {
         before: new NetworkState(lastMetadata.afterNetworkState),

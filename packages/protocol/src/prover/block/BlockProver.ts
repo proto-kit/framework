@@ -34,6 +34,8 @@ import { ProvableTransactionHook } from "../../protocol/ProvableTransactionHook"
 import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethodExecutionContext";
 import { ProvableBlockHook } from "../../protocol/ProvableBlockHook";
 import { NetworkState } from "../../model/network/NetworkState";
+import { SignedTransaction } from "../../model/transaction/SignedTransaction";
+import { MinaActions, MinaActionsHashList } from "../../utils/MinaPrefixedProvableHashList";
 
 import {
   BlockProvable,
@@ -46,12 +48,6 @@ import {
   BlockHashMerkleTreeWitness,
   BlockHashTreeEntry,
 } from "./accummulators/BlockHashMerkleTree";
-import { SignedTransaction } from "../../model/transaction/SignedTransaction";
-import {
-  emptyActions,
-  MinaPrefixedProvableHashList,
-} from "../../utils/PrefixedProvableHashList";
-import { Actions } from "o1js/dist/node/lib/account_update";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -357,18 +353,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     stateTo.eternalTransactionsHash = eternalTransactionList.commitment;
 
     // Append tx to incomingMessagesHash
-    const prefix = "MinaZkappEvent******";
-    const actionDataHash = hashWithPrefix(prefix, transaction.hashData());
-    const actionHash = hashWithPrefix("MinaZkappSeqEvents**", [
-      emptyActions(),
-      actionDataHash,
-    ]);
+    const actionHash = MinaActions.actionHash(transaction.hashData());
 
-    const incomingMessagesList = new MinaPrefixedProvableHashList(
-      Field,
-      "MinaZkappSeqEvents**",
-      state.incomingMessagesHash
-    );
+    const incomingMessagesList = new MinaActionsHashList(state.incomingMessagesHash);
     incomingMessagesList.pushIf(actionHash, isMessage);
 
     stateTo.incomingMessagesHash = incomingMessagesList.commitment;

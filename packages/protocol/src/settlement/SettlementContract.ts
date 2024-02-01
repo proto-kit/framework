@@ -19,9 +19,10 @@ import {
   UInt64,
 } from "o1js";
 import {
-  hashWithPrefix, prefixToField,
+  hashWithPrefix,
+  prefixToField,
   RollupMerkleTree,
-  RollupMerkleTreeWitness
+  RollupMerkleTreeWitness,
 } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 
@@ -37,10 +38,11 @@ import { BlockHashMerkleTree } from "../prover/block/accummulators/BlockHashMerk
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { Path } from "../model/Path";
 import {
-  emptyActions,
-  emptyEvents,
-  MINA_EVENT_PREFIXES,
-} from "../utils/PrefixedProvableHashList";
+  ProvableSettlementHook,
+  SettlementHookInputs,
+  SettlementStateRecord,
+} from "./ProvableSettlementHook";
+import { MinaActions, MinaEvents } from "../utils/MinaPrefixedProvableHashList";
 
 class LazyBlockProof extends Proof<
   BlockProverPublicInput,
@@ -237,25 +239,14 @@ export class SettlementContract extends SmartContract {
 
     // Append tx to incomingMessagesHash
     const actionData = runtimeTransaction.hashData();
-    const actionDataHash = hashWithPrefix(
-      MINA_EVENT_PREFIXES.event,
-      actionData
-    );
-    const actionHash = hashWithPrefix(MINA_EVENT_PREFIXES.sequenceEvents, [
-      emptyActions(),
-      actionDataHash,
-    ]);
+    const actionHash = MinaActions.actionHash(actionData)
 
     this.self.body.actions = {
       hash: actionHash,
       data: [actionData],
     };
 
-    let eventDataHash = hashWithPrefix(MINA_EVENT_PREFIXES.event, args);
-    let eventHash = hashWithPrefix(MINA_EVENT_PREFIXES.events, [
-      emptyEvents(),
-      eventDataHash,
-    ]);
+    const eventHash = MinaEvents.eventHash(args);
     this.self.body.events = {
       hash: eventHash,
       data: [args],
