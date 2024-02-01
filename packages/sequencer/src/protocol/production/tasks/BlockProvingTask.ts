@@ -44,6 +44,26 @@ export type BlockProvingTaskParameters = PairingDerivedInput<
   BlockProverParameters
 >;
 
+export class DecodedStateSerializer {
+  public static fromJSON(json: JSONEncodableState): DecodedState {
+    return Object.fromEntries<Field[] | undefined>(
+      Object.entries(json).map(([key, value]) => [
+        key,
+        value?.map((encodedField) => Field(encodedField)),
+      ])
+    );
+  }
+
+  public static toJSON(input: DecodedState): JSONEncodableState {
+    return Object.fromEntries<string[] | undefined>(
+      Object.entries(input).map(([key, value]) => [
+        key,
+        value?.map((field) => field.toString()),
+      ])
+    );
+  }
+}
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class BlockReductionTask
@@ -112,7 +132,6 @@ export class BlockProvingTask
     private readonly compileRegistry: CompileRegistry
   ) {
     this.stateTransitionProver = protocol.stateTransitionProver;
-
     this.blockProver = this.protocol.blockProver;
   }
 
@@ -138,11 +157,8 @@ export class BlockProvingTask
               input.params.executionData
             ),
 
-            startingState: Object.fromEntries<string[] | undefined>(
-              Object.entries(input.params.startingState).map(([key, value]) => [
-                key,
-                value?.map((field) => field.toString()),
-              ])
+            startingState: DecodedStateSerializer.toJSON(
+              input.params.startingState
             ),
           },
         };
@@ -174,13 +190,8 @@ export class BlockProvingTask
               jsonReadyObject.params.executionData
             ),
 
-            startingState: Object.fromEntries<Field[] | undefined>(
-              Object.entries(jsonReadyObject.params.startingState).map(
-                ([key, value]) => [
-                  key,
-                  value?.map((encodedField) => Field(encodedField)),
-                ]
-              )
+            startingState: DecodedStateSerializer.fromJSON(
+              jsonReadyObject.params.startingState
             ),
           },
         };

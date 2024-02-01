@@ -13,7 +13,7 @@ export * from "./utils/PrefixedProvableHashList.js";
 export * from "./utils/utils";
 export * from "./prover/block/BlockProver";
 export * from "./prover/block/BlockProvable";
-export * from "./prover/block/BlockTransactionPosition";
+ export * from "./prover/block/accummulators/BlockHashMerkleTree";
 export * from "./prover/statetransition/StateTransitionProver";
 export * from "./prover/statetransition/StateTransitionProvable";
 export * from "./prover/statetransition/StateTransitionWitnessProvider";

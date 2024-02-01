@@ -1,5 +1,4 @@
 import { inject } from "tsyringe";
-import { NetworkState } from "@proto-kit/protocol";
 import {
   EventEmitter,
   EventEmittingComponent,
@@ -7,7 +6,6 @@ import {
   log,
   noop,
   requireTrue,
-  RollupMerkleTree,
 } from "@proto-kit/common";
 
 import { Mempool } from "../../../mempool/Mempool";
@@ -19,11 +17,12 @@ import {
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
+import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 
 import {
   TransactionExecutionService,
   UnprovenBlock,
-  UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
 } from "./TransactionExecutionService";
 
 const errors = {
@@ -34,9 +33,13 @@ interface UnprovenProducerEvents extends EventsRecord {
   unprovenBlockProduced: [UnprovenBlock];
 }
 
+export interface BlockConfig {
+  allowEmptyBlock?: boolean;
+}
+
 @sequencerModule()
 export class UnprovenProducerModule
-  extends SequencerModule<unknown>
+  extends SequencerModule<BlockConfig>
   implements EventEmittingComponent<UnprovenProducerEvents>
 {
   private productionInProgress = false;
@@ -51,16 +54,15 @@ export class UnprovenProducerModule
     private readonly unprovenMerkleStore: CachedMerkleTreeStore,
     @inject("UnprovenBlockQueue")
     private readonly unprovenBlockQueue: UnprovenBlockQueue,
+    @inject("BlockTreeStore")
+    private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly executionService: TransactionExecutionService
   ) {
     super();
   }
 
-  private createEmptyMetadata(): UnprovenBlockMetadata {
-    return {
-      resultingNetworkState: NetworkState.empty(),
-      resultingStateRoot: RollupMerkleTree.EMPTY_ROOT,
-    };
+  private allowEmptyBlock() {
+    return this.config.allowEmptyBlock ?? true;
   }
 
   public async tryProduceUnprovenBlock(): Promise<UnprovenBlock | undefined> {
@@ -69,7 +71,11 @@ export class UnprovenProducerModule
         const block = await this.produceUnprovenBlock();
 
         if (block === undefined) {
-          log.info("No transactions in mempool, skipping production");
+          if (!this.allowEmptyBlock()) {
+            log.info("No transactions in mempool, skipping production");
+          } else {
+            log.error("Something wrong happened, skipping block");
+          }
           return undefined;
         }
 
@@ -83,6 +89,7 @@ export class UnprovenProducerModule
           await this.executionService.generateMetadataForNextBlock(
             block,
             this.unprovenMerkleStore,
+            this.blockTreeStore,
             true
           );
         await this.unprovenBlockQueue.pushMetadata(metadata);
@@ -103,18 +110,18 @@ export class UnprovenProducerModule
 
   private async collectProductionData(): Promise<{
     txs: PendingTransaction[];
-    metadata: UnprovenBlockMetadata;
+    metadata: UnprovenBlockWithMetadata;
   }> {
     const { txs } = this.mempool.getTxs();
 
-    const latestMetadata = await this.unprovenBlockQueue.getNewestMetadata();
+    const parentBlock = await this.unprovenBlockQueue.getLatestBlock();
 
-    if (latestMetadata === undefined) {
+    if (parentBlock === undefined) {
       log.debug(
         "No unproven block metadata given, assuming first block, generating genesis metadata"
       );
     }
-    const metadata = latestMetadata ?? this.createEmptyMetadata();
+    const metadata = parentBlock ?? UnprovenBlockWithMetadata.createEmpty();
 
     return {
       txs,
@@ -128,15 +135,22 @@ export class UnprovenProducerModule
     const { txs, metadata } = await this.collectProductionData();
 
     // Skip production if no transactions are available for now
-    if (txs.length === 0) {
+    if (txs.length === 0 && !this.allowEmptyBlock()) {
       return undefined;
     }
 
-    const block = await this.executionService.createUnprovenBlock(
-      this.unprovenStateService,
-      txs,
-      metadata
+    const cachedStateService = new CachedStateService(
+      this.unprovenStateService
     );
+
+    const block = await this.executionService.createUnprovenBlock(
+      cachedStateService,
+      txs,
+      metadata,
+      this.allowEmptyBlock()
+    );
+
+    await cachedStateService.mergeIntoParent();
 
     this.productionInProgress = false;
 

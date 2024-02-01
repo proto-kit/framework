@@ -27,6 +27,15 @@ export class RuntimeTransaction extends Struct({
     });
   }
 
+  public static dummy(): RuntimeTransaction {
+    return new RuntimeTransaction({
+      methodId: Field(0),
+      nonce: UInt64.zero,
+      sender: PublicKey.empty(),
+      argsHash: Field(0),
+    });
+  }
+
   public hash(): Field {
     return Poseidon.hash([
       this.methodId,

@@ -132,6 +132,7 @@
     ],
     "nodejs/declare": "off",
     "unicorn/prefer-event-target": "off",
+    "putout/putout": "off",
     "@typescript-eslint/no-unnecessary-boolean-literal-compare": "off"
   },
 

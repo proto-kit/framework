@@ -87,9 +87,9 @@ export interface AbstractMerkleTree {
 }
 
 export interface AbstractMerkleTreeClass {
-  new (...args: any[]): AbstractMerkleTree;
+  new (store: MerkleTreeStore): AbstractMerkleTree;
 
-  WITNESS: TypedClass<AbstractMerkleWitness> & typeof StructTemplate;
+  WITNESS: TypedClass<AbstractMerkleWitness> & typeof StructTemplate & { dummy: () => AbstractMerkleWitness };
 
   HEIGHT: number;
 
@@ -204,6 +204,13 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
             this.isLeft[index].toString(),
           ].toString()
         );
+    }
+
+    public static dummy() {
+      return new RollupMerkleWitness({
+        isLeft: Array<Bool>(height - 1).fill(Bool(false)),
+        path: Array<Field>(height - 1).fill(Field(0)),
+      })
     }
   }
 

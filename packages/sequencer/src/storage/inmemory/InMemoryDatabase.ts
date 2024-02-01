@@ -50,6 +50,9 @@ export class InMemoryDatabase
       unprovenMerkleStore: {
         useFactory: () => new CachedMerkleTreeStore(this.merkleStore),
       },
+      blockTreeStore: {
+        useClass: InMemoryAsyncMerkleTreeStore
+      }
     };
   }
 

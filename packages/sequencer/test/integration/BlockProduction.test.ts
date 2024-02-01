@@ -8,14 +8,16 @@ import { AppChain } from "@proto-kit/sdk";
 import { Runtime, MethodIdResolver, MethodParameterEncoder } from "@proto-kit/module";
 import {
   AccountState,
-  AccountStateModule, BlockHeightHook,
+  AccountStateModule,
+  BlockHeightHook,
   BlockProver,
+  NetworkState,
   Option,
   Path,
   Protocol, ReturnType,
   StateTransition,
   StateTransitionProver,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import { Bool, Field, PrivateKey, ProvableExtended, PublicKey, UInt64 } from "o1js";
 import { ArgumentTypes, log, range, ToFieldableStatic, ToJSONableStatic } from "@proto-kit/common";
@@ -26,8 +28,9 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule, InMemoryDatabase,
-  ManualBlockTrigger
+  BlockProducerModule,
+  InMemoryDatabase,
+  ManualBlockTrigger,
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -39,6 +42,7 @@ import { container } from "tsyringe";
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<{
+    Database: typeof InMemoryDatabase;
     Mempool: typeof PrivateMempool;
     LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
     BaseLayer: typeof NoopBaseLayer;
@@ -46,7 +50,6 @@ describe("block production", () => {
     UnprovenProducerModule: typeof UnprovenProducerModule;
     BlockTrigger: typeof ManualBlockTrigger;
     TaskQueue: typeof LocalTaskQueue;
-    Database: typeof InMemoryDatabase;
   }>;
 
   let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>
@@ -176,7 +179,7 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
-    let batch = await blockTrigger.produceProven()
+    let batch = await blockTrigger.produceProven();
 
     expect(batch).toBeDefined();
 
@@ -188,7 +191,10 @@ describe("block production", () => {
         "AsyncStateService"
       );
 
-    const unprovenStateService = sequencer.dependencyContainer.resolve<AsyncStateService>("UnprovenStateService")
+    const unprovenStateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "UnprovenStateService"
+      );
 
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
@@ -202,7 +208,9 @@ describe("block production", () => {
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
-    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(UInt64.from(100));
+    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(
+      UInt64.from(100)
+    );
 
     // Check that nonce has been set
     const accountModule = protocol.resolve("AccountState");
@@ -249,9 +257,9 @@ describe("block production", () => {
 
   // TODO Fix the error that we get when execution this after the first test
   it("should reject tx and not apply the state", async () => {
-    expect.assertions(4);
+    expect.assertions(5);
 
-    log.setLevel("INFO")
+    log.setLevel("INFO");
 
     const privateKey = PrivateKey.random();
 
@@ -259,13 +267,14 @@ describe("block production", () => {
       createTransaction({
         method: ["Balance", "setBalanceIf"],
         privateKey,
-        args: [PublicKey.empty(), UInt64.from(100), Bool(false)],
+        args: [PrivateKey.random().toPublicKey(), UInt64.from(100), Bool(false)],
         nonce: 0,
       })
     );
 
     const [block, batch] = await blockTrigger.produceBlock();
 
+    expect(block?.transactions).toHaveLength(1);
     expect(block?.transactions[0].status.toBoolean()).toBe(false);
     expect(block?.transactions[0].statusMessage).toBe("Condition not met");
 
@@ -322,11 +331,15 @@ describe("block production", () => {
       expect(block!.transactions[index].status.toBoolean()).toBe(true);
       expect(block!.transactions[index].statusMessage).toBe(undefined);
 
-      const transitions = block!.transactions[index].stateTransitions
+      const transitions = block!.transactions[index].stateTransitions;
 
       const fromBalance = increment * index;
-      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance))
-      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(BigInt(fromBalance + increment))
+      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(
+        BigInt(fromBalance)
+      );
+      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(
+        BigInt(fromBalance + increment)
+      );
     });
 
     const batch = await blockTrigger.produceProven();
@@ -351,6 +364,167 @@ describe("block production", () => {
       UInt64.from(100 * numberTxs)
     );
   }, 160_000);
+
+  it("should produce a block with a mix of failing and succeeding transactions and empty blocks", async () => {
+    expect.assertions(8);
+
+    const pk1 = PrivateKey.random();
+    const pk2 = PrivateKey.random();
+
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "setBalanceIf"],
+        privateKey: pk1,
+        args: [pk1.toPublicKey(), UInt64.from(100), Bool(false)],
+        nonce: 0,
+      })
+    );
+    mempool.add(
+      createTransaction({
+        method: ["Balance", "setBalanceIf"],
+        privateKey: pk2,
+        args: [pk2.toPublicKey(), UInt64.from(100), Bool(true)],
+        nonce: 0,
+      })
+    );
+
+    const block = await blockTrigger.produceUnproven();
+    const block2 = await blockTrigger.produceUnproven();
+    const batch = await blockTrigger.produceProven();
+
+    expect(block).toBeDefined();
+
+    expect(batch!.bundles).toHaveLength(2);
+    expect(batch!.bundles[1]).toStrictEqual([]);
+    expect(block!.transactions).toHaveLength(2);
+
+    const stateService =
+      sequencer.dependencyContainer.resolve<AsyncStateService>(
+        "AsyncStateService"
+      );
+    const balanceModule = runtime.resolve("Balance");
+    const balancesPath1 = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      pk1.toPublicKey()
+    );
+    const newState1 = await stateService.getAsync(balancesPath1);
+
+    expect(newState1).toBeUndefined();
+
+    const balancesPath2 = Path.fromKey(
+      balanceModule.balances.path!,
+      balanceModule.balances.keyType,
+      pk2.toPublicKey()
+    );
+    const newState2 = await stateService.getAsync(balancesPath2);
+
+    expect(newState2).toBeDefined();
+    expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
+
+    const unproven3 = await blockTrigger.produceUnproven();
+    const unproven4 = await blockTrigger.produceUnproven();
+    const proven2 = await blockTrigger.produceProven()
+
+    expect(proven2?.bundles.length).toBe(2);
+  }, 720_000);
+
+  it.skip.each([
+    [
+      "EKFZbsQfNiqjDiWGU7G3TVPauS3s9YgWgayMzjkEaDTEicsY9poM",
+      "EKFdtp8D6mP3aFvCMRa75LPaUBn1QbmEs1YjTPXYLTNeqPYtnwy2",
+    ],
+    [
+      "EKE8hTdmVrYisQSc5oqeM7inCA2fFCvZ8Y5K2CPfV4NBwSJtxads",
+      "EKFct4rQwPV9N9F2J1oogaWrZLD1c5apyn997ncsmSKjoJCFDMsQ",
+    ],
+  ])(
+    "dex repro",
+    async ([pk1string, pk2string]) => {
+      const pk1 = PrivateKey.fromBase58(pk1string);
+      const pk2 = PrivateKey.fromBase58(pk2string);
+
+      mempool.add(
+        createTransaction({
+          method: ["Balance", "setBalanceIf"],
+          privateKey: pk1,
+          args: [pk1.toPublicKey(), UInt64.from(100), Bool(true)],
+          nonce: 0,
+        })
+      );
+
+      await blockTrigger.produceBlock();
+
+      mempool.add(
+        createTransaction({
+          method: ["Balance", "setBalanceIf"],
+          privateKey: pk2,
+          args: [pk2.toPublicKey(), UInt64.from(200), Bool(true)],
+          nonce: 0,
+        })
+      );
+
+      await blockTrigger.produceBlock();
+    },
+    60000
+  );
+
+  it.each([
+    [2, 1, 1],
+    [1, 2, 1],
+    [1, 1, 2],
+    [2, 2, 2],
+  ])(
+    "should produce multiple blocks with multiple batches with multiple transactions",
+    async (batches, blocksPerBatch, txsPerBlock) => {
+      log.setLevel("DEBUG");
+
+      expect.assertions(2 * batches + 3 * batches * blocksPerBatch);
+
+      const sender = PrivateKey.random();
+
+      const keys = range(0, batches * blocksPerBatch * txsPerBlock).map(() =>
+        PrivateKey.random()
+      );
+
+      const increment = 100;
+
+      let iterationIndex = 0;
+
+      for (let i = 0; i < batches; i++) {
+        for (let j = 0; j < blocksPerBatch; j++) {
+          for (let k = 0; k < txsPerBlock; k++) {
+            mempool.add(
+              createTransaction({
+                method: ["Balance", "addBalance"],
+                privateKey: sender,
+                args: [
+                  keys[iterationIndex].toPublicKey(),
+                  UInt64.from(increment * (iterationIndex + 1)),
+                ],
+                nonce: iterationIndex,
+              })
+            );
+
+            iterationIndex += 1;
+          }
+
+          // Produce block
+          const block = await blockTrigger.produceUnproven();
+
+          expect(block).toBeDefined();
+          expect(block!.transactions).toHaveLength(txsPerBlock);
+          expect(block!.transactions[0].status.toBoolean()).toBe(true);
+        }
+
+        const batch = await blockTrigger.produceProven();
+
+        expect(batch).toBeDefined();
+        expect(batch!.bundles).toHaveLength(blocksPerBatch);
+      }
+    },
+    500_000
+  );
 
   it("should produce block with a tx with a lot of STs", async () => {
     expect.assertions(11);

@@ -28,7 +28,7 @@ import {
   PrivateMempool, QueryBuilderFactory,
   Sequencer,
   TimedBlockTrigger,
-  UnsignedTransaction
+  UnsignedTransaction,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -81,6 +81,8 @@ export class Balances extends RuntimeModule<object> {
 }
 
 export async function startServer() {
+  log.setLevel("DEBUG");
+
   const appChain = AppChain.from({
     runtime: Runtime.from({
       modules: {
@@ -105,7 +107,7 @@ export async function startServer() {
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         UnprovenProducerModule,
-        BlockTrigger: ManualBlockTrigger,
+        BlockTrigger: TimedBlockTrigger,
         TaskQueue: LocalTaskQueue,
 
         Graphql: GraphqlSequencerModule.from({
@@ -174,8 +176,15 @@ export async function startServer() {
       LocalTaskWorkerModule: {},
       BaseLayer: {},
       TaskQueue: {},
-      UnprovenProducerModule: {},
-      BlockTrigger: {},
+
+      UnprovenProducerModule: {
+        allowEmptyBlock: true,
+      },
+
+      BlockTrigger: {
+        blockInterval: 15000,
+        settlementInterval: 30000,
+      },
     },
 
     TransactionSender: {},
@@ -188,10 +197,6 @@ export async function startServer() {
   });
 
   await appChain.start(container.createChildContainer());
-  const protocol = appChain.protocol;
-  protocol.resolve("BlockHeight");
-  const query = QueryBuilderFactory.fromProtocol(protocol, appChain.resolve("QueryTransportModule"));
-
   const pk = PublicKey.fromBase58(
     "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   );

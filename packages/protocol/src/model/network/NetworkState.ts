@@ -20,7 +20,7 @@ export class NetworkState extends Struct({
     ]);
   }
 
-  public static empty(){
+  public static empty() {
     return new NetworkState({
       block: {
         height: UInt64.zero,
@@ -28,6 +28,6 @@ export class NetworkState extends Struct({
       previous: {
         rootHash: Field(RollupMerkleTree.EMPTY_ROOT)
       }
-    })
+    });
   }
 }

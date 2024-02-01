@@ -373,7 +373,7 @@ export function Server({ configFile }: { configFile: string }) {
           blockError,
           logs,
           height: block
-            ? Number(block?.networkState.block.height.toString())
+            ? Number(block?.networkState.during.block.height.toString())
             : undefined,
           duration: timeEnd,
           time: new Date().toLocaleTimeString(),
