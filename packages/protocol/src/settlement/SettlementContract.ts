@@ -24,7 +24,7 @@ import {
   RollupMerkleTree,
   RollupMerkleTreeWitness,
 } from "@proto-kit/common";
-import { inject, injectable } from "tsyringe";
+import { inject, injectable, injectAll } from "tsyringe";
 
 import { ProtocolModule } from "../protocol/ProtocolModule";
 import { BlockProver } from "../prover/block/BlockProver";
@@ -104,9 +104,9 @@ export class SettlementContract extends SmartContract {
   public constructor(
     address: PublicKey,
     private readonly methodIdMappings: Record<string, bigint>,
+    private readonly hooks: ProvableSettlementHook<unknown>[],
     // 24 hours
     private readonly escapeHatchSlotsInterval = (60 / 3) * 24
-    // private hooks: ProvableSettlementHook<unknown>[]
   ) {
     super(address);
   }
@@ -190,6 +190,28 @@ export class SettlementContract extends SmartContract {
       Bool(true),
       "Supplied proof is not a closed BlockProof"
     );
+
+    // Execute onSettlementHooks for additional checks
+    const stateRecord: SettlementStateRecord = {
+      blockHashRoot,
+      stateRoot,
+      networkStateHash,
+      honoredMessagesHash,
+      lastSettlementL1Block,
+      promisedMessagesHash,
+      sequencerKey,
+    };
+    const inputs: SettlementHookInputs = {
+      blockProof,
+      contractState: stateRecord,
+      newPromisedMessagesHash,
+      fromNetworkState: inputNetworkState,
+      toNetworkState: outputNetworkState,
+      currentL1Block: minBlockIncluded
+    };
+    this.hooks.forEach((hook) => {
+      hook.beforeSettlement(this, inputs);
+    });
 
     // Apply blockProof
     stateRoot.assertEquals(
@@ -346,8 +368,8 @@ export class SettlementContract extends SmartContract {
 @injectable()
 export class SettlementContractModule extends ProtocolModule {
   public constructor(
-    // @injectAll("ProvableSettlementHook")
-    // private readonly hooks: ProvableSettlementHook<unknown>[],
+    @injectAll("ProvableSettlementHook")
+    private readonly hooks: ProvableSettlementHook<unknown>[],
     @inject("BlockProver")
     private readonly blockProver: BlockProvable
   ) {
@@ -363,6 +385,6 @@ export class SettlementContractModule extends ProtocolModule {
     address: PublicKey,
     methodIdMappings: SettlementMethodIdMapping
   ): SettlementContract {
-    return new SettlementContract(address, methodIdMappings);
+    return new SettlementContract(address, methodIdMappings, this.hooks);
   }
 }

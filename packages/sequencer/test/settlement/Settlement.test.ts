@@ -21,13 +21,13 @@ import {
 } from "@proto-kit/sdk";
 import {
   ACTIONS_EMPTY_HASH,
-  Deposit,
+  Deposit, MinaActions,
   MinaPrefixedProvableHashList,
   NetworkState,
   ReturnType,
   RuntimeTransaction,
   SettlementContractModule,
-  VanillaProtocol,
+  VanillaProtocol
 } from "@proto-kit/protocol";
 import {
   BlockProducerModule,
@@ -213,7 +213,13 @@ describe("settlement contracts", () => {
       mempool.add(tx);
     });
 
-    return await trigger.produceBlock();
+    const result = await trigger.produceBlock();
+    const [block, batch] = result;
+
+    console.log(`block ${block?.height.toString()} ${block?.fromMessagesHash.toString()} -> ${block?.toMessagesHash.toString()}`)
+    console.log(`block ${batch?.proof.publicInput.incomingMessagesHash} -> ${batch?.proof.publicOutput.incomingMessagesHash}`)
+
+    return result
   }
 
   let appChain: ReturnType<typeof setupAppChain>;
@@ -265,19 +271,14 @@ describe("settlement contracts", () => {
     const txHash1 = Actions.pushEvent(Actions.empty(), depositTx.hashData());
     const hash1 = Actions.updateSequenceState(empty, txHash1.hash);
 
-    const prefix = "MinaZkappEvent******";
-    const txHash2 = hashWithPrefix(prefix, depositTx.hashData());
-    const txHash21 = hashWithPrefix("MinaZkappSeqEvents**", [
-      Actions.empty().hash,
-      txHash2,
-    ]);
+    const actionHash = MinaActions.actionHash(depositTx.hashData());
 
     const list = new MinaPrefixedProvableHashList(
       Field,
       "MinaZkappSeqEvents**",
       empty
     );
-    list.push(txHash21);
+    list.push(actionHash);
 
     const hash2 = list.commitment;
 
@@ -382,7 +383,7 @@ describe("settlement contracts", () => {
     nonceCounter += 2;
 
     console.log("Deployed");
-  }, 30000);
+  }, 60000);
 
   it.skip("should settle", async () => {
     let [, batch] = await createBatch(true);
@@ -411,7 +412,7 @@ describe("settlement contracts", () => {
     expect(contract.blockHashRoot.get().toBigInt()).toStrictEqual(
       lastBlock!.metadata.blockHashRoot
     );
-  }, 500_000);
+  }, 120_000);
 
   it("should include deposit", async () => {
     const contract = await settlementModule.getContract();
@@ -469,9 +470,9 @@ describe("settlement contracts", () => {
     );
 
     expect(balance).toBeDefined();
-  }, 50000);
+  }, 100000);
 
-  it.skip("should process withdrawal", async () => {
+  it("should process withdrawal", async () => {
     const contract = await settlementModule.getContract();
 
     // Send mina to contract
@@ -523,9 +524,9 @@ describe("settlement contracts", () => {
     const account = Mina.getAccount(userKey.toPublicKey(), contract.token.id);
 
     expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 49n);
-  });
+  }, 100_000);
 
-  it.skip("should be able to redeem withdrawal", async () => {
+  it("should be able to redeem withdrawal", async () => {
     const contract = await settlementModule.getContract();
 
     const userKey = localInstance.testAccounts[0].privateKey;
@@ -554,5 +555,5 @@ describe("settlement contracts", () => {
     const balanceAfter = Mina.getAccount(userKey.toPublicKey()).balance.toBigInt();
 
     expect(balanceAfter - balanceBefore).toBe(amount - 10000n);
-  });
+  }, 100_000);
 });

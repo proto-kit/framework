@@ -26,10 +26,13 @@ import { ProvableBlockHook } from "./ProvableBlockHook";
 import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
 import { BlockHeightHook } from "../blockmodules/BlockHeightHook";
 import { LastStateRootBlockHook } from "../blockmodules/LastStateRootBlockHook";
+import { ProvableSettlementHook } from "../settlement/ProvableSettlementHook";
+import { NoopSettlementHook } from "../blockmodules/NoopSettlementHook";
 
- const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
+const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
   ProvableTransactionHook: "ProvableTransactionHook",
   ProvableBlockHook: "ProvableBlockHook",
+  ProvableSettlementHook: "ProvableSettlementHook",
 };
 
 export type GenericProtocolModuleRecord = ModulesRecord<
@@ -140,7 +143,7 @@ export class Protocol<Modules extends ProtocolModulesRecord>
     const ABSTRACT_MODULE_TYPES = [
       { type: ProvableTransactionHook, defaultType: NoopTransactionHook },
       { type: ProvableBlockHook, defaultType: NoopBlockHook },
-      // { type: ProvableSettlementHook, defaultType: NoopSettlementHook },
+      { type: ProvableSettlementHook, defaultType: NoopSettlementHook },
     ] as const;
 
     ABSTRACT_MODULE_TYPES.forEach((moduleTypeRegistration) => {

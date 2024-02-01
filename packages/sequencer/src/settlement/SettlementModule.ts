@@ -91,8 +91,6 @@ export class SettlementModule
     private readonly protocol: Protocol<ProtocolModulesRecord>,
     @inject("Runtime")
     private readonly runtime: Runtime<RuntimeModulesRecord>,
-    // @inject("PropertyStorage")
-    // private readonly propertyStorage: PropertyStorage,
     private readonly flowCreator: FlowCreator,
     private readonly settlementDeployTask: SettlementDeployTask,
     @inject("IncomingMessageAdapter")
