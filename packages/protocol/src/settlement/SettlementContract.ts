@@ -19,7 +19,7 @@ import {
   UInt64,
 } from "o1js";
 import {
-  hashWithPrefix,
+  EMPTY_PUBLICKEY,
   prefixToField,
   RollupMerkleTree,
   RollupMerkleTreeWitness,
@@ -37,12 +37,13 @@ import { NetworkState } from "../model/network/NetworkState";
 import { BlockHashMerkleTree } from "../prover/block/accummulators/BlockHashMerkleTree";
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { Path } from "../model/Path";
+import { MinaActions, MinaEvents } from "../utils/MinaPrefixedProvableHashList";
+
 import {
   ProvableSettlementHook,
   SettlementHookInputs,
   SettlementStateRecord,
 } from "./ProvableSettlementHook";
-import { MinaActions, MinaEvents } from "../utils/MinaPrefixedProvableHashList";
 
 class LazyBlockProof extends Proof<
   BlockProverPublicInput,
@@ -67,21 +68,52 @@ export class Deposit extends Struct({
 export class Withdrawal extends Struct({
   address: PublicKey,
   amount: UInt64,
-}) {}
+}) {
+  static dummy() {
+    return new Withdrawal({
+      address: EMPTY_PUBLICKEY,
+      amount: UInt64.from(0),
+    });
+  }
+}
 
 export const OUTGOING_MESSAGE_BATCH_SIZE = 1;
 
 export class OutgoingMessageArgument extends Struct({
   witness: RollupMerkleTreeWitness,
   value: Withdrawal,
-}) {}
+}) {
+  public static dummy(): OutgoingMessageArgument {
+    return new OutgoingMessageArgument({
+      witness: RollupMerkleTreeWitness.dummy(),
+      value: Withdrawal.dummy(),
+    });
+  }
+}
 
 export class OutgoingMessageArgumentBatch extends Struct({
   arguments: Provable.Array(
     OutgoingMessageArgument,
     OUTGOING_MESSAGE_BATCH_SIZE
   ),
-}) {}
+
+  isDummys: Provable.Array(Bool, OUTGOING_MESSAGE_BATCH_SIZE),
+}) {
+  public static fromMessages(providedArguments: OutgoingMessageArgument[]) {
+    const batch = providedArguments.slice();
+    const isDummys = batch.map(() => Bool(false));
+
+    while (batch.length < OUTGOING_MESSAGE_BATCH_SIZE) {
+      batch.push(OutgoingMessageArgument.dummy());
+      isDummys.push(Bool(true));
+    }
+
+    return new OutgoingMessageArgumentBatch({
+      arguments: batch,
+      isDummys,
+    });
+  }
+}
 
 // Some random prefix for the sequencer signature
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
@@ -207,7 +239,7 @@ export class SettlementContract extends SmartContract {
       newPromisedMessagesHash,
       fromNetworkState: inputNetworkState,
       toNetworkState: outputNetworkState,
-      currentL1Block: minBlockIncluded
+      currentL1Block: minBlockIncluded,
     };
     this.hooks.forEach((hook) => {
       hook.beforeSettlement(this, inputs);
@@ -231,7 +263,6 @@ export class SettlementContract extends SmartContract {
     this.blockHashRoot.set(blockProof.publicOutput.blockHashRoot);
 
     // Assert and apply deposit commitments
-    // TODO Enable when we figured out the actionHash construction
     promisedMessagesHash.assertEquals(
       blockProof.publicOutput.incomingMessagesHash,
       "Promised messages not honored"
@@ -239,8 +270,7 @@ export class SettlementContract extends SmartContract {
     this.honoredMessagesHash.set(promisedMessagesHash);
 
     // Assert and apply new promisedMessagesHash
-    // Enable when starting point is Actions.emptyActionState()
-    // this.self.account.actionState.assertEquals(newPromisedMessagesHash);
+    this.self.account.actionState.assertEquals(newPromisedMessagesHash);
     this.promisedMessagesHash.set(newPromisedMessagesHash);
 
     this.lastSettlementL1Block.set(minBlockIncluded);
@@ -261,7 +291,7 @@ export class SettlementContract extends SmartContract {
 
     // Append tx to incomingMessagesHash
     const actionData = runtimeTransaction.hashData();
-    const actionHash = MinaActions.actionHash(actionData)
+    const actionHash = MinaActions.actionHash(actionData);
 
     this.self.body.actions = {
       hash: actionHash,

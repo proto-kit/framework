@@ -8,7 +8,8 @@ import {
   SettlementMethodIdMapping,
   Path,
   OutgoingMessageArgument,
-  OutgoingMessageArgumentBatch, OUTGOING_MESSAGE_BATCH_SIZE
+  OutgoingMessageArgumentBatch,
+  OUTGOING_MESSAGE_BATCH_SIZE,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -26,16 +27,10 @@ import {
 } from "../sequencer/builder/SequencerModule";
 import { FlowCreator } from "../worker/flow/Flow";
 
-import {
-  DeployTaskArgs,
-  SettlementDeployTask,
-} from "./tasks/SettlementDeployTask";
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../storage/repositories/MessageStorage";
 import {
-  DependencyFactory,
-  DependencyRecord,
   EventEmitter,
   EventEmittingComponent,
   EventsRecord,
@@ -92,7 +87,6 @@ export class SettlementModule
     @inject("Runtime")
     private readonly runtime: Runtime<RuntimeModulesRecord>,
     private readonly flowCreator: FlowCreator,
-    private readonly settlementDeployTask: SettlementDeployTask,
     @inject("IncomingMessageAdapter")
     private readonly incomingMessagesAdapter: IncomingMessageAdapter,
     @inject("MessageStorage")
@@ -191,6 +185,7 @@ export class SettlementModule
         Path.fromKey(basePath, Field, Field(x.index))
       );
       // Preload keys
+      // TODO Use preloadKeys() after persistance PR
       await Promise.all(
         keys.map((key) => cachedStore.preloadKey(key.toBigInt()))
       );
@@ -203,8 +198,6 @@ export class SettlementModule
         });
       });
 
-      // TODO Dummys
-
       const tx = await Mina.transaction(
         {
           sender: feepayer.toPublicKey(),
@@ -214,9 +207,7 @@ export class SettlementModule
         },
         () => {
           contract.rollupOutgoingMessages(
-            new OutgoingMessageArgumentBatch({
-              arguments: transactionParamaters,
-            })
+            OutgoingMessageArgumentBatch.fromMessages(transactionParamaters)
           );
         }
       );
@@ -306,20 +297,19 @@ export class SettlementModule
     return sent;
   }
 
-  public async deploy(zkappKey: PrivateKey, options: { nonce?: number } = {}): Promise<Mina.TransactionId> {
+  public async deploy(
+    zkappKey: PrivateKey,
+    options: { nonce?: number } = {}
+  ): Promise<Mina.TransactionId> {
     const feepayerKey = this.config.feepayer;
     const feepayer = feepayerKey.toPublicKey();
 
-    // await fetchAccount({ publicKey: feepayer });
-    const account = Mina.getAccount(feepayer);
-    // TODO Figure out how we can abstract away nicely and consistently
-    // const nonce = account.nonce;
     const nonce = options?.nonce ?? 0;
 
-    const flow = this.flowCreator.createFlow<undefined>(
-      `deploy-${feepayer.toBase58()}-${nonce.toString()}`,
-      undefined
-    );
+    // const flow = this.flowCreator.createFlow<undefined>(
+    //   `deploy-${feepayer.toBase58()}-${nonce.toString()}`,
+    //   undefined
+    // );
 
     const sm =
       this.protocol.dependencyContainer.resolve<SettlementContractModule>(
@@ -341,7 +331,7 @@ export class SettlementModule
         AccountUpdate.fundNewAccount(feepayer);
         contract.deploy({
           zkappKey,
-          verificationKey: undefined, //verificationKey?.verificationKey ?? undefined,
+          verificationKey: undefined,
         });
       }
     );
@@ -349,12 +339,12 @@ export class SettlementModule
     const result = tx;
     await result.prove();
 
-    const input: DeployTaskArgs = {
-      // TODO
-      proofsEnabled: false,
-      transaction: result,
-    };
-
+    // TODO Move proving to tasks
+    // const input: DeployTaskArgs = {
+    //   proofsEnabled: false,
+    //   transaction: result,
+    // };
+    //
     // const result = await flow.withFlow<Mina.Transaction>(async () => {
     //   await flow.pushTask(this.settlementDeployTask, input, async (result) => {
     //     flow.resolve(result);
@@ -380,7 +370,7 @@ export class SettlementModule
       }
     );
     await tx2.prove();
-    await tx2.sign([feepayerKey]);
+    tx2.sign([feepayerKey]);
 
     this.address = zkappKey.toPublicKey();
 
