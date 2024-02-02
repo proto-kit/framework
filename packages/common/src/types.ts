@@ -32,5 +32,9 @@ export type UnionToIntersection<Union> = (
 export type MergeObjects<Input extends Record<string, unknown>> =
   UnionToIntersection<Input[keyof Input]>;
 
+// Because Publickey.empty() is not usable in combination with real
+// cryptographic  operations because it's group evaluation isn't defined in Fp,
+// we use some other arbitrary point which we treat as "empty" in our circuits
+// other arbitrary point
 export const EMPTY_PUBLICKEY_X = Field(4600);
 export const EMPTY_PUBLICKEY = PublicKey.fromObject({ x: EMPTY_PUBLICKEY_X, isOdd: Bool(true) });

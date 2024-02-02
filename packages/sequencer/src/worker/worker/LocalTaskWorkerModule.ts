@@ -17,7 +17,6 @@ import {
 } from "../../protocol/production/tasks/StateTransitionTask";
 import { RuntimeProvingTask } from "../../protocol/production/tasks/RuntimeProvingTask";
 import { NewBlockTask } from "../../protocol/production/tasks/NewBlockTask";
-import { SettlementDeployTask } from "../../settlement/tasks/SettlementDeployTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 

@@ -24,8 +24,8 @@ export type SettlementHookInputs = {
   toNetworkState: NetworkState;
   newPromisedMessagesHash: Field;
   contractState: SettlementStateRecord;
-  currentL1Block: UInt32
-}
+  currentL1Block: UInt32;
+};
 
 export abstract class ProvableSettlementHook<
   Config
@@ -35,16 +35,3 @@ export abstract class ProvableSettlementHook<
     inputs: SettlementHookInputs
   ): void;
 }
-
-// function typedMethod<Params extends any[]>(
-//   params: Params
-// ) {
-//   return (
-//     target: SmartContract & { constructor: any },
-//     methodName: string,
-//     descriptor: TypedPropertyDescriptor<(...args: Params) => void>
-//     // descriptor: PropertyDescriptor
-//   ) => {
-//
-//   }
-// }

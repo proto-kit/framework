@@ -15,7 +15,6 @@ import { UInt64 as U1 } from "@proto-kit/library";
 export class Withdrawals extends RuntimeModule {
   @state() withdrawalCounter = State.from(Field);
 
-  // @state() test = State.from(U1);
   @state() withdrawals = StateMap.from<Field, Withdrawal>(Field, Withdrawal);
 
   public constructor(@inject("Balances") private readonly balances: Balance) {

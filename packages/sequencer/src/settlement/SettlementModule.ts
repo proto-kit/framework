@@ -10,6 +10,7 @@ import {
   OutgoingMessageArgument,
   OutgoingMessageArgumentBatch,
   OUTGOING_MESSAGE_BATCH_SIZE,
+  SettlementContractModuleConfig,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -20,16 +21,6 @@ import {
   Signature,
 } from "o1js";
 import { inject } from "tsyringe";
-
-import {
-  SequencerModule,
-  sequencerModule,
-} from "../sequencer/builder/SequencerModule";
-import { FlowCreator } from "../worker/flow/Flow";
-
-import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
-import { SettlementStorage } from "../storage/repositories/SettlementStorage";
-import { MessageStorage } from "../storage/repositories/MessageStorage";
 import {
   EventEmitter,
   EventEmittingComponent,
@@ -46,14 +37,22 @@ import {
   runtimeMethodTypeMetadataKey,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
+
+import {
+  SequencerModule,
+  sequencerModule,
+} from "../sequencer/builder/SequencerModule";
+import { FlowCreator } from "../worker/flow/Flow";
+
+import { SettlementStorage } from "../storage/repositories/SettlementStorage";
+import { MessageStorage } from "../storage/repositories/MessageStorage";
 import { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { ComputedBlock } from "../storage/model/Block";
-import {
-  OutgoingMessageQueue,
-  WithdrawalQueue,
-} from "./messages/WithdrawalQueue";
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
+
+import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
+import { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
@@ -64,16 +63,14 @@ export interface SettlementModuleEvents extends EventsRecord {
   settlementSubmitted: [ComputedBlock, Mina.TransactionId];
 }
 
-// const PROPERTY_SETTLEMENT_CONTRACT_ADDRESS = "SETTLEMENT_CONTRACT_ADDRESS";
-
-// const SETTLEMENT_BATCH_SIZE = 1;
-
 @sequencerModule()
 export class SettlementModule
   extends SequencerModule<SettlementModuleConfig>
   implements EventEmittingComponent<SettlementModuleEvents>
 {
-  private contract?: SettlementContract;
+  protected contract?: SettlementContract;
+
+  protected settlementModuleConfig?: SettlementContractModuleConfig;
 
   public address?: PublicKey;
 
@@ -101,7 +98,18 @@ export class SettlementModule
     super();
   }
 
-  public async getContract(): Promise<SettlementContract> {
+  public getSettlementModuleConfig(): SettlementContractModuleConfig {
+    if (this.settlementModuleConfig === undefined) {
+      const settlementContractModule =
+        this.protocol.dependencyContainer.resolve<SettlementContractModule>(
+          "SettlementContractModule"
+        );
+      this.settlementModuleConfig = settlementContractModule.config;
+    }
+    return this.settlementModuleConfig;
+  }
+
+  public getContract(): SettlementContract {
     if (this.contract === undefined) {
       const { address } = this;
       if (address === undefined) {
@@ -176,7 +184,9 @@ export class SettlementModule
     const cachedStore = new CachedMerkleTreeStore(this.merkleTreeStore);
     const tree = new RollupMerkleTree(cachedStore);
 
-    const basePath = Path.fromProperty("Withdrawals", "withdrawals");
+    const [withdrawalModule, withdrawalStateName] =
+      this.getSettlementModuleConfig().withdrawalStatePath.split(".");
+    const basePath = Path.fromProperty(withdrawalModule, withdrawalStateName);
 
     for (let i = 0; i < length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
       const batch = this.outgoingMessageQueue.peek(OUTGOING_MESSAGE_BATCH_SIZE);

@@ -1,5 +1,4 @@
 import { Field, FlexibleProvablePure, Poseidon } from "o1js";
-import { prefixToField } from "@proto-kit/common";
 
 import { ProvableHashList } from "./ProvableHashList.js";
 import { stringToField } from "./utils";

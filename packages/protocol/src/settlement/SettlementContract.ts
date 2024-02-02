@@ -137,6 +137,11 @@ export class SettlementContract extends SmartContract {
     address: PublicKey,
     private readonly methodIdMappings: Record<string, bigint>,
     private readonly hooks: ProvableSettlementHook<unknown>[],
+    private readonly withdrawalStatePath: [string, string],
+    private readonly incomingMessagesPaths: Record<
+      string,
+      `${string}.${string}`
+    >,
     // 24 hours
     private readonly escapeHatchSlotsInterval = (60 / 3) * 24
   ) {
@@ -322,7 +327,9 @@ export class SettlementContract extends SmartContract {
       address: sender,
       amount,
     });
-    const methodId = Field(this.methodIdMappings["Balances.deposit"]);
+    const methodId = Field(
+      this.methodIdMappings[this.incomingMessagesPaths["deposit"]]
+    );
     this.dispatchMessage(methodId.toConstant(), action, Deposit);
   }
 
@@ -331,7 +338,8 @@ export class SettlementContract extends SmartContract {
     let counter = this.outgoingMessageCursor.getAndAssertEquals();
     const stateRoot = this.stateRoot.getAndAssertEquals();
 
-    const mapPath = Path.fromProperty("Withdrawals", "withdrawals");
+    const [withdrawalModule, withdrawalStateName] = this.withdrawalStatePath;
+    const mapPath = Path.fromProperty(withdrawalModule, withdrawalStateName);
 
     let accountCreationFeePaid = Field(0);
 
@@ -395,8 +403,14 @@ export class SettlementContract extends SmartContract {
   }
 }
 
+export interface SettlementContractModuleConfig {
+  withdrawalStatePath: `${string}.${string}`;
+  withdrawalMethodPath: `${string}.${string}`;
+  incomingMessagesMethods: Record<string, `${string}.${string}`>;
+}
+
 @injectable()
-export class SettlementContractModule extends ProtocolModule {
+export class SettlementContractModule extends ProtocolModule<SettlementContractModuleConfig> {
   public constructor(
     @injectAll("ProvableSettlementHook")
     private readonly hooks: ProvableSettlementHook<unknown>[],
@@ -415,6 +429,15 @@ export class SettlementContractModule extends ProtocolModule {
     address: PublicKey,
     methodIdMappings: SettlementMethodIdMapping
   ): SettlementContract {
-    return new SettlementContract(address, methodIdMappings, this.hooks);
+    // We know that this returns [string, string], but TS can't infer that
+    const withdrawalPath = this.config.withdrawalStatePath.split(".");
+
+    return new SettlementContract(
+      address,
+      methodIdMappings,
+      this.hooks,
+      [withdrawalPath[0], withdrawalPath[1]],
+      this.config.incomingMessagesMethods
+    );
   }
 }

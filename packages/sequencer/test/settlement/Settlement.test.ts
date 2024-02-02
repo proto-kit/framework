@@ -21,13 +21,14 @@ import {
 } from "@proto-kit/sdk";
 import {
   ACTIONS_EMPTY_HASH,
-  Deposit, MinaActions,
+  Deposit,
+  MinaActions,
   MinaPrefixedProvableHashList,
   NetworkState,
   ReturnType,
   RuntimeTransaction,
   SettlementContractModule,
-  VanillaProtocol
+  VanillaProtocol,
 } from "@proto-kit/protocol";
 import {
   BlockProducerModule,
@@ -154,7 +155,13 @@ describe("settlement contracts", () => {
         AccountState: {},
         BlockProver: {},
         LastStateRoot: {},
-        SettlementContractModule: {},
+        SettlementContractModule: {
+          withdrawalStatePath: "Withdrawals.withdrawals",
+          withdrawalMethodPath: "Withdrawals.withdraw",
+          incomingMessagesMethods: {
+            deposit: "Balances.deposit",
+          },
+        },
       },
       TransactionSender: {},
       QueryTransportModule: {},
@@ -216,10 +223,14 @@ describe("settlement contracts", () => {
     const result = await trigger.produceBlock();
     const [block, batch] = result;
 
-    console.log(`block ${block?.height.toString()} ${block?.fromMessagesHash.toString()} -> ${block?.toMessagesHash.toString()}`)
-    console.log(`block ${batch?.proof.publicInput.incomingMessagesHash} -> ${batch?.proof.publicOutput.incomingMessagesHash}`)
+    console.log(
+      `block ${block?.height.toString()} ${block?.fromMessagesHash.toString()} -> ${block?.toMessagesHash.toString()}`
+    );
+    console.log(
+      `block ${batch?.proof.publicInput.incomingMessagesHash} -> ${batch?.proof.publicOutput.incomingMessagesHash}`
+    );
 
-    return result
+    return result;
   }
 
   let appChain: ReturnType<typeof setupAppChain>;
@@ -531,7 +542,9 @@ describe("settlement contracts", () => {
 
     const userKey = localInstance.testAccounts[0].privateKey;
 
-    const balanceBefore = Mina.getAccount(userKey.toPublicKey()).balance.toBigInt();
+    const balanceBefore = Mina.getAccount(
+      userKey.toPublicKey()
+    ).balance.toBigInt();
 
     const amount = BigInt(1e9 * 49);
 
@@ -550,9 +563,11 @@ describe("settlement contracts", () => {
     );
     tx.sign([userKey]);
     await tx.prove();
-    await tx.send()
+    await tx.send();
 
-    const balanceAfter = Mina.getAccount(userKey.toPublicKey()).balance.toBigInt();
+    const balanceAfter = Mina.getAccount(
+      userKey.toPublicKey()
+    ).balance.toBigInt();
 
     expect(balanceAfter - balanceBefore).toBe(amount - 10000n);
   }, 100_000);

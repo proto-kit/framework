@@ -14,13 +14,17 @@ import {
   MethodParameterEncoder,
 } from "@proto-kit/module";
 import { EMPTY_PUBLICKEY } from "@proto-kit/common";
+import { RuntimeTransaction } from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";
-import { RuntimeTransaction } from "@proto-kit/protocol";
 
+/**
+ * IncomingMessageAdapter implementation for a Mina Baselayer
+ * based on decoding L1-dispatched actions
+ */
 @injectable()
 export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
   public constructor(
@@ -31,9 +35,8 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
 
   private mapActionToTransactions(
     tx: RuntimeTransaction,
-    rawArgs: Field[]
+    fieldArgs: Field[]
   ): PendingTransaction {
-    // const [methodId] = fields;
     const { methodId } = tx;
 
     const methodPointer = this.runtime.methodIdResolver.getMethodNameFromId(
@@ -48,7 +51,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     const module = this.runtime.resolve(moduleName);
     const methodEncoder = MethodParameterEncoder.fromMethod(module, methodName);
 
-    const args = methodEncoder.decodeFields(rawArgs);
+    const args = methodEncoder.decodeFields(fieldArgs);
 
     const { argsJSON, argsFields } = methodEncoder.encode(args);
 
@@ -85,6 +88,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
 
     const actions = await network.fetchActions(address, {
       fromActionState: Field(params.fromActionHash),
+      // TODO Somehow that doesn't work on localBlockchain
       // endActionState: params.toActionHash
       //   ? Field(params.toActionHash)
       //   : undefined,

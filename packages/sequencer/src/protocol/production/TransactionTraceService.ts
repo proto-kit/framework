@@ -27,7 +27,7 @@ import type {
 } from "./unproven/TransactionExecutionService";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
-import { BlockTrace } from "./BlockProducerModule";
+import type { BlockTrace } from "./BlockProducerModule";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

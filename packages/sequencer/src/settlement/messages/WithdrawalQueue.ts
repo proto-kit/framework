@@ -22,6 +22,14 @@ export interface OutgoingMessage<Type> {
   value: Type;
 }
 
+/**
+ * This interface allows the SettlementModule to retrieve information about
+ * pending L2-dispatched (outgoing) messages that it can then use to roll
+ * them up on the L1 contract.
+ *
+ * In the future, this interface should be flexibly typed so that the
+ * outgoing message type is not limited to Withdrawals
+ */
 export interface OutgoingMessageQueue {
   peek: (num: number) => OutgoingMessage<Withdrawal>[];
   pop: (num: number) => OutgoingMessage<Withdrawal>[];
@@ -76,7 +84,12 @@ export class WithdrawalQueue
       this.runtime.dependencyContainer.resolve<MethodIdResolver>(
         "MethodIdResolver"
       );
-    const methodId = resolver.getMethodId("Withdrawals", "withdraw");
+
+    const [withdrawalModule, withdrawalMethod] = settlementModule
+      .getSettlementModuleConfig()
+      .withdrawalMethodPath.split(".");
+
+    const methodId = resolver.getMethodId(withdrawalModule, withdrawalMethod);
     this.outgoingWithdrawalIds = [methodId];
 
     // TODO Very primitive and error-prone, wait for runtime events
@@ -97,7 +110,10 @@ export class WithdrawalQueue
       // TODO After runtime events, use those
 
       const withdrawals = this.lockedQueue.flatMap((block) => {
-        const path = Path.fromProperty("Withdrawals", "withdrawals");
+        const [withdrawalModule2, withdrawalStatePath] = settlementModule
+          .getSettlementModuleConfig()
+          .withdrawalStatePath.split(".");
+        const path = Path.fromProperty(withdrawalModule2, withdrawalStatePath);
 
         return block.transactions
           .filter(
@@ -106,13 +122,13 @@ export class WithdrawalQueue
               tx.status.toBoolean()
           )
           .map<OutgoingMessage<Withdrawal>>((tx) => {
-            const thisPath = Path.fromKey(path, Field, Field(this.currentIndex))
+            const thisPath = Path.fromKey(
+              path,
+              Field,
+              Field(this.currentIndex)
+            );
             const fields = tx.stateTransitions
-              .filter((value) =>
-                value.path
-                  .equals(thisPath)
-                  .toBoolean()
-              )
+              .filter((value) => value.path.equals(thisPath).toBoolean())
               .at(-1)?.toValue.value;
 
             const withdrawal = Withdrawal.fromFields(fields!);

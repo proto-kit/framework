@@ -1,5 +1,6 @@
 import { Field, FlexibleProvablePure, Poseidon } from "o1js";
 import { hashWithPrefix, prefixToField } from "@proto-kit/common";
+
 import { ProvableHashList } from "./ProvableHashList";
 
 function salt(prefix: string) {

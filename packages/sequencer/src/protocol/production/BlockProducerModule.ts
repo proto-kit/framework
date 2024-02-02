@@ -3,8 +3,7 @@ import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
   DefaultProvableHashList,
-  NetworkState,
-  BlockHashMerkleTreeWitness, MinaPrefixedProvableHashList
+  MinaPrefixedProvableHashList,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { log, noop, RollupMerkleTree } from "@proto-kit/common";
@@ -268,7 +267,10 @@ export class BlockProducerModule extends SequencerModule {
         transactionTraces,
         stateServices,
         this.blockTreeStore,
-        Field(bundleWithMetadata.lastBlockMetadata?.stateRoot ?? RollupMerkleTree.EMPTY_ROOT),
+        Field(
+          bundleWithMetadata.lastBlockMetadata?.stateRoot ??
+            RollupMerkleTree.EMPTY_ROOT
+        ),
         bundleWithMetadata.block
       );
       blockTraces.push(blockTrace);

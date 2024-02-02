@@ -3,7 +3,7 @@ import {
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
-  state
+  state,
 } from "@proto-kit/module";
 import { log, Presets, range } from "@proto-kit/common";
 import {
@@ -12,7 +12,8 @@ import {
   PublicKey,
   Struct,
   Provable,
-  Signature, UInt64
+  Signature,
+  UInt64,
 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert, Deposit } from "@proto-kit/protocol";

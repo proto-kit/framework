@@ -25,10 +25,6 @@ export class NetworkStateSettlementModule extends ProvableSettlementHook<Network
 
     const blocksPerL1Block = this.config.blocksPerL1Block.toConstant();
 
-    // const precision = 100000n;
-    // const betweenRatio = Field(9n * precision / 10n);
-    // const precisionField = Field(precision);
-
     const numL1Blocks = currentL1Block.sub(lastSettlementL1Block);
     const expectedHeightDiff = numL1Blocks.toUInt64().mul(blocksPerL1Block);
 

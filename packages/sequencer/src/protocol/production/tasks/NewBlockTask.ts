@@ -23,7 +23,6 @@ import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlo
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 import { CompileRegistry } from "./CompileRegistry";
 import { DecodedStateSerializer } from "./BlockProvingTask";
-import * as net from "net";
 
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 

@@ -3,13 +3,13 @@ import { log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
 import { Closeable } from "../../../worker/queue/TaskQueue";
-import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
+import { SettlementModule } from "../../../settlement/SettlementModule";
 
-import { BlockTrigger } from "./BlockTrigger";
+import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
 export interface TimedBlockTriggerConfig {
   settlementInterval?: number;
@@ -19,7 +19,7 @@ export interface TimedBlockTriggerConfig {
 
 @injectable()
 export class TimedBlockTrigger
-  extends SequencerModule<TimedBlockTriggerConfig>
+  extends BlockTriggerBase<TimedBlockTriggerConfig>
   implements BlockTrigger, Closeable
 {
   // There is no real type for interval ids somehow, so any it is
@@ -28,15 +28,22 @@ export class TimedBlockTrigger
 
   public constructor(
     @inject("BlockProducerModule")
-    private readonly blockProducerModule: BlockProducerModule,
+    blockProducerModule: BlockProducerModule,
     @inject("UnprovenProducerModule")
-    private readonly unprovenProducerModule: UnprovenProducerModule,
+    unprovenProducerModule: UnprovenProducerModule,
     @inject("UnprovenBlockQueue")
-    private readonly unprovenBlockQueue: UnprovenBlockQueue,
+    unprovenBlockQueue: UnprovenBlockQueue,
+    @inject("SettlementModule")
+    settlementModule: SettlementModule,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
-    super();
+    super(
+      blockProducerModule,
+      unprovenProducerModule,
+      unprovenBlockQueue,
+      settlementModule
+    );
   }
 
   public async start(): Promise<void> {
@@ -64,12 +71,14 @@ export class TimedBlockTrigger
           settlementInterval !== undefined &&
           totalTime % settlementInterval === 0
         ) {
-          await this.produceBlock();
+          await this.produceProven();
         }
       } catch (error) {
         log.error(error);
       }
     }, timerInterval);
+
+    await super.start();
   }
 
   private async produceUnprovenBlock() {
@@ -79,17 +88,7 @@ export class TimedBlockTrigger
       this.mempool.getTxs().txs.length > 0 ||
       (this.config.produceEmptyBlocks ?? true)
     ) {
-      const block = await this.unprovenProducerModule.tryProduceUnprovenBlock();
-      if (block !== undefined) {
-        await this.unprovenBlockQueue.pushBlock(block);
-      }
-    }
-  }
-
-  private async produceBlock() {
-    const unprovenBlocks = await this.unprovenBlockQueue.popNewBlocks(true);
-    if (unprovenBlocks.length > 0) {
-      void this.blockProducerModule.createBlock(unprovenBlocks);
+      await this.produceUnproven(true);
     }
   }
 

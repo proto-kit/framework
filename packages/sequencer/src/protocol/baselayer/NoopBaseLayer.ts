@@ -9,6 +9,11 @@ import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
 import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { PublicKey } from "o1js";
+import {
+  OutgoingMessage,
+  OutgoingMessageQueue,
+} from "../../settlement/messages/WithdrawalQueue";
+import { Withdrawal } from "@proto-kit/protocol";
 
 class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   async getPendingMessages(
@@ -30,6 +35,20 @@ class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   }
 }
 
+class NoopOutgoingMessageQueue implements OutgoingMessageQueue {
+  length(): number {
+    return 0;
+  }
+
+  peek(num: number): OutgoingMessage<Withdrawal>[] {
+    return [];
+  }
+
+  pop(num: number): OutgoingMessage<Withdrawal>[] {
+    return [];
+  }
+}
+
 @sequencerModule()
 export class NoopBaseLayer extends SequencerModule implements BaseLayer {
   public async blockProduced(): Promise<void> {
@@ -44,6 +63,9 @@ export class NoopBaseLayer extends SequencerModule implements BaseLayer {
     return {
       IncomingMessageAdapter: {
         useClass: NoopIncomingMessageAdapter,
+      },
+      OutgoingMessageQueue: {
+        useClass: NoopOutgoingMessageQueue,
       },
     };
   }
