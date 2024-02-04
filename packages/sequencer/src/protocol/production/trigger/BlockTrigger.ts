@@ -1,12 +1,12 @@
 import { NoConfig, noop } from "@proto-kit/common";
 
 import { ComputedBlock } from "../../../storage/model/Block";
-import { UnprovenBlock } from "../unproven/TransactionExecutionService";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
+import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
 
 /**
  * A BlockTrigger is the primary method to start the production of a block and
@@ -29,7 +29,7 @@ export class BlockTriggerBase<Config = NoConfig>
   }
 
   protected async produceProven(): Promise<ComputedBlock | undefined> {
-    const blocks = await this.unprovenBlockQueue.popNewBlocks(true);
+    const blocks = await this.unprovenBlockQueue.getNewBlocks();
     if (blocks.length > 0) {
       return await this.blockProducerModule.createBlock(blocks);
     }

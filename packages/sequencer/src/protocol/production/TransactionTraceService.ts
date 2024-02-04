@@ -27,7 +27,6 @@ import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import type { TransactionTrace, BlockTrace } from "./BlockProducerModule";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
-import type { BlockTrace } from "./BlockProducerModule";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

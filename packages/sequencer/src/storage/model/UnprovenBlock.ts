@@ -1,8 +1,9 @@
 import { Bool, Field, Poseidon } from "o1js";
 import {
+  ACTIONS_EMPTY_HASH,
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
-  NetworkState,
+  NetworkState
 } from "@proto-kit/protocol";
 import { RollupMerkleTree } from "@proto-kit/common";
 
@@ -30,6 +31,9 @@ export interface UnprovenBlock {
   toEternalTransactionsHash: Field;
   fromEternalTransactionsHash: Field;
   fromBlockHashRoot: Field;
+  fromMessagesHash: Field;
+  toMessagesHash: Field;
+
   previousBlockHash: Field | undefined;
 }
 
@@ -74,6 +78,9 @@ export const UnprovenBlockWithMetadata = {
           during: NetworkState.empty(),
         },
         fromBlockHashRoot: Field(BlockHashMerkleTree.EMPTY_ROOT),
+        fromMessagesHash: Field(0),
+        toMessagesHash: ACTIONS_EMPTY_HASH,
+
         previousBlockHash: undefined,
       },
       metadata: {
