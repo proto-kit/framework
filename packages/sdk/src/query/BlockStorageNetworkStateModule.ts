@@ -44,21 +44,21 @@ export class BlockStorageNetworkStateModule
     >("BlockStorage");
   }
 
-  public async getUnprovenNetworkState(): Promise<NetworkState> {
+  public async getUnprovenNetworkState() {
     const latestBlock = await this.unprovenStorage.getLatestBlock();
-    return latestBlock?.block.networkState.during ?? NetworkState.empty();
+    return latestBlock?.block.networkState.during;
   }
 
   /**
    * Staged network state is the networkstate after the latest unproven block
    * with afterBundle() hooks executed
    */
-  public async getStagedNetworkState(): Promise<NetworkState> {
+  public async getStagedNetworkState() {
     const metadata = await this.unprovenQueue.getLatestBlock();
-    return metadata?.metadata.afterNetworkState ?? NetworkState.empty();
+    return metadata?.metadata.afterNetworkState;
   }
 
-  public async getProvenNetworkState(): Promise<NetworkState> {
+  public async getProvenNetworkState() {
     const batchHeight = await this.provenStorage.getCurrentBlockHeight();
     const batch = await this.provenStorage.getBlockAt(batchHeight - 1);
 
@@ -77,6 +77,6 @@ export class BlockStorageNetworkStateModule
       // }
     }
     // We currently do not carry networkstate data with proven blocks
-    return NetworkState.empty();
+    return undefined;
   }
 }

@@ -15,10 +15,10 @@ import {
   GraphQLList,
   GraphQLInputType,
   GraphQLOutputType,
+  ThunkObjMap,
 } from "graphql/type";
 import {
-  FromFieldClass,
-  MethodParameterDecoder,
+  MethodParameterEncoder,
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
@@ -29,7 +29,8 @@ import {
   State,
   StateMap,
 } from "@proto-kit/protocol";
-import { Field, FlexibleProvablePure } from "o1js";
+import { Field, FlexibleProvablePure, ProvableExtended } from "o1js";
+
 import {
   Query,
   QueryBuilderFactory,
@@ -37,6 +38,8 @@ import {
   QueryGetterStateMap,
   QueryTransportModule,
   NetworkStateQuery,
+  BlockStorage,
+  HistoricalBlockStorage,
   NetworkStateTransportModule,
 } from "@proto-kit/sequencer";
 import {
@@ -77,7 +80,9 @@ export class QueryGraphqlModule<
     private readonly networkStateTransportModule: NetworkStateTransportModule,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModules>,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>
+    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    @inject("BlockStorage")
+    private readonly blockStorage: BlockStorage & HistoricalBlockStorage
   ) {
     super();
   }
@@ -132,8 +137,8 @@ export class QueryGraphqlModule<
         type:
           typeof value === "object"
             ? isArray(value)
-              ? this.inputArray(value, key)
-              : this.inputJsonToGraphQl(value, key)
+              ? this.inputArray(value, name + "" + key)
+              : this.inputJsonToGraphQl(value, name + "" + key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -168,8 +173,8 @@ export class QueryGraphqlModule<
         type:
           typeof value === "object"
             ? isArray(value)
-              ? this.graphqlArray(value, key)
-              : this.jsonToGraphQl(value, key)
+              ? this.graphqlArray(value, name + "" + key)
+              : this.jsonToGraphQl(value, name + "" + key)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -190,13 +195,12 @@ export class QueryGraphqlModule<
   ): GraphQLScalarType | ObjectType {
     // This is a temporary workaround until transport-layer has been
     // switched to json
-    const valueType = type as FlexibleProvablePure<ProvableType> &
-      FromFieldClass &
-      ProvableExtension<any>;
-    const valueFieldLength = MethodParameterDecoder.fieldSize(valueType);
+    const valueType = type as ProvableExtended<unknown>;
+    const valueFieldLength = MethodParameterEncoder.fieldSize(valueType);
 
     const dummyValue = valueType.fromFields(
-      range(0, valueFieldLength).map(() => Field(0))
+      range(0, valueFieldLength).map(() => Field(0)),
+      []
     );
     const json = valueType.toJSON(dummyValue);
 
@@ -234,7 +238,7 @@ export class QueryGraphqlModule<
 
       resolve: async (source, args: { key: any }) => {
         try {
-          if(args.key === undefined){
+          if (args.key === undefined) {
             throw new Error("Specifying a key is mandatory");
           }
 
@@ -355,6 +359,7 @@ export class QueryGraphqlModule<
       runtimeQuery,
       "Runtime"
     );
+    const enableRuntime = Object.keys(runtimeFields).length > 0;
 
     const protocolQuery = QueryBuilderFactory.fromProtocol(
       this.protocol,
@@ -365,6 +370,7 @@ export class QueryGraphqlModule<
       protocolQuery,
       "Protocol"
     );
+    const enableProtocol = Object.keys(protocolFields).length > 0;
 
     const networkQuery = new NetworkStateQuery(
       this.networkStateTransportModule
@@ -375,10 +381,10 @@ export class QueryGraphqlModule<
       this.jsonToGraphQl.bind(this)
     );
 
-    const query = new GraphQLObjectType({
-      name: "Query",
-
-      fields: {
+    let fieldsDefinition: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
+    if (enableRuntime) {
+      fieldsDefinition = {
+        ...fieldsDefinition,
         runtime: {
           type: new GraphQLObjectType({
             name: "Runtime",
@@ -387,7 +393,11 @@ export class QueryGraphqlModule<
 
           resolve: () => true,
         },
-
+      };
+    }
+    if (enableProtocol) {
+      fieldsDefinition = {
+        ...fieldsDefinition,
         protocol: {
           type: new GraphQLObjectType({
             name: "Protocol",
@@ -396,6 +406,14 @@ export class QueryGraphqlModule<
 
           resolve: () => true,
         },
+      };
+    }
+
+    const query = new GraphQLObjectType({
+      name: "Query",
+
+      fields: {
+        ...fieldsDefinition,
 
         network: {
           type: new GraphQLObjectType({

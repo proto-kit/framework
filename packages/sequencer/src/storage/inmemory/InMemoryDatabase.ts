@@ -15,6 +15,8 @@ import {
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
 import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
+import { InMemoryMessageStorage } from "./InMemoryMessageStorage";
+import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
 import { InMemoryStateService } from "@proto-kit/module";
 
 @sequencerModule()
@@ -48,8 +50,14 @@ export class InMemoryDatabase
         useClass: InMemoryAsyncMerkleTreeStore,
       },
       blockTreeStore: {
-        useClass: InMemoryAsyncMerkleTreeStore
-      }
+        useClass: InMemoryAsyncMerkleTreeStore,
+      },
+      messageStorage: {
+        useClass: InMemoryMessageStorage,
+      },
+      settlementStorage: {
+        useClass: InMemorySettlementStorage,
+      },
     };
   }
 

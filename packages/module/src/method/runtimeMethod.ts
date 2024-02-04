@@ -1,4 +1,12 @@
-import { Field, FlexibleProvable, Poseidon } from "o1js";
+/* eslint-disable max-statements */
+import {
+  Bool,
+  Field,
+  FlexibleProvable,
+  Poseidon,
+  Proof,
+  ProvableExtended,
+} from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -6,16 +14,22 @@ import {
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
+  SignedTransaction,
 } from "@proto-kit/protocol";
 import {
   DecoratedMethod,
   toProver,
   ZkProgrammable,
   ToFieldable,
+  ToFieldableStatic,
+  ProofTypes,
+  ArgumentTypes,
+  TypedClass,
+  O1JSPrimitive,
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
-import { MethodIdResolver } from "../runtime/MethodIdResolver";
+import { MethodParameterEncoder } from "./MethodParameterEncoder";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -53,13 +67,16 @@ export function toStateTransitionsHash(
 }
 
 // eslint-disable-next-line etc/prefer-interface
-export type WrappedMethod = (...args: unknown[]) => MethodPublicOutput;
+export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
 
 export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
-  moduleMethod: (...args: unknown[]) => unknown,
-  methodArguments: ToFieldable[]
+  moduleMethod: (...args: ArgumentTypes) => unknown,
+  methodArguments: ArgumentTypes,
+  options: {
+    invocationType: RuntimeMethodInvocationType;
+  }
 ) {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
     RuntimeMethodExecutionContext
@@ -87,31 +104,25 @@ export function toWrappedMethod(
       throw errors.runtimeNotProvided(name);
     }
 
-    // Assert that the given transaction has the correct methodId
+    const { transaction, networkState } = executionContext.witnessInput();
     const { methodIdResolver } = runtime;
+
+    // Assert that the given transaction has the correct methodId
     const thisMethodId = Field(methodIdResolver.getMethodId(name, methodName));
     if (!thisMethodId.isConstant()) {
       throw errors.fieldNotConstant("methodId");
     }
 
-    input.transaction.methodId.assertEquals(
+    transaction.methodId.assertEquals(
       thisMethodId,
       "Runtimemethod called with wrong methodId on the transaction object"
-    );
-
-    const paramTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
-      "design:paramtypes",
-      this,
-      methodName
     );
 
     /**
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((arg, index) =>
-      paramTypes[index].toFields(arg as any)
-    );
+    const { argsFields } = MethodParameterEncoder.fromMethod(this, methodName).encode(args);
 
     // Assert that the argsHash that has been signed matches the given arguments
     // We can use js-if here, because methodArguments is statically sizes
@@ -120,19 +131,23 @@ export function toWrappedMethod(
     const argsHash =
       methodArguments.length > 0 ? Poseidon.hash(argsFields) : Field(0);
 
-    input.transaction.argsHash.assertEquals(
+    transaction.argsHash.assertEquals(
       argsHash,
       "argsHash and therefore arguments of transaction and runtime call does not match"
     );
 
-    const transactionHash = input.transaction.hash();
-    const networkStateHash = input.networkState.hash();
+    const isMessage = Bool(options.invocationType === "INCOMING_MESSAGE");
+    transaction.assertTransactionType(Bool(isMessage));
+
+    const transactionHash = transaction.hash();
+    const networkStateHash = networkState.hash();
 
     return new MethodPublicOutput({
       stateTransitionsHash,
       status,
       transactionHash,
       networkStateHash,
+      isMessage,
     });
   };
 
@@ -153,6 +168,7 @@ export function combineMethodName(
 
 export const runtimeMethodMetadataKey = "yab-method";
 export const runtimeMethodNamesMetadataKey = "proto-kit-runtime-methods";
+export const runtimeMethodTypeMetadataKey = "proto-kit-runtime-method-type";
 
 /**
  * Checks the metadata of the provided runtime module and its method,
@@ -171,7 +187,9 @@ export function isRuntimeMethod(
   );
 }
 
-export function runtimeMethod() {
+export type RuntimeMethodInvocationType = "SIGNATURE" | "INCOMING_MESSAGE";
+
+function runtimeMethodInternal(options: { invocationType: RuntimeMethodInvocationType }) {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
@@ -195,12 +213,19 @@ export function runtimeMethod() {
 
     Reflect.defineMetadata(runtimeMethodMetadataKey, true, target, methodName);
 
+    Reflect.defineMetadata(
+      runtimeMethodTypeMetadataKey,
+      options.invocationType,
+      target,
+      methodName
+    );
+
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const simulatedMethod = descriptor.value as DecoratedMethod;
 
     descriptor.value = function value(
       this: RuntimeModule<unknown>,
-      ...args: ToFieldable[]
+      ...args: ArgumentTypes
     ) {
       const constructorName = this.constructor.name;
 
@@ -215,6 +240,7 @@ export function runtimeMethod() {
         methodName,
         simulatedMethod,
         args,
+        options,
       ]);
 
       /**
@@ -263,4 +289,16 @@ export function runtimeMethod() {
       return result;
     };
   };
+}
+
+export function runtimeMessage() {
+  return runtimeMethodInternal({
+    invocationType: "INCOMING_MESSAGE",
+  });
+}
+
+export function runtimeMethod() {
+  return runtimeMethodInternal({
+    invocationType: "SIGNATURE",
+  });
 }

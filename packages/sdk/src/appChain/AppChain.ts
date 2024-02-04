@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
   ModuleContainer,
@@ -10,6 +11,7 @@ import {
   RuntimeModule,
   RuntimeModulesRecord,
   MethodIdResolver,
+  MethodParameterEncoder,
 } from "@proto-kit/module";
 import {
   NetworkStateQuery,
@@ -29,10 +31,12 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
+  AccountStateModule,
   StateServiceProvider,
+  ProtocolCustomModulesRecord,
 } from "@proto-kit/protocol";
+import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
-import { Field, FlexibleProvable, PublicKey, UInt64 } from "o1js";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { Signer } from "../transaction/InMemorySigner";
@@ -164,8 +168,8 @@ export class AppChain<
     > = {
       modules: {
         Runtime: definition.runtime,
-        Sequencer: definition.sequencer,
         Protocol: definition.protocol,
+        Sequencer: definition.sequencer,
         ...definition.modules,
       },
 
@@ -205,12 +209,12 @@ export class AppChain<
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
-        this.resolveOrFail("Runtime", Runtime<RuntimeModules>),
+        this.runtime,
         queryTransportModule
       ),
 
       protocol: QueryBuilderFactory.fromProtocol(
-        this.resolveOrFail("Protocol", Protocol<ProtocolModules>),
+        this.protocol,
         queryTransportModule
       ),
 
@@ -230,30 +234,12 @@ export class AppChain<
     return this.resolve("Protocol");
   }
 
-  public configureAll(
-    config: AppChainConfig<
-      RuntimeModules,
-      ProtocolModules,
-      SequencerModules,
-      AppChainModules
-    >
-  ): void {
-    this.runtime.configure(config.runtime);
-    this.sequencer.configure(config.sequencer);
-    this.protocol.configure(config.protocol);
-    this.configure({
-      Runtime: {},
-      Sequencer: {},
-      Protocol: {},
-      ...config.appChain,
-    } as Parameters<typeof this.configure>[0]);
-  }
-
-  public transaction(
+  // eslint-disable-next-line max-statements, sonarjs/cognitive-complexity
+  public async transaction(
     sender: PublicKey,
     callback: () => void,
     options?: { nonce?: number }
-  ): AppChainTransaction {
+  ): Promise<AppChainTransaction> {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -268,6 +254,9 @@ export class AppChain<
       networkState: {
         block: {
           height: UInt64.from(0),
+        },
+        previous: {
+          rootHash: Field(0),
         },
       } as unknown as NetworkState,
     });
@@ -291,22 +280,28 @@ export class AppChain<
     }
 
     // forgive me, i'll fix this type issue soon
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const runtimeModule = this.runtime.resolve(moduleName as any);
 
-    // find types of args for the runtime method thats being called
-    const parameterTypes: FlexibleProvable<unknown>[] = Reflect.getMetadata(
-      "design:paramtypes",
+    const encoder = MethodParameterEncoder.fromMethod(
       runtimeModule,
       methodName
     );
 
-    /**
-     * Use the type info obtained previously to convert
-     * the args passed to fields
-     */
-    const argsFields = args.flatMap((argument, index) =>
-      parameterTypes[index].toFields(argument)
-    );
+    const { argsJSON, argsFields } = encoder.encode(args);
+
+    const retrieveNonce = async (publicKey: PublicKey) => {
+      const query = this.query.protocol as Query<
+        ProtocolModule<unknown>,
+        ProtocolCustomModulesRecord
+      >;
+      const accountState = await query.AccountState.accountState.get(publicKey);
+      return accountState?.nonce;
+    };
+
+    const nonce = options?.nonce
+      ? UInt64.from(options.nonce)
+      : (await retrieveNonce(sender)) ?? UInt64.from(0);
 
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
@@ -315,9 +310,11 @@ export class AppChain<
           .getMethodId(moduleName, methodName)
       ),
 
-      args: argsFields,
-      nonce: UInt64.from(options?.nonce ?? 0),
+      argsFields,
+      argsJSON,
+      nonce,
       sender,
+      isMessage: false
     });
 
     const signer = this.container.resolve<Signer>("Signer");
@@ -355,6 +352,9 @@ export class AppChain<
     // this.registerValue({
     //   StateTransitionWitnessProviderReference: reference,
     // });
+
+    // console.log("creating sequencer");
+    // this.sequencer.create(() => this.container);
 
     // this.runtime.start();
     await this.sequencer.start();

@@ -3,8 +3,7 @@ import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
   DefaultProvableHashList,
-  NetworkState,
-  BlockHashMerkleTreeWitness,
+  MinaPrefixedProvableHashList,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { log, noop, RollupMerkleTree } from "@proto-kit/common";
@@ -113,8 +112,10 @@ export class BlockProducerModule extends SequencerModule {
     const blockMetadata = await this.tryProduceBlock(unprovenBlocks);
 
     if (blockMetadata !== undefined) {
-      log.debug(
-        `Batch produced (${blockMetadata.block.bundles.length} bundles)`
+      log.info(
+        `Batch produced (${blockMetadata.block.bundles.length} bundles, ${
+          blockMetadata.block.bundles.flat(1).length
+        } txs)`
       );
       // Apply state changes to current StateService
       await this.applyStateChanges(
@@ -232,6 +233,11 @@ export class BlockProducerModule extends SequencerModule {
       Field,
       bundles[0].block.block.fromEternalTransactionsHash
     );
+    const messageTracker = new MinaPrefixedProvableHashList(
+      Field,
+      "MinaZkappSeqEvents**",
+      bundles[0].block.block.fromMessagesHash
+    );
 
     for (const bundleWithMetadata of bundles) {
       const block = bundleWithMetadata.block.block;
@@ -248,7 +254,8 @@ export class BlockProducerModule extends SequencerModule {
           stateServices,
           block.networkState.during,
           bundleTracker,
-          eternalBundleTracker
+          eternalBundleTracker,
+          messageTracker
         );
 
         transactionTraces.push(result);
@@ -259,7 +266,10 @@ export class BlockProducerModule extends SequencerModule {
         transactionTraces,
         stateServices,
         this.blockTreeStore,
-        Field(bundleWithMetadata.lastBlockMetadata?.stateRoot ?? RollupMerkleTree.EMPTY_ROOT),
+        Field(
+          bundleWithMetadata.lastBlockMetadata?.stateRoot ??
+            RollupMerkleTree.EMPTY_ROOT
+        ),
         bundleWithMetadata.block
       );
       blockTraces.push(blockTrace);

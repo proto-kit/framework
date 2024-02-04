@@ -5,7 +5,7 @@ import {
 } from "tsyringe";
 
 import { TypedClass } from "../types";
-import { BaseModuleInstanceType } from "../config/ModuleContainer";
+import type { BaseModuleInstanceType } from "../config/ModuleContainer";
 
 export type DependencyDeclaration<Dependency> =
   | ClassProvider<Dependency>

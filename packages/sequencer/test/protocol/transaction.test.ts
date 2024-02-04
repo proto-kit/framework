@@ -11,14 +11,16 @@ describe("tx objects hash equality", () => {
 
     const data = {
       methodId: Field(1234),
-      args: [Field(1), Field(6676)],
+      argsFields: [Field(1), Field(6676)],
+      argsJSON: [],
+      isMessage: false,
       sender: PublicKey.empty(),
       nonce: UInt64.from(100),
     };
 
     const tx1 = new UnsignedTransaction({ ...data });
 
-    const tx2 = new RuntimeTransaction({ ...data, argsHash: tx1.argsHash() });
+    const tx2 = tx1.toRuntimeTransaction();
 
     expect(tx1.hash()).toStrictEqual(tx2.hash());
   });

@@ -1,52 +1,55 @@
 import { inject, injectable } from "tsyringe";
-import { noop } from "@proto-kit/common";
 
-import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
+import { sequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { ComputedBlock } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import { SettlementModule } from "../../../settlement/SettlementModule";
 
-import { BlockTrigger } from "./BlockTrigger";
+import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
-@injectable()
+@sequencerModule()
 export class ManualBlockTrigger
-  extends SequencerModule
+  extends BlockTriggerBase
   implements BlockTrigger
 {
   public constructor(
     @inject("BlockProducerModule")
-    private readonly blockProducerModule: BlockProducerModule,
+    blockProducerModule: BlockProducerModule,
     @inject("UnprovenProducerModule")
-    private readonly unprovenProducerModule: UnprovenProducerModule,
+    unprovenProducerModule: UnprovenProducerModule,
     @inject("UnprovenBlockQueue")
-    private readonly unprovenBlockQueue: UnprovenBlockQueue
+    unprovenBlockQueue: UnprovenBlockQueue,
+    @inject("SettlementModule")
+    settlementModule: SettlementModule
   ) {
-    super();
+    super(
+      blockProducerModule,
+      unprovenProducerModule,
+      unprovenBlockQueue,
+      settlementModule
+    );
   }
 
   /**
    * Produces both an unproven block and immediately produce a
    * settlement block proof
    */
-  public async produceBlock(): Promise<[UnprovenBlock | undefined, ComputedBlock | undefined]> {
+  public async produceBlock(): Promise<
+    [UnprovenBlock | undefined, ComputedBlock | undefined]
+  > {
     return [await this.produceUnproven(), await this.produceProven()];
   }
 
   public async produceProven(): Promise<ComputedBlock | undefined> {
-    const blocks = await this.unprovenBlockQueue.getNewBlocks();
-    if (blocks.length > 0) {
-      return await this.blockProducerModule.createBlock(blocks);
-    }
-    return undefined;
+    return await super.produceProven();
   }
 
-  public async produceUnproven(): Promise<UnprovenBlock | undefined> {
-    return await this.unprovenProducerModule.tryProduceUnprovenBlock();
-  }
-
-  public async start(): Promise<void> {
-    noop();
+  public async produceUnproven(
+    enqueueInSettlementQueue: boolean = true
+  ): Promise<UnprovenBlock | undefined> {
+    return await super.produceUnproven(enqueueInSettlementQueue);
   }
 }

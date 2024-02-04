@@ -2,7 +2,10 @@
 /* eslint-disable guard-for-in */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable putout/putout */
-import { StringKeyOf, TypedClass } from "@proto-kit/common";
+import {
+  TypedClass,
+  RollupMerkleTreeWitness,
+} from "@proto-kit/common";
 import {
   Runtime,
   RuntimeModule,
@@ -15,6 +18,7 @@ import {
   State,
   StateMap,
 } from "@proto-kit/protocol";
+
 import { QueryTransportModule } from "./QueryTransportModule";
 
 export type PickByType<Type, Value> = {
@@ -25,10 +29,14 @@ export type PickByType<Type, Value> = {
 
 export interface QueryGetterState<Value> {
   get: () => Promise<Value | undefined>;
+  path: () => string;
+  merkleWitness: () => Promise<RollupMerkleTreeWitness | undefined>;
 }
 
 export interface QueryGetterStateMap<Key, Value> {
   get: (key: Key) => Promise<Value | undefined>;
+  path: (key: Key) => string;
+  merkleWitness: (key: Key) => Promise<RollupMerkleTreeWitness | undefined>;
 }
 
 export type PickStateProperties<Type> = PickByType<Type, State<any>>;
@@ -60,9 +68,9 @@ export type ModuleQuery<Module> = {
 
 export type Query<
   ModuleType,
-  RuntimeModules extends Record<string, TypedClass<ModuleType>>
+  ModuleRecord extends Record<string, TypedClass<ModuleType>>
 > = {
-  [Key in keyof RuntimeModules]: ModuleQuery<InstanceType<RuntimeModules[Key]>>;
+  [Key in keyof ModuleRecord]: ModuleQuery<InstanceType<ModuleRecord[Key]>>;
 };
 
 function isStringKeyOf(key: string | number | symbol): key is string {
@@ -89,6 +97,13 @@ export const QueryBuilderFactory = {
               const fields = await queryTransportModule.get(path);
               return fields ? property.valueType.fromFields(fields) : undefined;
             },
+
+            path: (key: any) => property.getPath(key),
+
+            merkleWitness: async (key: any) => {
+              const path = property.getPath(key);
+              return await queryTransportModule.merkleWitness(path);
+            },
           },
         };
       }
@@ -105,6 +120,15 @@ export const QueryBuilderFactory = {
               const fields = await queryTransportModule.get(path);
 
               return fields ? property.valueType.fromFields(fields) : undefined;
+            },
+
+            path: () => property.path,
+
+            merkleWitness: async () => {
+              // eslint-disable-next-line max-len
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const path = property.path!;
+              return await queryTransportModule.merkleWitness(path);
             },
           },
         };

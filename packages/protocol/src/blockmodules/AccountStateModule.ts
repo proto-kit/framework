@@ -1,4 +1,4 @@
-import { PublicKey, Struct, UInt64 } from "o1js";
+import { Provable, PublicKey, Struct, UInt64 } from "o1js";
 
 import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { StateMap } from "../state/StateMap";
@@ -17,17 +17,28 @@ export class AccountStateModule extends ProvableTransactionHook {
   );
 
   public onTransaction({ transaction }: BlockProverExecutionData): void {
+    const sender = transaction.sender.value;
+
     const accountState = this.accountState
-      .get(transaction.sender)
+      .get(sender)
       .orElse(new AccountState({ nonce: UInt64.zero }));
 
     const currentNonce = accountState.nonce;
 
-    assert(currentNonce.equals(transaction.nonce), "Nonce not matching");
-
-    this.accountState.set(
-      transaction.sender,
-      new AccountState({ nonce: currentNonce.add(1) })
+    // Either the nonce matches or the tx is a message, in which case we don't care
+    assert(
+      currentNonce
+        .equals(transaction.nonce.value)
+        .or(transaction.sender.isSome.not()),
+      "Nonce not matching"
     );
+
+    // Optimized version of transaction.sender.isSome ? currentNonce.add(1) : Field(0)
+    // Bcs Bool(true).toField() == 1
+    const newNonce = UInt64.from(
+      currentNonce.value.add(1).mul(transaction.sender.isSome.toField())
+    );
+
+    this.accountState.set(sender, new AccountState({ nonce: newNonce }));
   }
 }

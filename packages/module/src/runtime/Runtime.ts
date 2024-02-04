@@ -223,7 +223,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
 
-     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
   }
 
   public get appChain(): AreProofsEnabled | undefined {

@@ -1,9 +1,10 @@
 import "reflect-metadata";
-import { UInt112 } from "@proto-kit/common";
 import { container } from "tsyringe";
 import { RuntimeMethodExecutionContext } from "@proto-kit/protocol";
 import { beforeEach } from "@jest/globals";
 import bigintsqrt from "bigint-isqrt";
+import { UInt112, UInt64 } from "../../src";
+import { Provable } from "o1js";
 
 describe("uint112", () => {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
@@ -71,4 +72,17 @@ describe("uint112", () => {
       expect(rest.toBigInt()).toBe(input - bigintsqrt(input) ** 2n);
     }
   );
+
+  it("should compile witness", () => {
+    expect.assertions(4);
+
+    const uint = Provable.witness(UInt64, () => UInt64.from(5));
+
+    const fields = UInt64.toFields(uint)
+
+    expect(uint.NUM_BITS).toBe(64);
+    expect(uint.value.toBigInt()).toBe(5n);
+    expect(fields.length).toBe(1);
+    expect(fields[0].toBigInt()).toBe(5n);
+  })
 });

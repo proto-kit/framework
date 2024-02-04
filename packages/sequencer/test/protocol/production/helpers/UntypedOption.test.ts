@@ -1,25 +1,27 @@
-import { Bool, Field, Poseidon } from "o1js";
-import {
-  Option,
-  ProvableStateTransition,
-  StateTransition,
-} from "@proto-kit/protocol";
-import { UntypedOption, UntypedStateTransition } from "../../../../src";
+import { Bool, Field } from "o1js";
+import { Option } from "@proto-kit/protocol";
 
-describe("Option", () => {
+import { UntypedOption } from "../../../../src";
+
+describe("option <-> untypedoption", () => {
+  function forceSome<T>(option: Option<T>): Option<T> {
+    option.isForcedSome = Bool(true);
+    return option;
+  }
+
   it.each([
-    [Option.from(Bool(true), Field(5), Bool(false), Field)],
-    [Option.from(Bool(true), Field(0), Bool(false), Field)],
-    [Option.from(Bool(true), Field(0), Bool(true), Field)],
-    [Option.from(Bool(false), Field(1), Bool(false), Field)],
+    [Option.from(Bool(true), Field(5), Field)],
+    [Option.from(Bool(true), Field(0), Field)],
+    [forceSome(Option.from(Bool(true), Field(0), Field))],
+    [Option.from(Bool(false), Field(1), Field)],
   ])("should map to untyped correctly", (option) => {
     expect.assertions(4);
 
     const untyped = UntypedOption.fromOption(option);
 
     expect(untyped.isSome.toBoolean()).toStrictEqual(option.isSome.toBoolean());
-    expect(untyped.enforceEmpty.toBoolean()).toStrictEqual(
-      option.enforceEmpty.toBoolean()
+    expect(untyped.isForcedSome.toBoolean()).toStrictEqual(
+      option.isForcedSome.toBoolean()
     );
     expect(untyped.value).toStrictEqual(
       option.valueType.toFields(option.value)

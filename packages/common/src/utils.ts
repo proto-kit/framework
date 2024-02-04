@@ -1,4 +1,4 @@
-import { Field, FlexibleProvablePure } from "o1js";
+import { Field, FlexibleProvablePure, Poseidon } from "o1js";
 
 export function requireTrue(
   condition: boolean,
@@ -45,6 +45,19 @@ export interface ToFieldable {
   toFields: () => Field[];
 }
 
+export interface ToFieldableStatic {
+  toFields: (value: unknown) => Field[];
+}
+
+export interface ToJSONableStatic {
+  toJSON: (value: unknown) => any;
+}
+
+export interface ProofTypes {
+  publicOutputType?: ToFieldableStatic;
+  publicInputType?: ToFieldableStatic;
+}
+
 export async function sleep(ms: number) {
   // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,5 +70,22 @@ export function filterNonNull<Type>(value: Type | null): value is Type {
 export function filterNonUndefined<Type>(
   value: Type | undefined
 ): value is Type {
-  return value !== null;
+  return value !== undefined;
+}
+
+let encoder = new TextEncoder();
+
+// Copied from o1js binable.ts:317
+export function prefixToField(prefix: string): Field {
+  let fieldSize = Field.sizeInBytes();
+  if (prefix.length >= fieldSize) throw Error("prefix too long");
+  let stringBytes = [...encoder.encode(prefix)];
+  return Field.fromBytes(
+    stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0))
+  );
+}
+
+export function hashWithPrefix(prefix: string, input: Field[]) {
+  const salt = Poseidon.update([Field(0), Field(0), Field(0)], [prefixToField(prefix)])
+  return Poseidon.update(salt as [Field, Field, Field], input)[0]
 }

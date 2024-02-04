@@ -27,6 +27,7 @@ import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import type { TransactionTrace, BlockTrace } from "./BlockProducerModule";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
+import type { BlockTrace } from "./BlockProducerModule";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -122,6 +123,7 @@ export class TransactionTraceService {
       stateRoot: beforeBlockStateRoot,
       blockHashRoot: block.block.fromBlockHashRoot,
       eternalTransactionsHash: block.block.fromEternalTransactionsHash,
+      incomingMessagesHash: block.block.fromMessagesHash,
     });
 
     // const treeIndex = block.block.height.toBigInt();
@@ -169,7 +171,8 @@ export class TransactionTraceService {
     },
     networkState: NetworkState,
     bundleTracker: ProvableHashList<Field>,
-    eternalBundleTracker: ProvableHashList<Field>
+    eternalBundleTracker: ProvableHashList<Field>,
+    messageTracker: ProvableHashList<Field>
   ): Promise<TransactionTrace> {
     const { stateTransitions, protocolTransitions, status, tx } =
       executionResult;
@@ -201,8 +204,16 @@ export class TransactionTraceService {
 
     const transactionsHash = bundleTracker.commitment;
     const eternalTransactionsHash = eternalBundleTracker.commitment;
-    bundleTracker.push(tx.hash());
-    eternalBundleTracker.push(tx.hash());
+    const incomingMessagesHash = messageTracker.commitment;
+
+    if (tx.isMessage) {
+      messageTracker.push(tx.hash());
+    } else {
+      bundleTracker.push(tx.hash());
+      eternalBundleTracker.push(tx.hash());
+    }
+
+    const signedTransaction = tx.toProtocolTransaction();
 
     return {
       runtimeProver: {
@@ -218,13 +229,15 @@ export class TransactionTraceService {
           stateRoot: fromStateRoot,
           transactionsHash,
           eternalTransactionsHash,
+          incomingMessagesHash,
           networkStateHash: networkState.hash(),
           blockHashRoot: Field(0),
         },
 
         executionData: {
           networkState,
-          transaction: tx.toProtocolTransaction(),
+          transaction: signedTransaction.transaction,
+          signature: signedTransaction.signature,
         },
 
         startingState: protocolStartingState,

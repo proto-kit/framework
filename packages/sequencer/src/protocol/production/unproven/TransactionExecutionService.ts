@@ -17,11 +17,18 @@ import {
   BlockHashMerkleTree,
   StateServiceProvider,
   BlockHashTreeEntry,
+  ACTIONS_EMPTY_HASH,
+  MinaActions,
+  MinaActionsHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
-import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
 import {
-  MethodParameterDecoder,
+  AreProofsEnabled,
+  log,
+  RollupMerkleTree,
+} from "@proto-kit/common";
+import {
+  MethodParameterEncoder,
   Runtime,
   RuntimeModule,
   RuntimeModulesRecord,
@@ -116,11 +123,11 @@ export class TransactionExecutionService {
     const [moduleName, methodName] = methodDescriptors;
     const module: RuntimeModule<unknown> = this.runtime.resolve(moduleName);
 
-    const parameterDecoder = MethodParameterDecoder.fromMethod(
+    const parameterDecoder = MethodParameterEncoder.fromMethod(
       module,
       methodName
     );
-    const args = parameterDecoder.fromFields(tx.args);
+    const args = parameterDecoder.decode(tx.argsJSON);
 
     return {
       method,
@@ -210,6 +217,10 @@ export class TransactionExecutionService {
       Field(lastBlock.toEternalTransactionsHash)
     );
 
+    const incomingMessagesList = new MinaActionsHashList(
+      Field(lastBlock.toMessagesHash)
+    );
+
     // Get used networkState by executing beforeBlock() hooks
     const networkState = this.blockHooks.reduce<NetworkState>(
       (reduceNetworkState, hook) =>
@@ -219,6 +230,7 @@ export class TransactionExecutionService {
           stateRoot: Field(lastMetadata.stateRoot),
           transactionsHash: Field(0),
           networkStateHash: lastMetadata.afterNetworkState.hash(),
+          incomingMessagesHash: lastBlock.toMessagesHash,
         }),
       lastMetadata.afterNetworkState
     );
@@ -235,8 +247,16 @@ export class TransactionExecutionService {
 
         // Push result to results and transaction onto bundle-hash
         executionResults.push(executionTrace);
-        transactionsHashList.push(tx.hash());
-        eternalTransactionsHashList.push(tx.hash());
+        if (!tx.isMessage) {
+          transactionsHashList.push(tx.hash());
+          eternalTransactionsHashList.push(tx.hash());
+        } else {
+          const actionHash = MinaActions.actionHash(
+            tx.toRuntimeTransaction().hashData()
+          );
+
+          incomingMessagesList.push(actionHash);
+        }
       } catch (error) {
         if (error instanceof Error) {
           log.info("Error in inclusion of tx, skipping", error);
@@ -261,6 +281,8 @@ export class TransactionExecutionService {
       toEternalTransactionsHash: eternalTransactionsHashList.commitment,
       height: lastBlock.height.add(1),
       fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
+      fromMessagesHash: lastBlock.toMessagesHash,
+      toMessagesHash: incomingMessagesList.commitment,
       previousBlockHash,
 
       networkState: {
@@ -328,12 +350,13 @@ export class TransactionExecutionService {
       networkStateHash: block.networkState.during.hash(),
       eternalTransactionsHash: block.toEternalTransactionsHash,
       blockHashRoot: fromBlockHashRoot,
+      incomingMessagesHash: block.toMessagesHash,
     };
 
     this.executionContext.clear();
     this.executionContext.setup({
       networkState: block.networkState.during,
-      transaction: RuntimeTransaction.dummy(),
+      transaction: RuntimeTransaction.dummyTransaction(),
     });
 
     const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
@@ -448,16 +471,15 @@ export class TransactionExecutionService {
     const previousProofsEnabled = appChain.areProofsEnabled;
     appChain.setProofsEnabled(false);
 
+    const signedTransaction = tx.toProtocolTransaction();
     const blockContextInputs: BlockProverExecutionData = {
-      transaction: tx.toProtocolTransaction(),
       networkState,
+      transaction: signedTransaction.transaction,
+      signature: signedTransaction.signature,
     };
     const runtimeContextInputs = {
-      networkState,
-
-      transaction: RuntimeTransaction.fromProtocolTransaction(
-        blockContextInputs.transaction
-      ),
+      transaction: blockContextInputs.transaction,
+      networkState: blockContextInputs.networkState,
     };
 
     const { runtimeKeys, protocolKeys } = await this.extractAccessedKeys(
