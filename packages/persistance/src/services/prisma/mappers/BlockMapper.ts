@@ -26,6 +26,8 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
       fromEternalTransactionsHash: Field(input.fromEternalTransactionsHash),
       toEternalTransactionsHash: Field(input.toEternalTransactionsHash),
       fromBlockHashRoot: Field(input.fromBlockHashRoot),
+      fromMessagesHash: Field(input.fromMessagesHash),
+      toMessagesHash: Field(input.toMessagesHash),
 
       transactionsHash: Field(input.transactionsHash),
       previousBlockHash:
@@ -43,6 +45,8 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
       fromEternalTransactionsHash: input.fromEternalTransactionsHash.toString(),
       toEternalTransactionsHash: input.toEternalTransactionsHash.toString(),
       fromBlockHashRoot: input.fromBlockHashRoot.toString(),
+      fromMessagesHash: input.fromMessagesHash.toString(),
+      toMessagesHash: input.toMessagesHash.toString(),
 
       hash: input.hash.toString(),
       transactionsHash: input.transactionsHash.toString(),

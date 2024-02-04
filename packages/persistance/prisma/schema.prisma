@@ -32,9 +32,12 @@ model Transaction {
   methodId String
   sender String
   nonce String
-  args String[]
+  argsFields String[]
+  argsJSON String[]
   signature_r String
   signature_s String
+
+  isMessage Boolean
 
   executionResult TransactionExecutionResult?
 }
@@ -62,6 +65,8 @@ model Block {
   fromEternalTransactionsHash String
   toEternalTransactionsHash String
   fromBlockHashRoot String
+  fromMessagesHash String
+  toMessagesHash String
 
   parentHash String? @unique
   parent Block? @relation("Parent", fields: [parentHash], references: [hash])

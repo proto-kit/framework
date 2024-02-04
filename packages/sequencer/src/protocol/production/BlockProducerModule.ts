@@ -31,6 +31,7 @@ import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
 import { NewBlockProverParameters } from "./tasks/NewBlockTask";
+import { BlockProofSerializer } from "./helpers/BlockProofSerializer";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
@@ -86,7 +87,8 @@ export class BlockProducerModule extends SequencerModule {
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly traceService: TransactionTraceService,
-    private readonly blockFlowService: BlockTaskFlowService
+    private readonly blockFlowService: BlockTaskFlowService,
+    private readonly blockProofSerializer: BlockProofSerializer
   ) {
     super();
   }
@@ -184,12 +186,13 @@ export class BlockProducerModule extends SequencerModule {
       bundle.block.block.transactionsHash.toString()
     );
 
+    const jsonProof = this.blockProofSerializer
+      .getBlockProofSerializer()
+      .toJSONProof(block.proof);
+
     return {
       block: {
-        proof:
-          block.proof.proof === "mock-proof"
-            ? { proof: "mock-proof" }
-            : block.proof.toJSON(),
+        proof: jsonProof,
         bundles: computedBundles,
       },
 

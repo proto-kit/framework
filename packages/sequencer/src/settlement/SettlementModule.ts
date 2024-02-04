@@ -53,6 +53,7 @@ import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
+import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
@@ -93,7 +94,8 @@ export class SettlementModule
     @inject("OutgoingMessageQueue")
     private readonly outgoingMessageQueue: OutgoingMessageQueue,
     @inject("AsyncMerkleStore")
-    private readonly merkleTreeStore: AsyncMerkleTreeStore
+    private readonly merkleTreeStore: AsyncMerkleTreeStore,
+    private readonly blockProofSerializer: BlockProofSerializer
   ) {
     super();
   }
@@ -276,6 +278,10 @@ export class SettlementModule
       actions.messages
     );
 
+    const blockProof = this.blockProofSerializer
+      .getBlockProofSerializer()
+      .fromJSONProof(batch.proof);
+
     const tx = await Mina.transaction(
       {
         sender: feepayer.toPublicKey(),
@@ -285,7 +291,7 @@ export class SettlementModule
       },
       () => {
         contract.settle(
-          batch.proof,
+          blockProof,
           signature,
           feepayer.toPublicKey(),
           networkStateFrom,

@@ -25,7 +25,9 @@ export class TransactionMapper
       methodId: json.methodId,
       nonce: json.nonce,
       sender: json.sender,
-      args: json.args,
+      argsFields: json.argsFields,
+      argsJSON: json.argsJSON,
+      isMessage: json.isMessage,
       signature_r: json.signature.r,
       signature_s: json.signature.s,
       hash: input.hash().toString()

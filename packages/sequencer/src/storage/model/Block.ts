@@ -9,6 +9,7 @@ export interface ComputedBlockTransaction {
 }
 
 export interface ComputedBlock {
-  proof: JsonProof | { proof: "mock-proof" };
+  proof: JsonProof;
   bundles: string[];
+  // TODO Height
 }
