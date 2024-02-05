@@ -1,8 +1,9 @@
 import { ProtocolModule } from "./ProtocolModule";
 
 /**
- * A Protocolmodule that enables it's implementing module to access to
- * StateTransitions and state
+ * TransitioningProtocolModule is a base interface that allows inheriting
+ * classes to use State and StateMap since it requires the implementation
+ * of a `name: string` property, which those classes need to function.
  */
 export abstract class TransitioningProtocolModule<
   Config

@@ -70,7 +70,9 @@ const errors = {
 
 // Should be equal to BlockProver.PublicInput
 export interface BlockProverState {
-  // The current state root of the block prover
+  /**
+   * The current state root of the block prover
+   */
   stateRoot: Field;
 
   /**
@@ -85,8 +87,17 @@ export interface BlockProverState {
    */
   networkStateHash: Field;
 
+  /**
+   * The root of the merkle tree encoding all block hashes,
+   * see `BlockHashMerkleTree`
+   */
   blockHashRoot: Field;
 
+  /**
+   * A variant of the transactionsHash that is never reset.
+   * Thought for usage in the sequence state mempool.
+   * In comparison, transactionsHash restarts at 0 for every new block
+   */
   eternalTransactionsHash: Field;
 
   incomingMessagesHash: Field;

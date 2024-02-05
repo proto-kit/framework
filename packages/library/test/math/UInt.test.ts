@@ -1,10 +1,10 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { RuntimeMethodExecutionContext } from "@proto-kit/protocol";
+import { RuntimeMethodExecutionContext, State } from "@proto-kit/protocol";
 import { beforeEach } from "@jest/globals";
 import bigintsqrt from "bigint-isqrt";
 import { UInt112, UInt64 } from "../../src";
-import { Provable } from "o1js";
+import { Field, Provable } from "o1js";
 
 describe("uint112", () => {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
@@ -78,11 +78,20 @@ describe("uint112", () => {
 
     const uint = Provable.witness(UInt64, () => UInt64.from(5));
 
-    const fields = UInt64.toFields(uint)
+    const fields = UInt64.toFields(uint);
 
-    expect(uint.NUM_BITS).toBe(64);
+    expect(uint.numBits()).toBe(64);
     expect(uint.value.toBigInt()).toBe(5n);
     expect(fields.length).toBe(1);
     expect(fields[0].toBigInt()).toBe(5n);
-  })
+  });
+
+  it("should work for state", () => {
+    expect.assertions(1);
+
+    // Only a compilation test
+    const state = State.from(UInt64);
+
+    expect(1).toBe(1);
+  });
 });
