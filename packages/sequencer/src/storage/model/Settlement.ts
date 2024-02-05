@@ -1,6 +1,6 @@
 export interface Settlement {
-  transaction: string;
-  tranasactionHash: string;
+  // transaction: string;
+  transactionHash: string;
   promisedMessagesHash: string;
-  // TODO Link with settled batch
+  batches: number[];
 }

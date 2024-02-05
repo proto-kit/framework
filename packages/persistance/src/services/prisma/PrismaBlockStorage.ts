@@ -108,6 +108,7 @@ export class PrismaBlockStorage
         data: block.transactions.map((txr) =>
           this.transactionMapper.mapOut(txr.tx)
         ),
+        skipDuplicates: true
       }),
 
       this.connection.client.block.create({

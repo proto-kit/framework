@@ -111,7 +111,9 @@ export class BlockProducerModule extends SequencerModule {
   ): Promise<ComputedBlock | undefined> {
     log.info("Producing batch...");
 
-    const blockMetadata = await this.tryProduceBlock(unprovenBlocks);
+    const height = await this.blockStorage.getCurrentBlockHeight();
+
+    const blockMetadata = await this.tryProduceBlock(unprovenBlocks, height);
 
     if (blockMetadata !== undefined) {
       log.info(
@@ -140,13 +142,14 @@ export class BlockProducerModule extends SequencerModule {
   }
 
   private async tryProduceBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
+    unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
+    height: number
   ): Promise<ComputedBlockMetadata | undefined> {
     if (!this.productionInProgress) {
       try {
         this.productionInProgress = true;
 
-        const block = await this.produceBlock(unprovenBlocks);
+        const block = await this.produceBlock(unprovenBlocks, height);
 
         this.productionInProgress = false;
 
@@ -176,7 +179,8 @@ export class BlockProducerModule extends SequencerModule {
   }
 
   private async produceBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
+    unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
+    height: number
   ): Promise<ComputedBlockMetadata | undefined> {
     const blockId = unprovenBlocks[0].block.block.height.toBigInt();
 
@@ -194,6 +198,7 @@ export class BlockProducerModule extends SequencerModule {
       block: {
         proof: jsonProof,
         bundles: computedBundles,
+        height,
       },
 
       stateService: block.stateService,

@@ -40,6 +40,8 @@ model Transaction {
   isMessage Boolean
 
   executionResult TransactionExecutionResult?
+
+  IncomingMessageBatchTransaction IncomingMessageBatchTransaction[]
 }
 
 model TransactionExecutionResult {
@@ -85,6 +87,9 @@ model Batch {
   proof Json @db.Json
 
   blocks Block[]
+
+  settlementTransactionHash String?
+  settlement Settlement? @relation(fields: [settlementTransactionHash], references: [transactionHash])
 }
 
 model UnprovenBlockMetadata {
@@ -97,4 +102,31 @@ model UnprovenBlockMetadata {
   blockHashWitness Json @db.Json
 
   block Block? @relation(fields: [blockHash], references: [hash])
+}
+
+model Settlement {
+  // transaction String
+  transactionHash String @id
+  promisedMessagesHash String
+
+  batches Batch[]
+}
+
+model IncomingMessageBatchTransaction {
+  transactionHash String
+  transaction Transaction @relation(fields: [transactionHash], references: [hash])
+
+  batchId Int
+  batch IncomingMessageBatch @relation(fields: [batchId], references: [id])
+
+  @@id([transactionHash, batchId])
+}
+
+model IncomingMessageBatch {
+  id Int @id @default(autoincrement())
+
+  fromMessageHash String
+  toMessageHash String
+
+  messages IncomingMessageBatchTransaction[]
 }

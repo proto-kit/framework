@@ -9,20 +9,19 @@ import { ObjectMapper } from "../../../ObjectMapper";
 export class BatchMapper
   implements ObjectMapper<ComputedBlock, [Batch, string[]]>
 {
-  public constructor() {}
-
   public mapIn(input: [Batch, string[]]): ComputedBlock {
     return {
       bundles: input[1],
       proof: input[0].proof as JsonProof,
+      height: input[0].height,
     };
   }
 
   public mapOut(input: ComputedBlock): [Batch, string[]] {
     const batch: Batch = {
       proof: input.proof,
-      // TODO
-      height: 0,
+      height: input.height,
+      settlementTransactionHash: null,
     };
     return [batch, []];
   }

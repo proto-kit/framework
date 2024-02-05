@@ -11,5 +11,5 @@ export interface ComputedBlockTransaction {
 export interface ComputedBlock {
   proof: JsonProof;
   bundles: string[];
-  // TODO Height
+  height: number;
 }

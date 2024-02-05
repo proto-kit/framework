@@ -9,6 +9,8 @@ import { DependencyFactory, noop } from "@proto-kit/common";
 import { PrismaStateService } from "./services/prisma/PrismaStateService";
 import { PrismaBatchStore } from "./services/prisma/PrismaBatchStore";
 import { PrismaBlockStorage } from "./services/prisma/PrismaBlockStorage";
+import { PrismaSettlementStorage } from "./services/prisma/PrismaSettlementStorage";
+import { PrismaMessageStorage } from "./services/prisma/PrismaMessageStorage";
 
 export interface PrismaDatabaseConfig {
   connection?: {
@@ -56,7 +58,13 @@ export class PrismaDatabaseConnection
       },
       unprovenStateService: {
         useFactory: () => new PrismaStateService(this, "block"),
-      }
+      },
+      settlementStorage: {
+        useClass: PrismaSettlementStorage,
+      },
+      messageStorage: {
+        useClass: PrismaMessageStorage,
+      },
     };
   }
 
