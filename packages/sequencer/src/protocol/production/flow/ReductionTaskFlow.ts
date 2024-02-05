@@ -22,6 +22,8 @@ export class ReductionTaskFlow<Input, Output> {
 
   private started = false;
 
+  private parentFlow?: Flow<unknown>;
+
   public constructor(
     private readonly options: {
       name: string;
@@ -120,8 +122,21 @@ export class ReductionTaskFlow<Input, Output> {
       throw new Error("Flow already started, use pushInput() to add inputs");
     }
     this.started = true;
-    const result = await this.flow.withFlow<Output>(async () => {});
-    await callback(result);
+    try {
+      const result = await this.flow.withFlow<Output>(async () => {});
+
+      await callback(result);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        if (this.parentFlow !== undefined) {
+          this.parentFlow.reject(e);
+        } else {
+          this.flow.reject(e);
+        }
+      } else {
+        throw new Error(`Non-Error caught: ${e}`);
+      }
+    }
   }
 
   /**
@@ -132,6 +147,17 @@ export class ReductionTaskFlow<Input, Output> {
    */
   public onCompletion(callback: (output: Output) => Promise<void>) {
     void this.initCompletionCallback(callback);
+  }
+
+  /**
+   * To be used in conjunction with onCompletion
+   * It allows errors from this flow to be "defered" to another parent
+   * flow which might be properly awaited and therefore will throw the
+   * error up to the user
+   * @param flow
+   */
+  public deferErrorsTo(flow: Flow<unknown>) {
+    this.parentFlow = flow;
   }
 
   /**

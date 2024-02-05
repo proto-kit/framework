@@ -23,7 +23,7 @@ export class BlockTriggerBase<Config = NoConfig>
     protected readonly blockProducerModule: BlockProducerModule,
     protected readonly unprovenProducerModule: UnprovenProducerModule,
     protected readonly unprovenBlockQueue: UnprovenBlockQueue,
-    protected readonly settlementModule: SettlementModule
+    protected readonly settlementModule?: SettlementModule
   ) {
     super();
   }
@@ -43,13 +43,15 @@ export class BlockTriggerBase<Config = NoConfig>
       await this.unprovenProducerModule.tryProduceUnprovenBlock();
 
     if (unprovenBlock && enqueueInSettlementQueue) {
-      await this.unprovenBlockQueue.pushBlock(unprovenBlock);
+      await this.unprovenBlockQueue.pushBlock(unprovenBlock.block);
+      await this.unprovenBlockQueue.pushMetadata(unprovenBlock.metadata);
     }
 
-    return unprovenBlock;
+    return unprovenBlock?.block;
   }
 
   protected async settle(batch: ComputedBlock) {
+
     // TODO After Persistance PR because we need batch.blocks for that
   }
 

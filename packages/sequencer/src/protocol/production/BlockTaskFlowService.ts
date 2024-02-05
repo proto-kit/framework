@@ -204,6 +204,7 @@ export class BlockTaskFlowService {
       log.debug(`Block generation finished, with proof ${result.proof}`); // TODO Remove result logging
       flow.resolve(result);
     });
+    blockMergingFlow.deferErrorsTo(flow);
 
     return await flow.withFlow<BlockProof>(async () => {
       await flow.forEach(blockTraces, async (blockTrace, blockNumber) => {
@@ -236,6 +237,7 @@ export class BlockTaskFlowService {
             flow.state.blockPairings[blockNumber].blockProof = blockProof;
             await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
           });
+          transactionMergingFlow.deferErrorsTo(flow);
 
           // Execute if the block is empty
           // eslint-disable-next-line unicorn/no-array-method-this-argument
@@ -273,6 +275,8 @@ export class BlockTaskFlowService {
                   transactionIndex
                 );
               });
+              stReductionFlow.deferErrorsTo(flow);
+
               await flow.forEach(trace.stateTransitionProver, async (stp) => {
                 await stReductionFlow.pushInput(stp);
               });
@@ -336,6 +340,7 @@ export class BlockTaskFlowService {
             flow.state.blockPairings[blockNumber].stProof = result;
             await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
           });
+          blockSTFlow.deferErrorsTo(flow);
 
           await flow.forEach(blockTrace.stateTransitionProver, async (stp) => {
             await blockSTFlow.pushInput(stp);
