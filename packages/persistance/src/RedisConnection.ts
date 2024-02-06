@@ -12,19 +12,23 @@ export interface RedisConnectionConfig {
   password: string;
 }
 
-export class RedisConnection
-  extends SequencerModule<RedisConnectionConfig>
-  implements DependencyFactory
-{
-  private redisClient?: RedisClientType;
+export interface RedisConnection {
+  get redisClient(): RedisClientType;
+}
 
-  public get client(): RedisClientType {
-    if (this.redisClient === undefined) {
+export class RedisConnectionModule
+  extends SequencerModule<RedisConnectionConfig>
+  implements DependencyFactory, RedisConnection
+{
+  private client?: RedisClientType;
+
+  public get redisClient(): RedisClientType {
+    if (this.client === undefined) {
       throw new Error(
         "Redis client not initialized yet, wait for .start() to be called"
       );
     }
-    return this.redisClient;
+    return this.client;
   }
 
   public dependencies(): Pick<
@@ -45,7 +49,7 @@ export class RedisConnection
   }
 
   public async init() {
-    this.redisClient = createClient(this.config);
+    this.client = createClient(this.config);
     try {
       await this.redisClient.connect();
     } catch (e: unknown) {

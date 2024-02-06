@@ -12,9 +12,9 @@ export class PrismaMessageStorage implements MessageStorage {
   public async getMessages(
     fromMessageHash: string
   ): Promise<PendingTransaction[]> {
-    const { client } = this.connection;
+    const { prismaClient } = this.connection;
 
-    const batch = await client.incomingMessageBatch.findFirst({
+    const batch = await prismaClient.incomingMessageBatch.findFirst({
       where: {
         fromMessageHash,
       },
@@ -43,14 +43,14 @@ export class PrismaMessageStorage implements MessageStorage {
       this.transactionMapper.mapOut(message)
     );
 
-    const { client } = this.connection;
-    await client.$transaction([
-      client.transaction.createMany({
+    const { prismaClient } = this.connection;
+    await prismaClient.$transaction([
+      prismaClient.transaction.createMany({
         data: transactions,
         skipDuplicates: true,
       }),
 
-      client.incomingMessageBatch.create({
+      prismaClient.incomingMessageBatch.create({
         data: {
           fromMessageHash,
           toMessageHash,

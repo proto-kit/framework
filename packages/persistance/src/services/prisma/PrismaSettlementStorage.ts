@@ -11,11 +11,11 @@ export class PrismaSettlementStorage implements SettlementStorage {
   ) {}
 
   public async pushSettlement(settlement: Settlement): Promise<void> {
-    const { client } = this.connection;
+    const { prismaClient } = this.connection;
 
     const dbSettlement = this.settlementMapper.mapOut(settlement);
 
-    await client.settlement.create({
+    await prismaClient.settlement.create({
       data: {
         ...dbSettlement[0],
         batches: {

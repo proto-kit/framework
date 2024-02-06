@@ -4,7 +4,7 @@ import {
   SequencerModule,
   StorageDependencyMinimumDependencies,
 } from "@proto-kit/sequencer";
-import { DependencyFactory, noop } from "@proto-kit/common";
+import { DependencyFactory, OmitKeys } from "@proto-kit/common";
 
 import { PrismaStateService } from "./services/prisma/PrismaStateService";
 import { PrismaBatchStore } from "./services/prisma/PrismaBatchStore";
@@ -25,21 +25,25 @@ export interface PrismaDatabaseConfig {
   };
 }
 
+export interface PrismaConnection {
+  get prismaClient(): PrismaClient;
+}
+
 @sequencerModule()
 export class PrismaDatabaseConnection
   extends SequencerModule<PrismaDatabaseConfig>
-  implements DependencyFactory
+  implements DependencyFactory, PrismaConnection
 {
   private initializedClient: PrismaClient | undefined = undefined;
 
-  public get client(): PrismaClient {
+  public get prismaClient(): PrismaClient {
     if (this.initializedClient === undefined) {
       throw new Error("Client not initialized yet, wait for after the startup");
     }
     return this.initializedClient;
   }
 
-  public dependencies(): Omit<
+  public dependencies(): OmitKeys<
     StorageDependencyMinimumDependencies,
     "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
   > {

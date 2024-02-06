@@ -38,7 +38,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
 
     try {
       // console.log(array.slice(0, 5).flat(1));
-      await this.connection.client!.mSet(array.flat(1));
+      await this.connection.redisClient!.mSet(array.flat(1));
     } catch (e) {
       if (e instanceof Error) {
         console.log(e.name);
@@ -62,7 +62,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   ): Promise<(bigint | undefined)[]> {
     const keys = nodes.map((node) => this.getKey(node));
 
-    const result = await this.connection.client!.mGet(keys);
+    const result = await this.connection.redisClient!.mGet(keys);
 
     return result.map((x) => (x !== null ? BigInt(x) : undefined));
   }

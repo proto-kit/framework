@@ -19,7 +19,7 @@ export class PrismaStateService implements AsyncStateService {
   ) {}
 
   public async commit(): Promise<void> {
-    const { client } = this.connection;
+    const { prismaClient } = this.connection;
 
     const data = this.cache
       .filter((entry) => entry[1] !== undefined)
@@ -29,8 +29,8 @@ export class PrismaStateService implements AsyncStateService {
         mask: this.mask,
       }));
 
-    await client.$transaction([
-      client.state.deleteMany({
+    await prismaClient.$transaction([
+      prismaClient.state.deleteMany({
         where: {
           path: {
             in: this.cache.map((x) => new Prisma.Decimal(x[0].toString())),
@@ -38,7 +38,7 @@ export class PrismaStateService implements AsyncStateService {
           mask: this.mask,
         },
       }),
-      client.state.createMany({
+      prismaClient.state.createMany({
         data,
       }),
     ]);
@@ -47,7 +47,7 @@ export class PrismaStateService implements AsyncStateService {
   }
 
   public async getAsync(key: Field): Promise<Field[] | undefined> {
-    const record = await this.connection.client.state.findFirst({
+    const record = await this.connection.prismaClient.state.findFirst({
       where: {
         AND: [
           {

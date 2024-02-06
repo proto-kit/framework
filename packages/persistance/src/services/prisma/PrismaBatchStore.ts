@@ -6,19 +6,19 @@ import {
 import { Prisma } from "@prisma/client";
 import { inject, injectable } from "tsyringe";
 
-import type { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
+import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 import { BatchMapper } from "./mappers/BatchMapper";
 
 @injectable()
 export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
   public constructor(
-    @inject("Database") private readonly connection: PrismaDatabaseConnection,
+    @inject("Database") private readonly connection: PrismaConnection,
     private readonly batchMapper: BatchMapper
   ) {}
 
   public async getBlockAt(height: number): Promise<ComputedBlock | undefined> {
-    const batch = await this.connection.client.batch.findFirst({
+    const batch = await this.connection.prismaClient.batch.findFirst({
       where: {
         height,
       },
@@ -40,7 +40,7 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
   }
 
   public async getCurrentBlockHeight(): Promise<number> {
-    const batch = await this.connection.client.batch.aggregate({
+    const batch = await this.connection.prismaClient.batch.aggregate({
       _max: {
         height: true,
       },
@@ -52,7 +52,7 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
     const height = await this.getCurrentBlockHeight();
 
     const [entity] = this.batchMapper.mapOut(block);
-    await this.connection.client.batch.create({
+    await this.connection.prismaClient.batch.create({
       data: {
         proof: entity.proof as Prisma.InputJsonValue,
         height,

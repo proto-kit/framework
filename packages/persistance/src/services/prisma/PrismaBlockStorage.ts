@@ -16,7 +16,7 @@ import {
 } from "@prisma/client";
 import { inject, injectable } from "tsyringe";
 
-import type { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
+import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 import {
   TransactionExecutionResultMapper,
@@ -33,7 +33,7 @@ export class PrismaBlockStorage
     HistoricalUnprovenBlockStorage
 {
   public constructor(
-    @inject("Database") private readonly connection: PrismaDatabaseConnection,
+    @inject("Database") private readonly connection: PrismaConnection,
     private readonly transactionResultMapper: TransactionExecutionResultMapper,
     private readonly transactionMapper: TransactionMapper,
     private readonly blockMetadataMapper: UnprovenBlockMetadataMapper,
@@ -43,7 +43,7 @@ export class PrismaBlockStorage
   private async getBlockByQuery(
     where: { height: number } | { hash: string }
   ): Promise<UnprovenBlockWithMetadata | undefined> {
-    const result = await this.connection.client.block.findFirst({
+    const result = await this.connection.prismaClient.block.findFirst({
       where,
       include: {
         transactions: {
@@ -103,15 +103,17 @@ export class PrismaBlockStorage
 
     const encodedBlock = this.blockMapper.mapOut(block);
 
-    await this.connection.client.$transaction([
-      this.connection.client.transaction.createMany({
+    const { prismaClient } = this.connection;
+
+    await prismaClient.$transaction([
+      prismaClient.transaction.createMany({
         data: block.transactions.map((txr) =>
           this.transactionMapper.mapOut(txr.tx)
         ),
         skipDuplicates: true
       }),
 
-      this.connection.client.block.create({
+      prismaClient.block.create({
         data: {
           ...encodedBlock,
           beforeNetworkState:
@@ -145,7 +147,7 @@ export class PrismaBlockStorage
   public async pushMetadata(metadata: UnprovenBlockMetadata): Promise<void> {
     const encoded = this.blockMetadataMapper.mapOut(metadata);
 
-    await this.connection.client.unprovenBlockMetadata.create({
+    await this.connection.prismaClient.unprovenBlockMetadata.create({
       data: {
         afterNetworkState: encoded.afterNetworkState as Prisma.InputJsonValue,
         blockHashWitness: encoded.blockHashWitness as Prisma.InputJsonValue,
@@ -161,7 +163,7 @@ export class PrismaBlockStorage
 
   // TODO Phase out and replace with getLatestBlock().network.height
   public async getCurrentBlockHeight(): Promise<number> {
-    const result = await this.connection.client.block.aggregate({
+    const result = await this.connection.prismaClient.block.aggregate({
       _max: {
         height: true,
       },
@@ -173,7 +175,7 @@ export class PrismaBlockStorage
   public async getLatestBlock(): Promise<
     UnprovenBlockWithMetadata | undefined
   > {
-    const latestBlock = await this.connection.client.$queryRaw<
+    const latestBlock = await this.connection.prismaClient.$queryRaw<
       { hash: string }[]
     >`SELECT b1."hash" FROM "Block" b1 
         LEFT JOIN "Block" child ON child."parentHash" = b1."hash"
@@ -189,7 +191,7 @@ export class PrismaBlockStorage
   }
 
   public async getNewBlocks(): Promise<UnprovenBlockWithPreviousMetadata[]> {
-    const blocks = await this.connection.client.block.findMany({
+    const blocks = await this.connection.prismaClient.block.findMany({
       where: {
         batch: null,
       },
@@ -213,7 +215,7 @@ export class PrismaBlockStorage
       .filter(filterNonNull)
       .filter(distinctByString);
     const metadata =
-      await this.connection.client.unprovenBlockMetadata.findMany({
+      await this.connection.prismaClient.unprovenBlockMetadata.findMany({
         where: {
           blockHash: {
             in: blockHashes,

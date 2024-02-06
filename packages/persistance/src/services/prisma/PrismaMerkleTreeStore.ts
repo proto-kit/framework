@@ -4,7 +4,7 @@ import {
   MerkleTreeNodeQuery,
 } from "@proto-kit/sequencer";
 
-import { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
+import { PrismaConnection } from "../../PrismaDatabaseConnection";
 import { noop } from "@proto-kit/common";
 import { Prisma } from "@prisma/client";
 
@@ -14,7 +14,7 @@ import { Prisma } from "@prisma/client";
 export class PrismaMerkleTreeStore implements AsyncMerkleTreeStore {
   private cache: MerkleTreeNode[] = [];
 
-  public constructor(private readonly connection: PrismaDatabaseConnection) {}
+  public constructor(private readonly connection: PrismaConnection) {}
 
   public async openTransaction(): Promise<void> {
     noop();
@@ -34,7 +34,7 @@ export class PrismaMerkleTreeStore implements AsyncMerkleTreeStore {
     console.log(`Took ${Date.now() - start} ms`)
 
     const start2 = Date.now();
-    const rows = await this.connection.client.$executeRaw(
+    const rows = await this.connection.prismaClient.$executeRaw(
       Prisma.sql`INSERT INTO "TreeElement" (key, level, value) VALUES ${Prisma.join(
         array.map((entry) => Prisma.sql`(${Prisma.join(entry)})`)
       )} ON CONFLICT ON CONSTRAINT "TreeElement_pkey" DO UPDATE SET value = EXCLUDED.value;`
