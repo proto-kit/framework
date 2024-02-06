@@ -37,8 +37,10 @@ export type TypeFromDependencyDeclaration<
   Declaration extends DependencyDeclaration<unknown>
 > = Declaration extends DependencyDeclaration<infer Dependency> ? Dependency : never;
 
+export type CapitalizeAny<Key extends string | number | symbol> = Key extends string ? Capitalize<Key> : Key
+
 export type MapDependencyRecordToTypes<Record extends DependencyRecord> = {
-  [Key in keyof Record]: TypedClass<TypeFromDependencyDeclaration<Record[Key]>>;
+  [Key in keyof Record as CapitalizeAny<Key>]: TypedClass<TypeFromDependencyDeclaration<Record[Key]>>;
 };
 
 export type InferDependencies<Class extends BaseModuleInstanceType> =
