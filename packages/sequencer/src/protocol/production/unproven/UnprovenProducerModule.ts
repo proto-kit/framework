@@ -68,7 +68,9 @@ export class UnprovenProducerModule
     return this.config.allowEmptyBlock ?? true;
   }
 
-  public async tryProduceUnprovenBlock(): Promise<UnprovenBlock | undefined> {
+  public async tryProduceUnprovenBlock(): Promise<
+    UnprovenBlockWithMetadata | undefined
+  > {
     if (!this.productionInProgress) {
       try {
         const block = await this.produceUnprovenBlock();
@@ -81,8 +83,6 @@ export class UnprovenProducerModule
           }
           return undefined;
         }
-
-        await this.unprovenBlockQueue.pushBlock(block);
 
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
         this.events.emit("unprovenBlockProduced", block);
@@ -97,9 +97,11 @@ export class UnprovenProducerModule
             this.blockTreeStore,
             true
           );
-        await this.unprovenBlockQueue.pushMetadata(metadata);
 
-        return block;
+        return {
+          block,
+          metadata,
+        };
       } catch (error: unknown) {
         if (error instanceof Error) {
           throw error;

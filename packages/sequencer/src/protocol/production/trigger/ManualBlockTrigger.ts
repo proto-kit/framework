@@ -22,14 +22,14 @@ export class ManualBlockTrigger
     unprovenProducerModule: UnprovenProducerModule,
     @inject("UnprovenBlockQueue")
     unprovenBlockQueue: UnprovenBlockQueue,
-    @inject("SettlementModule")
-    settlementModule: SettlementModule
+    // @inject("SettlementModule")
+    // settlementModule: SettlementModule
   ) {
     super(
       blockProducerModule,
       unprovenProducerModule,
       unprovenBlockQueue,
-      settlementModule
+      undefined
     );
   }
 

@@ -197,10 +197,7 @@ export class SettlementModule
         Path.fromKey(basePath, Field, Field(x.index))
       );
       // Preload keys
-      // TODO Use preloadKeys() after persistance PR
-      await Promise.all(
-        keys.map((key) => cachedStore.preloadKey(key.toBigInt()))
-      );
+      await cachedStore.preloadKeys(keys.map(key => key.toBigInt()));
 
       const transactionParamaters = batch.map((message, index) => {
         const witness = tree.getWitness(keys[index].toBigInt());

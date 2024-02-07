@@ -33,8 +33,8 @@ export class TimedBlockTrigger
     unprovenProducerModule: UnprovenProducerModule,
     @inject("UnprovenBlockQueue")
     unprovenBlockQueue: UnprovenBlockQueue,
-    @inject("SettlementModule")
-    settlementModule: SettlementModule,
+    // @inject("SettlementModule")
+    // settlementModule: SettlementModule,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
@@ -42,7 +42,7 @@ export class TimedBlockTrigger
       blockProducerModule,
       unprovenProducerModule,
       unprovenBlockQueue,
-      settlementModule
+      undefined
     );
   }
 

@@ -182,9 +182,7 @@ export class BlockProducerModule extends SequencerModule {
     unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
     height: number
   ): Promise<ComputedBlockMetadata | undefined> {
-    const blockId = unprovenBlocks[0].block.block.height.toBigInt();
-
-    const block = await this.computeBlock(unprovenBlocks, Number(blockId));
+    const block = await this.computeBlock(unprovenBlocks, height);
 
     const computedBundles = unprovenBlocks.map((bundle) =>
       bundle.block.block.transactionsHash.toString()
