@@ -26,10 +26,13 @@ import { ProvableBlockHook } from "./ProvableBlockHook";
 import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
 import { BlockHeightHook } from "../blockmodules/BlockHeightHook";
 import { LastStateRootBlockHook } from "../blockmodules/LastStateRootBlockHook";
+import { ProvableSettlementHook } from "../settlement/ProvableSettlementHook";
+import { NoopSettlementHook } from "../blockmodules/NoopSettlementHook";
 
-const PROTOCOL_INJECTION_TOKENS = {
+const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
   ProvableTransactionHook: "ProvableTransactionHook",
   ProvableBlockHook: "ProvableBlockHook",
+  ProvableSettlementHook: "ProvableSettlementHook",
 };
 
 export type GenericProtocolModuleRecord = ModulesRecord<
@@ -137,42 +140,52 @@ export class Protocol<Modules extends ProtocolModulesRecord>
 
     // Register the BlockModules seperately since we need to
     // inject them differently later
-    let atLeastOneTransactionHookRegistered = false;
-    let atLeastOneBlockHookRegistered = false;
-    Object.entries(this.definition.modules).forEach(([key, value]) => {
-      if (Object.prototype.isPrototypeOf.call(ProvableTransactionHook, value)) {
-        this.container.register(
-          PROTOCOL_INJECTION_TOKENS.ProvableTransactionHook,
-          { useToken: key },
-          { lifecycle: Lifecycle.ContainerScoped }
+    const ABSTRACT_MODULE_TYPES = [
+      { type: ProvableTransactionHook, defaultType: NoopTransactionHook },
+      { type: ProvableBlockHook, defaultType: NoopBlockHook },
+      { type: ProvableSettlementHook, defaultType: NoopSettlementHook },
+    ] as const;
+
+    ABSTRACT_MODULE_TYPES.forEach((moduleTypeRegistration) => {
+      const abstractType = moduleTypeRegistration.type;
+
+      const implementingModules = Object.entries(
+        this.definition.modules
+      ).filter(([, value]) =>
+        Object.prototype.isPrototypeOf.call(abstractType, value)
+      );
+
+      const newInjectionToken: string | undefined =
+        PROTOCOL_INJECTION_TOKENS[abstractType.name];
+
+      if (newInjectionToken === undefined) {
+        log.error(
+          "Can't inject hook under the underlying hook token: Alias not found in mapping"
         );
-        atLeastOneTransactionHookRegistered = true;
+        return;
       }
-      if (Object.prototype.isPrototypeOf.call(ProvableBlockHook, value)) {
+
+      implementingModules.forEach(([key]) => {
         this.container.register(
-          PROTOCOL_INJECTION_TOKENS.ProvableBlockHook,
+          abstractType.name,
           { useToken: key },
           { lifecycle: Lifecycle.ContainerScoped }
         );
-        atLeastOneBlockHookRegistered = true;
+      });
+      if (implementingModules.length === 0) {
+        // This type annotation shouldn't change anything but is necessary
+        // bcs tsyringe complains
+        const { defaultType }: { defaultType: TypedClass<unknown> } =
+          moduleTypeRegistration;
+
+        // Register default (noop) version
+        this.container.register(
+          abstractType.name,
+          { useClass: defaultType },
+          { lifecycle: Lifecycle.ContainerScoped }
+        );
       }
     });
-
-    // We need this so that tsyringe doesn't throw when no hooks are registered
-    if (!atLeastOneTransactionHookRegistered) {
-      this.container.register(
-        PROTOCOL_INJECTION_TOKENS.ProvableTransactionHook,
-        { useClass: NoopTransactionHook },
-        { lifecycle: Lifecycle.ContainerScoped }
-      );
-    }
-    if (!atLeastOneBlockHookRegistered) {
-      this.container.register(
-        PROTOCOL_INJECTION_TOKENS.ProvableBlockHook,
-        { useClass: NoopBlockHook },
-        { lifecycle: Lifecycle.ContainerScoped }
-      );
-    }
   }
 }
 

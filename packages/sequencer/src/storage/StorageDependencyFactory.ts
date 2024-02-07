@@ -14,6 +14,8 @@ import {
   UnprovenBlockQueue,
   UnprovenBlockStorage,
 } from "./repositories/UnprovenBlockStorage";
+import { MessageStorage } from "./repositories/MessageStorage";
+import { SettlementStorage } from "./repositories/SettlementStorage";
 
 export interface StorageDependencyMinimumDependencies extends DependencyRecord {
   asyncStateService: DependencyDeclaration<AsyncStateService>;
@@ -24,6 +26,8 @@ export interface StorageDependencyMinimumDependencies extends DependencyRecord {
   unprovenStateService: DependencyDeclaration<CachedStateService>;
   unprovenMerkleStore: DependencyDeclaration<CachedMerkleTreeStore>;
   blockTreeStore: DependencyDeclaration<AsyncMerkleTreeStore>;
+  messageStorage: DependencyDeclaration<MessageStorage>;
+  settlementStorage: DependencyDeclaration<SettlementStorage>;
 }
 
 export interface StorageDependencyFactory extends DependencyFactory {

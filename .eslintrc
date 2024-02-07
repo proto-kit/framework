@@ -17,7 +17,14 @@
     "@typescript-eslint/parameter-properties": [
       "error",
       {
-        "allow": ["public", "private", "private readonly", "public readonly", "protected", "protected readonly"]
+        "allow": [
+          "public",
+          "private",
+          "private readonly",
+          "public readonly",
+          "protected",
+          "protected readonly"
+        ]
       }
     ],
     "jest/no-hooks": [
@@ -31,19 +38,7 @@
       "error",
       { "peerDependencies": true }
     ],
-    "new-cap": [
-      "error",
-      {
-        "capIsNewExceptions": [
-          "Field",
-          "Bool",
-          "Struct",
-          "ZkProgram",
-          "Memoize",
-          "Proof"
-        ]
-      }
-    ],
+    "new-cap": "off",
     "@typescript-eslint/prefer-readonly-parameter-types": "off",
     "id-length": [
       "error",
@@ -127,9 +122,7 @@
         "allow": ["<<", ">>", ">>>"]
       }
     ],
-    "@typescript-eslint/no-unnecessary-condition": [
-      "off"
-    ],
+    "@typescript-eslint/no-unnecessary-condition": ["off"],
     "nodejs/declare": "off",
     "unicorn/prefer-event-target": "off",
     "putout/putout": "off",

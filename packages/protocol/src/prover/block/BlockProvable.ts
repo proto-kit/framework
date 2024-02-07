@@ -1,9 +1,9 @@
-import { Bool, Field, Proof, Struct } from "o1js";
+import { Bool, Field, Proof, Signature, Struct } from "o1js";
 import { WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
-import { ProtocolTransaction } from "../../model/transaction/ProtocolTransaction";
+import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
 
 import { BlockHashMerkleTreeWitness } from "./accummulators/BlockHashMerkleTree";
@@ -14,6 +14,7 @@ export class BlockProverPublicInput extends Struct({
   networkStateHash: Field,
   blockHashRoot: Field,
   eternalTransactionsHash: Field,
+  incomingMessagesHash: Field,
 }) {}
 
 export class BlockProverPublicOutput extends Struct({
@@ -22,6 +23,7 @@ export class BlockProverPublicOutput extends Struct({
   networkStateHash: Field,
   blockHashRoot: Field,
   eternalTransactionsHash: Field,
+  incomingMessagesHash: Field,
   closed: Bool,
   blockNumber: Field,
 }) {
@@ -48,7 +50,8 @@ export type BlockProverProof = Proof<
 >;
 
 export class BlockProverExecutionData extends Struct({
-  transaction: ProtocolTransaction,
+  transaction: RuntimeTransaction,
+  signature: Signature,
   networkState: NetworkState,
 }) {}
 

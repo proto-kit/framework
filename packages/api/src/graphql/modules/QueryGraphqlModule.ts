@@ -15,6 +15,7 @@ import {
   GraphQLList,
   GraphQLInputType,
   GraphQLOutputType,
+  ThunkObjMap,
 } from "graphql/type";
 import {
   MethodParameterEncoder,
@@ -358,6 +359,7 @@ export class QueryGraphqlModule<
       runtimeQuery,
       "Runtime"
     );
+    const enableRuntime = Object.keys(runtimeFields).length > 0;
 
     const protocolQuery = QueryBuilderFactory.fromProtocol(
       this.protocol,
@@ -368,6 +370,7 @@ export class QueryGraphqlModule<
       protocolQuery,
       "Protocol"
     );
+    const enableProtocol = Object.keys(protocolFields).length > 0;
 
     const networkQuery = new NetworkStateQuery(
       this.networkStateTransportModule
@@ -378,10 +381,10 @@ export class QueryGraphqlModule<
       this.jsonToGraphQl.bind(this)
     );
 
-    const query = new GraphQLObjectType({
-      name: "Query",
-
-      fields: {
+    let fieldsDefinition: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
+    if (enableRuntime) {
+      fieldsDefinition = {
+        ...fieldsDefinition,
         runtime: {
           type: new GraphQLObjectType({
             name: "Runtime",
@@ -390,7 +393,11 @@ export class QueryGraphqlModule<
 
           resolve: () => true,
         },
-
+      };
+    }
+    if (enableProtocol) {
+      fieldsDefinition = {
+        ...fieldsDefinition,
         protocol: {
           type: new GraphQLObjectType({
             name: "Protocol",
@@ -399,6 +406,14 @@ export class QueryGraphqlModule<
 
           resolve: () => true,
         },
+      };
+    }
+
+    const query = new GraphQLObjectType({
+      name: "Query",
+
+      fields: {
+        ...fieldsDefinition,
 
         network: {
           type: new GraphQLObjectType({

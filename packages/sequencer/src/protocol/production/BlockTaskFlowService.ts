@@ -1,6 +1,7 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Bool, Field, Proof } from "o1js";
 import {
+  BlockProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
   MethodPublicOutput,
@@ -33,7 +34,6 @@ import {
 } from "./tasks/NewBlockTask";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
-type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 interface ReductionFlowState<ProofType> {
   numProofs: number;
@@ -288,6 +288,7 @@ export class BlockTaskFlowService {
 
             eternalTransactionsHash:
               blockTrace.block.publicInput.eternalTransactionsHash,
+            incomingMessagesHash: blockTrace.block.publicInput.incomingMessagesHash,
           };
           const publicInput = new BlockProverPublicInput(piObject);
 

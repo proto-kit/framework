@@ -1,7 +1,5 @@
 import { beforeAll, describe } from "@jest/globals";
 import {
-  InMemoryStateService,
-  Runtime,
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
@@ -14,11 +12,10 @@ import {
   State,
   StateMap,
 } from "@proto-kit/protocol";
-import { Field, PublicKey, UInt64 } from "o1js";
 import { TestingAppChain } from "@proto-kit/sdk";
+import { Field, PublicKey, UInt64 } from "o1js";
 
-import { CachedStateService } from "../../src";
-import { RuntimeMethodExecution } from "../../src/protocol/production/unproven/RuntimeMethodExecution";
+import { RuntimeMethodExecution, CachedStateService } from "../../src";
 
 @runtimeModule()
 export class TestModule extends RuntimeModule<{}> {
@@ -54,9 +51,11 @@ describe("test the correct key extraction for runtime methods", () => {
       modules: {
         TestModule,
       },
+    });
 
-      config: {
-        TestModule: {},
+    appchain.configurePartial({
+      Runtime: {
+        TestModule: {}
       },
     });
 
@@ -79,10 +78,13 @@ describe("test the correct key extraction for runtime methods", () => {
   it("test if simulation is done correctly", async () => {
     expect.assertions(1);
 
-    const c = {
-      networkState: new NetworkState({ block: { height: UInt64.one } }),
+    const contextInputs = {
+      networkState: new NetworkState({
+        block: { height: UInt64.one },
+        previous: { rootHash: Field(1) },
+      }),
 
-      transaction: new RuntimeTransaction({
+      transaction: RuntimeTransaction.fromTransaction({
         sender: PublicKey.empty(),
         nonce: UInt64.zero,
         methodId: Field(0),
@@ -90,17 +92,17 @@ describe("test the correct key extraction for runtime methods", () => {
       }),
     };
 
-    console.time("Simulating...")
+    console.time("Simulating...");
 
     const sts = await execution.simulateMultiRound(
       () => {
         module.performAction(Field(5));
       },
-      c,
+      contextInputs,
       new CachedStateService(stateService)
     );
 
-    console.timeEnd("Simulating...")
+    console.timeEnd("Simulating...");
 
     const path = module.map.getPath(Field(15));
 

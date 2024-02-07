@@ -1,4 +1,4 @@
-import { Bool } from "o1js";
+import { Bool, Provable, Struct } from "o1js";
 import { singleton } from "tsyringe";
 import {
   ProvableMethodExecutionContext,
@@ -28,6 +28,11 @@ export interface RuntimeMethodExecutionData {
   transaction: RuntimeTransaction;
   networkState: NetworkState;
 }
+
+export class RuntimeMethodExecutionDataStruct extends Struct({
+  transaction: RuntimeTransaction,
+  networkState: NetworkState,
+}) {}
 
 /**
  * Execution context used to wrap runtime module methods,
@@ -91,6 +96,18 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setup(input: RuntimeMethodExecutionData) {
     this.input = input;
+  }
+
+  public witnessInput(): RuntimeMethodExecutionDataStruct {
+    this.assertSetupCalled();
+    return Provable.witness(RuntimeMethodExecutionDataStruct, () => {
+      // TODO Is that right? Or this.current().input
+      const { transaction, networkState } = this.input!;
+      return new RuntimeMethodExecutionDataStruct({
+        networkState,
+        transaction,
+      });
+    });
   }
 
   public setSimulated(simulated: boolean) {

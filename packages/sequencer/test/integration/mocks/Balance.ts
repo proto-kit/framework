@@ -1,4 +1,5 @@
 import {
+  runtimeMessage,
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
@@ -9,13 +10,13 @@ import {
   Bool,
   Field,
   PublicKey,
-  UInt64,
   Struct,
   Provable,
   Signature,
+  UInt64,
 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
-import { Option, State, StateMap, assert } from "@proto-kit/protocol";
+import { Option, State, StateMap, assert, Deposit } from "@proto-kit/protocol";
 
 class MyStruct extends Struct({
   a: Provable.Array(Field, 10),
@@ -36,6 +37,12 @@ export class Balance extends RuntimeModule<object> {
     super();
   }
 
+  @runtimeMessage()
+  public deposit(deposit: Deposit) {
+    const balance = this.balances.get(deposit.address);
+    this.balances.set(deposit.address, balance.value.add(deposit.amount));
+  }
+
   @runtimeMethod()
   public getTotalSupply() {
     this.totalSupply.get();
@@ -48,7 +55,7 @@ export class Balance extends RuntimeModule<object> {
   public setTotalSupply() {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(this.transaction.sender);
+    this.admin.isAdmin(this.transaction.sender.value);
   }
 
   @runtimeMethod()
@@ -77,7 +84,7 @@ export class Balance extends RuntimeModule<object> {
 
   @runtimeMethod()
   public addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
-    const address = this.transaction.sender;
+    const address = this.transaction.sender.value;
     const balance = this.balances.get(address);
 
     log.provable.debug("Sender:", address);

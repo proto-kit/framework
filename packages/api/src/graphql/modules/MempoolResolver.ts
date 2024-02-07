@@ -35,7 +35,7 @@ export class Signature {
 @InputType("TransactionObjectInput")
 export class TransactionObject {
   public static fromServiceLayerModel(pt: PendingTransaction) {
-    const { methodId, sender, nonce, signature, argsFields, argsJSON } =
+    const { methodId, sender, nonce, signature, argsFields, argsJSON, isMessage } =
       pt.toJSON();
     return new TransactionObject(
       methodId,
@@ -43,7 +43,8 @@ export class TransactionObject {
       nonce,
       signature,
       argsFields,
-      argsJSON
+      argsJSON,
+      isMessage
     );
   }
 
@@ -67,13 +68,17 @@ export class TransactionObject {
   @Field(() => [String])
   public argsJSON: string[];
 
+  @Field()
+  public isMessage: boolean;
+
   public constructor(
     methodId: string,
     sender: string,
     nonce: string,
     signature: Signature,
     argsFields: string[],
-    argsJSON: string[]
+    argsJSON: string[],
+    isMessage: boolean
   ) {
     this.methodId = methodId;
     this.sender = sender;
@@ -81,6 +86,7 @@ export class TransactionObject {
     this.signature = signature;
     this.argsFields = argsFields;
     this.argsJSON = argsJSON;
+    this.isMessage = isMessage;
   }
 }
 

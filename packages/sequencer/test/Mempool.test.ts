@@ -13,7 +13,9 @@ describe("memPool", () => {
         methodId: Field(12),
         nonce: UInt64.one,
         sender: pk.toPublicKey(),
-        args: [Field(13), Field(14)],
+        argsFields: [Field(13), Field(14)],
+        argsJSON: [],
+        isMessage: false
       });
 
       const data = unsigned.getSignatureData();

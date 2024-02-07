@@ -1,8 +1,8 @@
 import {
+  BlockProof,
   BlockProvable,
   BlockProverExecutionData,
   BlockProverPublicInput,
-  BlockProverPublicOutput,
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
@@ -30,7 +30,6 @@ import { CompileRegistry } from "./CompileRegistry";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
-type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export interface BlockProverParameters {
   publicInput: BlockProverPublicInput;
@@ -231,7 +230,6 @@ export class BlockProvingTask
 
     await this.executeWithPrefilledStateService(
       input.params.startingState,
-      // eslint-disable-next-line putout/putout
       async () => {
         this.blockProver.proveTransaction(
           input.params.publicInput,

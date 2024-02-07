@@ -24,6 +24,8 @@ import {
   UnprovenBlock,
   UnprovenBlockWithMetadata,
 } from "./TransactionExecutionService";
+import { MessageStorage } from "../../../storage/repositories/MessageStorage";
+import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 
 const errors = {
   txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
@@ -48,6 +50,7 @@ export class UnprovenProducerModule
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
+    @inject("MessageStorage") private readonly messageStorage: MessageStorage,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: CachedStateService,
     @inject("UnprovenMerkleStore")
@@ -121,10 +124,19 @@ export class UnprovenProducerModule
         "No unproven block metadata given, assuming first block, generating genesis metadata"
       );
     }
+
+    const messages = await this.messageStorage.getMessages(
+      parentBlock?.block.toMessagesHash.toString() ??
+        ACTIONS_EMPTY_HASH.toString()
+    );
     const metadata = parentBlock ?? UnprovenBlockWithMetadata.createEmpty();
 
+    log.debug(
+      `Unproven block collected, ${txs.length} txs, ${messages.length} messages`
+    );
+
     return {
-      txs,
+      txs: messages.concat(txs),
       metadata,
     };
   }
@@ -154,7 +166,10 @@ export class UnprovenProducerModule
 
     this.productionInProgress = false;
 
-    requireTrue(this.mempool.removeTxs(txs), errors.txRemovalFailed);
+    requireTrue(
+      this.mempool.removeTxs(txs.filter((tx) => !tx.isMessage)),
+      errors.txRemovalFailed
+    );
 
     return block;
   }

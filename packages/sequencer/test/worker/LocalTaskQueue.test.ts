@@ -8,7 +8,10 @@ describe("localTaskQueue", () => {
   let taskQueue: LocalTaskQueue;
 
   beforeEach(() => {
-    taskQueue = new LocalTaskQueue(0);
+    taskQueue = new LocalTaskQueue();
+    taskQueue.config = {
+      simulatedDuration: 0
+    }
 
     taskQueue.createWorker("testQueue", async (data: TaskPayload) => data);
   });
