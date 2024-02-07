@@ -109,7 +109,7 @@ export class Flow<State> implements Closeable {
 
   public constructor(
     private readonly connectionHolder: ConnectionHolder,
-    private readonly flowId: string,
+    public readonly flowId: string,
     public state: State
   ) {}
 

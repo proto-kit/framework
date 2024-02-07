@@ -367,7 +367,7 @@ export class TransactionExecutionService {
     blockHashTree.setLeaf(
       block.height.toBigInt(),
       new BlockHashTreeEntry({
-        blockHash: block.transactionsHash,
+        blockHash: Poseidon.hash([block.height, state.transactionsHash]),
         closed: Bool(true),
       }).hash()
     );

@@ -3,6 +3,7 @@ import { log } from "@proto-kit/common";
 import { Flow, FlowCreator } from "../../../worker/flow/Flow";
 import { Task } from "../../../worker/flow/Task";
 import { PairTuple } from "../../../helpers/utils";
+import { BlockProverPublicInput, BlockProverPublicOutput } from "@proto-kit/protocol";
 
 interface ReductionState<Output> {
   numMergesCompleted: 0;
@@ -71,6 +72,27 @@ export class ReductionTaskFlow<Input, Output> {
         res.push({ r1: firstElement, r2: secondElement });
         touchedIndizes.push(index, secondIndex);
       }
+    }
+
+    // Print error if the flow is stuck if
+    // 1. no tasks are in progress still
+    // 2. and not every queue element has been resolved
+    // 3. and all inputs have been pushed to the task already
+    const queueSize = this.flow.state.queue.length;
+    if (
+      this.flow.tasksInProgress === 0 &&
+      res.length * 2 < queueSize &&
+      this.flow.state.numMergesCompleted + res.length * 2 + queueSize ===
+        this.options.inputLength
+    ) {
+      log.error(
+        `Flow ${this.flow.flowId} seems to have halted with ${this.flow.state.queue.length} elements left in the queue`
+      );
+      const json0 = BlockProverPublicInput.toJSON((this.flow.state.queue[0] as any)["publicInput"] as any);
+      const json1 = BlockProverPublicOutput.toJSON((this.flow.state.queue[0] as any)["publicOutput"] as any);
+      const json2 = BlockProverPublicInput.toJSON((this.flow.state.queue[1] as any)["publicInput"] as any);
+      const json3 = BlockProverPublicOutput.toJSON((this.flow.state.queue[1] as any)["publicOutput"] as any);
+      console.log();
     }
 
     return { availableReductions: res, touchedIndizes };
