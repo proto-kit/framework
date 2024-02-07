@@ -1,19 +1,18 @@
 import { Bool, ProvableExtended, PublicKey, Struct, UInt64 } from "o1js";
 
-// eslint-disable-next-line etc/no-t
-function genericValueOption<T>(valueType: ProvableExtended<T>) {
+function genericOptionFactory<Type>(valueType: ProvableExtended<Type>) {
   return class Generic extends Struct({
     isSome: Bool,
     value: valueType,
   }) {
-    public static fromValue(value: T) {
+    public static fromValue(value: Type) {
       return new Generic({
         isSome: Bool(true),
         value,
       });
     }
 
-    public static notSome(value: T) {
+    public static none(value: Type) {
       return new Generic({
         isSome: Bool(false),
         value,
@@ -22,6 +21,8 @@ function genericValueOption<T>(valueType: ProvableExtended<T>) {
   };
 }
 
-export class UInt64Option extends genericValueOption<UInt64>(UInt64) {}
+export class UInt64Option extends genericOptionFactory<UInt64>(UInt64) {}
 
-export class PublicKeyOption extends genericValueOption<PublicKey>(PublicKey) {}
+export class PublicKeyOption extends genericOptionFactory<PublicKey>(
+  PublicKey
+) {}
