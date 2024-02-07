@@ -167,22 +167,6 @@ export class ModuleContainer<
     return Object.keys(this.definition.modules);
   }
 
-  // public get modules() {
-  //   this.moduleNames.flatMap((moduleName: string) => {
-  //     this.assertIsValidModuleName(moduleName);
-  //
-  //     const module = this.resolve(moduleName);
-  //     if (this.isDependencyFactory(module)) {
-  //       const dependencyKeys = Object.keys(module.dependencies());
-  //       const modules = dependencyKeys.map((key) => {
-  //         return this.container.resolve(key);
-  //       });
-  //       return [module, ...modules];
-  //     }
-  //     return [module];
-  //   });
-  // }
-
   /**
    * Check if the provided module satisfies the container requirements,
    * such as only injecting other known modules.
