@@ -22,11 +22,7 @@ import {
   MinaActionsHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
-import {
-  AreProofsEnabled,
-  log,
-  RollupMerkleTree,
-} from "@proto-kit/common";
+import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
 import {
   MethodParameterEncoder,
   Runtime,
@@ -400,15 +396,15 @@ export class TransactionExecutionService {
     stateService: CachedStateService,
     stateTransitions: StateTransition<unknown>[]
   ): Promise<void> {
-    await Promise.all(
-      // Use updated stateTransitions since only they will have the
-      // right values
-      stateTransitions
-        .filter((st) => st.to.isSome.toBoolean())
-        .map(async (st) => {
-          await stateService.setAsync(st.path, st.to.toFields());
-        })
-    );
+    const writes = stateTransitions
+      .filter((st) => st.to.isSome.toBoolean())
+      .map((st) =>
+        // Use updated stateTransitions since only they will have the
+        // right values
+        ({ key: st.path, value: st.to.toFields() })
+      );
+    // Maybe replace with stateService.set() because its cached anyways?
+    stateService.writeStates(writes);
   }
 
   // eslint-disable-next-line no-warning-comments
