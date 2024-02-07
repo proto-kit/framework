@@ -200,10 +200,9 @@ export class ModuleContainer<
    * using e.g. a for loop.
    */
   public assertIsValidModuleName(
-    modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    if (!this.isValidModuleName(modules, moduleName)) {
+    if (!this.isValidModuleName(this.definition.modules, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }
   }
@@ -233,7 +232,7 @@ export class ModuleContainer<
   protected registerModules(modules: Modules) {
     for (const moduleName in modules) {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-        this.assertIsValidModuleName(modules, moduleName);
+        this.assertIsValidModuleName(moduleName);
 
         log.debug(`Registering module: ${moduleName}`);
 

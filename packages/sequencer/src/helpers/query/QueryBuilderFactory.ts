@@ -146,7 +146,7 @@ export const QueryBuilderFactory = {
     return Object.keys(modules).reduce<
       Query<RuntimeModule<unknown>, RuntimeModules>
     >((query, runtimeModuleName: string) => {
-      runtime.assertIsValidModuleName(modules, runtimeModuleName);
+      runtime.assertIsValidModuleName(runtimeModuleName);
 
       const runtimeModule = runtime.resolve(runtimeModuleName);
 
@@ -171,7 +171,7 @@ export const QueryBuilderFactory = {
       Query<ProtocolModule<unknown>, ProtocolModules>
     >(
       (query, protocolModuleName: string) => {
-        protocol.assertIsValidModuleName(modules, protocolModuleName);
+        protocol.assertIsValidModuleName(protocolModuleName);
 
         const protocolModule = protocol.resolve(protocolModuleName);
 
