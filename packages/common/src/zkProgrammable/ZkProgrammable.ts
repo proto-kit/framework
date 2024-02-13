@@ -78,6 +78,7 @@ export function compileToMockable(
   { areProofsEnabled }: AreProofsEnabled
 ): () => Promise<CompileArtifact> {
   return async () => {
+    console.log("mocked compile", { areProofsEnabled });
     if (areProofsEnabled) {
       return await compile();
     }
@@ -103,6 +104,10 @@ export abstract class ZkProgrammable<
     if (!this.appChain) {
       throw errors.appChainNotSet(this.constructor.name);
     }
+
+    console.log("getting zkProgram()", {
+      areProofsEnabled: this.appChain.areProofsEnabled,
+    });
 
     return {
       ...zkProgram,

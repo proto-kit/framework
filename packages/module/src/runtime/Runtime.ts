@@ -23,6 +23,7 @@ import {
 import {
   combineMethodName,
   isRuntimeMethod,
+  runtimeMethodTypeMetadataKey,
   toWrappedMethod,
   WrappedMethod,
 } from "../method/runtimeMethod";
@@ -115,10 +116,16 @@ export class RuntimeZkProgrammable<
                 methodName
               );
               const method = modulePrototype[methodName];
+              const invocationType = Reflect.getMetadata(
+                runtimeMethodTypeMetadataKey,
+                runtimeModule,
+                methodName
+              );
+
               const wrappedMethod = Reflect.apply(
                 toWrappedMethod,
                 runtimeModule,
-                [methodName, method]
+                [methodName, method, { invocationType }]
               );
 
               // eslint-disable-next-line no-warning-comments
@@ -129,6 +136,12 @@ export class RuntimeZkProgrammable<
                 runtimeModule,
                 methodName
               );
+
+              console.log("runtime with method", {
+                runtimeModuleName,
+                methodName,
+                invocationType,
+              });
 
               return {
                 ...allModuleMethods,
@@ -163,6 +176,8 @@ export class RuntimeZkProgrammable<
       methods: sortedRuntimeMethods,
     });
 
+    console.log("runtime methods", sortedRuntimeMethods);
+
     const SelfProof = Experimental.ZkProgram.Proof(program);
 
     const methods = Object.keys(sortedRuntimeMethods).reduce<
@@ -173,7 +188,10 @@ export class RuntimeZkProgrammable<
     }, {});
 
     return {
-      compile: program.compile.bind(program),
+      compile: async () => {
+        console.log("compiling runtime");
+        return await program.compile.bind(program)();
+      },
       verify: program.verify.bind(program),
       Proof: SelfProof,
       methods,

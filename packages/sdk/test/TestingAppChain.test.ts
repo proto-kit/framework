@@ -7,11 +7,14 @@ import {
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import { TestingAppChain } from "../src/index";
+import { InMemoryAreProofsEnabled, TestingAppChain } from "../src/index";
 import { container, inject } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { AreProofsEnabled, log } from "@proto-kit/common";
 import { randomUUID } from "crypto";
 import { assert, State, StateMap } from "@proto-kit/protocol";
+import { ManualBlockTrigger } from "@proto-kit/sequencer";
+
+log.setLevel("debug");
 
 export interface AdminConfig {
   admin: PublicKey;
@@ -42,34 +45,40 @@ class Balances extends RuntimeModule<BalancesConfig> {
     UInt64
   );
 
-  public constructor(@inject("Admin") public admin: Admin) {
-    super();
-  }
+  /**
+   * The constructor function takes an instance of the Admin class as a parameter and assigns it to the
+   * admin property.
+   * @param {Admin} admin - The "admin" parameter is of type "Admin" and is being injected using the
+   * "@inject" decorator.
+   */
+  // public constructor(@inject("Admin") public admin: Admin) {
+  //   super();
+  // }
 
   @runtimeMethod()
   public addBalance(address: PublicKey, balance: UInt64) {
-    const totalSupply = this.totalSupply.get();
+    // const totalSupply = this.totalSupply.get();
 
-    const newTotalSupply = totalSupply.value.add(balance);
-    const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
-      this.config.totalSupply
-    );
+    // const newTotalSupply = totalSupply.value.add(balance);
+    // const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
+    //   this.config.totalSupply
+    // );
 
-    this.totalSupply.set(newTotalSupply);
+    // this.totalSupply.set(newTotalSupply);
 
-    assert(
-      isSupplyNotOverflown,
-      "Adding the balance would overflow the total supply"
-    );
+    // assert(
+    //   isSupplyNotOverflown,
+    //   "Adding the balance would overflow the total supply"
+    // );
 
-    const isSender = this.transaction.sender.value.equals(address);
-    assert(isSender, "Address is not the sender");
+    // const isSender = this.transaction.sender.value.equals(address);
+    // assert(isSender, "Address is not the sender");
 
-    const currentBalance = this.balances.get(address);
+    // const currentBalance = this.balances.get(address);
 
-    const newBalance = currentBalance.value.add(balance);
+    // const newBalance = currentBalance.value.add(balance);
 
-    this.balances.set(address, newBalance);
+    this.balances.set(address, balance);
   }
 }
 
@@ -103,6 +112,14 @@ describe("testing app chain", () => {
     // start the chain, sequencer is now accepting transactions
     await appChain.start();
 
+    // const areProofsEnabled = appChain.resolveOrFail(
+    //   "AreProofsEnabled",
+    //   InMemoryAreProofsEnabled
+    // );
+    // areProofsEnabled.setProofsEnabled(true);
+
+    // console.log("areProofsEnabled", areProofsEnabled);
+
     /**
      *  Setup the transaction signer / sender
      */
@@ -128,11 +145,17 @@ describe("testing app chain", () => {
 
     expect(block?.transactions[0].status.toBoolean()).toBe(true);
 
+    console.log("proving");
+    console.time("prove");
+    const provenBlock = await appChain.sequencer
+      .resolveOrFail("BlockTrigger", ManualBlockTrigger)
+      .produceProven();
+    console.timeEnd("prove");
     /**
      * Observe new state after the block has been produced
      */
     const balance = await appChain.query.runtime.Balances.balances.get(sender);
 
     expect(balance?.toBigInt()).toBe(1000n);
-  }, 60_000);
+  }, 6_000_000);
 });

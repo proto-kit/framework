@@ -5,6 +5,7 @@ import {
   FlexibleProvable,
   Poseidon,
   Proof,
+  Provable,
   ProvableExtended,
 } from "o1js";
 import { container } from "tsyringe";
@@ -73,7 +74,6 @@ export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: ArgumentTypes) => unknown,
-  methodArguments: ArgumentTypes,
   options: {
     invocationType: RuntimeMethodInvocationType;
   }
@@ -122,14 +122,16 @@ export function toWrappedMethod(
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const { argsFields } = MethodParameterEncoder.fromMethod(this, methodName).encode(args);
+    const { argsFields } = MethodParameterEncoder.fromMethod(
+      this,
+      methodName
+    ).encode(args);
 
     // Assert that the argsHash that has been signed matches the given arguments
     // We can use js-if here, because methodArguments is statically sizes
     // i.e. the result of the if-statement will be the same for all executions
     // of this method
-    const argsHash =
-      methodArguments.length > 0 ? Poseidon.hash(argsFields) : Field(0);
+    const argsHash = args.length > 0 ? Poseidon.hash(argsFields) : Field(0);
 
     transaction.argsHash.assertEquals(
       argsHash,
@@ -142,13 +144,16 @@ export function toWrappedMethod(
     const transactionHash = transaction.hash();
     const networkStateHash = networkState.hash();
 
-    return new MethodPublicOutput({
+    const output = new MethodPublicOutput({
       stateTransitionsHash,
       status,
       transactionHash,
       networkStateHash,
       isMessage,
     });
+    console.log("output", output);
+
+    return output;
   };
 
   Object.defineProperty(wrappedMethod, "name", {
@@ -189,7 +194,9 @@ export function isRuntimeMethod(
 
 export type RuntimeMethodInvocationType = "SIGNATURE" | "INCOMING_MESSAGE";
 
-function runtimeMethodInternal(options: { invocationType: RuntimeMethodInvocationType }) {
+function runtimeMethodInternal(options: {
+  invocationType: RuntimeMethodInvocationType;
+}) {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
@@ -239,9 +246,10 @@ function runtimeMethodInternal(options: { invocationType: RuntimeMethodInvocatio
       const simulatedWrappedMethod = Reflect.apply(toWrappedMethod, this, [
         methodName,
         simulatedMethod,
-        args,
         options,
       ]);
+
+      Provable.log("simulatedWrappedMethod", args);
 
       /**
        * Before the prover runs, make sure it is operating on the correct
@@ -251,6 +259,11 @@ function runtimeMethodInternal(options: { invocationType: RuntimeMethodInvocatio
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       async function prover(this: ZkProgrammable<any, any>) {
         executionContext.beforeMethod(constructorName, methodName, args);
+        console.log("proving method", {
+          runtimeModuleName: this.constructor.name,
+          methodName,
+          invocationType: options.invocationType,
+        });
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
           simulatedWrappedMethod,

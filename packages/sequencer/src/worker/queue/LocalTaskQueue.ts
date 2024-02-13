@@ -19,14 +19,18 @@ export interface LocalTaskQueueConfig {
   simulatedDuration?: number;
 }
 
-export class LocalTaskQueue extends SequencerModule<LocalTaskQueueConfig> implements TaskQueue {
+export class LocalTaskQueue
+  extends SequencerModule<LocalTaskQueueConfig>
+  implements TaskQueue
+{
   private queues: {
     [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
 
+  private busy = false;
+
   private workers: {
     [key: string]: {
-      busy: boolean;
       handler: (data: TaskPayload) => Promise<TaskPayload>;
     };
   } = {};
@@ -35,46 +39,66 @@ export class LocalTaskQueue extends SequencerModule<LocalTaskQueueConfig> implem
     [key: string]: QueueListener[];
   } = {};
 
-  private workNextTasks() {
-    Object.entries(this.queues).forEach((queue) => {
-      const [queueName, tasks] = queue;
+  private async workNextTasks() {
+    log.debug("workNextTasks busy", this.busy);
+    if (this.busy) return;
+    this.busy = true;
 
-      if (tasks.length > 0) {
-        tasks.forEach((task) => {
-          // Execute task in worker
-          // eslint-disable-next-line max-len
-          // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
-          void this.workers[queueName].handler(task.payload).then((payload) => {
-            log.debug("LocalTaskQueue got", JSON.stringify(payload));
-            // Notify listeners about result
-            const listenerPromises = this.listeners[queueName].map(
-              async (listener) => {
-                await listener(payload);
-              }
-            );
-            void Promise.all(listenerPromises);
-          });
-        });
+    try {
+      for (const queueName of Object.keys(this.queues)) {
+        if (!this.workers[queueName]) return;
+
+        const tasks = this.queues[queueName];
+
+        for (const task of tasks) {
+          const worker = this.workers[queueName];
+
+          // clear the currently processed task from the queue
+          this.queues[queueName] = this.queues[queueName].filter(
+            (pendingTask) => pendingTask.taskId !== task.taskId
+          );
+
+          log.debug("LocalTaskQueue processing", task.payload.name);
+          console.time("handling");
+          const result = await worker.handler(task.payload);
+          console.timeEnd("handling");
+          log.debug("LocalTaskQueue got", JSON.stringify(result));
+
+          for (const listener of this.listeners[queueName]) {
+            await listener(result);
+          }
+        }
       }
+    } catch (error) {
+      log.error("LocalTaskQueue error:", error);
+    } finally {
+      this.busy = false;
+    }
 
-      this.queues[queue[0]] = [];
-    });
+    const outstandingTasks = Object.values(this.queues).reduce(
+      (taskCount, tasks) => taskCount.concat(tasks),
+      []
+    ).length;
+
+    log.debug("outstandingTasks", outstandingTasks);
+
+    if (outstandingTasks > 0) {
+      this.workNextTasks();
+    }
   }
 
-  public createWorker(
+  public async createWorker(
     queueName: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>
-  ): Closeable {
+  ): Promise<Closeable> {
     this.workers[queueName] = {
-      busy: false,
-
       handler: async (data: TaskPayload) => {
         await sleep(this.config.simulatedDuration ?? 0);
 
         return await executor(data);
       },
     };
-    this.workNextTasks();
+    await this.workNextTasks();
     return {
       // eslint-disable-next-line putout/putout
       close: async () => {

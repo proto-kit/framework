@@ -1,4 +1,4 @@
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { container, inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   MethodIdResolver,
   MethodParameterEncoder,
@@ -8,8 +8,11 @@ import {
   MethodPublicOutput,
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
+  PublicKeyOption,
+  UInt64Option,
+  NetworkState,
 } from "@proto-kit/protocol";
-import { Proof } from "o1js";
+import { Field, Proof, PublicKey, UInt64 } from "o1js";
 
 import { Task } from "../../../worker/flow/Task";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
@@ -90,6 +93,15 @@ export class RuntimeProvingTask
   }
 
   public async prepare(): Promise<void> {
+    const inputs = {
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
+    };
+    console.log("preparing runtime proving task", inputs);
+    const context = container.resolve(RuntimeMethodExecutionContext);
+    context.setup(inputs);
+    console.time("prepare-runtime");
     await this.runtimeZkProgrammable.compile();
+    console.timeEnd("prepare-runtime");
   }
 }

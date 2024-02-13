@@ -100,10 +100,13 @@ export class BlockReductionTask
   }
 
   public async prepare(): Promise<void> {
+    console.log("preparing block prover");
+    console.time("prepare-block-prover-merge");
     await this.compileRegistry.compile(
       "BlockProver",
       this.blockProver.zkProgrammable.zkProgram
     );
+    console.timeEnd("prepare-block-prover-merge");
   }
 }
 
@@ -250,9 +253,12 @@ export class BlockProvingTask
   // eslint-disable-next-line sonarjs/no-identical-functions
   public async prepare(): Promise<void> {
     // Compile
+    console.log("compiling blockprover");
+    console.time("prepare-block-prover-tx");
     await this.compileRegistry.compile(
       "BlockProver",
       this.blockProver.zkProgrammable.zkProgram
     );
+    console.timeEnd("prepare-block-prover-tx");
   }
 }

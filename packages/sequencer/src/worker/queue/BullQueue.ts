@@ -23,11 +23,11 @@ export class BullQueue implements TaskQueue {
     } = {}
   ) {}
 
-  public createWorker(
+  public async createWorker(
     name: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>,
     options?: { concurrency: number }
-  ): Closeable {
+  ): Promise<Closeable> {
     const worker = new Worker<TaskPayload, string>(
       name,
       async (job) => JSON.stringify(await executor(job.data)),

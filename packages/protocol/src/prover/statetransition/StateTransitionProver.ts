@@ -89,7 +89,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       publicOutput: StateTransitionProverPublicOutput,
 
       methods: {
-        proveBatch: {
+        runBatch: {
           privateInputs: [StateTransitionProvableBatch],
 
           method(
@@ -118,7 +118,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     });
 
     const methods = {
-      proveBatch: program.proveBatch.bind(program),
+      runBatch: program.runBatch.bind(program),
       merge: program.merge.bind(program),
     };
 
@@ -199,14 +199,18 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       transition.from.value
     );
 
-    membershipValid
-      .or(transition.from.isSome.not())
-      .assertTrue(
-        errors.merkleWitnessNotCorrect(
+    const isTransitionValid = membershipValid.or(transition.from.isSome.not());
+
+    Provable.asProver(() => {
+      if (!isTransitionValid.toBoolean()) {
+        throw errors.merkleWitnessNotCorrect(
           index,
           type.isNormal().toBoolean() ? "normal" : "protocol"
-        )
-      );
+        );
+      }
+    });
+
+    isTransitionValid.assertTrue();
 
     const newRoot = witness.calculateRoot(transition.to.value);
 

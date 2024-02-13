@@ -4,14 +4,21 @@ import { container } from "tsyringe";
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
 import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
 import { ToFieldable } from "../utils";
+import { Pickles } from "o1js/dist/node/snarky";
+import { dummyBase64Proof } from "o1js/dist/node/lib/proof_system";
 
-export type O1JSPrimitive = InferProvable<ProvableExtended<unknown>> & ToFieldable;
+export type O1JSPrimitive = InferProvable<ProvableExtended<unknown>> &
+  ToFieldable;
 export type ArgumentTypes = (O1JSPrimitive | Proof<unknown, unknown>)[];
 
 // eslint-disable-next-line etc/prefer-interface
 export type DecoratedMethod = (...args: ArgumentTypes) => unknown;
 
-export const MOCK_PROOF = "mock-proof";
+// export const MOCK_PROOF = "mock-proof";
+export const [, MOCK_PROOF] = Pickles.proofOfBase64(
+  await dummyBase64Proof(),
+  2
+);
 
 export function toProver(
   methodName: string,
@@ -24,6 +31,11 @@ export function toProver(
     const areProofsEnabled = this.appChain?.areProofsEnabled;
     if (areProofsEnabled ?? false) {
       const programProvableMethod = this.zkProgram.methods[methodName];
+      console.log("proving provable method", {
+        methodName,
+        methods: this.zkProgram.methods,
+        args,
+      });
       return await Reflect.apply(programProvableMethod, this, args);
     }
 

@@ -45,7 +45,10 @@ import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 
 import { AppChainModule } from "./AppChainModule";
-import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
+import {
+  AreProofsEnabledFactory,
+  InMemoryAreProofsEnabled,
+} from "./AreProofsEnabledFactory";
 import { SharedDependencyFactory } from "./SharedDependencyFactory";
 
 export type AppChainModulesRecord = ModulesRecord<
@@ -344,6 +347,14 @@ export class AppChain<
 
     this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
     this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
+
+    const areProofsEnabled = this.resolveOrFail(
+      "AreProofsEnabled",
+      InMemoryAreProofsEnabled
+    );
+    areProofsEnabled.setProofsEnabled(true);
+
+    console.log("areProofsEnabled", areProofsEnabled);
 
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.
