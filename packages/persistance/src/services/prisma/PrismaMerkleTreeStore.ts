@@ -3,10 +3,10 @@ import {
   MerkleTreeNode,
   MerkleTreeNodeQuery,
 } from "@proto-kit/sequencer";
-
-import { PrismaConnection } from "../../PrismaDatabaseConnection";
 import { noop } from "@proto-kit/common";
 import { Prisma } from "@prisma/client";
+
+import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 /**
  * @deprecated

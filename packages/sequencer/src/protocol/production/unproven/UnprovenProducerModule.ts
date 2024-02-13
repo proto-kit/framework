@@ -27,10 +27,6 @@ import { TransactionExecutionService } from "./TransactionExecutionService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 
-const errors = {
-  txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
-};
-
 interface UnprovenProducerEvents extends EventsRecord {
   unprovenBlockProduced: [UnprovenBlock];
 }
@@ -119,7 +115,7 @@ export class UnprovenProducerModule
     txs: PendingTransaction[];
     metadata: UnprovenBlockWithMetadata;
   }> {
-    const { txs } = this.mempool.getTxs();
+    const txs = await this.mempool.getTxs();
 
     const parentBlock = await this.unprovenBlockQueue.getLatestBlock();
 
@@ -169,11 +165,6 @@ export class UnprovenProducerModule
     await cachedStateService.mergeIntoParent();
 
     this.productionInProgress = false;
-
-    requireTrue(
-      this.mempool.removeTxs(txs.filter((tx) => !tx.isMessage)),
-      errors.txRemovalFailed
-    );
 
     return block;
   }

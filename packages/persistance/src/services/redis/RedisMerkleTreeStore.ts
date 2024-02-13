@@ -60,6 +60,10 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   public async getNodesAsync(
     nodes: MerkleTreeNodeQuery[]
   ): Promise<(bigint | undefined)[]> {
+    if(nodes.length === 0){
+      return [];
+    }
+
     const keys = nodes.map((node) => this.getKey(node));
 
     const result = await this.connection.redisClient!.mGet(keys);

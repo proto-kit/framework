@@ -135,6 +135,7 @@ export class PrismaBlockStorage
                     tx.protocolTransitions as Prisma.InputJsonArray,
                 };
               }),
+              skipDuplicates: true,
             },
           },
 

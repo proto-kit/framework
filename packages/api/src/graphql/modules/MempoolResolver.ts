@@ -35,8 +35,15 @@ export class Signature {
 @InputType("TransactionObjectInput")
 export class TransactionObject {
   public static fromServiceLayerModel(pt: PendingTransaction) {
-    const { methodId, sender, nonce, signature, argsFields, argsJSON, isMessage } =
-      pt.toJSON();
+    const {
+      methodId,
+      sender,
+      nonce,
+      signature,
+      argsFields,
+      argsJSON,
+      isMessage,
+    } = pt.toJSON();
     return new TransactionObject(
       methodId,
       sender,
@@ -105,10 +112,9 @@ export class MempoolResolver extends GraphqlModule {
   }
 
   @Query(() => String)
-  public transactionState(@Arg("hash") hash: string) {
-    const tx = this.mempool
-      .getTxs()
-      .txs.find((x) => x.hash().toString() === hash);
+  public async transactionState(@Arg("hash") hash: string) {
+    const txs = await this.mempool.getTxs();
+    const tx = txs.find((x) => x.hash().toString() === hash);
 
     if (tx) {
       return "pending";
@@ -118,9 +124,9 @@ export class MempoolResolver extends GraphqlModule {
   }
 
   @Query(() => [String])
-  public transactions() {
-    const tx = this.mempool.getTxs().txs;
-    return tx.map((x) => x.hash().toString());
+  public async transactions() {
+    const txs = await this.mempool.getTxs();
+    return txs.map((x) => x.hash().toString());
   }
 
   // @Query(returns => [TransactionObject])

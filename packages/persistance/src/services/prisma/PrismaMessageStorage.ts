@@ -1,11 +1,14 @@
 import { MessageStorage, PendingTransaction } from "@proto-kit/sequencer";
-import { inject } from "tsyringe";
-import { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
+import { inject, injectable } from "tsyringe";
+
+import type { PrismaConnection } from "../../PrismaDatabaseConnection";
+
 import { TransactionMapper } from "./mappers/TransactionMapper";
 
+@injectable()
 export class PrismaMessageStorage implements MessageStorage {
   public constructor(
-    @inject("Database") private readonly connection: PrismaDatabaseConnection,
+    @inject("Database") private readonly connection: PrismaConnection,
     private readonly transactionMapper: TransactionMapper
   ) {}
 
@@ -27,7 +30,11 @@ export class PrismaMessageStorage implements MessageStorage {
       },
     });
 
-    const dbTransactions = batch!.messages.map((message) => {
+    if (batch === null) {
+      return [];
+    }
+
+    const dbTransactions = batch.messages.map((message) => {
       return message.transaction;
     });
 

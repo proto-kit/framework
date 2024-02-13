@@ -3,8 +3,10 @@ import { Field } from "o1js";
 import { Prisma } from "@prisma/client";
 import { noop } from "@proto-kit/common";
 
-import type { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
+import type { PrismaConnection } from "../../PrismaDatabaseConnection";
+import { injectable } from "tsyringe";
 
+@injectable()
 export class PrismaStateService implements AsyncStateService {
   private cache: StateEntry[] = [];
 
@@ -13,7 +15,7 @@ export class PrismaStateService implements AsyncStateService {
    * @param mask A indicator to which masking level the values belong
    */
   public constructor(
-    private readonly connection: PrismaDatabaseConnection,
+    private readonly connection: PrismaConnection,
     private readonly mask: string
   ) {}
 

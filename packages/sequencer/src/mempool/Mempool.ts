@@ -11,13 +11,10 @@ export interface Mempool {
    * Add a transaction to the mempool
    * @returns The new commitment to the mempool
    */
-  add: (tx: PendingTransaction) => MempoolCommitment;
+  add: (tx: PendingTransaction) => Promise<boolean>;
 
   /**
    * Retrieve all transactions that are currently in the mempool
    */
-  getTxs: () => { txs: PendingTransaction[]; commitment: MempoolCommitment };
-
-  // Add stuff for witness generation
-  removeTxs: (txs: PendingTransaction[]) => boolean;
+  getTxs: () => Promise<PendingTransaction[]>;
 }

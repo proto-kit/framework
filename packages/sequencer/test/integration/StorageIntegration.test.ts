@@ -17,11 +17,15 @@ import {
   HistoricalBlockStorage,
   InMemoryDatabase,
   Sequencer,
+  SequencerModule,
   StateEntry,
   StateRecord,
+  StorageDependencyFactory,
+  TransactionStorage,
 } from "../../src";
 import { collectStateDiff, createTransaction, expectDefined } from "./utils";
 import { Bool, Field, PrivateKey, UInt64 } from "o1js";
+import { DependencyFactory, TypedClass } from "@proto-kit/common";
 
 function checkStateDiffEquality(stateDiff: StateRecord, state: StateEntry[]) {
   return Object.entries(stateDiff)
@@ -41,7 +45,10 @@ function checkStateDiffEquality(stateDiff: StateRecord, state: StateEntry[]) {
 
 describe.each([["InMemory", InMemoryDatabase]])(
   "Storage Adapter Test %s",
-  (testName, Database) => {
+  (
+    testName,
+    Database: TypedClass<SequencerModule & StorageDependencyFactory>
+  ) => {
     let appChain: AppChain<
       { Balance: typeof Balance },
       ProtocolCustomModulesRecord,
@@ -61,6 +68,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
     const sk = PrivateKey.random();
     const pk = sk.toPublicKey();
+    let pkNonce = 0;
 
     beforeAll(async () => {
       const sequencerClass = testingSequencerFromModules({
@@ -118,13 +126,13 @@ describe.each([["InMemory", InMemoryDatabase]])(
     });
 
     it("test unproven block prod", async () => {
-      appChain.sequencer.resolve("Mempool").add(
+      await appChain.sequencer.resolve("Mempool").add(
         createTransaction({
           runtime,
           method: ["Balance", "setBalanceIf"],
           privateKey: sk,
           args: [pk, UInt64.from(100), Bool(true)],
-          nonce: 0,
+          nonce: pkNonce++,
         })
       );
 
@@ -186,6 +194,29 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await expect(batchStorage.getCurrentBlockHeight()).resolves.toStrictEqual(
         1
       );
+    });
+
+    it("mempool + transaction storage", async () => {
+      const mempool = sequencer.resolve("Mempool");
+      const txStorage = sequencer.resolve("TransactionStorage");
+
+      const tx = createTransaction({
+        runtime,
+        method: ["Balance", "setBalanceIf"],
+        privateKey: sk,
+        args: [pk, UInt64.from(100), Bool(true)],
+        nonce: pkNonce++,
+      });
+      await mempool.add(tx);
+
+      const txs = await txStorage.getPendingUserTransactions();
+
+      expect(txs).toHaveLength(1);
+      expect(txs[0].hash().toString()).toStrictEqual(tx.hash().toString());
+
+      await sequencer.resolve("BlockTrigger").produceUnproven();
+
+      expect(txStorage.getPendingUserTransactions()).resolves.toHaveLength(0);
     });
   }
 );

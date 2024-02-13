@@ -4,6 +4,8 @@ import {
   StorageDependencyMinimumDependencies,
 } from "@proto-kit/sequencer";
 import { ChildContainerProvider, DependencyFactory } from "@proto-kit/common";
+import { PrismaClient } from "@prisma/client";
+import { RedisClientType } from "redis";
 
 import {
   PrismaConnection,
@@ -15,9 +17,6 @@ import {
   RedisConnectionConfig,
   RedisConnectionModule,
 } from "./RedisConnection";
-import { PrismaClient, Prisma } from "@prisma/client";
-import { DefaultArgs } from "@prisma/client/runtime/library";
-import { RedisClientType } from "redis";
 
 export interface PrismaRedisCombinedConfig {
   prisma: PrismaDatabaseConfig;

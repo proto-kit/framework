@@ -1,12 +1,14 @@
 import { Settlement, SettlementStorage } from "@proto-kit/sequencer";
-import { inject } from "tsyringe";
-import { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
-import { TransactionMapper } from "./mappers/TransactionMapper";
+import { inject, injectable } from "tsyringe";
+
+import type { PrismaConnection } from "../../PrismaDatabaseConnection";
+
 import { SettlementMapper } from "./mappers/SettlementMapper";
 
+@injectable()
 export class PrismaSettlementStorage implements SettlementStorage {
   public constructor(
-    @inject("Database") private readonly connection: PrismaDatabaseConnection,
+    @inject("Database") private readonly connection: PrismaConnection,
     private readonly settlementMapper: SettlementMapper
   ) {}
 

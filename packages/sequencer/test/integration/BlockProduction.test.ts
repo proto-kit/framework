@@ -74,9 +74,9 @@ describe("block production", () => {
     );
 
     const app = AppChain.from({
-      Runtime: runtimeClass,
-      Sequencer: sequencerClass,
-      Protocol: protocolClass,
+      runtime: runtimeClass,
+      sequencer: sequencerClass,
+      protocol: protocolClass,
       modules: {},
     });
 
@@ -121,7 +121,7 @@ describe("block production", () => {
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
 
-    mempool.add(
+    await mempool.add(
       createTransaction({
         runtime,
         method: ["Balance", "setBalanceIf"],
@@ -191,7 +191,7 @@ describe("block production", () => {
     expect(AccountState.fromFields(newAccountState!).nonce.toBigInt()).toBe(1n);
 
     // Second tx
-    mempool.add(
+    await mempool.add(
       createTransaction({
         runtime,
         method: ["Balance", "addBalanceToSelf"],
@@ -229,7 +229,7 @@ describe("block production", () => {
 
     const privateKey = PrivateKey.random();
 
-    mempool.add(
+    await mempool.add(
       createTransaction({
         runtime,
         method: ["Balance", "setBalanceIf"],
@@ -278,8 +278,8 @@ describe("block production", () => {
 
     const increment = 100;
 
-    range(0, numberTxs).forEach((index) => {
-      mempool.add(
+    const p = range(0, numberTxs).map(async (index) => {
+      await mempool.add(
         createTransaction({
           runtime,
           method: ["Balance", "addBalanceToSelf"],
@@ -289,6 +289,7 @@ describe("block production", () => {
         })
       );
     });
+    await Promise.all(p);
 
     const block = await blockTrigger.produceUnproven();
 
@@ -339,7 +340,7 @@ describe("block production", () => {
     const pk1 = PrivateKey.random();
     const pk2 = PrivateKey.random();
 
-    mempool.add(
+    await mempool.add(
       createTransaction({
         runtime,
         method: ["Balance", "setBalanceIf"],
@@ -348,7 +349,7 @@ describe("block production", () => {
         nonce: 0,
       })
     );
-    mempool.add(
+    await mempool.add(
       createTransaction({
         runtime,
         method: ["Balance", "setBalanceIf"],
@@ -414,7 +415,7 @@ describe("block production", () => {
       const pk1 = PrivateKey.fromBase58(pk1string);
       const pk2 = PrivateKey.fromBase58(pk2string);
 
-      mempool.add(
+      await mempool.add(
         createTransaction({
           runtime,
           method: ["Balance", "setBalanceIf"],
@@ -426,7 +427,7 @@ describe("block production", () => {
 
       await blockTrigger.produceBlock();
 
-      mempool.add(
+      await mempool.add(
         createTransaction({
           runtime,
           method: ["Balance", "setBalanceIf"],
@@ -466,7 +467,7 @@ describe("block production", () => {
       for (let i = 0; i < batches; i++) {
         for (let j = 0; j < blocksPerBatch; j++) {
           for (let k = 0; k < txsPerBlock; k++) {
-            mempool.add(
+            await mempool.add(
               createTransaction({
                 runtime,
                 method: ["Balance", "addBalance"],
@@ -506,7 +507,7 @@ describe("block production", () => {
 
     const field = Field(100);
 
-    mempool.add(
+    await mempool.add(
       createTransaction({
         runtime,
         method: ["Balance", "lotOfSTs"],

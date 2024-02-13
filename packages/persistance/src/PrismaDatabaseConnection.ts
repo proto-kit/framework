@@ -11,6 +11,7 @@ import { PrismaBatchStore } from "./services/prisma/PrismaBatchStore";
 import { PrismaBlockStorage } from "./services/prisma/PrismaBlockStorage";
 import { PrismaSettlementStorage } from "./services/prisma/PrismaSettlementStorage";
 import { PrismaMessageStorage } from "./services/prisma/PrismaMessageStorage";
+import { PrismaTransactionStorage } from "./services/prisma/PrismaTransactionStorage";
 
 export interface PrismaDatabaseConfig {
   connection?: {
@@ -68,6 +69,9 @@ export class PrismaDatabaseConnection
       },
       messageStorage: {
         useClass: PrismaMessageStorage,
+      },
+      transactionStorage: {
+        useClass: PrismaTransactionStorage,
       },
     };
   }

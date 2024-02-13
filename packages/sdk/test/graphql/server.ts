@@ -97,8 +97,8 @@ export async function startServer() {
 
     sequencer: Sequencer.from({
       modules: {
-        Database: InMemoryDatabase,
-        // Database: PrismaRedisDatabase,
+        // Database: InMemoryDatabase,
+        Database: PrismaRedisDatabase,
 
         Mempool: PrivateMempool,
         GraphqlServer,
@@ -169,7 +169,16 @@ export async function startServer() {
         MerkleWitnessResolver: {},
       },
 
-      Database: {},
+      // Database: {},
+      Database: {
+        redis: {
+          url: "redis://localhost:6379",
+          password: "password",
+        },
+        prisma: {
+
+        }
+      },
       // Redis: {
       //   url: "redis://localhost:6379",
       //   password: "password",
