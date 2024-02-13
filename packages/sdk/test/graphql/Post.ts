@@ -25,7 +25,7 @@ export class MessageBoard extends RuntimeModule<Record<string, never>> {
   public post(message: CircuitString) {
     const post = new Post({
       message,
-      author: this.transaction.sender,
+      author: this.transaction.sender.value,
       createdAt: this.network.block.height,
     });
 

@@ -24,8 +24,6 @@ export class InMemoryDatabase
   extends SequencerModule
   implements StorageDependencyFactory
 {
-  private readonly blockStorageQueue = new InMemoryBlockStorage();
-
   public dependencies(): StorageDependencyMinimumDependencies {
     return {
       asyncMerkleStore: {
@@ -38,10 +36,10 @@ export class InMemoryDatabase
         useClass: InMemoryBatchStorage,
       },
       unprovenBlockQueue: {
-        useValue: this.blockStorageQueue,
+        useClass: InMemoryBlockStorage,
       },
       unprovenBlockStorage: {
-        useValue: this.blockStorageQueue,
+        useToken: "UnprovenBlockQueue",
       },
       unprovenStateService: {
         useFactory: () => new CachedStateService(undefined),

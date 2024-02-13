@@ -1,3 +1,5 @@
+import { inject, injectable } from "tsyringe";
+
 import {
   HistoricalUnprovenBlockStorage,
   UnprovenBlockQueue,
@@ -9,18 +11,22 @@ import type {
   UnprovenBlockWithMetadata,
 } from "../model/UnprovenBlock";
 import { UnprovenBlockWithPreviousMetadata } from "../../protocol/production/BlockProducerModule";
+import { BlockStorage } from "../repositories/BlockStorage";
 
+@injectable()
 export class InMemoryBlockStorage
   implements
     UnprovenBlockStorage,
     HistoricalUnprovenBlockStorage,
     UnprovenBlockQueue
 {
+  public constructor(
+    @inject("BlockStorage") private readonly batchStorage: BlockStorage
+  ) {}
+
   private readonly blocks: UnprovenBlock[] = [];
 
   private readonly metadata: UnprovenBlockMetadata[] = [];
-
-  private cursor = 0;
 
   public async getBlockAt(height: number): Promise<UnprovenBlock | undefined> {
     return this.blocks.at(height);
@@ -46,18 +52,25 @@ export class InMemoryBlockStorage
   }
 
   public async getNewBlocks(): Promise<UnprovenBlockWithPreviousMetadata[]> {
-    const slice = this.blocks.slice(this.cursor);
+    const latestBatch = await this.batchStorage.getLatestBlock();
 
-    let metadata: (UnprovenBlockMetadata | undefined)[] = this.metadata.slice(
-      Math.max(this.cursor - 1, 0)
-    );
-    if (this.cursor === 0) {
-      metadata = [undefined, ...metadata];
+    let cursor = 0;
+    if (latestBatch !== undefined) {
+      cursor = this.blocks.reduce(
+        (c, block, index) =>
+          latestBatch.bundles.includes(block.hash.toString()) ? index + 1 : c,
+        0
+      );
     }
 
-    // This assumes that getNewBlocks() is only called once per block prod cycle
-    // TODO query batch storage which the last proven block was instead
-    this.cursor = this.blocks.length;
+    const slice = this.blocks.slice(cursor);
+
+    let metadata: (UnprovenBlockMetadata | undefined)[] = this.metadata.slice(
+      Math.max(cursor - 1, 0)
+    );
+    if (cursor === 0) {
+      metadata = [undefined, ...metadata];
+    }
 
     return slice.map((block, index) => ({
       block: {
@@ -80,11 +93,7 @@ export class InMemoryBlockStorage
     this.metadata.push(metadata);
   }
 
-  public async getBlock(
-    hash: string
-  ): Promise<UnprovenBlock | undefined> {
-    return this.blocks.find(
-      (block) => block.hash.toString() === hash
-    );
+  public async getBlock(hash: string): Promise<UnprovenBlock | undefined> {
+    return this.blocks.find((block) => block.hash.toString() === hash);
   }
 }

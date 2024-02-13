@@ -185,7 +185,7 @@ export class BlockProducerModule extends SequencerModule {
     const block = await this.computeBlock(unprovenBlocks, height);
 
     const computedBundles = unprovenBlocks.map((bundle) =>
-      bundle.block.block.transactionsHash.toString()
+      bundle.block.block.hash.toString()
     );
 
     const jsonProof = this.blockProofSerializer

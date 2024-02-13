@@ -1,13 +1,12 @@
-import { AsyncStateService } from "@proto-kit/sequencer";
+import { AsyncStateService, StateEntry } from "@proto-kit/sequencer";
 import { Field } from "o1js";
-import { inject, injectable } from "tsyringe";
 import { Prisma } from "@prisma/client";
 import { noop } from "@proto-kit/common";
 
 import type { PrismaDatabaseConnection } from "../../PrismaDatabaseConnection";
 
 export class PrismaStateService implements AsyncStateService {
-  private cache: [Field, Field[] | undefined][] = [];
+  private cache: StateEntry[] = [];
 
   /**
    * @param connection
@@ -22,10 +21,12 @@ export class PrismaStateService implements AsyncStateService {
     const { prismaClient } = this.connection;
 
     const data = this.cache
-      .filter((entry) => entry[1] !== undefined)
+      .filter((entry) => entry.value !== undefined)
       .map((entry) => ({
-        path: new Prisma.Decimal(entry[0].toString()),
-        values: entry[1]!.map((field) => new Prisma.Decimal(field.toString())),
+        path: new Prisma.Decimal(entry.key.toString()),
+        values: entry.value!.map(
+          (field) => new Prisma.Decimal(field.toString())
+        ),
         mask: this.mask,
       }));
 
@@ -33,7 +34,7 @@ export class PrismaStateService implements AsyncStateService {
       prismaClient.state.deleteMany({
         where: {
           path: {
-            in: this.cache.map((x) => new Prisma.Decimal(x[0].toString())),
+            in: this.cache.map((x) => new Prisma.Decimal(x.key.toString())),
           },
           mask: this.mask,
         },
@@ -46,12 +47,14 @@ export class PrismaStateService implements AsyncStateService {
     this.cache = [];
   }
 
-  public async getAsync(key: Field): Promise<Field[] | undefined> {
-    const record = await this.connection.prismaClient.state.findFirst({
+  public async getAsync(keys: Field[]): Promise<StateEntry[]> {
+    const records = await this.connection.prismaClient.state.findMany({
       where: {
         AND: [
           {
-            path: new Prisma.Decimal(key.toString()),
+            path: {
+              in: keys.map((key) => new Prisma.Decimal(key.toString())),
+            },
           },
           {
             mask: this.mask,
@@ -59,16 +62,22 @@ export class PrismaStateService implements AsyncStateService {
         ],
       },
     });
-    // x.toNumber() is safe, because we know that the actual DB-type
-    // is a decimal with 0 decimal places
-    return record?.values.map((x) => Field(x.toNumber())) ?? undefined;
+    return records.map((record) => ({
+      key: Field(record.path.toNumber()),
+      value: record.values.map((x) => Field(x.toString())),
+    }));
   }
 
   public async openTransaction(): Promise<void> {
     noop();
   }
 
-  public async setAsync(key: Field, value: Field[] | undefined): Promise<void> {
-    this.cache.push([key, value]);
+  public async getSingleAsync(key: Field): Promise<Field[] | undefined> {
+    const state = await this.getAsync([key]);
+    return state.at(-1)?.value;
+  }
+
+  public writeStates(entries: StateEntry[]): void {
+    this.cache.push(...entries);
   }
 }

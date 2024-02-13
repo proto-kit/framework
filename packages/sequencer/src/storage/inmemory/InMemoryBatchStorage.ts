@@ -18,6 +18,11 @@ export class InMemoryBatchStorage
   }
 
   public async pushBlock(block: ComputedBlock): Promise<void> {
+    console.log("Pushed Batch")
     this.blocks.push(block);
+  }
+
+  public async getLatestBlock(): Promise<ComputedBlock | undefined> {
+    return this.blocks.at(-1);
   }
 }

@@ -15,7 +15,7 @@ import {
   StateMap,
   VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Presets, log, sleep } from "@proto-kit/common";
+import { Presets, log, sleep, range } from "@proto-kit/common";
 import {
   BlockProducerModule,
   InMemoryDatabase,
@@ -25,7 +25,7 @@ import {
   PrivateMempool,
   Sequencer,
   TimedBlockTrigger,
-  UnprovenProducerModule
+  UnprovenProducerModule,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -45,8 +45,7 @@ import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransac
 import { container } from "tsyringe";
 import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
 import { MessageBoard, Post } from "./Post";
-import { PrismaDatabaseConnection } from "@proto-kit/persistance";
-import { RedisConnection } from "@proto-kit/persistance/dist/RedisConnection";
+import { PrismaRedisDatabase } from "@proto-kit/persistance";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
@@ -94,13 +93,12 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from({ }),
+    protocol: VanillaProtocol.from({}),
 
     sequencer: Sequencer.from({
       modules: {
-        // Database: InMemoryDatabase,
-        Database: PrismaDatabaseConnection,
-        Redis: RedisConnection,
+        Database: InMemoryDatabase,
+        // Database: PrismaRedisDatabase,
 
         Mempool: PrivateMempool,
         GraphqlServer,
@@ -152,7 +150,7 @@ export async function startServer() {
       StateTransitionProver: {},
       AccountState: {},
       BlockHeight: {},
-      LastStateRoot: {}
+      LastStateRoot: {},
     },
 
     Sequencer: {
@@ -172,10 +170,10 @@ export async function startServer() {
       },
 
       Database: {},
-      Redis: {
-        url: "redis://localhost:6379",
-        password: "password",
-      },
+      // Redis: {
+      //   url: "redis://localhost:6379",
+      //   password: "password",
+      // },
 
       Mempool: {},
       BlockProducerModule: {},
@@ -189,7 +187,7 @@ export async function startServer() {
 
       BlockTrigger: {
         blockInterval: 15000,
-        settlementInterval: 30000,
+        settlementInterval: 10000000,
       },
     },
 
@@ -229,6 +227,34 @@ export async function startServer() {
   );
   await tx2.sign();
   await tx2.send();
+
+  let i = 2;
+
+  setInterval(async () => {
+    try {
+      const p = range(0, 15).map(async () => {
+        const tx2 = await appChain.transaction(
+          priv.toPublicKey(),
+          () => {
+            balances.addBalance(
+              PrivateKey.random().toPublicKey(),
+              UInt64.from(1000)
+            );
+          },
+          { nonce: i++ }
+        );
+        await tx2.sign();
+        await tx2.send();
+      });
+
+      await Promise.all(p)
+
+      console.log(process.memoryUsage().heapUsed / 1024 / 1024 + "MB");
+    } catch (e) {
+      console.log(e);
+    }
+    console.log("Sent new tx");
+  }, 8000);
 
   return appChain;
 }

@@ -67,4 +67,27 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
       },
     });
   }
+
+  public async getLatestBlock(): Promise<ComputedBlock | undefined> {
+    const batch = await this.connection.prismaClient.batch.findFirst({
+      orderBy: {
+        height: Prisma.SortOrder.desc,
+      },
+      include: {
+        blocks: {
+          select: {
+            hash: true,
+          },
+        },
+      },
+      take: 1,
+    });
+    if (batch === null) {
+      return undefined;
+    }
+    return this.batchMapper.mapIn([
+      batch,
+      batch.blocks.map((block) => block.hash),
+    ]);
+  }
 }

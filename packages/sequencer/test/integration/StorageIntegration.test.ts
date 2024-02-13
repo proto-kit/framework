@@ -1,5 +1,4 @@
-import { InMemoryDatabase } from "@proto-kit/sequencer";
-import { beforeEach } from "@jest/globals";
+import { beforeEach, expect } from "@jest/globals";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
@@ -14,6 +13,9 @@ import { AppChain } from "@proto-kit/sdk";
 import {
   AsyncMerkleTreeStore,
   AsyncStateService,
+  BlockStorage,
+  HistoricalBlockStorage,
+  InMemoryDatabase,
   Sequencer,
   StateEntry,
   StateRecord,
@@ -39,14 +41,16 @@ function checkStateDiffEquality(stateDiff: StateRecord, state: StateEntry[]) {
 
 describe.each([["InMemory", InMemoryDatabase]])(
   "Storage Adapter Test %s",
-  () => {
+  (testName, Database) => {
     let appChain: AppChain<
       { Balance: typeof Balance },
       ProtocolCustomModulesRecord,
-      DefaultTestingSequencerModules,
+      DefaultTestingSequencerModules & { Database: typeof Database },
       {}
     >;
-    let sequencer: Sequencer<DefaultTestingSequencerModules>;
+    let sequencer: Sequencer<
+      DefaultTestingSequencerModules & { Database: typeof Database }
+    >;
     let runtime: Runtime<{ Balance: typeof Balance }>;
 
     let unprovenState: AsyncStateService;
@@ -58,9 +62,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
     const sk = PrivateKey.random();
     const pk = sk.toPublicKey();
 
-    beforeEach(async () => {
+    beforeAll(async () => {
       const sequencerClass = testingSequencerFromModules({
-        // Database2: InMemoryDatabase,
+        Database,
       });
 
       const runtimeClass = Runtime.from({
@@ -72,9 +76,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const protocolClass = VanillaProtocol.create();
 
       appChain = AppChain.from({
-        Sequencer: sequencerClass,
-        Runtime: runtimeClass,
-        Protocol: protocolClass,
+        sequencer: sequencerClass,
+        runtime: runtimeClass,
+        protocol: protocolClass,
         modules: {},
       });
 
@@ -154,6 +158,34 @@ describe.each([["InMemory", InMemoryDatabase]])(
       );
 
       expect(checkStateDiffEquality(stateDiff, state)).toBe(true);
+
+      await expect(
+        provenState.getSingleAsync(state[0].key)
+      ).resolves.toBeUndefined();
+    });
+
+    it("test proven block prod", async () => {
+      const generatedBatch = await sequencer
+        .resolve("BlockTrigger")
+        .produceProven();
+
+      expectDefined(generatedBatch);
+
+      const blocks = await sequencer
+        .resolve("UnprovenBlockQueue")
+        .getNewBlocks();
+      expect(blocks).toHaveLength(0);
+
+      const batchStorage = sequencer.resolve(
+        "BlockStorage"
+      ) as HistoricalBlockStorage & BlockStorage;
+      const batch = await batchStorage.getBlockAt(0);
+
+      expectDefined(batch);
+      expect(batch.height).toStrictEqual(generatedBatch?.height);
+      await expect(batchStorage.getCurrentBlockHeight()).resolves.toStrictEqual(
+        1
+      );
     });
   }
 );
