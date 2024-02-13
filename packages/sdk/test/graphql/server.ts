@@ -21,11 +21,13 @@ import {
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
+  ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
+  SettlementModule,
   TimedBlockTrigger,
-  UnprovenProducerModule
+  UnprovenProducerModule,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -92,7 +94,7 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from({ }),
+    protocol: VanillaProtocol.from({}),
 
     sequencer: Sequencer.from({
       modules: {
@@ -103,8 +105,9 @@ export async function startServer() {
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         UnprovenProducerModule,
-        BlockTrigger: TimedBlockTrigger,
+        BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
+        SettlementModule: SettlementModule,
 
         Graphql: GraphqlSequencerModule.from({
           modules: {
@@ -147,7 +150,7 @@ export async function startServer() {
       StateTransitionProver: {},
       AccountState: {},
       BlockHeight: {},
-      LastStateRoot: {}
+      LastStateRoot: {},
     },
 
     Sequencer: {
@@ -155,6 +158,10 @@ export async function startServer() {
         port: 8080,
         host: "0.0.0.0",
         graphiql: true,
+      },
+      SettlementModule: {
+        address: PrivateKey.random().toPublicKey(),
+        feepayer: PrivateKey.random(),
       },
 
       Graphql: {
@@ -177,10 +184,7 @@ export async function startServer() {
         allowEmptyBlock: true,
       },
 
-      BlockTrigger: {
-        blockInterval: 15000,
-        settlementInterval: 30000,
-      },
+      BlockTrigger: {},
     },
 
     TransactionSender: {},

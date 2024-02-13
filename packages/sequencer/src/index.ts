@@ -58,3 +58,4 @@ export * from "./state/state/DummyStateService";
 export * from "./state/state/SyncCachedStateService";
 export * from "./state/state/CachedStateService";
 export * from "./state/MerkleStoreWitnessProvider";
+export * from "./settlement/SettlementModule";
