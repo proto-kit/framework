@@ -187,7 +187,7 @@ export async function startServer() {
 
       BlockTrigger: {
         blockInterval: 15000,
-        settlementInterval: 10000000,
+        settlementInterval: 30000,
       },
     },
 
@@ -230,31 +230,31 @@ export async function startServer() {
 
   let i = 2;
 
-  setInterval(async () => {
-    try {
-      const p = range(0, 15).map(async () => {
-        const tx2 = await appChain.transaction(
-          priv.toPublicKey(),
-          () => {
-            balances.addBalance(
-              PrivateKey.random().toPublicKey(),
-              UInt64.from(1000)
-            );
-          },
-          { nonce: i++ }
-        );
-        await tx2.sign();
-        await tx2.send();
-      });
-
-      await Promise.all(p)
-
-      console.log(process.memoryUsage().heapUsed / 1024 / 1024 + "MB");
-    } catch (e) {
-      console.log(e);
-    }
-    console.log("Sent new tx");
-  }, 8000);
+  // setInterval(async () => {
+  //   try {
+  //     const p = range(0, 1).map(async () => {
+  //       const tx2 = await appChain.transaction(
+  //         priv.toPublicKey(),
+  //         () => {
+  //           balances.addBalance(
+  //             PrivateKey.random().toPublicKey(),
+  //             UInt64.from(1000)
+  //           );
+  //         },
+  //         { nonce: i++ }
+  //       );
+  //       await tx2.sign();
+  //       await tx2.send();
+  //     });
+  //
+  //     await Promise.all(p)
+  //
+  //     console.log(process.memoryUsage().heapUsed / 1024 / 1024 + "MB");
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  //   console.log("Sent new tx");
+  // }, 8000);
 
   return appChain;
 }
