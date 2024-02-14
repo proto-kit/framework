@@ -13,8 +13,7 @@ import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
 import {
   Mempool,
-  PendingTransaction,
-  TransactionRepository,
+  PendingTransaction, TransactionStorage
 } from "@proto-kit/sequencer";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule.js";
@@ -123,8 +122,8 @@ registerEnumType(InclusionStatus, {
 export class MempoolResolver extends GraphqlModule {
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @inject("TransactionRepository")
-    private readonly transactionRepository: TransactionRepository
+    @inject("TransactionStorage")
+    private readonly transactionStorage: TransactionStorage
   ) {
     super();
   }
@@ -146,7 +145,7 @@ export class MempoolResolver extends GraphqlModule {
       return InclusionStatus.PENDING;
     }
 
-    const dbTx = await this.transactionRepository.findTransaction(hash);
+    const dbTx = await this.transactionStorage.findTransaction(hash);
 
     if (dbTx !== undefined) {
       if (dbTx.batch !== undefined) {

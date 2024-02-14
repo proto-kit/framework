@@ -12,7 +12,6 @@ import { PrismaBlockStorage } from "./services/prisma/PrismaBlockStorage";
 import { PrismaSettlementStorage } from "./services/prisma/PrismaSettlementStorage";
 import { PrismaMessageStorage } from "./services/prisma/PrismaMessageStorage";
 import { PrismaTransactionStorage } from "./services/prisma/PrismaTransactionStorage";
-import { PrismaTransactionRepository } from "./services/prisma/PrismaTransactionRepository";
 
 export interface PrismaDatabaseConfig {
   connection?: {
@@ -73,9 +72,6 @@ export class PrismaDatabaseConnection
       },
       transactionStorage: {
         useClass: PrismaTransactionStorage,
-      },
-      transactionRepository: {
-        useClass: PrismaTransactionRepository,
       },
     };
   }
