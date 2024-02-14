@@ -175,9 +175,7 @@ export async function startServer() {
           url: "redis://localhost:6379",
           password: "password",
         },
-        prisma: {
-
-        }
+        prisma: {},
       },
       // Redis: {
       //   url: "redis://localhost:6379",
@@ -220,9 +218,20 @@ export async function startServer() {
     "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
   );
 
-  const tx = await appChain.transaction(priv.toPublicKey(), () => {
-    balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
-  });
+  const as = await appChain.query.protocol.AccountState.accountState.get(
+    priv.toPublicKey()
+  );
+  const nonce = Number(as?.nonce.toString() ?? "0");
+
+  const tx = await appChain.transaction(
+    priv.toPublicKey(),
+    () => {
+      balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+    },
+    {
+      nonce,
+    }
+  );
   appChain.resolve("Signer").config.signer = priv;
   await tx.sign();
   await tx.send();
@@ -232,12 +241,12 @@ export async function startServer() {
     () => {
       balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
     },
-    { nonce: 1 }
+    { nonce: nonce + 1 }
   );
   await tx2.sign();
   await tx2.send();
 
-  let i = 2;
+  let i = nonce + 2;
 
   // setInterval(async () => {
   //   try {

@@ -58,9 +58,7 @@ export class PrismaBlockStorage
       return undefined;
     }
     const transactions = result.transactions.map<TransactionExecutionResult>(
-      (txresult) => {
-        return this.transactionResultMapper.mapIn([txresult, txresult.tx]);
-      }
+      (txresult) => this.transactionResultMapper.mapIn([txresult, txresult.tx])
     );
     if (result.metadata === undefined || result.metadata === null) {
       throw new Error(`No Metadata has been set for block ${where} yet`);
@@ -79,9 +77,7 @@ export class PrismaBlockStorage
     return (await this.getBlockByQuery({ height }))?.block;
   }
 
-  public async getBlock(
-    hash: string
-  ): Promise<UnprovenBlock | undefined> {
+  public async getBlock(hash: string): Promise<UnprovenBlock | undefined> {
     return (await this.getBlockByQuery({ hash }))?.block;
   }
 
@@ -110,7 +106,7 @@ export class PrismaBlockStorage
         data: block.transactions.map((txr) =>
           this.transactionMapper.mapOut(txr.tx)
         ),
-        skipDuplicates: true
+        skipDuplicates: true,
       }),
 
       prismaClient.block.create({
@@ -209,10 +205,7 @@ export class PrismaBlockStorage
     });
 
     const blockHashes = blocks
-      .flatMap((block) => [
-        block.parentHash,
-        block.hash,
-      ])
+      .flatMap((block) => [block.parentHash, block.hash])
       .filter(filterNonNull)
       .filter(distinctByString);
     const metadata =
@@ -238,14 +231,11 @@ export class PrismaBlockStorage
       );
 
       if (correspondingMetadata === undefined) {
-        throw new Error(
-          `No Metadata has been set for block ${block.hash} yet`
-        );
+        throw new Error(`No Metadata has been set for block ${block.hash} yet`);
       }
 
       const parentMetadata = metadata.find(
-        (candidate) =>
-          candidate.blockHash === block.parentHash
+        (candidate) => candidate.blockHash === block.parentHash
       );
       return {
         block: {

@@ -275,7 +275,8 @@ export class TransactionExecutionService {
       transactionsHash: transactionsHashList.commitment,
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash: eternalTransactionsHashList.commitment,
-      height: lastBlock.height.add(1),
+      height:
+        lastBlock.hash.toBigInt() !== 0n ? lastBlock.height.add(1) : Field(0),
       fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       toMessagesHash: incomingMessagesList.commitment,

@@ -14,14 +14,14 @@ import {
   AsyncMerkleTreeStore,
   AsyncStateService,
   BlockStorage,
-  HistoricalBlockStorage,
+  HistoricalBlockStorage, HistoricalUnprovenBlockStorage,
   InMemoryDatabase,
   Sequencer,
   SequencerModule,
   StateEntry,
   StateRecord,
   StorageDependencyFactory,
-  TransactionStorage,
+  TransactionStorage, UnprovenBlockStorage
 } from "../../src";
 import { collectStateDiff, createTransaction, expectDefined } from "./utils";
 import { Bool, Field, PrivateKey, UInt64 } from "o1js";
@@ -154,6 +154,14 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(block.block.hash.toBigInt()).toStrictEqual(
         generatedBlock.hash.toBigInt()
       );
+
+      const blockStorage = sequencer.resolve(
+        "UnprovenBlockStorage"
+      ) as HistoricalUnprovenBlockStorage & UnprovenBlockStorage;
+      const block2 = await blockStorage.getBlockAt(Number(blocks[0].block.block.height.toString()));
+
+      expectDefined(block2);
+      expect(block2.hash.toBigInt()).toStrictEqual(generatedBlock.hash.toBigInt())
 
       const stateDiff = collectStateDiff(
         block.block.transactions.flatMap((tx) =>
