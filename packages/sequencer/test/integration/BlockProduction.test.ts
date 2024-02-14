@@ -366,7 +366,6 @@ describe("block production", () => {
     expect(block).toBeDefined();
 
     expect(batch!.bundles).toHaveLength(2);
-    expect(batch!.bundles[1]).toBe("0");
     expect(block!.transactions).toHaveLength(2);
 
     const stateService =

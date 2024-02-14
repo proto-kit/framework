@@ -88,11 +88,6 @@ export class ReductionTaskFlow<Input, Output> {
       log.error(
         `Flow ${this.flow.flowId} seems to have halted with ${this.flow.state.queue.length} elements left in the queue`
       );
-      const json0 = BlockProverPublicInput.toJSON((this.flow.state.queue[0] as any)["publicInput"] as any);
-      const json1 = BlockProverPublicOutput.toJSON((this.flow.state.queue[0] as any)["publicOutput"] as any);
-      const json2 = BlockProverPublicInput.toJSON((this.flow.state.queue[1] as any)["publicInput"] as any);
-      const json3 = BlockProverPublicOutput.toJSON((this.flow.state.queue[1] as any)["publicOutput"] as any);
-      console.log();
     }
 
     return { availableReductions: res, touchedIndizes };

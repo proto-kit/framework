@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { CircuitString, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { PrivateKey, PublicKey, UInt64 } from "o1js";
 import {
   Runtime,
   runtimeMethod,
@@ -7,18 +7,10 @@ import {
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import {
-  AccountStateModule,
-  BlockHeightHook,
-  Option,
-  State,
-  StateMap,
-  VanillaProtocol,
-} from "@proto-kit/protocol";
-import { Presets, log, sleep, range } from "@proto-kit/common";
+import { Option, State, StateMap, VanillaProtocol } from "@proto-kit/protocol";
+import { log, Presets } from "@proto-kit/common";
 import {
   BlockProducerModule,
-  InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   NoopBaseLayer,
@@ -37,15 +29,12 @@ import {
   QueryGraphqlModule,
   UnprovenBlockResolver,
 } from "@proto-kit/api";
-
-import { AppChain } from "../../src/appChain/AppChain";
-import { StateServiceQueryModule } from "../../src/query/StateServiceQueryModule";
-import { InMemorySigner } from "../../src/transaction/InMemorySigner";
-import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
 import { container } from "tsyringe";
-import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
-import { MessageBoard, Post } from "./Post";
 import { PrismaRedisDatabase } from "@proto-kit/persistance";
+
+import { AppChain, StateServiceQueryModule, InMemorySigner, InMemoryTransactionSender, BlockStorageNetworkStateModule } from "../../src";
+
+import { MessageBoard } from "./Post";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
@@ -169,7 +158,6 @@ export async function startServer() {
         MerkleWitnessResolver: {},
       },
 
-      // Database: {},
       Database: {
         redis: {
           url: "redis://localhost:6379",
@@ -177,10 +165,6 @@ export async function startServer() {
         },
         prisma: {},
       },
-      // Redis: {
-      //   url: "redis://localhost:6379",
-      //   password: "password",
-      // },
 
       Mempool: {},
       BlockProducerModule: {},
@@ -245,34 +229,6 @@ export async function startServer() {
   );
   await tx2.sign();
   await tx2.send();
-
-  let i = nonce + 2;
-
-  // setInterval(async () => {
-  //   try {
-  //     const p = range(0, 1).map(async () => {
-  //       const tx2 = await appChain.transaction(
-  //         priv.toPublicKey(),
-  //         () => {
-  //           balances.addBalance(
-  //             PrivateKey.random().toPublicKey(),
-  //             UInt64.from(1000)
-  //           );
-  //         },
-  //         { nonce: i++ }
-  //       );
-  //       await tx2.sign();
-  //       await tx2.send();
-  //     });
-  //
-  //     await Promise.all(p)
-  //
-  //     console.log(process.memoryUsage().heapUsed / 1024 / 1024 + "MB");
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  //   console.log("Sent new tx");
-  // }, 8000);
 
   return appChain;
 }
