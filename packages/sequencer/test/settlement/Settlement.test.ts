@@ -22,6 +22,7 @@ import {
 import {
   ACTIONS_EMPTY_HASH,
   Deposit,
+  MINA_EVENT_PREFIXES,
   MinaActions,
   MinaPrefixedProvableHashList,
   NetworkState,
@@ -292,7 +293,7 @@ describe("settlement contracts", () => {
 
     const list = new MinaPrefixedProvableHashList(
       Field,
-      "MinaZkappSeqEvents**",
+      MINA_EVENT_PREFIXES.sequenceEvents,
       empty
     );
     list.push(actionHash);
@@ -321,6 +322,9 @@ describe("settlement contracts", () => {
     const tx2 = await Mina.transaction(
       { sender: userKey.toPublicKey(), fee: 0.01 * 1e9 },
       () => {
+        const subAU = AccountUpdate.createSigned(userKey.toPublicKey());
+        subAU.balance.subInPlace(UInt64.from(100));
+
         contract.deposit(UInt64.from(100));
       }
     );
@@ -345,16 +349,16 @@ describe("settlement contracts", () => {
       ),
     });
 
-    const prefix = "MinaZkappEvent******";
+    const prefix = MINA_EVENT_PREFIXES.event;
     const txHash2 = hashWithPrefix(prefix, depositTx.hashData());
-    const txHash21 = hashWithPrefix("MinaZkappSeqEvents**", [
+    const txHash21 = hashWithPrefix(MINA_EVENT_PREFIXES.sequenceEvents, [
       Actions.empty().hash,
       txHash2,
     ]);
 
     const list = new MinaPrefixedProvableHashList(
       Field,
-      "MinaZkappSeqEvents**",
+      MINA_EVENT_PREFIXES.sequenceEvents,
       startingActionHash
     );
     list.push(txHash21);

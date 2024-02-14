@@ -45,8 +45,8 @@ export class RuntimeTransaction extends Struct({
     return new RuntimeTransaction({
       methodId,
       argsHash,
-      nonce: UInt64Option.notSome(UInt64.zero),
-      sender: PublicKeyOption.notSome(EMPTY_PUBLICKEY),
+      nonce: UInt64Option.none(UInt64.zero),
+      sender: PublicKeyOption.none(EMPTY_PUBLICKEY),
     });
   }
 

@@ -17,12 +17,10 @@ export class MethodIdResolver {
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {
-    const { modules } = runtime.definition;
-
     this.dictionary = runtime.runtimeModuleNames.reduce<
       Record<string, { moduleName: string; methodName: string }>
     >((dict, moduleName) => {
-      this.runtime.assertIsValidModuleName(modules, moduleName);
+      this.runtime.assertIsValidModuleName(moduleName);
 
       runtime.resolve(moduleName).runtimeMethodNames.forEach((methodName) => {
         dict[this.getMethodId(moduleName, methodName).toString()] = {
@@ -44,19 +42,13 @@ export class MethodIdResolver {
 
     const { moduleName, methodName } = methodPath;
 
-    this.runtime.assertIsValidModuleName(
-      this.runtime.definition.modules,
-      moduleName
-    );
+    this.runtime.assertIsValidModuleName(moduleName);
 
     return [moduleName, methodName];
   }
 
   public getMethodId(moduleName: string, methodName: string): bigint {
-    this.runtime.assertIsValidModuleName(
-      this.runtime.definition.modules,
-      moduleName
-    );
+    this.runtime.assertIsValidModuleName(moduleName);
 
     return Poseidon.hash([
       stringToField(moduleName),

@@ -2,8 +2,8 @@ import { inject } from "tsyringe";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  DefaultProvableHashList,
-  MinaPrefixedProvableHashList,
+  DefaultProvableHashList, MINA_EVENT_PREFIXES,
+  MinaPrefixedProvableHashList
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { log, noop, RollupMerkleTree } from "@proto-kit/common";
@@ -241,7 +241,7 @@ export class BlockProducerModule extends SequencerModule {
     );
     const messageTracker = new MinaPrefixedProvableHashList(
       Field,
-      "MinaZkappSeqEvents**",
+      MINA_EVENT_PREFIXES.sequenceEvents,
       bundles[0].block.block.fromMessagesHash
     );
 

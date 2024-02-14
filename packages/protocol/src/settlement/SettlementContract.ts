@@ -3,6 +3,7 @@ import {
   Bool,
   Field,
   method,
+  Mina,
   Poseidon,
   Proof,
   Provable,
@@ -315,10 +316,6 @@ export class SettlementContract extends SmartContract {
     // Save this, since otherwise it would be a second witness later,
     // which could be a different values than the first
     const sender = this.sender;
-    // Create AccountUpdate that deducts the amount from the sender
-    const source = AccountUpdate.create(sender);
-    source.balance.subInPlace(amount);
-    source.requireSignature();
 
     // Credit the amount to the bridge contract
     this.self.balance.addInPlace(amount);
@@ -365,7 +362,11 @@ export class SettlementContract extends SmartContract {
       const isNewAccount = tokenAu.account.isNew.getAndAssertEquals();
       tokenAu.body.balanceChange.magnitude =
         tokenAu.body.balanceChange.magnitude.sub(
-          Provable.if(isNewAccount, UInt64.from(1e9), UInt64.zero)
+          Provable.if(
+            isNewAccount,
+            Mina.accountCreationFee().toConstant(),
+            UInt64.zero
+          )
         );
 
       accountCreationFeePaid = accountCreationFeePaid.add(
