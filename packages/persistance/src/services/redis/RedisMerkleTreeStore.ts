@@ -4,9 +4,8 @@ import {
   MerkleTreeNodeQuery,
 } from "@proto-kit/sequencer";
 import { log, noop } from "@proto-kit/common";
-import { inject, injectable } from "tsyringe";
 
-import { RedisConnection } from "../../RedisConnection";
+import type { RedisConnection } from "../../RedisConnection";
 
 export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   private cache: MerkleTreeNode[] = [];
@@ -16,12 +15,12 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     private readonly mask: string = "base"
   ) {}
 
-  public async openTransaction(): Promise<void> {
-    noop();
-  }
-
   private getKey(node: MerkleTreeNodeQuery): string {
     return `${this.mask}:${node.level}:${node.key.toString()}`;
+  }
+
+  public async openTransaction(): Promise<void> {
+    noop();
   }
 
   public async commit(): Promise<void> {
@@ -30,28 +29,17 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
       ({ key, level, value }) => [this.getKey({ key, level }), value.toString()]
     );
 
-    const start2 = Date.now();
-
     if (array.length === 0) {
       return;
     }
 
     try {
-      // console.log(array.slice(0, 5).flat(1));
-      await this.connection.redisClient!.mSet(array.flat(1));
-    } catch (e) {
-      if (e instanceof Error) {
-        console.log(e.name);
-        console.log(e.message);
-        console.log(e.stack);
-      } else {
-        console.log(e);
-      }
+      await this.connection.redisClient.mSet(array.flat(1));
+    } catch (error) {
+      log.error(error);
     }
-    log.debug(
-      `Committing ${array.length} kv-pairs took ${
-        Date.now() - start
-      } ms (preparing the input was ${start2 - start} ms)`
+    log.trace(
+      `Committing ${array.length} kv-pairs took ${Date.now() - start} ms`
     );
 
     this.cache = [];
@@ -60,13 +48,13 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   public async getNodesAsync(
     nodes: MerkleTreeNodeQuery[]
   ): Promise<(bigint | undefined)[]> {
-    if(nodes.length === 0){
+    if (nodes.length === 0) {
       return [];
     }
 
     const keys = nodes.map((node) => this.getKey(node));
 
-    const result = await this.connection.redisClient!.mGet(keys);
+    const result = await this.connection.redisClient.mGet(keys);
 
     return result.map((x) => (x !== null ? BigInt(x) : undefined));
   }
@@ -77,6 +65,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     // We might not even need this, since the distinctness filter might already
     // be implicitely done by the layer above (i.e. cachedmtstore)
 
+    // Leaving this for now until I get to implementing it
     // const concat = this.cache.concat(nodes);
     // const reversed = concat.slice().reverse();
     // this.cache = concat.filter((node, index) => {

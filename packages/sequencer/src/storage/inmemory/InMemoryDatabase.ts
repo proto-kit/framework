@@ -2,7 +2,6 @@
 import { noop } from "@proto-kit/common";
 
 import { CachedStateService } from "../../state/state/CachedStateService";
-import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import {
   sequencerModule,
   SequencerModule,
@@ -17,7 +16,6 @@ import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 import { InMemoryMessageStorage } from "./InMemoryMessageStorage";
 import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
-import { InMemoryStateService } from "@proto-kit/module";
 import { InMemoryTransactionStorage } from "./InMemoryTransactionStorage";
 
 @sequencerModule()

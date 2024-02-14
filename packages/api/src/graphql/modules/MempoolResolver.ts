@@ -128,20 +128,4 @@ export class MempoolResolver extends GraphqlModule {
     const txs = await this.mempool.getTxs();
     return txs.map((x) => x.hash().toString());
   }
-
-  // @Query(returns => [TransactionObject])
-  // transaction(
-  //     @Arg("hash") hash: string
-  // ){
-  //
-  // eslint-disable-next-line max-len
-  //     let tx = this.mempool.getTxs().txs.find(x => x.hash().toString() === hash) //TODO Not very performant
-  //
-  //     if(tx){
-  //         let parsed = tx.toJSON()
-  //         return [parsed]
-  //     }else{
-  //         return []
-  //     }
-  // }
 }

@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Enable after upgrade to 5.9.0
   // previewFeatures = ["relationJoins"]
 }
 
@@ -17,14 +18,6 @@ model State {
   mask   String @db.VarChar(256)
 
   @@id([path, mask])
-}
-
-model TreeElement {
-  key   Decimal @db.Decimal(78, 0)
-  level Int @db.SmallInt
-  value Decimal @db.Decimal(78, 0)
-
-  @@id([key, level])
 }
 
 model Transaction {

@@ -1,7 +1,6 @@
 export * from "./PrismaDatabaseConnection";
 export * from "./RedisConnection";
 export * from "./PrismaRedisDatabase";
-export * from "./services/prisma/PrismaMerkleTreeStore";
 export * from "./services/prisma/PrismaStateService";
 export * from "./services/prisma/PrismaBlockStorage";
 export * from "./services/prisma/PrismaBatchStore";
