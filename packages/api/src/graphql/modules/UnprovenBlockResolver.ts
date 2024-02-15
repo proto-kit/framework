@@ -68,11 +68,21 @@ export class UnprovenBlockResolver extends GraphqlModule<object> {
     super();
   }
 
-  @Query(() => UnprovenBlockModel, { nullable: true })
+  @Query(() => UnprovenBlockModel, {
+    nullable: true,
+    description:
+      "Queries for blocks that have been sequenced and included into the chain",
+  })
   public async block(
-    @Arg("height", () => Number, { nullable: true })
+    @Arg("height", () => Number, {
+      nullable: true,
+      description: "Filters the blocks for a specific height",
+    })
     height: number | undefined,
-    @Arg("hash", () => String, { nullable: true })
+    @Arg("hash", () => String, {
+      nullable: true,
+      description: "Filters the blocks for a specific height",
+    })
     hash: string | undefined
   ) {
     let block: UnprovenBlock | undefined;

@@ -6,5 +6,6 @@ export * from "./graphql/GraphqlModule";
 export * from "./graphql/GraphqlServer";
 export * from "./graphql/GraphqlSequencerModule";
 export * from "./graphql/modules/NodeStatusResolver";
+export * from "./graphql/modules/AdvancedNodeStatusResolver";
 export * from "./graphql/services/NodeStatusService";
 export * from "./graphql/modules/MerkleWitnessResolver";
