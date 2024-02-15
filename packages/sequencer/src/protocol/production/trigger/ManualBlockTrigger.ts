@@ -1,11 +1,17 @@
-import { inject, injectable } from "tsyringe";
+import {
+  inject,
+} from "tsyringe";
+import { injectOptional } from "@proto-kit/common";
 
 import { sequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { ComputedBlock } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import {
+  HistoricalUnprovenBlockStorage,
+  UnprovenBlockQueue,
+} from "../../../storage/repositories/UnprovenBlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
@@ -21,15 +27,15 @@ export class ManualBlockTrigger
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
     @inject("UnprovenBlockQueue")
-    unprovenBlockQueue: UnprovenBlockQueue,
-    // @inject("SettlementModule")
-    // settlementModule: SettlementModule
+    unprovenBlockQueue: UnprovenBlockQueue & HistoricalUnprovenBlockStorage,
+    @injectOptional("SettlementModule")
+    settlementModule?: SettlementModule
   ) {
     super(
       blockProducerModule,
       unprovenProducerModule,
       unprovenBlockQueue,
-      undefined
+      settlementModule
     );
   }
 

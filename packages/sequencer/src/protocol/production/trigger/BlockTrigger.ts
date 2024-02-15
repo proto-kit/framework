@@ -3,10 +3,14 @@ import { NoConfig, noop } from "@proto-kit/common";
 import { ComputedBlock } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import {
+  HistoricalUnprovenBlockStorage,
+  UnprovenBlockQueue,
+} from "../../../storage/repositories/UnprovenBlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
+import { container } from "tsyringe";
 
 /**
  * A BlockTrigger is the primary method to start the production of a block and
@@ -22,7 +26,7 @@ export class BlockTriggerBase<Config = NoConfig>
   public constructor(
     protected readonly blockProducerModule: BlockProducerModule,
     protected readonly unprovenProducerModule: UnprovenProducerModule,
-    protected readonly unprovenBlockQueue: UnprovenBlockQueue,
+    protected readonly unprovenBlockQueue: UnprovenBlockQueue & HistoricalUnprovenBlockStorage,
     protected readonly settlementModule?: SettlementModule
   ) {
     super();
@@ -51,6 +55,7 @@ export class BlockTriggerBase<Config = NoConfig>
   }
 
   protected async settle(batch: ComputedBlock) {
+    // const firstBlock =
 
     // TODO After Persistance PR because we need batch.blocks for that
   }

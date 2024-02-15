@@ -1,11 +1,14 @@
 import { inject, injectable } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { injectOptional, log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
 import { Closeable } from "../../../worker/queue/TaskQueue";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import {
+  HistoricalUnprovenBlockStorage,
+  UnprovenBlockQueue
+} from "../../../storage/repositories/UnprovenBlockStorage";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 
@@ -32,9 +35,9 @@ export class TimedBlockTrigger
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
     @inject("UnprovenBlockQueue")
-    unprovenBlockQueue: UnprovenBlockQueue,
-    // @inject("SettlementModule")
-    // settlementModule: SettlementModule,
+    unprovenBlockQueue: UnprovenBlockQueue & HistoricalUnprovenBlockStorage,
+    @injectOptional("SettlementModule")
+    settlementModule: SettlementModule | undefined,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
@@ -42,7 +45,7 @@ export class TimedBlockTrigger
       blockProducerModule,
       unprovenProducerModule,
       unprovenBlockQueue,
-      undefined
+      settlementModule
     );
   }
 
