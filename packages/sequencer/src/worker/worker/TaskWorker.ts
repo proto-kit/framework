@@ -90,7 +90,7 @@ export class TaskWorker implements Closeable {
     tasks: ArrayElement<typeof this.tasks>[]
   ) {
     return this.queue.createWorker(queueName, async (data) => {
-      log.debug(`Received task in queue ${queueName}`);
+      log.trace(`Received task in queue ${queueName}`);
 
       // Use first handler that returns a non-undefined result
       // eslint-disable-next-line @typescript-eslint/init-declarations

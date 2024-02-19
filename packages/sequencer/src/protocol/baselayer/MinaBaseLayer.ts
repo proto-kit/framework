@@ -34,11 +34,6 @@ export class MinaBaseLayer
     };
   }
 
-  public blockProduced(block: ComputedBlock): Promise<void> {
-    // TODO
-    return Promise.resolve(undefined);
-  }
-
   public async start(): Promise<void> {
     const { network } = this.config;
 
