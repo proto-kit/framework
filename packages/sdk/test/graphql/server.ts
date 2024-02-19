@@ -160,10 +160,21 @@ export async function startServer() {
 
       Database: {
         redis: {
-          url: "redis://localhost:6379",
+          host: "localhost",
+          port: 6379,
           password: "password",
         },
-        prisma: {},
+        prisma: {
+          connection: {
+            host: "localhost",
+            password: "password",
+            username: "user",
+            port: 5432,
+            db: {
+              name: "protokit",
+            }
+          }
+        },
       },
 
       Mempool: {},
