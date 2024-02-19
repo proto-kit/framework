@@ -94,7 +94,9 @@ export class TransactionExecutionService {
   ): StateRecord {
     return stateTransitions.reduce<Record<string, Field[] | undefined>>(
       (state, st) => {
-        state[st.path.toString()] = st.toValue.value;
+        if (st.toValue.isSome.toBoolean()) {
+          state[st.path.toString()] = st.toValue.value;
+        }
         return state;
       },
       {}

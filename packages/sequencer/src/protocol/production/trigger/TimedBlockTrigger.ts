@@ -6,13 +6,14 @@ import { Closeable } from "../../../worker/queue/TaskQueue";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
 import {
-  HistoricalUnprovenBlockStorage,
-  UnprovenBlockQueue
+  UnprovenBlockQueue,
 } from "../../../storage/repositories/UnprovenBlockStorage";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
+import { BlockStorage } from "../../../storage/repositories/BlockStorage";
 
 export interface TimedBlockTriggerConfig {
   settlementInterval?: number;
@@ -34,18 +35,24 @@ export class TimedBlockTrigger
     blockProducerModule: BlockProducerModule,
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
-    @inject("UnprovenBlockQueue")
-    unprovenBlockQueue: UnprovenBlockQueue & HistoricalUnprovenBlockStorage,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
+    @inject("UnprovenBlockQueue")
+    unprovenBlockQueue: UnprovenBlockQueue,
+    @inject("BlockStorage")
+    blockStorage: BlockStorage,
+    @injectOptional("SettlementStorage")
+    settlementStorage: SettlementStorage | undefined,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
     super(
-      blockProducerModule,
       unprovenProducerModule,
+      blockProducerModule,
+      settlementModule,
       unprovenBlockQueue,
-      settlementModule
+      blockStorage,
+      settlementStorage
     );
   }
 
@@ -74,7 +81,10 @@ export class TimedBlockTrigger
           settlementInterval !== undefined &&
           totalTime % settlementInterval === 0
         ) {
-          await this.produceProven();
+          const batch = await this.produceProven();
+          if (batch !== undefined) {
+            await this.settle(batch);
+          }
         }
       } catch (error) {
         if (error instanceof Error) {
