@@ -45,8 +45,9 @@ import {
   SettlementHookInputs,
   SettlementStateRecord,
 } from "./ProvableSettlementHook";
+import { DispatchContract } from "./DispatchContract";
 
-class LazyBlockProof extends Proof<
+export class LazyBlockProof extends Proof<
   BlockProverPublicInput,
   BlockProverPublicOutput
 > {
@@ -129,20 +130,15 @@ export class SettlementContract extends SmartContract {
   @state(Field) public networkStateHash = State<Field>();
   @state(Field) public blockHashRoot = State<Field>();
 
-  @state(Field) public promisedMessagesHash = State<Field>();
-  @state(Field) public honoredMessagesHash = State<Field>();
+  @state(Field) public dispatchContractAddressX = State<Field>();
 
   @state(Field) public outgoingMessageCursor = State<Field>();
 
   public constructor(
     address: PublicKey,
-    private readonly methodIdMappings: Record<string, bigint>,
+    private readonly dispatchContract: DispatchContract,
     private readonly hooks: ProvableSettlementHook<unknown>[],
     private readonly withdrawalStatePath: [string, string],
-    private readonly incomingMessagesPaths: Record<
-      string,
-      `${string}.${string}`
-    >,
     // 24 hours
     private readonly escapeHatchSlotsInterval = (60 / 3) * 24
   ) {
@@ -150,26 +146,27 @@ export class SettlementContract extends SmartContract {
   }
 
   @method
-  public initialize(sequencer: PublicKey) {
+  public initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
     this.sequencerKey.getAndAssertEquals().assertEquals(Field(0));
     this.stateRoot.getAndAssertEquals().assertEquals(Field(0));
     this.blockHashRoot.getAndAssertEquals().assertEquals(Field(0));
     this.networkStateHash.getAndAssertEquals().assertEquals(Field(0));
-    this.promisedMessagesHash.getAndAssertEquals().assertEquals(Field(0));
-    this.honoredMessagesHash.getAndAssertEquals().assertEquals(Field(0));
+    this.dispatchContractAddressX.getAndAssertEquals().assertEquals(Field(0));
 
     this.sequencerKey.set(sequencer.x);
     this.stateRoot.set(Field(RollupMerkleTree.EMPTY_ROOT));
     this.blockHashRoot.set(Field(BlockHashMerkleTree.EMPTY_ROOT));
     this.networkStateHash.set(NetworkState.empty().hash());
-    this.promisedMessagesHash.set(ACTIONS_EMPTY_HASH);
-    this.honoredMessagesHash.set(ACTIONS_EMPTY_HASH);
+    this.dispatchContractAddressX.set(dispatchContract.x);
+
+    this.dispatchContract.initialize();
   }
 
   @method
   public settle(
     blockProof: LazyBlockProof,
     signature: Signature,
+    dispatchContractAddress: PublicKey,
     publicKey: PublicKey,
     inputNetworkState: NetworkState,
     outputNetworkState: NetworkState,
@@ -183,16 +180,20 @@ export class SettlementContract extends SmartContract {
     const networkStateHash = this.networkStateHash.getAndAssertEquals();
     const blockHashRoot = this.blockHashRoot.getAndAssertEquals();
     const sequencerKey = this.sequencerKey.getAndAssertEquals();
-    const promisedMessagesHash = this.promisedMessagesHash.getAndAssertEquals();
-    const honoredMessagesHash = this.honoredMessagesHash.getAndAssertEquals();
     const lastSettlementL1Block =
       this.lastSettlementL1Block.getAndAssertEquals();
+
+    // Get dispatch contract values
+    // These values are witnesses but will be checked later on the AU
+    // call to the dispatch contract via .updateMessagesHash()
+    const promisedMessagesHash = this.dispatchContract.promisedMessagesHash.get();
 
     // Get block height and use the lower bound for all ops
     const minBlockIncluded = this.network.globalSlotSinceGenesis.get();
     this.network.globalSlotSinceGenesis.assertBetween(
       minBlockIncluded,
-      minBlockIncluded.add(20)
+      // 5 because that is the length the newPromisedMessagesHash will be valid
+      minBlockIncluded.add(4)
     );
 
     // Check signature/escape catch
@@ -273,61 +274,14 @@ export class SettlementContract extends SmartContract {
       blockProof.publicOutput.incomingMessagesHash,
       "Promised messages not honored"
     );
-    this.honoredMessagesHash.set(promisedMessagesHash);
-
-    // Assert and apply new promisedMessagesHash
-    this.self.account.actionState.assertEquals(newPromisedMessagesHash);
-    this.promisedMessagesHash.set(newPromisedMessagesHash);
+    // Call DispatchContract
+    // This call checks that the promisedMessagesHash, which is already proven
+    // to be the blockProofs publicoutput, is actually the current on-chain
+    // promisedMessageHash. It also checks the newPromisedMessagesHash to be
+    // a current sequencestate value
+    this.dispatchContract.updateMessagesHash(promisedMessagesHash, newPromisedMessagesHash)
 
     this.lastSettlementL1Block.set(minBlockIncluded);
-  }
-
-  private dispatchMessage<Type>(
-    methodId: Field,
-    value: Type,
-    valueType: ProvableExtended<Type>
-  ) {
-    const args = valueType.toFields(value);
-    // Should be the same as RuntimeTransaction.hash
-    const argsHash = Poseidon.hash(args);
-    const runtimeTransaction = RuntimeTransaction.fromMessage({
-      methodId,
-      argsHash,
-    });
-
-    // Append tx to incomingMessagesHash
-    const actionData = runtimeTransaction.hashData();
-    const actionHash = MinaActions.actionHash(actionData);
-
-    this.self.body.actions = {
-      hash: actionHash,
-      data: [actionData],
-    };
-
-    const eventHash = MinaEvents.eventHash(args);
-    this.self.body.events = {
-      hash: eventHash,
-      data: [args],
-    };
-  }
-
-  @method
-  public deposit(amount: UInt64) {
-    // Save this, since otherwise it would be a second witness later,
-    // which could be a different values than the first
-    const sender = this.sender;
-
-    // Credit the amount to the bridge contract
-    this.self.balance.addInPlace(amount);
-
-    const action = new Deposit({
-      address: sender,
-      amount,
-    });
-    const methodId = Field(
-      this.methodIdMappings[this.incomingMessagesPaths["deposit"]]
-    );
-    this.dispatchMessage(methodId.toConstant(), action, Deposit);
   }
 
   @method
@@ -401,44 +355,5 @@ export class SettlementContract extends SmartContract {
     // Send mina
     this.approve(additionUpdate);
     this.balance.subInPlace(amount);
-  }
-}
-
-export interface SettlementContractModuleConfig {
-  withdrawalStatePath: `${string}.${string}`;
-  withdrawalMethodPath: `${string}.${string}`;
-  incomingMessagesMethods: Record<string, `${string}.${string}`>;
-}
-
-@injectable()
-export class SettlementContractModule extends ProtocolModule<SettlementContractModuleConfig> {
-  public constructor(
-    @injectAll("ProvableSettlementHook")
-    private readonly hooks: ProvableSettlementHook<unknown>[],
-    @inject("BlockProver")
-    private readonly blockProver: BlockProvable
-  ) {
-    super();
-    LazyBlockProof.tag = blockProver.zkProgrammable.zkProgram.Proof.tag;
-  }
-
-  public getContractClass(): typeof SettlementContract {
-    return SettlementContract;
-  }
-
-  public createContract(
-    address: PublicKey,
-    methodIdMappings: SettlementMethodIdMapping
-  ): SettlementContract {
-    // We know that this returns [string, string], but TS can't infer that
-    const withdrawalPath = this.config.withdrawalStatePath.split(".");
-
-    return new SettlementContract(
-      address,
-      methodIdMappings,
-      this.hooks,
-      [withdrawalPath[0], withdrawalPath[1]],
-      this.config.incomingMessagesMethods
-    );
   }
 }

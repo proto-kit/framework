@@ -108,6 +108,9 @@ export type RecursivePartial<T> = {
 export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   modules: Modules;
   // config is optional, as it may be provided by the parent/wrapper class
+  /**
+   * @deprecated
+   */
   config?: ModulesConfig<Modules>;
 }
 
@@ -133,8 +136,9 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
  * configuration, decoration and validation of modules
  */
 export class ModuleContainer<
-  Modules extends ModulesRecord
-> extends ConfigurableModule<ModulesConfig<Modules>> {
+  Modules extends ModulesRecord,
+  ExtraConfig = NoConfig
+> extends ConfigurableModule<ModulesConfig<Modules> & ExtraConfig> {
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -148,9 +152,6 @@ export class ModuleContainer<
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
-    if (definition.config !== undefined) {
-      this.config = definition.config;
-    }
   }
 
   /**
@@ -285,22 +286,24 @@ export class ModuleContainer<
    * before the first resolution.
    * @param config
    */
-  public configure(config: ModulesConfig<Modules>) {
+  public configure(config: ModulesConfig<Modules> & ExtraConfig) {
     this.config = config;
   }
 
-  public configurePartial(config: RecursivePartial<ModulesConfig<Modules>>) {
+  public configurePartial(
+    config: RecursivePartial<ModulesConfig<Modules>> & ExtraConfig
+  ) {
     this.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      RecursivePartial<ModulesConfig<Modules>>
+      (ModulesConfig<Modules> & ExtraConfig) | NoConfig,
+      RecursivePartial<ModulesConfig<Modules>> & ExtraConfig
     >(this.currentConfig ?? {}, config);
   }
 
   // eslint-disable-next-line accessor-pairs
-  public set config(config: ModulesConfig<Modules>) {
+  public set config(config: ModulesConfig<Modules> & ExtraConfig) {
     super.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      ModulesConfig<Modules>
+      (ModulesConfig<Modules> & ExtraConfig) | NoConfig,
+      ModulesConfig<Modules> & ExtraConfig
     >(this.currentConfig ?? {}, config);
   }
 
