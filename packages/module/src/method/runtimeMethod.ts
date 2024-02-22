@@ -2,19 +2,16 @@
 import {
   Bool,
   Field,
-  FlexibleProvable,
   Poseidon,
-  Proof,
-  ProvableExtended,
 } from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
-  DefaultProvableHashList,
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
   SignedTransaction,
+  StateTransitionReductionList,
 } from "@proto-kit/protocol";
 import {
   DecoratedMethod,
@@ -52,7 +49,7 @@ export function toStateTransitionsHash(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stateTransitions: StateTransition<any>[]
 ) {
-  const stateTransitionsHashList = new DefaultProvableHashList(
+  const stateTransitionsHashList = new StateTransitionReductionList(
     ProvableStateTransition
   );
 
@@ -122,7 +119,10 @@ export function toWrappedMethod(
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const { argsFields } = MethodParameterEncoder.fromMethod(this, methodName).encode(args);
+    const { argsFields } = MethodParameterEncoder.fromMethod(
+      this,
+      methodName
+    ).encode(args);
 
     // Assert that the argsHash that has been signed matches the given arguments
     // We can use js-if here, because methodArguments is statically sizes
@@ -189,7 +189,9 @@ export function isRuntimeMethod(
 
 export type RuntimeMethodInvocationType = "SIGNATURE" | "INCOMING_MESSAGE";
 
-function runtimeMethodInternal(options: { invocationType: RuntimeMethodInvocationType }) {
+function runtimeMethodInternal(options: {
+  invocationType: RuntimeMethodInvocationType;
+}) {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
