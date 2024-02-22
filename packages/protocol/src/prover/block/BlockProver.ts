@@ -821,6 +821,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const SelfProofClass = Experimental.ZkProgram.Proof(program);
 
     return {
+      ...program,
       compile: program.compile.bind(program),
       verify: program.verify.bind(program),
       Proof: SelfProofClass,

@@ -188,10 +188,8 @@ export class RuntimeZkProgrammable<
     }, {});
 
     return {
-      compile: async () => {
-        console.log("compiling runtime");
-        return await program.compile.bind(program)();
-      },
+      ...program,
+      compile: program.compile.bind(program),
       verify: program.verify.bind(program),
       Proof: SelfProof,
       methods,

@@ -28,6 +28,16 @@ import { FlowTaskWorker } from "./FlowTaskWorker";
  */
 @sequencerModule()
 export class LocalTaskWorkerModule extends SequencerModule {
+  private readonly worker = new FlowTaskWorker(this.taskQueue, [
+    this.stateTransitionTask,
+    this.stateTransitionReductionTask,
+    this.runtimeProvingTask,
+    this.blockProvingTask,
+    this.blockReductionTask,
+    this.blockBuildingTask,
+    // this.contractDeployTask,
+  ]);
+
   // eslint-disable-next-line max-params
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,
@@ -44,17 +54,10 @@ export class LocalTaskWorkerModule extends SequencerModule {
     super();
   }
 
-  public async start(): Promise<void> {
-    const worker = new FlowTaskWorker(this.taskQueue, [
-      this.stateTransitionTask,
-      this.stateTransitionReductionTask,
-      this.runtimeProvingTask,
-      this.blockProvingTask,
-      this.blockReductionTask,
-      this.blockBuildingTask,
-      // this.contractDeployTask,
-    ]);
-    worker
+  public async start() {}
+
+  public async prepare() {
+    this.worker
       .start()
       // eslint-disable-next-line max-len
       // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return

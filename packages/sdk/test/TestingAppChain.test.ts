@@ -11,8 +11,16 @@ import { InMemoryAreProofsEnabled, TestingAppChain } from "../src/index";
 import { container, inject } from "tsyringe";
 import { AreProofsEnabled, log } from "@proto-kit/common";
 import { randomUUID } from "crypto";
-import { assert, State, StateMap } from "@proto-kit/protocol";
-import { ManualBlockTrigger } from "@proto-kit/sequencer";
+import {
+  assert,
+  RuntimeMethodExecutionContext,
+  State,
+  StateMap,
+} from "@proto-kit/protocol";
+import {
+  LocalTaskWorkerModule,
+  ManualBlockTrigger,
+} from "@proto-kit/sequencer";
 
 log.setLevel("debug");
 
@@ -22,8 +30,6 @@ export interface AdminConfig {
 
 @runtimeModule()
 export class Admin extends RuntimeModule<AdminConfig> {
-  public id = randomUUID();
-
   public isSenderAdmin() {
     assert(
       this.transaction.sender.value.equals(this.config.admin),
@@ -51,34 +57,39 @@ class Balances extends RuntimeModule<BalancesConfig> {
    * @param {Admin} admin - The "admin" parameter is of type "Admin" and is being injected using the
    * "@inject" decorator.
    */
-  // public constructor(@inject("Admin") public admin: Admin) {
-  //   super();
-  // }
+  public constructor(@inject("Admin") public admin: Admin) {
+    super();
+  }
 
   @runtimeMethod()
   public addBalance(address: PublicKey, balance: UInt64) {
-    // const totalSupply = this.totalSupply.get();
+    this.admin.isSenderAdmin();
+    const totalSupply = this.totalSupply.get();
 
-    // const newTotalSupply = totalSupply.value.add(balance);
-    // const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
-    //   this.config.totalSupply
-    // );
+    const newTotalSupply = totalSupply.value.add(balance);
+    const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
+      this.config.totalSupply
+    );
 
-    // this.totalSupply.set(newTotalSupply);
+    this.totalSupply.set(newTotalSupply);
 
-    // assert(
-    //   isSupplyNotOverflown,
-    //   "Adding the balance would overflow the total supply"
-    // );
+    assert(
+      isSupplyNotOverflown,
+      "Adding the balance would overflow the total supply"
+    );
 
-    // const isSender = this.transaction.sender.value.equals(address);
-    // assert(isSender, "Address is not the sender");
+    const isSender = this.transaction.sender.value.equals(address);
+    assert(isSender, "Address is not the sender");
 
-    // const currentBalance = this.balances.get(address);
+    const currentBalance = this.balances.get(address);
 
-    // const newBalance = currentBalance.value.add(balance);
+    const newBalance = currentBalance.value.add(balance);
 
-    this.balances.set(address, balance);
+    this.balances.set(address, newBalance);
+
+    const context = container.resolve(RuntimeMethodExecutionContext);
+    Provable.log("ST length", context.current().result.stateTransitions.length);
+    Provable.log("RUNTIME HEIGHT", this.network.block.height);
   }
 }
 
@@ -112,13 +123,19 @@ describe("testing app chain", () => {
     // start the chain, sequencer is now accepting transactions
     await appChain.start();
 
-    // const areProofsEnabled = appChain.resolveOrFail(
-    //   "AreProofsEnabled",
-    //   InMemoryAreProofsEnabled
-    // );
-    // areProofsEnabled.setProofsEnabled(true);
+    const areProofsEnabled = appChain.resolveOrFail(
+      "AreProofsEnabled",
+      InMemoryAreProofsEnabled
+    );
+    areProofsEnabled.setProofsEnabled(true);
 
-    // console.log("areProofsEnabled", areProofsEnabled);
+    console.log("areProofsEnabled", areProofsEnabled);
+
+    const taskWorkerModule = appChain.sequencer.resolveOrFail(
+      "LocalTaskWorkerModule",
+      LocalTaskWorkerModule
+    );
+    await taskWorkerModule.prepare();
 
     /**
      *  Setup the transaction signer / sender
@@ -157,5 +174,12 @@ describe("testing app chain", () => {
     const balance = await appChain.query.runtime.Balances.balances.get(sender);
 
     expect(balance?.toBigInt()).toBe(1000n);
+
+    Provable.log("unproven", block);
+
+    Provable.log("proof", {
+      input: provenBlock?.proof.publicInput,
+      output: provenBlock?.proof.publicOutput,
+    });
   }, 6_000_000);
 });

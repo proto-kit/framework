@@ -57,9 +57,11 @@ export class RuntimeModule<
   }
 
   private getInputs(): RuntimeMethodExecutionData {
-    const { input } = container.resolve<RuntimeMethodExecutionContext>(
+    const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
+
+    const input = context.witnessInput();
 
     if (input === undefined) {
       throw errors.inputDataNotSet();

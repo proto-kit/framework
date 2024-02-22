@@ -100,6 +100,12 @@ export class RuntimeProvingTask
     console.log("preparing runtime proving task", inputs);
     const context = container.resolve(RuntimeMethodExecutionContext);
     context.setup(inputs);
+
+    console.log(
+      "runtime analyze methods",
+      this.runtimeZkProgrammable.analyzeMethods()
+    );
+
     console.time("prepare-runtime");
     await this.runtimeZkProgrammable.compile();
     console.timeEnd("prepare-runtime");

@@ -348,14 +348,6 @@ export class AppChain<
     this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
     this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
 
-    const areProofsEnabled = this.resolveOrFail(
-      "AreProofsEnabled",
-      InMemoryAreProofsEnabled
-    );
-    areProofsEnabled.setProofsEnabled(true);
-
-    console.log("areProofsEnabled", areProofsEnabled);
-
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.
     // This is because when it is the first time they are resolved, create()
