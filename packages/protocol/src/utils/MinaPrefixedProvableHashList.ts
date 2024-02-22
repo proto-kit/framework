@@ -1,4 +1,4 @@
-import { Field, FlexibleProvablePure, Poseidon } from "o1js";
+import { Field, Poseidon, ProvablePure } from "o1js";
 import { hashWithPrefix, prefixToField } from "@proto-kit/common";
 
 import { ProvableHashList } from "./ProvableHashList";
@@ -51,7 +51,7 @@ export class MinaPrefixedProvableHashList<
   Value
 > extends ProvableHashList<Value> {
   public constructor(
-    valueType: FlexibleProvablePure<Value>,
+    valueType: ProvablePure<Value>,
     public readonly prefix: string,
     internalCommitment: Field = Field(0)
   ) {
