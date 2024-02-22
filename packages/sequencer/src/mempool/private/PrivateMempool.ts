@@ -1,8 +1,8 @@
-import { noop } from "@proto-kit/common";
+import { EventEmitter, noop } from "@proto-kit/common";
 import { inject } from "tsyringe";
 
-import type { Mempool } from "../Mempool.js";
-import type { PendingTransaction } from "../PendingTransaction.js";
+import type { Mempool, MempoolEvents } from "../Mempool";
+import type { PendingTransaction } from "../PendingTransaction";
 import {
   sequencerModule,
   SequencerModule,
@@ -12,6 +12,8 @@ import { TransactionValidator } from "../verification/TransactionValidator";
 
 @sequencerModule()
 export class PrivateMempool extends SequencerModule implements Mempool {
+  public readonly events = new EventEmitter<MempoolEvents>();
+
   public constructor(
     private readonly transactionValidator: TransactionValidator,
     @inject("TransactionStorage")
@@ -23,7 +25,10 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   public async add(tx: PendingTransaction): Promise<boolean> {
     const [txValid, error] = this.transactionValidator.validateTx(tx);
     if (txValid) {
-      return await this.transactionStorage.pushUserTransaction(tx);
+      const success = await this.transactionStorage.pushUserTransaction(tx);
+      if (success) {
+        this.events.emit("transaction-added", tx);
+      }
     }
     throw new Error(`Valdiation of tx failed: ${error ?? "unknown error"}`);
   }
