@@ -36,7 +36,7 @@ import {
 import { container } from "tsyringe";
 import { Balance } from "../integration/mocks/Balance";
 import { SettlementModule } from "../../src/settlement/SettlementModule";
-import { ArgumentTypes, log, OverwriteObjectType } from "@proto-kit/common";
+import { ArgumentTypes, log } from "@proto-kit/common";
 import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
 import { expect } from "@jest/globals";
 import { Withdrawals } from "../integration/mocks/Withdrawals";

@@ -1,14 +1,26 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Task } from "../../worker/flow/Task";
-import { Mina, PrivateKey, PublicKey, Types, UInt64 } from "o1js";
+import {
+  Mina,
+  PrivateKey,
+  PublicKey,
+  SmartContract,
+  Types,
+  UInt64,
+} from "o1js";
 import {
   Protocol,
   ProtocolModulesRecord,
   ReturnType,
+  SettlementContract,
   SettlementContractModule,
 } from "@proto-kit/protocol";
 import { TaskSerializer } from "../../worker/manager/ReducableTask";
-import { CompileRegistry } from "../../protocol/production/tasks/CompileRegistry";
+import {
+  CompileRegistry,
+  ContractCompileArtifact,
+} from "../../protocol/production/tasks/CompileRegistry";
+import { CompileArtifact } from "@proto-kit/common";
 
 // type PartialAccount = Parameters<typeof addCachedAccount>[0];
 type PartialAccount = {
@@ -200,12 +212,16 @@ export class SettlementDeployTask
   }
 
   public async prepare(): Promise<void> {
-    const contract = this.settlementContractModule.getContractClass();
+    const contract = this.settlementContractModule.getContractClasses();
+
     await this.compileRegistry.compileSmartContract(
       "SettlementContract",
-      contract
+      contract.settlement
     );
-    await contract.compile();
+    await this.compileRegistry.compileSmartContract(
+      "DispatchContract",
+      contract.dispatch
+    );
   }
 
   public resultSerializer(): TaskSerializer<DeployResult> {

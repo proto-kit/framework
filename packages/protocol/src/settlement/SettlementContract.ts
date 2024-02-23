@@ -45,7 +45,12 @@ import {
   SettlementHookInputs,
   SettlementStateRecord,
 } from "./ProvableSettlementHook";
-import { DispatchContract } from "./DispatchContract";
+import { DispatchContract, DispatchContractType } from "./DispatchContract";
+import {
+  OUTGOING_MESSAGE_BATCH_SIZE,
+  OutgoingMessageArgumentBatch,
+} from "./OutgoingMessageArgument";
+import { Withdrawal } from "./messages/Withdrawal";
 
 export class LazyBlockProof extends Proof<
   BlockProverPublicInput,
@@ -60,69 +65,30 @@ export class LazyBlockProof extends Proof<
   };
 }
 
+export interface SettlementContractType {
+  initialize: (sequencer: PublicKey, dispatchContract: PublicKey) => void;
+  settle: (
+    blockProof: LazyBlockProof,
+    signature: Signature,
+    dispatchContractAddress: PublicKey,
+    publicKey: PublicKey,
+    inputNetworkState: NetworkState,
+    outputNetworkState: NetworkState,
+    newPromisedMessagesHash: Field
+  ) => void;
+  rollupOutgoingMessages: (batch: OutgoingMessageArgumentBatch) => void;
+  redeem: (additionUpdate: AccountUpdate) => void;
+}
+
 export type SettlementMethodIdMapping = Record<`${string}.${string}`, bigint>;
-
-export class Deposit extends Struct({
-  address: PublicKey,
-  amount: UInt64,
-}) {}
-
-export class Withdrawal extends Struct({
-  address: PublicKey,
-  amount: UInt64,
-}) {
-  static dummy() {
-    return new Withdrawal({
-      address: EMPTY_PUBLICKEY,
-      amount: UInt64.from(0),
-    });
-  }
-}
-
-export const OUTGOING_MESSAGE_BATCH_SIZE = 1;
-
-export class OutgoingMessageArgument extends Struct({
-  witness: RollupMerkleTreeWitness,
-  value: Withdrawal,
-}) {
-  public static dummy(): OutgoingMessageArgument {
-    return new OutgoingMessageArgument({
-      witness: RollupMerkleTreeWitness.dummy(),
-      value: Withdrawal.dummy(),
-    });
-  }
-}
-
-export class OutgoingMessageArgumentBatch extends Struct({
-  arguments: Provable.Array(
-    OutgoingMessageArgument,
-    OUTGOING_MESSAGE_BATCH_SIZE
-  ),
-
-  isDummys: Provable.Array(Bool, OUTGOING_MESSAGE_BATCH_SIZE),
-}) {
-  public static fromMessages(providedArguments: OutgoingMessageArgument[]) {
-    const batch = providedArguments.slice();
-    const isDummys = batch.map(() => Bool(false));
-
-    while (batch.length < OUTGOING_MESSAGE_BATCH_SIZE) {
-      batch.push(OutgoingMessageArgument.dummy());
-      isDummys.push(Bool(true));
-    }
-
-    return new OutgoingMessageArgumentBatch({
-      arguments: batch,
-      isDummys,
-    });
-  }
-}
 
 // Some random prefix for the sequencer signature
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
-export const ACTIONS_EMPTY_HASH = Reducer.initialActionState;
-
-export class SettlementContract extends SmartContract {
+export class SettlementContract
+  extends SmartContract
+  implements SettlementContractType
+{
   @state(Field) public sequencerKey = State<Field>();
   @state(UInt32) public lastSettlementL1Block = State<UInt32>();
 
@@ -136,11 +102,10 @@ export class SettlementContract extends SmartContract {
 
   public constructor(
     address: PublicKey,
-    private readonly dispatchContract: DispatchContract,
+    private readonly dispatchContract: DispatchContractType,
     private readonly hooks: ProvableSettlementHook<unknown>[],
     private readonly withdrawalStatePath: [string, string],
-    // 24 hours
-    private readonly escapeHatchSlotsInterval = (60 / 3) * 24
+    private readonly escapeHatchSlotsInterval: number
   ) {
     super(address);
   }
@@ -159,7 +124,7 @@ export class SettlementContract extends SmartContract {
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);
 
-    this.dispatchContract.initialize();
+    this.dispatchContract.initialize(this.address);
   }
 
   @method
@@ -186,7 +151,8 @@ export class SettlementContract extends SmartContract {
     // Get dispatch contract values
     // These values are witnesses but will be checked later on the AU
     // call to the dispatch contract via .updateMessagesHash()
-    const promisedMessagesHash = this.dispatchContract.promisedMessagesHash.get();
+    const promisedMessagesHash =
+      this.dispatchContract.promisedMessagesHash.get();
 
     // Get block height and use the lower bound for all ops
     const minBlockIncluded = this.network.globalSlotSinceGenesis.get();
@@ -235,10 +201,8 @@ export class SettlementContract extends SmartContract {
       blockHashRoot,
       stateRoot,
       networkStateHash,
-      honoredMessagesHash,
       lastSettlementL1Block,
-      promisedMessagesHash,
-      sequencerKey,
+      sequencerKey: publicKey,
     };
     const inputs: SettlementHookInputs = {
       blockProof,
@@ -274,12 +238,16 @@ export class SettlementContract extends SmartContract {
       blockProof.publicOutput.incomingMessagesHash,
       "Promised messages not honored"
     );
+
     // Call DispatchContract
     // This call checks that the promisedMessagesHash, which is already proven
     // to be the blockProofs publicoutput, is actually the current on-chain
     // promisedMessageHash. It also checks the newPromisedMessagesHash to be
     // a current sequencestate value
-    this.dispatchContract.updateMessagesHash(promisedMessagesHash, newPromisedMessagesHash)
+    this.dispatchContract.updateMessagesHash(
+      promisedMessagesHash,
+      newPromisedMessagesHash
+    );
 
     this.lastSettlementL1Block.set(minBlockIncluded);
   }

@@ -1,21 +1,43 @@
 import {
+  AccountUpdate,
   Field,
   method,
   Poseidon,
   ProvableExtended,
   PublicKey,
+  Reducer,
   SmartContract,
   State,
   state,
   UInt64,
 } from "o1js";
+
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { MinaActions, MinaEvents } from "../utils/MinaPrefixedProvableHashList";
-import { ACTIONS_EMPTY_HASH, Deposit } from "./SettlementContract";
 
-export class DispatchContract extends SmartContract {
+import { Deposit } from "./messages/Deposit";
+
+const ACTIONS_EMPTY_HASH = Reducer.initialActionState;
+
+export interface DispatchContractType {
+  updateMessagesHash: (
+    executedMessagesHash: Field,
+    newPromisedMessagesHash: Field
+  ) => void;
+  initialize: (settlementContract: PublicKey) => void;
+
+  promisedMessagesHash: State<Field>;
+}
+
+export class DispatchContract
+  extends SmartContract
+  implements DispatchContractType
+{
   @state(Field) public promisedMessagesHash = State<Field>();
+
   @state(Field) public honoredMessagesHash = State<Field>();
+
+  @state(PublicKey) public settlementContract = State<PublicKey>();
 
   public constructor(
     address: PublicKey,
@@ -29,7 +51,10 @@ export class DispatchContract extends SmartContract {
   }
 
   @method
-  public updateMessagesHash(executedMessagesHash: Field, newPromisedMessagesHash: Field) {
+  public updateMessagesHash(
+    executedMessagesHash: Field,
+    newPromisedMessagesHash: Field
+  ) {
     const promisedMessagesHash = this.promisedMessagesHash.getAndAssertEquals();
     this.honoredMessagesHash.getAndAssertEquals();
 
@@ -43,12 +68,16 @@ export class DispatchContract extends SmartContract {
   }
 
   @method
-  public initialize() {
+  public initialize(settlementContract: PublicKey) {
     this.promisedMessagesHash.getAndAssertEquals().assertEquals(Field(0));
     this.honoredMessagesHash.getAndAssertEquals().assertEquals(Field(0));
+    this.settlementContract
+      .getAndAssertEquals()
+      .assertEquals(PublicKey.empty());
 
     this.promisedMessagesHash.set(ACTIONS_EMPTY_HASH);
     this.honoredMessagesHash.set(ACTIONS_EMPTY_HASH);
+    this.settlementContract.set(settlementContract);
   }
 
   private dispatchMessage<Type>(
@@ -84,17 +113,21 @@ export class DispatchContract extends SmartContract {
   public deposit(amount: UInt64) {
     // Save this, since otherwise it would be a second witness later,
     // which could be a different values than the first
-    const sender = this.sender;
+    const { sender } = this;
 
-    // Credit the amount to the bridge contract
-    this.self.balance.addInPlace(amount);
+    const settlementContract = this.settlementContract.getAndAssertEquals();
+
+    // Credit the amount to the settlement contract
+    const balanceAU = AccountUpdate.create(settlementContract);
+    balanceAU.balance.addInPlace(amount);
+    this.self.approve(balanceAU);
 
     const action = new Deposit({
       address: sender,
       amount,
     });
     const methodId = Field(
-      this.methodIdMappings[this.incomingMessagesPaths["deposit"]]
+      this.methodIdMappings[this.incomingMessagesPaths.deposit]
     );
     this.dispatchMessage(methodId.toConstant(), action, Deposit);
   }

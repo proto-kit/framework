@@ -2,7 +2,7 @@ import { injectable, singleton } from "tsyringe";
 import { CompileArtifact } from "@proto-kit/common";
 import { Field, SmartContract } from "o1js";
 
-type ContractCompileArtifact = { verificationKey: {data: string, hash: Field} };
+export type ContractCompileArtifact = { verificationKey: {data: string, hash: Field} };
 
 @injectable()
 @singleton()
