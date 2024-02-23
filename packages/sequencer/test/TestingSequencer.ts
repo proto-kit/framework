@@ -25,7 +25,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
 
 export function testingSequencerFromModules<AdditionalModules extends SequencerModulesRecord>(
   modules: AdditionalModules
-): TypedClass<Sequencer<OverwriteObjectType<DefaultTestingSequencerModules, AdditionalModules>>> {
+): TypedClass<Sequencer<DefaultTestingSequencerModules & AdditionalModules>> {
   const defaultModules: DefaultTestingSequencerModules = {
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
@@ -41,6 +41,6 @@ export function testingSequencerFromModules<AdditionalModules extends SequencerM
     modules: {
       ...defaultModules,
       ...modules,
-    } as OverwriteObjectType<DefaultTestingSequencerModules, AdditionalModules>,
+    },
   });
 }

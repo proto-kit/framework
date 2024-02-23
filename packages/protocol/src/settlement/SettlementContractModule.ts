@@ -116,8 +116,8 @@ export class SettlementContractModule extends ProtocolModule<SettlementContractM
     },
     methodIdMappings: SettlementMethodIdMapping
   ): {
-    settlement: SettlementContractType;
-    dispatch: DispatchContractType;
+    settlement: SettlementContract;
+    dispatch: DispatchContract;
   } {
     // We know that this returns [string, string], but TS can't infer that
     const withdrawalPath = this.config.withdrawalStatePath.split(".");

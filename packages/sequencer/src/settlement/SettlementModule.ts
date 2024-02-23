@@ -10,7 +10,7 @@ import {
   OutgoingMessageArgument,
   OutgoingMessageArgumentBatch,
   OUTGOING_MESSAGE_BATCH_SIZE,
-  SettlementContractModuleConfig,
+  SettlementContractModuleConfig, DispatchContract
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -70,11 +70,17 @@ export class SettlementModule
   extends SequencerModule<SettlementModuleConfig>
   implements EventEmittingComponent<SettlementModuleEvents>
 {
-  protected contract?: SettlementContract;
+  protected contracts?: {
+    settlement: SettlementContract,
+    dispatch: DispatchContract
+  };
 
   protected settlementModuleConfig?: SettlementContractModuleConfig;
 
-  public address?: PublicKey;
+  public addresses?: {
+    settlement: PublicKey,
+    dispatch: PublicKey
+  };
 
   public events = new EventEmitter<SettlementModuleEvents>();
 
@@ -112,10 +118,10 @@ export class SettlementModule
     return this.settlementModuleConfig;
   }
 
-  public getContract(): SettlementContract {
-    if (this.contract === undefined) {
-      const { address } = this;
-      if (address === undefined) {
+  public getContracts() {
+    if (this.contracts === undefined) {
+      const { addresses } = this;
+      if (addresses === undefined) {
         throw new Error(
           "Settlement Contract hasn't been deployed yet. Deploy it first, then restart"
         );
@@ -124,12 +130,12 @@ export class SettlementModule
         this.protocol.dependencyContainer.resolve<SettlementContractModule>(
           "SettlementContractModule"
         );
-      this.contract = settlementContractModule.createContract(
-        address,
+      this.contracts = settlementContractModule.createContracts(
+        addresses,
         this.generateMethodIdMap()
       );
     }
-    return this.contract;
+    return this.contracts;
   }
 
   public generateMethodIdMap(): SettlementMethodIdMapping {
@@ -182,7 +188,7 @@ export class SettlementModule
 
     let nonce = options.nonce;
 
-    const contract = await this.getContract();
+    const { settlement } = await this.getContracts();
 
     const cachedStore = new CachedMerkleTreeStore(this.merkleTreeStore);
     const tree = new RollupMerkleTree(cachedStore);
@@ -216,7 +222,7 @@ export class SettlementModule
           memo: "Protokit settle",
         },
         () => {
-          contract.rollupOutgoingMessages(
+          settlement.rollupOutgoingMessages(
             OutgoingMessageArgumentBatch.fromMessages(transactionParamaters)
           );
         }
@@ -245,23 +251,23 @@ export class SettlementModule
       nonce?: number;
     } = {}
   ): Promise<Settlement> {
-    const contract = await this.getContract();
+    const { settlement, dispatch } = await this.getContracts();
     const { feepayer } = this.config;
 
     log.debug("Preparing settlement");
 
-    const lastSettlementL1Block = contract.lastSettlementL1Block.get().value;
+    const lastSettlementL1Block = settlement.lastSettlementL1Block.get().value;
     const signature = Signature.create(feepayer, [
       BATCH_SIGNATURE_PREFIX,
       lastSettlementL1Block,
     ]);
 
-    const fromSequenceStateHash = contract.honoredMessagesHash.get();
-    const latestSequenceStateHash = contract.account.actionState.get();
+    const fromSequenceStateHash = dispatch.honoredMessagesHash.get();
+    const latestSequenceStateHash = settlement.account.actionState.get();
 
     // Fetch actions and store them into the messageStorage
     const actions = await this.incomingMessagesAdapter.getPendingMessages(
-      contract.address,
+      settlement.address,
       {
         fromActionHash: fromSequenceStateHash.toString(),
         toActionHash: latestSequenceStateHash.toString(),
@@ -286,9 +292,10 @@ export class SettlementModule
         memo: "Protokit settle",
       },
       () => {
-        contract.settle(
+        settlement.settle(
           blockProof,
           signature,
+          dispatch.address,
           feepayer.toPublicKey(),
           batch.fromNetworkState,
           batch.toNetworkState,
@@ -314,7 +321,8 @@ export class SettlementModule
   }
 
   public async deploy(
-    zkappKey: PrivateKey,
+    settlementKey: PrivateKey,
+    dispatchKey: PrivateKey,
     options: { nonce?: number } = {}
   ): Promise<Mina.TransactionId> {
     const feepayerKey = this.config.feepayer;
@@ -331,8 +339,11 @@ export class SettlementModule
       this.protocol.dependencyContainer.resolve<SettlementContractModule>(
         "SettlementContractModule"
       );
-    const contract = sm.createContract(
-      zkappKey.toPublicKey(),
+    const { settlement, dispatch } = sm.createContracts(
+      {
+        settlement: settlementKey.toPublicKey(),
+        dispatch: dispatchKey.toPublicKey()
+      },
       this.generateMethodIdMap()
     );
 
@@ -344,11 +355,16 @@ export class SettlementModule
         memo: "Protokit settlement deploy",
       },
       () => {
-        AccountUpdate.fundNewAccount(feepayer);
-        contract.deploy({
-          zkappKey,
+        AccountUpdate.fundNewAccount(feepayer, 2);
+        settlement.deploy({
+          zkappKey: settlementKey,
           verificationKey: undefined,
         });
+
+        dispatch.deploy({
+          zkappKey: dispatchKey,
+          verificationKey: undefined,
+        })
       }
     );
 
@@ -367,7 +383,7 @@ export class SettlementModule
     //   });
     // });
 
-    result.sign([feepayerKey, zkappKey]);
+    result.sign([feepayerKey, settlementKey, dispatchKey]);
 
     const txId1 = await result.send();
     if (!this.baseLayer.config.network.local) {
@@ -382,13 +398,16 @@ export class SettlementModule
         memo: "Protokit settlement init",
       },
       () => {
-        contract.initialize(feepayerKey.toPublicKey());
+        settlement.initialize(feepayerKey.toPublicKey(), dispatchKey.toPublicKey());
       }
     );
     await tx2.prove();
     tx2.sign([feepayerKey]);
 
-    this.address = zkappKey.toPublicKey();
+    this.addresses = {
+      settlement: settlementKey.toPublicKey(),
+      dispatch: dispatchKey.toPublicKey()
+    };
 
     return await tx2.send();
   }

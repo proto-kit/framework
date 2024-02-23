@@ -136,9 +136,8 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
  * configuration, decoration and validation of modules
  */
 export class ModuleContainer<
-  Modules extends ModulesRecord,
-  ExtraConfig = NoConfig
-> extends ConfigurableModule<ModulesConfig<Modules> & ExtraConfig> {
+  Modules extends ModulesRecord
+> extends ConfigurableModule<ModulesConfig<Modules>> {
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -286,24 +285,24 @@ export class ModuleContainer<
    * before the first resolution.
    * @param config
    */
-  public configure(config: ModulesConfig<Modules> & ExtraConfig) {
+  public configure(config: ModulesConfig<Modules>) {
     this.config = config;
   }
 
   public configurePartial(
-    config: RecursivePartial<ModulesConfig<Modules>> & ExtraConfig
+    config: RecursivePartial<ModulesConfig<Modules>>
   ) {
     this.config = merge<
-      (ModulesConfig<Modules> & ExtraConfig) | NoConfig,
-      RecursivePartial<ModulesConfig<Modules>> & ExtraConfig
+      (ModulesConfig<Modules>) | NoConfig,
+      RecursivePartial<ModulesConfig<Modules>>
     >(this.currentConfig ?? {}, config);
   }
 
   // eslint-disable-next-line accessor-pairs
-  public set config(config: ModulesConfig<Modules> & ExtraConfig) {
+  public set config(config: ModulesConfig<Modules>) {
     super.config = merge<
-      (ModulesConfig<Modules> & ExtraConfig) | NoConfig,
-      ModulesConfig<Modules> & ExtraConfig
+      (ModulesConfig<Modules>) | NoConfig,
+      ModulesConfig<Modules>
     >(this.currentConfig ?? {}, config);
   }
 

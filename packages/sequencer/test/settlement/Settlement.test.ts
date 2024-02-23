@@ -53,7 +53,8 @@ describe("settlement contracts", () => {
   let localInstance: ReturnType<typeof Mina.LocalBlockchain>;
 
   const sequencerKey = PrivateKey.random();
-  const zkAppKey = PrivateKey.random();
+  const settlementKey = PrivateKey.random();
+  const dispatchKey = PrivateKey.random();
 
   let trigger: ManualBlockTrigger;
   let settlementModule: SettlementModule;
@@ -244,7 +245,9 @@ describe("settlement contracts", () => {
 
   it("should deploy", async () => {
     // Deploy contract
-    const tx = await settlementModule.deploy(zkAppKey, { nonce: nonceCounter });
+    const tx = await settlementModule.deploy(settlementKey, dispatchKey, {
+      nonce: nonceCounter,
+    });
     await tx.wait();
 
     nonceCounter += 2;
@@ -266,38 +269,44 @@ describe("settlement contracts", () => {
 
     console.log("Block settled");
 
-    const contract = await settlementModule.getContract();
-    expect(contract.networkStateHash.get().toBigInt()).toStrictEqual(
+    const { settlement } = await settlementModule.getContracts();
+    expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
       lastBlock!.metadata.afterNetworkState.hash().toBigInt()
     );
-    expect(contract.stateRoot.get().toBigInt()).toStrictEqual(
+    expect(settlement.stateRoot.get().toBigInt()).toStrictEqual(
       lastBlock!.metadata.stateRoot
     );
-    expect(contract.blockHashRoot.get().toBigInt()).toStrictEqual(
+    expect(settlement.blockHashRoot.get().toBigInt()).toStrictEqual(
       lastBlock!.metadata.blockHashRoot
     );
   }, 120_000);
 
   it("should include deposit", async () => {
-    const contract = await settlementModule.getContract();
+    const { settlement, dispatch } = await settlementModule.getContracts();
 
     const userKey = localInstance.testAccounts[0].privateKey;
+
+    const contractBalanceBefore = settlement.account.balance.get();
 
     const tx = await Mina.transaction(
       { sender: userKey.toPublicKey(), fee: 0.01 * 1e9, nonce: user0Nonce++ },
       () => {
         const au = AccountUpdate.createSigned(userKey.toPublicKey());
         au.balance.subInPlace(UInt64.from(100));
-        contract.deposit(UInt64.from(100));
+        dispatch.deposit(UInt64.from(100));
       }
     );
     await tx.prove();
     tx.sign([userKey]);
     await tx.send();
 
-    const actions = Mina.getActions(contract.address);
+    const actions = Mina.getActions(dispatch.address);
+    const balanceDiff = settlement.account.balance
+      .get()
+      .sub(contractBalanceBefore);
 
     expect(actions).toHaveLength(1);
+    expect(balanceDiff.toBigInt()).toBe(100n);
 
     const [, batch] = await createBatch(false);
 
@@ -329,7 +338,7 @@ describe("settlement contracts", () => {
   }, 100000);
 
   it("should process withdrawal", async () => {
-    const contract = await settlementModule.getContract();
+    const { settlement } = await settlementModule.getContracts();
 
     // Send mina to contract
     const usertx = await Mina.transaction(
@@ -342,7 +351,7 @@ describe("settlement contracts", () => {
           localInstance.testAccounts[1].publicKey
         );
         au.send({
-          to: contract.address,
+          to: settlement.address,
           amount: UInt64.from(100 * 1e9),
         });
       }
@@ -377,13 +386,13 @@ describe("settlement contracts", () => {
 
     expect(txs).toHaveLength(1);
 
-    const account = Mina.getAccount(userKey.toPublicKey(), contract.token.id);
+    const account = Mina.getAccount(userKey.toPublicKey(), settlement.token.id);
 
     expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 49n);
   }, 100_000000);
 
   it("should be able to redeem withdrawal", async () => {
-    const contract = await settlementModule.getContract();
+    const { settlement } = await settlementModule.getContracts();
 
     const userKey = localInstance.testAccounts[0].privateKey;
 
@@ -403,7 +412,7 @@ describe("settlement contracts", () => {
         const mintAU = AccountUpdate.create(userKey.toPublicKey());
         mintAU.balance.addInPlace(amount);
         // mintAU.requireSignature(); // TODO ?
-        contract.redeem(mintAU);
+        settlement.redeem(mintAU);
       }
     );
     tx.sign([userKey]);

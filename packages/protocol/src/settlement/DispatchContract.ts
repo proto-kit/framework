@@ -17,7 +17,7 @@ import { MinaActions, MinaEvents } from "../utils/MinaPrefixedProvableHashList";
 
 import { Deposit } from "./messages/Deposit";
 
-const ACTIONS_EMPTY_HASH = Reducer.initialActionState;
+export const ACTIONS_EMPTY_HASH = Reducer.initialActionState;
 
 export interface DispatchContractType {
   updateMessagesHash: (
