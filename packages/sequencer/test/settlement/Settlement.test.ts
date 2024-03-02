@@ -1,5 +1,16 @@
-import "reflect-metadata";
-import { Field, Mina, PrivateKey, UInt64, AccountUpdate } from "o1js";
+import { ArgumentTypes, log, RollupMerkleTree } from "@proto-kit/common";
+import {
+  MethodIdResolver,
+  MethodParameterEncoder,
+  Runtime,
+} from "@proto-kit/module";
+import {
+  BlockProverPublicInput,
+  NetworkState,
+  ReturnType,
+  SettlementContractModule,
+  VanillaProtocol,
+} from "@proto-kit/protocol";
 import {
   AppChain,
   BlockStorageNetworkStateModule,
@@ -8,46 +19,50 @@ import {
   StateServiceQueryModule,
 } from "@proto-kit/sdk";
 import {
-  NetworkState,
-  ReturnType,
-  SettlementContractModule,
-  VanillaProtocol,
-} from "@proto-kit/protocol";
+  AccountUpdate,
+  Field,
+  method,
+  Mina,
+  PrivateKey,
+  SmartContract,
+  UInt64,
+} from "o1js";
+import "reflect-metadata";
+import { container } from "tsyringe";
+
 import {
-  BlockProducerModule,
   BlockTrigger,
-  InMemoryDatabase,
-  LocalTaskQueue,
-  LocalTaskWorkerModule,
   ManualBlockTrigger,
-  NoopBaseLayer,
   PendingTransaction,
   PrivateMempool,
-  Sequencer,
   UnprovenBlockQueue,
-  UnprovenProducerModule,
   UnsignedTransaction,
 } from "../../src";
-import {
-  MethodIdResolver,
-  MethodParameterEncoder,
-  Runtime,
-} from "@proto-kit/module";
-import { container } from "tsyringe";
-import { Balance } from "../integration/mocks/Balance";
-import { SettlementModule } from "../../src/settlement/SettlementModule";
-import { ArgumentTypes, log } from "@proto-kit/common";
 import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
-import { expect } from "@jest/globals";
-import { Withdrawals } from "../integration/mocks/Withdrawals";
-import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
-import {
-  DefaultTestingSequencerModules,
-  testingSequencerFromModules,
-} from "../TestingSequencer";
+import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
+import { SettlementModule } from "../../src/settlement/SettlementModule";
+import { Balance } from "../integration/mocks/Balance";
+import { Withdrawals } from "../integration/mocks/Withdrawals";
+import { testingSequencerFromModules } from "../TestingSequencer";
 
 log.setLevel("DEBUG");
+
+describe("Test", () => {
+  it("", async () => {
+    class S1 extends SmartContract {
+      @method
+      public do() {
+        Field(1).equals(1);
+      }
+    }
+
+    class S2 extends S1 {}
+
+    const methods = S2.analyzeMethods();
+    console.log();
+  });
+});
 
 describe("settlement contracts", () => {
   let localInstance: ReturnType<typeof Mina.LocalBlockchain>;
@@ -81,7 +96,7 @@ describe("settlement contracts", () => {
       sequencer: sequencer,
 
       protocol: VanillaProtocol.from({
-        SettlementContractModule,
+        SettlementContractModule: SettlementContractModule.fromDefaults(),
       }),
 
       modules: {
@@ -128,10 +143,14 @@ describe("settlement contracts", () => {
         BlockProver: {},
         LastStateRoot: {},
         SettlementContractModule: {
-          withdrawalStatePath: "Withdrawals.withdrawals",
-          withdrawalMethodPath: "Withdrawals.withdraw",
-          incomingMessagesMethods: {
-            deposit: "Balances.deposit",
+          SettlementContract: {
+            withdrawalStatePath: "Withdrawals.withdrawals",
+            withdrawalMethodPath: "Withdrawals.withdraw",
+          },
+          DispatchContract: {
+            incomingMessagesMethods: {
+              deposit: "Balances.deposit",
+            },
           },
         },
       },
@@ -245,27 +264,27 @@ describe("settlement contracts", () => {
 
   it("should deploy", async () => {
     // Deploy contract
-    const tx = await settlementModule.deploy(settlementKey, dispatchKey, {
+    await settlementModule.deploy(settlementKey, dispatchKey, {
       nonce: nonceCounter,
     });
-    await tx.wait();
 
     nonceCounter += 2;
 
     console.log("Deployed");
-  }, 60000);
+  }, 120_000);
 
   it("should settle", async () => {
     let [, batch] = await createBatch(true);
+
+    const input = BlockProverPublicInput.fromFields(batch!.proof.publicInput.map(x => Field(x)))
+    expect(input.stateRoot.toBigInt()).toStrictEqual(RollupMerkleTree.EMPTY_ROOT)
 
     const lastBlock = await blockQueue.getLatestBlock();
 
     await trigger.settle(batch!);
     nonceCounter++;
-    // const tx2 = await settlementModule.settleBatch(batch!, {
-    //   nonce: nonceCounter++,
-    // });
-    // await tx2.wait();
+
+    // TODO Check Smartcontract tx layout (call to dispatch with good preconditions, etc)
 
     console.log("Block settled");
 
@@ -314,21 +333,23 @@ describe("settlement contracts", () => {
 
     await trigger.settle(batch!);
     nonceCounter++;
-    // const tx2 = await settlementModule.settleBatch(batch!, {
-    //   nonce: nonceCounter++,
-    // });
-    // await tx2.wait();
 
     const [block2, batch2] = await createBatch(false);
+
+    const networkstateHash = Mina.activeInstance.getAccount(settlement.address)
+    console.log("On-chain values");
+    console.log(networkstateHash.zkapp!.appState.map(x => x.toString()))
+
+    console.log(`Empty Network State ${NetworkState.empty().hash().toString()}`);
+    console.log(batch!.toNetworkState.hash().toString());
+    console.log(batch2!.fromNetworkState.hash().toString());
+
+    expect(batch!.toNetworkState.hash().toString()).toStrictEqual(batch2!.fromNetworkState.hash().toString());
 
     expect(batch2!.bundles).toHaveLength(1);
 
     await trigger.settle(batch2!);
     nonceCounter++;
-    // const tx3 = await settlementModule.settleBatch(batch2!, {
-    //   nonce: nonceCounter++,
-    // });
-    // await tx3.wait();
 
     const balance = await appChain.query.runtime.Balances.balances.get(
       userKey.toPublicKey()

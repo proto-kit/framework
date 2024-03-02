@@ -3,8 +3,8 @@ import { UInt64 } from "o1js";
 import {
   ProvableSettlementHook,
   SettlementHookInputs,
-} from "../ProvableSettlementHook";
-import { SettlementContract } from "../SettlementContract";
+} from "../modularity/ProvableSettlementHook";
+import { SettlementSmartContract } from "../contracts/SettlementSmartContract";
 
 type NetworkStateSettlementModuleConfig = {
   blocksPerL1Block: UInt64;
@@ -12,7 +12,7 @@ type NetworkStateSettlementModuleConfig = {
 
 export class NetworkStateSettlementModule extends ProvableSettlementHook<NetworkStateSettlementModuleConfig> {
   public beforeSettlement(
-    smartContract: SettlementContract,
+    smartContract: SettlementSmartContract,
     {
       blockProof,
       fromNetworkState,

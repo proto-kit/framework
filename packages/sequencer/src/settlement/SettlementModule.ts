@@ -1,16 +1,17 @@
 import {
-  NetworkState,
   Protocol,
   ProtocolModulesRecord,
-  SettlementContract,
   SettlementContractModule,
   BATCH_SIGNATURE_PREFIX,
-  SettlementMethodIdMapping,
   Path,
   OutgoingMessageArgument,
   OutgoingMessageArgumentBatch,
   OUTGOING_MESSAGE_BATCH_SIZE,
-  SettlementContractModuleConfig, DispatchContract
+  SettlementModulesRecord,
+  DispatchSmartContract,
+  SettlementSmartContract,
+  MinimumSettlementContracts,
+  SettlementContractConfig,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -25,36 +26,29 @@ import {
   EventEmitter,
   EventEmittingComponent,
   EventsRecord,
-  filterNonUndefined,
   log,
   noop,
   RollupMerkleTree,
 } from "@proto-kit/common";
-import {
-  MethodIdResolver,
-  Runtime,
-  RuntimeMethodInvocationType,
-  runtimeMethodTypeMetadataKey,
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
+import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 
 import {
   SequencerModule,
   sequencerModule,
 } from "../sequencer/builder/SequencerModule";
 import { FlowCreator } from "../worker/flow/Flow";
-
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../storage/repositories/MessageStorage";
 import { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { ComputedBlock, SettleableBatch } from "../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
+import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
+import { Settlement } from "../storage/model/Settlement";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
-import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
-import { Settlement } from "../storage/model/Settlement";
+import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
@@ -62,7 +56,7 @@ export interface SettlementModuleConfig {
 }
 
 export interface SettlementModuleEvents extends EventsRecord {
-  settlementSubmitted: [ComputedBlock, Mina.TransactionId];
+  settlementSubmitted: [ComputedBlock];
 }
 
 @sequencerModule()
@@ -71,15 +65,15 @@ export class SettlementModule
   implements EventEmittingComponent<SettlementModuleEvents>
 {
   protected contracts?: {
-    settlement: SettlementContract,
-    dispatch: DispatchContract
+    settlement: SettlementSmartContract;
+    dispatch: DispatchSmartContract;
   };
 
-  protected settlementModuleConfig?: SettlementContractModuleConfig;
+  protected settlementModuleConfig?: SettlementContractConfig;
 
   public addresses?: {
-    settlement: PublicKey,
-    dispatch: PublicKey
+    settlement: PublicKey;
+    dispatch: PublicKey;
   };
 
   public events = new EventEmitter<SettlementModuleEvents>();
@@ -102,93 +96,64 @@ export class SettlementModule
     private readonly outgoingMessageQueue: OutgoingMessageQueue,
     @inject("AsyncMerkleStore")
     private readonly merkleTreeStore: AsyncMerkleTreeStore,
-    private readonly blockProofSerializer: BlockProofSerializer
+    private readonly blockProofSerializer: BlockProofSerializer,
+    @inject("TransactionSender")
+    private readonly transactionSender: MinaTransactionSender
   ) {
     super();
   }
 
-  public getSettlementModuleConfig(): SettlementContractModuleConfig {
+  private settlementContractModule(): SettlementContractModule<MinimumSettlementContracts> {
+    return this.protocol.dependencyContainer.resolve(
+      "SettlementContractModule"
+    );
+  }
+
+  public getSettlementModuleConfig(): SettlementContractConfig {
     if (this.settlementModuleConfig === undefined) {
-      const settlementContractModule =
-        this.protocol.dependencyContainer.resolve<SettlementContractModule>(
-          "SettlementContractModule"
-        );
-      this.settlementModuleConfig = settlementContractModule.config;
+      const settlementContractModule = this.settlementContractModule();
+
+      this.settlementModuleConfig =
+        settlementContractModule.resolve("SettlementContract").config;
     }
     return this.settlementModuleConfig;
   }
 
   public getContracts() {
     if (this.contracts === undefined) {
-      const { addresses } = this;
+      const { addresses, protocol } = this;
       if (addresses === undefined) {
         throw new Error(
           "Settlement Contract hasn't been deployed yet. Deploy it first, then restart"
         );
       }
-      const settlementContractModule =
-        this.protocol.dependencyContainer.resolve<SettlementContractModule>(
-          "SettlementContractModule"
-        );
-      this.contracts = settlementContractModule.createContracts(
-        addresses,
-        this.generateMethodIdMap()
-      );
+      const settlementContractModule = protocol.dependencyContainer.resolve<
+        SettlementContractModule<SettlementModulesRecord>
+      >("SettlementContractModule");
+
+      // TODO Add generic inference of concrete Contract types
+      this.contracts = settlementContractModule.createContracts(addresses) as {
+        settlement: SettlementSmartContract;
+        dispatch: DispatchSmartContract;
+      };
     }
     return this.contracts;
   }
 
-  public generateMethodIdMap(): SettlementMethodIdMapping {
-    const methodIdResolver =
-      this.runtime.dependencyContainer.resolve<MethodIdResolver>(
-        "MethodIdResolver"
-      );
-
-    const rawMappings = this.runtime.moduleNames.flatMap((moduleName) => {
-      const module = this.runtime.resolve(moduleName);
-      return module.runtimeMethodNames.map((method) => {
-        const type = Reflect.getMetadata(
-          runtimeMethodTypeMetadataKey,
-          module,
-          method
-        ) as RuntimeMethodInvocationType | undefined;
-
-        if (type !== undefined && type === "INCOMING_MESSAGE") {
-          return {
-            name: `${moduleName}.${method}`,
-            methodId: methodIdResolver.getMethodId(moduleName, method),
-          } as const;
-        }
-
-        return undefined;
-      });
-    });
-
-    return rawMappings
-      .filter(filterNonUndefined)
-      .reduce<SettlementMethodIdMapping>((acc, entry) => {
-        acc[entry.name] = entry.methodId;
-        return acc;
-      }, {});
-  }
-
   public async sendRollupTransactions(options: { nonce: number }): Promise<
     {
-      txId: Mina.TransactionId;
       tx: Mina.Transaction;
     }[]
   > {
     const length = this.outgoingMessageQueue.length();
     const { feepayer } = this.config;
+    let { nonce } = options;
 
     const txs: {
-      txId: Mina.TransactionId;
       tx: Mina.Transaction;
     }[] = [];
 
-    let nonce = options.nonce;
-
-    const { settlement } = await this.getContracts();
+    const { settlement } = this.getContracts();
 
     const cachedStore = new CachedMerkleTreeStore(this.merkleTreeStore);
     const tree = new RollupMerkleTree(cachedStore);
@@ -217,7 +182,7 @@ export class SettlementModule
       const tx = await Mina.transaction(
         {
           sender: feepayer.toPublicKey(),
-          nonce,
+          nonce: nonce++,
           fee: String(0.01 * 1e9),
           memo: "Protokit settle",
         },
@@ -229,16 +194,13 @@ export class SettlementModule
       );
 
       tx.sign([feepayer]);
-      await tx.prove();
-      const txId = await tx.send();
 
-      await txId.wait();
+      await this.transactionSender.proveAndSendTransaction(tx);
 
       this.outgoingMessageQueue.pop(OUTGOING_MESSAGE_BATCH_SIZE);
 
       txs.push({
         tx,
-        txId,
       });
     }
 
@@ -304,17 +266,18 @@ export class SettlementModule
       }
     );
 
-    await tx.prove();
+    console.log("Preconditions:");
+
     tx.sign([feepayer]);
 
-    const sent = await tx.send();
+    await this.transactionSender.proveAndSendTransaction(tx);
 
-    log.info(`Settlement transaction send ${sent.hash() ?? "-"}`);
+    log.info(`Settlement transaction send queued`);
 
-    this.events.emit("settlementSubmitted", batch, sent);
+    this.events.emit("settlementSubmitted", batch);
 
     return {
-      transactionHash: sent.hash() ?? "",
+      // transactionHash: sent.hash() ?? "",
       batches: [batch.height],
       promisedMessagesHash: latestSequenceStateHash.toString(),
     };
@@ -324,7 +287,7 @@ export class SettlementModule
     settlementKey: PrivateKey,
     dispatchKey: PrivateKey,
     options: { nonce?: number } = {}
-  ): Promise<Mina.TransactionId> {
+  ) {
     const feepayerKey = this.config.feepayer;
     const feepayer = feepayerKey.toPublicKey();
 
@@ -335,17 +298,13 @@ export class SettlementModule
     //   undefined
     // );
 
-    const sm =
-      this.protocol.dependencyContainer.resolve<SettlementContractModule>(
-        "SettlementContractModule"
-      );
-    const { settlement, dispatch } = sm.createContracts(
-      {
-        settlement: settlementKey.toPublicKey(),
-        dispatch: dispatchKey.toPublicKey()
-      },
-      this.generateMethodIdMap()
-    );
+    const sm = this.protocol.dependencyContainer.resolve<
+      SettlementContractModule<SettlementModulesRecord>
+    >("SettlementContractModule");
+    const { settlement, dispatch } = sm.createContracts({
+      settlement: settlementKey.toPublicKey(),
+      dispatch: dispatchKey.toPublicKey(),
+    });
 
     const tx = await Mina.transaction(
       {
@@ -364,31 +323,15 @@ export class SettlementModule
         dispatch.deploy({
           zkappKey: dispatchKey,
           verificationKey: undefined,
-        })
+        });
       }
     );
 
-    const result = tx;
-    await result.prove();
+    tx.sign([feepayerKey, settlementKey, dispatchKey]);
 
-    // TODO Move proving to tasks
-    // const input: DeployTaskArgs = {
-    //   proofsEnabled: false,
-    //   transaction: result,
-    // };
-    //
-    // const result = await flow.withFlow<Mina.Transaction>(async () => {
-    //   await flow.pushTask(this.settlementDeployTask, input, async (result) => {
-    //     flow.resolve(result);
-    //   });
-    // });
-
-    result.sign([feepayerKey, settlementKey, dispatchKey]);
-
-    const txId1 = await result.send();
-    if (!this.baseLayer.config.network.local) {
-      await txId1.wait();
-    }
+    // This should already apply the tx result to the
+    // cached accounts / local blockchain
+    await this.transactionSender.proveAndSendTransaction(tx);
 
     const tx2 = await Mina.transaction(
       {
@@ -398,18 +341,20 @@ export class SettlementModule
         memo: "Protokit settlement init",
       },
       () => {
-        settlement.initialize(feepayerKey.toPublicKey(), dispatchKey.toPublicKey());
+        settlement.initialize(
+          feepayerKey.toPublicKey(),
+          dispatchKey.toPublicKey()
+        );
       }
     );
-    await tx2.prove();
     tx2.sign([feepayerKey]);
+
+    await this.transactionSender.proveAndSendTransaction(tx2);
 
     this.addresses = {
       settlement: settlementKey.toPublicKey(),
-      dispatch: dispatchKey.toPublicKey()
+      dispatch: dispatchKey.toPublicKey(),
     };
-
-    return await tx2.send();
   }
 
   public async start(): Promise<void> {

@@ -1,3 +1,4 @@
+import { prefixToField, RollupMerkleTree, TypedClass } from "@proto-kit/common";
 import {
   AccountUpdate,
   Bool,
@@ -7,50 +8,34 @@ import {
   Poseidon,
   Proof,
   Provable,
-  ProvableExtended,
   PublicKey,
-  Reducer,
   Signature,
   SmartContract,
   State,
   state,
-  Struct,
   TokenId,
   UInt32,
   UInt64,
 } from "o1js";
+import { NetworkState } from "../../model/network/NetworkState";
+import { Path } from "../../model/Path";
+import { BlockHashMerkleTree } from "../../prover/block/accummulators/BlockHashMerkleTree";
 import {
-  EMPTY_PUBLICKEY,
-  prefixToField,
-  RollupMerkleTree,
-  RollupMerkleTreeWitness,
-} from "@proto-kit/common";
-import { inject, injectable, injectAll } from "tsyringe";
-
-import { ProtocolModule } from "../protocol/ProtocolModule";
-import { BlockProver } from "../prover/block/BlockProver";
-import {
-  BlockProvable,
   BlockProverPublicInput,
   BlockProverPublicOutput,
-} from "../prover/block/BlockProvable";
-import { NetworkState } from "../model/network/NetworkState";
-import { BlockHashMerkleTree } from "../prover/block/accummulators/BlockHashMerkleTree";
-import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
-import { Path } from "../model/Path";
-import { MinaActions, MinaEvents } from "../utils/MinaPrefixedProvableHashList";
-
+} from "../../prover/block/BlockProvable";
+import {
+  OUTGOING_MESSAGE_BATCH_SIZE,
+  OutgoingMessageArgumentBatch,
+} from "../messages/OutgoingMessageArgument";
+import { Withdrawal } from "../messages/Withdrawal";
 import {
   ProvableSettlementHook,
   SettlementHookInputs,
   SettlementStateRecord,
-} from "./ProvableSettlementHook";
-import { DispatchContract, DispatchContractType } from "./DispatchContract";
-import {
-  OUTGOING_MESSAGE_BATCH_SIZE,
-  OutgoingMessageArgumentBatch,
-} from "./OutgoingMessageArgument";
-import { Withdrawal } from "./messages/Withdrawal";
+} from "../modularity/ProvableSettlementHook";
+
+import { DispatchContractType } from "./DispatchSmartContract";
 
 export class LazyBlockProof extends Proof<
   BlockProverPublicInput,
@@ -63,6 +48,10 @@ export class LazyBlockProof extends Proof<
   public static tag: () => { name: string } = () => {
     throw new Error("Tag not initialized yet");
   };
+}
+
+export interface SmartContractConfigurable<Config> {
+  config: Config | undefined;
 }
 
 export interface SettlementContractType {
@@ -80,12 +69,10 @@ export interface SettlementContractType {
   redeem: (additionUpdate: AccountUpdate) => void;
 }
 
-export type SettlementMethodIdMapping = Record<`${string}.${string}`, bigint>;
-
 // Some random prefix for the sequencer signature
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
-export class SettlementContract
+export class SettlementSmartContract
   extends SmartContract
   implements SettlementContractType
 {
@@ -100,15 +87,12 @@ export class SettlementContract
 
   @state(Field) public outgoingMessageCursor = State<Field>();
 
-  public constructor(
-    address: PublicKey,
-    private readonly dispatchContract: DispatchContractType,
-    private readonly hooks: ProvableSettlementHook<unknown>[],
-    private readonly withdrawalStatePath: [string, string],
-    private readonly escapeHatchSlotsInterval: number
-  ) {
-    super(address);
-  }
+  public static args: {
+    DispatchContract: TypedClass<DispatchContractType & SmartContract>;
+    hooks: ProvableSettlementHook<unknown>[];
+    withdrawalStatePath: [string, string];
+    escapeHatchSlotsInterval: number;
+  };
 
   @method
   public initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
@@ -124,7 +108,8 @@ export class SettlementContract
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);
 
-    this.dispatchContract.initialize(this.address);
+    const DispatchContract = SettlementSmartContract.args.DispatchContract;
+    new DispatchContract(dispatchContract).initialize(this.address);
   }
 
   @method
@@ -147,12 +132,22 @@ export class SettlementContract
     const sequencerKey = this.sequencerKey.getAndAssertEquals();
     const lastSettlementL1Block =
       this.lastSettlementL1Block.getAndAssertEquals();
+    const onChainDispatchContractAddressX =
+      this.dispatchContractAddressX.getAndAssertEquals();
+
+    onChainDispatchContractAddressX.assertEquals(
+      dispatchContractAddress.x,
+      "DispatchContract address not provided correctly"
+    );
+
+    const { DispatchContract, escapeHatchSlotsInterval, hooks } =
+      SettlementSmartContract.args;
 
     // Get dispatch contract values
     // These values are witnesses but will be checked later on the AU
     // call to the dispatch contract via .updateMessagesHash()
-    const promisedMessagesHash =
-      this.dispatchContract.promisedMessagesHash.get();
+    const dispatchContract = new DispatchContract(dispatchContractAddress);
+    const promisedMessagesHash = dispatchContract.promisedMessagesHash.get();
 
     // Get block height and use the lower bound for all ops
     const minBlockIncluded = this.network.globalSlotSinceGenesis.get();
@@ -172,7 +167,7 @@ export class SettlementContract
       lastSettlementL1Block.value,
     ]);
     const escapeHatchActivated = lastSettlementL1Block
-      .add(UInt32.from(this.escapeHatchSlotsInterval))
+      .add(UInt32.from(escapeHatchSlotsInterval))
       .lessThan(minBlockIncluded);
     signatureValid
       .or(escapeHatchActivated)
@@ -181,6 +176,10 @@ export class SettlementContract
       );
 
     // Assert correctness of networkState witness
+    Provable.log("Network State Hash ", networkStateHash);
+    Provable.log("input Hash ", inputNetworkState.hash());
+    Provable.log("equals ", inputNetworkState.hash().equals(networkStateHash));
+
     inputNetworkState
       .hash()
       .assertEquals(networkStateHash, "InputNetworkState witness not valid");
@@ -212,7 +211,7 @@ export class SettlementContract
       toNetworkState: outputNetworkState,
       currentL1Block: minBlockIncluded,
     };
-    this.hooks.forEach((hook) => {
+    hooks.forEach((hook) => {
       hook.beforeSettlement(this, inputs);
     });
 
@@ -221,6 +220,10 @@ export class SettlementContract
       blockProof.publicInput.stateRoot,
       "Input state root not matching"
     );
+    Provable.log("Network State Hash ", networkStateHash);
+    Provable.log("input Hash ", inputNetworkState.hash());
+    Provable.log("Proof Hash ", blockProof.publicInput.networkStateHash);
+
     networkStateHash.assertEquals(
       blockProof.publicInput.networkStateHash,
       "Input networkStateHash not matching"
@@ -244,7 +247,7 @@ export class SettlementContract
     // to be the blockProofs publicoutput, is actually the current on-chain
     // promisedMessageHash. It also checks the newPromisedMessagesHash to be
     // a current sequencestate value
-    this.dispatchContract.updateMessagesHash(
+    dispatchContract.updateMessagesHash(
       promisedMessagesHash,
       newPromisedMessagesHash
     );
@@ -257,7 +260,8 @@ export class SettlementContract
     let counter = this.outgoingMessageCursor.getAndAssertEquals();
     const stateRoot = this.stateRoot.getAndAssertEquals();
 
-    const [withdrawalModule, withdrawalStateName] = this.withdrawalStatePath;
+    const [withdrawalModule, withdrawalStateName] =
+      SettlementSmartContract.args.withdrawalStatePath;
     const mapPath = Path.fromProperty(withdrawalModule, withdrawalStateName);
 
     let accountCreationFeePaid = Field(0);

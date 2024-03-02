@@ -12,10 +12,13 @@ import {
   UInt64,
 } from "o1js";
 
-import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
-import { MinaActions, MinaEvents } from "../utils/MinaPrefixedProvableHashList";
-
-import { Deposit } from "./messages/Deposit";
+import { RuntimeMethodIdMapping } from "../../model/RuntimeLike";
+import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
+import {
+  MinaActions,
+  MinaEvents,
+} from "../../utils/MinaPrefixedProvableHashList";
+import { Deposit } from "../messages/Deposit";
 
 export const ACTIONS_EMPTY_HASH = Reducer.initialActionState;
 
@@ -29,7 +32,7 @@ export interface DispatchContractType {
   promisedMessagesHash: State<Field>;
 }
 
-export class DispatchContract
+export class DispatchSmartContract
   extends SmartContract
   implements DispatchContractType
 {
@@ -39,16 +42,10 @@ export class DispatchContract
 
   @state(PublicKey) public settlementContract = State<PublicKey>();
 
-  public constructor(
-    address: PublicKey,
-    private readonly methodIdMappings: Record<string, bigint>,
-    private readonly incomingMessagesPaths: Record<
-      string,
-      `${string}.${string}`
-    >
-  ) {
-    super(address);
-  }
+  public static args: {
+    methodIdMappings: RuntimeMethodIdMapping;
+    incomingMessagesPaths: Record<string, `${string}.${string}`>;
+  };
 
   @method
   public updateMessagesHash(
@@ -126,9 +123,13 @@ export class DispatchContract
       address: sender,
       amount,
     });
+
+    const { methodIdMappings, incomingMessagesPaths } =
+      DispatchSmartContract.args;
+
     const methodId = Field(
-      this.methodIdMappings[this.incomingMessagesPaths.deposit]
-    );
+      methodIdMappings[incomingMessagesPaths.deposit].methodId
+    ).toConstant();
     this.dispatchMessage(methodId.toConstant(), action, Deposit);
   }
 }
