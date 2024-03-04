@@ -1,4 +1,3 @@
-import { uniqBy } from "lodash";
 import {
   AccountUpdate,
   addCachedAccount,
@@ -14,7 +13,7 @@ import {
 import { ReturnType } from "@proto-kit/protocol";
 import { match } from "ts-pattern";
 import { inject, injectable } from "tsyringe";
-import { distinct, distinctByPredicate } from "../../helpers/utils";
+import { distinctByPredicate } from "../../helpers/utils";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
@@ -24,13 +23,13 @@ type FeePayer = Mina.Transaction["transaction"]["feePayer"];
 
 @injectable()
 export class MinaTransactionSimulator {
-  public constructor(
-    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
-  ) {}
-
   private local = this.baseLayer.config.network.local;
 
   private loaded: Record<string, Account | null> = {};
+
+  public constructor(
+    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
+  ) {}
 
   private async fetchGraphql<Type>(
     f: () => Promise<Type>

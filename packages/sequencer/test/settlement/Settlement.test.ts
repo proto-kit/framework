@@ -48,22 +48,6 @@ import { testingSequencerFromModules } from "../TestingSequencer";
 
 log.setLevel("DEBUG");
 
-describe("Test", () => {
-  it("", async () => {
-    class S1 extends SmartContract {
-      @method
-      public do() {
-        Field(1).equals(1);
-      }
-    }
-
-    class S2 extends S1 {}
-
-    const methods = S2.analyzeMethods();
-    console.log();
-  });
-});
-
 describe("settlement contracts", () => {
   let localInstance: ReturnType<typeof Mina.LocalBlockchain>;
 

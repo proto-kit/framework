@@ -37,6 +37,10 @@ export type TransactionTaskResult = {
   transaction: Mina.Transaction;
 };
 
+/**
+ * Implementation of a task to prove any Mina transaction.
+ * Account state is configurable via the task args
+ */
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class SettlementProvingTask
