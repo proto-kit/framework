@@ -1,12 +1,12 @@
 import { NoConfig, noop } from "@proto-kit/common";
 
 import { ComputedBlock } from "../../../storage/model/Block";
-import { UnprovenBlock } from "../unproven/TransactionExecutionService";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
+import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
 
 /**
  * A BlockTrigger is the primary method to start the production of a block and
@@ -23,13 +23,13 @@ export class BlockTriggerBase<Config = NoConfig>
     protected readonly blockProducerModule: BlockProducerModule,
     protected readonly unprovenProducerModule: UnprovenProducerModule,
     protected readonly unprovenBlockQueue: UnprovenBlockQueue,
-    protected readonly settlementModule: SettlementModule
+    protected readonly settlementModule?: SettlementModule
   ) {
     super();
   }
 
   protected async produceProven(): Promise<ComputedBlock | undefined> {
-    const blocks = await this.unprovenBlockQueue.popNewBlocks(true);
+    const blocks = await this.unprovenBlockQueue.getNewBlocks();
     if (blocks.length > 0) {
       return await this.blockProducerModule.createBlock(blocks);
     }
@@ -43,13 +43,15 @@ export class BlockTriggerBase<Config = NoConfig>
       await this.unprovenProducerModule.tryProduceUnprovenBlock();
 
     if (unprovenBlock && enqueueInSettlementQueue) {
-      await this.unprovenBlockQueue.pushBlock(unprovenBlock);
+      await this.unprovenBlockQueue.pushBlock(unprovenBlock.block);
+      await this.unprovenBlockQueue.pushMetadata(unprovenBlock.metadata);
     }
 
-    return unprovenBlock;
+    return unprovenBlock?.block;
   }
 
   protected async settle(batch: ComputedBlock) {
+
     // TODO After Persistance PR because we need batch.blocks for that
   }
 

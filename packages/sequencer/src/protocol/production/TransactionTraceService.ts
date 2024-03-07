@@ -18,16 +18,15 @@ import { distinctByString } from "../../helpers/utils";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { SyncCachedMerkleTreeStore } from "../../state/merkle/SyncCachedMerkleTreeStore";
-import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
-
-import type { TransactionTrace } from "./BlockProducerModule";
 import type {
   TransactionExecutionResult,
   UnprovenBlockWithMetadata,
-} from "./unproven/TransactionExecutionService";
+} from "../../storage/model/UnprovenBlock";
+import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
+
+import type { TransactionTrace, BlockTrace } from "./BlockProducerModule";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
-import type { BlockTrace } from "./BlockProducerModule";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -260,11 +259,7 @@ export class TransactionTraceService {
       merkleStore
     );
 
-    await Promise.all(
-      keys.map(async (key) => {
-        await merkleStore.preloadKey(key.toBigInt());
-      })
-    );
+    await merkleStore.preloadKeys(keys.map(key => key.toBigInt()))
 
     const tree = new RollupMerkleTree(merkleStore);
     const runtimeTree = new RollupMerkleTree(runtimeSimulationMerkleStore);

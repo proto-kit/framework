@@ -3,6 +3,7 @@ import { log } from "@proto-kit/common";
 import { Flow, FlowCreator } from "../../../worker/flow/Flow";
 import { Task } from "../../../worker/flow/Task";
 import { PairTuple } from "../../../helpers/utils";
+import { BlockProverPublicInput, BlockProverPublicOutput } from "@proto-kit/protocol";
 
 interface ReductionState<Output> {
   numMergesCompleted: 0;
@@ -21,6 +22,8 @@ export class ReductionTaskFlow<Input, Output> {
   private readonly flow: Flow<ReductionState<Output>>;
 
   private started = false;
+
+  private parentFlow?: Flow<unknown>;
 
   public constructor(
     private readonly options: {
@@ -69,6 +72,22 @@ export class ReductionTaskFlow<Input, Output> {
         res.push({ r1: firstElement, r2: secondElement });
         touchedIndizes.push(index, secondIndex);
       }
+    }
+
+    // Print error if the flow is stuck if
+    // 1. no tasks are in progress still
+    // 2. and not every queue element has been resolved
+    // 3. and all inputs have been pushed to the task already
+    const queueSize = this.flow.state.queue.length;
+    if (
+      this.flow.tasksInProgress === 0 &&
+      res.length * 2 < queueSize &&
+      this.flow.state.numMergesCompleted + res.length * 2 + queueSize ===
+        this.options.inputLength
+    ) {
+      log.error(
+        `Flow ${this.flow.flowId} seems to have halted with ${this.flow.state.queue.length} elements left in the queue`
+      );
     }
 
     return { availableReductions: res, touchedIndizes };
@@ -120,8 +139,21 @@ export class ReductionTaskFlow<Input, Output> {
       throw new Error("Flow already started, use pushInput() to add inputs");
     }
     this.started = true;
-    const result = await this.flow.withFlow<Output>(async () => {});
-    await callback(result);
+    try {
+      const result = await this.flow.withFlow<Output>(async () => {});
+
+      await callback(result);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        if (this.parentFlow !== undefined) {
+          this.parentFlow.reject(e);
+        } else {
+          this.flow.reject(e);
+        }
+      } else {
+        throw new Error(`Non-Error caught: ${e}`);
+      }
+    }
   }
 
   /**
@@ -132,6 +164,17 @@ export class ReductionTaskFlow<Input, Output> {
    */
   public onCompletion(callback: (output: Output) => Promise<void>) {
     void this.initCompletionCallback(callback);
+  }
+
+  /**
+   * To be used in conjunction with onCompletion
+   * It allows errors from this flow to be "defered" to another parent
+   * flow which might be properly awaited and therefore will throw the
+   * error up to the user
+   * @param flow
+   */
+  public deferErrorsTo(flow: Flow<unknown>) {
+    this.parentFlow = flow;
   }
 
   /**

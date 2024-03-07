@@ -5,7 +5,7 @@ import { Field } from "o1js";
 import {
   CachedMerkleTreeStore,
   InMemoryAsyncMerkleTreeStore,
-  SyncCachedMerkleTreeStore
+  SyncCachedMerkleTreeStore,
 } from "../../src";
 
 describe("cached merkle store", () => {
@@ -22,7 +22,9 @@ describe("cached merkle store", () => {
   it("should cache correctly", async () => {
     expect.assertions(9);
 
-    await expect(mainStore.getNodeAsync(5n, 0)).resolves.toBe(10n);
+    await expect(
+      mainStore.getNodesAsync([{ key: 5n, level: 0 }])
+    ).resolves.toStrictEqual([10n]);
 
     const cache1 = new CachedMerkleTreeStore(mainStore);
     const tree1 = new RollupMerkleTree(cache1);

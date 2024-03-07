@@ -5,9 +5,9 @@ import { PendingTransaction } from "../../mempool/PendingTransaction";
  */
 export interface MessageStorage {
   pushMessages: (
-    from: string,
-    to: string,
+    fromMessagesHash: string,
+    toMessagesHash: string,
     messages: PendingTransaction[]
   ) => Promise<void>;
-  getMessages: (from: string) => Promise<PendingTransaction[]>;
+  getMessages: (fromMessagesHash: string) => Promise<PendingTransaction[]>;
 }

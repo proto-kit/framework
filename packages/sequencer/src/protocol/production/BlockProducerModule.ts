@@ -19,18 +19,19 @@ import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
+import {
+  UnprovenBlock,
+  UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
+} from "../../storage/model/UnprovenBlock";
 
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
-import {
-  UnprovenBlock,
-  UnprovenBlockMetadata,
-  UnprovenBlockWithMetadata,
-} from "./unproven/TransactionExecutionService";
 import { NewBlockProverParameters } from "./tasks/NewBlockTask";
+import { BlockProofSerializer } from "./helpers/BlockProofSerializer";
 
 export interface StateRecord {
   [key: string]: Field[] | undefined;
@@ -86,7 +87,8 @@ export class BlockProducerModule extends SequencerModule {
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly traceService: TransactionTraceService,
-    private readonly blockFlowService: BlockTaskFlowService
+    private readonly blockFlowService: BlockTaskFlowService,
+    private readonly blockProofSerializer: BlockProofSerializer
   ) {
     super();
   }
@@ -109,7 +111,9 @@ export class BlockProducerModule extends SequencerModule {
   ): Promise<ComputedBlock | undefined> {
     log.info("Producing batch...");
 
-    const blockMetadata = await this.tryProduceBlock(unprovenBlocks);
+    const height = await this.blockStorage.getCurrentBlockHeight();
+
+    const blockMetadata = await this.tryProduceBlock(unprovenBlocks, height);
 
     if (blockMetadata !== undefined) {
       log.info(
@@ -138,12 +142,20 @@ export class BlockProducerModule extends SequencerModule {
   }
 
   private async tryProduceBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
+    unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
+    height: number
   ): Promise<ComputedBlockMetadata | undefined> {
     if (!this.productionInProgress) {
       try {
-        return await this.produceBlock(unprovenBlocks);
+        this.productionInProgress = true;
+
+        const block = await this.produceBlock(unprovenBlocks, height);
+
+        this.productionInProgress = false;
+
+        return block;
       } catch (error: unknown) {
+        this.productionInProgress = false;
         if (error instanceof Error) {
           if (
             !error.message.includes(
@@ -153,7 +165,6 @@ export class BlockProducerModule extends SequencerModule {
             log.error(error);
           }
 
-          this.productionInProgress = false;
           throw error;
         } else {
           log.error(error);
@@ -168,30 +179,24 @@ export class BlockProducerModule extends SequencerModule {
   }
 
   private async produceBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
+    unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
+    height: number
   ): Promise<ComputedBlockMetadata | undefined> {
-    this.productionInProgress = true;
-
-    const blockId = unprovenBlocks[0].block.block.height.toBigInt();
-
-    const block = await this.computeBlock(unprovenBlocks, Number(blockId));
-
-    this.productionInProgress = false;
+    const block = await this.computeBlock(unprovenBlocks, height);
 
     const computedBundles = unprovenBlocks.map((bundle) =>
-      bundle.block.block.transactions.map((tx) => {
-        return {
-          tx: tx.tx,
-          status: tx.status.toBoolean(),
-          statusMessage: tx.statusMessage,
-        };
-      })
+      bundle.block.block.hash.toString()
     );
+
+    const jsonProof = this.blockProofSerializer
+      .getBlockProofSerializer()
+      .toJSONProof(block.proof);
 
     return {
       block: {
-        proof: block.proof,
+        proof: jsonProof,
         bundles: computedBundles,
+        height,
       },
 
       stateService: block.stateService,

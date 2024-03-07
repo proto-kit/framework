@@ -2,10 +2,10 @@
 import {
   Bool,
   Experimental,
-  Field,
+  Field, Poseidon,
   type Proof,
   Provable,
-  SelfProof,
+  SelfProof
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
@@ -65,7 +65,10 @@ const errors = {
     errors.propertyNotMatchingStep("StateRoots", step),
 
   transactionsHashNotMatching: (step: string) =>
-    errors.propertyNotMatchingStep("transactions hash", step),
+    errors.propertyNotMatchingStep("Transactions hash", step),
+
+  networkStateHashNotMatching: (step: string) =>
+    errors.propertyNotMatchingStep("Network state hash", step),
 };
 
 // Should be equal to BlockProver.PublicInput
@@ -385,6 +388,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
       ...publicInput,
     };
 
+    state.networkStateHash.assertEquals(
+      executionData.networkState.hash(),
+      "ExecutionData Networkstate doesn't equal public input hash"
+    );
+
     const bundleInclusionState = this.addTransactionToBundle(
       state,
       runtimeProof.publicOutput.isMessage,
@@ -576,7 +584,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     state.blockHashRoot = blockWitness.calculateRoot(
       new BlockHashTreeEntry({
-        transactionsHash: state.transactionsHash,
+        // Mirroring UnprovenBlock.hash()
+        blockHash: Poseidon.hash([blockIndex, state.transactionsHash]),
         closed: Bool(true),
       }).hash()
     );
@@ -625,11 +634,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Check networkhash
     publicInput.networkStateHash.assertEquals(
       proof1.publicInput.networkStateHash,
-      errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
+      errors.networkStateHashNotMatching("publicInput.from -> proof1.from")
     );
     proof1.publicOutput.networkStateHash.assertEquals(
       proof2.publicInput.networkStateHash,
-      errors.transactionsHashNotMatching("proof1.to -> proof2.from")
+      errors.networkStateHashNotMatching("proof1.to -> proof2.from")
     );
 
     // Check blockHashRoot

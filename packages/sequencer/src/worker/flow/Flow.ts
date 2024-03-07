@@ -109,7 +109,7 @@ export class Flow<State> implements Closeable {
 
   public constructor(
     private readonly connectionHolder: ConnectionHolder,
-    private readonly flowId: string,
+    public readonly flowId: string,
     public state: State
   ) {}
 
@@ -140,14 +140,18 @@ export class Flow<State> implements Closeable {
     this.resolveFunction(result);
   }
 
+  public reject(error: Error) {
+    this.erroredOut = true;
+    this.errorFunction?.(error);
+  }
+
   private async resolveResponse(response: TaskPayload) {
     if (response.taskId !== undefined) {
       const resolveFunction = this.resultsPending[response.taskId];
 
       if (!this.erroredOut) {
         if (response.status === "error") {
-          this.erroredOut = true;
-          this.errorFunction?.(
+          this.reject(
             new Error(
               `Error in worker: ${response.payload}, task: ${response.flowId}:${response.taskId}`
             )

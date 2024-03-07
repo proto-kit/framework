@@ -15,7 +15,6 @@ import {
   StateTransition,
   ProvableBlockHook,
   BlockHashMerkleTree,
-  BlockHashMerkleTreeWitness,
   StateServiceProvider,
   BlockHashTreeEntry,
   ACTIONS_EMPTY_HASH,
@@ -23,11 +22,7 @@ import {
   MinaActionsHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
-import {
-  AreProofsEnabled,
-  log,
-  RollupMerkleTree,
-} from "@proto-kit/common";
+import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
 import {
   MethodParameterEncoder,
   Runtime,
@@ -41,6 +36,12 @@ import { distinctByString } from "../../../helpers/utils";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
+import {
+  TransactionExecutionResult,
+  UnprovenBlock,
+  UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
+} from "../../../storage/model/UnprovenBlock";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import type { StateRecord } from "../BlockProducerModule";
 
@@ -49,74 +50,6 @@ import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
 const errors = {
   methodIdNotFound: (methodId: string) =>
     new Error(`Can't find runtime method with id ${methodId}`),
-};
-
-export interface TransactionExecutionResult {
-  tx: PendingTransaction;
-  stateTransitions: UntypedStateTransition[];
-  protocolTransitions: UntypedStateTransition[];
-  status: Bool;
-  statusMessage?: string;
-  /**
-   * TODO Remove
-   * @deprecated
-   */
-  stateDiff: StateRecord;
-}
-
-export interface UnprovenBlock {
-  height: Field;
-  networkState: {
-    before: NetworkState;
-    during: NetworkState;
-  };
-  transactions: TransactionExecutionResult[];
-  transactionsHash: Field;
-  toEternalTransactionsHash: Field;
-  fromEternalTransactionsHash: Field;
-  fromBlockHashRoot: Field;
-  fromMessagesHash: Field;
-  toMessagesHash: Field;
-}
-
-export interface UnprovenBlockMetadata {
-  stateRoot: bigint;
-  blockHashRoot: bigint;
-  afterNetworkState: NetworkState;
-  blockStateTransitions: UntypedStateTransition[];
-  blockHashWitness: BlockHashMerkleTreeWitness;
-}
-
-export interface UnprovenBlockWithMetadata {
-  block: UnprovenBlock;
-  metadata: UnprovenBlockMetadata;
-}
-
-export const UnprovenBlockWithMetadata = {
-  createEmpty: () =>
-    ({
-      block: {
-        height: Field(0),
-        transactionsHash: Field(0),
-        fromEternalTransactionsHash: Field(0),
-        toEternalTransactionsHash: Field(0),
-        transactions: [],
-        networkState: {
-          before: NetworkState.empty(),
-          during: NetworkState.empty(),
-        },
-        fromBlockHashRoot: Field(BlockHashMerkleTree.EMPTY_ROOT),
-        fromMessagesHash: Field(0),
-        toMessagesHash: ACTIONS_EMPTY_HASH,
-      },
-      metadata: {
-        afterNetworkState: NetworkState.empty(),
-        stateRoot: RollupMerkleTree.EMPTY_ROOT,
-        blockHashRoot: BlockHashMerkleTree.EMPTY_ROOT,
-        blockStateTransitions: [],
-        blockHashWitness: BlockHashMerkleTree.WITNESS.dummy(),
-      },
-    } satisfies UnprovenBlockWithMetadata),
 };
 
 @injectable()
@@ -154,6 +87,18 @@ export class TransactionExecutionService {
     // We have to do the distinct with strings because
     // array.indexOf() doesn't work with fields
     return stateTransitions.map((st) => st.path).filter(distinctByString);
+  }
+
+  private collectStateDiff(
+    stateTransitions: UntypedStateTransition[]
+  ): StateRecord {
+    return stateTransitions.reduce<Record<string, Field[] | undefined>>(
+      (state, st) => {
+        state[st.path.toString()] = st.toValue.value;
+        return state;
+      },
+      {}
+    );
   }
 
   private decodeTransaction(tx: PendingTransaction): {
@@ -253,7 +198,7 @@ export class TransactionExecutionService {
    * attached that is needed for tracing
    */
   public async createUnprovenBlock(
-    stateService: CachedStateService,
+    stateService: AsyncStateService,
     transactions: PendingTransaction[],
     lastBlockWithMetadata: UnprovenBlockWithMetadata,
     allowEmptyBlocks: boolean
@@ -310,10 +255,13 @@ export class TransactionExecutionService {
         }
       } catch (error) {
         if (error instanceof Error) {
-          log.error("Error in inclusion of tx, skipping", error);
+          log.info("Error in inclusion of tx, skipping", error);
         }
       }
     }
+
+    const previousBlockHash =
+      lastMetadata.blockHash === 0n ? undefined : Field(lastMetadata.blockHash);
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
@@ -322,51 +270,60 @@ export class TransactionExecutionService {
       return undefined;
     }
 
-    return {
+    const block: Omit<UnprovenBlock, "hash"> = {
       transactions: executionResults,
       transactionsHash: transactionsHashList.commitment,
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash: eternalTransactionsHashList.commitment,
-      height: lastBlock.height.add(1),
+      height:
+        lastBlock.hash.toBigInt() !== 0n ? lastBlock.height.add(1) : Field(0),
       fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       toMessagesHash: incomingMessagesList.commitment,
+      previousBlockHash,
 
       networkState: {
         before: new NetworkState(lastMetadata.afterNetworkState),
         during: networkState,
       },
     };
+
+    const hash = UnprovenBlock.hash(block);
+
+    return {
+      ...block,
+      hash,
+    };
   }
 
   public async generateMetadataForNextBlock(
     block: UnprovenBlock,
-    merkleTreeStore: CachedMerkleTreeStore,
+    merkleTreeStore: AsyncMerkleTreeStore,
     blockHashTreeStore: AsyncMerkleTreeStore,
     modifyTreeStore = true
   ): Promise<UnprovenBlockMetadata> {
     // Flatten diff list into a single diff by applying them over each other
     const combinedDiff = block.transactions
-      .map((tx) => tx.stateDiff)
+      .map((tx) => {
+        const transitions = tx.protocolTransitions.concat(
+          tx.status.toBoolean() ? tx.stateTransitions : []
+        );
+        return this.collectStateDiff(transitions);
+      })
       .reduce<StateRecord>((accumulator, diff) => {
         // accumulator properties will be overwritten by diff's values
         return Object.assign(accumulator, diff);
       }, {});
 
-    // If we modify the parent store, we use it, otherwise we abstract over it.
-    const inMemoryStore = modifyTreeStore
-      ? merkleTreeStore
-      : new CachedMerkleTreeStore(merkleTreeStore);
+    const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
     const tree = new RollupMerkleTree(inMemoryStore);
     const blockHashInMemoryStore = new CachedMerkleTreeStore(
       blockHashTreeStore
     );
     const blockHashTree = new BlockHashMerkleTree(blockHashInMemoryStore);
 
-    for (const key of Object.keys(combinedDiff)) {
-      // eslint-disable-next-line no-await-in-loop
-      await inMemoryStore.preloadKey(BigInt(key));
-    }
+    await inMemoryStore.preloadKeys(Object.keys(combinedDiff).map(BigInt));
+
     // In case the diff is empty, we preload key 0 in order to
     // retrieve the root, which we need later
     if (Object.keys(combinedDiff).length === 0) {
@@ -411,13 +368,17 @@ export class TransactionExecutionService {
     blockHashTree.setLeaf(
       block.height.toBigInt(),
       new BlockHashTreeEntry({
-        transactionsHash: block.transactionsHash,
+        blockHash: Poseidon.hash([block.height, state.transactionsHash]),
         closed: Bool(true),
       }).hash()
     );
     const blockHashWitness = blockHashTree.getWitness(block.height.toBigInt());
     const newBlockHashRoot = blockHashTree.getRoot();
     await blockHashInMemoryStore.mergeIntoParent();
+
+    if (modifyTreeStore) {
+      await inMemoryStore.mergeIntoParent();
+    }
 
     return {
       afterNetworkState: resultingNetworkState,
@@ -428,34 +389,23 @@ export class TransactionExecutionService {
       blockStateTransitions: stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
+      blockHash: block.hash.toBigInt(),
     };
-  }
-
-  private collectStateDiff(
-    stateService: CachedStateService,
-    stateTransitions: StateTransition<unknown>[]
-  ): StateRecord {
-    const keys = this.allKeys(stateTransitions);
-
-    return keys.reduce<Record<string, Field[] | undefined>>((state, key) => {
-      state[key.toString()] = stateService.get(key);
-      return state;
-    }, {});
   }
 
   private async applyTransitions(
     stateService: CachedStateService,
     stateTransitions: StateTransition<unknown>[]
   ): Promise<void> {
-    await Promise.all(
-      // Use updated stateTransitions since only they will have the
-      // right values
-      stateTransitions
-        .filter((st) => st.to.isSome.toBoolean())
-        .map(async (st) => {
-          await stateService.setAsync(st.path, st.to.toFields());
-        })
-    );
+    const writes = stateTransitions
+      .filter((st) => st.to.isSome.toBoolean())
+      .map((st) =>
+        // Use updated stateTransitions since only they will have the
+        // right values
+        ({ key: st.path, value: st.to.toFields() })
+      );
+    // Maybe replace with stateService.set() because its cached anyways?
+    stateService.writeStates(writes);
   }
 
   // eslint-disable-next-line no-warning-comments
@@ -505,10 +455,12 @@ export class TransactionExecutionService {
 
   // eslint-disable-next-line max-statements
   private async createExecutionTrace(
-    stateService: CachedStateService,
+    asyncStateService: AsyncStateService,
     tx: PendingTransaction,
     networkState: NetworkState
   ): Promise<TransactionExecutionResult> {
+    const cachedStateService = new CachedStateService(asyncStateService);
+
     const { method, args, module } = this.decodeTransaction(tx);
 
     // Disable proof generation for tracing
@@ -532,17 +484,17 @@ export class TransactionExecutionService {
       args,
       runtimeContextInputs,
       blockContextInputs,
-      stateService
+      asyncStateService
     );
 
     // Preload keys
-    await stateService.preloadKeys(
+    await cachedStateService.preloadKeys(
       runtimeKeys.concat(protocolKeys).filter(distinctByString)
     );
 
     // Execute second time with preloaded state. The following steps
     // generate and apply the correct STs with the right values
-    this.stateServiceProvider.setCurrentStateService(stateService);
+    this.stateServiceProvider.setCurrentStateService(cachedStateService);
 
     const protocolResult = this.executeProtocolHooks(
       runtimeContextInputs,
@@ -567,10 +519,8 @@ export class TransactionExecutionService {
     );
 
     // Apply protocol STs
-    await this.applyTransitions(stateService, protocolResult.stateTransitions);
-
-    let stateDiff = this.collectStateDiff(
-      stateService,
+    await this.applyTransitions(
+      cachedStateService,
       protocolResult.stateTransitions
     );
 
@@ -591,11 +541,9 @@ export class TransactionExecutionService {
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
-      await this.applyTransitions(stateService, runtimeResult.stateTransitions);
-
-      stateDiff = this.collectStateDiff(
-        stateService,
-        protocolResult.stateTransitions.concat(runtimeResult.stateTransitions)
+      await this.applyTransitions(
+        cachedStateService,
+        runtimeResult.stateTransitions
       );
     }
 
@@ -604,6 +552,8 @@ export class TransactionExecutionService {
 
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
+
+    await cachedStateService.mergeIntoParent();
 
     return {
       tx,
@@ -617,8 +567,6 @@ export class TransactionExecutionService {
       protocolTransitions: protocolResult.stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
-
-      stateDiff,
     };
   }
 }

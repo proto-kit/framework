@@ -33,8 +33,8 @@ export class TimedBlockTrigger
     unprovenProducerModule: UnprovenProducerModule,
     @inject("UnprovenBlockQueue")
     unprovenBlockQueue: UnprovenBlockQueue,
-    @inject("SettlementModule")
-    settlementModule: SettlementModule,
+    // @inject("SettlementModule")
+    // settlementModule: SettlementModule,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
@@ -42,7 +42,7 @@ export class TimedBlockTrigger
       blockProducerModule,
       unprovenProducerModule,
       unprovenBlockQueue,
-      settlementModule
+      undefined
     );
   }
 
@@ -74,7 +74,11 @@ export class TimedBlockTrigger
           await this.produceProven();
         }
       } catch (error) {
-        log.error(error);
+        if (error instanceof Error) {
+          log.error(error.message + "\n" + error.stack);
+        } else {
+          log.error(error);
+        }
       }
     }, timerInterval);
 
@@ -82,12 +86,10 @@ export class TimedBlockTrigger
   }
 
   private async produceUnprovenBlock() {
+    const mempoolTxs = await this.mempool.getTxs();
     // Produce a block if either produceEmptyBlocks is true or we have more
     // than 1 tx in mempool
-    if (
-      this.mempool.getTxs().txs.length > 0 ||
-      (this.config.produceEmptyBlocks ?? true)
-    ) {
+    if (mempoolTxs.length > 0 || (this.config.produceEmptyBlocks ?? true)) {
       await this.produceUnproven(true);
     }
   }

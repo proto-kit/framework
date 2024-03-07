@@ -2,7 +2,6 @@
 import { noop } from "@proto-kit/common";
 
 import { CachedStateService } from "../../state/state/CachedStateService";
-import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import {
   sequencerModule,
   SequencerModule,
@@ -17,40 +16,35 @@ import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 import { InMemoryMessageStorage } from "./InMemoryMessageStorage";
 import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
+import { InMemoryTransactionStorage } from "./InMemoryTransactionStorage";
 
 @sequencerModule()
 export class InMemoryDatabase
   extends SequencerModule
   implements StorageDependencyFactory
 {
-  private readonly asyncService = new CachedStateService(undefined);
-
-  private readonly merkleStore = new InMemoryAsyncMerkleTreeStore();
-
-  private readonly blockStorageQueue = new InMemoryBlockStorage();
-
   public dependencies(): StorageDependencyMinimumDependencies {
     return {
       asyncMerkleStore: {
-        useValue: this.merkleStore,
+        useClass: InMemoryAsyncMerkleTreeStore,
       },
       asyncStateService: {
-        useValue: this.asyncService,
+        useFactory: () => new CachedStateService(undefined),
       },
       blockStorage: {
         useClass: InMemoryBatchStorage,
       },
       unprovenBlockQueue: {
-        useValue: this.blockStorageQueue,
+        useClass: InMemoryBlockStorage,
       },
       unprovenBlockStorage: {
-        useValue: this.blockStorageQueue,
+        useToken: "UnprovenBlockQueue",
       },
       unprovenStateService: {
-        useFactory: () => new CachedStateService(this.asyncService),
+        useFactory: () => new CachedStateService(undefined),
       },
       unprovenMerkleStore: {
-        useFactory: () => new CachedMerkleTreeStore(this.merkleStore),
+        useClass: InMemoryAsyncMerkleTreeStore,
       },
       blockTreeStore: {
         useClass: InMemoryAsyncMerkleTreeStore,
@@ -60,6 +54,9 @@ export class InMemoryDatabase
       },
       settlementStorage: {
         useClass: InMemorySettlementStorage,
+      },
+      transactionStorage: {
+        useClass: InMemoryTransactionStorage,
       },
     };
   }

@@ -69,6 +69,7 @@ import { Actions } from "o1js/dist/node/lib/account_update";
 import { expect } from "@jest/globals";
 import { Withdrawals } from "../integration/mocks/Withdrawals";
 import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
+import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
 
 log.setLevel("DEBUG");
 
@@ -81,6 +82,8 @@ describe("settlement contracts", () => {
   let trigger: ManualBlockTrigger;
   let settlementModule: SettlementModule;
   let blockQueue: UnprovenBlockQueue;
+
+  let blockSerializer: BlockProofSerializer;
 
   function setupAppChain() {
     const runtime = Runtime.from({
@@ -227,8 +230,9 @@ describe("settlement contracts", () => {
     console.log(
       `block ${block?.height.toString()} ${block?.fromMessagesHash.toString()} -> ${block?.toMessagesHash.toString()}`
     );
+    const proof = blockSerializer.getBlockProofSerializer().fromJSONProof(batch!.proof)
     console.log(
-      `block ${batch?.proof.publicInput.incomingMessagesHash} -> ${batch?.proof.publicOutput.incomingMessagesHash}`
+      `block ${proof.publicInput.incomingMessagesHash} -> ${proof.publicOutput.incomingMessagesHash}`
     );
 
     return result;
@@ -254,6 +258,8 @@ describe("settlement contracts", () => {
     ) as UnprovenBlockQueue;
 
     const baseLayer = appChain.sequencer.resolve("BaseLayer") as MinaBaseLayer;
+
+    blockSerializer = appChain.sequencer.dependencyContainer.resolve(BlockProofSerializer);
 
     const localChain = baseLayer.network as ReturnType<
       typeof Mina.LocalBlockchain

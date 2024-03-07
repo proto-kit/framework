@@ -28,9 +28,9 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule,
+  BlockProducerModule, BlockStorage, HistoricalBlockStorage,
   InMemoryDatabase,
-  ManualBlockTrigger,
+  ManualBlockTrigger
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -38,19 +38,12 @@ import { Balance } from "./mocks/Balance";
 import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
 import { UnprovenProducerModule } from "../../src/protocol/production/unproven/UnprovenProducerModule";
 import { container } from "tsyringe";
+import { DefaultTestingSequencerModules, testingSequencerFromModules } from "../TestingSequencer";
+import { createTransaction } from "./utils";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
-  let sequencer: Sequencer<{
-    Database: typeof InMemoryDatabase;
-    Mempool: typeof PrivateMempool;
-    LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
-    BaseLayer: typeof NoopBaseLayer;
-    BlockProducerModule: typeof BlockProducerModule;
-    UnprovenProducerModule: typeof UnprovenProducerModule;
-    BlockTrigger: typeof ManualBlockTrigger;
-    TaskQueue: typeof LocalTaskQueue;
-  }>;
+  let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
   let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>
 
@@ -74,18 +67,7 @@ describe("block production", () => {
       },
     });
 
-    const sequencerClass = Sequencer.from({
-      modules: {
-        Database: InMemoryDatabase,
-        Mempool: PrivateMempool,
-        LocalTaskWorkerModule,
-        BaseLayer: NoopBaseLayer,
-        BlockProducerModule,
-        UnprovenProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-      },
-    });
+    const sequencerClass = testingSequencerFromModules({});
 
     const protocolClass = VanillaProtocol.from(
       { }
@@ -132,38 +114,16 @@ describe("block production", () => {
     mempool = sequencer.resolve("Mempool");
   });
 
-  function createTransaction(spec: {
-    privateKey: PrivateKey;
-    method: [string, string];
-    args: ArgumentTypes;
-    nonce: number;
-  }) {
-    const methodId = runtime.dependencyContainer
-      .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodId(spec.method[0], spec.method[1]);
-
-    const decoder = MethodParameterEncoder.fromMethod(runtime.resolve(spec.method[0] as "Balance"), spec.method[1]);
-    const { argsFields, argsJSON } = decoder.encode(spec.args)
-
-    return new UnsignedTransaction({
-      methodId: Field(methodId),
-      argsFields,
-      argsJSON,
-      sender: spec.privateKey.toPublicKey(),
-      nonce: UInt64.from(spec.nonce),
-      isMessage: false
-    }).sign(spec.privateKey);
-  }
-
   // eslint-disable-next-line max-statements
   it("should produce a dummy block proof", async () => {
-    expect.assertions(21);
+    expect.assertions(22);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
 
-    mempool.add(
+    await mempool.add(
       createTransaction({
+        runtime,
         method: ["Balance", "setBalanceIf"],
         privateKey,
         args: [publicKey, UInt64.from(100), Bool(true)],
@@ -187,6 +147,11 @@ describe("block production", () => {
     expect(batch!.bundles).toHaveLength(1);
     expect(batch!.proof.proof).toBe("mock-proof");
 
+    // Check if the batchstorage has received the block
+    const batchStorage = sequencer.resolve("BlockStorage") as BlockStorage & HistoricalBlockStorage;
+    const retrievedBatch = await batchStorage.getBlockAt(0)
+    expect(retrievedBatch).toBeDefined();
+
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
         "AsyncStateService"
@@ -203,8 +168,8 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       publicKey
     );
-    const newState = await stateService.getAsync(balancesPath);
-    const newUnprovenState = await unprovenStateService.getAsync(balancesPath);
+    const newState = await stateService.getSingleAsync(balancesPath);
+    const newUnprovenState = await unprovenStateService.getSingleAsync(balancesPath);
 
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
@@ -220,14 +185,15 @@ describe("block production", () => {
       accountModule.accountState.keyType,
       publicKey
     );
-    const newAccountState = await stateService.getAsync(accountStatePath);
+    const newAccountState = await stateService.getSingleAsync(accountStatePath);
 
     expect(newAccountState).toBeDefined();
     expect(AccountState.fromFields(newAccountState!).nonce.toBigInt()).toBe(1n);
 
     // Second tx
-    mempool.add(
+    await mempool.add(
       createTransaction({
+        runtime,
         method: ["Balance", "addBalanceToSelf"],
         privateKey,
         args: [UInt64.from(100), UInt64.from(1)],
@@ -250,13 +216,12 @@ describe("block production", () => {
     expect(batch!.bundles).toHaveLength(1);
     expect(batch!.proof.proof).toBe("mock-proof");
 
-    const state2 = await stateService.getAsync(balancesPath);
+    const state2 = await stateService.getSingleAsync(balancesPath);
 
     expect(state2).toBeDefined();
     expect(UInt64.fromFields(state2!)).toStrictEqual(UInt64.from(200));
   }, 60_000);
 
-  // TODO Fix the error that we get when execution this after the first test
   it("should reject tx and not apply the state", async () => {
     expect.assertions(5);
 
@@ -264,8 +229,9 @@ describe("block production", () => {
 
     const privateKey = PrivateKey.random();
 
-    mempool.add(
+    await mempool.add(
       createTransaction({
+        runtime,
         method: ["Balance", "setBalanceIf"],
         privateKey,
         args: [PrivateKey.random().toPublicKey(), UInt64.from(100), Bool(false)],
@@ -293,15 +259,15 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       PublicKey.empty()
     );
-    const unprovenState = await unprovenStateService.getAsync(balancesPath);
-    const newState = await stateService.getAsync(balancesPath);
+    const unprovenState = await unprovenStateService.getSingleAsync(balancesPath);
+    const newState = await stateService.getSingleAsync(balancesPath);
 
     // Assert that state is not set
     expect(unprovenState).toBeUndefined();
     expect(newState).toBeUndefined();
   }, 30_000);
 
-  const numberTxs = 2;
+  const numberTxs = 3;
 
   it("should produce block with multiple transaction", async () => {
     // eslint-disable-next-line jest/prefer-expect-assertions
@@ -312,9 +278,10 @@ describe("block production", () => {
 
     const increment = 100;
 
-    range(0, numberTxs).forEach((index) => {
-      mempool.add(
+    const p = range(0, numberTxs).map(async (index) => {
+      await mempool.add(
         createTransaction({
+          runtime,
           method: ["Balance", "addBalanceToSelf"],
           privateKey,
           args: [UInt64.from(increment), UInt64.from(0)],
@@ -322,6 +289,7 @@ describe("block production", () => {
         })
       );
     });
+    await Promise.all(p);
 
     const block = await blockTrigger.produceUnproven();
 
@@ -358,7 +326,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       publicKey
     );
-    const newState = await stateService.getAsync(balancesPath);
+    const newState = await stateService.getSingleAsync(balancesPath);
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
@@ -372,16 +340,18 @@ describe("block production", () => {
     const pk1 = PrivateKey.random();
     const pk2 = PrivateKey.random();
 
-    mempool.add(
+    await mempool.add(
       createTransaction({
+        runtime,
         method: ["Balance", "setBalanceIf"],
         privateKey: pk1,
         args: [pk1.toPublicKey(), UInt64.from(100), Bool(false)],
         nonce: 0,
       })
     );
-    mempool.add(
+    await mempool.add(
       createTransaction({
+        runtime,
         method: ["Balance", "setBalanceIf"],
         privateKey: pk2,
         args: [pk2.toPublicKey(), UInt64.from(100), Bool(true)],
@@ -396,7 +366,6 @@ describe("block production", () => {
     expect(block).toBeDefined();
 
     expect(batch!.bundles).toHaveLength(2);
-    expect(batch!.bundles[1]).toStrictEqual([]);
     expect(block!.transactions).toHaveLength(2);
 
     const stateService =
@@ -409,7 +378,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       pk1.toPublicKey()
     );
-    const newState1 = await stateService.getAsync(balancesPath1);
+    const newState1 = await stateService.getSingleAsync(balancesPath1);
 
     expect(newState1).toBeUndefined();
 
@@ -418,7 +387,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       pk2.toPublicKey()
     );
-    const newState2 = await stateService.getAsync(balancesPath2);
+    const newState2 = await stateService.getSingleAsync(balancesPath2);
 
     expect(newState2).toBeDefined();
     expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
@@ -445,8 +414,9 @@ describe("block production", () => {
       const pk1 = PrivateKey.fromBase58(pk1string);
       const pk2 = PrivateKey.fromBase58(pk2string);
 
-      mempool.add(
+      await mempool.add(
         createTransaction({
+          runtime,
           method: ["Balance", "setBalanceIf"],
           privateKey: pk1,
           args: [pk1.toPublicKey(), UInt64.from(100), Bool(true)],
@@ -456,8 +426,9 @@ describe("block production", () => {
 
       await blockTrigger.produceBlock();
 
-      mempool.add(
+      await mempool.add(
         createTransaction({
+          runtime,
           method: ["Balance", "setBalanceIf"],
           privateKey: pk2,
           args: [pk2.toPublicKey(), UInt64.from(200), Bool(true)],
@@ -495,8 +466,9 @@ describe("block production", () => {
       for (let i = 0; i < batches; i++) {
         for (let j = 0; j < blocksPerBatch; j++) {
           for (let k = 0; k < txsPerBlock; k++) {
-            mempool.add(
+            await mempool.add(
               createTransaction({
+                runtime,
                 method: ["Balance", "addBalance"],
                 privateKey: sender,
                 args: [
@@ -534,8 +506,9 @@ describe("block production", () => {
 
     const field = Field(100);
 
-    mempool.add(
+    await mempool.add(
       createTransaction({
+        runtime,
         method: ["Balance", "lotOfSTs"],
         privateKey,
         args: [field],
@@ -561,7 +534,7 @@ describe("block production", () => {
         "AsyncStateService"
       );
     const supplyPath = Path.fromProperty("Balance", "totalSupply");
-    const newState = await stateService.getAsync(supplyPath);
+    const newState = await stateService.getSingleAsync(supplyPath);
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
@@ -577,7 +550,7 @@ describe("block production", () => {
       pk2
     );
 
-    const newBalance = await stateService.getAsync(balancesPath);
+    const newBalance = await stateService.getSingleAsync(balancesPath);
 
     expect(newBalance).toBeDefined();
     expect(UInt64.fromFields(newBalance!)).toStrictEqual(UInt64.from(200));

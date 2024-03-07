@@ -113,6 +113,6 @@ export class TestingAppChain<
       ManualBlockTrigger
     );
 
-    return await blockTrigger.produceUnproven(true);
+    return await blockTrigger.produceUnproven();
   }
 }

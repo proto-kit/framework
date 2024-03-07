@@ -1,4 +1,3 @@
-/* eslint-disable new-cap */
 import { inject, injectable } from "tsyringe";
 import { Arg, Field, ObjectType, Query, Resolver } from "type-graphql";
 import { IsBoolean } from "class-validator";
@@ -13,6 +12,10 @@ import { MOCK_PROOF } from "@proto-kit/common";
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
 import { TransactionObject } from "./MempoolResolver";
+import {
+  UnprovenBlockModel,
+  UnprovenBlockResolver,
+} from "./UnprovenBlockResolver";
 
 @ObjectType()
 export class ComputedBlockTransactionModel {
@@ -48,32 +51,25 @@ export class ComputedBlockTransactionModel {
 
 @ObjectType()
 export class ComputedBlockModel {
-  public static fromServiceLayerModel({
-    bundles,
-    proof,
-  }: ComputedBlock): ComputedBlockModel {
+  public static fromServiceLayerModel(
+    { bundles, proof }: ComputedBlock,
+    blocks: (UnprovenBlockModel | undefined)[]
+  ): ComputedBlockModel {
     return new ComputedBlockModel(
-      bundles.map((bundle) =>
-        bundle.map((tx) =>
-          ComputedBlockTransactionModel.fromServiceLayerModel(tx)
-        )
+      bundles.map(
+        (bundle) => blocks.find((block) => block?.hash === bundle)!
       ),
-      proof.proof === MOCK_PROOF
-        ? "mock-proof"
-        : JSON.stringify(proof.toJSON())
+      proof.proof === MOCK_PROOF ? "mock-proof" : JSON.stringify(proof)
     );
   }
 
-  @Field(() => [[ComputedBlockTransactionModel]])
-  public bundles: ComputedBlockTransactionModel[][];
+  @Field(() => [UnprovenBlockModel])
+  public bundles: UnprovenBlockModel[];
 
   @Field()
   public proof: string;
 
-  public constructor(
-    bundles: ComputedBlockTransactionModel[][],
-    proof: string
-  ) {
+  public constructor(bundles: UnprovenBlockModel[], proof: string) {
     this.bundles = bundles;
     this.proof = proof;
   }
@@ -84,7 +80,8 @@ export class BlockStorageResolver extends GraphqlModule {
   // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage & HistoricalBlockStorage
+    private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
+    private readonly unprovenResolver: UnprovenBlockResolver
   ) {
     super();
   }
@@ -97,10 +94,16 @@ export class BlockStorageResolver extends GraphqlModule {
     const blockHeight =
       height ?? (await this.blockStorage.getCurrentBlockHeight()) - 1;
 
-    const block = await this.blockStorage.getBlockAt(blockHeight);
+    const batch = await this.blockStorage.getBlockAt(blockHeight);
 
-    if (block !== undefined) {
-      return ComputedBlockModel.fromServiceLayerModel(block);
+    if (batch !== undefined) {
+      const blocks = await Promise.all(
+        batch.bundles.map((bundle) =>
+          // TODO Find a graphql-native way of doing this relational 1-n mapping
+          this.unprovenResolver.block(undefined, bundle)
+        )
+      );
+      return ComputedBlockModel.fromServiceLayerModel(batch, blocks);
     }
     return undefined;
   }

@@ -9,7 +9,7 @@ import {
   ReturnType,
   StateServiceProvider,
   StateTransitionProof,
-  StateTransitionProvable,
+  StateTransitionProvable
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { Runtime } from "@proto-kit/module";

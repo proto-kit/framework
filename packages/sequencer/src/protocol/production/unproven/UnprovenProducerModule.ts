@@ -9,27 +9,23 @@ import {
 } from "@proto-kit/common";
 
 import { Mempool } from "../../../mempool/Mempool";
-import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
   sequencerModule,
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
-
+import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import {
-  TransactionExecutionService,
   UnprovenBlock,
   UnprovenBlockWithMetadata,
-} from "./TransactionExecutionService";
+} from "../../../storage/model/UnprovenBlock";
+import { CachedStateService } from "../../../state/state/CachedStateService";
+
+import { TransactionExecutionService } from "./TransactionExecutionService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
-
-const errors = {
-  txRemovalFailed: () => new Error("Removal of txs from mempool failed"),
-};
 
 interface UnprovenProducerEvents extends EventsRecord {
   unprovenBlockProduced: [UnprovenBlock];
@@ -52,9 +48,9 @@ export class UnprovenProducerModule
     @inject("Mempool") private readonly mempool: Mempool,
     @inject("MessageStorage") private readonly messageStorage: MessageStorage,
     @inject("UnprovenStateService")
-    private readonly unprovenStateService: CachedStateService,
+    private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenMerkleStore")
-    private readonly unprovenMerkleStore: CachedMerkleTreeStore,
+    private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
     @inject("UnprovenBlockQueue")
     private readonly unprovenBlockQueue: UnprovenBlockQueue,
     @inject("BlockTreeStore")
@@ -68,7 +64,9 @@ export class UnprovenProducerModule
     return this.config.allowEmptyBlock ?? true;
   }
 
-  public async tryProduceUnprovenBlock(): Promise<UnprovenBlock | undefined> {
+  public async tryProduceUnprovenBlock(): Promise<
+    UnprovenBlockWithMetadata | undefined
+  > {
     if (!this.productionInProgress) {
       try {
         const block = await this.produceUnprovenBlock();
@@ -95,9 +93,11 @@ export class UnprovenProducerModule
             this.blockTreeStore,
             true
           );
-        await this.unprovenBlockQueue.pushMetadata(metadata);
 
-        return block;
+        return {
+          block,
+          metadata,
+        };
       } catch (error: unknown) {
         if (error instanceof Error) {
           throw error;
@@ -115,7 +115,7 @@ export class UnprovenProducerModule
     txs: PendingTransaction[];
     metadata: UnprovenBlockWithMetadata;
   }> {
-    const { txs } = this.mempool.getTxs();
+    const txs = await this.mempool.getTxs();
 
     const parentBlock = await this.unprovenBlockQueue.getLatestBlock();
 
@@ -165,11 +165,6 @@ export class UnprovenProducerModule
     await cachedStateService.mergeIntoParent();
 
     this.productionInProgress = false;
-
-    requireTrue(
-      this.mempool.removeTxs(txs.filter((tx) => !tx.isMessage)),
-      errors.txRemovalFailed
-    );
 
     return block;
   }

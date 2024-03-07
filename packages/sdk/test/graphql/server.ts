@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { CircuitString, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { PrivateKey, PublicKey, UInt64 } from "o1js";
 import {
   Runtime,
   runtimeMethod,
@@ -7,25 +7,17 @@ import {
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import {
-  AccountStateModule,
-  BlockHeightHook,
-  Option,
-  State,
-  StateMap,
-  VanillaProtocol,
-} from "@proto-kit/protocol";
-import { Presets, log, sleep } from "@proto-kit/common";
+import { Option, State, StateMap, VanillaProtocol } from "@proto-kit/protocol";
+import { log, Presets } from "@proto-kit/common";
 import {
   BlockProducerModule,
-  InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
   TimedBlockTrigger,
-  UnprovenProducerModule
+  UnprovenProducerModule,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -37,14 +29,12 @@ import {
   QueryGraphqlModule,
   UnprovenBlockResolver,
 } from "@proto-kit/api";
-
-import { AppChain } from "../../src/appChain/AppChain";
-import { StateServiceQueryModule } from "../../src/query/StateServiceQueryModule";
-import { InMemorySigner } from "../../src/transaction/InMemorySigner";
-import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
 import { container } from "tsyringe";
-import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
-import { MessageBoard, Post } from "./Post";
+import { PrismaRedisDatabase } from "@proto-kit/persistance";
+
+import { AppChain, StateServiceQueryModule, InMemorySigner, InMemoryTransactionSender, BlockStorageNetworkStateModule } from "../../src";
+
+import { MessageBoard } from "./Post";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
@@ -92,11 +82,13 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from({ }),
+    protocol: VanillaProtocol.from({}),
 
     sequencer: Sequencer.from({
       modules: {
-        Database: InMemoryDatabase,
+        // Database: InMemoryDatabase,
+        Database: PrismaRedisDatabase,
+
         Mempool: PrivateMempool,
         GraphqlServer,
         LocalTaskWorkerModule,
@@ -147,7 +139,7 @@ export async function startServer() {
       StateTransitionProver: {},
       AccountState: {},
       BlockHeight: {},
-      LastStateRoot: {}
+      LastStateRoot: {},
     },
 
     Sequencer: {
@@ -166,7 +158,14 @@ export async function startServer() {
         MerkleWitnessResolver: {},
       },
 
-      Database: {},
+      Database: {
+        redis: {
+          url: "redis://localhost:6379",
+          password: "password",
+        },
+        prisma: {},
+      },
+
       Mempool: {},
       BlockProducerModule: {},
       LocalTaskWorkerModule: {},
@@ -203,9 +202,20 @@ export async function startServer() {
     "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
   );
 
-  const tx = await appChain.transaction(priv.toPublicKey(), () => {
-    balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
-  });
+  const as = await appChain.query.protocol.AccountState.accountState.get(
+    priv.toPublicKey()
+  );
+  const nonce = Number(as?.nonce.toString() ?? "0");
+
+  const tx = await appChain.transaction(
+    priv.toPublicKey(),
+    () => {
+      balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+    },
+    {
+      nonce,
+    }
+  );
   appChain.resolve("Signer").config.signer = priv;
   await tx.sign();
   await tx.send();
@@ -215,7 +225,7 @@ export async function startServer() {
     () => {
       balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
     },
-    { nonce: 1 }
+    { nonce: nonce + 1 }
   );
   await tx2.sign();
   await tx2.send();

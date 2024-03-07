@@ -4,11 +4,11 @@ import "reflect-metadata";
 import {
   DependencyContainer,
   Frequency,
-  injectable,
   InjectionToken,
   instancePerContainerCachingFactory,
   isClassProvider,
   isFactoryProvider,
+  isTokenProvider,
   isValueProvider,
   Lifecycle,
 } from "tsyringe";
@@ -404,6 +404,10 @@ export class ModuleContainer<
             ),
           });
         } else if (isClassProvider(declaration)) {
+          this.container.register(key, declaration, {
+            lifecycle: Lifecycle.Singleton,
+          });
+        } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,
           });

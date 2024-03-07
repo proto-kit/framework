@@ -1,7 +1,4 @@
-import {
-  InMemoryMerkleTreeStorage,
-  RollupMerkleTree,
-} from "@proto-kit/common";
+import { InMemoryMerkleTreeStorage, RollupMerkleTree } from "@proto-kit/common";
 import { beforeEach } from "@jest/globals";
 import { Field, Poseidon } from "o1js";
 import { log } from "@proto-kit/common";
@@ -43,7 +40,9 @@ describe("cachedMerkleTree", () => {
       Poseidon.hash([Field(0), Field(10)]).toBigInt()
     );
 
-    expect(cached.getNode(0n, 254)).toBe(await store.getNodeAsync(0n, 254));
+    const retrievedNodes = await store.getNodesAsync([{ key: 0n, level: 254 }]);
+
+    expect(cached.getNode(0n, 254)).toStrictEqual(retrievedNodes[0]);
     expect(cached.getNode(0n, 254)).toBe(syncStore.getNode(0n, 254));
 
     expect(cachedTree.getRoot().toBigInt()).toBe(tree.getRoot().toBigInt());

@@ -34,7 +34,7 @@ export class StateServiceQueryModule
   }
 
   public async get(key: Field) {
-    return await this.asyncStateService.getAsync(key);
+    return await this.asyncStateService.getSingleAsync(key);
   }
 
   public async merkleWitness(

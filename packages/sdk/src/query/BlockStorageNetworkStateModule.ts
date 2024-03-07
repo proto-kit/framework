@@ -59,8 +59,7 @@ export class BlockStorageNetworkStateModule
   }
 
   public async getProvenNetworkState() {
-    const batchHeight = await this.provenStorage.getCurrentBlockHeight();
-    const batch = await this.provenStorage.getBlockAt(batchHeight - 1);
+    const batch = await this.provenStorage.getLatestBlock();
 
     if (batch !== undefined) {
       const lastBlock = batch.bundles.at(-1);
@@ -70,13 +69,16 @@ export class BlockStorageNetworkStateModule
         );
       }
 
-      // const block = await this.unprovenStorage.getBlock(lastBlock);
-      //
-      // if (block !== undefined) {
-      //   return block.networkState.during; // TODO Probably metadata.after?
-      // }
+      const block = await this.unprovenStorage.getBlock(lastBlock);
+
+      if (block === undefined) {
+        throw new Error(
+          `Highest block of latest batch not found in blockStorage (hash ${lastBlock})`
+        );
+      }
+      return block.networkState.during; // TODO Probably metadata.after?
     }
-    // We currently do not carry networkstate data with proven blocks
+    // TODO Replace by NetworkState.empty() across the whole application
     return undefined;
   }
 }
