@@ -9,8 +9,14 @@ import {
   RuntimeModulesRecord,
   state,
 } from "@proto-kit/module";
-import { AccountStateHook, Option, State, StateMap } from "@proto-kit/protocol";
-import { VanillaProtocol } from "@proto-kit/library";
+import {
+  AccountStateHook,
+  Option,
+  Protocol,
+  State,
+  StateMap,
+} from "@proto-kit/protocol";
+import { VanillaProtocolModules } from "@proto-kit/library";
 import { Presets, log, TypedClass } from "@proto-kit/common";
 import {
   AsyncStateService,
@@ -55,11 +61,13 @@ export async function startServer({
   runtime: TypedClass<Runtime<RuntimeModulesRecord>>;
 }) {
   const appChain = AppChain.from({
-    runtime,
+    Runtime: runtime,
 
-    protocol: VanillaProtocol.from({}),
+    Protocol: Protocol.from({
+      modules: VanillaProtocolModules.with({}),
+    }),
 
-    sequencer: Sequencer.from({
+    Sequencer: Sequencer.from({
       modules: {
         Mempool: PrivateMempool,
         GraphqlServer,
@@ -94,7 +102,7 @@ export async function startServer({
     },
   });
 
-  appChain.configure({
+  appChain.configurePartial({
     Runtime: {
       Balances: {},
     },
@@ -103,6 +111,14 @@ export async function startServer({
       BlockProver: {},
       StateTransitionProver: {},
       AccountState: {},
+      BlockHeight: {},
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 1_000_000n,
+        perWeightUnitFee: 1000n,
+        methods: {},
+      },
     },
 
     Sequencer: {

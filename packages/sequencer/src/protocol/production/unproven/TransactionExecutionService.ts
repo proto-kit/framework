@@ -17,6 +17,7 @@ import {
   BlockTransactionPositionType,
   ProvableBlockHook,
   StateServiceProvider,
+  MandatoryProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
@@ -78,7 +79,9 @@ export class TransactionExecutionService {
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     // Coming in from the appchain scope (accessible by protocol & runtime)
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider

@@ -61,7 +61,7 @@ export class PoolKey extends PublicKey {
 }
 
 @runtimeModule()
-export class XYK extends RuntimeModule<unknown> {
+export class XYK extends RuntimeModule<Record<never, never>> {
   public static defaultPoolValue = Field(0);
 
   @state() public pools = StateMap.from<PoolKey, Field>(PoolKey, Field);

@@ -67,7 +67,7 @@ function prepare() {
       },
     }),
 
-    protocol: VanillaProtocol.from({}),
+    protocol: VanillaProtocol.create(),
 
     sequencer: Sequencer.from({
       modules: {

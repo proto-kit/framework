@@ -3,6 +3,7 @@ import {
   BlockProverExecutionData,
   BlockProverPublicInput,
   BlockProverPublicOutput,
+  MandatoryProtocolModulesRecord,
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
@@ -55,7 +56,9 @@ export class BlockReductionTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
@@ -104,7 +107,9 @@ export class BlockProvingTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     @inject("Runtime") private readonly runtime: Runtime<never>,
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider,

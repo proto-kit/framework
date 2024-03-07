@@ -9,6 +9,7 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
+  MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModule,
   ProtocolModulesRecord,
@@ -137,7 +138,10 @@ export const QueryBuilderFactory = {
     }, {} as any);
   },
 
-  fromProtocol<ProtocolModules extends ProtocolModulesRecord>(
+  fromProtocol<
+    ProtocolModules extends MandatoryProtocolModulesRecord &
+      ProtocolModulesRecord
+  >(
     protocol: Protocol<ProtocolModules>,
     queryTransportModule: QueryTransportModule
   ): Query<ProtocolModule<unknown>, ProtocolModules> {

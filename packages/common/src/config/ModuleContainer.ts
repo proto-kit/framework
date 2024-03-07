@@ -304,14 +304,6 @@ export class ModuleContainer<
     >(this.currentConfig ?? {}, config);
   }
 
-  // eslint-disable-next-line accessor-pairs
-  public set config(config: ModulesConfig<Modules>) {
-    super.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      ModulesConfig<Modules>
-    >(this.currentConfig ?? {}, config);
-  }
-
   /**
    * Resolves a module from the current module container
    *
@@ -352,9 +344,7 @@ export class ModuleContainer<
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
-    // Has to be super.config, getters behave really weird when subtyping
-    const config = super.config?.[moduleName];
-
+    const config = this.config?.[moduleName];
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config) {
       throw errors.configNotSetInContainer(moduleName.toString());

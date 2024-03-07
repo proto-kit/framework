@@ -31,40 +31,37 @@ const PROTOCOL_INJECTION_TOKENS = {
   ProvableBlockHook: "ProvableBlockHook",
 };
 
-export type GenericProtocolModuleRecord = ModulesRecord<
+export type ProtocolModulesRecord = ModulesRecord<
   TypedClass<ProtocolModule<unknown>>
 >;
 
-interface BlockProverType extends ProtocolModule, BlockProvable {}
+export interface BlockProverType extends ProtocolModule, BlockProvable {}
 
-interface StateTransitionProverType
+export interface StateTransitionProverType
   extends ProtocolModule,
     StateTransitionProvable {}
 
-export interface MandatoryProtocolModulesRecord {
+export type MandatoryProtocolModulesRecord = {
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
   AccountState: TypedClass<AccountStateHook>;
   BlockHeight: TypedClass<BlockHeightHook>;
-}
-
-export interface ProtocolModulesRecord
-  extends GenericProtocolModuleRecord,
-    MandatoryProtocolModulesRecord {}
+};
 
 export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   modules: Modules;
   config?: ModulesConfig<Modules>;
 }
 
-export class Protocol<Modules extends ProtocolModulesRecord>
+export class Protocol<
+    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord
+  >
   extends ModuleContainer<Modules>
   implements ProtocolEnvironment
 {
-  // .from() to create Protocol
-  public static from<Modules extends ProtocolModulesRecord>(
-    modules: ProtocolDefinition<Modules>
-  ): TypedClass<Protocol<Modules>> {
+  public static from<
+    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord
+  >(modules: ProtocolDefinition<Modules>): TypedClass<Protocol<Modules>> {
     return class ScopedProtocol extends Protocol<Modules> {
       public constructor() {
         super(modules);

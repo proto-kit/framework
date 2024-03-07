@@ -93,7 +93,7 @@ export async function startServer() {
       },
     }),
 
-    protocol: VanillaProtocol.from({}),
+    protocol: VanillaProtocol.create(),
 
     sequencer: Sequencer.from({
       modules: {

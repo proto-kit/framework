@@ -233,7 +233,7 @@ export function runtimeMethod() {
       this: RuntimeModule<unknown>,
       ...args: ArgumentTypes
     ) {
-      const constructorName = this.constructor.name;
+      const constructorName = this.name!;
 
       /**
        * If its a top level method call, wrap it into a wrapped method,

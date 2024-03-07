@@ -1,6 +1,6 @@
 /* eslint-disable max-statements */
 import "reflect-metadata";
-import { PrivateKey, PublicKey, UInt64, Provable } from "o1js";
+import { PrivateKey, PublicKey, UInt64 } from "o1js";
 import {
   runtimeMethod,
   RuntimeModule,
@@ -8,10 +8,15 @@ import {
   state,
 } from "@proto-kit/module";
 import { TestingAppChain } from "../src/index";
-import { container, inject } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { inject } from "tsyringe";
 import { randomUUID } from "crypto";
 import { assert, State, StateMap } from "@proto-kit/protocol";
+import {
+  Balances,
+  BalancesKey,
+  TokenId,
+  VanillaRuntimeModules,
+} from "@proto-kit/library";
 
 export interface AdminConfig {
   admin: PublicKey;
@@ -34,13 +39,8 @@ interface BalancesConfig {
 }
 
 @runtimeModule()
-class Balances extends RuntimeModule<BalancesConfig> {
+class CustomBalances extends Balances<BalancesConfig> {
   @state() public totalSupply = State.from<UInt64>(UInt64);
-
-  @state() public balances = StateMap.from<PublicKey, UInt64>(
-    PublicKey,
-    UInt64
-  );
 
   public constructor(@inject("Admin") public admin: Admin) {
     super();
@@ -65,13 +65,24 @@ class Balances extends RuntimeModule<BalancesConfig> {
     const isSender = this.transaction.sender.equals(address);
     assert(isSender, "Address is not the sender");
 
-    const currentBalance = this.balances.get(address);
+    const currentBalance = this.balances.get(
+      new BalancesKey({ tokenId: TokenId.from(0n), address })
+    );
 
     const newBalance = currentBalance.value.add(balance);
 
-    this.balances.set(address, newBalance);
+    this.balances.set(
+      new BalancesKey({ tokenId: TokenId.from(0n), address }),
+      newBalance
+    );
   }
+
+  // @runtimeMethod()
+  public foo() {}
 }
+
+@runtimeModule()
+class BadModule extends RuntimeModule<unknown> {}
 
 describe("testing app chain", () => {
   it("should enable a complete transaction roundtrip", async () => {
@@ -85,7 +96,8 @@ describe("testing app chain", () => {
      * using the provided runtime modules
      */
     const appChain = TestingAppChain.fromRuntime({
-      modules: { Admin, Balances },
+      Admin,
+      Balances: CustomBalances,
     });
 
     appChain.configurePartial({
@@ -96,6 +108,16 @@ describe("testing app chain", () => {
 
         Balances: {
           totalSupply: UInt64.from(1000),
+        },
+      },
+      Protocol: {
+        ...appChain.config.Protocol!,
+        TransactionFee: {
+          tokenId: 0n,
+          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          baseFee: 0n,
+          perWeightUnitFee: 0n,
+          methods: {},
         },
       },
     });
@@ -128,10 +150,14 @@ describe("testing app chain", () => {
 
     expect(block?.transactions[0].status.toBoolean()).toBe(true);
 
+    appChain.query.runtime.Balances;
+
     /**
      * Observe new state after the block has been produced
      */
-    const balance = await appChain.query.runtime.Balances.balances.get(sender);
+    const balance = await appChain.query.runtime.Balances.balances.get(
+      new BalancesKey({ tokenId: TokenId.from(0n), address: sender })
+    );
 
     expect(balance?.toBigInt()).toBe(1000n);
   }, 60_000);

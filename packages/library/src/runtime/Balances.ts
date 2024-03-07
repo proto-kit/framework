@@ -4,6 +4,7 @@ import {
   EventEmitter,
   EventEmittingComponent,
   EventsRecord,
+  NoConfig,
 } from "@proto-kit/common";
 import {
   RuntimeModule,
@@ -34,10 +35,20 @@ export interface BalancesEvents extends EventsRecord {
   setBalance: [BalancesKey, Balance];
 }
 
+export type MinimalBalances = {
+  balances: StateMap<BalancesKey, Balance>;
+  transfer: (
+    tokenId: TokenId,
+    from: PublicKey,
+    to: PublicKey,
+    amount: Balance
+  ) => void;
+};
+
 @runtimeModule()
-export class Balances
-  extends RuntimeModule<unknown>
-  implements EventEmittingComponent<BalancesEvents>
+export class Balances<Config = NoConfig>
+  extends RuntimeModule<Config>
+  implements EventEmittingComponent<BalancesEvents>, MinimalBalances
 {
   @state() public balances = StateMap.from<BalancesKey, Balance>(
     BalancesKey,

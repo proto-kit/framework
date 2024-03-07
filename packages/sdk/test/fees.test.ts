@@ -12,11 +12,6 @@ import {
   RuntimeModulesRecord,
   state,
 } from "@proto-kit/module";
-import {
-  GenericProtocolModuleRecord,
-  ProtocolModulesRecord,
-  StateMap,
-} from "@proto-kit/protocol";
 import { SequencerModulesRecord } from "@proto-kit/sequencer";
 import { Field, PrivateKey, PublicKey, State, UInt64 } from "o1js";
 import { inject } from "tsyringe";
@@ -59,11 +54,9 @@ describe("fees", () => {
   const feeRecipientKey = PrivateKey.random();
   const senderKey = PrivateKey.random();
 
-  const appChain = TestingAppChain.fromRuntime<RuntimeModules>({
-    modules: {
-      Faucet,
-      Pit,
-    },
+  const appChain = TestingAppChain.fromRuntime({
+    Faucet,
+    Pit,
   });
 
   beforeAll(async () => {
@@ -71,15 +64,16 @@ describe("fees", () => {
       Runtime: {
         Faucet: {},
         Pit: {},
+        Balances: {},
       },
 
       Protocol: {
+        ...appChain.config.Protocol!,
         TransactionFee: {
           tokenId: 0n,
           feeRecipient: feeRecipientKey.toPublicKey().toBase58(),
           baseFee: 0n,
           perWeightUnitFee: 1n,
-
           methods: {
             "Faucet.drip": {
               baseFee: 0n,

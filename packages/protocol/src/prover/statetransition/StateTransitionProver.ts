@@ -30,6 +30,7 @@ import {
   StateTransitionProverPublicOutput,
 } from "./StateTransitionProvable";
 import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
+import { StateTransitionProverType } from "../../protocol/Protocol";
 
 const errors = {
   propertyNotMatching: (property: string, step: string) =>
@@ -340,9 +341,9 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 @injectable()
 export class StateTransitionProver
   extends ProtocolModule
-  implements StateTransitionProvable
+  implements StateTransitionProvable, StateTransitionProverType
 {
-  public readonly zkProgrammable: StateTransitionProverProgrammable;
+  public zkProgrammable: StateTransitionProverProgrammable;
 
   public constructor(
     // Injected

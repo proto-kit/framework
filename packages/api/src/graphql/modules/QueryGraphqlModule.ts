@@ -22,6 +22,7 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
+  MandatoryProtocolModulesRecord,
   NetworkState,
   Protocol,
   ProtocolModulesRecord,
@@ -77,7 +78,9 @@ export class QueryGraphqlModule<
     private readonly networkStateTransportModule: NetworkStateTransportModule,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModules>,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >
   ) {
     super();
   }

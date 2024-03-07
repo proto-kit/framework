@@ -1,5 +1,10 @@
 /* eslint-disable import/no-unused-modules */
-import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
+import {
+  getAllPropertyNames,
+  isRuntimeMethod,
+  Runtime,
+  RuntimeModulesRecord,
+} from "@proto-kit/module";
 import { inject, injectable } from "tsyringe";
 import {
   ProvableTransactionHook,
@@ -36,6 +41,9 @@ export const errors = {
 
   invalidFeeConfigMethodId: () =>
     "Method id of the provided fee config does not match the executed transaction method id",
+
+  invalidMethod: (method: string) =>
+    `${method} does not exist in the current runtime.`,
 };
 
 /**
@@ -50,14 +58,43 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     super();
   }
 
+  protected persistedFeeAnalyzer: RuntimeFeeAnalyzerService | null = null;
+
+  // check if the fee config is compatible with the current runtime
+  // we couldnt resolve this purely on the type level, so we have to do it here
+  public verifyConfig() {
+    Object.keys(super.config.methods).forEach((combinedMethodName) => {
+      const [runtimeModule, runtimeMethod] = combinedMethodName.split(".");
+      const resolvedRuntimeModule = this.runtime.resolve(runtimeModule);
+
+      const runtimeMethodExists =
+        getAllPropertyNames(resolvedRuntimeModule).includes(runtimeMethod) &&
+        isRuntimeMethod(resolvedRuntimeModule, runtimeMethod);
+
+      if (!runtimeMethodExists) {
+        throw errors.invalidMethod(combinedMethodName);
+      }
+    });
+  }
+
+  public get config() {
+    this.verifyConfig();
+    return super.config;
+  }
+
+  public set config(value: TransactionFeeHookConfig) {
+    super.config = value;
+  }
+
   public get balances() {
     return this.runtime.dependencyContainer.resolve<Balances>("Balances");
   }
 
   public get feeAnalyzer() {
-    const feeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
-    feeAnalyzer.config = this.config;
-    return feeAnalyzer;
+    if (this.persistedFeeAnalyzer) return this.persistedFeeAnalyzer;
+    this.persistedFeeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
+    this.persistedFeeAnalyzer.config = this.config;
+    return this.persistedFeeAnalyzer;
   }
 
   public transferFee(from: PublicKey, fee: UInt64) {

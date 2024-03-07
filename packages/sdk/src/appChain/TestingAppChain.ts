@@ -1,15 +1,15 @@
-import { ModulesConfig } from "@proto-kit/common";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
-  AccountStateHook,
-  BlockProver,
+  MandatoryProtocolModulesRecord,
+  Protocol,
   ProtocolModulesRecord,
-  StateTransitionProver,
 } from "@proto-kit/protocol";
 import {
-  VanillaProtocol,
-  VanillaProtocolModulesRecord,
-  VanillaRuntime,
+  VanillaRuntimeModules,
+  VanillaProtocolModules,
+  InMemorySequencerModules,
+  VanillaRuntimeModulesRecord,
+  MinimalBalances,
 } from "@proto-kit/library";
 import {
   PrivateMempool,
@@ -23,6 +23,13 @@ import {
   InMemoryDatabase,
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
+import {
+  log,
+  MergeObjects,
+  OverwriteObjectType,
+  RemoveOverlap,
+  TypedClass,
+} from "@proto-kit/common";
 import { PrivateKey } from "o1js";
 
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
@@ -32,41 +39,49 @@ import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStat
 
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 
+export type TestingSequencerModulesRecord = {
+  Database: typeof InMemoryDatabase;
+  Mempool: typeof PrivateMempool;
+  LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
+  BaseLayer: typeof NoopBaseLayer;
+  BlockProducerModule: typeof BlockProducerModule;
+  UnprovenProducerModule: typeof UnprovenProducerModule;
+  BlockTrigger: typeof ManualBlockTrigger;
+  TaskQueue: typeof LocalTaskQueue;
+};
+
+// ensures we can override vanilla runtime modules type safely
+// Partial<VanillaRuntimeModulesRecord> did not work (idk why)
+export type PartialVanillaRuntimeModulesRecord = {
+  Balances?: TypedClass<MinimalBalances>;
+};
+
 export class TestingAppChain<
-  RuntimeModules extends RuntimeModulesRecord,
-  ProtocolModules extends ProtocolModulesRecord & VanillaProtocolModulesRecord,
-  SequencerModules extends SequencerModulesRecord
+  RuntimeModules extends RuntimeModulesRecord & VanillaRuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord &
+    MandatoryProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
 > extends AppChain<
   RuntimeModules,
   ProtocolModules,
   SequencerModules,
-  AppChainModulesRecord
+  AppChainModules
 > {
   public static fromRuntime<
-    RuntimeModules extends RuntimeModulesRecord
-  >(definition: { modules: RuntimeModules }) {
-    const runtime = VanillaRuntime.from({
-      ...definition.modules,
-    });
-
-    const sequencer = Sequencer.from({
-      modules: {
-        Database: InMemoryDatabase,
-        Mempool: PrivateMempool,
-        LocalTaskWorkerModule,
-        BaseLayer: NoopBaseLayer,
-        BlockProducerModule,
-        UnprovenProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-      },
-    });
-
+    RuntimeModules extends RuntimeModulesRecord &
+      PartialVanillaRuntimeModulesRecord
+  >(runtimeModules: RuntimeModules) {
     const appChain = new TestingAppChain({
-      runtime,
-      protocol: VanillaProtocol.create(),
-      sequencer,
-
+      Runtime: Runtime.from({
+        modules: VanillaRuntimeModules.with(runtimeModules),
+      }),
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.with({}),
+      }),
+      Sequencer: Sequencer.from({
+        modules: InMemorySequencerModules.with({}),
+      }),
       modules: {
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
@@ -76,10 +91,19 @@ export class TestingAppChain<
     });
 
     appChain.configurePartial({
-      Runtime: {
-        Balances: {},
+      Protocol: {
+        AccountState: {},
+        BlockProver: {},
+        StateTransitionProver: {},
+        BlockHeight: {},
+        TransactionFee: {
+          tokenId: 0n,
+          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          baseFee: 0n,
+          perWeightUnitFee: 0n,
+          methods: {},
+        },
       },
-
       Sequencer: {
         Database: {},
         BlockTrigger: {},
@@ -88,26 +112,13 @@ export class TestingAppChain<
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         UnprovenProducerModule: {},
-
         TaskQueue: {
           simulatedDuration: 0,
         },
       },
-
-      Protocol: {
-        AccountState: {},
-        BlockProver: {},
-        StateTransitionProver: {},
-        BlockHeight: {},
-
-        TransactionFee: {
-          baseFee: 1_000_000n,
-          perWeightUnitFee: 1000n,
-          methods: {},
-        },
+      Signer: {
+        signer: PrivateKey.random(),
       },
-
-      Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
@@ -128,5 +139,10 @@ export class TestingAppChain<
     );
 
     return await blockTrigger.produceUnproven(true);
+  }
+
+  public async start() {
+    log.setLevel("ERROR");
+    super.start();
   }
 }

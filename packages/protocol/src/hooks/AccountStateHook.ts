@@ -5,11 +5,13 @@ import { StateMap } from "../state/StateMap";
 import { protocolState } from "../state/protocol/ProtocolState";
 import { ProvableTransactionHook } from "../protocol/ProvableTransactionHook";
 import { assert } from "../state/assert/assert";
+import { injectable } from "tsyringe";
 
 export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
+@injectable()
 export class AccountStateHook extends ProvableTransactionHook {
   @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,

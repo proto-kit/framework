@@ -29,3 +29,11 @@ export type UnionToIntersection<Union> = (
 
 export type MergeObjects<Input extends Record<string, unknown>> =
   UnionToIntersection<Input[keyof Input]>;
+
+export type OverwriteObjectType<Base, New> = {
+  [Key in keyof Base]: Key extends keyof New ? New[Key] : Base[Key];
+} & New;
+
+export type RemoveOverlap<Base, New> = {
+  [Key in keyof Base]: Key extends keyof New ? never : Base[Key];
+} & New;

@@ -2,29 +2,16 @@ import "reflect-metadata";
 import { PrivateKey } from "o1js";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import {
-  BlockProver,
-  StateTransitionProver,
-  AccountStateHook,
-  ProtocolModule,
+  MandatoryProtocolModulesRecord,
+  Protocol,
   ProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import {
-  VanillaProtocol,
-  VanillaProtocolModulesRecord,
+  InMemorySequencerModules,
+  VanillaProtocolModules,
+  VanillaRuntimeModules,
 } from "@proto-kit/library";
-import { ModulesConfig } from "@proto-kit/common";
-import {
-  BlockProducerModule,
-  InMemoryDatabase,
-  LocalTaskQueue,
-  LocalTaskWorkerModule,
-  ManualBlockTrigger,
-  NoopBaseLayer,
-  PrivateMempool,
-  Sequencer,
-  SequencerModulesRecord,
-  UnprovenProducerModule,
-} from "@proto-kit/sequencer";
+import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
   GraphqlSequencerModule,
@@ -36,42 +23,36 @@ import {
 } from "@proto-kit/api";
 import {
   AppChain,
-  AppChainModulesRecord,
-  InMemorySigner,
-  InMemoryTransactionSender,
   StateServiceQueryModule,
   BlockStorageNetworkStateModule,
+  AppChainModulesRecord,
 } from "@proto-kit/sdk";
 
 export class LocalhostAppChain<
   RuntimeModules extends RuntimeModulesRecord,
-  ProtocolModules extends ProtocolModulesRecord & VanillaProtocolModulesRecord
+  ProtocolModules extends ProtocolModulesRecord &
+    MandatoryProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
 > extends AppChain<
   RuntimeModules,
   ProtocolModules,
-  SequencerModulesRecord,
-  AppChainModulesRecord
+  SequencerModules,
+  AppChainModules
 > {
-  public static fromRuntime<
-    RuntimeModules extends RuntimeModulesRecord
-  >(definition: { modules: RuntimeModules }) {
+  public static fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
+    runtimeModules: RuntimeModules
+  ) {
     const appChain = LocalhostAppChain.from({
-      runtime: Runtime.from(definition),
-
-      protocol: VanillaProtocol.create(),
-
-      sequencer: Sequencer.from({
-        modules: {
-          Database: InMemoryDatabase,
-          Mempool: PrivateMempool,
-          GraphqlServer,
-          LocalTaskWorkerModule,
-          BaseLayer: NoopBaseLayer,
-          BlockProducerModule,
-          UnprovenProducerModule,
-          BlockTrigger: ManualBlockTrigger,
-          TaskQueue: LocalTaskQueue,
-
+      Runtime: Runtime.from({
+        modules: VanillaRuntimeModules.with(runtimeModules),
+      }),
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.with({}),
+      }),
+      Sequencer: Sequencer.from({
+        modules: InMemorySequencerModules.with({
+          GraphqlServer: GraphqlServer,
           Graphql: GraphqlSequencerModule.from({
             modules: {
               MempoolResolver,
@@ -81,25 +62,29 @@ export class LocalhostAppChain<
               UnprovenBlockResolver,
             },
           }),
-        },
+        }),
       }),
-
       modules: {
         QueryTransportModule: StateServiceQueryModule,
         NetworkStateTransportModule: BlockStorageNetworkStateModule,
       },
     });
 
-    appChain.configure({
-      ...appChain.config,
-
+    appChain.configurePartial({
       Protocol: {
         BlockProver: {},
         StateTransitionProver: {},
         AccountState: {},
         BlockHeight: {},
-      },
 
+        TransactionFee: {
+          tokenId: 0n,
+          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          baseFee: 0n,
+          perWeightUnitFee: 0n,
+          methods: {},
+        },
+      },
       Sequencer: {
         Database: {},
         UnprovenProducerModule: {},
@@ -125,7 +110,6 @@ export class LocalhostAppChain<
         TaskQueue: {},
         BlockTrigger: {},
       },
-
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
     });
