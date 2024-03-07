@@ -18,14 +18,14 @@ export class PrismaTransactionStorage implements TransactionStorage {
     const txs = await prismaClient.transaction.findMany({
       where: {
         executionResult: {
-          is: null
+          is: null,
         },
         isMessage: {
-          equals: false
-        }
+          equals: false,
+        },
       },
-    })
-    return txs.map(tx => this.transactionMapper.mapIn(tx));
+    });
+    return txs.map((tx) => this.transactionMapper.mapIn(tx));
   }
 
   public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {
@@ -37,5 +37,47 @@ export class PrismaTransactionStorage implements TransactionStorage {
     });
 
     return result.count === 1;
+  }
+
+  public async findTransaction(hash: string): Promise<
+    | {
+        transaction: PendingTransaction;
+        block?: string;
+        batch?: number;
+      }
+    | undefined
+  > {
+    const { prismaClient } = this.connection;
+
+    const tx = await prismaClient.transaction.findFirst({
+      where: {
+        hash,
+      },
+      include: {
+        executionResult: {
+          include: {
+            block: {
+              include: {
+                batch: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (tx === null) {
+      return undefined;
+    }
+
+    const transaction = this.transactionMapper.mapIn(tx);
+    const block = tx.executionResult?.block?.hash;
+    const batch = tx.executionResult?.block?.batch?.height;
+
+    return {
+      transaction,
+      block,
+      batch,
+    };
   }
 }
