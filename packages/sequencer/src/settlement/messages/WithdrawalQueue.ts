@@ -107,7 +107,7 @@ export class WithdrawalQueue
       this.lockedQueue.push(block);
     });
 
-    settlementModule.events.on("settlementSubmitted", (batch, tx) => {
+    settlementModule.events.on("settlement-submitted", (batch, tx) => {
       // TODO After persistance PR, link the blocks with the batch based on the ids
       // TODO After runtime events, use those
 
