@@ -23,7 +23,7 @@ export class Admin extends RuntimeModule<AdminConfig> {
 
   public isSenderAdmin() {
     assert(
-      this.transaction.sender.equals(this.config.admin),
+      this.transaction.sender.value.equals(this.config.admin),
       "Sender is not admin"
     );
   }
@@ -62,7 +62,7 @@ class Balances extends RuntimeModule<BalancesConfig> {
       "Adding the balance would overflow the total supply"
     );
 
-    const isSender = this.transaction.sender.equals(address);
+    const isSender = this.transaction.sender.value.equals(address);
     assert(isSender, "Address is not the sender");
 
     const currentBalance = this.balances.get(address);

@@ -47,6 +47,5 @@
     "*.ts": [
       "npm run lint:staged"
     ]
-  },
-  "dependencies": {}
+  }
 }

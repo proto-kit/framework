@@ -13,9 +13,11 @@ import {
   BlockProducerModule,
   LocalTaskQueue,
   LocalTaskWorkerModule,
+  ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
+  SettlementModule,
   TimedBlockTrigger,
   UnprovenProducerModule,
 } from "@proto-kit/sequencer";
@@ -95,8 +97,9 @@ export async function startServer() {
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         UnprovenProducerModule,
-        BlockTrigger: TimedBlockTrigger,
+        BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
+        SettlementModule: SettlementModule,
 
         Graphql: GraphqlSequencerModule.from({
           modules: {
@@ -148,6 +151,10 @@ export async function startServer() {
         host: "0.0.0.0",
         graphiql: true,
       },
+      SettlementModule: {
+        address: PrivateKey.random().toPublicKey(),
+        feepayer: PrivateKey.random(),
+      },
 
       Graphql: {
         QueryGraphqlModule: {},
@@ -176,10 +183,7 @@ export async function startServer() {
         allowEmptyBlock: true,
       },
 
-      BlockTrigger: {
-        blockInterval: 15000,
-        settlementInterval: 30000,
-      },
+      BlockTrigger: {},
     },
 
     TransactionSender: {},
