@@ -39,6 +39,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
   // element type, and after that, we expect multiple elements of that -> []
   private initHandler<Input, Output>(task: Task<Input, Output>) {
     const queueName = task.name;
+    console.log("initHandler", queueName);
     return this.queue.createWorker(queueName, async (data) => {
       log.debug(`Received task in queue ${queueName}`);
 
@@ -64,7 +65,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       } catch (error: unknown) {
         const payload =
           error instanceof Error ? error.message : JSON.stringify(error);
-
+        console.trace("error", error);
         return {
           status: "error",
           taskId: data.taskId,
@@ -85,11 +86,14 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       await task.prepare();
     }
 
-    this.workers = this.tasks.map((task: Task<unknown, unknown>) =>
-      this.initHandler<
-        InferTaskInput<typeof task>,
-        InferTaskOutput<typeof task>
-      >(task)
+    this.workers = await Promise.all(
+      this.tasks.map(
+        async (task: Task<unknown, unknown>) =>
+          await this.initHandler<
+            InferTaskInput<typeof task>,
+            InferTaskOutput<typeof task>
+          >(task)
+      )
     );
   }
 

@@ -1,4 +1,4 @@
-import { Bool } from "o1js";
+import { Bool, Provable } from "o1js";
 import { container } from "tsyringe";
 import { log } from "@proto-kit/common";
 
@@ -18,12 +18,14 @@ export function assert(condition: Bool, message?: string) {
   const previousStatus = executionContext.current().result.status;
   const status = condition.and(previousStatus);
 
-  if (!condition.toBoolean()) {
-    if (!executionContext.current().isSimulated) {
-      log.debug("Assertion failed: ", message);
+  Provable.asProver(() => {
+    if (!condition.toBoolean()) {
+      if (!executionContext.current().isSimulated) {
+        log.debug("Assertion failed: ", message);
+      }
+      executionContext.setStatusMessage(message);
     }
-    executionContext.setStatusMessage(message);
-  }
+  });
 
   executionContext.setStatus(status);
 }

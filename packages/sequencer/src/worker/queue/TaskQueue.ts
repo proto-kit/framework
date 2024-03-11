@@ -10,7 +10,7 @@ export interface TaskQueue {
   createWorker: (
     name: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>
-  ) => Closeable;
+  ) => Promise<Closeable>;
 }
 
 export interface Closeable {

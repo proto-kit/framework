@@ -34,6 +34,7 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
       FlexibleProvablePure<PublicOutput>
     >
   >;
+  analyzeMethods(): any;
   methods: Record<
     string,
     | ((
@@ -50,10 +51,10 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
 
 export function verifyToMockable<PublicInput, PublicOutput>(
   verify: Verify<PublicInput, PublicOutput>,
-  { areProofsEnabled }: AreProofsEnabled
+  areProofsEnabled: AreProofsEnabled
 ) {
   return async (proof: Proof<PublicInput, PublicOutput>) => {
-    if (areProofsEnabled) {
+    if (areProofsEnabled.areProofsEnabled) {
       let verified = false;
 
       try {
@@ -75,10 +76,13 @@ export const MOCK_VERIFICATION_KEY = "mock-verification-key";
 
 export function compileToMockable(
   compile: Compile,
-  { areProofsEnabled }: AreProofsEnabled
+  areProofsEnabled: AreProofsEnabled
 ): () => Promise<CompileArtifact> {
   return async () => {
-    if (areProofsEnabled) {
+    console.log("mocked compile", {
+      areProofsEnabled: areProofsEnabled.areProofsEnabled,
+    });
+    if (areProofsEnabled.areProofsEnabled) {
       return await compile();
     }
 
@@ -103,6 +107,10 @@ export abstract class ZkProgrammable<
     if (!this.appChain) {
       throw errors.appChainNotSet(this.constructor.name);
     }
+
+    console.log("getting zkProgram()", {
+      areProofsEnabled: this.appChain.areProofsEnabled,
+    });
 
     return {
       ...zkProgram,

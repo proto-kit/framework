@@ -292,7 +292,8 @@ export class BlockTaskFlowService {
 
             eternalTransactionsHash:
               blockTrace.block.publicInput.eternalTransactionsHash,
-            incomingMessagesHash: blockTrace.block.publicInput.incomingMessagesHash,
+            incomingMessagesHash:
+              blockTrace.block.publicInput.incomingMessagesHash,
           };
           const publicInput = new BlockProverPublicInput(piObject);
 

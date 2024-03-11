@@ -95,6 +95,7 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    * @param input Input witness data required for a runtime execution
    */
   public setup(input: RuntimeMethodExecutionData) {
+    Provable.log("setting up with input", input);
     this.input = input;
   }
 
@@ -125,7 +126,7 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     super.afterMethod();
     if (this.isFinished) {
       this.lastInput = this.input;
-      this.input = undefined;
+      // this.input = undefined;
       this.isSimulated = false;
     }
   }

@@ -45,7 +45,10 @@ import { Signer } from "../transaction/InMemorySigner";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 
 import { AppChainModule } from "./AppChainModule";
-import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
+import {
+  AreProofsEnabledFactory,
+  InMemoryAreProofsEnabled,
+} from "./AreProofsEnabledFactory";
 import { SharedDependencyFactory } from "./SharedDependencyFactory";
 
 export type AppChainModulesRecord = ModulesRecord<

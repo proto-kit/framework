@@ -161,9 +161,11 @@ export class TaskWorker implements Closeable {
       await task.task.prepare();
     }
 
-    this.workers = Object.entries(
-      groupBy(this.tasks, (task) => task.queue)
-    ).map((tasks) => this.initHandler(tasks[0], tasks[1]));
+    this.workers = await Promise.all(
+      Object.entries(groupBy(this.tasks, (task) => task.queue)).map(
+        async (tasks) => await this.initHandler(tasks[0], tasks[1])
+      )
+    );
   }
 
   public async close() {

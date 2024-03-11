@@ -78,10 +78,10 @@ export class StateTransitionTask
       input.publicInput,
       StateTransitionProvableBatch.fromMappings(stBatch)
     );
-    log.debug("STTask public io:", {
-      input: StateTransitionProverPublicInput.toJSON(input.publicInput),
-      output: StateTransitionProverPublicOutput.toJSON(output),
-    });
+    // log.debug("STTask public io:", {
+    //   input: StateTransitionProverPublicInput.toJSON(input.publicInput),
+    //   output: StateTransitionProverPublicOutput.toJSON(output),
+    // });
 
     const proof = await this.executionContext
       .current()
@@ -94,10 +94,13 @@ export class StateTransitionTask
   }
 
   public async prepare(): Promise<void> {
+    console.log("compiling st prover");
+    console.time("prepare-st-prover");
     await this.compileRegistry.compile(
       "StateTransitionProver",
       this.stateTransitionProver.zkProgrammable.zkProgram
     );
+    console.timeEnd("prepare-st-prover");
   }
 }
 
