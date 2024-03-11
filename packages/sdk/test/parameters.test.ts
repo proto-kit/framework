@@ -113,34 +113,19 @@ describe("parameters", () => {
 
     const signer = PrivateKey.random();
     const sender = signer.toPublicKey();
-    const feeRecipient = PrivateKey.random();
 
     /**
      * Setup the app chain for testing purposes,
      * using the provided runtime modules
      */
     const appChain = TestingAppChain.fromRuntime({
-      modules: { TestRuntime },
+      TestRuntime,
     });
 
     appChain.configurePartial({
       Runtime: {
         TestRuntime: {},
-      },
-
-      Protocol: {
-        TransactionFee: {
-          tokenId: 0n,
-          feeRecipient: feeRecipient.toPublicKey().toBase58(),
-
-          methods: {
-            "TestRuntime.test": {
-              baseFee: 0n,
-              weight: 0n,
-              perWeightUnitFee: 0n,
-            },
-          },
-        },
+        Balances: {},
       },
     });
 

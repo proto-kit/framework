@@ -48,14 +48,12 @@ export type MinimalBalances = {
 @runtimeModule()
 export class Balances<Config = NoConfig>
   extends RuntimeModule<Config>
-  implements EventEmittingComponent<BalancesEvents>, MinimalBalances
+  implements MinimalBalances
 {
   @state() public balances = StateMap.from<BalancesKey, Balance>(
     BalancesKey,
     Balance
   );
-
-  public events = new EventEmitter<BalancesEvents>();
 
   public getBalance(tokenId: TokenId, address: PublicKey): Balance {
     const key = new BalancesKey({ tokenId, address });
@@ -71,7 +69,6 @@ export class Balances<Config = NoConfig>
 
   public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
     const key = new BalancesKey({ tokenId, address });
-    this.events.emit("setBalance", key, amount);
     this.balances.set(key, amount);
   }
 

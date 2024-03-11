@@ -30,21 +30,12 @@ export class BalancesKey extends Struct({
 
 export class Balance extends UInt64 {}
 
-export interface BalancesEvents extends EventsRecord {
-  setBalance: [BalancesKey, Balance];
-}
-
 @runtimeModule()
-export class Balances
-  extends RuntimeModule<unknown>
-  implements EventEmittingComponent<BalancesEvents>
-{
+export class Balances extends RuntimeModule<unknown> {
   @state() public balances = StateMap.from<BalancesKey, Balance>(
     BalancesKey,
     Balance
   );
-
-  public events = new EventEmitter<BalancesEvents>();
 
   public getBalance(tokenId: TokenId, address: PublicKey): Balance {
     const key = new BalancesKey({ tokenId, address });
@@ -60,7 +51,6 @@ export class Balances
 
   public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
     const key = new BalancesKey({ tokenId, address });
-    this.events.emit("setBalance", key, amount);
     this.balances.set(key, amount);
   }
 

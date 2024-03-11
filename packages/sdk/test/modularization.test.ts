@@ -9,7 +9,7 @@ import {
 import { ChildContainerProvider, log } from "@proto-kit/common";
 import { AppChain, AppChainModule } from "../src";
 import { Protocol, ProtocolModule } from "@proto-kit/protocol";
-import { VanillaProtocol } from "@proto-kit/library";
+import { VanillaProtocolModules } from "@proto-kit/library";
 import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
 
 class TestRuntimeModule extends RuntimeModule<object> {
@@ -57,15 +57,17 @@ class TestAppChainModule extends AppChainModule<object> {
 describe("modularization", () => {
   it("should initialize all modules correctly", async () => {
     const appChain = AppChain.from({
-      runtime: Runtime.from({
+      Runtime: Runtime.from({
         modules: {
           TestRuntimeModule,
         },
       }),
-      protocol: VanillaProtocol.from({
-        TestProtocolModule,
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.with({
+          TestProtocolModule,
+        }),
       }),
-      sequencer: Sequencer.from({
+      Sequencer: Sequencer.from({
         modules: {
           TestSequencerModule,
         },
@@ -81,6 +83,9 @@ describe("modularization", () => {
         TestProtocolModule: {},
         BlockProver: {},
         StateTransitionProver: {},
+        AccountState: {},
+        BlockHeight: {},
+        TransactionFee: {} as any,
       },
       Sequencer: {
         TestSequencerModule: {},
@@ -88,6 +93,8 @@ describe("modularization", () => {
     });
 
     await appChain.start();
+
+    const m = appChain.protocol.resolve("TestProtocolModule");
 
     expect(appChain.runtime.resolve("TestRuntimeModule").initialized).toBe(
       true

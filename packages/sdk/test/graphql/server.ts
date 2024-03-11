@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { CircuitString, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { PrivateKey, PublicKey, UInt64 } from "o1js";
 import {
   Runtime,
   runtimeMethod,
@@ -7,28 +7,21 @@ import {
   runtimeModule,
   state,
 } from "@proto-kit/module";
+import { Option, Protocol, State, StateMap } from "@proto-kit/protocol";
 import {
-  AccountStateHook,
-  BlockHeightHook,
-  Option,
-  State,
-  StateMap,
-} from "@proto-kit/protocol";
-import { VanillaProtocol } from "@proto-kit/library";
-import { Presets, log, sleep } from "@proto-kit/common";
+  VanillaProtocolModules,
+  VanillaRuntimeModules,
+} from "@proto-kit/library";
+import { Presets } from "@proto-kit/common";
 import {
-  AsyncStateService,
   BlockProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
-  PendingTransaction,
   PrivateMempool,
   Sequencer,
-  TimedBlockTrigger,
-  UnsignedTransaction,
   UnprovenProducerModule,
 } from "@proto-kit/sequencer";
 import {
@@ -47,7 +40,8 @@ import { InMemorySigner } from "../../src/transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../../src/transaction/InMemoryTransactionSender";
 import { container } from "tsyringe";
 import { BlockStorageNetworkStateModule } from "../../src/query/BlockStorageNetworkStateModule";
-import { MessageBoard, Post } from "./Post";
+import { MessageBoard } from "./Post";
+import { Balances as BaseBalances } from "@proto-kit/library";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
@@ -81,19 +75,15 @@ export class Balances extends RuntimeModule<object> {
 
 export async function startServer() {
   const appChain = AppChain.from({
-    runtime: Runtime.from({
-      modules: {
-        Balances,
-        MessageBoard,
-      },
-
-      config: {
-        Balances: {},
-        MessageBoard: {},
-      },
+    Runtime: Runtime.from({
+      modules: VanillaRuntimeModules.with({
+        Balances: Balances,
+      }),
     }),
 
-    protocol: VanillaProtocol.create(),
+    Protocol: Protocol.from({
+      modules: VanillaProtocolModules.with({}),
+    }),
 
     sequencer: Sequencer.from({
       modules: {

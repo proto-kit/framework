@@ -1,26 +1,14 @@
 /* eslint-disable max-statements */
 /* eslint-disable unicorn/filename-case */
-import { Poseidon, PrivateKey, Provable, PublicKey, UInt64 } from "o1js";
-import log from "loglevel";
-import { RuntimeModulesRecord } from "@proto-kit/module";
-
+import { PrivateKey, Provable, PublicKey } from "o1js";
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
-
-import {
-  Balance,
-  Balances,
-  BalancesEvents,
-  BalancesKey,
-  TokenId,
-} from "./Balances";
+import { Balance, Balances, BalancesKey, TokenId } from "./Balances";
 import { PoolKey, XYK } from "./XYK";
-import uniqBy from "lodash/uniqBy";
-import { VanillaProtocolModulesRecord } from "@proto-kit/library";
 
-interface RuntimeModules extends RuntimeModulesRecord {
+type RuntimeModules = {
   Balances: typeof Balances;
   XYK: typeof XYK;
-}
+};
 
 // eslint-disable-next-line jest/require-hook
 let nonce = 0;
@@ -36,11 +24,10 @@ describe("xyk", () => {
 
   const pool = PoolKey.fromTokenIdPair(tokenInId, tokenOutId);
 
-  let chain: TestingAppChain<RuntimeModules, VanillaProtocolModulesRecord>;
+  let chain: ReturnType<typeof TestingAppChain.fromRuntime<RuntimeModules>>;
 
   let balances: Balances;
   let xyk: XYK;
-  let events: BalancesEvents[] = [];
 
   const balanceToMint = 10_000n;
   const initialLiquidityA = 1000n;
@@ -60,18 +47,13 @@ describe("xyk", () => {
 
   beforeAll(async () => {
     chain = TestingAppChain.fromRuntime({
-      modules: {
-        Balances,
-        XYK,
-      },
+      Balances,
+      XYK,
     });
 
     chain.configurePartial({
       Runtime: {
-        Balances: {
-          totalSupply: UInt64.from(1_000_000n),
-        },
-
+        Balances: {},
         XYK: {},
       },
     });
@@ -82,19 +64,7 @@ describe("xyk", () => {
 
     balances = chain.runtime.resolve("Balances");
     xyk = chain.runtime.resolve("XYK");
-
-    balances.events.on("setBalance", (key, balance) => {
-      events.push({ setBalance: [key, balance] });
-      // eslint-disable-next-line etc/no-assign-mutated-array
-      events = uniqBy(events.reverse(), (event) =>
-        Poseidon.hash(BalancesKey.toFields(event.setBalance[0])).toString()
-      );
-    });
   }, 30_000);
-
-  afterEach(() => {
-    events = [];
-  });
 
   it("should mint balance for alice", async () => {
     expect.assertions(2);
@@ -122,11 +92,6 @@ describe("xyk", () => {
 
     expect(balanceIn?.toBigInt()).toBe(balanceToMint);
     expect(balanceOut?.toBigInt()).toBe(balanceToMint);
-
-    Provable.log("After mint events:");
-    events.forEach((event) => {
-      Provable.log(event);
-    });
   }, 30_000);
 
   it("should create a pool", async () => {

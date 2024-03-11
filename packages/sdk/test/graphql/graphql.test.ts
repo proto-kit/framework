@@ -1,78 +1,44 @@
 import "reflect-metadata";
-import { Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { PrivateKey, UInt64 } from "o1js";
+import { Runtime } from "@proto-kit/module";
+import { Protocol, ReturnType } from "@proto-kit/protocol";
 import {
-  MethodIdResolver,
-  Runtime,
-  runtimeMethod,
-  RuntimeModule,
-  runtimeModule,
-  state,
-} from "@proto-kit/module";
+  Balances as BaseBalances,
+  VanillaProtocolModules,
+  VanillaRuntimeModules,
+} from "@proto-kit/library";
+import { sleep } from "@proto-kit/common";
 import {
-  AccountStateHook,
-  Option,
-  ReturnType,
-  State,
-  StateMap,
-} from "@proto-kit/protocol";
-import { VanillaProtocol } from "@proto-kit/library";
-import { Presets, log, sleep } from "@proto-kit/common";
-import {
-  AsyncStateService,
-  BlockProducerModule,
-  LocalTaskQueue,
-  LocalTaskWorkerModule,
   ManualBlockTrigger,
-  NoopBaseLayer,
   PrivateMempool,
-  QueryTransportModule,
   Sequencer,
-  TimedBlockTrigger,
-  UnsignedTransaction,
 } from "@proto-kit/sequencer";
-import {
-  BlockStorageResolver,
-  GraphqlSequencerModule,
-  GraphqlServer,
-  MempoolResolver,
-  NodeStatusResolver,
-  QueryGraphqlModule,
-} from "@proto-kit/api";
+import { GraphqlServer } from "@proto-kit/api";
 
 import { startServer, Balances } from "./server";
 import { beforeAll } from "@jest/globals";
-import {
-  AppChain,
-  InMemorySigner,
-  InMemoryTransactionSender,
-  StateServiceQueryModule,
-} from "../../src";
+import { AppChain, InMemorySigner } from "../../src";
 import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSender";
 import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
 import { GraphqlClient } from "../../src/graphql/GraphqlClient";
-import { container } from "tsyringe";
 import { GraphqlNetworkStateTransportModule } from "../../src/graphql/GraphqlNetworkStateTransportModule";
 
 const pk = PrivateKey.random();
 
 function prepare() {
   const appChain = AppChain.from({
-    runtime: Runtime.from({
-      modules: {
-        Balances,
-      },
-
-      config: {
-        Balances: {},
-      },
+    Runtime: Runtime.from({
+      modules: VanillaRuntimeModules.with({
+        Balances: Balances,
+      }),
     }),
 
-    protocol: VanillaProtocol.create(),
+    Protocol: Protocol.from({
+      modules: VanillaProtocolModules.with({}),
+    }),
 
-    sequencer: Sequencer.from({
-      modules: {
-        Mempool: PrivateMempool,
-      },
+    Sequencer: Sequencer.from({
+      modules: {},
     }),
 
     modules: {
@@ -94,6 +60,7 @@ function prepare() {
       BlockProver: {},
       StateTransitionProver: {},
       BlockHeight: {},
+      TransactionFee: appChain.config.Protocol!.TransactionFee,
     },
 
     Sequencer: {

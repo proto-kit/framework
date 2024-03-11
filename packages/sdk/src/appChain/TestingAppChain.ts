@@ -52,6 +52,8 @@ export type TestingSequencerModulesRecord = {
 
 // ensures we can override vanilla runtime modules type safely
 // Partial<VanillaRuntimeModulesRecord> did not work (idk why)
+// exporting the same type as below from library also didnt work
+// (the type check had no effect)
 export type PartialVanillaRuntimeModulesRecord = {
   Balances?: TypedClass<MinimalBalances>;
 };
