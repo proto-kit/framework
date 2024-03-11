@@ -74,6 +74,7 @@ export class ClientAppChain<
         StateTransitionProver: {},
         AccountState: {},
         BlockHeight: {},
+        LastStateRoot: {},
       },
 
       Signer: {},

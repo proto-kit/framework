@@ -190,11 +190,7 @@ export function reducer(state: CliState, action: Action) {
       return {
         ...state,
         isProducingBlock: false,
-        blocks: state.blocks
-          .filter(
-            (block) => block.logs.length || block.block?.transactions.length
-          )
-          .concat([action.block]),
+        blocks: state.blocks.concat([action.block]),
         countdown,
       };
     }
@@ -258,11 +254,7 @@ export function Blocks({ blocks }: { blocks: CliState["blocks"] }) {
               [{block.time}]
             </Text>{" "}
             <Text>
-              {block.blockError
-                ? "❌"
-                : block.block?.transactions.length
-                ? "✅"
-                : "⚠️"}
+              {block.blockError ? "❌" : "✅"}
               {"  "}
             </Text>
             <Text bold>
@@ -284,14 +276,6 @@ export function Blocks({ blocks }: { blocks: CliState["blocks"] }) {
               {block.logs.map((log, index) => (
                 <Text key={index}>{log.trim()}</Text>
               ))}
-            </Box>
-          ) : (
-            <Box></Box>
-          )}
-
-          {!block.block?.transactions.length ? (
-            <Box>
-              <Text>Skipping block production, no transactions found.</Text>
             </Box>
           ) : (
             <Box></Box>
