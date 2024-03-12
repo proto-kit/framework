@@ -34,8 +34,10 @@ import {
   AccountStateModule,
   StateServiceProvider,
   ProtocolCustomModulesRecord,
+  PublicKeyOption,
+  UInt64Option,
 } from "@proto-kit/protocol";
-import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
+import { Field, ProvableExtended, PublicKey, UInt64, Proof, Bool } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
@@ -246,8 +248,14 @@ export class AppChain<
 
     executionContext.setup({
       transaction: {
-        sender,
-        nonce: UInt64.from(options?.nonce ?? 0),
+        sender: new PublicKeyOption({
+          value: sender,
+          isSome: Bool(true),
+        }),
+        nonce: new UInt64Option({
+          isSome: Bool(true),
+          value: UInt64.from(options?.nonce ?? 0),
+        }),
         argsHash: Field(0),
       } as unknown as RuntimeTransaction,
 
@@ -314,7 +322,7 @@ export class AppChain<
       argsJSON,
       nonce,
       sender,
-      isMessage: false
+      isMessage: false,
     });
 
     const signer = this.container.resolve<Signer>("Signer");

@@ -6,6 +6,9 @@ import {
 } from "@proto-kit/module";
 import { Path, Withdrawal } from "@proto-kit/protocol";
 import { Field } from "o1js";
+import type {
+  BlockTriggerBase
+} from "../../protocol/production/trigger/BlockTrigger";
 
 import { UnprovenProducerModule } from "../../protocol/production/unproven/UnprovenProducerModule";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
@@ -49,8 +52,8 @@ export class WithdrawalQueue
   private currentIndex = 0;
 
   public constructor(
-    @inject("UnprovenProducerModule")
-    private readonly blockProducerModule: UnprovenProducerModule,
+    @inject("BlockTrigger")
+    private readonly blockTrigger: BlockTriggerBase,
     @inject("Runtime")
     private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Sequencer")
@@ -100,11 +103,11 @@ export class WithdrawalQueue
       );
     }
 
-    this.blockProducerModule.events.on("unprovenBlockProduced", (block) => {
+    this.blockTrigger.events.on("block-produced", (block) => {
       this.lockedQueue.push(block);
     });
 
-    settlementModule.events.on("settlementSubmitted", (batch) => {
+    settlementModule.events.on("settlement-submitted", (batch, tx) => {
       // TODO After persistance PR, link the blocks with the batch based on the ids
       // TODO After runtime events, use those
 

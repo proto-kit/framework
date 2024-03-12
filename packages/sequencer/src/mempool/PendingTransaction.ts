@@ -94,6 +94,7 @@ export class UnsignedTransaction {
 }
 
 interface PendingTransactionJSONType {
+  hash: string;
   methodId: string;
   nonce: string;
   sender: string;
@@ -138,6 +139,7 @@ export class PendingTransaction extends UnsignedTransaction {
 
   public toJSON(): PendingTransactionJSONType {
     return {
+      hash: this.hash.toString(),
       methodId: this.methodId.toJSON(),
       nonce: this.nonce.toString(),
       sender: this.sender.toBase58(),
