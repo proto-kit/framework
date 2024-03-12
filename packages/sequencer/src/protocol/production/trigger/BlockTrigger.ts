@@ -1,6 +1,11 @@
-import { NoConfig, noop } from "@proto-kit/common";
+import {
+  EventEmitter,
+  EventEmittingComponent,
+  NoConfig,
+  noop,
+} from "@proto-kit/common";
 
-import { SettleableBatch } from "../../../storage/model/Block";
+import { ComputedBlock, SettleableBatch } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import {
@@ -8,7 +13,10 @@ import {
 } from "../../../storage/repositories/UnprovenBlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
+import {
+  UnprovenBlock,
+  UnprovenBlockWithMetadata,
+} from "../../../storage/model/UnprovenBlock";
 import { BlockStorage } from "../../../storage/repositories/BlockStorage";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
@@ -19,10 +27,19 @@ import { SettlementStorage } from "../../../storage/repositories/SettlementStora
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface BlockTrigger {}
 
-export class BlockTriggerBase<Config = NoConfig>
+export type BlockEvents = {
+  "block-produced": [UnprovenBlock];
+  "block-metadata-produced": [UnprovenBlockWithMetadata];
+  "batch-produced": [ComputedBlock];
+  // TODO Settlement
+}
+
+export class BlockTriggerBase<Config = NoConfig, Events extends BlockEvents = BlockEvents>
   extends SequencerModule<Config>
-  implements BlockTrigger
+  implements BlockTrigger, EventEmittingComponent<Events>
 {
+  public readonly events = new EventEmitter<Events>();
+
   public constructor(
     protected readonly unprovenProducerModule: UnprovenProducerModule,
     protected readonly blockProducerModule: BlockProducerModule,
@@ -40,6 +57,7 @@ export class BlockTriggerBase<Config = NoConfig>
       const batch = await this.blockProducerModule.createBlock(blocks);
       if (batch !== undefined) {
         await this.batchQueue.pushBlock(batch);
+        this.events.emit("batch-produced", batch);
       }
       return batch;
     }
@@ -54,7 +72,10 @@ export class BlockTriggerBase<Config = NoConfig>
 
     if (unprovenBlock && enqueueInSettlementQueue) {
       await this.unprovenBlockQueue.pushBlock(unprovenBlock.block);
+      this.events.emit("block-produced", unprovenBlock.block);
+
       await this.unprovenBlockQueue.pushMetadata(unprovenBlock.metadata);
+      this.events.emit("block-metadata-produced", unprovenBlock);
     }
 
     return unprovenBlock?.block;
