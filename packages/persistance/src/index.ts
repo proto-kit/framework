@@ -6,4 +6,5 @@ export * from "./services/prisma/PrismaBlockStorage";
 export * from "./services/prisma/PrismaBatchStore";
 export * from "./services/prisma/PrismaSettlementStorage";
 export * from "./services/prisma/PrismaMessageStorage";
+export * from "./services/prisma/PrismaTransactionStorage";
 export * from "./services/redis/RedisMerkleTreeStore";

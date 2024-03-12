@@ -94,7 +94,7 @@ export class XYK extends RuntimeModule<unknown> {
     const key = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
     this.pools.set(key, XYK.defaultPoolValue);
 
-    const creator = this.transaction.sender;
+    const creator = this.transaction.sender.value;
     const pool = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
 
     this.balances.transfer(tokenIdIn, creator, pool, tokenInAmount);
@@ -210,7 +210,7 @@ export class XYK extends RuntimeModule<unknown> {
 
     this.balances.transfer(
       tokenIdIn,
-      this.transaction.sender,
+      this.transaction.sender.value,
       pool,
       tokenInAmountIn
     );
@@ -218,7 +218,7 @@ export class XYK extends RuntimeModule<unknown> {
     this.balances.transfer(
       tokenIdOut,
       pool,
-      this.transaction.sender,
+      this.transaction.sender.value,
       tokenOutAmountOut
     );
   }
@@ -252,13 +252,13 @@ export class XYK extends RuntimeModule<unknown> {
     this.balances.transfer(
       tokenIdOut,
       pool,
-      this.transaction.sender,
+      this.transaction.sender.value,
       tokenOutAmountOut
     );
 
     this.balances.transfer(
       tokenIdIn,
-      this.transaction.sender,
+      this.transaction.sender.value,
       pool,
       tokenInAmountIn
     );

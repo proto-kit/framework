@@ -184,7 +184,7 @@ export class Flow<State> implements Closeable {
     this.taskCounter += 1;
     const taskId = String(this.taskCounter);
 
-    log.debug(`Pushing ${task.name}`);
+    log.trace(`Pushing task ${task.name}`);
 
     await queue.addTask({
       // eslint-disable-next-line putout/putout
@@ -198,7 +198,7 @@ export class Flow<State> implements Closeable {
 
     // eslint-disable-next-line @typescript-eslint/promise-function-async
     const callback = (returnPayload: TaskPayload) => {
-      log.debug(
+      log.trace(
         `Completed ${returnPayload.name}, task: ${returnPayload.flowId}:${
           returnPayload?.taskId ?? "-"
         }`

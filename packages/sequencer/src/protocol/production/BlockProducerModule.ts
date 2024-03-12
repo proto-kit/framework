@@ -2,8 +2,10 @@ import { inject } from "tsyringe";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  DefaultProvableHashList, MINA_EVENT_PREFIXES,
-  MinaPrefixedProvableHashList
+  DefaultProvableHashList,
+  MINA_EVENT_PREFIXES,
+  MinaPrefixedProvableHashList,
+  NetworkState,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { log, noop, RollupMerkleTree } from "@proto-kit/common";
@@ -14,7 +16,7 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { BaseLayer } from "../baselayer/BaseLayer";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
-import { ComputedBlock } from "../../storage/model/Block";
+import { SettleableBatch } from "../../storage/model/Block";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
@@ -55,7 +57,7 @@ export interface UnprovenBlockWithPreviousMetadata {
 }
 
 interface ComputedBlockMetadata {
-  block: ComputedBlock;
+  block: SettleableBatch;
   stateService: CachedStateService;
   merkleStore: CachedMerkleTreeStore;
 }
@@ -82,7 +84,6 @@ export class BlockProducerModule extends SequencerModule {
     private readonly asyncStateService: AsyncStateService,
     @inject("AsyncMerkleStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
-    @inject("BaseLayer") private readonly baseLayer: BaseLayer,
     @inject("BlockStorage") private readonly blockStorage: BlockStorage,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
@@ -108,7 +109,7 @@ export class BlockProducerModule extends SequencerModule {
    */
   public async createBlock(
     unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
-  ): Promise<ComputedBlock | undefined> {
+  ): Promise<SettleableBatch | undefined> {
     log.info("Producing batch...");
 
     const height = await this.blockStorage.getCurrentBlockHeight();
@@ -129,10 +130,6 @@ export class BlockProducerModule extends SequencerModule {
 
       // Mock for now
       await this.blockStorage.pushBlock(blockMetadata.block);
-
-      // Broadcast result on to baselayer
-      await this.baseLayer.blockProduced(blockMetadata.block);
-      log.info("Batch submitted onto baselayer");
     }
     return blockMetadata?.block;
   }
@@ -197,6 +194,8 @@ export class BlockProducerModule extends SequencerModule {
         proof: jsonProof,
         bundles: computedBundles,
         height,
+        fromNetworkState: block.fromNetworkState,
+        toNetworkState: block.toNetworkState
       },
 
       stateService: block.stateService,
@@ -223,6 +222,8 @@ export class BlockProducerModule extends SequencerModule {
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
     stateService: CachedStateService;
     merkleStore: CachedMerkleTreeStore;
+    fromNetworkState: NetworkState;
+    toNetworkState: NetworkState;
   }> {
     if (bundles.length === 0 || bundles.flat(1).length === 0) {
       throw errors.blockWithoutTxs();
@@ -283,10 +284,15 @@ export class BlockProducerModule extends SequencerModule {
 
     const proof = await this.blockFlowService.executeFlow(blockTraces, blockId);
 
+    const fromNetworkState = bundles[0].block.block.networkState.before;
+    const toNetworkState = bundles.at(-1)!.block.metadata.afterNetworkState;
+
     return {
       proof,
       stateService: stateServices.stateService,
       merkleStore: stateServices.merkleStore,
+      fromNetworkState,
+      toNetworkState,
     };
   }
 }

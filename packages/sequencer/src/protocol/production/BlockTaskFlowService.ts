@@ -89,7 +89,7 @@ export class BlockTaskFlowService {
       flow.state.pairings[blockIndex][transactionIndex];
 
     if (runtimeProof !== undefined && stProof !== undefined) {
-      log.debug(`Found pairing block: ${blockIndex}, tx: ${transactionIndex}`);
+      log.trace(`Found pairing block: ${blockIndex}, tx: ${transactionIndex}`);
 
       await transactionReductionTask.pushInput({
         input1: stProof,
@@ -179,7 +179,7 @@ export class BlockTaskFlowService {
         reductionTask: this.blockReductionTask,
 
         mergableFunction: (a, b) =>
-          // TODO Proper replication of merge logic
+          //TODO Proper replication of merge logic
           a.publicOutput.stateRoot
             .equals(b.publicInput.stateRoot)
             .and(

@@ -1,7 +1,8 @@
-import { inject, injectable } from "tsyringe";
+import { inject } from "tsyringe";
+import { injectOptional } from "@proto-kit/common";
 
 import { sequencerModule } from "../../../sequencer/builder/SequencerModule";
-import { ComputedBlock } from "../../../storage/model/Block";
+import { SettleableBatch } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
@@ -9,6 +10,8 @@ import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockS
 import { SettlementModule } from "../../../settlement/SettlementModule";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { BlockStorage } from "../../../storage/repositories/BlockStorage";
+import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
 @sequencerModule()
 export class ManualBlockTrigger
@@ -20,16 +23,23 @@ export class ManualBlockTrigger
     blockProducerModule: BlockProducerModule,
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
+    @injectOptional("SettlementModule")
+    settlementModule: SettlementModule | undefined,
     @inject("UnprovenBlockQueue")
     unprovenBlockQueue: UnprovenBlockQueue,
-    // @inject("SettlementModule")
-    // settlementModule: SettlementModule
+    @inject("BlockStorage")
+    blockStorage: BlockStorage,
+    @injectOptional("SettlementStorage")
+    settlementStorage: SettlementStorage | undefined
   ) {
     super(
-      blockProducerModule,
       unprovenProducerModule,
+      blockProducerModule,
+      settlementModule,
+
       unprovenBlockQueue,
-      undefined
+      blockStorage,
+      settlementStorage
     );
   }
 
@@ -38,13 +48,17 @@ export class ManualBlockTrigger
    * settlement block proof
    */
   public async produceBlock(): Promise<
-    [UnprovenBlock | undefined, ComputedBlock | undefined]
+    [UnprovenBlock | undefined, SettleableBatch | undefined]
   > {
     return [await this.produceUnproven(), await this.produceProven()];
   }
 
-  public async produceProven(): Promise<ComputedBlock | undefined> {
+  public async produceProven(): Promise<SettleableBatch | undefined> {
     return await super.produceProven();
+  }
+
+  public async settle(batch: SettleableBatch) {
+    return await super.settle(batch);
   }
 
   public async produceUnproven(
