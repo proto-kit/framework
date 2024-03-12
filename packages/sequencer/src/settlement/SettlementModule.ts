@@ -47,13 +47,14 @@ import { FlowCreator } from "../worker/flow/Flow";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../storage/repositories/MessageStorage";
 import { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
-import { ComputedBlock } from "../storage/model/Block";
+import { ComputedBlock, SettleableBatch } from "../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
 import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
+import { Settlement } from "../storage/model/Settlement";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
@@ -197,7 +198,7 @@ export class SettlementModule
         Path.fromKey(basePath, Field, Field(x.index))
       );
       // Preload keys
-      await cachedStore.preloadKeys(keys.map(key => key.toBigInt()));
+      await cachedStore.preloadKeys(keys.map((key) => key.toBigInt()));
 
       const transactionParamaters = batch.map((message, index) => {
         const witness = tree.getWitness(keys[index].toBigInt());
@@ -239,13 +240,11 @@ export class SettlementModule
   }
 
   public async settleBatch(
-    batch: ComputedBlock,
-    networkStateFrom: NetworkState,
-    networkStateTo: NetworkState,
+    batch: SettleableBatch,
     options: {
       nonce?: number;
     } = {}
-  ) {
+  ): Promise<Settlement> {
     const contract = await this.getContract();
     const { feepayer } = this.config;
 
@@ -291,8 +290,8 @@ export class SettlementModule
           blockProof,
           signature,
           feepayer.toPublicKey(),
-          networkStateFrom,
-          networkStateTo,
+          batch.fromNetworkState,
+          batch.toNetworkState,
           latestSequenceStateHash
         );
       }
@@ -307,7 +306,11 @@ export class SettlementModule
 
     this.events.emit("settlementSubmitted", batch, sent);
 
-    return sent;
+    return {
+      transactionHash: sent.hash() ?? "",
+      batches: [batch.height],
+      promisedMessagesHash: latestSequenceStateHash.toString(),
+    };
   }
 
   public async deploy(

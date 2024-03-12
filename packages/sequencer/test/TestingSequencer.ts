@@ -10,7 +10,7 @@ import {
   SequencerModulesRecord,
   UnprovenProducerModule,
 } from "../src";
-import { TypedClass } from "@proto-kit/common";
+import { OverwriteObjectType, TypedClass } from "@proto-kit/common";
 
 export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   Database: typeof InMemoryDatabase;
@@ -25,7 +25,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
 
 export function testingSequencerFromModules<AdditionalModules extends SequencerModulesRecord>(
   modules: AdditionalModules
-): TypedClass<Sequencer<AdditionalModules & DefaultTestingSequencerModules>> {
+): TypedClass<Sequencer<OverwriteObjectType<DefaultTestingSequencerModules, AdditionalModules>>> {
   const defaultModules: DefaultTestingSequencerModules = {
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
@@ -41,6 +41,6 @@ export function testingSequencerFromModules<AdditionalModules extends SequencerM
     modules: {
       ...defaultModules,
       ...modules,
-    },
+    } as OverwriteObjectType<DefaultTestingSequencerModules, AdditionalModules>,
   });
 }

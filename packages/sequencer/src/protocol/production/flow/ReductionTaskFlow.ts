@@ -100,7 +100,7 @@ export class ReductionTaskFlow<Input, Output> {
       options.inputLength - flow.state.numMergesCompleted === 1 &&
       flow.tasksInProgress === 0
     ) {
-      log.debug(`${options.name}: Resolved successfully`);
+      log.trace(`${options.name}: Resolved successfully`);
       flow.resolve(flow.state.queue[0]);
       return;
     }

@@ -45,7 +45,7 @@ export class LocalTaskQueue extends SequencerModule<LocalTaskQueueConfig> implem
           // eslint-disable-next-line max-len
           // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
           void this.workers[queueName].handler(task.payload).then((payload) => {
-            log.debug("LocalTaskQueue got", JSON.stringify(payload));
+            log.trace("LocalTaskQueue got", JSON.stringify(payload));
             // Notify listeners about result
             const listenerPromises = this.listeners[queueName].map(
               async (listener) => {

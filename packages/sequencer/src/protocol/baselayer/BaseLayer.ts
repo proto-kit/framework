@@ -15,7 +15,5 @@ export interface BaseLayerDependencyRecord extends DependencyRecord {
 }
 
 export interface BaseLayer extends DependencyFactory {
-  blockProduced: (block: ComputedBlock) => Promise<void>;
-
   dependencies: () => BaseLayerDependencyRecord;
 }

@@ -1,15 +1,19 @@
 import { inject, injectable } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { injectOptional, log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
 import { Closeable } from "../../../worker/queue/TaskQueue";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import {
+  UnprovenBlockQueue,
+} from "../../../storage/repositories/UnprovenBlockStorage";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
+import { BlockStorage } from "../../../storage/repositories/BlockStorage";
 
 export interface TimedBlockTriggerConfig {
   settlementInterval?: number;
@@ -31,18 +35,24 @@ export class TimedBlockTrigger
     blockProducerModule: BlockProducerModule,
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
+    @injectOptional("SettlementModule")
+    settlementModule: SettlementModule | undefined,
     @inject("UnprovenBlockQueue")
     unprovenBlockQueue: UnprovenBlockQueue,
-    // @inject("SettlementModule")
-    // settlementModule: SettlementModule,
+    @inject("BlockStorage")
+    blockStorage: BlockStorage,
+    @injectOptional("SettlementStorage")
+    settlementStorage: SettlementStorage | undefined,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
     super(
-      blockProducerModule,
       unprovenProducerModule,
+      blockProducerModule,
+      settlementModule,
       unprovenBlockQueue,
-      undefined
+      blockStorage,
+      settlementStorage
     );
   }
 
@@ -71,7 +81,10 @@ export class TimedBlockTrigger
           settlementInterval !== undefined &&
           totalTime % settlementInterval === 0
         ) {
-          await this.produceProven();
+          const batch = await this.produceProven();
+          if (batch !== undefined) {
+            await this.settle(batch);
+          }
         }
       } catch (error) {
         if (error instanceof Error) {
