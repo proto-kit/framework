@@ -1,6 +1,12 @@
-import { stringToField } from "@proto-kit/protocol";
+import { filterNonUndefined } from "@proto-kit/common";
+import { stringToField, RuntimeMethodIdMapping } from "@proto-kit/protocol";
 import { Poseidon } from "o1js";
 import { inject, injectable } from "tsyringe";
+
+import {
+  RuntimeMethodInvocationType,
+  runtimeMethodTypeMetadataKey,
+} from "../method/runtimeMethod";
 
 import type { Runtime, RuntimeModulesRecord } from "./Runtime";
 
@@ -31,6 +37,49 @@ export class MethodIdResolver {
 
       return dict;
     }, {});
+  }
+
+  /**
+   * The purpose of this method is to provide a dictionary where
+   * we can look up properties like methodId and invocationType
+   * for each runtimeMethod using their module name and method name
+   */
+  public methodIdMap(): RuntimeMethodIdMapping {
+    const methodIdResolver =
+      this.runtime.dependencyContainer.resolve<MethodIdResolver>(
+        "MethodIdResolver"
+      );
+
+    const rawMappings = this.runtime.moduleNames.flatMap((moduleName) => {
+      const module = this.runtime.resolve(moduleName);
+      return module.runtimeMethodNames.map((method) => {
+        const type = Reflect.getMetadata(
+          runtimeMethodTypeMetadataKey,
+          module,
+          method
+        ) as RuntimeMethodInvocationType | undefined;
+
+        if (type !== undefined) {
+          return {
+            name: `${moduleName}.${method}`,
+            methodId: methodIdResolver.getMethodId(moduleName, method),
+            type,
+          } as const;
+        }
+
+        return undefined;
+      });
+    });
+
+    return rawMappings
+      .filter(filterNonUndefined)
+      .reduce<RuntimeMethodIdMapping>((acc, entry) => {
+        acc[entry.name] = {
+          methodId: entry.methodId,
+          type: entry.type,
+        };
+        return acc;
+      }, {});
   }
 
   public getMethodNameFromId(methodId: bigint): [string, string] | undefined {

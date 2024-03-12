@@ -45,3 +45,7 @@ export const EMPTY_PUBLICKEY = PublicKey.fromObject({
   x: EMPTY_PUBLICKEY_X,
   isOdd: Bool(true),
 });
+
+export type OverwriteObjectType<Base, New> = {
+  [Key in keyof Base]: Key extends keyof New ? New[Key] : Base[Key];
+} & New;

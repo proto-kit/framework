@@ -1,12 +1,5 @@
 import { inject } from "tsyringe";
-import {
-  EventEmitter,
-  EventEmittingComponent,
-  EventsRecord,
-  log,
-  noop,
-  requireTrue,
-} from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
 
 import { Mempool } from "../../../mempool/Mempool";
 import {
@@ -27,22 +20,13 @@ import { TransactionExecutionService } from "./TransactionExecutionService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 
-interface UnprovenProducerEvents extends EventsRecord {
-  unprovenBlockProduced: [UnprovenBlock];
-}
-
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
 }
 
 @sequencerModule()
-export class UnprovenProducerModule
-  extends SequencerModule<BlockConfig>
-  implements EventEmittingComponent<UnprovenProducerEvents>
-{
+export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
   private productionInProgress = false;
-
-  public events = new EventEmitter<UnprovenProducerEvents>();
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
@@ -81,7 +65,6 @@ export class UnprovenProducerModule
         }
 
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
-        this.events.emit("unprovenBlockProduced", block);
 
         // Generate metadata for next block
         // eslint-disable-next-line no-warning-comments

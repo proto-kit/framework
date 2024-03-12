@@ -95,7 +95,9 @@ export class TransactionExecutionService {
   ): StateRecord {
     return stateTransitions.reduce<Record<string, Field[] | undefined>>(
       (state, st) => {
-        state[st.path.toString()] = st.toValue.value;
+        if (st.toValue.isSome.toBoolean()) {
+          state[st.path.toString()] = st.toValue.value;
+        }
         return state;
       },
       {}
@@ -363,6 +365,7 @@ export class TransactionExecutionService {
       incomingMessagesHash: block.toMessagesHash,
     };
 
+    // TODO Set StateProvider for @state access to state
     this.executionContext.clear();
     this.executionContext.setup({
       networkState: block.networkState.during,
@@ -523,7 +526,7 @@ export class TransactionExecutionService {
       );
     }
 
-    log.debug(
+    log.trace(
       "PSTs:",
       JSON.stringify(
         protocolResult.stateTransitions.map((x) => x.toJSON()),
@@ -544,7 +547,7 @@ export class TransactionExecutionService {
       runtimeContextInputs
     );
 
-    log.debug(
+    log.trace(
       "STs:",
       JSON.stringify(
         runtimeResult.stateTransitions.map((x) => x.toJSON()),

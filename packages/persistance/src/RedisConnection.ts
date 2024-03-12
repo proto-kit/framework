@@ -8,8 +8,10 @@ import { DependencyFactory } from "@proto-kit/common";
 import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
 
 export interface RedisConnectionConfig {
-  url: string;
+  host: string;
   password: string;
+  port?: number;
+  username?: string
 }
 
 export interface RedisConnection {
@@ -49,14 +51,19 @@ export class RedisConnectionModule
   }
 
   public async init() {
-    this.client = createClient(this.config);
+    const { host, port, password, username } = this.config;
+    this.client = createClient({
+      url: `redis://${host}:${port ?? 6379}`,
+      password,
+      username,
+    });
     try {
       await this.redisClient.connect();
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        throw new Error(`Connection to Redis failed: ${e.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new Error(`Connection to Redis failed: ${error.message}`);
       }
-      throw e;
+      throw error;
     }
   }
 

@@ -5,7 +5,14 @@ import {
   state,
 } from "@proto-kit/module";
 import { StateMap } from "@proto-kit/protocol";
-import { CircuitString, Field, Poseidon, PublicKey, Struct, UInt64 } from "o1js";
+import {
+  CircuitString,
+  Field,
+  Poseidon,
+  PublicKey,
+  Struct,
+  UInt64,
+} from "o1js";
 
 export class Post extends Struct({
   message: CircuitString,

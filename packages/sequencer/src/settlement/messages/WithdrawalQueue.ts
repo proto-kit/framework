@@ -6,6 +6,9 @@ import {
 } from "@proto-kit/module";
 import { Path, Withdrawal } from "@proto-kit/protocol";
 import { Field } from "o1js";
+import type {
+  BlockTriggerBase
+} from "../../protocol/production/trigger/BlockTrigger";
 
 import { UnprovenProducerModule } from "../../protocol/production/unproven/UnprovenProducerModule";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
@@ -49,8 +52,8 @@ export class WithdrawalQueue
   private currentIndex = 0;
 
   public constructor(
-    @inject("UnprovenProducerModule")
-    private readonly blockProducerModule: UnprovenProducerModule,
+    @inject("BlockTrigger")
+    private readonly blockTrigger: BlockTriggerBase,
     @inject("Runtime")
     private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Sequencer")
@@ -93,18 +96,18 @@ export class WithdrawalQueue
 
     // TODO Very primitive and error-prone, wait for runtime events
     // TODO Replace by stateservice call?
-    if (settlementModule.address !== undefined) {
-      const contract = await settlementModule.getContract();
+    if (settlementModule.addresses !== undefined) {
+      const { settlement } = await settlementModule.getContracts();
       this.currentIndex = Number(
-        contract.outgoingMessageCursor.get().toBigInt()
+        settlement.outgoingMessageCursor.get().toBigInt()
       );
     }
 
-    this.blockProducerModule.events.on("unprovenBlockProduced", (block) => {
+    this.blockTrigger.events.on("block-produced", (block) => {
       this.lockedQueue.push(block);
     });
 
-    settlementModule.events.on("settlementSubmitted", (batch, tx) => {
+    settlementModule.events.on("settlement-submitted", (batch) => {
       // TODO After persistance PR, link the blocks with the batch based on the ids
       // TODO After runtime events, use those
 

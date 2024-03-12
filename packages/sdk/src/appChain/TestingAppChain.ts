@@ -27,6 +27,7 @@ import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSen
 import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
 
 import { AppChain, AppChainModulesRecord } from "./AppChain";
+import { SettlementModule } from "@proto-kit/sequencer";
 
 export class TestingAppChain<
   RuntimeModules extends RuntimeModulesRecord,
@@ -54,6 +55,7 @@ export class TestingAppChain<
         UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
+        SettlementModule: SettlementModule,
       },
     });
 
@@ -82,6 +84,10 @@ export class TestingAppChain<
 
         TaskQueue: {
           simulatedDuration: 0,
+        },
+        SettlementModule: {
+          feepayer: PrivateKey.random(),
+          address: PrivateKey.random().toPublicKey(),
         },
       },
 

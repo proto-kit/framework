@@ -2,10 +2,11 @@
 import {
   Bool,
   Experimental,
-  Field, Poseidon,
+  Field,
+  Poseidon,
   type Proof,
   Provable,
-  SelfProof
+  SelfProof,
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
@@ -35,7 +36,10 @@ import { RuntimeMethodExecutionContext } from "../../state/context/RuntimeMethod
 import { ProvableBlockHook } from "../../protocol/ProvableBlockHook";
 import { NetworkState } from "../../model/network/NetworkState";
 import { SignedTransaction } from "../../model/transaction/SignedTransaction";
-import { MinaActions, MinaActionsHashList } from "../../utils/MinaPrefixedProvableHashList";
+import {
+  MinaActions,
+  MinaActionsHashList,
+} from "../../utils/MinaPrefixedProvableHashList";
 import { StateTransitionReductionList } from "../../utils/ProvableReductionHashList";
 
 import {
@@ -370,7 +374,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Append tx to incomingMessagesHash
     const actionHash = MinaActions.actionHash(transaction.hashData());
 
-    const incomingMessagesList = new MinaActionsHashList(state.incomingMessagesHash);
+    const incomingMessagesList = new MinaActionsHashList(
+      state.incomingMessagesHash
+    );
     incomingMessagesList.pushIf(actionHash, isMessage);
 
     stateTo.incomingMessagesHash = incomingMessagesList.commitment;
@@ -569,7 +575,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
       afterBlockHashList.commitment,
       "STProof from-ST-hash not matching generated ST-hash from afterBlock hooks"
     );
-    state.stateRoot = stateTransitionProof.publicInput.stateRoot;
+    state.stateRoot = Provable.if(
+      stsEmitted,
+      stateTransitionProof.publicOutput.stateRoot,
+      state.stateRoot
+    );
 
     // 6. Close block
 

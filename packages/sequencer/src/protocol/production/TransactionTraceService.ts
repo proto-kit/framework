@@ -125,10 +125,6 @@ export class TransactionTraceService {
       incomingMessagesHash: block.block.fromMessagesHash,
     });
 
-    // const treeIndex = block.block.height.toBigInt();
-    // const cached = new CachedMerkleTreeStore(blockHashStateService);
-    // await cached.preloadKey(treeIndex);
-
     return {
       transactions: traces,
       stateTransitionProver: stParameters,

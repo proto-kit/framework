@@ -75,7 +75,7 @@ export class LocalhostAppChain<
               BlockStorageResolver,
               NodeStatusResolver,
               UnprovenBlockResolver,
-              MerkleWitnessResolver
+              MerkleWitnessResolver,
             },
           }),
         },
@@ -95,6 +95,7 @@ export class LocalhostAppChain<
         StateTransitionProver: {},
         AccountState: {},
         BlockHeight: {},
+        LastStateRoot: {},
       },
 
       Sequencer: {
