@@ -14,7 +14,7 @@ export type SmartContractClassFromInterface<Type> = typeof SmartContract &
  */
 export abstract class ContractModule<
   ContractType,
-  // no args
+  // undefined = no args
   Arguments = undefined,
   Config = NoConfig
 > extends ConfigurableModule<Config> {

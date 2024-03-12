@@ -39,14 +39,16 @@ export type TransactionTaskResult = {
 
 /**
  * Implementation of a task to prove any Mina transaction.
- * Account state is configurable via the task args
+ * The o1js-internal account state is configurable via the task args.
+ * It also dynamically retrieves the proof generation parameters from
+ * the provided AccountUpdate
  */
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class SettlementProvingTask
   implements Task<TransactionTaskArgs, TransactionTaskResult>
 {
-  public name = "deploySettlement";
+  public name = "settlementTransactions";
 
   public settlementContractModule: SettlementContractModule<MinimumSettlementContracts>;
 
@@ -123,6 +125,11 @@ export class SettlementProvingTask
 
         jsonObject.lazyProofs.forEach((lazyProof, index) => {
           if (lazyProof !== null) {
+            // Here, we need to decode the AU's lazyproof into the format
+            // that o1js needs to actually create those proofs
+            // For that we need to retrieve a few things. Most prominently,
+            // we need to get the contract class corresponding to that proof
+
             const SmartContract = this.compileRegistry.getContractClassByName(
               lazyProof.zkappClassName
             );

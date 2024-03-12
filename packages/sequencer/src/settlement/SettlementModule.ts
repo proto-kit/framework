@@ -56,7 +56,7 @@ export interface SettlementModuleConfig {
 }
 
 export type SettlementModuleEvents = {
-  "settlement-submitted": [ComputedBlock, Mina.TransactionId];
+  "settlement-submitted": [ComputedBlock];
 }
 
 @sequencerModule()
@@ -274,7 +274,7 @@ export class SettlementModule
 
     log.info(`Settlement transaction send queued`);
 
-    this.events.emit("settlement-submitted", batch, sent);
+    this.events.emit("settlement-submitted", batch);
 
     return {
       // transactionHash: sent.hash() ?? "",

@@ -50,10 +50,6 @@ export class LazyBlockProof extends Proof<
   };
 }
 
-export interface SmartContractConfigurable<Config> {
-  config: Config | undefined;
-}
-
 export interface SettlementContractType {
   initialize: (sequencer: PublicKey, dispatchContract: PublicKey) => void;
   settle: (
@@ -76,6 +72,15 @@ export class SettlementSmartContract
   extends SmartContract
   implements SettlementContractType
 {
+  // This pattern of injecting args into a smartcontract is currently the only
+  // viable solution that works given the inheritance issues of o1js
+  public static args: {
+    DispatchContract: TypedClass<DispatchContractType & SmartContract>;
+    hooks: ProvableSettlementHook<unknown>[];
+    withdrawalStatePath: [string, string];
+    escapeHatchSlotsInterval: number;
+  };
+
   @state(Field) public sequencerKey = State<Field>();
   @state(UInt32) public lastSettlementL1Block = State<UInt32>();
 
@@ -86,13 +91,6 @@ export class SettlementSmartContract
   @state(Field) public dispatchContractAddressX = State<Field>();
 
   @state(Field) public outgoingMessageCursor = State<Field>();
-
-  public static args: {
-    DispatchContract: TypedClass<DispatchContractType & SmartContract>;
-    hooks: ProvableSettlementHook<unknown>[];
-    withdrawalStatePath: [string, string];
-    escapeHatchSlotsInterval: number;
-  };
 
   @method
   public initialize(sequencer: PublicKey, dispatchContract: PublicKey) {

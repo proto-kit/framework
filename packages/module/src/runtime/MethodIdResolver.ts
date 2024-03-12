@@ -39,6 +39,11 @@ export class MethodIdResolver {
     }, {});
   }
 
+  /**
+   * The purpose of this method is to provide a dictionary where
+   * we can look up properties like methodId and invocationType
+   * for each runtimeMethod using their module name and method name
+   */
   public methodIdMap(): RuntimeMethodIdMapping {
     const methodIdResolver =
       this.runtime.dependencyContainer.resolve<MethodIdResolver>(

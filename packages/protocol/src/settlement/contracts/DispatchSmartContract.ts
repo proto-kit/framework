@@ -36,16 +36,16 @@ export class DispatchSmartContract
   extends SmartContract
   implements DispatchContractType
 {
+  public static args: {
+    methodIdMappings: RuntimeMethodIdMapping;
+    incomingMessagesPaths: Record<string, `${string}.${string}`>;
+  };
+
   @state(Field) public promisedMessagesHash = State<Field>();
 
   @state(Field) public honoredMessagesHash = State<Field>();
 
   @state(PublicKey) public settlementContract = State<PublicKey>();
-
-  public static args: {
-    methodIdMappings: RuntimeMethodIdMapping;
-    incomingMessagesPaths: Record<string, `${string}.${string}`>;
-  };
 
   @method
   public updateMessagesHash(
