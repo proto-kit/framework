@@ -27,7 +27,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     if (txValid) {
       const success = await this.transactionStorage.pushUserTransaction(tx);
       if (success) {
-        this.events.emit("transaction-added", tx);
+        this.events.emit("mempool-transaction-added", tx);
       }
     }
     throw new Error(`Valdiation of tx failed: ${error ?? "unknown error"}`);

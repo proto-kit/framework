@@ -5,14 +5,13 @@ import gcd from "compute-gcd";
 import { Closeable } from "../../../worker/queue/TaskQueue";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
-import {
-  UnprovenBlockQueue,
-} from "../../../storage/repositories/UnprovenBlockStorage";
+import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
-
-import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { SettlementModule } from "../../../settlement/SettlementModule";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 import { BlockStorage } from "../../../storage/repositories/BlockStorage";
+
+import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
 export interface TimedBlockTriggerConfig {
   /**

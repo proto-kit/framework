@@ -1,12 +1,11 @@
 import {
   EventEmitter,
   EventEmittingComponent,
-  EventsRecord,
   NoConfig,
   noop,
 } from "@proto-kit/common";
 
-import { SettleableBatch } from "../../../storage/model/Block";
+import { ComputedBlock, SettleableBatch } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import {
@@ -28,7 +27,7 @@ import { SettlementStorage } from "../../../storage/repositories/SettlementStora
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface BlockTrigger {}
 
-export interface BlockEvents extends EventsRecord {
+export type BlockEvents = {
   "block-produced": [UnprovenBlock];
   "block-metadata-produced": [UnprovenBlockWithMetadata];
   "batch-produced": [ComputedBlock];

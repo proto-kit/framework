@@ -61,7 +61,7 @@ export interface SettlementModuleConfig {
   address?: PublicKey;
 }
 
-export interface SettlementModuleEvents extends EventsRecord {
+export type SettlementModuleEvents = {
   "settlement-submitted": [ComputedBlock, Mina.TransactionId];
 }
 
