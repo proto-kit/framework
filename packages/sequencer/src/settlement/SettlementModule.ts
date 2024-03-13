@@ -10,8 +10,8 @@ import {
   SettlementModulesRecord,
   DispatchSmartContract,
   SettlementSmartContract,
-  MinimumSettlementContracts,
   SettlementContractConfig,
+  MandatorySettlementModulesRecord
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -57,7 +57,7 @@ export interface SettlementModuleConfig {
 
 export type SettlementModuleEvents = {
   "settlement-submitted": [ComputedBlock];
-}
+};
 
 @sequencerModule()
 export class SettlementModule
@@ -103,7 +103,7 @@ export class SettlementModule
     super();
   }
 
-  private settlementContractModule(): SettlementContractModule<MinimumSettlementContracts> {
+  private settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
     return this.protocol.dependencyContainer.resolve(
       "SettlementContractModule"
     );
@@ -115,6 +115,10 @@ export class SettlementModule
 
       this.settlementModuleConfig =
         settlementContractModule.resolve("SettlementContract").config;
+
+      if (this.settlementModuleConfig === undefined) {
+        throw new Error("Failed to fetch config from SettlementContract");
+      }
     }
     return this.settlementModuleConfig;
   }
@@ -128,7 +132,7 @@ export class SettlementModule
         );
       }
       const settlementContractModule = protocol.dependencyContainer.resolve<
-        SettlementContractModule<SettlementModulesRecord>
+        SettlementContractModule<MandatorySettlementModulesRecord>
       >("SettlementContractModule");
 
       // TODO Add generic inference of concrete Contract types
@@ -299,7 +303,7 @@ export class SettlementModule
     // );
 
     const sm = this.protocol.dependencyContainer.resolve<
-      SettlementContractModule<SettlementModulesRecord>
+      SettlementContractModule<MandatorySettlementModulesRecord>
     >("SettlementContractModule");
     const { settlement, dispatch } = sm.createContracts({
       settlement: settlementKey.toPublicKey(),

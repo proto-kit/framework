@@ -1,10 +1,10 @@
 import { filterNonUndefined, MOCK_PROOF } from "@proto-kit/common";
 import {
-  MinimumSettlementContracts,
+  MandatorySettlementModulesRecord,
   Protocol,
   ProtocolModulesRecord,
   ReturnType,
-  SettlementContractModule,
+  SettlementContractModule
 } from "@proto-kit/protocol";
 import {
   addCachedAccount,
@@ -50,7 +50,7 @@ export class SettlementProvingTask
 {
   public name = "settlementTransactions";
 
-  public settlementContractModule: SettlementContractModule<MinimumSettlementContracts>;
+  public settlementContractModule: SettlementContractModule<MandatorySettlementModulesRecord>;
 
   public constructor(
     @inject("Protocol")
@@ -58,7 +58,7 @@ export class SettlementProvingTask
     private readonly compileRegistry: CompileRegistry
   ) {
     this.settlementContractModule = this.protocol.dependencyContainer.resolve<
-      SettlementContractModule<MinimumSettlementContracts>
+      SettlementContractModule<MandatorySettlementModulesRecord>
     >("SettlementContractModule");
   }
 

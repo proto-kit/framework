@@ -2,8 +2,8 @@ import {
   AreProofsEnabled,
   ChildContainerProvider,
   ModuleContainer,
-  ModulesRecord,
-  TypedClass,
+  ModulesRecord, ResolvableModules, StringKeyOf,
+  TypedClass
 } from "@proto-kit/common";
 import { PublicKey, SmartContract } from "o1js";
 import { injectable } from "tsyringe";
@@ -27,7 +27,7 @@ export type SettlementModulesRecord = ModulesRecord<
   TypedClass<ContractModule<unknown, unknown, unknown>>
 >;
 
-export type MinimumSettlementContracts = {
+export type MandatorySettlementModulesRecord = {
   SettlementContract: TypedClass<
     ContractModule<
       SettlementContractType,
@@ -35,16 +35,15 @@ export type MinimumSettlementContracts = {
       SettlementContractConfig
     >
   >;
-  DispatchContract: TypedClass<ContractModule<DispatchContractType>>;
+  DispatchContract: TypedClass<
+    ContractModule<DispatchContractType, unknown, unknown>
+  >;
 };
-
-// Not exhaustive unfortunately
-const MinimumSettlementContractsKeys: Array<keyof MinimumSettlementContracts> =
-  ["SettlementContract", "DispatchContract"];
 
 @injectable()
 export class SettlementContractModule<
-    SettlementModules extends SettlementModulesRecord
+    SettlementModules extends SettlementModulesRecord &
+      MandatorySettlementModulesRecord
   >
   extends ModuleContainer<SettlementModules>
   implements ProtocolModule<unknown>
@@ -53,7 +52,10 @@ export class SettlementContractModule<
     super(definition);
   }
 
-  public static from<SettlementModules extends SettlementModulesRecord>(
+  public static from<
+    SettlementModules extends SettlementModulesRecord &
+      MandatorySettlementModulesRecord
+  >(
     modules: SettlementModules
   ): TypedClass<SettlementContractModule<SettlementModules>> {
     return class ScopedSettlementContractModule extends SettlementContractModule<SettlementModules> {
@@ -82,25 +84,19 @@ export class SettlementContractModule<
     super.create(childContainerProvider);
   }
 
-  private assertThisFullfillsMinimumModules(): asserts this is SettlementContractModule<MinimumSettlementContracts> {
-    const { moduleNames } = this;
-    if (
-      MinimumSettlementContractsKeys.some((key) => !moduleNames.includes(key))
-    ) {
-      throw new Error(
-        "SettlementContractModule doesn't fulfill minimum module requirements"
-      );
-    }
-  }
+  // private assertIsKeyofModules
 
   public getContractClasses(): {
     settlement: SmartContractClassFromInterface<SettlementContractType>;
     dispatch: SmartContractClassFromInterface<DispatchContractType>;
   } {
-    this.assertThisFullfillsMinimumModules();
+    const settlementContractKey = "SettlementContract"
+    const dispatchContractKey = "DispatchContract"
+    this.assertIsValidModuleName(settlementContractKey)
+    this.assertIsValidModuleName(dispatchContractKey)
 
-    const settlementModule = this.resolve("SettlementContract");
-    const dispatchModule = this.resolve("DispatchContract");
+    const settlementModule = this.resolve(settlementContractKey);
+    const dispatchModule = this.resolve(dispatchContractKey);
 
     const dispatch = dispatchModule.contractFactory(undefined);
     const settlement = settlementModule.contractFactory(dispatch);
