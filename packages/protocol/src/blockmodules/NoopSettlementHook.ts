@@ -2,11 +2,10 @@ import { injectable } from "tsyringe";
 import { noop } from "@proto-kit/common";
 import { SmartContract } from "o1js";
 
-import { BlockProof } from "../prover/block/BlockProver";
 import {
   ProvableSettlementHook,
   SettlementHookInputs,
-} from "../settlement/ProvableSettlementHook";
+} from "../settlement/modularity/ProvableSettlementHook";
 
 @injectable()
 export class NoopSettlementHook extends ProvableSettlementHook<

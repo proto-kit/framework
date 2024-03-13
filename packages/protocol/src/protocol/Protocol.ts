@@ -26,7 +26,7 @@ import { ProvableBlockHook } from "./ProvableBlockHook";
 import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
 import { BlockHeightHook } from "../blockmodules/BlockHeightHook";
 import { LastStateRootBlockHook } from "../blockmodules/LastStateRootBlockHook";
-import { ProvableSettlementHook } from "../settlement/ProvableSettlementHook";
+import { ProvableSettlementHook } from "../settlement/modularity/ProvableSettlementHook";
 import { NoopSettlementHook } from "../blockmodules/NoopSettlementHook";
 
 const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {

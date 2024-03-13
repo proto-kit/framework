@@ -1,9 +1,9 @@
-import { DependencyFactory, DependencyRecord, noop } from "@proto-kit/common";
+import { DependencyFactory } from "@proto-kit/common";
 import { Mina } from "o1js";
 
 import { MinaIncomingMessageAdapter } from "../../settlement/messages/MinaIncomingMessageAdapter";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
-import { ComputedBlock } from "../../storage/model/Block";
+import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { WithdrawalQueue } from "../../settlement/messages/WithdrawalQueue";
 
 import { BaseLayer } from "./BaseLayer";
@@ -26,6 +26,10 @@ export class MinaBaseLayer
     return {
       IncomingMessageAdapter: {
         useClass: MinaIncomingMessageAdapter,
+      },
+
+      TransactionSender: {
+        useClass: MinaTransactionSender,
       },
 
       OutgoingMessageQueue: {

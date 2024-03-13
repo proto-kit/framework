@@ -96,10 +96,10 @@ export class WithdrawalQueue
 
     // TODO Very primitive and error-prone, wait for runtime events
     // TODO Replace by stateservice call?
-    if (settlementModule.address !== undefined) {
-      const contract = await settlementModule.getContract();
+    if (settlementModule.addresses !== undefined) {
+      const { settlement } = await settlementModule.getContracts();
       this.currentIndex = Number(
-        contract.outgoingMessageCursor.get().toBigInt()
+        settlement.outgoingMessageCursor.get().toBigInt()
       );
     }
 
@@ -107,7 +107,7 @@ export class WithdrawalQueue
       this.lockedQueue.push(block);
     });
 
-    settlementModule.events.on("settlement-submitted", (batch, tx) => {
+    settlementModule.events.on("settlement-submitted", (batch) => {
       // TODO After persistance PR, link the blocks with the batch based on the ids
       // TODO After runtime events, use those
 

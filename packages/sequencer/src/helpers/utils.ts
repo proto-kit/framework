@@ -11,6 +11,14 @@ export function distinct<Value>(
   return array.indexOf(value) === index;
 }
 
+export function distinctByPredicate<Value>(
+  predicate: (a: Value, b: Value) => boolean
+): (value: Value, index: number, array: Value[]) => boolean {
+  return (v, index, array) => {
+    return array.findIndex((other) => predicate(v, other)) === index;
+  };
+}
+
 export function distinctByString<Value extends { toString: () => string }>(
   value: Value,
   index: number,

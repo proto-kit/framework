@@ -10,7 +10,6 @@ import {
   TypedClass,
   ZkProgrammable,
   PlainZkProgram,
-  WithZkProgrammable,
   AreProofsEnabled,
   ChildContainerProvider,
 } from "@proto-kit/common";

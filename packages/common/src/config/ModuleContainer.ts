@@ -108,6 +108,9 @@ export type RecursivePartial<T> = {
 export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   modules: Modules;
   // config is optional, as it may be provided by the parent/wrapper class
+  /**
+   * @deprecated
+   */
   config?: ModulesConfig<Modules>;
 }
 
@@ -148,9 +151,6 @@ export class ModuleContainer<
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
-    if (definition.config !== undefined) {
-      this.config = definition.config;
-    }
   }
 
   /**
@@ -289,9 +289,11 @@ export class ModuleContainer<
     this.config = config;
   }
 
-  public configurePartial(config: RecursivePartial<ModulesConfig<Modules>>) {
+  public configurePartial(
+    config: RecursivePartial<ModulesConfig<Modules>>
+  ) {
     this.config = merge<
-      ModulesConfig<Modules> | NoConfig,
+      (ModulesConfig<Modules>) | NoConfig,
       RecursivePartial<ModulesConfig<Modules>>
     >(this.currentConfig ?? {}, config);
   }
@@ -299,7 +301,7 @@ export class ModuleContainer<
   // eslint-disable-next-line accessor-pairs
   public set config(config: ModulesConfig<Modules>) {
     super.config = merge<
-      ModulesConfig<Modules> | NoConfig,
+      (ModulesConfig<Modules>) | NoConfig,
       ModulesConfig<Modules>
     >(this.currentConfig ?? {}, config);
   }
