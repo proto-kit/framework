@@ -40,6 +40,7 @@ import {
   MinaActions,
   MinaActionsHashList,
 } from "../../utils/MinaPrefixedProvableHashList";
+import { StateTransitionReductionList } from "../../utils/StateTransitionReductionList";
 
 import {
   BlockProvable,
@@ -278,7 +279,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       transition.toProvable()
     );
 
-    const hashList = new DefaultProvableHashList(
+    const hashList = new StateTransitionReductionList(
       ProvableStateTransition,
       stateTransitionProof.publicInput.protocolTransitionsHash
     );
@@ -512,7 +513,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "beforeBlock"
     );
 
-    const beforeBlockHashList = new DefaultProvableHashList(
+    const beforeBlockHashList = new StateTransitionReductionList(
       ProvableStateTransition
     );
     beforeBlockResult.stateTransitions.forEach((st) => {
@@ -560,7 +561,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "afterBlock"
     );
 
-    const afterBlockHashList = new DefaultProvableHashList(
+    const afterBlockHashList = new StateTransitionReductionList(
       ProvableStateTransition
     );
     afterBlockResult.stateTransitions.forEach((st) => {

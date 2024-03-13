@@ -20,6 +20,7 @@ import {
   ACTIONS_EMPTY_HASH,
   MinaActions,
   MinaActionsHashList,
+  reduceStateTransitions,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
@@ -147,52 +148,64 @@ export class TransactionExecutionService {
     return appChain;
   }
 
-  private executeRuntimeMethod(
-    method: (...args: unknown[]) => unknown,
-    args: unknown[],
-    contextInputs: RuntimeMethodExecutionData
-  ): RuntimeProvableMethodExecutionResult {
+  private executeWithExecutionContext(
+    method: () => void,
+    contextInputs: RuntimeMethodExecutionData,
+    runSimulated = false
+  ): Pick<
+    RuntimeProvableMethodExecutionResult,
+    "stateTransitions" | "status" | "statusMessage"
+  > {
     // Set up context
     const executionContext = this.runtime.dependencyContainer.resolve(
       RuntimeMethodExecutionContext
     );
     executionContext.setup(contextInputs);
+    executionContext.setSimulated(runSimulated);
 
     // Execute method
-    method(...args);
+    method();
 
-    const runtimeResult = executionContext.current().result;
+    const { stateTransitions, status, statusMessage } =
+      executionContext.current().result;
 
     // Clear executionContext
     executionContext.afterMethod();
     executionContext.clear();
 
-    return runtimeResult;
+    const reducedSTs = reduceStateTransitions(stateTransitions);
+
+    return {
+      stateTransitions: reducedSTs,
+      status,
+      statusMessage,
+    };
+  }
+
+  private executeRuntimeMethod(
+    method: (...args: unknown[]) => unknown,
+    args: unknown[],
+    contextInputs: RuntimeMethodExecutionData
+  ) {
+    return this.executeWithExecutionContext(() => {
+      method(...args);
+    }, contextInputs);
   }
 
   private executeProtocolHooks(
     runtimeContextInputs: RuntimeMethodExecutionData,
     blockContextInputs: BlockProverExecutionData,
-    runUnchecked = false
-  ): RuntimeProvableMethodExecutionResult {
-    // Set up context
-    const executionContext = this.runtime.dependencyContainer.resolve(
-      RuntimeMethodExecutionContext
+    runSimulated = false
+  ) {
+    return this.executeWithExecutionContext(
+      () => {
+        this.transactionHooks.forEach((transactionHook) => {
+          transactionHook.onTransaction(blockContextInputs);
+        });
+      },
+      runtimeContextInputs,
+      runSimulated
     );
-    executionContext.setup(runtimeContextInputs);
-    if (runUnchecked) {
-      executionContext.setSimulated(true);
-    }
-
-    this.transactionHooks.forEach((transactionHook) => {
-      transactionHook.onTransaction(blockContextInputs);
-    });
-
-    const protocolResult = executionContext.current().result;
-    executionContext.afterMethod();
-    executionContext.clear();
-
-    return protocolResult;
   }
 
   /**
@@ -366,6 +379,7 @@ export class TransactionExecutionService {
 
     const { stateTransitions } = this.executionContext.result;
     this.executionContext.clear();
+    const reducedStateTransitions = reduceStateTransitions(stateTransitions);
 
     // Update the block hash tree with this block
     blockHashTree.setLeaf(
@@ -389,7 +403,7 @@ export class TransactionExecutionService {
       blockHashRoot: newBlockHashRoot.toBigInt(),
       blockHashWitness,
 
-      blockStateTransitions: stateTransitions.map((st) =>
+      blockStateTransitions: reducedStateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
       blockHash: block.hash.toBigInt(),

@@ -344,7 +344,7 @@ describe("block production", () => {
       expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(
         BigInt(fromBalance)
       );
-      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(
+      expect(transitions[0].toValue.value[0].toBigInt()).toStrictEqual(
         BigInt(fromBalance + increment)
       );
     });
@@ -373,7 +373,7 @@ describe("block production", () => {
   }, 160_000);
 
   it("should produce a block with a mix of failing and succeeding transactions and empty blocks", async () => {
-    expect.assertions(8);
+    expect.assertions(7);
 
     const pk1 = PrivateKey.random();
     const pk2 = PrivateKey.random();

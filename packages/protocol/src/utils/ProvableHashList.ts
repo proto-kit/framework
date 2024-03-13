@@ -1,11 +1,11 @@
-import { Field, Poseidon, FlexibleProvablePure, Bool, Provable } from "o1js";
+import { Field, Poseidon, Bool, Provable, ProvablePure } from "o1js";
 
 /**
  * Utilities for creating a hash list from a given value type.
  */
 export abstract class ProvableHashList<Value> {
   public constructor(
-    private readonly valueType: FlexibleProvablePure<Value>,
+    protected readonly valueType: ProvablePure<Value>,
     public commitment: Field = Field(0)
   ) {}
 
