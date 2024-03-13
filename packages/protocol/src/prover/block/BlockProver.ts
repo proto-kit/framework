@@ -40,7 +40,7 @@ import {
   MinaActions,
   MinaActionsHashList,
 } from "../../utils/MinaPrefixedProvableHashList";
-import { StateTransitionReductionList } from "../../utils/ProvableReductionHashList";
+import { StateTransitionReductionList } from "../../utils/StateTransitionReductionList";
 
 import {
   BlockProvable,

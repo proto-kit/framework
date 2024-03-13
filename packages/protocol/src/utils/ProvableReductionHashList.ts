@@ -1,8 +1,5 @@
 import { Bool, Field, Poseidon, Provable } from "o1js";
 
-import { ProvableStateTransition } from "../model/StateTransition";
-import { ProvableOption } from "../model/Option";
-
 import { ProvableHashList } from "./ProvableHashList";
 
 export class ProvableReductionHashList<Value> extends ProvableHashList<Value> {
@@ -67,55 +64,5 @@ export class ProvableReductionHashList<Value> extends ProvableHashList<Value> {
 
   public hash(elements: Field[]): Field {
     return Poseidon.hash(elements);
-  }
-}
-
-export class StateTransitionReductionList extends ProvableReductionHashList<ProvableStateTransition> {
-  public push(value: ProvableStateTransition) {
-    this.pushWithMetadata(value);
-
-    return this;
-  }
-
-  public pushWithMetadata(value: ProvableStateTransition) {
-    return this.pushAndReduce(value, (previous: ProvableStateTransition) => {
-      const pathsMatch = previous.path.equals(value.path);
-
-      // Take the previous.from if the paths match, otherwise leave ST as is
-      const from = Provable.if(
-        pathsMatch,
-        ProvableOption,
-        previous.from,
-        value.from
-      );
-      // In case we have a layout like
-      // { from: 5, to: 10 }, { from: 10, to: none }
-      // we just take the first and discard the second
-      const to = Provable.if(
-        value.to.isSome.or(pathsMatch.not()),
-        ProvableOption,
-        value.to,
-        previous.to
-      );
-
-      const transition = new ProvableStateTransition({
-        path: value.path,
-        from: new ProvableOption(from),
-        to: new ProvableOption(to),
-      });
-
-      // Assert that connection is correct
-      previous.to.value
-        .equals(value.from.value)
-        .or(
-          previous.to.isSome
-            .not()
-            .and(previous.from.value.equals(value.from.value))
-        )
-        .or(pathsMatch.not())
-        .assertTrue();
-
-      return [transition, pathsMatch];
-    });
   }
 }
