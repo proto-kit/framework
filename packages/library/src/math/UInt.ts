@@ -14,7 +14,7 @@ const errors = {
 };
 
 export abstract class UIntX<This extends UIntX<any>> extends Struct({
-  value: Field
+  value: Field,
 }) {
   public abstract numBits(): number;
 
@@ -363,6 +363,20 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    */
   public assertGreaterThanOrEqual(y: This, message?: string) {
     y.assertLessThanOrEqual(this, message);
+  }
+
+  /**
+   * Checks if a {@link UIntX} is equal to another one.
+   */
+  public equals(y: This | bigint | number): Bool {
+    return this.impls.from(y).value.equals(this.value);
+  }
+
+  /**
+   * Asserts that a {@link UIntX} is equal to another one.
+   */
+  public assertEquals(y: This | bigint | number, message?: string) {
+    UIntX.assertionFunction(this.equals(y), message);
   }
 
   /**
