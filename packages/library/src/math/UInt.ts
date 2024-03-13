@@ -376,7 +376,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    * Asserts that a {@link UIntX} is equal to another one.
    */
   public assertEquals(y: This | bigint | number, message?: string) {
-    this.impls.from(y).value.assertEquals(this.value, message);
+    UIntX.assertionFunction(this.equals(y), message);
   }
 
   /**
