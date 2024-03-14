@@ -3,7 +3,8 @@ import { PrivateKey, UInt64 } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { Protocol, ReturnType } from "@proto-kit/protocol";
 import {
-  Balances as BaseBalances,
+  BalancesKey,
+  TokenId,
   VanillaProtocolModules,
   VanillaRuntimeModules,
 } from "@proto-kit/library";
@@ -15,7 +16,7 @@ import {
 } from "@proto-kit/sequencer";
 import { GraphqlServer } from "@proto-kit/api";
 
-import { startServer, Balances } from "./server";
+import { startServer, TestBalances } from "./server";
 import { beforeAll } from "@jest/globals";
 import { AppChain, InMemorySigner } from "../../src";
 import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSender";
@@ -29,7 +30,7 @@ function prepare() {
   const appChain = AppChain.from({
     Runtime: Runtime.from({
       modules: VanillaRuntimeModules.with({
-        Balances: Balances,
+        Balances: TestBalances,
       }),
     }),
 
@@ -50,7 +51,7 @@ function prepare() {
     },
   });
 
-  appChain.configure({
+  appChain.configurePartial({
     Runtime: {
       Balances: {},
     },
@@ -60,7 +61,13 @@ function prepare() {
       BlockProver: {},
       StateTransitionProver: {},
       BlockHeight: {},
-      TransactionFee: appChain.config.Protocol!.TransactionFee,
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 0n,
+        methods: {},
+        perWeightUnitFee: 0n,
+      },
     },
 
     Sequencer: {
@@ -87,6 +94,7 @@ describe("graphql client test", function () {
   let appChain: ReturnType<typeof prepare>;
   let server: Awaited<ReturnType<typeof startServer>>;
   let trigger: ManualBlockTrigger;
+  const tokenId = TokenId.from(0);
 
   beforeAll(async () => {
     server = await startServer();
@@ -122,7 +130,7 @@ describe("graphql client test", function () {
     const tx = await appChain.transaction(pk.toPublicKey(), () => {
       appChain.runtime
         .resolve("Balances")
-        .addBalance(pk.toPublicKey(), UInt64.from(1000));
+        .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
     });
     await tx.sign();
     await tx.send();
@@ -130,7 +138,10 @@ describe("graphql client test", function () {
     await trigger.produceUnproven();
 
     const balance = await appChain.query.runtime.Balances.balances.get(
-      pk.toPublicKey()
+      new BalancesKey({
+        tokenId,
+        address: pk.toPublicKey(),
+      })
     );
 
     expect(balance?.toBigInt()).toBe(1000n);

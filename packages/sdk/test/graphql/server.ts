@@ -9,6 +9,10 @@ import {
 } from "@proto-kit/module";
 import { Option, Protocol, State, StateMap } from "@proto-kit/protocol";
 import {
+  Balance,
+  Balances,
+  BalancesKey,
+  TokenId,
   VanillaProtocolModules,
   VanillaRuntimeModules,
 } from "@proto-kit/library";
@@ -44,32 +48,30 @@ import { MessageBoard } from "./Post";
 import { Balances as BaseBalances } from "@proto-kit/library";
 
 @runtimeModule()
-export class Balances extends RuntimeModule<object> {
+export class TestBalances extends Balances {
   /**
    * We use `satisfies` here in order to be able to access
    * presets by key in a type safe way.
    */
   public static presets = {} satisfies Presets<object>;
 
-  @state() public balances = StateMap.from<PublicKey, UInt64>(
-    PublicKey,
-    UInt64
-  );
-
   @state() public totalSupply = State.from<UInt64>(UInt64);
 
   @runtimeMethod()
-  public getBalance(address: PublicKey): Option<UInt64> {
-    return this.balances.get(address);
+  public getBalance(tokenId: TokenId, address: PublicKey): Balance {
+    return super.getBalance(tokenId, address);
   }
 
   @runtimeMethod()
-  public addBalance(address: PublicKey, balance: UInt64) {
+  public addBalance(tokenId: TokenId, address: PublicKey, balance: UInt64) {
     const totalSupply = this.totalSupply.get();
     this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(balance));
 
-    const previous = this.balances.get(address);
-    this.balances.set(address, previous.orElse(UInt64.zero).add(balance));
+    const previous = this.balances.get(new BalancesKey({ tokenId, address }));
+    this.balances.set(
+      new BalancesKey({ tokenId, address }),
+      previous.orElse(UInt64.zero).add(balance)
+    );
   }
 }
 
@@ -77,7 +79,7 @@ export async function startServer() {
   const appChain = AppChain.from({
     Runtime: Runtime.from({
       modules: VanillaRuntimeModules.with({
-        Balances: Balances,
+        Balances: TestBalances,
       }),
     }),
 
@@ -85,7 +87,7 @@ export async function startServer() {
       modules: VanillaProtocolModules.with({}),
     }),
 
-    sequencer: Sequencer.from({
+    Sequencer: Sequencer.from({
       modules: {
         Database: InMemoryDatabase,
         Mempool: PrivateMempool,
@@ -128,7 +130,6 @@ export async function startServer() {
   appChain.configure({
     Runtime: {
       Balances: {},
-      MessageBoard: {},
     },
 
     Protocol: {
@@ -136,6 +137,13 @@ export async function startServer() {
       StateTransitionProver: {},
       AccountState: {},
       BlockHeight: {},
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 0n,
+        methods: {},
+        perWeightUnitFee: 0n,
+      },
     },
 
     Sequencer: {
@@ -183,8 +191,10 @@ export async function startServer() {
     "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
   );
 
+  const tokenId = TokenId.from(0);
+
   const tx = await appChain.transaction(priv.toPublicKey(), () => {
-    balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+    balances.addBalance(tokenId, priv.toPublicKey(), UInt64.from(1000));
   });
   appChain.resolve("Signer").config.signer = priv;
   await tx.sign();
@@ -193,7 +203,7 @@ export async function startServer() {
   const tx2 = await appChain.transaction(
     priv.toPublicKey(),
     () => {
-      balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+      balances.addBalance(tokenId, priv.toPublicKey(), UInt64.from(1000));
     },
     { nonce: 1 }
   );

@@ -5,7 +5,7 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import { PublicKey } from "o1js";
-import { OverwriteObjectType, TypedClass } from "packages/common/dist";
+import { OverwriteObjectType, TypedClass } from "@proto-kit/common";
 import { TokenId } from "../hooks/TransactionFeeHook";
 import { Balance, Balances, MinimalBalances } from "./Balances";
 

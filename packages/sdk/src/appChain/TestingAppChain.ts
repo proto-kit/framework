@@ -58,6 +58,8 @@ export type PartialVanillaRuntimeModulesRecord = {
   Balances?: TypedClass<MinimalBalances>;
 };
 
+export const randomFeeRecipient = PrivateKey.random().toPublicKey().toBase58();
+
 export class TestingAppChain<
   RuntimeModules extends RuntimeModulesRecord & VanillaRuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord &
@@ -100,7 +102,7 @@ export class TestingAppChain<
         BlockHeight: {},
         TransactionFee: {
           tokenId: 0n,
-          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          feeRecipient: randomFeeRecipient,
           baseFee: 0n,
           perWeightUnitFee: 0n,
           methods: {},

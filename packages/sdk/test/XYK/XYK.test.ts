@@ -1,12 +1,13 @@
 /* eslint-disable max-statements */
 /* eslint-disable unicorn/filename-case */
+import { Balance, BalancesKey, TokenId } from "@proto-kit/library";
 import { PrivateKey, Provable, PublicKey } from "o1js";
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
-import { Balance, Balances, BalancesKey, TokenId } from "./Balances";
+import { TestBalances } from "./TestBalances";
 import { PoolKey, XYK } from "./XYK";
 
 type RuntimeModules = {
-  Balances: typeof Balances;
+  Balances: typeof TestBalances;
   XYK: typeof XYK;
 };
 
@@ -26,7 +27,7 @@ describe("xyk", () => {
 
   let chain: ReturnType<typeof TestingAppChain.fromRuntime<RuntimeModules>>;
 
-  let balances: Balances;
+  let balances: TestBalances;
   let xyk: XYK;
 
   const balanceToMint = 10_000n;
@@ -47,7 +48,7 @@ describe("xyk", () => {
 
   beforeAll(async () => {
     chain = TestingAppChain.fromRuntime({
-      Balances,
+      Balances: TestBalances,
       XYK,
     });
 

@@ -10,7 +10,7 @@ import { StateMap, assert } from "@proto-kit/protocol";
 import { Field, Group, Poseidon, PublicKey, Provable, Struct } from "o1js";
 import { inject } from "tsyringe";
 
-import { Balance, Balances, TokenId } from "./Balances";
+import { Balance, Balances, TokenId } from "@proto-kit/library";
 
 export const errors = {
   poolExists: () => "Pool already exists",
