@@ -9,7 +9,7 @@ import {
 import {
   ModuleContainer,
   ModulesRecord,
-  DependenciesFromModules,
+  DependenciesFromModules, ModulesConfig, RecursivePartial
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
 import { ChildContainerProvider, DependencyFactory, DependencyRecord } from "../../src";
@@ -70,20 +70,7 @@ class WrongTestModule {}
 class TestModuleContainer<
   Modules extends TestModulesRecord
 > extends ModuleContainer<Modules> {
-  public create(childContainerProvider: ChildContainerProvider) {
-    super.create(childContainerProvider);
-    this.registerDependencyFactories(["TestModule" as any]);
-  }
 }
-
-type inferred = DependenciesFromModules<{
-  TestModule: typeof TestModule;
-  OtherTestModule: typeof OtherTestModule;
-}>;
-
-// const merged2T: merged2 = {
-//   dependencyModule1: ""
-// }
 
 describe("moduleContainer", () => {
   let container: TestModuleContainer<{
@@ -103,7 +90,7 @@ describe("moduleContainer", () => {
     });
   });
 
-  it.only("should resolve dependency factory dependencies correctly", () => {
+  it("should resolve dependency factory dependencies correctly", () => {
     container.configure({
       TestModule: {
         testConfigProperty,
@@ -116,7 +103,7 @@ describe("moduleContainer", () => {
 
     container.create(() => tsyringeContainer.createChildContainer());
 
-    const dm = container.resolve("dependencyModule1");
+    const dm = container.resolve("DependencyModule1");
 
     expect(dm.x()).toBe("dependency factory works");
     expect(dm.testModule).toBeDefined();
@@ -125,10 +112,8 @@ describe("moduleContainer", () => {
   it("should throw on resolution, if config was not provided", () => {
     expect.assertions(1);
 
-    container.create(() => tsyringeContainer.createChildContainer());
-
     expect(() => {
-      container.resolve("TestModule");
+      container.create(() => tsyringeContainer.createChildContainer());
     }).toThrow();
   });
 
@@ -150,7 +135,7 @@ describe("moduleContainer", () => {
 
     expect(testModule.config.testConfigProperty).toBe(testConfigProperty);
 
-    const dependency = container.resolve("dependencyModule1");
+    const dependency = container.resolve("DependencyModule1");
     dependency.x();
   });
 

@@ -9,7 +9,7 @@ describe("test equalProvable", () => {
     [[2, 2], [1, 2], false],
     [[2, 2, 4, 5, 6], [2, 2, 4, 5, 6], true],
   ])("should match correctly", (expected, received, matching) => {
-    expect.assertions(1);
+    expect.assertions(2);
 
     const result = equalProvable(
       expected.map((v) => Field(v)),

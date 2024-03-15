@@ -98,8 +98,16 @@ export type ModulesConfig<Modules extends ModulesRecord> = {
     : never;
 };
 
+/**
+ * This type make any config partial (i.e. optional) up to the first level
+ * So { Module: { a: { b: string } } }
+ * will become
+ * { Module?: { a?: { b: string } } }
+ * Note that b does not become optional, as we don't want nested objects to
+ * become unreasonably partialized (for example Field).
+ */
 export type RecursivePartial<T> = {
-  [Key in keyof T]?: T[Key] extends object ? RecursivePartial<T[Key]> : T[Key];
+  [Key in keyof T]?: Partial<T[Key]>;
 };
 
 /**
@@ -130,6 +138,19 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
   DependenciesFromModules<Modules>
 > &
   Modules;
+
+type X = RecursivePartial<{
+  t: {
+    a: string;
+    b: string;
+  };
+}>;
+
+const x: X = {
+  t: {
+    a: "",
+  },
+};
 
 /**
  * Reusable module container facilitating registration, resolution
@@ -344,7 +365,7 @@ export class ModuleContainer<
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
-    const config = this.config?.[moduleName];
+    const config = super.config?.[moduleName];
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config) {
       throw errors.configNotSetInContainer(moduleName.toString());
@@ -461,5 +482,11 @@ export class ModuleContainer<
 
     // register all provided modules when the container is created
     this.registerModules(this.definition.modules);
+
+    // Resolve all module in order to initialize the dependencyfactories
+    Object.keys(this.definition.modules).forEach((moduleName: string) => {
+      this.assertIsValidModuleName(moduleName);
+      this.resolve(moduleName);
+    });
   }
 }
