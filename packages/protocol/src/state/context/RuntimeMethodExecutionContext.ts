@@ -45,12 +45,17 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
 
   public input: RuntimeMethodExecutionData | undefined;
 
-  // The input corresponding to the current result
-  private lastInput: RuntimeMethodExecutionData | undefined;
+  private isSimulated: boolean = false;
+
+  // The inputs corresponding to the current result
+  private lastInputs:
+    | {
+        input: RuntimeMethodExecutionData | undefined;
+        isSimulated: boolean;
+      }
+    | undefined;
 
   public override result = new RuntimeProvableMethodExecutionResult();
-
-  private isSimulated: boolean = false;
 
   private assertSetupCalled(): asserts this is {
     input: RuntimeMethodExecutionData;
@@ -124,7 +129,10 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
   public afterMethod() {
     super.afterMethod();
     if (this.isFinished) {
-      this.lastInput = this.input;
+      this.lastInputs = {
+        input: this.input,
+        isSimulated: this.isSimulated,
+      };
       this.input = undefined;
       this.isSimulated = false;
     }
@@ -138,8 +146,8 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     return {
       isFinished: this.isFinished,
       result: this.result,
-      input: this.lastInput,
-      isSimulated: this.isSimulated,
+      input: this.lastInputs?.input,
+      isSimulated: this.lastInputs?.isSimulated,
     };
   }
 }
