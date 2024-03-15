@@ -103,6 +103,8 @@ describe("moduleContainer", () => {
 
     container.create(() => tsyringeContainer.createChildContainer());
 
+    // Unfortunately we still need this so that the dependencies are registered
+    container.resolve("TestModule");
     const dm = container.resolve("DependencyModule1");
 
     expect(dm.x()).toBe("dependency factory works");
@@ -112,8 +114,10 @@ describe("moduleContainer", () => {
   it("should throw on resolution, if config was not provided", () => {
     expect.assertions(1);
 
+    container.create(() => tsyringeContainer.createChildContainer());
+
     expect(() => {
-      container.create(() => tsyringeContainer.createChildContainer());
+      container.resolve("TestModule")
     }).toThrow();
   });
 

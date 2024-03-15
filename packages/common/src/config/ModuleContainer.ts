@@ -482,11 +482,5 @@ export class ModuleContainer<
 
     // register all provided modules when the container is created
     this.registerModules(this.definition.modules);
-
-    // Resolve all module in order to initialize the dependencyfactories
-    Object.keys(this.definition.modules).forEach((moduleName: string) => {
-      this.assertIsValidModuleName(moduleName);
-      this.resolve(moduleName);
-    });
   }
 }

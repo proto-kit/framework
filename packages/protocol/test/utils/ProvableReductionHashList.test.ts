@@ -1,13 +1,15 @@
 import { Bool, Field, Poseidon } from "o1js";
 
-import { StateTransitionReductionList } from "../../src/utils/ProvableReductionHashList";
+import {
+  StateTransitionReductionList,
+  reduceStateTransitions,
+} from "../../src/utils/StateTransitionReductionList";
 import {
   DefaultProvableHashList,
   ProvableStateTransition,
   StateTransition,
   Option,
 } from "../../src";
-import { reduceStateTransitions } from "../../src/model/StateTransitionReduction";
 
 interface UnprovableStateTransition {
   path: number;
