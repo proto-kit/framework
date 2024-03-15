@@ -56,6 +56,10 @@ export class StateTransitionReductionList extends ProvableReductionHashList<Prov
       return [transition, pathsMatch];
     });
   }
+
+  public toField() {
+    return this.commitment;
+  }
 }
 
 export function reduceStateTransitions(
