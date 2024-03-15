@@ -1,26 +1,22 @@
-import { Bool } from "o1js";
+import "reflect-metadata";
 
-import { InMemoryStateService, MethodIdResolver, Runtime } from "../src";
+import { MethodIdResolver } from "../src";
 
 import { Balances } from "./modules/Balances";
+import { createTestingRuntime } from "./TestingRuntime";
 
 describe("runtime", () => {
   it("should encode methodnames correctly", () => {
     expect.assertions(2);
 
-    const runtime = Runtime.from({
-      state: new InMemoryStateService(),
-
-      modules: {
+    const { runtime } = createTestingRuntime(
+      {
         Balances,
       },
-
-      config: {
-        Balances: {
-          test: Bool(true),
-        },
-      },
-    });
+      {
+        Balances: {},
+      }
+    );
 
     const balances = runtime.resolve("Balances");
 

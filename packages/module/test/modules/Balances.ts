@@ -7,7 +7,6 @@ import { RuntimeModule, runtimeMethod, runtimeModule, state } from "../../src";
 import { Admin } from "./Admin.js";
 
 interface BalancesConfig {
-  test: Bool;
 }
 
 @runtimeModule()
@@ -38,7 +37,7 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   public setTotalSupply() {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(this.transaction.sender);
+    this.admin.isAdmin(this.transaction.sender.value);
   }
 
   @runtimeMethod()
