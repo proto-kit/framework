@@ -1,4 +1,4 @@
-import { Field, PrivateKey, Signature, UInt64 } from "o1js";
+import { Bool, Field, PrivateKey, Provable, Signature, UInt64 } from "o1js";
 
 import { CompressedSignature } from "../src/mempool/CompressedSignature.js";
 import { UnsignedTransaction } from "../src/mempool/PendingTransaction.js";
@@ -13,7 +13,9 @@ describe("memPool", () => {
         methodId: Field(12),
         nonce: UInt64.one,
         sender: pk.toPublicKey(),
-        args: [Field(13), Field(14)],
+        argsFields: [Field(13), Field(14)],
+        argsJSON: [],
+        isMessage: false
       });
 
       const data = unsigned.getSignatureData();

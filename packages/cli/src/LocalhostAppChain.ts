@@ -17,6 +17,7 @@ import {
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
+  MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
   UnprovenBlockResolver,
@@ -60,6 +61,7 @@ export class LocalhostAppChain<
               BlockStorageResolver,
               NodeStatusResolver,
               UnprovenBlockResolver,
+              MerkleWitnessResolver,
             },
           }),
         }),
@@ -76,7 +78,7 @@ export class LocalhostAppChain<
         StateTransitionProver: {},
         AccountState: {},
         BlockHeight: {},
-
+        LastStateRoot: {},
         TransactionFee: {
           tokenId: 0n,
           feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
@@ -100,6 +102,7 @@ export class LocalhostAppChain<
           MempoolResolver: {},
           BlockStorageResolver: {},
           NodeStatusResolver: {},
+          MerkleWitnessResolver: {},
           UnprovenBlockResolver: {},
         },
 
@@ -109,6 +112,9 @@ export class LocalhostAppChain<
         BaseLayer: {},
         TaskQueue: {},
         BlockTrigger: {},
+        SettlementModule: {
+          feepayer: PrivateKey.random(),
+        },
       },
       QueryTransportModule: {},
       NetworkStateTransportModule: {},

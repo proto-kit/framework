@@ -2,20 +2,16 @@
 import "reflect-metadata";
 // eslint-disable-next-line @typescript-eslint/no-shadow
 import { afterEach, beforeEach } from "@jest/globals";
-import { noop } from "@proto-kit/protocol";
+import { noop } from "@proto-kit/common";
 import { container } from "tsyringe";
 
 import {
   JSONTaskSerializer,
-  MappingTask,
-  MapReduceTask,
   TaskSerializer,
 } from "../../src/worker/manager/ReducableTask";
 import {
   PairingDerivedInput,
-  PairingMapReduceFlow,
 } from "../../src/worker/manager/PairingMapReduceFlow";
-import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable } from "../../src/worker/queue/TaskQueue";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
 import { Task } from "../../src/worker/flow/Task";
@@ -213,7 +209,10 @@ describe("flow", () => {
 
       console.log(result);
 
-      const queue = new LocalTaskQueue(100);
+      const queue = new LocalTaskQueue();
+      queue.config = {
+        simulatedDuration: 100
+      }
 
       // Create worker
       const worker = new FlowTaskWorker(queue, [

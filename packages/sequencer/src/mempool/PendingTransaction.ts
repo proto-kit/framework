@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import {
+  Bool,
   Field,
   Poseidon,
   type PrivateKey,
@@ -7,7 +8,12 @@ import {
   Signature,
   UInt64,
 } from "o1js";
-import { ProtocolTransaction } from "@proto-kit/protocol";
+import {
+  PublicKeyOption,
+  RuntimeTransaction,
+  SignedTransaction,
+  UInt64Option,
+} from "@proto-kit/protocol";
 
 export class UnsignedTransaction {
   public methodId: Field;
@@ -20,18 +26,22 @@ export class UnsignedTransaction {
 
   public argsJSON: string[];
 
+  public isMessage: boolean;
+
   public constructor(data: {
     methodId: Field;
     nonce: UInt64;
     sender: PublicKey;
     argsFields: Field[];
     argsJSON: string[];
+    isMessage: boolean;
   }) {
     this.methodId = data.methodId;
     this.nonce = data.nonce;
     this.sender = data.sender;
     this.argsFields = data.argsFields;
     this.argsJSON = data.argsJSON;
+    this.isMessage = data.isMessage;
   }
 
   public argsHash(): Field {
@@ -48,7 +58,7 @@ export class UnsignedTransaction {
   }
 
   public getSignatureData(): Field[] {
-    return ProtocolTransaction.getSignatureData({
+    return SignedTransaction.getSignatureData({
       nonce: this.nonce,
       methodId: this.methodId,
       argsHash: this.argsHash(),
@@ -60,6 +70,16 @@ export class UnsignedTransaction {
     return this.signed(signature);
   }
 
+  public toRuntimeTransaction(): RuntimeTransaction {
+    const isSome = Bool(!this.isMessage);
+    return new RuntimeTransaction({
+      methodId: this.methodId,
+      argsHash: Poseidon.hash(this.argsFields),
+      nonce: new UInt64Option({ value: this.nonce, isSome }),
+      sender: new PublicKeyOption({ value: this.sender, isSome }),
+    });
+  }
+
   public signed(signature: Signature): PendingTransaction {
     return new PendingTransaction({
       methodId: this.methodId,
@@ -68,11 +88,13 @@ export class UnsignedTransaction {
       signature,
       argsFields: this.argsFields,
       argsJSON: this.argsJSON,
+      isMessage: this.isMessage,
     });
   }
 }
 
 interface PendingTransactionJSONType {
+  hash: string;
   methodId: string;
   nonce: string;
   sender: string;
@@ -82,6 +104,7 @@ interface PendingTransactionJSONType {
     r: string;
     s: string;
   };
+  isMessage: boolean;
 }
 
 export class PendingTransaction extends UnsignedTransaction {
@@ -95,6 +118,7 @@ export class PendingTransaction extends UnsignedTransaction {
       argsFields: object.argsFields.map((x) => Field.fromJSON(x)),
       signature: Signature.fromJSON(object.signature),
       argsJSON: object.argsJSON,
+      isMessage: object.isMessage,
     });
   }
 
@@ -107,6 +131,7 @@ export class PendingTransaction extends UnsignedTransaction {
     signature: Signature;
     argsFields: Field[];
     argsJSON: string[];
+    isMessage: boolean;
   }) {
     super(data);
     this.signature = data.signature;
@@ -114,10 +139,12 @@ export class PendingTransaction extends UnsignedTransaction {
 
   public toJSON(): PendingTransactionJSONType {
     return {
+      hash: this.hash.toString(),
       methodId: this.methodId.toJSON(),
       nonce: this.nonce.toString(),
       sender: this.sender.toBase58(),
       argsFields: this.argsFields.map((x) => x.toJSON()),
+      isMessage: this.isMessage,
 
       signature: {
         // eslint-disable-next-line id-length
@@ -130,12 +157,9 @@ export class PendingTransaction extends UnsignedTransaction {
     };
   }
 
-  public toProtocolTransaction(): ProtocolTransaction {
-    return new ProtocolTransaction({
-      methodId: this.methodId,
-      nonce: this.nonce,
-      argsHash: Poseidon.hash(this.argsFields),
-      sender: this.sender,
+  public toProtocolTransaction(): SignedTransaction {
+    return new SignedTransaction({
+      transaction: this.toRuntimeTransaction(),
       signature: this.signature,
     });
   }

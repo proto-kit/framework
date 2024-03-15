@@ -10,7 +10,6 @@ import {
   TypedClass,
   ZkProgrammable,
   PlainZkProgram,
-  WithZkProgrammable,
   AreProofsEnabled,
   ChildContainerProvider,
 } from "@proto-kit/common";
@@ -281,7 +280,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     }
     const [moduleName, methodName] = methodDescriptor;
 
-    this.assertIsValidModuleName(this.definition.modules, moduleName);
+    this.assertIsValidModuleName(moduleName);
     const module = this.resolve(moduleName);
 
     // eslint-disable-next-line max-len

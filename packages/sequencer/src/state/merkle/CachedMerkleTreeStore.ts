@@ -5,7 +5,11 @@ import {
   RollupMerkleTree,
 } from "@proto-kit/common";
 
-import { AsyncMerkleTreeStore } from "../async/AsyncMerkleTreeStore";
+import {
+  AsyncMerkleTreeStore,
+  MerkleTreeNode,
+  MerkleTreeNodeQuery,
+} from "../async/AsyncMerkleTreeStore";
 
 export class CachedMerkleTreeStore
   extends InMemoryMerkleTreeStorage
@@ -17,9 +21,13 @@ export class CachedMerkleTreeStore
     };
   } = {};
 
-  public openTransaction = noop;
+  public async openTransaction(): Promise<void> {
+    noop();
+  }
 
-  public commit = noop;
+  public async commit(): Promise<void> {
+    noop();
+  }
 
   public constructor(private readonly parent: AsyncMerkleTreeStore) {
     super();
@@ -46,8 +54,7 @@ export class CachedMerkleTreeStore
     this.writeCache = {};
   }
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
-  public async preloadKey(index: bigint): Promise<void> {
+  private collectNodesToFetch(index: bigint) {
     // Algo from RollupMerkleTree.getWitness()
     const { leafCount, HEIGHT } = RollupMerkleTree;
 
@@ -55,8 +62,8 @@ export class CachedMerkleTreeStore
       index %= leafCount;
     }
 
-    // eslint-disable-next-line no-warning-comments,max-len
-    // TODO Not practical at the moment. Improve pattern when implementing DB storage
+    const nodesToRetrieve: MerkleTreeNodeQuery[] = [];
+
     for (let level = 0; level < HEIGHT; level++) {
       const key = index;
 
@@ -66,25 +73,42 @@ export class CachedMerkleTreeStore
       // Only preload node if it is not already preloaded.
       // We also don't want to overwrite because changes will get lost (tracing)
       if (this.getNode(key, level) === undefined) {
-        // eslint-disable-next-line no-await-in-loop
-        const value = await this.parent.getNodeAsync(key, level);
+        nodesToRetrieve.push({
+          key,
+          level,
+        });
         if (level === 0) {
-          log.debug(`Preloaded ${key} @ ${level} -> ${value ?? "-"}`);
-        }
-        if (value !== undefined) {
-          this.setNode(key, level, value);
+          log.trace(`Queued preloading of ${key} @ ${level}`);
         }
       }
 
       if (this.getNode(siblingKey, level) === undefined) {
-        // eslint-disable-next-line no-await-in-loop
-        const sibling = await this.parent.getNodeAsync(siblingKey, level);
-        if (sibling !== undefined) {
-          this.setNode(siblingKey, level, sibling);
-        }
+        nodesToRetrieve.push({
+          key: siblingKey,
+          level,
+        });
       }
       index /= 2n;
     }
+    return nodesToRetrieve;
+  }
+
+  public async preloadKeys(keys: bigint[]) {
+    const nodesToRetrieve = keys.flatMap((key) =>
+      this.collectNodesToFetch(key)
+    );
+
+    const results = await this.parent.getNodesAsync(nodesToRetrieve);
+    nodesToRetrieve.forEach(({ key, level }, index) => {
+      const value = results[index];
+      if (value !== undefined) {
+        this.setNode(key, level, value);
+      }
+    });
+  }
+
+  public async preloadKey(index: bigint): Promise<void> {
+    await this.preloadKeys([index]);
   }
 
   public async mergeIntoParent(): Promise<void> {
@@ -93,19 +117,25 @@ export class CachedMerkleTreeStore
       return;
     }
 
-    this.parent.openTransaction();
-    const { HEIGHT } = RollupMerkleTree;
+    await this.parent.openTransaction();
     const nodes = this.getWrittenNodes();
 
-    const promises = Array.from({ length: HEIGHT }).flatMap((ignored, level) =>
-      Object.entries(nodes[level]).map(async (entry) => {
-        await this.parent.setNodeAsync(BigInt(entry[0]), level, entry[1]);
-      })
-    );
+    const writes = Object.keys(nodes).flatMap((levelString) => {
+      const level = Number(levelString);
+      return Object.entries(nodes[level]).map<MerkleTreeNode>(
+        ([key, value]) => {
+          return {
+            key: BigInt(key),
+            level,
+            value,
+          };
+        }
+      );
+    });
 
-    await Promise.all(promises);
+    this.parent.writeNodes(writes);
 
-    this.parent.commit();
+    await this.parent.commit();
     this.resetWrittenNodes();
   }
 
@@ -117,12 +147,36 @@ export class CachedMerkleTreeStore
     this.setNode(key, level, value);
   }
 
-  public async getNodeAsync(
-    key: bigint,
-    level: number
-  ): Promise<bigint | undefined> {
-    return (
-      this.getNode(key, level) ?? (await this.parent.getNodeAsync(key, level))
-    );
+  public async getNodesAsync(
+    nodes: MerkleTreeNodeQuery[]
+  ): Promise<(bigint | undefined)[]> {
+    const results = Array<bigint | undefined>(nodes.length).fill(undefined);
+
+    const toFetch: MerkleTreeNodeQuery[] = [];
+
+    nodes.forEach((node, index) => {
+      const localResult = this.getNode(node.key, node.level);
+      if (localResult !== undefined) {
+        results[index] = localResult;
+      } else {
+        toFetch.push(node);
+      }
+    });
+
+    const fetchResult = (await this.parent.getNodesAsync(toFetch)).reverse();
+
+    results.forEach((result, index) => {
+      if (result === -1n) {
+        results[index] = fetchResult.pop();
+      }
+    });
+
+    return results;
+  }
+
+  public writeNodes(nodes: MerkleTreeNode[]): void {
+    nodes.forEach(({ key, level, value }) => {
+      this.setNode(key, level, value);
+    });
   }
 }

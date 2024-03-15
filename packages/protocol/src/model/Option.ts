@@ -4,6 +4,7 @@ import {
   type FlexibleProvablePure,
   Poseidon,
   Provable,
+  ProvablePure,
   Struct,
 } from "o1js";
 
@@ -147,6 +148,21 @@ export class Option<Value> extends OptionBase {
       this.valueType,
       this.value,
       defaultValue
+    );
+  }
+
+  public toConstant() {
+    const valueConstant = (this.valueType as ProvablePure<Value>).fromFields(
+      this.valueType.toFields(this.value).map((field) => field.toConstant())
+    );
+    const boolConstant = (bool: Bool) =>
+      Bool.fromFields([bool.toField().toConstant()]);
+
+    return new Option(
+      boolConstant(this.isSome),
+      valueConstant,
+      this.valueType,
+      boolConstant(this.isForcedSome)
     );
   }
 }

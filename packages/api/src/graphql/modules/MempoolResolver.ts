@@ -6,11 +6,15 @@ import {
   Mutation,
   ObjectType,
   Query,
+  registerEnumType,
   Resolver,
 } from "type-graphql";
 import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
-import { Mempool, PendingTransaction } from "@proto-kit/sequencer";
+import {
+  Mempool,
+  PendingTransaction, TransactionStorage
+} from "@proto-kit/sequencer";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule.js";
 
@@ -35,17 +39,29 @@ export class Signature {
 @InputType("TransactionObjectInput")
 export class TransactionObject {
   public static fromServiceLayerModel(pt: PendingTransaction) {
-    const { methodId, sender, nonce, signature, argsFields, argsJSON } =
-      pt.toJSON();
-    return new TransactionObject(
+    const {
       methodId,
       sender,
       nonce,
       signature,
       argsFields,
-      argsJSON
+      argsJSON,
+      isMessage,
+    } = pt.toJSON();
+    return new TransactionObject(
+      pt.hash().toString(),
+      methodId,
+      sender,
+      nonce,
+      signature,
+      argsFields,
+      argsJSON,
+      isMessage
     );
   }
+
+  @Field()
+  public hash: string;
 
   @Field()
   @IsNumberString()
@@ -67,26 +83,48 @@ export class TransactionObject {
   @Field(() => [String])
   public argsJSON: string[];
 
+  @Field()
+  public isMessage: boolean;
+
   public constructor(
+    hash: string,
     methodId: string,
     sender: string,
     nonce: string,
     signature: Signature,
     argsFields: string[],
-    argsJSON: string[]
+    argsJSON: string[],
+    isMessage: boolean
   ) {
+    this.hash = hash;
     this.methodId = methodId;
     this.sender = sender;
     this.nonce = nonce;
     this.signature = signature;
     this.argsFields = argsFields;
     this.argsJSON = argsJSON;
+    this.isMessage = isMessage;
   }
 }
 
+enum InclusionStatus {
+  UNKNOWN = "unknown",
+  PENDING = "pending",
+  INCLUDED = "included",
+  SETTLED = "settled",
+}
+
+registerEnumType(InclusionStatus, {
+  name: "InclusionStatus",
+});
+
 @graphqlModule()
 export class MempoolResolver extends GraphqlModule {
-  public constructor(@inject("Mempool") private readonly mempool: Mempool) {
+  public constructor(
+    @inject("Mempool") private readonly mempool: Mempool,
+    @inject("TransactionStorage")
+    private readonly transactionStorage: TransactionStorage
+  ) {
     super();
   }
 
@@ -98,38 +136,31 @@ export class MempoolResolver extends GraphqlModule {
     return decoded.hash().toString();
   }
 
-  @Query(() => String)
-  public transactionState(@Arg("hash") hash: string) {
-    const tx = this.mempool
-      .getTxs()
-      .txs.find((x) => x.hash().toString() === hash);
+  @Query(() => InclusionStatus)
+  public async transactionState(@Arg("hash") hash: string): Promise<InclusionStatus> {
+    const txs = await this.mempool.getTxs();
+    const tx = txs.find((x) => x.hash().toString() === hash);
 
     if (tx) {
-      return "pending";
+      return InclusionStatus.PENDING;
     }
 
-    return "unknown";
+    const dbTx = await this.transactionStorage.findTransaction(hash);
+
+    if (dbTx !== undefined) {
+      if (dbTx.batch !== undefined) {
+        return InclusionStatus.SETTLED;
+      } else if (dbTx.block !== undefined) {
+        return InclusionStatus.INCLUDED;
+      }
+    }
+
+    return InclusionStatus.UNKNOWN;
   }
 
   @Query(() => [String])
-  public transactions() {
-    const tx = this.mempool.getTxs().txs;
-    return tx.map((x) => x.hash().toString());
+  public async transactions() {
+    const txs = await this.mempool.getTxs();
+    return txs.map((x) => x.hash().toString());
   }
-
-  // @Query(returns => [TransactionObject])
-  // transaction(
-  //     @Arg("hash") hash: string
-  // ){
-  //
-  // eslint-disable-next-line max-len
-  //     let tx = this.mempool.getTxs().txs.find(x => x.hash().toString() === hash) //TODO Not very performant
-  //
-  //     if(tx){
-  //         let parsed = tx.toJSON()
-  //         return [parsed]
-  //     }else{
-  //         return []
-  //     }
-  // }
 }

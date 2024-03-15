@@ -1,5 +1,19 @@
-import { ComputedBlock } from "../../storage/model/Block";
+import {
+  DependencyDeclaration,
+  DependencyFactory,
+  DependencyRecord,
+} from "@proto-kit/common";
 
-export interface BaseLayer {
-  blockProduced: (block: ComputedBlock) => Promise<void>;
+import { ComputedBlock } from "../../storage/model/Block";
+import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
+import type { OutgoingMessageQueue } from "../../settlement/messages/WithdrawalQueue";
+
+export interface BaseLayerDependencyRecord extends DependencyRecord {
+  IncomingMessageAdapter: DependencyDeclaration<IncomingMessageAdapter>;
+  // TODO Move that to Database?
+  OutgoingMessageQueue: DependencyDeclaration<OutgoingMessageQueue>;
+}
+
+export interface BaseLayer extends DependencyFactory {
+  dependencies: () => BaseLayerDependencyRecord;
 }

@@ -2,7 +2,7 @@ import { Field } from "o1js";
 import { log, noop } from "@proto-kit/common";
 import { InMemoryStateService } from "@proto-kit/module";
 
-import { AsyncStateService } from "../async/AsyncStateService";
+import { AsyncStateService, StateEntry } from "../async/AsyncStateService";
 
 const errors = {
   parentIsUndefined: () => new Error("Parent StateService is undefined"),
@@ -28,43 +28,66 @@ export class CachedStateService
     }
   }
 
-  public commit(): void {
+  public writeStates(entries: StateEntry[]): void {
+    entries.forEach(({ key, value }) => {
+      this.set(key, value);
+    });
+  }
+
+  public async commit(): Promise<void> {
     noop();
   }
 
-  public openTransaction(): void {
+  public async openTransaction(): Promise<void> {
     noop();
   }
 
   public async preloadKey(key: Field) {
-    // Only preload it if it hasn't been preloaded previously
-    if (this.parent !== undefined && this.get(key) === undefined) {
-      const value = await this.parent.getAsync(key);
-      log.debug(
-        `Preloading ${key.toString()}: ${
-          // eslint-disable-next-line max-len
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-          value?.map((element) => element.toString()) ?? []
-        }`
-      );
-      this.set(key, value);
-    }
+    await this.preloadKeys([key]);
   }
 
   public async preloadKeys(keys: Field[]): Promise<void> {
-    await Promise.all(
-      keys.map(async (key) => {
-        await this.preloadKey(key);
-      })
-    );
+    if (this.parent !== undefined) {
+      // Only preload it if it hasn't been preloaded previously
+      // TODO Not safe for deletes
+      const keysToBeLoaded = keys.filter((key) => this.get(key) === undefined);
+      const loaded = await this.parent.getAsync(keysToBeLoaded);
+
+      log.trace(
+        `Preloaded: ${loaded.map(
+          ({ key, value }) => `${key}: ${value?.map((x) => x.toString()) ?? []}`
+        )}`
+      );
+
+      loaded.forEach(({ key, value }) => {
+        this.set(key, value);
+      });
+    }
   }
 
-  public async getAsync(key: Field): Promise<Field[] | undefined> {
-    return this.get(key) ?? this.parent?.getAsync(key);
+  public async getAsync(keys: Field[]): Promise<StateEntry[]> {
+    const remoteKeys: Field[] = [];
+
+    const local: StateEntry[] = [];
+
+    keys.forEach((key) => {
+      const localValue = this.get(key);
+      // TODO Not safe for deletes
+      if (localValue !== undefined) {
+        local.push({ key, value: localValue });
+      } else {
+        remoteKeys.push(key);
+      }
+    });
+
+    const remote = await this.parent?.getAsync(remoteKeys);
+
+    return local.concat(remote ?? []);
   }
 
-  public async setAsync(key: Field, value: Field[] | undefined): Promise<void> {
-    this.set(key, value);
+  public async getSingleAsync(key: Field): Promise<Field[] | undefined> {
+    const entries = await this.getAsync([key]);
+    return entries.at(0)?.value;
   }
 
   /**
@@ -77,10 +100,15 @@ export class CachedStateService
     this.assertParentNotNull(parent);
 
     // Set all cached values on parent
-    const promises = Object.entries(values).map(async (value) => {
-      await parent.setAsync(Field(value[0]), value[1]);
-    });
-    await Promise.all(promises);
+    await parent.openTransaction();
+
+    const writes = Object.entries(values).map(([key, value]) => ({
+      key: Field(key),
+      value,
+    }));
+    parent.writeStates(writes);
+
+    await parent.commit();
     // Clear cache
     this.values = {};
   }

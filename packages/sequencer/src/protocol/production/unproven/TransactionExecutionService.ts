@@ -13,16 +13,20 @@ import {
   RuntimeProvableMethodExecutionResult,
   RuntimeTransaction,
   StateTransition,
-  BlockTransactionPosition,
-  BlockTransactionPositionType,
   ProvableBlockHook,
+  BlockHashMerkleTree,
   StateServiceProvider,
   MandatoryProtocolModulesRecord,
+  BlockHashTreeEntry,
+  ACTIONS_EMPTY_HASH,
+  MinaActions,
+  MinaActionsHashList,
+  reduceStateTransitions,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
 import {
-  MethodParameterDecoder,
+  MethodParameterEncoder,
   Runtime,
   RuntimeModule,
   RuntimeModulesRecord,
@@ -33,39 +37,22 @@ import { CachedStateService } from "../../../state/state/CachedStateService";
 import { distinctByString } from "../../../helpers/utils";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
+import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
+import {
+  TransactionExecutionResult,
+  UnprovenBlock,
+  UnprovenBlockMetadata,
+  UnprovenBlockWithMetadata,
+} from "../../../storage/model/UnprovenBlock";
+import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import type { StateRecord } from "../BlockProducerModule";
 
 import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
-import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
     new Error(`Can't find runtime method with id ${methodId}`),
 };
-
-export interface TransactionExecutionResult {
-  tx: PendingTransaction;
-  stateTransitions: UntypedStateTransition[];
-  protocolTransitions: UntypedStateTransition[];
-  status: Bool;
-  statusMessage?: string;
-  /**
-   * TODO Remove
-   * @deprecated
-   */
-  stateDiff: StateRecord;
-}
-
-export interface UnprovenBlock {
-  networkState: NetworkState;
-  transactions: TransactionExecutionResult[];
-  transactionsHash: Field;
-}
-
-export interface UnprovenBlockMetadata {
-  resultingStateRoot: bigint;
-  resultingNetworkState: NetworkState;
-}
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -82,6 +69,7 @@ export class TransactionExecutionService {
     private readonly protocol: Protocol<
       MandatoryProtocolModulesRecord & ProtocolModulesRecord
     >,
+    private readonly executionContext: RuntimeMethodExecutionContext,
     // Coming in from the appchain scope (accessible by protocol & runtime)
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider
@@ -105,6 +93,20 @@ export class TransactionExecutionService {
     return stateTransitions.map((st) => st.path).filter(distinctByString);
   }
 
+  private collectStateDiff(
+    stateTransitions: UntypedStateTransition[]
+  ): StateRecord {
+    return stateTransitions.reduce<Record<string, Field[] | undefined>>(
+      (state, st) => {
+        if (st.toValue.isSome.toBoolean()) {
+          state[st.path.toString()] = st.toValue.value;
+        }
+        return state;
+      },
+      {}
+    );
+  }
+
   private decodeTransaction(tx: PendingTransaction): {
     method: (...args: unknown[]) => unknown;
     args: unknown[];
@@ -123,11 +125,11 @@ export class TransactionExecutionService {
     const [moduleName, methodName] = methodDescriptors;
     const module: RuntimeModule<unknown> = this.runtime.resolve(moduleName);
 
-    const parameterDecoder = MethodParameterDecoder.fromMethod(
+    const parameterDecoder = MethodParameterEncoder.fromMethod(
       module,
       methodName
     );
-    const args = parameterDecoder.fromJSON(tx.argsJSON);
+    const args = parameterDecoder.decode(tx.argsJSON);
 
     return {
       method,
@@ -149,48 +151,62 @@ export class TransactionExecutionService {
     return appChain;
   }
 
-  private executeRuntimeMethod(
-    method: (...args: unknown[]) => unknown,
-    args: unknown[],
-    contextInputs: RuntimeMethodExecutionData
-  ): RuntimeProvableMethodExecutionResult {
+  private executeWithExecutionContext(
+    method: () => void,
+    contextInputs: RuntimeMethodExecutionData,
+    runSimulated = false
+  ): Pick<
+    RuntimeProvableMethodExecutionResult,
+    "stateTransitions" | "status" | "statusMessage"
+  > {
     // Set up context
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.setup(contextInputs);
+    executionContext.setSimulated(runSimulated);
 
     // Execute method
-    method(...args);
+    method();
 
-    const runtimeResult = executionContext.current().result;
+    const { stateTransitions, status, statusMessage } =
+      executionContext.current().result;
 
     // Clear executionContext
     executionContext.afterMethod();
     executionContext.clear();
 
-    return runtimeResult;
+    const reducedSTs = reduceStateTransitions(stateTransitions);
+
+    return {
+      stateTransitions: reducedSTs,
+      status,
+      statusMessage,
+    };
+  }
+
+  private executeRuntimeMethod(
+    method: (...args: unknown[]) => unknown,
+    args: unknown[],
+    contextInputs: RuntimeMethodExecutionData
+  ) {
+    return this.executeWithExecutionContext(() => {
+      method(...args);
+    }, contextInputs);
   }
 
   private executeProtocolHooks(
     runtimeContextInputs: RuntimeMethodExecutionData,
     blockContextInputs: BlockProverExecutionData,
-    runUnchecked = false
-  ): RuntimeProvableMethodExecutionResult {
-    // Set up context
-    const executionContext = container.resolve(RuntimeMethodExecutionContext);
-    executionContext.setup(runtimeContextInputs);
-    if (runUnchecked) {
-      executionContext.setSimulated(true);
-    }
-
-    this.transactionHooks.forEach((transactionHook) => {
-      transactionHook.onTransaction(blockContextInputs);
-    });
-
-    const protocolResult = executionContext.current().result;
-    executionContext.afterMethod();
-    executionContext.clear();
-
-    return protocolResult;
+    runSimulated = false
+  ) {
+    return this.executeWithExecutionContext(
+      () => {
+        this.transactionHooks.forEach((transactionHook) => {
+          transactionHook.onTransaction(blockContextInputs);
+        });
+      },
+      runtimeContextInputs,
+      runSimulated
+    );
   }
 
   /**
@@ -198,86 +214,140 @@ export class TransactionExecutionService {
    * attached that is needed for tracing
    */
   public async createUnprovenBlock(
-    stateService: CachedStateService,
+    stateService: AsyncStateService,
     transactions: PendingTransaction[],
-    metadata: UnprovenBlockMetadata
-  ): Promise<UnprovenBlock> {
+    lastBlockWithMetadata: UnprovenBlockWithMetadata,
+    allowEmptyBlocks: boolean
+  ): Promise<UnprovenBlock | undefined> {
+    const lastMetadata = lastBlockWithMetadata.metadata;
+    const lastBlock = lastBlockWithMetadata.block;
     const executionResults: TransactionExecutionResult[] = [];
 
     const transactionsHashList = new DefaultProvableHashList(Field);
+    const eternalTransactionsHashList = new DefaultProvableHashList(
+      Field,
+      Field(lastBlock.toEternalTransactionsHash)
+    );
 
+    const incomingMessagesList = new MinaActionsHashList(
+      Field(lastBlock.toMessagesHash)
+    );
+
+    // Get used networkState by executing beforeBlock() hooks
     const networkState = this.blockHooks.reduce<NetworkState>(
-      (state, hook) =>
-        hook.beforeBlock({
-          networkState: metadata.resultingNetworkState,
-
-          state: {
-            stateRoot: Field(metadata.resultingStateRoot),
-            networkStateHash: metadata.resultingNetworkState.hash(),
-            transactionsHash: Field(0),
-          },
+      (reduceNetworkState, hook) =>
+        hook.beforeBlock(reduceNetworkState, {
+          blockHashRoot: Field(lastMetadata.blockHashRoot),
+          eternalTransactionsHash: lastBlock.toEternalTransactionsHash,
+          stateRoot: Field(lastMetadata.stateRoot),
+          transactionsHash: Field(0),
+          networkStateHash: lastMetadata.afterNetworkState.hash(),
+          incomingMessagesHash: lastBlock.toMessagesHash,
         }),
-      new NetworkState(metadata.resultingNetworkState)
+      lastMetadata.afterNetworkState
     );
 
     for (const [index, tx] of transactions.entries()) {
       try {
-        // Determine position in bundle (first, middle, last)
-        const transactionPosition =
-          BlockTransactionPosition.positionTypeFromIndex(
-            index,
-            transactions.length
-          );
-
         // Create execution trace
         // eslint-disable-next-line no-await-in-loop
         const executionTrace = await this.createExecutionTrace(
           stateService,
           tx,
-          networkState,
-          transactionPosition
+          networkState
         );
 
         // Push result to results and transaction onto bundle-hash
         executionResults.push(executionTrace);
-        transactionsHashList.push(tx.hash());
+        if (!tx.isMessage) {
+          transactionsHashList.push(tx.hash());
+          eternalTransactionsHashList.push(tx.hash());
+        } else {
+          const actionHash = MinaActions.actionHash(
+            tx.toRuntimeTransaction().hashData()
+          );
+
+          incomingMessagesList.push(actionHash);
+        }
       } catch (error) {
         if (error instanceof Error) {
-          log.error("Error in inclusion of tx, skipping", error);
+          log.info("Error in inclusion of tx, skipping", error);
         }
       }
     }
 
-    return {
+    const previousBlockHash =
+      lastMetadata.blockHash === 0n ? undefined : Field(lastMetadata.blockHash);
+
+    if (executionResults.length === 0 && !allowEmptyBlocks) {
+      log.info(
+        "After sequencing, block has no sequencable transactions left, skipping block"
+      );
+      return undefined;
+    }
+
+    const block: Omit<UnprovenBlock, "hash"> = {
       transactions: executionResults,
-      networkState,
       transactionsHash: transactionsHashList.commitment,
+      fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
+      toEternalTransactionsHash: eternalTransactionsHashList.commitment,
+      height:
+        lastBlock.hash.toBigInt() !== 0n ? lastBlock.height.add(1) : Field(0),
+      fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
+      fromMessagesHash: lastBlock.toMessagesHash,
+      toMessagesHash: incomingMessagesList.commitment,
+      previousBlockHash,
+
+      networkState: {
+        before: new NetworkState(lastMetadata.afterNetworkState),
+        during: networkState,
+      },
+    };
+
+    const hash = UnprovenBlock.hash(block);
+
+    return {
+      ...block,
+      hash,
     };
   }
 
   public async generateMetadataForNextBlock(
     block: UnprovenBlock,
-    merkleTreeStore: CachedMerkleTreeStore,
+    merkleTreeStore: AsyncMerkleTreeStore,
+    blockHashTreeStore: AsyncMerkleTreeStore,
     modifyTreeStore = true
   ): Promise<UnprovenBlockMetadata> {
     // Flatten diff list into a single diff by applying them over each other
     const combinedDiff = block.transactions
-      .map((tx) => tx.stateDiff)
+      .map((tx) => {
+        const transitions = tx.protocolTransitions.concat(
+          tx.status.toBoolean() ? tx.stateTransitions : []
+        );
+        return this.collectStateDiff(transitions);
+      })
       .reduce<StateRecord>((accumulator, diff) => {
         // accumulator properties will be overwritten by diff's values
         return Object.assign(accumulator, diff);
       }, {});
 
-    // If we modify the parent store, we use it, otherwise we abstract over it.
-    const inMemoryStore = modifyTreeStore
-      ? merkleTreeStore
-      : new CachedMerkleTreeStore(merkleTreeStore);
+    const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
     const tree = new RollupMerkleTree(inMemoryStore);
+    const blockHashInMemoryStore = new CachedMerkleTreeStore(
+      blockHashTreeStore
+    );
+    const blockHashTree = new BlockHashMerkleTree(blockHashInMemoryStore);
 
-    for (const key of Object.keys(combinedDiff)) {
-      // eslint-disable-next-line no-await-in-loop
-      await inMemoryStore.preloadKey(BigInt(key));
+    await inMemoryStore.preloadKeys(Object.keys(combinedDiff).map(BigInt));
+
+    // In case the diff is empty, we preload key 0 in order to
+    // retrieve the root, which we need later
+    if (Object.keys(combinedDiff).length === 0) {
+      await inMemoryStore.preloadKey(0n);
     }
+
+    // TODO This can be optimized a lot (we are only interested in the root at this step)
+    await blockHashInMemoryStore.preloadKey(block.height.toBigInt());
 
     Object.entries(combinedDiff).forEach(([key, state]) => {
       const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
@@ -285,53 +355,75 @@ export class TransactionExecutionService {
     });
 
     const stateRoot = tree.getRoot();
+    const fromBlockHashRoot = blockHashTree.getRoot();
 
     const state: BlockProverState = {
       stateRoot,
       transactionsHash: block.transactionsHash,
-      networkStateHash: block.networkState.hash(),
+      networkStateHash: block.networkState.during.hash(),
+      eternalTransactionsHash: block.toEternalTransactionsHash,
+      blockHashRoot: fromBlockHashRoot,
+      incomingMessagesHash: block.toMessagesHash,
     };
+
+    // TODO Set StateProvider for @state access to state
+    this.executionContext.clear();
+    this.executionContext.setup({
+      networkState: block.networkState.during,
+      transaction: RuntimeTransaction.dummyTransaction(),
+    });
 
     const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
-      (networkState, hook) =>
-        hook.afterBlock({
-          state,
-          networkState,
-        }),
-      block.networkState
+      (networkState, hook) => hook.afterBlock(networkState, state),
+      block.networkState.during
     );
 
+    const { stateTransitions } = this.executionContext.result;
+    this.executionContext.clear();
+    const reducedStateTransitions = reduceStateTransitions(stateTransitions);
+
+    // Update the block hash tree with this block
+    blockHashTree.setLeaf(
+      block.height.toBigInt(),
+      new BlockHashTreeEntry({
+        blockHash: Poseidon.hash([block.height, state.transactionsHash]),
+        closed: Bool(true),
+      }).hash()
+    );
+    const blockHashWitness = blockHashTree.getWitness(block.height.toBigInt());
+    const newBlockHashRoot = blockHashTree.getRoot();
+    await blockHashInMemoryStore.mergeIntoParent();
+
+    if (modifyTreeStore) {
+      await inMemoryStore.mergeIntoParent();
+    }
+
     return {
-      resultingNetworkState,
-      resultingStateRoot: stateRoot.toBigInt(),
+      afterNetworkState: resultingNetworkState,
+      stateRoot: stateRoot.toBigInt(),
+      blockHashRoot: newBlockHashRoot.toBigInt(),
+      blockHashWitness,
+
+      blockStateTransitions: reducedStateTransitions.map((st) =>
+        UntypedStateTransition.fromStateTransition(st)
+      ),
+      blockHash: block.hash.toBigInt(),
     };
-  }
-
-  private collectStateDiff(
-    stateService: CachedStateService,
-    stateTransitions: StateTransition<unknown>[]
-  ): StateRecord {
-    const keys = this.allKeys(stateTransitions);
-
-    return keys.reduce<Record<string, Field[] | undefined>>((state, key) => {
-      state[key.toString()] = stateService.get(key);
-      return state;
-    }, {});
   }
 
   private async applyTransitions(
     stateService: CachedStateService,
     stateTransitions: StateTransition<unknown>[]
   ): Promise<void> {
-    await Promise.all(
-      // Use updated stateTransitions since only they will have the
-      // right values
-      stateTransitions
-        .filter((st) => st.to.isSome.toBoolean())
-        .map(async (st) => {
-          await stateService.setAsync(st.path, st.to.toFields());
-        })
-    );
+    const writes = stateTransitions
+      .filter((st) => st.to.isSome.toBoolean())
+      .map((st) =>
+        // Use updated stateTransitions since only they will have the
+        // right values
+        ({ key: st.path, value: st.to.toFields() })
+      );
+    // Maybe replace with stateService.set() because its cached anyways?
+    stateService.writeStates(writes);
   }
 
   // eslint-disable-next-line no-warning-comments
@@ -381,11 +473,12 @@ export class TransactionExecutionService {
 
   // eslint-disable-next-line max-statements
   private async createExecutionTrace(
-    stateService: CachedStateService,
+    asyncStateService: AsyncStateService,
     tx: PendingTransaction,
-    networkState: NetworkState,
-    transactionPosition: BlockTransactionPositionType
+    networkState: NetworkState
   ): Promise<TransactionExecutionResult> {
+    const cachedStateService = new CachedStateService(asyncStateService);
+
     const { method, args, module } = this.decodeTransaction(tx);
 
     // Disable proof generation for tracing
@@ -393,19 +486,15 @@ export class TransactionExecutionService {
     const previousProofsEnabled = appChain.areProofsEnabled;
     appChain.setProofsEnabled(false);
 
+    const signedTransaction = tx.toProtocolTransaction();
     const blockContextInputs: BlockProverExecutionData = {
-      transaction: tx.toProtocolTransaction(),
       networkState,
-
-      transactionPosition:
-        BlockTransactionPosition.fromPositionType(transactionPosition),
+      transaction: signedTransaction.transaction,
+      signature: signedTransaction.signature,
     };
     const runtimeContextInputs = {
-      networkState,
-
-      transaction: RuntimeTransaction.fromProtocolTransaction(
-        blockContextInputs.transaction
-      ),
+      transaction: blockContextInputs.transaction,
+      networkState: blockContextInputs.networkState,
     };
 
     const { runtimeKeys, protocolKeys } = await this.extractAccessedKeys(
@@ -413,17 +502,17 @@ export class TransactionExecutionService {
       args,
       runtimeContextInputs,
       blockContextInputs,
-      stateService
+      asyncStateService
     );
 
     // Preload keys
-    await stateService.preloadKeys(
+    await cachedStateService.preloadKeys(
       runtimeKeys.concat(protocolKeys).filter(distinctByString)
     );
 
     // Execute second time with preloaded state. The following steps
     // generate and apply the correct STs with the right values
-    this.stateServiceProvider.setCurrentStateService(stateService);
+    this.stateServiceProvider.setCurrentStateService(cachedStateService);
 
     const protocolResult = this.executeProtocolHooks(
       runtimeContextInputs,
@@ -438,7 +527,7 @@ export class TransactionExecutionService {
       );
     }
 
-    log.debug(
+    log.trace(
       "PSTs:",
       JSON.stringify(
         protocolResult.stateTransitions.map((x) => x.toJSON()),
@@ -448,10 +537,8 @@ export class TransactionExecutionService {
     );
 
     // Apply protocol STs
-    await this.applyTransitions(stateService, protocolResult.stateTransitions);
-
-    let stateDiff = this.collectStateDiff(
-      stateService,
+    await this.applyTransitions(
+      cachedStateService,
       protocolResult.stateTransitions
     );
 
@@ -461,7 +548,7 @@ export class TransactionExecutionService {
       runtimeContextInputs
     );
 
-    log.debug(
+    log.trace(
       "STs:",
       JSON.stringify(
         runtimeResult.stateTransitions.map((x) => x.toJSON()),
@@ -472,11 +559,9 @@ export class TransactionExecutionService {
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
-      await this.applyTransitions(stateService, runtimeResult.stateTransitions);
-
-      stateDiff = this.collectStateDiff(
-        stateService,
-        protocolResult.stateTransitions.concat(runtimeResult.stateTransitions)
+      await this.applyTransitions(
+        cachedStateService,
+        runtimeResult.stateTransitions
       );
     }
 
@@ -485,6 +570,8 @@ export class TransactionExecutionService {
 
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
+
+    await cachedStateService.mergeIntoParent();
 
     return {
       tx,
@@ -498,8 +585,6 @@ export class TransactionExecutionService {
       protocolTransitions: protocolResult.stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
-
-      stateDiff,
     };
   }
 }

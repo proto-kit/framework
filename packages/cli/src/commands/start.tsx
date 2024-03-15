@@ -55,108 +55,6 @@ import { Spinner } from "@inkjs/ui";
 
 log.setLevel("ERROR");
 
-export async function startServer({
-  runtime,
-}: {
-  runtime: TypedClass<Runtime<RuntimeModulesRecord>>;
-}) {
-  const appChain = AppChain.from({
-    Runtime: runtime,
-
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
-
-    Sequencer: Sequencer.from({
-      modules: {
-        Mempool: PrivateMempool,
-        GraphqlServer,
-        LocalTaskWorkerModule,
-        BaseLayer: NoopBaseLayer,
-        BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-
-        Graphql: GraphqlSequencerModule.from({
-          modules: {
-            MempoolResolver,
-            QueryGraphqlModule,
-            BlockStorageResolver,
-            NodeStatusResolver,
-          },
-
-          config: {
-            MempoolResolver: {},
-            QueryGraphqlModule: {},
-            BlockStorageResolver: {},
-            NodeStatusResolver: {},
-          },
-        }),
-      },
-    }),
-
-    modules: {
-      Signer: InMemorySigner,
-      TransactionSender: InMemoryTransactionSender,
-      QueryTransportModule: StateServiceQueryModule,
-    },
-  });
-
-  appChain.configurePartial({
-    Runtime: {
-      Balances: {},
-    },
-
-    Protocol: {
-      BlockProver: {},
-      StateTransitionProver: {},
-      AccountState: {},
-      BlockHeight: {},
-      TransactionFee: {
-        tokenId: 0n,
-        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
-        baseFee: 1_000_000n,
-        perWeightUnitFee: 1000n,
-        methods: {},
-      },
-    },
-
-    Sequencer: {
-      GraphqlServer: {
-        port: 8080,
-        host: "0.0.0.0",
-        graphiql: true,
-      },
-
-      Graphql: {
-        QueryGraphqlModule: {},
-        MempoolResolver: {},
-        BlockStorageResolver: {},
-        NodeStatusResolver: {},
-      },
-
-      Mempool: {},
-      BlockProducerModule: {},
-      LocalTaskWorkerModule: {},
-      BaseLayer: {},
-      TaskQueue: {},
-
-      BlockTrigger: {},
-    },
-
-    TransactionSender: {},
-    QueryTransportModule: {},
-
-    Signer: {
-      signer: PrivateKey.random(),
-    },
-  });
-
-  await appChain.start();
-
-  return appChain;
-}
-
 let appChain: AppChain<any, any, any, any>;
 
 export interface UnprovenBlockExtras {
@@ -201,11 +99,7 @@ export function reducer(state: CliState, action: Action) {
       return {
         ...state,
         isProducingBlock: false,
-        blocks: state.blocks
-          .filter(
-            (block) => block.logs.length || block.block?.transactions.length
-          )
-          .concat([action.block]),
+        blocks: state.blocks.concat([action.block]),
         countdown,
       };
     }
@@ -269,11 +163,7 @@ export function Blocks({ blocks }: { blocks: CliState["blocks"] }) {
               [{block.time}]
             </Text>{" "}
             <Text>
-              {block.blockError
-                ? "❌"
-                : block.block?.transactions.length
-                ? "✅"
-                : "⚠️"}
+              {block.blockError ? "❌" : "✅"}
               {"  "}
             </Text>
             <Text bold>
@@ -295,14 +185,6 @@ export function Blocks({ blocks }: { blocks: CliState["blocks"] }) {
               {block.logs.map((log, index) => (
                 <Text key={index}>{log.trim()}</Text>
               ))}
-            </Box>
-          ) : (
-            <Box></Box>
-          )}
-
-          {!block.block?.transactions.length ? (
-            <Box>
-              <Text>Skipping block production, no transactions found.</Text>
             </Box>
           ) : (
             <Box></Box>
@@ -384,7 +266,7 @@ export function Server({ configFile }: { configFile: string }) {
           blockError,
           logs,
           height: block
-            ? Number(block?.networkState.block.height.toString())
+            ? Number(block?.networkState.during.block.height.toString())
             : undefined,
           duration: timeEnd,
           time: new Date().toLocaleTimeString(),

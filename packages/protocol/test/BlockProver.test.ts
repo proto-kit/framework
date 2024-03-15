@@ -22,13 +22,12 @@ import { UnsignedTransaction } from "@proto-kit/sequencer";
 import { AccountStateHook } from "../src/blockmodules/AccountStateHook";
 import { container } from "tsyringe";
 import {
-  BlockModule,
   DefaultProvableHashList,
   MethodPublicOutput,
   NetworkState,
   Protocol,
   ProtocolMethodExecutionContext,
-  ProtocolTransaction,
+  SignedTransaction,
   ProvableStateTransition,
   RuntimeTransaction,
   StateTransitionProver,
@@ -101,7 +100,7 @@ describe("blockProver", () => {
     fromStateRoot: Field,
     toStateRoot: Field,
     protocolHash: Field,
-    tx: ProtocolTransaction,
+    tx: SignedTransaction,
     networkState: NetworkState
   ): BlockProverProofPair {
     const transactionHash =

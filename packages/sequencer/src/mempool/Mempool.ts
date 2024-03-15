@@ -1,23 +1,21 @@
-import type { Field } from "o1js";
+import { EventEmittingComponent, EventsRecord } from "@proto-kit/common";
 
-import type { PendingTransaction } from "./PendingTransaction.js";
+import type { PendingTransaction } from "./PendingTransaction";
 
-export interface MempoolCommitment {
-  transactionsHash: Field;
+export type MempoolEvents = {
+  "mempool-transaction-added": [PendingTransaction];
 }
 
-export interface Mempool {
+export interface Mempool<Events extends MempoolEvents = MempoolEvents>
+  extends EventEmittingComponent<Events> {
   /**
    * Add a transaction to the mempool
    * @returns The new commitment to the mempool
    */
-  add: (tx: PendingTransaction) => MempoolCommitment;
+  add: (tx: PendingTransaction) => Promise<boolean>;
 
   /**
    * Retrieve all transactions that are currently in the mempool
    */
-  getTxs: () => { txs: PendingTransaction[]; commitment: MempoolCommitment };
-
-  // Add stuff for witness generation
-  removeTxs: (txs: PendingTransaction[]) => boolean;
+  getTxs: () => Promise<PendingTransaction[]>;
 }

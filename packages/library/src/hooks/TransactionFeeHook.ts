@@ -9,6 +9,7 @@ import { inject, injectable } from "tsyringe";
 import {
   ProvableTransactionHook,
   BlockProverExecutionData,
+  PublicKeyOption,
 } from "@proto-kit/protocol";
 import { Field, Provable, PublicKey, UInt64 as O1JSUInt64 } from "o1js";
 
@@ -97,10 +98,10 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     return this.persistedFeeAnalyzer;
   }
 
-  public transferFee(from: PublicKey, fee: UInt64) {
+  public transferFee(from: PublicKeyOption, fee: UInt64) {
     this.balances.transfer(
       new TokenId(this.config.tokenId),
-      from,
+      from.value,
       PublicKey.fromBase58(this.config.feeRecipient),
       Balance.from(fee.value)
     );

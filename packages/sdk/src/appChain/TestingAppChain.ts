@@ -27,7 +27,6 @@ import {
   log,
   MergeObjects,
   OverwriteObjectType,
-  RemoveOverlap,
   TypedClass,
 } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
@@ -38,6 +37,7 @@ import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSen
 import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
 
 import { AppChain, AppChainModulesRecord } from "./AppChain";
+import { SettlementModule } from "@proto-kit/sequencer";
 
 export type TestingSequencerModulesRecord = {
   Database: typeof InMemoryDatabase;
@@ -100,6 +100,7 @@ export class TestingAppChain<
         BlockProver: {},
         StateTransitionProver: {},
         BlockHeight: {},
+        LastStateRoot: {},
         TransactionFee: {
           tokenId: 0n,
           feeRecipient: randomFeeRecipient,
@@ -118,6 +119,10 @@ export class TestingAppChain<
         UnprovenProducerModule: {},
         TaskQueue: {
           simulatedDuration: 0,
+        },
+        SettlementModule: {
+          feepayer: PrivateKey.random(),
+          address: PrivateKey.random().toPublicKey(),
         },
       },
       Signer: {
@@ -142,7 +147,7 @@ export class TestingAppChain<
       ManualBlockTrigger
     );
 
-    return await blockTrigger.produceUnproven(true);
+    return await blockTrigger.produceUnproven();
   }
 
   public async start() {

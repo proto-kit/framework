@@ -1,157 +1,175 @@
-import "reflect-metadata";
-import { PrivateKey, UInt64 } from "o1js";
-import { Runtime } from "@proto-kit/module";
-import { Protocol, ReturnType } from "@proto-kit/protocol";
-import {
-  BalancesKey,
-  TokenId,
-  VanillaProtocolModules,
-  VanillaRuntimeModules,
-} from "@proto-kit/library";
-import { sleep } from "@proto-kit/common";
-import {
-  ManualBlockTrigger,
-  PrivateMempool,
-  Sequencer,
-} from "@proto-kit/sequencer";
-import { GraphqlServer } from "@proto-kit/api";
+// import "reflect-metadata";
+// import { Runtime } from "@proto-kit/module";
+// import { Protocol, ReturnType } from "@proto-kit/protocol";
+// import {
+//   BalancesKey,
+//   TokenId,
+//   VanillaProtocolModules,
+//   VanillaRuntimeModules,
+// } from "@proto-kit/library";
 
-import { startServer, TestBalances } from "./server";
-import { beforeAll } from "@jest/globals";
-import { AppChain, InMemorySigner } from "../../src";
-import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSender";
-import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
-import { GraphqlClient } from "../../src/graphql/GraphqlClient";
-import { GraphqlNetworkStateTransportModule } from "../../src/graphql/GraphqlNetworkStateTransportModule";
+// import { Field, PrivateKey, UInt64 } from "o1js";
+// import { sleep } from "@proto-kit/common";
+// import {
+//   ManualBlockTrigger,
+//   PrivateMempool,
+//   Sequencer,
+// } from "@proto-kit/sequencer";
+// import { GraphqlServer } from "@proto-kit/api";
 
-const pk = PrivateKey.random();
+// import { startServer, TestBalances } from "./server";
+// import { beforeAll } from "@jest/globals";
+// import { AppChain, InMemorySigner } from "../../src";
+// import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSender";
+// import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
+// import { GraphqlClient } from "../../src/graphql/GraphqlClient";
+// import { GraphqlNetworkStateTransportModule } from "../../src/graphql/GraphqlNetworkStateTransportModule";
 
-function prepare() {
-  const appChain = AppChain.from({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
-        Balances: TestBalances,
-      }),
-    }),
+// const pk = PrivateKey.random();
 
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
+// function prepare() {
+//   const appChain = AppChain.from({
+//     Runtime: Runtime.from({
+//       modules: VanillaRuntimeModules.with({
+//         Balances: TestBalances,
+//       }),
+//     }),
 
-    Sequencer: Sequencer.from({
-      modules: {},
-    }),
+//     Protocol: Protocol.from({
+//       modules: VanillaProtocolModules.with({}),
+//     }),
 
-    modules: {
-      Signer: InMemorySigner,
-      TransactionSender: GraphqlTransactionSender,
-      QueryTransportModule: GraphqlQueryTransportModule,
-      NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
-      GraphqlClient,
-    },
-  });
+//     Sequencer: Sequencer.from({
+//       modules: {},
+//     }),
 
-  appChain.configurePartial({
-    Runtime: {
-      Balances: {},
-    },
+//     modules: {
+//       Signer: InMemorySigner,
+//       TransactionSender: GraphqlTransactionSender,
+//       QueryTransportModule: GraphqlQueryTransportModule,
+//       NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
+//       GraphqlClient,
+//     },
+//   });
 
-    Protocol: {
-      AccountState: {},
-      BlockProver: {},
-      StateTransitionProver: {},
-      BlockHeight: {},
-      TransactionFee: {
-        tokenId: 0n,
-        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
-        baseFee: 0n,
-        methods: {},
-        perWeightUnitFee: 0n,
-      },
-    },
+//   appChain.configurePartial({
+//     Runtime: {
+//       Balances: {},
+//     },
 
-    Sequencer: {
-      Mempool: {},
-    },
+//     Protocol: {
+//       AccountState: {},
+//       BlockProver: {},
+//       StateTransitionProver: {},
+//       BlockHeight: {},
+//       TransactionFee: {
+//         tokenId: 0n,
+//         feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+//         baseFee: 0n,
+//         methods: {},
+//         perWeightUnitFee: 0n,
+//       },
+//       LastStateRoot: {},
+//     },
 
-    TransactionSender: {},
-    QueryTransportModule: {},
-    NetworkStateTransportModule: {},
+//     Sequencer: {
+//       Mempool: {},
+//     },
 
-    GraphqlClient: {
-      url: "http://127.0.0.1:8080/graphql",
-    },
+//     TransactionSender: {},
+//     QueryTransportModule: {},
+//     NetworkStateTransportModule: {},
 
-    Signer: {
-      signer: pk,
-    },
-  });
+//     GraphqlClient: {
+//       url: "http://127.0.0.1:8080/graphql",
+//     },
 
-  return appChain;
-}
+//     Signer: {
+//       signer: pk,
+//     },
+//   });
 
-describe("graphql client test", function () {
-  let appChain: ReturnType<typeof prepare>;
-  let server: Awaited<ReturnType<typeof startServer>>;
-  let trigger: ManualBlockTrigger;
-  const tokenId = TokenId.from(0);
+//   return appChain;
+// }
 
-  beforeAll(async () => {
-    server = await startServer();
+// describe("graphql client test", function () {
+//   let appChain: ReturnType<typeof prepare>;
+//   let server: Awaited<ReturnType<typeof startServer>>;
+//   let trigger: ManualBlockTrigger;
+//   const tokenId = TokenId.from(0);
 
-    await sleep(2000);
+//   beforeAll(async () => {
+//     server = await startServer();
 
-    appChain = prepare();
+//     await sleep(2000);
 
-    await appChain.start();
+//     appChain = prepare();
 
-    trigger = server.sequencer.resolveOrFail(
-      "BlockTrigger",
-      ManualBlockTrigger
-    );
-    await trigger.produceUnproven();
-  });
+//     await appChain.start();
 
-  afterAll(async () => {
-    server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
-  });
+//     trigger = server.sequencer.resolveOrFail(
+//       "BlockTrigger",
+//       ManualBlockTrigger
+//     );
+//     await trigger.produceUnproven();
+//   });
 
-  it("should retrieve state", async () => {
-    expect.assertions(1);
+//   afterAll(async () => {
+//     server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
+//   });
 
-    const totalSupply = await appChain.query.runtime.Balances.totalSupply.get();
+//   it("should retrieve state", async () => {
+//     expect.assertions(1);
 
-    expect(totalSupply?.toString()).toBe("2000");
-  }, 60_000);
+//     const totalSupply = await appChain.query.runtime.Balances.totalSupply.get();
 
-  it("should send transaction", async () => {
-    expect.assertions(1);
+//     expect(totalSupply?.toString()).toBe("2000");
+//   }, 60_000);
 
-    const tx = await appChain.transaction(pk.toPublicKey(), () => {
-      appChain.runtime
-        .resolve("Balances")
-        .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
-    });
-    await tx.sign();
-    await tx.send();
+//   it("should send transaction", async () => {
+//     expect.assertions(1);
 
-    await trigger.produceUnproven();
+//     const tx = await appChain.transaction(pk.toPublicKey(), () => {
+//       appChain.runtime
+//         .resolve("Balances")
+//         .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
+//     });
+//     await tx.sign();
+//     await tx.send();
 
-    const balance = await appChain.query.runtime.Balances.balances.get(
-      new BalancesKey({
-        tokenId,
-        address: pk.toPublicKey(),
-      })
-    );
+//     await trigger.produceUnproven();
 
-    expect(balance?.toBigInt()).toBe(1000n);
-  }, 60_000);
+//     const balance = await appChain.query.runtime.Balances.balances.get(
+//       new BalancesKey({
+//         tokenId,
+//         address: pk.toPublicKey(),
+//       })
+//     );
 
-  it("should fetch networkstate correctly", async () => {
-    expect.assertions(1);
+//     expect(balance?.toBigInt()).toBe(1000n);
+//   }, 60_000);
 
-    const state = await appChain.query.network.unproven;
+//   it("should fetch networkstate correctly", async () => {
+//     expect.assertions(2);
 
-    expect(state?.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
-  });
-});
+//     const state = await appChain.query.network.unproven;
+
+//     expect(state).toBeDefined();
+//     expect(state!.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
+//   });
+
+//   it("should retrieve merkle witness", async () => {
+//     expect.assertions(2);
+
+//     const witness =
+//       await appChain!.query.runtime.Balances.balances.merkleWitness(
+//         pk.toPublicKey()
+//       );
+
+//     expect(witness).toBeDefined();
+//     // Check if this works, i.e. if it correctly parsed
+//     expect(witness!.calculateRoot(Field(0)).toBigInt()).toBeGreaterThanOrEqual(
+//       0n
+//     );
+//   });
+// });

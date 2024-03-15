@@ -1,0 +1,8 @@
+{
+  "extends": "../../.eslintrc",
+  "rules": {
+    "ext/lines-between-object-properties": "off",
+    "no-underscore-dangle": "off",
+    "unicorn/no-null": "off"
+  }
+}

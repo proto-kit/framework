@@ -88,7 +88,7 @@ class TestRuntime extends RuntimeModule<unknown> {
     address: PublicKey
   ) {
     const valid = signature.verify(
-      this.transaction.sender,
+      this.transaction.sender.value,
       TestStruct.toFields(struct)
     );
     assert(valid, "Signature invalid");

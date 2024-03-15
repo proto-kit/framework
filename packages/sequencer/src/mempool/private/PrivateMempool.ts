@@ -1,57 +1,40 @@
-import { Field, Poseidon } from "o1js";
-import { noop } from "@proto-kit/common";
+import { EventEmitter, noop } from "@proto-kit/common";
+import { inject } from "tsyringe";
 
-import type { Mempool, MempoolCommitment } from "../Mempool.js";
-import type { PendingTransaction } from "../PendingTransaction.js";
+import type { Mempool, MempoolEvents } from "../Mempool";
+import type { PendingTransaction } from "../PendingTransaction";
 import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
+import { TransactionStorage } from "../../storage/repositories/TransactionStorage";
 import { TransactionValidator } from "../verification/TransactionValidator";
-import { injectable } from "tsyringe";
 
 @sequencerModule()
 export class PrivateMempool extends SequencerModule implements Mempool {
-  public commitment: Field;
-
-  private queue: PendingTransaction[] = [];
+  public readonly events = new EventEmitter<MempoolEvents>();
 
   public constructor(
-    private readonly transactionValidator: TransactionValidator
+    private readonly transactionValidator: TransactionValidator,
+    @inject("TransactionStorage")
+    private readonly transactionStorage: TransactionStorage
   ) {
     super();
-    this.commitment = Field(0);
   }
 
-  public add(tx: PendingTransaction): MempoolCommitment {
+  public async add(tx: PendingTransaction): Promise<boolean> {
     const [txValid, error] = this.transactionValidator.validateTx(tx);
     if (txValid) {
-      this.queue.push(tx);
-
-      // Figure out how to generalize this
-      this.commitment = Poseidon.hash([this.commitment, tx.hash()]);
-
-      return { transactionsHash: this.commitment };
+      const success = await this.transactionStorage.pushUserTransaction(tx);
+      if (success) {
+        this.events.emit("mempool-transaction-added", tx);
+      }
     }
     throw new Error(`Valdiation of tx failed: ${error ?? "unknown error"}`);
   }
 
-  public getTxs(): {
-    txs: PendingTransaction[];
-    commitment: MempoolCommitment;
-  } {
-    return {
-      commitment: { transactionsHash: this.commitment },
-      txs: this.queue,
-    };
-  }
-
-  public removeTxs(txs: PendingTransaction[]): boolean {
-    const { length } = this.queue;
-    this.queue = this.queue.filter((tx) => !txs.includes(tx));
-    // Check that all elements have been removed and were in the mempool prior
-    // eslint-disable-next-line unicorn/consistent-destructuring
-    return length === this.queue.length + txs.length;
+  public async getTxs(): Promise<PendingTransaction[]> {
+    return await this.transactionStorage.getPendingUserTransactions();
   }
 
   public async start(): Promise<void> {

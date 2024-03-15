@@ -1,5 +1,6 @@
-import { PrivateKey, UInt64 } from "o1js";
+import { Bool, PrivateKey, UInt64 } from "o1js";
 import {
+  PublicKeyOption,
   RuntimeMethodExecutionContext,
   StateServiceProvider,
 } from "@proto-kit/protocol";
@@ -69,7 +70,10 @@ describe("blockProof", () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/consistent-type-assertions
     appChain.protocol.resolve("AccountState").onTransaction({
       transaction: {
-        sender: alice,
+        sender: new PublicKeyOption({
+          isSome: Bool(true),
+          value: alice,
+        }),
         nonce: UInt64.from(0),
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

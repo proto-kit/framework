@@ -1,9 +1,11 @@
 import "reflect-metadata";
-import { UInt112 } from "@proto-kit/common";
 import { container } from "tsyringe";
-import { RuntimeMethodExecutionContext } from "@proto-kit/protocol";
+import { RuntimeMethodExecutionContext, State } from "@proto-kit/protocol";
 import { beforeEach } from "@jest/globals";
 import bigintsqrt from "bigint-isqrt";
+import { Field, Provable } from "o1js";
+
+import { UInt112, UInt64 } from "../../src";
 
 describe("uint112", () => {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
@@ -71,4 +73,41 @@ describe("uint112", () => {
       expect(rest.toBigInt()).toBe(input - bigintsqrt(input) ** 2n);
     }
   );
+
+  const max64 = (2n**64n)-1n
+
+  it.each([[1n, 2n], [1n, 1n], [max64, max64], [max64, max64 - 1n], [max64, 0n]])("should check equals correctly", (a, b) => {
+    expect.assertions(3);
+
+    const equals = a === b;
+    const equalsBool1 = UInt64.from(a).equals(b);
+    const equalsBool2 = UInt64.from(a).equals(UInt64.from(b));
+    const equalsBool3 = UInt64.from(b).equals(a);
+
+    expect(equalsBool1.toBoolean()).toStrictEqual(equalsBool2.toBoolean());
+    expect(equalsBool2.toBoolean()).toStrictEqual(equalsBool3.toBoolean());
+    expect(equalsBool1.toBoolean()).toBe(equals)
+  })
+
+  it("should compile witness", () => {
+    expect.assertions(4);
+
+    const uint = Provable.witness(UInt64, () => UInt64.from(5));
+
+    const fields = UInt64.toFields(uint);
+
+    expect(uint.numBits()).toBe(64);
+    expect(uint.value.toBigInt()).toBe(5n);
+    expect(fields.length).toBe(1);
+    expect(fields[0].toBigInt()).toBe(5n);
+  });
+
+  it("should work for state", () => {
+    expect.assertions(1);
+
+    // Only a compilation test
+    const state = State.from(UInt64);
+
+    expect(1).toBe(1);
+  });
 });

@@ -1,15 +1,11 @@
-import {
-  CachedMerkleTreeStore,
-  InMemoryMerkleTreeStorage,
-  RollupMerkleTree,
-} from "@proto-kit/protocol";
-import { MockAsyncMerkleTreeStore } from "./MockAsyncMerkleStore";
+import { InMemoryMerkleTreeStorage, RollupMerkleTree } from "@proto-kit/common";
 import { beforeEach } from "@jest/globals";
 import { Field, Poseidon } from "o1js";
 import { log } from "@proto-kit/common";
+import { CachedMerkleTreeStore, InMemoryAsyncMerkleTreeStore } from "../../src";
 
 describe("cachedMerkleTree", () => {
-  let store: MockAsyncMerkleTreeStore;
+  let store: InMemoryAsyncMerkleTreeStore;
   let syncStore: InMemoryMerkleTreeStorage;
   let tree: RollupMerkleTree;
 
@@ -19,8 +15,8 @@ describe("cachedMerkleTree", () => {
   beforeEach(async () => {
     log.setLevel("DEBUG");
 
-    store = new MockAsyncMerkleTreeStore();
-    syncStore = store.store;
+    store = new InMemoryAsyncMerkleTreeStore();
+    syncStore = store["store"];
     tree = new RollupMerkleTree(syncStore);
 
     tree.setLeaf(1n, Field(10));
@@ -44,7 +40,9 @@ describe("cachedMerkleTree", () => {
       Poseidon.hash([Field(0), Field(10)]).toBigInt()
     );
 
-    expect(cached.getNode(0n, 254)).toBe(await store.getNode(0n, 254));
+    const retrievedNodes = await store.getNodesAsync([{ key: 0n, level: 254 }]);
+
+    expect(cached.getNode(0n, 254)).toStrictEqual(retrievedNodes[0]);
     expect(cached.getNode(0n, 254)).toBe(syncStore.getNode(0n, 254));
 
     expect(cachedTree.getRoot().toBigInt()).toBe(tree.getRoot().toBigInt());

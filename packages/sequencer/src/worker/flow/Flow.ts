@@ -109,7 +109,7 @@ export class Flow<State> implements Closeable {
 
   public constructor(
     private readonly connectionHolder: ConnectionHolder,
-    private readonly flowId: string,
+    public readonly flowId: string,
     public state: State
   ) {}
 
@@ -140,15 +140,21 @@ export class Flow<State> implements Closeable {
     this.resolveFunction(result);
   }
 
+  public reject(error: Error) {
+    this.erroredOut = true;
+    this.errorFunction?.(error);
+  }
+
   private async resolveResponse(response: TaskPayload) {
     if (response.taskId !== undefined) {
       const resolveFunction = this.resultsPending[response.taskId];
 
       if (!this.erroredOut) {
         if (response.status === "error") {
-          this.erroredOut = true;
-          this.errorFunction?.(
-            new Error(`Error in worker: ${response.payload}`)
+          this.reject(
+            new Error(
+              `Error in worker: ${response.payload}, task: ${response.flowId}:${response.taskId}`
+            )
           );
           return;
         }
@@ -178,7 +184,7 @@ export class Flow<State> implements Closeable {
     this.taskCounter += 1;
     const taskId = String(this.taskCounter);
 
-    log.debug(`Pushing ${task.name}`);
+    log.trace(`Pushing task ${task.name}`);
 
     await queue.addTask({
       // eslint-disable-next-line putout/putout
@@ -192,7 +198,11 @@ export class Flow<State> implements Closeable {
 
     // eslint-disable-next-line @typescript-eslint/promise-function-async
     const callback = (returnPayload: TaskPayload) => {
-      log.debug(`Completed ${returnPayload.name}`);
+      log.trace(
+        `Completed ${returnPayload.name}, task: ${returnPayload.flowId}:${
+          returnPayload?.taskId ?? "-"
+        }`
+      );
       const decoded = task.resultSerializer().fromJSON(returnPayload.payload);
       this.tasksInProgress -= 1;
       return completed?.(decoded, input);

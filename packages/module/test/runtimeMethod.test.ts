@@ -9,7 +9,7 @@ import { container } from "tsyringe";
 import { AreProofsEnabled, log } from "@proto-kit/common";
 
 import { InMemoryStateService, MethodIdResolver, Runtime } from "../src";
-import { MethodParameterDecoder } from "../src/method/MethodParameterDecoder";
+import { MethodParameterEncoder } from "../src/method/MethodParameterEncoder";
 
 import { Balances } from "./modules/Balances";
 
@@ -42,7 +42,7 @@ describe("runtimeMethod", () => {
 
     const module = runtime.resolve("Balances");
 
-    const decoder = MethodParameterDecoder.fromMethod(module, "getBalance");
+    const decoder = MethodParameterEncoder.fromMethod(module, "getBalance");
     const recodedParameters = decoder.fromFields(
       parameters.flatMap((x) => x.toFields())
     );

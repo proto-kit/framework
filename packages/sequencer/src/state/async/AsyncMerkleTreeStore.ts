@@ -1,9 +1,20 @@
+export interface MerkleTreeNodeQuery {
+  key: bigint;
+  level: number;
+}
+
+export interface MerkleTreeNode extends MerkleTreeNodeQuery {
+  value: bigint;
+}
+
 export interface AsyncMerkleTreeStore {
-  openTransaction: () => void;
+  openTransaction: () => Promise<void>;
 
-  commit: () => void;
+  commit: () => Promise<void>;
 
-  setNodeAsync: (key: bigint, level: number, value: bigint) => Promise<void>;
+  writeNodes: (nodes: MerkleTreeNode[]) => void;
 
-  getNodeAsync: (key: bigint, level: number) => Promise<bigint | undefined>;
+  getNodesAsync: (
+    nodes: MerkleTreeNodeQuery[]
+  ) => Promise<(bigint | undefined)[]>;
 }

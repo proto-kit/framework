@@ -10,6 +10,7 @@ import {
   ProtocolModulesRecord,
   StateTransitionProver,
   StateTransitionProverType,
+  LastStateRootBlockHook,
 } from "@proto-kit/protocol";
 import { TransactionFeeHook } from "../hooks/TransactionFeeHook";
 import { VanillaRuntimeModulesRecord } from "../runtime/VanillaRuntimeModules";
@@ -28,6 +29,7 @@ export class VanillaProtocolModules {
       AccountState: AccountStateHook,
       BlockHeight: BlockHeightHook,
       TransactionFee: TransactionFeeHook,
+      LastStateRoot: LastStateRootBlockHook,
       ...additionalModules,
     };
   }

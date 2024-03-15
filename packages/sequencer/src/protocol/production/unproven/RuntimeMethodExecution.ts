@@ -11,6 +11,7 @@ import { Field } from "o1js";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { distinctByString } from "../../../helpers/utils";
+import { SyncCachedStateService } from "../../../state/state/SyncCachedStateService";
 
 export class RuntimeMethodExecution {
   public constructor(
@@ -19,25 +20,19 @@ export class RuntimeMethodExecution {
     private readonly executionContext: RuntimeMethodExecutionContext
   ) {}
 
-  private async executeMethodWithKeys(
-    touchedKeys: string[],
+  private executeMethodWithKeys(
     method: () => void,
     contextInputs: RuntimeMethodExecutionData,
-    parentStateService: AsyncStateService
-  ): Promise<StateTransition<unknown>[]> {
+    parentStateService: CachedStateService
+  ): StateTransition<unknown>[] {
     const { executionContext, runtime, protocol } = this;
 
     executionContext.setup(contextInputs);
     executionContext.setSimulated(true);
 
-    const stateService = new CachedStateService(parentStateService);
+    const stateService = new SyncCachedStateService(parentStateService);
     runtime.stateServiceProvider.setCurrentStateService(stateService);
     protocol.stateServiceProvider.setCurrentStateService(stateService);
-
-    // Preload previously determined keys
-    await stateService.preloadKeys(
-      touchedKeys.map((fieldString) => Field(fieldString))
-    );
 
     // Execute method
     method();
@@ -73,13 +68,14 @@ export class RuntimeMethodExecution {
 
     let lastRuntimeResult: StateTransition<unknown>[];
 
+    const preloadingStateService = new CachedStateService(parentStateService);
+
     do {
       // eslint-disable-next-line no-await-in-loop
-      const stateTransitions = await this.executeMethodWithKeys(
-        touchedKeys,
+      const stateTransitions = this.executeMethodWithKeys(
         method,
         contextInputs,
-        parentStateService
+        preloadingStateService
       );
 
       if (numberMethodSTs === undefined) {
@@ -93,11 +89,16 @@ export class RuntimeMethodExecution {
         const keys = stateTransitions
           .map((st) => st.path.toString())
           .filter(distinctByString);
-        const stateTransitionsFullRun = await this.executeMethodWithKeys(
-          keys,
+        const optimisticRunStateService = new CachedStateService(
+          parentStateService
+        );
+        await optimisticRunStateService.preloadKeys(
+          keys.map((fieldString) => Field(fieldString))
+        );
+        const stateTransitionsFullRun = this.executeMethodWithKeys(
           method,
           contextInputs,
-          parentStateService
+          optimisticRunStateService
         );
 
         const firstDiffIndex = _.zip(
@@ -117,7 +118,13 @@ export class RuntimeMethodExecution {
             .slice(0, firstDiffIndex)
             .map((st) => st.path.toString())
             .filter(distinctByString);
+
+          // Preload eligible keys
           touchedKeys.push(...additionalKeys);
+          await preloadingStateService.preloadKeys(
+            additionalKeys.map((key) => Field(key))
+          );
+
           collectedSTs = firstDiffIndex - 1;
           lastRuntimeResult = stateTransitions;
           continue;
@@ -131,6 +138,7 @@ export class RuntimeMethodExecution {
         !touchedKeys.includes(latestST.path.toString())
       ) {
         touchedKeys.push(latestST.path.toString());
+        await preloadingStateService.preloadKey(latestST.path);
       }
 
       collectedSTs += 1;

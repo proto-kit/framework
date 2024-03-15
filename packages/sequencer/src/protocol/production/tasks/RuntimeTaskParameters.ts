@@ -13,9 +13,7 @@ export interface RuntimeProofParameters {
   state: DecodedState;
 }
 
-export interface JSONEncodableState {
-  [key: string]: string[] | undefined;
-}
+export type JSONEncodableState = Record<string, string[] | undefined>;
 
 export class RuntimeProofParametersSerializer
   implements TaskSerializer<RuntimeProofParameters>

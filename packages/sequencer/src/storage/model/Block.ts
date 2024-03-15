@@ -1,10 +1,7 @@
-import {
-  BlockProverPublicInput,
-  BlockProverPublicOutput,
-} from "@proto-kit/protocol";
-import { Proof } from "o1js";
+import { JsonProof } from "o1js";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { NetworkState } from "@proto-kit/protocol";
 
 export interface ComputedBlockTransaction {
   tx: PendingTransaction;
@@ -13,6 +10,12 @@ export interface ComputedBlockTransaction {
 }
 
 export interface ComputedBlock {
-  proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-  bundles: ComputedBlockTransaction[][];
+  proof: JsonProof;
+  bundles: string[];
+  height: number;
+}
+
+export interface SettleableBatch extends ComputedBlock {
+  fromNetworkState: NetworkState;
+  toNetworkState: NetworkState;
 }

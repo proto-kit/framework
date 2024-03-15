@@ -1,4 +1,4 @@
-import { Bool, Struct } from "o1js";
+import { Bool, Provable, Struct } from "o1js";
 import { singleton } from "tsyringe";
 import {
   ProvableMethodExecutionContext,
@@ -98,6 +98,18 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    */
   public setup(input: RuntimeMethodExecutionData) {
     this.input = input;
+  }
+
+  public witnessInput(): RuntimeMethodExecutionDataStruct {
+    this.assertSetupCalled();
+    return Provable.witness(RuntimeMethodExecutionDataStruct, () => {
+      // TODO Is that right? Or this.current().input
+      const { transaction, networkState } = this.input!;
+      return new RuntimeMethodExecutionDataStruct({
+        networkState,
+        transaction,
+      });
+    });
   }
 
   public setSimulated(simulated: boolean) {

@@ -1,4 +1,4 @@
-import { Field, Struct } from "o1js";
+import { Bool, Field, ProvablePure, Struct } from "o1js";
 
 import { Option, ProvableOption } from "./Option";
 
@@ -44,7 +44,7 @@ export class StateTransition<Value> {
 
   public constructor(
     public path: Field,
-    public fromValue: Option<Field> | Option<Value>,
+    public fromValue: Option<Value>,
     public toValue: Option<Field> | Option<Value>
   ) {}
 
@@ -76,5 +76,13 @@ export class StateTransition<Value> {
       from: this.fromValue.toJSON(),
       to: this.toValue.toJSON(),
     };
+  }
+
+  public toConstant(): StateTransition<Value> {
+    return new StateTransition<Value>(
+      this.path.toConstant(),
+      this.fromValue.toConstant(),
+      this.toValue.toConstant()
+    );
   }
 }

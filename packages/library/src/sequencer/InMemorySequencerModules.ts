@@ -8,6 +8,7 @@ import {
   PrivateMempool,
   SequencerModulesRecord,
   UnprovenProducerModule,
+  SettlementModule,
 } from "@proto-kit/sequencer";
 
 export type InMemorySequencerModulesRecord = {
@@ -19,12 +20,13 @@ export type InMemorySequencerModulesRecord = {
   UnprovenProducerModule: typeof UnprovenProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
+  SettlementModule: typeof SettlementModule;
 };
 
 export class InMemorySequencerModules {
   public static with<SequencerModules extends SequencerModulesRecord>(
     additionalModules: SequencerModules
-  ): InMemorySequencerModulesRecord & SequencerModules {
+  ) {
     return {
       Database: InMemoryDatabase,
       Mempool: PrivateMempool,
@@ -34,7 +36,8 @@ export class InMemorySequencerModules {
       UnprovenProducerModule: UnprovenProducerModule,
       BlockTrigger: ManualBlockTrigger,
       TaskQueue: LocalTaskQueue,
+      SettlementModule: SettlementModule,
       ...additionalModules,
-    };
+    } satisfies InMemorySequencerModules;
   }
 }

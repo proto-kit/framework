@@ -4,11 +4,11 @@ import "reflect-metadata";
 import {
   DependencyContainer,
   Frequency,
-  injectable,
   InjectionToken,
   instancePerContainerCachingFactory,
   isClassProvider,
   isFactoryProvider,
+  isTokenProvider,
   isValueProvider,
   Lifecycle,
 } from "tsyringe";
@@ -28,14 +28,7 @@ import {
 } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
-import { EventEmitter } from "../events/EventEmitter";
-import {
-  EventEmittingComponent,
-  EventsRecord,
-} from "../events/EventEmittingComponent";
 import { EventEmitterProxy } from "../events/EventEmitterProxy";
-import { memoize } from "lodash";
-import { Memoize } from "typescript-memoize";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -115,6 +108,9 @@ export type RecursivePartial<T> = {
 export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   modules: Modules;
   // config is optional, as it may be provided by the parent/wrapper class
+  /**
+   * @deprecated
+   */
   config?: ModulesConfig<Modules>;
 }
 
@@ -155,9 +151,6 @@ export class ModuleContainer<
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
-    if (definition.config !== undefined) {
-      this.config = definition.config;
-    }
   }
 
   /**
@@ -207,10 +200,9 @@ export class ModuleContainer<
    * using e.g. a for loop.
    */
   public assertIsValidModuleName(
-    modules: Modules,
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    if (!this.isValidModuleName(modules, moduleName)) {
+    if (!this.isValidModuleName(this.definition.modules, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }
   }
@@ -240,7 +232,7 @@ export class ModuleContainer<
   protected registerModules(modules: Modules) {
     for (const moduleName in modules) {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-        this.assertIsValidModuleName(modules, moduleName);
+        this.assertIsValidModuleName(moduleName);
 
         log.debug(`Registering module: ${moduleName}`);
 
@@ -301,6 +293,14 @@ export class ModuleContainer<
     this.config = merge<
       ModulesConfig<Modules> | NoConfig,
       RecursivePartial<ModulesConfig<Modules>>
+    >(this.currentConfig ?? {}, config);
+  }
+
+  // eslint-disable-next-line accessor-pairs
+  public set config(config: ModulesConfig<Modules>) {
+    super.config = merge<
+      ModulesConfig<Modules> | NoConfig,
+      ModulesConfig<Modules>
     >(this.currentConfig ?? {}, config);
   }
 
@@ -402,6 +402,10 @@ export class ModuleContainer<
             ),
           });
         } else if (isClassProvider(declaration)) {
+          this.container.register(key, declaration, {
+            lifecycle: Lifecycle.Singleton,
+          });
+        } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,
           });

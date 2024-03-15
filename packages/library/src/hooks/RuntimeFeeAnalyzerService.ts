@@ -10,6 +10,8 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
   NetworkState,
+  UInt64Option,
+  PublicKeyOption,
 } from "@proto-kit/protocol";
 import {
   Field,
@@ -88,14 +90,17 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     context.setup({
       transaction: new RuntimeTransaction({
         methodId: Field(0),
-        nonce: O1JSUInt64.from(0),
-        sender: PublicKey.empty(),
+        nonce: UInt64Option.fromValue(O1JSUInt64.zero),
+        sender: PublicKeyOption.fromValue(PublicKey.empty()),
         argsHash: Field(0),
       }),
 
       networkState: new NetworkState({
         block: {
           height: O1JSUInt64.zero,
+        },
+        previous: {
+          rootHash: Field(0),
         },
       }),
     });

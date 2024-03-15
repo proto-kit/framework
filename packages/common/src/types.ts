@@ -1,4 +1,6 @@
 // allows to reference interfaces as 'classes' rather than instances
+import { Bool, Field, Group, PublicKey } from "o1js";
+
 export type TypedClass<Class> = new (...args: any[]) => Class;
 
 export type UnTypedClass = new (...args: any[]) => any;
@@ -30,10 +32,20 @@ export type UnionToIntersection<Union> = (
 export type MergeObjects<Input extends Record<string, unknown>> =
   UnionToIntersection<Input[keyof Input]>;
 
+export type OmitKeys<Record, Keys> = {
+  [Key in keyof Record as Key extends Keys ? never : Key]: Record[Key];
+};
+
+// Because Publickey.empty() is not usable in combination with real
+// cryptographic  operations because it's group evaluation isn't defined in Fp,
+// we use some other arbitrary point which we treat as "empty" in our circuits
+// other arbitrary point
+export const EMPTY_PUBLICKEY_X = Field(4600);
+export const EMPTY_PUBLICKEY = PublicKey.fromObject({
+  x: EMPTY_PUBLICKEY_X,
+  isOdd: Bool(true),
+});
+
 export type OverwriteObjectType<Base, New> = {
   [Key in keyof Base]: Key extends keyof New ? New[Key] : Base[Key];
-} & New;
-
-export type RemoveOverlap<Base, New> = {
-  [Key in keyof Base]: Key extends keyof New ? never : Base[Key];
 } & New;

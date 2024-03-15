@@ -10,6 +10,7 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
+import { SettlementProvingTask } from "../../settlement/tasks/SettlementProvingTask";
 import { TaskQueue } from "../queue/TaskQueue";
 import {
   BlockProvingTask,
@@ -20,6 +21,7 @@ import {
   StateTransitionTask,
 } from "../../protocol/production/tasks/StateTransitionTask";
 import { RuntimeProvingTask } from "../../protocol/production/tasks/RuntimeProvingTask";
+import { NewBlockTask } from "../../protocol/production/tasks/NewBlockTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 
@@ -39,6 +41,8 @@ export class LocalTaskWorkerModule extends SequencerModule {
     private readonly runtimeProvingTask: RuntimeProvingTask,
     private readonly blockProvingTask: BlockProvingTask,
     private readonly blockReductionTask: BlockReductionTask,
+    private readonly blockBuildingTask: NewBlockTask,
+    private readonly settlementProvingTask: SettlementProvingTask,
     @inject("Protocol")
     private readonly protocol: Protocol<
       MandatoryProtocolModulesRecord & ProtocolModulesRecord
@@ -54,6 +58,8 @@ export class LocalTaskWorkerModule extends SequencerModule {
       this.runtimeProvingTask,
       this.blockProvingTask,
       this.blockReductionTask,
+      this.blockBuildingTask,
+      this.settlementProvingTask,
     ]);
     worker
       .start()

@@ -16,6 +16,8 @@ const errors = {
 export abstract class UIntX<This extends UIntX<any>> extends Struct({
   value: Field,
 }) {
+  public abstract numBits(): number;
+
   protected static readonly assertionFunction: (
     bool: Bool,
     msg?: string
@@ -41,11 +43,10 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     return Field((1n << BigInt(numBits)) - 1n);
   }
 
-  public readonly NUM_BITS: number;
+  // public readonly NUM_BITS: number;
 
   protected constructor(
     value: Field,
-    bits: number,
     private readonly impls: {
       creator: (value: Field) => This;
       from: (value: Field | This | bigint | number | string) => This;
@@ -53,6 +54,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
   ) {
     super({ value });
 
+    const bits = this.numBits();
     if (bits % 16 !== 0) {
       throw errors.canOnlyCreateMultiplesOf16Bits();
     }
@@ -60,8 +62,6 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     if (bits === 256) {
       throw errors.usageWith256BitsForbidden();
     }
-
-    this.NUM_BITS = bits;
   }
 
   /**
@@ -108,11 +108,11 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     );
 
     UIntX.assertionFunction(
-      q.rangeCheckHelper(this.NUM_BITS).equals(q),
+      q.rangeCheckHelper(this.numBits()).equals(q),
       "Divison overflowing"
     );
 
-    if (this.NUM_BITS * 2 > 255) {
+    if (this.numBits() * 2 > 255) {
       // Prevents overflows over the finite field boundary for applicable uints
       divisor_.assertLessThan(x, "Divisor too large");
       q.assertLessThan(x, "Quotient too large");
@@ -123,7 +123,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     let r = x.sub(q.mul(divisor_)).seal();
 
     UIntX.assertionFunction(
-      r.rangeCheckHelper(this.NUM_BITS).equals(r),
+      r.rangeCheckHelper(this.numBits()).equals(r),
       "Divison overflowing, remainder"
     );
 
@@ -184,7 +184,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
 
     // Sqrt fits into (NUM_BITS / 2) bits
     sqrtField
-      .rangeCheckHelper(this.NUM_BITS)
+      .rangeCheckHelper(this.numBits())
       .assertEquals(sqrtField, "Sqrt output overflowing");
 
     // Range check included here?
@@ -196,12 +196,12 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     });
 
     rest
-      .rangeCheckHelper(this.NUM_BITS)
+      .rangeCheckHelper(this.numBits())
       .assertEquals(rest, "Sqrt rest output overflowing");
 
     const square = sqrtField.mul(sqrtField);
 
-    if (this.NUM_BITS * 2 > 255) {
+    if (this.numBits() * 2 > 255) {
       square.assertGreaterThan(sqrtField, "Sqrt result overflowing");
     }
 
@@ -248,13 +248,13 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     let yField = this.impls.from(y).value;
     let z = this.value.mul(yField);
 
-    if (this.NUM_BITS * 2 > 255) {
+    if (this.numBits() * 2 > 255) {
       // Only one should be enough
       z.assertGreaterThan(this.value, "Multiplication overflowing");
     }
 
     UIntX.assertionFunction(
-      z.rangeCheckHelper(this.NUM_BITS).equals(z),
+      z.rangeCheckHelper(this.numBits()).equals(z),
       "Multiplication overflowing"
     );
     return this.impls.creator(z);
@@ -266,7 +266,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
   public add(y: This | bigint | number) {
     let z = this.value.add(this.impls.from(y).value);
     UIntX.assertionFunction(
-      z.rangeCheckHelper(this.NUM_BITS).equals(z),
+      z.rangeCheckHelper(this.numBits()).equals(z),
       "Addition overflowing"
     );
     return this.impls.creator(z);
@@ -278,7 +278,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
   public sub(y: This | bigint | number) {
     let z = this.value.sub(this.impls.from(y).value);
     UIntX.assertionFunction(
-      z.rangeCheckHelper(this.NUM_BITS).equals(z),
+      z.rangeCheckHelper(this.numBits()).equals(z),
       "Subtraction overflow"
     );
     return this.impls.creator(z);
@@ -293,8 +293,8 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     }
     let xMinusY = this.value.sub(y.value).seal();
     let yMinusX = xMinusY.neg();
-    let xMinusYFits = xMinusY.rangeCheckHelper(this.NUM_BITS).equals(xMinusY);
-    let yMinusXFits = yMinusX.rangeCheckHelper(this.NUM_BITS).equals(yMinusX);
+    let yMinusXFits = yMinusX.rangeCheckHelper(this.numBits()).equals(yMinusX);
+    let xMinusYFits = xMinusY.rangeCheckHelper(this.numBits()).equals(xMinusY);
     UIntX.assertionFunction(xMinusYFits.or(yMinusXFits));
     // x <= y if y - x fits in 64 bits
     return yMinusXFits;
@@ -317,7 +317,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     }
     let yMinusX = y.value.sub(this.value).seal();
     UIntX.assertionFunction(
-      yMinusX.rangeCheckHelper(this.NUM_BITS).equals(yMinusX),
+      yMinusX.rangeCheckHelper(this.numBits()).equals(yMinusX),
       message
     );
   }
@@ -363,6 +363,20 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    */
   public assertGreaterThanOrEqual(y: This, message?: string) {
     y.assertLessThanOrEqual(this, message);
+  }
+
+  /**
+   * Checks if a {@link UIntX} is equal to another one.
+   */
+  public equals(y: This | bigint | number): Bool {
+    return this.impls.from(y).value.equals(this.value);
+  }
+
+  /**
+   * Asserts that a {@link UIntX} is equal to another one.
+   */
+  public assertEquals(y: This | bigint | number, message?: string) {
+    UIntX.assertionFunction(this.equals(y), message);
   }
 
   /**

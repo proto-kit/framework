@@ -4,9 +4,6 @@ import {
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
-  ProofTypes,
-  ToFieldableStatic,
-  ToJSONableStatic,
   TypedClass,
 } from "@proto-kit/common";
 import {
@@ -14,7 +11,7 @@ import {
   RuntimeModule,
   RuntimeModulesRecord,
   MethodIdResolver,
-  MethodIdFactory,
+  MethodParameterEncoder,
 } from "@proto-kit/module";
 import {
   NetworkStateQuery,
@@ -37,8 +34,10 @@ import {
   AccountStateHook,
   StateServiceProvider,
   MandatoryProtocolModulesRecord,
+  PublicKeyOption,
+  UInt64Option,
 } from "@proto-kit/protocol";
-import { Field, ProvableExtended, PublicKey, UInt64, Proof } from "o1js";
+import { Field, ProvableExtended, PublicKey, UInt64, Proof, Bool } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
@@ -195,12 +194,12 @@ export class AppChain<
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
-        this.resolveOrFail("Runtime", Runtime<RuntimeModules>),
+        this.runtime,
         queryTransportModule
       ),
 
       protocol: QueryBuilderFactory.fromProtocol(
-        this.resolveOrFail("Protocol", Protocol<ProtocolModules>),
+        this.protocol,
         queryTransportModule
       ),
 
@@ -232,14 +231,23 @@ export class AppChain<
 
     executionContext.setup({
       transaction: {
-        sender,
-        nonce: UInt64.from(options?.nonce ?? 0),
+        sender: new PublicKeyOption({
+          value: sender,
+          isSome: Bool(true),
+        }),
+        nonce: new UInt64Option({
+          isSome: Bool(true),
+          value: UInt64.from(options?.nonce ?? 0),
+        }),
         argsHash: Field(0),
       } as unknown as RuntimeTransaction,
 
       networkState: {
         block: {
           height: UInt64.from(0),
+        },
+        previous: {
+          rootHash: Field(0),
         },
       } as unknown as NetworkState,
     });
@@ -266,58 +274,25 @@ export class AppChain<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const runtimeModule = this.runtime.resolve(moduleName as any);
 
-    // find types of args for the runtime method thats being called
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const parameterTypes:
-      | ProofTypes[]
-      | ToFieldableStatic[]
-      | ToJSONableStatic[] = Reflect.getMetadata(
-      "design:paramtypes",
+    const encoder = MethodParameterEncoder.fromMethod(
       runtimeModule,
       methodName
     );
 
-    /**
-     * Use the type info obtained previously to convert
-     * the args passed to fields
-     */
-    const argsFields = args.flatMap((argument, index) => {
-      if (argument instanceof Proof) {
-        const argumentType = parameterTypes[index] as ProofTypes;
+    const { argsJSON, argsFields } = encoder.encode(args);
 
-        const publicOutputType = argumentType?.publicOutputType;
-
-        const publicInputType = argumentType?.publicInputType;
-
-        const inputFields =
-          publicInputType?.toFields(argument.publicInput) ?? [];
-
-        const outputFields =
-          publicOutputType?.toFields(argument.publicOutput) ?? [];
-
-        return [...inputFields, ...outputFields];
-      }
-
-      const argumentType = parameterTypes[index] as ToFieldableStatic;
-      return argumentType.toFields(argument);
-    });
-
-    const argsJSON = args.map((argument, index) => {
-      if (argument instanceof Proof) {
-        return JSON.stringify(argument.toJSON());
-      }
-
-      const argumentType = parameterTypes[index] as ToJSONableStatic;
-      return JSON.stringify(argumentType.toJSON(argument));
-    });
+    const retrieveNonce = async (publicKey: PublicKey) => {
+      const query = this.query.protocol as Query<
+        ProtocolModule<unknown>,
+        MandatoryProtocolModulesRecord
+      >;
+      const accountState = await query.AccountState.accountState.get(publicKey);
+      return accountState?.nonce;
+    };
 
     const nonce = options?.nonce
       ? UInt64.from(options.nonce)
-      : ((
-          await (this.query.protocol.AccountState as any).accountState.get(
-            sender
-          )
-        )?.nonce as UInt64 | undefined) ?? UInt64.from(0);
+      : (await retrieveNonce(sender)) ?? UInt64.from(0);
 
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
@@ -330,6 +305,7 @@ export class AppChain<
       argsJSON,
       nonce,
       sender,
+      isMessage: false,
     });
 
     const signer = this.container.resolve<Signer>("Signer");

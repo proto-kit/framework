@@ -1,7 +1,7 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   MethodIdResolver,
-  MethodParameterDecoder,
+  MethodParameterEncoder,
   Runtime,
 } from "@proto-kit/module";
 import {
@@ -59,11 +59,11 @@ export class RuntimeProvingTask
 
     const [moduleName, methodName] = methodDescriptors;
 
-    const parameterDecoder = MethodParameterDecoder.fromMethod(
+    const parameterEncoder = MethodParameterEncoder.fromMethod(
       this.runtime.resolve(moduleName),
       methodName
     );
-    const decodedArguments = parameterDecoder.fromJSON(input.tx.argsJSON);
+    const decodedArguments = parameterEncoder.decode(input.tx.argsJSON);
 
     const prefilledStateService = new PreFilledStateService(input.state);
     this.runtime.stateServiceProvider.setCurrentStateService(
@@ -71,12 +71,11 @@ export class RuntimeProvingTask
     );
 
     // Set network state and transaction for the runtimemodule to access
-    const transaction = RuntimeTransaction.fromProtocolTransaction(
-      input.tx.toProtocolTransaction()
-    );
+    const { transaction, signature } = input.tx.toProtocolTransaction();
     const contextInputs = {
       networkState: input.networkState,
       transaction,
+      signature,
     };
     this.executionContext.setup(contextInputs);
 

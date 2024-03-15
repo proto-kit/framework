@@ -127,7 +127,7 @@ export class Balances<Config = NoConfig>
     to: PublicKey,
     amount: Balance
   ) {
-    assert(this.transaction.sender.equals(from), errors.senderNotFrom());
+    assert(this.transaction.sender.value.equals(from), errors.senderNotFrom());
 
     this.transfer(tokenId, from, to, amount);
   }

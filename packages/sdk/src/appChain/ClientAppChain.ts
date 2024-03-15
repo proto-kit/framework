@@ -22,6 +22,7 @@ import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
 import { AuroSigner } from "../transaction/AuroSigner";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 import { container } from "tsyringe";
+import { PrivateKey } from "o1js";
 
 export class ClientAppChain<
   RuntimeModules extends RuntimeModulesRecord,
@@ -59,6 +60,31 @@ export class ClientAppChain<
     });
 
     appChain.configurePartial({
+      Protocol: {
+        BlockProver: {},
+        StateTransitionProver: {},
+        AccountState: {},
+        BlockHeight: {},
+        LastStateRoot: {},
+        TransactionFee: {
+          tokenId: 0n,
+          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          baseFee: 0n,
+          perWeightUnitFee: 1n,
+          methods: {
+            "Faucet.drip": {
+              baseFee: 0n,
+              weight: 0n,
+              perWeightUnitFee: 0n,
+            },
+          },
+        },
+      },
+
+      Signer: {},
+      TransactionSender: {},
+      QueryTransportModule: {},
+      NetworkStateTransportModule: {},
       GraphqlClient: {
         url: "http://127.0.0.1:8080/graphql",
       },
