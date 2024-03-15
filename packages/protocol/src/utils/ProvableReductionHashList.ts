@@ -1,8 +1,14 @@
-import { Bool, Field, Poseidon, Provable } from "o1js";
+import { Bool, Field, Poseidon, Provable, ProvablePure } from "o1js";
 
 import { ProvableHashList } from "./ProvableHashList";
+import { NonMethods } from "./utils";
 
-export class ProvableReductionHashList<Value> extends ProvableHashList<Value> {
+export class ProvableReductionHashList<Value>{
+  public constructor(
+    protected readonly valueType: ProvablePure<Value>,
+    public commitment: Field = Field(0)
+  ) {}
+
   public unconstrainedList: Value[] = [];
 
   private constrainedLastValue: Value | undefined = undefined;
@@ -64,5 +70,9 @@ export class ProvableReductionHashList<Value> extends ProvableHashList<Value> {
 
   public hash(elements: Field[]): Field {
     return Poseidon.hash(elements);
+  }
+
+  public getUnconstrainedValues(): NonMethods<Value>[] {
+    return this.unconstrainedList;
   }
 }

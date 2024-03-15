@@ -73,3 +73,8 @@ export function singleFieldToString(value: Field | bigint): string {
   }
   return fieldValue.toString();
 }
+
+type NonMethodKeys<T> = {
+  [K in keyof T]: T[K] extends Function ? never : K;
+}[keyof T];
+export type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
