@@ -296,6 +296,10 @@ export class ModuleContainer<
     >(this.currentConfig ?? {}, config);
   }
 
+  public get config() {
+    return super.config;
+  }
+
   // eslint-disable-next-line accessor-pairs
   public set config(config: ModulesConfig<Modules>) {
     super.config = merge<
