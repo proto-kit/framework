@@ -1,81 +1,52 @@
 // eslint-disable-next-line max-len
-/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects,max-lines */
-import "reflect-metadata";
-// eslint-disable-next-line no-warning-comments
-// TODO this is actually a big issue
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { AppChain } from "@proto-kit/sdk";
+import { log, range } from "@proto-kit/common";
 import {
-  Runtime,
-  MethodIdResolver,
-  MethodParameterEncoder,
-} from "@proto-kit/module";
+  VanillaProtocolModules,
+  VanillaProtocolModulesRecord,
+} from "@proto-kit/library";
+import { Runtime } from "@proto-kit/module";
 import {
   AccountState,
   AccountStateHook,
   BlockHeightHook,
   BlockProver,
+  LastStateRootBlockHook,
   MandatoryProtocolModulesRecord,
-  NetworkState,
-  Option,
   Path,
   Protocol,
-  ReturnType,
-  StateTransition,
   StateTransitionProver,
 } from "@proto-kit/protocol";
-import {
-  VanillaProtocolModules,
-  VanillaProtocolModulesRecord,
-} from "@proto-kit/library";
+// eslint-disable-next-line no-warning-comments
+// TODO this is actually a big issue
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { AppChain } from "@proto-kit/sdk";
 
-import {
-  Bool,
-  Field,
-  PrivateKey,
-  ProvableExtended,
-  PublicKey,
-  UInt64,
-} from "o1js";
-import {
-  ArgumentTypes,
-  log,
-  range,
-  ToFieldableStatic,
-  ToJSONableStatic,
-} from "@proto-kit/common";
-
-import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
-import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
-import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
-import { Sequencer } from "../../src/sequencer/executor/Sequencer";
+import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects,max-lines */
+import "reflect-metadata";
+import { container } from "tsyringe";
 import {
   AsyncStateService,
-  BlockProducerModule,
   BlockStorage,
   HistoricalBlockStorage,
-  InMemoryDatabase,
   ManualBlockTrigger,
 } from "../../src";
-import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
-import { Balance } from "./mocks/Balance";
-import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
-import { UnprovenProducerModule } from "../../src/protocol/production/unproven/UnprovenProducerModule";
-import { container } from "tsyringe";
+import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
+import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
 } from "../TestingSequencer";
+
+import { Balance } from "./mocks/Balance";
 import { createTransaction } from "./utils";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
-  let protocol: Protocol<
-    MandatoryProtocolModulesRecord & VanillaProtocolModulesRecord
-  >;
+  let protocol: Protocol<MandatoryProtocolModulesRecord>;
 
   let appChain: AppChain<any, any, any, any>;
 
@@ -99,8 +70,9 @@ describe("block production", () => {
 
     const sequencerClass = testingSequencerFromModules({});
 
+    // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.with({}),
+      modules: VanillaProtocolModules.mandatoryModules(),
     });
 
     const app = AppChain.from({
@@ -117,7 +89,9 @@ describe("block production", () => {
         Mempool: {},
         BlockProducerModule: {},
         UnprovenProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: {
+
+        },
         BaseLayer: {},
         TaskQueue: {},
       },

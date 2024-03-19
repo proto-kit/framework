@@ -114,24 +114,21 @@ export class BlockProducerModule extends SequencerModule {
 
     const height = await this.blockStorage.getCurrentBlockHeight();
 
-    const blockMetadata = await this.tryProduceBlock(unprovenBlocks, height);
+    const blockWithStateDiff = await this.tryProduceBlock(unprovenBlocks, height);
 
-    if (blockMetadata !== undefined) {
+    if (blockWithStateDiff !== undefined) {
       log.info(
-        `Batch produced (${blockMetadata.block.bundles.length} bundles, ${
-          blockMetadata.block.bundles.flat(1).length
+        `Batch produced (${blockWithStateDiff.block.bundles.length} bundles, ${
+          blockWithStateDiff.block.bundles.flat(1).length
         } txs)`
       );
       // Apply state changes to current StateService
       await this.applyStateChanges(
         unprovenBlocks.map((data) => data.block.block),
-        blockMetadata
+        blockWithStateDiff
       );
-
-      // Mock for now
-      await this.blockStorage.pushBlock(blockMetadata.block);
     }
-    return blockMetadata?.block;
+    return blockWithStateDiff?.block;
   }
 
   public async start(): Promise<void> {

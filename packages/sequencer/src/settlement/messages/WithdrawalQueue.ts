@@ -6,17 +6,11 @@ import {
 } from "@proto-kit/module";
 import { Path, Withdrawal } from "@proto-kit/protocol";
 import { Field } from "o1js";
-import type {
-  BlockTriggerBase
-} from "../../protocol/production/trigger/BlockTrigger";
 
-import { UnprovenProducerModule } from "../../protocol/production/unproven/UnprovenProducerModule";
-import { SequencerModule } from "../../sequencer/builder/SequencerModule";
+import type { BlockTriggerBase } from "../../protocol/production/trigger/BlockTrigger";
 import type { SettlementModule } from "../SettlementModule";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-} from "../../sequencer/executor/Sequencer";
+import { SequencerModule } from "../../sequencer/builder/SequencerModule";
+import { Sequencer } from "../../sequencer/executor/Sequencer";
 import { UnprovenBlock } from "../../storage/model/UnprovenBlock";
 
 export interface OutgoingMessage<Type> {
@@ -52,12 +46,13 @@ export class WithdrawalQueue
   private currentIndex = 0;
 
   public constructor(
-    @inject("BlockTrigger")
-    private readonly blockTrigger: BlockTriggerBase,
     @inject("Runtime")
     private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Sequencer")
-    private readonly sequencer: Sequencer<SequencerModulesRecord>
+    private readonly sequencer: Sequencer<{
+      BlockTrigger: typeof BlockTriggerBase;
+      SettlementModule: typeof SettlementModule;
+    }>
   ) {
     super();
   }
@@ -103,7 +98,7 @@ export class WithdrawalQueue
       );
     }
 
-    this.blockTrigger.events.on("block-produced", (block) => {
+    this.sequencer.events.on("block-produced", (block) => {
       this.lockedQueue.push(block);
     });
 

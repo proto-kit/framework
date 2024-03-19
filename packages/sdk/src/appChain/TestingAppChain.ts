@@ -3,6 +3,7 @@ import {
   MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
+  SettlementContractModule,
 } from "@proto-kit/protocol";
 import {
   VanillaRuntimeModules,
@@ -114,15 +115,18 @@ export class TestingAppChain<
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: {
+          StateTransitionTask: {},
+          RuntimeProvingTask: {},
+          StateTransitionReductionTask: {},
+          BlockReductionTask: {},
+          BlockProvingTask: {},
+          BlockBuildingTask: {},
+        },
         BaseLayer: {},
         UnprovenProducerModule: {},
         TaskQueue: {
           simulatedDuration: 0,
-        },
-        SettlementModule: {
-          feepayer: PrivateKey.random(),
-          address: PrivateKey.random().toPublicKey(),
         },
       },
       Signer: {
