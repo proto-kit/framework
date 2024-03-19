@@ -1,15 +1,12 @@
 /* eslint-disable max-statements */
-import {
-  Bool,
-  Field,
-  Poseidon,
-} from "o1js";
+import { Bool, Field, Poseidon } from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
+  RuntimeMethodExecutionDataStruct,
   SignedTransaction,
   StateTransitionReductionList,
 } from "@proto-kit/protocol";
@@ -26,6 +23,8 @@ import {
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
+import { MethodIdResolver } from "../runtime/MethodIdResolver";
+import { state } from "../state/decorator.js";
 import { MethodParameterEncoder } from "./MethodParameterEncoder";
 
 const errors = {
@@ -70,7 +69,6 @@ export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
   moduleMethod: (...args: ArgumentTypes) => unknown,
-  methodArguments: ArgumentTypes,
   options: {
     invocationType: RuntimeMethodInvocationType;
   }
@@ -83,14 +81,11 @@ export function toWrappedMethod(
     Reflect.apply(moduleMethod, this, args);
     const {
       result: { stateTransitions, status },
-      input,
     } = executionContext.current();
 
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
 
-    if (input === undefined) {
-      throw errors.methodInputsNotProvided();
-    }
+    const input = this.getInputs();
 
     const { name, runtime } = this;
 
@@ -125,11 +120,11 @@ export function toWrappedMethod(
     ).encode(args);
 
     // Assert that the argsHash that has been signed matches the given arguments
-    // We can use js-if here, because methodArguments is statically sizes
+    // We can use js-if here, because args are statically sized
     // i.e. the result of the if-statement will be the same for all executions
     // of this method
     const argsHash =
-      methodArguments.length > 0 ? Poseidon.hash(argsFields) : Field(0);
+      (args ?? []).length > 0 ? Poseidon.hash(argsFields) : Field(0);
 
     transaction.argsHash.assertEquals(
       argsHash,
@@ -229,7 +224,7 @@ function runtimeMethodInternal(options: {
       this: RuntimeModule<unknown>,
       ...args: ArgumentTypes
     ) {
-      const constructorName = this.constructor.name;
+      const constructorName = this.name!;
 
       /**
        * If its a top level method call, wrap it into a wrapped method,
@@ -241,7 +236,6 @@ function runtimeMethodInternal(options: {
       const simulatedWrappedMethod = Reflect.apply(toWrappedMethod, this, [
         methodName,
         simulatedMethod,
-        args,
         options,
       ]);
 

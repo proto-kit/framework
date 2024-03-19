@@ -39,9 +39,7 @@ export class Balances extends RuntimeModule<object> {
 }
 
 const appChain = LocalhostAppChain.fromRuntime({
-  modules: {
-    Balances,
-  },
+  Balances,
 });
 
 appChain.configurePartial({

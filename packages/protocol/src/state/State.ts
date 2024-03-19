@@ -72,7 +72,8 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       .current().result;
 
     // First try to find a match inside already created stateTransitions
-    const previousMutatingTransitions = stateTransitions.filter((transition) =>
+    let previousMutatingTransitions: StateTransition<any>[] = [];
+    previousMutatingTransitions = stateTransitions.filter((transition) =>
       transition.path.equals(path).and(transition.to.isSome).toBoolean()
     );
     const pmtLength = previousMutatingTransitions.length;

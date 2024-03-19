@@ -1,5 +1,6 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
+  MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolConstants,
   ProtocolModulesRecord,
@@ -39,7 +40,9 @@ export class StateTransitionTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
@@ -112,7 +115,9 @@ export class StateTransitionReductionTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {

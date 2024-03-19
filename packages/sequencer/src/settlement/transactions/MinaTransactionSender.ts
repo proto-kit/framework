@@ -26,7 +26,9 @@ export class MinaTransactionSender {
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
   ) {}
 
-  private async trySendCached(tx: Mina.Transaction): Promise<Mina.TransactionId | undefined> {
+  private async trySendCached(
+    tx: Mina.Transaction
+  ): Promise<Mina.TransactionId | undefined> {
     const feePayer = tx.transaction.feePayer.body;
     const sender = feePayer.publicKey.toBase58();
     const senderQueue = this.txQueue[sender];
@@ -80,8 +82,6 @@ export class MinaTransactionSender {
 
     await this.simulator.applyTransaction(transaction);
 
-    console.log("Starting proving for Transaction")
-
     const resultPromise = flow.withFlow<TransactionTaskResult>(
       async (resolve, reject) => {
         await flow.pushTask(
@@ -102,7 +102,5 @@ export class MinaTransactionSender {
 
     const result = await resultPromise;
     await this.sendOrQueue(result.transaction);
-
-    console.log("Sent Transaction")
   }
 }

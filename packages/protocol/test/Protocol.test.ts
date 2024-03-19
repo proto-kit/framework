@@ -3,12 +3,14 @@ import { Protocol, VanillaProtocol } from "../src/protocol/Protocol";
 import { beforeEach } from "@jest/globals";
 import { BlockProver } from "../src/prover/block/BlockProver";
 import { StateTransitionProver } from "../src/prover/statetransition/StateTransitionProver";
-import { NoOpStateTransitionWitnessProvider, ProvableTransactionHook } from "../src";
-import { AccountStateModule } from "../src/blockmodules/AccountStateModule";
+import {
+  NoOpStateTransitionWitnessProvider,
+  ProvableTransactionHook,
+} from "../src";
+import { AccountStateHook } from "../src/blockmodules/AccountStateHook";
 
 describe("protocol", () => {
-  beforeEach(() => {
-  });
+  beforeEach(() => {});
 
   it("should resolve all provers correctly", async () => {
     expect.assertions(2);
@@ -16,8 +18,8 @@ describe("protocol", () => {
     const protocol = VanillaProtocol.create();
 
     protocol.dependencyContainer.register("StateTransitionWitnessProvider", {
-      useValue: new NoOpStateTransitionWitnessProvider()
-    })
+      useValue: new NoOpStateTransitionWitnessProvider(),
+    });
 
     expect(protocol.blockProver instanceof BlockProver).toBe(true);
     expect(
@@ -32,13 +34,16 @@ describe("protocol", () => {
       modules: {
         BlockProver,
         StateTransitionProver,
-        AccountStateModule,
+        AccountStateHook,
       },
     });
 
-    const hooks = protocol.dependencyContainer.resolveAll<ProvableTransactionHook>("ProvableTransactionHook")
+    const hooks =
+      protocol.dependencyContainer.resolveAll<ProvableTransactionHook>(
+        "ProvableTransactionHook"
+      );
 
     expect(hooks).toHaveLength(1);
-    expect(hooks[0].name).toBe("AccountStateModule");
-  })
+    expect(hooks[0].name).toBe("AccountStateHook");
+  });
 });

@@ -36,6 +36,7 @@
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
+    "@proto-kit/library": "*",
     "o1js": "0.13.1"
   },
   "devDependencies": {
@@ -46,6 +47,7 @@
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
+    "@proto-kit/library": "*",
     "@types/figlet": "^1.5.7",
     "@types/ink": "^2.0.3",
     "@types/node": "^20.8.10",

@@ -15,6 +15,7 @@
     "alwaysStrict": true,
     "declarationMap": true,
     "strictFunctionTypes": true,
+    "strictBindCallApply": true,
     "baseUrl": "."
   },
   "exclude": ["jest.config.cjs"]

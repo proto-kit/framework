@@ -10,6 +10,7 @@ import {
   StateTransitionProof,
   StateTransitionProvable,
   BlockHashMerkleTreeWitness,
+  MandatoryProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -52,7 +53,7 @@ export class NewBlockTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {

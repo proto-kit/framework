@@ -1,6 +1,12 @@
 /* eslint-disable import/no-unused-modules */
 /* eslint-disable max-classes-per-file */
 import {
+  EventEmitter,
+  EventEmittingComponent,
+  EventsRecord,
+  NoConfig,
+} from "@proto-kit/common";
+import {
   RuntimeModule,
   runtimeMethod,
   state,
@@ -25,8 +31,25 @@ export class BalancesKey extends Struct({
 
 export class Balance extends UInt64 {}
 
+export interface BalancesEvents extends EventsRecord {
+  setBalance: [BalancesKey, Balance];
+}
+
+export type MinimalBalances = {
+  balances: StateMap<BalancesKey, Balance>;
+  transfer: (
+    tokenId: TokenId,
+    from: PublicKey,
+    to: PublicKey,
+    amount: Balance
+  ) => void;
+};
+
 @runtimeModule()
-export class Balances extends RuntimeModule<unknown> {
+export class Balances<Config = NoConfig>
+  extends RuntimeModule<Config>
+  implements MinimalBalances
+{
   @state() public balances = StateMap.from<BalancesKey, Balance>(
     BalancesKey,
     Balance
@@ -78,10 +101,22 @@ export class Balances extends RuntimeModule<unknown> {
     this.setBalance(tokenId, to, newToBalance);
   }
 
-  @runtimeMethod()
   public mint(tokenId: TokenId, address: PublicKey, amount: Balance) {
     const balance = this.getBalance(tokenId, address);
     const newBalance = balance.add(amount);
+    this.setBalance(tokenId, address, newBalance);
+  }
+
+  public burn(tokenId: TokenId, address: PublicKey, amount: Balance) {
+    const balance = this.getBalance(tokenId, address);
+    // replace with library/uint64
+    const paddedBalance = Provable.if<Balance>(
+      balance.greaterThanOrEqual(amount),
+      Balance,
+      balance,
+      balance.add(amount)
+    );
+    const newBalance = paddedBalance.sub(amount);
     this.setBalance(tokenId, address, newBalance);
   }
 

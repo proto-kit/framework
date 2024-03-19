@@ -11,7 +11,11 @@ import {
   RuntimeModulesRecord,
   MethodIdFactory,
 } from "@proto-kit/module";
-import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
+import {
+  MandatoryProtocolModulesRecord,
+  Protocol,
+  ProtocolModulesRecord,
+} from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
@@ -46,8 +50,12 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     return this.container.resolve<Runtime<RuntimeModulesRecord>>("Runtime");
   }
 
-  public get protocol(): Protocol<ProtocolModulesRecord> {
-    return this.container.resolve<Protocol<ProtocolModulesRecord>>("Protocol");
+  public get protocol(): Protocol<
+    MandatoryProtocolModulesRecord & ProtocolModulesRecord
+  > {
+    return this.container.resolve<
+      Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>
+    >("Protocol");
   }
 
   public get dependencyContainer(): DependencyContainer {
@@ -73,6 +81,8 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // witnessProviderReference.setWitnessProvider(witnessProvider);
 
     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+
+    const protocol = this.protocol;
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(
