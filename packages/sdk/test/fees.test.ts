@@ -27,7 +27,7 @@ class Faucet extends RuntimeModule<unknown> {
   public drip() {
     this.balances.mint(
       new TokenId(0),
-      this.transaction.sender,
+      this.transaction.sender.value,
       UInt64.from(1000)
     );
   }
@@ -41,7 +41,7 @@ class Pit extends RuntimeModule<unknown> {
 
   @runtimeMethod()
   public burn(amount: UInt64) {
-    this.balances.burn(new TokenId(0), this.transaction.sender, amount);
+    this.balances.burn(new TokenId(0), this.transaction.sender.value, amount);
   }
 }
 

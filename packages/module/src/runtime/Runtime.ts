@@ -22,6 +22,7 @@ import {
 import {
   combineMethodName,
   isRuntimeMethod,
+  runtimeMethodTypeMetadataKey,
   toWrappedMethod,
   WrappedMethod,
 } from "../method/runtimeMethod";
@@ -128,10 +129,16 @@ export class RuntimeZkProgrammable<
                 methodName
               );
               const method = modulePrototype[methodName];
+              const invocationType = Reflect.getMetadata(
+                runtimeMethodTypeMetadataKey,
+                runtimeModule,
+                methodName
+              );
+
               const wrappedMethod = Reflect.apply(
                 toWrappedMethod,
                 runtimeModule,
-                [methodName, method]
+                [methodName, method, { invocationType }]
               );
 
               // eslint-disable-next-line no-warning-comments

@@ -149,9 +149,4 @@ export class TestingAppChain<
 
     return await blockTrigger.produceUnproven();
   }
-
-  public async start() {
-    log.setLevel("ERROR");
-    super.start();
-  }
 }

@@ -1,4 +1,4 @@
-import { Bool, PrivateKey, UInt64 } from "o1js";
+import { Bool, PrivateKey, Provable, UInt64 } from "o1js";
 import {
   PublicKeyOption,
   RuntimeMethodExecutionContext,
