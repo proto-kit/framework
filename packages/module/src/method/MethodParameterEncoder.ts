@@ -1,5 +1,11 @@
 /* eslint-disable no-underscore-dangle */
-import { Field, FlexibleProvable, Proof, ProvableExtended } from "o1js";
+import {
+  Field,
+  FlexibleProvable,
+  Proof,
+  Provable,
+  ProvableExtended,
+} from "o1js";
 import {
   ArgumentTypes,
   ProofTypes,
@@ -127,13 +133,16 @@ export class MethodParameterEncoder {
   } {
     const argsFields = this.encodeAsFields(args);
 
-    const argsJSON = args.map((argument, index) => {
-      if (argument instanceof Proof) {
-        return JSON.stringify(argument.toJSON());
-      }
+    let argsJSON: string[] = [];
+    Provable.asProver(() => {
+      argsJSON = args.map((argument, index) => {
+        if (argument instanceof Proof) {
+          return JSON.stringify(argument.toJSON());
+        }
 
-      const argumentType = this.types[index] as ToJSONableStatic;
-      return JSON.stringify(argumentType.toJSON(argument));
+        const argumentType = this.types[index] as ToJSONableStatic;
+        return JSON.stringify(argumentType.toJSON(argument));
+      });
     });
 
     return {

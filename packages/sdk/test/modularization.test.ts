@@ -11,6 +11,7 @@ import { AppChain, AppChainModule } from "../src";
 import { Protocol, ProtocolModule } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
+import { PrivateKey } from "o1js";
 
 class TestRuntimeModule extends RuntimeModule<object> {
   public initialized = false;
@@ -80,12 +81,19 @@ describe("modularization", () => {
         TestRuntimeModule: {},
       },
       Protocol: {
-        TestProtocolModule: {},
+        AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
-        AccountState: {},
         BlockHeight: {},
-        TransactionFee: {} as any,
+        LastStateRoot: {},
+        TransactionFee: {
+          tokenId: 0n,
+          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          baseFee: 0n,
+          perWeightUnitFee: 0n,
+          methods: {},
+        },
+        TestProtocolModule: {},
       },
       Sequencer: {
         TestSequencerModule: {},

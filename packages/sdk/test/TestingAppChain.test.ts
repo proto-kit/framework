@@ -1,6 +1,6 @@
 /* eslint-disable max-statements */
 import "reflect-metadata";
-import { PrivateKey, PublicKey, UInt64 } from "o1js";
+import { PrivateKey, Provable, PublicKey, UInt64 } from "o1js";
 import {
   runtimeMethod,
   RuntimeModule,
@@ -17,6 +17,7 @@ import {
   TokenId,
   VanillaRuntimeModules,
 } from "@proto-kit/library";
+import { log } from "@proto-kit/common";
 
 export interface AdminConfig {
   admin: PublicKey;
@@ -125,6 +126,8 @@ describe("testing app chain", () => {
     // start the chain, sequencer is now accepting transactions
     await appChain.start();
 
+    log.setLevel("INFO");
+
     /**
      *  Setup the transaction signer / sender
      */
@@ -148,9 +151,9 @@ describe("testing app chain", () => {
      */
     const block = await appChain.produceBlock();
 
-    expect(block?.transactions[0].status.toBoolean()).toBe(true);
+    Provable.log("block", block);
 
-    appChain.query.runtime.Balances;
+    expect(block?.transactions[0].status.toBoolean()).toBe(true);
 
     /**
      * Observe new state after the block has been produced

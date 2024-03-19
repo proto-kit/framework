@@ -271,7 +271,7 @@ export class TransactionExecutionService {
         }
       } catch (error) {
         if (error instanceof Error) {
-          log.info("Error in inclusion of tx, skipping", error);
+          log.error("Error in inclusion of tx, skipping", error);
         }
       }
     }
