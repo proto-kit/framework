@@ -20,6 +20,7 @@ import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
+import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 import { CompileRegistry } from "./CompileRegistry";
@@ -43,6 +44,7 @@ export type NewBlockProvingParameters = PairingDerivedInput<
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class NewBlockTask
+  extends TaskWorkerModule
   implements Task<NewBlockProvingParameters, BlockProof>
 {
   private readonly stateTransitionProver: StateTransitionProvable;
@@ -57,6 +59,7 @@ export class NewBlockTask
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.stateTransitionProver = protocol.stateTransitionProver;
     this.blockProver = this.protocol.blockProver;
   }

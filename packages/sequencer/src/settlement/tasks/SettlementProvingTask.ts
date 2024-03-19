@@ -16,6 +16,7 @@ import { ProofTaskSerializer } from "../../helpers/utils";
 import { CompileRegistry } from "../../protocol/production/tasks/CompileRegistry";
 import { Task } from "../../worker/flow/Task";
 import { TaskSerializer } from "../../worker/manager/ReducableTask";
+import { TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
 
 type Account = ReturnType<typeof Mina.getAccount>;
 
@@ -42,6 +43,7 @@ export type TransactionTaskResult = {
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class SettlementProvingTask
+  extends TaskWorkerModule
   implements Task<TransactionTaskArgs, TransactionTaskResult>
 {
   public name = "settlementTransactions";
@@ -53,6 +55,7 @@ export class SettlementProvingTask
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.settlementContractModule = this.protocol.dependencyContainer.resolve<
       SettlementContractModule<MandatorySettlementModulesRecord>
     >("SettlementContractModule");
