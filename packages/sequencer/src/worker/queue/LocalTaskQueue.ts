@@ -19,16 +19,21 @@ export interface LocalTaskQueueConfig {
   simulatedDuration?: number;
 }
 
-export class LocalTaskQueue extends SequencerModule<LocalTaskQueueConfig> implements TaskQueue {
+export class LocalTaskQueue
+  extends SequencerModule<LocalTaskQueueConfig>
+  implements TaskQueue
+{
   private queues: {
     [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
 
   private workers: {
-    [key: string]: {
-      busy: boolean;
-      handler: (data: TaskPayload) => Promise<TaskPayload>;
-    };
+    [key: string]:
+      | {
+          busy: boolean;
+          handler: (data: TaskPayload) => Promise<TaskPayload>;
+        }
+      | undefined;
   } = {};
 
   private readonly listeners: {
@@ -44,16 +49,18 @@ export class LocalTaskQueue extends SequencerModule<LocalTaskQueueConfig> implem
           // Execute task in worker
           // eslint-disable-next-line max-len
           // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
-          void this.workers[queueName].handler(task.payload).then((payload) => {
-            log.trace("LocalTaskQueue got", JSON.stringify(payload));
-            // Notify listeners about result
-            const listenerPromises = this.listeners[queueName].map(
-              async (listener) => {
-                await listener(payload);
-              }
-            );
-            void Promise.all(listenerPromises);
-          });
+          void this.workers[queueName]
+            ?.handler(task.payload)
+            .then((payload) => {
+              log.trace("LocalTaskQueue got", JSON.stringify(payload));
+              // Notify listeners about result
+              const listenerPromises = this.listeners[queueName].map(
+                async (listener) => {
+                  await listener(payload);
+                }
+              );
+              void Promise.all(listenerPromises);
+            });
         });
       }
 
