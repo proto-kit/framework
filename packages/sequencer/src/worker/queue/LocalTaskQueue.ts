@@ -37,7 +37,7 @@ export class LocalTaskQueue
   } = {};
 
   private readonly listeners: {
-    [key: string]: QueueListener[];
+    [key: string]: QueueListener[] | undefined;
   } = {};
 
   private workNextTasks() {
@@ -54,12 +54,12 @@ export class LocalTaskQueue
             .then((payload) => {
               log.trace("LocalTaskQueue got", JSON.stringify(payload));
               // Notify listeners about result
-              const listenerPromises = this.listeners[queueName].map(
+              const listenerPromises = this.listeners[queueName]?.map(
                 async (listener) => {
                   await listener(payload);
                 }
               );
-              void Promise.all(listenerPromises);
+              void Promise.all(listenerPromises || []);
             });
         });
       }
