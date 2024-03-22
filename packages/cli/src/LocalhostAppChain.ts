@@ -108,13 +108,9 @@ export class LocalhostAppChain<
 
         Mempool: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
         BlockTrigger: {},
-        SettlementModule: {
-          feepayer: PrivateKey.random(),
-        },
       },
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
