@@ -10,8 +10,7 @@
     "lint": "eslint ./src ./test",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./src/** ./test/**",
-    "test:watch": "npm run test:file -- ./src/** ./test/** --watch",
-    "graphql": "cd ../api && npm run build && cd ../sdk && npm run test:file -- test/graphql/run-graphql.test.ts"
+    "test:watch": "npm run test:file -- ./src/** ./test/** --watch"
   },
   "main": "dist/index.js",
   "publishConfig": {
@@ -28,7 +27,6 @@
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
-    "@proto-kit/api": "*",
     "@proto-kit/library": "*",
     "reflect-metadata": "^0.1.13",
     "o1js": "0.13.1",

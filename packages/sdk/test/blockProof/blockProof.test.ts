@@ -1,5 +1,8 @@
-import { Bool, PrivateKey, Provable, UInt64 } from "o1js";
+import { expectDefined } from "@proto-kit/sequencer/test/integration/utils";
+import { Bool, Field, PrivateKey, Provable, UInt64 } from "o1js";
 import {
+  BlockProverPublicOutput,
+  ProvableTransactionHook,
   PublicKeyOption,
   RuntimeMethodExecutionContext,
   StateServiceProvider,
@@ -68,16 +71,20 @@ describe("blockProof", () => {
 
     // eslint-disable-next-line max-len
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/consistent-type-assertions
-    appChain.protocol.resolve("AccountState").onTransaction({
-      transaction: {
-        sender: new PublicKeyOption({
-          isSome: Bool(true),
-          value: alice,
-        }),
-        nonce: UInt64.from(0),
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    appChain.protocol.dependencyContainer
+      .resolveAll<ProvableTransactionHook>("ProvableTransactionHook")
+      .map((hook) => {
+        hook.onTransaction({
+          transaction: {
+            sender: new PublicKeyOption({
+              isSome: Bool(true),
+              value: alice,
+            }),
+            nonce: UInt64.from(0),
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
+      });
 
     const protocolSTs = context.current().result.stateTransitions;
 
@@ -97,9 +104,12 @@ describe("blockProof", () => {
     );
     const provenBlock = await trigger.produceProven();
 
-    expect(provenBlock?.proof.publicOutput.stateRoot.toBigInt()).toBe(
-      tree.getRoot().toBigInt()
+    expectDefined(provenBlock);
+    const publicOutput = BlockProverPublicOutput.fromFields(
+      provenBlock.proof.publicOutput.map((x) => Field(x))
     );
+
+    expect(publicOutput.stateRoot.toBigInt()).toBe(tree.getRoot().toBigInt());
 
     const aliceBalance = await appChain.query.runtime.Balances.balances.get(
       new BalancesKey({

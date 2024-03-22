@@ -14,6 +14,7 @@ import {
 import { Field, Provable, PublicKey, UInt64 as O1JSUInt64 } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
+import { Balance, TokenId } from "../runtime/Balances";
 
 import {
   MethodFeeConfigData,
@@ -21,9 +22,7 @@ import {
   RuntimeFeeAnalyzerServiceConfig,
 } from "./RuntimeFeeAnalyzerService";
 
-export class TokenId extends Field {}
-export class Balance extends UInt64 {}
-export interface Balances {
+interface Balances {
   transfer: (
     tokenId: TokenId,
     from: PublicKey,
@@ -36,7 +35,7 @@ export interface Balances {
 export interface TransactionFeeHookConfig
   extends RuntimeFeeAnalyzerServiceConfig {}
 
-export const errors = {
+const errors = {
   invalidFeeTreeRoot: () =>
     "Root hash of the provided fee config witness is invalid",
 

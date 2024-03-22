@@ -1,6 +1,4 @@
 import {
-  ChildContainerProvider,
-  ConfigurableModule,
   log,
   ModuleContainer,
   ModulesConfig,
@@ -32,6 +30,11 @@ import {
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
+
+// Temporary workaround against the compiler emitting
+// import("common/dist") inside the library artifacts
+// which leads to error in consuming packages (namely stack)
+export { TypedClass }
 
 export type TaskWorkerModulesRecord = ModulesRecord<
   // TODO any -> unknown

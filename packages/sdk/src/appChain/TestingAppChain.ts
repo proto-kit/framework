@@ -25,9 +25,6 @@ import {
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
 import {
-  log,
-  MergeObjects,
-  OverwriteObjectType,
   TypedClass,
 } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
@@ -38,7 +35,6 @@ import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSen
 import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
 
 import { AppChain, AppChainModulesRecord } from "./AppChain";
-import { SettlementModule } from "@proto-kit/sequencer";
 
 export type TestingSequencerModulesRecord = {
   Database: typeof InMemoryDatabase;

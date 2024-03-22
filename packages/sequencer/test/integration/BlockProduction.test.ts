@@ -72,7 +72,7 @@ describe("block production", () => {
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules(),
+      modules: VanillaProtocolModules.mandatoryModules({}),
     });
 
     const app = AppChain.from({
