@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import { Bool, Field, Poseidon } from "o1js";
 
 import { Option } from "../../src";
