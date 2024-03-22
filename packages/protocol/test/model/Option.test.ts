@@ -1,6 +1,6 @@
 import { Bool, Field, Poseidon } from "o1js";
 
-import { Option } from "./Option";
+import { Option } from "../../src";
 
 describe("option", () => {
   it.each([

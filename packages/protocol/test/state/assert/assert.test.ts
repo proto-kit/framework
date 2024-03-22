@@ -3,10 +3,10 @@ import "reflect-metadata";
 import { Bool } from "o1js";
 import { container } from "tsyringe";
 
-import { assert } from "./assert";
-import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecutionContext";
-import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
-import { NetworkState } from "../../model/network/NetworkState";
+import { assert } from "../../../src/state/assert/assert";
+import { RuntimeMethodExecutionContext } from "../../../src/state/context/RuntimeMethodExecutionContext";
+import { RuntimeTransaction } from "../../../src/model/transaction/RuntimeTransaction";
+import { NetworkState } from "../../../src/model/network/NetworkState";
 
 describe("assert", () => {
   const defaultStatusMessage = "something went wrong";
