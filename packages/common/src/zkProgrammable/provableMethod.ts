@@ -1,4 +1,4 @@
-import { FlexibleProvable, InferProvable, Proof, ProvableExtended } from "o1js";
+import { InferProvable, Proof, ProvableExtended } from "o1js";
 import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
@@ -9,7 +9,6 @@ export type O1JSPrimitive = InferProvable<ProvableExtended<unknown>> &
   ToFieldable;
 export type ArgumentTypes = (O1JSPrimitive | Proof<unknown, unknown>)[];
 
-// eslint-disable-next-line etc/prefer-interface
 export type DecoratedMethod = (...args: ArgumentTypes) => unknown;
 
 export const MOCK_PROOF = "mock-proof";
@@ -65,7 +64,7 @@ export function provableMethod(
 ) {
   return <
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Target extends WithZkProgrammable<any, any> | ZkProgrammable<any, any>
+    Target extends WithZkProgrammable<any, any> | ZkProgrammable<any, any>,
   >(
     target: Target,
     methodName: string,
@@ -74,6 +73,7 @@ export function provableMethod(
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const simulatedMethod = descriptor.value as DecoratedMethod;
 
+    // eslint-disable-next-line no-param-reassign
     descriptor.value = function value(
       this: ZkProgrammable<unknown, unknown>,
       ...args: ArgumentTypes
