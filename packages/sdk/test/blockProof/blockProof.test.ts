@@ -43,7 +43,7 @@ describe("blockProof", () => {
     const alicePrivateKey = PrivateKey.random();
     const alice = alicePrivateKey.toPublicKey();
 
-    appChain.setSigner(alicePrivateKey);
+    appChain.addSigner(alicePrivateKey);
 
     const balances = appChain.runtime.resolve("Balances");
 

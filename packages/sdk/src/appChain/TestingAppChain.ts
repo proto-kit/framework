@@ -126,7 +126,7 @@ export class TestingAppChain<
         },
       },
       Signer: {
-        signer: PrivateKey.random(),
+        signers: [PrivateKey.random()],
       },
       TransactionSender: {},
       QueryTransportModule: {},
@@ -136,9 +136,9 @@ export class TestingAppChain<
     return appChain;
   }
 
-  public setSigner(signer: PrivateKey) {
+  public addSigner(signer: PrivateKey) {
     const inMemorySigner = this.resolveOrFail("Signer", InMemorySigner);
-    inMemorySigner.config.signer = signer;
+    inMemorySigner.addSigner(signer);
   }
 
   public async produceBlock() {
