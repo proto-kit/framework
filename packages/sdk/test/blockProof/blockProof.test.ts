@@ -1,4 +1,4 @@
-import { expectDefined } from "@proto-kit/sequencer/test/integration/utils";
+import { expectDefined } from "@proto-kit/common";
 import { Bool, Field, PrivateKey, Provable, UInt64 } from "o1js";
 import {
   BlockProverPublicOutput,

@@ -89,3 +89,9 @@ export function hashWithPrefix(prefix: string, input: Field[]) {
   const salt = Poseidon.update([Field(0), Field(0), Field(0)], [prefixToField(prefix)])
   return Poseidon.update(salt as [Field, Field, Field], input)[0]
 }
+
+// end copy
+
+export function expectDefined<T>(value: T | undefined): asserts value is T {
+  expect(value).toBeDefined();
+}
