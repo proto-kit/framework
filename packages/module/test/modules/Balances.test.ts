@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import "reflect-metadata";
+import { run } from "jest";
 import {
   Bool,
   Field,
@@ -16,10 +17,14 @@ import {
   MethodPublicOutput,
   StateService,
   RuntimeMethodExecutionContext,
+  StateServiceProvider,
+  RuntimeTransaction,
+  NetworkState,
 } from "@proto-kit/protocol";
 
 import { InMemoryStateService } from "../../src/state/InMemoryStateService.js";
 import { Runtime } from "../../src";
+import { createTestingRuntime } from "../TestingRuntime";
 
 import { Balances } from "./Balances.js";
 import { Admin } from "./Admin.js";
@@ -49,36 +54,20 @@ describe("balances", () => {
   }
 
   function createChain() {
-    state = new InMemoryStateService();
-
-    runtime = Runtime.from({
-      state,
-
-      modules: {
-        Admin,
+    ({ runtime, state } = createTestingRuntime(
+      {
         Balances,
+        Admin,
       },
-    });
-
-    runtime.dependencyContainer.register("AreProofsEnabled", {
-      useValue: {
-        areProofsEnabled: false,
-
-        setProofsEnabled(areProofsEnabled: boolean) {
-          this.areProofsEnabled = areProofsEnabled;
+      {
+        Admin: {
+          publicKey: PublicKey.empty().toBase58(),
         },
-      },
-    });
 
-    runtime.configure({
-      Admin: {
-        publicKey: PublicKey.empty().toBase58(),
-      },
-
-      Balances: {
-        test: Bool(true),
-      },
-    });
+        Balances: {
+        },
+      }
+    ));
 
     balances = runtime.resolve("Balances");
 
@@ -89,7 +78,7 @@ describe("balances", () => {
     );
   }
 
-  describe("compile and prove", () => {
+  describe.skip("compile and prove", () => {
     beforeAll(createChain);
 
     // Disabled until we implement a mechanism to enable/disable compiling tests
@@ -99,6 +88,11 @@ describe("balances", () => {
       runtime.zkProgrammable.appChain?.setProofsEnabled(true);
 
       const executionContext = container.resolve(RuntimeMethodExecutionContext);
+      executionContext.setup({
+        transaction: RuntimeTransaction.dummyTransaction(),
+        networkState: NetworkState.empty(),
+      });
+
       const expectedStateTransitionsHash =
         "1439144406936083177718146178121957896974210157062549589517697792374542035761";
       const expectedStatus = true;
@@ -134,6 +128,10 @@ describe("balances", () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
+        executionContext.setup({
+          transaction: RuntimeTransaction.dummyTransaction(),
+          networkState: NetworkState.empty(),
+        });
         balances.getTotalSupply();
 
         stateTransitions = executionContext
@@ -189,6 +187,11 @@ describe("balances", () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
+        executionContext.setup({
+          transaction: RuntimeTransaction.dummyTransaction(),
+          networkState: NetworkState.empty(),
+        });
+
         balances.getTotalSupply();
 
         stateTransitions = executionContext
@@ -239,6 +242,11 @@ describe("balances", () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
+        executionContext.setup({
+          transaction: RuntimeTransaction.dummyTransaction(),
+          networkState: NetworkState.empty(),
+        });
+
         balances.setTotalSupply();
 
         stateTransitions = executionContext
@@ -299,6 +307,11 @@ describe("balances", () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
+        executionContext.setup({
+          transaction: RuntimeTransaction.dummyTransaction(),
+          networkState: NetworkState.empty(),
+        });
+
         balances.getBalance(address);
 
         stateTransitions = executionContext

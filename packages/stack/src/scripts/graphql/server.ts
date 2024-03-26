@@ -1,25 +1,37 @@
-import "reflect-metadata";
+import {
+  AppChain,
+  BlockStorageNetworkStateModule,
+  InMemorySigner,
+  InMemoryTransactionSender,
+  StateServiceQueryModule,
+} from "@proto-kit/sdk";
 import { PrivateKey, PublicKey, UInt64 } from "o1js";
 import {
   Runtime,
   runtimeMethod,
-  RuntimeModule,
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import { Option, State, StateMap, VanillaProtocol } from "@proto-kit/protocol";
+import { Protocol, State } from "@proto-kit/protocol";
+import {
+  Balance,
+  Balances,
+  BalancesKey,
+  TokenId, VanillaProtocolModules,
+  VanillaRuntimeModules
+} from "@proto-kit/library";
 import { log, Presets } from "@proto-kit/common";
 import {
   BlockProducerModule,
+  InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
-  SettlementModule,
-  TimedBlockTrigger,
   UnprovenProducerModule,
+  VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
@@ -32,39 +44,32 @@ import {
   UnprovenBlockResolver,
 } from "@proto-kit/api";
 import { container } from "tsyringe";
-import { PrismaRedisDatabase } from "@proto-kit/persistance";
-
-import { AppChain, StateServiceQueryModule, InMemorySigner, InMemoryTransactionSender, BlockStorageNetworkStateModule } from "../../src";
-
-import { MessageBoard } from "./Post";
 
 @runtimeModule()
-export class Balances extends RuntimeModule<object> {
+export class TestBalances extends Balances {
   /**
    * We use `satisfies` here in order to be able to access
    * presets by key in a type safe way.
    */
-  public static presets = {} satisfies Presets<object>;
-
-  @state() public balances = StateMap.from<PublicKey, UInt64>(
-    PublicKey,
-    UInt64
-  );
+  // public static presets = {} satisfies Presets<object>;
 
   @state() public totalSupply = State.from<UInt64>(UInt64);
 
   @runtimeMethod()
-  public getBalance(address: PublicKey): Option<UInt64> {
-    return this.balances.get(address);
+  public getBalance(tokenId: TokenId, address: PublicKey): Balance {
+    return super.getBalance(tokenId, address);
   }
 
   @runtimeMethod()
-  public addBalance(address: PublicKey, balance: UInt64) {
+  public addBalance(tokenId: TokenId, address: PublicKey, balance: UInt64) {
     const totalSupply = this.totalSupply.get();
     this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(balance));
 
-    const previous = this.balances.get(address);
-    this.balances.set(address, previous.orElse(UInt64.zero).add(balance));
+    const previous = this.balances.get(new BalancesKey({ tokenId, address }));
+    this.balances.set(
+      new BalancesKey({ tokenId, address }),
+      previous.orElse(UInt64.zero).add(balance)
+    );
   }
 }
 
@@ -72,34 +77,32 @@ export async function startServer() {
   log.setLevel("DEBUG");
 
   const appChain = AppChain.from({
-    runtime: Runtime.from({
-      modules: {
-        Balances,
-        MessageBoard,
-      },
-
-      config: {
-        Balances: {},
-        MessageBoard: {},
-      },
+    Runtime: Runtime.from({
+      modules: VanillaRuntimeModules.with({
+        Balances: TestBalances,
+      }),
     }),
 
-    protocol: VanillaProtocol.from({}),
+    Protocol: Protocol.from({
+      modules: VanillaProtocolModules.with({}),
+    }),
 
-    sequencer: Sequencer.from({
+    Sequencer: Sequencer.from({
       modules: {
-        // Database: InMemoryDatabase,
-        Database: PrismaRedisDatabase,
+        Database: InMemoryDatabase,
+        // Database: PrismaRedisDatabase,
 
         Mempool: PrivateMempool,
         GraphqlServer,
-        LocalTaskWorkerModule,
+        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+          VanillaTaskWorkerModules.withoutSettlement()
+        ),
         BaseLayer: NoopBaseLayer,
         BlockProducerModule,
         UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
-        SettlementModule: SettlementModule,
+        // SettlementModule: SettlementModule,
 
         Graphql: GraphqlSequencerModule.from({
           modules: {
@@ -134,7 +137,6 @@ export async function startServer() {
   appChain.configure({
     Runtime: {
       Balances: {},
-      MessageBoard: {},
     },
 
     Protocol: {
@@ -142,6 +144,13 @@ export async function startServer() {
       StateTransitionProver: {},
       AccountState: {},
       BlockHeight: {},
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 0n,
+        methods: {},
+        perWeightUnitFee: 0n,
+      },
       LastStateRoot: {},
     },
 
@@ -151,10 +160,10 @@ export async function startServer() {
         host: "0.0.0.0",
         graphiql: true,
       },
-      SettlementModule: {
-        address: PrivateKey.random().toPublicKey(),
-        feepayer: PrivateKey.random(),
-      },
+      // SettlementModule: {
+      //   address: PrivateKey.random().toPublicKey(),
+      //   feepayer: PrivateKey.random(),
+      // },
 
       Graphql: {
         QueryGraphqlModule: {},
@@ -166,27 +175,35 @@ export async function startServer() {
       },
 
       Database: {
-        redis: {
-          host: "localhost",
-          port: 6379,
-          password: "password",
-        },
-        prisma: {
-          connection: {
-            host: "localhost",
-            password: "password",
-            username: "user",
-            port: 5432,
-            db: {
-              name: "protokit",
-            }
-          }
-        },
+        // redis: {
+        //   host: "localhost",
+        //   port: 6379,
+        //   password: "password",
+        // },
+        // prisma: {
+        //   connection: {
+        //     host: "localhost",
+        //     password: "password",
+        //     username: "user",
+        //     port: 5432,
+        //     db: {
+        //       name: "protokit",
+        //     },
+        //   },
+        // },
       },
 
       Mempool: {},
       BlockProducerModule: {},
-      LocalTaskWorkerModule: {},
+      LocalTaskWorkerModule: {
+        StateTransitionTask: {},
+        // SettlementProvingTask: {},
+        BlockBuildingTask: {},
+        BlockProvingTask: {},
+        BlockReductionTask: {},
+        RuntimeProvingTask: {},
+        StateTransitionReductionTask: {},
+      },
       BaseLayer: {},
       TaskQueue: {},
 
@@ -217,6 +234,8 @@ export async function startServer() {
     "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
   );
 
+  const tokenId = TokenId.from(0);
+
   const as = await appChain.query.protocol.AccountState.accountState.get(
     priv.toPublicKey()
   );
@@ -225,7 +244,7 @@ export async function startServer() {
   const tx = await appChain.transaction(
     priv.toPublicKey(),
     () => {
-      balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+      balances.addBalance(tokenId, priv.toPublicKey(), UInt64.from(1000));
     },
     {
       nonce,
@@ -238,7 +257,7 @@ export async function startServer() {
   const tx2 = await appChain.transaction(
     priv.toPublicKey(),
     () => {
-      balances.addBalance(priv.toPublicKey(), UInt64.from(1000));
+      balances.addBalance(tokenId, priv.toPublicKey(), UInt64.from(1000));
     },
     { nonce: nonce + 1 }
   );

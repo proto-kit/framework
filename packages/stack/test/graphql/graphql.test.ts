@@ -1,43 +1,44 @@
 import "reflect-metadata";
-import { Field, PrivateKey, UInt64 } from "o1js";
 import { Runtime } from "@proto-kit/module";
-import { ReturnType, VanillaProtocol } from "@proto-kit/protocol";
-import { sleep } from "@proto-kit/common";
+import { Protocol, ReturnType } from "@proto-kit/protocol";
 import {
-  ManualBlockTrigger,
-  PrivateMempool,
-  Sequencer,
-} from "@proto-kit/sequencer";
+  BalancesKey,
+  TokenId,
+  VanillaProtocolModules,
+  VanillaRuntimeModules,
+} from "@proto-kit/library";
+import { Field, PrivateKey, UInt64 } from "o1js";
+import { sleep } from "@proto-kit/common";
+import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
 import { GraphqlServer } from "@proto-kit/api";
+import {
+  AppChain,
+  InMemorySigner,
+  GraphqlTransactionSender,
+  GraphqlQueryTransportModule,
+  GraphqlClient,
+  GraphqlNetworkStateTransportModule,
+} from "@proto-kit/sdk";
 
-import { Balances, startServer } from "./server";
+import { startServer, TestBalances } from "../../src/scripts/graphql/server";
 import { beforeAll } from "@jest/globals";
-import { AppChain, InMemorySigner } from "../../src";
-import { GraphqlTransactionSender } from "../../src/graphql/GraphqlTransactionSender";
-import { GraphqlQueryTransportModule } from "../../src/graphql/GraphqlQueryTransportModule";
-import { GraphqlClient } from "../../src/graphql/GraphqlClient";
-import { GraphqlNetworkStateTransportModule } from "../../src/graphql/GraphqlNetworkStateTransportModule";
 
 const pk = PrivateKey.random();
 
-function prepare() {
+function prepareClient() {
   const appChain = AppChain.from({
-    runtime: Runtime.from({
-      modules: {
-        Balances,
-      },
-
-      config: {
-        Balances: {},
-      },
+    Runtime: Runtime.from({
+      modules: VanillaRuntimeModules.with({
+        Balances: TestBalances,
+      }),
     }),
 
-    protocol: VanillaProtocol.from({}),
+    Protocol: Protocol.from({
+      modules: VanillaProtocolModules.with({}),
+    }),
 
-    sequencer: Sequencer.from({
-      modules: {
-        Mempool: PrivateMempool,
-      },
+    Sequencer: Sequencer.from({
+      modules: {},
     }),
 
     modules: {
@@ -49,7 +50,7 @@ function prepare() {
     },
   });
 
-  appChain.configure({
+  appChain.configurePartial({
     Runtime: {
       Balances: {},
     },
@@ -59,6 +60,13 @@ function prepare() {
       BlockProver: {},
       StateTransitionProver: {},
       BlockHeight: {},
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 0n,
+        methods: {},
+        perWeightUnitFee: 0n,
+      },
       LastStateRoot: {},
     },
 
@@ -83,16 +91,17 @@ function prepare() {
 }
 
 describe("graphql client test", function () {
-  let appChain: ReturnType<typeof prepare>;
+  let appChain: ReturnType<typeof prepareClient>;
   let server: Awaited<ReturnType<typeof startServer>>;
   let trigger: ManualBlockTrigger;
+  const tokenId = TokenId.from(0);
 
   beforeAll(async () => {
     server = await startServer();
 
     await sleep(2000);
 
-    appChain = prepare();
+    appChain = prepareClient();
 
     await appChain.start();
 
@@ -121,7 +130,7 @@ describe("graphql client test", function () {
     const tx = await appChain.transaction(pk.toPublicKey(), () => {
       appChain.runtime
         .resolve("Balances")
-        .addBalance(pk.toPublicKey(), UInt64.from(1000));
+        .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
     });
     await tx.sign();
     await tx.send();
@@ -129,7 +138,10 @@ describe("graphql client test", function () {
     await trigger.produceUnproven();
 
     const balance = await appChain.query.runtime.Balances.balances.get(
-      pk.toPublicKey()
+      new BalancesKey({
+        tokenId,
+        address: pk.toPublicKey(),
+      })
     );
 
     expect(balance?.toBigInt()).toBe(1000n);
@@ -149,7 +161,10 @@ describe("graphql client test", function () {
 
     const witness =
       await appChain!.query.runtime.Balances.balances.merkleWitness(
-        pk.toPublicKey()
+        new BalancesKey({
+          tokenId: TokenId.from(0),
+          address: pk.toPublicKey(),
+        })
       );
 
     expect(witness).toBeDefined();

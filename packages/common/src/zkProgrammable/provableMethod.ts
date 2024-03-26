@@ -5,7 +5,8 @@ import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext
 import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
 import { ToFieldable } from "../utils";
 
-export type O1JSPrimitive = InferProvable<ProvableExtended<unknown>> & ToFieldable;
+export type O1JSPrimitive = InferProvable<ProvableExtended<unknown>> &
+  ToFieldable;
 export type ArgumentTypes = (O1JSPrimitive | Proof<unknown, unknown>)[];
 
 // eslint-disable-next-line etc/prefer-interface

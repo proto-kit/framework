@@ -27,6 +27,8 @@ import { SettlementStorage } from "../../../storage/repositories/SettlementStora
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface BlockTrigger {}
 
+// TODO Move events and storage interactions back to production modules
+// BlockTriggers should only be responsible for triggering, nothing else
 export type BlockEvents = {
   "block-produced": [UnprovenBlock];
   "block-metadata-produced": [UnprovenBlockWithMetadata];

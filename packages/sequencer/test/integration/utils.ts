@@ -30,10 +30,6 @@ export function createTransaction(spec: {
   }).sign(spec.privateKey);
 }
 
-export function expectDefined<T>(value: T | undefined): asserts value is T {
-  expect(value).toBeDefined();
-}
-
 export function collectStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {

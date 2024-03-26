@@ -3,13 +3,15 @@ import {
   BlockProvable,
   BlockProverExecutionData,
   BlockProverPublicInput,
+  BlockProverPublicOutput,
+  MandatoryProtocolModulesRecord,
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
   ReturnType,
   StateServiceProvider,
   StateTransitionProof,
-  StateTransitionProvable
+  StateTransitionProvable,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { Runtime } from "@proto-kit/module";
@@ -25,6 +27,7 @@ import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlo
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { Task } from "../../../worker/flow/Task";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
+import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 
 import { CompileRegistry } from "./CompileRegistry";
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
@@ -66,6 +69,7 @@ export class DecodedStateSerializer {
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class BlockReductionTask
+  extends TaskWorkerModule
   implements Task<PairTuple<BlockProof>, BlockProof>
 {
   private readonly blockProver: BlockProvable;
@@ -74,10 +78,13 @@ export class BlockReductionTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.blockProver = this.protocol.blockProver;
   }
 
@@ -110,6 +117,7 @@ export class BlockReductionTask
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class BlockProvingTask
+  extends TaskWorkerModule
   implements Task<BlockProvingTaskParameters, BlockProof>
 {
   private readonly stateTransitionProver: StateTransitionProvable;
@@ -123,13 +131,16 @@ export class BlockProvingTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     @inject("Runtime") private readonly runtime: Runtime<never>,
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.stateTransitionProver = protocol.stateTransitionProver;
     this.blockProver = this.protocol.blockProver;
   }

@@ -1,17 +1,13 @@
 import { filterNonUndefined, MOCK_PROOF } from "@proto-kit/common";
 import {
+  MandatoryProtocolModulesRecord,
   MandatorySettlementModulesRecord,
   Protocol,
   ProtocolModulesRecord,
   ReturnType,
-  SettlementContractModule
+  SettlementContractModule,
 } from "@proto-kit/protocol";
-import {
-  addCachedAccount,
-  Field,
-  Mina,
-  Types,
-} from "o1js";
+import { addCachedAccount, Field, Mina, Types } from "o1js";
 // TODO Wait for o1js upgrade
 import { Pickles } from "o1js/dist/node/snarky";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
@@ -20,6 +16,7 @@ import { ProofTaskSerializer } from "../../helpers/utils";
 import { CompileRegistry } from "../../protocol/production/tasks/CompileRegistry";
 import { Task } from "../../worker/flow/Task";
 import { TaskSerializer } from "../../worker/manager/ReducableTask";
+import { TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
 
 type Account = ReturnType<typeof Mina.getAccount>;
 
@@ -46,6 +43,7 @@ export type TransactionTaskResult = {
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class SettlementProvingTask
+  extends TaskWorkerModule
   implements Task<TransactionTaskArgs, TransactionTaskResult>
 {
   public name = "settlementTransactions";
@@ -54,9 +52,10 @@ export class SettlementProvingTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.settlementContractModule = this.protocol.dependencyContainer.resolve<
       SettlementContractModule<MandatorySettlementModulesRecord>
     >("SettlementContractModule");

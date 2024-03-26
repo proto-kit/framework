@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { container, inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProverExecutionData,
   BlockProverState,
@@ -16,6 +16,7 @@ import {
   ProvableBlockHook,
   BlockHashMerkleTree,
   StateServiceProvider,
+  MandatoryProtocolModulesRecord,
   BlockHashTreeEntry,
   ACTIONS_EMPTY_HASH,
   MinaActions,
@@ -65,7 +66,9 @@ export class TransactionExecutionService {
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     private readonly executionContext: RuntimeMethodExecutionContext,
     // Coming in from the appchain scope (accessible by protocol & runtime)
     @inject("StateServiceProvider")
@@ -80,7 +83,7 @@ export class TransactionExecutionService {
     this.runtimeMethodExecution = new RuntimeMethodExecution(
       this.runtime,
       this.protocol,
-      this.runtime.dependencyContainer.resolve(RuntimeMethodExecutionContext)
+      container.resolve(RuntimeMethodExecutionContext)
     );
   }
 
@@ -157,9 +160,7 @@ export class TransactionExecutionService {
     "stateTransitions" | "status" | "statusMessage"
   > {
     // Set up context
-    const executionContext = this.runtime.dependencyContainer.resolve(
-      RuntimeMethodExecutionContext
-    );
+    const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.setup(contextInputs);
     executionContext.setSimulated(runSimulated);
 
@@ -270,7 +271,7 @@ export class TransactionExecutionService {
         }
       } catch (error) {
         if (error instanceof Error) {
-          log.info("Error in inclusion of tx, skipping", error);
+          log.error("Error in inclusion of tx, skipping", error);
         }
       }
     }

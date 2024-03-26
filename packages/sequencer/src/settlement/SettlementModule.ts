@@ -11,7 +11,8 @@ import {
   DispatchSmartContract,
   SettlementSmartContract,
   SettlementContractConfig,
-  MandatorySettlementModulesRecord
+  MandatorySettlementModulesRecord,
+  MandatoryProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -82,7 +83,7 @@ export class SettlementModule
     @inject("BaseLayer")
     private readonly baseLayer: MinaBaseLayer,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     @inject("Runtime")
     private readonly runtime: Runtime<RuntimeModulesRecord>,
     private readonly flowCreator: FlowCreator,

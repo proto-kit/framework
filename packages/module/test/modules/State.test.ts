@@ -10,6 +10,7 @@ import {
 } from "@proto-kit/protocol";
 
 import { InMemoryStateService, Runtime } from "../../src";
+import { createTestingRuntime } from "../TestingRuntime";
 
 import { Admin } from "./Admin";
 import { Balances } from "./Balances";
@@ -27,34 +28,18 @@ describe("transient state", () => {
   function createChain() {
     state = new InMemoryStateService();
 
-    runtime = Runtime.from({
-      state,
-
-      modules: {
+    ({runtime} = createTestingRuntime(
+      {
         Admin,
         Balances,
       },
-    });
-
-    runtime.dependencyContainer.register("AreProofsEnabled", {
-      useValue: {
-        areProofsEnabled: false,
-
-        setProofsEnabled(areProofsEnabled: boolean) {
-          this.areProofsEnabled = areProofsEnabled;
+      {
+        Admin: {
+          publicKey: PublicKey.empty().toBase58(),
         },
-      },
-    });
-
-    runtime.configure({
-      Admin: {
-        publicKey: PublicKey.empty().toBase58(),
-      },
-
-      Balances: {
-        test: Bool(true),
-      },
-    });
+        Balances: {},
+      }
+    ));
 
     balances = runtime.resolve("Balances");
   }
@@ -64,10 +49,12 @@ describe("transient state", () => {
   });
 
   it("should track previously set state", () => {
+    expect.assertions(2);
+
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.setup({
-      networkState: new NetworkState({ block: { height: UInt64.zero } }),
-      transaction: undefined as unknown as RuntimeTransaction,
+      networkState: NetworkState.empty(),
+      transaction: RuntimeTransaction.dummyTransaction(),
     });
     balances.transientState();
 

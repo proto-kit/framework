@@ -6,13 +6,13 @@ import { container } from "tsyringe";
 import { Experimental, Field, Struct, Proof } from "o1js";
 
 import {
-  mockProof,
+  MOCK_PROOF,
   provableMethod,
 } from "../../src/zkProgrammable/provableMethod";
 import {
   AreProofsEnabled,
   CompileArtifact,
-  mockVerificationKey,
+  MOCK_VERIFICATION_KEY,
   PlainZkProgram,
   ZkProgrammable,
 } from "../../src/zkProgrammable/ZkProgrammable";
@@ -87,6 +87,7 @@ class TestProgrammable extends ZkProgrammable<
     return {
       compile: program.compile.bind(program),
       verify: program.verify.bind(program),
+      analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProof,
       methods,
     };
@@ -128,26 +129,37 @@ class OtherTestProgrammable extends ZkProgrammable {
     return {
       compile: program.compile.bind(program),
       verify: program.verify.bind(program),
+      analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProof,
       methods,
     };
   }
 }
 
+const testWithProofs = false;
+
 describe("zkProgrammable", () => {
   let testProgrammable: TestProgrammable;
   let artifact: CompileArtifact;
   let zkProgramFactorySpy: ReturnType<typeof jest.spyOn>;
 
-  describe.each([
+  const testCases: [
+    boolean,
+    { verificationKey: string; shouldVerifyMockProofs: boolean }
+  ][] = [
     [
       false,
       {
-        verificationKey: mockVerificationKey,
+        verificationKey: MOCK_VERIFICATION_KEY,
         shouldVerifyMockProofs: true,
       },
     ],
-    [
+  ];
+
+  // We want to disable testing with proofs enabled for the CI and other stuff,
+  // as it is quite expensive. But we should find a better pattern than this
+  if (testWithProofs) {
+    testCases.push([
       true,
       {
         verificationKey:
@@ -155,8 +167,10 @@ describe("zkProgrammable", () => {
 
         shouldVerifyMockProofs: false,
       },
-    ],
-  ])(
+    ]);
+  }
+
+  describe.each(testCases)(
     "areProofsEnabled",
     (areProofsEnabled, { verificationKey, shouldVerifyMockProofs }) => {
       beforeAll(async () => {
@@ -191,7 +205,7 @@ describe("zkProgrammable", () => {
         expect.assertions(1);
 
         const proof = new testProgrammable.zkProgram.Proof({
-          proof: mockProof,
+          proof: MOCK_PROOF,
 
           publicInput: new TestPublicInput({
             foo: Field(0),

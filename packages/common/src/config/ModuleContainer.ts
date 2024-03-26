@@ -98,8 +98,16 @@ export type ModulesConfig<Modules extends ModulesRecord> = {
     : never;
 };
 
+/**
+ * This type make any config partial (i.e. optional) up to the first level
+ * So { Module: { a: { b: string } } }
+ * will become
+ * { Module?: { a?: { b: string } } }
+ * Note that b does not become optional, as we don't want nested objects to
+ * become unreasonably partialized (for example Field).
+ */
 export type RecursivePartial<T> = {
-  [Key in keyof T]?: T[Key] extends object ? RecursivePartial<T[Key]> : T[Key];
+  [Key in keyof T]?: Partial<T[Key]>;
 };
 
 /**
@@ -130,6 +138,19 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
   DependenciesFromModules<Modules>
 > &
   Modules;
+
+type X = RecursivePartial<{
+  t: {
+    a: string;
+    b: string;
+  };
+}>;
+
+const x: X = {
+  t: {
+    a: "",
+  },
+};
 
 /**
  * Reusable module container facilitating registration, resolution
@@ -289,19 +310,21 @@ export class ModuleContainer<
     this.config = config;
   }
 
-  public configurePartial(
-    config: RecursivePartial<ModulesConfig<Modules>>
-  ) {
+  public configurePartial(config: RecursivePartial<ModulesConfig<Modules>>) {
     this.config = merge<
-      (ModulesConfig<Modules>) | NoConfig,
+      ModulesConfig<Modules> | NoConfig,
       RecursivePartial<ModulesConfig<Modules>>
     >(this.currentConfig ?? {}, config);
+  }
+
+  public get config() {
+    return super.config;
   }
 
   // eslint-disable-next-line accessor-pairs
   public set config(config: ModulesConfig<Modules>) {
     super.config = merge<
-      (ModulesConfig<Modules>) | NoConfig,
+      ModulesConfig<Modules> | NoConfig,
       ModulesConfig<Modules>
     >(this.currentConfig ?? {}, config);
   }
@@ -346,9 +369,7 @@ export class ModuleContainer<
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
-    // Has to be super.config, getters behave really weird when subtyping
     const config = super.config?.[moduleName];
-
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config) {
       throw errors.configNotSetInContainer(moduleName.toString());

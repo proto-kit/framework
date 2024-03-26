@@ -19,15 +19,15 @@ import { StateService } from "../state/StateService";
 
 import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
-import { NoopTransactionHook } from "../blockmodules/NoopTransactionHook";
+import { NoopTransactionHook } from "../hooks/NoopTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
-import { AccountStateModule } from "../blockmodules/AccountStateModule";
+import { AccountStateHook } from "../hooks/AccountStateHook";
 import { ProvableBlockHook } from "./ProvableBlockHook";
-import { NoopBlockHook } from "../blockmodules/NoopBlockHook";
-import { BlockHeightHook } from "../blockmodules/BlockHeightHook";
-import { LastStateRootBlockHook } from "../blockmodules/LastStateRootBlockHook";
+import { NoopBlockHook } from "../hooks/NoopBlockHook";
+import { BlockHeightHook } from "../hooks/BlockHeightHook";
+import { LastStateRootBlockHook } from "../hooks/LastStateRootBlockHook";
 import { ProvableSettlementHook } from "../settlement/modularity/ProvableSettlementHook";
-import { NoopSettlementHook } from "../blockmodules/NoopSettlementHook";
+import { NoopSettlementHook } from "../hooks/NoopSettlementHook";
 
 const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
   ProvableTransactionHook: "ProvableTransactionHook",
@@ -35,42 +35,38 @@ const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
   ProvableSettlementHook: "ProvableSettlementHook",
 };
 
-export type GenericProtocolModuleRecord = ModulesRecord<
+export type ProtocolModulesRecord = ModulesRecord<
   TypedClass<ProtocolModule<unknown>>
 >;
 
-interface BlockProverType extends ProtocolModule, BlockProvable {}
+export interface BlockProverType extends ProtocolModule, BlockProvable {}
 
-interface StateTransitionProverType
+export interface StateTransitionProverType
   extends ProtocolModule,
     StateTransitionProvable {}
 
-export interface ProtocolCustomModulesRecord
-  extends GenericProtocolModuleRecord {
+export type MandatoryProtocolModulesRecord = {
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
-  AccountState: TypedClass<AccountStateModule>;
+  AccountState: TypedClass<AccountStateHook>;
   BlockHeight: TypedClass<BlockHeightHook>;
   LastStateRoot: TypedClass<LastStateRootBlockHook>;
-}
-
-export interface ProtocolModulesRecord
-  extends GenericProtocolModuleRecord,
-    ProtocolCustomModulesRecord {}
+};
 
 export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
   modules: Modules;
   config?: ModulesConfig<Modules>;
 }
 
-export class Protocol<Modules extends ProtocolModulesRecord>
+export class Protocol<
+    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord
+  >
   extends ModuleContainer<Modules>
   implements ProtocolEnvironment
 {
-  // .from() to create Protocol
-  public static from<Modules extends ProtocolModulesRecord>(
-    modules: ProtocolDefinition<Modules>
-  ): TypedClass<Protocol<Modules>> {
+  public static from<
+    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord
+  >(modules: ProtocolDefinition<Modules>): TypedClass<Protocol<Modules>> {
     return class ScopedProtocol extends Protocol<Modules> {
       public constructor() {
         super(modules);
@@ -188,24 +184,3 @@ export class Protocol<Modules extends ProtocolModulesRecord>
     });
   }
 }
-
-export const VanillaProtocol = {
-  create() {
-    return VanillaProtocol.from({});
-  },
-
-  from<AdditonalModules extends GenericProtocolModuleRecord>(
-    additionalModules: AdditonalModules
-  ): TypedClass<Protocol<ProtocolCustomModulesRecord & AdditonalModules>> {
-    return Protocol.from<ProtocolCustomModulesRecord & AdditonalModules>({
-      modules: {
-        StateTransitionProver,
-        BlockProver,
-        AccountState: AccountStateModule,
-        BlockHeight: BlockHeightHook,
-        LastStateRoot: LastStateRootBlockHook,
-        ...additionalModules,
-      },
-    });
-  },
-};

@@ -1,4 +1,5 @@
 import { ArgumentTypes, log, RollupMerkleTree } from "@proto-kit/common";
+import { VanillaProtocolModules } from "@proto-kit/library";
 import {
   MethodIdResolver,
   MethodParameterEncoder,
@@ -7,9 +8,9 @@ import {
 import {
   BlockProverPublicInput,
   NetworkState,
+  Protocol,
   ReturnType,
   SettlementContractModule,
-  VanillaProtocol,
 } from "@proto-kit/protocol";
 import {
   AppChain,
@@ -23,9 +24,9 @@ import {
   Field,
   method,
   Mina,
-  PrivateKey,
+  PrivateKey, PublicKey,
   SmartContract,
-  UInt64,
+  UInt64
 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -42,6 +43,9 @@ import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
 import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
 import { SettlementModule } from "../../src/settlement/SettlementModule";
+import {
+  SettlementProvingTask
+} from "../../src/settlement/tasks/SettlementProvingTask";
 import { Balance } from "../integration/mocks/Balance";
 import { Withdrawals } from "../integration/mocks/Withdrawals";
 import { testingSequencerFromModules } from "../TestingSequencer";
@@ -73,14 +77,19 @@ describe("settlement contracts", () => {
       BaseLayer: MinaBaseLayer,
       SettlementModule: SettlementModule,
       OutgoingMessageQueue: WithdrawalQueue,
+    },{
+      SettlementProvingTask
     });
 
     const appchain = AppChain.from({
-      runtime: runtime,
-      sequencer: sequencer,
+      Runtime: runtime,
+      Sequencer: sequencer,
 
-      protocol: VanillaProtocol.from({
-        SettlementContractModule: SettlementContractModule.fromDefaults(),
+      Protocol: Protocol.from({
+        modules: {
+          ...VanillaProtocolModules.mandatoryModules(),
+          SettlementContractModule: SettlementContractModule.fromDefaults(),
+        },
       }),
 
       modules: {
@@ -260,8 +269,12 @@ describe("settlement contracts", () => {
   it("should settle", async () => {
     let [, batch] = await createBatch(true);
 
-    const input = BlockProverPublicInput.fromFields(batch!.proof.publicInput.map(x => Field(x)))
-    expect(input.stateRoot.toBigInt()).toStrictEqual(RollupMerkleTree.EMPTY_ROOT)
+    const input = BlockProverPublicInput.fromFields(
+      batch!.proof.publicInput.map((x) => Field(x))
+    );
+    expect(input.stateRoot.toBigInt()).toStrictEqual(
+      RollupMerkleTree.EMPTY_ROOT
+    );
 
     const lastBlock = await blockQueue.getLatestBlock();
 
@@ -320,15 +333,19 @@ describe("settlement contracts", () => {
 
     const [block2, batch2] = await createBatch(false);
 
-    const networkstateHash = Mina.activeInstance.getAccount(settlement.address)
+    const networkstateHash = Mina.activeInstance.getAccount(settlement.address);
     console.log("On-chain values");
-    console.log(networkstateHash.zkapp!.appState.map(x => x.toString()))
+    console.log(networkstateHash.zkapp!.appState.map((x) => x.toString()));
 
-    console.log(`Empty Network State ${NetworkState.empty().hash().toString()}`);
+    console.log(
+      `Empty Network State ${NetworkState.empty().hash().toString()}`
+    );
     console.log(batch!.toNetworkState.hash().toString());
     console.log(batch2!.fromNetworkState.hash().toString());
 
-    expect(batch!.toNetworkState.hash().toString()).toStrictEqual(batch2!.fromNetworkState.hash().toString());
+    expect(batch!.toNetworkState.hash().toString()).toStrictEqual(
+      batch2!.fromNetworkState.hash().toString()
+    );
 
     expect(batch2!.bundles).toHaveLength(1);
 

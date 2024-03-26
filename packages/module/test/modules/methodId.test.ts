@@ -1,17 +1,18 @@
 import "reflect-metadata";
+import { assert } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { beforeAll, beforeEach } from "@jest/globals";
 
 import { Runtime } from "../../src/runtime/Runtime";
 import { MethodIdResolver } from "../../src/runtime/MethodIdResolver";
 import {
-  assert,
   InMemoryStateService,
   runtimeMethod,
   RuntimeModule,
   runtimeModule,
 } from "../../src";
 import { container } from "tsyringe";
+import { createTestingRuntime } from "../TestingRuntime";
 import { Balances } from "./Balances";
 
 interface AdminConfig {}
@@ -31,22 +32,18 @@ describe("methodId", () => {
   beforeAll(() => {
     container.clearInstances();
 
-    runtime = Runtime.from({
-      modules: {
+    let state: InMemoryStateService;
+
+    ({ runtime, state } = createTestingRuntime(
+      {
         Admin,
         Balance: Balances,
       },
-
-      config: {
+      {
         Admin: {},
-        Balance: {
-          test: Bool(true),
-        },
-      },
-
-      state: new InMemoryStateService(),
-    });
-    runtime.start();
+        Balance: {},
+      }
+    ));
 
     resolver =
       runtime.dependencyContainer.resolve<MethodIdResolver>("MethodIdResolver");

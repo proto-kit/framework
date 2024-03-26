@@ -1,14 +1,17 @@
 import { beforeEach, expect } from "@jest/globals";
+import { VanillaProtocolModules } from "@proto-kit/library";
+import {
+  AccountStateHook, BlockHeightHook,
+  BlockProver, LastStateRootBlockHook,
+  MandatoryProtocolModulesRecord, Protocol,
+  ProtocolModulesRecord, StateTransitionProver
+} from "@proto-kit/protocol";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
 } from "../TestingSequencer";
 import { Runtime } from "@proto-kit/module";
 import { Balance } from "./mocks/Balance";
-import {
-  ProtocolCustomModulesRecord,
-  VanillaProtocol,
-} from "@proto-kit/protocol";
 import { AppChain } from "@proto-kit/sdk";
 import {
   AsyncMerkleTreeStore,
@@ -51,7 +54,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
   ) => {
     let appChain: AppChain<
       { Balance: typeof Balance },
-      ProtocolCustomModulesRecord,
+      MandatoryProtocolModulesRecord,
       DefaultTestingSequencerModules & { Database: typeof Database },
       {}
     >;
@@ -81,12 +84,14 @@ describe.each([["InMemory", InMemoryDatabase]])(
         },
       });
 
-      const protocolClass = VanillaProtocol.create();
+      const protocolClass = Protocol.from({
+        modules: VanillaProtocolModules.mandatoryModules()
+      });
 
       appChain = AppChain.from({
-        sequencer: sequencerClass,
-        runtime: runtimeClass,
-        protocol: protocolClass,
+        Sequencer: sequencerClass,
+        Runtime: runtimeClass,
+        Protocol: protocolClass,
         modules: {},
       });
 
@@ -199,6 +204,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       expectDefined(batch);
       expect(batch.height).toStrictEqual(generatedBatch?.height);
+
       await expect(batchStorage.getCurrentBlockHeight()).resolves.toStrictEqual(
         1
       );

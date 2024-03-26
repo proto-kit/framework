@@ -10,6 +10,7 @@ import {
   StateTransitionProof,
   StateTransitionProvable,
   BlockHashMerkleTreeWitness,
+  MandatoryProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -19,6 +20,7 @@ import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
+import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 
 import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
 import { CompileRegistry } from "./CompileRegistry";
@@ -42,6 +44,7 @@ export type NewBlockProvingParameters = PairingDerivedInput<
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class NewBlockTask
+  extends TaskWorkerModule
   implements Task<NewBlockProvingParameters, BlockProof>
 {
   private readonly stateTransitionProver: StateTransitionProvable;
@@ -52,10 +55,11 @@ export class NewBlockTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.stateTransitionProver = protocol.stateTransitionProver;
     this.blockProver = this.protocol.blockProver;
   }

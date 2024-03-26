@@ -1,10 +1,10 @@
 import "reflect-metadata";
+import { noop } from "@proto-kit/common";
 import { Bool, Field, Provable, UInt64 } from "o1js";
 import { container } from "tsyringe";
 
 import {
   NetworkState,
-  noop,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
   State,

@@ -1,5 +1,11 @@
 /* eslint-disable no-underscore-dangle */
-import { Field, FlexibleProvable, Proof, ProvableExtended } from "o1js";
+import {
+  Field,
+  FlexibleProvable,
+  Proof,
+  Provable,
+  ProvableExtended,
+} from "o1js";
 import {
   ArgumentTypes,
   ProofTypes,
@@ -89,10 +95,11 @@ export class MethodParameterEncoder {
     });
   }
 
-  public encode(args: ArgumentTypes): {
-    argsFields: Field[];
-    argsJSON: string[];
-  } {
+  /**
+   * Variant of encode() for provable code that skips the unprovable
+   * json encoding
+   */
+  public encodeAsFields(args: ArgumentTypes){
     /**
      * Use the type info obtained previously to convert
      * the args passed to fields
@@ -117,14 +124,25 @@ export class MethodParameterEncoder {
       const argumentType = this.types[index] as ToFieldableStatic;
       return argumentType.toFields(argument);
     });
+    return argsFields;
+  }
 
-    const argsJSON = args.map((argument, index) => {
-      if (argument instanceof Proof) {
-        return JSON.stringify(argument.toJSON());
-      }
+  public encode(args: ArgumentTypes): {
+    argsFields: Field[];
+    argsJSON: string[];
+  } {
+    const argsFields = this.encodeAsFields(args);
 
-      const argumentType = this.types[index] as ToJSONableStatic;
-      return JSON.stringify(argumentType.toJSON(argument));
+    let argsJSON: string[] = [];
+    Provable.asProver(() => {
+      argsJSON = args.map((argument, index) => {
+        if (argument instanceof Proof) {
+          return JSON.stringify(argument.toJSON());
+        }
+
+        const argumentType = this.types[index] as ToJSONableStatic;
+        return JSON.stringify(argumentType.toJSON(argument));
+      });
     });
 
     return {

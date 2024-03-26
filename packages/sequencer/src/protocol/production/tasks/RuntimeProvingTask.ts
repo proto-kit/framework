@@ -14,6 +14,7 @@ import { Proof } from "o1js";
 import { Task } from "../../../worker/flow/Task";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { ProofTaskSerializer } from "../../../helpers/utils";
+import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 
 import {
   RuntimeProofParameters,
@@ -26,6 +27,7 @@ type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class RuntimeProvingTask
+  extends TaskWorkerModule
   implements Task<RuntimeProofParameters, RuntimeProof>
 {
   protected readonly runtimeZkProgrammable =
@@ -36,7 +38,9 @@ export class RuntimeProvingTask
   public constructor(
     @inject("Runtime") protected readonly runtime: Runtime<never>,
     private readonly executionContext: RuntimeMethodExecutionContext
-  ) {}
+  ) {
+    super();
+  }
 
   public inputSerializer(): TaskSerializer<RuntimeProofParameters> {
     return new RuntimeProofParametersSerializer();

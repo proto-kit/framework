@@ -4,6 +4,7 @@ import {
   BlockProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
+  MandatoryProtocolModulesRecord,
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
@@ -73,7 +74,7 @@ export class BlockTaskFlowService {
     private readonly blockProvingTask: NewBlockTask,
     private readonly blockReductionTask: BlockReductionTask,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>
   ) {}
 
   public async pushPairing(
@@ -292,7 +293,8 @@ export class BlockTaskFlowService {
 
             eternalTransactionsHash:
               blockTrace.block.publicInput.eternalTransactionsHash,
-            incomingMessagesHash: blockTrace.block.publicInput.incomingMessagesHash,
+            incomingMessagesHash:
+              blockTrace.block.publicInput.incomingMessagesHash,
           };
           const publicInput = new BlockProverPublicInput(piObject);
 

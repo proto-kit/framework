@@ -1,8 +1,9 @@
 import {
   AreProofsEnabled,
   ChildContainerProvider,
-  ConfigurableModule, NoConfig,
-  noop
+  ConfigurableModule,
+  NoConfig,
+  noop,
 } from "@proto-kit/common";
 
 import { ProtocolEnvironment } from "./ProtocolEnvironment";

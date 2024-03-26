@@ -1,16 +1,20 @@
-import { Bool, PrivateKey, UInt64 } from "o1js";
+import { expectDefined } from "@proto-kit/common";
+import { Bool, Field, PrivateKey, Provable, UInt64 } from "o1js";
 import {
+  BlockProverPublicOutput,
+  ProvableTransactionHook,
   PublicKeyOption,
   RuntimeMethodExecutionContext,
   StateServiceProvider,
 } from "@proto-kit/protocol";
 
-import { TestingAppChain } from "../../src";
+import { TestingAppChain } from "../../src/appChain/TestingAppChain";
 
-import { Balances } from "./Balances";
+import { TestBalances } from "./TestBalances";
 import { MockAsyncMerkleTreeStore, RollupMerkleTree } from "@proto-kit/common";
 import { ManualBlockTrigger } from "@proto-kit/sequencer";
 import { InMemoryStateService } from "@proto-kit/module";
+import { BalancesKey, TokenId } from "@proto-kit/library";
 
 describe("blockProof", () => {
   // eslint-disable-next-line max-statements
@@ -23,9 +27,7 @@ describe("blockProof", () => {
     const totalSupply = UInt64.from(10_000);
 
     const appChain = TestingAppChain.fromRuntime({
-      modules: {
-        Balances,
-      },
+      Balances: TestBalances,
     });
 
     appChain.configurePartial({
@@ -45,14 +47,16 @@ describe("blockProof", () => {
 
     const balances = appChain.runtime.resolve("Balances");
 
+    const tokenId = TokenId.from(0);
+
     const tx1 = await appChain.transaction(alice, () => {
-      balances.setBalance(alice, UInt64.from(1000));
+      balances.setBalance(tokenId, alice, UInt64.from(1000));
     });
 
     const context = appChain.runtime.dependencyContainer.resolve(
       RuntimeMethodExecutionContext
     );
-    const transitions = context.current().result.stateTransitions;
+    const runtimeSTs = context.current().result.stateTransitions;
 
     const stateService = new InMemoryStateService();
 
@@ -67,20 +71,24 @@ describe("blockProof", () => {
 
     // eslint-disable-next-line max-len
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/consistent-type-assertions
-    appChain.protocol.resolve("AccountState").onTransaction({
-      transaction: {
-        sender: new PublicKeyOption({
-          isSome: Bool(true),
-          value: alice,
-        }),
-        nonce: UInt64.from(0),
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    appChain.protocol.dependencyContainer
+      .resolveAll<ProvableTransactionHook>("ProvableTransactionHook")
+      .map((hook) => {
+        hook.onTransaction({
+          transaction: {
+            sender: new PublicKeyOption({
+              isSome: Bool(true),
+              value: alice,
+            }),
+            nonce: UInt64.from(0),
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
+      });
 
     const protocolSTs = context.current().result.stateTransitions;
 
-    [transitions[1], transitions[3], ...protocolSTs].forEach((st) => {
+    [...runtimeSTs, ...protocolSTs].forEach((st) => {
       const provable = st.toProvable();
       tree.setLeaf(provable.path.toBigInt(), provable.to.value);
     });
@@ -96,12 +104,18 @@ describe("blockProof", () => {
     );
     const provenBlock = await trigger.produceProven();
 
-    expect(provenBlock?.proof.publicOutput.stateRoot.toBigInt()).toBe(
-      tree.getRoot().toBigInt()
+    expectDefined(provenBlock);
+    const publicOutput = BlockProverPublicOutput.fromFields(
+      provenBlock.proof.publicOutput.map((x) => Field(x))
     );
 
+    expect(publicOutput.stateRoot.toBigInt()).toBe(tree.getRoot().toBigInt());
+
     const aliceBalance = await appChain.query.runtime.Balances.balances.get(
-      alice
+      new BalancesKey({
+        tokenId,
+        address: alice,
+      })
     );
 
     expect(block?.transactions[0].status.toBoolean()).toBe(true);

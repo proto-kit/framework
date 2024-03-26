@@ -1,17 +1,15 @@
+/* eslint-disable max-statements */
 /* eslint-disable unicorn/filename-case */
-import { PrivateKey, Provable, PublicKey, UInt64 } from "o1js";
-import log from "loglevel";
-import { RuntimeModulesRecord } from "@proto-kit/module";
-
+import { Balance, BalancesKey, TokenId } from "@proto-kit/library";
+import { PrivateKey, Provable, PublicKey } from "o1js";
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
-
-import { Balance, Balances, BalancesKey, TokenId } from "./Balances";
+import { TestBalances } from "./TestBalances";
 import { PoolKey, XYK } from "./XYK";
 
-interface RuntimeModules extends RuntimeModulesRecord {
-  Balances: typeof Balances;
+type RuntimeModules = {
+  Balances: typeof TestBalances;
   XYK: typeof XYK;
-}
+};
 
 // eslint-disable-next-line jest/require-hook
 let nonce = 0;
@@ -27,9 +25,9 @@ describe("xyk", () => {
 
   const pool = PoolKey.fromTokenIdPair(tokenInId, tokenOutId);
 
-  let chain: TestingAppChain<RuntimeModules, any>;
+  let chain: ReturnType<typeof TestingAppChain.fromRuntime<RuntimeModules>>;
 
-  let balances: Balances;
+  let balances: TestBalances;
   let xyk: XYK;
 
   const balanceToMint = 10_000n;
@@ -50,17 +48,13 @@ describe("xyk", () => {
 
   beforeAll(async () => {
     chain = TestingAppChain.fromRuntime({
-      modules: {
-        Balances,
-        XYK,
-      },
+      Balances: TestBalances,
+      XYK,
     });
 
     chain.configurePartial({
       Runtime: {
-        Balances: {
-          totalSupply: UInt64.from(1_000_000n),
-        },
+        Balances: {},
         XYK: {},
       },
     });
