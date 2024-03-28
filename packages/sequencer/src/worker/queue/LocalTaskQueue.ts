@@ -23,11 +23,11 @@ export class LocalTaskQueue
   extends SequencerModule<LocalTaskQueueConfig>
   implements TaskQueue
 {
-  private queues: {
+  public queues: {
     [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
 
-  private workers: {
+  public workers: {
     [key: string]:
       | {
           busy: boolean;
@@ -36,15 +36,13 @@ export class LocalTaskQueue
       | undefined;
   } = {};
 
-  private readonly listeners: {
+  public readonly listeners: {
     [key: string]: QueueListener[] | undefined;
   } = {};
 
-  private workNextTasks() {
-    Object.entries(this.queues).forEach((queue) => {
-      const [queueName, tasks] = queue;
-
-      if (tasks.length > 0) {
+  public workNextTasks() {
+    Object.entries(this.queues).forEach(([queueName, tasks]) => {
+      if (tasks.length > 0 && this.workers[queueName]) {
         tasks.forEach((task) => {
           // Execute task in worker
           // eslint-disable-next-line max-len
@@ -64,7 +62,7 @@ export class LocalTaskQueue
         });
       }
 
-      this.queues[queue[0]] = [];
+      this.queues[queueName] = [];
     });
   }
 
