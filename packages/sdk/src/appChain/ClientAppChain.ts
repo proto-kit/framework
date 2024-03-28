@@ -60,6 +60,7 @@ export class ClientAppChain<
     });
 
     appChain.configurePartial({
+      Sequencer: {},
       Protocol: {
         BlockProver: {},
         StateTransitionProver: {},

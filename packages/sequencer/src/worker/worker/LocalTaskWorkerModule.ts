@@ -10,7 +10,6 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import { SettlementProvingTask } from "../../settlement/tasks/SettlementProvingTask";
 import { TaskQueue } from "../queue/TaskQueue";
 import {
   BlockProvingTask,

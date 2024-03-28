@@ -27,6 +27,7 @@ import {
   StateServiceQueryModule,
   BlockStorageNetworkStateModule,
   AppChainModulesRecord,
+  InMemoryTransactionSender,
 } from "@proto-kit/sdk";
 
 export class LocalhostAppChain<
@@ -67,6 +68,9 @@ export class LocalhostAppChain<
         }),
       }),
       modules: {
+        // TODO: remove in favour of a real tx sender for the SettlementModule
+        // temporary dependency to make the SettlementModule work
+        TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
         NetworkStateTransportModule: BlockStorageNetworkStateModule,
       },

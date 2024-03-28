@@ -1,19 +1,12 @@
 import "reflect-metadata";
-import {
-  Balances,
-  BalancesKey,
-  TokenId,
-  VanillaProtocolModulesRecord,
-} from "@proto-kit/library";
+import { Balance, Balances, BalancesKey, TokenId } from "@proto-kit/library";
 import {
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
   RuntimeModulesRecord,
-  state,
 } from "@proto-kit/module";
-import { SequencerModulesRecord } from "@proto-kit/sequencer";
-import { Field, PrivateKey, PublicKey, State, UInt64 } from "o1js";
+import { PrivateKey } from "o1js";
 import { inject } from "tsyringe";
 import { TestingAppChain } from "../src";
 
@@ -28,7 +21,7 @@ class Faucet extends RuntimeModule<unknown> {
     this.balances.mint(
       new TokenId(0),
       this.transaction.sender.value,
-      UInt64.from(1000)
+      Balance.from(1000)
     );
   }
 }
@@ -40,8 +33,8 @@ class Pit extends RuntimeModule<unknown> {
   }
 
   @runtimeMethod()
-  public burn(amount: UInt64) {
-    this.balances.burn(new TokenId(0), this.transaction.sender.value, amount);
+  public burn(amount: Balance) {
+    this.balances.burn(TokenId.from(0), this.transaction.sender.value, amount);
   }
 }
 
@@ -119,7 +112,7 @@ describe("fees", () => {
     const pit = appChain.runtime.resolve("Pit");
 
     const tx = await appChain.transaction(senderKey.toPublicKey(), () => {
-      pit.burn(UInt64.from(100));
+      pit.burn(Balance.from(100));
     });
 
     await tx.sign();

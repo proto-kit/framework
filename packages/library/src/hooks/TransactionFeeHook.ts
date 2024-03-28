@@ -11,7 +11,7 @@ import {
   BlockProverExecutionData,
   PublicKeyOption,
 } from "@proto-kit/protocol";
-import { Field, Provable, PublicKey, UInt64 as O1JSUInt64 } from "o1js";
+import { Field, Provable, PublicKey } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
 
@@ -137,12 +137,12 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       errors.invalidFeeConfigMethodId()
     );
 
-    const fee = O1JSUInt64.from(feeConfig.baseFee.value).add(
-      O1JSUInt64.from(feeConfig.weight.value).mul(
-        O1JSUInt64.from(feeConfig.perWeightUnitFee.value)
+    const fee = UInt64.from(feeConfig.baseFee.value).add(
+      UInt64.from(feeConfig.weight.value).mul(
+        UInt64.from(feeConfig.perWeightUnitFee.value)
       )
     );
 
-    this.transferFee(executionData.transaction.sender, new UInt64(fee.value));
+    this.transferFee(executionData.transaction.sender, UInt64.from(fee.value));
   }
 }
