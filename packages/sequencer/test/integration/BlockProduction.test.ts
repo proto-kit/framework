@@ -12,9 +12,10 @@ import {
 } from "@proto-kit/module";
 import {
   AccountState,
-  AccountStateModule,
+  AccountStateHook,
   BlockHeightHook,
   BlockProver,
+  MandatoryProtocolModulesRecord,
   NetworkState,
   Option,
   Path,
@@ -22,8 +23,12 @@ import {
   ReturnType,
   StateTransition,
   StateTransitionProver,
-  VanillaProtocol,
 } from "@proto-kit/protocol";
+import {
+  VanillaProtocolModules,
+  VanillaProtocolModulesRecord,
+} from "@proto-kit/library";
+
 import {
   Bool,
   Field,
@@ -68,7 +73,9 @@ describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
-  let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>;
+  let protocol: Protocol<
+    MandatoryProtocolModulesRecord & VanillaProtocolModulesRecord
+  >;
 
   let appChain: AppChain<any, any, any, any>;
 
@@ -92,12 +99,14 @@ describe("block production", () => {
 
     const sequencerClass = testingSequencerFromModules({});
 
-    const protocolClass = VanillaProtocol.from({});
+    const protocolClass = Protocol.from({
+      modules: VanillaProtocolModules.with({}),
+    });
 
     const app = AppChain.from({
-      runtime: runtimeClass,
-      sequencer: sequencerClass,
-      protocol: protocolClass,
+      Runtime: runtimeClass,
+      Sequencer: sequencerClass,
+      Protocol: protocolClass,
       modules: {},
     });
 

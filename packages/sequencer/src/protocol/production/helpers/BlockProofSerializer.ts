@@ -2,6 +2,7 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
+  MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
 } from "@proto-kit/protocol";
@@ -18,7 +19,7 @@ export class BlockProofSerializer {
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>
   ) {}
 
   public getBlockProofSerializer() {

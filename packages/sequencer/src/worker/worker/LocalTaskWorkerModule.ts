@@ -1,12 +1,15 @@
 import { inject } from "tsyringe";
-import { Protocol, ProtocolModulesRecord } from "@proto-kit/protocol";
+import {
+  MandatoryProtocolModulesRecord,
+  Protocol,
+  ProtocolModulesRecord,
+} from "@proto-kit/protocol";
 import { noop } from "@proto-kit/common";
 
 import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import { SettlementProvingTask } from "../../settlement/tasks/SettlementProvingTask";
 import { TaskQueue } from "../queue/TaskQueue";
 import {
   BlockProvingTask,
@@ -38,9 +41,11 @@ export class LocalTaskWorkerModule extends SequencerModule {
     private readonly blockProvingTask: BlockProvingTask,
     private readonly blockReductionTask: BlockReductionTask,
     private readonly blockBuildingTask: NewBlockTask,
-    private readonly settlementProvingTask: SettlementProvingTask,
+    // private readonly settlementProvingTask: SettlementProvingTask,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >
   ) {
     super();
   }
@@ -53,7 +58,7 @@ export class LocalTaskWorkerModule extends SequencerModule {
       this.blockProvingTask,
       this.blockReductionTask,
       this.blockBuildingTask,
-      this.settlementProvingTask,
+      // this.settlementProvingTask,
     ]);
     worker
       .start()

@@ -1,17 +1,13 @@
 import { filterNonUndefined, MOCK_PROOF } from "@proto-kit/common";
 import {
+  MandatoryProtocolModulesRecord,
   MandatorySettlementModulesRecord,
   Protocol,
   ProtocolModulesRecord,
   ReturnType,
-  SettlementContractModule
+  SettlementContractModule,
 } from "@proto-kit/protocol";
-import {
-  addCachedAccount,
-  Field,
-  Mina,
-  Types,
-} from "o1js";
+import { addCachedAccount, Field, Mina, Types } from "o1js";
 // TODO Wait for o1js upgrade
 import { Pickles } from "o1js/dist/node/snarky";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
@@ -54,7 +50,7 @@ export class SettlementProvingTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly compileRegistry: CompileRegistry
   ) {
     this.settlementContractModule = this.protocol.dependencyContainer.resolve<

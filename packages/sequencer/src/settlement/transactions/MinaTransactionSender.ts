@@ -3,10 +3,11 @@ import { inject, injectable } from "tsyringe";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { FlowCreator } from "../../worker/flow/Flow";
-import {
-  SettlementProvingTask,
-  TransactionTaskResult,
-} from "../tasks/SettlementProvingTask";
+// TODO: bring back once SettlementProvingTask doesnt rely on the Pickles import
+// import {
+//   SettlementProvingTask,
+//   TransactionTaskResult,
+// } from "../tasks/SettlementProvingTask";
 
 import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
 
@@ -21,12 +22,16 @@ export class MinaTransactionSender {
 
   public constructor(
     private readonly creator: FlowCreator,
-    private readonly provingTask: SettlementProvingTask,
+    // TODO: bring back once SettlementProvingTask doesnt rely on the Pickles import
+
+    // private readonly provingTask: SettlementProvingTask,
     private readonly simulator: MinaTransactionSimulator,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
   ) {}
 
-  private async trySendCached(tx: Mina.Transaction): Promise<Mina.TransactionId | undefined> {
+  private async trySendCached(
+    tx: Mina.Transaction
+  ): Promise<Mina.TransactionId | undefined> {
     const feePayer = tx.transaction.feePayer.body;
     const sender = feePayer.publicKey.toBase58();
     const senderQueue = this.txQueue[sender];
@@ -80,29 +85,26 @@ export class MinaTransactionSender {
 
     await this.simulator.applyTransaction(transaction);
 
-    console.log("Starting proving for Transaction")
+    // TODO: bring back once SettlementProvingTask doesnt rely on the Pickles import
+    // const resultPromise = flow.withFlow<TransactionTaskResult>(
+    //   async (resolve, reject) => {
+    //     await flow.pushTask(
+    //       this.provingTask,
+    //       {
+    //         transaction,
+    //         chainState: {
+    //           graphql: this.baseLayer.config.network.graphql,
+    //           accounts,
+    //         },
+    //       },
+    //       async (result) => {
+    //         resolve(result);
+    //       }
+    //     );
+    //   }
+    // );
 
-    const resultPromise = flow.withFlow<TransactionTaskResult>(
-      async (resolve, reject) => {
-        await flow.pushTask(
-          this.provingTask,
-          {
-            transaction,
-            chainState: {
-              graphql: this.baseLayer.config.network.graphql,
-              accounts,
-            },
-          },
-          async (result) => {
-            resolve(result);
-          }
-        );
-      }
-    );
-
-    const result = await resultPromise;
-    await this.sendOrQueue(result.transaction);
-
-    console.log("Sent Transaction")
+    // const result = await resultPromise;
+    // await this.sendOrQueue(result.transaction);
   }
 }

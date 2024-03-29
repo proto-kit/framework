@@ -31,9 +31,9 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
-  AccountStateModule,
+  AccountStateHook,
   StateServiceProvider,
-  ProtocolCustomModulesRecord,
+  MandatoryProtocolModulesRecord,
   PublicKeyOption,
   UInt64Option,
 } from "@proto-kit/protocol";
@@ -54,21 +54,22 @@ export type AppChainModulesRecord = ModulesRecord<
 
 export interface AppChainDefinition<
   RuntimeModules extends RuntimeModulesRecord,
-  ProtocolModules extends ProtocolModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord &
+    MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > {
-  runtime: TypedClass<Runtime<RuntimeModules>>;
-  protocol: TypedClass<Protocol<ProtocolModules>>;
-  sequencer: TypedClass<Sequencer<SequencerModules>>;
+  Runtime: TypedClass<Runtime<RuntimeModules>>;
+  Protocol: TypedClass<Protocol<ProtocolModules>>;
+  Sequencer: TypedClass<Sequencer<SequencerModules>>;
   modules: AppChainModules;
-  config?: ModulesConfig<AppChainModules>;
 }
 
 // eslint-disable-next-line etc/prefer-interface
 export type ExpandAppChainModules<
   RuntimeModules extends RuntimeModulesRecord,
-  ProtocolModules extends ProtocolModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord &
+    MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > = AppChainModules & {
@@ -79,7 +80,8 @@ export type ExpandAppChainModules<
 
 export interface ExpandAppChainDefinition<
   RuntimeModules extends RuntimeModulesRecord,
-  ProtocolModules extends ProtocolModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord &
+    MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > {
@@ -89,14 +91,6 @@ export interface ExpandAppChainDefinition<
     SequencerModules,
     AppChainModules
   >;
-  config?: ModulesConfig<
-    ExpandAppChainModules<
-      RuntimeModules,
-      ProtocolModules,
-      SequencerModules,
-      AppChainModules
-    >
-  >;
 }
 
 /**
@@ -104,14 +98,15 @@ export interface ExpandAppChainDefinition<
  */
 export interface AppChainConfig<
   RuntimeModules extends RuntimeModulesRecord,
-  ProtocolModules extends ProtocolModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord &
+    MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > {
-  runtime: ModulesConfig<RuntimeModules>;
-  protocol: ModulesConfig<ProtocolModules>;
-  sequencer: ModulesConfig<SequencerModules>;
-  appChain: ModulesConfig<AppChainModules>;
+  Runtime: ModulesConfig<RuntimeModules>;
+  Protocol: ModulesConfig<ProtocolModules>;
+  Sequencer: ModulesConfig<SequencerModules>;
+  AppChain: ModulesConfig<AppChainModules>;
 }
 
 /**
@@ -119,7 +114,8 @@ export interface AppChainConfig<
  */
 export class AppChain<
   RuntimeModules extends RuntimeModulesRecord,
-  ProtocolModules extends ProtocolModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord &
+    MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
   AppChainModules extends AppChainModulesRecord
 > extends ModuleContainer<
@@ -133,7 +129,8 @@ export class AppChain<
   // alternative AppChain constructor
   public static from<
     RuntimeModules extends RuntimeModulesRecord,
-    ProtocolModules extends ProtocolModulesRecord,
+    ProtocolModules extends ProtocolModulesRecord &
+      MandatoryProtocolModulesRecord,
     SequencerModules extends SequencerModulesRecord,
     AppChainModules extends AppChainModulesRecord
   >(
@@ -169,25 +166,11 @@ export class AppChain<
       AppChainModules
     > = {
       modules: {
-        Runtime: definition.runtime,
-        Protocol: definition.protocol,
-        Sequencer: definition.sequencer,
+        Runtime: definition.Runtime,
+        Protocol: definition.Protocol,
+        Sequencer: definition.Sequencer,
         ...definition.modules,
       },
-
-      config: {
-        Runtime: {},
-        Sequencer: {},
-        Protocol: {},
-        ...definition.config,
-      } as ModulesConfig<
-        ExpandAppChainModules<
-          RuntimeModules,
-          ProtocolModules,
-          SequencerModules,
-          AppChainModules
-        >
-      >,
     };
     super(expandedDefinition);
     this.definition = expandedDefinition;
@@ -301,7 +284,7 @@ export class AppChain<
     const retrieveNonce = async (publicKey: PublicKey) => {
       const query = this.query.protocol as Query<
         ProtocolModule<unknown>,
-        ProtocolCustomModulesRecord
+        MandatoryProtocolModulesRecord
       >;
       const accountState = await query.AccountState.accountState.get(publicKey);
       return accountState?.nonce;
