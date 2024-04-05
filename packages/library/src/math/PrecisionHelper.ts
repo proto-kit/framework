@@ -26,9 +26,9 @@ export class PrecisionUInt224 extends UInt224 {
     return new PrecisionUInt224(uint.value)
   }
 
-  public divPrecision(y: UInt112) : PrecisionUInt112 {
-    return new PrecisionUInt112(
-      this.div(UInt224.from(y.value)).toUInt112().value
-    )
-  }
+  // public divPrecision(y: UInt112) : PrecisionUInt112 {
+  //   return new PrecisionUInt112(
+  //     this.div(UInt224.from(y.value)).toUInt112().value
+  //   )
+  // }
 }

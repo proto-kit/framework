@@ -61,11 +61,6 @@ interface ProvableExtension<T, TJson = any> {
   fromJSON: (x: TJson) => T;
 }
 
-type NonMethodKeys<Type> = {
-  [Key in keyof Type]: Type[Key] extends Function ? never : Key;
-}[keyof Type];
-type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;
-
 interface AnyJson {
   [key: string]: any;
 }
