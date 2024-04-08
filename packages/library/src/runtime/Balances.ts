@@ -13,7 +13,8 @@ import {
   runtimeModule,
 } from "@proto-kit/module";
 import { StateMap, assert } from "@proto-kit/protocol";
-import { Field, Provable, PublicKey, Struct, UInt64 } from "o1js";
+import { Field, PublicKey, Struct } from "o1js";
+import { UInt64 } from "../math/UInt64";
 
 export const errors = {
   senderNotFrom: () => "Sender does not match 'from'",
@@ -25,8 +26,9 @@ export class BalancesKey extends Struct({
   tokenId: TokenId,
   address: PublicKey,
 }) {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public test() {}
+  public static from(tokenId: TokenId, address: PublicKey) {
+    return new BalancesKey({ tokenId, address });
+  }
 }
 
 export class Balance extends UInt64 {}
@@ -58,13 +60,8 @@ export class Balances<Config = NoConfig>
   public getBalance(tokenId: TokenId, address: PublicKey): Balance {
     const key = new BalancesKey({ tokenId, address });
     const balanceOption = this.balances.get(key);
-
-    return Provable.if<Balance>(
-      balanceOption.isSome,
-      Balance,
-      balanceOption.value,
-      Balance.from(0)
-    );
+    const balance = Balance.from(balanceOption.value.value);
+    return balance;
   }
 
   public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
@@ -85,16 +82,7 @@ export class Balances<Config = NoConfig>
 
     assert(fromBalanceIsSufficient, errors.fromBalanceInsufficient());
 
-    // used to prevent field underflow during subtraction
-    const paddedFrombalance = fromBalance.add(amount);
-    const safeFromBalance = Provable.if<Balance>(
-      fromBalanceIsSufficient,
-      Balance,
-      fromBalance,
-      paddedFrombalance
-    );
-
-    const newFromBalance = safeFromBalance.sub(amount);
+    const newFromBalance = fromBalance.sub(amount);
     const newToBalance = toBalance.add(amount);
 
     this.setBalance(tokenId, from, newFromBalance);
@@ -109,14 +97,7 @@ export class Balances<Config = NoConfig>
 
   public burn(tokenId: TokenId, address: PublicKey, amount: Balance) {
     const balance = this.getBalance(tokenId, address);
-    // replace with library/uint64
-    const paddedBalance = Provable.if<Balance>(
-      balance.greaterThanOrEqual(amount),
-      Balance,
-      balance,
-      balance.add(amount)
-    );
-    const newBalance = paddedBalance.sub(amount);
+    const newBalance = balance.sub(amount);
     this.setBalance(tokenId, address, newBalance);
   }
 
