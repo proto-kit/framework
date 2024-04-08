@@ -1,6 +1,6 @@
 /* eslint-disable max-statements */
 import "reflect-metadata";
-import { PrivateKey, Provable, PublicKey, UInt64 } from "o1js";
+import { PrivateKey, Provable, PublicKey } from "o1js";
 import {
   runtimeMethod,
   RuntimeModule,
@@ -16,6 +16,7 @@ import {
   BalancesKey,
   TokenId,
   VanillaRuntimeModules,
+  UInt64
 } from "@proto-kit/library";
 import { log } from "@proto-kit/common";
 
@@ -51,7 +52,8 @@ class CustomBalances extends Balances<BalancesConfig> {
   public addBalance(address: PublicKey, balance: UInt64) {
     const totalSupply = this.totalSupply.get();
 
-    const newTotalSupply = totalSupply.value.add(balance);
+    // TODO Fix UInt issues to remove new UInt()
+    const newTotalSupply = new UInt64(totalSupply.value.value).add(balance);
     const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
       this.config.totalSupply
     );
@@ -70,7 +72,8 @@ class CustomBalances extends Balances<BalancesConfig> {
       new BalancesKey({ tokenId: TokenId.from(0n), address })
     );
 
-    const newBalance = currentBalance.value.add(balance);
+    // TODO Fix UInt issues to remove new UInt()
+    const newBalance = new UInt64(currentBalance.value.value).add(balance);
 
     this.balances.set(
       new BalancesKey({ tokenId: TokenId.from(0n), address }),
