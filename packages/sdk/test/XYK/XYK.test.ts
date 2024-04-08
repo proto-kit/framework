@@ -1,5 +1,6 @@
 /* eslint-disable max-statements */
 /* eslint-disable unicorn/filename-case */
+import "reflect-metadata"
 import { Balance, BalancesKey, TokenId } from "@proto-kit/library";
 import { PrivateKey, Provable, PublicKey } from "o1js";
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
