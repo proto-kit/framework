@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Bool, Experimental, Field, PrivateKey, Proof, UInt64 } from "o1js";
+import { Bool, ZkProgram, Field, PrivateKey, Proof, UInt64 } from "o1js";
 
 import {
   BlockProver,
@@ -17,7 +17,6 @@ import {
   WithZkProgrammable,
   ZkProgrammable,
 } from "@proto-kit/common";
-import ZkProgram = Experimental.ZkProgram;
 import { UnsignedTransaction } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 import {
@@ -56,7 +55,8 @@ class RuntimeZkProgrammable extends ZkProgrammable<
   }
 
   zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "",
       publicOutput: MethodPublicOutput,
       methods: {},
     });
@@ -67,6 +67,9 @@ class RuntimeZkProgrammable extends ZkProgrammable<
       analyzeMethods: program.analyzeMethods.bind(program),
       methods: {},
       Proof: ZkProgram.Proof(program),
+      analyzeMethods: () => {
+        return {};
+      },
     };
   }
 }

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Bool, Experimental, Field, Provable, SelfProof } from "o1js";
+import { Bool, ZkProgram, Field, Provable, SelfProof } from "o1js";
 import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
@@ -85,7 +85,8 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     // eslint-disable-next-line @typescript-eslint/no-this-alias,consistent-this,unicorn/no-this-assignment
     const instance = this;
 
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "StateTransitionProgram",
       publicInput: StateTransitionProverPublicInput,
       publicOutput: StateTransitionProverPublicOutput,
 
@@ -123,7 +124,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       merge: program.merge.bind(program),
     };
 
-    const SelfProofClass = Experimental.ZkProgram.Proof(program);
+    const SelfProofClass = ZkProgram.Proof(program);
 
     return {
       compile: program.compile.bind(program),

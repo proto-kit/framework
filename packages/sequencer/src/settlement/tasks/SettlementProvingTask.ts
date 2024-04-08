@@ -8,6 +8,7 @@ import {
   SettlementContractModule,
 } from "@proto-kit/protocol";
 import { addCachedAccount, Field, Mina, Types } from "o1js";
+import { Transaction as MinaTransaction } from "o1js/dist/node/lib/mina";
 // TODO Wait for o1js upgrade
 import { Pickles } from "o1js/dist/node/snarky";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
@@ -120,7 +121,7 @@ export class SettlementProvingTask
         const commandJson: Types.Json.ZkappCommand = JSON.parse(
           jsonObject.transaction
         );
-        const transaction = Mina.Transaction.fromJSON(commandJson);
+        const transaction = MinaTransaction.fromJSON(commandJson);
 
         jsonObject.lazyProofs.forEach((lazyProof, index) => {
           if (lazyProof !== null) {
@@ -290,7 +291,7 @@ export class SettlementProvingTask
     return {
       fromJSON: (json: string) => {
         const jsonObject: Types.Json.ZkappCommand = JSON.parse(json);
-        return { transaction: Mina.Transaction.fromJSON(jsonObject) };
+        return { transaction: MinaTransaction.fromJSON(jsonObject) };
       },
 
       toJSON(input: TransactionTaskResult): string {

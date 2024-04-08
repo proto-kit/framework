@@ -77,7 +77,7 @@ let encoder = new TextEncoder();
 
 // Copied from o1js binable.ts:317
 export function prefixToField(prefix: string): Field {
-  let fieldSize = Field.sizeInBytes();
+  let fieldSize = Field.sizeInBytes;
   if (prefix.length >= fieldSize) throw Error("prefix too long");
   let stringBytes = [...encoder.encode(prefix)];
   return Field.fromBytes(
@@ -92,14 +92,3 @@ export function hashWithPrefix(prefix: string, input: Field[]) {
   );
   return Poseidon.update(salt as [Field, Field, Field], input)[0];
 }
-
-// end copy
-
-export function expectDefined<T>(value: T | undefined): asserts value is T {
-  expect(value).toBeDefined();
-}
-
-type NonMethodKeys<Type> = {
-  [Key in keyof Type]: Type[Key] extends Function ? never : Key;
-}[keyof Type];
-export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;

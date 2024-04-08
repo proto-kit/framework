@@ -15,7 +15,7 @@ import { TestBalances } from "./TestBalances";
 import { MockAsyncMerkleTreeStore, RollupMerkleTree } from "@proto-kit/common";
 import { ManualBlockTrigger } from "@proto-kit/sequencer";
 import { InMemoryStateService } from "@proto-kit/module";
-import { BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
+import { BalancesKey, TokenId, Balance } from "@proto-kit/library";
 
 // Failing - investigate why
 describe.skip("blockProof", () => {
@@ -52,7 +52,7 @@ describe.skip("blockProof", () => {
     const tokenId = TokenId.from(0);
 
     const tx1 = await appChain.transaction(alice, () => {
-      balances.setBalance(tokenId, alice, UInt64.from(1000));
+      balances.setBalance(tokenId, alice, Balance.from(1000));
     });
 
     const context = appChain.runtime.dependencyContainer.resolve(

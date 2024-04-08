@@ -4,7 +4,6 @@ import {
   BalancesKey,
   TokenId,
   TransactionFeeHook,
-  UInt64,
 } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import {
@@ -13,14 +12,10 @@ import {
   CachedMerkleTreeStore,
   AsyncMerkleTreeStore,
 } from "@proto-kit/sequencer";
-import {
-  BlockProverPublicOutput,
-  MandatoryProtocolModulesRecord,
-  Protocol,
-  ReturnType,
-} from "@proto-kit/protocol";
-import { log, RollupMerkleTree, expectDefined } from "@proto-kit/common";
-import { Field } from "o1js";
+import { ReturnType, VanillaProtocol } from "@proto-kit/protocol";
+import { log, RollupMerkleTree } from "@proto-kit/common";
+import { Field, PrivateKey } from "o1js";
+import { Balance } from "./Balance";
 import { AppChain, InMemorySigner, TestingAppChain } from "../../src";
 import { container } from "tsyringe";
 import { BalanceChild } from "./Balance";
@@ -31,11 +26,7 @@ describe.skip("block production", () => {
     { Balances: typeof Balances } & { Balances: typeof BalanceChild }
   >;
 
-  let protocol: Protocol<
-    MandatoryProtocolModulesRecord & {
-      TransactionFee: typeof TransactionFeeHook;
-    }
-  >;
+  let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>;
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -50,13 +41,36 @@ describe.skip("block production", () => {
     log.setLevel(log.levels.INFO);
 
     const app = TestingAppChain.fromRuntime({
-      Balances: BalanceChild,
+      modules: {
+        Balance,
+      },
     });
 
-    app.configurePartial({
+    app.configure({
       Runtime: {
-        Balances: {},
+        Balance: {},
       },
+      Sequencer: {
+        BlockTrigger: {},
+        BlockProducerModule: {},
+        LocalTaskWorkerModule: {},
+        BaseLayer: {},
+        TaskQueue: {},
+        Mempool: {},
+        Database: {},
+      },
+      Protocol: {
+        AccountState: {},
+        BlockProver: {},
+        StateTransitionProver: {},
+        BlockHeight: {},
+        LastStateRoot: {},
+      },
+      QueryTransportModule: {},
+      Signer: {
+        signer: PrivateKey.random(),
+      },
+      TransactionSender: {},
     });
 
     // Start AppChain
@@ -85,7 +99,7 @@ describe.skip("block production", () => {
     const tx = await appchain.transaction(senderAddress, () => {
       runtime
         .resolve("Balances")
-        .setBalance(tokenId, senderAddress, UInt64.from(100));
+        .setBalance(tokenId, senderAddress, Balance.from(100));
     });
     await tx.sign();
     await tx.send();
@@ -129,7 +143,7 @@ describe.skip("block production", () => {
 
     const tx = await appchain.transaction(sender.toPublicKey(), () => {
       runtime
-        .resolve("Balances")
+        .resolve("Balance")
         .assertLastBlockHash(Field(RollupMerkleTree.EMPTY_ROOT));
     });
     await tx.sign();

@@ -3,7 +3,7 @@ import "reflect-metadata";
 // eslint-disable-next-line @typescript-eslint/no-shadow
 import { jest } from "@jest/globals";
 import { container } from "tsyringe";
-import { Experimental, Field, Struct, Proof } from "o1js";
+import { Field, Struct, Proof, ZkProgram } from "o1js";
 
 import {
   MOCK_PROOF,
@@ -60,7 +60,8 @@ class TestProgrammable extends ZkProgrammable<
   }
 
   public zkProgramFactory() {
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "",
       publicInput: TestPublicInput,
       publicOutput: TestPublicOutput,
 
@@ -77,7 +78,7 @@ class TestProgrammable extends ZkProgrammable<
       },
     });
 
-    const SelfProof = Experimental.ZkProgram.Proof(program);
+    const SelfProof = ZkProgram.Proof(program);
 
     const methods = {
       foo: program.foo.bind(program),
@@ -90,6 +91,9 @@ class TestProgrammable extends ZkProgrammable<
       analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProof,
       methods,
+      analyzeMethods: () => {
+        return {};
+      },
     };
   }
 }
@@ -111,7 +115,8 @@ class OtherTestProgrammable extends ZkProgrammable {
   }
 
   public zkProgramFactory(): PlainZkProgram {
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "",
       methods: {
         bar: {
           privateInputs: [this.testProgrammable.zkProgram.Proof],
@@ -124,7 +129,7 @@ class OtherTestProgrammable extends ZkProgrammable {
       bar: program.bar.bind(program),
     };
 
-    const SelfProof = Experimental.ZkProgram.Proof(program);
+    const SelfProof = ZkProgram.Proof(program);
 
     return {
       compile: program.compile.bind(program),
@@ -132,6 +137,7 @@ class OtherTestProgrammable extends ZkProgrammable {
       analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProof,
       methods,
+      analyzeMethods: () => {},
     };
   }
 }

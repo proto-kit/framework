@@ -31,7 +31,7 @@ export class MinaTransactionSender {
 
   private async trySendCached(
     tx: Mina.Transaction
-  ): Promise<Mina.TransactionId | undefined> {
+  ): Promise<Mina.PendingTransaction | undefined> {
     const feePayer = tx.transaction.feePayer.body;
     const sender = feePayer.publicKey.toBase58();
     const senderQueue = this.txQueue[sender];

@@ -117,7 +117,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     ).reduce<[FeeTreeValues, FeeIndexes]>(
       // eslint-disable-next-line @typescript-eslint/no-shadow
       ([values, indexes], combinedMethodName, index) => {
-        const { rows } = analyzedMethods[index];
+        const { rows } = analyzedMethods[combinedMethodName];
         // const rows = 1000;
         const [moduleName, methodName] = combinedMethodName.split(".");
         const methodId = this.runtime.methodIdResolver.getMethodId(

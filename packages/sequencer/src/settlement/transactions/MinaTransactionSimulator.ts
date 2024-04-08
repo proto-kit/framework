@@ -124,7 +124,7 @@ export class MinaTransactionSimulator {
   }
 
   private dummyAccount(pubkey?: PublicKey, tokenId?: Field): Account {
-    const dummy = Types.Account.emptyValue();
+    const dummy = Types.Account.empty();
     if (pubkey) {
       dummy.publicKey = pubkey;
     }

@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,max-lines */
-import { Experimental } from "o1js";
+import { ZkProgram } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
@@ -178,12 +178,13 @@ export class RuntimeZkProgrammable<
       Object.entries(runtimeMethods).sort()
     );
 
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "Runtime",
       publicOutput: MethodPublicOutput,
       methods: sortedRuntimeMethods,
     });
 
-    const SelfProof = Experimental.ZkProgram.Proof(program);
+    const SelfProof = ZkProgram.Proof(program);
 
     const methods = Object.keys(sortedRuntimeMethods).reduce<
       Record<string, any>
@@ -222,7 +223,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   }
 
   // runtime modules composed into a ZkProgram
-  public program?: ReturnType<typeof Experimental.ZkProgram>;
+  public program?: ReturnType<typeof ZkProgram>;
 
   public definition: RuntimeDefinition<Modules>;
 

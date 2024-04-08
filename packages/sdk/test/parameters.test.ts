@@ -10,7 +10,7 @@ import {
   Signature,
   MerkleMap,
   MerkleMapWitness,
-  Experimental,
+  ZkProgram,
   PublicKey,
 } from "o1js";
 import {
@@ -22,7 +22,7 @@ import {
 import { TestingAppChain } from "../src/index";
 import { log } from "@proto-kit/common";
 import { assert, State, StateMap } from "@proto-kit/protocol";
-import { dummyBase64Proof } from "o1js/dist/node/lib/proof_system";
+import { dummyBase64Proof } from "o1js/dist/node/lib/proof-system";
 
 import { Pickles } from "o1js/dist/node/snarky";
 
@@ -47,7 +47,8 @@ const witness = map.getWitness(Field(0));
 function foo(publicInput: Field) {
   return Field(0);
 }
-const program = Experimental.ZkProgram({
+const program = ZkProgram({
+  name: "",
   publicOutput: Field,
   publicInput: Field,
 
@@ -60,7 +61,7 @@ const program = Experimental.ZkProgram({
   },
 });
 
-class ProgramProof extends Experimental.ZkProgram.Proof(program) {}
+class ProgramProof extends ZkProgram.Proof(program) {}
 
 const [, dummy] = Pickles.proofOfBase64(await dummyBase64Proof(), 2);
 const proof = new ProgramProof({
