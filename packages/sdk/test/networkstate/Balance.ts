@@ -1,4 +1,10 @@
-import { Balance, Balances, BalancesKey, TokenId } from "@proto-kit/library";
+import {
+  Balance,
+  Balances,
+  BalancesKey,
+  TokenId,
+  UInt64,
+} from "@proto-kit/library";
 import {
   runtimeMethod,
   runtimeModule,
@@ -6,15 +12,7 @@ import {
   state,
 } from "@proto-kit/module";
 import { log, Presets, range } from "@proto-kit/common";
-import {
-  Bool,
-  Field,
-  PublicKey,
-  UInt64,
-  Struct,
-  Provable,
-  Signature,
-} from "o1js";
+import { Bool, Field, PublicKey, Struct, Provable, Signature } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert } from "@proto-kit/protocol";
 
@@ -37,15 +35,15 @@ export class BalanceChild extends Balances {
     const address = this.transaction.sender.value;
     const balancesKey = new BalancesKey({
       tokenId: TokenId.from(0),
-      address
-    })
-    const balance = this.balances.get(balancesKey)
+      address,
+    });
+    const balance = this.balances.get(balancesKey);
 
     log.provable.debug("Sender:", address);
     log.provable.debug("Balance:", balance.isSome, balance.value);
     log.provable.debug("BlockHeight:", this.network.block.height);
 
-    assert(blockHeight.equals(this.network.block.height));
+    assert(blockHeight.equals(UInt64.from(this.network.block.height)));
 
     const newBalance = balance.value.add(value);
     this.balances.set(balancesKey, newBalance);
@@ -58,8 +56,8 @@ export class BalanceChild extends Balances {
       const pk = PublicKey.from({ x: Field(index % 5), isOdd: Bool(false) });
       const balancesKey = new BalancesKey({
         address: pk,
-        tokenId: TokenId.from(0)
-      })
+        tokenId: TokenId.from(0),
+      });
       const value = this.balances.get(balancesKey);
       this.balances.set(balancesKey, value.orElse(UInt64.zero).add(100));
 
@@ -71,12 +69,8 @@ export class BalanceChild extends Balances {
   @runtimeMethod()
   public assertLastBlockHash(hash: Field) {
     const lastRootHash = this.network.previous.rootHash;
-    assert(
-      hash.equals(lastRootHash),
-      `Root hash not matching`
-    );
+    assert(hash.equals(lastRootHash), `Root hash not matching`);
   }
-
 
   @runtimeMethod()
   public getBalance(tokenId: TokenId, address: PublicKey): Balance {

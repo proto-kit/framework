@@ -4,6 +4,7 @@ import {
   BalancesKey,
   TokenId,
   TransactionFeeHook,
+  UInt64,
 } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import {
@@ -16,17 +17,19 @@ import {
   BlockProverPublicOutput,
   MandatoryProtocolModulesRecord,
   Protocol,
-  ReturnType
+  ReturnType,
 } from "@proto-kit/protocol";
 import { log, RollupMerkleTree, expectDefined } from "@proto-kit/common";
-import { Field, UInt64 } from "o1js";
+import { Field } from "o1js";
 import { AppChain, InMemorySigner, TestingAppChain } from "../../src";
 import { container } from "tsyringe";
 import { BalanceChild } from "./Balance";
 
 // TODO Re-enable after new STProver
 describe.skip("block production", () => {
-  let runtime: Runtime<{ Balances: typeof Balances; } & { Balances: typeof BalanceChild; }>;
+  let runtime: Runtime<
+    { Balances: typeof Balances } & { Balances: typeof BalanceChild }
+  >;
 
   let protocol: Protocol<
     MandatoryProtocolModulesRecord & {
@@ -47,14 +50,14 @@ describe.skip("block production", () => {
     log.setLevel(log.levels.DEBUG);
 
     const app = TestingAppChain.fromRuntime({
-      Balances: BalanceChild
+      Balances: BalanceChild,
     });
 
     app.configurePartial({
       Runtime: {
-        Balances: {}
-      }
-    })
+        Balances: {},
+      },
+    });
 
     // Start AppChain
     await app.start(container.createChildContainer());
@@ -89,7 +92,7 @@ describe.skip("block production", () => {
 
     const [block, batch] = await blockTrigger.produceBlock();
 
-    expectDefined(block)
+    expectDefined(block);
     expect(block.transactions).toHaveLength(1);
 
     const path = runtime
@@ -113,7 +116,7 @@ describe.skip("block production", () => {
 
     const [block2, batch2] = await blockTrigger.produceBlock();
 
-    expectDefined(block2)
+    expectDefined(block2);
 
     expect(block2.transactions).toHaveLength(1);
     expect(block2!.transactions[0].status.toBoolean()).toBe(true);
@@ -136,12 +139,12 @@ describe.skip("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
 
     expectDefined(batch);
-    const publicOutput = BlockProverPublicOutput.fromFields(batch.proof.publicOutput.map(x => Field(x)))
+    const publicOutput = BlockProverPublicOutput.fromFields(
+      batch.proof.publicOutput.map((x) => Field(x))
+    );
 
     const tx2 = await appchain.transaction(sender.toPublicKey(), () => {
-      runtime
-        .resolve("Balances")
-        .assertLastBlockHash(publicOutput.stateRoot);
+      runtime.resolve("Balances").assertLastBlockHash(publicOutput.stateRoot);
     });
 
     await tx2.sign();
@@ -151,12 +154,12 @@ describe.skip("block production", () => {
     expect(block2!.transactions[0].status.toBoolean()).toBe(true);
 
     expectDefined(batch2);
-    const publicOutput2 = BlockProverPublicOutput.fromFields(batch2.proof.publicOutput.map(x => Field(x)))
+    const publicOutput2 = BlockProverPublicOutput.fromFields(
+      batch2.proof.publicOutput.map((x) => Field(x))
+    );
 
     const tx3 = await appchain.transaction(sender.toPublicKey(), () => {
-      runtime
-        .resolve("Balances")
-        .assertLastBlockHash(publicOutput2.stateRoot);
+      runtime.resolve("Balances").assertLastBlockHash(publicOutput2.stateRoot);
     });
 
     await tx3.sign();

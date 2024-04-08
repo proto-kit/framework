@@ -1,19 +1,12 @@
 import { expectDefined } from "@proto-kit/common";
+import { Field, PrivateKey, UInt64 as O1UInt64 } from "o1js";
 import {
-  Bool,
-  Field,
-  PrivateKey,
-  Provable,
-  PublicKey,
-  Signature,
-  UInt64
-} from "o1js";
-import {
-  BlockProverPublicOutput, NetworkState,
+  BlockProverPublicOutput,
+  NetworkState,
   ProvableTransactionHook,
-  PublicKeyOption,
-  RuntimeMethodExecutionContext, RuntimeTransaction,
-  StateServiceProvider, UInt64Option
+  RuntimeMethodExecutionContext,
+  RuntimeTransaction,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
 
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
@@ -22,7 +15,7 @@ import { TestBalances } from "./TestBalances";
 import { MockAsyncMerkleTreeStore, RollupMerkleTree } from "@proto-kit/common";
 import { ManualBlockTrigger } from "@proto-kit/sequencer";
 import { InMemoryStateService } from "@proto-kit/module";
-import { BalancesKey, TokenId } from "@proto-kit/library";
+import { BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
 
 // Failing - investigate why
 describe.skip("blockProof", () => {
@@ -78,10 +71,13 @@ describe.skip("blockProof", () => {
 
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty()
+      networkState: NetworkState.empty(),
     });
 
-    const balancesMethodId = appChain.runtime.methodIdResolver.getMethodId("Balances", "setBalance");
+    const balancesMethodId = appChain.runtime.methodIdResolver.getMethodId(
+      "Balances",
+      "setBalance"
+    );
 
     // eslint-disable-next-line max-len
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/consistent-type-assertions
@@ -91,9 +87,9 @@ describe.skip("blockProof", () => {
         hook.onTransaction({
           transaction: RuntimeTransaction.fromTransaction({
             sender: alice,
-            nonce: UInt64.from(0),
+            nonce: O1UInt64.from(0),
             methodId: Field(balancesMethodId),
-            argsHash: Field(0)
+            argsHash: Field(0),
           }),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);

@@ -6,8 +6,9 @@ import {
   TokenId,
   VanillaProtocolModules,
   VanillaRuntimeModules,
+  UInt64
 } from "@proto-kit/library";
-import { Field, PrivateKey, UInt64 } from "o1js";
+import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
 import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
 import { GraphqlServer } from "@proto-kit/api";
