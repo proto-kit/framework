@@ -5,7 +5,7 @@ import {
   InMemoryTransactionSender,
   StateServiceQueryModule,
 } from "@proto-kit/sdk";
-import { PrivateKey, PublicKey, UInt64 } from "o1js";
+import { PrivateKey, PublicKey } from "o1js";
 import {
   Runtime,
   runtimeMethod,
@@ -17,8 +17,10 @@ import {
   Balance,
   Balances,
   BalancesKey,
-  TokenId, VanillaProtocolModules,
-  VanillaRuntimeModules
+  TokenId,
+  VanillaProtocolModules,
+  VanillaRuntimeModules,
+  UInt64,
 } from "@proto-kit/library";
 import { log, Presets } from "@proto-kit/common";
 import {
