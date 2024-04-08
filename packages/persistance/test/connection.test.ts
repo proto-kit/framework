@@ -8,8 +8,7 @@ import {
   CachedMerkleTreeStore,
 } from "@proto-kit/sequencer";
 import { RedisMerkleTreeStore } from "../src/services/redis/RedisMerkleTreeStore";
-import { expectDefined } from "@proto-kit/sequencer/test/integration/utils";
-import { RollupMerkleTree } from "@proto-kit/common";
+import { expectDefined, RollupMerkleTree } from "@proto-kit/common";
 
 // TODO Pull apart and test properly
 // Needs redis instance

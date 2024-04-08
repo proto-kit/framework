@@ -24,9 +24,10 @@ import {
   Field,
   method,
   Mina,
-  PrivateKey, PublicKey,
+  PrivateKey,
+  PublicKey,
   SmartContract,
-  UInt64
+  UInt64,
 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -43,9 +44,7 @@ import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
 import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
 import { SettlementModule } from "../../src/settlement/SettlementModule";
-import {
-  SettlementProvingTask
-} from "../../src/settlement/tasks/SettlementProvingTask";
+import { SettlementProvingTask } from "../../src/settlement/tasks/SettlementProvingTask";
 import { Balance } from "../integration/mocks/Balance";
 import { Withdrawals } from "../integration/mocks/Withdrawals";
 import { testingSequencerFromModules } from "../TestingSequencer";
@@ -73,13 +72,16 @@ describe("settlement contracts", () => {
       },
     });
 
-    const sequencer = testingSequencerFromModules({
-      BaseLayer: MinaBaseLayer,
-      SettlementModule: SettlementModule,
-      OutgoingMessageQueue: WithdrawalQueue,
-    },{
-      SettlementProvingTask
-    });
+    const sequencer = testingSequencerFromModules(
+      {
+        BaseLayer: MinaBaseLayer,
+        SettlementModule: SettlementModule,
+        OutgoingMessageQueue: WithdrawalQueue,
+      },
+      {
+        SettlementProvingTask,
+      }
+    );
 
     const appchain = AppChain.from({
       Runtime: runtime,
@@ -87,7 +89,7 @@ describe("settlement contracts", () => {
 
       Protocol: Protocol.from({
         modules: {
-          ...VanillaProtocolModules.mandatoryModules(),
+          ...VanillaProtocolModules.mandatoryModules({}),
           SettlementContractModule: SettlementContractModule.fromDefaults(),
         },
       }),

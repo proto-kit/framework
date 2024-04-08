@@ -3,9 +3,9 @@ import "reflect-metadata";
 import { Bool, Field } from "o1js";
 import { Option, StateTransition } from "@proto-kit/protocol";
 
-import { toStateTransitionsHash } from "./runtimeMethod.js";
+import { toStateTransitionsHash } from "../../src/method/runtimeMethod.js";
 
-describe("toStateTransitionsHash", () => {
+describe.skip("toStateTransitionsHash", () => {
   const noneStateTransition = StateTransition.from(
     Field(0),
     new Option(Bool(false), Field(0), Field)

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers,prefer-const,id-length,no-underscore-dangle,putout/putout */
 import { Bool, Field, Provable, Struct, UInt64 } from "o1js";
 import { assert } from "@proto-kit/protocol";
+// @ts-ignore
 import bigintSqrt from "bigint-isqrt";
 
 const errors = {
@@ -170,7 +171,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     if (x.isConstant()) {
       const xn = x.toBigInt();
       const sqrt = bigintSqrt(xn);
-      const rest = xn - sqrt * sqrt;
+      const rest = xn - BigInt(sqrt * sqrt);
       return {
         sqrt: this.impls.creator(Field(sqrt)),
         rest: this.impls.creator(Field(rest)),

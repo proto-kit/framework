@@ -129,9 +129,9 @@ export class MempoolResolver extends GraphqlModule {
   }
 
   @Mutation(() => String)
-  public submitTx(@Arg("tx") tx: TransactionObject): string {
+  public async submitTx(@Arg("tx") tx: TransactionObject): Promise<string> {
     const decoded = PendingTransaction.fromJSON(tx);
-    this.mempool.add(decoded);
+    await this.mempool.add(decoded);
 
     return decoded.hash().toString();
   }

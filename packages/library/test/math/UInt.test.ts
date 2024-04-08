@@ -2,8 +2,9 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { RuntimeMethodExecutionContext, State } from "@proto-kit/protocol";
 import { beforeEach } from "@jest/globals";
+// @ts-ignore
 import bigintsqrt from "bigint-isqrt";
-import { Field, Provable } from "o1js";
+import { Provable } from "o1js";
 
 import { UInt112, UInt64 } from "../../src";
 

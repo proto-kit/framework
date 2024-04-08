@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { beforeAll, describe } from "@jest/globals";
 import {
   runtimeMethod,
@@ -54,7 +55,7 @@ describe("test the correct key extraction for runtime methods", () => {
     appchain.configurePartial({
       Runtime: {
         TestModule: {},
-        Balances: {}
+        Balances: {},
       },
     });
 

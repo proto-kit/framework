@@ -139,7 +139,8 @@
         "@typescript-eslint/init-declarations": "off", //conflicts with beforeEach initialization
         "unicorn/consistent-function-scoping": "off", //Describe-level functions
         "@typescript-eslint/no-magic-numbers": "off",
-        "jest/no-disabled-tests": "off" //For now
+        "jest/no-disabled-tests": "off", //For now
+        "import/no-extraneous-dependencies": "off"
       }
     },
     {

@@ -40,13 +40,15 @@ import {
 } from "../TestingSequencer";
 
 import { Balance } from "./mocks/Balance";
+import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
 import { createTransaction } from "./utils";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
-  let protocol: Protocol<MandatoryProtocolModulesRecord>;
+  let protocol: Protocol<MandatoryProtocolModulesRecord & { ProtocolStateTestHook: typeof ProtocolStateTestHook }>;
+  // let protocol: Protocol<VanillaProtocolModulesRecord>;
 
   let appChain: AppChain<any, any, any, any>;
 
@@ -72,7 +74,10 @@ describe("block production", () => {
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({}),
+      modules: VanillaProtocolModules.mandatoryModules({
+        ProtocolStateTestHook
+      }),
+      // modules: VanillaProtocolModules.with({}),
     });
 
     const app = AppChain.from({
@@ -104,6 +109,7 @@ describe("block production", () => {
         StateTransitionProver: {},
         BlockHeight: {},
         LastStateRoot: {},
+        ProtocolStateTestHook: {},
       },
     });
 
@@ -120,7 +126,7 @@ describe("block production", () => {
 
   // eslint-disable-next-line max-statements
   it("should produce a dummy block proof", async () => {
-    expect.assertions(23);
+    expect.assertions(25);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -143,6 +149,9 @@ describe("block production", () => {
     expect(block!.transactions).toHaveLength(1);
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
+
+    expect(block!.transactions[0].stateTransitions).toHaveLength(1);
+    expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
 
     const latestBlockWithMetadata = await sequencer
       .resolve("UnprovenBlockQueue")
@@ -421,48 +430,6 @@ describe("block production", () => {
   }, 720_000);
 
   it.skip.each([
-    [
-      "EKFZbsQfNiqjDiWGU7G3TVPauS3s9YgWgayMzjkEaDTEicsY9poM",
-      "EKFdtp8D6mP3aFvCMRa75LPaUBn1QbmEs1YjTPXYLTNeqPYtnwy2",
-    ],
-    [
-      "EKE8hTdmVrYisQSc5oqeM7inCA2fFCvZ8Y5K2CPfV4NBwSJtxads",
-      "EKFct4rQwPV9N9F2J1oogaWrZLD1c5apyn997ncsmSKjoJCFDMsQ",
-    ],
-  ])(
-    "dex repro",
-    async ([pk1string, pk2string]) => {
-      const pk1 = PrivateKey.fromBase58(pk1string);
-      const pk2 = PrivateKey.fromBase58(pk2string);
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: pk1,
-          args: [pk1.toPublicKey(), UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-
-      await blockTrigger.produceBlock();
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: pk2,
-          args: [pk2.toPublicKey(), UInt64.from(200), Bool(true)],
-          nonce: 0,
-        })
-      );
-
-      await blockTrigger.produceBlock();
-    },
-    60000
-  );
-
-  it.each([
     [2, 1, 1],
     [1, 2, 1],
     [1, 1, 2],

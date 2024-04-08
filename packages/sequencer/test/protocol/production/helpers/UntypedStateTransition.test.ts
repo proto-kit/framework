@@ -1,9 +1,11 @@
-import { UntypedStateTransition } from "../../../../src";
+import "reflect-metadata";
 import {
   Option,
   StateTransition,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
+
+import { UntypedStateTransition } from "../../../../src";
 
 describe("stateTransition", () => {
   it.each([

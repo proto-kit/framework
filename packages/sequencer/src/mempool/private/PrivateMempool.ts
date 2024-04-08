@@ -31,7 +31,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
       }
       return success;
     }
-    throw new Error(`Valdiation of tx failed: ${error ?? "unknown error"}`);
+    throw new Error(`Validation of tx failed: ${error ?? "unknown error"}`);
   }
 
   public async getTxs(): Promise<PendingTransaction[]> {

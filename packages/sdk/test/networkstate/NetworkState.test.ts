@@ -18,8 +18,7 @@ import {
   Protocol,
   ReturnType
 } from "@proto-kit/protocol";
-import { log, RollupMerkleTree } from "@proto-kit/common";
-import { expectDefined } from "@proto-kit/sequencer/test/integration/utils";
+import { log, RollupMerkleTree, expectDefined } from "@proto-kit/common";
 import { Field, UInt64 } from "o1js";
 import { AppChain, InMemorySigner, TestingAppChain } from "../../src";
 import { container } from "tsyringe";
