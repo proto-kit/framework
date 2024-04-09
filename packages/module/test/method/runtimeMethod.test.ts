@@ -3,7 +3,7 @@ import "reflect-metadata";
 import { Bool, Field } from "o1js";
 import { Option, StateTransition } from "@proto-kit/protocol";
 
-import { toStateTransitionsHash } from "../../src/method/runtimeMethod.js";
+import { toStateTransitionsHash } from "../../src/method/runtimeMethod";
 
 describe.skip("toStateTransitionsHash", () => {
   const noneStateTransition = StateTransition.from(
