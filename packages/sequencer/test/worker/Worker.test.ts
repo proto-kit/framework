@@ -51,7 +51,6 @@ class SumTask implements MapReduceTask<number, number> {
 
   // Worker-executed
   public async reduce(r1: number, r2: number): Promise<number> {
-    console.log(`Reducing ${r1} + ${r2}`);
     // Does the actual reducing work
     return r1 + r2;
   }
