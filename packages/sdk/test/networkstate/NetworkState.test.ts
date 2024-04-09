@@ -47,7 +47,7 @@ describe.skip("block production", () => {
   beforeEach(async () => {
     // container.reset();
 
-    log.setLevel(log.levels.DEBUG);
+    log.setLevel(log.levels.INFO);
 
     const app = TestingAppChain.fromRuntime({
       Balances: BalanceChild,

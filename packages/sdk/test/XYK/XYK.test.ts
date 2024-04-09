@@ -116,8 +116,8 @@ describe("xyk", () => {
     const balanceIn = await getBalance(tokenInId, alice);
     const balanceOut = await getBalance(tokenOutId, alice);
 
-    expect(balanceIn?.toBigInt()).toBe(balanceToMint - initialLiquidityA);
-    expect(balanceOut?.toBigInt()).toBe(balanceToMint - initialLiquidityB);
+    expect(balanceIn?.toString()).toBe(String(balanceToMint - initialLiquidityA));
+    expect(balanceOut?.toString()).toBe(String(balanceToMint - initialLiquidityB));
   }, 30_000);
 
   it("should sell tokenIn", async () => {
@@ -150,15 +150,15 @@ describe("xyk", () => {
       balanceOutAfter,
     });
 
-    expect(balanceInAfter?.toBigInt()).toBe(
+    expect(balanceInAfter?.toString()).toBe(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      balanceInBefore!.toBigInt() - balanceToSell
+      String(balanceInBefore!.toBigInt() - balanceToSell)
     );
 
-    expect(balanceOutAfter?.toBigInt()).toBe(
+    expect(balanceOutAfter?.toString()).toBe(
       // 181 = expected calculated amount to receive
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      balanceOutBefore!.toBigInt() + 181n
+      String(balanceOutBefore!.toBigInt() + 181n)
     );
   }, 30_000);
 
@@ -190,15 +190,15 @@ describe("xyk", () => {
     const balanceInAfter = await getBalance(tokenInId, alice);
     const balanceOutAfter = await getBalance(tokenOutId, alice);
 
-    expect(balanceOutAfter?.toBigInt()).toBe(
+    expect(balanceOutAfter?.toString()).toBe(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      balanceOutBefore!.toBigInt() + balanceToBuy
+      String(balanceOutBefore!.toBigInt() + balanceToBuy)
     );
 
-    expect(balanceInAfter?.toBigInt()).toBe(
+    expect(balanceInAfter?.toString()).toBe(
       // 404 = expected calculated amount in
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      balanceInBefore!.toBigInt() - 135n
+      String(balanceInBefore!.toBigInt() - 135n)
     );
   }, 30_000);
 });

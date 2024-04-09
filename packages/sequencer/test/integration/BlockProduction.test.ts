@@ -58,7 +58,7 @@ describe("block production", () => {
   beforeEach(async () => {
     // container.reset();
 
-    log.setLevel(log.levels.DEBUG);
+    log.setLevel(log.levels.INFO);
 
     const runtimeClass = Runtime.from({
       modules: {
@@ -437,8 +437,6 @@ describe("block production", () => {
   ])(
     "should produce multiple blocks with multiple batches with multiple transactions",
     async (batches, blocksPerBatch, txsPerBlock) => {
-      log.setLevel("DEBUG");
-
       expect.assertions(2 * batches + 3 * batches * blocksPerBatch);
 
       const sender = PrivateKey.random();

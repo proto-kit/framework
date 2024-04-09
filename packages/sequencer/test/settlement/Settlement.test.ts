@@ -49,7 +49,7 @@ import { Balance } from "../integration/mocks/Balance";
 import { Withdrawals } from "../integration/mocks/Withdrawals";
 import { testingSequencerFromModules } from "../TestingSequencer";
 
-log.setLevel("DEBUG");
+log.setLevel("INFO");
 
 // TODO Re-enable after fixes in MinaTransactionSender:88
 describe.skip("settlement contracts", () => {
