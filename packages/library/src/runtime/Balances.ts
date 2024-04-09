@@ -60,7 +60,7 @@ export class Balances<Config = NoConfig>
   public getBalance(tokenId: TokenId, address: PublicKey): Balance {
     const key = new BalancesKey({ tokenId, address });
     const balanceOption = this.balances.get(key);
-    const balance = Balance.from(balanceOption.value.value);
+    const balance = Balance.Unsafe.fromField(balanceOption.value.value);
     return balance;
   }
 

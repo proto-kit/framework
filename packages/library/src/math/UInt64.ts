@@ -1,49 +1,34 @@
-import { ReturnType } from "@proto-kit/protocol";
-import { Field, UInt32, UInt64 as o1UInt64 } from "o1js";
-import { createUIntX } from "./UInt";
+import { Field } from "o1js";
+import { UIntConstructor, UIntX } from "./UInt";
 
-type X = ReturnType<typeof createUIntX>
+export class UInt64 extends UIntX<64> {
+  public static Unsafe = {
+    fromField(value: Field) {
+      return new UInt64({ value });
+    },
+  };
 
-export class UInt64 extends createUIntX(64) {
+  public static check(x: { value: Field }) {
+    const actual = x.value.rangeCheckHelper(64);
+    UIntX.assertionFunction(actual.equals(x.value));
+  }
 
+  public static from(x: UInt64 | bigint | number | string) {
+    if (x instanceof UInt64) {
+      return x;
+    }
+    return new UInt64({ value: UIntX.checkConstant(Field(x), 64) });
+  }
+
+  public static get zero() {
+    return UInt64.Unsafe.fromField(Field(0))
+  }
+
+  public constructorReference(): UIntConstructor<64> {
+    return UInt64;
+  }
+
+  public numBits(): 64 {
+    return 64;
+  }
 }
-
-// export class UInt64 extends UIntX<UInt64> {
-//   public static get NUM_BITS() {
-//     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-//     return 64;
-//   }
-//
-//   public numBits() {
-//     return 64;
-//   }
-//
-//   /**
-//    * Static method to create a {@link UIntX} with value `0`.
-//    */
-//   public static get zero() {
-//     return UInt64.from(Field(0));
-//   }
-//
-//   public static classReference = UInt64;
-//
-//   /**
-//    * Static method to create a {@link UIntX} with value `1`.
-//    */
-//   public static get one() {
-//     return UInt64.from(Field(1));
-//   }
-//
-//   public static MAXINT(): UInt64 {
-//     return new UInt64(UIntX.maxIntField(UInt64.NUM_BITS));
-//   }
-//
-//   public static check(x: { value: Field }) {
-//     const actual = x.value.rangeCheckHelper(UInt64.NUM_BITS);
-//     UIntX.assertionFunction(actual.equals(x.value));
-//   }
-//
-//   public constructor(value: Field) {
-//     super(value);
-//   }
-// }

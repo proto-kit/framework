@@ -102,7 +102,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       new TokenId(this.config.tokenId),
       from.value,
       PublicKey.fromBase58(this.config.feeRecipient),
-      Balance.from(fee.value)
+      Balance.Unsafe.fromField(fee.value)
     );
   }
 
@@ -136,12 +136,12 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       errors.invalidFeeConfigMethodId()
     );
 
-    const fee = UInt64.from(feeConfig.baseFee.value).add(
-      UInt64.from(feeConfig.weight.value).mul(
-        UInt64.from(feeConfig.perWeightUnitFee.value)
+    const fee = UInt64.Unsafe.fromField(feeConfig.baseFee.value).add(
+      UInt64.Unsafe.fromField(feeConfig.weight.value).mul(
+        UInt64.Unsafe.fromField(feeConfig.perWeightUnitFee.value)
       )
     );
 
-    this.transferFee(executionData.transaction.sender, UInt64.from(fee.value));
+    this.transferFee(executionData.transaction.sender, UInt64.Unsafe.fromField(fee.value));
   }
 }

@@ -102,4 +102,4 @@ export function expectDefined<T>(value: T | undefined): asserts value is T {
 type NonMethodKeys<Type> = {
   [Key in keyof Type]: Type[Key] extends Function ? never : Key;
 }[keyof Type];
-type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;
+export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;

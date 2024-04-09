@@ -8,9 +8,9 @@ import {
 import { beforeEach } from "@jest/globals";
 // @ts-ignore
 import bigintsqrt from "bigint-isqrt";
-import { Bool, Field, Provable } from "o1js";
+import { Bool, Field, Provable, Struct } from "o1js";
 
-import { createUIntX, UInt112, UInt64 } from "../../src";
+import { UInt112, UInt64, UIntX } from "../../src";
 
 describe("uint112", () => {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
@@ -21,12 +21,9 @@ describe("uint112", () => {
   });
 
   it("regression - Provable.if impls", () => {
-    const u2 = UInt64.from(Field(1));
+    const uint = UInt112.Unsafe.fromField(Field(1));
 
-    type x = ReturnType<typeof createUIntX>;
-
-    const x = Provable.if(Bool(true), UInt112, u2, u2);
-
+    const x = Provable.if(Bool(true), UInt112, uint, uint);
     const y = new UInt112(x).add(3);
 
     expect(y.toBigInt()).toBe(4n);
@@ -130,6 +127,7 @@ describe("uint112", () => {
 
     // Only a compilation test
     const state = State.from(UInt64);
+    const state2 = State.from<UInt64>(UInt64);
 
     expect(1).toBe(1);
   });

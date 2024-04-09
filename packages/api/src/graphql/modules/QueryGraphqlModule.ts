@@ -47,8 +47,8 @@ import {
   BaseModuleType,
   log,
   ModuleContainer,
-  ModulesRecord,
-  range,
+  ModulesRecord, NonMethods,
+  range
 } from "@proto-kit/common";
 import { ObjMap } from "graphql/jsutils/ObjMap";
 
