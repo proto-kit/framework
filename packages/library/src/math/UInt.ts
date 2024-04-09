@@ -61,18 +61,6 @@ export abstract class UInt<BITS extends number> extends Struct({
     return Field((1n << BigInt(numBits)) - 1n);
   }
 
-  private checkConstant(x: Field) {
-    if (!x.isConstant()) return x;
-    let xBig = x.toBigInt();
-    const bits = this.numBits();
-    if (xBig < 0n || xBig >= 1n << BigInt(this.numBits())) {
-      throw Error(
-        `UInt${bits}: Expected number between 0 and 2^${bits} - 1, got ${xBig}`
-      );
-    }
-    return x;
-  }
-
   public constructor(value: { value: Field }) {
     super(value);
 
@@ -85,7 +73,7 @@ export abstract class UInt<BITS extends number> extends Struct({
       throw errors.usageWith256BitsForbidden();
     }
 
-    this.checkConstant(value.value);
+    // this.checkConstant(value.value);
   }
 
   public abstract numBits(): BITS;

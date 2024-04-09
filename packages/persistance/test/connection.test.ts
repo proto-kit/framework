@@ -92,3 +92,9 @@ describe.skip("prisma", () => {
     await db.prismaClient.$disconnect();
   });
 });
+
+describe("placeholder", () => {
+  it("placeholder", () => {
+    expect(1).toBe(1)
+  })
+})

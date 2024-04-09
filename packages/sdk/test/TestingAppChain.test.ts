@@ -53,7 +53,7 @@ class CustomBalances extends Balances<BalancesConfig> {
     const totalSupply = this.totalSupply.get();
 
     // TODO Fix UInt issues to remove new UInt()
-    const newTotalSupply = new UInt64(totalSupply.value.value).add(balance);
+    const newTotalSupply = UInt64.Unsafe.fromField(totalSupply.value.value).add(balance);
     const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
       this.config.totalSupply
     );
@@ -73,7 +73,7 @@ class CustomBalances extends Balances<BalancesConfig> {
     );
 
     // TODO Fix UInt issues to remove new UInt()
-    const newBalance = new UInt64(currentBalance.value.value).add(balance);
+    const newBalance = UInt64.Unsafe.fromField(currentBalance.value.value).add(balance);
 
     this.balances.set(
       new BalancesKey({ tokenId: TokenId.from(0n), address }),

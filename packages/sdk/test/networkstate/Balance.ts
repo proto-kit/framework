@@ -43,7 +43,7 @@ export class BalanceChild extends Balances {
     log.provable.debug("Balance:", balance.isSome, balance.value);
     log.provable.debug("BlockHeight:", this.network.block.height);
 
-    assert(blockHeight.equals(UInt64.from(this.network.block.height)));
+    assert(blockHeight.equals(UInt64.Unsafe.fromField(this.network.block.height.value)));
 
     const newBalance = balance.value.add(value);
     this.balances.set(balancesKey, newBalance);
