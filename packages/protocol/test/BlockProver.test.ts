@@ -69,9 +69,7 @@ class RuntimeZkProgrammable extends ZkProgrammable<
       analyzeMethods: program.analyzeMethods.bind(program),
       methods: {},
       Proof: ZkProgram.Proof(program),
-      analyzeMethods: () => {
-        return {};
-      },
+      analyzeMethods: program.analyzeMethods,
     };
   }
 }

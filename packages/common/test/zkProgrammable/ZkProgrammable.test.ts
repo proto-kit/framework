@@ -91,9 +91,7 @@ class TestProgrammable extends ZkProgrammable<
       analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProof,
       methods,
-      analyzeMethods: () => {
-        return {};
-      },
+      analyzeMethods: program.analyzeMethods.bind(program),
     };
   }
 }
@@ -137,7 +135,7 @@ class OtherTestProgrammable extends ZkProgrammable {
       analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProof,
       methods,
-      analyzeMethods: () => {},
+      analyzeMethods: program.analyzeMethods.bind(program),
     };
   }
 }
