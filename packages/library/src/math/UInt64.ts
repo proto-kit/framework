@@ -8,6 +8,14 @@ export class UInt64 extends UInt<64> {
     },
   };
 
+  public static Safe = {
+    fromField(value: Field) {
+      const uint = new UInt64({ value });
+      UInt64.check(uint);
+      return uint;
+    },
+  };
+
   public static check(x: { value: Field }) {
     const actual = x.value.rangeCheckHelper(64);
     UInt.assertionFunction(actual.equals(x.value));
@@ -21,7 +29,11 @@ export class UInt64 extends UInt<64> {
   }
 
   public static get zero() {
-    return UInt64.Unsafe.fromField(Field(0))
+    return UInt64.Unsafe.fromField(Field(0));
+  }
+
+  public static get max() {
+    return UInt64.Unsafe.fromField(UInt.maxIntField(64));
   }
 
   public constructorReference(): UIntConstructor<64> {

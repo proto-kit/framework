@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-magic-numbers,prefer-const,id-length,no-underscore-dangle */
-import { Bool, Field, Provable, Struct } from "o1js";
+import { Bool, Field, Provable, Struct, UInt64 as O1UInt64 } from "o1js";
 import { assert } from "@proto-kit/protocol";
 // @ts-ignore
 import bigintSqrt from "bigint-isqrt";
@@ -15,16 +15,26 @@ const errors = {
 };
 
 export type UIntConstructor<BITS extends number> = {
-  // new(value: Field | { value: Field }): UIntX<BITS>;
   from(x: UInt<BITS> | bigint | number | string): UInt<BITS>;
   check(x: { value: Field }): void;
   get zero(): UInt<BITS>;
+  get max(): UInt<BITS>;
 
   Unsafe: {
     fromField(x: Field): UInt<BITS>;
   };
+  Safe: {
+    fromField(x: Field): UInt<BITS>;
+  };
 };
 
+/**
+ * UInt is a base class for all soft-failing UInt* implementations.
+ * It has to be overridden for every bitlength that should be available.
+ *
+ * For this, the developer has to create a subclass of UInt implementing the
+ * static methods from interface UIntConstructor
+ */
 export abstract class UInt<BITS extends number> extends Struct({
   value: Field,
 }) {
@@ -51,6 +61,18 @@ export abstract class UInt<BITS extends number> extends Struct({
     return Field((1n << BigInt(numBits)) - 1n);
   }
 
+  private checkConstant(x: Field) {
+    if (!x.isConstant()) return x;
+    let xBig = x.toBigInt();
+    const bits = this.numBits();
+    if (xBig < 0n || xBig >= 1n << BigInt(this.numBits())) {
+      throw Error(
+        `UInt${bits}: Expected number between 0 and 2^${bits} - 1, got ${xBig}`
+      );
+    }
+    return x;
+  }
+
   public constructor(value: { value: Field }) {
     super(value);
 
@@ -62,6 +84,8 @@ export abstract class UInt<BITS extends number> extends Struct({
     if (bits === 256) {
       throw errors.usageWith256BitsForbidden();
     }
+
+    this.checkConstant(value.value);
   }
 
   public abstract numBits(): BITS;
@@ -393,24 +417,29 @@ export abstract class UInt<BITS extends number> extends Struct({
     UInt.assertionFunction(this.equals(y), message);
   }
 
-  // /**
-  //  * Turns the {@link UIntX} into a {@link UInt64}, asserting that it fits in 32 bits.
-  //  */
-  // public toUInt64() {
-  //   let uint64 = new UInt64(this.value);
-  //   UInt64.check(uint64);
-  //   return uint64;
-  // }
-  //
-  // /**
-  //  * Turns the {@link UIntX} into a {@link UInt64}, clamping to the 64 bits range if it's too large.
-  //  */
-  // public toUInt64Clamped() {
-  //   let max = (1n << 64n) - 1n;
-  //   return Provable.if(
-  //     this.greaterThan(UIntX.from(max)),
-  //     UInt64.from(max),
-  //     new UInt64(this.value)
-  //   );
-  // }
+  /**
+   * Turns the {@link UInt} into a o1js {@link UInt64}, asserting that it fits in 32 bits.
+   */
+  public toO1UInt64() {
+    let uint64 = new O1UInt64(this.value);
+    O1UInt64.check(uint64);
+    return uint64;
+  }
+
+  /**
+   * Turns the {@link UInt} into a o1js {@link UInt64}, clamping to the 64 bits range if it's too large.
+   */
+  public toO1UInt64Clamped() {
+    if (this.numBits() <= 64) {
+      return new O1UInt64(this.value);
+    } else {
+      let max = (1n << 64n) - 1n;
+      return Provable.if(
+        // We know that BITS is >64 bits, so we can skip range checks for max
+        this.greaterThan(this.fromField(Field(max))),
+        O1UInt64.from(max),
+        new O1UInt64(this.value)
+      );
+    }
+  }
 }
