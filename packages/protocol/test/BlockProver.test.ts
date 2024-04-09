@@ -58,7 +58,7 @@ class RuntimeZkProgrammable extends ZkProgrammable<
 
   zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
     const program = ZkProgram({
-      name: "",
+      name: "blockProverProgram",
       publicOutput: MethodPublicOutput,
       methods: {},
     });

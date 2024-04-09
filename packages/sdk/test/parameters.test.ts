@@ -45,7 +45,7 @@ function foo(publicInput: Field) {
   return Field(0);
 }
 const program = ZkProgram({
-  name: "",
+  name: "testProgram",
   publicOutput: Field,
   publicInput: Field,
 

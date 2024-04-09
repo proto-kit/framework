@@ -758,7 +758,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const merge = prover.merge.bind(prover);
 
     const program = ZkProgram({
-      name: "PlainZkProgram",
+      name: "BlockZkProgram",
       publicInput: BlockProverPublicInput,
       publicOutput: BlockProverPublicOutput,
 

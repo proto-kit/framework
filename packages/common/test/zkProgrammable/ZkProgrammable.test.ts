@@ -61,7 +61,7 @@ class TestProgrammable extends ZkProgrammable<
 
   public zkProgramFactory() {
     const program = ZkProgram({
-      name: "",
+      name: "testZkProgram",
       publicInput: TestPublicInput,
       publicOutput: TestPublicOutput,
 
@@ -114,7 +114,7 @@ class OtherTestProgrammable extends ZkProgrammable {
 
   public zkProgramFactory(): PlainZkProgram {
     const program = ZkProgram({
-      name: "",
+      name: "plainZkProgram",
       methods: {
         bar: {
           privateInputs: [this.testProgrammable.zkProgram.Proof],
