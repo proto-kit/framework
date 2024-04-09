@@ -22,9 +22,6 @@ import {
 import { TestingAppChain } from "../src/index";
 import { log } from "@proto-kit/common";
 import { assert, State, StateMap } from "@proto-kit/protocol";
-import { dummyBase64Proof } from "o1js/dist/node/lib/proof-system";
-
-import { Pickles } from "o1js/dist/node/snarky";
 
 class TestStruct extends Struct({
   foo: Field,
@@ -63,13 +60,7 @@ const program = ZkProgram({
 
 class ProgramProof extends ZkProgram.Proof(program) {}
 
-const [, dummy] = Pickles.proofOfBase64(await dummyBase64Proof(), 2);
-const proof = new ProgramProof({
-  proof: dummy,
-  publicOutput: Field(0),
-  publicInput: Field(0),
-  maxProofsVerified: 2,
-});
+const proof = await ProgramProof.dummy(Field(0), Field(0), 2);
 
 @runtimeModule()
 class TestRuntime extends RuntimeModule<unknown> {
