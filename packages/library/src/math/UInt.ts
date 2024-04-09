@@ -16,16 +16,16 @@ const errors = {
 
 export type UIntConstructor<BITS extends number> = {
   // new(value: Field | { value: Field }): UIntX<BITS>;
-  from(x: UIntX<BITS> | bigint | number | string): UIntX<BITS>;
+  from(x: UInt<BITS> | bigint | number | string): UInt<BITS>;
   check(x: { value: Field }): void;
-  get zero(): UIntX<BITS>;
+  get zero(): UInt<BITS>;
 
   Unsafe: {
-    fromField(x: Field): UIntX<BITS>
-  }
-}
+    fromField(x: Field): UInt<BITS>;
+  };
+};
 
-export abstract class UIntX<BITS extends number> extends Struct({
+export abstract class UInt<BITS extends number> extends Struct({
   value: Field,
 }) {
   public static readonly assertionFunction: (bool: Bool, msg?: string) => void =
@@ -45,7 +45,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
   }
 
   /**
-   * Creates a {@link UIntX} with a value of 18,446,744,073,709,551,615.
+   * Creates a {@link UInt} with a value of 18,446,744,073,709,551,615.
    */
   public static maxIntField(numBits: number): Field {
     return Field((1n << BigInt(numBits)) - 1n);
@@ -64,20 +64,20 @@ export abstract class UIntX<BITS extends number> extends Struct({
     }
   }
 
-  public abstract numBits(): BITS
+  public abstract numBits(): BITS;
 
   public abstract constructorReference(): UIntConstructor<BITS>;
 
-  private fromField(value: Field): UIntX<BITS> {
-    return this.constructorReference().Unsafe.fromField(value)
+  private fromField(value: Field): UInt<BITS> {
+    return this.constructorReference().Unsafe.fromField(value);
   }
 
-  private from(value: UIntX<BITS> | string | number | bigint): UIntX<BITS> {
-    return this.constructorReference().from(value)
+  private from(value: UInt<BITS> | string | number | bigint): UInt<BITS> {
+    return this.constructorReference().from(value);
   }
 
   /**
-   * Turns the {@link UIntX} into a string.
+   * Turns the {@link UInt} into a string.
    * @returns
    */
   public toString() {
@@ -85,7 +85,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
   }
 
   /**
-   * Turns the {@link UIntX} into a {@link BigInt}.
+   * Turns the {@link UInt} into a {@link BigInt}.
    * @returns
    */
   public toBigInt() {
@@ -97,7 +97,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
    *
    * `x.divMod(y)` returns the quotient and the remainder.
    */
-  public divMod(divisor: UIntX<BITS> | bigint | number | string) {
+  public divMod(divisor: UInt<BITS> | bigint | number | string) {
     let x = this.value;
     let divisor_ = this.from(divisor).value;
 
@@ -114,14 +114,14 @@ export abstract class UIntX<BITS extends number> extends Struct({
 
     divisor_ = divisor_.seal();
 
-    UIntX.assertionFunction(divisor_.equals(0).not(), "Division by 0");
+    UInt.assertionFunction(divisor_.equals(0).not(), "Division by 0");
 
     let q = Provable.witness(Field, () => {
       const divisorInt = divisor_.toBigInt();
       return new Field(x.toBigInt() / (divisorInt == 0n ? 1n : divisorInt));
     });
 
-    UIntX.assertionFunction(
+    UInt.assertionFunction(
       q.rangeCheckHelper(this.numBits()).equals(q),
       "Divison overflowing"
     );
@@ -136,7 +136,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(divisor_)).seal();
 
-    UIntX.assertionFunction(
+    UInt.assertionFunction(
       r.rangeCheckHelper(this.numBits()).equals(r),
       "Divison overflowing, remainder"
     );
@@ -144,7 +144,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
     let r_ = this.fromField(r);
     let q_ = this.fromField(q);
 
-    UIntX.assertionFunction(
+    UInt.assertionFunction(
       r_.lessThan(this.fromField(divisor_)),
       "Divison failure, remainder larger than divisor"
     );
@@ -159,7 +159,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
    * `z` such that `z * y <= x`.
    *
    */
-  public div(y: UIntX<BITS> | bigint | number): UIntX<BITS> {
+  public div(y: UInt<BITS> | bigint | number): UInt<BITS> {
     return this.divMod(y).quotient;
   }
 
@@ -178,7 +178,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
    * @returns rest: The remainder indicating how far off the result
    * is from the "real" sqrt
    */
-  public sqrtMod(): { sqrt: UIntX<BITS>; rest: UIntX<BITS> } {
+  public sqrtMod(): { sqrt: UInt<BITS>; rest: UInt<BITS> } {
     let x = this.value;
 
     if (x.isConstant()) {
@@ -241,7 +241,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
   /**
    * Wraps sqrtMod() by only returning the sqrt and omitting the rest field.
    */
-  public sqrtFloor(): UIntX<BITS> {
+  public sqrtFloor(): UInt<BITS> {
     return this.sqrtMod().sqrt;
   }
 
@@ -251,14 +251,14 @@ export abstract class UIntX<BITS extends number> extends Struct({
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
    * `x - z` is divisble by `y`.
    */
-  public mod(y: UIntX<BITS> | bigint | number) {
+  public mod(y: UInt<BITS> | bigint | number) {
     return this.divMod(y).rest;
   }
 
   /**
    * Multiplication with overflow checking.
    */
-  public mul(y: UIntX<BITS> | bigint | number) {
+  public mul(y: UInt<BITS> | bigint | number) {
     let yField = this.from(y).value;
     let z = this.value.mul(yField);
 
@@ -267,7 +267,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
       z.assertGreaterThan(this.value, "Multiplication overflowing");
     }
 
-    UIntX.assertionFunction(
+    UInt.assertionFunction(
       z.rangeCheckHelper(this.numBits()).equals(z),
       "Multiplication overflowing"
     );
@@ -277,9 +277,9 @@ export abstract class UIntX<BITS extends number> extends Struct({
   /**
    * Addition with overflow checking.
    */
-  public add(y: UIntX<BITS> | bigint | number) {
+  public add(y: UInt<BITS> | bigint | number) {
     let z = this.value.add(this.from(y).value);
-    UIntX.assertionFunction(
+    UInt.assertionFunction(
       z.rangeCheckHelper(this.numBits()).equals(z),
       "Addition overflowing"
     );
@@ -289,9 +289,9 @@ export abstract class UIntX<BITS extends number> extends Struct({
   /**
    * Subtraction with underflow checking.
    */
-  public sub(y: UIntX<BITS> | bigint | number) {
+  public sub(y: UInt<BITS> | bigint | number) {
     let z = this.value.sub(this.from(y).value);
-    UIntX.assertionFunction(
+    UInt.assertionFunction(
       z.rangeCheckHelper(this.numBits()).equals(z),
       "Subtraction overflow"
     );
@@ -299,9 +299,9 @@ export abstract class UIntX<BITS extends number> extends Struct({
   }
 
   /**
-   * Checks if a {@link UIntX} is less than or equal to another one.
+   * Checks if a {@link UInt} is less than or equal to another one.
    */
-  public lessThanOrEqual(y: UIntX<BITS>) {
+  public lessThanOrEqual(y: UInt<BITS>) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     }
@@ -309,15 +309,15 @@ export abstract class UIntX<BITS extends number> extends Struct({
     let yMinusX = xMinusY.neg();
     let yMinusXFits = yMinusX.rangeCheckHelper(this.numBits()).equals(yMinusX);
     let xMinusYFits = xMinusY.rangeCheckHelper(this.numBits()).equals(xMinusY);
-    UIntX.assertionFunction(xMinusYFits.or(yMinusXFits));
+    UInt.assertionFunction(xMinusYFits.or(yMinusXFits));
     // x <= y if y - x fits in 64 bits
     return yMinusXFits;
   }
 
   /**
-   * Asserts that a {@link UIntX} is less than or equal to another one.
+   * Asserts that a {@link UInt} is less than or equal to another one.
    */
-  public assertLessThanOrEqual(y: UIntX<BITS>, message?: string) {
+  public assertLessThanOrEqual(y: UInt<BITS>, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let x0 = this.value.toBigInt();
       let y0 = y.value.toBigInt();
@@ -330,7 +330,7 @@ export abstract class UIntX<BITS extends number> extends Struct({
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    UIntX.assertionFunction(
+    UInt.assertionFunction(
       yMinusX.rangeCheckHelper(this.numBits()).equals(yMinusX),
       message
     );
@@ -338,59 +338,59 @@ export abstract class UIntX<BITS extends number> extends Struct({
 
   /**
    *
-   * Checks if a {@link UIntX} is less than another one.
+   * Checks if a {@link UInt} is less than another one.
    */
-  public lessThan(y: UIntX<BITS>) {
+  public lessThan(y: UInt<BITS>) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
   }
 
   /**
-   * Asserts that a {@link UIntX} is less than another one.
+   * Asserts that a {@link UInt} is less than another one.
    */
-  public assertLessThan(y: UIntX<BITS>, message?: string) {
-    UIntX.assertionFunction(this.lessThan(y), message);
+  public assertLessThan(y: UInt<BITS>, message?: string) {
+    UInt.assertionFunction(this.lessThan(y), message);
   }
 
   /**
-   * Checks if a {@link UIntX} is greater than another one.
+   * Checks if a {@link UInt} is greater than another one.
    */
-  public greaterThan(y: UIntX<BITS>) {
+  public greaterThan(y: UInt<BITS>) {
     return y.lessThan(this);
   }
 
   /**
-   * Asserts that a {@link UIntX} is greater than another one.
+   * Asserts that a {@link UInt} is greater than another one.
    */
-  public assertGreaterThan(y: UIntX<BITS>, message?: string) {
+  public assertGreaterThan(y: UInt<BITS>, message?: string) {
     y.assertLessThan(this, message);
   }
 
   /**
-   * Checks if a {@link UIntX} is greater than or equal to another one.
+   * Checks if a {@link UInt} is greater than or equal to another one.
    */
-  public greaterThanOrEqual(y: UIntX<BITS>) {
+  public greaterThanOrEqual(y: UInt<BITS>) {
     return this.lessThan(y).not();
   }
 
   /**
-   * Asserts that a {@link UIntX} is greater than or equal to another one.
+   * Asserts that a {@link UInt} is greater than or equal to another one.
    */
-  public assertGreaterThanOrEqual(y: UIntX<BITS>, message?: string) {
+  public assertGreaterThanOrEqual(y: UInt<BITS>, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
 
   /**
-   * Checks if a {@link UIntX} is equal to another one.
+   * Checks if a {@link UInt} is equal to another one.
    */
-  public equals(y: UIntX<BITS> | bigint | number): Bool {
+  public equals(y: UInt<BITS> | bigint | number): Bool {
     return this.from(y).value.equals(this.value);
   }
 
   /**
-   * Asserts that a {@link UIntX} is equal to another one.
+   * Asserts that a {@link UInt} is equal to another one.
    */
-  public assertEquals(y: UIntX<BITS>  | bigint | number, message?: string) {
-    UIntX.assertionFunction(this.equals(y), message);
+  public assertEquals(y: UInt<BITS> | bigint | number, message?: string) {
+    UInt.assertionFunction(this.equals(y), message);
   }
 
   // /**

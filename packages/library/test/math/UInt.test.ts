@@ -10,7 +10,7 @@ import { beforeEach } from "@jest/globals";
 import bigintsqrt from "bigint-isqrt";
 import { Bool, Field, Provable, Struct } from "o1js";
 
-import { UInt112, UInt64, UIntX } from "../../src";
+import { UInt112, UInt64, UInt } from "../../src";
 
 describe("uint112", () => {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);

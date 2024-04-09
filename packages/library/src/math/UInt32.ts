@@ -1,7 +1,7 @@
 import { Field } from "o1js";
-import { UIntConstructor, UIntX } from "./UInt";
+import { UIntConstructor, UInt } from "./UInt";
 
-export class UInt32 extends UIntX<32> {
+export class UInt32 extends UInt<32> {
   public static Unsafe = {
     fromField(value: Field) {
       return new UInt32({ value });
@@ -10,14 +10,14 @@ export class UInt32 extends UIntX<32> {
 
   public static check(x: { value: Field }) {
     const actual = x.value.rangeCheckHelper(32);
-    UIntX.assertionFunction(actual.equals(x.value));
+    UInt.assertionFunction(actual.equals(x.value));
   }
 
   public static from(x: UInt32 | bigint | number | string) {
     if (x instanceof UInt32) {
       return x;
     }
-    return new UInt32({ value: UIntX.checkConstant(Field(x), 32) });
+    return new UInt32({ value: UInt.checkConstant(Field(x), 32) });
   }
 
   public static get zero() {

@@ -1,4 +1,4 @@
-import { UIntX } from "./UInt";
+import { UInt } from "./UInt";
 
 type AvailableBitLengths = 32 | 64 | 112 | 224;
 
@@ -23,5 +23,5 @@ type RecursiveSmaller<Input extends AvailableBitLengths> =
  */
 export type FittingUInt<Input extends number> =
   Input extends AvailableBitLengths
-    ? UIntX<RecursiveSmaller<Input>>
-    : UIntX<Input>;
+    ? UInt<RecursiveSmaller<Input>>
+    : UInt<Input>;
