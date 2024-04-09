@@ -86,8 +86,11 @@ export function prefixToField(prefix: string): Field {
 }
 
 export function hashWithPrefix(prefix: string, input: Field[]) {
-  const salt = Poseidon.update([Field(0), Field(0), Field(0)], [prefixToField(prefix)])
-  return Poseidon.update(salt as [Field, Field, Field], input)[0]
+  const salt = Poseidon.update(
+    [Field(0), Field(0), Field(0)],
+    [prefixToField(prefix)]
+  );
+  return Poseidon.update(salt as [Field, Field, Field], input)[0];
 }
 
 // end copy
@@ -95,3 +98,8 @@ export function hashWithPrefix(prefix: string, input: Field[]) {
 export function expectDefined<T>(value: T | undefined): asserts value is T {
   expect(value).toBeDefined();
 }
+
+type NonMethodKeys<Type> = {
+  [Key in keyof Type]: Type[Key] extends Function ? never : Key;
+}[keyof Type];
+export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;

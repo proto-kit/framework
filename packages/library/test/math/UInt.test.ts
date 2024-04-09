@@ -1,12 +1,16 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { RuntimeMethodExecutionContext, State } from "@proto-kit/protocol";
+import {
+  ReturnType,
+  RuntimeMethodExecutionContext,
+  State,
+} from "@proto-kit/protocol";
 import { beforeEach } from "@jest/globals";
 // @ts-ignore
 import bigintsqrt from "bigint-isqrt";
-import { Provable } from "o1js";
+import { Bool, Field, Provable, Struct } from "o1js";
 
-import { UInt112, UInt64 } from "../../src";
+import { UInt112, UInt64, UInt } from "../../src";
 
 describe("uint112", () => {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
@@ -14,6 +18,15 @@ describe("uint112", () => {
   beforeEach(() => {
     executionContext.clear();
     executionContext.setup({} as any);
+  });
+
+  it("regression - Provable.if impls", () => {
+    const uint = UInt112.Unsafe.fromField(Field(1));
+
+    const x = Provable.if(Bool(true), UInt112, uint, uint);
+    const y = new UInt112(x).add(3);
+
+    expect(y.toBigInt()).toBe(4n);
   });
 
   it("should initialize correctly", () => {
@@ -75,9 +88,15 @@ describe("uint112", () => {
     }
   );
 
-  const max64 = (2n**64n)-1n
+  const max64 = 2n ** 64n - 1n;
 
-  it.each([[1n, 2n], [1n, 1n], [max64, max64], [max64, max64 - 1n], [max64, 0n]])("should check equals correctly", (a, b) => {
+  it.each([
+    [1n, 2n],
+    [1n, 1n],
+    [max64, max64],
+    [max64, max64 - 1n],
+    [max64, 0n],
+  ])("should check equals correctly", (a, b) => {
     expect.assertions(3);
 
     const equals = a === b;
@@ -87,8 +106,8 @@ describe("uint112", () => {
 
     expect(equalsBool1.toBoolean()).toStrictEqual(equalsBool2.toBoolean());
     expect(equalsBool2.toBoolean()).toStrictEqual(equalsBool3.toBoolean());
-    expect(equalsBool1.toBoolean()).toBe(equals)
-  })
+    expect(equalsBool1.toBoolean()).toBe(equals);
+  });
 
   it("should compile witness", () => {
     expect.assertions(4);
@@ -108,6 +127,7 @@ describe("uint112", () => {
 
     // Only a compilation test
     const state = State.from(UInt64);
+    const state2 = State.from<UInt64>(UInt64);
 
     expect(1).toBe(1);
   });

@@ -48,6 +48,7 @@ import {
   log,
   ModuleContainer,
   ModulesRecord,
+  NonMethods,
   range,
 } from "@proto-kit/common";
 import { ObjMap } from "graphql/jsutils/ObjMap";
@@ -60,11 +61,6 @@ interface ProvableExtension<T, TJson = any> {
   toJSON: (x: T) => TJson;
   fromJSON: (x: TJson) => T;
 }
-
-type NonMethodKeys<Type> = {
-  [Key in keyof Type]: Type[Key] extends Function ? never : Key;
-}[keyof Type];
-type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;
 
 interface AnyJson {
   [key: string]: any;
