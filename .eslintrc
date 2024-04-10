@@ -32,6 +32,7 @@
     "object-shorthand": "off",
     "max-classes-per-file": ["error", 6],
     "@typescript-eslint/no-magic-numbers": "off",
+    "class-methods-use-this": "off",
     // Handled by prettier
     "@typescript-eslint/indent": ["off"]
   },
@@ -40,7 +41,8 @@
     {
       "files": ["*.test.ts"],
       "rules": {
-        "no-console": "off"
+        "no-console": "off",
+        "import/no-extraneous-dependencies": "off"
       }
     },
     {
