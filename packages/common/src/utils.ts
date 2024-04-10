@@ -92,3 +92,14 @@ export function hashWithPrefix(prefix: string, input: Field[]) {
   );
   return Poseidon.update(salt as [Field, Field, Field], input)[0];
 }
+
+// end copy
+
+export function expectDefined<T>(value: T | undefined): asserts value is T {
+  expect(value).toBeDefined();
+}
+
+type NonMethodKeys<Type> = {
+  [Key in keyof Type]: Type[Key] extends Function ? never : Key;
+}[keyof Type];
+export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;

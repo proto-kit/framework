@@ -309,7 +309,7 @@ describe.skip("settlement contracts", () => {
 
     const tx = await Mina.transaction(
       { sender: userKey.toPublicKey(), fee: 0.01 * 1e9, nonce: user0Nonce++ },
-      () => {
+      async () => {
         const au = AccountUpdate.createSigned(userKey.toPublicKey());
         au.balance.subInPlace(UInt64.from(100));
         dispatch.deposit(UInt64.from(100));
@@ -371,7 +371,7 @@ describe.skip("settlement contracts", () => {
         sender: localInstance.testAccounts[1].publicKey,
         fee: "10000",
       },
-      () => {
+      async () => {
         const au = AccountUpdate.createSigned(
           localInstance.testAccounts[1].publicKey
         );
@@ -433,7 +433,7 @@ describe.skip("settlement contracts", () => {
         nonce: user0Nonce++,
         fee: 10000,
       },
-      () => {
+      async () => {
         const mintAU = AccountUpdate.create(userKey.toPublicKey());
         mintAU.balance.addInPlace(amount);
         // mintAU.requireSignature(); // TODO ?

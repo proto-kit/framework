@@ -191,7 +191,7 @@ export class SettlementModule
           fee: String(0.01 * 1e9),
           memo: "Protokit settle",
         },
-        () => {
+        async () => {
           settlement.rollupOutgoingMessages(
             OutgoingMessageArgumentBatch.fromMessages(transactionParamaters)
           );
@@ -258,7 +258,7 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settle",
       },
-      () => {
+      async () => {
         settlement.settle(
           blockProof,
           signature,
@@ -318,7 +318,7 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settlement deploy",
       },
-      () => {
+      async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
         settlement.deploy({
           zkappKey: settlementKey,
@@ -345,7 +345,7 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settlement init",
       },
-      () => {
+      async () => {
         settlement.initialize(
           feepayerKey.toPublicKey(),
           dispatchKey.toPublicKey()
