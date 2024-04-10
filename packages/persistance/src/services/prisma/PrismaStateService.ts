@@ -6,6 +6,12 @@ import { noop } from "@proto-kit/common";
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 import { injectable } from "tsyringe";
 
+// We need to create a correctly configured Decimal constructor
+// with our parameters
+const Decimal = Prisma.Decimal.clone({
+  precision: 78,
+});
+
 @injectable()
 export class PrismaStateService implements AsyncStateService {
   private cache: StateEntry[] = [];
@@ -25,10 +31,8 @@ export class PrismaStateService implements AsyncStateService {
     const data = this.cache
       .filter((entry) => entry.value !== undefined)
       .map((entry) => ({
-        path: new Prisma.Decimal(entry.key.toString()),
-        values: entry.value!.map(
-          (field) => new Prisma.Decimal(field.toString())
-        ),
+        path: new Decimal(entry.key.toString()),
+        values: entry.value!.map((field) => new Decimal(field.toString())),
         mask: this.mask,
       }));
 
@@ -36,7 +40,7 @@ export class PrismaStateService implements AsyncStateService {
       prismaClient.state.deleteMany({
         where: {
           path: {
-            in: this.cache.map((x) => new Prisma.Decimal(x.key.toString())),
+            in: this.cache.map((x) => new Decimal(x.key.toString())),
           },
           mask: this.mask,
         },
@@ -55,7 +59,7 @@ export class PrismaStateService implements AsyncStateService {
         AND: [
           {
             path: {
-              in: keys.map((key) => new Prisma.Decimal(key.toString())),
+              in: keys.map((key) => new Decimal(key.toString())),
             },
           },
           {
@@ -65,8 +69,8 @@ export class PrismaStateService implements AsyncStateService {
       },
     });
     return records.map((record) => ({
-      key: Field(record.path.toNumber()),
-      value: record.values.map((x) => Field(x.toString())),
+      key: Field(record.path.toFixed()),
+      value: record.values.map((x) => Field(x.toFixed())),
     }));
   }
 

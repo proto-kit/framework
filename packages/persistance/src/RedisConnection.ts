@@ -11,7 +11,7 @@ export interface RedisConnectionConfig {
   host: string;
   password: string;
   port?: number;
-  username?: string
+  username?: string;
 }
 
 export interface RedisConnection {
@@ -50,6 +50,10 @@ export class RedisConnectionModule
     };
   }
 
+  public async clearDatabase() {
+    await this.redisClient.flushAll();
+  }
+
   public async init() {
     const { host, port, password, username } = this.config;
     this.client = createClient({
@@ -69,5 +73,9 @@ export class RedisConnectionModule
 
   public async start(): Promise<void> {
     await this.init();
+  }
+
+  public async close() {
+    await this.redisClient.disconnect();
   }
 }

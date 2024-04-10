@@ -21,8 +21,10 @@ export class AccountStateHook extends ProvableTransactionHook {
   public onTransaction({ transaction }: BlockProverExecutionData): void {
     const sender = transaction.sender.value;
 
-    const accountState = this.accountState
+    const aso = this.accountState
       .get(sender)
+
+    const accountState = aso
       .orElse(new AccountState({ nonce: UInt64.zero }));
 
     const currentNonce = accountState.nonce;
@@ -32,7 +34,8 @@ export class AccountStateHook extends ProvableTransactionHook {
       currentNonce
         .equals(transaction.nonce.value)
         .or(transaction.sender.isSome.not()),
-      "Nonce not matching"
+      () =>
+        `Nonce not matching: tx sent ${transaction.nonce.value.toString()}, onchain value is ${currentNonce.toString()}`
     );
 
     // Optimized version of transaction.sender.isSome ? currentNonce.add(1) : Field(0)
