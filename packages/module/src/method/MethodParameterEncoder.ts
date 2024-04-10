@@ -95,10 +95,11 @@ export class MethodParameterEncoder {
     });
   }
 
-  public encode(args: ArgumentTypes): {
-    argsFields: Field[];
-    argsJSON: string[];
-  } {
+  /**
+   * Variant of encode() for provable code that skips the unprovable
+   * json encoding
+   */
+  public encodeAsFields(args: ArgumentTypes){
     /**
      * Use the type info obtained previously to convert
      * the args passed to fields
@@ -123,6 +124,14 @@ export class MethodParameterEncoder {
       const argumentType = this.types[index] as ToFieldableStatic;
       return argumentType.toFields(argument);
     });
+    return argsFields;
+  }
+
+  public encode(args: ArgumentTypes): {
+    argsFields: Field[];
+    argsJSON: string[];
+  } {
+    const argsFields = this.encodeAsFields(args);
 
     let argsJSON: string[] = [];
     Provable.asProver(() => {

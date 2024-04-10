@@ -1,60 +1,46 @@
-import { UIntX } from "./UInt";
-import { Field, UInt32, UInt64 } from "o1js";
-import { UInt112 } from "./UInt112";
+import { Field } from "o1js";
+import { UIntConstructor, UInt } from "./UInt";
 
-export class UInt224 extends UIntX<UInt224> {
-  public static get NUM_BITS() {
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  return 224;
-}
+export class UInt224 extends UInt<224> {
+  public static Unsafe = {
+    fromField(value: Field) {
+      return new UInt224({ value });
+    },
+  };
 
-  public numBits() {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    return 224;
-  }
-
-  /**
-   * Static method to create a {@link UIntX} with value `0`.
-   */
-  public static get zero() {
-    return UInt224.from(Field(0));
-  }
-
-  /**
-   * Static method to create a {@link UIntX} with value `1`.
-   */
-  public static get one() {
-    return UInt224.from(Field(1));
-  }
-
-  public static MAXINT(): UInt224 {
-    return new UInt224(UIntX.maxIntField(UInt224.NUM_BITS));
-  }
+  public static Safe = {
+    fromField(value: Field) {
+      const uint = new UInt224({ value });
+      UInt224.check(uint);
+      return uint;
+    },
+  };
 
   public static check(x: { value: Field }) {
-    const actual = x.value.rangeCheckHelper(UInt224.NUM_BITS);
-    UIntX.assertionFunction(actual.equals(x.value));
+    const actual = x.value.rangeCheckHelper(224);
+    UInt.assertionFunction(actual.equals(x.value));
   }
 
-  public static from(
-    x: Field | UInt32 | UInt64 | UIntX<any> | bigint | number | string
-  ): UInt224 {
-    if (x instanceof UInt64 || x instanceof UInt32 || x instanceof UIntX) {
-      x = x.value;
+  public static from(x: UInt<224> | bigint | number | string): UInt224 {
+    if (x instanceof UInt) {
+      return x;
     }
-    return new UInt224(UInt224.checkConstant(Field(x), UInt224.NUM_BITS));
+    return new UInt224({ value: UInt.checkConstant(Field(x), 224) });
   }
 
-  public constructor(value: Field) {
-    super(value, {
-      creator: (x) => new UInt224(x),
-      from: (x) => UInt224.from(x),
-    });
+  public static get zero() {
+    return UInt224.Unsafe.fromField(Field(0));
   }
 
-  public toUInt112(): UInt112 {
-    const uint112 = new UInt112(this.value);
-    UInt112.check(uint112);
-    return uint112;
+  public static get max() {
+    return UInt224.Unsafe.fromField(UInt.maxIntField(224));
+  }
+
+  public constructorReference(): UIntConstructor<224> {
+    return UInt224;
+  }
+
+  public numBits(): 224 {
+    return 224;
   }
 }

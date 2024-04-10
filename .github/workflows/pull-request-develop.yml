@@ -89,8 +89,5 @@ jobs:
       - name: "Build"
         run: npm run build
 
-      - name: "Reinstall monorepo packages"
-        run: npm ci --workspaces --include-workspace-root
-
       - name: "Test"
         run: npm run test:ci

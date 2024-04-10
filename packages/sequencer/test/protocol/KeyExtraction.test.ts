@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { beforeAll, describe } from "@jest/globals";
 import {
   runtimeMethod,
@@ -18,7 +19,7 @@ import { Field, PublicKey, UInt64 } from "o1js";
 import { RuntimeMethodExecution, CachedStateService } from "../../src";
 
 @runtimeModule()
-export class TestModule extends RuntimeModule<{}> {
+export class TestModule extends RuntimeModule {
   @state() state1 = State.from(Field);
 
   @state() state2 = State.from(Field);
@@ -48,14 +49,13 @@ describe("test the correct key extraction for runtime methods", () => {
 
   beforeAll(async () => {
     const appchain = TestingAppChain.fromRuntime({
-      modules: {
-        TestModule,
-      },
+      TestModule,
     });
 
     appchain.configurePartial({
       Runtime: {
-        TestModule: {}
+        TestModule: {},
+        Balances: {},
       },
     });
 

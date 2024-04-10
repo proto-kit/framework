@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { Bool, Field } from "o1js";
 import { Option } from "@proto-kit/protocol";
 

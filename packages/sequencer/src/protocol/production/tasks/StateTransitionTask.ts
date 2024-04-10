@@ -21,6 +21,7 @@ import {
   PairTuple,
   ProofTaskSerializer,
 } from "../../../helpers/utils";
+import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 
 import {
   StateTransitionParametersSerializer,
@@ -32,6 +33,7 @@ import { CompileRegistry } from "./CompileRegistry";
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class StateTransitionTask
+  extends TaskWorkerModule
   implements Task<StateTransitionProofParameters, StateTransitionProof>
 {
   protected readonly stateTransitionProver: StateTransitionProvable;
@@ -46,6 +48,7 @@ export class StateTransitionTask
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.stateTransitionProver = this.protocol.stateTransitionProver;
   }
 
@@ -107,6 +110,7 @@ export class StateTransitionTask
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class StateTransitionReductionTask
+  extends TaskWorkerModule
   implements Task<PairTuple<StateTransitionProof>, StateTransitionProof>
 {
   protected readonly stateTransitionProver: StateTransitionProvable;
@@ -121,6 +125,7 @@ export class StateTransitionReductionTask
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.stateTransitionProver = this.protocol.stateTransitionProver;
   }
 

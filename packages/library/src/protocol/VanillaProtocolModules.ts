@@ -20,17 +20,25 @@ export type VanillaProtocolModulesRecord = MandatoryProtocolModulesRecord & {
 };
 
 export class VanillaProtocolModules {
-  public static with<ProtocolModules extends ProtocolModulesRecord>(
+  public static mandatoryModules<ProtocolModules extends ProtocolModulesRecord>(
     additionalModules: ProtocolModules
-  ): VanillaProtocolModulesRecord & ProtocolModules {
+  ): MandatoryProtocolModulesRecord & ProtocolModules {
     return {
       StateTransitionProver,
       BlockProver,
       AccountState: AccountStateHook,
       BlockHeight: BlockHeightHook,
-      TransactionFee: TransactionFeeHook,
       LastStateRoot: LastStateRootBlockHook,
-      ...additionalModules,
+      ...additionalModules
+    };
+  }
+
+  public static with<ProtocolModules extends ProtocolModulesRecord>(
+    additionalModules: ProtocolModules
+  ): VanillaProtocolModulesRecord & ProtocolModules {
+    return {
+      ...VanillaProtocolModules.mandatoryModules(additionalModules),
+      TransactionFee: TransactionFeeHook,
     };
   }
 }

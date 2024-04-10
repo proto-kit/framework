@@ -14,6 +14,7 @@ import {
 import { Field, Provable, PublicKey } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
+import { Balance, TokenId } from "../runtime/Balances";
 
 import {
   MethodFeeConfigData,
@@ -21,9 +22,7 @@ import {
   RuntimeFeeAnalyzerServiceConfig,
 } from "./RuntimeFeeAnalyzerService";
 
-export class TokenId extends Field {}
-export class Balance extends UInt64 {}
-export interface Balances {
+interface Balances {
   transfer: (
     tokenId: TokenId,
     from: PublicKey,
@@ -36,7 +35,7 @@ export interface Balances {
 export interface TransactionFeeHookConfig
   extends RuntimeFeeAnalyzerServiceConfig {}
 
-export const errors = {
+const errors = {
   invalidFeeTreeRoot: () =>
     "Root hash of the provided fee config witness is invalid",
 
@@ -103,7 +102,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       new TokenId(this.config.tokenId),
       from.value,
       PublicKey.fromBase58(this.config.feeRecipient),
-      Balance.from(fee.value)
+      Balance.Unsafe.fromField(fee.value)
     );
   }
 
@@ -137,12 +136,12 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       errors.invalidFeeConfigMethodId()
     );
 
-    const fee = UInt64.from(feeConfig.baseFee.value).add(
-      UInt64.from(feeConfig.weight.value).mul(
-        UInt64.from(feeConfig.perWeightUnitFee.value)
+    const fee = UInt64.Unsafe.fromField(feeConfig.baseFee.value).add(
+      UInt64.Unsafe.fromField(feeConfig.weight.value).mul(
+        UInt64.Unsafe.fromField(feeConfig.perWeightUnitFee.value)
       )
     );
 
-    this.transferFee(executionData.transaction.sender, UInt64.from(fee.value));
+    this.transferFee(executionData.transaction.sender, UInt64.Unsafe.fromField(fee.value));
   }
 }

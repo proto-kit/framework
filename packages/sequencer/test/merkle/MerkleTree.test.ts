@@ -9,7 +9,7 @@ import {
 describe("merkle tree caching", () => {
   it("should cache, merge and cache again correctly", async () => {
     expect.assertions(1);
-    log.setLevel(log.levels.DEBUG);
+    log.setLevel(log.levels.INFO);
 
     const asyncService = new InMemoryAsyncMerkleTreeStore();
     const cachedStore1 = new CachedMerkleTreeStore(asyncService);

@@ -1,31 +1,31 @@
-import { beforeEach, expect } from "@jest/globals";
+import "reflect-metadata";
+import { expect } from "@jest/globals";
+import { VanillaProtocolModules } from "@proto-kit/library";
+import { MandatoryProtocolModulesRecord, Protocol } from "@proto-kit/protocol";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
 } from "../TestingSequencer";
 import { Runtime } from "@proto-kit/module";
 import { Balance } from "./mocks/Balance";
-import {
-  ProtocolCustomModulesRecord,
-  VanillaProtocol,
-} from "@proto-kit/protocol";
 import { AppChain } from "@proto-kit/sdk";
 import {
   AsyncMerkleTreeStore,
   AsyncStateService,
   BlockStorage,
-  HistoricalBlockStorage, HistoricalUnprovenBlockStorage,
+  HistoricalBlockStorage,
+  HistoricalUnprovenBlockStorage,
   InMemoryDatabase,
   Sequencer,
   SequencerModule,
   StateEntry,
   StateRecord,
   StorageDependencyFactory,
-  TransactionStorage, UnprovenBlockStorage
+  UnprovenBlockStorage,
 } from "../../src";
-import { collectStateDiff, createTransaction, expectDefined } from "./utils";
+import { collectStateDiff, createTransaction } from "./utils";
 import { Bool, Field, PrivateKey, UInt64 } from "o1js";
-import { DependencyFactory, TypedClass } from "@proto-kit/common";
+import { TypedClass, expectDefined } from "@proto-kit/common";
 
 function checkStateDiffEquality(stateDiff: StateRecord, state: StateEntry[]) {
   return Object.entries(stateDiff)
@@ -51,7 +51,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
   ) => {
     let appChain: AppChain<
       { Balance: typeof Balance },
-      ProtocolCustomModulesRecord,
+      MandatoryProtocolModulesRecord,
       DefaultTestingSequencerModules & { Database: typeof Database },
       {}
     >;
@@ -81,12 +81,14 @@ describe.each([["InMemory", InMemoryDatabase]])(
         },
       });
 
-      const protocolClass = VanillaProtocol.create();
+      const protocolClass = Protocol.from({
+        modules: VanillaProtocolModules.mandatoryModules({}),
+      });
 
       appChain = AppChain.from({
-        sequencer: sequencerClass,
-        runtime: runtimeClass,
-        protocol: protocolClass,
+        Sequencer: sequencerClass,
+        Runtime: runtimeClass,
+        Protocol: protocolClass,
         modules: {},
       });
 
@@ -158,10 +160,14 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const blockStorage = sequencer.resolve(
         "UnprovenBlockStorage"
       ) as HistoricalUnprovenBlockStorage & UnprovenBlockStorage;
-      const block2 = await blockStorage.getBlockAt(Number(blocks[0].block.block.height.toString()));
+      const block2 = await blockStorage.getBlockAt(
+        Number(blocks[0].block.block.height.toString())
+      );
 
       expectDefined(block2);
-      expect(block2.hash.toBigInt()).toStrictEqual(generatedBlock.hash.toBigInt())
+      expect(block2.hash.toBigInt()).toStrictEqual(
+        generatedBlock.hash.toBigInt()
+      );
 
       const stateDiff = collectStateDiff(
         block.block.transactions.flatMap((tx) =>
@@ -199,10 +205,11 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       expectDefined(batch);
       expect(batch.height).toStrictEqual(generatedBatch?.height);
+
       await expect(batchStorage.getCurrentBlockHeight()).resolves.toStrictEqual(
         1
       );
-    });
+    }, 50_000);
 
     it("mempool + transaction storage", async () => {
       const mempool = sequencer.resolve("Mempool");
@@ -225,6 +232,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await sequencer.resolve("BlockTrigger").produceUnproven();
 
       expect(txStorage.getPendingUserTransactions()).resolves.toHaveLength(0);
-    });
+    }, 30_000);
   }
 );

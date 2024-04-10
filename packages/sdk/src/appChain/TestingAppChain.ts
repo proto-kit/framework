@@ -3,6 +3,7 @@ import {
   MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
+  SettlementContractModule,
 } from "@proto-kit/protocol";
 import {
   VanillaRuntimeModules,
@@ -24,9 +25,6 @@ import {
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
 import {
-  log,
-  MergeObjects,
-  OverwriteObjectType,
   TypedClass,
 } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
@@ -37,7 +35,6 @@ import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSen
 import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
 
 import { AppChain, AppChainModulesRecord } from "./AppChain";
-import { SettlementModule } from "@proto-kit/sequencer";
 
 export type TestingSequencerModulesRecord = {
   Database: typeof InMemoryDatabase;
@@ -114,15 +111,18 @@ export class TestingAppChain<
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: {
+          StateTransitionTask: {},
+          RuntimeProvingTask: {},
+          StateTransitionReductionTask: {},
+          BlockReductionTask: {},
+          BlockProvingTask: {},
+          BlockBuildingTask: {},
+        },
         BaseLayer: {},
         UnprovenProducerModule: {},
         TaskQueue: {
           simulatedDuration: 0,
-        },
-        SettlementModule: {
-          feepayer: PrivateKey.random(),
-          address: PrivateKey.random().toPublicKey(),
         },
       },
       Signer: {

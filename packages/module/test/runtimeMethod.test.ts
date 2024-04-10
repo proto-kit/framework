@@ -1,9 +1,9 @@
 import "reflect-metadata";
 import { Bool, Field, PublicKey, UInt64 } from "o1js";
 import {
-  NetworkState,
+  NetworkState, PublicKeyOption,
   RuntimeMethodExecutionContext,
-  RuntimeTransaction,
+  RuntimeTransaction, UInt64Option
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { AreProofsEnabled, log } from "@proto-kit/common";
@@ -12,6 +12,7 @@ import { InMemoryStateService, MethodIdResolver, Runtime } from "../src";
 import { MethodParameterEncoder } from "../src/method/MethodParameterEncoder";
 
 import { Balances } from "./modules/Balances";
+import { createTestingRuntime } from "./TestingRuntime";
 
 describe("runtimeMethod", () => {
   const parameters = [PublicKey.empty()];
@@ -20,20 +21,14 @@ describe("runtimeMethod", () => {
 
   beforeEach(() => {
     log.setLevel(log.levels.DEBUG);
-    runtime = Runtime.from({
-      state: new InMemoryStateService(),
-
-      modules: {
+    ({ runtime } = createTestingRuntime(
+      {
         Balances,
       },
-
-      config: {
-        Balances: {
-          test: Bool(true),
-        },
-      },
-    });
-    runtime.start();
+      {
+        Balances: {},
+      }
+    ));
   });
 
   it("should create correct param types", () => {
@@ -43,7 +38,7 @@ describe("runtimeMethod", () => {
     const module = runtime.resolve("Balances");
 
     const decoder = MethodParameterEncoder.fromMethod(module, "getBalance");
-    const recodedParameters = decoder.fromFields(
+    const recodedParameters = decoder.decodeFields(
       parameters.flatMap((x) => x.toFields())
     );
 
@@ -65,24 +60,17 @@ describe("runtimeMethod", () => {
       } as AreProofsEnabled,
     });
 
-    const transaction = new RuntimeTransaction({
-      methodId: Field(0),
-      nonce: UInt64.zero,
-      argsHash: Field(0),
-      sender: PublicKey.empty(),
-    });
-
     context.setup({
-      transaction,
-      networkState: new NetworkState({ block: { height: UInt64.zero } }),
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
     });
 
     const module = runtime.resolve("Balances");
     module.getBalance(PublicKey.empty());
 
     context.setup({
-      transaction,
-      networkState: new NetworkState({ block: { height: UInt64.zero } }),
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
     });
 
     await expect(context.current().result.prover!()).rejects.toThrow(

@@ -103,7 +103,7 @@ export class MinaTransactionSender {
     //     );
     //   }
     // );
-
+    //
     // const result = await resultPromise;
     // await this.sendOrQueue(result.transaction);
   }

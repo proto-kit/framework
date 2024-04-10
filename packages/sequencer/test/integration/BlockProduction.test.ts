@@ -1,81 +1,54 @@
 // eslint-disable-next-line max-len
-/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects,max-lines */
-import "reflect-metadata";
-// eslint-disable-next-line no-warning-comments
-// TODO this is actually a big issue
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { AppChain } from "@proto-kit/sdk";
+import { log, range } from "@proto-kit/common";
 import {
-  Runtime,
-  MethodIdResolver,
-  MethodParameterEncoder,
-} from "@proto-kit/module";
+  VanillaProtocolModules,
+  VanillaProtocolModulesRecord,
+} from "@proto-kit/library";
+import { Runtime } from "@proto-kit/module";
 import {
   AccountState,
   AccountStateHook,
   BlockHeightHook,
   BlockProver,
+  LastStateRootBlockHook,
   MandatoryProtocolModulesRecord,
-  NetworkState,
-  Option,
   Path,
   Protocol,
-  ReturnType,
-  StateTransition,
   StateTransitionProver,
 } from "@proto-kit/protocol";
-import {
-  VanillaProtocolModules,
-  VanillaProtocolModulesRecord,
-} from "@proto-kit/library";
+// eslint-disable-next-line no-warning-comments
+// TODO this is actually a big issue
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { AppChain } from "@proto-kit/sdk";
 
-import {
-  Bool,
-  Field,
-  PrivateKey,
-  ProvableExtended,
-  PublicKey,
-  UInt64,
-} from "o1js";
-import {
-  ArgumentTypes,
-  log,
-  range,
-  ToFieldableStatic,
-  ToJSONableStatic,
-} from "@proto-kit/common";
-
-import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
-import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
-import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
-import { Sequencer } from "../../src/sequencer/executor/Sequencer";
+import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects,max-lines */
+import "reflect-metadata";
+import { container } from "tsyringe";
 import {
   AsyncStateService,
-  BlockProducerModule,
   BlockStorage,
   HistoricalBlockStorage,
-  InMemoryDatabase,
   ManualBlockTrigger,
 } from "../../src";
-import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
-import { Balance } from "./mocks/Balance";
-import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
-import { UnprovenProducerModule } from "../../src/protocol/production/unproven/UnprovenProducerModule";
-import { container } from "tsyringe";
+import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
+import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
 } from "../TestingSequencer";
+
+import { Balance } from "./mocks/Balance";
+import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
 import { createTransaction } from "./utils";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
-  let protocol: Protocol<
-    MandatoryProtocolModulesRecord & VanillaProtocolModulesRecord
-  >;
+  let protocol: Protocol<MandatoryProtocolModulesRecord & { ProtocolStateTestHook: typeof ProtocolStateTestHook }>;
+  // let protocol: Protocol<VanillaProtocolModulesRecord>;
 
   let appChain: AppChain<any, any, any, any>;
 
@@ -85,7 +58,7 @@ describe("block production", () => {
   beforeEach(async () => {
     // container.reset();
 
-    log.setLevel(log.levels.DEBUG);
+    log.setLevel(log.levels.INFO);
 
     const runtimeClass = Runtime.from({
       modules: {
@@ -99,8 +72,12 @@ describe("block production", () => {
 
     const sequencerClass = testingSequencerFromModules({});
 
+    // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.with({}),
+      modules: VanillaProtocolModules.mandatoryModules({
+        ProtocolStateTestHook
+      }),
+      // modules: VanillaProtocolModules.with({}),
     });
 
     const app = AppChain.from({
@@ -117,7 +94,9 @@ describe("block production", () => {
         Mempool: {},
         BlockProducerModule: {},
         UnprovenProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: {
+
+        },
         BaseLayer: {},
         TaskQueue: {},
       },
@@ -130,6 +109,7 @@ describe("block production", () => {
         StateTransitionProver: {},
         BlockHeight: {},
         LastStateRoot: {},
+        ProtocolStateTestHook: {},
       },
     });
 
@@ -146,7 +126,7 @@ describe("block production", () => {
 
   // eslint-disable-next-line max-statements
   it("should produce a dummy block proof", async () => {
-    expect.assertions(23);
+    expect.assertions(25);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -169,6 +149,9 @@ describe("block production", () => {
     expect(block!.transactions).toHaveLength(1);
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
+
+    expect(block!.transactions[0].stateTransitions).toHaveLength(1);
+    expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
 
     const latestBlockWithMetadata = await sequencer
       .resolve("UnprovenBlockQueue")
@@ -447,48 +430,6 @@ describe("block production", () => {
   }, 720_000);
 
   it.skip.each([
-    [
-      "EKFZbsQfNiqjDiWGU7G3TVPauS3s9YgWgayMzjkEaDTEicsY9poM",
-      "EKFdtp8D6mP3aFvCMRa75LPaUBn1QbmEs1YjTPXYLTNeqPYtnwy2",
-    ],
-    [
-      "EKE8hTdmVrYisQSc5oqeM7inCA2fFCvZ8Y5K2CPfV4NBwSJtxads",
-      "EKFct4rQwPV9N9F2J1oogaWrZLD1c5apyn997ncsmSKjoJCFDMsQ",
-    ],
-  ])(
-    "dex repro",
-    async ([pk1string, pk2string]) => {
-      const pk1 = PrivateKey.fromBase58(pk1string);
-      const pk2 = PrivateKey.fromBase58(pk2string);
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: pk1,
-          args: [pk1.toPublicKey(), UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-
-      await blockTrigger.produceBlock();
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: pk2,
-          args: [pk2.toPublicKey(), UInt64.from(200), Bool(true)],
-          nonce: 0,
-        })
-      );
-
-      await blockTrigger.produceBlock();
-    },
-    60000
-  );
-
-  it.each([
     [2, 1, 1],
     [1, 2, 1],
     [1, 1, 2],
@@ -496,8 +437,6 @@ describe("block production", () => {
   ])(
     "should produce multiple blocks with multiple batches with multiple transactions",
     async (batches, blocksPerBatch, txsPerBlock) => {
-      log.setLevel("DEBUG");
-
       expect.assertions(2 * batches + 3 * batches * blocksPerBatch);
 
       const sender = PrivateKey.random();

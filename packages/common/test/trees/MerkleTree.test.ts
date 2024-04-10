@@ -11,7 +11,7 @@ describe.each([4, 16, 256])("cachedMerkleTree - %s", (height) => {
   let tree: RollupMerkleTree;
 
   beforeEach(() => {
-    log.setLevel("DEBUG");
+    log.setLevel("INFO");
 
     store = new InMemoryMerkleTreeStorage();
     tree = new RollupMerkleTree(store);

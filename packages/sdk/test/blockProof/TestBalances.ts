@@ -4,9 +4,9 @@ import {
   state,
   runtimeMethod,
 } from "@proto-kit/module";
-import { Provable, PublicKey, Struct, UInt64 } from "o1js";
+import { Provable, PublicKey, Struct } from "o1js";
 import { State, StateMap, assert } from "@proto-kit/protocol";
-import { Balance, Balances, TokenId } from "@proto-kit/library";
+import { Balance, Balances, TokenId, UInt64 } from "@proto-kit/library";
 
 interface BalancesConfig {
   totalSupply: UInt64;
