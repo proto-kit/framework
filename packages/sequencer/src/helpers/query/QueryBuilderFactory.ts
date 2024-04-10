@@ -2,16 +2,14 @@
 /* eslint-disable guard-for-in */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable putout/putout */
-import {
-  TypedClass,
-  RollupMerkleTreeWitness,
-} from "@proto-kit/common";
+import { TypedClass, RollupMerkleTreeWitness } from "@proto-kit/common";
 import {
   Runtime,
   RuntimeModule,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
+  MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModule,
   ProtocolModulesRecord,
@@ -79,28 +77,44 @@ function isStringKeyOf(key: string | number | symbol): key is string {
 
 export const QueryBuilderFactory = {
   // eslint-disable-next-line sonarjs/cognitive-complexity
-  fillQuery<Module>(
+  fillQuery<Module extends Object>(
     runtimeModule: Module,
     queryTransportModule: QueryTransportModule
   ): ModuleQuery<Module> {
     let query = {} as ModuleQuery<Module>;
-
     for (const propertyName in runtimeModule) {
-      const property = runtimeModule[propertyName];
-      if (property instanceof StateMap) {
+      // we're accessing the propertyName twice here and in the functions below
+      // because the path reference/value was wrong in the query API otherwise
+      const propertyCheck = runtimeModule[propertyName];
+      if (propertyCheck instanceof StateMap) {
         query = {
           ...query,
 
           [propertyName]: {
             get: async (key: any) => {
+              const property = runtimeModule[propertyName] as StateMap<
+                unknown,
+                unknown
+              >;
               const path = property.getPath(key);
               const fields = await queryTransportModule.get(path);
               return fields ? property.valueType.fromFields(fields) : undefined;
             },
 
-            path: (key: any) => property.getPath(key),
+            path: (key: any) => {
+              const property = runtimeModule[propertyName] as StateMap<
+                unknown,
+                unknown
+              >;
+              const r = property.getPath(key);
+              return r;
+            },
 
             merkleWitness: async (key: any) => {
+              const property = runtimeModule[propertyName] as StateMap<
+                unknown,
+                unknown
+              >;
               const path = property.getPath(key);
               return await queryTransportModule.merkleWitness(path);
             },
@@ -108,12 +122,13 @@ export const QueryBuilderFactory = {
         };
       }
 
-      if (property instanceof State) {
+      if (propertyCheck instanceof State) {
         query = {
           ...query,
 
           [propertyName]: {
             get: async () => {
+              const property = runtimeModule[propertyName] as State<unknown>;
               // eslint-disable-next-line max-len
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               const path = property.path!;
@@ -122,9 +137,13 @@ export const QueryBuilderFactory = {
               return fields ? property.valueType.fromFields(fields) : undefined;
             },
 
-            path: () => property.path,
+            path: () => {
+              const property = runtimeModule[propertyName] as State<unknown>;
+              return property.path;
+            },
 
             merkleWitness: async () => {
+              const property = runtimeModule[propertyName] as State<unknown>;
               // eslint-disable-next-line max-len
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               const path = property.path!;
@@ -161,7 +180,10 @@ export const QueryBuilderFactory = {
     }, {} as any);
   },
 
-  fromProtocol<ProtocolModules extends ProtocolModulesRecord>(
+  fromProtocol<
+    ProtocolModules extends MandatoryProtocolModulesRecord &
+      ProtocolModulesRecord
+  >(
     protocol: Protocol<ProtocolModules>,
     queryTransportModule: QueryTransportModule
   ): Query<ProtocolModule<unknown>, ProtocolModules> {

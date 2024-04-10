@@ -22,7 +22,7 @@ class TestContainer<
   Modules extends ModulesRecord
 > extends ModuleContainer<Modules> {}
 
-interface TestEvents extends EventsRecord {
+type TestEvents = {
   test: [string];
 }
 
@@ -34,7 +34,7 @@ class TestModule
   events = new EventEmitter<TestEvents>();
 }
 
-interface TestEvents2 extends EventsRecord {
+type TestEvents2 = {
   test2: [number];
 }
 

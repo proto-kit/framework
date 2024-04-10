@@ -46,6 +46,7 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
         ...args: any
       ) => Promise<Proof<PublicInput, PublicOutput>>)
   >;
+  analyzeMethods: ReturnType<typeof Experimental.ZkProgram>["analyzeMethods"];
 }
 
 export function verifyToMockable<PublicInput, PublicOutput>(

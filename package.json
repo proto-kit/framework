@@ -1,5 +1,5 @@
 {
-  "name": "yab",
+  "name": "protokit",
   "version": "0.0.0",
   "license": "MIT",
   "type": "module",
@@ -47,6 +47,5 @@
     "*.ts": [
       "npm run lint:staged"
     ]
-  },
-  "dependencies": {}
+  }
 }

@@ -11,6 +11,7 @@ import {
   MerkleMap,
   MerkleMapWitness,
   Experimental,
+  PublicKey,
 } from "o1js";
 import {
   runtimeMethod,
@@ -83,10 +84,11 @@ class TestRuntime extends RuntimeModule<unknown> {
     signature: Signature,
     ballot: Ballot,
     witness: MerkleMapWitness,
-    proof: ProgramProof
+    proof: ProgramProof,
+    address: PublicKey
   ) {
     const valid = signature.verify(
-      this.transaction.sender,
+      this.transaction.sender.value,
       TestStruct.toFields(struct)
     );
     assert(valid, "Signature invalid");
@@ -100,6 +102,8 @@ class TestRuntime extends RuntimeModule<unknown> {
     assert(key.equals(Field(0)), "Key missmatch");
 
     proof.verify();
+
+    Provable.log("address", address);
   }
 }
 
@@ -115,12 +119,13 @@ describe("parameters", () => {
      * using the provided runtime modules
      */
     const appChain = TestingAppChain.fromRuntime({
-      modules: { TestRuntime },
+      TestRuntime,
     });
 
     appChain.configurePartial({
       Runtime: {
         TestRuntime: {},
+        Balances: {},
       },
     });
 
@@ -143,7 +148,8 @@ describe("parameters", () => {
         signature,
         Ballot.empty(),
         witness,
-        proof
+        proof,
+        PrivateKey.random().toPublicKey()
       );
     });
 

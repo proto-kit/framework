@@ -10,7 +10,6 @@ import {
   TypedClass,
   ZkProgrammable,
   PlainZkProgram,
-  WithZkProgrammable,
   AreProofsEnabled,
   ChildContainerProvider,
 } from "@proto-kit/common";
@@ -23,6 +22,7 @@ import {
 import {
   combineMethodName,
   isRuntimeMethod,
+  runtimeMethodTypeMetadataKey,
   toWrappedMethod,
   WrappedMethod,
 } from "../method/runtimeMethod";
@@ -31,6 +31,19 @@ import { MethodIdFactory } from "../factories/MethodIdFactory";
 import { RuntimeModule } from "./RuntimeModule";
 import { MethodIdResolver } from "./MethodIdResolver";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
+
+export function getAllPropertyNames(obj: any) {
+  let keys: (string | symbol)[] = [];
+  // if primitive (primitives still have keys) skip the first iteration
+  if (!(obj instanceof Object)) {
+    obj = Object.getPrototypeOf(obj);
+  }
+  while (obj) {
+    keys = keys.concat(Reflect.ownKeys(obj));
+    obj = Object.getPrototypeOf(obj);
+  }
+  return keys;
+}
 
 /**
  * Record of modules accepted by the Runtime module container.
@@ -104,8 +117,9 @@ export class RuntimeZkProgrammable<
           (...args: unknown[]) => unknown
         >;
 
-        const modulePrototypeMethods =
-          Object.getOwnPropertyNames(modulePrototype);
+        const modulePrototypeMethods = getAllPropertyNames(runtimeModule).map(
+          (method) => method.toString()
+        );
 
         const moduleMethods = modulePrototypeMethods.reduce<Methods>(
           (allModuleMethods, methodName) => {
@@ -115,10 +129,16 @@ export class RuntimeZkProgrammable<
                 methodName
               );
               const method = modulePrototype[methodName];
+              const invocationType = Reflect.getMetadata(
+                runtimeMethodTypeMetadataKey,
+                runtimeModule,
+                methodName
+              );
+
               const wrappedMethod = Reflect.apply(
                 toWrappedMethod,
                 runtimeModule,
-                [methodName, method]
+                [methodName, method, { invocationType }]
               );
 
               // eslint-disable-next-line no-warning-comments
@@ -175,6 +195,7 @@ export class RuntimeZkProgrammable<
     return {
       compile: program.compile.bind(program),
       verify: program.verify.bind(program),
+      analyzeMethods: program.analyzeMethods.bind(program),
       Proof: SelfProof,
       methods,
     };

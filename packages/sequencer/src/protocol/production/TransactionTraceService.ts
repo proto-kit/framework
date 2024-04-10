@@ -7,8 +7,8 @@ import {
   ProvableHashList,
   ProvableStateTransition,
   ProvableStateTransitionType,
-  StateTransitionProverPublicInput,
-  StateTransitionType,
+  StateTransitionProverPublicInput, StateTransitionReductionList,
+  StateTransitionType
 } from "@proto-kit/protocol";
 import { RollupMerkleTree } from "@proto-kit/common";
 import { Bool, Field } from "o1js";
@@ -124,10 +124,6 @@ export class TransactionTraceService {
       eternalTransactionsHash: block.block.fromEternalTransactionsHash,
       incomingMessagesHash: block.block.fromMessagesHash,
     });
-
-    // const treeIndex = block.block.height.toBigInt();
-    // const cached = new CachedMerkleTreeStore(blockHashStateService);
-    // await cached.preloadKey(treeIndex);
 
     return {
       transactions: traces,

@@ -48,7 +48,7 @@ export class Balance extends RuntimeModule<object> {
   public setTotalSupply() {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(this.transaction.sender);
+    this.admin.isAdmin(this.transaction.sender.value);
   }
 
   @runtimeMethod()
@@ -73,7 +73,7 @@ export class Balance extends RuntimeModule<object> {
 
   @runtimeMethod()
   public addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
-    const address = this.transaction.sender;
+    const address = this.transaction.sender.value;
     const balance = this.balances.get(address);
 
     log.provable.debug("Sender:", address);
@@ -101,6 +101,9 @@ export class Balance extends RuntimeModule<object> {
   @runtimeMethod()
   public assertLastBlockHash(hash: Field) {
     const lastRootHash = this.network.previous.rootHash;
-    assert(hash.equals(lastRootHash), `Root hash not matching: ${lastRootHash.toString()}`);
+    assert(
+      hash.equals(lastRootHash),
+      `Root hash not matching: ${lastRootHash.toString()}`
+    );
   }
 }

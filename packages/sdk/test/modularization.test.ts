@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import "reflect-metadata";
 import {
   MethodIdResolver,
@@ -7,8 +8,10 @@ import {
 } from "@proto-kit/module";
 import { ChildContainerProvider, log } from "@proto-kit/common";
 import { AppChain, AppChainModule } from "../src";
-import { Protocol, ProtocolModule, VanillaProtocol } from "@proto-kit/protocol";
+import { Protocol, ProtocolModule } from "@proto-kit/protocol";
+import { VanillaProtocolModules } from "@proto-kit/library";
 import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
+import { PrivateKey } from "o1js";
 
 class TestRuntimeModule extends RuntimeModule<object> {
   public initialized = false;
@@ -55,15 +58,17 @@ class TestAppChainModule extends AppChainModule<object> {
 describe("modularization", () => {
   it("should initialize all modules correctly", async () => {
     const appChain = AppChain.from({
-      runtime: Runtime.from({
+      Runtime: Runtime.from({
         modules: {
           TestRuntimeModule,
         },
       }),
-      protocol: VanillaProtocol.from({
-        TestProtocolModule,
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.with({
+          TestProtocolModule,
+        }),
       }),
-      sequencer: Sequencer.from({
+      Sequencer: Sequencer.from({
         modules: {
           TestSequencerModule,
         },
@@ -76,9 +81,19 @@ describe("modularization", () => {
         TestRuntimeModule: {},
       },
       Protocol: {
-        TestProtocolModule: {},
+        AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
+        BlockHeight: {},
+        LastStateRoot: {},
+        TransactionFee: {
+          tokenId: 0n,
+          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          baseFee: 0n,
+          perWeightUnitFee: 0n,
+          methods: {},
+        },
+        TestProtocolModule: {},
       },
       Sequencer: {
         TestSequencerModule: {},
@@ -86,6 +101,8 @@ describe("modularization", () => {
     });
 
     await appChain.start();
+
+    const m = appChain.protocol.resolve("TestProtocolModule");
 
     expect(appChain.runtime.resolve("TestRuntimeModule").initialized).toBe(
       true

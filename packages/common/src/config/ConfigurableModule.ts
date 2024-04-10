@@ -19,7 +19,7 @@ export interface Configurable<Config> {
   config: Config;
 }
 
-export type NoConfig = Record<string, never>;
+export type NoConfig = Record<never, never>;
 
 /**
  * Used by various module sub-types that may need to be configured

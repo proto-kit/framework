@@ -29,10 +29,12 @@ export interface RuntimeMethodExecutionData {
   networkState: NetworkState;
 }
 
-export class RuntimeMethodExecutionDataStruct extends Struct({
-  transaction: RuntimeTransaction,
-  networkState: NetworkState,
-}) {}
+export class RuntimeMethodExecutionDataStruct
+  extends Struct({
+    transaction: RuntimeTransaction,
+    networkState: NetworkState,
+  })
+  implements RuntimeMethodExecutionData {}
 
 /**
  * Execution context used to wrap runtime module methods,
@@ -125,7 +127,8 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     super.afterMethod();
     if (this.isFinished) {
       this.lastInput = this.input;
-      this.input = undefined;
+      // TODO: find out why input isnt set in TransactionFeeHook during assert
+      // this.input = undefined;
       this.isSimulated = false;
     }
   }

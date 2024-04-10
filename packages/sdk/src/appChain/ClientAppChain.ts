@@ -1,63 +1,54 @@
-import { log, ModulesConfig } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import {
   InMemoryStateService,
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 import {
-  AccountStateModule,
-  BlockProver,
+  MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
   StateServiceProvider,
-  StateTransitionProver,
-  VanillaProtocol,
 } from "@proto-kit/protocol";
 import {
-  PrivateMempool,
-  Sequencer,
-  LocalTaskWorkerModule,
-  NoopBaseLayer,
-  BlockProducerModule,
-  ManualBlockTrigger,
-  LocalTaskQueue,
-  SequencerModulesRecord,
-} from "@proto-kit/sequencer";
-import { PrivateKey } from "o1js";
+  VanillaProtocolModules,
+  VanillaRuntimeModules,
+} from "@proto-kit/library";
+import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
 import { GraphqlClient } from "../graphql/GraphqlClient";
 import { GraphqlQueryTransportModule } from "../graphql/GraphqlQueryTransportModule";
 import { GraphqlNetworkStateTransportModule } from "../graphql/GraphqlNetworkStateTransportModule";
 import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
-import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { AuroSigner } from "../transaction/AuroSigner";
-import { InMemorySigner } from "../transaction/InMemorySigner";
-import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { AppChain, AppChainModulesRecord } from "./AppChain";
 import { container } from "tsyringe";
+import { PrivateKey } from "o1js";
 
 export class ClientAppChain<
-  RuntimeModules extends RuntimeModulesRecord
+  RuntimeModules extends RuntimeModulesRecord,
+  ProtocolModules extends ProtocolModulesRecord &
+    MandatoryProtocolModulesRecord,
+  SequencerModules extends SequencerModulesRecord,
+  AppChainModules extends AppChainModulesRecord
 > extends AppChain<
   RuntimeModules,
-  ProtocolModulesRecord,
-  SequencerModulesRecord,
-  AppChainModulesRecord
+  ProtocolModules,
+  SequencerModules,
+  AppChainModules
 > {
-  public static fromRuntime<
-    RuntimeModules extends RuntimeModulesRecord
-  >(definition: { modules: RuntimeModules }) {
-    const runtime = Runtime.from({
-      ...definition,
-    });
-
-    const sequencer = Sequencer.from({
-      modules: {},
-    });
-
+  public static fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
+    runtimeModules: RuntimeModules
+  ) {
     const appChain = new ClientAppChain({
-      runtime,
-      sequencer,
-      protocol: VanillaProtocol.from({}),
+      Runtime: Runtime.from({
+        modules: VanillaRuntimeModules.with(runtimeModules),
+      }),
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.with({}),
+      }),
+      Sequencer: Sequencer.from({
+        modules: {},
+      }),
 
       modules: {
         GraphqlClient,
@@ -68,19 +59,33 @@ export class ClientAppChain<
       },
     });
 
-    appChain.configure({
+    appChain.configurePartial({
+      Sequencer: {},
       Protocol: {
         BlockProver: {},
         StateTransitionProver: {},
         AccountState: {},
         BlockHeight: {},
+        LastStateRoot: {},
+        TransactionFee: {
+          tokenId: 0n,
+          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          baseFee: 0n,
+          perWeightUnitFee: 1n,
+          methods: {
+            "Faucet.drip": {
+              baseFee: 0n,
+              weight: 0n,
+              perWeightUnitFee: 0n,
+            },
+          },
+        },
       },
 
       Signer: {},
       TransactionSender: {},
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
-
       GraphqlClient: {
         url: "http://127.0.0.1:8080/graphql",
       },

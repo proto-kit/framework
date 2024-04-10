@@ -4,6 +4,7 @@ import {
   BlockProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
+  MandatoryProtocolModulesRecord,
   MethodPublicOutput,
   Protocol,
   ProtocolModulesRecord,
@@ -73,7 +74,7 @@ export class BlockTaskFlowService {
     private readonly blockProvingTask: NewBlockTask,
     private readonly blockReductionTask: BlockReductionTask,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>
   ) {}
 
   public async pushPairing(
@@ -89,7 +90,7 @@ export class BlockTaskFlowService {
       flow.state.pairings[blockIndex][transactionIndex];
 
     if (runtimeProof !== undefined && stProof !== undefined) {
-      log.debug(`Found pairing block: ${blockIndex}, tx: ${transactionIndex}`);
+      log.trace(`Found pairing block: ${blockIndex}, tx: ${transactionIndex}`);
 
       await transactionReductionTask.pushInput({
         input1: stProof,
@@ -179,7 +180,7 @@ export class BlockTaskFlowService {
         reductionTask: this.blockReductionTask,
 
         mergableFunction: (a, b) =>
-          // TODO Proper replication of merge logic
+          //TODO Proper replication of merge logic
           a.publicOutput.stateRoot
             .equals(b.publicInput.stateRoot)
             .and(
@@ -292,7 +293,8 @@ export class BlockTaskFlowService {
 
             eternalTransactionsHash:
               blockTrace.block.publicInput.eternalTransactionsHash,
-            incomingMessagesHash: blockTrace.block.publicInput.incomingMessagesHash,
+            incomingMessagesHash:
+              blockTrace.block.publicInput.incomingMessagesHash,
           };
           const publicInput = new BlockProverPublicInput(piObject);
 

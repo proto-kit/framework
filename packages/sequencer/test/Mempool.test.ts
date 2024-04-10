@@ -1,4 +1,4 @@
-import { Field, PrivateKey, Signature, UInt64 } from "o1js";
+import { Bool, Field, PrivateKey, Provable, Signature, UInt64 } from "o1js";
 
 import { CompressedSignature } from "../src/mempool/CompressedSignature.js";
 import { UnsignedTransaction } from "../src/mempool/PendingTransaction.js";

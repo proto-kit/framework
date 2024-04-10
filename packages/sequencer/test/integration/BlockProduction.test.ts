@@ -5,22 +5,45 @@ import "reflect-metadata";
 // TODO this is actually a big issue
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
-import { Runtime, MethodIdResolver, MethodParameterEncoder } from "@proto-kit/module";
+import {
+  Runtime,
+  MethodIdResolver,
+  MethodParameterEncoder,
+} from "@proto-kit/module";
 import {
   AccountState,
-  AccountStateModule,
+  AccountStateHook,
   BlockHeightHook,
   BlockProver,
+  MandatoryProtocolModulesRecord,
   NetworkState,
   Option,
   Path,
-  Protocol, ReturnType,
+  Protocol,
+  ReturnType,
   StateTransition,
   StateTransitionProver,
-  VanillaProtocol,
 } from "@proto-kit/protocol";
-import { Bool, Field, PrivateKey, ProvableExtended, PublicKey, UInt64 } from "o1js";
-import { ArgumentTypes, log, range, ToFieldableStatic, ToJSONableStatic } from "@proto-kit/common";
+import {
+  VanillaProtocolModules,
+  VanillaProtocolModulesRecord,
+} from "@proto-kit/library";
+
+import {
+  Bool,
+  Field,
+  PrivateKey,
+  ProvableExtended,
+  PublicKey,
+  UInt64,
+} from "o1js";
+import {
+  ArgumentTypes,
+  log,
+  range,
+  ToFieldableStatic,
+  ToJSONableStatic,
+} from "@proto-kit/common";
 
 import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
@@ -28,9 +51,11 @@ import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   AsyncStateService,
-  BlockProducerModule, BlockStorage, HistoricalBlockStorage,
+  BlockProducerModule,
+  BlockStorage,
+  HistoricalBlockStorage,
   InMemoryDatabase,
-  ManualBlockTrigger
+  ManualBlockTrigger,
 } from "../../src";
 import { LocalTaskWorkerModule } from "../../src/worker/worker/LocalTaskWorkerModule";
 
@@ -38,14 +63,19 @@ import { Balance } from "./mocks/Balance";
 import { NoopBaseLayer } from "../../src/protocol/baselayer/NoopBaseLayer";
 import { UnprovenProducerModule } from "../../src/protocol/production/unproven/UnprovenProducerModule";
 import { container } from "tsyringe";
-import { DefaultTestingSequencerModules, testingSequencerFromModules } from "../TestingSequencer";
+import {
+  DefaultTestingSequencerModules,
+  testingSequencerFromModules,
+} from "../TestingSequencer";
 import { createTransaction } from "./utils";
 
 describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
-  let protocol: InstanceType<ReturnType<typeof VanillaProtocol.create>>
+  let protocol: Protocol<
+    MandatoryProtocolModulesRecord & VanillaProtocolModulesRecord
+  >;
 
   let appChain: AppChain<any, any, any, any>;
 
@@ -69,14 +99,14 @@ describe("block production", () => {
 
     const sequencerClass = testingSequencerFromModules({});
 
-    const protocolClass = VanillaProtocol.from(
-      { }
-    );
+    const protocolClass = Protocol.from({
+      modules: VanillaProtocolModules.with({}),
+    });
 
     const app = AppChain.from({
-      runtime: runtimeClass,
-      sequencer: sequencerClass,
-      protocol: protocolClass,
+      Runtime: runtimeClass,
+      Sequencer: sequencerClass,
+      Protocol: protocolClass,
       modules: {},
     });
 
@@ -116,7 +146,7 @@ describe("block production", () => {
 
   // eslint-disable-next-line max-statements
   it("should produce a dummy block proof", async () => {
-    expect.assertions(22);
+    expect.assertions(23);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -140,6 +170,10 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
+    const latestBlockWithMetadata = await sequencer
+      .resolve("UnprovenBlockQueue")
+      .getLatestBlock();
+
     let batch = await blockTrigger.produceProven();
 
     expect(batch).toBeDefined();
@@ -147,9 +181,14 @@ describe("block production", () => {
     expect(batch!.bundles).toHaveLength(1);
     expect(batch!.proof.proof).toBe("mock-proof");
 
+    expect(
+      latestBlockWithMetadata!.metadata.afterNetworkState.hash().toString()
+    ).toStrictEqual(batch!.toNetworkState.hash().toString());
+
     // Check if the batchstorage has received the block
-    const batchStorage = sequencer.resolve("BlockStorage") as BlockStorage & HistoricalBlockStorage;
-    const retrievedBatch = await batchStorage.getBlockAt(0)
+    const batchStorage = sequencer.resolve("BlockStorage") as BlockStorage &
+      HistoricalBlockStorage;
+    const retrievedBatch = await batchStorage.getBlockAt(0);
     expect(retrievedBatch).toBeDefined();
 
     const stateService =
@@ -169,7 +208,9 @@ describe("block production", () => {
       publicKey
     );
     const newState = await stateService.getSingleAsync(balancesPath);
-    const newUnprovenState = await unprovenStateService.getSingleAsync(balancesPath);
+    const newUnprovenState = await unprovenStateService.getSingleAsync(
+      balancesPath
+    );
 
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
@@ -234,7 +275,11 @@ describe("block production", () => {
         runtime,
         method: ["Balance", "setBalanceIf"],
         privateKey,
-        args: [PrivateKey.random().toPublicKey(), UInt64.from(100), Bool(false)],
+        args: [
+          PrivateKey.random().toPublicKey(),
+          UInt64.from(100),
+          Bool(false),
+        ],
         nonce: 0,
       })
     );
@@ -259,7 +304,9 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       PublicKey.empty()
     );
-    const unprovenState = await unprovenStateService.getSingleAsync(balancesPath);
+    const unprovenState = await unprovenStateService.getSingleAsync(
+      balancesPath
+    );
     const newState = await stateService.getSingleAsync(balancesPath);
 
     // Assert that state is not set
@@ -306,7 +353,7 @@ describe("block production", () => {
       expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(
         BigInt(fromBalance)
       );
-      expect(transitions[1].toValue.value[0].toBigInt()).toStrictEqual(
+      expect(transitions[0].toValue.value[0].toBigInt()).toStrictEqual(
         BigInt(fromBalance + increment)
       );
     });
@@ -335,7 +382,7 @@ describe("block production", () => {
   }, 160_000);
 
   it("should produce a block with a mix of failing and succeeding transactions and empty blocks", async () => {
-    expect.assertions(8);
+    expect.assertions(7);
 
     const pk1 = PrivateKey.random();
     const pk2 = PrivateKey.random();
@@ -394,7 +441,7 @@ describe("block production", () => {
 
     const unproven3 = await blockTrigger.produceUnproven();
     const unproven4 = await blockTrigger.produceUnproven();
-    const proven2 = await blockTrigger.produceProven()
+    const proven2 = await blockTrigger.produceProven();
 
     expect(proven2?.bundles.length).toBe(2);
   }, 720_000);

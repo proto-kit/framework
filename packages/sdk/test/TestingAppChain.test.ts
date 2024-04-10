@@ -1,6 +1,6 @@
 /* eslint-disable max-statements */
 import "reflect-metadata";
-import { PrivateKey, PublicKey, UInt64, Provable } from "o1js";
+import { PrivateKey, Provable, PublicKey, UInt64 } from "o1js";
 import {
   runtimeMethod,
   RuntimeModule,
@@ -8,10 +8,16 @@ import {
   state,
 } from "@proto-kit/module";
 import { TestingAppChain } from "../src/index";
-import { container, inject } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { inject } from "tsyringe";
 import { randomUUID } from "crypto";
 import { assert, State, StateMap } from "@proto-kit/protocol";
+import {
+  Balances,
+  BalancesKey,
+  TokenId,
+  VanillaRuntimeModules,
+} from "@proto-kit/library";
+import { log } from "@proto-kit/common";
 
 export interface AdminConfig {
   admin: PublicKey;
@@ -23,7 +29,7 @@ export class Admin extends RuntimeModule<AdminConfig> {
 
   public isSenderAdmin() {
     assert(
-      this.transaction.sender.equals(this.config.admin),
+      this.transaction.sender.value.equals(this.config.admin),
       "Sender is not admin"
     );
   }
@@ -34,13 +40,8 @@ interface BalancesConfig {
 }
 
 @runtimeModule()
-class Balances extends RuntimeModule<BalancesConfig> {
+class CustomBalances extends Balances<BalancesConfig> {
   @state() public totalSupply = State.from<UInt64>(UInt64);
-
-  @state() public balances = StateMap.from<PublicKey, UInt64>(
-    PublicKey,
-    UInt64
-  );
 
   public constructor(@inject("Admin") public admin: Admin) {
     super();
@@ -62,16 +63,27 @@ class Balances extends RuntimeModule<BalancesConfig> {
       "Adding the balance would overflow the total supply"
     );
 
-    const isSender = this.transaction.sender.equals(address);
+    const isSender = this.transaction.sender.value.equals(address);
     assert(isSender, "Address is not the sender");
 
-    const currentBalance = this.balances.get(address);
+    const currentBalance = this.balances.get(
+      new BalancesKey({ tokenId: TokenId.from(0n), address })
+    );
 
     const newBalance = currentBalance.value.add(balance);
 
-    this.balances.set(address, newBalance);
+    this.balances.set(
+      new BalancesKey({ tokenId: TokenId.from(0n), address }),
+      newBalance
+    );
   }
+
+  // @runtimeMethod()
+  public foo() {}
 }
+
+@runtimeModule()
+class BadModule extends RuntimeModule<unknown> {}
 
 describe("testing app chain", () => {
   it("should enable a complete transaction roundtrip", async () => {
@@ -85,7 +97,8 @@ describe("testing app chain", () => {
      * using the provided runtime modules
      */
     const appChain = TestingAppChain.fromRuntime({
-      modules: { Admin, Balances },
+      Admin,
+      Balances: CustomBalances,
     });
 
     appChain.configurePartial({
@@ -98,10 +111,22 @@ describe("testing app chain", () => {
           totalSupply: UInt64.from(1000),
         },
       },
+      Protocol: {
+        ...appChain.config.Protocol!,
+        TransactionFee: {
+          tokenId: 0n,
+          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+          baseFee: 0n,
+          perWeightUnitFee: 0n,
+          methods: {},
+        },
+      },
     });
 
     // start the chain, sequencer is now accepting transactions
     await appChain.start();
+
+    log.setLevel("INFO");
 
     /**
      *  Setup the transaction signer / sender
@@ -126,12 +151,16 @@ describe("testing app chain", () => {
      */
     const block = await appChain.produceBlock();
 
+    Provable.log("block", block);
+
     expect(block?.transactions[0].status.toBoolean()).toBe(true);
 
     /**
      * Observe new state after the block has been produced
      */
-    const balance = await appChain.query.runtime.Balances.balances.get(sender);
+    const balance = await appChain.query.runtime.Balances.balances.get(
+      new BalancesKey({ tokenId: TokenId.from(0n), address: sender })
+    );
 
     expect(balance?.toBigInt()).toBe(1000n);
   }, 60_000);

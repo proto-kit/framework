@@ -6,11 +6,15 @@ import {
   Mutation,
   ObjectType,
   Query,
+  registerEnumType,
   Resolver,
 } from "type-graphql";
 import { inject, injectable } from "tsyringe";
 import { IsNumberString } from "class-validator";
-import { Mempool, PendingTransaction } from "@proto-kit/sequencer";
+import {
+  Mempool,
+  PendingTransaction, TransactionStorage
+} from "@proto-kit/sequencer";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule.js";
 
@@ -45,6 +49,7 @@ export class TransactionObject {
       isMessage,
     } = pt.toJSON();
     return new TransactionObject(
+      pt.hash().toString(),
       methodId,
       sender,
       nonce,
@@ -54,6 +59,9 @@ export class TransactionObject {
       isMessage
     );
   }
+
+  @Field()
+  public hash: string;
 
   @Field()
   @IsNumberString()
@@ -79,6 +87,7 @@ export class TransactionObject {
   public isMessage: boolean;
 
   public constructor(
+    hash: string,
     methodId: string,
     sender: string,
     nonce: string,
@@ -87,6 +96,7 @@ export class TransactionObject {
     argsJSON: string[],
     isMessage: boolean
   ) {
+    this.hash = hash;
     this.methodId = methodId;
     this.sender = sender;
     this.nonce = nonce;
@@ -97,9 +107,24 @@ export class TransactionObject {
   }
 }
 
+enum InclusionStatus {
+  UNKNOWN = "unknown",
+  PENDING = "pending",
+  INCLUDED = "included",
+  SETTLED = "settled",
+}
+
+registerEnumType(InclusionStatus, {
+  name: "InclusionStatus",
+});
+
 @graphqlModule()
 export class MempoolResolver extends GraphqlModule {
-  public constructor(@inject("Mempool") private readonly mempool: Mempool) {
+  public constructor(
+    @inject("Mempool") private readonly mempool: Mempool,
+    @inject("TransactionStorage")
+    private readonly transactionStorage: TransactionStorage
+  ) {
     super();
   }
 
@@ -113,7 +138,7 @@ export class MempoolResolver extends GraphqlModule {
     return decoded.hash().toString();
   }
 
-  @Query(() => String, {
+  @Query(() => InclusionStatus, {
     description: "Returns the state of a given transaction",
   })
   public async transactionState(
@@ -121,15 +146,25 @@ export class MempoolResolver extends GraphqlModule {
       description: "The hash of the transaction to be queried for",
     })
     hash: string
-  ) {
+  ): Promise<InclusionStatus> {
     const txs = await this.mempool.getTxs();
     const tx = txs.find((x) => x.hash().toString() === hash);
 
     if (tx) {
-      return "pending";
+      return InclusionStatus.PENDING;
     }
 
-    return "unknown";
+    const dbTx = await this.transactionStorage.findTransaction(hash);
+
+    if (dbTx !== undefined) {
+      if (dbTx.batch !== undefined) {
+        return InclusionStatus.SETTLED;
+      } else if (dbTx.block !== undefined) {
+        return InclusionStatus.INCLUDED;
+      }
+    }
+
+    return InclusionStatus.UNKNOWN;
   }
 
   @Query(() => [String], {

@@ -1,7 +1,7 @@
 import { createMerkleTree } from "@proto-kit/common";
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
 
-export class BlockHashMerkleTree extends createMerkleTree(8) {}
+export class BlockHashMerkleTree extends createMerkleTree(40) {}
 export class BlockHashMerkleTreeWitness extends BlockHashMerkleTree.WITNESS {}
 
 export class BlockHashTreeEntry extends Struct({

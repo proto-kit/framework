@@ -108,6 +108,9 @@ export type RecursivePartial<T> = {
 export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
   modules: Modules;
   // config is optional, as it may be provided by the parent/wrapper class
+  /**
+   * @deprecated
+   */
   config?: ModulesConfig<Modules>;
 }
 
@@ -148,9 +151,6 @@ export class ModuleContainer<
 
   public constructor(public definition: ModuleContainerDefinition<Modules>) {
     super();
-    if (definition.config !== undefined) {
-      this.config = definition.config;
-    }
   }
 
   /**
@@ -296,6 +296,10 @@ export class ModuleContainer<
     >(this.currentConfig ?? {}, config);
   }
 
+  public get config() {
+    return super.config;
+  }
+
   // eslint-disable-next-line accessor-pairs
   public set config(config: ModulesConfig<Modules>) {
     super.config = merge<
@@ -344,9 +348,7 @@ export class ModuleContainer<
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
-    // Has to be super.config, getters behave really weird when subtyping
-    const config = super.config?.[moduleName];
-
+    const config = this.config?.[moduleName];
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config) {
       throw errors.configNotSetInContainer(moduleName.toString());

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { container, inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProverExecutionData,
   BlockProverState,
@@ -16,10 +16,12 @@ import {
   ProvableBlockHook,
   BlockHashMerkleTree,
   StateServiceProvider,
+  MandatoryProtocolModulesRecord,
   BlockHashTreeEntry,
   ACTIONS_EMPTY_HASH,
   MinaActions,
   MinaActionsHashList,
+  reduceStateTransitions,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
 import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
@@ -64,7 +66,9 @@ export class TransactionExecutionService {
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Protocol")
-    private readonly protocol: Protocol<ProtocolModulesRecord>,
+    private readonly protocol: Protocol<
+      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    >,
     private readonly executionContext: RuntimeMethodExecutionContext,
     // Coming in from the appchain scope (accessible by protocol & runtime)
     @inject("StateServiceProvider")
@@ -79,7 +83,7 @@ export class TransactionExecutionService {
     this.runtimeMethodExecution = new RuntimeMethodExecution(
       this.runtime,
       this.protocol,
-      this.runtime.dependencyContainer.resolve(RuntimeMethodExecutionContext)
+      container.resolve(RuntimeMethodExecutionContext)
     );
   }
 
@@ -94,7 +98,9 @@ export class TransactionExecutionService {
   ): StateRecord {
     return stateTransitions.reduce<Record<string, Field[] | undefined>>(
       (state, st) => {
-        state[st.path.toString()] = st.toValue.value;
+        if (st.toValue.isSome.toBoolean()) {
+          state[st.path.toString()] = st.toValue.value;
+        }
         return state;
       },
       {}
@@ -145,52 +151,62 @@ export class TransactionExecutionService {
     return appChain;
   }
 
-  private executeRuntimeMethod(
-    method: (...args: unknown[]) => unknown,
-    args: unknown[],
-    contextInputs: RuntimeMethodExecutionData
-  ): RuntimeProvableMethodExecutionResult {
+  private executeWithExecutionContext(
+    method: () => void,
+    contextInputs: RuntimeMethodExecutionData,
+    runSimulated = false
+  ): Pick<
+    RuntimeProvableMethodExecutionResult,
+    "stateTransitions" | "status" | "statusMessage"
+  > {
     // Set up context
-    const executionContext = this.runtime.dependencyContainer.resolve(
-      RuntimeMethodExecutionContext
-    );
+    const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.setup(contextInputs);
+    executionContext.setSimulated(runSimulated);
 
     // Execute method
-    method(...args);
+    method();
 
-    const runtimeResult = executionContext.current().result;
+    const { stateTransitions, status, statusMessage } =
+      executionContext.current().result;
 
     // Clear executionContext
     executionContext.afterMethod();
     executionContext.clear();
 
-    return runtimeResult;
+    const reducedSTs = reduceStateTransitions(stateTransitions);
+
+    return {
+      stateTransitions: reducedSTs,
+      status,
+      statusMessage,
+    };
+  }
+
+  private executeRuntimeMethod(
+    method: (...args: unknown[]) => unknown,
+    args: unknown[],
+    contextInputs: RuntimeMethodExecutionData
+  ) {
+    return this.executeWithExecutionContext(() => {
+      method(...args);
+    }, contextInputs);
   }
 
   private executeProtocolHooks(
     runtimeContextInputs: RuntimeMethodExecutionData,
     blockContextInputs: BlockProverExecutionData,
-    runUnchecked = false
-  ): RuntimeProvableMethodExecutionResult {
-    // Set up context
-    const executionContext = this.runtime.dependencyContainer.resolve(
-      RuntimeMethodExecutionContext
+    runSimulated = false
+  ) {
+    return this.executeWithExecutionContext(
+      () => {
+        this.transactionHooks.forEach((transactionHook) => {
+          transactionHook.onTransaction(blockContextInputs);
+        });
+      },
+      runtimeContextInputs,
+      runSimulated
     );
-    executionContext.setup(runtimeContextInputs);
-    if (runUnchecked) {
-      executionContext.setSimulated(true);
-    }
-
-    this.transactionHooks.forEach((transactionHook) => {
-      transactionHook.onTransaction(blockContextInputs);
-    });
-
-    const protocolResult = executionContext.current().result;
-    executionContext.afterMethod();
-    executionContext.clear();
-
-    return protocolResult;
   }
 
   /**
@@ -255,7 +271,7 @@ export class TransactionExecutionService {
         }
       } catch (error) {
         if (error instanceof Error) {
-          log.info("Error in inclusion of tx, skipping", error);
+          log.error("Error in inclusion of tx, skipping", error);
         }
       }
     }
@@ -350,6 +366,7 @@ export class TransactionExecutionService {
       incomingMessagesHash: block.toMessagesHash,
     };
 
+    // TODO Set StateProvider for @state access to state
     this.executionContext.clear();
     this.executionContext.setup({
       networkState: block.networkState.during,
@@ -363,6 +380,7 @@ export class TransactionExecutionService {
 
     const { stateTransitions } = this.executionContext.result;
     this.executionContext.clear();
+    const reducedStateTransitions = reduceStateTransitions(stateTransitions);
 
     // Update the block hash tree with this block
     blockHashTree.setLeaf(
@@ -386,7 +404,7 @@ export class TransactionExecutionService {
       blockHashRoot: newBlockHashRoot.toBigInt(),
       blockHashWitness,
 
-      blockStateTransitions: stateTransitions.map((st) =>
+      blockStateTransitions: reducedStateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
       blockHash: block.hash.toBigInt(),
@@ -509,7 +527,7 @@ export class TransactionExecutionService {
       );
     }
 
-    log.debug(
+    log.trace(
       "PSTs:",
       JSON.stringify(
         protocolResult.stateTransitions.map((x) => x.toJSON()),
@@ -530,7 +548,7 @@ export class TransactionExecutionService {
       runtimeContextInputs
     );
 
-    log.debug(
+    log.trace(
       "STs:",
       JSON.stringify(
         runtimeResult.stateTransitions.map((x) => x.toJSON()),

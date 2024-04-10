@@ -11,7 +11,8 @@ export class SettlementMapper
     const [settlement, batches] = input;
     return {
       batches,
-      transactionHash: settlement.transactionHash,
+      // TODO Add this back in after we make the transactions traceable
+      // transactionHash: settlement.transactionHash,
       promisedMessagesHash: settlement.promisedMessagesHash,
     };
   }
@@ -20,7 +21,7 @@ export class SettlementMapper
     return [
       {
         promisedMessagesHash: input.promisedMessagesHash,
-        transactionHash: input.transactionHash,
+        transactionHash: "", // input.transactionHash,
       },
       input.batches,
     ];

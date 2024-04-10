@@ -10,7 +10,7 @@ import { StateMap, assert } from "@proto-kit/protocol";
 import { Field, Group, Poseidon, PublicKey, Provable, Struct } from "o1js";
 import { inject } from "tsyringe";
 
-import { Balance, Balances, TokenId } from "./Balances";
+import { Balance, Balances, TokenId } from "@proto-kit/library";
 
 export const errors = {
   poolExists: () => "Pool already exists",
@@ -61,7 +61,7 @@ export class PoolKey extends PublicKey {
 }
 
 @runtimeModule()
-export class XYK extends RuntimeModule<unknown> {
+export class XYK extends RuntimeModule<Record<never, never>> {
   public static defaultPoolValue = Field(0);
 
   @state() public pools = StateMap.from<PoolKey, Field>(PoolKey, Field);
@@ -94,7 +94,7 @@ export class XYK extends RuntimeModule<unknown> {
     const key = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
     this.pools.set(key, XYK.defaultPoolValue);
 
-    const creator = this.transaction.sender;
+    const creator = this.transaction.sender.value;
     const pool = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
 
     this.balances.transfer(tokenIdIn, creator, pool, tokenInAmount);
@@ -210,7 +210,7 @@ export class XYK extends RuntimeModule<unknown> {
 
     this.balances.transfer(
       tokenIdIn,
-      this.transaction.sender,
+      this.transaction.sender.value,
       pool,
       tokenInAmountIn
     );
@@ -218,7 +218,7 @@ export class XYK extends RuntimeModule<unknown> {
     this.balances.transfer(
       tokenIdOut,
       pool,
-      this.transaction.sender,
+      this.transaction.sender.value,
       tokenOutAmountOut
     );
   }
@@ -252,13 +252,13 @@ export class XYK extends RuntimeModule<unknown> {
     this.balances.transfer(
       tokenIdOut,
       pool,
-      this.transaction.sender,
+      this.transaction.sender.value,
       tokenOutAmountOut
     );
 
     this.balances.transfer(
       tokenIdIn,
-      this.transaction.sender,
+      this.transaction.sender.value,
       pool,
       tokenInAmountIn
     );
