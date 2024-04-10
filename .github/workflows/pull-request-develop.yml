@@ -12,29 +12,110 @@ on:
 jobs:
   # Installs npm dependencies for the first time,
   # caching them in ~/.npm
-  install:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          # This only caches ~/.npm, therefore each subsequent
-          # job needs to run `npm ci` to install deps from npm cache
-          # alternative is to cache `node_modules` directly
-          # TODO:
-          # https://www.voorhoede.nl/en/blog/super-fast-npm-install-on-github-actions/
-          # Add caching of `node_modules` to speed up this workflow
-          cache: npm
+#  install:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: 18
+#          # This only caches ~/.npm, therefore each subsequent
+#          # job needs to run `npm ci` to install deps from npm cache
+#          # alternative is to cache `node_modules` directly
+#          # TODO:
+#          # https://www.voorhoede.nl/en/blog/super-fast-npm-install-on-github-actions/
+#          # Add caching of `node_modules` to speed up this workflow
+#          cache: npm
+#
+#      # install dependencies from the package-lock.json
+#      - name: Install dependencies
+#        run: npm ci --workspaces
+#
+#  # builds all packages
+#  build:
+#    runs-on: ubuntu-latest
+#    needs: install
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: 18
+#          cache: npm
+#
+#      - name: "Install dependencies"
+#        run: npm ci --workspaces --include-workspace-root
+#
+#      - name: "Build"
+#        run: npm run build
+#
+#  # lints all packages
+#  lint:
+#    runs-on: ubuntu-latest
+#    needs: install
+#    steps:
+#      # check out the repository
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: 18
+#          cache: npm
+#
+#      - name: "Install dependencies"
+#        run: npm ci --workspaces --include-workspace-root
+#
+#      - name: "Build"
+#        run: npm run build
+#
+#      - name: "Lint"
+#        run: npm run lint
+#
+#      - name: "Check formatting"
+#        run: npx prettier ./packages --check
+#
+#  # tests all packages
+#  test:
+#    runs-on: ubuntu-latest
+#    needs: install
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: 18
+#          cache: npm
+#
+#      - name: "Install dependencies"
+#        run: npm ci --workspaces --include-workspace-root
+#
+#      - name: "Build"
+#        run: npm run build
+#
+#      - name: "Test"
+#        run: npm run test:ci
 
-      # install dependencies from the package-lock.json
-      - name: Install dependencies
-        run: npm ci --workspaces
-
-  # builds all packages
-  build:
+  integration:
     runs-on: ubuntu-latest
-    needs: install
+#    needs: test
+
+    env:
+      POSTGRES_URL: postgres
+      REDIS_URL: redis
+      DATABASE_URL: "postgresql://admin:password@postgres:5432/protokit?schema=public"
+
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_USER: admin
+          POSTGRES_DB: protokit
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:6.2-alpine
+        command: redis-server /redis.conf --requirepass password
+        ports:
+          - 6379:6379
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -48,46 +129,8 @@ jobs:
       - name: "Build"
         run: npm run build
 
-  # lints all packages
-  lint:
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
-      # check out the repository
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: npm
+      - name: "Migrate DB"
+        run: npm run migrate
 
-      - name: "Install dependencies"
-        run: npm ci --workspaces --include-workspace-root
-
-      - name: "Build"
-        run: npm run build
-
-      - name: "Lint"
-        run: npm run lint
-
-      - name: "Check formatting"
-        run: npx prettier ./packages --check
-
-  # tests all packages
-  test:
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: npm
-
-      - name: "Install dependencies"
-        run: npm ci --workspaces --include-workspace-root
-
-      - name: "Build"
-        run: npm run build
-
-      - name: "Test"
-        run: npm run test:ci
+      - name: "Integration tests"
+        run: npm run test:integration
