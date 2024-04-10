@@ -81,7 +81,7 @@ export class UnprovenBlockResolver extends GraphqlModule<object> {
     height: number | undefined,
     @Arg("hash", () => String, {
       nullable: true,
-      description: "Filters the blocks for a specific height",
+      description: "Filters the blocks for a specific hash",
     })
     hash: string | undefined
   ) {
