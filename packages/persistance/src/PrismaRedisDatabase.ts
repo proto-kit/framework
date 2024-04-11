@@ -66,4 +66,9 @@ export class PrismaRedisDatabase
     this.redis.config = this.config.redis;
     await this.redis.start();
   }
+
+  public async close() {
+    await this.prisma.close();
+    await this.redis.close();
+  }
 }

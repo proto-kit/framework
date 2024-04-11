@@ -1,6 +1,6 @@
 /* eslint-disable max-statements */
 /* eslint-disable unicorn/filename-case */
-import "reflect-metadata"
+import "reflect-metadata";
 import { Balance, BalancesKey, TokenId } from "@proto-kit/library";
 import { PrivateKey, Provable, PublicKey } from "o1js";
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
@@ -17,7 +17,7 @@ let nonce = 0;
 
 // TODO This test passes locally, but fails in the CI because of untracable
 // TypeError: Do not know how to serialize a BigInt
-describe.skip("xyk", () => {
+describe("xyk", () => {
   const aliceKey = PrivateKey.fromBase58(
     "EKFEMDTUV2VJwcGmCwNKde3iE1cbu7MHhzBqTmBtGAd6PdsLTifY"
   );
@@ -118,8 +118,12 @@ describe.skip("xyk", () => {
     const balanceIn = await getBalance(tokenInId, alice);
     const balanceOut = await getBalance(tokenOutId, alice);
 
-    expect(balanceIn?.toString()).toBe(String(balanceToMint - initialLiquidityA));
-    expect(balanceOut?.toString()).toBe(String(balanceToMint - initialLiquidityB));
+    expect(balanceIn?.toString()).toBe(
+      String(balanceToMint - initialLiquidityA)
+    );
+    expect(balanceOut?.toString()).toBe(
+      String(balanceToMint - initialLiquidityB)
+    );
   }, 30_000);
 
   it("should sell tokenIn", async () => {
