@@ -99,8 +99,8 @@ jobs:
     env:
       POSTGRES_URL: localhost
       REDIS_URL: localhost
-      DATABASE_URL: "postgresql://admin:password@localhost:5432/protokit?schema=public"
       REDIS_CI: true
+      DATABASE_URL: "postgresql://admin:password@localhost:5432/protokit?schema=public"
 
     services:
       postgres:
