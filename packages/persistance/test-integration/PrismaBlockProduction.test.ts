@@ -1,30 +1,31 @@
 import "reflect-metadata";
 import {
   afterAll,
-  afterEach,
   beforeAll,
   describe,
   expect,
 } from "@jest/globals";
 import { expectDefined, equalProvable } from "@proto-kit/common";
-import { Balance, TokenId } from "@proto-kit/library";
+import { BalancesKey, TokenId } from "@proto-kit/library";
 import { NetworkState } from "@proto-kit/protocol";
 import { AppChainTransaction } from "@proto-kit/sdk";
 import { ComputedBlock, UnprovenBlock } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
 import { container } from "tsyringe";
+
 import {
   PrismaBatchStore,
   PrismaBlockStorage,
-  PrismaTransactionStorage
+  PrismaTransactionStorage,
 } from "../src";
+
 import {
   createPrismaAppchain,
   IntegrationTestDBConfig,
-  prepareBlock
+  prepareBlock,
 } from "./utils";
 
-describe("Prisma integration", () => {
+describe("prisma integration", () => {
   let appChain: ReturnType<typeof createPrismaAppchain>;
 
   const sender = PrivateKey.random();
@@ -145,6 +146,49 @@ describe("Prisma integration", () => {
 
       expect(accountState).toBeUndefined();
     });
+
+    it("should fetch balance change", async () => {
+      const balance = await appChain.query.runtime.Balances.balances.get(
+        BalancesKey.from(TokenId.from(0), sender.toPublicKey())
+      );
+
+      expectDefined(balance);
+
+      expect(balance.toString()).toStrictEqual("100");
+    });
+
+    describe("add balance to second account", () => {
+      const sender2 = PrivateKey.random();
+
+      beforeAll(async () => {
+        appChain.configurePartial({
+          Signer: {
+            signer: sender2,
+          },
+        });
+        await prepareBlock(appChain, sender2.toPublicKey(), 0);
+      });
+
+      it("should produce the block", async () => {
+        const [block, batch] = await appChain.sequencer
+          .resolve("BlockTrigger")
+          .produceBlock();
+
+        expectDefined(block);
+        expectDefined(batch);
+        expect(block.transactions).toHaveLength(1);
+      }, 30000);
+
+      it("should retrieve correct balance for account 2", async () => {
+        const balance = await appChain.query.runtime.Balances.balances.get(
+          BalancesKey.from(TokenId.from(0), sender2.toPublicKey())
+        );
+
+        expectDefined(balance);
+
+        expect(balance.toString()).toStrictEqual("100");
+      });
+    });
   });
 
   describe("persisted mempool", () => {
@@ -153,7 +197,11 @@ describe("Prisma integration", () => {
     beforeAll(async () => {
       await setup();
 
-      transaction = await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
+      transaction = await prepareBlock(
+        appChain,
+        sender.toPublicKey(),
+        senderNonce
+      );
       senderNonce++;
     });
 
@@ -174,7 +222,10 @@ describe("Prisma integration", () => {
     });
 
     it("should resolve transaction from storage as pending", async () => {
-      const txResolver = appChain.sequencer.resolveOrFail("TransactionStorage", PrismaTransactionStorage);
+      const txResolver = appChain.sequencer.resolveOrFail(
+        "TransactionStorage",
+        PrismaTransactionStorage
+      );
 
       const txs = await txResolver.getPendingUserTransactions();
 

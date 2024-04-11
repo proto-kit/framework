@@ -1,31 +1,14 @@
 import "reflect-metadata";
 import { afterAll, beforeAll, expect } from "@jest/globals";
-import { expectDefined, log } from "@proto-kit/common";
-import { Field, Poseidon, PrivateKey } from "o1js";
+import { expectDefined } from "@proto-kit/common";
+import { PrivateKey } from "o1js";
 import { container } from "tsyringe";
+
 import {
   createPrismaAppchain,
   IntegrationTestDBConfig,
   prepareBlock,
 } from "./utils";
-import { Prisma } from "@prisma/client";
-
-log.setLevel("TRACE")
-
-// describe("Decimal", () => {
-//
-//   it("decimal", () => {
-//     const f = Poseidon.hash([Field(5)])
-//
-//     const Decimal = Prisma.Decimal.clone({
-//       precision: 78,
-//     });
-//
-//     const d = new Decimal(f.toString());
-//     expect(d.toFixed()).toStrictEqual(f.toString())
-//   })
-//
-// })
 
 describe("sequencer restart", () => {
   let appChain: ReturnType<typeof createPrismaAppchain>;
@@ -64,7 +47,7 @@ describe("sequencer restart", () => {
 
     const blockTrigger = appChain.sequencer.resolve("BlockTrigger");
 
-    console.log(sender.toPublicKey().toBase58())
+    console.log(sender.toPublicKey().toBase58());
 
     for (let block = 0; block < 2; block++) {
       await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
