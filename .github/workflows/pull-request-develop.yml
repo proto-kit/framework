@@ -112,7 +112,8 @@ jobs:
           - 5432:5432
       redis:
         image: redis:6.2-alpine
-        command: redis-server /redis.conf --requirepass password
+        options: >-
+          --requirepass password
         ports:
           - 6379:6379
 
