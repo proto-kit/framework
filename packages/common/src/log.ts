@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method, putout/putout */
 import loglevel, { LogLevelDesc } from "loglevel";
 import { Provable } from "o1js";
 
@@ -7,8 +6,9 @@ function logProvable(
   ...args: any[]
 ) {
   Provable.asProver(() => {
-    const prettyArguments = [];
-    for (const argument of args) {
+    const prettyArguments: string[] = [];
+
+    args.forEach((argument) => {
       if (argument?.toPretty !== undefined) {
         prettyArguments.push(argument.toPretty());
       } else {
@@ -18,7 +18,7 @@ function logProvable(
           prettyArguments.push(argument);
         }
       }
-    }
+    });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     logFunction(...prettyArguments);
   });

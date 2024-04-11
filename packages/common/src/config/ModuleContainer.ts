@@ -81,7 +81,7 @@ export type BaseModuleType = TypedClass<BaseModuleInstanceType>;
 // allows to specify what kind of modules can be passed into a container
 export interface ModulesRecord<
   // use the default configurable module type
-  ModuleType extends BaseModuleType = BaseModuleType
+  ModuleType extends BaseModuleType = BaseModuleType,
 > {
   [name: string]: ModuleType;
 }
@@ -139,25 +139,12 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
 > &
   Modules;
 
-type X = RecursivePartial<{
-  t: {
-    a: string;
-    b: string;
-  };
-}>;
-
-const x: X = {
-  t: {
-    a: "",
-  },
-};
-
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
  */
 export class ModuleContainer<
-  Modules extends ModulesRecord
+  Modules extends ModulesRecord,
 > extends ConfigurableModule<ModulesConfig<Modules>> {
   /**
    * Determines how often are modules decorated upon resolution
@@ -251,7 +238,7 @@ export class ModuleContainer<
    * @param modules
    */
   protected registerModules(modules: Modules) {
-    for (const moduleName in modules) {
+    Object.keys(modules).forEach((moduleName) => {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.assertIsValidModuleName(moduleName);
 
@@ -266,7 +253,7 @@ export class ModuleContainer<
         );
         this.onAfterModuleResolution(moduleName);
       }
-    }
+    });
   }
 
   public get events(): EventEmitterProxy<Modules> {
@@ -378,6 +365,7 @@ export class ModuleContainer<
     if (containedModule instanceof ModuleContainer) {
       containedModule.configure(config);
     } else {
+      // eslint-disable-next-line no-param-reassign
       containedModule.config = config;
     }
   }

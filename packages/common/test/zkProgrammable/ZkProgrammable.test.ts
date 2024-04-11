@@ -145,7 +145,7 @@ describe("zkProgrammable", () => {
 
   const testCases: [
     boolean,
-    { verificationKey: string; shouldVerifyMockProofs: boolean }
+    { verificationKey: string; shouldVerifyMockProofs: boolean },
   ][] = [
     [
       false,
@@ -256,9 +256,8 @@ describe("zkProgrammable", () => {
         const testProof = await executionContext
           .current()
           .result.prove<Proof<TestPublicInput, TestPublicOutput>>();
-        const testProofVerified = await testProgrammable.zkProgram.verify(
-          testProof
-        );
+        const testProofVerified =
+          await testProgrammable.zkProgram.verify(testProof);
 
         // execute bar
         otherTestProgrammable.bar(testProof);

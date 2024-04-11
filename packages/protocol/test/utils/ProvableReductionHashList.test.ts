@@ -1,4 +1,4 @@
-import "reflect-metadata"
+import "reflect-metadata";
 import { Bool, Field, Poseidon } from "o1js";
 
 import {

@@ -9,10 +9,9 @@ import {
 import {
   ModuleContainer,
   ModulesRecord,
-  DependenciesFromModules, ModulesConfig, RecursivePartial
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { ChildContainerProvider, DependencyFactory, DependencyRecord } from "../../src";
+import { DependencyFactory } from "../../src";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -68,9 +67,8 @@ class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {
 class WrongTestModule {}
 
 class TestModuleContainer<
-  Modules extends TestModulesRecord
-> extends ModuleContainer<Modules> {
-}
+  Modules extends TestModulesRecord,
+> extends ModuleContainer<Modules> {}
 
 describe("moduleContainer", () => {
   let container: TestModuleContainer<{
@@ -117,7 +115,7 @@ describe("moduleContainer", () => {
     container.create(() => tsyringeContainer.createChildContainer());
 
     expect(() => {
-      container.resolve("TestModule")
+      container.resolve("TestModule");
     }).toThrow();
   });
 
@@ -167,7 +165,7 @@ describe("moduleContainer", () => {
 
     container.create(() => tsyringeContainer.createChildContainer());
 
-    const config = container.resolve("TestModule").config;
+    const { config } = container.resolve("TestModule");
 
     expect(config.testConfigProperty).toBe(3);
     expect(config.testConfigProperty2).toBe(2);

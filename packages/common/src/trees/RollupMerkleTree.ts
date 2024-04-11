@@ -141,9 +141,11 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
      * @param leaf Value of the leaf node that belongs to this Witness.
      * @returns The calculated root.
      */
-    public calculateRoot(hash: Field): Field {
+    public calculateRoot(leaf: Field): Field {
+      let hash = leaf;
       const n = this.height();
 
+      // eslint-disable-next-line no-plusplus
       for (let index = 1; index < n; ++index) {
         const isLeft = this.isLeft[index - 1];
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -163,13 +165,9 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       let index = Field(0);
       const n = this.height();
 
-      // eslint-disable-next-line no-underscore-dangle
-      for (let index_ = 1; index_ < n; ++index_) {
-        index = Provable.if(
-          this.isLeft[index_ - 1],
-          index,
-          index.add(powerOfTwo)
-        );
+      // eslint-disable-next-line no-underscore-dangle,no-plusplus
+      for (let i = 1; i < n; ++i) {
+        index = Provable.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
         powerOfTwo = powerOfTwo.mul(2);
       }
 
@@ -308,16 +306,20 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
       const path = [];
       const isLefts = [];
+      let currentIndex = index;
       for (
         let level = 0;
         level < AbstractRollupMerkleTree.HEIGHT - 1;
         level += 1
       ) {
-        const isLeft = index % 2n === 0n;
-        const sibling = this.getNode(level, isLeft ? index + 1n : index - 1n);
+        const isLeft = currentIndex % 2n === 0n;
+        const sibling = this.getNode(
+          level,
+          isLeft ? currentIndex + 1n : currentIndex - 1n
+        );
         isLefts.push(Bool(isLeft));
         path.push(sibling);
-        index /= 2n;
+        currentIndex /= 2n;
       }
       return new RollupMerkleWitness({
         isLeft: isLefts,

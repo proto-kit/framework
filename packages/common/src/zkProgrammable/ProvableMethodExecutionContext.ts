@@ -1,4 +1,4 @@
-import type { FlexibleProvable, Proof } from "o1js";
+import type { Proof } from "o1js";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 
@@ -23,8 +23,7 @@ export class ProvableMethodExecutionResult {
   public prover?: () => Promise<Proof<unknown, unknown>>;
 
   public async prove<
-    // eslint-disable-next-line etc/no-misused-generics
-    ProofType extends Proof<unknown, unknown>
+    ProofType extends Proof<unknown, unknown>,
   >(): Promise<ProofType> {
     if (!this.prover) {
       // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
