@@ -10,7 +10,9 @@
     "lint:staged": "eslint",
     "test": "npx lerna run test --scope=\"*/sdk\" -- --passWithNoTests",
     "test:ci": "npx lerna run test -- --passWithNoTests --forceExit",
+    "test:integration": "npx lerna run integration -- --passWithNoTests --forceExit",
     "test:watch": "npx lerna run test:watch",
+    "migrate": "npx lerna run prisma-migrate",
     "commit": "cz",
     "publish:canary": "npx lerna publish prerelease --no-private --exact --yes --canary --preid develop --dist-tag latest --loglevel verbose --force-git-tag --force-publish"
   },

@@ -76,6 +76,26 @@ export class PrismaDatabaseConnection
     };
   }
 
+  public async clearDatabase(): Promise<void> {
+    const tables = [
+      "TransactionExecutionResult",
+      "Transaction",
+      "Block",
+      "Batch",
+      "UnprovenBlockMetadata",
+      "State",
+      "Settlement",
+      "IncomingMessageBatch",
+      "IncomingMessageBatchTransaction",
+    ];
+
+    await this.prismaClient.$transaction(
+      tables.map((table) =>
+        this.prismaClient.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE`)
+      )
+    );
+  }
+
   public async start(): Promise<void> {
     const { connection } = this.config;
     if (connection !== undefined) {
@@ -101,5 +121,9 @@ export class PrismaDatabaseConnection
     } else {
       this.initializedClient = new PrismaClient();
     }
+  }
+
+  public async close() {
+    await this.prismaClient.$disconnect();
   }
 }
