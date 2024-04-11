@@ -31,6 +31,8 @@ import {
 
 const prismaUrl = process.env["POSTGRES_URL"];
 const redisUrl = process.env["REDIS_URL"];
+// We don't use the password for CI runs
+const redisCI = process.env["REDIS_CI"];
 
 const prismaConfig = {
   host: prismaUrl ?? "localhost",
@@ -45,7 +47,7 @@ const prismaConfig = {
 const redisConfig = {
   host: redisUrl ?? "localhost",
   port: 6379,
-  password: "password",
+  password: redisCI ? undefined : "password",
 };
 
 export const IntegrationTestDBConfig = {

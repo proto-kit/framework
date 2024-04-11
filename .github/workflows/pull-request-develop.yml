@@ -100,6 +100,7 @@ jobs:
       POSTGRES_URL: postgres
       REDIS_URL: redis
       DATABASE_URL: "postgresql://admin:password@postgres:5432/protokit?schema=public"
+      REDIS_CI: true
 
     services:
       postgres:
@@ -112,8 +113,6 @@ jobs:
           - 5432:5432
       redis:
         image: redis:6.2-alpine
-        options: >-
-          --requirepass password
         ports:
           - 6379:6379
 

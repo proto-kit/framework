@@ -9,7 +9,7 @@ import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
 
 export interface RedisConnectionConfig {
   host: string;
-  password: string;
+  password?: string;
   port?: number;
   username?: string;
 }
