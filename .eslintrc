@@ -4,7 +4,7 @@
   "plugins": ["@typescript-eslint"],
   "root": true,
   "parserOptions": {
-    "project": ["./tsconfig.json"]
+    "project": ["./tsconfig.json", "./tsconfig.test.json"]
   },
   "ignorePatterns": [
     "jest.config.cjs",
@@ -33,6 +33,8 @@
     "max-classes-per-file": ["error", 6],
     "@typescript-eslint/no-magic-numbers": "off",
     "class-methods-use-this": "off",
+    "@typescript-eslint/return-await": ["error", "always"],
+    "import/no-import-module-exports": "off",
     // Handled by prettier
     "@typescript-eslint/indent": ["off"]
   },
