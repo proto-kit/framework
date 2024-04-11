@@ -97,9 +97,9 @@ jobs:
 #    needs: test
 
     env:
-      POSTGRES_URL: postgres
-      REDIS_URL: redis
-      DATABASE_URL: "postgresql://admin:password@postgres:5432/protokit?schema=public"
+      POSTGRES_URL: localhost
+      REDIS_URL: localhost
+      DATABASE_URL: "postgresql://admin:password@localhost:5432/protokit?schema=public"
       REDIS_CI: true
 
     services:
