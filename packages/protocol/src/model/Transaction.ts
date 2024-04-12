@@ -8,11 +8,13 @@ import {
   UInt64,
 } from "o1js";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function argsToHash(...args: FlexibleProvable<any>[]): Field {
   const fields = args.flatMap((argument) => argument.toFields(argument));
   return Poseidon.hash(fields);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Transaction extends Struct({
   // must be checked inside @runtimeMethod
   methodId: Field,

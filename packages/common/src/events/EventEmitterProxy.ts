@@ -40,8 +40,9 @@ export class EventEmitterProxy<
       ) {
         const module = container.resolve(moduleName);
         if (this.isEventEmitter(module)) {
-          module.events.onAll((events: any, args: unknown[]) => {
-            this.emit(events, ...(args as any));
+          module.events.onAll((events: any, args: any[]) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            this.emit(events, ...args);
           });
         }
       }
@@ -51,6 +52,7 @@ export class EventEmitterProxy<
   private isEventEmitter(
     module: any
   ): module is EventEmittingComponent<EventsRecord> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const emitter = module.events;
     return emitter !== undefined && emitter instanceof EventEmitter;
   }

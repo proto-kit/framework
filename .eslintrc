@@ -1,5 +1,5 @@
 {
-  "extends": ["airbnb-base", "airbnb-typescript/base", "plugin:prettier/recommended"],
+  "extends": ["airbnb-base", "airbnb-typescript/base", "plugin:prettier/recommended", "plugin:eslint-comments/recommended"],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "root": true,
@@ -35,6 +35,42 @@
     "class-methods-use-this": "off",
     "@typescript-eslint/return-await": ["error", "always"],
     "import/no-import-module-exports": "off",
+    // When overriding methods, this forces us to remove them, even though it is a good pattern
+    // to still declare args of overriden methods
+    "@typescript-eslint/no-unused-vars": ["error", {
+      "args": "none"
+    }],
+    "import/order": [
+      "error",
+      {
+      "newlines-between": "always"
+      }
+    ],
+    "no-param-reassign": [
+      "error",
+      {
+        "props": false
+      }
+    ],
+    "eslint-comments/no-unused-disable": ["error"],
+    "@typescript-eslint/no-unsafe-assignment": "error",
+    "@typescript-eslint/no-base-to-string": "error",
+    "@typescript-eslint/strict-boolean-expressions": "error",
+    "@typescript-eslint/no-unsafe-argument": "error",
+    "@typescript-eslint/consistent-type-assertions": ["error", {
+      "assertionStyle": "never"
+    }],
+    "@typescript-eslint/init-declarations": "error",
+//    "@typescript-eslint/no-explicit-any": ["error", {
+//      "ignoreRestArgs": true
+//    }],
+    // Only to enforce comments length, code will be checked by prettier
+    "max-len": ["error", 1000, {
+      "comments": 100,
+      "ignoreComments": false,
+      "ignoreUrls": true,
+      "ignoreStrings": true
+    }],
     // Handled by prettier
     "@typescript-eslint/indent": ["off"]
   },
@@ -44,7 +80,8 @@
       "files": ["*.test.ts"],
       "rules": {
         "no-console": "off",
-        "import/no-extraneous-dependencies": "off"
+        "import/no-extraneous-dependencies": "off",
+        "@typescript-eslint/init-declarations": "off"
       }
     },
     {

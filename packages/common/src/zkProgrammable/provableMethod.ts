@@ -1,9 +1,10 @@
 import { InferProvable, Proof, ProvableExtended } from "o1js";
 import { container } from "tsyringe";
 
+import { ToFieldable } from "../utils";
+
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
 import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
-import { ToFieldable } from "../utils";
 
 export type O1JSPrimitive = InferProvable<ProvableExtended<unknown>> &
   ToFieldable;
@@ -19,7 +20,6 @@ export function toProver(
   isFirstParameterPublicInput: boolean,
   ...args: ArgumentTypes
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return async function prover(this: ZkProgrammable<any, any>) {
     const areProofsEnabled = this.appChain?.areProofsEnabled;
     if (areProofsEnabled ?? false) {
@@ -33,7 +33,6 @@ export function toProver(
     return new this.zkProgram.Proof({
       proof: MOCK_PROOF,
 
-      // eslint-disable-next-line no-warning-comments
       // TODO: provide undefined if public input is not used
       publicInput: isFirstParameterPublicInput ? args[0] : undefined,
       publicOutput,
@@ -63,7 +62,6 @@ export function provableMethod(
   )
 ) {
   return <
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Target extends WithZkProgrammable<any, any> | ZkProgrammable<any, any>,
   >(
     target: Target,
@@ -73,7 +71,6 @@ export function provableMethod(
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const simulatedMethod = descriptor.value as DecoratedMethod;
 
-    // eslint-disable-next-line no-param-reassign
     descriptor.value = function value(
       this: ZkProgrammable<unknown, unknown>,
       ...args: ArgumentTypes

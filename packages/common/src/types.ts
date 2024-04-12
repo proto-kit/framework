@@ -3,7 +3,7 @@ import { Bool, Field, PublicKey } from "o1js";
 
 export type TypedClass<Class> = new (...args: any[]) => Class;
 
-export type UnTypedClass = new (...args: any[]) => any;
+export type UnTypedClass = new (...args: any[]) => unknown;
 
 /**
  * Using simple `keyof Target` would result into the key

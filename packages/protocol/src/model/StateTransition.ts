@@ -1,4 +1,4 @@
-import { Bool, Field, ProvablePure, Struct } from "o1js";
+import { Field, Struct } from "o1js";
 
 import { Option, ProvableOption } from "./Option";
 

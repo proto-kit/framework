@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import "reflect-metadata";
 
 import {
@@ -20,6 +19,7 @@ import {
   DependencyFactory,
   InferDependencies,
 } from "../dependencyFactory/DependencyFactory";
+import { EventEmitterProxy } from "../events/EventEmitterProxy";
 
 import {
   Configurable,
@@ -28,7 +28,6 @@ import {
 } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
-import { EventEmitterProxy } from "../events/EventEmitterProxy";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -38,8 +37,7 @@ const errors = {
 
   onlyValidModuleNames: (moduleName: NonNullable<unknown>) =>
     new Error(
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string,@typescript-eslint/restrict-template-expressions
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       `Only known module names are allowed, using unknown module name: ${moduleName}`
     ),
 
@@ -267,7 +265,6 @@ export class ModuleContainer<
    * Register a non-module value into the current container
    * @param modules
    */
-  // eslint-disable-next-line no-warning-comments
   // TODO Rename to plural since object is param
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
@@ -308,7 +305,6 @@ export class ModuleContainer<
     return super.config;
   }
 
-  // eslint-disable-next-line accessor-pairs
   public set config(config: ModulesConfig<Modules>) {
     super.config = merge<
       ModulesConfig<Modules> | NoConfig,
@@ -365,12 +361,10 @@ export class ModuleContainer<
     if (containedModule instanceof ModuleContainer) {
       containedModule.configure(config);
     } else {
-      // eslint-disable-next-line no-param-reassign
       containedModule.config = config;
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private isDependencyFactory(type: any): type is DependencyFactory {
     return "dependencies" in type;
   }

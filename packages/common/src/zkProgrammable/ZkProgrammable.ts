@@ -1,5 +1,6 @@
 import { Experimental, FlexibleProvablePure, Proof } from "o1js";
 import { Memoize } from "typescript-memoize";
+
 import { log } from "../log";
 
 import { MOCK_PROOF } from "./provableMethod";
@@ -37,13 +38,9 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   >;
   methods: Record<
     string,
-    | ((
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...args: any
-      ) => Promise<Proof<PublicInput, PublicOutput>>)
+    | ((...args: any) => Promise<Proof<PublicInput, PublicOutput>>)
     | ((
         publicInput: PublicInput,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ...args: any
       ) => Promise<Proof<PublicInput, PublicOutput>>)
   >;

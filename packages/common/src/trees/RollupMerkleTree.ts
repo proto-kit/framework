@@ -1,8 +1,3 @@
-/* eslint-disable id-length */
-/* eslint-disable line-comment-position */
-/* eslint-disable no-inline-comments */
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-/* eslint-disable @typescript-eslint/method-signature-style */
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
 
 import { range } from "../utils";
@@ -165,7 +160,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       let index = Field(0);
       const n = this.height();
 
-      // eslint-disable-next-line no-underscore-dangle,no-plusplus
+      // eslint-disable-next-line no-plusplus
       for (let i = 1; i < n; ++i) {
         index = Provable.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
         powerOfTwo = powerOfTwo.mul(2);
@@ -327,7 +322,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       });
     }
 
-    // eslint-disable-next-line no-warning-comments, max-len
+    // eslint-disable-next-line max-len
     // TODO: should this take an optional offset? should it fail if the array is too long?
     /**
      * Fills all leaves of the tree.

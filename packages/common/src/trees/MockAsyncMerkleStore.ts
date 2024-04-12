@@ -1,5 +1,6 @@
-import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
 import { noop } from "../utils";
+
+import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
 
 export class MockAsyncMerkleTreeStore {
   public readonly store = new InMemoryMerkleTreeStorage();

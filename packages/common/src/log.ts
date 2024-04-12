@@ -1,6 +1,7 @@
 import loglevel, { LogLevelDesc } from "loglevel";
 import { Provable } from "o1js";
 
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 function logProvable(
   logFunction: (...args: unknown[]) => void,
   ...args: any[]
@@ -19,10 +20,10 @@ function logProvable(
         }
       }
     });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     logFunction(...prettyArguments);
   });
 }
+/* eslint-enable */
 
 export const log = {
   provable: {

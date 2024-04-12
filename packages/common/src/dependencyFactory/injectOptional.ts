@@ -8,7 +8,6 @@ import {
 
 @injectable()
 @scoped(Lifecycle.ResolutionScoped)
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class UndefinedDisguise {}
 
 class UndefinedTransform<Dependency> {

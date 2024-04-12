@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import "reflect-metadata";
 import { container as tsyringeContainer, inject, injectable } from "tsyringe";
 
@@ -62,8 +61,7 @@ class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {
  * Showcases a wrongly typed/defined module as
  * per the TestModuleContainer requirements
  */
-// eslint-disable-next-line max-len
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class, @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class WrongTestModule {}
 
 class TestModuleContainer<

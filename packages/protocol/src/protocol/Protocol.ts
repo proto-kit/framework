@@ -11,23 +11,21 @@ import {
 import { DependencyContainer, Lifecycle } from "tsyringe";
 
 import { BlockProvable } from "../prover/block/BlockProvable";
-import { StateTransitionProver } from "../prover/statetransition/StateTransitionProver";
 import { StateTransitionProvable } from "../prover/statetransition/StateTransitionProvable";
-import { BlockProver } from "../prover/block/BlockProver";
 import { StateServiceProvider } from "../state/StateServiceProvider";
 import { StateService } from "../state/StateService";
-
-import { ProtocolModule } from "./ProtocolModule";
-import { ProvableTransactionHook } from "./ProvableTransactionHook";
-import { NoopTransactionHook } from "../hooks/NoopTransactionHook";
-import { ProtocolEnvironment } from "./ProtocolEnvironment";
-import { AccountStateHook } from "../hooks/AccountStateHook";
-import { ProvableBlockHook } from "./ProvableBlockHook";
 import { NoopBlockHook } from "../hooks/NoopBlockHook";
 import { BlockHeightHook } from "../hooks/BlockHeightHook";
 import { LastStateRootBlockHook } from "../hooks/LastStateRootBlockHook";
 import { ProvableSettlementHook } from "../settlement/modularity/ProvableSettlementHook";
 import { NoopSettlementHook } from "../hooks/NoopSettlementHook";
+import { AccountStateHook } from "../hooks/AccountStateHook";
+import { NoopTransactionHook } from "../hooks/NoopTransactionHook";
+
+import { ProtocolModule } from "./ProtocolModule";
+import { ProvableTransactionHook } from "./ProvableTransactionHook";
+import { ProtocolEnvironment } from "./ProtocolEnvironment";
+import { ProvableBlockHook } from "./ProvableBlockHook";
 
 const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
   ProvableTransactionHook: "ProvableTransactionHook",
@@ -59,13 +57,13 @@ export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
 }
 
 export class Protocol<
-    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord
+    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord,
   >
   extends ModuleContainer<Modules>
   implements ProtocolEnvironment
 {
   public static from<
-    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord
+    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord,
   >(modules: ProtocolDefinition<Modules>): TypedClass<Protocol<Modules>> {
     return class ScopedProtocol extends Protocol<Modules> {
       public constructor() {

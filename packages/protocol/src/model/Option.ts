@@ -19,7 +19,10 @@ export class ProvableOption extends Struct({
 }
 
 export abstract class OptionBase {
-  protected constructor(public isSome: Bool, public isForcedSome: Bool) {}
+  protected constructor(
+    public isSome: Bool,
+    public isForcedSome: Bool
+  ) {}
 
   protected abstract encodeValueToFields(): Field[];
 

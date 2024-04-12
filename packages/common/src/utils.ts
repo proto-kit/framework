@@ -40,7 +40,6 @@ export function dummyValue<Value>(
   return valueType.fromFields(fields) as Value;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 export function noop(): void {}
 
 export interface ToFieldable {
@@ -93,6 +92,7 @@ export function hashWithPrefix(prefix: string, input: Field[]) {
     [Field(0), Field(0), Field(0)],
     [prefixToField(prefix)]
   );
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return Poseidon.update(salt as [Field, Field, Field], input)[0];
 }
 

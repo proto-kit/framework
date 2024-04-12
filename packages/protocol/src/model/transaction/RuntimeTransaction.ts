@@ -1,14 +1,7 @@
-import {
-  Bool,
-  Field,
-  Poseidon,
-  Provable,
-  PublicKey,
-  Struct,
-  UInt64,
-} from "o1js";
-import { PublicKeyOption, UInt64Option } from "./ValueOption";
+import { Bool, Field, Poseidon, PublicKey, Struct, UInt64 } from "o1js";
 import { EMPTY_PUBLICKEY, EMPTY_PUBLICKEY_X } from "@proto-kit/common";
+
+import { PublicKeyOption, UInt64Option } from "./ValueOption";
 
 /**
  * This struct is used to expose transaction information to the runtime method
