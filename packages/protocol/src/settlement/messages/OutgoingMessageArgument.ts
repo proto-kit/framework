@@ -1,5 +1,6 @@
 import { Bool, Provable, Struct } from "o1js";
 import { RollupMerkleTreeWitness } from "@proto-kit/common";
+
 import { Withdrawal } from "./Withdrawal";
 
 export const OUTGOING_MESSAGE_BATCH_SIZE = 1;

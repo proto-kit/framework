@@ -4,6 +4,7 @@ import {
   ProvableMethodExecutionContext,
   ProvableMethodExecutionResult,
 } from "@proto-kit/common";
+
 import { StateTransition } from "../../model/StateTransition";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
@@ -16,7 +17,6 @@ const errors = {
 };
 
 export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutionResult {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public stateTransitions: StateTransition<any>[] = [];
 
   public status: Bool = Bool(true);

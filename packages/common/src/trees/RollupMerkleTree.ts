@@ -140,7 +140,6 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       let hash = leaf;
       const n = this.height();
 
-      // eslint-disable-next-line no-plusplus
       for (let index = 1; index < n; ++index) {
         const isLeft = this.isLeft[index - 1];
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -160,7 +159,6 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       let index = Field(0);
       const n = this.height();
 
-      // eslint-disable-next-line no-plusplus
       for (let i = 1; i < n; ++i) {
         index = Provable.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
         powerOfTwo = powerOfTwo.mul(2);
@@ -322,7 +320,6 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       });
     }
 
-    // eslint-disable-next-line max-len
     // TODO: should this take an optional offset? should it fail if the array is too long?
     /**
      * Fills all leaves of the tree.

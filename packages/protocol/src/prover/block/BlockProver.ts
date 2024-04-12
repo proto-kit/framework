@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import {
   Bool,
   Experimental,
@@ -11,7 +10,6 @@ import {
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
   AreProofsEnabled,
-  hashWithPrefix,
   PlainZkProgram,
   provableMethod,
   WithZkProgrammable,
@@ -123,7 +121,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
   BlockProverPublicOutput
 > {
   public constructor(
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     private readonly prover: BlockProver,
     public readonly stateTransitionProver: ZkProgrammable<
       StateTransitionProverPublicInput,
@@ -161,7 +158,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
   ): BlockProverState {
     const { transaction, networkState, signature } = executionData;
 
-    const isMessage = runtimeProof.publicOutput.isMessage;
+    const { isMessage } = runtimeProof.publicOutput;
 
     runtimeProof.verify();
     stateTransitionProof.verify();
@@ -240,7 +237,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     return stateTo;
   }
 
-  // eslint-disable-next-line no-warning-comments, max-len
+  // eslint-disable-next-line max-len
   // TODO How does this interact with the RuntimeMethodExecutionContext when executing runtimemethods?
 
   public assertProtocolTransitions(
@@ -318,11 +315,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
         if (type === "beforeBlock") {
           return blockHook.beforeBlock(networkState, state);
-        } else if (type === "afterBlock") {
-          return blockHook.afterBlock(networkState, state);
-        } else {
-          throw new Error("Unreachable");
         }
+        if (type === "afterBlock") {
+          return blockHook.afterBlock(networkState, state);
+        }
+        throw new Error("Unreachable");
       },
       inputNetworkState
     );
@@ -361,7 +358,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     stateTo.transactionsHash = transactionList.commitment;
 
     // Append tx to eternal transaction list
-    // eslint-disable-next-line no-warning-comments
     // TODO Change that to the a sequence-state compatible transaction struct
     const eternalTransactionList = new DefaultProvableHashList(
       Field,

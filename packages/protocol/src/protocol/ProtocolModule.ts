@@ -9,7 +9,7 @@ import {
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
 
 export abstract class ProtocolModule<
-  Config = NoConfig
+  Config = NoConfig,
 > extends ConfigurableModule<Config> {
   public protocol?: ProtocolEnvironment;
 
@@ -17,7 +17,6 @@ export abstract class ProtocolModule<
     return this.protocol?.getAreProofsEnabled();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public create(childContainerProvider: ChildContainerProvider): void {
     noop();
   }

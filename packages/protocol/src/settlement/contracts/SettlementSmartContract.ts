@@ -17,6 +17,7 @@ import {
   UInt32,
   UInt64,
 } from "o1js";
+
 import { NetworkState } from "../../model/network/NetworkState";
 import { Path } from "../../model/Path";
 import { BlockHashMerkleTree } from "../../prover/block/accummulators/BlockHashMerkleTree";
@@ -36,6 +37,8 @@ import {
 } from "../modularity/ProvableSettlementHook";
 
 import { DispatchContractType } from "./DispatchSmartContract";
+
+/* eslint-disable @typescript-eslint/lines-between-class-members */
 
 export class LazyBlockProof extends Proof<
   BlockProverPublicInput,
@@ -106,7 +109,7 @@ export class SettlementSmartContract
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);
 
-    const DispatchContract = SettlementSmartContract.args.DispatchContract;
+    const { DispatchContract } = SettlementSmartContract.args;
     new DispatchContract(dispatchContract).initialize(this.address);
   }
 
@@ -327,3 +330,5 @@ export class SettlementSmartContract
     this.balance.subInPlace(amount);
   }
 }
+
+/* eslint-enable @typescript-eslint/lines-between-class-members */

@@ -1,6 +1,6 @@
 import { WithZkProgrammable, ZkProgrammable } from "@proto-kit/common";
-import { RuntimeZkProgrammable } from "@proto-kit/module";
 import { container } from "tsyringe";
+
 import {
   AccountStateHook,
   BlockHeightHook,
@@ -9,11 +9,12 @@ import {
   MethodPublicOutput,
   NoOpStateTransitionWitnessProvider,
   Protocol,
-  StateTransitionProver
+  StateTransitionProver,
 } from "../src";
 
 class RuntimeMock implements WithZkProgrammable<undefined, MethodPublicOutput> {
   zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput> =
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     undefined as unknown as ZkProgrammable<undefined, MethodPublicOutput>;
 }
 

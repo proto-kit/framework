@@ -1,42 +1,25 @@
-import "reflect-metadata";
-import { Bool, Experimental, Field, PrivateKey, Proof, UInt64 } from "o1js";
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  BlockProver,
-  type BlockProverState,
-} from "../src/prover/block/BlockProver";
-import { NoOpStateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider";
+  AreProofsEnabled,
+  PlainZkProgram,
+  ZkProgrammable,
+} from "@proto-kit/common";
+import { Bool, Experimental, Field, Proof, UInt64 } from "o1js";
+import "reflect-metadata";
+
+import { MethodPublicOutput, NetworkState, SignedTransaction } from "../src";
 import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "../src/prover/statetransition/StateTransitionProvable";
-import { BlockProverPublicInput } from "../src/prover/block/BlockProvable";
-import {
-  AreProofsEnabled,
-  PlainZkProgram,
-  WithZkProgrammable,
-  ZkProgrammable,
-} from "@proto-kit/common";
-import ZkProgram = Experimental.ZkProgram;
-import { UnsignedTransaction } from "@proto-kit/sequencer";
-import { container } from "tsyringe";
-import {
-  DefaultProvableHashList,
-  MethodPublicOutput,
-  NetworkState,
-  Protocol,
-  ProtocolMethodExecutionContext,
-  SignedTransaction,
-  ProvableStateTransition,
-  RuntimeTransaction,
-  StateTransitionProver,
-  AccountStateHook, ProvableBlockHook
-} from "../src";
+
 import { createAndInitTestingProtocol } from "./TestingProtocol";
+
+import ZkProgram = Experimental.ZkProgram;
 
 type BlockProverProofPair = [
   Proof<void, MethodPublicOutput>,
-  Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>
+  Proof<StateTransitionProverPublicInput, StateTransitionProverPublicOutput>,
 ];
 
 class MockAppChain implements AreProofsEnabled {
@@ -77,8 +60,8 @@ describe("blockProver", () => {
       height: UInt64.zero,
     },
     previous: {
-      rootHash: Field(0)
-    }
+      rootHash: Field(0),
+    },
   });
 
   const protocol = createAndInitTestingProtocol();
@@ -89,10 +72,10 @@ describe("blockProver", () => {
     toProtocolRoot: Field,
     protocolHash: Field,
     tx: SignedTransaction,
+    // eslint-disable-next-line @typescript-eslint/no-shadow
     networkState: NetworkState
   ): BlockProverProofPair {
-    const transactionHash =
-      tx.transaction.hash();
+    const transactionHash = tx.transaction.hash();
     const sthash = Field(123);
 
     const appProof = new Proof<undefined, MethodPublicOutput>({
@@ -134,8 +117,8 @@ describe("blockProver", () => {
   }
 
   it("dummy", () => {
-    expect(1).toBe(1)
-  })
+    expect(1).toBe(1);
+  });
 
   // TODO
   // it("previously applied transaction should also pass with derived publicInputs", () => {
@@ -220,3 +203,5 @@ describe("blockProver", () => {
   //   );
   // });
 });
+
+/* eslint-enable */

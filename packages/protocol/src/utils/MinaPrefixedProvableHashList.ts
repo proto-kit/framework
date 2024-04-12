@@ -4,6 +4,7 @@ import { hashWithPrefix, prefixToField } from "@proto-kit/common";
 import { ProvableHashList } from "./ProvableHashList";
 
 function salt(prefix: string) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return Poseidon.update(
     [Field(0), Field(0), Field(0)],
     [prefixToField(prefix)]
@@ -48,7 +49,7 @@ export class MinaEvents {
 }
 
 export class MinaPrefixedProvableHashList<
-  Value
+  Value,
 > extends ProvableHashList<Value> {
   public constructor(
     valueType: ProvablePure<Value>,

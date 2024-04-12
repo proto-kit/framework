@@ -61,9 +61,16 @@
       "assertionStyle": "never"
     }],
     "@typescript-eslint/init-declarations": "error",
-//    "@typescript-eslint/no-explicit-any": ["error", {
-//      "ignoreRestArgs": true
-//    }],
+    "no-plusplus": [
+      "error",
+      {
+      "allowForLoopAfterthoughts": true
+      }
+    ],
+    "@typescript-eslint/no-use-before-define": ["error", {
+      "ignoreTypeReferences": true
+    }],
+    "no-undef-init": "off",
     // Only to enforce comments length, code will be checked by prettier
     "max-len": ["error", 1000, {
       "comments": 100,
@@ -81,7 +88,8 @@
       "rules": {
         "no-console": "off",
         "import/no-extraneous-dependencies": "off",
-        "@typescript-eslint/init-declarations": "off"
+        "@typescript-eslint/init-declarations": "off",
+        "@typescript-eslint/consistent-type-assertions": "off"
       }
     },
     {

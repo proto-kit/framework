@@ -9,7 +9,6 @@ import { State, WithStateServiceProvider, WithPath } from "./State";
 /**
  * Map-like wrapper for state
  */
-// eslint-disable-next-line new-cap
 export class StateMap<KeyType, ValueType> extends Mixin(
   WithPath,
   WithStateServiceProvider
