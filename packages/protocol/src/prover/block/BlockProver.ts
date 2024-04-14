@@ -770,7 +770,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             BlockProverExecutionData,
           ],
 
-          method(
+          async method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
             appProof: Proof<void, MethodPublicOutput>,
@@ -791,7 +791,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             SelfProof<BlockProverPublicInput, BlockProverPublicOutput>,
           ],
 
-          method(
+          async method(
             publicInput: BlockProverPublicInput,
             proof1: BlockProverProof,
             proof2: BlockProverProof

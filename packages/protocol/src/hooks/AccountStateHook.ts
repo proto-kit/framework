@@ -40,7 +40,7 @@ export class AccountStateHook extends ProvableTransactionHook {
 
     // Optimized version of transaction.sender.isSome ? currentNonce.add(1) : Field(0)
     // Bcs Bool(true).toField() == 1
-    const newNonce = UInt64.from(
+    const newNonce = UInt64.Unsafe.fromField(
       currentNonce.value.add(1).mul(transaction.sender.isSome.toField())
     );
 

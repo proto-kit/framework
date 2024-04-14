@@ -94,7 +94,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
         proveBatch: {
           privateInputs: [StateTransitionProvableBatch],
 
-          method(
+          async method(
             publicInput: StateTransitionProverPublicInput,
             batch: StateTransitionProvableBatch
           ) {
@@ -108,7 +108,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             StateTransitionSelfProofClass,
           ],
 
-          method(
+          async method(
             publicInput: StateTransitionProverPublicInput,
             proof1: StateTransitionProof,
             proof2: StateTransitionProof

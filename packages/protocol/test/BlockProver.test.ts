@@ -18,7 +18,6 @@ import {
   ZkProgrammable,
 } from "@proto-kit/common";
 import { UnsignedTransaction } from "@proto-kit/sequencer";
-import { AccountStateHook } from "../src/hooks/AccountStateHook";
 import { container } from "tsyringe";
 import {
   DefaultProvableHashList,
@@ -69,7 +68,6 @@ class RuntimeZkProgrammable extends ZkProgrammable<
       analyzeMethods: program.analyzeMethods.bind(program),
       methods: {},
       Proof: ZkProgram.Proof(program),
-      analyzeMethods: program.analyzeMethods,
     };
   }
 }
