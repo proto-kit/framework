@@ -82,8 +82,10 @@ export function verifyToMockable<PublicInput, PublicOutput>(
   };
 }
 
-export const MOCK_VERIFICATION_KEY = "mock-verification-key";
-
+export const MOCK_VERIFICATION_KEY = {
+  data: "mock-verification-key",
+  hash: Poseidon.hash(Encoding.stringToFields("mock-verification-key")),
+};
 export function compileToMockable(
   compile: Compile,
   { areProofsEnabled }: AreProofsEnabled
@@ -94,10 +96,7 @@ export function compileToMockable(
     }
 
     return {
-      verificationKey: {
-        data: MOCK_VERIFICATION_KEY,
-        hash: Poseidon.hash(Encoding.stringToFields(MOCK_VERIFICATION_KEY)),
-      },
+      verificationKey: MOCK_VERIFICATION_KEY,
     };
   };
 }
