@@ -142,6 +142,9 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       )
     );
 
-    this.transferFee(executionData.transaction.sender, UInt64.Unsafe.fromField(fee.value));
+    this.transferFee(
+      executionData.transaction.sender,
+      UInt64.Unsafe.fromField(fee.value)
+    );
   }
 }

@@ -107,8 +107,8 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
 
     // TODO: figure out what side effects analyzeMethods has,
     // and why it breaks runtime execution context with wierd errors
-    const analyzedMethods =
-      this.runtime.zkProgrammable.zkProgram.analyzeMethods();
+    // const analyzedMethods =
+    //   this.runtime.zkProgrammable.zkProgram.analyzeMethods();
 
     container.resolve(RuntimeMethodExecutionContext).clear();
 
@@ -117,8 +117,8 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     ).reduce<[FeeTreeValues, FeeIndexes]>(
       // eslint-disable-next-line @typescript-eslint/no-shadow
       ([values, indexes], combinedMethodName, index) => {
-        const { rows } = analyzedMethods[combinedMethodName];
-        // const rows = 1000;
+        // const { rows } = analyzedMethods[combinedMethodName];
+        const rows = 1000;
         const [moduleName, methodName] = combinedMethodName.split(".");
         const methodId = this.runtime.methodIdResolver.getMethodId(
           moduleName,
@@ -168,7 +168,6 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
       });
       tree.setLeaf(BigInt(index), feeConfig.hash());
     });
-
     return { tree, values, indexes };
   }
 
