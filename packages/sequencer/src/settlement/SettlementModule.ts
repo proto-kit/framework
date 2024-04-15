@@ -321,12 +321,10 @@ export class SettlementModule
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
         settlement.deploy({
-          zkappKey: settlementKey,
           verificationKey: undefined,
         });
 
         dispatch.deploy({
-          zkappKey: dispatchKey,
           verificationKey: undefined,
         });
       }

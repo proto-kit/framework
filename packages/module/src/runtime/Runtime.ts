@@ -12,6 +12,7 @@ import {
   PlainZkProgram,
   AreProofsEnabled,
   ChildContainerProvider,
+  ArgumentTypes,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -178,10 +179,28 @@ export class RuntimeZkProgrammable<
       Object.entries(runtimeMethods).sort()
     );
 
+    const asyncWrappedRuntimeMethods = Object.keys(
+      sortedRuntimeMethods
+    ).reduce<{
+      [k: string]: {
+        privateInputs: any;
+        method: (...args: ArgumentTypes) => Promise<MethodPublicOutput>;
+      };
+    }>((wrappedMethods, methodName) => {
+      wrappedMethods[methodName] = {
+        privateInputs: sortedRuntimeMethods[methodName].privateInputs,
+        method: async (...args: ArgumentTypes) => {
+          const { method, privateInputs } = sortedRuntimeMethods[methodName];
+          return method.apply(this, args);
+        },
+      };
+      return wrappedMethods;
+    }, {});
+
     const program = ZkProgram({
       name: "Runtime",
       publicOutput: MethodPublicOutput,
-      methods: sortedRuntimeMethods,
+      methods: asyncWrappedRuntimeMethods,
     });
 
     const SelfProof = ZkProgram.Proof(program);

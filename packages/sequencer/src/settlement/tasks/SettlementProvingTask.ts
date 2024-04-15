@@ -8,7 +8,7 @@ import {
   SettlementContractModule,
 } from "@proto-kit/protocol";
 import { addCachedAccount, Field, Mina, Types } from "o1js";
-import { Transaction as MinaTransaction } from "o1js/dist/node/lib/mina";
+import { Transaction as MinaTransaction } from "o1js/dist/node/lib/mina/mina";
 // TODO Wait for o1js upgrade
 import { Pickles } from "o1js/dist/node/snarky";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";

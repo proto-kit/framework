@@ -1,4 +1,3 @@
-import { Actions } from "o1js/dist/node/lib/account_update";
 import { expect } from "@jest/globals";
 import {
   ACTIONS_EMPTY_HASH,

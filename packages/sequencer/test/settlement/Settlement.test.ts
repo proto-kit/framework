@@ -411,7 +411,7 @@ describe.skip("settlement contracts", () => {
 
     expect(txs).toHaveLength(1);
 
-    const account = Mina.getAccount(userKey.toPublicKey(), settlement.token.id);
+    const account = Mina.getAccount(userKey.toPublicKey(), settlement.tokenId);
 
     expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 49n);
   }, 100_000000);

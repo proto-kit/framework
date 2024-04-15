@@ -64,8 +64,7 @@ describe("balances", () => {
           publicKey: PublicKey.empty().toBase58(),
         },
 
-        Balances: {
-        },
+        Balances: {},
       }
     ));
 
