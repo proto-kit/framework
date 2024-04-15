@@ -1,15 +1,14 @@
 import "reflect-metadata";
-import { Bool, PublicKey, UInt64 } from "o1js";
+import { PublicKey, UInt64 } from "o1js";
 import { container } from "tsyringe";
 import {
   NetworkState,
   Option,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
-  StateService,
 } from "@proto-kit/protocol";
 
-import { InMemoryStateService, Runtime } from "../../src";
+import { Runtime } from "../../src";
 import { createTestingRuntime } from "../TestingRuntime";
 
 import { Admin } from "./Admin";
@@ -18,17 +17,13 @@ import { Balances } from "./Balances";
 describe("transient state", () => {
   let balances: Balances;
 
-  let state: StateService;
-
   let runtime: Runtime<{
     Admin: typeof Admin;
     Balances: typeof Balances;
   }>;
 
   function createChain() {
-    state = new InMemoryStateService();
-
-    ({runtime} = createTestingRuntime(
+    ({ runtime } = createTestingRuntime(
       {
         Admin,
         Balances,

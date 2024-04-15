@@ -5,10 +5,10 @@ type AvailableBitLengths = 32 | 64 | 112 | 224;
 type NextLowest<Input extends AvailableBitLengths> = Input extends 224
   ? 112
   : Input extends 112
-  ? 64
-  : Input extends 64
-  ? 32
-  : never;
+    ? 64
+    : Input extends 64
+      ? 32
+      : never;
 
 type RecursiveSmaller<Input extends AvailableBitLengths> =
   | Input

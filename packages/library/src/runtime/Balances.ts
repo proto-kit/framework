@@ -1,11 +1,4 @@
-/* eslint-disable import/no-unused-modules */
-/* eslint-disable max-classes-per-file */
-import {
-  EventEmitter,
-  EventEmittingComponent,
-  EventsRecord,
-  NoConfig,
-} from "@proto-kit/common";
+import { EventsRecord, NoConfig } from "@proto-kit/common";
 import {
   RuntimeModule,
   runtimeMethod,
@@ -13,7 +6,8 @@ import {
   runtimeModule,
 } from "@proto-kit/module";
 import { StateMap, assert } from "@proto-kit/protocol";
-import { Field, Provable, PublicKey, Struct } from "o1js";
+import { Field, PublicKey, Struct } from "o1js";
+
 import { UInt64 } from "../math/UInt64";
 
 export const errors = {

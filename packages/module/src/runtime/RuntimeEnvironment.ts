@@ -1,13 +1,10 @@
-import {
-  AreProofsEnabled,
-  WithZkProgrammable,
-  ZkProgrammable,
-} from "@proto-kit/common";
+import { AreProofsEnabled, WithZkProgrammable } from "@proto-kit/common";
 import {
   MethodPublicOutput,
   StateService,
   StateServiceProvider,
 } from "@proto-kit/protocol";
+
 import { MethodIdResolver } from "./MethodIdResolver";
 
 export interface RuntimeEnvironment

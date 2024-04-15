@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unused-modules */
 import {
   ConfigurableModule,
   createMerkleTree,
@@ -13,14 +12,7 @@ import {
   UInt64Option,
   PublicKeyOption,
 } from "@proto-kit/protocol";
-import {
-  Field,
-  Poseidon,
-  Provable,
-  PublicKey,
-  Struct,
-  UInt64 as O1JSUInt64,
-} from "o1js";
+import { Field, Poseidon, PublicKey, Struct, UInt64 as O1JSUInt64 } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
 

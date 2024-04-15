@@ -1,6 +1,4 @@
-import {
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
+import { RuntimeModulesRecord } from "@proto-kit/module";
 import { TypedClass } from "@proto-kit/common";
 
 import { Balances, MinimalBalances } from "./Balances";

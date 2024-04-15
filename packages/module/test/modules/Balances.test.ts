@@ -1,15 +1,5 @@
-/* eslint-disable max-lines */
 import "reflect-metadata";
-import { run } from "jest";
-import {
-  Bool,
-  Field,
-  Poseidon,
-  PrivateKey,
-  Proof,
-  PublicKey,
-  UInt64,
-} from "o1js";
+import { Field, Poseidon, PrivateKey, Proof, PublicKey, UInt64 } from "o1js";
 import { container } from "tsyringe";
 import {
   type ProvableStateTransition,
@@ -17,12 +7,10 @@ import {
   MethodPublicOutput,
   StateService,
   RuntimeMethodExecutionContext,
-  StateServiceProvider,
   RuntimeTransaction,
   NetworkState,
 } from "@proto-kit/protocol";
 
-import { InMemoryStateService } from "../../src/state/InMemoryStateService.js";
 import { Runtime } from "../../src";
 import { createTestingRuntime } from "../TestingRuntime";
 
@@ -64,18 +52,13 @@ describe("balances", () => {
           publicKey: PublicKey.empty().toBase58(),
         },
 
-        Balances: {
-        },
+        Balances: {},
       }
     ));
 
     balances = runtime.resolve("Balances");
 
-    state.set(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      balances.totalSupply.path!,
-      UInt64.from(10).toFields()
-    );
+    state.set(balances.totalSupply.path!, UInt64.from(10).toFields());
   }
 
   describe.skip("compile and prove", () => {
@@ -179,7 +162,7 @@ describe("balances", () => {
 
       beforeAll(() => {
         createChain();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
         state.set(balances.totalSupply.path!, undefined);
       });
 

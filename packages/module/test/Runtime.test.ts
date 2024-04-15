@@ -33,7 +33,6 @@ describe("runtime", () => {
       .getMethodId(moduleName, methodName);
     const method = runtime.getMethodById(methodId);
 
-    // eslint-disable-next-line jest/no-restricted-matchers
     expect(method).toBeDefined();
   });
 });

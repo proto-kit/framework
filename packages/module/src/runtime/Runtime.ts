@@ -1,5 +1,4 @@
-// eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,max-lines */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */
 import { Experimental } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
@@ -33,14 +32,16 @@ import { MethodIdResolver } from "./MethodIdResolver";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
 
 export function getAllPropertyNames(obj: any) {
+  let currentPrototype: any | undefined = undefined;
   let keys: (string | symbol)[] = [];
   // if primitive (primitives still have keys) skip the first iteration
   if (!(obj instanceof Object)) {
-    obj = Object.getPrototypeOf(obj);
+    currentPrototype = Object.getPrototypeOf(obj);
   }
-  while (obj) {
-    keys = keys.concat(Reflect.ownKeys(obj));
-    obj = Object.getPrototypeOf(obj);
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+  while (currentPrototype) {
+    keys = keys.concat(Reflect.ownKeys(currentPrototype));
+    currentPrototype = Object.getPrototypeOf(obj);
   }
   return keys;
 }
@@ -69,9 +70,8 @@ export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
 }
 
 export class RuntimeZkProgrammable<
-  Modules extends RuntimeModulesRecord
+  Modules extends RuntimeModulesRecord,
 > extends ZkProgrammable<undefined, MethodPublicOutput> {
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   public constructor(public runtime: Runtime<Modules>) {
     super();
   }
@@ -90,8 +90,8 @@ export class RuntimeZkProgrammable<
     >;
     // We need to use explicit type annotations here,
     // therefore we can't use destructuring
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define,prefer-destructuring,putout/putout
+
+    // eslint-disable-next-line prefer-destructuring
     const runtime: Runtime<Modules> = this.runtime;
 
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
@@ -106,11 +106,10 @@ export class RuntimeZkProgrammable<
          * regarding resolving only known modules. We assert in the line above
          * but we cast it to any anyways to satisfy the proof system.
          */
-        // eslint-disable-next-line max-len
+
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const runtimeModule = runtime.resolve(runtimeModuleName as any);
 
-        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
           string,
@@ -141,7 +140,6 @@ export class RuntimeZkProgrammable<
                 [methodName, method, { invocationType }]
               );
 
-              // eslint-disable-next-line no-warning-comments
               // TODO: find out how to import the Tuple type
 
               const privateInputs = Reflect.getMetadata(
@@ -174,7 +172,6 @@ export class RuntimeZkProgrammable<
     );
 
     const sortedRuntimeMethods = Object.fromEntries(
-      // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
       Object.entries(runtimeMethods).sort()
     );
 
@@ -239,7 +236,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
   }
 
-  // eslint-disable-next-line no-warning-comments
   // TODO Remove after changing DFs to type-based approach
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
@@ -290,8 +286,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     this.assertIsValidModuleName(moduleName);
     const module = this.resolve(moduleName);
 
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const method = (module as any)[methodName];
     if (method === undefined) {
       throw errors.methodNotFound(`${moduleName}.${methodName}`);
@@ -325,3 +320,4 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     return Object.keys(this.definition.modules);
   }
 }
+/* eslint-enable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */

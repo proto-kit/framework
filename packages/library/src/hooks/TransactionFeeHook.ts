@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unused-modules */
 import {
   getAllPropertyNames,
   isRuntimeMethod,
@@ -31,7 +30,6 @@ interface Balances {
   ) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TransactionFeeHookConfig
   extends RuntimeFeeAnalyzerServiceConfig {}
 
@@ -43,7 +41,7 @@ const errors = {
     "Method id of the provided fee config does not match the executed transaction method id",
 
   invalidMethod: (method: string) =>
-    `${method} does not exist in the current runtime.`,
+    new Error(`${method} does not exist in the current runtime.`),
 };
 
 /**
@@ -61,7 +59,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   protected persistedFeeAnalyzer: RuntimeFeeAnalyzerService | null = null;
 
   // check if the fee config is compatible with the current runtime
-  // we couldnt resolve this purely on the type level, so we have to do it here
+  // we couldn't resolve this purely on the type level, so we have to do it here
   public verifyConfig() {
     Object.keys(super.config.methods).forEach((combinedMethodName) => {
       const [runtimeModule, runtimeMethod] = combinedMethodName.split(".");
@@ -142,6 +140,9 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       )
     );
 
-    this.transferFee(executionData.transaction.sender, UInt64.Unsafe.fromField(fee.value));
+    this.transferFee(
+      executionData.transaction.sender,
+      UInt64.Unsafe.fromField(fee.value)
+    );
   }
 }

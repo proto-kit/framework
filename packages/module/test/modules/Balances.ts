@@ -1,4 +1,4 @@
-import { Bool, PublicKey, UInt64 } from "o1js";
+import { PublicKey, UInt64 } from "o1js";
 import { Option, State, StateMap } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 
@@ -6,8 +6,7 @@ import { RuntimeModule, runtimeMethod, runtimeModule, state } from "../../src";
 
 import { Admin } from "./Admin.js";
 
-interface BalancesConfig {
-}
+interface BalancesConfig {}
 
 @runtimeModule()
 export class Balances extends RuntimeModule<BalancesConfig> {
@@ -35,7 +34,6 @@ export class Balances extends RuntimeModule<BalancesConfig> {
 
   @runtimeMethod()
   public setTotalSupply() {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
     this.admin.isAdmin(this.transaction.sender.value);
   }

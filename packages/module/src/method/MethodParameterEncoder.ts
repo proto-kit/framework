@@ -1,4 +1,4 @@
-/* eslint-disable no-underscore-dangle */
+/* eslint-disable no-underscore-dangle,@typescript-eslint/consistent-type-assertions */
 import {
   Field,
   FlexibleProvable,
@@ -61,8 +61,6 @@ export class MethodParameterEncoder {
       let value: FlexibleProvable<unknown>;
 
       try {
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         value = type.fromJSON(
           JSON.parse(argsJSON[index])
         ) as FlexibleProvable<unknown>;
@@ -99,7 +97,7 @@ export class MethodParameterEncoder {
    * Variant of encode() for provable code that skips the unprovable
    * json encoding
    */
-  public encodeAsFields(args: ArgumentTypes){
+  public encodeAsFields(args: ArgumentTypes) {
     /**
      * Use the type info obtained previously to convert
      * the args passed to fields
@@ -157,3 +155,4 @@ export class MethodParameterEncoder {
       .reduce((a, b) => a + b, 0);
   }
 }
+/* eslint-enable no-underscore-dangle,@typescript-eslint/consistent-type-assertions */
