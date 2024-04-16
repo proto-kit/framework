@@ -4,7 +4,6 @@ import {
   DependencyRecord,
 } from "@proto-kit/common";
 
-import { ComputedBlock } from "../../storage/model/Block";
 import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
 import type { OutgoingMessageQueue } from "../../settlement/messages/WithdrawalQueue";
 

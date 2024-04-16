@@ -3,7 +3,7 @@ import {
   ACTIONS_EMPTY_HASH,
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
-  NetworkState
+  NetworkState,
 } from "@proto-kit/protocol";
 import { RollupMerkleTree } from "@proto-kit/common";
 
@@ -37,6 +37,7 @@ export interface UnprovenBlock {
   previousBlockHash: Field | undefined;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const UnprovenBlock = {
   calculateHash(height: Field, transactionsHash: Field): Field {
     return Poseidon.hash([height, transactionsHash]);
@@ -62,6 +63,7 @@ export interface UnprovenBlockWithMetadata {
   metadata: UnprovenBlockMetadata;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const UnprovenBlockWithMetadata = {
   createEmpty: () =>
     ({
@@ -91,5 +93,5 @@ export const UnprovenBlockWithMetadata = {
         blockHashWitness: BlockHashMerkleTree.WITNESS.dummy(),
         blockHash: 0n,
       },
-    } satisfies UnprovenBlockWithMetadata),
+    }) satisfies UnprovenBlockWithMetadata,
 };

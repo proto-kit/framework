@@ -1,13 +1,11 @@
 import {
   Protocol,
-  ProtocolModulesRecord,
   SettlementContractModule,
   BATCH_SIGNATURE_PREFIX,
   Path,
   OutgoingMessageArgument,
   OutgoingMessageArgumentBatch,
   OUTGOING_MESSAGE_BATCH_SIZE,
-  SettlementModulesRecord,
   DispatchSmartContract,
   SettlementSmartContract,
   SettlementContractConfig,
@@ -26,7 +24,6 @@ import { inject } from "tsyringe";
 import {
   EventEmitter,
   EventEmittingComponent,
-  EventsRecord,
   log,
   noop,
   RollupMerkleTree,
@@ -40,7 +37,7 @@ import {
 import { FlowCreator } from "../worker/flow/Flow";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../storage/repositories/MessageStorage";
-import { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
+import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { ComputedBlock, SettleableBatch } from "../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
@@ -48,7 +45,7 @@ import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofS
 import { Settlement } from "../storage/model/Settlement";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
-import { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
+import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
 
 export interface SettlementModuleConfig {
@@ -137,6 +134,7 @@ export class SettlementModule
       >("SettlementContractModule");
 
       // TODO Add generic inference of concrete Contract types
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       this.contracts = settlementContractModule.createContracts(addresses) as {
         settlement: SettlementSmartContract;
         dispatch: DispatchSmartContract;
@@ -145,6 +143,7 @@ export class SettlementModule
     return this.contracts;
   }
 
+  /* eslint-disable no-await-in-loop */
   public async sendRollupTransactions(options: { nonce: number }): Promise<
     {
       tx: Mina.Transaction;
@@ -187,6 +186,7 @@ export class SettlementModule
       const tx = await Mina.transaction(
         {
           sender: feepayer.toPublicKey(),
+          // eslint-disable-next-line no-plusplus
           nonce: nonce++,
           fee: String(0.01 * 1e9),
           memo: "Protokit settle",
@@ -211,6 +211,7 @@ export class SettlementModule
 
     return txs;
   }
+  /* eslint-enable no-await-in-loop */
 
   public async settleBatch(
     batch: SettleableBatch,
@@ -218,7 +219,7 @@ export class SettlementModule
       nonce?: number;
     } = {}
   ): Promise<Settlement> {
-    const { settlement, dispatch } = await this.getContracts();
+    const { settlement, dispatch } = this.getContracts();
     const { feepayer } = this.config;
 
     log.debug("Preparing settlement");
@@ -271,13 +272,11 @@ export class SettlementModule
       }
     );
 
-    console.log("Preconditions:");
-
     tx.sign([feepayer]);
 
     await this.transactionSender.proveAndSendTransaction(tx);
 
-    log.info(`Settlement transaction send queued`);
+    log.info("Settlement transaction send queued");
 
     this.events.emit("settlement-submitted", batch);
 

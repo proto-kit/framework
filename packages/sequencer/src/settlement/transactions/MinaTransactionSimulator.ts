@@ -13,8 +13,9 @@ import {
 import { ReturnType } from "@proto-kit/protocol";
 import { match } from "ts-pattern";
 import { inject, injectable } from "tsyringe";
-import { distinctByPredicate } from "../../helpers/utils";
+import { noop } from "@proto-kit/common";
 
+import { distinctByPredicate } from "../../helpers/utils";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 type Account = ReturnType<typeof Mina.getAccount>;
@@ -56,6 +57,7 @@ export class MinaTransactionSimulator {
       );
 
     for (const [pubKey, tokenId] of accountsKeys) {
+      // eslint-disable-next-line no-await-in-loop
       accounts[this.cacheKey(pubKey, tokenId)] = await this.getAccount(
         pubKey,
         tokenId
@@ -135,6 +137,7 @@ export class MinaTransactionSimulator {
   }
 
   // TODO Add applying of pending transaction fetched from mempool or DB
+
   public async reloadAccount(publicKey: PublicKey, tokenId?: Field) {
     const key = this.cacheKey(publicKey, tokenId);
     if (!this.local) {
@@ -143,7 +146,7 @@ export class MinaTransactionSimulator {
       );
       const getAccountSafe = () => {
         try {
-          Mina.getAccount(publicKey, tokenId);
+          return Mina.getAccount(publicKey, tokenId);
         } catch {
           return undefined;
         }
@@ -159,12 +162,15 @@ export class MinaTransactionSimulator {
         this.loaded[key] = account;
       }
     } else {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const instance = Mina.activeInstance as ReturnType<
         typeof Mina.LocalBlockchain
       >;
       try {
         this.loaded[key] = instance.getAccount(publicKey, tokenId);
-      } catch {}
+      } catch {
+        noop();
+      }
     }
   }
 
@@ -178,7 +184,7 @@ export class MinaTransactionSimulator {
   public checkPreconditions(account: Account, au: AccountUpdate): boolean {
     let valid = true;
 
-    const { balance, nonce, isNew, state } = au.body.preconditions.account;
+    const { balance, nonce, state } = au.body.preconditions.account;
 
     if (balance.isSome.toBoolean()) {
       valid &&= account.balance
@@ -211,7 +217,7 @@ export class MinaTransactionSimulator {
   public apply(account: Account, au: AccountUpdate) {
     const { balanceChange, update, incrementNonce } = au.body;
 
-    account.balance = balanceChange.sgn.isPositive()
+    account.balance = balanceChange.sgn.isPositive().toBoolean()
       ? account.balance.add(balanceChange.magnitude)
       : account.balance.sub(balanceChange.magnitude);
 
@@ -236,7 +242,7 @@ export class MinaTransactionSimulator {
     }
 
     if (account.zkapp !== undefined) {
-      const appState = update.appState;
+      const { appState } = update;
       for (let i = 0; i < 8; i++) {
         if (appState[i].isSome.toBoolean()) {
           account.zkapp.appState[i] = appState[i].value;

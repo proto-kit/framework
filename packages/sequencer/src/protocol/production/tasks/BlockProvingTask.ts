@@ -3,7 +3,6 @@ import {
   BlockProvable,
   BlockProverExecutionData,
   BlockProverPublicInput,
-  BlockProverPublicOutput,
   MandatoryProtocolModulesRecord,
   MethodPublicOutput,
   Protocol,
@@ -209,6 +208,7 @@ export class BlockProvingTask
     };
   }
 
+  // eslint-disable-next-line sonarjs/no-identical-functions
   public resultSerializer(): TaskSerializer<BlockProof> {
     return new ProofTaskSerializer(
       this.blockProver.zkProgrammable.zkProgram.Proof

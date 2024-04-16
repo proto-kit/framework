@@ -4,7 +4,6 @@ import {
   BlockProverPublicOutput,
   MandatoryProtocolModulesRecord,
   Protocol,
-  ProtocolModulesRecord,
 } from "@proto-kit/protocol";
 
 import { ProofTaskSerializer } from "../../../helpers/utils";

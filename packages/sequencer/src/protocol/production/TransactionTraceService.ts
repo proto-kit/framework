@@ -7,8 +7,8 @@ import {
   ProvableHashList,
   ProvableStateTransition,
   ProvableStateTransitionType,
-  StateTransitionProverPublicInput, StateTransitionReductionList,
-  StateTransitionType
+  StateTransitionProverPublicInput,
+  StateTransitionType,
 } from "@proto-kit/protocol";
 import { RollupMerkleTree } from "@proto-kit/common";
 import { Bool, Field } from "o1js";
@@ -80,7 +80,8 @@ export class TransactionTraceService {
       stateTransitions
     );
 
-    let stParameters: StateTransitionProofParameters[], fromStateRoot: Field;
+    let stParameters: StateTransitionProofParameters[];
+    let fromStateRoot: Field;
 
     if (stateTransitions.length > 0) {
       this.applyTransitions(stateServices.stateService, stateTransitions);
@@ -255,7 +256,7 @@ export class TransactionTraceService {
       merkleStore
     );
 
-    await merkleStore.preloadKeys(keys.map(key => key.toBigInt()))
+    await merkleStore.preloadKeys(keys.map((key) => key.toBigInt()));
 
     const tree = new RollupMerkleTree(merkleStore);
     const runtimeTree = new RollupMerkleTree(runtimeSimulationMerkleStore);
@@ -270,10 +271,9 @@ export class TransactionTraceService {
     );
 
     const allTransitions = protocolTransitions
-      .map<[UntypedStateTransition, boolean]>((protocolTransition) => [
-        protocolTransition,
-        StateTransitionType.protocol,
-      ])
+      .map<
+        [UntypedStateTransition, boolean]
+      >((protocolTransition) => [protocolTransition, StateTransitionType.protocol])
       .concat(
         stateTransitions.map((transition) => [
           transition,
@@ -295,6 +295,7 @@ export class TransactionTraceService {
       const protocolTransitionsHash = protocolTransitionsList.commitment;
 
       // Map all STs to traces for current chunk
+
       const merkleWitnesses = currentChunk.map(([transition, type]) => {
         // Select respective tree (whether type is protocol
         // (which will be applied no matter what)
@@ -334,7 +335,6 @@ export class TransactionTraceService {
       return {
         merkleWitnesses,
 
-        // eslint-disable-next-line putout/putout
         stateTransitions: currentChunk.map(([st, type]) => {
           return {
             transition: st.toProvable(),

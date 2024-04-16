@@ -1,7 +1,7 @@
 {
-  "extends": ["airbnb-base", "airbnb-typescript/base", "plugin:prettier/recommended", "plugin:eslint-comments/recommended"],
+  "extends": ["airbnb-base", "airbnb-typescript/base", "plugin:prettier/recommended", "plugin:eslint-comments/recommended", "plugin:sonarjs/recommended"],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "sonarjs"],
   "root": true,
   "parserOptions": {
     "project": ["./tsconfig.json", "./tsconfig.test.json"]
@@ -60,7 +60,6 @@
     "@typescript-eslint/consistent-type-assertions": ["error", {
       "assertionStyle": "never"
     }],
-    "@typescript-eslint/init-declarations": "error",
     "no-plusplus": [
       "error",
       {
@@ -77,6 +76,14 @@
       "ignoreComments": false,
       "ignoreUrls": true,
       "ignoreStrings": true
+    }],
+    "sonarjs/cognitive-complexity": [
+      "error",
+      13
+    ],
+    "no-restricted-syntax": "off",
+    "no-void": ["error", {
+      "allowAsStatement": true
     }],
     // Handled by prettier
     "@typescript-eslint/indent": ["off"]

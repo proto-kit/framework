@@ -12,17 +12,18 @@ export class CompressedSignature {
     return new CompressedSignature(sig.r, scalar);
   }
 
-  public constructor(public readonly r: Field, public readonly s: string) {}
+  public constructor(
+    public readonly r: Field,
+    public readonly s: string
+  ) {}
 
   @notInCircuit()
   public toSignature(): Signature {
-    // eslint-disable-next-line id-length
     const s = Scalar.fromJSON(this.s);
 
     return Signature.fromObject({
-      // eslint-disable-next-line id-length
       r: this.r,
-      // eslint-disable-next-line id-length
+
       s,
     });
   }

@@ -76,6 +76,7 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       },
       {}
     );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     this.currentConfig = config as ModulesConfig<Tasks>;
   }
 

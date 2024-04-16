@@ -7,6 +7,6 @@
  * deployed contract's addresses, sequencer nonces, etc.
  */
 export interface PropertyStorage {
-  set: (key: string, value: string) => Promise<void>
-  get: (key: string) => Promise<string | undefined>
+  set: (key: string, value: string) => Promise<void>;
+  get: (key: string) => Promise<string | undefined>;
 }

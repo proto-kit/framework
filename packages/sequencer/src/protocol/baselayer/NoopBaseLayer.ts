@@ -1,19 +1,19 @@
 import { noop } from "@proto-kit/common";
+import { PublicKey } from "o1js";
+import { Withdrawal } from "@proto-kit/protocol";
 
 import {
   SequencerModule,
   sequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-
-import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
 import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import { PublicKey } from "o1js";
 import {
   OutgoingMessage,
   OutgoingMessageQueue,
 } from "../../settlement/messages/WithdrawalQueue";
-import { Withdrawal } from "@proto-kit/protocol";
+
+import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
 
 class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   async getPendingMessages(

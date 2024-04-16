@@ -5,7 +5,6 @@ import {
   BlockProverPublicOutput,
   NetworkState,
   Protocol,
-  ProtocolModulesRecord,
   ReturnType,
   StateTransitionProof,
   StateTransitionProvable,
@@ -108,6 +107,7 @@ export class NewBlockTask
         } satisfies JsonType),
 
       fromJSON: (json: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: JsonType = JSON.parse(json);
         return {
           input1: stProofSerializer.fromJSON(jsonObject.input1),

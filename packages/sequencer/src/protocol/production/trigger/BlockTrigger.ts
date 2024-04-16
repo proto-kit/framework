@@ -8,9 +8,7 @@ import {
 import { ComputedBlock, SettleableBatch } from "../../../storage/model/Block";
 import { BlockProducerModule } from "../BlockProducerModule";
 import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
-import {
-  UnprovenBlockQueue,
-} from "../../../storage/repositories/UnprovenBlockStorage";
+import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import {
@@ -24,7 +22,7 @@ import { SettlementStorage } from "../../../storage/repositories/SettlementStora
  * A BlockTrigger is the primary method to start the production of a block and
  * all associated processes.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+
 export interface BlockTrigger {}
 
 // TODO Move events and storage interactions back to production modules
@@ -34,9 +32,12 @@ export type BlockEvents = {
   "block-metadata-produced": [UnprovenBlockWithMetadata];
   "batch-produced": [ComputedBlock];
   // TODO Settlement
-}
+};
 
-export class BlockTriggerBase<Config = NoConfig, Events extends BlockEvents = BlockEvents>
+export class BlockTriggerBase<
+    Config = NoConfig,
+    Events extends BlockEvents = BlockEvents,
+  >
   extends SequencerModule<Config>
   implements BlockTrigger, EventEmittingComponent<Events>
 {

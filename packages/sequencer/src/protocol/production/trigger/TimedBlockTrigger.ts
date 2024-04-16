@@ -37,7 +37,7 @@ export class TimedBlockTrigger
   implements BlockTrigger, Closeable
 {
   // There is no real type for interval ids somehow, so any it is
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   private interval?: any;
 
   public constructor(
@@ -114,11 +114,7 @@ export class TimedBlockTrigger
           }
         }
       } catch (error) {
-        if (error instanceof Error) {
-          log.error(error.message + "\n" + error.stack);
-        } else {
-          log.error(error);
-        }
+        log.error(error);
       }
     }, timerInterval);
 

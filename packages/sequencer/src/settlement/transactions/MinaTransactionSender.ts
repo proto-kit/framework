@@ -49,6 +49,7 @@ export class MinaTransactionSender {
   private async resolveCached(): Promise<number> {
     const indizesToRemove: number[] = [];
     for (let i = 0; i < this.cache.length; i++) {
+      // eslint-disable-next-line no-await-in-loop
       const result = await this.trySendCached(this.cache[i]);
       if (result !== undefined) {
         indizesToRemove.push(i);
@@ -70,6 +71,7 @@ export class MinaTransactionSender {
     } while (removedLastIteration > 0);
   }
 
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   public async proveAndSendTransaction(transaction: Mina.Transaction) {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
 
@@ -107,4 +109,6 @@ export class MinaTransactionSender {
     // const result = await resultPromise;
     // await this.sendOrQueue(result.transaction);
   }
+
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 }

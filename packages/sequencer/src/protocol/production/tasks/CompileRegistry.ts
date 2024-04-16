@@ -36,7 +36,6 @@ export class CompileRegistry {
     if (this.compilationPromises[name] === undefined) {
       this.compilationPromises[name] = zkProgram.compile();
     }
-    // eslint-disable-next-line putout/putout
     await this.compilationPromises[name];
   }
 
@@ -54,7 +53,6 @@ export class CompileRegistry {
         this.contractCompilationPromises[name] = Promise.resolve(undefined);
       }
     }
-    // eslint-disable-next-line putout/putout
     const artifact = await this.contractCompilationPromises[name];
     this.compiledContracts[name] = {
       artifact,
@@ -65,11 +63,12 @@ export class CompileRegistry {
   private isSubtypeOfName(clas: TypedClass<unknown>, name: string): boolean {
     if (clas.name === name) {
       return true;
-    } else if (clas.name === "SmartContract") {
-      return false;
-    } else {
-      return this.isSubtypeOfName(Object.getPrototypeOf(clas), name);
     }
+    if (clas.name === "SmartContract") {
+      return false;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return this.isSubtypeOfName(Object.getPrototypeOf(clas), name);
   }
 
   public getContractClassByName(
