@@ -1,55 +1,12 @@
-/* eslint-disable */
+// eslint-disable-next-line max-len
+/* eslint-disable @typescript-eslint/no-shadow,@typescript-eslint/no-use-before-define,@typescript-eslint/strict-boolean-expressions,@typescript-eslint/no-unsafe-assignment,consistent-return,no-nested-ternary */
 import "reflect-metadata";
-import { Field, PrivateKey, Provable, PublicKey, UInt64 } from "o1js";
-import {
-  Runtime,
-  runtimeMethod,
-  RuntimeModule,
-  runtimeModule,
-  RuntimeModulesRecord,
-  state,
-} from "@proto-kit/module";
-import {
-  AccountStateHook,
-  Option,
-  Protocol,
-  State,
-  StateMap,
-} from "@proto-kit/protocol";
-import { VanillaProtocolModules } from "@proto-kit/library";
-import { Presets, log, TypedClass } from "@proto-kit/common";
-import {
-  AsyncStateService,
-  BlockProducerModule,
-  UnprovenBlock,
-  LocalTaskQueue,
-  LocalTaskWorkerModule,
-  ManualBlockTrigger,
-  NoopBaseLayer,
-  PrivateMempool,
-  Sequencer,
-  TimedBlockTrigger,
-  UnsignedTransaction,
-} from "@proto-kit/sequencer";
-import {
-  BlockStorageResolver,
-  GraphqlSequencerModule,
-  GraphqlServer,
-  MempoolResolver,
-  NodeStatusResolver,
-  QueryGraphqlModule,
-} from "@proto-kit/api";
-import {
-  AppChain,
-  InMemorySigner,
-  InMemoryTransactionSender,
-  StateServiceQueryModule,
-  TestingAppChain,
-} from "@proto-kit/sdk";
-
+import { log } from "@proto-kit/common";
+import { UnprovenBlock, ManualBlockTrigger } from "@proto-kit/sequencer";
+import { AppChain } from "@proto-kit/sdk";
 import React, { useEffect, useReducer, useMemo } from "react";
 // @ts-ignore
-import { render, Text, Box, Static } from "ink";
+import { render, Text, Box } from "ink";
 // @ts-ignore
 import { Spinner } from "@inkjs/ui";
 
@@ -151,7 +108,7 @@ export function Welcome() {
 export function Blocks({ blocks }: { blocks: CliState["blocks"] }) {
   return (
     <Box flexDirection={"column"} marginTop={1}>
-      {blocks.map((block: UnprovenBlockExtras, index: number) => (
+      {blocks.map((block: UnprovenBlockExtras) => (
         <Box
           flexDirection={"column"}
           key={block.time}
@@ -234,7 +191,7 @@ export function Server({ configFile }: { configFile: string }) {
       const timeStart = Date.now();
       let blockError;
       let block;
-      let logs: any[] = [];
+      const logs: any[] = [];
 
       const originalWriteOut = process.stdout.write;
       process.stdout.write = (...args: any[]) => {
@@ -249,8 +206,7 @@ export function Server({ configFile }: { configFile: string }) {
       };
 
       try {
-        const unprovenBlock = await trigger.produceUnproven();
-        block = unprovenBlock;
+        block = await trigger.produceUnproven();
       } catch (e: any) {
         blockError = e.message;
       }
@@ -285,7 +241,7 @@ export function Server({ configFile }: { configFile: string }) {
         {!state.isStarted ? (
           <Spinner label="Starting chain..." />
         ) : state.isProducingBlock ? (
-          <Spinner label={`Producing block...`} />
+          <Spinner label={"Producing block..."} />
         ) : (
           <Spinner
             label={`Producing next block in ${state.countdown / 1000}s`}
@@ -301,3 +257,6 @@ export function start(argv: { configFile: string }) {
     patchConsole: false,
   });
 }
+
+// eslint-disable-next-line max-len
+/* eslint-enable @typescript-eslint/no-shadow,@typescript-eslint/no-use-before-define,@typescript-eslint/strict-boolean-expressions,@typescript-eslint/no-unsafe-assignment,consistent-return,no-nested-ternary */

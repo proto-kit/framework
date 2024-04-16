@@ -43,7 +43,7 @@ export class LocalhostAppChain<
   AppChainModules
 > {
   public static fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
-    runtimeModules: RuntimeModules,
+    runtimeModules: RuntimeModules
   ) {
     const appChain = LocalhostAppChain.from({
       Runtime: Runtime.from({

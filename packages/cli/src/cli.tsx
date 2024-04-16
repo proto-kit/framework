@@ -3,10 +3,10 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
+// eslint-disable-next-line import/extensions
 import { start } from "./commands/start.js";
 
-// eslint-disable-next-line max-len
-// eslint-disable-next-line @typescript-eslint/no-unused-expressions, @typescript-eslint/no-floating-promises
+// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 yargs(hideBin(process.argv))
   .command(
     "start [configFile]",

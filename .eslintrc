@@ -104,6 +104,13 @@
     {
       "files": ["index.ts"],
       "rules": {}
+    },
+    {
+      "files": ["cli.tsx"],
+      "rules": {
+        // Disable this because of the comment shell thingy in cli.tsx
+        "max-len": "off"
+      }
     }
   ]
 }
