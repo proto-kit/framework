@@ -1,6 +1,5 @@
-/* eslint-disable jest/no-conditional-in-test */
 import "reflect-metadata";
-// eslint-disable-next-line @typescript-eslint/no-shadow
+
 import { afterEach, beforeEach } from "@jest/globals";
 import { noop } from "@proto-kit/common";
 import { container } from "tsyringe";
@@ -9,9 +8,7 @@ import {
   JSONTaskSerializer,
   TaskSerializer,
 } from "../../src/worker/manager/ReducableTask";
-import {
-  PairingDerivedInput,
-} from "../../src/worker/manager/PairingMapReduceFlow";
+import { PairingDerivedInput } from "../../src/worker/manager/PairingMapReduceFlow";
 import { Closeable } from "../../src/worker/queue/TaskQueue";
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
 import { Task } from "../../src/worker/flow/Task";
@@ -135,6 +132,7 @@ class BigIntSumTask implements Task<[bigint, bigint], bigint> {
   public inputSerializer(): TaskSerializer<[bigint, bigint]> {
     return {
       fromJSON: (input) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const dec: [string, string] = JSON.parse(input);
         return dec.map(BigInt) as [bigint, bigint];
       },
@@ -144,6 +142,7 @@ class BigIntSumTask implements Task<[bigint, bigint], bigint> {
     };
   }
 
+  // eslint-disable-next-line sonarjs/no-identical-functions
   public resultSerializer(): TaskSerializer<bigint> {
     return {
       fromJSON: BigInt,
@@ -211,8 +210,8 @@ describe("flow", () => {
 
       const queue = new LocalTaskQueue();
       queue.config = {
-        simulatedDuration: 100
-      }
+        simulatedDuration: 100,
+      };
 
       // Create worker
       const worker = new FlowTaskWorker(queue, [
@@ -263,8 +262,8 @@ describe("flow", () => {
             await flow.pushTask(
               reductionTask,
               taskParameters,
-              async (result) => {
-                flow.state.reductionQueue.push(result);
+              async (reductionResult) => {
+                flow.state.reductionQueue.push(reductionResult);
                 await resolveReduction();
               }
             );
@@ -284,8 +283,8 @@ describe("flow", () => {
                 input2: second,
                 params: undefined,
               },
-              async (result) => {
-                flow.state.reductionQueue.push(result);
+              async (mulTaskResult) => {
+                flow.state.reductionQueue.push(mulTaskResult);
                 await resolveReduction();
               }
             );
@@ -293,15 +292,23 @@ describe("flow", () => {
         };
 
         await flow.forEach(inputs, async (input, index) => {
-          await flow.pushTask(numberDoubling, input[0], async (result) => {
-            flow.state.pairings[index][0] = result;
-            await resolvePairings(index);
-          });
+          await flow.pushTask(
+            numberDoubling,
+            input[0],
+            async (doublingResult) => {
+              flow.state.pairings[index][0] = doublingResult;
+              await resolvePairings(index);
+            }
+          );
 
-          await flow.pushTask(bigintDoubling, input[1], async (result) => {
-            flow.state.pairings[index][1] = result;
-            await resolvePairings(index);
-          });
+          await flow.pushTask(
+            bigintDoubling,
+            input[1],
+            async (doublingResult) => {
+              flow.state.pairings[index][1] = doublingResult;
+              await resolvePairings(index);
+            }
+          );
         });
       });
 

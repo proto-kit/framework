@@ -1,10 +1,7 @@
 import { Field } from "o1js";
+import { RollupMerkleTree, log } from "@proto-kit/common";
 
-import { RollupMerkleTree } from "@proto-kit/common";
-import { log } from "@proto-kit/common";
-import {
-  CachedMerkleTreeStore, InMemoryAsyncMerkleTreeStore
-} from "../../src";
+import { CachedMerkleTreeStore, InMemoryAsyncMerkleTreeStore } from "../../src";
 
 describe("merkle tree caching", () => {
   it("should cache, merge and cache again correctly", async () => {

@@ -6,21 +6,9 @@ import {
   state,
 } from "@proto-kit/module";
 import { log, Presets, range } from "@proto-kit/common";
-import {
-  Bool,
-  Field,
-  PublicKey,
-  Struct,
-  Provable,
-  Signature,
-  UInt64,
-} from "o1js";
+import { Bool, Field, PublicKey, UInt64 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert, Deposit } from "@proto-kit/protocol";
-
-class MyStruct extends Struct({
-  a: Provable.Array(Field, 10),
-}) {}
 
 @runtimeModule()
 export class Balance extends RuntimeModule<object> {
@@ -53,7 +41,6 @@ export class Balance extends RuntimeModule<object> {
 
   @runtimeMethod()
   public setTotalSupply() {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     this.totalSupply.set(UInt64.from(20));
     this.admin.isAdmin(this.transaction.sender.value);
   }
@@ -93,7 +80,8 @@ export class Balance extends RuntimeModule<object> {
 
     assert(
       blockHeight.equals(this.network.block.height),
-      () => `Blockheight not matching ${blockHeight.toString()} !== ${this.network.block.height.toString()}`
+      () =>
+        `Blockheight not matching ${blockHeight.toString()} !== ${this.network.block.height.toString()}`
     );
 
     const newBalance = balance.value.add(value);
@@ -103,7 +91,6 @@ export class Balance extends RuntimeModule<object> {
   @runtimeMethod()
   public lotOfSTs(randomArg: Field) {
     range(0, 10).forEach((index) => {
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       const pk = PublicKey.from({
         x: randomArg.add(Field(index % 5)),
         isOdd: Bool(false),

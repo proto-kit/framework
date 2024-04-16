@@ -1,7 +1,11 @@
-import { InMemoryMerkleTreeStorage, RollupMerkleTree } from "@proto-kit/common";
+import {
+  InMemoryMerkleTreeStorage,
+  RollupMerkleTree,
+  log,
+} from "@proto-kit/common";
 import { beforeEach } from "@jest/globals";
 import { Field, Poseidon } from "o1js";
-import { log } from "@proto-kit/common";
+
 import { CachedMerkleTreeStore, InMemoryAsyncMerkleTreeStore } from "../../src";
 
 describe("cachedMerkleTree", () => {
@@ -16,7 +20,7 @@ describe("cachedMerkleTree", () => {
     log.setLevel("DEBUG");
 
     store = new InMemoryAsyncMerkleTreeStore();
-    syncStore = store["store"];
+    syncStore = store.store;
     tree = new RollupMerkleTree(syncStore);
 
     tree.setLeaf(1n, Field(10));

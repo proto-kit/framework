@@ -6,7 +6,7 @@ import {
   TokenId,
   VanillaProtocolModules,
   VanillaRuntimeModules,
-  UInt64
+  UInt64,
 } from "@proto-kit/library";
 import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
@@ -20,9 +20,9 @@ import {
   GraphqlClient,
   GraphqlNetworkStateTransportModule,
 } from "@proto-kit/sdk";
+import { beforeAll } from "@jest/globals";
 
 import { startServer, TestBalances } from "../../src/scripts/graphql/server";
-import { beforeAll } from "@jest/globals";
 
 const pk = PrivateKey.random();
 
@@ -91,7 +91,7 @@ function prepareClient() {
   return appChain;
 }
 
-describe("graphql client test", function () {
+describe("graphql client test", () => {
   let appChain: ReturnType<typeof prepareClient>;
   let server: Awaited<ReturnType<typeof startServer>>;
   let trigger: ManualBlockTrigger;

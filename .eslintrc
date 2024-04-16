@@ -100,7 +100,9 @@
         "no-console": "off",
         "import/no-extraneous-dependencies": "off",
         "@typescript-eslint/init-declarations": "off",
-        "@typescript-eslint/consistent-type-assertions": "off"
+        "@typescript-eslint/consistent-type-assertions": "off",
+        "no-await-in-loop": "off",
+        "no-plusplus": "off"
       }
     },
     {

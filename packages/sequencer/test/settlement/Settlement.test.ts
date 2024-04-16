@@ -1,10 +1,6 @@
-import { ArgumentTypes, log, RollupMerkleTree } from "@proto-kit/common";
+import { log, RollupMerkleTree } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
-import {
-  MethodIdResolver,
-  MethodParameterEncoder,
-  Runtime,
-} from "@proto-kit/module";
+import { Runtime } from "@proto-kit/module";
 import {
   BlockProverPublicInput,
   NetworkState,
@@ -19,35 +15,25 @@ import {
   InMemoryTransactionSender,
   StateServiceQueryModule,
 } from "@proto-kit/sdk";
-import {
-  AccountUpdate,
-  Field,
-  method,
-  Mina,
-  PrivateKey,
-  PublicKey,
-  SmartContract,
-  UInt64,
-} from "o1js";
+import { AccountUpdate, Field, Mina, PrivateKey, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
 import {
-  BlockTrigger,
   ManualBlockTrigger,
   PendingTransaction,
   PrivateMempool,
   UnprovenBlockQueue,
-  UnsignedTransaction,
+  SettlementModule,
 } from "../../src";
 import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
 import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
-import { SettlementModule } from "../../src/settlement/SettlementModule";
 import { SettlementProvingTask } from "../../src/settlement/tasks/SettlementProvingTask";
 import { Balance } from "../integration/mocks/Balance";
 import { Withdrawals } from "../integration/mocks/Withdrawals";
 import { testingSequencerFromModules } from "../TestingSequencer";
+import { createTransaction } from "../integration/utils";
 
 log.setLevel("INFO");
 
@@ -161,31 +147,7 @@ describe.skip("settlement contracts", () => {
     return appchain;
   }
 
-  function createTransaction(spec: {
-    privateKey: PrivateKey;
-    method: [string, string];
-    args: ArgumentTypes;
-    nonce: number;
-  }) {
-    const methodId = appChain.runtime.dependencyContainer
-      .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodId(spec.method[0], spec.method[1]);
-
-    const parameterEncoder = MethodParameterEncoder.fromMethod(
-      appChain.runtime.resolve(spec.method[0] as any),
-      spec.method[1]
-    );
-    const { argsFields, argsJSON } = parameterEncoder.encode(spec.args);
-
-    return new UnsignedTransaction({
-      methodId: Field(methodId),
-      argsFields,
-      argsJSON,
-      sender: spec.privateKey.toPublicKey(),
-      nonce: UInt64.from(spec.nonce),
-      isMessage: false,
-    }).sign(spec.privateKey);
-  }
+  let appChain: ReturnType<typeof setupAppChain>;
 
   async function createBatch(
     withTransactions: boolean,
@@ -195,13 +157,14 @@ describe.skip("settlement contracts", () => {
     if (withTransactions) {
       const key = localInstance.testAccounts[0].privateKey;
       const tx = createTransaction({
+        runtime: appChain.runtime,
         method: ["Balances", "addBalance"],
         privateKey: key,
-        args: [key.toPublicKey(), UInt64.from(1e9 * 100)] as any,
+        args: [key.toPublicKey(), UInt64.from(1e9 * 100)],
         nonce: 0,
       });
 
-      mempool.add(tx);
+      await mempool.add(tx);
     }
     txs.forEach((tx) => {
       mempool.add(tx);
@@ -222,8 +185,6 @@ describe.skip("settlement contracts", () => {
 
     return result;
   }
-
-  let appChain: ReturnType<typeof setupAppChain>;
 
   beforeAll(async () => {
     appChain = setupAppChain();
@@ -270,7 +231,7 @@ describe.skip("settlement contracts", () => {
   }, 120_000);
 
   it("should settle", async () => {
-    let [, batch] = await createBatch(true);
+    const [, batch] = await createBatch(true);
 
     const input = BlockProverPublicInput.fromFields(
       batch!.proof.publicInput.map((x) => Field(x))
@@ -288,7 +249,7 @@ describe.skip("settlement contracts", () => {
 
     console.log("Block settled");
 
-    const { settlement } = await settlementModule.getContracts();
+    const { settlement } = settlementModule.getContracts();
     expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
       lastBlock!.metadata.afterNetworkState.hash().toBigInt()
     );
@@ -334,7 +295,7 @@ describe.skip("settlement contracts", () => {
     await trigger.settle(batch!);
     nonceCounter++;
 
-    const [block2, batch2] = await createBatch(false);
+    const [, batch2] = await createBatch(false);
 
     const networkstateHash = Mina.activeInstance.getAccount(settlement.address);
     console.log("On-chain values");
@@ -363,7 +324,7 @@ describe.skip("settlement contracts", () => {
   }, 100000);
 
   it("should process withdrawal", async () => {
-    const { settlement } = await settlementModule.getContracts();
+    const { settlement } = settlementModule.getContracts();
 
     // Send mina to contract
     const usertx = await Mina.transaction(
@@ -387,6 +348,7 @@ describe.skip("settlement contracts", () => {
     const userKey = localInstance.testAccounts[0].privateKey;
 
     const withdrawalTx = createTransaction({
+      runtime: appChain.runtime,
       method: ["Withdrawals", "withdraw"],
       args: [userKey.toPublicKey(), UInt64.from(50 * 1e9)],
       nonce: 1,
@@ -417,7 +379,7 @@ describe.skip("settlement contracts", () => {
   }, 100_000000);
 
   it("should be able to redeem withdrawal", async () => {
-    const { settlement } = await settlementModule.getContracts();
+    const { settlement } = settlementModule.getContracts();
 
     const userKey = localInstance.testAccounts[0].privateKey;
 

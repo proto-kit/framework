@@ -5,11 +5,10 @@ import {
   state,
 } from "@proto-kit/module";
 import { assert, State, StateMap, Withdrawal } from "@proto-kit/protocol";
-import { Bool, Field, Mina, PublicKey, UInt64 } from "o1js";
+import { Field, Mina, PublicKey, UInt64 } from "o1js";
 import { inject } from "tsyringe";
 
 import { Balance } from "./Balance";
-import { UInt64 as U1 } from "@proto-kit/library";
 
 @runtimeModule()
 export class Withdrawals extends RuntimeModule {
@@ -42,6 +41,7 @@ export class Withdrawals extends RuntimeModule {
       "Not enough balance"
     );
 
+    // eslint-disable-next-line max-len
     // this.balances.setBalanceIf(address, UInt64.from(balance.value.value).sub(amount), Bool(true));
 
     this.queueWithdrawal(
