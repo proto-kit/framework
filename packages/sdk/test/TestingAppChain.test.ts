@@ -11,7 +11,13 @@ import { TestingAppChain } from "../src/index";
 import { inject } from "tsyringe";
 import { randomUUID } from "crypto";
 import { assert, State, StateMap } from "@proto-kit/protocol";
-import { Balances, BalancesKey, TokenId, Balance } from "@proto-kit/library";
+import {
+  Balances,
+  BalancesKey,
+  TokenId,
+  Balance,
+  UInt64,
+} from "@proto-kit/library";
 import { log } from "@proto-kit/common";
 
 export interface AdminConfig {

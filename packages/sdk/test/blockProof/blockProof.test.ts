@@ -15,7 +15,7 @@ import { TestBalances } from "./TestBalances";
 import { MockAsyncMerkleTreeStore, RollupMerkleTree } from "@proto-kit/common";
 import { ManualBlockTrigger } from "@proto-kit/sequencer";
 import { InMemoryStateService } from "@proto-kit/module";
-import { BalancesKey, TokenId, Balance } from "@proto-kit/library";
+import { BalancesKey, TokenId, Balance, UInt64 } from "@proto-kit/library";
 
 // Failing - investigate why
 describe.skip("blockProof", () => {

@@ -9,8 +9,9 @@ import {
   state,
 } from "@proto-kit/module";
 import { Option, State, StateMap } from "@proto-kit/protocol";
-import { PublicKey, UInt64 } from "o1js";
+import { PublicKey, Field } from "o1js";
 import { LocalhostAppChain } from "./../src/LocalhostAppChain";
+import { UInt64 } from "packages/library/dist/math/UInt64";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
@@ -25,7 +26,7 @@ export class Balances extends RuntimeModule<object> {
     UInt64
   );
 
-  @state() public totalSupply = State.from(UInt64);
+  @state() public totalSupply = State.from<UInt64>(UInt64);
 
   @runtimeMethod()
   public getBalance(address: PublicKey): Option<UInt64> {

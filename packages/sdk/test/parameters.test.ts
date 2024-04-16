@@ -41,7 +41,7 @@ class Ballot extends Struct({
 const map = new MerkleMap();
 const witness = map.getWitness(Field(0));
 
-function foo(publicInput: Field) {
+async function foo(publicInput: Field) {
   return Field(0);
 }
 const program = ZkProgram({

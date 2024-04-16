@@ -158,7 +158,7 @@ describe("block production", () => {
     const latestBlockWithMetadata = await sequencer
       .resolve("UnprovenBlockQueue")
       .getLatestBlock();
-    console.log(block!.transactions[0]);
+
     let batch = await blockTrigger.produceProven();
 
     expect(batch).toBeDefined();
