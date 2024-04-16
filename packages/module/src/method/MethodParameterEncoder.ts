@@ -57,7 +57,6 @@ export class MethodParameterEncoder {
 
   public decode(argsJSON: string[]): FlexibleProvable<unknown>[] {
     return this.types.map((type, index) => {
-      // eslint-disable-next-line @typescript-eslint/init-declarations
       let value: FlexibleProvable<unknown>;
 
       try {
@@ -102,7 +101,7 @@ export class MethodParameterEncoder {
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((argument, index) => {
+    return args.flatMap((argument, index) => {
       if (argument instanceof Proof) {
         const argumentType = this.types[index] as ProofTypes;
 
@@ -122,7 +121,6 @@ export class MethodParameterEncoder {
       const argumentType = this.types[index] as ToFieldableStatic;
       return argumentType.toFields(argument);
     });
-    return argsFields;
   }
 
   public encode(args: ArgumentTypes): {

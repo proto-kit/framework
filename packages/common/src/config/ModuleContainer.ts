@@ -412,6 +412,7 @@ export class ModuleContainer<
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,
           });
+          // eslint-disable-next-line sonarjs/no-duplicated-branches
         } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,

@@ -25,7 +25,6 @@ export function state() {
     target: TargetRuntimeModule,
     propertyKey: string
   ) => {
-    // eslint-disable-next-line @typescript-eslint/init-declarations
     let value: State<unknown> | undefined;
 
     Object.defineProperty(target, propertyKey, {

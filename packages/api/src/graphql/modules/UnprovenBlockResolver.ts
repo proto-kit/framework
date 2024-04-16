@@ -8,7 +8,7 @@ import { Arg, Field, ObjectType, Query } from "type-graphql";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";
 
-import { ComputedBlockTransactionModel } from "./BlockStorageResolver";
+import { ComputedBlockTransactionModel } from "./model/ComputedBlockTransactionModel";
 
 @ObjectType()
 export class UnprovenBlockModel {

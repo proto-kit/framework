@@ -1,7 +1,8 @@
 import { injectable } from "tsyringe";
-import { ObjectMapper } from "../../../ObjectMapper";
 import { Settlement } from "@proto-kit/sequencer";
 import { Settlement as DBSettlement } from "@prisma/client";
+
+import { ObjectMapper } from "../../../ObjectMapper";
 
 @injectable()
 export class SettlementMapper

@@ -97,7 +97,6 @@ export function provableMethod(
        * or not, execute its simulated (Javascript) version and
        * return the result.
        */
-      // eslint-disable-next-line @typescript-eslint/init-declarations
       let result: unknown;
       try {
         result = Reflect.apply(simulatedMethod, this, args);

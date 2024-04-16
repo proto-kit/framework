@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-assignment,putout/putout,max-lines,guard-for-in,@typescript-eslint/consistent-type-assertions */
+/* eslint-disable @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-assignment,guard-for-in,@typescript-eslint/consistent-type-assertions */
 import { inject } from "tsyringe";
 import { Arg, Query as GraphqlQuery } from "type-graphql";
 import {
@@ -31,7 +31,6 @@ import {
   StateMap,
 } from "@proto-kit/protocol";
 import { Field, FlexibleProvablePure, ProvableExtended } from "o1js";
-
 import {
   Query,
   QueryBuilderFactory,
@@ -52,9 +51,9 @@ import {
   range,
 } from "@proto-kit/common";
 import { ObjMap } from "graphql/jsutils/ObjMap";
+import isArray from "lodash/isArray";
 
 import { graphqlModule, SchemaGeneratingGraphqlModule } from "../GraphqlModule";
-import isArray from "lodash/isArray";
 
 interface ProvableExtension<T, TJson = any> {
   toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
@@ -68,7 +67,7 @@ interface AnyJson {
 
 @graphqlModule()
 export class QueryGraphqlModule<
-  RuntimeModules extends RuntimeModulesRecord
+  RuntimeModules extends RuntimeModulesRecord,
 > extends SchemaGeneratingGraphqlModule {
   public constructor(
     @inject("QueryTransportModule")
@@ -110,17 +109,18 @@ export class QueryGraphqlModule<
   }
 
   private inputArray(value: AnyJson, name: string): GraphQLInputType {
-    if (value["length"] === undefined || value["length"] <= 0) {
+    if (value.length === undefined || value.length <= 0) {
       throw new Error(
         "Dummy array not initialized correctly. Did you define Provable.Array() with length 0?"
       );
     }
     const valueType = value[0];
     return new GraphQLList(
+      // eslint-disable-next-line no-nested-ternary
       typeof valueType === "object"
         ? isArray(valueType)
-          ? this.inputArray(valueType, name + "_object")
-          : this.inputJsonToGraphQl(valueType, name + "_object")
+          ? this.inputArray(valueType, `${name}_object`)
+          : this.inputJsonToGraphQl(valueType, `${name}_object`)
         : this.jsonPrimitiveToGraphqlType(valueType)
     );
   }
@@ -134,10 +134,11 @@ export class QueryGraphqlModule<
     Object.entries(json).forEach(([key, value]) => {
       fields[key] = {
         type:
+          // eslint-disable-next-line no-nested-ternary
           typeof value === "object"
             ? isArray(value)
-              ? this.inputArray(value, name + "" + key)
-              : this.inputJsonToGraphQl(value, name + "" + key)
+              ? this.inputArray(value, `${name}${key}`)
+              : this.inputJsonToGraphQl(value, `${name}${key}`)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -149,17 +150,18 @@ export class QueryGraphqlModule<
   }
 
   private graphqlArray(value: AnyJson, name: string): GraphQLOutputType {
-    if (value["length"] === undefined || value["length"] <= 0) {
+    if (value.length === undefined || value.length <= 0) {
       throw new Error(
         "Dummy array not initialized correctly. Did you define Provable.Array() with length 0?"
       );
     }
     const valueType = value[0];
     return new GraphQLList(
+      // eslint-disable-next-line no-nested-ternary
       typeof valueType === "object"
         ? isArray(valueType)
-          ? this.graphqlArray(valueType, name + "_object")
-          : this.jsonToGraphQl(valueType, name + "_object")
+          ? this.graphqlArray(valueType, `${name}_object`)
+          : this.jsonToGraphQl(valueType, `${name}_object`)
         : this.jsonPrimitiveToGraphqlType(valueType)
     );
   }
@@ -170,10 +172,11 @@ export class QueryGraphqlModule<
     Object.entries(json).forEach(([key, value]) => {
       fields[key] = {
         type:
+          // eslint-disable-next-line no-nested-ternary
           typeof value === "object"
             ? isArray(value)
-              ? this.graphqlArray(value, name + "" + key)
-              : this.jsonToGraphQl(value, name + "" + key)
+              ? this.graphqlArray(value, `${name}${key}`)
+              : this.jsonToGraphQl(value, `${name}${key}`)
             : this.jsonPrimitiveToGraphqlType(value),
       };
     });
@@ -186,7 +189,7 @@ export class QueryGraphqlModule<
 
   private flexiblePureToGraphql<
     ProvableType,
-    ObjectType extends GraphQLInputObjectType | GraphQLObjectType
+    ObjectType extends GraphQLInputObjectType | GraphQLObjectType,
   >(
     type: FlexibleProvablePure<ProvableType>,
     name: string,
@@ -256,6 +259,7 @@ export class QueryGraphqlModule<
           if (error instanceof Error) {
             throw error;
           }
+          return undefined;
         }
       },
     };
@@ -297,7 +301,7 @@ export class QueryGraphqlModule<
 
   public generateSchemaForQuery<
     ModuleType extends BaseModuleType,
-    ContainerModulesRecord extends ModulesRecord
+    ContainerModulesRecord extends ModulesRecord,
   >(
     container: ModuleContainer<ContainerModulesRecord>,
     containerQuery: Query<ModuleType, any>,
@@ -320,7 +324,6 @@ export class QueryGraphqlModule<
             query[fieldKey],
             stateProperty
           );
-          // eslint-disable-next-line sonarjs/elseif-without-else
         } else if (stateProperty instanceof State) {
           // State
           moduleTypes[fieldKey] = this.generateStateResolver(
@@ -380,7 +383,7 @@ export class QueryGraphqlModule<
       this.jsonToGraphQl.bind(this)
     );
 
-    let fieldsDefinition: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
+    let fieldsDefinition: ThunkObjMap<GraphQLFieldConfig<any, any>> = {};
     if (enableRuntime) {
       fieldsDefinition = {
         ...fieldsDefinition,
@@ -440,3 +443,5 @@ export class QueryGraphqlModule<
     return new GraphQLSchema({ query });
   }
 }
+// eslint-disable-next-line max-len
+/* eslint-enable @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-assignment,guard-for-in,@typescript-eslint/consistent-type-assertions */

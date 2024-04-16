@@ -14,11 +14,13 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
 
       networkState: {
         before: new NetworkState(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           NetworkState.fromJSON(input.beforeNetworkState as any)
         ),
         during: new NetworkState(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           NetworkState.fromJSON(input.duringNetworkState as any)
-        )
+        ),
       },
 
       hash: Field(input.hash),
@@ -31,9 +33,7 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
 
       transactionsHash: Field(input.transactionsHash),
       previousBlockHash:
-        input.parentHash !== null
-          ? Field(input.parentHash)
-          : undefined,
+        input.parentHash !== null ? Field(input.parentHash) : undefined,
     };
   }
 

@@ -240,7 +240,6 @@ function runtimeMethodInternal(options: {
           false,
           ...args
         ).bind(this);
-        // eslint-disable-next-line @typescript-eslint/init-declarations
         let result: Awaited<ReturnType<typeof innerProver>>;
         try {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -261,7 +260,6 @@ function runtimeMethodInternal(options: {
         executionContext.setProver(prover.bind(this.runtime.zkProgrammable));
       }
 
-      // eslint-disable-next-line @typescript-eslint/init-declarations
       let result: unknown;
       try {
         result = Reflect.apply(simulatedMethod, this, args);
