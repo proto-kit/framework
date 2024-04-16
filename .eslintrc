@@ -85,6 +85,8 @@
     "no-void": ["error", {
       "allowAsStatement": true
     }],
+    // Introduce at some point in the future
+//    "@typescript-eslint/explicit-function-return-type": "error",
     // Reenable again
     "sonarjs/no-duplicate-string": "off",
     // Handled by prettier
