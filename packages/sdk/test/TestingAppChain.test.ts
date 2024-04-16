@@ -1,24 +1,19 @@
-/* eslint-disable max-statements */
 import "reflect-metadata";
-import { PrivateKey, Provable, PublicKey } from "o1js";
+import { randomUUID } from "crypto";
+
+import { inject } from "tsyringe";
 import {
   runtimeMethod,
   RuntimeModule,
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import { TestingAppChain } from "../src/index";
-import { inject } from "tsyringe";
-import { randomUUID } from "crypto";
-import { assert, State, StateMap } from "@proto-kit/protocol";
-import {
-  Balances,
-  BalancesKey,
-  TokenId,
-  VanillaRuntimeModules,
-  UInt64
-} from "@proto-kit/library";
+import { PrivateKey, Provable, PublicKey } from "o1js";
+import { assert, State } from "@proto-kit/protocol";
+import { Balances, BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
 import { log } from "@proto-kit/common";
+
+import { TestingAppChain } from "../src/index";
 
 export interface AdminConfig {
   admin: PublicKey;
@@ -53,7 +48,9 @@ class CustomBalances extends Balances<BalancesConfig> {
     const totalSupply = this.totalSupply.get();
 
     // TODO Fix UInt issues to remove new UInt()
-    const newTotalSupply = UInt64.Unsafe.fromField(totalSupply.value.value).add(balance);
+    const newTotalSupply = UInt64.Unsafe.fromField(totalSupply.value.value).add(
+      balance
+    );
     const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
       this.config.totalSupply
     );
@@ -73,7 +70,9 @@ class CustomBalances extends Balances<BalancesConfig> {
     );
 
     // TODO Fix UInt issues to remove new UInt()
-    const newBalance = UInt64.Unsafe.fromField(currentBalance.value.value).add(balance);
+    const newBalance = UInt64.Unsafe.fromField(currentBalance.value.value).add(
+      balance
+    );
 
     this.balances.set(
       new BalancesKey({ tokenId: TokenId.from(0n), address }),
@@ -84,9 +83,6 @@ class CustomBalances extends Balances<BalancesConfig> {
   // @runtimeMethod()
   public foo() {}
 }
-
-@runtimeModule()
-class BadModule extends RuntimeModule<unknown> {}
 
 describe("testing app chain", () => {
   it("should enable a complete transaction roundtrip", async () => {

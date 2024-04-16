@@ -1,4 +1,8 @@
-import { expectDefined } from "@proto-kit/common";
+import {
+  expectDefined,
+  MockAsyncMerkleTreeStore,
+  RollupMerkleTree,
+} from "@proto-kit/common";
 import { Field, PrivateKey, UInt64 as O1UInt64 } from "o1js";
 import {
   BlockProverPublicOutput,
@@ -8,18 +12,16 @@ import {
   RuntimeTransaction,
   StateServiceProvider,
 } from "@proto-kit/protocol";
-
-import { TestingAppChain } from "../../src/appChain/TestingAppChain";
-
-import { TestBalances } from "./TestBalances";
-import { MockAsyncMerkleTreeStore, RollupMerkleTree } from "@proto-kit/common";
 import { ManualBlockTrigger } from "@proto-kit/sequencer";
 import { InMemoryStateService } from "@proto-kit/module";
 import { BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
 
+import { TestingAppChain } from "../../src/appChain/TestingAppChain";
+
+import { TestBalances } from "./TestBalances";
+
 // Failing - investigate why
 describe.skip("blockProof", () => {
-  // eslint-disable-next-line max-statements
   it("should transition block state hash", async () => {
     expect.assertions(3);
 
@@ -79,11 +81,10 @@ describe.skip("blockProof", () => {
       "setBalance"
     );
 
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/consistent-type-assertions
     appChain.protocol.dependencyContainer
       .resolveAll<ProvableTransactionHook>("ProvableTransactionHook")
-      .map((hook) => {
+      .forEach((hook) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         hook.onTransaction({
           transaction: RuntimeTransaction.fromTransaction({
             sender: alice,
@@ -91,7 +92,6 @@ describe.skip("blockProof", () => {
             methodId: Field(balancesMethodId),
             argsHash: Field(0),
           }),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
       });
 

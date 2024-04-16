@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file, import/no-unused-modules */
 import "reflect-metadata";
 import {
   RuntimeModule,
@@ -9,7 +8,6 @@ import {
 import { StateMap, assert } from "@proto-kit/protocol";
 import { Field, Group, Poseidon, PublicKey, Provable, Struct } from "o1js";
 import { inject } from "tsyringe";
-
 import { Balance, Balances, TokenId } from "@proto-kit/library";
 
 export const errors = {

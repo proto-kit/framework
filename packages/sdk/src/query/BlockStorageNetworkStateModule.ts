@@ -9,7 +9,6 @@ import {
   UnprovenBlockQueue,
   UnprovenBlockStorage,
 } from "@proto-kit/sequencer";
-import { NetworkState } from "@proto-kit/protocol";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 

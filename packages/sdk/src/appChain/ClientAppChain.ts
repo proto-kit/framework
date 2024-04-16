@@ -15,21 +15,23 @@ import {
   VanillaRuntimeModules,
 } from "@proto-kit/library";
 import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
+import { container } from "tsyringe";
+import { PrivateKey } from "o1js";
+
 import { GraphqlClient } from "../graphql/GraphqlClient";
 import { GraphqlQueryTransportModule } from "../graphql/GraphqlQueryTransportModule";
 import { GraphqlNetworkStateTransportModule } from "../graphql/GraphqlNetworkStateTransportModule";
 import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
 import { AuroSigner } from "../transaction/AuroSigner";
+
 import { AppChain, AppChainModulesRecord } from "./AppChain";
-import { container } from "tsyringe";
-import { PrivateKey } from "o1js";
 
 export class ClientAppChain<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > extends AppChain<
   RuntimeModules,
   ProtocolModules,

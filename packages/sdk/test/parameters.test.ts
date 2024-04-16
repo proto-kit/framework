@@ -1,5 +1,3 @@
-/* eslint-disable max-statements */
-// eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import {
   PrivateKey,
@@ -19,12 +17,11 @@ import {
   runtimeModule,
   state,
 } from "@proto-kit/module";
-import { TestingAppChain } from "../src/index";
-import { log } from "@proto-kit/common";
 import { assert, State, StateMap } from "@proto-kit/protocol";
 import { dummyBase64Proof } from "o1js/dist/node/lib/proof_system";
-
 import { Pickles } from "o1js/dist/node/snarky";
+
+import { TestingAppChain } from "../src/index";
 
 class TestStruct extends Struct({
   foo: Field,
@@ -54,7 +51,6 @@ const program = Experimental.ZkProgram({
   methods: {
     foo: {
       privateInputs: [],
-      // eslint-disable-next-line putout/putout
       method: foo,
     },
   },
@@ -83,7 +79,9 @@ class TestRuntime extends RuntimeModule<unknown> {
     struct: TestStruct,
     signature: Signature,
     ballot: Ballot,
+    // eslint-disable-next-line @typescript-eslint/no-shadow
     witness: MerkleMapWitness,
+    // eslint-disable-next-line @typescript-eslint/no-shadow
     proof: ProgramProof,
     address: PublicKey
   ) {

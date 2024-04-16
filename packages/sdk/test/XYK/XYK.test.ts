@@ -1,9 +1,9 @@
-/* eslint-disable max-statements */
-/* eslint-disable unicorn/filename-case */
 import "reflect-metadata";
 import { Balance, BalancesKey, TokenId } from "@proto-kit/library";
 import { PrivateKey, Provable, PublicKey } from "o1js";
+
 import { TestingAppChain } from "../../src/appChain/TestingAppChain";
+
 import { TestBalances } from "./TestBalances";
 import { PoolKey, XYK } from "./XYK";
 
@@ -12,7 +12,6 @@ type RuntimeModules = {
   XYK: typeof XYK;
 };
 
-// eslint-disable-next-line jest/require-hook
 let nonce = 0;
 
 // TODO This test passes locally, but fails in the CI because of untracable
@@ -26,6 +25,7 @@ describe("xyk", () => {
   const tokenInId = TokenId.from(0);
   const tokenOutId = TokenId.from(1);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const pool = PoolKey.fromTokenIdPair(tokenInId, tokenOutId);
 
   let chain: ReturnType<typeof TestingAppChain.fromRuntime<RuntimeModules>>;
@@ -80,7 +80,7 @@ describe("xyk", () => {
     await tx1.sign();
     await tx1.send();
 
-    const block = await chain.produceBlock();
+    await chain.produceBlock();
 
     const tx2 = await chain.transaction(alice, () => {
       balances.mint(tokenOutId, alice, Balance.from(balanceToMint));
@@ -157,13 +157,12 @@ describe("xyk", () => {
     });
 
     expect(balanceInAfter?.toString()).toBe(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       String(balanceInBefore!.toBigInt() - balanceToSell)
     );
 
     expect(balanceOutAfter?.toString()).toBe(
       // 181 = expected calculated amount to receive
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       String(balanceOutBefore!.toBigInt() + 181n)
     );
   }, 30_000);
@@ -197,13 +196,12 @@ describe("xyk", () => {
     const balanceOutAfter = await getBalance(tokenOutId, alice);
 
     expect(balanceOutAfter?.toString()).toBe(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       String(balanceOutBefore!.toBigInt() + balanceToBuy)
     );
 
     expect(balanceInAfter?.toString()).toBe(
       // 404 = expected calculated amount in
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       String(balanceInBefore!.toBigInt() - 135n)
     );
   }, 30_000);

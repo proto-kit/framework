@@ -3,7 +3,6 @@ import {
   MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
-  SettlementContractModule,
 } from "@proto-kit/protocol";
 import {
   VanillaRuntimeModules,
@@ -24,9 +23,7 @@ import {
   InMemoryDatabase,
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
-import {
-  TypedClass,
-} from "@proto-kit/common";
+import { TypedClass } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
 
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
@@ -62,7 +59,7 @@ export class TestingAppChain<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > extends AppChain<
   RuntimeModules,
   ProtocolModules,
@@ -71,7 +68,7 @@ export class TestingAppChain<
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord &
-      PartialVanillaRuntimeModulesRecord
+      PartialVanillaRuntimeModulesRecord,
   >(runtimeModules: RuntimeModules) {
     const appChain = new TestingAppChain({
       Runtime: Runtime.from({

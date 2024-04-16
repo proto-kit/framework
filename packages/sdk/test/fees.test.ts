@@ -8,6 +8,7 @@ import {
 } from "@proto-kit/module";
 import { PrivateKey } from "o1js";
 import { inject } from "tsyringe";
+
 import { TestingAppChain } from "../src";
 
 @runtimeModule()
@@ -38,6 +39,7 @@ class Pit extends RuntimeModule<unknown> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RuntimeModules extends RuntimeModulesRecord {
   Faucet: typeof Faucet;
   Pit: typeof Pit;
