@@ -1,15 +1,20 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   Balance,
   Balances,
   TokenId,
-  VanillaProtocolModules
+  VanillaProtocolModules,
 } from "@proto-kit/library";
 import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
+// eslint-disable-next-line import/no-extraneous-dependencies
 import {
-  AppChain, AppChainTransaction, BlockStorageNetworkStateModule,
+  AppChain,
+  AppChainTransaction,
+  BlockStorageNetworkStateModule,
   InMemorySigner,
-  InMemoryTransactionSender, StateServiceQueryModule
+  InMemoryTransactionSender,
+  StateServiceQueryModule,
 } from "@proto-kit/sdk";
 import {
   BlockProducerModule,
@@ -20,19 +25,24 @@ import {
   PrivateMempool,
   Sequencer,
   UnprovenProducerModule,
-  VanillaTaskWorkerModules
+  VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
+
 import {
   PrismaDatabaseConfig,
   PrismaRedisDatabase,
-  RedisConnectionConfig
+  RedisConnectionConfig,
 } from "../src";
+
+/* eslint-disable @typescript-eslint/dot-notation */
 
 const prismaUrl = process.env["POSTGRES_URL"];
 const redisUrl = process.env["REDIS_URL"];
 // We don't use the password for CI runs
 const redisCI = process.env["REDIS_CI"];
+
+/* eslint-enable @typescript-eslint/dot-notation */
 
 const prismaConfig = {
   host: prismaUrl ?? "localhost",
@@ -47,15 +57,26 @@ const prismaConfig = {
 const redisConfig = {
   host: redisUrl ?? "localhost",
   port: 6379,
-  password: redisCI ? undefined : "password",
+  password: redisCI !== undefined ? undefined : "password",
 };
 
 export const IntegrationTestDBConfig = {
   prismaConfig,
-  redisConfig
+  redisConfig,
+};
+
+@runtimeModule()
+export class MintableBalances extends Balances {
+  @runtimeMethod()
+  public mintDefaultToken(address: PublicKey, amount: Balance) {
+    this.mint(TokenId.from(0), address, amount);
+  }
 }
 
-export function createPrismaAppchain(prismaConnection: PrismaDatabaseConfig["connection"], redisConnection: RedisConnectionConfig) {
+export function createPrismaAppchain(
+  prismaConnection: PrismaDatabaseConfig["connection"],
+  redisConnection: RedisConnectionConfig
+) {
   const appChain = AppChain.from({
     Protocol: Protocol.from({
       modules: VanillaProtocolModules.mandatoryModules({}),
@@ -97,15 +118,14 @@ export function createPrismaAppchain(prismaConnection: PrismaDatabaseConfig["con
       LastStateRoot: {},
     },
     Runtime: {
-      Balances: {
-      }
+      Balances: {},
     },
     Sequencer: {
       Database: {
         prisma: {
-          connection: prismaConnection
+          connection: prismaConnection,
         },
-        redis: redisConnection
+        redis: redisConnection,
       },
       BlockTrigger: {},
       Mempool: {},
@@ -135,15 +155,11 @@ export function createPrismaAppchain(prismaConnection: PrismaDatabaseConfig["con
   return appChain;
 }
 
-@runtimeModule()
-export class MintableBalances extends Balances {
-  @runtimeMethod()
-  public mintDefaultToken(address: PublicKey, amount: Balance){
-    this.mint(TokenId.from(0), address, amount)
-  }
-}
-
-export async function prepareBlock(appChain: ReturnType<typeof createPrismaAppchain>, sender: PublicKey, nonce: number): Promise<AppChainTransaction> {
+export async function prepareBlock(
+  appChain: ReturnType<typeof createPrismaAppchain>,
+  sender: PublicKey,
+  nonce: number
+): Promise<AppChainTransaction> {
   const balances = appChain.runtime.resolve("Balances");
   const tx = await appChain.transaction(
     sender,
