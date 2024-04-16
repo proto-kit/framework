@@ -32,7 +32,7 @@ import { MethodIdResolver } from "./MethodIdResolver";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
 
 export function getAllPropertyNames(obj: any) {
-  let currentPrototype: any | undefined = undefined;
+  let currentPrototype: any | undefined = obj;
   let keys: (string | symbol)[] = [];
   // if primitive (primitives still have keys) skip the first iteration
   if (!(obj instanceof Object)) {
@@ -41,7 +41,7 @@ export function getAllPropertyNames(obj: any) {
   // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   while (currentPrototype) {
     keys = keys.concat(Reflect.ownKeys(currentPrototype));
-    currentPrototype = Object.getPrototypeOf(obj);
+    currentPrototype = Object.getPrototypeOf(currentPrototype);
   }
   return keys;
 }
