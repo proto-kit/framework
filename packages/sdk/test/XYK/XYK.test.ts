@@ -12,8 +12,6 @@ type RuntimeModules = {
   XYK: typeof XYK;
 };
 
-let nonce = 0;
-
 // TODO This test passes locally, but fails in the CI because of untracable
 // TypeError: Do not know how to serialize a BigInt
 describe("xyk", () => {
@@ -173,22 +171,17 @@ describe("xyk", () => {
     const balanceInBefore = await getBalance(tokenInId, alice);
     const balanceOutBefore = await getBalance(tokenOutId, alice);
 
-    const tx = await chain.transaction(
-      alice,
-      () => {
-        xyk.buy(
-          tokenInId,
-          tokenOutId,
-          Balance.from(balanceToBuy),
-          Balance.from(10_000n)
-        );
-      },
-      { nonce }
-    );
+    const tx = await chain.transaction(alice, () => {
+      xyk.buy(
+        tokenInId,
+        tokenOutId,
+        Balance.from(balanceToBuy),
+        Balance.from(10_000n)
+      );
+    });
 
     await tx.sign();
     await tx.send();
-    nonce += 1;
 
     await chain.produceBlock();
 
