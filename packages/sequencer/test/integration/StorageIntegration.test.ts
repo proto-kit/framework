@@ -122,8 +122,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
       runtime = appChain.runtime;
       sequencer = appChain.sequencer;
 
-      // unprovenState = sequencer.resolve("UnprovenStateService");
-      // provenState = sequencer.resolve("AsyncStateService");
+      unprovenState = sequencer.resolve("UnprovenStateService");
+      provenState = sequencer.resolve("AsyncStateService");
     });
 
     it("test unproven block prod", async () => {

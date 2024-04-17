@@ -20,7 +20,8 @@ describe("cachedMerkleTree", () => {
     log.setLevel("DEBUG");
 
     store = new InMemoryAsyncMerkleTreeStore();
-    syncStore = store.store;
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    syncStore = store["store"];
     tree = new RollupMerkleTree(syncStore);
 
     tree.setLeaf(1n, Field(10));
