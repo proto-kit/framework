@@ -20,6 +20,14 @@ export class CachedStateService
     return super.get(key);
   }
 
+  /**
+   * Works like get(), but if a value is in this store,
+   * but is known to be empty, this will return null
+   */
+  private getNullAware(key: Field): Field[] | null | undefined {
+    return this.values[key.toString()];
+  }
+
   private assertParentNotNull(
     parent: AsyncStateService | undefined
   ): asserts parent is AsyncStateService {
@@ -71,10 +79,9 @@ export class CachedStateService
     const local: StateEntry[] = [];
 
     keys.forEach((key) => {
-      const localValue = this.get(key);
-      // TODO Not safe for deletes
+      const localValue = this.getNullAware(key);
       if (localValue !== undefined) {
-        local.push({ key, value: localValue });
+        local.push({ key, value: localValue ?? undefined });
       } else {
         remoteKeys.push(key);
       }
@@ -104,7 +111,7 @@ export class CachedStateService
 
     const writes = Object.entries(values).map(([key, value]) => ({
       key: Field(key),
-      value,
+      value: value ?? undefined,
     }));
     parent.writeStates(writes);
 
