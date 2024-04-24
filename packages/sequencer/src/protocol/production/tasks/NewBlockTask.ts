@@ -20,8 +20,9 @@ import { ProofTaskSerializer } from "../../../helpers/utils";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import { TaskStateRecord } from "../TransactionTraceService";
 
-import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
+import { JSONEncodableState } from "./RuntimeTaskParameters";
 import { CompileRegistry } from "./CompileRegistry";
 import { DecodedStateSerializer } from "./BlockProvingTask";
 
@@ -31,7 +32,7 @@ export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
   networkState: NetworkState;
   blockWitness: BlockHashMerkleTreeWitness;
-  startingState: DecodedState;
+  startingState: TaskStateRecord;
 }
 
 export type NewBlockProvingParameters = PairingDerivedInput<
@@ -144,7 +145,7 @@ export class NewBlockTask
   }
 
   private async executeWithPrefilledStateService<Return>(
-    startingState: DecodedState,
+    startingState: TaskStateRecord,
     callback: () => Promise<Return>
   ): Promise<Return> {
     const prefilledStateService = new PreFilledStateService(startingState);

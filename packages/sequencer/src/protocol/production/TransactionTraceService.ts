@@ -28,6 +28,8 @@ import type { TransactionTrace, BlockTrace } from "./BlockProducerModule";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
 
+export type TaskStateRecord = Record<string, Field[]>;
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionTraceService {
@@ -40,12 +42,15 @@ export class TransactionTraceService {
   private async collectStartingState(
     stateService: CachedStateService,
     stateTransitions: UntypedStateTransition[]
-  ): Promise<Record<string, Field[] | undefined>> {
+  ): Promise<TaskStateRecord> {
     const keys = this.allKeys(stateTransitions);
     await stateService.preloadKeys(keys);
 
-    return keys.reduce<Record<string, Field[] | undefined>>((state, key) => {
-      state[key.toString()] = stateService.get(key);
+    return keys.reduce<TaskStateRecord>((state, key) => {
+      const stateValue = stateService.get(key);
+      if (stateValue !== undefined) {
+        state[key.toString()] = stateValue;
+      }
       return state;
     }, {});
   }

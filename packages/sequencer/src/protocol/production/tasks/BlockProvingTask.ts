@@ -27,16 +27,17 @@ import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { Task } from "../../../worker/flow/Task";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import { TaskStateRecord } from "../TransactionTraceService";
 
 import { CompileRegistry } from "./CompileRegistry";
-import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
+import { JSONEncodableState } from "./RuntimeTaskParameters";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
 export interface BlockProverParameters {
   publicInput: BlockProverPublicInput;
   executionData: BlockProverExecutionData;
-  startingState: DecodedState;
+  startingState: TaskStateRecord;
 }
 
 export type BlockProvingTaskParameters = PairingDerivedInput<
@@ -46,20 +47,20 @@ export type BlockProvingTaskParameters = PairingDerivedInput<
 >;
 
 export class DecodedStateSerializer {
-  public static fromJSON(json: JSONEncodableState): DecodedState {
-    return Object.fromEntries<Field[] | undefined>(
+  public static fromJSON(json: JSONEncodableState): TaskStateRecord {
+    return Object.fromEntries<Field[]>(
       Object.entries(json).map(([key, value]) => [
         key,
-        value?.map((encodedField) => Field(encodedField)),
+        value.map((encodedField) => Field(encodedField)),
       ])
     );
   }
 
-  public static toJSON(input: DecodedState): JSONEncodableState {
-    return Object.fromEntries<string[] | undefined>(
+  public static toJSON(input: TaskStateRecord): JSONEncodableState {
+    return Object.fromEntries<string[]>(
       Object.entries(input).map(([key, value]) => [
         key,
-        value?.map((field) => field.toString()),
+        value.map((field) => field.toString()),
       ])
     );
   }
@@ -216,7 +217,7 @@ export class BlockProvingTask
   }
 
   private async executeWithPrefilledStateService<Return>(
-    startingState: DecodedState,
+    startingState: TaskStateRecord,
     callback: () => Promise<Return>
   ): Promise<Return> {
     const prefilledStateService = new PreFilledStateService(startingState);
