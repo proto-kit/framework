@@ -10,6 +10,8 @@ import {
   InMemorySequencerModules,
   VanillaProtocolModules,
   VanillaRuntimeModules,
+  VanillaProtocolModulesRecord,
+  InMemorySequencerModulesRecord,
 } from "@proto-kit/library";
 import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
 import {
@@ -29,6 +31,7 @@ import {
   AppChainModulesRecord,
   InMemoryTransactionSender,
 } from "@proto-kit/sdk";
+import { ModulesConfig } from "@proto-kit/common";
 
 export class LocalhostAppChain<
   RuntimeModules extends RuntimeModulesRecord,
@@ -45,26 +48,41 @@ export class LocalhostAppChain<
   public static fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
     runtimeModules: RuntimeModules
   ) {
+    return LocalhostAppChain.with(runtimeModules, {}, {});
+  }
+
+  public static with<
+    RuntimeModules extends RuntimeModulesRecord,
+    ProtocolModules extends ProtocolModulesRecord,
+    SequencerModules extends SequencerModulesRecord,
+  >(
+    runtimeModules: RuntimeModules,
+    protocolModules: ProtocolModules,
+    sequencerModules: SequencerModules
+  ) {
+    const graphqlModule = GraphqlSequencerModule.from({
+      modules: {
+        MempoolResolver,
+        QueryGraphqlModule,
+        BlockStorageResolver,
+        NodeStatusResolver,
+        UnprovenBlockResolver,
+        MerkleWitnessResolver,
+      },
+    });
+
     const appChain = LocalhostAppChain.from({
       Runtime: Runtime.from({
         modules: VanillaRuntimeModules.with(runtimeModules),
       }),
       Protocol: Protocol.from({
-        modules: VanillaProtocolModules.with({}),
+        modules: VanillaProtocolModules.with(protocolModules),
       }),
       Sequencer: Sequencer.from({
         modules: InMemorySequencerModules.with({
           GraphqlServer: GraphqlServer,
-          Graphql: GraphqlSequencerModule.from({
-            modules: {
-              MempoolResolver,
-              QueryGraphqlModule,
-              BlockStorageResolver,
-              NodeStatusResolver,
-              UnprovenBlockResolver,
-              MerkleWitnessResolver,
-            },
-          }),
+          Graphql: graphqlModule,
+          ...sequencerModules,
         }),
       }),
       modules: {
@@ -76,49 +94,63 @@ export class LocalhostAppChain<
       },
     });
 
+    const protocolConfig = {
+      BlockProver: {},
+      StateTransitionProver: {},
+      AccountState: {},
+      BlockHeight: {},
+      LastStateRoot: {},
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 0n,
+        perWeightUnitFee: 0n,
+        methods: {},
+      },
+    } satisfies ModulesConfig<VanillaProtocolModulesRecord>;
+
+    const sequencerConfig = {
+      Database: {},
+      UnprovenProducerModule: {},
+
+      Graphql: {
+        QueryGraphqlModule: {},
+        MempoolResolver: {},
+        BlockStorageResolver: {},
+        NodeStatusResolver: {},
+        MerkleWitnessResolver: {},
+        UnprovenBlockResolver: {},
+      },
+
+      GraphqlServer: {
+        port: 8080,
+        host: "0.0.0.0",
+        graphiql: true,
+      },
+
+      Mempool: {},
+      BlockProducerModule: {},
+      BaseLayer: {},
+      TaskQueue: {},
+      BlockTrigger: {},
+      LocalTaskWorkerModule: {},
+    } satisfies ModulesConfig<
+      InMemorySequencerModulesRecord & {
+        Graphql: typeof graphqlModule;
+        GraphqlServer: typeof GraphqlServer;
+      }
+    >;
+
+    // eslint-disable-next-line max-len
+    /* eslint-disable @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-assignment */
     appChain.configurePartial({
-      Protocol: {
-        BlockProver: {},
-        StateTransitionProver: {},
-        AccountState: {},
-        BlockHeight: {},
-        LastStateRoot: {},
-        TransactionFee: {
-          tokenId: 0n,
-          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
-          baseFee: 0n,
-          perWeightUnitFee: 0n,
-          methods: {},
-        },
-      },
-      Sequencer: {
-        Database: {},
-        UnprovenProducerModule: {},
-
-        GraphqlServer: {
-          port: 8080,
-          host: "0.0.0.0",
-          graphiql: true,
-        },
-
-        Graphql: {
-          QueryGraphqlModule: {},
-          MempoolResolver: {},
-          BlockStorageResolver: {},
-          NodeStatusResolver: {},
-          MerkleWitnessResolver: {},
-          UnprovenBlockResolver: {},
-        },
-
-        Mempool: {},
-        BlockProducerModule: {},
-        BaseLayer: {},
-        TaskQueue: {},
-        BlockTrigger: {},
-      },
+      Protocol: protocolConfig as any,
+      Sequencer: sequencerConfig as any,
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
     });
+    // eslint-disable-next-line max-len
+    /* eslint-enable @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-assignment */
 
     return appChain;
   }
