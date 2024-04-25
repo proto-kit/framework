@@ -9,6 +9,7 @@ import {
   SequencerModulesRecord,
   UnprovenProducerModule,
   VanillaTaskWorkerModules,
+  TaskWorkerModulesRecord,
 } from "@proto-kit/sequencer";
 
 export type InMemorySequencerModulesRecord = {
@@ -24,15 +25,20 @@ export type InMemorySequencerModulesRecord = {
 };
 
 export class InMemorySequencerModules {
-  public static with<SequencerModules extends SequencerModulesRecord>(
-    additionalModules: SequencerModules
+  public static with<
+    SequencerModules extends SequencerModulesRecord,
+    AdditionalTasks extends TaskWorkerModulesRecord,
+  >(
+    additionalModules: SequencerModules,
+    additionalTaskWorkerModules: AdditionalTasks
   ) {
     return {
       Database: InMemoryDatabase,
       Mempool: PrivateMempool,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.withoutSettlement()
-      ),
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from({
+        ...VanillaTaskWorkerModules.withoutSettlement(),
+        ...additionalTaskWorkerModules,
+      }),
       BaseLayer: NoopBaseLayer,
       BlockProducerModule: BlockProducerModule,
       UnprovenProducerModule: UnprovenProducerModule,

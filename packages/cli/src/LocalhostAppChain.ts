@@ -13,7 +13,11 @@ import {
   VanillaProtocolModulesRecord,
   InMemorySequencerModulesRecord,
 } from "@proto-kit/library";
-import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
+import {
+  Sequencer,
+  SequencerModulesRecord,
+  TaskWorkerModulesRecord,
+} from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
   GraphqlSequencerModule,
@@ -48,17 +52,19 @@ export class LocalhostAppChain<
   public static fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
     runtimeModules: RuntimeModules
   ) {
-    return LocalhostAppChain.with(runtimeModules, {}, {});
+    return LocalhostAppChain.with(runtimeModules, {}, {}, {});
   }
 
   public static with<
     RuntimeModules extends RuntimeModulesRecord,
     ProtocolModules extends ProtocolModulesRecord,
     SequencerModules extends SequencerModulesRecord,
+    AdditionalTasks extends TaskWorkerModulesRecord,
   >(
     runtimeModules: RuntimeModules,
     protocolModules: ProtocolModules,
-    sequencerModules: SequencerModules
+    sequencerModules: SequencerModules,
+    additionalTasks: AdditionalTasks
   ) {
     const graphqlModule = GraphqlSequencerModule.from({
       modules: {
@@ -79,11 +85,14 @@ export class LocalhostAppChain<
         modules: VanillaProtocolModules.with(protocolModules),
       }),
       Sequencer: Sequencer.from({
-        modules: InMemorySequencerModules.with({
-          GraphqlServer: GraphqlServer,
-          Graphql: graphqlModule,
-          ...sequencerModules,
-        }),
+        modules: InMemorySequencerModules.with(
+          {
+            GraphqlServer: GraphqlServer,
+            Graphql: graphqlModule,
+            ...sequencerModules,
+          },
+          additionalTasks
+        ),
       }),
       modules: {
         // TODO: remove in favour of a real tx sender for the SettlementModule
