@@ -34,7 +34,9 @@ export class Withdrawals extends RuntimeModule {
     const balance = this.balances.getBalance(address);
 
     assert(
-      amount.greaterThanOrEqual(Mina.accountCreationFee().toConstant()),
+      amount.greaterThanOrEqual(
+        Mina.getNetworkConstants().accountCreationFee.toConstant()
+      ),
       "Minimum withdrawal amount not met"
     );
     assert(

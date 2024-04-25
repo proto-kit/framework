@@ -15,8 +15,8 @@ import {
   Balances,
   BalancesKey,
   TokenId,
-  VanillaRuntimeModules,
-  UInt64
+  Balance,
+  UInt64,
 } from "@proto-kit/library";
 import { log } from "@proto-kit/common";
 
@@ -53,7 +53,9 @@ class CustomBalances extends Balances<BalancesConfig> {
     const totalSupply = this.totalSupply.get();
 
     // TODO Fix UInt issues to remove new UInt()
-    const newTotalSupply = UInt64.Unsafe.fromField(totalSupply.value.value).add(balance);
+    const newTotalSupply = UInt64.Unsafe.fromField(totalSupply.value.value).add(
+      balance
+    );
     const isSupplyNotOverflown = newTotalSupply.lessThanOrEqual(
       this.config.totalSupply
     );
@@ -72,8 +74,7 @@ class CustomBalances extends Balances<BalancesConfig> {
       new BalancesKey({ tokenId: TokenId.from(0n), address })
     );
 
-    // TODO Fix UInt issues to remove new UInt()
-    const newBalance = UInt64.Unsafe.fromField(currentBalance.value.value).add(balance);
+    const newBalance = currentBalance.value.add(Balance.from(balance));
 
     this.balances.set(
       new BalancesKey({ tokenId: TokenId.from(0n), address }),

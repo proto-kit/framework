@@ -93,7 +93,8 @@ export class Balance extends RuntimeModule<object> {
 
     assert(
       blockHeight.equals(this.network.block.height),
-      () => `Blockheight not matching ${blockHeight.toString()} !== ${this.network.block.height.toString()}`
+      () =>
+        `Blockheight not matching ${blockHeight.toString()} !== ${this.network.block.height.toString()}`
     );
 
     const newBalance = balance.value.add(value);

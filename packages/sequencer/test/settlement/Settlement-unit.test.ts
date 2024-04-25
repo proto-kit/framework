@@ -1,11 +1,11 @@
-import { Actions } from "o1js/dist/node/lib/account_update";
 import { expect } from "@jest/globals";
 import {
   ACTIONS_EMPTY_HASH,
-  Deposit, MINA_EVENT_PREFIXES,
+  Deposit,
+  MINA_EVENT_PREFIXES,
   MinaActions,
   MinaPrefixedProvableHashList,
-  RuntimeTransaction
+  RuntimeTransaction,
 } from "@proto-kit/protocol";
 import { AccountUpdate, Field, Mina, Poseidon, PrivateKey, UInt64 } from "o1js";
 import { EMPTY_PUBLICKEY, hashWithPrefix } from "@proto-kit/common";
@@ -13,8 +13,8 @@ import { MessageStorage } from "../../src";
 
 describe("Settlement unit tests", () => {
   it("", () => {
-    expect(1).toBe(1)
-  })
+    expect(1).toBe(1);
+  });
   // TODO Add in again
   // it.skip("should produce equal commitments for the actions hash", async () => {
   //   const empty = Actions.emptyActionState();
@@ -68,7 +68,7 @@ describe("Settlement unit tests", () => {
   //
   //   const tx2 = await Mina.transaction(
   //     { sender: userKey.toPublicKey(), fee: 0.01 * 1e9 },
-  //     () => {
+  //     async () => {
   //       const subAU = AccountUpdate.createSigned(userKey.toPublicKey());
   //       subAU.balance.subInPlace(UInt64.from(100));
   //
@@ -139,5 +139,4 @@ describe("Settlement unit tests", () => {
   //
   //   expect(block).toBeDefined();
   // });
-
-})
+});

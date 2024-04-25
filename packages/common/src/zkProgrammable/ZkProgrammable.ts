@@ -1,4 +1,11 @@
-import { Experimental, FlexibleProvablePure, Proof } from "o1js";
+import {
+  Field,
+  FlexibleProvablePure,
+  Poseidon,
+  Proof,
+  Encoding,
+  ZkProgram,
+} from "o1js";
 import { Memoize } from "typescript-memoize";
 
 import { MOCK_PROOF } from "./provableMethod";
@@ -9,7 +16,10 @@ const errors = {
 };
 
 export interface CompileArtifact {
-  verificationKey: string;
+  verificationKey: {
+    data: string;
+    hash: Field;
+  };
 }
 
 export interface AreProofsEnabled {
@@ -29,7 +39,7 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   compile: Compile;
   verify: Verify<PublicInput, PublicOutput>;
   Proof: ReturnType<
-    typeof Experimental.ZkProgram.Proof<
+    typeof ZkProgram.Proof<
       FlexibleProvablePure<PublicInput>,
       FlexibleProvablePure<PublicOutput>
     >
@@ -46,7 +56,7 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
         ...args: any
       ) => Promise<Proof<PublicInput, PublicOutput>>)
   >;
-  analyzeMethods: ReturnType<typeof Experimental.ZkProgram>["analyzeMethods"];
+  analyzeMethods: ReturnType<typeof ZkProgram>["analyzeMethods"];
 }
 
 export function verifyToMockable<PublicInput, PublicOutput>(
@@ -72,8 +82,10 @@ export function verifyToMockable<PublicInput, PublicOutput>(
   };
 }
 
-export const MOCK_VERIFICATION_KEY = "mock-verification-key";
-
+export const MOCK_VERIFICATION_KEY = {
+  data: "mock-verification-key",
+  hash: Poseidon.hash(Encoding.stringToFields("mock-verification-key")),
+};
 export function compileToMockable(
   compile: Compile,
   { areProofsEnabled }: AreProofsEnabled

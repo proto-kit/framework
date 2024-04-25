@@ -47,7 +47,11 @@ describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
-  let protocol: Protocol<MandatoryProtocolModulesRecord & { ProtocolStateTestHook: typeof ProtocolStateTestHook }>;
+  let protocol: Protocol<
+    MandatoryProtocolModulesRecord & {
+      ProtocolStateTestHook: typeof ProtocolStateTestHook;
+    }
+  >;
   // let protocol: Protocol<VanillaProtocolModulesRecord>;
 
   let appChain: AppChain<any, any, any, any>;
@@ -75,7 +79,7 @@ describe("block production", () => {
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
       modules: VanillaProtocolModules.mandatoryModules({
-        ProtocolStateTestHook
+        ProtocolStateTestHook,
       }),
       // modules: VanillaProtocolModules.with({}),
     });
@@ -94,9 +98,7 @@ describe("block production", () => {
         Mempool: {},
         BlockProducerModule: {},
         UnprovenProducerModule: {},
-        LocalTaskWorkerModule: {
-
-        },
+        LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
       },

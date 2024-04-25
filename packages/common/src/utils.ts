@@ -77,7 +77,7 @@ let encoder = new TextEncoder();
 
 // Copied from o1js binable.ts:317
 export function prefixToField(prefix: string): Field {
-  let fieldSize = Field.sizeInBytes();
+  let fieldSize = Field.sizeInBytes;
   if (prefix.length >= fieldSize) throw Error("prefix too long");
   let stringBytes = [...encoder.encode(prefix)];
   return Field.fromBytes(

@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-assignment,max-lines */
-import { Experimental } from "o1js";
+import { ZkProgram } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
@@ -12,6 +12,7 @@ import {
   PlainZkProgram,
   AreProofsEnabled,
   ChildContainerProvider,
+  ArgumentTypes,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -178,12 +179,31 @@ export class RuntimeZkProgrammable<
       Object.entries(runtimeMethods).sort()
     );
 
-    const program = Experimental.ZkProgram({
+    const asyncWrappedRuntimeMethods = Object.keys(
+      sortedRuntimeMethods
+    ).reduce<{
+      [k: string]: {
+        privateInputs: any;
+        method: (...args: ArgumentTypes) => Promise<MethodPublicOutput>;
+      };
+    }>((wrappedMethods, methodName) => {
+      wrappedMethods[methodName] = {
+        privateInputs: sortedRuntimeMethods[methodName].privateInputs,
+        method: async (...args: ArgumentTypes) => {
+          const { method, privateInputs } = sortedRuntimeMethods[methodName];
+          return method.apply(this, args);
+        },
+      };
+      return wrappedMethods;
+    }, {});
+
+    const program = ZkProgram({
+      name: "Runtime",
       publicOutput: MethodPublicOutput,
-      methods: sortedRuntimeMethods,
+      methods: asyncWrappedRuntimeMethods,
     });
 
-    const SelfProof = Experimental.ZkProgram.Proof(program);
+    const SelfProof = ZkProgram.Proof(program);
 
     const methods = Object.keys(sortedRuntimeMethods).reduce<
       Record<string, any>
@@ -222,7 +242,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   }
 
   // runtime modules composed into a ZkProgram
-  public program?: ReturnType<typeof Experimental.ZkProgram>;
+  public program?: ReturnType<typeof ZkProgram>;
 
   public definition: RuntimeDefinition<Modules>;
 

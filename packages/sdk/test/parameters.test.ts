@@ -10,7 +10,7 @@ import {
   Signature,
   MerkleMap,
   MerkleMapWitness,
-  Experimental,
+  ZkProgram,
   PublicKey,
 } from "o1js";
 import {
@@ -22,9 +22,6 @@ import {
 import { TestingAppChain } from "../src/index";
 import { log } from "@proto-kit/common";
 import { assert, State, StateMap } from "@proto-kit/protocol";
-import { dummyBase64Proof } from "o1js/dist/node/lib/proof_system";
-
-import { Pickles } from "o1js/dist/node/snarky";
 
 class TestStruct extends Struct({
   foo: Field,
@@ -44,10 +41,11 @@ class Ballot extends Struct({
 const map = new MerkleMap();
 const witness = map.getWitness(Field(0));
 
-function foo(publicInput: Field) {
+async function foo(publicInput: Field) {
   return Field(0);
 }
-const program = Experimental.ZkProgram({
+const program = ZkProgram({
+  name: "testProgram",
   publicOutput: Field,
   publicInput: Field,
 
@@ -60,15 +58,9 @@ const program = Experimental.ZkProgram({
   },
 });
 
-class ProgramProof extends Experimental.ZkProgram.Proof(program) {}
+class ProgramProof extends ZkProgram.Proof(program) {}
 
-const [, dummy] = Pickles.proofOfBase64(await dummyBase64Proof(), 2);
-const proof = new ProgramProof({
-  proof: dummy,
-  publicOutput: Field(0),
-  publicInput: Field(0),
-  maxProofsVerified: 2,
-});
+const proof = await ProgramProof.dummy(Field(0), Field(0), 2);
 
 @runtimeModule()
 class TestRuntime extends RuntimeModule<unknown> {

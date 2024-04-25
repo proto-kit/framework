@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import {
   Bool,
-  Experimental,
+  ZkProgram,
   Field,
   Poseidon,
   type Proof,
@@ -757,7 +757,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const proveTransaction = prover.proveTransaction.bind(prover);
     const merge = prover.merge.bind(prover);
 
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "BlockZkProgram",
       publicInput: BlockProverPublicInput,
       publicOutput: BlockProverPublicOutput,
 
@@ -769,7 +770,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             BlockProverExecutionData,
           ],
 
-          method(
+          async method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
             appProof: Proof<void, MethodPublicOutput>,
@@ -790,7 +791,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             SelfProof<BlockProverPublicInput, BlockProverPublicOutput>,
           ],
 
-          method(
+          async method(
             publicInput: BlockProverPublicInput,
             proof1: BlockProverProof,
             proof2: BlockProverProof
@@ -806,7 +807,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       merge: program.merge,
     };
 
-    const SelfProofClass = Experimental.ZkProgram.Proof(program);
+    const SelfProofClass = ZkProgram.Proof(program);
 
     return {
       compile: program.compile.bind(program),

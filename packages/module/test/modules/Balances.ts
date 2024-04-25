@@ -6,8 +6,7 @@ import { RuntimeModule, runtimeMethod, runtimeModule, state } from "../../src";
 
 import { Admin } from "./Admin.js";
 
-interface BalancesConfig {
-}
+interface BalancesConfig {}
 
 @runtimeModule()
 export class Balances extends RuntimeModule<BalancesConfig> {

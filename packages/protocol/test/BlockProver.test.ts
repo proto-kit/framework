@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Bool, Experimental, Field, PrivateKey, Proof, UInt64 } from "o1js";
+import { Bool, ZkProgram, Field, PrivateKey, Proof, UInt64 } from "o1js";
 
 import {
   BlockProver,
@@ -17,7 +17,6 @@ import {
   WithZkProgrammable,
   ZkProgrammable,
 } from "@proto-kit/common";
-import ZkProgram = Experimental.ZkProgram;
 import { UnsignedTransaction } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 import {
@@ -30,7 +29,8 @@ import {
   ProvableStateTransition,
   RuntimeTransaction,
   StateTransitionProver,
-  AccountStateHook, ProvableBlockHook
+  AccountStateHook,
+  ProvableBlockHook,
 } from "../src";
 import { createAndInitTestingProtocol } from "./TestingProtocol";
 
@@ -56,7 +56,8 @@ class RuntimeZkProgrammable extends ZkProgrammable<
   }
 
   zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "blockProverProgram",
       publicOutput: MethodPublicOutput,
       methods: {},
     });
@@ -77,8 +78,8 @@ describe("blockProver", () => {
       height: UInt64.zero,
     },
     previous: {
-      rootHash: Field(0)
-    }
+      rootHash: Field(0),
+    },
   });
 
   const protocol = createAndInitTestingProtocol();
@@ -91,8 +92,7 @@ describe("blockProver", () => {
     tx: SignedTransaction,
     networkState: NetworkState
   ): BlockProverProofPair {
-    const transactionHash =
-      tx.transaction.hash();
+    const transactionHash = tx.transaction.hash();
     const sthash = Field(123);
 
     const appProof = new Proof<undefined, MethodPublicOutput>({
@@ -134,8 +134,8 @@ describe("blockProver", () => {
   }
 
   it("dummy", () => {
-    expect(1).toBe(1)
-  })
+    expect(1).toBe(1);
+  });
 
   // TODO
   // it("previously applied transaction should also pass with derived publicInputs", () => {

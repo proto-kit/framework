@@ -1,9 +1,11 @@
 import "reflect-metadata";
 import { Bool, Field, PublicKey, UInt64 } from "o1js";
 import {
-  NetworkState, PublicKeyOption,
+  NetworkState,
+  PublicKeyOption,
   RuntimeMethodExecutionContext,
-  RuntimeTransaction, UInt64Option
+  RuntimeTransaction,
+  UInt64Option,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { AreProofsEnabled, log } from "@proto-kit/common";
@@ -67,11 +69,6 @@ describe("runtimeMethod", () => {
 
     const module = runtime.resolve("Balances");
     module.getBalance(PublicKey.empty());
-
-    context.setup({
-      transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
-    });
 
     await expect(context.current().result.prover!()).rejects.toThrow(
       "Runtimemethod called with wrong methodId on the transaction object"
