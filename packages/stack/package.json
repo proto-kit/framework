@@ -26,7 +26,7 @@
     "@proto-kit/sdk": "*",
     "@proto-kit/api": "*",
     "@proto-kit/persistance": "*",
-    "o1js": "0.13.1",
+    "o1js": "1.0.1",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

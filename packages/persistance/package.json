@@ -30,7 +30,7 @@
     "reflect-metadata": "^0.1.13"
   },
   "peerDependencies": {
-    "o1js": "0.13.1",
+    "o1js": "1.0.1",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {
