@@ -49,7 +49,7 @@ describe("balances", () => {
       },
       {
         Admin: {
-          publicKey: PublicKey.empty().toBase58(),
+          publicKey: PublicKey.empty<typeof PublicKey>().toBase58(),
         },
 
         Balances: {},

@@ -1,5 +1,5 @@
 import { PublicKey, UInt64 } from "o1js";
-import { Option, State, StateMap } from "@proto-kit/protocol";
+import { State, StateMap } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 
 import { RuntimeModule, runtimeMethod, runtimeModule, state } from "../../src";
@@ -39,8 +39,8 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   }
 
   @runtimeMethod()
-  public getBalance(address: PublicKey): Option<UInt64> {
-    return this.balances.get(address);
+  public getBalance(address: PublicKey) {
+    this.balances.get(address).orElse(UInt64.zero);
   }
 
   @runtimeMethod()

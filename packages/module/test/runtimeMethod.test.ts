@@ -8,14 +8,13 @@ import {
 import { container } from "tsyringe";
 import { AreProofsEnabled, log } from "@proto-kit/common";
 
-import { Runtime } from "../src";
-import { MethodParameterEncoder } from "../src/method/MethodParameterEncoder";
+import { Runtime, MethodParameterEncoder } from "../src";
 
 import { Balances } from "./modules/Balances";
 import { createTestingRuntime } from "./TestingRuntime";
 
 describe("runtimeMethod", () => {
-  const parameters = [PublicKey.empty()];
+  const parameters = [PublicKey.empty<typeof PublicKey>()];
 
   let runtime: Runtime<{ Balances: typeof Balances }>;
 
@@ -65,7 +64,7 @@ describe("runtimeMethod", () => {
     });
 
     const module = runtime.resolve("Balances");
-    module.getBalance(PublicKey.empty());
+    module.getBalance(PublicKey.empty<typeof PublicKey>());
 
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),

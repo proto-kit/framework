@@ -13,7 +13,7 @@ interface AdminConfig {
 export class Admin extends RuntimeModule<AdminConfig> {
   @runtimeMethod()
   public isAdmin(publicKey: PublicKey) {
-    const admin = PublicKey.empty().toConstant();
+    const admin = PublicKey.empty<typeof PublicKey>().toConstant();
     assert(admin.equals(publicKey));
   }
 }

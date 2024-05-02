@@ -71,7 +71,7 @@ export class DispatchSmartContract
     this.honoredMessagesHash.getAndRequireEquals().assertEquals(Field(0));
     this.settlementContract
       .getAndRequireEquals()
-      .assertEquals(PublicKey.empty());
+      .assertEquals(PublicKey.empty<typeof PublicKey>());
 
     this.promisedMessagesHash.set(ACTIONS_EMPTY_HASH);
     this.honoredMessagesHash.set(ACTIONS_EMPTY_HASH);
