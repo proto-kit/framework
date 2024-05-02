@@ -16,6 +16,8 @@ import {
   TokenId,
   UInt32,
   UInt64,
+  TokenContract,
+  AccountUpdateForest,
 } from "o1js";
 
 import { NetworkState } from "../../model/network/NetworkState";
@@ -72,7 +74,7 @@ export interface SettlementContractType {
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
 export class SettlementSmartContract
-  extends SmartContract
+  extends TokenContract
   implements SettlementContractType
 {
   // This pattern of injecting args into a smartcontract is currently the only
@@ -95,13 +97,17 @@ export class SettlementSmartContract
 
   @state(Field) public outgoingMessageCursor = State<Field>();
 
+  @method async approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
+  }
+
   @method
-  public initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
-    this.sequencerKey.getAndAssertEquals().assertEquals(Field(0));
-    this.stateRoot.getAndAssertEquals().assertEquals(Field(0));
-    this.blockHashRoot.getAndAssertEquals().assertEquals(Field(0));
-    this.networkStateHash.getAndAssertEquals().assertEquals(Field(0));
-    this.dispatchContractAddressX.getAndAssertEquals().assertEquals(Field(0));
+  public async initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
+    this.sequencerKey.getAndRequireEquals().assertEquals(Field(0));
+    this.stateRoot.getAndRequireEquals().assertEquals(Field(0));
+    this.blockHashRoot.getAndRequireEquals().assertEquals(Field(0));
+    this.networkStateHash.getAndRequireEquals().assertEquals(Field(0));
+    this.dispatchContractAddressX.getAndRequireEquals().assertEquals(Field(0));
 
     this.sequencerKey.set(sequencer.x);
     this.stateRoot.set(Field(RollupMerkleTree.EMPTY_ROOT));
@@ -114,7 +120,7 @@ export class SettlementSmartContract
   }
 
   @method
-  public settle(
+  public async settle(
     blockProof: LazyBlockProof,
     signature: Signature,
     dispatchContractAddress: PublicKey,
@@ -127,14 +133,14 @@ export class SettlementSmartContract
     blockProof.verify();
 
     // Get and assert on-chain values
-    const stateRoot = this.stateRoot.getAndAssertEquals();
-    const networkStateHash = this.networkStateHash.getAndAssertEquals();
-    const blockHashRoot = this.blockHashRoot.getAndAssertEquals();
-    const sequencerKey = this.sequencerKey.getAndAssertEquals();
+    const stateRoot = this.stateRoot.getAndRequireEquals();
+    const networkStateHash = this.networkStateHash.getAndRequireEquals();
+    const blockHashRoot = this.blockHashRoot.getAndRequireEquals();
+    const sequencerKey = this.sequencerKey.getAndRequireEquals();
     const lastSettlementL1Block =
-      this.lastSettlementL1Block.getAndAssertEquals();
+      this.lastSettlementL1Block.getAndRequireEquals();
     const onChainDispatchContractAddressX =
-      this.dispatchContractAddressX.getAndAssertEquals();
+      this.dispatchContractAddressX.getAndRequireEquals();
 
     onChainDispatchContractAddressX.assertEquals(
       dispatchContractAddress.x,
@@ -152,7 +158,7 @@ export class SettlementSmartContract
 
     // Get block height and use the lower bound for all ops
     const minBlockIncluded = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.assertBetween(
+    this.network.globalSlotSinceGenesis.requireBetween(
       minBlockIncluded,
       // 5 because that is the length the newPromisedMessagesHash will be valid
       minBlockIncluded.add(4)
@@ -257,9 +263,9 @@ export class SettlementSmartContract
   }
 
   @method
-  public rollupOutgoingMessages(batch: OutgoingMessageArgumentBatch) {
-    let counter = this.outgoingMessageCursor.getAndAssertEquals();
-    const stateRoot = this.stateRoot.getAndAssertEquals();
+  public async rollupOutgoingMessages(batch: OutgoingMessageArgumentBatch) {
+    let counter = this.outgoingMessageCursor.getAndRequireEquals();
+    const stateRoot = this.stateRoot.getAndRequireEquals();
 
     const [withdrawalModule, withdrawalStateName] =
       SettlementSmartContract.args.withdrawalStatePath;
@@ -285,13 +291,13 @@ export class SettlementSmartContract
       const { address, amount } = args.value;
       const isDummy = address.equals(this.address);
 
-      const tokenAu = this.token.mint({ address, amount });
-      const isNewAccount = tokenAu.account.isNew.getAndAssertEquals();
+      const tokenAu = this.internal.mint({ address, amount });
+      const isNewAccount = tokenAu.account.isNew.getAndRequireEquals();
       tokenAu.body.balanceChange.magnitude =
         tokenAu.body.balanceChange.magnitude.sub(
           Provable.if(
             isNewAccount,
-            Mina.accountCreationFee().toConstant(),
+            Mina.getNetworkConstants().accountCreationFee.toConstant(),
             UInt64.zero
           )
         );
@@ -303,13 +309,13 @@ export class SettlementSmartContract
       counter = counter.add(Provable.if(isDummy, Field(0), Field(1)));
     }
 
-    this.balance.subInPlace(UInt64.from(accountCreationFeePaid));
+    this.balance.subInPlace(UInt64.Unsafe.fromField(accountCreationFeePaid));
 
     this.outgoingMessageCursor.set(counter);
   }
 
   @method
-  public redeem(additionUpdate: AccountUpdate) {
+  public async redeem(additionUpdate: AccountUpdate) {
     additionUpdate.body.tokenId.assertEquals(
       TokenId.default,
       "Tokenid not default token"
@@ -320,7 +326,7 @@ export class SettlementSmartContract
     const amount = additionUpdate.body.balanceChange.magnitude;
 
     // Burn tokens
-    this.token.burn({
+    this.internal.burn({
       address: additionUpdate.publicKey,
       amount,
     });

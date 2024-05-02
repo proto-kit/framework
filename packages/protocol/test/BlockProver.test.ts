@@ -4,18 +4,18 @@ import {
   PlainZkProgram,
   ZkProgrammable,
 } from "@proto-kit/common";
-import { Bool, Experimental, Field, Proof, UInt64 } from "o1js";
+import { Bool, Field, Proof, UInt64, ZkProgram } from "o1js";
 import "reflect-metadata";
 
-import { MethodPublicOutput, NetworkState, SignedTransaction } from "../src";
 import {
+  MethodPublicOutput,
+  NetworkState,
+  SignedTransaction,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
-} from "../src/prover/statetransition/StateTransitionProvable";
+} from "../src";
 
 import { createAndInitTestingProtocol } from "./TestingProtocol";
-
-import ZkProgram = Experimental.ZkProgram;
 
 type BlockProverProofPair = [
   Proof<void, MethodPublicOutput>,
@@ -39,7 +39,8 @@ class RuntimeZkProgrammable extends ZkProgrammable<
   }
 
   zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "BlockProverTestProgram",
       publicOutput: MethodPublicOutput,
       methods: {},
     });

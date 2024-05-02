@@ -34,7 +34,7 @@ export function notInCircuit(): MethodDecorator {
 }
 
 export function stringToField(value: string) {
-  const fieldSize = Field.sizeInBytes() - 1;
+  const fieldSize = Field.sizeInBytes - 1;
 
   // Encode string as byte[]
   const encoder = new TextEncoder();

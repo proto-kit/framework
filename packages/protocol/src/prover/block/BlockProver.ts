@@ -1,11 +1,11 @@
 import {
   Bool,
-  Experimental,
   Field,
   Poseidon,
   type Proof,
   Provable,
   SelfProof,
+  ZkProgram,
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
@@ -381,12 +381,12 @@ export class BlockProverProgrammable extends ZkProgrammable<
   }
 
   @provableMethod()
-  public proveTransaction(
+  public async proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
     runtimeProof: RuntimeProof,
     executionData: BlockProverExecutionData
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     const state: BlockProverState = {
       ...publicInput,
     };
@@ -437,13 +437,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
   }
 
   @provableMethod()
-  public proveBlock(
+  public async proveBlock(
     publicInput: BlockProverPublicInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
     transactionProof: BlockProverProof
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     const state: BlockProverState = {
       ...publicInput,
     };
@@ -605,11 +605,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
   }
 
   @provableMethod()
-  public merge(
+  public async merge(
     publicInput: BlockProverPublicInput,
     proof1: BlockProverProof,
     proof2: BlockProverProof
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     proof1.verify();
     proof2.verify();
 
@@ -751,9 +751,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const RuntimeProofClass = runtime.zkProgram.Proof;
 
     const proveTransaction = prover.proveTransaction.bind(prover);
+    const proveBlock = prover.proveBlock.bind(prover);
     const merge = prover.merge.bind(prover);
 
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "BlockProver",
       publicInput: BlockProverPublicInput,
       publicOutput: BlockProverPublicOutput,
 
@@ -765,17 +767,41 @@ export class BlockProverProgrammable extends ZkProgrammable<
             BlockProverExecutionData,
           ],
 
-          method(
+          async method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
             appProof: Proof<void, MethodPublicOutput>,
             executionData: BlockProverExecutionData
           ) {
-            return proveTransaction(
+            return await proveTransaction(
               publicInput,
               stateProof,
               appProof,
               executionData
+            );
+          },
+        },
+
+        proveBlock: {
+          privateInputs: [
+            NetworkState,
+            BlockHashMerkleTreeWitness,
+            StateTransitionProofClass,
+            SelfProof<BlockProverPublicInput, BlockProverPublicOutput>,
+          ],
+          async method(
+            publicInput: BlockProverPublicInput,
+            networkState: NetworkState,
+            blockWitness: BlockHashMerkleTreeWitness,
+            stateTransitionProof: StateTransitionProof,
+            transactionProof: BlockProverProof
+          ) {
+            return await proveBlock(
+              publicInput,
+              networkState,
+              blockWitness,
+              stateTransitionProof,
+              transactionProof
             );
           },
         },
@@ -786,12 +812,12 @@ export class BlockProverProgrammable extends ZkProgrammable<
             SelfProof<BlockProverPublicInput, BlockProverPublicOutput>,
           ],
 
-          method(
+          async method(
             publicInput: BlockProverPublicInput,
             proof1: BlockProverProof,
             proof2: BlockProverProof
           ) {
-            return merge(publicInput, proof1, proof2);
+            return await merge(publicInput, proof1, proof2);
           },
         },
       },
@@ -802,7 +828,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       merge: program.merge,
     };
 
-    const SelfProofClass = Experimental.ZkProgram.Proof(program);
+    const SelfProofClass = ZkProgram.Proof(program);
 
     return {
       compile: program.compile.bind(program),
@@ -851,7 +877,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     stateProof: StateTransitionProof,
     appProof: Proof<void, MethodPublicOutput>,
     executionData: BlockProverExecutionData
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveTransaction(
       publicInput,
       stateProof,
@@ -866,7 +892,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
     transactionProof: BlockProverProof
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveBlock(
       publicInput,
       networkState,
@@ -880,7 +906,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     publicInput: BlockProverPublicInput,
     proof1: BlockProverProof,
     proof2: BlockProverProof
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.merge(publicInput, proof1, proof2);
   }
 }

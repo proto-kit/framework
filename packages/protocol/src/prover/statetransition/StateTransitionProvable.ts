@@ -34,11 +34,11 @@ export interface StateTransitionProvable
   runBatch: (
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
-  ) => StateTransitionProverPublicOutput;
+  ) => Promise<StateTransitionProverPublicOutput>;
 
   merge: (
     publicInput: StateTransitionProverPublicInput,
     proof1: StateTransitionProof,
     proof2: StateTransitionProof
-  ) => StateTransitionProverPublicOutput;
+  ) => Promise<StateTransitionProverPublicOutput>;
 }

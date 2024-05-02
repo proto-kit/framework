@@ -23,8 +23,8 @@ export class RuntimeTransaction extends Struct({
     return new RuntimeTransaction({
       methodId: input.methodId,
       argsHash: input.argsHash,
-      nonce: UInt64Option.fromValue(input.nonce),
-      sender: PublicKeyOption.fromValue(input.sender),
+      nonce: UInt64Option.fromSome(input.nonce),
+      sender: PublicKeyOption.fromSome(input.sender),
     });
   }
 
