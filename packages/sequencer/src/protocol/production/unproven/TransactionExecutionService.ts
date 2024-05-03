@@ -46,6 +46,7 @@ import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import type { StateRecord } from "../BlockProducerModule";
 
 import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
+import { PrivateMempool } from "../../../mempool/private/PrivateMempool";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -70,7 +71,9 @@ export class TransactionExecutionService {
     private readonly executionContext: RuntimeMethodExecutionContext,
     // Coming in from the appchain scope (accessible by protocol & runtime)
     @inject("StateServiceProvider")
-    private readonly stateServiceProvider: StateServiceProvider
+    private readonly stateServiceProvider: StateServiceProvider,
+    @inject("Mempool")
+    private readonly mempool: PrivateMempool
   ) {
     this.transactionHooks = protocol.dependencyContainer.resolveAll(
       "ProvableTransactionHook"
@@ -271,6 +274,8 @@ export class TransactionExecutionService {
         if (error instanceof Error) {
           log.error("Error in inclusion of tx, skipping", error);
         }
+        // eslint-disable-next-line no-await-in-loop
+        await this.mempool.remove(tx.hash().toString());
       }
     }
 

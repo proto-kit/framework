@@ -34,6 +34,10 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     throw new Error(`Validation of tx failed: ${error ?? "unknown error"}`);
   }
 
+  public async remove(hash: string): Promise<boolean> {
+    return await this.transactionStorage.removeUserTransaction(hash);
+  }
+
   public async getTxs(): Promise<PendingTransaction[]> {
     return await this.transactionStorage.getPendingUserTransactions();
   }
