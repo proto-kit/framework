@@ -55,6 +55,15 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     return notInQueue;
   }
 
+  public async removeUserTransaction(hash: string) {
+    const index = this.queue.findIndex((tx) => tx.hash().toString() === hash);
+    if (index > -1) {
+      this.queue.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
   private async findBatch(block: string): Promise<number | undefined> {
     const tipHeight = await this.batchStorage.getCurrentBlockHeight();
 

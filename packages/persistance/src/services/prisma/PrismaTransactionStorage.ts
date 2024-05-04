@@ -39,6 +39,17 @@ export class PrismaTransactionStorage implements TransactionStorage {
     return result.count === 1;
   }
 
+  public async removeUserTransaction(hash: string): Promise<boolean> {
+    const { prismaClient } = this.connection;
+
+    const result = await prismaClient.transaction.delete({
+      where: {
+        hash,
+      },
+    });
+    return result !== undefined;
+  }
+
   public async findTransaction(hash: string): Promise<
     | {
         transaction: PendingTransaction;
