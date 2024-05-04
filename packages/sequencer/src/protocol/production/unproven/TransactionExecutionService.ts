@@ -236,9 +236,9 @@ export class TransactionExecutionService {
     );
 
     // Get used networkState by executing beforeBlock() hooks
-    const networkState = this.blockHooks.reduce<NetworkState>(
-      (reduceNetworkState, hook) =>
-        hook.beforeBlock(reduceNetworkState, {
+    const networkState = await this.blockHooks.reduce<Promise<NetworkState>>(
+      async (reduceNetworkState, hook) =>
+        await hook.beforeBlock(await reduceNetworkState, {
           blockHashRoot: Field(lastMetadata.blockHashRoot),
           eternalTransactionsHash: lastBlock.toEternalTransactionsHash,
           stateRoot: Field(lastMetadata.stateRoot),
@@ -246,7 +246,7 @@ export class TransactionExecutionService {
           networkStateHash: lastMetadata.afterNetworkState.hash(),
           incomingMessagesHash: lastBlock.toMessagesHash,
         }),
-      lastMetadata.afterNetworkState
+      Promise.resolve(lastMetadata.afterNetworkState)
     );
 
     for (const [, tx] of transactions.entries()) {
@@ -375,9 +375,12 @@ export class TransactionExecutionService {
       transaction: RuntimeTransaction.dummyTransaction(),
     });
 
-    const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
-      (networkState, hook) => hook.afterBlock(networkState, state),
-      block.networkState.during
+    const resultingNetworkState = await this.blockHooks.reduce<
+      Promise<NetworkState>
+    >(
+      async (networkState, hook) =>
+        await hook.afterBlock(await networkState, state),
+      Promise.resolve(block.networkState.during)
     );
 
     const { stateTransitions } = this.executionContext.result;

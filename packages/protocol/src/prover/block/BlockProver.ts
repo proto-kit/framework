@@ -147,7 +147,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
    * @param executionData
    * @returns The new BlockProver-state to be used as public output
    */
-  public applyTransaction(
+  public async applyTransaction(
     state: BlockProverState,
     stateTransitionProof: Proof<
       StateTransitionProverPublicInput,
@@ -155,7 +155,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     >,
     runtimeProof: RuntimeProof,
     executionData: BlockProverExecutionData
-  ): BlockProverState {
+  ): Promise<BlockProverState> {
     const { transaction, networkState, signature } = executionData;
 
     const { isMessage } = runtimeProof.publicOutput;
@@ -191,7 +191,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
 
     // Apply protocol state transitions
-    this.assertProtocolTransitions(
+    await this.assertProtocolTransitions(
       stateTransitionProof,
       executionData,
       runtimeProof
@@ -240,7 +240,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
   // eslint-disable-next-line max-len
   // TODO How does this interact with the RuntimeMethodExecutionContext when executing runtimemethods?
 
-  public assertProtocolTransitions(
+  public async assertProtocolTransitions(
     stateTransitionProof: Proof<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
@@ -261,9 +261,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
     });
     executionContext.beforeMethod("", "", []);
 
-    this.transactionHooks.forEach((module) => {
-      module.onTransaction(executionData);
-    });
+    for (const module of this.transactionHooks) {
+      // eslint-disable-next-line no-await-in-loop
+      await module.onTransaction(executionData);
+    }
 
     executionContext.afterMethod();
 
@@ -291,38 +292,38 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
   }
 
-  private executeBlockHooks(
+  private async executeBlockHooks(
     state: BlockProverState,
     inputNetworkState: NetworkState,
     type: "afterBlock" | "beforeBlock"
-  ): {
+  ): Promise<{
     networkState: NetworkState;
     stateTransitions: StateTransition<unknown>[];
-  } {
+  }> {
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.clear();
     executionContext.beforeMethod("", "", []);
 
-    const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
-      (networkState, blockHook) => {
-        // Setup context for potential calls to runtime methods.
-        // With the special case that we set the new networkstate for every hook
-        // We also have to put in a dummy transaction for network.transaction
-        executionContext.setup({
-          transaction: RuntimeTransaction.dummyTransaction(),
-          networkState,
-        });
+    const resultingNetworkState = await this.blockHooks.reduce<
+      Promise<NetworkState>
+    >(async (networkStatePromise, blockHook) => {
+      const networkState = await networkStatePromise;
+      // Setup context for potential calls to runtime methods.
+      // With the special case that we set the new networkstate for every hook
+      // We also have to put in a dummy transaction for network.transaction
+      executionContext.setup({
+        transaction: RuntimeTransaction.dummyTransaction(),
+        networkState,
+      });
 
-        if (type === "beforeBlock") {
-          return blockHook.beforeBlock(networkState, state);
-        }
-        if (type === "afterBlock") {
-          return blockHook.afterBlock(networkState, state);
-        }
-        throw new Error("Unreachable");
-      },
-      inputNetworkState
-    );
+      if (type === "beforeBlock") {
+        return await blockHook.beforeBlock(networkState, state);
+      }
+      if (type === "afterBlock") {
+        return await blockHook.afterBlock(networkState, state);
+      }
+      throw new Error("Unreachable");
+    }, Promise.resolve(inputNetworkState));
 
     executionContext.afterMethod();
 
@@ -402,7 +403,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       executionData.transaction
     );
 
-    const stateTo = this.applyTransaction(
+    const stateTo = await this.applyTransaction(
       bundleInclusionState,
       stateProof,
       runtimeProof,
@@ -503,7 +504,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     transactionProof.verifyIf(verifyTransactionProof);
 
     // 2. Execute beforeBlock hooks
-    const beforeBlockResult = this.executeBlockHooks(
+    const beforeBlockResult = await this.executeBlockHooks(
       state,
       networkState,
       "beforeBlock"
@@ -551,7 +552,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // 5. Execute afterBlock hooks
     this.assertSTProofInput(stateTransitionProof, state.stateRoot);
 
-    const afterBlockResult = this.executeBlockHooks(
+    const afterBlockResult = await this.executeBlockHooks(
       state,
       beforeBlockResult.networkState,
       "afterBlock"

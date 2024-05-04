@@ -18,8 +18,6 @@ import {
   UInt64,
   TokenContract,
   AccountUpdateForest,
-  DeployArgs,
-  Permissions,
 } from "o1js";
 
 import { NetworkState } from "../../model/network/NetworkState";
@@ -107,14 +105,6 @@ export class SettlementSmartContract
   @method async approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
   }
-
-  // public async deploy(args?: DeployArgs): Promise<void> {
-  //   await super.deploy(args);
-  //   this.account.permissions.set({
-  //     ...Permissions.default(),
-  //     access: Permissions.none(),
-  //   });
-  // }
 
   @method
   public async initialize(sequencer: PublicKey, dispatchContract: PublicKey) {

@@ -10,10 +10,10 @@ export abstract class ProvableBlockHook<
   public abstract beforeBlock(
     networkState: NetworkState,
     state: BlockProverState
-  ): NetworkState;
+  ): Promise<NetworkState>;
 
   public abstract afterBlock(
     networkState: NetworkState,
     state: BlockProverState
-  ): NetworkState;
+  ): Promise<NetworkState>;
 }

@@ -7,13 +7,13 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
 } from "@proto-kit/protocol";
+import { expectDefined } from "@proto-kit/common";
 
 import { Runtime } from "../../src";
 import { createTestingRuntime } from "../TestingRuntime";
 
 import { Admin } from "./Admin";
 import { Balances } from "./Balances";
-import { expectDefined } from "@proto-kit/common";
 
 describe("state", () => {
   let balances: Balances;

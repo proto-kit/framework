@@ -18,7 +18,7 @@ export class AccountStateHook extends ProvableTransactionHook {
     AccountState
   );
 
-  public onTransaction({ transaction }: BlockProverExecutionData): void {
+  public async onTransaction({ transaction }: BlockProverExecutionData) {
     const sender = transaction.sender.value;
 
     const aso = this.accountState.get(sender);

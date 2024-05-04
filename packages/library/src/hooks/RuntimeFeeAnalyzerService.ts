@@ -72,7 +72,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     super();
   }
 
-  public createFeeTree() {
+  public async createFeeTree() {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -83,7 +83,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
       transaction: new RuntimeTransaction({
         methodId: Field(0),
         nonce: UInt64Option.fromSome(O1JSUInt64.zero),
-        sender: PublicKeyOption.fromSome(PublicKey.empty()),
+        sender: PublicKeyOption.fromSome(PublicKey.empty<typeof PublicKey>()),
         argsHash: Field(0),
       }),
 
@@ -100,7 +100,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     // TODO: figure out what side effects analyzeMethods has,
     // and why it breaks runtime execution context with wierd errors
     const analyzedMethods =
-      this.runtime.zkProgrammable.zkProgram.analyzeMethods();
+      await this.runtime.zkProgrammable.zkProgram.analyzeMethods();
 
     container.resolve(RuntimeMethodExecutionContext).clear();
 
@@ -164,16 +164,16 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     return { tree, values, indexes };
   }
 
-  public get feeTree() {
+  public async getFeeTree() {
     if (this.persistedFeeTree === undefined) {
-      this.persistedFeeTree = this.createFeeTree();
+      this.persistedFeeTree = await this.createFeeTree();
     }
 
     return this.persistedFeeTree;
   }
 
-  public getFeeConfig(methodId: bigint) {
-    const feeConfig = this.feeTree.values[methodId.toString()];
+  public async getFeeConfig(methodId: bigint) {
+    const feeConfig = (await this.getFeeTree()).values[methodId.toString()];
 
     return new MethodFeeConfigData({
       methodId: Field(feeConfig.methodId),
@@ -183,13 +183,12 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     });
   }
 
-  public getWitness(methodId: bigint) {
-    return this.feeTree.tree.getWitness(
-      this.feeTree.indexes[methodId.toString()]
-    );
+  public async getWitness(methodId: bigint) {
+    const feeTree = await this.getFeeTree();
+    return feeTree.tree.getWitness(feeTree.indexes[methodId.toString()]);
   }
 
-  public getRoot(): bigint {
-    return this.feeTree.tree.getRoot().toBigInt();
+  public async getRoot(): Promise<bigint> {
+    return (await this.getFeeTree()).tree.getRoot().toBigInt();
   }
 }
