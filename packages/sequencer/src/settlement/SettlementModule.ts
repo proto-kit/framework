@@ -19,6 +19,8 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
+  Transaction,
+  Permissions,
 } from "o1js";
 import { inject } from "tsyringe";
 import {
@@ -146,7 +148,7 @@ export class SettlementModule
   /* eslint-disable no-await-in-loop */
   public async sendRollupTransactions(options: { nonce: number }): Promise<
     {
-      tx: Mina.Transaction;
+      tx: Transaction<false, true>;
     }[]
   > {
     const length = this.outgoingMessageQueue.length();
@@ -154,7 +156,7 @@ export class SettlementModule
     let { nonce } = options;
 
     const txs: {
-      tx: Mina.Transaction;
+      tx: Transaction<false, true>;
     }[] = [];
 
     const { settlement } = this.getContracts();
@@ -191,21 +193,21 @@ export class SettlementModule
           fee: String(0.01 * 1e9),
           memo: "Protokit settle",
         },
-        () => {
-          settlement.rollupOutgoingMessages(
+        async () => {
+          await settlement.rollupOutgoingMessages(
             OutgoingMessageArgumentBatch.fromMessages(transactionParamaters)
           );
         }
       );
 
-      tx.sign([feepayer]);
+      const signedTx = tx.sign([feepayer]);
 
-      await this.transactionSender.proveAndSendTransaction(tx);
+      await this.transactionSender.proveAndSendTransaction(signedTx);
 
       this.outgoingMessageQueue.pop(OUTGOING_MESSAGE_BATCH_SIZE);
 
       txs.push({
-        tx,
+        tx: signedTx,
       });
     }
 
@@ -248,7 +250,7 @@ export class SettlementModule
       actions.messages
     );
 
-    const blockProof = this.blockProofSerializer
+    const blockProof = await this.blockProofSerializer
       .getBlockProofSerializer()
       .fromJSONProof(batch.proof);
 
@@ -259,8 +261,8 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settle",
       },
-      () => {
-        settlement.settle(
+      async () => {
+        await settlement.settle(
           blockProof,
           signature,
           dispatch.address,
@@ -317,21 +319,21 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settlement deploy",
       },
-      () => {
+      async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
-        settlement.deploy({
-          zkappKey: settlementKey,
+        await settlement.deploy({
           verificationKey: undefined,
         });
+        settlement.account.permissions.set({
+          ...Permissions.default(),
+          access: Permissions.none(),
+        });
 
-        dispatch.deploy({
-          zkappKey: dispatchKey,
+        await dispatch.deploy({
           verificationKey: undefined,
         });
       }
-    );
-
-    tx.sign([feepayerKey, settlementKey, dispatchKey]);
+    ).sign([feepayerKey, settlementKey, dispatchKey]);
 
     // This should already apply the tx result to the
     // cached accounts / local blockchain
@@ -344,14 +346,13 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settlement init",
       },
-      () => {
-        settlement.initialize(
+      async () => {
+        await settlement.initialize(
           feepayerKey.toPublicKey(),
           dispatchKey.toPublicKey()
         );
       }
-    );
-    tx2.sign([feepayerKey]);
+    ).sign([feepayerKey]);
 
     await this.transactionSender.proveAndSendTransaction(tx2);
 

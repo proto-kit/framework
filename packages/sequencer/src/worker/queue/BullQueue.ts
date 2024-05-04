@@ -1,7 +1,7 @@
 import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
 import { log } from "@proto-kit/common";
 
-import { TaskPayload } from "../manager/ReducableTask";
+import { TaskPayload } from "../flow/Task";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
 

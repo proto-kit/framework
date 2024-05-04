@@ -5,15 +5,15 @@ import { noop } from "@proto-kit/common";
 import { container } from "tsyringe";
 
 import {
-  JSONTaskSerializer,
   TaskSerializer,
-} from "../../src/worker/manager/ReducableTask";
-import { PairingDerivedInput } from "../../src/worker/manager/PairingMapReduceFlow";
-import { Closeable } from "../../src/worker/queue/TaskQueue";
-import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
-import { Task } from "../../src/worker/flow/Task";
-import { FlowTaskWorker } from "../../src/worker/worker/FlowTaskWorker";
-import { FlowCreator } from "../../src/worker/flow/Flow";
+  Closeable,
+  LocalTaskQueue,
+  Task,
+  FlowTaskWorker,
+  FlowCreator,
+  PairingDerivedInput,
+  JSONTaskSerializer,
+} from "../../src";
 
 /**
  * The two Sum tasks are only used to showcase the task framework in its full

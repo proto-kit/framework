@@ -14,12 +14,11 @@ import {
 import { Proof } from "o1js";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
 
-import { Task } from "../../../worker/flow/Task";
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
-import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
 import { TaskStateRecord } from "../TransactionTraceService";
 
 import { JSONEncodableState } from "./RuntimeTaskParameters";
@@ -107,12 +106,12 @@ export class NewBlockTask
           },
         } satisfies JsonType),
 
-      fromJSON: (json: string) => {
+      fromJSON: async (json: string) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: JsonType = JSON.parse(json);
         return {
-          input1: stProofSerializer.fromJSON(jsonObject.input1),
-          input2: blockProofSerializer.fromJSON(jsonObject.input2),
+          input1: await stProofSerializer.fromJSON(jsonObject.input1),
+          input2: await blockProofSerializer.fromJSON(jsonObject.input2),
 
           params: {
             publicInput: BlockProverPublicInput.fromJSON(
@@ -166,7 +165,7 @@ export class NewBlockTask
       parameters;
 
     await this.executeWithPrefilledStateService(startingState, async () => {
-      this.blockProver.proveBlock(
+      await this.blockProver.proveBlock(
         publicInput,
         networkState,
         blockWitness,

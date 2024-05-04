@@ -95,7 +95,7 @@ export class Balances<Config = NoConfig>
   }
 
   @runtimeMethod()
-  public transferSigned(
+  public async transferSigned(
     tokenId: TokenId,
     from: PublicKey,
     to: PublicKey,

@@ -33,24 +33,29 @@ export function testingSequencerFromModules<
   modules: AdditionalModules,
   additionalTaskWorkerModules?: AdditionalTaskWorkerModules
 ): TypedClass<Sequencer<DefaultTestingSequencerModules & AdditionalModules>> {
+  const taskWorkerModule = LocalTaskWorkerModule.from({
+    ...VanillaTaskWorkerModules.withoutSettlement(),
+    ...additionalTaskWorkerModules,
+  });
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const defaultModules: DefaultTestingSequencerModules = {
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
-    LocalTaskWorkerModule: LocalTaskWorkerModule.from({
-      ...VanillaTaskWorkerModules.withoutSettlement(),
-      ...additionalTaskWorkerModules,
-    }),
     BaseLayer: NoopBaseLayer,
+    // LocalTaskWorkerModule: taskWorkerModule,
     BlockProducerModule,
     UnprovenProducerModule,
     BlockTrigger: ManualBlockTrigger,
     TaskQueue: LocalTaskQueue,
-  };
+  } as DefaultTestingSequencerModules;
 
   return Sequencer.from({
     modules: {
       ...defaultModules,
       ...modules,
+      // We need to make sure that the taskworkermodule is initialized last
+      LocalTaskWorkerModule: taskWorkerModule,
     },
   });
 }

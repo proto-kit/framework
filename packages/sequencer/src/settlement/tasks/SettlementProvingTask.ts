@@ -5,16 +5,26 @@ import {
   Protocol,
   ReturnType,
   SettlementContractModule,
+  Subclass,
 } from "@proto-kit/protocol";
-import { addCachedAccount, Field, Mina, Types } from "o1js";
-// TODO Wait for o1js upgrade
-import { Pickles } from "o1js/dist/node/snarky";
+import {
+  addCachedAccount,
+  Field,
+  Mina,
+  Types,
+  Proof,
+  DynamicProof,
+  Transaction,
+  Void,
+} from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
-import { ProofTaskSerializer } from "../../helpers/utils";
+import {
+  ProofTaskSerializer,
+  DynamicProofTaskSerializer,
+} from "../../helpers/utils";
 import { CompileRegistry } from "../../protocol/production/tasks/CompileRegistry";
-import { Task } from "../../worker/flow/Task";
-import { TaskSerializer } from "../../worker/manager/ReducableTask";
+import { Task, TaskSerializer } from "../../worker/flow/Task";
 import { TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
 
 type Account = ReturnType<typeof Mina.getAccount>;
@@ -25,13 +35,19 @@ export type ChainStateTaskArgs = {
 };
 
 export type TransactionTaskArgs = {
-  transaction: Mina.Transaction;
+  transaction: Transaction<false, true>;
   chainState: ChainStateTaskArgs;
 };
 
 export type TransactionTaskResult = {
-  transaction: Mina.Transaction;
+  transaction: Mina.Transaction<true, true>;
 };
+
+export class SomeProofSubclass extends Proof<Field, Void> {
+  public static publicInputType = Field;
+
+  public static publicOutputType = Void;
+}
 
 /**
  * Implementation of a task to prove any Mina transaction.
@@ -88,11 +104,24 @@ export class SettlementProvingTask
   ): Promise<TransactionTaskResult> {
     const { transaction, chainState } = input;
 
-    await this.withCustomInstance(chainState, async () => {
+    const provenTx = await this.withCustomInstance(chainState, async () => {
       return await transaction.prove();
     });
 
-    return { transaction };
+    return { transaction: provenTx };
+  }
+
+  // Subclass<typeof ProofBase> is not exported
+  private getProofSerializer(proofType: Subclass<any>) {
+    return proofType.prototype instanceof Proof
+      ? new ProofTaskSerializer(
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          proofType as Subclass<typeof Proof<any, any>>
+        )
+      : new DynamicProofTaskSerializer(
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          proofType as Subclass<typeof DynamicProof<any, any>>
+        );
   }
 
   public inputSerializer(): TaskSerializer<TransactionTaskArgs> {
@@ -114,7 +143,7 @@ export class SettlementProvingTask
       };
     };
     return {
-      fromJSON: (json: string): TransactionTaskArgs => {
+      fromJSON: async (json: string): Promise<TransactionTaskArgs> => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: JsonInputObject = JSON.parse(json);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -123,7 +152,9 @@ export class SettlementProvingTask
         );
         const transaction = Mina.Transaction.fromJSON(commandJson);
 
-        jsonObject.lazyProofs.forEach((lazyProof, index) => {
+        for (let index = 0; index < jsonObject.lazyProofs.length; index++) {
+          const lazyProof = jsonObject.lazyProofs[index];
+
           if (lazyProof !== null) {
             // Here, we need to decode the AU's lazyproof into the format
             // that o1js needs to actually create those proofs
@@ -164,29 +195,43 @@ export class SettlementProvingTask
                 );
               }
               // fields is JsonProof
-              const serializer = new ProofTaskSerializer(
+              const serializer = this.getProofSerializer(
                 proofTypes[proofsDecoded]
               );
+
               proofsDecoded += 1;
               // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               return serializer.fromJSON(encodedArg as string);
             });
 
+            // eslint-disable-next-line no-await-in-loop
+            const previousProofs = await Promise.all(
+              lazyProof.previousProofs.map(async (proofString) => {
+                if (proofString === MOCK_PROOF) {
+                  return MOCK_PROOF;
+                }
+
+                const p = await SomeProofSubclass.fromJSON({
+                  maxProofsVerified: 0,
+                  publicInput: ["0"],
+                  publicOutput: [],
+                  proof: proofString,
+                });
+                return p.proof;
+              })
+            );
+
             transaction.transaction.accountUpdates[index].lazyAuthorization = {
               methodName: lazyProof.methodName,
               ZkappClass: SmartContract,
               args,
-              previousProofs: lazyProof.previousProofs.map((proofString) =>
-                proofString === MOCK_PROOF
-                  ? MOCK_PROOF
-                  : Pickles.proofOfBase64(proofString, 0)
-              ),
+              previousProofs: previousProofs,
               blindingValue: Field(lazyProof.blindingValue),
               memoized: [],
               kind: "lazy-proof",
             };
           }
-        });
+        }
 
         return {
           transaction,
@@ -199,7 +244,7 @@ export class SettlementProvingTask
         };
       },
 
-      toJSON(input: TransactionTaskArgs): string {
+      toJSON: (input: TransactionTaskArgs): string => {
         const transaction = input.transaction.toJSON();
 
         const lazyProofs =
@@ -230,7 +275,7 @@ export class SettlementProvingTask
                         .map((f) => f.toString());
                     }
                     if (allArgs[index].type === "proof") {
-                      const serializer = new ProofTaskSerializer(
+                      const serializer = this.getProofSerializer(
                         proofTypes[proofsEncoded]
                       );
                       proofsEncoded += 1;
@@ -249,11 +294,18 @@ export class SettlementProvingTask
                   blindingValue: lazyProof.blindingValue.toString(),
                   memoized: [],
 
-                  previousProofs: lazyProof.previousProofs.map((proof) =>
-                    proof === MOCK_PROOF
-                      ? MOCK_PROOF
-                      : Pickles.proofToBase64([0, proof])
-                  ),
+                  previousProofs: lazyProof.previousProofs.map((proof) => {
+                    if (proof === MOCK_PROOF) {
+                      return MOCK_PROOF;
+                    }
+                    const p = new SomeProofSubclass({
+                      proof,
+                      publicInput: Field(0),
+                      publicOutput: undefined,
+                      maxProofsVerified: 0,
+                    });
+                    return p.toJSON().proof;
+                  }),
                 };
               }
               return null;
@@ -278,6 +330,7 @@ export class SettlementProvingTask
   public async prepare(): Promise<void> {
     const contract = this.settlementContractModule.getContractClasses();
 
+    // TODO Replace by global AreProofsEnabled reference
     const { proofsEnabled } = Mina.activeInstance;
 
     await this.compileRegistry.compileSmartContract(
@@ -297,7 +350,15 @@ export class SettlementProvingTask
       fromJSON: (json: string) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: Types.Json.ZkappCommand = JSON.parse(json);
-        return { transaction: Mina.Transaction.fromJSON(jsonObject) };
+        // We can typecast here since the generic typing only hides properties on the type level
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const transaction = Transaction.fromJSON(
+          jsonObject
+        ) as unknown as Transaction<true, true>;
+
+        return {
+          transaction,
+        };
       },
 
       toJSON(input: TransactionTaskResult): string {

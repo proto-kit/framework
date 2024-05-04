@@ -2,7 +2,7 @@ import { Field } from "o1js";
 import { NetworkState, ReturnType } from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { TaskSerializer } from "../../../worker/flow/Task";
 import { TaskStateRecord } from "../TransactionTraceService";
 
 export interface RuntimeProofParameters {

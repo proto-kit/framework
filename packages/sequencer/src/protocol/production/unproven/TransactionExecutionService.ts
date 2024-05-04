@@ -52,6 +52,8 @@ const errors = {
     new Error(`Can't find runtime method with id ${methodId}`),
 };
 
+export type SomeRuntimeMethod = (...args: unknown[]) => Promise<unknown>;
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionExecutionService {
@@ -106,7 +108,7 @@ export class TransactionExecutionService {
   }
 
   private decodeTransaction(tx: PendingTransaction): {
-    method: (...args: unknown[]) => unknown;
+    method: SomeRuntimeMethod;
     args: unknown[];
     module: RuntimeModule<unknown>;
   } {
@@ -149,13 +151,15 @@ export class TransactionExecutionService {
     return appChain;
   }
 
-  private executeWithExecutionContext(
-    method: () => void,
+  private async executeWithExecutionContext(
+    method: () => Promise<void>,
     contextInputs: RuntimeMethodExecutionData,
     runSimulated = false
-  ): Pick<
-    RuntimeProvableMethodExecutionResult,
-    "stateTransitions" | "status" | "statusMessage"
+  ): Promise<
+    Pick<
+      RuntimeProvableMethodExecutionResult,
+      "stateTransitions" | "status" | "statusMessage"
+    >
   > {
     // Set up context
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
@@ -163,7 +167,7 @@ export class TransactionExecutionService {
     executionContext.setSimulated(runSimulated);
 
     // Execute method
-    method();
+    await method();
 
     const { stateTransitions, status, statusMessage } =
       executionContext.current().result;
@@ -182,12 +186,12 @@ export class TransactionExecutionService {
   }
 
   private executeRuntimeMethod(
-    method: (...args: unknown[]) => unknown,
+    method: SomeRuntimeMethod,
     args: unknown[],
     contextInputs: RuntimeMethodExecutionData
   ) {
-    return this.executeWithExecutionContext(() => {
-      method(...args);
+    return this.executeWithExecutionContext(async () => {
+      await method(...args);
     }, contextInputs);
   }
 
@@ -197,7 +201,7 @@ export class TransactionExecutionService {
     runSimulated = false
   ) {
     return this.executeWithExecutionContext(
-      () => {
+      async () => {
         this.transactionHooks.forEach((transactionHook) => {
           transactionHook.onTransaction(blockContextInputs);
         });
@@ -428,7 +432,7 @@ export class TransactionExecutionService {
   // some state that is then consumed by the runtime and used as a key.
   // In this case, runtime would generate a wrong key here.
   private async extractAccessedKeys(
-    method: (...args: unknown[]) => unknown,
+    method: SomeRuntimeMethod,
     args: unknown[],
     runtimeContextInputs: RuntimeMethodExecutionData,
     blockContextInputs: BlockProverExecutionData,
@@ -440,8 +444,8 @@ export class TransactionExecutionService {
     // TODO unsafe to re-use params here?
     const stateTransitions =
       await this.runtimeMethodExecution.simulateMultiRound(
-        () => {
-          method(...args);
+        async () => {
+          await method(...args);
         },
         runtimeContextInputs,
         parentStateService
@@ -449,7 +453,7 @@ export class TransactionExecutionService {
 
     const protocolTransitions =
       await this.runtimeMethodExecution.simulateMultiRound(
-        () => {
+        async () => {
           this.transactionHooks.forEach((transactionHook) => {
             transactionHook.onTransaction(blockContextInputs);
           });
@@ -509,7 +513,7 @@ export class TransactionExecutionService {
     // generate and apply the correct STs with the right values
     this.stateServiceProvider.setCurrentStateService(cachedStateService);
 
-    const protocolResult = this.executeProtocolHooks(
+    const protocolResult = await this.executeProtocolHooks(
       runtimeContextInputs,
       blockContextInputs
     );
@@ -537,7 +541,7 @@ export class TransactionExecutionService {
       protocolResult.stateTransitions
     );
 
-    const runtimeResult = this.executeRuntimeMethod(
+    const runtimeResult = await this.executeRuntimeMethod(
       method,
       args,
       runtimeContextInputs

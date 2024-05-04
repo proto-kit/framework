@@ -27,7 +27,7 @@ export class TestModule extends RuntimeModule {
   @state() map = StateMap.from(Field, Field);
 
   @runtimeMethod()
-  public performAction(inputKey: Field) {
+  public async performAction(inputKey: Field) {
     this.map.get(inputKey);
     this.map.set(inputKey, Field(1));
 
@@ -85,7 +85,7 @@ describe("test the correct key extraction for runtime methods", () => {
       }),
 
       transaction: RuntimeTransaction.fromTransaction({
-        sender: PublicKey.empty(),
+        sender: PublicKey.empty<typeof PublicKey>(),
         nonce: UInt64.zero,
         methodId: Field(0),
         argsHash: Field(0),
@@ -95,8 +95,8 @@ describe("test the correct key extraction for runtime methods", () => {
     console.time("Simulating...");
 
     const sts = await execution.simulateMultiRound(
-      () => {
-        module.performAction(Field(5));
+      async () => {
+        await module.performAction(Field(5));
       },
       contextInputs,
       new CachedStateService(stateService)

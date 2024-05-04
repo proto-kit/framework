@@ -2,9 +2,8 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { log } from "@proto-kit/common";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
-import { TaskPayload } from "../manager/ReducableTask";
 
-import { Task } from "./Task";
+import { Task, TaskPayload } from "./Task";
 
 const errors = {
   resolveNotDefined: () =>
@@ -87,7 +86,7 @@ export class Flow<State> implements Closeable {
   private readonly registeredListeners: string[] = [];
 
   private resultsPending: {
-    [key: string]: (payload: TaskPayload) => void;
+    [key: string]: (payload: TaskPayload) => Promise<void>;
   } = {};
 
   private taskCounter = 0;
@@ -107,7 +106,7 @@ export class Flow<State> implements Closeable {
   private waitForResult(
     queue: string,
     taskId: string,
-    callback: (payload: TaskPayload) => void
+    callback: (payload: TaskPayload) => Promise<void>
   ) {
     this.resultsPending[taskId] = callback;
 
@@ -152,7 +151,7 @@ export class Flow<State> implements Closeable {
 
         if (resolveFunction !== undefined) {
           delete this.resultsPending[response.taskId];
-          resolveFunction(response);
+          await resolveFunction(response);
         }
       }
     }
@@ -170,7 +169,7 @@ export class Flow<State> implements Closeable {
     const taskName = overrides?.taskName ?? task.name;
     const queue = await this.connectionHolder.getQueue(queueName);
 
-    const payload = task.inputSerializer().toJSON(input);
+    const payload = await task.inputSerializer().toJSON(input);
 
     this.taskCounter += 1;
     const taskId = String(this.taskCounter);
@@ -186,15 +185,17 @@ export class Flow<State> implements Closeable {
 
     this.tasksInProgress += 1;
 
-    const callback = (returnPayload: TaskPayload) => {
+    const callback = async (returnPayload: TaskPayload) => {
       log.trace(
         `Completed ${returnPayload.name}, task: ${returnPayload.flowId}:${
           returnPayload?.taskId ?? "-"
         }`
       );
-      const decoded = task.resultSerializer().fromJSON(returnPayload.payload);
+      const decoded = await task
+        .resultSerializer()
+        .fromJSON(returnPayload.payload);
       this.tasksInProgress -= 1;
-      return completed?.(decoded, input);
+      return await completed?.(decoded, input);
     };
     this.waitForResult(queueName, taskId, callback);
   }

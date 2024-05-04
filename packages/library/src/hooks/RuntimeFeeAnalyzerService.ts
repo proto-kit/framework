@@ -82,8 +82,8 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     context.setup({
       transaction: new RuntimeTransaction({
         methodId: Field(0),
-        nonce: UInt64Option.fromValue(O1JSUInt64.zero),
-        sender: PublicKeyOption.fromValue(PublicKey.empty()),
+        nonce: UInt64Option.fromSome(O1JSUInt64.zero),
+        sender: PublicKeyOption.fromSome(PublicKey.empty()),
         argsHash: Field(0),
       }),
 

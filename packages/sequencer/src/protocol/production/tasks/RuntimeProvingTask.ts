@@ -10,8 +10,7 @@ import {
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
 
-import { Task } from "../../../worker/flow/Task";
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
@@ -82,7 +81,7 @@ export class RuntimeProvingTask
     };
     this.executionContext.setup(contextInputs);
 
-    method(...decodedArguments);
+    await method(...decodedArguments);
     const { result } = this.executionContext.current();
 
     this.executionContext.setup(contextInputs);

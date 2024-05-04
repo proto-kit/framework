@@ -18,6 +18,8 @@ import {
   UInt64,
   TokenContract,
   AccountUpdateForest,
+  DeployArgs,
+  Permissions,
 } from "o1js";
 
 import { NetworkState } from "../../model/network/NetworkState";
@@ -56,7 +58,10 @@ export class LazyBlockProof extends Proof<
 }
 
 export interface SettlementContractType {
-  initialize: (sequencer: PublicKey, dispatchContract: PublicKey) => void;
+  initialize: (
+    sequencer: PublicKey,
+    dispatchContract: PublicKey
+  ) => Promise<void>;
   settle: (
     blockProof: LazyBlockProof,
     signature: Signature,
@@ -65,9 +70,11 @@ export interface SettlementContractType {
     inputNetworkState: NetworkState,
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
-  ) => void;
-  rollupOutgoingMessages: (batch: OutgoingMessageArgumentBatch) => void;
-  redeem: (additionUpdate: AccountUpdate) => void;
+  ) => Promise<void>;
+  rollupOutgoingMessages: (
+    batch: OutgoingMessageArgumentBatch
+  ) => Promise<void>;
+  redeem: (additionUpdate: AccountUpdate) => Promise<void>;
 }
 
 // Some random prefix for the sequencer signature
@@ -101,6 +108,14 @@ export class SettlementSmartContract
     this.checkZeroBalanceChange(forest);
   }
 
+  // public async deploy(args?: DeployArgs): Promise<void> {
+  //   await super.deploy(args);
+  //   this.account.permissions.set({
+  //     ...Permissions.default(),
+  //     access: Permissions.none(),
+  //   });
+  // }
+
   @method
   public async initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
     this.sequencerKey.getAndRequireEquals().assertEquals(Field(0));
@@ -116,7 +131,7 @@ export class SettlementSmartContract
     this.dispatchContractAddressX.set(dispatchContract.x);
 
     const { DispatchContract } = SettlementSmartContract.args;
-    new DispatchContract(dispatchContract).initialize(this.address);
+    await new DispatchContract(dispatchContract).initialize(this.address);
   }
 
   @method
@@ -254,7 +269,7 @@ export class SettlementSmartContract
     // to be the blockProofs publicoutput, is actually the current on-chain
     // promisedMessageHash. It also checks the newPromisedMessagesHash to be
     // a current sequencestate value
-    dispatchContract.updateMessagesHash(
+    await dispatchContract.updateMessagesHash(
       promisedMessagesHash,
       newPromisedMessagesHash
     );

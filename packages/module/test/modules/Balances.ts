@@ -28,23 +28,23 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   }
 
   @runtimeMethod()
-  public getTotalSupply() {
+  public async getTotalSupply() {
     this.totalSupply.get();
   }
 
   @runtimeMethod()
-  public setTotalSupply() {
+  public async setTotalSupply() {
     this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(this.transaction.sender.value);
+    await this.admin.isAdmin(this.transaction.sender.value);
   }
 
   @runtimeMethod()
-  public getBalance(address: PublicKey) {
+  public async getBalance(address: PublicKey) {
     this.balances.get(address).orElse(UInt64.zero);
   }
 
   @runtimeMethod()
-  public transientState() {
+  public async transientState() {
     const totalSupply = this.totalSupply.get();
     this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(100));
 

@@ -26,13 +26,13 @@ export class Balance extends RuntimeModule<object> {
   }
 
   @runtimeMessage()
-  public deposit(deposit: Deposit) {
+  public async deposit(deposit: Deposit) {
     const balance = this.balances.get(deposit.address);
     this.balances.set(deposit.address, balance.value.add(deposit.amount));
   }
 
   @runtimeMethod()
-  public getTotalSupply() {
+  public async getTotalSupply() {
     this.totalSupply.get();
   }
 
@@ -40,24 +40,28 @@ export class Balance extends RuntimeModule<object> {
   // public test(a: UInt64, b: Signature, c: MyStruct, d: Struct<unknown>) {}
 
   @runtimeMethod()
-  public setTotalSupply() {
+  public async setTotalSupply() {
     this.totalSupply.set(UInt64.from(20));
     this.admin.isAdmin(this.transaction.sender.value);
   }
 
   @runtimeMethod()
-  public getBalance(address: PublicKey): Option<UInt64> {
+  public async getBalance(address: PublicKey): Promise<Option<UInt64>> {
     return this.balances.get(address);
   }
 
   @runtimeMethod()
-  public setBalanceIf(address: PublicKey, value: UInt64, condition: Bool) {
+  public async setBalanceIf(
+    address: PublicKey,
+    value: UInt64,
+    condition: Bool
+  ) {
     assert(condition, "Condition not met");
     this.balances.set(address, value);
   }
 
   @runtimeMethod()
-  public addBalance(address: PublicKey, value: UInt64) {
+  public async addBalance(address: PublicKey, value: UInt64) {
     const totalSupply = this.totalSupply.get();
     this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(value));
 
@@ -70,7 +74,7 @@ export class Balance extends RuntimeModule<object> {
   }
 
   @runtimeMethod()
-  public addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
+  public async addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
     const address = this.transaction.sender.value;
     const balance = this.balances.get(address);
 
@@ -89,7 +93,7 @@ export class Balance extends RuntimeModule<object> {
   }
 
   @runtimeMethod()
-  public lotOfSTs(randomArg: Field) {
+  public async lotOfSTs(randomArg: Field) {
     range(0, 10).forEach((index) => {
       const pk = PublicKey.from({
         x: randomArg.add(Field(index % 5)),

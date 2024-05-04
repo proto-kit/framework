@@ -179,6 +179,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       );
 
       expect(checkStateDiffEquality(stateDiff, state)).toBe(true);
+      expect(state.length).toBeGreaterThanOrEqual(1);
 
       await expect(
         provenState.getSingleAsync(state[0].key)

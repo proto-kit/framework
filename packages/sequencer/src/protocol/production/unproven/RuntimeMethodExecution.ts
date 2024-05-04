@@ -20,11 +20,11 @@ export class RuntimeMethodExecution {
     private readonly executionContext: RuntimeMethodExecutionContext
   ) {}
 
-  private executeMethodWithKeys(
-    method: () => void,
+  private async executeMethodWithKeys(
+    method: () => Promise<unknown>,
     contextInputs: RuntimeMethodExecutionData,
     parentStateService: CachedStateService
-  ): StateTransition<unknown>[] {
+  ): Promise<StateTransition<unknown>[]> {
     const { executionContext, runtime, protocol } = this;
 
     executionContext.setup(contextInputs);
@@ -35,7 +35,7 @@ export class RuntimeMethodExecution {
     protocol.stateServiceProvider.setCurrentStateService(stateService);
 
     // Execute method
-    method();
+    await method();
 
     const { stateTransitions } = executionContext.current().result;
 
@@ -58,7 +58,7 @@ export class RuntimeMethodExecution {
    */
 
   public async simulateMultiRound(
-    method: () => void,
+    method: () => Promise<unknown>,
     contextInputs: RuntimeMethodExecutionData,
     parentStateService: AsyncStateService
   ): Promise<StateTransition<unknown>[]> {
@@ -71,8 +71,9 @@ export class RuntimeMethodExecution {
 
     const preloadingStateService = new CachedStateService(parentStateService);
 
+    /* eslint-disable no-await-in-loop */
     do {
-      const stateTransitions = this.executeMethodWithKeys(
+      const stateTransitions = await this.executeMethodWithKeys(
         method,
         contextInputs,
         preloadingStateService
@@ -92,11 +93,10 @@ export class RuntimeMethodExecution {
         const optimisticRunStateService = new CachedStateService(
           parentStateService
         );
-        // eslint-disable-next-line no-await-in-loop
         await optimisticRunStateService.preloadKeys(
           keys.map((fieldString) => Field(fieldString))
         );
-        const stateTransitionsFullRun = this.executeMethodWithKeys(
+        const stateTransitionsFullRun = await this.executeMethodWithKeys(
           method,
           contextInputs,
           optimisticRunStateService
@@ -122,7 +122,7 @@ export class RuntimeMethodExecution {
 
         // Preload eligible keys
         touchedKeys.push(...additionalKeys);
-        // eslint-disable-next-line no-await-in-loop
+
         await preloadingStateService.preloadKeys(
           additionalKeys.map((key) => Field(key))
         );
@@ -140,7 +140,7 @@ export class RuntimeMethodExecution {
         !touchedKeys.includes(latestST.path.toString())
       ) {
         touchedKeys.push(latestST.path.toString());
-        // eslint-disable-next-line no-await-in-loop
+
         await preloadingStateService.preloadKey(latestST.path);
       }
 
@@ -148,6 +148,8 @@ export class RuntimeMethodExecution {
 
       lastRuntimeResult = stateTransitions;
     } while (collectedSTs < numberMethodSTs);
+
+    /* eslint-enable no-await-in-loop */
 
     return lastRuntimeResult;
   }

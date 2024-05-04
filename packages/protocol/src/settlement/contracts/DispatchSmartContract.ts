@@ -26,8 +26,8 @@ export interface DispatchContractType {
   updateMessagesHash: (
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
-  ) => void;
-  initialize: (settlementContract: PublicKey) => void;
+  ) => Promise<void>;
+  initialize: (settlementContract: PublicKey) => Promise<void>;
 
   promisedMessagesHash: State<Field>;
 }

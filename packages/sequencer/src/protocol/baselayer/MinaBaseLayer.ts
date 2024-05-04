@@ -51,7 +51,7 @@ export class MinaBaseLayer
     }
 
     const Network = this.config.network.local
-      ? Mina.LocalBlockchain({ proofsEnabled: false })
+      ? await Mina.LocalBlockchain({ proofsEnabled: false })
       : Mina.Network({
           mina: network.graphql!,
           archive: network.archive!,

@@ -184,7 +184,7 @@ function runtimeMethodInternal(options: {
     methodName: string,
     descriptor: TypedPropertyDescriptor<
       // TODO Limit possible parameter types
-      (...args: any[]) => Promise<any> | any
+      (...args: any[]) => Promise<any>
     >
   ) => {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(

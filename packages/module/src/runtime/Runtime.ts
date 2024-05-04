@@ -275,7 +275,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    */
   public getMethodById(
     methodId: bigint
-  ): ((...args: unknown[]) => unknown) | undefined {
+  ): ((...args: unknown[]) => Promise<unknown>) | undefined {
     const methodDescriptor =
       this.methodIdResolver.getMethodNameFromId(methodId);
 
@@ -294,7 +294,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     }
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return (method as (...args: unknown[]) => unknown).bind(module);
+    return (method as (...args: unknown[]) => Promise<unknown>).bind(module);
   }
 
   /**
