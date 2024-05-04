@@ -1,6 +1,13 @@
 // eslint-disable-next-line max-len
 /* eslint-disable prefer-const,no-underscore-dangle,no-bitwise,@typescript-eslint/naming-convention */
-import { Bool, Field, Provable, Struct, UInt64 as O1UInt64 } from "o1js";
+import {
+  Bool,
+  Field,
+  Provable,
+  Struct,
+  UInt64 as O1UInt64,
+  Gadgets,
+} from "o1js";
 import { assert } from "@proto-kit/protocol";
 // @ts-ignore
 import bigintSqrt from "bigint-isqrt";
@@ -39,7 +46,10 @@ export abstract class UInt<BITS extends number> extends Struct({
   value: Field,
 }) {
   public static readonly assertionFunction: (bool: Bool, msg?: string) => void =
-    assert;
+    (bool, msg) => {
+      // const executionContext = container.resolve(RuntimeMethodExecutionContext);
+      assert(bool, msg);
+    };
 
   public static checkConstant(x: Field, numBits: number) {
     if (!x.isConstant()) {
@@ -134,7 +144,7 @@ export abstract class UInt<BITS extends number> extends Struct({
     });
 
     UInt.assertionFunction(
-      q.rangeCheckHelper(this.numBits()).equals(q),
+      Gadgets.isDefinitelyInRangeN(this.numBits(), q),
       "Divison overflowing"
     );
 
@@ -148,7 +158,7 @@ export abstract class UInt<BITS extends number> extends Struct({
     let r = x.sub(q.mul(divisor_)).seal();
 
     UInt.assertionFunction(
-      r.rangeCheckHelper(this.numBits()).equals(r),
+      Gadgets.isDefinitelyInRangeN(this.numBits(), r),
       "Divison overflowing, remainder"
     );
 
@@ -208,9 +218,9 @@ export abstract class UInt<BITS extends number> extends Struct({
     });
 
     // Sqrt fits into (NUM_BITS / 2) bits
-    sqrtField
-      .rangeCheckHelper(this.numBits())
-      .assertEquals(sqrtField, "Sqrt output overflowing");
+    Gadgets.isDefinitelyInRangeN(this.numBits(), sqrtField).assertTrue(
+      "Sqrt output overflowing"
+    );
 
     // Range check included here?
     const sqrt = this.fromField(sqrtField);
@@ -220,9 +230,9 @@ export abstract class UInt<BITS extends number> extends Struct({
       return Field(x.toBigInt() - sqrtn * sqrtn);
     });
 
-    rest
-      .rangeCheckHelper(this.numBits())
-      .assertEquals(rest, "Sqrt rest output overflowing");
+    Gadgets.isDefinitelyInRangeN(this.numBits(), rest).assertTrue(
+      "Sqrt rest output overflowing"
+    );
 
     const square = sqrtField.mul(sqrtField);
 
@@ -279,7 +289,7 @@ export abstract class UInt<BITS extends number> extends Struct({
     }
 
     UInt.assertionFunction(
-      z.rangeCheckHelper(this.numBits()).equals(z),
+      Gadgets.isDefinitelyInRangeN(this.numBits(), z),
       "Multiplication overflowing"
     );
     return this.fromField(z);
@@ -291,7 +301,7 @@ export abstract class UInt<BITS extends number> extends Struct({
   public add(y: UInt<BITS> | bigint | number) {
     let z = this.value.add(this.from(y).value);
     UInt.assertionFunction(
-      z.rangeCheckHelper(this.numBits()).equals(z),
+      Gadgets.isDefinitelyInRangeN(this.numBits(), z),
       "Addition overflowing"
     );
     return this.fromField(z);
@@ -303,7 +313,7 @@ export abstract class UInt<BITS extends number> extends Struct({
   public sub(y: UInt<BITS> | bigint | number) {
     let z = this.value.sub(this.from(y).value);
     UInt.assertionFunction(
-      z.rangeCheckHelper(this.numBits()).equals(z),
+      Gadgets.isDefinitelyInRangeN(this.numBits(), z),
       "Subtraction overflow"
     );
     return this.fromField(z);
@@ -318,8 +328,8 @@ export abstract class UInt<BITS extends number> extends Struct({
     }
     let xMinusY = this.value.sub(y.value).seal();
     let yMinusX = xMinusY.neg();
-    let yMinusXFits = yMinusX.rangeCheckHelper(this.numBits()).equals(yMinusX);
-    let xMinusYFits = xMinusY.rangeCheckHelper(this.numBits()).equals(xMinusY);
+    let yMinusXFits = Gadgets.isDefinitelyInRangeN(this.numBits(), yMinusX);
+    let xMinusYFits = Gadgets.isDefinitelyInRangeN(this.numBits(), xMinusY);
     UInt.assertionFunction(xMinusYFits.or(yMinusXFits));
     // x <= y if y - x fits in 64 bits
     return yMinusXFits;
@@ -342,7 +352,7 @@ export abstract class UInt<BITS extends number> extends Struct({
     }
     let yMinusX = y.value.sub(this.value).seal();
     UInt.assertionFunction(
-      yMinusX.rangeCheckHelper(this.numBits()).equals(yMinusX),
+      Gadgets.isDefinitelyInRangeN(this.numBits(), yMinusX),
       message
     );
   }
@@ -408,7 +418,7 @@ export abstract class UInt<BITS extends number> extends Struct({
    * Turns the {@link UInt} into a o1js {@link UInt64}, asserting that it fits in 32 bits.
    */
   public toO1UInt64() {
-    let uint64 = new O1UInt64(this.value);
+    let uint64 = O1UInt64.Unsafe.fromField(this.value);
     O1UInt64.check(uint64);
     return uint64;
   }
@@ -419,14 +429,14 @@ export abstract class UInt<BITS extends number> extends Struct({
    */
   public toO1UInt64Clamped() {
     if (this.numBits() <= 64) {
-      return new O1UInt64(this.value);
+      return O1UInt64.Unsafe.fromField(this.value);
     }
     let max = (1n << 64n) - 1n;
     return Provable.if(
       // We know that BITS is >64 bits, so we can skip range checks for max
       this.greaterThan(this.fromField(Field(max))),
       O1UInt64.from(max),
-      new O1UInt64(this.value)
+      O1UInt64.Unsafe.fromField(this.value)
     );
   }
 }
