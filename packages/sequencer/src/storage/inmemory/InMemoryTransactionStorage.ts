@@ -58,7 +58,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
   public async removeUserTransaction(hash: string) {
     const index = this.queue.findIndex((tx) => tx.hash().toString() === hash);
     if (index > -1) {
-      this.queue = this.queue.splice(index, 1);
+      this.queue.splice(index, 1);
       return true;
     }
     return false;
