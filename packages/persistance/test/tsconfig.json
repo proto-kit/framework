@@ -6,5 +6,7 @@
   "include": [
     "./**/*.ts",
     "./*.ts",
+    "../test-integration/*.ts",
+    "../test-integration/**/*.ts"
   ]
 }
