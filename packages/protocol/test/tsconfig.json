@@ -3,10 +3,5 @@
   "compilerOptions": {
     "experimentalDecorators": true
   },
-  "include": [
-    "../src/**/*.test.ts",
-    "./**/*.ts",
-    "./*.ts",
-    "../src/**/*.ts"
-  ]
+  "include": ["../src/**/*.test.ts", "./**/*.ts", "./*.ts", "../src/**/*.ts"]
 }
