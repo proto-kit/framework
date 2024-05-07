@@ -22,7 +22,12 @@ import {
   reduceStateTransitions,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
-import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
+import {
+  AreProofsEnabled,
+  log,
+  RollupMerkleTree,
+  mapSequential,
+} from "@proto-kit/common";
 import {
   MethodParameterEncoder,
   Runtime,
@@ -107,11 +112,11 @@ export class TransactionExecutionService {
     );
   }
 
-  private decodeTransaction(tx: PendingTransaction): {
+  private async decodeTransaction(tx: PendingTransaction): Promise<{
     method: SomeRuntimeMethod;
     args: unknown[];
     module: RuntimeModule<unknown>;
-  } {
+  }> {
     const methodDescriptors = this.runtime.methodIdResolver.getMethodNameFromId(
       tx.methodId.toBigInt()
     );
@@ -129,7 +134,7 @@ export class TransactionExecutionService {
       module,
       methodName
     );
-    const args = parameterDecoder.decode(tx.argsJSON);
+    const args = await parameterDecoder.decode(tx.argsJSON);
 
     return {
       method,
@@ -202,8 +207,8 @@ export class TransactionExecutionService {
   ) {
     return this.executeWithExecutionContext(
       async () => {
-        this.transactionHooks.forEach((transactionHook) => {
-          transactionHook.onTransaction(blockContextInputs);
+        await mapSequential(this.transactionHooks, async (transactionHook) => {
+          await transactionHook.onTransaction(blockContextInputs);
         });
       },
       runtimeContextInputs,
@@ -457,9 +462,12 @@ export class TransactionExecutionService {
     const protocolTransitions =
       await this.runtimeMethodExecution.simulateMultiRound(
         async () => {
-          this.transactionHooks.forEach((transactionHook) => {
-            transactionHook.onTransaction(blockContextInputs);
-          });
+          await mapSequential(
+            this.transactionHooks,
+            async (transactionHook) => {
+              await transactionHook.onTransaction(blockContextInputs);
+            }
+          );
         },
         runtimeContextInputs,
         parentStateService
@@ -481,7 +489,7 @@ export class TransactionExecutionService {
   ): Promise<TransactionExecutionResult> {
     const cachedStateService = new CachedStateService(asyncStateService);
 
-    const { method, args, module } = this.decodeTransaction(tx);
+    const { method, args, module } = await this.decodeTransaction(tx);
 
     // Disable proof generation for tracing
     const appChain = this.getAppChainForModule(module);

@@ -32,10 +32,8 @@ import {
   ProtocolModule,
   StateServiceProvider,
   MandatoryProtocolModulesRecord,
-  PublicKeyOption,
-  UInt64Option,
 } from "@proto-kit/protocol";
-import { Field, PublicKey, UInt64, Bool } from "o1js";
+import { Field, PublicKey, UInt64 } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
@@ -218,7 +216,7 @@ export class AppChain<
 
   public async transaction(
     sender: PublicKey,
-    callback: () => void,
+    callback: () => Promise<void>,
     options?: { nonce?: number }
   ): Promise<AppChainTransaction> {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
@@ -226,26 +224,8 @@ export class AppChain<
     );
 
     executionContext.setup({
-      transaction: {
-        sender: new PublicKeyOption({
-          value: sender,
-          isSome: Bool(true),
-        }),
-        nonce: new UInt64Option({
-          isSome: Bool(true),
-          value: UInt64.from(options?.nonce ?? 0),
-        }),
-        argsHash: Field(0),
-      } as unknown as RuntimeTransaction,
-
-      networkState: {
-        block: {
-          height: UInt64.from(0),
-        },
-        previous: {
-          rootHash: Field(0),
-        },
-      } as unknown as NetworkState,
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
     });
 
     const stateServiceProvider = this.container.resolve<StateServiceProvider>(
@@ -253,7 +233,7 @@ export class AppChain<
     );
     stateServiceProvider.setCurrentStateService(new DummyStateService());
 
-    callback();
+    await callback();
 
     stateServiceProvider.popCurrentStateService();
 

@@ -24,6 +24,37 @@ export function range(
   return Array.from({ length: end - start }, (ignored, index) => index + start);
 }
 
+export function reduceSequential<T, U>(
+  array: T[],
+  callbackfn: (
+    previousValue: U,
+    currentValue: T,
+    currentIndex: number,
+    array: T[]
+  ) => Promise<U>,
+  initialValue: U
+) {
+  return array.reduce<Promise<U>>(
+    async (previousPromise, current, index, arr) => {
+      const previous = await previousPromise;
+      return await callbackfn(previous, current, index, arr);
+    },
+    Promise.resolve(initialValue)
+  );
+}
+
+export function mapSequential<T, R>(
+  array: T[],
+  f: (element: T, index: number, array: T[]) => Promise<R>
+) {
+  return array.reduce<Promise<R[]>>(async (r, element, index, a) => {
+    const ret = await r;
+    const next = await f(element, index, a);
+    ret.push(next);
+    return ret;
+  }, Promise.resolve([]));
+}
+
 /**
  * Computes a dummy value for the given value type.
  *

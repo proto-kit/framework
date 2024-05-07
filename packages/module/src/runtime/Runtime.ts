@@ -113,7 +113,8 @@ export class RuntimeZkProgrammable<
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
           string,
-          (...args: unknown[]) => unknown
+          // Technically not all methods have to be async, but for this context it's ok
+          (...args: unknown[]) => Promise<unknown>
         >;
 
         const modulePrototypeMethods = getAllPropertyNames(runtimeModule).map(
@@ -134,7 +135,7 @@ export class RuntimeZkProgrammable<
                 methodName
               );
 
-              const wrappedMethod = Reflect.apply(
+              const wrappedMethod: AsyncWrappedMethod = Reflect.apply(
                 toWrappedMethod,
                 runtimeModule,
                 [methodName, method, { invocationType }]
@@ -153,7 +154,7 @@ export class RuntimeZkProgrammable<
 
                 [combinedMethodName]: {
                   privateInputs,
-                  method: async () => wrappedMethod(),
+                  method: wrappedMethod,
                 },
               };
             }

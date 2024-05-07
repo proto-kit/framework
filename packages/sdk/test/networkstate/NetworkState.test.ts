@@ -80,7 +80,7 @@ describe.skip("block production", () => {
         "AsyncMerkleStore"
       );
 
-    const tx = await appchain.transaction(senderAddress, () => {
+    const tx = await appchain.transaction(senderAddress, async () => {
       runtime
         .resolve("Balances")
         .setBalance(tokenId, senderAddress, UInt64.from(100));
@@ -106,8 +106,8 @@ describe.skip("block production", () => {
 
     const hash = witness.calculateRoot(tree2.getNode(0, path.toBigInt()));
 
-    const tx2 = await appchain.transaction(senderAddress, () => {
-      runtime.resolve("Balances").assertLastBlockHash(hash);
+    const tx2 = await appchain.transaction(senderAddress, async () => {
+      await runtime.resolve("Balances").assertLastBlockHash(hash);
     });
     await tx2.sign();
     await tx2.send();
@@ -125,8 +125,8 @@ describe.skip("block production", () => {
 
     const sender = (appchain.resolve("Signer") as InMemorySigner).config.signer;
 
-    const tx = await appchain.transaction(sender.toPublicKey(), () => {
-      runtime
+    const tx = await appchain.transaction(sender.toPublicKey(), async () => {
+      await runtime
         .resolve("Balances")
         .assertLastBlockHash(Field(RollupMerkleTree.EMPTY_ROOT));
     });
@@ -141,8 +141,10 @@ describe.skip("block production", () => {
       batch.proof.publicOutput.map((x) => Field(x))
     );
 
-    const tx2 = await appchain.transaction(sender.toPublicKey(), () => {
-      runtime.resolve("Balances").assertLastBlockHash(publicOutput.stateRoot);
+    const tx2 = await appchain.transaction(sender.toPublicKey(), async () => {
+      await runtime
+        .resolve("Balances")
+        .assertLastBlockHash(publicOutput.stateRoot);
     });
 
     await tx2.sign();
@@ -156,8 +158,10 @@ describe.skip("block production", () => {
       batch2.proof.publicOutput.map((x) => Field(x))
     );
 
-    const tx3 = await appchain.transaction(sender.toPublicKey(), () => {
-      runtime.resolve("Balances").assertLastBlockHash(publicOutput2.stateRoot);
+    const tx3 = await appchain.transaction(sender.toPublicKey(), async () => {
+      await runtime
+        .resolve("Balances")
+        .assertLastBlockHash(publicOutput2.stateRoot);
     });
 
     await tx3.sign();

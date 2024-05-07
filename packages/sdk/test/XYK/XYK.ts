@@ -6,7 +6,7 @@ import {
   runtimeModule,
 } from "@proto-kit/module";
 import { StateMap, assert } from "@proto-kit/protocol";
-import { Field, Group, Poseidon, PublicKey, Provable, Struct } from "o1js";
+import { Field, Poseidon, PublicKey, Provable, Struct } from "o1js";
 import { inject } from "tsyringe";
 import { Balance, Balances, TokenId } from "@proto-kit/library";
 
@@ -49,12 +49,9 @@ export class PoolKey extends PublicKey {
   ): PoolKey {
     const tokenPair = TokenPair.from(tokenIdIn, tokenIdOut);
 
-    const {
-      x,
-      y: { x0 },
-    } = Poseidon.hashToGroup(TokenPair.toFields(tokenPair));
+    const group = Poseidon.hashToGroup(TokenPair.toFields(tokenPair));
 
-    return PoolKey.fromGroup(Group.fromFields([x, x0]));
+    return PoolKey.fromGroup(group);
   }
 }
 
@@ -80,7 +77,7 @@ export class XYK extends RuntimeModule<Record<never, never>> {
   }
 
   @runtimeMethod()
-  public createPool(
+  public async createPool(
     tokenIdIn: TokenId,
     tokenIdOut: TokenId,
     tokenInAmount: Balance,
@@ -181,7 +178,7 @@ export class XYK extends RuntimeModule<Record<never, never>> {
   }
 
   @runtimeMethod()
-  public sell(
+  public async sell(
     tokenIdIn: TokenId,
     tokenIdOut: TokenId,
     tokenInAmountIn: Balance,
@@ -222,7 +219,7 @@ export class XYK extends RuntimeModule<Record<never, never>> {
   }
 
   @runtimeMethod()
-  public buy(
+  public async buy(
     tokenIdIn: TokenId,
     tokenIdOut: TokenId,
     tokenOutAmountOut: Balance,

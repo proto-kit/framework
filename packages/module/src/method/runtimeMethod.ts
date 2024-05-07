@@ -228,7 +228,6 @@ function runtimeMethodInternal(options: {
        * Otherwise provableMethod() will just call the originalMethod provided
        * if method is not called at the top level.
        */
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const simulatedWrappedMethod = Reflect.apply(toWrappedMethod, this, [
         methodName,
         simulatedMethod,
@@ -245,7 +244,6 @@ function runtimeMethodInternal(options: {
         executionContext.beforeMethod(constructorName, methodName, args);
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           simulatedWrappedMethod,
           false,
           ...args

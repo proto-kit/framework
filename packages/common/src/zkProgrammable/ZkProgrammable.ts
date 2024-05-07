@@ -1,4 +1,4 @@
-import { ZkProgram, FlexibleProvablePure, Proof, Field } from "o1js";
+import { ZkProgram, FlexibleProvablePure, Proof, Field, Provable } from "o1js";
 import { Memoize } from "typescript-memoize";
 
 import { log } from "../log";
@@ -47,7 +47,9 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
         ...args: any
       ) => Promise<Proof<PublicInput, PublicOutput>>)
   >;
-  analyzeMethods: ZkProgram<{}, Record<string, any>>["analyzeMethods"];
+  analyzeMethods: () => Promise<
+    Record<string, Awaited<ReturnType<typeof Provable.constraintSystem>>>
+  >;
 }
 
 export function verifyToMockable<PublicInput, PublicOutput>(

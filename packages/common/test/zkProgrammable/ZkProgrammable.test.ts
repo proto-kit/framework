@@ -34,6 +34,8 @@ class TestPublicOutput extends Struct({
 
 const failErrorMessage = "test failure";
 
+type Balance = Field;
+
 class TestProgrammable extends ZkProgrammable<
   TestPublicInput,
   TestPublicOutput
@@ -41,7 +43,7 @@ class TestProgrammable extends ZkProgrammable<
   public appChain: AreProofsEnabled = appChainMock;
 
   @provableMethod()
-  public async foo(publicInput: TestPublicInput, bar: Field) {
+  public async foo(publicInput: TestPublicInput, bar: Balance) {
     // expose the private input as public output again for testing purposes
     return new TestPublicOutput({
       bar,
@@ -231,70 +233,71 @@ describe("zkProgrammable", () => {
         // const json = proof.toJSON();
         // expect(json).toBeDefined();
       });
+
+      describe("provableMethod", () => {
+        const executionContext =
+          container.resolve<ProvableMethodExecutionContext>(
+            ProvableMethodExecutionContext
+          );
+
+        let otherTestProgrammable: OtherTestProgrammable;
+
+        const testPublicInput = new TestPublicInput({
+          foo: Field(0),
+        });
+
+        describe("zkProgram interoperability", () => {
+          beforeAll(async () => {
+            otherTestProgrammable = new OtherTestProgrammable(testProgrammable);
+            await otherTestProgrammable.zkProgram.compile();
+          }, 500_000);
+
+          it("should successfully pass proof of one zkProgram as input to another zkProgram", async () => {
+            expect.assertions(3);
+
+            // execute foo
+            await testProgrammable.foo(testPublicInput, Field(0));
+
+            // prove foo
+            const testProof = await executionContext
+              .current()
+              .result.prove<Proof<TestPublicInput, TestPublicOutput>>();
+            const testProofVerified =
+              await testProgrammable.zkProgram.verify(testProof);
+
+            // execute bar
+            await otherTestProgrammable.bar(testProof);
+
+            // proof bar
+            const otherTestProof = await executionContext
+              .current()
+              .result.prove<Proof<undefined, void>>();
+            const otherTestProofVerified =
+              await otherTestProgrammable.zkProgram.verify(otherTestProof);
+
+            expect(testProof.publicOutput.bar.toString()).toBe(
+              testPublicInput.foo.toString()
+            );
+
+            expect(testProofVerified).toBe(true);
+            expect(otherTestProofVerified).toBe(true);
+          }, 500_000);
+        });
+
+        describe("failed method execution", () => {
+          it("if the method fails, it should fail to execute and prove", async () => {
+            expect.assertions(2);
+
+            await expect(
+              testProgrammable.fail(testPublicInput)
+            ).rejects.toThrow(failErrorMessage);
+
+            await expect(async () => {
+              await executionContext.current().result.prove();
+            }).rejects.toThrow(failErrorMessage);
+          });
+        });
+      });
     }
   );
-
-  describe("provableMethod", () => {
-    const executionContext = container.resolve<ProvableMethodExecutionContext>(
-      ProvableMethodExecutionContext
-    );
-
-    let otherTestProgrammable: OtherTestProgrammable;
-
-    const testPublicInput = new TestPublicInput({
-      foo: Field(0),
-    });
-
-    describe("zkProgram interoperability", () => {
-      beforeAll(async () => {
-        otherTestProgrammable = new OtherTestProgrammable(testProgrammable);
-        await otherTestProgrammable.zkProgram.compile();
-      }, 500_000);
-
-      it("should successfully pass proof of one zkProgram as input to another zkProgram", async () => {
-        expect.assertions(3);
-
-        // execute foo
-        await testProgrammable.foo(testPublicInput, Field(0));
-
-        // prove foo
-        const testProof = await executionContext
-          .current()
-          .result.prove<Proof<TestPublicInput, TestPublicOutput>>();
-        const testProofVerified =
-          await testProgrammable.zkProgram.verify(testProof);
-
-        // execute bar
-        await otherTestProgrammable.bar(testProof);
-
-        // proof bar
-        const otherTestProof = await executionContext
-          .current()
-          .result.prove<Proof<undefined, void>>();
-        const otherTestProofVerified =
-          await otherTestProgrammable.zkProgram.verify(otherTestProof);
-
-        expect(testProof.publicOutput.bar.toString()).toBe(
-          testPublicInput.foo.toString()
-        );
-
-        expect(testProofVerified).toBe(true);
-        expect(otherTestProofVerified).toBe(true);
-      }, 500_000);
-    });
-
-    describe("failed method execution", () => {
-      it("if the method fails, it should fail to execute and prove", async () => {
-        expect.assertions(2);
-
-        await expect(testProgrammable.fail(testPublicInput)).rejects.toThrow(
-          failErrorMessage
-        );
-
-        await expect(async () => {
-          await executionContext.current().result.prove();
-        }).rejects.toThrow(failErrorMessage);
-      });
-    });
-  });
 });

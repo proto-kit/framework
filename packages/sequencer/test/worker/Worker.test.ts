@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { beforeAll, jest } from "@jest/globals";
+import { beforeAll } from "@jest/globals";
 
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
 import { BullQueue } from "../../src/worker/queue/BullQueue";
@@ -103,6 +103,7 @@ describe("worker", () => {
     [createLocalQueue, "local"],
     // [createBullQueue, "bullmq"],  // Enable once issue #25 is implemented
   ])("queue", (queueGenerator: () => TaskQueue, testName: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const inputs = [
       [
         [

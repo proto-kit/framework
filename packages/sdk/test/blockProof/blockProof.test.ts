@@ -2,8 +2,9 @@ import {
   expectDefined,
   MockAsyncMerkleTreeStore,
   RollupMerkleTree,
+  mapSequential,
 } from "@proto-kit/common";
-import { Field, PrivateKey, UInt64 as O1UInt64 } from "o1js";
+import { Field, PrivateKey, UInt64 as O1UInt64, Signature } from "o1js";
 import {
   BlockProverPublicOutput,
   NetworkState,
@@ -53,8 +54,8 @@ describe.skip("blockProof", () => {
 
     const tokenId = TokenId.from(0);
 
-    const tx1 = await appChain.transaction(alice, () => {
-      balances.setBalance(tokenId, alice, UInt64.from(1000));
+    const tx1 = await appChain.transaction(alice, async () => {
+      await balances.setBalance(tokenId, alice, UInt64.from(1000));
     });
 
     const context = appChain.runtime.dependencyContainer.resolve(
@@ -81,19 +82,23 @@ describe.skip("blockProof", () => {
       "setBalance"
     );
 
-    appChain.protocol.dependencyContainer
-      .resolveAll<ProvableTransactionHook>("ProvableTransactionHook")
-      .forEach((hook) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        hook.onTransaction({
-          transaction: RuntimeTransaction.fromTransaction({
-            sender: alice,
-            nonce: O1UInt64.from(0),
-            methodId: Field(balancesMethodId),
-            argsHash: Field(0),
-          }),
-        } as any);
+    const txHooks =
+      appChain.protocol.dependencyContainer.resolveAll<ProvableTransactionHook>(
+        "ProvableTransactionHook"
+      );
+
+    await mapSequential(txHooks, async (hook) => {
+      await hook.onTransaction({
+        transaction: RuntimeTransaction.fromTransaction({
+          sender: alice,
+          nonce: O1UInt64.from(0),
+          methodId: Field(balancesMethodId),
+          argsHash: Field(0),
+        }),
+        networkState: NetworkState.empty(),
+        signature: Signature.create(PrivateKey.random(), [Field(0)]),
       });
+    });
 
     const protocolSTs = context.current().result.stateTransitions;
 

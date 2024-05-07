@@ -9,7 +9,7 @@ import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
 export type O1JSPrimitive = ToFieldable;
 export type ArgumentTypes = (O1JSPrimitive | Proof<unknown, unknown>)[];
 
-export type DecoratedMethod = (...args: ArgumentTypes) => void;
+export type DecoratedMethod = (...args: ArgumentTypes) => Promise<unknown>;
 
 export const MOCK_PROOF = "mock-proof";
 

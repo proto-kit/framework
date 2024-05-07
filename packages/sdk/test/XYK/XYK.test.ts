@@ -71,8 +71,8 @@ describe("xyk", () => {
   it("should mint balance for alice", async () => {
     expect.assertions(2);
 
-    const tx1 = await chain.transaction(alice, () => {
-      balances.mint(tokenInId, alice, Balance.from(balanceToMint));
+    const tx1 = await chain.transaction(alice, async () => {
+      await balances.mint(tokenInId, alice, Balance.from(balanceToMint));
     });
 
     await tx1.sign();
@@ -80,8 +80,8 @@ describe("xyk", () => {
 
     await chain.produceBlock();
 
-    const tx2 = await chain.transaction(alice, () => {
-      balances.mint(tokenOutId, alice, Balance.from(balanceToMint));
+    const tx2 = await chain.transaction(alice, async () => {
+      await balances.mint(tokenOutId, alice, Balance.from(balanceToMint));
     });
 
     await tx2.sign();
@@ -99,8 +99,8 @@ describe("xyk", () => {
   it("should create a pool", async () => {
     expect.assertions(2);
 
-    const tx = await chain.transaction(alice, () => {
-      xyk.createPool(
+    const tx = await chain.transaction(alice, async () => {
+      await xyk.createPool(
         tokenInId,
         tokenOutId,
         Balance.from(initialLiquidityA),
@@ -130,8 +130,8 @@ describe("xyk", () => {
     const balanceInBefore = await getBalance(tokenInId, alice);
     const balanceOutBefore = await getBalance(tokenOutId, alice);
 
-    const tx = await chain.transaction(alice, () => {
-      xyk.sell(
+    const tx = await chain.transaction(alice, async () => {
+      await xyk.sell(
         tokenInId,
         tokenOutId,
         Balance.from(balanceToSell),
@@ -171,8 +171,8 @@ describe("xyk", () => {
     const balanceInBefore = await getBalance(tokenInId, alice);
     const balanceOutBefore = await getBalance(tokenOutId, alice);
 
-    const tx = await chain.transaction(alice, () => {
-      xyk.buy(
+    const tx = await chain.transaction(alice, async () => {
+      await xyk.buy(
         tokenInId,
         tokenOutId,
         Balance.from(balanceToBuy),

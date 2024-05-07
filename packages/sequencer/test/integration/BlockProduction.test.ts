@@ -7,7 +7,6 @@ import {
   Path,
   Protocol,
 } from "@proto-kit/protocol";
-// TODO this is actually a big issue
 import { AppChain } from "@proto-kit/sdk";
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
 import "reflect-metadata";

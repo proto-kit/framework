@@ -44,7 +44,7 @@ class CustomBalances extends Balances<BalancesConfig> {
   }
 
   @runtimeMethod()
-  public addBalance(address: PublicKey, balance: UInt64) {
+  public async addBalance(address: PublicKey, balance: UInt64) {
     const totalSupply = this.totalSupply.get();
 
     // TODO Fix UInt issues to remove new UInt()
@@ -138,8 +138,8 @@ describe("testing app chain", () => {
      */
     const balances = appChain.runtime.resolve("Balances");
     // prepare a transaction invoking `Balances.setBalance`
-    const transaction = await appChain.transaction(sender, () => {
-      balances.addBalance(sender, UInt64.from(1000));
+    const transaction = await appChain.transaction(sender, async () => {
+      await balances.addBalance(sender, UInt64.from(1000));
     });
 
     await transaction.sign();

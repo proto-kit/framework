@@ -22,7 +22,7 @@ export class BalanceChild extends Balances {
   }
 
   @runtimeMethod()
-  public addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
+  public async addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
     const address = this.transaction.sender.value;
     const balancesKey = new BalancesKey({
       tokenId: TokenId.from(0),
@@ -45,7 +45,7 @@ export class BalanceChild extends Balances {
   }
 
   @runtimeMethod()
-  public lotOfSTs() {
+  public async lotOfSTs() {
     range(0, 10).forEach((index) => {
       const pk = PublicKey.from({ x: Field(index % 5), isOdd: Bool(false) });
       const balancesKey = new BalancesKey({
@@ -61,18 +61,25 @@ export class BalanceChild extends Balances {
   }
 
   @runtimeMethod()
-  public assertLastBlockHash(hash: Field) {
+  public async assertLastBlockHash(hash: Field) {
     const lastRootHash = this.network.previous.rootHash;
     assert(hash.equals(lastRootHash), "Root hash not matching");
   }
 
   @runtimeMethod()
-  public getBalance(tokenId: TokenId, address: PublicKey): Balance {
+  public async getUserBalance(
+    tokenId: TokenId,
+    address: PublicKey
+  ): Promise<Balance> {
     return super.getBalance(tokenId, address);
   }
 
   @runtimeMethod()
-  public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
+  public async setBalance(
+    tokenId: TokenId,
+    address: PublicKey,
+    amount: Balance
+  ) {
     super.setBalance(tokenId, address, amount);
   }
 }

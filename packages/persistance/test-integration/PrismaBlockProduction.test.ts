@@ -136,7 +136,7 @@ describe("prisma integration", () => {
     it("should query fetches undefined for unset account", async () => {
       const accountState =
         await appChain.query.protocol.AccountState.accountState.get(
-          PublicKey.empty()
+          PublicKey.empty<typeof PublicKey>()
         );
 
       expect(accountState).toBeUndefined();

@@ -9,10 +9,8 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
   NetworkState,
-  UInt64Option,
-  PublicKeyOption,
 } from "@proto-kit/protocol";
-import { Field, Poseidon, PublicKey, Struct, UInt64 as O1JSUInt64 } from "o1js";
+import { Field, Poseidon, Struct } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
 
@@ -66,10 +64,16 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     indexes: FeeIndexes;
   };
 
+  private readonly initPromise: ReturnType<typeof this.createFeeTree>;
+
   public constructor(
     @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
   ) {
     super();
+    // Start fee tree creation so that it definitely happens outside of provable context
+    // eslint-disable-next-line max-len
+    // TODO This can always only be a workaround, we need to make this promise awaited in a predicatable way
+    this.initPromise = this.createFeeTree();
   }
 
   public async createFeeTree() {
@@ -77,24 +81,9 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
       RuntimeMethodExecutionContext
     );
 
-    // TODO: create empty setup struct for compile
-    // or other places where the context is not set
     context.setup({
-      transaction: new RuntimeTransaction({
-        methodId: Field(0),
-        nonce: UInt64Option.fromSome(O1JSUInt64.zero),
-        sender: PublicKeyOption.fromSome(PublicKey.empty<typeof PublicKey>()),
-        argsHash: Field(0),
-      }),
-
-      networkState: new NetworkState({
-        block: {
-          height: O1JSUInt64.zero,
-        },
-        previous: {
-          rootHash: Field(0),
-        },
-      }),
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
     });
 
     // TODO: figure out what side effects analyzeMethods has,
@@ -109,7 +98,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     ).reduce<[FeeTreeValues, FeeIndexes]>(
       // eslint-disable-next-line @typescript-eslint/no-shadow
       ([values, indexes], combinedMethodName, index) => {
-        const { rows } = analyzedMethods[index];
+        const { rows } = analyzedMethods[combinedMethodName];
         // const rows = 1000;
         const [moduleName, methodName] = combinedMethodName.split(".");
         const methodId = this.runtime.methodIdResolver.getMethodId(
@@ -166,7 +155,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
 
   public async getFeeTree() {
     if (this.persistedFeeTree === undefined) {
-      this.persistedFeeTree = await this.createFeeTree();
+      this.persistedFeeTree = await this.initPromise;
     }
 
     return this.persistedFeeTree;
@@ -189,6 +178,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
   }
 
   public async getRoot(): Promise<bigint> {
-    return (await this.getFeeTree()).tree.getRoot().toBigInt();
+    const { tree } = await this.getFeeTree();
+    return tree.getRoot().toBigInt();
   }
 }
