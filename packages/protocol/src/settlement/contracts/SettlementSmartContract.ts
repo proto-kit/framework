@@ -1,4 +1,9 @@
-import { prefixToField, RollupMerkleTree, TypedClass } from "@proto-kit/common";
+import {
+  prefixToField,
+  RollupMerkleTree,
+  TypedClass,
+  mapSequential,
+} from "@proto-kit/common";
 import {
   AccountUpdate,
   Bool,
@@ -223,8 +228,8 @@ export class SettlementSmartContract
       toNetworkState: outputNetworkState,
       currentL1Block: minBlockIncluded,
     };
-    hooks.forEach((hook) => {
-      hook.beforeSettlement(this, inputs);
+    await mapSequential(hooks, async (hook) => {
+      await hook.beforeSettlement(this, inputs);
     });
 
     // Apply blockProof

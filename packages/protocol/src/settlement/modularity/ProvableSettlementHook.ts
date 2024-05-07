@@ -29,5 +29,5 @@ export abstract class ProvableSettlementHook<
   public abstract beforeSettlement(
     smartContract: SettlementSmartContract,
     inputs: SettlementHookInputs
-  ): void;
+  ): Promise<void>;
 }
