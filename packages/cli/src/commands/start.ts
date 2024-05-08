@@ -95,7 +95,6 @@ async function startChain({ configFile }: { configFile: string }) {
     const startTime = Date.now();
     try {
       const unprovenBlock = await produceBlock(trigger);
-      blockHeight++;
       blockGenerationTime = Date.now() - startTime;
       chainState.isProducingBlock = false;
       chainState.nextTrigger =
@@ -113,6 +112,7 @@ async function startChain({ configFile }: { configFile: string }) {
         blockGenerationTime,
         methodIdResolver
       );
+      blockHeight++;
     } catch (e: any) {
       process.stdout.write(ansiEscapes.eraseEndLine);
       console.log(

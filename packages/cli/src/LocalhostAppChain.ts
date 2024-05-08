@@ -11,7 +11,12 @@ import {
   VanillaProtocolModules,
   VanillaRuntimeModules,
 } from "@proto-kit/library";
-import { Sequencer, SequencerModulesRecord } from "@proto-kit/sequencer";
+import {
+  LocalTaskWorkerModule,
+  Sequencer,
+  SequencerModulesRecord,
+  VanillaTaskWorkerModules,
+} from "@proto-kit/sequencer";
 import {
   BlockStorageResolver,
   GraphqlSequencerModule,
@@ -35,7 +40,7 @@ export class LocalhostAppChain<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > extends AppChain<
   RuntimeModules,
   ProtocolModules,
@@ -65,6 +70,9 @@ export class LocalhostAppChain<
               MerkleWitnessResolver,
             },
           }),
+          LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+            VanillaTaskWorkerModules.withoutSettlement()
+          ),
         }),
       }),
       modules: {
@@ -94,6 +102,15 @@ export class LocalhostAppChain<
       Sequencer: {
         Database: {},
         UnprovenProducerModule: {},
+        LocalTaskWorkerModule: {
+          StateTransitionTask: {},
+          // SettlementProvingTask: {},
+          BlockBuildingTask: {},
+          BlockProvingTask: {},
+          BlockReductionTask: {},
+          RuntimeProvingTask: {},
+          StateTransitionReductionTask: {},
+        },
 
         GraphqlServer: {
           port: 8080,
