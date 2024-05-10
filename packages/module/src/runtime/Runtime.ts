@@ -15,7 +15,7 @@ import {
 import {
   MethodPublicOutput,
   StateServiceProvider,
-  StateService,
+  SimpleAsyncStateService,
 } from "@proto-kit/protocol";
 
 import {
@@ -255,7 +255,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     );
   }
 
-  public get stateService(): StateService {
+  public get stateService(): SimpleAsyncStateService {
     return this.stateServiceProvider.stateService;
   }
 

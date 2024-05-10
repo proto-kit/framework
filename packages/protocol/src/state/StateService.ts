@@ -1,6 +1,6 @@
 import { Field } from "o1js";
 
-export interface StateService {
-  get: (key: Field) => Field[] | undefined;
+export interface SimpleAsyncStateService {
+  get: (key: Field) => Promise<Field[] | undefined>;
   set: (key: Field, value: Field[] | undefined) => void;
 }
