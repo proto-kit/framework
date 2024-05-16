@@ -227,6 +227,7 @@ export class AppChain<
       transaction: RuntimeTransaction.dummyTransaction(),
       networkState: NetworkState.empty(),
     });
+    executionContext.setSimulated(true);
 
     const stateServiceProvider = this.container.resolve<StateServiceProvider>(
       "StateServiceProvider"

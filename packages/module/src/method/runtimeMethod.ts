@@ -270,7 +270,7 @@ function runtimeMethodInternal(options: {
 
       let result: unknown;
       try {
-        result = Reflect.apply(simulatedMethod, this, args);
+        result = await Reflect.apply(simulatedMethod, this, args);
       } finally {
         executionContext.afterMethod();
       }

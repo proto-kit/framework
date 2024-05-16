@@ -84,9 +84,9 @@ class TestRuntime extends RuntimeModule<unknown> {
       TestStruct.toFields(struct)
     );
     assert(valid, "Signature invalid");
-    this.test1.set(field);
-    this.ballots.get(Field(1));
-    this.ballots.set(Field(1), ballot);
+    await this.test1.set(field);
+    await this.ballots.get(Field(1));
+    await this.ballots.set(Field(1), ballot);
 
     const [root, key] = witness.computeRootAndKey(Field(0));
     const knownRoot = Provable.witness(Field, () => map.getRoot());

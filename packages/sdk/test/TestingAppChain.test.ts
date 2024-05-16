@@ -45,7 +45,7 @@ class CustomBalances extends Balances<BalancesConfig> {
 
   @runtimeMethod()
   public async addBalance(address: PublicKey, balance: UInt64) {
-    const totalSupply = this.totalSupply.get();
+    const totalSupply = await this.totalSupply.get();
 
     // TODO Fix UInt issues to remove new UInt()
     const newTotalSupply = UInt64.Unsafe.fromField(totalSupply.value.value).add(
@@ -55,7 +55,7 @@ class CustomBalances extends Balances<BalancesConfig> {
       this.config.totalSupply
     );
 
-    this.totalSupply.set(newTotalSupply);
+    await this.totalSupply.set(newTotalSupply);
 
     assert(
       isSupplyNotOverflown,
@@ -65,7 +65,7 @@ class CustomBalances extends Balances<BalancesConfig> {
     const isSender = this.transaction.sender.value.equals(address);
     assert(isSender, "Address is not the sender");
 
-    const currentBalance = this.balances.get(
+    const currentBalance = await this.balances.get(
       new BalancesKey({ tokenId: TokenId.from(0n), address })
     );
 
@@ -74,7 +74,7 @@ class CustomBalances extends Balances<BalancesConfig> {
       balance
     );
 
-    this.balances.set(
+    await this.balances.set(
       new BalancesKey({ tokenId: TokenId.from(0n), address }),
       newBalance
     );

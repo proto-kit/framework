@@ -20,8 +20,8 @@ class Faucet extends RuntimeModule<unknown> {
 
   @runtimeMethod()
   public async drip() {
-    this.balances.mint(
-      new TokenId(0),
+    await this.balances.mint(
+      TokenId.from(0),
       this.transaction.sender.value,
       Balance.from(1000)
     );
@@ -36,7 +36,11 @@ class Pit extends RuntimeModule<unknown> {
 
   @runtimeMethod()
   public async burn(amount: Balance) {
-    this.balances.burn(TokenId.from(0), this.transaction.sender.value, amount);
+    await this.balances.burn(
+      TokenId.from(0),
+      this.transaction.sender.value,
+      amount
+    );
   }
 }
 

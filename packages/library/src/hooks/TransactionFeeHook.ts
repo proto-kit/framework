@@ -27,7 +27,7 @@ interface Balances {
     from: PublicKey,
     to: PublicKey,
     amount: Balance
-  ) => void;
+  ) => Promise<void>;
 }
 
 export interface TransactionFeeHookConfig
@@ -95,8 +95,8 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     return this.persistedFeeAnalyzer;
   }
 
-  public transferFee(from: PublicKeyOption, fee: UInt64) {
-    this.balances.transfer(
+  public async transferFee(from: PublicKeyOption, fee: UInt64) {
+    await this.balances.transfer(
       new TokenId(this.config.tokenId),
       from.value,
       PublicKey.fromBase58(this.config.feeRecipient),
@@ -144,7 +144,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       )
     );
 
-    this.transferFee(
+    await this.transferFee(
       executionData.transaction.sender,
       UInt64.Unsafe.fromField(fee.value)
     );

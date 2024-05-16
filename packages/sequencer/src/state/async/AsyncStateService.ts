@@ -17,7 +17,7 @@ export interface AsyncStateService {
 
   writeStates: (entries: StateEntry[]) => void;
 
-  getAsync: (keys: Field[]) => Promise<StateEntry[]>;
+  getMany: (keys: Field[]) => Promise<StateEntry[]>;
 
-  getSingleAsync: (key: Field) => Promise<Field[] | undefined>;
+  get: (key: Field) => Promise<Field[] | undefined>;
 }

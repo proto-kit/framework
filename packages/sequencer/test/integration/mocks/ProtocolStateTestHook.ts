@@ -12,9 +12,14 @@ import { Field } from "o1js";
 export class ProtocolStateTestHook extends ProvableTransactionHook {
   @protocolState() methodIdInvocations = StateMap.from(Field, Field);
 
-  public onTransaction(executionData: BlockProverExecutionData): void {
+  public async onTransaction(
+    executionData: BlockProverExecutionData
+  ): Promise<void> {
     const { methodId } = executionData.transaction;
-    const invocations = this.methodIdInvocations.get(methodId);
-    this.methodIdInvocations.set(methodId, invocations.orElse(Field(0)).add(1));
+    const invocations = await this.methodIdInvocations.get(methodId);
+    await this.methodIdInvocations.set(
+      methodId,
+      invocations.orElse(Field(0)).add(1)
+    );
   }
 }

@@ -27,12 +27,12 @@ export class Balances extends RuntimeModule<object> {
 
   @runtimeMethod()
   public async getBalance(address: PublicKey): Promise<Option<UInt64>> {
-    return this.balances.get(address);
+    return await this.balances.get(address);
   }
 
   @runtimeMethod()
   public async setBalance(address: PublicKey, balance: UInt64) {
-    this.balances.set(address, balance);
+    await this.balances.set(address, balance);
   }
 }
 

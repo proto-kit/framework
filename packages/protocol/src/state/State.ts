@@ -76,6 +76,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       .resolve(RuntimeMethodExecutionContext)
       .current().result;
 
+    // TODO Use Stateservice for this
     // First try to find a match inside already created stateTransitions
     let previousMutatingTransitions: StateTransition<any>[] = [];
     previousMutatingTransitions = stateTransitions.filter((transition) =>

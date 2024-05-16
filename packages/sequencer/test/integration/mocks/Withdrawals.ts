@@ -20,12 +20,12 @@ export class Withdrawals extends RuntimeModule {
     super();
   }
 
-  protected queueWithdrawal(withdrawal: Withdrawal) {
-    const counter = this.withdrawalCounter.get().orElse(Field(0));
+  protected async queueWithdrawal(withdrawal: Withdrawal) {
+    const counter = (await this.withdrawalCounter.get()).orElse(Field(0));
 
-    this.withdrawalCounter.set(counter.add(1));
+    await this.withdrawalCounter.set(counter.add(1));
 
-    this.withdrawals.set(counter, withdrawal);
+    await this.withdrawals.set(counter, withdrawal);
   }
 
   @runtimeMethod()
@@ -43,7 +43,7 @@ export class Withdrawals extends RuntimeModule {
     // eslint-disable-next-line max-len
     // this.balances.setBalanceIf(address, UInt64.from(balance.value.value).sub(amount), Bool(true));
 
-    this.queueWithdrawal(
+    await this.queueWithdrawal(
       new Withdrawal({
         address,
         amount,

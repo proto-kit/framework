@@ -65,15 +65,15 @@ export class XYK extends RuntimeModule<Record<never, never>> {
     super();
   }
 
-  public poolExists(tokenIdIn: TokenId, tokenIdOut: TokenId) {
+  public async poolExists(tokenIdIn: TokenId, tokenIdOut: TokenId) {
     const key = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
-    const pool = this.pools.get(key);
+    const pool = await this.pools.get(key);
 
     return pool.isSome;
   }
 
-  public assertPoolExists(tokenIdIn: TokenId, tokenIdOut: TokenId) {
-    assert(this.poolExists(tokenIdIn, tokenIdOut), errors.poolExists());
+  public async assertPoolExists(tokenIdIn: TokenId, tokenIdOut: TokenId) {
+    assert(await this.poolExists(tokenIdIn, tokenIdOut), errors.poolExists());
   }
 
   @runtimeMethod()
@@ -84,31 +84,34 @@ export class XYK extends RuntimeModule<Record<never, never>> {
     tokenOutAmount: Balance
   ) {
     assert(tokenIdIn.equals(tokenIdOut).not(), errors.tokensMatch());
-    assert(this.poolExists(tokenIdIn, tokenIdOut).not(), errors.poolExists());
+    assert(
+      (await this.poolExists(tokenIdIn, tokenIdOut)).not(),
+      errors.poolExists()
+    );
 
     const key = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
-    this.pools.set(key, XYK.defaultPoolValue);
+    await this.pools.set(key, XYK.defaultPoolValue);
 
     const creator = this.transaction.sender.value;
     const pool = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
 
-    this.balances.transfer(tokenIdIn, creator, pool, tokenInAmount);
-    this.balances.transfer(tokenIdOut, creator, pool, tokenOutAmount);
+    await this.balances.transfer(tokenIdIn, creator, pool, tokenInAmount);
+    await this.balances.transfer(tokenIdOut, creator, pool, tokenOutAmount);
 
     // mint LP token
     const lpTokenId = LPTokenId.fromTokenIdPair(tokenIdIn, tokenIdOut);
-    this.balances.mint(lpTokenId, creator, tokenInAmount);
+    await this.balances.mint(lpTokenId, creator, tokenInAmount);
   }
 
-  public calculateTokenOutAmountOut(
+  public async calculateTokenOutAmountOut(
     tokenIdIn: TokenId,
     tokenIdOut: TokenId,
     tokenInAmountIn: Balance
   ) {
     const pool = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
 
-    const tokenInReserve = this.balances.getBalance(tokenIdIn, pool);
-    const tokenOutReserve = this.balances.getBalance(tokenIdOut, pool);
+    const tokenInReserve = await this.balances.getBalance(tokenIdIn, pool);
+    const tokenOutReserve = await this.balances.getBalance(tokenIdOut, pool);
 
     return this.calculateTokenOutAmountOutFromReserves(
       tokenInReserve,
@@ -128,15 +131,15 @@ export class XYK extends RuntimeModule<Record<never, never>> {
     return numerator.div(denominator);
   }
 
-  public calculateTokenInAmountIn(
+  public async calculateTokenInAmountIn(
     tokenIdIn: TokenId,
     tokenIdOut: TokenId,
     tokenOutAmountOut: Balance
   ) {
     const pool = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
 
-    const tokenInReserve = this.balances.getBalance(tokenIdIn, pool);
-    const tokenOutReserve = this.balances.getBalance(tokenIdOut, pool);
+    const tokenInReserve = await this.balances.getBalance(tokenIdIn, pool);
+    const tokenOutReserve = await this.balances.getBalance(tokenIdOut, pool);
     return this.calculateTokenInAmountInFromReserves(
       tokenInReserve,
       tokenOutReserve,
@@ -184,10 +187,10 @@ export class XYK extends RuntimeModule<Record<never, never>> {
     tokenInAmountIn: Balance,
     minTokenOutAmountOut: Balance
   ) {
-    this.assertPoolExists(tokenIdIn, tokenIdOut);
+    await this.assertPoolExists(tokenIdIn, tokenIdOut);
     const pool = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
 
-    const tokenOutAmountOut = this.calculateTokenOutAmountOut(
+    const tokenOutAmountOut = await this.calculateTokenOutAmountOut(
       tokenIdIn,
       tokenIdOut,
       tokenInAmountIn
@@ -203,14 +206,14 @@ export class XYK extends RuntimeModule<Record<never, never>> {
 
     assert(isTokenOutAmountTooLow, errors.tokenOutAmountTooLow());
 
-    this.balances.transfer(
+    await this.balances.transfer(
       tokenIdIn,
       this.transaction.sender.value,
       pool,
       tokenInAmountIn
     );
 
-    this.balances.transfer(
+    await this.balances.transfer(
       tokenIdOut,
       pool,
       this.transaction.sender.value,
@@ -225,10 +228,10 @@ export class XYK extends RuntimeModule<Record<never, never>> {
     tokenOutAmountOut: Balance,
     maxTokenInAmountIn: Balance
   ) {
-    this.assertPoolExists(tokenIdIn, tokenIdOut);
+    await this.assertPoolExists(tokenIdIn, tokenIdOut);
     const pool = PoolKey.fromTokenIdPair(tokenIdIn, tokenIdOut);
 
-    const tokenInAmountIn = this.calculateTokenInAmountIn(
+    const tokenInAmountIn = await this.calculateTokenInAmountIn(
       tokenIdIn,
       tokenIdOut,
       tokenOutAmountOut
@@ -244,14 +247,14 @@ export class XYK extends RuntimeModule<Record<never, never>> {
 
     assert(isTokenInInAmountTooHigh, errors.tokenInAmountTooHigh());
 
-    this.balances.transfer(
+    await this.balances.transfer(
       tokenIdOut,
       pool,
       this.transaction.sender.value,
       tokenOutAmountOut
     );
 
-    this.balances.transfer(
+    await this.balances.transfer(
       tokenIdIn,
       this.transaction.sender.value,
       pool,

@@ -22,6 +22,8 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
   public status: Bool = Bool(true);
 
   public statusMessage?: string;
+
+  public stackTrace?: string;
 }
 
 export interface RuntimeMethodExecutionData {
@@ -74,12 +76,13 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
   /**
    * @param message - Status message to acompany the current status
    */
-  public setStatusMessage(message?: string) {
+  public setStatusMessage(message?: string, stackTrace?: string) {
     this.assertSetupCalled();
     if (this.isSimulated) {
       return;
     }
     this.result.statusMessage ??= message;
+    this.result.stackTrace ??= stackTrace;
   }
 
   /**

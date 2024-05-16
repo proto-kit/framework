@@ -5,7 +5,7 @@ import {
   RuntimeModule,
   state,
 } from "@proto-kit/module";
-import { log, Presets, range } from "@proto-kit/common";
+import { log, Presets, range, mapSequential } from "@proto-kit/common";
 import { Bool, Field, PublicKey, UInt64 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { Option, State, StateMap, assert, Deposit } from "@proto-kit/protocol";
@@ -27,13 +27,13 @@ export class Balance extends RuntimeModule<object> {
 
   @runtimeMessage()
   public async deposit(deposit: Deposit) {
-    const balance = this.balances.get(deposit.address);
-    this.balances.set(deposit.address, balance.value.add(deposit.amount));
+    const balance = await this.balances.get(deposit.address);
+    await this.balances.set(deposit.address, balance.value.add(deposit.amount));
   }
 
   @runtimeMethod()
   public async getTotalSupply() {
-    this.totalSupply.get();
+    await this.totalSupply.get();
   }
 
   // @runtimeMethod()
@@ -41,13 +41,13 @@ export class Balance extends RuntimeModule<object> {
 
   @runtimeMethod()
   public async setTotalSupply() {
-    this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(this.transaction.sender.value);
+    await this.totalSupply.set(UInt64.from(20));
+    await this.admin.isAdmin(this.transaction.sender.value);
   }
 
   @runtimeMethod()
   public async getBalance(address: PublicKey): Promise<Option<UInt64>> {
-    return this.balances.get(address);
+    return await this.balances.get(address);
   }
 
   @runtimeMethod()
@@ -57,26 +57,26 @@ export class Balance extends RuntimeModule<object> {
     condition: Bool
   ) {
     assert(condition, "Condition not met");
-    this.balances.set(address, value);
+    await this.balances.set(address, value);
   }
 
   @runtimeMethod()
   public async addBalance(address: PublicKey, value: UInt64) {
-    const totalSupply = this.totalSupply.get();
-    this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(value));
+    const totalSupply = await this.totalSupply.get();
+    await this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(value));
 
-    const balance = this.balances.get(address);
+    const balance = await this.balances.get(address);
 
     log.provable.debug("Balance:", balance.isSome, balance.value);
 
     const newBalance = balance.orElse(UInt64.zero).add(value);
-    this.balances.set(address, newBalance);
+    await this.balances.set(address, newBalance);
   }
 
   @runtimeMethod()
   public async addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
     const address = this.transaction.sender.value;
-    const balance = this.balances.get(address);
+    const balance = await this.balances.get(address);
 
     log.provable.debug("Sender:", address);
     log.provable.debug("Balance:", balance.isSome, balance.value);
@@ -89,20 +89,20 @@ export class Balance extends RuntimeModule<object> {
     );
 
     const newBalance = balance.value.add(value);
-    this.balances.set(address, newBalance);
+    await this.balances.set(address, newBalance);
   }
 
   @runtimeMethod()
   public async lotOfSTs(randomArg: Field) {
-    range(0, 10).forEach((index) => {
+    await mapSequential(range(0, 10), async (index) => {
       const pk = PublicKey.from({
         x: randomArg.add(Field(index % 5)),
         isOdd: Bool(false),
       });
-      const value = this.balances.get(pk);
-      this.balances.set(pk, value.orElse(UInt64.zero).add(100));
-      const supply = this.totalSupply.get().orElse(UInt64.zero);
-      this.totalSupply.set(supply.add(UInt64.from(100)));
+      const value = await this.balances.get(pk);
+      await this.balances.set(pk, value.orElse(UInt64.zero).add(100));
+      const supply = (await this.totalSupply.get()).orElse(UInt64.zero);
+      await this.totalSupply.set(supply.add(UInt64.from(100)));
     });
   }
 }

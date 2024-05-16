@@ -71,7 +71,7 @@ describe.skip("prisma", () => {
     ]);
     await service.commit();
 
-    const result = await service.getSingleAsync(Field(5));
+    const result = await service.get(Field(5));
     console.log(`Received ${result?.map((x) => x.toString())}`);
 
     expectDefined(result);
@@ -87,7 +87,7 @@ describe.skip("prisma", () => {
     ]);
     await service.commit();
 
-    const result2 = await service.getSingleAsync(Field(5));
+    const result2 = await service.get(Field(5));
     expect(result2).toBeUndefined();
 
     await db.prismaClient.$disconnect();

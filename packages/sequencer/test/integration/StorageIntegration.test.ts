@@ -174,16 +174,14 @@ describe.each([["InMemory", InMemoryDatabase]])(
         )
       );
 
-      const state = await unprovenState.getAsync(
+      const state = await unprovenState.getMany(
         Object.keys(stateDiff).map(Field)
       );
 
       expect(checkStateDiffEquality(stateDiff, state)).toBe(true);
       expect(state.length).toBeGreaterThanOrEqual(1);
 
-      await expect(
-        provenState.getSingleAsync(state[0].key)
-      ).resolves.toBeUndefined();
+      await expect(provenState.get(state[0].key)).resolves.toBeUndefined();
     });
 
     it("test proven block prod", async () => {
