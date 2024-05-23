@@ -13,7 +13,7 @@ export class AuroSigner extends AppChainModule<unknown> implements Signer {
     });
     return Signature.fromBase58(response.signature);
   } catch (e: any) {
-    if (e.code == 1001) {
+    if (e?.code == 1001) {
       await (window as any).mina.requestAccounts();
       return await this.sign(message);
     }
