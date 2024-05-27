@@ -12,14 +12,16 @@ export class ASTReplayer<Instructions extends OpcodeDefinitions> {
 
   heap: Record<ASTId, FieldVar> = {};
 
-  public executeCircuitFromAST<Input extends ToFieldable, Output extends ToFieldable>(
-    ast: AST<Instructions, Input, Output>,
+  // TODO Remove ToFieldable
+  public async executeCircuitFromAST<Input, Output>(
+    ast: AST<Instructions>,
     input: Input,
+    inputType: ProvablePure<Input>,
     outputType: ProvablePure<Output>
-  ): Output {
+  ): Promise<Output> {
     let usedInputs = 0;
 
-    const inputFields = getFieldVars(input);
+    const inputFields = getFieldVars(input, inputType);
 
     Object.entries(ast.inputs).forEach(([id, entry]) => {
       if (entry.type === "Constant") {
@@ -45,11 +47,12 @@ export class ASTReplayer<Instructions extends OpcodeDefinitions> {
         );
       });
 
-      const f = this.proxyInstructions[call.call].execute(
+      // eslint-disable-next-line no-await-in-loop
+      const f = await this.proxyInstructions[call.call].execute(
         ...(decodedParameters as any)
       );
       if (f && call.result) {
-        const vars = getFieldVars(f);
+        const vars = getFieldVars(f, types.at(-1)!);
         call.result.map((resultId, index) => {
           this.heap[resultId] = vars[index];
         });

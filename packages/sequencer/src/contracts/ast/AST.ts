@@ -1,15 +1,15 @@
-import { ToFieldable, ASTId, OpcodeDefinitions } from "./types";
+import { ASTId, OpcodeDefinitions } from "./types";
 
 export type InputHeapRecord =
   | {
-  type: "Constant";
-  value: string;
-}
+      type: "Constant";
+      value: string;
+    }
   | {
-  type: "Input";
-};
+      type: "Input";
+    };
 
-export class AST<InstructionSet extends OpcodeDefinitions, InputType extends ToFieldable, OutputType> {
+export class AST<InstructionSet extends OpcodeDefinitions> {
   inputs: Record<ASTId, InputHeapRecord> = {};
 
   outputs: ASTId[] = [];
@@ -19,7 +19,8 @@ export class AST<InstructionSet extends OpcodeDefinitions, InputType extends ToF
     parameters: ASTId[][];
     result?: ASTId[];
   }[] = [];
+}
 
-  public constructor(
-  ) {}
+export function checkASTIntegrity<InstructionSet extends OpcodeDefinitions>(ast: AST<InstructionSet>, ) {
+
 }
