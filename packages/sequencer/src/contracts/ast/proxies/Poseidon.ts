@@ -47,13 +47,13 @@ export const PoseidonInstructionsProxy = {
             return Reflect.apply(target, thisArg, argArray);
           }
           const dynamicArray = DynamicArray.fromFields(argArray[0]) as unknown as InferProvable<typeof DynamicArray> & ToFieldable;
-          context.identifyObject(dynamicArray, "Constant");
+          context.identifyObject(dynamicArray, DynamicArray, "Constant");
 
           const boundTarget = target.bind(thisArg);
           const ret = context.pushCall<"Poseidon.hash">(
             "Poseidon.hash",
             (args: { arr: Field[]}) => boundTarget(args.arr),
-            [dynamicArray]
+            [dynamicArray],
           );
 
           return ret;

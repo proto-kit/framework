@@ -57,7 +57,11 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
   private stateType = class StateType extends Struct({
     value: this.valueType,
     isSome: Bool,
-  }) {};
+  });
+
+  protected getContext(): RuntimeMethodExecutionContext {
+    return container.resolve(RuntimeMethodExecutionContext);
+  }
 
   /**
    * Returns the state that is currently the current state tree
@@ -72,9 +76,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     const { path, stateServiceProvider, valueType } = this;
 
-    const { stateTransitions } = container
-      .resolve(RuntimeMethodExecutionContext)
-      .current().result;
+    const { stateTransitions } = this.getContext().current().result;
 
     // TODO Use Stateservice for this
     // First try to find a match inside already created stateTransitions
@@ -137,9 +139,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     const stateTransition = StateTransition.from(this.path, option);
 
-    container
-      .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
+    this.getContext().addStateTransition(stateTransition);
 
     return option;
   }
@@ -158,7 +158,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
   public async set(value: Value) {
     // link the transition to the current state
     const fromOption = await this.witnessFromState();
-    const toOption = Option.fromValue(value, this.valueType);
+    const toOption = Option.fromSome(value, this.valueType);
 
     this.hasPathOrFail();
 
@@ -168,8 +168,6 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       toOption
     );
 
-    container
-      .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
+    this.getContext().addStateTransition(stateTransition);
   }
 }

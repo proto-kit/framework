@@ -19,6 +19,8 @@ export const FieldProxies = {
       Field.prototype.add = genericProxyWithThis(
         Field.prototype.add,
         "Field.add",
+        [Field, Field],
+        Field,
         contextF
       );
     },
@@ -29,6 +31,8 @@ export const FieldProxies = {
       Field.prototype.equals = genericProxyWithThis(
         Field.prototype.equals,
         "Field.equals",
+        [Field, Field],
+        Field,
         contextF
       );
     },
@@ -39,6 +43,8 @@ export const FieldProxies = {
       Field.prototype.mul = genericProxyWithThis(
         Field.prototype.mul,
         "Field.mul",
+        [Field, Field],
+        Field,
         contextF
       );
     },
@@ -49,6 +55,8 @@ export const FieldProxies = {
       Field.prototype.sub = genericProxyWithThis(
         Field.prototype.sub,
         "Field.sub",
+        [Field, Field],
+        Field,
         contextF
       );
     },
@@ -59,6 +67,8 @@ export const FieldProxies = {
       Field.prototype.neg = genericProxyWithThis(
         Field.prototype.neg,
         "Field.neg",
+        [Field],
+        Field,
         contextF
       )
     },
