@@ -54,7 +54,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
     super();
   }
 
-  private stateType = class StateType extends Struct({
+  private stateType = Struct({
     value: this.valueType,
     isSome: Bool,
   });
