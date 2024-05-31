@@ -1,7 +1,11 @@
 import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
 import { log } from "@proto-kit/common";
-
-import { TaskPayload, Closeable, InstantiatedQueue, TaskQueue } from "@proto-kit/sequencer";
+import {
+  TaskPayload,
+  Closeable,
+  InstantiatedQueue,
+  TaskQueue,
+} from "@proto-kit/sequencer";
 
 /**
  * TaskQueue implementation for BullMQ

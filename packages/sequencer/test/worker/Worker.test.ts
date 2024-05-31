@@ -1,9 +1,10 @@
 import "reflect-metadata";
 
 import { beforeAll } from "@jest/globals";
+// import { BullQueue } from "@proto-kit/deployment";
 
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
-import { BullQueue } from "../../src/worker/queue/BullQueue";
+// TODO Properly move out
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
 
 // // The implementation of the task, known by both master and worker
@@ -87,13 +88,13 @@ describe("worker", () => {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function createBullQueue(): BullQueue {
-    return new BullQueue({
-      host: "rpanic.com",
-      port: 6379,
-      password: "protokit",
-    });
-  }
+  // function createBullQueue(): BullQueue {
+  //   return new BullQueue({
+  //     host: "rpanic.com",
+  //     port: 6379,
+  //     password: "protokit",
+  //   });
+  // }
 
   it("", () => {
     expect(1).toBe(1);

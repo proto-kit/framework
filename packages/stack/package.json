@@ -26,6 +26,7 @@
     "@proto-kit/sdk": "*",
     "@proto-kit/api": "*",
     "@proto-kit/persistance": "*",
+    "@proto-kit/deployment": "*",
     "o1js": "1.1.0",
     "tsyringe": "^4.7.0"
   },

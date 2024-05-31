@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "npx lerna run dev",
     "build": "npx lerna run build",
+    "build-docker": "docker build -t protokit-base -f ./packages/deployment/docker/base/Dockerfile .",
     "lint": "npx lerna run lint --parallel",
     "lint:staged": "eslint",
     "test": "npx lerna run test -- --passWithNoTests",
@@ -13,6 +14,7 @@
     "test:integration": "npx lerna run integration -- --passWithNoTests --forceExit",
     "test:watch": "npx lerna run test:watch",
     "migrate": "npx lerna run prisma-migrate",
+    "prisma-generate": "npx lerna run prisma-generate",
     "commit": "cz",
     "publish:canary": "npx lerna publish prerelease --no-private --exact --yes --canary --preid develop --dist-tag latest --loglevel verbose --force-git-tag --force-publish"
   },
