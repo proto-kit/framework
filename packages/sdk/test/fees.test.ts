@@ -79,7 +79,7 @@ describe("fees", () => {
     });
 
     await appChain.start();
-    appChain.setSigner(senderKey);
+    appChain.addSigner(senderKey);
   });
 
   it("should allow a free faucet transaction", async () => {

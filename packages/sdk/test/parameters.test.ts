@@ -131,7 +131,7 @@ describe("parameters", () => {
 
     await appChain.start();
 
-    appChain.setSigner(signer);
+    appChain.addSigner(signer);
 
     const runtime = appChain.runtime.resolve("TestRuntime");
     const struct = new TestStruct({

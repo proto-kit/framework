@@ -36,7 +36,16 @@ export class AppChainTransaction {
   public async sign() {
     this.hasUnsignedTransaction(this.transaction);
     const signatureData = this.transaction.getSignatureData();
-    const signature = await this.signer.sign(signatureData);
+    const signature = await this.signer.sign(
+      this.transaction.sender,
+      signatureData
+    );
+
+    if (signature === undefined) {
+      throw new Error(
+        `Private key for pubkey ${this.transaction.sender.toBase58()} not configured in signer`
+      );
+    }
 
     if (!signature.verify(this.transaction.sender, signatureData).toBoolean()) {
       throw new Error("Signer didn't provide correct signature for tx");

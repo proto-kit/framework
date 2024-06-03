@@ -64,7 +64,7 @@ describe("xyk", () => {
 
     await chain.start();
 
-    chain.setSigner(aliceKey);
+    chain.addSigner(aliceKey);
 
     balances = chain.runtime.resolve("Balances");
     xyk = chain.runtime.resolve("XYK");

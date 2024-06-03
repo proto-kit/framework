@@ -134,7 +134,7 @@ describe("testing app chain", () => {
     /**
      *  Setup the transaction signer / sender
      */
-    appChain.setSigner(signer);
+    appChain.addSigner(signer);
 
     /**
      * Resolve the registred 'Balances' module and
