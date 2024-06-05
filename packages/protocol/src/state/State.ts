@@ -1,5 +1,5 @@
 import { Mixin } from "ts-mixer";
-import { Bool, Field, Provable, type FlexibleProvablePure } from "o1js";
+import { Bool, Field, Provable, type FlexibleProvablePure, Struct } from "o1js";
 import { container } from "tsyringe";
 import { dummyValue } from "@proto-kit/common";
 
@@ -54,6 +54,11 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
     super();
   }
 
+  private stateType = class StateType extends Struct({
+    value: this.valueType,
+    isSome: Bool,
+  }) {};
+
   /**
    * Returns the state that is currently the current state tree
    * value: The value-fields, or if not state was found, dummy values
@@ -61,7 +66,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * (Basically, whether the value-fields are dummy values or actual values
    * @private
    */
-  private getState(): { value: Value; isSome: Bool } {
+  private async getState(): Promise<{ value: Value; isSome: Bool }> {
     this.hasStateServiceOrFail();
     this.hasPathOrFail();
 
@@ -71,6 +76,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       .resolve(RuntimeMethodExecutionContext)
       .current().result;
 
+    // TODO Use Stateservice for this
     // First try to find a match inside already created stateTransitions
     let previousMutatingTransitions: StateTransition<any>[] = [];
     previousMutatingTransitions = stateTransitions.filter((transition) =>
@@ -89,7 +95,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
     }
 
     // If the value is still undefined, look it up in the stateService
-    const fields = stateServiceProvider.stateService.get(path);
+    const fields = await stateServiceProvider.stateService.get(path);
     if (fields) {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       value = valueType.fromFields(fields) as Value;
@@ -107,12 +113,13 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @returns Optional value of the current state
    */
-  private witnessFromState() {
+  private async witnessFromState() {
     // get the value from storage, or return a dummy value instead
-    const value = Provable.witness(this.valueType, () => this.getState().value);
-
-    // check if the value exists in the storage or not
-    const isSome = Provable.witness(Bool, () => this.getState().isSome);
+    // also check if the value exists in the storage or not
+    const { value, isSome } = await Provable.witnessAsync(
+      this.stateType,
+      async () => await this.getState()
+    );
 
     return Option.from(isSome, value, this.valueType);
   }
@@ -123,8 +130,8 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @returns Option representation of the current state.
    */
-  public get(): Option<Value> {
-    const option = this.witnessFromState();
+  public async get(): Promise<Option<Value>> {
+    const option = await this.witnessFromState();
 
     this.hasPathOrFail();
 
@@ -148,9 +155,9 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @param value - Value to be set as the current state
    */
-  public set(value: Value) {
+  public async set(value: Value) {
     // link the transition to the current state
-    const fromOption = this.witnessFromState();
+    const fromOption = await this.witnessFromState();
     const toOption = Option.fromValue(value, this.valueType);
 
     this.hasPathOrFail();

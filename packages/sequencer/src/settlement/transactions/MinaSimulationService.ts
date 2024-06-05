@@ -62,7 +62,7 @@ export class MinaSimulationService {
     }
   }
 
-  public applyTransaction(tx: Mina.Transaction) {
+  public applyTransaction(tx: Mina.Transaction<boolean, boolean>) {
     const txJson = tx.toJSON();
     this.ledger.applyJsonTransaction(
       txJson,

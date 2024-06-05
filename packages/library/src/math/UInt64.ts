@@ -1,4 +1,4 @@
-import { Field } from "o1js";
+import { Field, Gadgets } from "o1js";
 
 import { UIntConstructor, UInt } from "./UInt";
 
@@ -18,8 +18,7 @@ export class UInt64 extends UInt<64> {
   };
 
   public static check(x: { value: Field }) {
-    const actual = x.value.rangeCheckHelper(64);
-    UInt.assertionFunction(actual.equals(x.value));
+    UInt.assertionFunction(Gadgets.isDefinitelyInRangeN(64, x.value));
   }
 
   public static from(x: UInt64 | bigint | number | string) {

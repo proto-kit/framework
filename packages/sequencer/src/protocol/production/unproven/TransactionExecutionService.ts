@@ -22,7 +22,12 @@ import {
   reduceStateTransitions,
 } from "@proto-kit/protocol";
 import { Bool, Field, Poseidon } from "o1js";
-import { AreProofsEnabled, log, RollupMerkleTree } from "@proto-kit/common";
+import {
+  AreProofsEnabled,
+  log,
+  RollupMerkleTree,
+  mapSequential,
+} from "@proto-kit/common";
 import {
   MethodParameterEncoder,
   Runtime,
@@ -33,7 +38,6 @@ import {
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { distinctByString } from "../../../helpers/utils";
-import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import {
@@ -45,12 +49,12 @@ import {
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import type { StateRecord } from "../BlockProducerModule";
 
-import { RuntimeMethodExecution } from "./RuntimeMethodExecution";
-
 const errors = {
   methodIdNotFound: (methodId: string) =>
     new Error(`Can't find runtime method with id ${methodId}`),
 };
+
+export type SomeRuntimeMethod = (...args: unknown[]) => Promise<unknown>;
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -58,8 +62,6 @@ export class TransactionExecutionService {
   private readonly transactionHooks: ProvableTransactionHook<unknown>[];
 
   private readonly blockHooks: ProvableBlockHook<unknown>[];
-
-  private readonly runtimeMethodExecution: RuntimeMethodExecution;
 
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
@@ -77,18 +79,28 @@ export class TransactionExecutionService {
     );
     this.blockHooks =
       protocol.dependencyContainer.resolveAll("ProvableBlockHook");
-
-    this.runtimeMethodExecution = new RuntimeMethodExecution(
-      this.runtime,
-      this.protocol,
-      container.resolve(RuntimeMethodExecutionContext)
-    );
   }
 
   private allKeys(stateTransitions: StateTransition<unknown>[]): Field[] {
     // We have to do the distinct with strings because
     // array.indexOf() doesn't work with fields
     return stateTransitions.map((st) => st.path).filter(distinctByString);
+  }
+
+  // TODO Use RecordingStateservice for this
+  private async applyTransitions(
+    stateService: CachedStateService,
+    stateTransitions: StateTransition<any>[]
+  ): Promise<void> {
+    // Use updated stateTransitions since only they will have the
+    // right values
+    const writes = stateTransitions
+      .filter((st) => st.toValue.isSome.toBoolean())
+      .map((st) => {
+        return { key: st.path, value: st.toValue.toFields() };
+      });
+    stateService.writeStates(writes);
+    await stateService.commit();
   }
 
   private collectStateDiff(
@@ -105,11 +117,11 @@ export class TransactionExecutionService {
     );
   }
 
-  private decodeTransaction(tx: PendingTransaction): {
-    method: (...args: unknown[]) => unknown;
+  private async decodeTransaction(tx: PendingTransaction): Promise<{
+    method: SomeRuntimeMethod;
     args: unknown[];
     module: RuntimeModule<unknown>;
-  } {
+  }> {
     const methodDescriptors = this.runtime.methodIdResolver.getMethodNameFromId(
       tx.methodId.toBigInt()
     );
@@ -127,7 +139,7 @@ export class TransactionExecutionService {
       module,
       methodName
     );
-    const args = parameterDecoder.decode(tx.argsJSON);
+    const args = await parameterDecoder.decode(tx.argsJSON);
 
     return {
       method,
@@ -149,21 +161,24 @@ export class TransactionExecutionService {
     return appChain;
   }
 
-  private executeWithExecutionContext(
-    method: () => void,
+  private async executeWithExecutionContext(
+    method: () => Promise<void>,
     contextInputs: RuntimeMethodExecutionData,
     runSimulated = false
-  ): Pick<
-    RuntimeProvableMethodExecutionResult,
-    "stateTransitions" | "status" | "statusMessage"
+  ): Promise<
+    Pick<
+      RuntimeProvableMethodExecutionResult,
+      "stateTransitions" | "status" | "statusMessage" | "stackTrace"
+    >
   > {
     // Set up context
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
+
     executionContext.setup(contextInputs);
     executionContext.setSimulated(runSimulated);
 
     // Execute method
-    method();
+    await method();
 
     const { stateTransitions, status, statusMessage } =
       executionContext.current().result;
@@ -182,12 +197,12 @@ export class TransactionExecutionService {
   }
 
   private executeRuntimeMethod(
-    method: (...args: unknown[]) => unknown,
+    method: SomeRuntimeMethod,
     args: unknown[],
     contextInputs: RuntimeMethodExecutionData
   ) {
-    return this.executeWithExecutionContext(() => {
-      method(...args);
+    return this.executeWithExecutionContext(async () => {
+      await method(...args);
     }, contextInputs);
   }
 
@@ -197,9 +212,9 @@ export class TransactionExecutionService {
     runSimulated = false
   ) {
     return this.executeWithExecutionContext(
-      () => {
-        this.transactionHooks.forEach((transactionHook) => {
-          transactionHook.onTransaction(blockContextInputs);
+      async () => {
+        await mapSequential(this.transactionHooks, async (transactionHook) => {
+          await transactionHook.onTransaction(blockContextInputs);
         });
       },
       runtimeContextInputs,
@@ -212,7 +227,7 @@ export class TransactionExecutionService {
    * attached that is needed for tracing
    */
   public async createUnprovenBlock(
-    stateService: AsyncStateService,
+    stateService: CachedStateService,
     transactions: PendingTransaction[],
     lastBlockWithMetadata: UnprovenBlockWithMetadata,
     allowEmptyBlocks: boolean
@@ -232,9 +247,9 @@ export class TransactionExecutionService {
     );
 
     // Get used networkState by executing beforeBlock() hooks
-    const networkState = this.blockHooks.reduce<NetworkState>(
-      (reduceNetworkState, hook) =>
-        hook.beforeBlock(reduceNetworkState, {
+    const networkState = await this.blockHooks.reduce<Promise<NetworkState>>(
+      async (reduceNetworkState, hook) =>
+        await hook.beforeBlock(await reduceNetworkState, {
           blockHashRoot: Field(lastMetadata.blockHashRoot),
           eternalTransactionsHash: lastBlock.toEternalTransactionsHash,
           stateRoot: Field(lastMetadata.stateRoot),
@@ -242,7 +257,7 @@ export class TransactionExecutionService {
           networkStateHash: lastMetadata.afterNetworkState.hash(),
           incomingMessagesHash: lastBlock.toMessagesHash,
         }),
-      lastMetadata.afterNetworkState
+      Promise.resolve(lastMetadata.afterNetworkState)
     );
 
     for (const [, tx] of transactions.entries()) {
@@ -371,9 +386,12 @@ export class TransactionExecutionService {
       transaction: RuntimeTransaction.dummyTransaction(),
     });
 
-    const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
-      (networkState, hook) => hook.afterBlock(networkState, state),
-      block.networkState.during
+    const resultingNetworkState = await this.blockHooks.reduce<
+      Promise<NetworkState>
+    >(
+      async (networkState, hook) =>
+        await hook.afterBlock(await networkState, state),
+      Promise.resolve(block.networkState.during)
     );
 
     const { stateTransitions } = this.executionContext.result;
@@ -409,72 +427,15 @@ export class TransactionExecutionService {
     };
   }
 
-  private async applyTransitions(
-    stateService: CachedStateService,
-    stateTransitions: StateTransition<unknown>[]
-  ): Promise<void> {
-    const writes = stateTransitions
-      .filter((st) => st.to.isSome.toBoolean())
-      .map((st) =>
-        // Use updated stateTransitions since only they will have the
-        // right values
-        ({ key: st.path, value: st.to.toFields() })
-      );
-    // Maybe replace with stateService.set() because its cached anyways?
-    stateService.writeStates(writes);
-  }
-
-  // TODO Here exists a edge-case, where the protocol hooks set
-  // some state that is then consumed by the runtime and used as a key.
-  // In this case, runtime would generate a wrong key here.
-  private async extractAccessedKeys(
-    method: (...args: unknown[]) => unknown,
-    args: unknown[],
-    runtimeContextInputs: RuntimeMethodExecutionData,
-    blockContextInputs: BlockProverExecutionData,
-    parentStateService: AsyncStateService
-  ): Promise<{
-    runtimeKeys: Field[];
-    protocolKeys: Field[];
-  }> {
-    // TODO unsafe to re-use params here?
-    const stateTransitions =
-      await this.runtimeMethodExecution.simulateMultiRound(
-        () => {
-          method(...args);
-        },
-        runtimeContextInputs,
-        parentStateService
-      );
-
-    const protocolTransitions =
-      await this.runtimeMethodExecution.simulateMultiRound(
-        () => {
-          this.transactionHooks.forEach((transactionHook) => {
-            transactionHook.onTransaction(blockContextInputs);
-          });
-        },
-        runtimeContextInputs,
-        parentStateService
-      );
-
-    log.debug(`Got ${stateTransitions.length} StateTransitions`);
-    log.debug(`Got ${protocolTransitions.length} ProtocolStateTransitions`);
-
-    return {
-      runtimeKeys: this.allKeys(stateTransitions),
-      protocolKeys: this.allKeys(protocolTransitions),
-    };
-  }
-
   private async createExecutionTrace(
-    asyncStateService: AsyncStateService,
+    asyncStateService: CachedStateService,
     tx: PendingTransaction,
     networkState: NetworkState
   ): Promise<TransactionExecutionResult> {
-    const cachedStateService = new CachedStateService(asyncStateService);
+    // TODO Use RecordingStateService -> async asProver needed
+    const recordingStateService = new CachedStateService(asyncStateService);
 
-    const { method, args, module } = this.decodeTransaction(tx);
+    const { method, args, module } = await this.decodeTransaction(tx);
 
     // Disable proof generation for tracing
     const appChain = this.getAppChainForModule(module);
@@ -492,34 +453,23 @@ export class TransactionExecutionService {
       networkState: blockContextInputs.networkState,
     };
 
-    const { runtimeKeys, protocolKeys } = await this.extractAccessedKeys(
-      method,
-      args,
-      runtimeContextInputs,
-      blockContextInputs,
-      asyncStateService
-    );
+    // The following steps generate and apply the correct STs with the right values
+    this.stateServiceProvider.setCurrentStateService(recordingStateService);
 
-    // Preload keys
-    await cachedStateService.preloadKeys(
-      runtimeKeys.concat(protocolKeys).filter(distinctByString)
-    );
-
-    // Execute second time with preloaded state. The following steps
-    // generate and apply the correct STs with the right values
-    this.stateServiceProvider.setCurrentStateService(cachedStateService);
-
-    const protocolResult = this.executeProtocolHooks(
+    const protocolResult = await this.executeProtocolHooks(
       runtimeContextInputs,
       blockContextInputs
     );
 
     if (!protocolResult.status.toBoolean()) {
-      throw new Error(
+      const error = new Error(
         `Protocol hooks not executable: ${
           protocolResult.statusMessage ?? "unknown"
         }`
       );
+      log.debug("Protocol hook error stack trace:", protocolResult.stackTrace);
+      // Propagate stack trace from the assertion
+      throw error;
     }
 
     log.trace(
@@ -533,11 +483,11 @@ export class TransactionExecutionService {
 
     // Apply protocol STs
     await this.applyTransitions(
-      cachedStateService,
+      recordingStateService,
       protocolResult.stateTransitions
     );
 
-    const runtimeResult = this.executeRuntimeMethod(
+    const runtimeResult = await this.executeRuntimeMethod(
       method,
       args,
       runtimeContextInputs
@@ -554,19 +504,20 @@ export class TransactionExecutionService {
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
+      // Apply protocol STs
       await this.applyTransitions(
-        cachedStateService,
+        recordingStateService,
         runtimeResult.stateTransitions
       );
     }
+
+    await recordingStateService.mergeIntoParent();
 
     // Reset global stateservice
     this.stateServiceProvider.popCurrentStateService();
 
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
-
-    await cachedStateService.mergeIntoParent();
 
     return {
       tx,

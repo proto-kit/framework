@@ -12,8 +12,8 @@ interface AdminConfig {
 @runtimeModule()
 export class Admin extends RuntimeModule<AdminConfig> {
   @runtimeMethod()
-  public isAdmin(publicKey: PublicKey) {
-    const admin = PublicKey.empty().toConstant();
+  public async isAdmin(publicKey: PublicKey) {
+    const admin = PublicKey.empty<typeof PublicKey>().toConstant();
     assert(admin.equals(publicKey));
   }
 }

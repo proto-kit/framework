@@ -11,8 +11,7 @@ import {
 } from "@proto-kit/protocol";
 import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
 
-import { Task } from "../../../worker/flow/Task";
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import {
   PairProofTaskSerializer,
   PairTuple,
@@ -77,7 +76,7 @@ export class StateTransitionTask
     //   });
     // });
 
-    const output = this.stateTransitionProver.runBatch(
+    const output = await this.stateTransitionProver.runBatch(
       input.publicInput,
       StateTransitionProvableBatch.fromMappings(stBatch)
     );
@@ -143,7 +142,7 @@ export class StateTransitionReductionTask
     input: PairTuple<StateTransitionProof>
   ): Promise<StateTransitionProof> {
     const [r1, r2] = input;
-    this.stateTransitionProver.merge(r1.publicInput, r1, r2);
+    await this.stateTransitionProver.merge(r1.publicInput, r1, r2);
     return await this.executionContext
       .current()
       .result.prove<StateTransitionProof>();

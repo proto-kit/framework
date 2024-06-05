@@ -1,8 +1,7 @@
 import { log } from "@proto-kit/common";
 
-import { TaskPayload } from "../manager/ReducableTask";
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
-import { Task } from "../flow/Task";
+import { Task, TaskPayload } from "../flow/Task";
 
 const errors = {
   notComputable: (name: string) =>
@@ -39,7 +38,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
 
       try {
         // Use first handler that returns a non-undefined result
-        const input = task.inputSerializer().fromJSON(data.payload);
+        const input = await task.inputSerializer().fromJSON(data.payload);
 
         const output: Output = await task.compute(input);
 
@@ -52,7 +51,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
           taskId: data.taskId,
           flowId: data.flowId,
           name: data.name,
-          payload: task.resultSerializer().toJSON(output),
+          payload: await task.resultSerializer().toJSON(output),
         };
 
         return result;

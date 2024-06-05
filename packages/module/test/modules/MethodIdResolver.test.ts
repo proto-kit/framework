@@ -16,7 +16,7 @@ interface AdminConfig {}
 @runtimeModule()
 class Admin extends RuntimeModule<AdminConfig> {
   @runtimeMethod()
-  public isAdminWithAVeryVeryVeryVeryLongName() {
+  public async isAdminWithAVeryVeryVeryVeryLongName() {
     assert(Field(1).equals(Field(1)));
   }
 }

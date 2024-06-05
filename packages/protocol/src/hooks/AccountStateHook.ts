@@ -18,10 +18,10 @@ export class AccountStateHook extends ProvableTransactionHook {
     AccountState
   );
 
-  public onTransaction({ transaction }: BlockProverExecutionData): void {
+  public async onTransaction({ transaction }: BlockProverExecutionData) {
     const sender = transaction.sender.value;
 
-    const aso = this.accountState.get(sender);
+    const aso = await this.accountState.get(sender);
 
     const accountState = aso.orElse(new AccountState({ nonce: UInt64.zero }));
 
@@ -38,10 +38,11 @@ export class AccountStateHook extends ProvableTransactionHook {
 
     // Optimized version of transaction.sender.isSome ? currentNonce.add(1) : Field(0)
     // Bcs Bool(true).toField() == 1
-    const newNonce = UInt64.from(
+    // TODO Think about if we want to rangecheck this. If not, we should store it as Field
+    const newNonce = UInt64.Unsafe.fromField(
       currentNonce.value.add(1).mul(transaction.sender.isSome.toField())
     );
 
-    this.accountState.set(sender, new AccountState({ nonce: newNonce }));
+    await this.accountState.set(sender, new AccountState({ nonce: newNonce }));
   }
 }

@@ -62,7 +62,7 @@ export interface BlockProvable
     stateProof: StateTransitionProof,
     appProof: Proof<void, MethodPublicOutput>,
     executionData: BlockProverExecutionData
-  ) => BlockProverPublicOutput;
+  ) => Promise<BlockProverPublicOutput>;
 
   proveBlock: (
     publicInput: BlockProverPublicInput,
@@ -70,11 +70,11 @@ export interface BlockProvable
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
     transactionProof: BlockProverProof
-  ) => BlockProverPublicOutput;
+  ) => Promise<BlockProverPublicOutput>;
 
   merge: (
     publicInput: BlockProverPublicInput,
     proof1: BlockProverProof,
     proof2: BlockProverProof
-  ) => BlockProverPublicOutput;
+  ) => Promise<BlockProverPublicOutput>;
 }

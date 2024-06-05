@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */
-import { Experimental } from "o1js";
+import { ZkProgram } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
@@ -15,7 +15,7 @@ import {
 import {
   MethodPublicOutput,
   StateServiceProvider,
-  StateService,
+  SimpleAsyncStateService,
 } from "@proto-kit/protocol";
 
 import {
@@ -23,7 +23,7 @@ import {
   isRuntimeMethod,
   runtimeMethodTypeMetadataKey,
   toWrappedMethod,
-  WrappedMethod,
+  AsyncWrappedMethod,
 } from "../method/runtimeMethod";
 import { MethodIdFactory } from "../factories/MethodIdFactory";
 
@@ -85,7 +85,7 @@ export class RuntimeZkProgrammable<
       string,
       {
         privateInputs: any;
-        method: WrappedMethod;
+        method: AsyncWrappedMethod;
       }
     >;
     // We need to use explicit type annotations here,
@@ -113,7 +113,8 @@ export class RuntimeZkProgrammable<
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
           string,
-          (...args: unknown[]) => unknown
+          // Technically not all methods have to be async, but for this context it's ok
+          (...args: unknown[]) => Promise<unknown>
         >;
 
         const modulePrototypeMethods = getAllPropertyNames(runtimeModule).map(
@@ -134,7 +135,7 @@ export class RuntimeZkProgrammable<
                 methodName
               );
 
-              const wrappedMethod = Reflect.apply(
+              const wrappedMethod: AsyncWrappedMethod = Reflect.apply(
                 toWrappedMethod,
                 runtimeModule,
                 [methodName, method, { invocationType }]
@@ -175,12 +176,13 @@ export class RuntimeZkProgrammable<
       Object.entries(runtimeMethods).sort()
     );
 
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "RuntimeProgram",
       publicOutput: MethodPublicOutput,
       methods: sortedRuntimeMethods,
     });
 
-    const SelfProof = Experimental.ZkProgram.Proof(program);
+    const SelfProof = ZkProgram.Proof(program);
 
     const methods = Object.keys(sortedRuntimeMethods).reduce<
       Record<string, any>
@@ -219,7 +221,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   }
 
   // runtime modules composed into a ZkProgram
-  public program?: ReturnType<typeof Experimental.ZkProgram>;
+  public program?: ReturnType<typeof ZkProgram>;
 
   public definition: RuntimeDefinition<Modules>;
 
@@ -253,7 +255,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     );
   }
 
-  public get stateService(): StateService {
+  public get stateService(): SimpleAsyncStateService {
     return this.stateServiceProvider.stateService;
   }
 
@@ -274,7 +276,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    */
   public getMethodById(
     methodId: bigint
-  ): ((...args: unknown[]) => unknown) | undefined {
+  ): ((...args: unknown[]) => Promise<unknown>) | undefined {
     const methodDescriptor =
       this.methodIdResolver.getMethodNameFromId(methodId);
 
@@ -293,7 +295,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     }
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return (method as (...args: unknown[]) => unknown).bind(module);
+    return (method as (...args: unknown[]) => Promise<unknown>).bind(module);
   }
 
   /**

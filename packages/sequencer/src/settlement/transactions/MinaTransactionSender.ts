@@ -1,13 +1,12 @@
-import { Mina } from "o1js";
+import { Mina, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { FlowCreator } from "../../worker/flow/Flow";
-// TODO: bring back once SettlementProvingTask doesnt rely on the Pickles import
-// import {
-//   SettlementProvingTask,
-//   TransactionTaskResult,
-// } from "../tasks/SettlementProvingTask";
+import {
+  SettlementProvingTask,
+  TransactionTaskResult,
+} from "../tasks/SettlementProvingTask";
 
 import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
 
@@ -18,20 +17,18 @@ export class MinaTransactionSender {
   private txQueue: Record<SenderKey, number[]> = {};
 
   // TODO Persist
-  private cache: Mina.Transaction[] = [];
+  private cache: Transaction<any, true>[] = [];
 
   public constructor(
     private readonly creator: FlowCreator,
-    // TODO: bring back once SettlementProvingTask doesnt rely on the Pickles import
-
-    // private readonly provingTask: SettlementProvingTask,
+    private readonly provingTask: SettlementProvingTask,
     private readonly simulator: MinaTransactionSimulator,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
   ) {}
 
   private async trySendCached(
-    tx: Mina.Transaction
-  ): Promise<Mina.TransactionId | undefined> {
+    tx: Transaction<any, true>
+  ): Promise<Mina.PendingTransaction | undefined> {
     const feePayer = tx.transaction.feePayer.body;
     const sender = feePayer.publicKey.toBase58();
     const senderQueue = this.txQueue[sender];
@@ -61,7 +58,7 @@ export class MinaTransactionSender {
     return indizesToRemove.length;
   }
 
-  private async sendOrQueue(tx: Mina.Transaction) {
+  private async sendOrQueue(tx: Transaction<any, true>) {
     this.cache.push(tx);
 
     let removedLastIteration = 0;
@@ -71,8 +68,7 @@ export class MinaTransactionSender {
     } while (removedLastIteration > 0);
   }
 
-  /* eslint-disable @typescript-eslint/no-unused-vars */
-  public async proveAndSendTransaction(transaction: Mina.Transaction) {
+  public async proveAndSendTransaction(transaction: Transaction<false, true>) {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
 
     // Add Transaction to sender's queue
@@ -87,28 +83,25 @@ export class MinaTransactionSender {
 
     await this.simulator.applyTransaction(transaction);
 
-    // TODO: bring back once SettlementProvingTask doesnt rely on the Pickles import
-    // const resultPromise = flow.withFlow<TransactionTaskResult>(
-    //   async (resolve, reject) => {
-    //     await flow.pushTask(
-    //       this.provingTask,
-    //       {
-    //         transaction,
-    //         chainState: {
-    //           graphql: this.baseLayer.config.network.graphql,
-    //           accounts,
-    //         },
-    //       },
-    //       async (result) => {
-    //         resolve(result);
-    //       }
-    //     );
-    //   }
-    // );
-    //
-    // const result = await resultPromise;
-    // await this.sendOrQueue(result.transaction);
-  }
+    const resultPromise = flow.withFlow<TransactionTaskResult>(
+      async (resolve, reject) => {
+        await flow.pushTask(
+          this.provingTask,
+          {
+            transaction,
+            chainState: {
+              graphql: this.baseLayer.config.network.graphql,
+              accounts,
+            },
+          },
+          async (result) => {
+            resolve(result);
+          }
+        );
+      }
+    );
 
-  /* eslint-enable @typescript-eslint/no-unused-vars */
+    const result = await resultPromise;
+    await this.sendOrQueue(result.transaction);
+  }
 }

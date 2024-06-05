@@ -6,7 +6,7 @@ import {
   runtimeModule,
 } from "@proto-kit/module";
 import { StateMap, assert } from "@proto-kit/protocol";
-import { Field, PublicKey, Struct } from "o1js";
+import { Field, PublicKey, Struct, Provable } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
 
@@ -51,25 +51,32 @@ export class Balances<Config = NoConfig>
     Balance
   );
 
-  public getBalance(tokenId: TokenId, address: PublicKey): Balance {
+  public async getBalance(
+    tokenId: TokenId,
+    address: PublicKey
+  ): Promise<Balance> {
     const key = new BalancesKey({ tokenId, address });
-    const balanceOption = this.balances.get(key);
+    const balanceOption = await this.balances.get(key);
     return Balance.Unsafe.fromField(balanceOption.value.value);
   }
 
-  public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
+  public async setBalance(
+    tokenId: TokenId,
+    address: PublicKey,
+    amount: Balance
+  ) {
     const key = new BalancesKey({ tokenId, address });
-    this.balances.set(key, amount);
+    await this.balances.set(key, amount);
   }
 
-  public transfer(
+  public async transfer(
     tokenId: TokenId,
     from: PublicKey,
     to: PublicKey,
     amount: Balance
   ) {
-    const fromBalance = this.getBalance(tokenId, from);
-    const toBalance = this.getBalance(tokenId, to);
+    const fromBalance = await this.getBalance(tokenId, from);
+    const toBalance = await this.getBalance(tokenId, to);
 
     const fromBalanceIsSufficient = fromBalance.greaterThanOrEqual(amount);
 
@@ -78,24 +85,25 @@ export class Balances<Config = NoConfig>
     const newFromBalance = fromBalance.sub(amount);
     const newToBalance = toBalance.add(amount);
 
-    this.setBalance(tokenId, from, newFromBalance);
-    this.setBalance(tokenId, to, newToBalance);
+    await this.setBalance(tokenId, from, newFromBalance);
+    await this.setBalance(tokenId, to, newToBalance);
   }
 
-  public mint(tokenId: TokenId, address: PublicKey, amount: Balance) {
-    const balance = this.getBalance(tokenId, address);
+  public async mint(tokenId: TokenId, address: PublicKey, amount: Balance) {
+    const balance = await this.getBalance(tokenId, address);
     const newBalance = balance.add(amount);
-    this.setBalance(tokenId, address, newBalance);
+    await this.setBalance(tokenId, address, newBalance);
   }
 
-  public burn(tokenId: TokenId, address: PublicKey, amount: Balance) {
-    const balance = this.getBalance(tokenId, address);
+  public async burn(tokenId: TokenId, address: PublicKey, amount: Balance) {
+    const balance = await this.getBalance(tokenId, address);
+    Provable.log("Balance", balance, amount);
     const newBalance = balance.sub(amount);
-    this.setBalance(tokenId, address, newBalance);
+    await this.setBalance(tokenId, address, newBalance);
   }
 
   @runtimeMethod()
-  public transferSigned(
+  public async transferSigned(
     tokenId: TokenId,
     from: PublicKey,
     to: PublicKey,
@@ -103,6 +111,6 @@ export class Balances<Config = NoConfig>
   ) {
     assert(this.transaction.sender.value.equals(from), errors.senderNotFrom());
 
-    this.transfer(tokenId, from, to, amount);
+    await this.transfer(tokenId, from, to, amount);
   }
 }

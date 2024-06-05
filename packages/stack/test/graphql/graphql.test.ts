@@ -128,8 +128,8 @@ describe("graphql client test", () => {
   it("should send transaction", async () => {
     expect.assertions(1);
 
-    const tx = await appChain.transaction(pk.toPublicKey(), () => {
-      appChain.runtime
+    const tx = await appChain.transaction(pk.toPublicKey(), async () => {
+      await appChain.runtime
         .resolve("Balances")
         .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
     });

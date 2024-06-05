@@ -16,6 +16,7 @@
     "declarationMap": true,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
+    "skipLibCheck": true,
     "baseUrl": "."
   },
   "exclude": ["jest.config.cjs"]

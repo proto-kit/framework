@@ -161,10 +161,11 @@ export class CachedMerkleTreeStore
       }
     });
 
+    // Reverse here, so that we can use pop() later
     const fetchResult = (await this.parent.getNodesAsync(toFetch)).reverse();
 
     results.forEach((result, index) => {
-      if (result === -1n) {
+      if (result === undefined) {
         results[index] = fetchResult.pop();
       }
     });

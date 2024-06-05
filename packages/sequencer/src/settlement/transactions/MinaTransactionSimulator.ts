@@ -9,6 +9,7 @@ import {
   TokenId,
   Types,
   UInt32,
+  Transaction,
 } from "o1js";
 import { ReturnType } from "@proto-kit/protocol";
 import { match } from "ts-pattern";
@@ -20,7 +21,7 @@ import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 type Account = ReturnType<typeof Mina.getAccount>;
 
-type FeePayer = Mina.Transaction["transaction"]["feePayer"];
+type FeePayer = Transaction<false, false>["transaction"]["feePayer"];
 
 @injectable()
 export class MinaTransactionSimulator {
@@ -42,7 +43,7 @@ export class MinaTransactionSimulator {
   }
 
   private async getAccountsInternal(
-    tx: Mina.Transaction
+    tx: Transaction<boolean, boolean>
   ): Promise<Record<string, Account>> {
     const { feePayer, accountUpdates } = tx.transaction;
 
@@ -67,11 +68,13 @@ export class MinaTransactionSimulator {
     return accounts;
   }
 
-  public async getAccounts(tx: Mina.Transaction): Promise<Account[]> {
+  public async getAccounts(
+    tx: Transaction<boolean, boolean>
+  ): Promise<Account[]> {
     return Object.values(await this.getAccountsInternal(tx));
   }
 
-  public async applyTransaction(tx: Mina.Transaction) {
+  public async applyTransaction(tx: Transaction<boolean, boolean>) {
     const { feePayer, accountUpdates } = tx.transaction;
 
     const accounts = await this.getAccountsInternal(tx);
@@ -126,7 +129,7 @@ export class MinaTransactionSimulator {
   }
 
   private dummyAccount(pubkey?: PublicKey, tokenId?: Field): Account {
-    const dummy = Types.Account.emptyValue();
+    const dummy = Types.Account.empty();
     if (pubkey) {
       dummy.publicKey = pubkey;
     }
@@ -163,8 +166,8 @@ export class MinaTransactionSimulator {
       }
     } else {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const instance = Mina.activeInstance as ReturnType<
-        typeof Mina.LocalBlockchain
+      const instance = Mina.activeInstance as Awaited<
+        ReturnType<typeof Mina.LocalBlockchain>
       >;
       try {
         this.loaded[key] = instance.getAccount(publicKey, tokenId);
@@ -217,9 +220,15 @@ export class MinaTransactionSimulator {
   public apply(account: Account, au: AccountUpdate) {
     const { balanceChange, update, incrementNonce } = au.body;
 
-    account.balance = balanceChange.sgn.isPositive().toBoolean()
-      ? account.balance.add(balanceChange.magnitude)
-      : account.balance.sub(balanceChange.magnitude);
+    try {
+      account.balance = balanceChange.sgn.isPositive().toBoolean()
+        ? account.balance.add(balanceChange.magnitude)
+        : account.balance.sub(balanceChange.magnitude);
+    } catch (e) {
+      throw new Error(
+        `Account balance: ${account.balance.toString()}, balance change: ${balanceChange.sgn.isPositive().toBoolean() ? "+" : "-"}${balanceChange.magnitude.toString()}`
+      );
+    }
 
     if (incrementNonce.toBoolean()) {
       account.nonce = account.nonce.add(1);

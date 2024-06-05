@@ -6,7 +6,7 @@ import {
 import { RollupMerkleTreeWitness } from "@proto-kit/common";
 import { Bool } from "o1js";
 
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { TaskSerializer } from "../../../worker/flow/Task";
 
 export interface StateTransitionProofParameters {
   publicInput: StateTransitionProverPublicInput;

@@ -5,9 +5,9 @@ import { PublicKey } from "o1js";
 @runtimeModule()
 export class TestBalances extends Balances {
   @runtimeMethod()
-  public mint(tokenId: TokenId, address: PublicKey, amount: Balance) {
-    const balance = this.getBalance(tokenId, address);
+  public async mint(tokenId: TokenId, address: PublicKey, amount: Balance) {
+    const balance = await this.getBalance(tokenId, address);
     const newBalance = balance.add(amount);
-    this.setBalance(tokenId, address, newBalance);
+    await this.setBalance(tokenId, address, newBalance);
   }
 }

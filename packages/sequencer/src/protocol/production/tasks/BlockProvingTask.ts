@@ -22,21 +22,21 @@ import {
   PairTuple,
   ProofTaskSerializer,
 } from "../../../helpers/utils";
-import { PairingDerivedInput } from "../../../worker/manager/PairingMapReduceFlow";
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
-import { Task } from "../../../worker/flow/Task";
+import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
+import { TaskSerializer, Task } from "../../../worker/flow/Task";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import { TaskStateRecord } from "../TransactionTraceService";
 
 import { CompileRegistry } from "./CompileRegistry";
-import { DecodedState, JSONEncodableState } from "./RuntimeTaskParameters";
+import { JSONEncodableState } from "./RuntimeTaskParameters";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
 export interface BlockProverParameters {
   publicInput: BlockProverPublicInput;
   executionData: BlockProverExecutionData;
-  startingState: DecodedState;
+  startingState: TaskStateRecord;
 }
 
 export type BlockProvingTaskParameters = PairingDerivedInput<
@@ -46,20 +46,20 @@ export type BlockProvingTaskParameters = PairingDerivedInput<
 >;
 
 export class DecodedStateSerializer {
-  public static fromJSON(json: JSONEncodableState): DecodedState {
-    return Object.fromEntries<Field[] | undefined>(
+  public static fromJSON(json: JSONEncodableState): TaskStateRecord {
+    return Object.fromEntries<Field[]>(
       Object.entries(json).map(([key, value]) => [
         key,
-        value?.map((encodedField) => Field(encodedField)),
+        value.map((encodedField) => Field(encodedField)),
       ])
     );
   }
 
-  public static toJSON(input: DecodedState): JSONEncodableState {
-    return Object.fromEntries<string[] | undefined>(
+  public static toJSON(input: TaskStateRecord): JSONEncodableState {
+    return Object.fromEntries<string[]>(
       Object.entries(input).map(([key, value]) => [
         key,
-        value?.map((field) => field.toString()),
+        value.map((field) => field.toString()),
       ])
     );
   }
@@ -101,7 +101,7 @@ export class BlockReductionTask
 
   public async compute(input: PairTuple<BlockProof>): Promise<BlockProof> {
     const [r1, r2] = input;
-    this.blockProver.merge(r1.publicInput, r1, r2);
+    await this.blockProver.merge(r1.publicInput, r1, r2);
     return await this.executionContext.current().result.prove<BlockProof>();
   }
 
@@ -174,7 +174,7 @@ export class BlockProvingTask
         return JSON.stringify(jsonReadyObject);
       },
 
-      fromJSON(json: string): BlockProvingTaskParameters {
+      async fromJSON(json: string): Promise<BlockProvingTaskParameters> {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonReadyObject: {
           input1: string;
@@ -187,8 +187,8 @@ export class BlockProvingTask
         } = JSON.parse(json);
 
         return {
-          input1: stProofSerializer.fromJSON(jsonReadyObject.input1),
-          input2: runtimeProofSerializer.fromJSON(jsonReadyObject.input2),
+          input1: await stProofSerializer.fromJSON(jsonReadyObject.input1),
+          input2: await runtimeProofSerializer.fromJSON(jsonReadyObject.input2),
 
           params: {
             publicInput: BlockProverPublicInput.fromJSON(
@@ -216,7 +216,7 @@ export class BlockProvingTask
   }
 
   private async executeWithPrefilledStateService<Return>(
-    startingState: DecodedState,
+    startingState: TaskStateRecord,
     callback: () => Promise<Return>
   ): Promise<Return> {
     const prefilledStateService = new PreFilledStateService(startingState);
@@ -242,7 +242,7 @@ export class BlockProvingTask
     await this.executeWithPrefilledStateService(
       input.params.startingState,
       async () => {
-        this.blockProver.proveTransaction(
+        await this.blockProver.proveTransaction(
           input.params.publicInput,
           stateTransitionProof,
           runtimeProof,

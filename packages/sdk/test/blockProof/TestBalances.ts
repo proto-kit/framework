@@ -12,7 +12,11 @@ export class TestBalances extends Balances<BalancesConfig> {
   @state() public circulatingSupply = State.from<UInt64>(UInt64);
 
   @runtimeMethod()
-  public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
-    super.setBalance(tokenId, address, amount);
+  public async setBalance(
+    tokenId: TokenId,
+    address: PublicKey,
+    amount: Balance
+  ) {
+    await super.setBalance(tokenId, address, amount);
   }
 }

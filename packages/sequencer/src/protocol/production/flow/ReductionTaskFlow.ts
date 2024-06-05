@@ -10,6 +10,16 @@ interface ReductionState<Output> {
 }
 
 /**
+ *  This type is used to consistently define the input type of a MapReduce flow
+ *  that is depenend on the result a pairing.
+ */
+export interface PairingDerivedInput<Input1, Input2, AdditionalParameters> {
+  input1: Input1;
+  input2: Input2;
+  params: AdditionalParameters;
+}
+
+/**
  * This class builds and executes a flow that follows the map-reduce pattern.
  * This works in 2 steps:
  * 1. Mapping: Execute the mappingTask to transform from Input -> Output

@@ -1,4 +1,4 @@
-import { InferProvable, Proof, ProvableExtended } from "o1js";
+import { Proof } from "o1js";
 import { container } from "tsyringe";
 
 import { ToFieldable } from "../utils";
@@ -6,11 +6,10 @@ import { ToFieldable } from "../utils";
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
 import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
 
-export type O1JSPrimitive = InferProvable<ProvableExtended<unknown>> &
-  ToFieldable;
+export type O1JSPrimitive = ToFieldable;
 export type ArgumentTypes = (O1JSPrimitive | Proof<unknown, unknown>)[];
 
-export type DecoratedMethod = (...args: ArgumentTypes) => unknown;
+export type DecoratedMethod = (...args: ArgumentTypes) => Promise<unknown>;
 
 export const MOCK_PROOF = "mock-proof";
 
@@ -28,7 +27,7 @@ export function toProver(
     }
 
     // create a mock proof by simulating method execution in JS
-    const publicOutput = Reflect.apply(simulatedMethod, this, args);
+    const publicOutput = await Reflect.apply(simulatedMethod, this, args);
 
     return new this.zkProgram.Proof({
       proof: MOCK_PROOF,
@@ -66,12 +65,12 @@ export function provableMethod(
   >(
     target: Target,
     methodName: string,
-    descriptor: PropertyDescriptor
+    descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<any> | any>
   ) => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const simulatedMethod = descriptor.value as DecoratedMethod;
 
-    descriptor.value = function value(
+    descriptor.value = async function value(
       this: ZkProgrammable<unknown, unknown>,
       ...args: ArgumentTypes
     ) {

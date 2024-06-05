@@ -1,7 +1,7 @@
 import { injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
 
-import { StateService } from "./StateService";
+import { SimpleAsyncStateService } from "./StateService";
 
 const errors = {
   stateServiceNotSet: () =>
@@ -12,9 +12,9 @@ const errors = {
 
 @injectable()
 export class StateServiceProvider {
-  private readonly stateServiceStack: StateService[] = [];
+  private readonly stateServiceStack: SimpleAsyncStateService[] = [];
 
-  public get stateService(): StateService {
+  public get stateService(): SimpleAsyncStateService {
     if (this.stateServiceStack.length === 0) {
       throw errors.stateServiceNotSet();
     }
@@ -23,7 +23,7 @@ export class StateServiceProvider {
     return this.stateServiceStack.at(-1)!;
   }
 
-  public setCurrentStateService(service: StateService) {
+  public setCurrentStateService(service: SimpleAsyncStateService) {
     this.stateServiceStack.push(service);
   }
 

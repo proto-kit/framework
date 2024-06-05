@@ -1,11 +1,11 @@
 import {
   Bool,
-  Experimental,
   Field,
   Poseidon,
   type Proof,
   Provable,
   SelfProof,
+  ZkProgram,
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
@@ -147,7 +147,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
    * @param executionData
    * @returns The new BlockProver-state to be used as public output
    */
-  public applyTransaction(
+  public async applyTransaction(
     state: BlockProverState,
     stateTransitionProof: Proof<
       StateTransitionProverPublicInput,
@@ -155,7 +155,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     >,
     runtimeProof: RuntimeProof,
     executionData: BlockProverExecutionData
-  ): BlockProverState {
+  ): Promise<BlockProverState> {
     const { transaction, networkState, signature } = executionData;
 
     const { isMessage } = runtimeProof.publicOutput;
@@ -191,7 +191,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
 
     // Apply protocol state transitions
-    this.assertProtocolTransitions(
+    await this.assertProtocolTransitions(
       stateTransitionProof,
       executionData,
       runtimeProof
@@ -240,7 +240,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
   // eslint-disable-next-line max-len
   // TODO How does this interact with the RuntimeMethodExecutionContext when executing runtimemethods?
 
-  public assertProtocolTransitions(
+  public async assertProtocolTransitions(
     stateTransitionProof: Proof<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
@@ -261,9 +261,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
     });
     executionContext.beforeMethod("", "", []);
 
-    this.transactionHooks.forEach((module) => {
-      module.onTransaction(executionData);
-    });
+    for (const module of this.transactionHooks) {
+      // eslint-disable-next-line no-await-in-loop
+      await module.onTransaction(executionData);
+    }
 
     executionContext.afterMethod();
 
@@ -291,38 +292,38 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
   }
 
-  private executeBlockHooks(
+  private async executeBlockHooks(
     state: BlockProverState,
     inputNetworkState: NetworkState,
     type: "afterBlock" | "beforeBlock"
-  ): {
+  ): Promise<{
     networkState: NetworkState;
     stateTransitions: StateTransition<unknown>[];
-  } {
+  }> {
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.clear();
     executionContext.beforeMethod("", "", []);
 
-    const resultingNetworkState = this.blockHooks.reduce<NetworkState>(
-      (networkState, blockHook) => {
-        // Setup context for potential calls to runtime methods.
-        // With the special case that we set the new networkstate for every hook
-        // We also have to put in a dummy transaction for network.transaction
-        executionContext.setup({
-          transaction: RuntimeTransaction.dummyTransaction(),
-          networkState,
-        });
+    const resultingNetworkState = await this.blockHooks.reduce<
+      Promise<NetworkState>
+    >(async (networkStatePromise, blockHook) => {
+      const networkState = await networkStatePromise;
+      // Setup context for potential calls to runtime methods.
+      // With the special case that we set the new networkstate for every hook
+      // We also have to put in a dummy transaction for network.transaction
+      executionContext.setup({
+        transaction: RuntimeTransaction.dummyTransaction(),
+        networkState,
+      });
 
-        if (type === "beforeBlock") {
-          return blockHook.beforeBlock(networkState, state);
-        }
-        if (type === "afterBlock") {
-          return blockHook.afterBlock(networkState, state);
-        }
-        throw new Error("Unreachable");
-      },
-      inputNetworkState
-    );
+      if (type === "beforeBlock") {
+        return await blockHook.beforeBlock(networkState, state);
+      }
+      if (type === "afterBlock") {
+        return await blockHook.afterBlock(networkState, state);
+      }
+      throw new Error("Unreachable");
+    }, Promise.resolve(inputNetworkState));
 
     executionContext.afterMethod();
 
@@ -381,12 +382,12 @@ export class BlockProverProgrammable extends ZkProgrammable<
   }
 
   @provableMethod()
-  public proveTransaction(
+  public async proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
     runtimeProof: RuntimeProof,
     executionData: BlockProverExecutionData
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     const state: BlockProverState = {
       ...publicInput,
     };
@@ -402,7 +403,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       executionData.transaction
     );
 
-    const stateTo = this.applyTransaction(
+    const stateTo = await this.applyTransaction(
       bundleInclusionState,
       stateProof,
       runtimeProof,
@@ -437,13 +438,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
   }
 
   @provableMethod()
-  public proveBlock(
+  public async proveBlock(
     publicInput: BlockProverPublicInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
     transactionProof: BlockProverProof
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     const state: BlockProverState = {
       ...publicInput,
     };
@@ -503,7 +504,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     transactionProof.verifyIf(verifyTransactionProof);
 
     // 2. Execute beforeBlock hooks
-    const beforeBlockResult = this.executeBlockHooks(
+    const beforeBlockResult = await this.executeBlockHooks(
       state,
       networkState,
       "beforeBlock"
@@ -551,7 +552,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // 5. Execute afterBlock hooks
     this.assertSTProofInput(stateTransitionProof, state.stateRoot);
 
-    const afterBlockResult = this.executeBlockHooks(
+    const afterBlockResult = await this.executeBlockHooks(
       state,
       beforeBlockResult.networkState,
       "afterBlock"
@@ -605,11 +606,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
   }
 
   @provableMethod()
-  public merge(
+  public async merge(
     publicInput: BlockProverPublicInput,
     proof1: BlockProverProof,
     proof2: BlockProverProof
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     proof1.verify();
     proof2.verify();
 
@@ -751,9 +752,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const RuntimeProofClass = runtime.zkProgram.Proof;
 
     const proveTransaction = prover.proveTransaction.bind(prover);
+    const proveBlock = prover.proveBlock.bind(prover);
     const merge = prover.merge.bind(prover);
 
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "BlockProver",
       publicInput: BlockProverPublicInput,
       publicOutput: BlockProverPublicOutput,
 
@@ -765,17 +768,41 @@ export class BlockProverProgrammable extends ZkProgrammable<
             BlockProverExecutionData,
           ],
 
-          method(
+          async method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
             appProof: Proof<void, MethodPublicOutput>,
             executionData: BlockProverExecutionData
           ) {
-            return proveTransaction(
+            return await proveTransaction(
               publicInput,
               stateProof,
               appProof,
               executionData
+            );
+          },
+        },
+
+        proveBlock: {
+          privateInputs: [
+            NetworkState,
+            BlockHashMerkleTreeWitness,
+            StateTransitionProofClass,
+            SelfProof<BlockProverPublicInput, BlockProverPublicOutput>,
+          ],
+          async method(
+            publicInput: BlockProverPublicInput,
+            networkState: NetworkState,
+            blockWitness: BlockHashMerkleTreeWitness,
+            stateTransitionProof: StateTransitionProof,
+            transactionProof: BlockProverProof
+          ) {
+            return await proveBlock(
+              publicInput,
+              networkState,
+              blockWitness,
+              stateTransitionProof,
+              transactionProof
             );
           },
         },
@@ -786,12 +813,12 @@ export class BlockProverProgrammable extends ZkProgrammable<
             SelfProof<BlockProverPublicInput, BlockProverPublicOutput>,
           ],
 
-          method(
+          async method(
             publicInput: BlockProverPublicInput,
             proof1: BlockProverProof,
             proof2: BlockProverProof
           ) {
-            return merge(publicInput, proof1, proof2);
+            return await merge(publicInput, proof1, proof2);
           },
         },
       },
@@ -802,7 +829,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       merge: program.merge,
     };
 
-    const SelfProofClass = Experimental.ZkProgram.Proof(program);
+    const SelfProofClass = ZkProgram.Proof(program);
 
     return {
       compile: program.compile.bind(program),
@@ -851,7 +878,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     stateProof: StateTransitionProof,
     appProof: Proof<void, MethodPublicOutput>,
     executionData: BlockProverExecutionData
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveTransaction(
       publicInput,
       stateProof,
@@ -866,7 +893,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
     transactionProof: BlockProverProof
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveBlock(
       publicInput,
       networkState,
@@ -880,7 +907,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     publicInput: BlockProverPublicInput,
     proof1: BlockProverProof,
     proof2: BlockProverProof
-  ): BlockProverPublicOutput {
+  ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.merge(publicInput, proof1, proof2);
   }
 }

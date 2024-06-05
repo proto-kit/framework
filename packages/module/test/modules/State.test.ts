@@ -7,6 +7,7 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
 } from "@proto-kit/protocol";
+import { expectDefined } from "@proto-kit/common";
 
 import { Runtime } from "../../src";
 import { createTestingRuntime } from "../TestingRuntime";
@@ -14,7 +15,7 @@ import { createTestingRuntime } from "../TestingRuntime";
 import { Admin } from "./Admin";
 import { Balances } from "./Balances";
 
-describe("transient state", () => {
+describe("state", () => {
   let balances: Balances;
 
   let runtime: Runtime<{
@@ -30,7 +31,7 @@ describe("transient state", () => {
       },
       {
         Admin: {
-          publicKey: PublicKey.empty().toBase58(),
+          publicKey: PublicKey.empty<typeof PublicKey>().toBase58(),
         },
         Balances: {},
       }
@@ -43,30 +44,38 @@ describe("transient state", () => {
     createChain();
   });
 
-  it("should track previously set state", () => {
-    expect.assertions(2);
-
-    const executionContext = container.resolve(RuntimeMethodExecutionContext);
-    executionContext.setup({
-      networkState: NetworkState.empty(),
-      transaction: RuntimeTransaction.dummyTransaction(),
+  describe("state decorator", () => {
+    it("should decorate state properties correctly", () => {
+      expectDefined(balances.totalSupply.path);
     });
-    balances.transientState();
+  });
 
-    const stateTransitions = executionContext
-      .current()
-      .result.stateTransitions.map((stateTransition) =>
-        stateTransition.toProvable()
-      );
+  describe("transient state", () => {
+    it("should track previously set state", async () => {
+      expect.assertions(2);
 
-    const expectedLastOption = Option.fromValue(
-      UInt64.from(200),
-      UInt64
-    ).toProvable();
+      const executionContext = container.resolve(RuntimeMethodExecutionContext);
+      executionContext.setup({
+        networkState: NetworkState.empty(),
+        transaction: RuntimeTransaction.dummyTransaction(),
+      });
+      await balances.transientState();
 
-    const last = stateTransitions.at(-1);
+      const stateTransitions = executionContext
+        .current()
+        .result.stateTransitions.map((stateTransition) =>
+          stateTransition.toProvable()
+        );
 
-    expect(last).toBeDefined();
-    expect(last!.to.value).toStrictEqual(expectedLastOption.value);
+      const expectedLastOption = Option.fromValue(
+        UInt64.from(200),
+        UInt64
+      ).toProvable();
+
+      const last = stateTransitions.at(-1);
+
+      expect(last).toBeDefined();
+      expect(last!.to.value).toStrictEqual(expectedLastOption.value);
+    });
   });
 });

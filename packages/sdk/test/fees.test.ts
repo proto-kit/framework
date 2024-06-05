@@ -19,9 +19,9 @@ class Faucet extends RuntimeModule<unknown> {
   }
 
   @runtimeMethod()
-  public drip() {
-    this.balances.mint(
-      new TokenId(0),
+  public async drip() {
+    await this.balances.mint(
+      TokenId.from(0),
       this.transaction.sender.value,
       Balance.from(1000)
     );
@@ -35,8 +35,12 @@ class Pit extends RuntimeModule<unknown> {
   }
 
   @runtimeMethod()
-  public burn(amount: Balance) {
-    this.balances.burn(TokenId.from(0), this.transaction.sender.value, amount);
+  public async burn(amount: Balance) {
+    await this.balances.burn(
+      TokenId.from(0),
+      this.transaction.sender.value,
+      amount
+    );
   }
 }
 
@@ -90,8 +94,8 @@ describe("fees", () => {
 
     const faucet = appChain.runtime.resolve("Faucet");
 
-    const tx = await appChain.transaction(senderKey.toPublicKey(), () => {
-      faucet.drip();
+    const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
+      await faucet.drip();
     });
 
     await tx.sign();
@@ -115,8 +119,8 @@ describe("fees", () => {
 
     const pit = appChain.runtime.resolve("Pit");
 
-    const tx = await appChain.transaction(senderKey.toPublicKey(), () => {
-      pit.burn(Balance.from(100));
+    const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
+      await pit.burn(Balance.from(100));
     });
 
     await tx.sign();
@@ -132,6 +136,6 @@ describe("fees", () => {
     );
 
     expectDefined(balance);
-    expect(balance.toString()).toBe("509");
+    expect(balance.toString()).toBe("512");
   });
 });

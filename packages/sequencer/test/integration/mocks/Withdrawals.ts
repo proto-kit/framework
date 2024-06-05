@@ -20,31 +20,30 @@ export class Withdrawals extends RuntimeModule {
     super();
   }
 
-  protected queueWithdrawal(withdrawal: Withdrawal) {
-    const counter = this.withdrawalCounter.get().orElse(Field(0));
+  protected async queueWithdrawal(withdrawal: Withdrawal) {
+    const counter = (await this.withdrawalCounter.get()).orElse(Field(0));
 
-    this.withdrawals.set(counter, withdrawal);
+    await this.withdrawalCounter.set(counter.add(1));
 
-    this.withdrawalCounter.set(counter.add(1));
+    await this.withdrawals.set(counter, withdrawal);
   }
 
   @runtimeMethod()
-  public withdraw(address: PublicKey, amount: UInt64) {
-    const balance = this.balances.getBalance(address);
+  public async withdraw(address: PublicKey, amount: UInt64) {
+    const balance = await this.balances.getBalance(address);
 
     assert(
-      amount.greaterThanOrEqual(Mina.accountCreationFee().toConstant()),
+      amount.greaterThanOrEqual(
+        Mina.getNetworkConstants().accountCreationFee.toConstant()
+      ),
       "Minimum withdrawal amount not met"
     );
-    assert(
-      balance.value.value.greaterThanOrEqual(amount.value),
-      "Not enough balance"
-    );
+    assert(balance.value.greaterThanOrEqual(amount), "Not enough balance");
 
     // eslint-disable-next-line max-len
     // this.balances.setBalanceIf(address, UInt64.from(balance.value.value).sub(amount), Bool(true));
 
-    this.queueWithdrawal(
+    await this.queueWithdrawal(
       new Withdrawal({
         address,
         amount,

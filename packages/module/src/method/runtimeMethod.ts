@@ -53,21 +53,26 @@ export function toStateTransitionsHash(
 }
 
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
+export type AsyncWrappedMethod = (
+  ...args: ArgumentTypes
+) => Promise<MethodPublicOutput>;
 
 export function toWrappedMethod(
   this: RuntimeModule<unknown>,
   methodName: string,
-  moduleMethod: (...args: ArgumentTypes) => unknown,
+  moduleMethod: (...args: ArgumentTypes) => Promise<any>,
   options: {
     invocationType: RuntimeMethodInvocationType;
   }
-) {
+): AsyncWrappedMethod {
   const executionContext = container.resolve<RuntimeMethodExecutionContext>(
     RuntimeMethodExecutionContext
   );
 
-  const wrappedMethod: WrappedMethod = (...args): MethodPublicOutput => {
-    Reflect.apply(moduleMethod, this, args);
+  const wrappedMethod: AsyncWrappedMethod = async (
+    ...args
+  ): Promise<MethodPublicOutput> => {
+    await Reflect.apply(moduleMethod, this, args);
     const {
       result: { stateTransitions, status },
     } = executionContext.current();
@@ -177,7 +182,10 @@ function runtimeMethodInternal(options: {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
-    descriptor: PropertyDescriptor
+    descriptor: TypedPropertyDescriptor<
+      // TODO Limit possible parameter types
+      (...args: any[]) => Promise<any>
+    >
   ) => {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
@@ -207,7 +215,7 @@ function runtimeMethodInternal(options: {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const simulatedMethod = descriptor.value as DecoratedMethod;
 
-    descriptor.value = function value(
+    descriptor.value = async function value(
       this: RuntimeModule<unknown>,
       ...args: ArgumentTypes
     ) {
@@ -262,7 +270,7 @@ function runtimeMethodInternal(options: {
 
       let result: unknown;
       try {
-        result = Reflect.apply(simulatedMethod, this, args);
+        result = await Reflect.apply(simulatedMethod, this, args);
       } finally {
         executionContext.afterMethod();
       }

@@ -1,5 +1,5 @@
 import { injectable, singleton } from "tsyringe";
-import { CompileArtifact, TypedClass } from "@proto-kit/common";
+import { CompileArtifact, TypedClass, log } from "@proto-kit/common";
 import { Field, SmartContract } from "o1js";
 
 export type ContractCompileArtifact = {
@@ -34,6 +34,7 @@ export class CompileRegistry {
     zkProgram: { compile: () => Promise<CompileArtifact> }
   ) {
     if (this.compilationPromises[name] === undefined) {
+      log.info(`Compiling ${name}`);
       this.compilationPromises[name] = zkProgram.compile();
     }
     await this.compilationPromises[name];

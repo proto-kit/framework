@@ -11,7 +11,7 @@ describe("tx objects hash equality", () => {
       argsFields: [Field(1), Field(6676)],
       argsJSON: [],
       isMessage: false,
-      sender: PublicKey.empty(),
+      sender: PublicKey.empty<typeof PublicKey>(),
       nonce: UInt64.from(100),
     };
 

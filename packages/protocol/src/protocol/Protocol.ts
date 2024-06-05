@@ -13,7 +13,7 @@ import { DependencyContainer, Lifecycle } from "tsyringe";
 import { BlockProvable } from "../prover/block/BlockProvable";
 import { StateTransitionProvable } from "../prover/statetransition/StateTransitionProvable";
 import { StateServiceProvider } from "../state/StateServiceProvider";
-import { StateService } from "../state/StateService";
+import { SimpleAsyncStateService } from "../state/StateService";
 import { NoopBlockHook } from "../hooks/NoopBlockHook";
 import { BlockHeightHook } from "../hooks/BlockHeightHook";
 import { LastStateRootBlockHook } from "../hooks/LastStateRootBlockHook";
@@ -79,7 +79,7 @@ export class Protocol<
     this.definition = definition;
   }
 
-  public get stateService(): StateService {
+  public get stateService(): SimpleAsyncStateService {
     return this.stateServiceProvider.stateService;
   }
 

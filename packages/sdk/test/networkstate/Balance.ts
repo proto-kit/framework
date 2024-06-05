@@ -6,7 +6,7 @@ import {
   UInt64,
 } from "@proto-kit/library";
 import { runtimeMethod, runtimeModule, state } from "@proto-kit/module";
-import { log, Presets, range } from "@proto-kit/common";
+import { log, Presets, range, mapSequential } from "@proto-kit/common";
 import { Bool, Field, PublicKey } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
 import { State, assert } from "@proto-kit/protocol";
@@ -22,13 +22,13 @@ export class BalanceChild extends Balances {
   }
 
   @runtimeMethod()
-  public addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
+  public async addBalanceToSelf(value: UInt64, blockHeight: UInt64) {
     const address = this.transaction.sender.value;
     const balancesKey = new BalancesKey({
       tokenId: TokenId.from(0),
       address,
     });
-    const balance = this.balances.get(balancesKey);
+    const balance = await this.balances.get(balancesKey);
 
     log.provable.debug("Sender:", address);
     log.provable.debug("Balance:", balance.isSome, balance.value);
@@ -41,38 +41,45 @@ export class BalanceChild extends Balances {
     );
 
     const newBalance = balance.value.add(value);
-    this.balances.set(balancesKey, newBalance);
+    await this.balances.set(balancesKey, newBalance);
   }
 
   @runtimeMethod()
-  public lotOfSTs() {
-    range(0, 10).forEach((index) => {
+  public async lotOfSTs() {
+    await mapSequential(range(0, 10), async (index) => {
       const pk = PublicKey.from({ x: Field(index % 5), isOdd: Bool(false) });
       const balancesKey = new BalancesKey({
         address: pk,
         tokenId: TokenId.from(0),
       });
-      const value = this.balances.get(balancesKey);
-      this.balances.set(balancesKey, value.orElse(UInt64.zero).add(100));
+      const value = await this.balances.get(balancesKey);
+      await this.balances.set(balancesKey, value.orElse(UInt64.zero).add(100));
 
-      const supply = this.totalSupply.get().orElse(UInt64.zero);
-      this.totalSupply.set(supply.add(UInt64.from(100)));
+      const supply = (await this.totalSupply.get()).orElse(UInt64.zero);
+      await this.totalSupply.set(supply.add(UInt64.from(100)));
     });
   }
 
   @runtimeMethod()
-  public assertLastBlockHash(hash: Field) {
+  public async assertLastBlockHash(hash: Field) {
     const lastRootHash = this.network.previous.rootHash;
     assert(hash.equals(lastRootHash), "Root hash not matching");
   }
 
   @runtimeMethod()
-  public getBalance(tokenId: TokenId, address: PublicKey): Balance {
+  public getUserBalance(
+    tokenId: TokenId,
+    address: PublicKey
+  ): Promise<Balance> {
     return super.getBalance(tokenId, address);
   }
 
   @runtimeMethod()
-  public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
-    super.setBalance(tokenId, address, amount);
+  public async setBalance(
+    tokenId: TokenId,
+    address: PublicKey,
+    amount: Balance
+  ) {
+    await super.setBalance(tokenId, address, amount);
   }
 }

@@ -5,17 +5,17 @@ import { NetworkState } from "../model/network/NetworkState";
 import { BlockProverState } from "../prover/block/BlockProver";
 
 export class NoopBlockHook extends ProvableBlockHook<NoConfig> {
-  public afterBlock(
+  public async afterBlock(
     networkState: NetworkState,
     state: BlockProverState
-  ): NetworkState {
+  ): Promise<NetworkState> {
     return networkState;
   }
 
-  public beforeBlock(
+  public async beforeBlock(
     networkState: NetworkState,
     state: BlockProverState
-  ): NetworkState {
+  ): Promise<NetworkState> {
     return networkState;
   }
 }

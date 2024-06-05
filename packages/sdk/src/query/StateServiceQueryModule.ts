@@ -33,8 +33,8 @@ export class StateServiceQueryModule
     return this.sequencer.dependencyContainer.resolve("AsyncMerkleStore");
   }
 
-  public async get(key: Field) {
-    return await this.asyncStateService.getSingleAsync(key);
+  public get(key: Field) {
+    return this.asyncStateService.get(key);
   }
 
   public async merkleWitness(

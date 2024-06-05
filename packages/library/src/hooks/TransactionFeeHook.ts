@@ -27,7 +27,7 @@ interface Balances {
     from: PublicKey,
     to: PublicKey,
     amount: Balance
-  ) => void;
+  ) => Promise<void>;
 }
 
 export interface TransactionFeeHookConfig
@@ -95,8 +95,8 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     return this.persistedFeeAnalyzer;
   }
 
-  public transferFee(from: PublicKeyOption, fee: UInt64) {
-    this.balances.transfer(
+  public async transferFee(from: PublicKeyOption, fee: UInt64) {
+    await this.balances.transfer(
       new TokenId(this.config.tokenId),
       from.value,
       PublicKey.fromBase58(this.config.feeRecipient),
@@ -110,22 +110,26 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
    *
    * @param executionData
    */
-  public onTransaction(executionData: BlockProverExecutionData): void {
-    const feeConfig = Provable.witness(MethodFeeConfigData, () =>
-      this.feeAnalyzer.getFeeConfig(
-        executionData.transaction.methodId.toBigInt()
-      )
-    );
-
-    const witness = Provable.witness(
-      RuntimeFeeAnalyzerService.getWitnessType(),
-      () =>
-        this.feeAnalyzer.getWitness(
+  public async onTransaction(
+    executionData: BlockProverExecutionData
+  ): Promise<void> {
+    const feeConfig = await Provable.witnessAsync(
+      MethodFeeConfigData,
+      async () =>
+        await this.feeAnalyzer.getFeeConfig(
           executionData.transaction.methodId.toBigInt()
         )
     );
 
-    const root = Field(this.feeAnalyzer.getRoot());
+    const witness = await Provable.witnessAsync(
+      RuntimeFeeAnalyzerService.getWitnessType(),
+      async () =>
+        await this.feeAnalyzer.getWitness(
+          executionData.transaction.methodId.toBigInt()
+        )
+    );
+
+    const root = Field(await this.feeAnalyzer.getRoot());
     const calculatedRoot = witness.calculateRoot(feeConfig.hash());
 
     root.assertEquals(calculatedRoot, errors.invalidFeeTreeRoot());
@@ -140,7 +144,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       )
     );
 
-    this.transferFee(
+    await this.transferFee(
       executionData.transaction.sender,
       UInt64.Unsafe.fromField(fee.value)
     );

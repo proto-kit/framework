@@ -5,7 +5,7 @@ import {
   type ProvableStateTransition,
   Path,
   MethodPublicOutput,
-  StateService,
+  SimpleAsyncStateService,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
   NetworkState,
@@ -20,19 +20,19 @@ import { Admin } from "./Admin.js";
 describe("balances", () => {
   let balances: Balances;
 
-  let state: StateService;
+  let state: SimpleAsyncStateService;
 
   let runtime: Runtime<{
     Admin: typeof Admin;
     Balances: typeof Balances;
   }>;
 
-  function getStateValue(path: Field | undefined) {
+  async function getStateValue(path: Field | undefined) {
     if (!path) {
       throw new Error("Path not found");
     }
 
-    const stateValue = state.get(path);
+    const stateValue = await state.get(path);
 
     if (!stateValue) {
       throw new Error("stateValue is undefined");
@@ -49,7 +49,7 @@ describe("balances", () => {
       },
       {
         Admin: {
-          publicKey: PublicKey.empty().toBase58(),
+          publicKey: PublicKey.empty<typeof PublicKey>().toBase58(),
         },
 
         Balances: {},
@@ -82,7 +82,7 @@ describe("balances", () => {
 
       await runtime.zkProgrammable.zkProgram.compile();
 
-      balances.getTotalSupply();
+      await balances.getTotalSupply();
 
       const { result } = executionContext.current();
 
@@ -107,7 +107,7 @@ describe("balances", () => {
     describe("state transitions", () => {
       let stateTransitions: ProvableStateTransition[];
 
-      beforeEach(() => {
+      beforeEach(async () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
@@ -115,7 +115,7 @@ describe("balances", () => {
           transaction: RuntimeTransaction.dummyTransaction(),
           networkState: NetworkState.empty(),
         });
-        balances.getTotalSupply();
+        await balances.getTotalSupply();
 
         stateTransitions = executionContext
           .current()
@@ -139,13 +139,13 @@ describe("balances", () => {
         );
       });
 
-      it("should produce a from-only state transition", () => {
+      it("should produce a from-only state transition", async () => {
         expect.assertions(3);
 
         const [stateTransition] = stateTransitions;
 
         const value = UInt64.fromFields(
-          getStateValue(balances.totalSupply.path)
+          await getStateValue(balances.totalSupply.path)
         );
         const treeValue = Poseidon.hash(value.toFields());
 
@@ -166,7 +166,7 @@ describe("balances", () => {
         state.set(balances.totalSupply.path!, undefined);
       });
 
-      beforeEach(() => {
+      beforeEach(async () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
@@ -175,7 +175,7 @@ describe("balances", () => {
           networkState: NetworkState.empty(),
         });
 
-        balances.getTotalSupply();
+        await balances.getTotalSupply();
 
         stateTransitions = executionContext
           .current()
@@ -221,7 +221,7 @@ describe("balances", () => {
     describe("state transitions", () => {
       let stateTransitions: ProvableStateTransition[];
 
-      beforeEach(() => {
+      beforeEach(async () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
@@ -230,7 +230,7 @@ describe("balances", () => {
           networkState: NetworkState.empty(),
         });
 
-        balances.setTotalSupply();
+        await balances.setTotalSupply();
 
         stateTransitions = executionContext
           .current()
@@ -254,12 +254,12 @@ describe("balances", () => {
         );
       });
 
-      it("should produce a from-to state transition", () => {
+      it("should produce a from-to state transition", async () => {
         expect.assertions(4);
 
         const [stateTransition] = stateTransitions;
         const fromValue = UInt64.fromFields(
-          getStateValue(balances.totalSupply.path)
+          await getStateValue(balances.totalSupply.path)
         );
         const fromTreeValue = Poseidon.hash(fromValue.toFields());
 
@@ -286,7 +286,7 @@ describe("balances", () => {
       let stateTransitions: ProvableStateTransition[];
       const address = PrivateKey.random().toPublicKey();
 
-      beforeEach(() => {
+      beforeEach(async () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
@@ -295,7 +295,7 @@ describe("balances", () => {
           networkState: NetworkState.empty(),
         });
 
-        balances.getBalance(address);
+        await balances.getBalance(address);
 
         stateTransitions = executionContext
           .current()

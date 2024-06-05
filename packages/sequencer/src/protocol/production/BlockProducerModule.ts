@@ -34,9 +34,7 @@ import { BlockTaskFlowService } from "./BlockTaskFlowService";
 import { NewBlockProverParameters } from "./tasks/NewBlockTask";
 import { BlockProofSerializer } from "./helpers/BlockProofSerializer";
 
-export interface StateRecord {
-  [key: string]: Field[] | undefined;
-}
+export type StateRecord = Record<string, Field[] | undefined>;
 
 export interface TransactionTrace {
   runtimeProver: RuntimeProofParameters;

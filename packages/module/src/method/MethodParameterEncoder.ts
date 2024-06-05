@@ -28,6 +28,7 @@ const errors = {
     ),
 };
 
+// TODO Not typed correctly, also Proofs are possible, which have async fromJSON()
 type ArgsArray = ProvableExtended<unknown>[];
 
 export class MethodParameterEncoder {
@@ -55,23 +56,30 @@ export class MethodParameterEncoder {
 
   private constructor(private readonly types: ArgsArray) {}
 
-  public decode(argsJSON: string[]): FlexibleProvable<unknown>[] {
-    return this.types.map((type, index) => {
-      let value: FlexibleProvable<unknown>;
+  public async decode(
+    argsJSON: string[]
+  ): Promise<FlexibleProvable<unknown>[]> {
+    return await this.types.reduce<Promise<FlexibleProvable<unknown>[]>>(
+      async (arrayPromise, type, index) => {
+        const array = await arrayPromise;
+        let value: FlexibleProvable<unknown>;
 
-      try {
-        value = type.fromJSON(
-          JSON.parse(argsJSON[index])
-        ) as FlexibleProvable<unknown>;
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          throw errors.typeNotCompatible(type.constructor.name, e.message);
+        try {
+          // fromJSON() can be async in the case of Proofs - not typed correctly
+          value = (await type.fromJSON(
+            JSON.parse(argsJSON[index])
+          )) as FlexibleProvable<unknown>;
+        } catch (e: unknown) {
+          if (e instanceof Error) {
+            throw errors.typeNotCompatible(type.constructor.name, e.message);
+          }
+          throw errors.typeNotCompatible(type.constructor.name);
         }
-        throw errors.typeNotCompatible(type.constructor.name);
-      }
 
-      return value;
-    });
+        return [...array, value];
+      },
+      Promise.resolve([])
+    );
   }
 
   public decodeFields(fields: Field[]): ArgumentTypes {
