@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import { container, inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProverExecutionData,
@@ -18,7 +17,6 @@ import {
   StateServiceProvider,
   MandatoryProtocolModulesRecord,
   BlockHashTreeEntry,
-  ACTIONS_EMPTY_HASH,
   MinaActions,
   MinaActionsHashList,
   reduceStateTransitions,
@@ -247,7 +245,7 @@ export class TransactionExecutionService {
       lastMetadata.afterNetworkState
     );
 
-    for (const [index, tx] of transactions.entries()) {
+    for (const [, tx] of transactions.entries()) {
       try {
         // Create execution trace
         // eslint-disable-next-line no-await-in-loop
@@ -426,7 +424,6 @@ export class TransactionExecutionService {
     stateService.writeStates(writes);
   }
 
-  // eslint-disable-next-line no-warning-comments
   // TODO Here exists a edge-case, where the protocol hooks set
   // some state that is then consumed by the runtime and used as a key.
   // In this case, runtime would generate a wrong key here.
@@ -440,7 +437,6 @@ export class TransactionExecutionService {
     runtimeKeys: Field[];
     protocolKeys: Field[];
   }> {
-    // eslint-disable-next-line no-warning-comments
     // TODO unsafe to re-use params here?
     const stateTransitions =
       await this.runtimeMethodExecution.simulateMultiRound(
@@ -471,7 +467,6 @@ export class TransactionExecutionService {
     };
   }
 
-  // eslint-disable-next-line max-statements
   private async createExecutionTrace(
     asyncStateService: AsyncStateService,
     tx: PendingTransaction,

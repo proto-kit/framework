@@ -1,4 +1,3 @@
-/* eslint-disable max-statements */
 import { Bool, Field, Poseidon } from "o1js";
 import { container } from "tsyringe";
 import {
@@ -6,25 +5,17 @@ import {
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
-  RuntimeMethodExecutionDataStruct,
-  SignedTransaction,
   StateTransitionReductionList,
 } from "@proto-kit/protocol";
 import {
   DecoratedMethod,
   toProver,
   ZkProgrammable,
-  ToFieldable,
-  ToFieldableStatic,
-  ProofTypes,
   ArgumentTypes,
-  TypedClass,
-  O1JSPrimitive,
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
-import { MethodIdResolver } from "../runtime/MethodIdResolver";
-import { state } from "../state/decorator.js";
+
 import { MethodParameterEncoder } from "./MethodParameterEncoder";
 
 const errors = {
@@ -45,7 +36,6 @@ const errors = {
 };
 
 export function toStateTransitionsHash(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stateTransitions: StateTransition<any>[]
 ) {
   const stateTransitionsHashList = new StateTransitionReductionList(
@@ -62,7 +52,6 @@ export function toStateTransitionsHash(
     .toField();
 }
 
-// eslint-disable-next-line etc/prefer-interface
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
 
 export function toWrappedMethod(
@@ -84,8 +73,6 @@ export function toWrappedMethod(
     } = executionContext.current();
 
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
-
-    const input = this.getInputs();
 
     const { name, runtime } = this;
 
@@ -244,7 +231,7 @@ function runtimeMethodInternal(options: {
        * RuntimeMethodExecutionContext state, meaning it enters and exits
        * the context properly.
        */
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       async function prover(this: ZkProgrammable<any, any>) {
         executionContext.beforeMethod(constructorName, methodName, args);
         const innerProver = toProver(
@@ -253,7 +240,6 @@ function runtimeMethodInternal(options: {
           false,
           ...args
         ).bind(this);
-        // eslint-disable-next-line @typescript-eslint/init-declarations
         let result: Awaited<ReturnType<typeof innerProver>>;
         try {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -274,7 +260,6 @@ function runtimeMethodInternal(options: {
         executionContext.setProver(prover.bind(this.runtime.zkProgrammable));
       }
 
-      // eslint-disable-next-line @typescript-eslint/init-declarations
       let result: unknown;
       try {
         result = Reflect.apply(simulatedMethod, this, args);

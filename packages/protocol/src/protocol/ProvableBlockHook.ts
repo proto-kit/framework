@@ -5,7 +5,7 @@ import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
 // Purpose is to build transition from -> to network state
 export abstract class ProvableBlockHook<
-  Config
+  Config,
 > extends TransitioningProtocolModule<Config> {
   public abstract beforeBlock(
     networkState: NetworkState,

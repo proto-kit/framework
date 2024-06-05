@@ -1,6 +1,4 @@
-/* eslint-disable max-classes-per-file */
 import "reflect-metadata";
-// eslint-disable-next-line @typescript-eslint/no-shadow
 import { jest } from "@jest/globals";
 import { container } from "tsyringe";
 import { Experimental, Field, Struct, Proof } from "o1js";
@@ -145,7 +143,7 @@ describe("zkProgrammable", () => {
 
   const testCases: [
     boolean,
-    { verificationKey: string; shouldVerifyMockProofs: boolean }
+    { verificationKey: string; shouldVerifyMockProofs: boolean },
   ][] = [
     [
       false,
@@ -256,9 +254,8 @@ describe("zkProgrammable", () => {
         const testProof = await executionContext
           .current()
           .result.prove<Proof<TestPublicInput, TestPublicOutput>>();
-        const testProofVerified = await testProgrammable.zkProgram.verify(
-          testProof
-        );
+        const testProofVerified =
+          await testProgrammable.zkProgram.verify(testProof);
 
         // execute bar
         otherTestProgrammable.bar(testProof);

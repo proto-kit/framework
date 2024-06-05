@@ -1,4 +1,4 @@
-import { Bool, Field, Signature, Struct } from "o1js";
+import { Bool, Field, Struct } from "o1js";
 
 /**
  * Public input used to link in-circuit execution with

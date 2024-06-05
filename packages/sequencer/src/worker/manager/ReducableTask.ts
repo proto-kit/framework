@@ -54,11 +54,9 @@ export interface TaskSerializer<Type> {
 }
 
 export const JSONTaskSerializer = {
-  // eslint-disable-next-line etc/no-misused-generics
   fromType<Type>(): TaskSerializer<Type> {
     return {
       fromJSON(json: string): Type {
-        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return JSON.parse(json) as Type;
       },

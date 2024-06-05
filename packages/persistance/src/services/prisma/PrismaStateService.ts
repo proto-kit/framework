@@ -2,9 +2,9 @@ import { AsyncStateService, StateEntry } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { Prisma } from "@prisma/client";
 import { noop } from "@proto-kit/common";
+import { injectable } from "tsyringe";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
-import { injectable } from "tsyringe";
 
 // We need to create a correctly configured Decimal constructor
 // with our parameters

@@ -1,21 +1,9 @@
 import "reflect-metadata";
 import { InMemoryMerkleTreeStorage } from "@proto-kit/common";
 import { Bool, Field } from "o1js";
-import { container } from "tsyringe";
 
-import {
-  Option,
-  ProvableStateTransition,
-  DefaultProvableHashList,
-  StateTransitionProvableBatch,
-} from "../src/index";
-import {
-  RollupMerkleTree,
-  type RollupMerkleTreeWitness,
-} from "../../common/src/trees/RollupMerkleTree.js";
-import { StateTransitionProver } from "../src/prover/statetransition/StateTransitionProver.js";
-import type { StateTransitionWitnessProvider } from "../src/prover/statetransition/StateTransitionWitnessProvider.js";
-
+import { Option, ProvableStateTransition } from "../src/index";
+import { RollupMerkleTree } from "../../common/src/trees/RollupMerkleTree.js";
 
 // TODO Not worth fixing rn because we will revamp the STProver very soon
 

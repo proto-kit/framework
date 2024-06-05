@@ -1,10 +1,19 @@
 import { Field, PrivateKey, UInt64 } from "o1js";
 import { ArgumentTypes } from "@proto-kit/common";
-import { MethodIdResolver, MethodParameterEncoder, Runtime } from "@proto-kit/module";
-import { StateRecord, UnsignedTransaction, UntypedStateTransition } from "../../src";
+import {
+  MethodIdResolver,
+  MethodParameterEncoder,
+  Runtime,
+} from "@proto-kit/module";
+
+import {
+  StateRecord,
+  UnsignedTransaction,
+  UntypedStateTransition,
+} from "../../src";
 
 export function createTransaction(spec: {
-  runtime: Runtime<any>,
+  runtime: Runtime<any>;
   privateKey: PrivateKey;
   method: [string, string];
   args: ArgumentTypes;
@@ -15,6 +24,7 @@ export function createTransaction(spec: {
     .getMethodId(spec.method[0], spec.method[1]);
 
   const decoder = MethodParameterEncoder.fromMethod(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     spec.runtime.resolve(spec.method[0]),
     spec.method[1]
   );

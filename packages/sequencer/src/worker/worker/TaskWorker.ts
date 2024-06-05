@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import groupBy from "lodash/groupBy";
 import { ArrayElement, log } from "@proto-kit/common";
 
@@ -93,7 +92,7 @@ export class TaskWorker implements Closeable {
       log.trace(`Received task in queue ${queueName}`);
 
       // Use first handler that returns a non-undefined result
-      // eslint-disable-next-line @typescript-eslint/init-declarations
+
       let result: TaskPayload | undefined;
       for (const task of tasks) {
         // eslint-disable-next-line no-await-in-loop

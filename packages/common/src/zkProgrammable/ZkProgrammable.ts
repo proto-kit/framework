@@ -1,6 +1,8 @@
 import { Experimental, FlexibleProvablePure, Proof } from "o1js";
 import { Memoize } from "typescript-memoize";
 
+import { log } from "../log";
+
 import { MOCK_PROOF } from "./provableMethod";
 
 const errors = {
@@ -36,13 +38,9 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   >;
   methods: Record<
     string,
-    | ((
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...args: any
-      ) => Promise<Proof<PublicInput, PublicOutput>>)
+    | ((...args: any) => Promise<Proof<PublicInput, PublicOutput>>)
     | ((
         publicInput: PublicInput,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ...args: any
       ) => Promise<Proof<PublicInput, PublicOutput>>)
   >;
@@ -61,7 +59,7 @@ export function verifyToMockable<PublicInput, PublicOutput>(
         verified = await verify(proof);
       } catch (error: unknown) {
         // silently fail verification
-        console.error(error);
+        log.error(error);
         verified = false;
       }
 
@@ -91,7 +89,7 @@ export function compileToMockable(
 
 export abstract class ZkProgrammable<
   PublicInput = undefined,
-  PublicOutput = void
+  PublicOutput = void,
 > {
   public abstract get appChain(): AreProofsEnabled | undefined;
 
@@ -115,7 +113,7 @@ export abstract class ZkProgrammable<
 
 export interface WithZkProgrammable<
   PublicInput = undefined,
-  PublicOutput = void
+  PublicOutput = void,
 > {
   zkProgrammable: ZkProgrammable<PublicInput, PublicOutput>;
 }

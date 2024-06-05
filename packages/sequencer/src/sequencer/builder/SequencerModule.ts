@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import {
   ConfigurableModule,
   StaticConfigurableModule,
@@ -14,13 +13,14 @@ import { injectable } from "tsyringe";
  * start(): Executed to execute any logic required to start the module
  */
 export abstract class SequencerModule<
-  Config = NoConfig
+  Config = NoConfig,
 > extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 
   /**
    * Start the module and all it's functionality.
-   * The returned Promise has to resolve after initialization, since it will block in the sequencer init.
+   * The returned Promise has to resolve after initialization,
+   * since it will block in the sequencer init.
    * That means that you mustn't await server.start() for example.
    */
   public abstract start(): Promise<void>;

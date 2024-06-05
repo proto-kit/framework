@@ -1,14 +1,15 @@
 import "reflect-metadata";
 import { describe } from "@jest/globals";
-import { PrismaDatabaseConnection } from "../src/PrismaDatabaseConnection";
-import { PrismaStateService } from "../src/services/prisma/PrismaStateService";
-import { Bool, Field, PrivateKey, PublicKey, Signature } from "o1js";
-import { RedisConnectionModule } from "../src";
-import {
-  CachedMerkleTreeStore,
-} from "@proto-kit/sequencer";
-import { RedisMerkleTreeStore } from "../src/services/redis/RedisMerkleTreeStore";
+import { Field } from "o1js";
+import { CachedMerkleTreeStore } from "@proto-kit/sequencer";
 import { expectDefined, RollupMerkleTree } from "@proto-kit/common";
+
+import {
+  RedisConnectionModule,
+  PrismaDatabaseConnection,
+  PrismaStateService,
+  RedisMerkleTreeStore,
+} from "../src";
 
 // TODO Pull apart and test properly
 // Needs redis instance
@@ -57,7 +58,7 @@ describe.skip("prisma", () => {
 
   it("fill and get", async () => {
     const db = new PrismaDatabaseConnection();
-    db.config = {}
+    db.config = {};
     await db.start();
     const service = new PrismaStateService(db, "testMask");
 
@@ -95,6 +96,6 @@ describe.skip("prisma", () => {
 
 describe("placeholder", () => {
   it("placeholder", () => {
-    expect(1).toBe(1)
-  })
-})
+    expect(1).toBe(1);
+  });
+});

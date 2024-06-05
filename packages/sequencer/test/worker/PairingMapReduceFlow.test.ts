@@ -1,5 +1,5 @@
 import "reflect-metadata";
-// eslint-disable-next-line @typescript-eslint/no-shadow
+
 import { afterEach, beforeEach } from "@jest/globals";
 import { noop } from "@proto-kit/common";
 
@@ -64,7 +64,6 @@ class PairedSumTask
     return "sum";
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public reducible(r1: bigint, r2: bigint): boolean {
     return true;
   }
@@ -118,6 +117,7 @@ class BigIntDoublingTask implements MappingTask<string, bigint> {
     return JSONTaskSerializer.fromType<string>();
   }
 
+  // eslint-disable-next-line sonarjs/no-identical-functions
   public resultSerializer(): TaskSerializer<bigint> {
     return {
       fromJSON: BigInt,

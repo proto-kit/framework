@@ -1,39 +1,26 @@
-// eslint-disable-next-line max-len
 import { log, range } from "@proto-kit/common";
-import {
-  VanillaProtocolModules,
-  VanillaProtocolModulesRecord,
-} from "@proto-kit/library";
+import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import {
   AccountState,
-  AccountStateHook,
-  BlockHeightHook,
-  BlockProver,
-  LastStateRootBlockHook,
   MandatoryProtocolModulesRecord,
   Path,
   Protocol,
-  StateTransitionProver,
 } from "@proto-kit/protocol";
-// eslint-disable-next-line no-warning-comments
 // TODO this is actually a big issue
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
-
 import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
-/* eslint-disable jest/no-restricted-matchers,@typescript-eslint/no-non-null-assertion,jest/max-expects,max-lines */
 import "reflect-metadata";
 import { container } from "tsyringe";
+
 import {
   AsyncStateService,
   BlockStorage,
   HistoricalBlockStorage,
   ManualBlockTrigger,
+  PrivateMempool,
+  Sequencer,
 } from "../../src";
-
-import { PrivateMempool } from "../../src/mempool/private/PrivateMempool";
-import { Sequencer } from "../../src/sequencer/executor/Sequencer";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
@@ -47,9 +34,14 @@ describe("block production", () => {
   let runtime: Runtime<{ Balance: typeof Balance }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
-  let protocol: Protocol<MandatoryProtocolModulesRecord & { ProtocolStateTestHook: typeof ProtocolStateTestHook }>;
+  let protocol: Protocol<
+    MandatoryProtocolModulesRecord & {
+      ProtocolStateTestHook: typeof ProtocolStateTestHook;
+    }
+  >;
   // let protocol: Protocol<VanillaProtocolModulesRecord>;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let appChain: AppChain<any, any, any, any>;
 
   let blockTrigger: ManualBlockTrigger;
@@ -75,7 +67,7 @@ describe("block production", () => {
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
       modules: VanillaProtocolModules.mandatoryModules({
-        ProtocolStateTestHook
+        ProtocolStateTestHook,
       }),
       // modules: VanillaProtocolModules.with({}),
     });
@@ -94,9 +86,7 @@ describe("block production", () => {
         Mempool: {},
         BlockProducerModule: {},
         UnprovenProducerModule: {},
-        LocalTaskWorkerModule: {
-
-        },
+        LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
       },
@@ -124,7 +114,6 @@ describe("block production", () => {
     mempool = sequencer.resolve("Mempool");
   });
 
-  // eslint-disable-next-line max-statements
   it("should produce a dummy block proof", async () => {
     expect.assertions(25);
 
@@ -191,9 +180,8 @@ describe("block production", () => {
       publicKey
     );
     const newState = await stateService.getSingleAsync(balancesPath);
-    const newUnprovenState = await unprovenStateService.getSingleAsync(
-      balancesPath
-    );
+    const newUnprovenState =
+      await unprovenStateService.getSingleAsync(balancesPath);
 
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
@@ -267,7 +255,7 @@ describe("block production", () => {
       })
     );
 
-    const [block, batch] = await blockTrigger.produceBlock();
+    const [block] = await blockTrigger.produceBlock();
 
     expect(block?.transactions).toHaveLength(1);
     expect(block?.transactions[0].status.toBoolean()).toBe(false);
@@ -287,9 +275,8 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       PublicKey.empty()
     );
-    const unprovenState = await unprovenStateService.getSingleAsync(
-      balancesPath
-    );
+    const unprovenState =
+      await unprovenStateService.getSingleAsync(balancesPath);
     const newState = await stateService.getSingleAsync(balancesPath);
 
     // Assert that state is not set
@@ -300,7 +287,6 @@ describe("block production", () => {
   const numberTxs = 3;
 
   it("should produce block with multiple transaction", async () => {
-    // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(6 + 4 * numberTxs);
 
     const privateKey = PrivateKey.random();
@@ -390,7 +376,7 @@ describe("block production", () => {
     );
 
     const block = await blockTrigger.produceUnproven();
-    const block2 = await blockTrigger.produceUnproven();
+    await blockTrigger.produceUnproven();
     const batch = await blockTrigger.produceProven();
 
     expect(block).toBeDefined();
@@ -422,8 +408,8 @@ describe("block production", () => {
     expect(newState2).toBeDefined();
     expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
 
-    const unproven3 = await blockTrigger.produceUnproven();
-    const unproven4 = await blockTrigger.produceUnproven();
+    await blockTrigger.produceUnproven();
+    await blockTrigger.produceUnproven();
     const proven2 = await blockTrigger.produceProven();
 
     expect(proven2?.bundles.length).toBe(2);

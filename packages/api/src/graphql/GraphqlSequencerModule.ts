@@ -19,7 +19,7 @@ export type GraphqlModulesRecord = ModulesRecord<
 >;
 
 export interface GraphqlModulesDefintion<
-  GraphQLModules extends GraphqlModulesRecord
+  GraphQLModules extends GraphqlModulesRecord,
 > {
   modules: GraphQLModules;
   config?: ModulesConfig<GraphQLModules>;
@@ -64,7 +64,6 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
         )
       ) {
         log.debug(`Registering manual schema for ${moduleName}`);
-        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const module = this.resolve(
           moduleName

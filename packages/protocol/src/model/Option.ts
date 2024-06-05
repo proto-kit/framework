@@ -19,7 +19,10 @@ export class ProvableOption extends Struct({
 }
 
 export abstract class OptionBase {
-  protected constructor(public isSome: Bool, public isForcedSome: Bool) {}
+  protected constructor(
+    public isSome: Bool,
+    public isForcedSome: Bool
+  ) {}
 
   protected abstract encodeValueToFields(): Field[];
 
@@ -152,6 +155,7 @@ export class Option<Value> extends OptionBase {
   }
 
   public toConstant() {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const valueConstant = (this.valueType as ProvablePure<Value>).fromFields(
       this.valueType.toFields(this.value).map((field) => field.toConstant())
     );

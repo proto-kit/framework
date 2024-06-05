@@ -1,6 +1,5 @@
 export * from "./hooks/AccountStateHook";
 export * from "./hooks/BlockHeightHook";
-export * from "./utils/ProvableHashList";
 export * from "./hooks/LastStateRootBlockHook";
 export * from "./model/StateTransition";
 export * from "./model/StateTransitionProvableBatch";

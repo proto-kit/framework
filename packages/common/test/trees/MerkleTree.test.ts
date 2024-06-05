@@ -1,10 +1,11 @@
 import { beforeEach } from "@jest/globals";
-import { Field, Poseidon } from "o1js";
+import { Field } from "o1js";
 
 import { createMerkleTree, InMemoryMerkleTreeStorage, log } from "../../src";
 
 describe.each([4, 16, 256])("cachedMerkleTree - %s", (height) => {
   class RollupMerkleTree extends createMerkleTree(height) {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   class RollupMerkleTreeWitness extends RollupMerkleTree.WITNESS {}
 
   let store: InMemoryMerkleTreeStorage;

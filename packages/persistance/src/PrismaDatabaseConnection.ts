@@ -107,7 +107,6 @@ export class PrismaDatabaseConnection
           : "protokit?schema=public";
 
       const url = `postgresql://${username}:${password}@${host}:${
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         port ?? 5432
       }/${dbString}`;
 

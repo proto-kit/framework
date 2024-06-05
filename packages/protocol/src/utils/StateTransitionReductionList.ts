@@ -1,4 +1,5 @@
 import { Provable } from "o1js";
+
 import { ProvableOption } from "../model/Option";
 import {
   ProvableStateTransition,
@@ -62,10 +63,10 @@ export function reduceStateTransitions(
 ): StateTransition<unknown>[] {
   const reduced: StateTransition<unknown>[] = [];
 
-  for (const st of transitions) {
+  transitions.forEach((st) => {
     if (reduced.length === 0) {
       reduced.push(st);
-      continue;
+      return;
     }
 
     const last = reduced.at(-1)!;
@@ -83,6 +84,6 @@ export function reduceStateTransitions(
     } else {
       reduced.push(st);
     }
-  }
+  });
   return reduced;
 }

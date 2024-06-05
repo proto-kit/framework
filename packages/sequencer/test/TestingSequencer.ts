@@ -28,7 +28,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
 
 export function testingSequencerFromModules<
   AdditionalModules extends SequencerModulesRecord,
-  AdditionalTaskWorkerModules extends TaskWorkerModulesRecord
+  AdditionalTaskWorkerModules extends TaskWorkerModulesRecord,
 >(
   modules: AdditionalModules,
   additionalTaskWorkerModules?: AdditionalTaskWorkerModules

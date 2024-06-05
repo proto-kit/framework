@@ -36,7 +36,7 @@ export class SyncCachedStateService
     this.assertParentNotNull(parent);
 
     // Set all cached values on parent
-    Object.entries(values).map((value) => {
+    Object.entries(values).forEach((value) => {
       parent.set(Field(value[0]), value[1]);
     });
     // Clear cache

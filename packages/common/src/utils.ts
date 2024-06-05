@@ -11,15 +11,17 @@ export function requireTrue(
   }
 }
 
-export function range(startOrEnd: number, end: number | undefined): number[] {
+export function range(
+  startOrEnd: number,
+  endOrNothing: number | undefined
+): number[] {
+  let end = endOrNothing;
+  let start = startOrEnd;
   if (end === undefined) {
     end = startOrEnd;
-    startOrEnd = 0;
+    start = 0;
   }
-  return Array.from(
-    { length: end - startOrEnd },
-    (ignored, index) => index + startOrEnd
-  );
+  return Array.from({ length: end - start }, (ignored, index) => index + start);
 }
 
 /**
@@ -38,7 +40,6 @@ export function dummyValue<Value>(
   return valueType.fromFields(fields) as Value;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 export function noop(): void {}
 
 export interface ToFieldable {
@@ -59,8 +60,9 @@ export interface ProofTypes {
 }
 
 export async function sleep(ms: number) {
-  // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 export function filterNonNull<Type>(value: Type | null): value is Type {
@@ -73,13 +75,13 @@ export function filterNonUndefined<Type>(
   return value !== undefined;
 }
 
-let encoder = new TextEncoder();
+const encoder = new TextEncoder();
 
 // Copied from o1js binable.ts:317
 export function prefixToField(prefix: string): Field {
-  let fieldSize = Field.sizeInBytes();
+  const fieldSize = Field.sizeInBytes();
   if (prefix.length >= fieldSize) throw Error("prefix too long");
-  let stringBytes = [...encoder.encode(prefix)];
+  const stringBytes = [...encoder.encode(prefix)];
   return Field.fromBytes(
     stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0))
   );
@@ -90,6 +92,7 @@ export function hashWithPrefix(prefix: string, input: Field[]) {
     [Field(0), Field(0), Field(0)],
     [prefixToField(prefix)]
   );
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return Poseidon.update(salt as [Field, Field, Field], input)[0];
 }
 

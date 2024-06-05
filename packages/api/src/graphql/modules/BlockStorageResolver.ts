@@ -1,53 +1,18 @@
-import { inject, injectable } from "tsyringe";
-import { Arg, Field, ObjectType, Query, Resolver } from "type-graphql";
-import { IsBoolean } from "class-validator";
+import { inject } from "tsyringe";
+import { Arg, Field, ObjectType, Query } from "type-graphql";
 import {
   BlockStorage,
   HistoricalBlockStorage,
   ComputedBlock,
-  ComputedBlockTransaction,
 } from "@proto-kit/sequencer";
 import { MOCK_PROOF } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
-import { TransactionObject } from "./MempoolResolver";
 import {
   UnprovenBlockModel,
   UnprovenBlockResolver,
 } from "./UnprovenBlockResolver";
-
-@ObjectType()
-export class ComputedBlockTransactionModel {
-  public static fromServiceLayerModel(cbt: ComputedBlockTransaction) {
-    const { tx, status, statusMessage } = cbt;
-    return new ComputedBlockTransactionModel(
-      TransactionObject.fromServiceLayerModel(tx),
-      status,
-      statusMessage
-    );
-  }
-
-  @Field(() => TransactionObject)
-  public tx: TransactionObject;
-
-  @Field()
-  @IsBoolean()
-  public status: boolean;
-
-  @Field(() => String, { nullable: true })
-  public statusMessage: string | undefined;
-
-  public constructor(
-    tx: TransactionObject,
-    status: boolean,
-    statusMessage: string | undefined
-  ) {
-    this.tx = tx;
-    this.status = status;
-    this.statusMessage = statusMessage;
-  }
-}
 
 @ObjectType()
 export class ComputedBlockModel {
@@ -56,9 +21,7 @@ export class ComputedBlockModel {
     blocks: (UnprovenBlockModel | undefined)[]
   ): ComputedBlockModel {
     return new ComputedBlockModel(
-      bundles.map(
-        (bundle) => blocks.find((block) => block?.hash === bundle)!
-      ),
+      bundles.map((bundle) => blocks.find((block) => block?.hash === bundle)!),
       proof.proof === MOCK_PROOF ? "mock-proof" : JSON.stringify(proof)
     );
   }

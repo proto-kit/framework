@@ -1,36 +1,34 @@
-/* eslint-disable max-lines */
-import { Bool, Experimental, Field, Provable, SelfProof } from "o1js";
-import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
-  log,
   PlainZkProgram,
   provableMethod,
   RollupMerkleTreeWitness,
   ZkProgrammable,
 } from "@proto-kit/common";
+import { Experimental, Field, Provable, SelfProof } from "o1js";
+import { injectable } from "tsyringe";
 
-import {
-  DefaultProvableHashList,
-  ProvableHashList,
-} from "../../utils/ProvableHashList";
+import { constants } from "../../Constants";
 import { ProvableStateTransition } from "../../model/StateTransition";
 import {
   ProvableStateTransitionType,
   StateTransitionProvableBatch,
 } from "../../model/StateTransitionProvableBatch";
-import { constants } from "../../Constants";
+import { StateTransitionProverType } from "../../protocol/Protocol";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
-
-import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider";
 import {
+  DefaultProvableHashList,
+  ProvableHashList,
+} from "../../utils/ProvableHashList";
+
+import {
+  StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProverPublicInput,
-  StateTransitionProof,
   StateTransitionProverPublicOutput,
 } from "./StateTransitionProvable";
+import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider";
 import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
-import { StateTransitionProverType } from "../../protocol/Protocol";
 
 const errors = {
   propertyNotMatching: (property: string, step: string) =>
@@ -66,7 +64,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   StateTransitionProverPublicOutput
 > {
   public constructor(
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     private readonly stateTransitionProver: StateTransitionProver,
     public readonly witnessProviderReference: StateTransitionWitnessProviderReference
   ) {
@@ -81,8 +78,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     StateTransitionProverPublicInput,
     StateTransitionProverPublicOutput
   > {
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-this-alias,consistent-this,unicorn/no-this-assignment
     const instance = this;
 
     const program = Experimental.ZkProgram({

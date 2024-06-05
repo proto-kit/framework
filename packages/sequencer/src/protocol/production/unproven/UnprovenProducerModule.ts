@@ -1,5 +1,6 @@
 import { inject } from "tsyringe";
 import { log, noop } from "@proto-kit/common";
+import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 
 import { Mempool } from "../../../mempool/Mempool";
 import {
@@ -15,10 +16,9 @@ import {
   UnprovenBlockWithMetadata,
 } from "../../../storage/model/UnprovenBlock";
 import { CachedStateService } from "../../../state/state/CachedStateService";
+import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 
 import { TransactionExecutionService } from "./TransactionExecutionService";
-import { MessageStorage } from "../../../storage/repositories/MessageStorage";
-import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
@@ -67,7 +67,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
 
         // Generate metadata for next block
-        // eslint-disable-next-line no-warning-comments
+
         // TODO: make async of production in the future
         const metadata =
           await this.executionService.generateMetadataForNextBlock(

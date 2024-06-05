@@ -9,7 +9,6 @@ import {
 import { Runtime } from "@proto-kit/module";
 import {
   ManualBlockTrigger,
-  PrivateMempool,
   CachedMerkleTreeStore,
   AsyncMerkleTreeStore,
 } from "@proto-kit/sequencer";
@@ -17,12 +16,13 @@ import {
   BlockProverPublicOutput,
   MandatoryProtocolModulesRecord,
   Protocol,
-  ReturnType,
 } from "@proto-kit/protocol";
 import { log, RollupMerkleTree, expectDefined } from "@proto-kit/common";
 import { Field } from "o1js";
-import { AppChain, InMemorySigner, TestingAppChain } from "../../src";
 import { container } from "tsyringe";
+
+import { AppChain, InMemorySigner, TestingAppChain } from "../../src";
+
 import { BalanceChild } from "./Balance";
 
 // TODO Re-enable after new STProver
@@ -31,6 +31,7 @@ describe.skip("block production", () => {
     { Balances: typeof Balances } & { Balances: typeof BalanceChild }
   >;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let protocol: Protocol<
     MandatoryProtocolModulesRecord & {
       TransactionFee: typeof TransactionFeeHook;
@@ -38,7 +39,6 @@ describe.skip("block production", () => {
   >;
 
   let blockTrigger: ManualBlockTrigger;
-  let mempool: PrivateMempool;
 
   let appchain: AppChain<any, any, any, any>;
 
@@ -65,9 +65,8 @@ describe.skip("block production", () => {
 
     ({ runtime, protocol } = app);
 
-    const sequencer = app.sequencer;
+    const { sequencer } = app;
     blockTrigger = sequencer.resolve("BlockTrigger");
-    mempool = sequencer.resolve("Mempool");
   });
 
   it("stateproof test", async () => {
@@ -80,7 +79,6 @@ describe.skip("block production", () => {
       appchain.sequencer.dependencyContainer.resolve<AsyncMerkleTreeStore>(
         "AsyncMerkleStore"
       );
-    const tree = new RollupMerkleTree(new CachedMerkleTreeStore(store));
 
     const tx = await appchain.transaction(senderAddress, () => {
       runtime
@@ -90,7 +88,7 @@ describe.skip("block production", () => {
     await tx.sign();
     await tx.send();
 
-    const [block, batch] = await blockTrigger.produceBlock();
+    const [block] = await blockTrigger.produceBlock();
 
     expectDefined(block);
     expect(block.transactions).toHaveLength(1);
@@ -114,7 +112,7 @@ describe.skip("block production", () => {
     await tx2.sign();
     await tx2.send();
 
-    const [block2, batch2] = await blockTrigger.produceBlock();
+    const [block2] = await blockTrigger.produceBlock();
 
     expectDefined(block2);
 
@@ -165,7 +163,7 @@ describe.skip("block production", () => {
     await tx3.sign();
     await tx3.send();
 
-    const [block3, batch3] = await blockTrigger.produceBlock();
+    const [block3] = await blockTrigger.produceBlock();
     expect(block3!.transactions[0].status.toBoolean()).toBe(false);
   }, 30000);
 });

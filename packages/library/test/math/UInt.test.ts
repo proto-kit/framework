@@ -1,22 +1,19 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
-import {
-  ReturnType,
-  RuntimeMethodExecutionContext,
-  State,
-} from "@proto-kit/protocol";
+import { RuntimeMethodExecutionContext, State } from "@proto-kit/protocol";
 import { beforeEach } from "@jest/globals";
 // @ts-ignore
 import bigintsqrt from "bigint-isqrt";
-import { Bool, Field, Provable, Struct } from "o1js";
+import { Bool, Field, Provable } from "o1js";
 
-import { UInt112, UInt64, UInt } from "../../src";
+import { UInt112, UInt64 } from "../../src";
 
 describe("uint112", () => {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
 
   beforeEach(() => {
     executionContext.clear();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     executionContext.setup({} as any);
   });
 
@@ -123,6 +120,7 @@ describe("uint112", () => {
   });
 
   it("should work for state", () => {
+    /* eslint-disable @typescript-eslint/no-unused-vars */
     expect.assertions(1);
 
     // Only a compilation test
@@ -130,5 +128,6 @@ describe("uint112", () => {
     const state2 = State.from<UInt64>(UInt64);
 
     expect(1).toBe(1);
+    /* eslint-enable @typescript-eslint/no-unused-vars */
   });
 });

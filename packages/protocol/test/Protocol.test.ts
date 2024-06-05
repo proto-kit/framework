@@ -1,12 +1,10 @@
 import "reflect-metadata";
-import { container } from "tsyringe";
 import { beforeEach } from "@jest/globals";
+
 import { BlockProver } from "../src/prover/block/BlockProver";
 import { StateTransitionProver } from "../src/prover/statetransition/StateTransitionProver";
-import {
-  NoOpStateTransitionWitnessProvider,
-  ProvableTransactionHook,
-} from "../src";
+import { ProvableTransactionHook } from "../src";
+
 import { createAndInitTestingProtocol } from "./TestingProtocol";
 
 describe("protocol", () => {

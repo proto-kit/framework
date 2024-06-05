@@ -1,4 +1,3 @@
-/* eslint-disable new-cap,id-length */
 import {
   Arg,
   Field,
@@ -7,13 +6,13 @@ import {
   ObjectType,
   Query,
   registerEnumType,
-  Resolver,
 } from "type-graphql";
-import { inject, injectable } from "tsyringe";
+import { inject } from "tsyringe";
 import { IsNumberString } from "class-validator";
 import {
   Mempool,
-  PendingTransaction, TransactionStorage
+  PendingTransaction,
+  TransactionStorage,
 } from "@proto-kit/sequencer";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule.js";
@@ -137,7 +136,9 @@ export class MempoolResolver extends GraphqlModule {
   }
 
   @Query(() => InclusionStatus)
-  public async transactionState(@Arg("hash") hash: string): Promise<InclusionStatus> {
+  public async transactionState(
+    @Arg("hash") hash: string
+  ): Promise<InclusionStatus> {
     const txs = await this.mempool.getTxs();
     const tx = txs.find((x) => x.hash().toString() === hash);
 
@@ -150,7 +151,8 @@ export class MempoolResolver extends GraphqlModule {
     if (dbTx !== undefined) {
       if (dbTx.batch !== undefined) {
         return InclusionStatus.SETTLED;
-      } else if (dbTx.block !== undefined) {
+      }
+      if (dbTx.block !== undefined) {
         return InclusionStatus.INCLUDED;
       }
     }

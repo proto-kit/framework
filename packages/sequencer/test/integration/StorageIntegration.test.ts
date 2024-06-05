@@ -2,15 +2,12 @@ import "reflect-metadata";
 import { expect } from "@jest/globals";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { MandatoryProtocolModulesRecord, Protocol } from "@proto-kit/protocol";
-import {
-  DefaultTestingSequencerModules,
-  testingSequencerFromModules,
-} from "../TestingSequencer";
 import { Runtime } from "@proto-kit/module";
-import { Balance } from "./mocks/Balance";
 import { AppChain } from "@proto-kit/sdk";
+import { Bool, Field, PrivateKey, UInt64 } from "o1js";
+import { TypedClass, expectDefined } from "@proto-kit/common";
+
 import {
-  AsyncMerkleTreeStore,
   AsyncStateService,
   BlockStorage,
   HistoricalBlockStorage,
@@ -23,9 +20,13 @@ import {
   StorageDependencyFactory,
   UnprovenBlockStorage,
 } from "../../src";
+import {
+  DefaultTestingSequencerModules,
+  testingSequencerFromModules,
+} from "../TestingSequencer";
+
 import { collectStateDiff, createTransaction } from "./utils";
-import { Bool, Field, PrivateKey, UInt64 } from "o1js";
-import { TypedClass, expectDefined } from "@proto-kit/common";
+import { Balance } from "./mocks/Balance";
 
 function checkStateDiffEquality(stateDiff: StateRecord, state: StateEntry[]) {
   return Object.entries(stateDiff)
@@ -34,7 +35,8 @@ function checkStateDiffEquality(stateDiff: StateRecord, state: StateEntry[]) {
       if (entry !== undefined) {
         if (entry.value === undefined) {
           return value === undefined;
-        } else if (value !== undefined) {
+        }
+        if (value !== undefined) {
           return entry.value.find((v, i) => v !== value[i]) === undefined;
         }
       }
@@ -63,8 +65,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
     let unprovenState: AsyncStateService;
     let provenState: AsyncStateService;
 
-    let unprovenTreeStore: AsyncMerkleTreeStore;
-    let provenTreeStore: AsyncMerkleTreeStore;
+    // let unprovenTreeStore: AsyncMerkleTreeStore;
+    // let provenTreeStore: AsyncMerkleTreeStore;
 
     const sk = PrivateKey.random();
     const pk = sk.toPublicKey();
@@ -122,9 +124,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       unprovenState = sequencer.resolve("UnprovenStateService");
       provenState = sequencer.resolve("AsyncStateService");
-
-      unprovenTreeStore = sequencer.resolve("UnprovenMerkleStore");
-      provenTreeStore = sequencer.resolve("AsyncMerkleStore");
     });
 
     it("test unproven block prod", async () => {
@@ -231,7 +230,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       await sequencer.resolve("BlockTrigger").produceUnproven();
 
-      expect(txStorage.getPendingUserTransactions()).resolves.toHaveLength(0);
+      await expect(
+        txStorage.getPendingUserTransactions()
+      ).resolves.toHaveLength(0);
     }, 30_000);
   }
 );

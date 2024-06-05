@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable guard-for-in */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable putout/putout */
 import { TypedClass, RollupMerkleTreeWitness } from "@proto-kit/common";
 import {
   Runtime,
@@ -41,18 +37,13 @@ export type PickStateProperties<Type> = PickByType<Type, State<any>>;
 
 export type PickStateMapProperties<Type> = PickByType<Type, StateMap<any, any>>;
 
-export type MapStateToQuery<StateProperty> = StateProperty extends State<
-  infer Value
->
-  ? QueryGetterState<Value>
-  : never;
+export type MapStateToQuery<StateProperty> =
+  StateProperty extends State<infer Value> ? QueryGetterState<Value> : never;
 
-export type MapStateMapToQuery<StateProperty> = StateProperty extends StateMap<
-  infer Key,
-  infer Value
->
-  ? QueryGetterStateMap<Key, Value>
-  : never;
+export type MapStateMapToQuery<StateProperty> =
+  StateProperty extends StateMap<infer Key, infer Value>
+    ? QueryGetterStateMap<Key, Value>
+    : never;
 
 export type ModuleQuery<Module> = {
   [Key in keyof PickStateMapProperties<Module>]: MapStateMapToQuery<
@@ -66,22 +57,24 @@ export type ModuleQuery<Module> = {
 
 export type Query<
   ModuleType,
-  ModuleRecord extends Record<string, TypedClass<ModuleType>>
+  ModuleRecord extends Record<string, TypedClass<ModuleType>>,
 > = {
   [Key in keyof ModuleRecord]: ModuleQuery<InstanceType<ModuleRecord[Key]>>;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function isStringKeyOf(key: string | number | symbol): key is string {
   return typeof key === "string";
 }
 
+/* eslint-disable guard-for-in,@typescript-eslint/consistent-type-assertions */
 export const QueryBuilderFactory = {
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   fillQuery<Module extends Object>(
     runtimeModule: Module,
     queryTransportModule: QueryTransportModule
   ): ModuleQuery<Module> {
     let query = {} as ModuleQuery<Module>;
+
     for (const propertyName in runtimeModule) {
       // we're accessing the propertyName twice here and in the functions below
       // because the path reference/value was wrong in the query API otherwise
@@ -106,8 +99,7 @@ export const QueryBuilderFactory = {
                 unknown,
                 unknown
               >;
-              const r = property.getPath(key);
-              return r;
+              return property.getPath(key);
             },
 
             merkleWitness: async (key: any) => {
@@ -129,8 +121,7 @@ export const QueryBuilderFactory = {
           [propertyName]: {
             get: async () => {
               const property = runtimeModule[propertyName] as State<unknown>;
-              // eslint-disable-next-line max-len
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
               const path = property.path!;
               const fields = await queryTransportModule.get(path);
 
@@ -144,8 +135,7 @@ export const QueryBuilderFactory = {
 
             merkleWitness: async () => {
               const property = runtimeModule[propertyName] as State<unknown>;
-              // eslint-disable-next-line max-len
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
               const path = property.path!;
               return await queryTransportModule.merkleWitness(path);
             },
@@ -175,14 +165,13 @@ export const QueryBuilderFactory = {
       );
 
       return query;
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line @typescript-eslint/prefer-reduce-type-parameter,@typescript-eslint/consistent-type-assertions
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     }, {} as any);
   },
 
   fromProtocol<
     ProtocolModules extends MandatoryProtocolModulesRecord &
-      ProtocolModulesRecord
+      ProtocolModulesRecord,
   >(
     protocol: Protocol<ProtocolModules>,
     queryTransportModule: QueryTransportModule
@@ -204,9 +193,9 @@ export const QueryBuilderFactory = {
 
         return query;
       },
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line @typescript-eslint/prefer-reduce-type-parameter,@typescript-eslint/consistent-type-assertions
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       {} as any
     );
   },
 };
+/* eslint-enable guard-for-in,@typescript-eslint/consistent-type-assertions */

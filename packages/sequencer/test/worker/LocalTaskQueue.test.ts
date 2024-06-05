@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import { afterEach, describe, jest } from "@jest/globals";
+import { sleep } from "@proto-kit/common";
 
-import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
-import { TaskPayload } from "../../src";
+import { TaskPayload, LocalTaskQueue } from "../../src";
 
 describe("localTaskQueue", () => {
   let taskQueue: LocalTaskQueue;
@@ -10,8 +10,8 @@ describe("localTaskQueue", () => {
   beforeEach(() => {
     taskQueue = new LocalTaskQueue();
     taskQueue.config = {
-      simulatedDuration: 0
-    }
+      simulatedDuration: 0,
+    };
 
     taskQueue.createWorker("testQueue", async (data: TaskPayload) => data);
   });
@@ -34,7 +34,6 @@ describe("localTaskQueue", () => {
       await queue.onCompleted(spy);
 
       for (const [index, input] of inputs.entries()) {
-        // eslint-disable-next-line no-await-in-loop
         await queue.addTask({
           name: String(index),
           payload: String(input),
@@ -54,10 +53,3 @@ describe("localTaskQueue", () => {
     }
   );
 });
-
-async function sleep(ms: number) {
-  // eslint-disable-next-line promise/avoid-new
-  return await new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}

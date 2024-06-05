@@ -8,6 +8,8 @@ import {
 } from "@proto-kit/module";
 import { PrivateKey } from "o1js";
 import { inject } from "tsyringe";
+import { expectDefined } from "@proto-kit/common";
+
 import { TestingAppChain } from "../src";
 
 @runtimeModule()
@@ -38,6 +40,7 @@ class Pit extends RuntimeModule<unknown> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RuntimeModules extends RuntimeModulesRecord {
   Faucet: typeof Faucet;
   Pit: typeof Pit;
@@ -83,7 +86,7 @@ describe("fees", () => {
   });
 
   it("should allow a free faucet transaction", async () => {
-    expect.assertions(0);
+    expect.assertions(2);
 
     const faucet = appChain.runtime.resolve("Faucet");
 
@@ -103,11 +106,12 @@ describe("fees", () => {
       })
     );
 
-    console.log("balance", balance?.toBigInt());
+    expectDefined(balance);
+    expect(balance.toString()).toBe("1000");
   });
 
   it("should allow burning of tokens with a fixed fee", async () => {
-    expect.assertions(0);
+    expect.assertions(2);
 
     const pit = appChain.runtime.resolve("Pit");
 
@@ -127,6 +131,7 @@ describe("fees", () => {
       })
     );
 
-    console.log("balance", balance?.toBigInt());
+    expectDefined(balance);
+    expect(balance.toString()).toBe("509");
   });
 });

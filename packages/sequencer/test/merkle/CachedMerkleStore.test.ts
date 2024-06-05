@@ -1,4 +1,4 @@
-import { InMemoryMerkleTreeStorage, RollupMerkleTree } from "@proto-kit/common";
+import { RollupMerkleTree } from "@proto-kit/common";
 import { beforeEach, expect } from "@jest/globals";
 import { Field } from "o1js";
 
@@ -35,7 +35,9 @@ describe("cached merkle store", () => {
 
     expect(tree2.getNode(0, 16n).toBigInt()).toBe(16n);
     expect(tree2.getNode(0, 46n).toBigInt()).toBe(46n);
-    expect(tree2.getRoot().toString()).toStrictEqual(tree1.getRoot().toString())
+    expect(tree2.getRoot().toString()).toStrictEqual(
+      tree1.getRoot().toString()
+    );
   });
 
   it("should cache correctly", async () => {

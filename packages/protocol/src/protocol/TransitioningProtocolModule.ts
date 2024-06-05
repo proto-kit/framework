@@ -6,7 +6,7 @@ import { ProtocolModule } from "./ProtocolModule";
  * of a `name: string` property, which those classes need to function.
  */
 export abstract class TransitioningProtocolModule<
-  Config
+  Config,
 > extends ProtocolModule<Config> {
   public name?: string;
 }

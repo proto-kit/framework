@@ -1,7 +1,11 @@
-import { InMemoryMerkleTreeStorage, RollupMerkleTree } from "@proto-kit/common";
+import {
+  InMemoryMerkleTreeStorage,
+  RollupMerkleTree,
+  log,
+} from "@proto-kit/common";
 import { beforeEach } from "@jest/globals";
 import { Field, Poseidon } from "o1js";
-import { log } from "@proto-kit/common";
+
 import { CachedMerkleTreeStore, InMemoryAsyncMerkleTreeStore } from "../../src";
 
 describe("cachedMerkleTree", () => {
@@ -16,6 +20,7 @@ describe("cachedMerkleTree", () => {
     log.setLevel("DEBUG");
 
     store = new InMemoryAsyncMerkleTreeStore();
+    // eslint-disable-next-line @typescript-eslint/dot-notation
     syncStore = store["store"];
     tree = new RollupMerkleTree(syncStore);
 

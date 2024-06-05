@@ -1,16 +1,14 @@
-/* eslint-disable import/no-unused-modules */
-import { ModulesConfig, Presets, TypedClass } from "@proto-kit/common";
+import { Presets } from "@proto-kit/common";
 import {
-  Runtime,
   runtimeMethod,
   RuntimeModule,
   runtimeModule,
-  RuntimeModulesRecord,
   state,
 } from "@proto-kit/module";
 import { Option, State, StateMap } from "@proto-kit/protocol";
 import { PublicKey, UInt64 } from "o1js";
-import { LocalhostAppChain } from "./../src/LocalhostAppChain";
+
+import { LocalhostAppChain } from "../src";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {

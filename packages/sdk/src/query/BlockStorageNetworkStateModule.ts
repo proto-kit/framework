@@ -44,7 +44,7 @@ export class BlockStorageNetworkStateModule
     >("BlockStorage");
   }
 
-  public async getUnprovenNetworkState() {
+  public async getUnprovenNetworkState(): Promise<NetworkState | undefined> {
     const latestBlock = await this.unprovenStorage.getLatestBlock();
     return latestBlock?.block.networkState.during;
   }
@@ -53,12 +53,12 @@ export class BlockStorageNetworkStateModule
    * Staged network state is the networkstate after the latest unproven block
    * with afterBundle() hooks executed
    */
-  public async getStagedNetworkState() {
+  public async getStagedNetworkState(): Promise<NetworkState | undefined> {
     const metadata = await this.unprovenQueue.getLatestBlock();
     return metadata?.metadata.afterNetworkState;
   }
 
-  public async getProvenNetworkState() {
+  public async getProvenNetworkState(): Promise<NetworkState | undefined> {
     const batch = await this.provenStorage.getLatestBlock();
 
     if (batch !== undefined) {

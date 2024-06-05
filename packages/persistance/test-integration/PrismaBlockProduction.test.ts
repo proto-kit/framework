@@ -1,10 +1,5 @@
 import "reflect-metadata";
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-} from "@jest/globals";
+import { afterAll, beforeAll, describe, expect } from "@jest/globals";
 import { expectDefined, equalProvable } from "@proto-kit/common";
 import { BalancesKey, TokenId } from "@proto-kit/library";
 import { NetworkState } from "@proto-kit/protocol";
@@ -170,13 +165,13 @@ describe("prisma integration", () => {
       });
 
       it("should produce the block", async () => {
-        const [block, batch] = await appChain.sequencer
+        const [block2, batch2] = await appChain.sequencer
           .resolve("BlockTrigger")
           .produceBlock();
 
-        expectDefined(block);
-        expectDefined(batch);
-        expect(block.transactions).toHaveLength(1);
+        expectDefined(block2);
+        expectDefined(batch2);
+        expect(block2.transactions).toHaveLength(1);
       }, 30000);
 
       it("should retrieve correct balance for account 2", async () => {

@@ -1,4 +1,5 @@
 import { Field } from "o1js";
+
 import { UIntConstructor, UInt } from "./UInt";
 
 export class UInt64 extends UInt<64> {

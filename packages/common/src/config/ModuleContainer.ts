@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import "reflect-metadata";
 
 import {
@@ -20,6 +19,7 @@ import {
   DependencyFactory,
   InferDependencies,
 } from "../dependencyFactory/DependencyFactory";
+import { EventEmitterProxy } from "../events/EventEmitterProxy";
 
 import {
   Configurable,
@@ -28,7 +28,6 @@ import {
 } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
-import { EventEmitterProxy } from "../events/EventEmitterProxy";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -38,8 +37,7 @@ const errors = {
 
   onlyValidModuleNames: (moduleName: NonNullable<unknown>) =>
     new Error(
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string,@typescript-eslint/restrict-template-expressions
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       `Only known module names are allowed, using unknown module name: ${moduleName}`
     ),
 
@@ -81,7 +79,7 @@ export type BaseModuleType = TypedClass<BaseModuleInstanceType>;
 // allows to specify what kind of modules can be passed into a container
 export interface ModulesRecord<
   // use the default configurable module type
-  ModuleType extends BaseModuleType = BaseModuleType
+  ModuleType extends BaseModuleType = BaseModuleType,
 > {
   [name: string]: ModuleType;
 }
@@ -139,25 +137,12 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
 > &
   Modules;
 
-type X = RecursivePartial<{
-  t: {
-    a: string;
-    b: string;
-  };
-}>;
-
-const x: X = {
-  t: {
-    a: "",
-  },
-};
-
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
  */
 export class ModuleContainer<
-  Modules extends ModulesRecord
+  Modules extends ModulesRecord,
 > extends ConfigurableModule<ModulesConfig<Modules>> {
   /**
    * Determines how often are modules decorated upon resolution
@@ -251,7 +236,7 @@ export class ModuleContainer<
    * @param modules
    */
   protected registerModules(modules: Modules) {
-    for (const moduleName in modules) {
+    Object.keys(modules).forEach((moduleName) => {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.assertIsValidModuleName(moduleName);
 
@@ -266,7 +251,7 @@ export class ModuleContainer<
         );
         this.onAfterModuleResolution(moduleName);
       }
-    }
+    });
   }
 
   public get events(): EventEmitterProxy<Modules> {
@@ -280,7 +265,6 @@ export class ModuleContainer<
    * Register a non-module value into the current container
    * @param modules
    */
-  // eslint-disable-next-line no-warning-comments
   // TODO Rename to plural since object is param
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
@@ -321,7 +305,6 @@ export class ModuleContainer<
     return super.config;
   }
 
-  // eslint-disable-next-line accessor-pairs
   public set config(config: ModulesConfig<Modules>) {
     super.config = merge<
       ModulesConfig<Modules> | NoConfig,
@@ -382,7 +365,6 @@ export class ModuleContainer<
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private isDependencyFactory(type: any): type is DependencyFactory {
     return "dependencies" in type;
   }
@@ -430,6 +412,7 @@ export class ModuleContainer<
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,
           });
+          // eslint-disable-next-line sonarjs/no-duplicated-branches
         } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,

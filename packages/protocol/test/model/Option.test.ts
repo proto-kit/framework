@@ -14,7 +14,6 @@ describe("option", () => {
       expect.assertions(1);
 
       const option = Option.from(isSome, value, valueType);
-      // eslint-disable-next-line jest/no-conditional-in-test
       const treeValue = shouldHash ? Poseidon.hash(value.toFields()) : Field(0);
 
       expect(option.treeValue.toString()).toStrictEqual(treeValue.toString());

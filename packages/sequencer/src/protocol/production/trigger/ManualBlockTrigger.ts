@@ -8,10 +8,10 @@ import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
 import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
 import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-
-import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 import { BlockStorage } from "../../../storage/repositories/BlockStorage";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
+
+import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
 @sequencerModule()
 export class ManualBlockTrigger

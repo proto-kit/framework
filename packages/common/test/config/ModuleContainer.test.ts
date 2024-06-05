@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import "reflect-metadata";
 import { container as tsyringeContainer, inject, injectable } from "tsyringe";
 
@@ -9,10 +8,9 @@ import {
 import {
   ModuleContainer,
   ModulesRecord,
-  DependenciesFromModules, ModulesConfig, RecursivePartial
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { ChildContainerProvider, DependencyFactory, DependencyRecord } from "../../src";
+import { DependencyFactory } from "../../src";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -63,14 +61,12 @@ class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {
  * Showcases a wrongly typed/defined module as
  * per the TestModuleContainer requirements
  */
-// eslint-disable-next-line max-len
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class, @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class WrongTestModule {}
 
 class TestModuleContainer<
-  Modules extends TestModulesRecord
-> extends ModuleContainer<Modules> {
-}
+  Modules extends TestModulesRecord,
+> extends ModuleContainer<Modules> {}
 
 describe("moduleContainer", () => {
   let container: TestModuleContainer<{
@@ -117,7 +113,7 @@ describe("moduleContainer", () => {
     container.create(() => tsyringeContainer.createChildContainer());
 
     expect(() => {
-      container.resolve("TestModule")
+      container.resolve("TestModule");
     }).toThrow();
   });
 
@@ -167,7 +163,7 @@ describe("moduleContainer", () => {
 
     container.create(() => tsyringeContainer.createChildContainer());
 
-    const config = container.resolve("TestModule").config;
+    const { config } = container.resolve("TestModule");
 
     expect(config.testConfigProperty).toBe(3);
     expect(config.testConfigProperty2).toBe(2);

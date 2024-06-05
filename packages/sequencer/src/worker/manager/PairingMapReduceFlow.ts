@@ -56,7 +56,7 @@ export class PairingMapReduceFlow<
   Input2,
   Output2,
   AdditionalParameters,
-  Result
+  Result,
 > extends MapReduceFlow<
   PairingDerivedInput<Output1, Output2, AdditionalParameters>,
   Result
@@ -65,7 +65,6 @@ export class PairingMapReduceFlow<
     messageQueue: TaskQueue,
     queueName: string,
 
-    // eslint-disable-next-line max-len
     // Set of tasks that implement the execution described by the Pairing-Map-Reduce flow
     protected readonly task: {
       reducingTask: MapReduceTask<
@@ -146,7 +145,6 @@ export class PairingMapReduceFlow<
     //    push the paired result tuples as tasks (normal map)
     // 3. Reduce
 
-    // eslint-disable-next-line sonarjs/cognitive-complexity
     const start = async (resolve: (type: Result) => void) => {
       const { queue, task } = this;
       this.assertQueueNotNull(queue);

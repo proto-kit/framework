@@ -1,4 +1,3 @@
-/* eslint-disable promise/avoid-new */
 import { log, noop } from "@proto-kit/common";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
@@ -176,7 +175,6 @@ export class MapReduceFlow<Input, Result> implements Closeable {
       onCompletedListeners[flowId] = async (payload) => {
         if (payload.name === `${mapReduceTask.name()}${TASKS_REDUCE_SUFFIX}`) {
           await this.handleCompletedReducingStep(flowId, payload, resolve);
-          // eslint-disable-next-line sonarjs/elseif-without-else
         } else if (payload.name === mapReduceTask.name()) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const parsedResult: Result = JSON.parse(payload.payload);
@@ -233,9 +231,7 @@ export class MapReduceFlow<Input, Result> implements Closeable {
     const promise = new Promise<Result>((resolve, reject) => {
       boundExecutor(resolve)
         // Do we need then()?
-        // eslint-disable-next-line promise/prefer-await-to-then
         .then(noop)
-        // eslint-disable-next-line promise/prefer-await-to-then
         .catch((error: unknown) => {
           reject(error);
         });

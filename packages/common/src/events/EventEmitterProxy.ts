@@ -16,8 +16,8 @@ export type ModuleEvents<ModuleType extends BaseModuleType> =
   InstanceType<ModuleType> extends EventEmittingComponent<infer Events>
     ? Events
     : InstanceType<ModuleType> extends ModuleContainer<infer NestedModules>
-    ? CastToEventsRecord<ContainerEvents<NestedModules>>
-    : EventsRecord;
+      ? CastToEventsRecord<ContainerEvents<NestedModules>>
+      : EventsRecord;
 
 export type ContainerEvents<Modules extends ModulesRecord> = {
   [Key in StringKeyOf<Modules>]: ModuleEvents<Modules[Key]>;
@@ -30,7 +30,7 @@ export type FlattenedContainerEvents<Modules extends ModulesRecord> =
   FlattenObject<ContainerEvents<Modules>>;
 
 export class EventEmitterProxy<
-  Modules extends ModulesRecord
+  Modules extends ModulesRecord,
 > extends EventEmitter<CastToEventsRecord<FlattenedContainerEvents<Modules>>> {
   public constructor(private readonly container: ModuleContainer<Modules>) {
     super();
@@ -40,8 +40,9 @@ export class EventEmitterProxy<
       ) {
         const module = container.resolve(moduleName);
         if (this.isEventEmitter(module)) {
-          module.events.onAll((events: any, args: unknown[]) => {
-            this.emit(events, ...(args as any));
+          module.events.onAll((events: any, args: any[]) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            this.emit(events, ...args);
           });
         }
       }
@@ -51,6 +52,7 @@ export class EventEmitterProxy<
   private isEventEmitter(
     module: any
   ): module is EventEmittingComponent<EventsRecord> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const emitter = module.events;
     return emitter !== undefined && emitter instanceof EventEmitter;
   }

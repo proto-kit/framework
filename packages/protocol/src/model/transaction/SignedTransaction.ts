@@ -1,11 +1,4 @@
-import {
-  Bool,
-  Field,
-  Scalar,
-  Signature,
-  Struct,
-  UInt64,
-} from "o1js";
+import { Bool, Field, Scalar, Signature, Struct, UInt64 } from "o1js";
 
 import { RuntimeTransaction } from "./RuntimeTransaction";
 

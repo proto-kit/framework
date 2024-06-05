@@ -2,9 +2,7 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   MandatoryProtocolModulesRecord,
   Protocol,
-  ProtocolConstants,
   ProtocolModulesRecord,
-  ProvableStateTransition,
   StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProvableBatch,
@@ -12,7 +10,6 @@ import {
   StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
 import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
-import { Field } from "o1js";
 
 import { Task } from "../../../worker/flow/Task";
 import { TaskSerializer } from "../../../worker/manager/ReducableTask";
@@ -22,12 +19,12 @@ import {
   ProofTaskSerializer,
 } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import { PreFilledWitnessProvider } from "../../../state/prefilled/PreFilledWitnessProvider";
 
 import {
   StateTransitionParametersSerializer,
   StateTransitionProofParameters,
 } from "./StateTransitionTaskParameters";
-import { PreFilledWitnessProvider } from "../../../state/prefilled/PreFilledWitnessProvider";
 import { CompileRegistry } from "./CompileRegistry";
 
 @injectable()
@@ -135,6 +132,7 @@ export class StateTransitionReductionTask
     );
   }
 
+  // eslint-disable-next-line sonarjs/no-identical-functions
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
     return new ProofTaskSerializer(
       this.stateTransitionProver.zkProgrammable.zkProgram.Proof

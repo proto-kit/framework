@@ -11,7 +11,7 @@ const errors = {
 };
 
 // defines how presets can be provided, either a function or a record
-export type Preset<Config> = Config | ((...args: any[]) => Config);
+export type Preset<Config> = Config | ((...args: unknown[]) => Config);
 export type Presets<Config> = Record<string, Preset<Config>>;
 
 // describes the interface of a configurable module
@@ -46,7 +46,6 @@ export class ConfigurableModule<Config = NoConfig>
     this.currentConfig = config;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public create(childContainerProvider: ChildContainerProvider): void {
     noop();
   }

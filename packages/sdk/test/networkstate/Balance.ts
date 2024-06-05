@@ -5,20 +5,11 @@ import {
   TokenId,
   UInt64,
 } from "@proto-kit/library";
-import {
-  runtimeMethod,
-  runtimeModule,
-  RuntimeModule,
-  state,
-} from "@proto-kit/module";
+import { runtimeMethod, runtimeModule, state } from "@proto-kit/module";
 import { log, Presets, range } from "@proto-kit/common";
-import { Bool, Field, PublicKey, Struct, Provable, Signature } from "o1js";
+import { Bool, Field, PublicKey } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
-import { Option, State, StateMap, assert } from "@proto-kit/protocol";
-
-class MyStruct extends Struct({
-  a: Provable.Array(Field, 10),
-}) {}
+import { State, assert } from "@proto-kit/protocol";
 
 @runtimeModule()
 export class BalanceChild extends Balances {
@@ -43,7 +34,11 @@ export class BalanceChild extends Balances {
     log.provable.debug("Balance:", balance.isSome, balance.value);
     log.provable.debug("BlockHeight:", this.network.block.height);
 
-    assert(blockHeight.equals(UInt64.Unsafe.fromField(this.network.block.height.value)));
+    assert(
+      blockHeight.equals(
+        UInt64.Unsafe.fromField(this.network.block.height.value)
+      )
+    );
 
     const newBalance = balance.value.add(value);
     this.balances.set(balancesKey, newBalance);
@@ -52,7 +47,6 @@ export class BalanceChild extends Balances {
   @runtimeMethod()
   public lotOfSTs() {
     range(0, 10).forEach((index) => {
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       const pk = PublicKey.from({ x: Field(index % 5), isOdd: Bool(false) });
       const balancesKey = new BalancesKey({
         address: pk,
@@ -69,7 +63,7 @@ export class BalanceChild extends Balances {
   @runtimeMethod()
   public assertLastBlockHash(hash: Field) {
     const lastRootHash = this.network.previous.rootHash;
-    assert(hash.equals(lastRootHash), `Root hash not matching`);
+    assert(hash.equals(lastRootHash), "Root hash not matching");
   }
 
   @runtimeMethod()

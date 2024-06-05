@@ -1,9 +1,6 @@
-import {
-  PendingTransaction,
-  UnsignedTransaction,
-} from "../../src/mempool/PendingTransaction";
-import { RuntimeTransaction } from "@proto-kit/protocol";
-import { Field, Poseidon, PublicKey, UInt64 } from "o1js";
+import { Field, PublicKey, UInt64 } from "o1js";
+
+import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";
 
 describe("tx objects hash equality", () => {
   it("should produce the same hash", () => {

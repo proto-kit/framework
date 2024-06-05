@@ -3,7 +3,6 @@ import {
   MandatoryProtocolModulesRecord,
   MandatorySettlementModulesRecord,
   Protocol,
-  ProtocolModulesRecord,
   ReturnType,
   SettlementContractModule,
 } from "@proto-kit/protocol";
@@ -89,7 +88,7 @@ export class SettlementProvingTask
   ): Promise<TransactionTaskResult> {
     const { transaction, chainState } = input;
 
-    const proofs = await this.withCustomInstance(chainState, async () => {
+    await this.withCustomInstance(chainState, async () => {
       return await transaction.prove();
     });
 
@@ -116,7 +115,9 @@ export class SettlementProvingTask
     };
     return {
       fromJSON: (json: string): TransactionTaskArgs => {
-        const jsonObject = JSON.parse(json) as JsonInputObject;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const jsonObject: JsonInputObject = JSON.parse(json);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const commandJson: Types.Json.ZkappCommand = JSON.parse(
           jsonObject.transaction
         );
@@ -139,8 +140,10 @@ export class SettlementProvingTask
               );
             }
 
+            // eslint-disable-next-line no-underscore-dangle
             const method = SmartContract._methods?.find(
-              (method) => method.methodName === lazyProof.methodName
+              (methodInterface) =>
+                methodInterface.methodName === lazyProof.methodName
             );
             if (method === undefined) {
               throw new Error("Method interface not found");
@@ -151,21 +154,22 @@ export class SettlementProvingTask
             const proofTypes = method.proofArgs;
             let proofsDecoded = 0;
 
-            const args = lazyProof.args.map((encodedArg, index) => {
-              if (allArgs[index].type === "witness") {
+            const args = lazyProof.args.map((encodedArg, argsIndex) => {
+              if (allArgs[argsIndex].type === "witness") {
                 // encodedArg is string[]
-                return witnessArgTypes[index - proofsDecoded].fromFields(
+                return witnessArgTypes[argsIndex - proofsDecoded].fromFields(
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                   (encodedArg as string[]).map((field) => Field(field)),
                   []
                 );
-              } else {
-                // fields is JsonProof
-                const serializer = new ProofTaskSerializer(
-                  proofTypes[proofsDecoded]
-                );
-                proofsDecoded++;
-                return serializer.fromJSON(encodedArg as string);
               }
+              // fields is JsonProof
+              const serializer = new ProofTaskSerializer(
+                proofTypes[proofsDecoded]
+              );
+              proofsDecoded += 1;
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              return serializer.fromJSON(encodedArg as string);
             });
 
             transaction.transaction.accountUpdates[index].lazyAuthorization = {
@@ -204,14 +208,16 @@ export class SettlementProvingTask
               if (au.lazyAuthorization?.kind === "lazy-proof") {
                 const lazyProof = au.lazyAuthorization;
 
+                // eslint-disable-next-line no-underscore-dangle
                 const method = lazyProof.ZkappClass._methods?.find(
-                  (method) => method.methodName === lazyProof.methodName
+                  (methodInterface) =>
+                    methodInterface.methodName === lazyProof.methodName
                 );
                 if (method === undefined) {
                   throw new Error("Method interface not found");
                 }
 
-                const allArgs = method.allArgs.slice(2); //.filter(arg => arg.type === "witness");
+                const allArgs = method.allArgs.slice(2); // .filter(arg => arg.type === "witness");
                 const witnessArgTypes = method.witnessArgs.slice(2);
                 const proofTypes = method.proofArgs;
                 let proofsEncoded = 0;
@@ -222,15 +228,16 @@ export class SettlementProvingTask
                       return witnessArgTypes[index - proofsEncoded]
                         .toFields(arg)
                         .map((f) => f.toString());
-                    } else if (allArgs[index].type === "proof") {
+                    }
+                    if (allArgs[index].type === "proof") {
                       const serializer = new ProofTaskSerializer(
                         proofTypes[proofsEncoded]
                       );
-                      proofsEncoded++;
+                      proofsEncoded += 1;
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                       return serializer.toJSON(arg);
-                    } else {
-                      throw new Error("Generic parameters not supported");
                     }
+                    throw new Error("Generic parameters not supported");
                   })
                   .filter(filterNonUndefined);
 
@@ -248,9 +255,8 @@ export class SettlementProvingTask
                       : Pickles.proofToBase64([0, proof])
                   ),
                 };
-              } else {
-                return null;
               }
+              return null;
             }
           );
 
@@ -272,7 +278,7 @@ export class SettlementProvingTask
   public async prepare(): Promise<void> {
     const contract = this.settlementContractModule.getContractClasses();
 
-    const proofsEnabled = Mina.activeInstance.proofsEnabled;
+    const { proofsEnabled } = Mina.activeInstance;
 
     await this.compileRegistry.compileSmartContract(
       "DispatchContract",
@@ -289,6 +295,7 @@ export class SettlementProvingTask
   public resultSerializer(): TaskSerializer<TransactionTaskResult> {
     return {
       fromJSON: (json: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: Types.Json.ZkappCommand = JSON.parse(json);
         return { transaction: Mina.Transaction.fromJSON(jsonObject) };
       },

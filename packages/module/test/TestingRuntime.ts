@@ -4,7 +4,10 @@ import { container } from "tsyringe";
 
 import { InMemoryStateService, Runtime, RuntimeModulesRecord } from "../src";
 
-export function createTestingRuntime<Modules extends RuntimeModulesRecord>(modules: Modules, config: ModulesConfig<Modules>): {
+export function createTestingRuntime<Modules extends RuntimeModulesRecord>(
+  modules: Modules,
+  config: ModulesConfig<Modules>
+): {
   runtime: Runtime<Modules>;
   state: InMemoryStateService;
 } {

@@ -7,7 +7,6 @@ import {
   MandatoryProtocolModulesRecord,
   MethodPublicOutput,
   Protocol,
-  ProtocolModulesRecord,
   StateTransitionProof,
 } from "@proto-kit/protocol";
 import { log, MOCK_PROOF } from "@proto-kit/common";
@@ -36,12 +35,6 @@ import {
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
-interface ReductionFlowState<ProofType> {
-  numProofs: number;
-  numMergesCompleted: number;
-  queue: ProofType[];
-}
-
 interface BlockProductionFlowState {
   pairings: {
     runtimeProof?: RuntimeProof;
@@ -63,7 +56,6 @@ interface BlockProductionFlowState {
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class BlockTaskFlowService {
-  // eslint-disable-next-line max-params
   public constructor(
     @inject("TaskQueue") private readonly taskQueue: TaskQueue,
     private readonly flowCreator: FlowCreator,
@@ -180,7 +172,7 @@ export class BlockTaskFlowService {
         reductionTask: this.blockReductionTask,
 
         mergableFunction: (a, b) =>
-          //TODO Proper replication of merge logic
+          // TODO Proper replication of merge logic
           a.publicOutput.stateRoot
             .equals(b.publicInput.stateRoot)
             .and(
@@ -241,7 +233,6 @@ export class BlockTaskFlowService {
           transactionMergingFlow.deferErrorsTo(flow);
 
           // Execute if the block is empty
-          // eslint-disable-next-line unicorn/no-array-method-this-argument
           await flow.forEach(
             blockTrace.transactions,
             async (trace, transactionIndex) => {

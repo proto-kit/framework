@@ -8,7 +8,6 @@ import {
   PrivateMempool,
   SequencerModulesRecord,
   UnprovenProducerModule,
-  SettlementModule,
   VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 

@@ -1,14 +1,14 @@
 import "reflect-metadata";
-import { Bool, Field, PublicKey, UInt64 } from "o1js";
+import { PublicKey } from "o1js";
 import {
-  NetworkState, PublicKeyOption,
+  NetworkState,
   RuntimeMethodExecutionContext,
-  RuntimeTransaction, UInt64Option
+  RuntimeTransaction,
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { AreProofsEnabled, log } from "@proto-kit/common";
 
-import { InMemoryStateService, MethodIdResolver, Runtime } from "../src";
+import { Runtime } from "../src";
 import { MethodParameterEncoder } from "../src/method/MethodParameterEncoder";
 
 import { Balances } from "./modules/Balances";
@@ -32,7 +32,6 @@ describe("runtimeMethod", () => {
   });
 
   it("should create correct param types", () => {
-    // eslint-disable-next-line jest/prefer-expect-assertions
     expect.assertions(1 + parameters.length);
 
     const module = runtime.resolve("Balances");

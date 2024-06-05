@@ -1,7 +1,7 @@
-import { inject, injectable } from "tsyringe";
+import { injectable } from "tsyringe";
+import { log } from "@proto-kit/common";
 
 import { StateService } from "./StateService";
-import { log } from "@proto-kit/common";
 
 const errors = {
   stateServiceNotSet: () =>
@@ -20,7 +20,6 @@ export class StateServiceProvider {
     }
 
     // Assertion here is ok, because we check that the array is not empty above
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return this.stateServiceStack.at(-1)!;
   }
 

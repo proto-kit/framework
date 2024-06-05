@@ -34,7 +34,7 @@ import { TaskWorkerModule } from "./TaskWorkerModule";
 // Temporary workaround against the compiler emitting
 // import("common/dist") inside the library artifacts
 // which leads to error in consuming packages (namely stack)
-export { TypedClass }
+export { TypedClass };
 
 export type TaskWorkerModulesRecord = ModulesRecord<
   // TODO any -> unknown
@@ -76,6 +76,7 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       },
       {}
     );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     this.currentConfig = config as ModulesConfig<Tasks>;
   }
 
@@ -95,15 +96,11 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
     const worker = new FlowTaskWorker(this.taskQueue(), tasks);
     worker
       .start()
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
       .then(() => {
         noop();
       })
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line promise/prefer-await-to-then,etc/no-implicit-any-catch
       .catch((error: Error) => {
-        console.error(error);
+        log.error(error);
       });
   }
 }
@@ -128,5 +125,9 @@ export class VanillaTaskWorkerModules {
   }
 }
 
-export type TaskWorkerModulesWithoutSettlement = ReturnType<typeof VanillaTaskWorkerModules.withoutSettlement>
-export type AllTaskWorkerModules = ReturnType<typeof VanillaTaskWorkerModules.withoutSettlement>
+export type TaskWorkerModulesWithoutSettlement = ReturnType<
+  typeof VanillaTaskWorkerModules.withoutSettlement
+>;
+export type AllTaskWorkerModules = ReturnType<
+  typeof VanillaTaskWorkerModules.withoutSettlement
+>;

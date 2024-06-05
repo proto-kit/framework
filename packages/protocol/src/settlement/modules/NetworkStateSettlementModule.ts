@@ -10,6 +10,7 @@ type NetworkStateSettlementModuleConfig = {
   blocksPerL1Block: UInt64;
 };
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export class NetworkStateSettlementModule extends ProvableSettlementHook<NetworkStateSettlementModuleConfig> {
   public beforeSettlement(
     smartContract: SettlementSmartContract,
@@ -37,3 +38,5 @@ export class NetworkStateSettlementModule extends ProvableSettlementHook<Network
     // TODO Check within bounds efficiently
   }
 }
+
+/* eslint-enable @typescript-eslint/no-unused-vars */

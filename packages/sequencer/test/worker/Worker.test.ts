@@ -1,6 +1,5 @@
 import "reflect-metadata";
 
-// eslint-disable-next-line @typescript-eslint/no-shadow
 import { beforeAll, jest } from "@jest/globals";
 
 import {
@@ -11,7 +10,6 @@ import { TaskWorker } from "../../src/worker/worker/TaskWorker";
 import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
 import { BullQueue } from "../../src/worker/queue/BullQueue";
 import { MapReduceFlow } from "../../src";
-
 import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
 
 // The implementation of the task, known by both master and worker
@@ -22,7 +20,7 @@ class SumTask implements MapReduceTask<number, number> {
   }
 
   // Master-executed
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   public reducible(r1: number, r2: number): boolean {
     // Checks if the tasks r1 and r2 fit together and can be reduced
     return true;

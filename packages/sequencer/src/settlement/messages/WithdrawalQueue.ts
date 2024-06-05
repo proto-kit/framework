@@ -8,7 +8,7 @@ import { Path, Withdrawal } from "@proto-kit/protocol";
 import { Field } from "o1js";
 
 import type { BlockTriggerBase } from "../../protocol/production/trigger/BlockTrigger";
-import type { SettlementModule } from "../SettlementModule";
+import { SettlementModule } from "../SettlementModule";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 import { Sequencer } from "../../sequencer/executor/Sequencer";
 import { UnprovenBlock } from "../../storage/model/UnprovenBlock";
@@ -73,9 +73,10 @@ export class WithdrawalQueue
 
   public async start(): Promise<void> {
     // Hacky workaround for this cyclic dependency
-    const settlementModule = this.sequencer.resolve(
-      "SettlementModule"
-    ) as SettlementModule;
+    const settlementModule = this.sequencer.resolveOrFail(
+      "SettlementModule",
+      SettlementModule
+    );
 
     const resolver =
       this.runtime.dependencyContainer.resolve<MethodIdResolver>(
@@ -92,7 +93,7 @@ export class WithdrawalQueue
     // TODO Very primitive and error-prone, wait for runtime events
     // TODO Replace by stateservice call?
     if (settlementModule.addresses !== undefined) {
-      const { settlement } = await settlementModule.getContracts();
+      const { settlement } = settlementModule.getContracts();
       this.currentIndex = Number(
         settlement.outgoingMessageCursor.get().toBigInt()
       );
@@ -130,6 +131,7 @@ export class WithdrawalQueue
 
             const withdrawal = Withdrawal.fromFields(fields!);
             return {
+              // eslint-disable-next-line no-plusplus
               index: this.currentIndex++,
               value: withdrawal,
             };

@@ -1,5 +1,6 @@
 import { Field, Proof } from "o1js";
 import { Subclass } from "@proto-kit/protocol";
+import { MOCK_PROOF } from "@proto-kit/common";
 
 import { TaskSerializer } from "../worker/manager/ReducableTask";
 
@@ -45,22 +46,22 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
   public toJSONProof(
     proof: Proof<PublicInputType, PublicOutputType>
   ): JsonProof {
-    if (proof.proof === "mock-proof") {
+    if (proof.proof === MOCK_PROOF) {
       return {
         publicInput: this.proofClass.publicInputType
           // eslint-disable-next-line max-len
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument
           .toFields(proof.publicInput as any)
           .map(String),
 
         publicOutput: this.proofClass.publicOutputType
           // eslint-disable-next-line max-len
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument
           .toFields(proof.publicOutput as any)
           .map(String),
 
         maxProofsVerified: proof.maxProofsVerified,
-        proof: "mock-proof",
+        proof: MOCK_PROOF,
       };
     }
     return proof.toJSON();
@@ -94,7 +95,6 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.proofClass.fromJSON(jsonProof);
   }
 }

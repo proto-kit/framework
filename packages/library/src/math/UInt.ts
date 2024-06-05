@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-magic-numbers,prefer-const,id-length,no-underscore-dangle */
+/* eslint-disable prefer-const,no-underscore-dangle,no-bitwise,@typescript-eslint/naming-convention */
 import { Bool, Field, Provable, Struct, UInt64 as O1UInt64 } from "o1js";
 import { assert } from "@proto-kit/protocol";
 // @ts-ignore
@@ -130,7 +130,7 @@ export abstract class UInt<BITS extends number> extends Struct({
 
     let q = Provable.witness(Field, () => {
       const divisorInt = divisor_.toBigInt();
-      return new Field(x.toBigInt() / (divisorInt == 0n ? 1n : divisorInt));
+      return new Field(x.toBigInt() / (divisorInt === 0n ? 1n : divisorInt));
     });
 
     UInt.assertionFunction(
@@ -144,7 +144,6 @@ export abstract class UInt<BITS extends number> extends Struct({
       q.assertLessThan(x, "Quotient too large");
     }
 
-    // eslint-disable-next-line no-warning-comments
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(divisor_)).seal();
 
@@ -415,19 +414,21 @@ export abstract class UInt<BITS extends number> extends Struct({
   }
 
   /**
-   * Turns the {@link UInt} into a o1js {@link UInt64}, clamping to the 64 bits range if it's too large.
+   * Turns the {@link UInt} into a o1js {@link UInt64},
+   * clamping to the 64 bits range if it's too large.
    */
   public toO1UInt64Clamped() {
     if (this.numBits() <= 64) {
       return new O1UInt64(this.value);
-    } else {
-      let max = (1n << 64n) - 1n;
-      return Provable.if(
-        // We know that BITS is >64 bits, so we can skip range checks for max
-        this.greaterThan(this.fromField(Field(max))),
-        O1UInt64.from(max),
-        new O1UInt64(this.value)
-      );
     }
+    let max = (1n << 64n) - 1n;
+    return Provable.if(
+      // We know that BITS is >64 bits, so we can skip range checks for max
+      this.greaterThan(this.fromField(Field(max))),
+      O1UInt64.from(max),
+      new O1UInt64(this.value)
+    );
   }
 }
+// eslint-disable-next-line max-len
+/* eslint-enable prefer-const,no-underscore-dangle,no-bitwise,@typescript-eslint/naming-convention */

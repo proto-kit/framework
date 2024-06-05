@@ -4,6 +4,8 @@
     "./src/**/*.test.ts",
     "./test/**/*.ts",
     "./test/*.ts",
-    "./src/**/*.ts"
+    "./src/**/*.ts",
+    "./test-integration/**/*.ts",
+    "./test-integration/*.ts"
   ]
 }

@@ -22,7 +22,7 @@ import {
   VanillaRuntimeModules,
   UInt64,
 } from "@proto-kit/library";
-import { log, Presets } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import {
   BlockProducerModule,
   InMemoryDatabase,
@@ -226,9 +226,9 @@ export async function startServer() {
   });
 
   await appChain.start(container.createChildContainer());
-  const pk = PublicKey.fromBase58(
-    "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
-  );
+  // const pk = PublicKey.fromBase58(
+  //   "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
+  // );
 
   const balances = appChain.runtime.resolve("Balances");
 

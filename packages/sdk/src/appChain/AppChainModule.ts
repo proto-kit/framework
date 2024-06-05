@@ -11,7 +11,7 @@ import type { AppChain, AppChainModulesRecord } from "./AppChain";
 
 @injectable()
 export class AppChainModule<
-  Config = NoConfig
+  Config = NoConfig,
 > extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 

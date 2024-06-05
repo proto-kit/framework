@@ -35,7 +35,7 @@ export class LocalhostAppChain<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > extends AppChain<
   RuntimeModules,
   ProtocolModules,

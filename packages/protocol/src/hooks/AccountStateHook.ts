@@ -1,11 +1,11 @@
-import { Provable, PublicKey, Struct, UInt64 } from "o1js";
+import { PublicKey, Struct, UInt64 } from "o1js";
+import { injectable } from "tsyringe";
 
 import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { StateMap } from "../state/StateMap";
 import { protocolState } from "../state/protocol/ProtocolState";
 import { ProvableTransactionHook } from "../protocol/ProvableTransactionHook";
 import { assert } from "../state/assert/assert";
-import { injectable } from "tsyringe";
 
 export class AccountState extends Struct({
   nonce: UInt64,
@@ -21,11 +21,9 @@ export class AccountStateHook extends ProvableTransactionHook {
   public onTransaction({ transaction }: BlockProverExecutionData): void {
     const sender = transaction.sender.value;
 
-    const aso = this.accountState
-      .get(sender)
+    const aso = this.accountState.get(sender);
 
-    const accountState = aso
-      .orElse(new AccountState({ nonce: UInt64.zero }));
+    const accountState = aso.orElse(new AccountState({ nonce: UInt64.zero }));
 
     const currentNonce = accountState.nonce;
 

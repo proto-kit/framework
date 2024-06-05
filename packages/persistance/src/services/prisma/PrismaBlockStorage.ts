@@ -61,7 +61,9 @@ export class PrismaBlockStorage
       (txresult) => this.transactionResultMapper.mapIn([txresult, txresult.tx])
     );
     if (result.metadata === undefined || result.metadata === null) {
-      throw new Error(`No Metadata has been set for block ${where} yet`);
+      throw new Error(
+        `No Metadata has been set for block ${JSON.stringify(where)} yet`
+      );
     }
 
     return {
@@ -83,7 +85,7 @@ export class PrismaBlockStorage
 
   public async pushBlock(block: UnprovenBlock): Promise<void> {
     log.trace(
-      `Pushing block to DB. Txs:`,
+      "Pushing block to DB. Txs:",
       block.transactions.map((x) => x.tx.hash().toString())
     );
 

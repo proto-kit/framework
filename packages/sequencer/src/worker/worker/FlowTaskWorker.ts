@@ -9,19 +9,11 @@ const errors = {
     new Error(`Task ${name} not computable on selected worker`),
 };
 
-type InferTaskInput<TaskT extends Task<any, any>> = TaskT extends Task<
-  infer Input,
-  unknown
->
-  ? Input
-  : never;
+type InferTaskInput<TaskT extends Task<any, any>> =
+  TaskT extends Task<infer Input, unknown> ? Input : never;
 
-type InferTaskOutput<TaskT extends Task<any, any>> = TaskT extends Task<
-  unknown,
-  infer Output
->
-  ? Output
-  : never;
+type InferTaskOutput<TaskT extends Task<any, any>> =
+  TaskT extends Task<unknown, infer Output> ? Output : never;
 
 // Had to use any here, because otherwise you couldn't assign any tasks to it
 export class FlowTaskWorker<Tasks extends Task<any, any>[]>
@@ -31,7 +23,10 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
 
   private workers: Closeable[] = [];
 
-  public constructor(mq: TaskQueue, private readonly tasks: Tasks) {
+  public constructor(
+    mq: TaskQueue,
+    private readonly tasks: Tasks
+  ) {
     this.queue = mq;
   }
 
