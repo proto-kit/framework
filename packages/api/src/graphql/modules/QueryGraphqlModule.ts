@@ -85,8 +85,15 @@ export class QueryGraphqlModule<
     super();
   }
 
-  @GraphqlQuery(() => [String], { nullable: true })
-  public async state(@Arg("path") path: string): Promise<string[] | undefined> {
+  @GraphqlQuery(() => [String], {
+    nullable: true,
+    description:
+      "Allows the raw querying of values inside a specific state slot. Returns a string[] that represents the field-encoding of the given value",
+  })
+  public async state(
+    @Arg("path", { description: "The path to the state slot to be queried" })
+    path: string
+  ): Promise<string[] | undefined> {
     const value = await this.queryTransportModule.get(Field(path));
     return value?.map((field) => field.toString());
   }
@@ -440,7 +447,11 @@ export class QueryGraphqlModule<
       },
     });
 
-    return new GraphQLSchema({ query });
+    return new GraphQLSchema({
+      query,
+      description:
+        "Allows querying of the appchain's state. This includes runtime, protocol and network state and automatically updates based on your appchain's configuration and modules",
+    });
   }
 }
 // eslint-disable-next-line max-len
