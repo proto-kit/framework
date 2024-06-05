@@ -1,14 +1,12 @@
 import { EventsRecord } from "./EventEmittingComponent";
 
 type ListenersHolder<Events extends EventsRecord> = {
-  // eslint-disable-next-line putout/putout
   [key in keyof Events]?: ((...args: Events[key]) => void)[];
 };
 
 export class EventEmitter<Events extends EventsRecord> {
   private readonly listeners: ListenersHolder<Events> = {};
 
-  // eslint-disable-next-line putout/putout
   private readonly wildcardListeners: ((
     event: keyof Events,
     args: Events[keyof Events]

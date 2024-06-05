@@ -11,15 +11,48 @@ export function requireTrue(
   }
 }
 
-export function range(startOrEnd: number, end: number | undefined): number[] {
+export function range(
+  startOrEnd: number,
+  endOrNothing: number | undefined
+): number[] {
+  let end = endOrNothing;
+  let start = startOrEnd;
   if (end === undefined) {
     end = startOrEnd;
-    startOrEnd = 0;
+    start = 0;
   }
-  return Array.from(
-    { length: end - startOrEnd },
-    (ignored, index) => index + startOrEnd
+  return Array.from({ length: end - start }, (ignored, index) => index + start);
+}
+
+export function reduceSequential<T, U>(
+  array: T[],
+  callbackfn: (
+    previousValue: U,
+    currentValue: T,
+    currentIndex: number,
+    array: T[]
+  ) => Promise<U>,
+  initialValue: U
+) {
+  return array.reduce<Promise<U>>(
+    async (previousPromise, current, index, arr) => {
+      const previous = await previousPromise;
+      return await callbackfn(previous, current, index, arr);
+    },
+    Promise.resolve(initialValue)
   );
+}
+
+export function mapSequential<T, R>(
+  array: T[],
+  f: (element: T, index: number, array: T[]) => Promise<R>
+) {
+  return array.reduce<Promise<R[]>>(async (r, element, index, a) => {
+    const ret = await r;
+    const next = await f(element, index, a);
+    ret.push(next);
+    return ret;
+  }, Promise.resolve([]));
 }
 
 /**
@@ -38,7 +71,6 @@ export function dummyValue<Value>(
   return valueType.fromFields(fields) as Value;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 export function noop(): void {}
 
 export interface ToFieldable {
@@ -59,8 +91,9 @@ export interface ProofTypes {
 }
 
 export async function sleep(ms: number) {
-  // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 export function filterNonNull<Type>(value: Type | null): value is Type {
@@ -73,19 +106,34 @@ export function filterNonUndefined<Type>(
   return value !== undefined;
 }
 
-let encoder = new TextEncoder();
+const encoder = new TextEncoder();
 
 // Copied from o1js binable.ts:317
 export function prefixToField(prefix: string): Field {
-  let fieldSize = Field.sizeInBytes();
+  const fieldSize = Field.sizeInBytes;
   if (prefix.length >= fieldSize) throw Error("prefix too long");
-  let stringBytes = [...encoder.encode(prefix)];
+  const stringBytes = [...encoder.encode(prefix)];
   return Field.fromBytes(
     stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0))
   );
 }
 
 export function hashWithPrefix(prefix: string, input: Field[]) {
-  const salt = Poseidon.update([Field(0), Field(0), Field(0)], [prefixToField(prefix)])
-  return Poseidon.update(salt as [Field, Field, Field], input)[0]
+  const salt = Poseidon.update(
+    [Field(0), Field(0), Field(0)],
+    [prefixToField(prefix)]
+  );
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return Poseidon.update(salt as [Field, Field, Field], input)[0];
 }
+
+// end copy
+
+export function expectDefined<T>(value: T | undefined): asserts value is T {
+  expect(value).toBeDefined();
+}
+
+type NonMethodKeys<Type> = {
+  [Key in keyof Type]: Type[Key] extends Function ? never : Key;
+}[keyof Type];
+export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;

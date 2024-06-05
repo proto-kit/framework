@@ -1,9 +1,11 @@
 import { inject, injectable } from "tsyringe";
-import { AppChainModule } from "../appChain/AppChainModule";
-import { GraphqlClient } from "./GraphqlClient";
 import { NetworkStateTransportModule } from "@proto-kit/sequencer";
 import { NetworkState } from "@proto-kit/protocol";
 import { gql } from "@urql/core";
+
+import { AppChainModule } from "../appChain/AppChainModule";
+
+import { GraphqlClient } from "./GraphqlClient";
 
 const errors = {
   receivedNoDataOrError: () => new Error("Received no data and no error"),
@@ -46,6 +48,7 @@ export class GraphqlNetworkStateTransportModule
       .toPromise();
 
     if (queryResult.error === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const json = queryResult.data?.network?.unproven;
 
       if (json === undefined || json === null) {
@@ -53,6 +56,7 @@ export class GraphqlNetworkStateTransportModule
       }
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return new NetworkState(NetworkState.fromJSON(json));
       } catch (e) {
         if (e instanceof Error) {

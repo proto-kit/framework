@@ -28,6 +28,6 @@ export class InMemoryTransactionSender
   }
 
   public async send(transaction: PendingTransaction) {
-    this.mempool.add(transaction);
+    await this.mempool.add(transaction);
   }
 }

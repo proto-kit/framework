@@ -1,3 +1,5 @@
+import { log } from "@proto-kit/common";
+
 import {
   BlockStorage,
   HistoricalBlockStorage,
@@ -18,7 +20,7 @@ export class InMemoryBatchStorage
   }
 
   public async pushBlock(block: ComputedBlock): Promise<void> {
-    console.log("Pushed Batch")
+    log.info("Pushed Batch");
     this.blocks.push(block);
   }
 

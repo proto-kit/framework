@@ -1,4 +1,5 @@
 import { injectable } from "tsyringe";
+
 import { SettlementStorage } from "../repositories/SettlementStorage";
 import { Settlement } from "../model/Settlement";
 

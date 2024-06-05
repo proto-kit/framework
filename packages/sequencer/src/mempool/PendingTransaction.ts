@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import {
   Bool,
   Field,
@@ -81,6 +80,7 @@ export class UnsignedTransaction {
   }
 
   public signed(signature: Signature): PendingTransaction {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return new PendingTransaction({
       methodId: this.methodId,
       sender: this.sender,
@@ -147,9 +147,8 @@ export class PendingTransaction extends UnsignedTransaction {
       isMessage: this.isMessage,
 
       signature: {
-        // eslint-disable-next-line id-length
         r: this.signature.r.toJSON(),
-        // eslint-disable-next-line id-length
+
         s: this.signature.s.toJSON(),
       },
 

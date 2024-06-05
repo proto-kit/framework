@@ -5,10 +5,10 @@ import { BlockProverState } from "../prover/block/BlockProver";
 export class LastStateRootBlockHook extends ProvableBlockHook<
   Record<string, never>
 > {
-  public afterBlock(
+  public async afterBlock(
     networkState: NetworkState,
     state: BlockProverState
-  ): NetworkState {
+  ): Promise<NetworkState> {
     return new NetworkState({
       block: networkState.block,
       previous: {
@@ -17,10 +17,10 @@ export class LastStateRootBlockHook extends ProvableBlockHook<
     });
   }
 
-  public beforeBlock(
+  public async beforeBlock(
     networkState: NetworkState,
     state: BlockProverState
-  ): NetworkState {
+  ): Promise<NetworkState> {
     return networkState;
   }
 }

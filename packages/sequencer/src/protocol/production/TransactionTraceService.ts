@@ -7,8 +7,8 @@ import {
   ProvableHashList,
   ProvableStateTransition,
   ProvableStateTransitionType,
-  StateTransitionProverPublicInput, StateTransitionReductionList,
-  StateTransitionType
+  StateTransitionProverPublicInput,
+  StateTransitionType,
 } from "@proto-kit/protocol";
 import { RollupMerkleTree } from "@proto-kit/common";
 import { Bool, Field } from "o1js";
@@ -28,6 +28,8 @@ import type { TransactionTrace, BlockTrace } from "./BlockProducerModule";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
 
+export type TaskStateRecord = Record<string, Field[]>;
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionTraceService {
@@ -38,29 +40,38 @@ export class TransactionTraceService {
   }
 
   private async collectStartingState(
-    stateService: CachedStateService,
     stateTransitions: UntypedStateTransition[]
-  ): Promise<Record<string, Field[] | undefined>> {
-    const keys = this.allKeys(stateTransitions);
-    await stateService.preloadKeys(keys);
+  ): Promise<TaskStateRecord> {
+    const stateEntries = stateTransitions
+      // Filter distinct
+      .filter(
+        (st, index, array) =>
+          array.findIndex(
+            (st2) => st2.path.toBigInt() === st.path.toBigInt()
+          ) === index
+      )
+      // Filter out STs that have isSome: false as precondition, because this means
+      // "state hasn't been set before" and has to correlate to a precondition on Field(0)
+      // and for that the state has to be undefined
+      .filter((st) => st.fromValue.isSome.toBoolean())
+      .map((st) => [st.path.toString(), st.fromValue.value]);
 
-    return keys.reduce<Record<string, Field[] | undefined>>((state, key) => {
-      state[key.toString()] = stateService.get(key);
-      return state;
-    }, {});
+    return Object.fromEntries(stateEntries);
   }
 
-  private applyTransitions(
+  private async applyTransitions(
     stateService: CachedStateService,
     stateTransitions: UntypedStateTransition[]
-  ): void {
+  ): Promise<void> {
     // Use updated stateTransitions since only they will have the
     // right values
-    stateTransitions
+    const writes = stateTransitions
       .filter((st) => st.toValue.isSome.toBoolean())
-      .forEach((st) => {
-        stateService.set(st.path, st.toValue.toFields());
+      .map((st) => {
+        return { key: st.path, value: st.toValue.toFields() };
       });
+    stateService.writeStates(writes);
+    await stateService.commit();
   }
 
   public async createBlockTrace(
@@ -75,15 +86,13 @@ export class TransactionTraceService {
   ): Promise<BlockTrace> {
     const stateTransitions = block.metadata.blockStateTransitions;
 
-    const startingState = await this.collectStartingState(
-      stateServices.stateService,
-      stateTransitions
-    );
+    const startingState = await this.collectStartingState(stateTransitions);
 
-    let stParameters: StateTransitionProofParameters[], fromStateRoot: Field;
+    let stParameters: StateTransitionProofParameters[];
+    let fromStateRoot: Field;
 
     if (stateTransitions.length > 0) {
-      this.applyTransitions(stateServices.stateService, stateTransitions);
+      await this.applyTransitions(stateServices.stateService, stateTransitions);
 
       ({ stParameters, fromStateRoot } = await this.createMerkleTrace(
         stateServices.merkleStore,
@@ -173,20 +182,19 @@ export class TransactionTraceService {
       executionResult;
 
     // Collect starting state
-    const protocolStartingState = await this.collectStartingState(
+    const protocolStartingState =
+      await this.collectStartingState(protocolTransitions);
+
+    await this.applyTransitions(
       stateServices.stateService,
       protocolTransitions
     );
 
-    this.applyTransitions(stateServices.stateService, protocolTransitions);
-
-    const runtimeStartingState = await this.collectStartingState(
-      stateServices.stateService,
-      stateTransitions
-    );
+    const runtimeStartingState =
+      await this.collectStartingState(stateTransitions);
 
     if (status.toBoolean()) {
-      this.applyTransitions(stateServices.stateService, stateTransitions);
+      await this.applyTransitions(stateServices.stateService, stateTransitions);
     }
 
     // Step 3
@@ -255,7 +263,7 @@ export class TransactionTraceService {
       merkleStore
     );
 
-    await merkleStore.preloadKeys(keys.map(key => key.toBigInt()))
+    await merkleStore.preloadKeys(keys.map((key) => key.toBigInt()));
 
     const tree = new RollupMerkleTree(merkleStore);
     const runtimeTree = new RollupMerkleTree(runtimeSimulationMerkleStore);
@@ -270,10 +278,9 @@ export class TransactionTraceService {
     );
 
     const allTransitions = protocolTransitions
-      .map<[UntypedStateTransition, boolean]>((protocolTransition) => [
-        protocolTransition,
-        StateTransitionType.protocol,
-      ])
+      .map<
+        [UntypedStateTransition, boolean]
+      >((protocolTransition) => [protocolTransition, StateTransitionType.protocol])
       .concat(
         stateTransitions.map((transition) => [
           transition,
@@ -295,6 +302,7 @@ export class TransactionTraceService {
       const protocolTransitionsHash = protocolTransitionsList.commitment;
 
       // Map all STs to traces for current chunk
+
       const merkleWitnesses = currentChunk.map(([transition, type]) => {
         // Select respective tree (whether type is protocol
         // (which will be applied no matter what)
@@ -334,7 +342,6 @@ export class TransactionTraceService {
       return {
         merkleWitnesses,
 
-        // eslint-disable-next-line putout/putout
         stateTransitions: currentChunk.map(([st, type]) => {
           return {
             transition: st.toProvable(),

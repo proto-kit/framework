@@ -1,5 +1,6 @@
-import { PropertyStorage } from "../repositories/PropertyStorage";
 import fs from "node:fs";
+
+import { PropertyStorage } from "../repositories/PropertyStorage";
 
 const FILE_NAME = "db.json";
 
@@ -10,6 +11,7 @@ export class FilePropertyStorage implements PropertyStorage {
     return new Promise((accept) => {
       fs.readFile(FILE_NAME, (err, buffer) => {
         if (err === null) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           accept(JSON.parse(buffer.toString()));
         } else {
           accept({});

@@ -1,14 +1,12 @@
-import { Bool, PublicKey, UInt64 } from "o1js";
-import { Option, State, StateMap } from "@proto-kit/protocol";
+import { PublicKey, UInt64 } from "o1js";
+import { State, StateMap } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 
 import { RuntimeModule, runtimeMethod, runtimeModule, state } from "../../src";
 
 import { Admin } from "./Admin.js";
 
-interface BalancesConfig {
-  test: Bool;
-}
+interface BalancesConfig {}
 
 @runtimeModule()
 export class Balances extends RuntimeModule<BalancesConfig> {
@@ -30,28 +28,27 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   }
 
   @runtimeMethod()
-  public getTotalSupply() {
-    this.totalSupply.get();
+  public async getTotalSupply() {
+    await this.totalSupply.get();
   }
 
   @runtimeMethod()
-  public setTotalSupply() {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    this.totalSupply.set(UInt64.from(20));
-    this.admin.isAdmin(this.transaction.sender);
+  public async setTotalSupply() {
+    await this.totalSupply.set(UInt64.from(20));
+    await this.admin.isAdmin(this.transaction.sender.value);
   }
 
   @runtimeMethod()
-  public getBalance(address: PublicKey): Option<UInt64> {
-    return this.balances.get(address);
+  public async getBalance(address: PublicKey) {
+    (await this.balances.get(address)).orElse(UInt64.zero);
   }
 
   @runtimeMethod()
-  public transientState() {
-    const totalSupply = this.totalSupply.get();
-    this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(100));
+  public async transientState() {
+    const totalSupply = await this.totalSupply.get();
+    await this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(100));
 
-    const totalSupply2 = this.totalSupply.get();
-    this.totalSupply.set(totalSupply2.orElse(UInt64.zero).add(100));
+    const totalSupply2 = await this.totalSupply.get();
+    await this.totalSupply.set(totalSupply2.orElse(UInt64.zero).add(100));
   }
 }

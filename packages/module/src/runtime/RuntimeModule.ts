@@ -3,21 +3,15 @@ import { container, injectable } from "tsyringe";
 import {
   NetworkState,
   RuntimeTransaction,
-  StateService,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
   RuntimeMethodExecutionDataStruct,
 } from "@proto-kit/protocol";
+import { Provable } from "o1js";
 
 import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
-import type {
-  Runtime,
-  RuntimeDefinition,
-  RuntimeModulesRecord,
-} from "./Runtime";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
-import { Provable } from "o1js";
 
 const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
@@ -28,7 +22,7 @@ const errors = {
  */
 @injectable()
 export class RuntimeModule<
-  Config = NoConfig
+  Config = NoConfig,
 > extends ConfigurableModule<Config> {
   public static presets: Presets<unknown> = {};
 

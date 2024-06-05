@@ -13,7 +13,7 @@ import { RuntimeMethodExecutionContext } from "../context/RuntimeMethodExecution
  * @param condition - Result of the assertion made about the execution status
  * @param message - Optional message describing the prior status
  */
-export function assert(condition: Bool, message?: string) {
+export function assert(condition: Bool, message?: string | (() => string)) {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
   const previousStatus = executionContext.current().result.status;
   const status = condition.and(previousStatus);
@@ -23,7 +23,11 @@ export function assert(condition: Bool, message?: string) {
       if (!executionContext.current().isSimulated) {
         log.debug("Assertion failed: ", message);
       }
-      executionContext.setStatusMessage(message);
+      const messageString =
+        message !== undefined && typeof message === "function"
+          ? message()
+          : message;
+      executionContext.setStatusMessage(messageString, new Error().stack);
     }
   });
 

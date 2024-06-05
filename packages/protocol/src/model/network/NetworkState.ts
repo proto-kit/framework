@@ -26,8 +26,8 @@ export class NetworkState extends Struct({
         height: UInt64.zero,
       },
       previous: {
-        rootHash: Field(RollupMerkleTree.EMPTY_ROOT)
-      }
+        rootHash: Field(RollupMerkleTree.EMPTY_ROOT),
+      },
     });
   }
 }

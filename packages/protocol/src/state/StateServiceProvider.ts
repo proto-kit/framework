@@ -1,7 +1,7 @@
-import { inject, injectable } from "tsyringe";
-
-import { StateService } from "./StateService";
+import { injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
+
+import { SimpleAsyncStateService } from "./StateService";
 
 const errors = {
   stateServiceNotSet: () =>
@@ -12,19 +12,18 @@ const errors = {
 
 @injectable()
 export class StateServiceProvider {
-  private readonly stateServiceStack: StateService[] = [];
+  private readonly stateServiceStack: SimpleAsyncStateService[] = [];
 
-  public get stateService(): StateService {
+  public get stateService(): SimpleAsyncStateService {
     if (this.stateServiceStack.length === 0) {
       throw errors.stateServiceNotSet();
     }
 
     // Assertion here is ok, because we check that the array is not empty above
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return this.stateServiceStack.at(-1)!;
   }
 
-  public setCurrentStateService(service: StateService) {
+  public setCurrentStateService(service: SimpleAsyncStateService) {
     this.stateServiceStack.push(service);
   }
 

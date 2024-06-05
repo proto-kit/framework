@@ -1,14 +1,14 @@
 import "reflect-metadata";
-import { Bool, Field, Provable, UInt64 } from "o1js";
+import { noop } from "@proto-kit/common";
+import { Bool, Field, UInt64 } from "o1js";
 import { container } from "tsyringe";
 
 import {
   NetworkState,
-  noop,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
   State,
-  StateService,
+  SimpleAsyncStateService,
   StateServiceProvider,
 } from "../src";
 
@@ -22,14 +22,14 @@ describe("state", () => {
     });
   });
 
-  it("should decode state correctly", () => {
+  it("should decode state correctly", async () => {
     expect.assertions(2);
 
     const state = State.from<UInt64>(UInt64);
-    const stateService: StateService = {
-      get: () => [Field(123)],
+    const stateService: SimpleAsyncStateService = {
+      get: async () => [Field(123)],
 
-      set: () => {
+      set: async () => {
         noop();
       },
     };
@@ -37,7 +37,7 @@ describe("state", () => {
     state.stateServiceProvider.setCurrentStateService(stateService);
     state.path = Field(1);
 
-    const retrieved = state.get();
+    const retrieved = await state.get();
 
     expect(retrieved.isSome).toStrictEqual(Bool(true));
     expect(retrieved.value).toStrictEqual(UInt64.from(123));

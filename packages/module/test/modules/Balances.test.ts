@@ -1,25 +1,18 @@
-/* eslint-disable max-lines */
 import "reflect-metadata";
-import {
-  Bool,
-  Field,
-  Poseidon,
-  PrivateKey,
-  Proof,
-  PublicKey,
-  UInt64,
-} from "o1js";
+import { Field, Poseidon, PrivateKey, Proof, PublicKey, UInt64 } from "o1js";
 import { container } from "tsyringe";
 import {
   type ProvableStateTransition,
   Path,
   MethodPublicOutput,
-  StateService,
+  SimpleAsyncStateService,
   RuntimeMethodExecutionContext,
+  RuntimeTransaction,
+  NetworkState,
 } from "@proto-kit/protocol";
 
-import { InMemoryStateService } from "../../src/state/InMemoryStateService.js";
 import { Runtime } from "../../src";
+import { createTestingRuntime } from "../TestingRuntime";
 
 import { Balances } from "./Balances.js";
 import { Admin } from "./Admin.js";
@@ -27,19 +20,19 @@ import { Admin } from "./Admin.js";
 describe("balances", () => {
   let balances: Balances;
 
-  let state: StateService;
+  let state: SimpleAsyncStateService;
 
   let runtime: Runtime<{
     Admin: typeof Admin;
     Balances: typeof Balances;
   }>;
 
-  function getStateValue(path: Field | undefined) {
+  async function getStateValue(path: Field | undefined) {
     if (!path) {
       throw new Error("Path not found");
     }
 
-    const stateValue = state.get(path);
+    const stateValue = await state.get(path);
 
     if (!stateValue) {
       throw new Error("stateValue is undefined");
@@ -49,47 +42,26 @@ describe("balances", () => {
   }
 
   function createChain() {
-    state = new InMemoryStateService();
-
-    runtime = Runtime.from({
-      state,
-
-      modules: {
-        Admin,
+    ({ runtime, state } = createTestingRuntime(
+      {
         Balances,
+        Admin,
       },
-    });
-
-    runtime.dependencyContainer.register("AreProofsEnabled", {
-      useValue: {
-        areProofsEnabled: false,
-
-        setProofsEnabled(areProofsEnabled: boolean) {
-          this.areProofsEnabled = areProofsEnabled;
+      {
+        Admin: {
+          publicKey: PublicKey.empty<typeof PublicKey>().toBase58(),
         },
-      },
-    });
 
-    runtime.configure({
-      Admin: {
-        publicKey: PublicKey.empty().toBase58(),
-      },
-
-      Balances: {
-        test: Bool(true),
-      },
-    });
+        Balances: {},
+      }
+    ));
 
     balances = runtime.resolve("Balances");
 
-    state.set(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      balances.totalSupply.path!,
-      UInt64.from(10).toFields()
-    );
+    state.set(balances.totalSupply.path!, UInt64.from(10).toFields());
   }
 
-  describe("compile and prove", () => {
+  describe.skip("compile and prove", () => {
     beforeAll(createChain);
 
     // Disabled until we implement a mechanism to enable/disable compiling tests
@@ -99,13 +71,18 @@ describe("balances", () => {
       runtime.zkProgrammable.appChain?.setProofsEnabled(true);
 
       const executionContext = container.resolve(RuntimeMethodExecutionContext);
+      executionContext.setup({
+        transaction: RuntimeTransaction.dummyTransaction(),
+        networkState: NetworkState.empty(),
+      });
+
       const expectedStateTransitionsHash =
         "1439144406936083177718146178121957896974210157062549589517697792374542035761";
       const expectedStatus = true;
 
       await runtime.zkProgrammable.zkProgram.compile();
 
-      balances.getTotalSupply();
+      await balances.getTotalSupply();
 
       const { result } = executionContext.current();
 
@@ -130,11 +107,15 @@ describe("balances", () => {
     describe("state transitions", () => {
       let stateTransitions: ProvableStateTransition[];
 
-      beforeEach(() => {
+      beforeEach(async () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
-        balances.getTotalSupply();
+        executionContext.setup({
+          transaction: RuntimeTransaction.dummyTransaction(),
+          networkState: NetworkState.empty(),
+        });
+        await balances.getTotalSupply();
 
         stateTransitions = executionContext
           .current()
@@ -158,13 +139,13 @@ describe("balances", () => {
         );
       });
 
-      it("should produce a from-only state transition", () => {
+      it("should produce a from-only state transition", async () => {
         expect.assertions(3);
 
         const [stateTransition] = stateTransitions;
 
         const value = UInt64.fromFields(
-          getStateValue(balances.totalSupply.path)
+          await getStateValue(balances.totalSupply.path)
         );
         const treeValue = Poseidon.hash(value.toFields());
 
@@ -181,15 +162,20 @@ describe("balances", () => {
 
       beforeAll(() => {
         createChain();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
         state.set(balances.totalSupply.path!, undefined);
       });
 
-      beforeEach(() => {
+      beforeEach(async () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
-        balances.getTotalSupply();
+        executionContext.setup({
+          transaction: RuntimeTransaction.dummyTransaction(),
+          networkState: NetworkState.empty(),
+        });
+
+        await balances.getTotalSupply();
 
         stateTransitions = executionContext
           .current()
@@ -235,11 +221,16 @@ describe("balances", () => {
     describe("state transitions", () => {
       let stateTransitions: ProvableStateTransition[];
 
-      beforeEach(() => {
+      beforeEach(async () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
-        balances.setTotalSupply();
+        executionContext.setup({
+          transaction: RuntimeTransaction.dummyTransaction(),
+          networkState: NetworkState.empty(),
+        });
+
+        await balances.setTotalSupply();
 
         stateTransitions = executionContext
           .current()
@@ -263,12 +254,12 @@ describe("balances", () => {
         );
       });
 
-      it("should produce a from-to state transition", () => {
+      it("should produce a from-to state transition", async () => {
         expect.assertions(4);
 
         const [stateTransition] = stateTransitions;
         const fromValue = UInt64.fromFields(
-          getStateValue(balances.totalSupply.path)
+          await getStateValue(balances.totalSupply.path)
         );
         const fromTreeValue = Poseidon.hash(fromValue.toFields());
 
@@ -295,11 +286,16 @@ describe("balances", () => {
       let stateTransitions: ProvableStateTransition[];
       const address = PrivateKey.random().toPublicKey();
 
-      beforeEach(() => {
+      beforeEach(async () => {
         const executionContext = container.resolve(
           RuntimeMethodExecutionContext
         );
-        balances.getBalance(address);
+        executionContext.setup({
+          transaction: RuntimeTransaction.dummyTransaction(),
+          networkState: NetworkState.empty(),
+        });
+
+        await balances.getBalance(address);
 
         stateTransitions = executionContext
           .current()

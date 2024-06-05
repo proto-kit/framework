@@ -1,12 +1,14 @@
 import { inject, injectable } from "tsyringe";
+import { Field } from "o1js";
+
 import { TransactionStorage } from "../repositories/TransactionStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import {
   HistoricalUnprovenBlockStorage,
   UnprovenBlockStorage,
 } from "../repositories/UnprovenBlockStorage";
+
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
-import { Field } from "o1js";
 
 @injectable()
 export class InMemoryTransactionStorage implements TransactionStorage {
@@ -28,6 +30,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       height < nextHeight;
       height++
     ) {
+      // eslint-disable-next-line no-await-in-loop
       const block = await this.blockStorage.getBlockAt(height);
       if (block !== undefined) {
         const hashes = block.transactions.map((tx) => tx.tx.hash().toString());
@@ -56,6 +59,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     const tipHeight = await this.batchStorage.getCurrentBlockHeight();
 
     for (let height = tipHeight - 1; height >= 0; height--) {
+      // eslint-disable-next-line no-await-in-loop
       const batch = await this.batchStorage.getBlockAt(height);
       if (batch === undefined) {
         return undefined;
@@ -64,6 +68,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
         return height;
       }
     }
+    return undefined;
   }
 
   public async findTransaction(hash: string): Promise<
@@ -78,17 +83,19 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     const hashField = Field(hash);
 
     for (let height = tipHeight - 1; height >= 0; height--) {
+      // eslint-disable-next-line no-await-in-loop
       const block = await this.blockStorage.getBlockAt(height);
       if (block === undefined) {
         return undefined;
       }
-      const tx = block.transactions.find((tx) =>
+      const txResult = block.transactions.find((tx) =>
         tx.tx.hash().equals(hashField).toBoolean()
       );
-      if (tx !== undefined) {
+      if (txResult !== undefined) {
+        // eslint-disable-next-line no-await-in-loop
         const batch = await this.findBatch(block.hash.toString());
         return {
-          transaction: tx.tx,
+          transaction: txResult.tx,
           block: block.transactionsHash.toString(),
           batch,
         };

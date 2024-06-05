@@ -1,17 +1,12 @@
-/* eslint-disable max-classes-per-file */
 import "reflect-metadata";
-import {
-  MethodIdResolver,
-  Runtime,
-  runtimeModule,
-  RuntimeModule,
-} from "@proto-kit/module";
-import { ChildContainerProvider, log } from "@proto-kit/common";
-import { AppChain, AppChainModule } from "../src";
+import { MethodIdResolver, Runtime, RuntimeModule } from "@proto-kit/module";
+import { ChildContainerProvider } from "@proto-kit/common";
 import { Protocol, ProtocolModule } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
+
+import { AppChain } from "../src";
 
 class TestRuntimeModule extends RuntimeModule<object> {
   public initialized = false;
@@ -36,6 +31,7 @@ class TestProtocolModule extends ProtocolModule<object> {
 
 class TestSequencerModule extends SequencerModule<object> {
   public initialized = false;
+
   public started = false;
 
   public create() {
@@ -44,14 +40,6 @@ class TestSequencerModule extends SequencerModule<object> {
 
   public async start(): Promise<void> {
     this.started = true;
-  }
-}
-
-class TestAppChainModule extends AppChainModule<object> {
-  public initialized = false;
-
-  public create() {
-    this.initialized = true;
   }
 }
 
@@ -102,6 +90,7 @@ describe("modularization", () => {
 
     await appChain.start();
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const m = appChain.protocol.resolve("TestProtocolModule");
 
     expect(appChain.runtime.resolve("TestRuntimeModule").initialized).toBe(

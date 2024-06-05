@@ -5,7 +5,7 @@ function genericOptionFactory<Type>(valueType: ProvableExtended<Type>) {
     isSome: Bool,
     value: valueType,
   }) {
-    public static fromValue(value: Type) {
+    public static fromSome(value: Type) {
       return new Generic({
         isSome: Bool(true),
         value,

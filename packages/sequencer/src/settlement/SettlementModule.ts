@@ -1,13 +1,11 @@
 import {
   Protocol,
-  ProtocolModulesRecord,
   SettlementContractModule,
   BATCH_SIGNATURE_PREFIX,
   Path,
   OutgoingMessageArgument,
   OutgoingMessageArgumentBatch,
   OUTGOING_MESSAGE_BATCH_SIZE,
-  SettlementModulesRecord,
   DispatchSmartContract,
   SettlementSmartContract,
   SettlementContractConfig,
@@ -21,12 +19,13 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
+  Transaction,
+  Permissions,
 } from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
   EventEmittingComponent,
-  EventsRecord,
   log,
   noop,
   RollupMerkleTree,
@@ -40,7 +39,7 @@ import {
 import { FlowCreator } from "../worker/flow/Flow";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../storage/repositories/MessageStorage";
-import { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
+import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { ComputedBlock, SettleableBatch } from "../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
@@ -48,7 +47,7 @@ import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofS
 import { Settlement } from "../storage/model/Settlement";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
-import { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
+import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
 
 export interface SettlementModuleConfig {
@@ -137,6 +136,7 @@ export class SettlementModule
       >("SettlementContractModule");
 
       // TODO Add generic inference of concrete Contract types
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       this.contracts = settlementContractModule.createContracts(addresses) as {
         settlement: SettlementSmartContract;
         dispatch: DispatchSmartContract;
@@ -145,9 +145,10 @@ export class SettlementModule
     return this.contracts;
   }
 
+  /* eslint-disable no-await-in-loop */
   public async sendRollupTransactions(options: { nonce: number }): Promise<
     {
-      tx: Mina.Transaction;
+      tx: Transaction<false, true>;
     }[]
   > {
     const length = this.outgoingMessageQueue.length();
@@ -155,7 +156,7 @@ export class SettlementModule
     let { nonce } = options;
 
     const txs: {
-      tx: Mina.Transaction;
+      tx: Transaction<false, true>;
     }[] = [];
 
     const { settlement } = this.getContracts();
@@ -187,30 +188,32 @@ export class SettlementModule
       const tx = await Mina.transaction(
         {
           sender: feepayer.toPublicKey(),
+          // eslint-disable-next-line no-plusplus
           nonce: nonce++,
           fee: String(0.01 * 1e9),
           memo: "Protokit settle",
         },
-        () => {
-          settlement.rollupOutgoingMessages(
+        async () => {
+          await settlement.rollupOutgoingMessages(
             OutgoingMessageArgumentBatch.fromMessages(transactionParamaters)
           );
         }
       );
 
-      tx.sign([feepayer]);
+      const signedTx = tx.sign([feepayer]);
 
-      await this.transactionSender.proveAndSendTransaction(tx);
+      await this.transactionSender.proveAndSendTransaction(signedTx);
 
       this.outgoingMessageQueue.pop(OUTGOING_MESSAGE_BATCH_SIZE);
 
       txs.push({
-        tx,
+        tx: signedTx,
       });
     }
 
     return txs;
   }
+  /* eslint-enable no-await-in-loop */
 
   public async settleBatch(
     batch: SettleableBatch,
@@ -218,7 +221,7 @@ export class SettlementModule
       nonce?: number;
     } = {}
   ): Promise<Settlement> {
-    const { settlement, dispatch } = await this.getContracts();
+    const { settlement, dispatch } = this.getContracts();
     const { feepayer } = this.config;
 
     log.debug("Preparing settlement");
@@ -247,7 +250,7 @@ export class SettlementModule
       actions.messages
     );
 
-    const blockProof = this.blockProofSerializer
+    const blockProof = await this.blockProofSerializer
       .getBlockProofSerializer()
       .fromJSONProof(batch.proof);
 
@@ -258,8 +261,8 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settle",
       },
-      () => {
-        settlement.settle(
+      async () => {
+        await settlement.settle(
           blockProof,
           signature,
           dispatch.address,
@@ -271,13 +274,11 @@ export class SettlementModule
       }
     );
 
-    console.log("Preconditions:");
-
     tx.sign([feepayer]);
 
     await this.transactionSender.proveAndSendTransaction(tx);
 
-    log.info(`Settlement transaction send queued`);
+    log.info("Settlement transaction send queued");
 
     this.events.emit("settlement-submitted", batch);
 
@@ -318,21 +319,21 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settlement deploy",
       },
-      () => {
+      async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
-        settlement.deploy({
-          zkappKey: settlementKey,
+        await settlement.deploy({
           verificationKey: undefined,
         });
+        settlement.account.permissions.set({
+          ...Permissions.default(),
+          access: Permissions.none(),
+        });
 
-        dispatch.deploy({
-          zkappKey: dispatchKey,
+        await dispatch.deploy({
           verificationKey: undefined,
         });
       }
-    );
-
-    tx.sign([feepayerKey, settlementKey, dispatchKey]);
+    ).sign([feepayerKey, settlementKey, dispatchKey]);
 
     // This should already apply the tx result to the
     // cached accounts / local blockchain
@@ -345,14 +346,13 @@ export class SettlementModule
         fee: String(0.01 * 1e9),
         memo: "Protokit settlement init",
       },
-      () => {
-        settlement.initialize(
+      async () => {
+        await settlement.initialize(
           feepayerKey.toPublicKey(),
           dispatchKey.toPublicKey()
         );
       }
-    );
-    tx2.sign([feepayerKey]);
+    ).sign([feepayerKey]);
 
     await this.transactionSender.proveAndSendTransaction(tx2);
 

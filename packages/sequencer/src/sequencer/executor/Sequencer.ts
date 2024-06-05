@@ -1,4 +1,3 @@
-/* eslint-disable guard-for-in */
 import {
   ModuleContainer,
   ModulesRecord,
@@ -68,7 +67,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    */
   public async start() {
     // Set default STWitnessProvider inside protocol
-    // eslint-disable-next-line no-warning-comments,max-len
+    // eslint-disable-next-line max-len
     // TODO But what is the default? How do we deal with stages states (i.e. simulated state) in the DI container?
     // const witnessProviderReference = this.protocol.dependencyContainer
     // .resolve(
@@ -82,8 +81,6 @@ export class Sequencer<Modules extends SequencerModulesRecord>
 
     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
 
-    const protocol = this.protocol;
-
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(
       (clazz) => clazz.name
@@ -91,6 +88,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     log.info("Starting sequencer...");
     log.info("Modules:", moduleClassNames);
 
+    // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
       const sequencerModule = this.resolve(moduleName);
 

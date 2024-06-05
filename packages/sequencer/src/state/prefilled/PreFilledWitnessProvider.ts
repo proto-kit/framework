@@ -37,7 +37,7 @@ export class PreFilledWitnessProvider
     }
 
     const witness = this.witnesses[this.cursor % this.witnesses.length];
-    // eslint-disable-next-line no-warning-comments,max-len
+
     // TODO Introduce something that throws this if it overflows before a new prover run begins
     // if (witness === undefined) {
     //   throw errors.noWitnessAvailable();

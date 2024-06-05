@@ -1,4 +1,4 @@
-import "reflect-metadata"
+import "reflect-metadata";
 import { distinct, distinctByPredicate } from "../src";
 
 describe("distinctByPredicate", () => {
@@ -14,7 +14,7 @@ describe("distinctByPredicate", () => {
       );
 
       expect(expected).toHaveLength(predicateDistinct.length);
-      expect(expected).toStrictEqual(predicateDistinct)
+      expect(expected).toStrictEqual(predicateDistinct);
     }
   );
 });

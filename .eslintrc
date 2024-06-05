@@ -1,10 +1,10 @@
 {
-  "extends": ["hardcore", "hardcore/ts", "hardcore/jest"],
+  "extends": ["airbnb-base", "airbnb-typescript/base", "plugin:prettier/recommended", "plugin:eslint-comments/recommended", "plugin:sonarjs/recommended"],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "sonarjs"],
   "root": true,
   "parserOptions": {
-    "project": ["./tsconfig.json"]
+    "project": ["./tsconfig.json", "./test/tsconfig.json"]
   },
   "ignorePatterns": [
     "jest.config.cjs",
@@ -27,125 +27,93 @@
         ]
       }
     ],
-    "jest/no-hooks": [
-      "error",
-      {
-        "allow": ["beforeEach", "afterEach", "beforeAll", "afterAll"]
-      }
-    ],
     "@typescript-eslint/consistent-indexed-object-style": "off",
-    "import/no-extraneous-dependencies": [
-      "error",
-      { "peerDependencies": true }
-    ],
-    "new-cap": "off",
-    "@typescript-eslint/prefer-readonly-parameter-types": "off",
-    "id-length": [
-      "error",
-      {
-        "min": 2,
-        "exceptions": ["i", "j", "x", "a", "b", "_"]
-      }
-    ],
     "import/prefer-default-export": "off",
-    "@typescript-eslint/consistent-type-definitions": "off",
-    "max-classes-per-file": ["error", 3],
-    "max-statements": ["error", 20],
-    "@typescript-eslint/no-magic-numbers": [
+    "object-shorthand": "off",
+    "max-classes-per-file": ["error", 6],
+    "@typescript-eslint/no-magic-numbers": "off",
+    "class-methods-use-this": "off",
+    "@typescript-eslint/return-await": ["error", "always"],
+    "import/no-import-module-exports": "off",
+    // When overriding methods, this forces us to remove them, even though it is a good pattern
+    // to still declare args of overriden methods
+    "@typescript-eslint/no-unused-vars": ["error", {
+      "args": "none"
+    }],
+    "import/order": [
       "error",
       {
-        "ignore": [0, 1, 2, 10, 100, 1000, -1],
-        "ignoreArrayIndexes": true,
-        "ignoreTypeIndexes": true
+      "newlines-between": "always"
       }
     ],
-    "no-param-reassign": "off", //It makes a lot of sense to do this for primitive types since they are pass-by-value
+    "no-param-reassign": [
+      "error",
+      {
+        "props": false
+      }
+    ],
+    "eslint-comments/no-unused-disable": ["error"],
+    "@typescript-eslint/no-unsafe-assignment": "error",
+    "@typescript-eslint/no-base-to-string": "error",
+    "@typescript-eslint/strict-boolean-expressions": "error",
+    "@typescript-eslint/no-unsafe-argument": "error",
+    "@typescript-eslint/consistent-type-assertions": ["error", {
+      "assertionStyle": "never"
+    }],
     "no-plusplus": [
       "error",
       {
-        "allowForLoopAfterthoughts": true
+      "allowForLoopAfterthoughts": true
       }
     ],
-    "import/exports-last": "off",
-    "max-params": ["error", 6],
-    "decorator-position/decorator-position": [
-      "error",
-      {
-        "methods": "above",
-        "properties": "prefer-inline",
-        "overrides": {
-          "above": ["@Field", "@InputType", "@IsNumberString"]
-        }
-      }
-    ],
-    "@typescript-eslint/require-await": "off", //Doesn't work when having async interfaces
-    "@typescript-eslint/no-explicit-any": [
-      "error",
-      {
-        "ignoreRestArgs": true
-      }
-    ],
-    "unicorn/no-negated-condition": "off",
-    "@typescript-eslint/naming-convention": [
-      "error",
-      {
-        "selector": "variable",
-        "types": ["boolean"],
-        "format": ["camelCase"],
-        "prefix": []
-      }
-    ],
-
-    //Stuff to be considered to be enabled for prod
-    "etc/no-commented-out-code": "off", //Check in PR with CI before merging
-    "no-console": "off",
-    "@typescript-eslint/consistent-type-imports": "off",
-
-    //I could live with this enabled
-    "import/no-anonymous-default-export": "off", //Enabled export default {} in index.ts
-    "@typescript-eslint/method-signature-style": ["error", "property"],
-    "lines-around-comment": "off",
-    "@typescript-eslint/lines-around-comment": [
-      "error",
-      {
-        "allowInterfaceStart": true,
-        "allowTypeStart": true,
-        "allowModuleStart": true,
-        "allowEnumStart": true,
-        "allowBlockStart": true
-      }
-    ],
-    "@typescript-eslint/prefer-function-type": "off",
-    "no-bitwise": [
-      "error",
-      {
-        "allow": ["<<", ">>", ">>>"]
-      }
-    ],
-    "@typescript-eslint/no-unnecessary-condition": ["off"],
-    "nodejs/declare": "off",
-    "unicorn/prefer-event-target": "off",
-    "putout/putout": "off",
-    "@typescript-eslint/no-unnecessary-boolean-literal-compare": "off",
+    "@typescript-eslint/no-use-before-define": ["error", {
+      "ignoreTypeReferences": true
+    }],
     "no-undef-init": "off",
-    "@typescript-eslint/sort-type-constituents": "off"
+    // Only to enforce comments length, code will be checked by prettier
+    "max-len": ["error", 1000, {
+      "comments": 100,
+      "ignoreComments": false,
+      "ignoreUrls": true,
+      "ignoreStrings": true
+    }],
+    "sonarjs/cognitive-complexity": [
+      "error",
+      13
+    ],
+    "no-restricted-syntax": "off",
+    "no-void": ["error", {
+      "allowAsStatement": true
+    }],
+    // Introduce at some point in the future
+//    "@typescript-eslint/explicit-function-return-type": "error",
+    // Reenable again
+    "sonarjs/no-duplicate-string": "off",
+    // Handled by prettier
+    "@typescript-eslint/indent": ["off"]
   },
 
   "overrides": [
     {
       "files": ["*.test.ts"],
       "rules": {
-        "@typescript-eslint/no-misused-promises": "off", //shutdown promise timeout - can be removed with snarkyjs 0.10
-        "@typescript-eslint/init-declarations": "off", //conflicts with beforeEach initialization
-        "unicorn/consistent-function-scoping": "off", //Describe-level functions
-        "@typescript-eslint/no-magic-numbers": "off",
-        "jest/no-disabled-tests": "off" //For now
+        "no-console": "off",
+        "import/no-extraneous-dependencies": "off",
+        "@typescript-eslint/init-declarations": "off",
+        "@typescript-eslint/consistent-type-assertions": "off",
+        "no-await-in-loop": "off",
+        "no-plusplus": "off"
       }
     },
     {
       "files": ["index.ts"],
+      "rules": {}
+    },
+    {
+      "files": ["cli.tsx"],
       "rules": {
-        "import/no-anonymous-default-export": "off"
+        // Disable this because of the comment shell thingy in cli.tsx
+        "max-len": "off"
       }
     }
   ]

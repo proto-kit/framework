@@ -1,5 +1,5 @@
 import { Field, Proof, Struct } from "o1js";
-import { WithZkProgrammable, ZkProgrammable } from "@proto-kit/common";
+import { WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
 
@@ -34,11 +34,11 @@ export interface StateTransitionProvable
   runBatch: (
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
-  ) => StateTransitionProverPublicOutput;
+  ) => Promise<StateTransitionProverPublicOutput>;
 
   merge: (
     publicInput: StateTransitionProverPublicInput,
     proof1: StateTransitionProof,
     proof2: StateTransitionProof
-  ) => StateTransitionProverPublicOutput;
+  ) => Promise<StateTransitionProverPublicOutput>;
 }

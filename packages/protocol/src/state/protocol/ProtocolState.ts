@@ -22,19 +22,17 @@ const errors = {
  */
 export function protocolState() {
   return <
-    TargetTransitioningModule extends TransitioningProtocolModule<unknown>
+    TargetTransitioningModule extends TransitioningProtocolModule<unknown>,
   >(
     target: TargetTransitioningModule,
     propertyKey: string
   ) => {
-    // eslint-disable-next-line @typescript-eslint/init-declarations
     let value: State<unknown> | undefined;
 
     Object.defineProperty(target, propertyKey, {
       enumerable: true,
 
       get: function get() {
-        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const self = this as TargetTransitioningModule;
 
@@ -46,7 +44,6 @@ export function protocolState() {
           throw errors.missingProtocol(self.constructor.name);
         }
 
-        // eslint-disable-next-line no-warning-comments
         // TODO Add Prefix?
         const path = Path.fromProperty(self.name, propertyKey);
         if (value) {

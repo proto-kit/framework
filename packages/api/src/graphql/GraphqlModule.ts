@@ -6,7 +6,7 @@ import { Resolver } from "type-graphql";
 const graphqlModuleMetadataKey = "graphqlModule";
 
 export abstract class GraphqlModule<
-  Config = NoConfig
+  Config = NoConfig,
 > extends ConfigurableModule<Config> {
   public constructor() {
     super();
@@ -22,7 +22,7 @@ export abstract class GraphqlModule<
 }
 
 export abstract class SchemaGeneratingGraphqlModule<
-  Config = NoConfig
+  Config = NoConfig,
 > extends GraphqlModule<Config> {
   public abstract generateSchema(): GraphQLSchema;
 }
@@ -37,7 +37,6 @@ export function graphqlModule() {
   ) => {
     injectable()(target);
     scoped(Lifecycle.ContainerScoped)(target);
-    // eslint-disable-next-line new-cap
     Resolver()(target);
 
     Reflect.defineMetadata(graphqlModuleMetadataKey, true, target);

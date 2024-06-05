@@ -23,12 +23,7 @@ import {
   InMemoryDatabase,
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
-import {
-  log,
-  MergeObjects,
-  OverwriteObjectType,
-  TypedClass,
-} from "@proto-kit/common";
+import { TypedClass } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
 
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
@@ -37,7 +32,6 @@ import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSen
 import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
 
 import { AppChain, AppChainModulesRecord } from "./AppChain";
-import { SettlementModule } from "@proto-kit/sequencer";
 
 export type TestingSequencerModulesRecord = {
   Database: typeof InMemoryDatabase;
@@ -65,7 +59,7 @@ export class TestingAppChain<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > extends AppChain<
   RuntimeModules,
   ProtocolModules,
@@ -74,7 +68,7 @@ export class TestingAppChain<
 > {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord &
-      PartialVanillaRuntimeModulesRecord
+      PartialVanillaRuntimeModulesRecord,
   >(runtimeModules: RuntimeModules) {
     const appChain = new TestingAppChain({
       Runtime: Runtime.from({
@@ -114,15 +108,18 @@ export class TestingAppChain<
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: {
+          StateTransitionTask: {},
+          RuntimeProvingTask: {},
+          StateTransitionReductionTask: {},
+          BlockReductionTask: {},
+          BlockProvingTask: {},
+          BlockBuildingTask: {},
+        },
         BaseLayer: {},
         UnprovenProducerModule: {},
         TaskQueue: {
           simulatedDuration: 0,
-        },
-        SettlementModule: {
-          feepayer: PrivateKey.random(),
-          address: PrivateKey.random().toPublicKey(),
         },
       },
       Signer: {

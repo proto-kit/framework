@@ -1,4 +1,4 @@
-import { InMemoryMerkleTreeStorage, RollupMerkleTree } from "@proto-kit/common";
+import { RollupMerkleTree } from "@proto-kit/common";
 import { beforeEach, expect } from "@jest/globals";
 import { Field } from "o1js";
 
@@ -11,19 +11,22 @@ import {
 describe("cached merkle store", () => {
   const mainStore = new InMemoryAsyncMerkleTreeStore();
 
+  let cache1: CachedMerkleTreeStore;
+  let tree1: RollupMerkleTree;
+
   beforeEach(async () => {
     const cachedStore = new CachedMerkleTreeStore(mainStore);
 
-    const tree1 = new RollupMerkleTree(cachedStore);
-    tree1.setLeaf(5n, Field("10"));
+    const tmpTree = new RollupMerkleTree(cachedStore);
+    tmpTree.setLeaf(5n, Field("10"));
     await cachedStore.mergeIntoParent();
+
+    cache1 = new CachedMerkleTreeStore(mainStore);
+    tree1 = new RollupMerkleTree(cache1);
   });
 
   it("should cache multiple keys corretly", async () => {
     expect.assertions(3);
-
-    const cache1 = new CachedMerkleTreeStore(mainStore);
-    const tree1 = new RollupMerkleTree(cache1);
 
     const cache2 = new CachedMerkleTreeStore(cache1);
     const tree2 = new RollupMerkleTree(cache2);
@@ -35,21 +38,28 @@ describe("cached merkle store", () => {
 
     expect(tree2.getNode(0, 16n).toBigInt()).toBe(16n);
     expect(tree2.getNode(0, 46n).toBigInt()).toBe(46n);
-    expect(tree2.getRoot().toString()).toStrictEqual(tree1.getRoot().toString())
+    expect(tree2.getRoot().toString()).toStrictEqual(
+      tree1.getRoot().toString()
+    );
+  });
+
+  it("should preload through multiple levels", async () => {
+    const cache2 = new CachedMerkleTreeStore(cache1);
+
+    await cache2.preloadKey(5n);
+
+    expect(cache2.getNode(5n, 0)).toStrictEqual(10n);
   });
 
   it("should cache correctly", async () => {
     expect.assertions(9);
 
+    const cache2 = new SyncCachedMerkleTreeStore(cache1);
+    const tree2 = new RollupMerkleTree(cache2);
+
     await expect(
       mainStore.getNodesAsync([{ key: 5n, level: 0 }])
     ).resolves.toStrictEqual([10n]);
-
-    const cache1 = new CachedMerkleTreeStore(mainStore);
-    const tree1 = new RollupMerkleTree(cache1);
-
-    const cache2 = new SyncCachedMerkleTreeStore(cache1);
-    const tree2 = new RollupMerkleTree(cache2);
 
     await cache1.preloadKey(5n);
 

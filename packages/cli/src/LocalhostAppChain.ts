@@ -35,7 +35,7 @@ export class LocalhostAppChain<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > extends AppChain<
   RuntimeModules,
   ProtocolModules,
@@ -112,13 +112,9 @@ export class LocalhostAppChain<
 
         Mempool: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
         BlockTrigger: {},
-        SettlementModule: {
-          feepayer: PrivateKey.random(),
-        },
       },
       QueryTransportModule: {},
       NetworkStateTransportModule: {},

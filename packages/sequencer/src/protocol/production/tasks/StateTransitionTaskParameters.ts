@@ -4,9 +4,9 @@ import {
   StateTransitionProverPublicInput,
 } from "@proto-kit/protocol";
 import { RollupMerkleTreeWitness } from "@proto-kit/common";
-
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
 import { Bool } from "o1js";
+
+import { TaskSerializer } from "../../../worker/flow/Task";
 
 export interface StateTransitionProofParameters {
   publicInput: StateTransitionProverPublicInput;
@@ -45,7 +45,7 @@ export class StateTransitionParametersSerializer
       merkleWitnesses: parameters.merkleWitnesses.map((witness) =>
         RollupMerkleTreeWitness.toJSON(witness)
       ),
-    } as StateTransitionParametersJSON);
+    } satisfies StateTransitionParametersJSON);
   }
 
   public fromJSON(json: string): StateTransitionProofParameters {

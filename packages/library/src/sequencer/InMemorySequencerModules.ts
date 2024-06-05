@@ -8,7 +8,7 @@ import {
   PrivateMempool,
   SequencerModulesRecord,
   UnprovenProducerModule,
-  SettlementModule,
+  VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 
 export type InMemorySequencerModulesRecord = {
@@ -20,7 +20,7 @@ export type InMemorySequencerModulesRecord = {
   UnprovenProducerModule: typeof UnprovenProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
-  SettlementModule: typeof SettlementModule;
+  // SettlementModule: typeof SettlementModule;
 };
 
 export class InMemorySequencerModules {
@@ -30,13 +30,15 @@ export class InMemorySequencerModules {
     return {
       Database: InMemoryDatabase,
       Mempool: PrivateMempool,
-      LocalTaskWorkerModule: LocalTaskWorkerModule,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.withoutSettlement()
+      ),
       BaseLayer: NoopBaseLayer,
       BlockProducerModule: BlockProducerModule,
       UnprovenProducerModule: UnprovenProducerModule,
       BlockTrigger: ManualBlockTrigger,
       TaskQueue: LocalTaskQueue,
-      SettlementModule: SettlementModule,
+      // SettlementModule: SettlementModule,
       ...additionalModules,
     } satisfies InMemorySequencerModules;
   }

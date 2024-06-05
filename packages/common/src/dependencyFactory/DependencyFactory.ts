@@ -36,10 +36,11 @@ export interface DependencyFactory {
 }
 
 export type TypeFromDependencyDeclaration<
-  Declaration extends DependencyDeclaration<unknown>
-> = Declaration extends DependencyDeclaration<infer Dependency>
-  ? Dependency
-  : never;
+  Declaration extends DependencyDeclaration<unknown>,
+> =
+  Declaration extends DependencyDeclaration<infer Dependency>
+    ? Dependency
+    : never;
 
 export type CapitalizeAny<Key extends string | number | symbol> =
   Key extends string ? Capitalize<Key> : Key;

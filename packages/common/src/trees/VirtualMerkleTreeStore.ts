@@ -7,7 +7,7 @@ import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
  */
 export class VirtualMerkleTreeStore extends InMemoryMerkleTreeStorage {
   public constructor(private readonly parent: MerkleTreeStore) {
-    super()
+    super();
   }
 
   public getNode(key: bigint, level: number): bigint | undefined {
@@ -17,5 +17,4 @@ export class VirtualMerkleTreeStore extends InMemoryMerkleTreeStorage {
   public setNode(key: bigint, level: number, value: bigint): void {
     super.setNode(key, level, value);
   }
-
 }

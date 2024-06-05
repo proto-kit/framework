@@ -1,19 +1,20 @@
-import {
-  TransitionMethodExecutionContext,
-  TransitionMethodExecutionResult
-} from "./TransitionMethodExecutionContext";
 import { StateTransition } from "../../model/StateTransition";
 
-export class ProtocolMethodExecutionContext implements TransitionMethodExecutionContext {
+import {
+  TransitionMethodExecutionContext,
+  TransitionMethodExecutionResult,
+} from "./TransitionMethodExecutionContext";
+
+export class ProtocolMethodExecutionContext
+  implements TransitionMethodExecutionContext
+{
   public result = new TransitionMethodExecutionResult();
 
   /**
    * Adds an in-method generated state transition to the current context
    * @param stateTransition - State transition to add to the context
    */
-  public addStateTransition<Value>(
-    stateTransition: StateTransition<Value>
-  ) {
+  public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
     this.result.stateTransitions.push(stateTransition);
   }
 

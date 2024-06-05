@@ -1,7 +1,15 @@
 // eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-magic-numbers,prefer-const,id-length,no-underscore-dangle,putout/putout */
-import { Bool, Field, Provable, Struct, UInt64 } from "o1js";
+/* eslint-disable prefer-const,no-underscore-dangle,no-bitwise,@typescript-eslint/naming-convention */
+import {
+  Bool,
+  Field,
+  Provable,
+  Struct,
+  UInt64 as O1UInt64,
+  Gadgets,
+} from "o1js";
 import { assert } from "@proto-kit/protocol";
+// @ts-ignore
 import bigintSqrt from "bigint-isqrt";
 
 const errors = {
@@ -13,15 +21,35 @@ const errors = {
     new Error("Can only create rangechecks for multiples of 16 bits"),
 };
 
-export abstract class UIntX<This extends UIntX<any>> extends Struct({
+export type UIntConstructor<BITS extends number> = {
+  from(x: UInt<BITS> | bigint | number | string): UInt<BITS>;
+  check(x: { value: Field }): void;
+  get zero(): UInt<BITS>;
+  get max(): UInt<BITS>;
+
+  Unsafe: {
+    fromField(x: Field): UInt<BITS>;
+  };
+  Safe: {
+    fromField(x: Field): UInt<BITS>;
+  };
+};
+
+/**
+ * UInt is a base class for all soft-failing UInt* implementations.
+ * It has to be overridden for every bitlength that should be available.
+ *
+ * For this, the developer has to create a subclass of UInt implementing the
+ * static methods from interface UIntConstructor
+ */
+export abstract class UInt<BITS extends number> extends Struct({
   value: Field,
 }) {
-  public abstract numBits(): number;
-
-  protected static readonly assertionFunction: (
-    bool: Bool,
-    msg?: string
-  ) => void = assert;
+  public static readonly assertionFunction: (bool: Bool, msg?: string) => void =
+    (bool, msg) => {
+      // const executionContext = container.resolve(RuntimeMethodExecutionContext);
+      assert(bool, msg);
+    };
 
   public static checkConstant(x: Field, numBits: number) {
     if (!x.isConstant()) {
@@ -37,22 +65,14 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
   }
 
   /**
-   * Creates a {@link UIntX} with a value of 18,446,744,073,709,551,615.
+   * Creates a {@link UInt} with a value of 18,446,744,073,709,551,615.
    */
-  protected static maxIntField(numBits: number): Field {
+  public static maxIntField(numBits: number): Field {
     return Field((1n << BigInt(numBits)) - 1n);
   }
 
-  // public readonly NUM_BITS: number;
-
-  protected constructor(
-    value: Field,
-    private readonly impls: {
-      creator: (value: Field) => This;
-      from: (value: Field | This | bigint | number | string) => This;
-    }
-  ) {
-    super({ value });
+  public constructor(value: { value: Field }) {
+    super(value);
 
     const bits = this.numBits();
     if (bits % 16 !== 0) {
@@ -62,10 +82,24 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     if (bits === 256) {
       throw errors.usageWith256BitsForbidden();
     }
+
+    // this.checkConstant(value.value);
+  }
+
+  public abstract numBits(): BITS;
+
+  public abstract constructorReference(): UIntConstructor<BITS>;
+
+  private fromField(value: Field): UInt<BITS> {
+    return this.constructorReference().Unsafe.fromField(value);
+  }
+
+  private from(value: UInt<BITS> | string | number | bigint): UInt<BITS> {
+    return this.constructorReference().from(value);
   }
 
   /**
-   * Turns the {@link UIntX} into a string.
+   * Turns the {@link UInt} into a string.
    * @returns
    */
   public toString() {
@@ -73,7 +107,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
   }
 
   /**
-   * Turns the {@link UIntX} into a {@link BigInt}.
+   * Turns the {@link UInt} into a {@link BigInt}.
    * @returns
    */
   public toBigInt() {
@@ -85,9 +119,9 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    *
    * `x.divMod(y)` returns the quotient and the remainder.
    */
-  public divMod(divisor: This | bigint | number | string) {
+  public divMod(divisor: UInt<BITS> | bigint | number | string) {
     let x = this.value;
-    let divisor_ = this.impls.from(divisor).value;
+    let divisor_ = this.from(divisor).value;
 
     if (this.value.isConstant() && divisor_.isConstant()) {
       let xn = x.toBigInt();
@@ -95,20 +129,22 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       let q = xn / divisorn;
       let r = xn - q * divisorn;
       return {
-        quotient: this.impls.creator(Field(q)),
-        rest: this.impls.creator(Field(r)),
+        quotient: this.fromField(Field(q)),
+        rest: this.fromField(Field(r)),
       };
     }
 
     divisor_ = divisor_.seal();
 
-    let q = Provable.witness(
-      Field,
-      () => new Field(x.toBigInt() / divisor_.toBigInt())
-    );
+    UInt.assertionFunction(divisor_.equals(0).not(), "Division by 0");
 
-    UIntX.assertionFunction(
-      q.rangeCheckHelper(this.numBits()).equals(q),
+    let q = Provable.witness(Field, () => {
+      const divisorInt = divisor_.toBigInt();
+      return new Field(x.toBigInt() / (divisorInt === 0n ? 1n : divisorInt));
+    });
+
+    UInt.assertionFunction(
+      Gadgets.isDefinitelyInRangeN(this.numBits(), q),
       "Divison overflowing"
     );
 
@@ -118,20 +154,19 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       q.assertLessThan(x, "Quotient too large");
     }
 
-    // eslint-disable-next-line no-warning-comments
     // TODO: Could be a bit more efficient
     let r = x.sub(q.mul(divisor_)).seal();
 
-    UIntX.assertionFunction(
-      r.rangeCheckHelper(this.numBits()).equals(r),
+    UInt.assertionFunction(
+      Gadgets.isDefinitelyInRangeN(this.numBits(), r),
       "Divison overflowing, remainder"
     );
 
-    let r_ = this.impls.creator(r);
-    let q_ = this.impls.creator(q);
+    let r_ = this.fromField(r);
+    let q_ = this.fromField(q);
 
-    UIntX.assertionFunction(
-      r_.lessThan(this.impls.creator(divisor_)),
+    UInt.assertionFunction(
+      r_.lessThan(this.fromField(divisor_)),
       "Divison failure, remainder larger than divisor"
     );
 
@@ -145,7 +180,7 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    * `z` such that `z * y <= x`.
    *
    */
-  public div(y: This | bigint | number): This {
+  public div(y: UInt<BITS> | bigint | number): UInt<BITS> {
     return this.divMod(y).quotient;
   }
 
@@ -164,16 +199,16 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    * @returns rest: The remainder indicating how far off the result
    * is from the "real" sqrt
    */
-  public sqrtMod(): { sqrt: This; rest: This } {
+  public sqrtMod(): { sqrt: UInt<BITS>; rest: UInt<BITS> } {
     let x = this.value;
 
     if (x.isConstant()) {
       const xn = x.toBigInt();
       const sqrt = bigintSqrt(xn);
-      const rest = xn - sqrt * sqrt;
+      const rest = xn - BigInt(sqrt * sqrt);
       return {
-        sqrt: this.impls.creator(Field(sqrt)),
-        rest: this.impls.creator(Field(rest)),
+        sqrt: this.fromField(Field(sqrt)),
+        rest: this.fromField(Field(rest)),
       };
     }
 
@@ -183,21 +218,21 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
     });
 
     // Sqrt fits into (NUM_BITS / 2) bits
-    sqrtField
-      .rangeCheckHelper(this.numBits())
-      .assertEquals(sqrtField, "Sqrt output overflowing");
+    Gadgets.isDefinitelyInRangeN(this.numBits(), sqrtField).assertTrue(
+      "Sqrt output overflowing"
+    );
 
     // Range check included here?
-    const sqrt = this.impls.creator(sqrtField);
+    const sqrt = this.fromField(sqrtField);
 
     const rest = Provable.witness(Field, () => {
       const sqrtn = sqrtField.toBigInt();
       return Field(x.toBigInt() - sqrtn * sqrtn);
     });
 
-    rest
-      .rangeCheckHelper(this.numBits())
-      .assertEquals(rest, "Sqrt rest output overflowing");
+    Gadgets.isDefinitelyInRangeN(this.numBits(), rest).assertTrue(
+      "Sqrt rest output overflowing"
+    );
 
     const square = sqrtField.mul(sqrtField);
 
@@ -220,14 +255,14 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
 
     return {
       sqrt,
-      rest: this.impls.creator(rest),
+      rest: this.fromField(rest),
     };
   }
 
   /**
    * Wraps sqrtMod() by only returning the sqrt and omitting the rest field.
    */
-  public sqrtFloor(): This {
+  public sqrtFloor(): UInt<BITS> {
     return this.sqrtMod().sqrt;
   }
 
@@ -237,15 +272,15 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
    * `x.mod(y)` returns the value `z` such that `0 <= z < y` and
    * `x - z` is divisble by `y`.
    */
-  public mod(y: This | bigint | number) {
+  public mod(y: UInt<BITS> | bigint | number) {
     return this.divMod(y).rest;
   }
 
   /**
    * Multiplication with overflow checking.
    */
-  public mul(y: This | bigint | number) {
-    let yField = this.impls.from(y).value;
+  public mul(y: UInt<BITS> | bigint | number) {
+    let yField = this.from(y).value;
     let z = this.value.mul(yField);
 
     if (this.numBits() * 2 > 255) {
@@ -253,57 +288,57 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       z.assertGreaterThan(this.value, "Multiplication overflowing");
     }
 
-    UIntX.assertionFunction(
-      z.rangeCheckHelper(this.numBits()).equals(z),
+    UInt.assertionFunction(
+      Gadgets.isDefinitelyInRangeN(this.numBits(), z),
       "Multiplication overflowing"
     );
-    return this.impls.creator(z);
+    return this.fromField(z);
   }
 
   /**
    * Addition with overflow checking.
    */
-  public add(y: This | bigint | number) {
-    let z = this.value.add(this.impls.from(y).value);
-    UIntX.assertionFunction(
-      z.rangeCheckHelper(this.numBits()).equals(z),
+  public add(y: UInt<BITS> | bigint | number) {
+    let z = this.value.add(this.from(y).value);
+    UInt.assertionFunction(
+      Gadgets.isDefinitelyInRangeN(this.numBits(), z),
       "Addition overflowing"
     );
-    return this.impls.creator(z);
+    return this.fromField(z);
   }
 
   /**
    * Subtraction with underflow checking.
    */
-  public sub(y: This | bigint | number) {
-    let z = this.value.sub(this.impls.from(y).value);
-    UIntX.assertionFunction(
-      z.rangeCheckHelper(this.numBits()).equals(z),
+  public sub(y: UInt<BITS> | bigint | number) {
+    let z = this.value.sub(this.from(y).value);
+    UInt.assertionFunction(
+      Gadgets.isDefinitelyInRangeN(this.numBits(), z),
       "Subtraction overflow"
     );
-    return this.impls.creator(z);
+    return this.fromField(z);
   }
 
   /**
-   * Checks if a {@link UIntX} is less than or equal to another one.
+   * Checks if a {@link UInt} is less than or equal to another one.
    */
-  public lessThanOrEqual(y: This) {
+  public lessThanOrEqual(y: UInt<BITS>) {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() <= y.value.toBigInt());
     }
     let xMinusY = this.value.sub(y.value).seal();
     let yMinusX = xMinusY.neg();
-    let yMinusXFits = yMinusX.rangeCheckHelper(this.numBits()).equals(yMinusX);
-    let xMinusYFits = xMinusY.rangeCheckHelper(this.numBits()).equals(xMinusY);
-    UIntX.assertionFunction(xMinusYFits.or(yMinusXFits));
+    let yMinusXFits = Gadgets.isDefinitelyInRangeN(this.numBits(), yMinusX);
+    let xMinusYFits = Gadgets.isDefinitelyInRangeN(this.numBits(), xMinusY);
+    UInt.assertionFunction(xMinusYFits.or(yMinusXFits));
     // x <= y if y - x fits in 64 bits
     return yMinusXFits;
   }
 
   /**
-   * Asserts that a {@link UIntX} is less than or equal to another one.
+   * Asserts that a {@link UInt} is less than or equal to another one.
    */
-  public assertLessThanOrEqual(y: This, message?: string) {
+  public assertLessThanOrEqual(y: UInt<BITS>, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let x0 = this.value.toBigInt();
       let y0 = y.value.toBigInt();
@@ -316,87 +351,94 @@ export abstract class UIntX<This extends UIntX<any>> extends Struct({
       return;
     }
     let yMinusX = y.value.sub(this.value).seal();
-    UIntX.assertionFunction(
-      yMinusX.rangeCheckHelper(this.numBits()).equals(yMinusX),
+    UInt.assertionFunction(
+      Gadgets.isDefinitelyInRangeN(this.numBits(), yMinusX),
       message
     );
   }
 
   /**
    *
-   * Checks if a {@link UIntX} is less than another one.
+   * Checks if a {@link UInt} is less than another one.
    */
-  public lessThan(y: This) {
+  public lessThan(y: UInt<BITS>) {
     return this.lessThanOrEqual(y).and(this.value.equals(y.value).not());
   }
 
   /**
-   * Asserts that a {@link UIntX} is less than another one.
+   * Asserts that a {@link UInt} is less than another one.
    */
-  public assertLessThan(y: This, message?: string) {
-    UIntX.assertionFunction(this.lessThan(y), message);
+  public assertLessThan(y: UInt<BITS>, message?: string) {
+    UInt.assertionFunction(this.lessThan(y), message);
   }
 
   /**
-   * Checks if a {@link UIntX} is greater than another one.
+   * Checks if a {@link UInt} is greater than another one.
    */
-  public greaterThan(y: This) {
+  public greaterThan(y: UInt<BITS>) {
     return y.lessThan(this);
   }
 
   /**
-   * Asserts that a {@link UIntX} is greater than another one.
+   * Asserts that a {@link UInt} is greater than another one.
    */
-  public assertGreaterThan(y: This, message?: string) {
+  public assertGreaterThan(y: UInt<BITS>, message?: string) {
     y.assertLessThan(this, message);
   }
 
   /**
-   * Checks if a {@link UIntX} is greater than or equal to another one.
+   * Checks if a {@link UInt} is greater than or equal to another one.
    */
-  public greaterThanOrEqual(y: This) {
+  public greaterThanOrEqual(y: UInt<BITS>) {
     return this.lessThan(y).not();
   }
 
   /**
-   * Asserts that a {@link UIntX} is greater than or equal to another one.
+   * Asserts that a {@link UInt} is greater than or equal to another one.
    */
-  public assertGreaterThanOrEqual(y: This, message?: string) {
+  public assertGreaterThanOrEqual(y: UInt<BITS>, message?: string) {
     y.assertLessThanOrEqual(this, message);
   }
 
   /**
-   * Checks if a {@link UIntX} is equal to another one.
+   * Checks if a {@link UInt} is equal to another one.
    */
-  public equals(y: This | bigint | number): Bool {
-    return this.impls.from(y).value.equals(this.value);
+  public equals(y: UInt<BITS> | bigint | number): Bool {
+    return this.from(y).value.equals(this.value);
   }
 
   /**
-   * Asserts that a {@link UIntX} is equal to another one.
+   * Asserts that a {@link UInt} is equal to another one.
    */
-  public assertEquals(y: This | bigint | number, message?: string) {
-    UIntX.assertionFunction(this.equals(y), message);
+  public assertEquals(y: UInt<BITS> | bigint | number, message?: string) {
+    UInt.assertionFunction(this.equals(y), message);
   }
 
   /**
-   * Turns the {@link UIntX} into a {@link UInt64}, asserting that it fits in 32 bits.
+   * Turns the {@link UInt} into a o1js {@link UInt64}, asserting that it fits in 32 bits.
    */
-  public toUInt64() {
-    let uint64 = new UInt64(this.value);
-    UInt64.check(uint64);
+  public toO1UInt64() {
+    let uint64 = O1UInt64.Unsafe.fromField(this.value);
+    O1UInt64.check(uint64);
     return uint64;
   }
 
   /**
-   * Turns the {@link UIntX} into a {@link UInt64}, clamping to the 64 bits range if it's too large.
+   * Turns the {@link UInt} into a o1js {@link UInt64},
+   * clamping to the 64 bits range if it's too large.
    */
-  public toUInt64Clamped() {
+  public toO1UInt64Clamped() {
+    if (this.numBits() <= 64) {
+      return O1UInt64.Unsafe.fromField(this.value);
+    }
     let max = (1n << 64n) - 1n;
     return Provable.if(
-      this.greaterThan(this.impls.from(max)),
-      UInt64.from(max),
-      new UInt64(this.value)
+      // We know that BITS is >64 bits, so we can skip range checks for max
+      this.greaterThan(this.fromField(Field(max))),
+      O1UInt64.from(max),
+      O1UInt64.Unsafe.fromField(this.value)
     );
   }
 }
+// eslint-disable-next-line max-len
+/* eslint-enable prefer-const,no-underscore-dangle,no-bitwise,@typescript-eslint/naming-convention */

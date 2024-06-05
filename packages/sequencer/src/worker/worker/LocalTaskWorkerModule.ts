@@ -1,15 +1,23 @@
-import { inject } from "tsyringe";
 import {
-  MandatoryProtocolModulesRecord,
-  Protocol,
-  ProtocolModulesRecord,
-} from "@proto-kit/protocol";
-import { noop } from "@proto-kit/common";
+  log,
+  ModuleContainer,
+  ModulesConfig,
+  ModulesRecord,
+  NoConfig,
+  noop,
+  Presets,
+  TypedClass,
+} from "@proto-kit/common";
+import { ReturnType } from "@proto-kit/protocol";
 
+import { NewBlockTask } from "../../protocol/production/tasks/NewBlockTask";
+import { RuntimeProvingTask } from "../../protocol/production/tasks/RuntimeProvingTask";
 import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
+import { SettlementProvingTask } from "../../settlement/tasks/SettlementProvingTask";
+import { Task } from "../flow/Task";
 import { TaskQueue } from "../queue/TaskQueue";
 import {
   BlockProvingTask,
@@ -19,10 +27,19 @@ import {
   StateTransitionReductionTask,
   StateTransitionTask,
 } from "../../protocol/production/tasks/StateTransitionTask";
-import { RuntimeProvingTask } from "../../protocol/production/tasks/RuntimeProvingTask";
-import { NewBlockTask } from "../../protocol/production/tasks/NewBlockTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
+import { TaskWorkerModule } from "./TaskWorkerModule";
+
+// Temporary workaround against the compiler emitting
+// import("common/dist") inside the library artifacts
+// which leads to error in consuming packages (namely stack)
+export { TypedClass };
+
+export type TaskWorkerModulesRecord = ModulesRecord<
+  // TODO any -> unknown
+  TypedClass<TaskWorkerModule & Task<any, any>>
+>;
 
 /**
  * This module spins up a worker in the current local node instance.
@@ -31,46 +48,86 @@ import { FlowTaskWorker } from "./FlowTaskWorker";
  * cloud workers.
  */
 @sequencerModule()
-export class LocalTaskWorkerModule extends SequencerModule {
-  // eslint-disable-next-line max-params
-  public constructor(
-    @inject("TaskQueue") private readonly taskQueue: TaskQueue,
-    private readonly stateTransitionTask: StateTransitionTask,
-    private readonly stateTransitionReductionTask: StateTransitionReductionTask,
-    private readonly runtimeProvingTask: RuntimeProvingTask,
-    private readonly blockProvingTask: BlockProvingTask,
-    private readonly blockReductionTask: BlockReductionTask,
-    private readonly blockBuildingTask: NewBlockTask,
-    // private readonly settlementProvingTask: SettlementProvingTask,
-    @inject("Protocol")
-    private readonly protocol: Protocol<
-      MandatoryProtocolModulesRecord & ProtocolModulesRecord
-    >
-  ) {
-    super();
+export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
+  extends ModuleContainer<Tasks>
+  implements SequencerModule
+{
+  public static presets: Presets<unknown> = {};
+
+  public static from<Tasks extends TaskWorkerModulesRecord>(
+    modules: Tasks
+  ): TypedClass<LocalTaskWorkerModule<Tasks>> {
+    return class ScopedTaskWorkerModule extends LocalTaskWorkerModule<Tasks> {
+      public constructor() {
+        super(modules);
+      }
+    };
+  }
+
+  public constructor(modules: Tasks) {
+    super({ modules });
+
+    // Since we disabled configs for tasks, we initialize the config as empty here
+    const config = Object.keys(modules).reduce<Record<string, NoConfig>>(
+      (acc, moduleName) => {
+        this.assertIsValidModuleName(moduleName);
+        acc[moduleName] = {};
+        return acc;
+      },
+      {}
+    );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    this.currentConfig = config as ModulesConfig<Tasks>;
+  }
+
+  private taskQueue() {
+    return this.container.resolve<TaskQueue>("TaskQueue");
   }
 
   public async start(): Promise<void> {
-    const worker = new FlowTaskWorker(this.taskQueue, [
-      this.stateTransitionTask,
-      this.stateTransitionReductionTask,
-      this.runtimeProvingTask,
-      this.blockProvingTask,
-      this.blockReductionTask,
-      this.blockBuildingTask,
-      // this.settlementProvingTask,
-    ]);
+    const tasks = this.moduleNames.map((moduleName) => {
+      this.assertIsValidModuleName(moduleName);
+
+      const task = this.resolve(moduleName);
+      log.info(`Setting up task ${task.name}`);
+      return task;
+    });
+
+    const worker = new FlowTaskWorker(this.taskQueue(), tasks);
     worker
       .start()
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
       .then(() => {
         noop();
       })
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line promise/prefer-await-to-then,etc/no-implicit-any-catch
       .catch((error: Error) => {
-        console.error(error);
+        log.error(error);
       });
   }
 }
+
+export class VanillaTaskWorkerModules {
+  public static withoutSettlement() {
+    return {
+      StateTransitionTask,
+      StateTransitionReductionTask,
+      RuntimeProvingTask,
+      BlockProvingTask,
+      BlockReductionTask,
+      BlockBuildingTask: NewBlockTask,
+    } satisfies TaskWorkerModulesRecord;
+  }
+
+  public static allTasks() {
+    return {
+      ...VanillaTaskWorkerModules.withoutSettlement(),
+      SettlementProvingTask,
+    } satisfies TaskWorkerModulesRecord;
+  }
+}
+
+export type TaskWorkerModulesWithoutSettlement = ReturnType<
+  typeof VanillaTaskWorkerModules.withoutSettlement
+>;
+export type AllTaskWorkerModules = ReturnType<
+  typeof VanillaTaskWorkerModules.withoutSettlement
+>;

@@ -29,7 +29,11 @@ export class UntypedOption extends OptionBase {
     );
   }
 
-  public constructor(isSome: Bool, public value: Field[], enforceEmpty: Bool) {
+  public constructor(
+    isSome: Bool,
+    public value: Field[],
+    enforceEmpty: Bool
+  ) {
     super(isSome, enforceEmpty);
   }
 

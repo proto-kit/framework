@@ -2,9 +2,8 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { log } from "@proto-kit/common";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
-import { TaskPayload } from "../manager/ReducableTask";
 
-import { Task } from "./Task";
+import { Task, TaskPayload } from "./Task";
 
 const errors = {
   resolveNotDefined: () =>
@@ -43,7 +42,6 @@ export class ConnectionHolder implements Closeable {
   }
 
   public unregisterListener(flowId: string, queue: string) {
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.listeners[queue][flowId];
   }
 
@@ -76,15 +74,6 @@ export class ConnectionHolder implements Closeable {
   }
 }
 
-@injectable()
-export class FlowCreator {
-  public constructor(private readonly connectionHolder: ConnectionHolder) {}
-
-  public createFlow<State>(flowId: string, state: State): Flow<State> {
-    return new Flow(this.connectionHolder, flowId, state);
-  }
-}
-
 interface CompletedCallback<Input, Result> {
   (result: Result, originalInput: Input): Promise<any>;
 }
@@ -97,12 +86,13 @@ export class Flow<State> implements Closeable {
   private readonly registeredListeners: string[] = [];
 
   private resultsPending: {
-    [key: string]: (payload: TaskPayload) => void;
+    [key: string]: (payload: TaskPayload) => Promise<void>;
   } = {};
 
   private taskCounter = 0;
 
   private resolveFunction?: (result: any) => void;
+
   private errorFunction?: (error: Error) => void;
 
   public tasksInProgress = 0;
@@ -116,7 +106,7 @@ export class Flow<State> implements Closeable {
   private waitForResult(
     queue: string,
     taskId: string,
-    callback: (payload: TaskPayload) => void
+    callback: (payload: TaskPayload) => Promise<void>
   ) {
     this.resultsPending[taskId] = callback;
 
@@ -161,7 +151,7 @@ export class Flow<State> implements Closeable {
 
         if (resolveFunction !== undefined) {
           delete this.resultsPending[response.taskId];
-          resolveFunction(response);
+          await resolveFunction(response);
         }
       }
     }
@@ -179,7 +169,7 @@ export class Flow<State> implements Closeable {
     const taskName = overrides?.taskName ?? task.name;
     const queue = await this.connectionHolder.getQueue(queueName);
 
-    const payload = task.inputSerializer().toJSON(input);
+    const payload = await task.inputSerializer().toJSON(input);
 
     this.taskCounter += 1;
     const taskId = String(this.taskCounter);
@@ -187,7 +177,6 @@ export class Flow<State> implements Closeable {
     log.trace(`Pushing task ${task.name}`);
 
     await queue.addTask({
-      // eslint-disable-next-line putout/putout
       name: taskName,
       taskId,
       flowId: this.flowId,
@@ -196,16 +185,17 @@ export class Flow<State> implements Closeable {
 
     this.tasksInProgress += 1;
 
-    // eslint-disable-next-line @typescript-eslint/promise-function-async
-    const callback = (returnPayload: TaskPayload) => {
+    const callback = async (returnPayload: TaskPayload) => {
       log.trace(
         `Completed ${returnPayload.name}, task: ${returnPayload.flowId}:${
           returnPayload?.taskId ?? "-"
         }`
       );
-      const decoded = task.resultSerializer().fromJSON(returnPayload.payload);
+      const decoded = await task
+        .resultSerializer()
+        .fromJSON(returnPayload.payload);
       this.tasksInProgress -= 1;
-      return completed?.(decoded, input);
+      return await completed?.(decoded, input);
     };
     this.waitForResult(queueName, taskId, callback);
   }
@@ -235,5 +225,14 @@ export class Flow<State> implements Closeable {
     this.registeredListeners.forEach((queue) => {
       this.connectionHolder.unregisterListener(this.flowId, queue);
     });
+  }
+}
+
+@injectable()
+export class FlowCreator {
+  public constructor(private readonly connectionHolder: ConnectionHolder) {}
+
+  public createFlow<State>(flowId: string, state: State): Flow<State> {
+    return new Flow(this.connectionHolder, flowId, state);
   }
 }
