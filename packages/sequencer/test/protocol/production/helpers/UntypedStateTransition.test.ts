@@ -9,7 +9,7 @@ describe("stateTransition", () => {
     StateTransition.fromTo(
       Field("123"),
       Option.from(Bool(true), Field(5), Field),
-      Option.fromValue(Field(100), Field)
+      Option.fromSome(Field(100), Field)
     ),
     StateTransition.fromTo(
       Field("0"),
@@ -18,7 +18,7 @@ describe("stateTransition", () => {
         option.isForcedSome = Bool(true);
         return option;
       })(),
-      Option.fromValue(Field(100), Field)
+      Option.fromSome(Field(100), Field)
     ),
     StateTransition.fromTo(
       Field(2n ** 255n),
