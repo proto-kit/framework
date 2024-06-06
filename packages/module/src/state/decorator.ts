@@ -25,14 +25,12 @@ export function state() {
     target: TargetRuntimeModule,
     propertyKey: string
   ) => {
-    // eslint-disable-next-line @typescript-eslint/init-declarations
     let value: State<unknown> | undefined;
 
     Object.defineProperty(target, propertyKey, {
       enumerable: true,
 
       get: function get() {
-        // eslint-disable-next-line max-len
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const self = this as TargetRuntimeModule;
 
@@ -47,7 +45,7 @@ export function state() {
         const path = Path.fromProperty(self.name, propertyKey);
         if (value) {
           value.path = path;
-          // eslint-disable-next-line no-warning-comments
+
           // TODO: why is this complaining about `any`?
 
           value.stateServiceProvider = self.runtime.stateServiceProvider;

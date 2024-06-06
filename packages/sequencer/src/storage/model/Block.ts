@@ -1,7 +1,7 @@
 import { JsonProof } from "o1js";
+import { NetworkState } from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import { NetworkState } from "@proto-kit/protocol";
 
 export interface ComputedBlockTransaction {
   tx: PendingTransaction;

@@ -2,9 +2,7 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   MandatoryProtocolModulesRecord,
   Protocol,
-  ProtocolConstants,
   ProtocolModulesRecord,
-  ProvableStateTransition,
   StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProvableBatch,
@@ -12,26 +10,26 @@ import {
   StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
 import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
-import { Field } from "o1js";
 
-import { Task } from "../../../worker/flow/Task";
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import {
   PairProofTaskSerializer,
   PairTuple,
   ProofTaskSerializer,
 } from "../../../helpers/utils";
+import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import { PreFilledWitnessProvider } from "../../../state/prefilled/PreFilledWitnessProvider";
 
 import {
   StateTransitionParametersSerializer,
   StateTransitionProofParameters,
 } from "./StateTransitionTaskParameters";
-import { PreFilledWitnessProvider } from "../../../state/prefilled/PreFilledWitnessProvider";
 import { CompileRegistry } from "./CompileRegistry";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class StateTransitionTask
+  extends TaskWorkerModule
   implements Task<StateTransitionProofParameters, StateTransitionProof>
 {
   protected readonly stateTransitionProver: StateTransitionProvable;
@@ -46,6 +44,7 @@ export class StateTransitionTask
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.stateTransitionProver = this.protocol.stateTransitionProver;
   }
 
@@ -77,7 +76,7 @@ export class StateTransitionTask
     //   });
     // });
 
-    const output = this.stateTransitionProver.runBatch(
+    const output = await this.stateTransitionProver.runBatch(
       input.publicInput,
       StateTransitionProvableBatch.fromMappings(stBatch)
     );
@@ -107,6 +106,7 @@ export class StateTransitionTask
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class StateTransitionReductionTask
+  extends TaskWorkerModule
   implements Task<PairTuple<StateTransitionProof>, StateTransitionProof>
 {
   protected readonly stateTransitionProver: StateTransitionProvable;
@@ -121,6 +121,7 @@ export class StateTransitionReductionTask
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry
   ) {
+    super();
     this.stateTransitionProver = this.protocol.stateTransitionProver;
   }
 
@@ -130,6 +131,7 @@ export class StateTransitionReductionTask
     );
   }
 
+  // eslint-disable-next-line sonarjs/no-identical-functions
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
     return new ProofTaskSerializer(
       this.stateTransitionProver.zkProgrammable.zkProgram.Proof
@@ -140,7 +142,7 @@ export class StateTransitionReductionTask
     input: PairTuple<StateTransitionProof>
   ): Promise<StateTransitionProof> {
     const [r1, r2] = input;
-    this.stateTransitionProver.merge(r1.publicInput, r1, r2);
+    await this.stateTransitionProver.merge(r1.publicInput, r1, r2);
     return await this.executionContext
       .current()
       .result.prove<StateTransitionProof>();

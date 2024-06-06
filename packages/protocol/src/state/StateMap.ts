@@ -9,7 +9,6 @@ import { State, WithStateServiceProvider, WithPath } from "./State";
 /**
  * Map-like wrapper for state
  */
-// eslint-disable-next-line new-cap
 export class StateMap<KeyType, ValueType> extends Mixin(
   WithPath,
   WithStateServiceProvider
@@ -46,14 +45,14 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    * @param key - Key to obtain the state for
    * @returns Value for the provided key.
    */
-  public get(key: KeyType): Option<ValueType> {
+  public async get(key: KeyType): Promise<Option<ValueType>> {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
     this.hasStateServiceOrFail();
 
     state.path = this.getPath(key);
     state.stateServiceProvider = this.stateServiceProvider;
-    return state.get();
+    return await state.get();
   }
 
   /**
@@ -62,13 +61,13 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    * @param key - Key to store the value under
    * @param value - Value to be stored under the given key
    */
-  public set(key: KeyType, value: ValueType): void {
+  public async set(key: KeyType, value: ValueType): Promise<void> {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
     this.hasStateServiceOrFail();
 
     state.path = Path.fromKey(this.path, this.keyType, key);
     state.stateServiceProvider = this.stateServiceProvider;
-    state.set(value);
+    return await state.set(value);
   }
 }

@@ -1,6 +1,7 @@
 import { Field } from "o1js";
-import { log, noop } from "@proto-kit/common";
+import { log, noop, mapSequential } from "@proto-kit/common";
 import { InMemoryStateService } from "@proto-kit/module";
+import { SimpleAsyncStateService } from "@proto-kit/protocol";
 
 import { AsyncStateService, StateEntry } from "../async/AsyncStateService";
 
@@ -10,14 +11,20 @@ const errors = {
 
 export class CachedStateService
   extends InMemoryStateService
-  implements AsyncStateService
+  implements AsyncStateService, SimpleAsyncStateService
 {
+  private writes: StateEntry[] = [];
+
   public constructor(private readonly parent: AsyncStateService | undefined) {
     super();
   }
 
-  public get(key: Field): Field[] | undefined {
-    return super.get(key);
+  /**
+   * Works like get(), but if a value is in this store,
+   * but is known to be empty, this will return null
+   */
+  private getNullAware(key: Field): Field[] | null | undefined {
+    return this.values[key.toString()];
   }
 
   private assertParentNotNull(
@@ -29,13 +36,13 @@ export class CachedStateService
   }
 
   public writeStates(entries: StateEntry[]): void {
-    entries.forEach(({ key, value }) => {
-      this.set(key, value);
-    });
+    this.writes.push(...entries);
   }
 
   public async commit(): Promise<void> {
-    noop();
+    await mapSequential(this.writes, async ({ key, value }) => {
+      await this.set(key, value);
+    });
   }
 
   public async openTransaction(): Promise<void> {
@@ -51,7 +58,7 @@ export class CachedStateService
       // Only preload it if it hasn't been preloaded previously
       // TODO Not safe for deletes
       const keysToBeLoaded = keys.filter((key) => this.get(key) === undefined);
-      const loaded = await this.parent.getAsync(keysToBeLoaded);
+      const loaded = await this.parent.getMany(keysToBeLoaded);
 
       log.trace(
         `Preloaded: ${loaded.map(
@@ -59,34 +66,33 @@ export class CachedStateService
         )}`
       );
 
-      loaded.forEach(({ key, value }) => {
-        this.set(key, value);
+      await mapSequential(loaded, async ({ key, value }) => {
+        await this.set(key, value);
       });
     }
   }
 
-  public async getAsync(keys: Field[]): Promise<StateEntry[]> {
+  public async getMany(keys: Field[]): Promise<StateEntry[]> {
     const remoteKeys: Field[] = [];
 
     const local: StateEntry[] = [];
 
     keys.forEach((key) => {
-      const localValue = this.get(key);
-      // TODO Not safe for deletes
+      const localValue = this.getNullAware(key);
       if (localValue !== undefined) {
-        local.push({ key, value: localValue });
+        local.push({ key, value: localValue ?? undefined });
       } else {
         remoteKeys.push(key);
       }
     });
 
-    const remote = await this.parent?.getAsync(remoteKeys);
+    const remote = await this.parent?.getMany(remoteKeys);
 
     return local.concat(remote ?? []);
   }
 
-  public async getSingleAsync(key: Field): Promise<Field[] | undefined> {
-    const entries = await this.getAsync([key]);
+  public async get(key: Field): Promise<Field[] | undefined> {
+    const entries = await this.getMany([key]);
     return entries.at(0)?.value;
   }
 
@@ -104,7 +110,7 @@ export class CachedStateService
 
     const writes = Object.entries(values).map(([key, value]) => ({
       key: Field(key),
-      value,
+      value: value ?? undefined,
     }));
     parent.writeStates(writes);
 

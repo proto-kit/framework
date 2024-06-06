@@ -1,6 +1,5 @@
 import { inject, injectable } from "tsyringe";
 import {
-  MethodIdResolver,
   MethodParameterEncoder,
   Runtime,
   RuntimeModulesRecord,
@@ -30,6 +29,7 @@ export class TransactionValidator {
 
     // Check if parameters are decodable
     const runtimeModule = this.runtime.resolve(methodPath[0]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const encoder = MethodParameterEncoder.fromMethod(
       runtimeModule,
       methodPath[1]

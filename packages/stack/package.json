@@ -1,0 +1,39 @@
+{
+  "name": "@proto-kit/stack",
+  "version": "0.1.1-develop.267+b252853",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "lint": "eslint ./src ./test",
+    "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
+    "test": "npm run test:file -- ./test/**",
+    "test:watch": "npm run test:file -- ./test/** --watch",
+    "graphql": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/src/scripts/graphql/run-graphql.js"
+  },
+  "main": "dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@proto-kit/common": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/protocol": "*",
+    "@proto-kit/sequencer": "*",
+    "@proto-kit/library": "*",
+    "@proto-kit/sdk": "*",
+    "@proto-kit/api": "*",
+    "@proto-kit/persistance": "*",
+    "o1js": "1.1.0",
+    "tsyringe": "^4.7.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.5.0"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.1.13"
+  },
+  "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
+}

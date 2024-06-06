@@ -1,3 +1,5 @@
+import { TypedClass } from "@proto-kit/common";
+
 import {
   BlockProducerModule,
   InMemoryDatabase,
@@ -8,14 +10,15 @@ import {
   PrivateMempool,
   Sequencer,
   SequencerModulesRecord,
+  TaskWorkerModulesRecord,
   UnprovenProducerModule,
+  VanillaTaskWorkerModules,
 } from "../src";
-import { OverwriteObjectType, TypedClass } from "@proto-kit/common";
 
 export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   Database: typeof InMemoryDatabase;
   Mempool: typeof PrivateMempool;
-  LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
+  LocalTaskWorkerModule: TypedClass<LocalTaskWorkerModule<any>>;
   BaseLayer: typeof NoopBaseLayer;
   BlockProducerModule: typeof BlockProducerModule;
   UnprovenProducerModule: typeof UnprovenProducerModule;
@@ -23,24 +26,36 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   TaskQueue: typeof LocalTaskQueue;
 }
 
-export function testingSequencerFromModules<AdditionalModules extends SequencerModulesRecord>(
-  modules: AdditionalModules
+export function testingSequencerFromModules<
+  AdditionalModules extends SequencerModulesRecord,
+  AdditionalTaskWorkerModules extends TaskWorkerModulesRecord,
+>(
+  modules: AdditionalModules,
+  additionalTaskWorkerModules?: AdditionalTaskWorkerModules
 ): TypedClass<Sequencer<DefaultTestingSequencerModules & AdditionalModules>> {
+  const taskWorkerModule = LocalTaskWorkerModule.from({
+    ...VanillaTaskWorkerModules.withoutSettlement(),
+    ...additionalTaskWorkerModules,
+  });
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const defaultModules: DefaultTestingSequencerModules = {
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
-    LocalTaskWorkerModule,
     BaseLayer: NoopBaseLayer,
+    // LocalTaskWorkerModule: taskWorkerModule,
     BlockProducerModule,
     UnprovenProducerModule,
     BlockTrigger: ManualBlockTrigger,
     TaskQueue: LocalTaskQueue,
-  };
+  } as DefaultTestingSequencerModules;
 
   return Sequencer.from({
     modules: {
       ...defaultModules,
       ...modules,
+      // We need to make sure that the taskworkermodule is initialized last
+      LocalTaskWorkerModule: taskWorkerModule,
     },
   });
 }

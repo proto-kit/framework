@@ -74,8 +74,7 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
       resolvers: modules,
 
       // resolvers: [MempoolResolver as Function],
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-return
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       container: { get: (cls) => dependencyContainer.resolve(cls) },
 
       validate: {
@@ -83,7 +82,6 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
       },
     });
 
-    // eslint-disable-next-line no-warning-comments
     // TODO Injection token of Graphql Container not respected atm, only class is used
 
     // Instantiate all modules at startup

@@ -1,16 +1,14 @@
-/* eslint-disable import/no-unused-modules */
-import { ModulesConfig, Presets, TypedClass } from "@proto-kit/common";
+import { Presets } from "@proto-kit/common";
 import {
-  Runtime,
   runtimeMethod,
   RuntimeModule,
   runtimeModule,
-  RuntimeModulesRecord,
   state,
 } from "@proto-kit/module";
 import { Option, State, StateMap } from "@proto-kit/protocol";
 import { PublicKey, UInt64 } from "o1js";
-import { LocalhostAppChain } from "./../src/LocalhostAppChain";
+
+import { LocalhostAppChain } from "../src";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
@@ -28,13 +26,13 @@ export class Balances extends RuntimeModule<object> {
   @state() public totalSupply = State.from(UInt64);
 
   @runtimeMethod()
-  public getBalance(address: PublicKey): Option<UInt64> {
-    return this.balances.get(address);
+  public async getBalance(address: PublicKey): Promise<Option<UInt64>> {
+    return await this.balances.get(address);
   }
 
   @runtimeMethod()
-  public setBalance(address: PublicKey, balance: UInt64) {
-    this.balances.set(address, balance);
+  public async setBalance(address: PublicKey, balance: UInt64) {
+    await this.balances.set(address, balance);
   }
 }
 

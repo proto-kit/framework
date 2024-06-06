@@ -1,36 +1,34 @@
-/* eslint-disable max-lines */
-import { Bool, Experimental, Field, Provable, SelfProof } from "o1js";
-import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
-  log,
   PlainZkProgram,
   provableMethod,
   RollupMerkleTreeWitness,
   ZkProgrammable,
 } from "@proto-kit/common";
+import { Field, Provable, SelfProof, ZkProgram } from "o1js";
+import { injectable } from "tsyringe";
 
-import {
-  DefaultProvableHashList,
-  ProvableHashList,
-} from "../../utils/ProvableHashList";
+import { constants } from "../../Constants";
 import { ProvableStateTransition } from "../../model/StateTransition";
 import {
   ProvableStateTransitionType,
   StateTransitionProvableBatch,
 } from "../../model/StateTransitionProvableBatch";
-import { constants } from "../../Constants";
+import { StateTransitionProverType } from "../../protocol/Protocol";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
-
-import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider";
 import {
+  DefaultProvableHashList,
+  ProvableHashList,
+} from "../../utils/ProvableHashList";
+
+import {
+  StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProverPublicInput,
-  StateTransitionProof,
   StateTransitionProverPublicOutput,
 } from "./StateTransitionProvable";
+import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider";
 import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
-import { StateTransitionProverType } from "../../protocol/Protocol";
 
 const errors = {
   propertyNotMatching: (property: string, step: string) =>
@@ -66,7 +64,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   StateTransitionProverPublicOutput
 > {
   public constructor(
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     private readonly stateTransitionProver: StateTransitionProver,
     public readonly witnessProviderReference: StateTransitionWitnessProviderReference
   ) {
@@ -81,11 +78,10 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     StateTransitionProverPublicInput,
     StateTransitionProverPublicOutput
   > {
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-this-alias,consistent-this,unicorn/no-this-assignment
     const instance = this;
 
-    const program = Experimental.ZkProgram({
+    const program = ZkProgram({
+      name: "StateTransitionProver",
       publicInput: StateTransitionProverPublicInput,
       publicOutput: StateTransitionProverPublicOutput,
 
@@ -93,11 +89,11 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
         proveBatch: {
           privateInputs: [StateTransitionProvableBatch],
 
-          method(
+          async method(
             publicInput: StateTransitionProverPublicInput,
             batch: StateTransitionProvableBatch
           ) {
-            return instance.runBatch(publicInput, batch);
+            return await instance.runBatch(publicInput, batch);
           },
         },
 
@@ -107,12 +103,12 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             StateTransitionSelfProofClass,
           ],
 
-          method(
+          async method(
             publicInput: StateTransitionProverPublicInput,
             proof1: StateTransitionProof,
             proof2: StateTransitionProof
           ) {
-            return instance.merge(publicInput, proof1, proof2);
+            return await instance.merge(publicInput, proof1, proof2);
           },
         },
       },
@@ -123,7 +119,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       merge: program.merge.bind(program),
     };
 
-    const SelfProofClass = Experimental.ZkProgram.Proof(program);
+    const SelfProofClass = ZkProgram.Proof(program);
 
     return {
       compile: program.compile.bind(program),
@@ -242,10 +238,10 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
    * Applies a whole batch of StateTransitions at once
    */
   @provableMethod()
-  public runBatch(
+  public async runBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
-  ): StateTransitionProverPublicOutput {
+  ): Promise<StateTransitionProverPublicOutput> {
     const result = this.applyTransitions(
       publicInput.stateRoot,
       publicInput.protocolStateRoot,
@@ -263,11 +259,11 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   }
 
   @provableMethod()
-  public merge(
+  public async merge(
     publicInput: StateTransitionProverPublicInput,
     proof1: StateTransitionProof,
     proof2: StateTransitionProof
-  ): StateTransitionProverPublicOutput {
+  ): Promise<StateTransitionProverPublicOutput> {
     proof1.verify();
     proof2.verify();
 
@@ -359,7 +355,7 @@ export class StateTransitionProver
   public runBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
-  ): StateTransitionProverPublicOutput {
+  ): Promise<StateTransitionProverPublicOutput> {
     return this.zkProgrammable.runBatch(publicInput, batch);
   }
 
@@ -367,7 +363,7 @@ export class StateTransitionProver
     publicInput: StateTransitionProverPublicInput,
     proof1: StateTransitionProof,
     proof2: StateTransitionProof
-  ): StateTransitionProverPublicOutput {
+  ): Promise<StateTransitionProverPublicOutput> {
     return this.zkProgrammable.merge(publicInput, proof1, proof2);
   }
 }

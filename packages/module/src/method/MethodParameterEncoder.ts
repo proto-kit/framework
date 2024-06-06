@@ -1,4 +1,4 @@
-/* eslint-disable no-underscore-dangle */
+/* eslint-disable no-underscore-dangle,@typescript-eslint/consistent-type-assertions */
 import {
   Field,
   FlexibleProvable,
@@ -28,6 +28,7 @@ const errors = {
     ),
 };
 
+// TODO Not typed correctly, also Proofs are possible, which have async fromJSON()
 type ArgsArray = ProvableExtended<unknown>[];
 
 export class MethodParameterEncoder {
@@ -55,26 +56,30 @@ export class MethodParameterEncoder {
 
   private constructor(private readonly types: ArgsArray) {}
 
-  public decode(argsJSON: string[]): FlexibleProvable<unknown>[] {
-    return this.types.map((type, index) => {
-      // eslint-disable-next-line @typescript-eslint/init-declarations
-      let value: FlexibleProvable<unknown>;
+  public async decode(
+    argsJSON: string[]
+  ): Promise<FlexibleProvable<unknown>[]> {
+    return await this.types.reduce<Promise<FlexibleProvable<unknown>[]>>(
+      async (arrayPromise, type, index) => {
+        const array = await arrayPromise;
+        let value: FlexibleProvable<unknown>;
 
-      try {
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        value = type.fromJSON(
-          JSON.parse(argsJSON[index])
-        ) as FlexibleProvable<unknown>;
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          throw errors.typeNotCompatible(type.constructor.name, e.message);
+        try {
+          // fromJSON() can be async in the case of Proofs - not typed correctly
+          value = (await type.fromJSON(
+            JSON.parse(argsJSON[index])
+          )) as FlexibleProvable<unknown>;
+        } catch (e: unknown) {
+          if (e instanceof Error) {
+            throw errors.typeNotCompatible(type.constructor.name, e.message);
+          }
+          throw errors.typeNotCompatible(type.constructor.name);
         }
-        throw errors.typeNotCompatible(type.constructor.name);
-      }
 
-      return value;
-    });
+        return [...array, value];
+      },
+      Promise.resolve([])
+    );
   }
 
   public decodeFields(fields: Field[]): ArgumentTypes {
@@ -95,15 +100,16 @@ export class MethodParameterEncoder {
     });
   }
 
-  public encode(args: ArgumentTypes): {
-    argsFields: Field[];
-    argsJSON: string[];
-  } {
+  /**
+   * Variant of encode() for provable code that skips the unprovable
+   * json encoding
+   */
+  public encodeAsFields(args: ArgumentTypes) {
     /**
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const argsFields = args.flatMap((argument, index) => {
+    return args.flatMap((argument, index) => {
       if (argument instanceof Proof) {
         const argumentType = this.types[index] as ProofTypes;
 
@@ -123,6 +129,13 @@ export class MethodParameterEncoder {
       const argumentType = this.types[index] as ToFieldableStatic;
       return argumentType.toFields(argument);
     });
+  }
+
+  public encode(args: ArgumentTypes): {
+    argsFields: Field[];
+    argsJSON: string[];
+  } {
+    const argsFields = this.encodeAsFields(args);
 
     let argsJSON: string[] = [];
     Provable.asProver(() => {
@@ -148,3 +161,4 @@ export class MethodParameterEncoder {
       .reduce((a, b) => a + b, 0);
   }
 }
+/* eslint-enable no-underscore-dangle,@typescript-eslint/consistent-type-assertions */

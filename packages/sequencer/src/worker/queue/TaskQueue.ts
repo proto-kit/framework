@@ -1,4 +1,4 @@
-import { TaskPayload } from "../manager/ReducableTask";
+import { TaskPayload } from "../flow/Task";
 
 /**
  * Definition of a connection-object that can generate queues and workers

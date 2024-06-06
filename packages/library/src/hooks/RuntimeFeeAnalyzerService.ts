@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unused-modules */
 import {
   ConfigurableModule,
   createMerkleTree,
@@ -10,17 +9,8 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
   NetworkState,
-  UInt64Option,
-  PublicKeyOption,
 } from "@proto-kit/protocol";
-import {
-  Field,
-  Poseidon,
-  Provable,
-  PublicKey,
-  Struct,
-  UInt64 as O1JSUInt64,
-} from "o1js";
+import { Field, Poseidon, Struct } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
 
@@ -74,41 +64,32 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     indexes: FeeIndexes;
   };
 
+  private readonly initPromise: ReturnType<typeof this.createFeeTree>;
+
   public constructor(
     @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
   ) {
     super();
+    // Start fee tree creation so that it definitely happens outside of provable context
+    // eslint-disable-next-line max-len
+    // TODO This can always only be a workaround, we need to make this promise awaited in a predicatable way
+    this.initPromise = this.createFeeTree();
   }
 
-  public createFeeTree() {
+  public async createFeeTree() {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
 
-    // TODO: create empty setup struct for compile
-    // or other places where the context is not set
     context.setup({
-      transaction: new RuntimeTransaction({
-        methodId: Field(0),
-        nonce: UInt64Option.fromValue(O1JSUInt64.zero),
-        sender: PublicKeyOption.fromValue(PublicKey.empty()),
-        argsHash: Field(0),
-      }),
-
-      networkState: new NetworkState({
-        block: {
-          height: O1JSUInt64.zero,
-        },
-        previous: {
-          rootHash: Field(0),
-        },
-      }),
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
     });
 
     // TODO: figure out what side effects analyzeMethods has,
     // and why it breaks runtime execution context with wierd errors
     const analyzedMethods =
-      this.runtime.zkProgrammable.zkProgram.analyzeMethods();
+      await this.runtime.zkProgrammable.zkProgram.analyzeMethods();
 
     container.resolve(RuntimeMethodExecutionContext).clear();
 
@@ -117,7 +98,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     ).reduce<[FeeTreeValues, FeeIndexes]>(
       // eslint-disable-next-line @typescript-eslint/no-shadow
       ([values, indexes], combinedMethodName, index) => {
-        const { rows } = analyzedMethods[index];
+        const { rows } = analyzedMethods[combinedMethodName];
         // const rows = 1000;
         const [moduleName, methodName] = combinedMethodName.split(".");
         const methodId = this.runtime.methodIdResolver.getMethodId(
@@ -172,16 +153,16 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     return { tree, values, indexes };
   }
 
-  public get feeTree() {
+  public async getFeeTree() {
     if (this.persistedFeeTree === undefined) {
-      this.persistedFeeTree = this.createFeeTree();
+      this.persistedFeeTree = await this.initPromise;
     }
 
     return this.persistedFeeTree;
   }
 
-  public getFeeConfig(methodId: bigint) {
-    const feeConfig = this.feeTree.values[methodId.toString()];
+  public async getFeeConfig(methodId: bigint) {
+    const feeConfig = (await this.getFeeTree()).values[methodId.toString()];
 
     return new MethodFeeConfigData({
       methodId: Field(feeConfig.methodId),
@@ -191,13 +172,13 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     });
   }
 
-  public getWitness(methodId: bigint) {
-    return this.feeTree.tree.getWitness(
-      this.feeTree.indexes[methodId.toString()]
-    );
+  public async getWitness(methodId: bigint) {
+    const feeTree = await this.getFeeTree();
+    return feeTree.tree.getWitness(feeTree.indexes[methodId.toString()]);
   }
 
-  public getRoot(): bigint {
-    return this.feeTree.tree.getRoot().toBigInt();
+  public async getRoot(): Promise<bigint> {
+    const { tree } = await this.getFeeTree();
+    return tree.getRoot().toBigInt();
   }
 }

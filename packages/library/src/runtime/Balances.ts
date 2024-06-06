@@ -1,11 +1,4 @@
-/* eslint-disable import/no-unused-modules */
-/* eslint-disable max-classes-per-file */
-import {
-  EventEmitter,
-  EventEmittingComponent,
-  EventsRecord,
-  NoConfig,
-} from "@proto-kit/common";
+import { EventsRecord, NoConfig } from "@proto-kit/common";
 import {
   RuntimeModule,
   runtimeMethod,
@@ -13,7 +6,9 @@ import {
   runtimeModule,
 } from "@proto-kit/module";
 import { StateMap, assert } from "@proto-kit/protocol";
-import { Field, Provable, PublicKey, Struct, UInt64 } from "o1js";
+import { Field, PublicKey, Struct, Provable } from "o1js";
+
+import { UInt64 } from "../math/UInt64";
 
 export const errors = {
   senderNotFrom: () => "Sender does not match 'from'",
@@ -25,8 +20,9 @@ export class BalancesKey extends Struct({
   tokenId: TokenId,
   address: PublicKey,
 }) {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public test() {}
+  public static from(tokenId: TokenId, address: PublicKey) {
+    return new BalancesKey({ tokenId, address });
+  }
 }
 
 export class Balance extends UInt64 {}
@@ -55,73 +51,59 @@ export class Balances<Config = NoConfig>
     Balance
   );
 
-  public getBalance(tokenId: TokenId, address: PublicKey): Balance {
+  public async getBalance(
+    tokenId: TokenId,
+    address: PublicKey
+  ): Promise<Balance> {
     const key = new BalancesKey({ tokenId, address });
-    const balanceOption = this.balances.get(key);
-
-    return Provable.if<Balance>(
-      balanceOption.isSome,
-      Balance,
-      balanceOption.value,
-      Balance.from(0)
-    );
+    const balanceOption = await this.balances.get(key);
+    return Balance.Unsafe.fromField(balanceOption.value.value);
   }
 
-  public setBalance(tokenId: TokenId, address: PublicKey, amount: Balance) {
+  public async setBalance(
+    tokenId: TokenId,
+    address: PublicKey,
+    amount: Balance
+  ) {
     const key = new BalancesKey({ tokenId, address });
-    this.balances.set(key, amount);
+    await this.balances.set(key, amount);
   }
 
-  public transfer(
+  public async transfer(
     tokenId: TokenId,
     from: PublicKey,
     to: PublicKey,
     amount: Balance
   ) {
-    const fromBalance = this.getBalance(tokenId, from);
-    const toBalance = this.getBalance(tokenId, to);
+    const fromBalance = await this.getBalance(tokenId, from);
+    const toBalance = await this.getBalance(tokenId, to);
 
     const fromBalanceIsSufficient = fromBalance.greaterThanOrEqual(amount);
 
     assert(fromBalanceIsSufficient, errors.fromBalanceInsufficient());
 
-    // used to prevent field underflow during subtraction
-    const paddedFrombalance = fromBalance.add(amount);
-    const safeFromBalance = Provable.if<Balance>(
-      fromBalanceIsSufficient,
-      Balance,
-      fromBalance,
-      paddedFrombalance
-    );
-
-    const newFromBalance = safeFromBalance.sub(amount);
+    const newFromBalance = fromBalance.sub(amount);
     const newToBalance = toBalance.add(amount);
 
-    this.setBalance(tokenId, from, newFromBalance);
-    this.setBalance(tokenId, to, newToBalance);
+    await this.setBalance(tokenId, from, newFromBalance);
+    await this.setBalance(tokenId, to, newToBalance);
   }
 
-  public mint(tokenId: TokenId, address: PublicKey, amount: Balance) {
-    const balance = this.getBalance(tokenId, address);
+  public async mint(tokenId: TokenId, address: PublicKey, amount: Balance) {
+    const balance = await this.getBalance(tokenId, address);
     const newBalance = balance.add(amount);
-    this.setBalance(tokenId, address, newBalance);
+    await this.setBalance(tokenId, address, newBalance);
   }
 
-  public burn(tokenId: TokenId, address: PublicKey, amount: Balance) {
-    const balance = this.getBalance(tokenId, address);
-    // replace with library/uint64
-    const paddedBalance = Provable.if<Balance>(
-      balance.greaterThanOrEqual(amount),
-      Balance,
-      balance,
-      balance.add(amount)
-    );
-    const newBalance = paddedBalance.sub(amount);
-    this.setBalance(tokenId, address, newBalance);
+  public async burn(tokenId: TokenId, address: PublicKey, amount: Balance) {
+    const balance = await this.getBalance(tokenId, address);
+    Provable.log("Balance", balance, amount);
+    const newBalance = balance.sub(amount);
+    await this.setBalance(tokenId, address, newBalance);
   }
 
   @runtimeMethod()
-  public transferSigned(
+  public async transferSigned(
     tokenId: TokenId,
     from: PublicKey,
     to: PublicKey,
@@ -129,6 +111,6 @@ export class Balances<Config = NoConfig>
   ) {
     assert(this.transaction.sender.value.equals(from), errors.senderNotFrom());
 
-    this.transfer(tokenId, from, to, amount);
+    await this.transfer(tokenId, from, to, amount);
   }
 }

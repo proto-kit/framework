@@ -1,4 +1,3 @@
-/* eslint-disable ext/lines-between-object-properties */
 import { noop } from "@proto-kit/common";
 
 import { CachedStateService } from "../../state/state/CachedStateService";

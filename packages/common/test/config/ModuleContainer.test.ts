@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import "reflect-metadata";
 import { container as tsyringeContainer, inject, injectable } from "tsyringe";
 
@@ -9,10 +8,9 @@ import {
 import {
   ModuleContainer,
   ModulesRecord,
-  DependenciesFromModules,
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { ChildContainerProvider, DependencyFactory, DependencyRecord } from "../../src";
+import { DependencyFactory } from "../../src";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -63,27 +61,12 @@ class OtherTestModule extends BaseTestModule<OtherTestModuleConfig> {
  * Showcases a wrongly typed/defined module as
  * per the TestModuleContainer requirements
  */
-// eslint-disable-next-line max-len
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class, @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class WrongTestModule {}
 
 class TestModuleContainer<
-  Modules extends TestModulesRecord
-> extends ModuleContainer<Modules> {
-  public create(childContainerProvider: ChildContainerProvider) {
-    super.create(childContainerProvider);
-    this.registerDependencyFactories(["TestModule" as any]);
-  }
-}
-
-type inferred = DependenciesFromModules<{
-  TestModule: typeof TestModule;
-  OtherTestModule: typeof OtherTestModule;
-}>;
-
-// const merged2T: merged2 = {
-//   dependencyModule1: ""
-// }
+  Modules extends TestModulesRecord,
+> extends ModuleContainer<Modules> {}
 
 describe("moduleContainer", () => {
   let container: TestModuleContainer<{
@@ -103,7 +86,7 @@ describe("moduleContainer", () => {
     });
   });
 
-  it.only("should resolve dependency factory dependencies correctly", () => {
+  it("should resolve dependency factory dependencies correctly", () => {
     container.configure({
       TestModule: {
         testConfigProperty,
@@ -116,7 +99,9 @@ describe("moduleContainer", () => {
 
     container.create(() => tsyringeContainer.createChildContainer());
 
-    const dm = container.resolve("dependencyModule1");
+    // Unfortunately we still need this so that the dependencies are registered
+    container.resolve("TestModule");
+    const dm = container.resolve("DependencyModule1");
 
     expect(dm.x()).toBe("dependency factory works");
     expect(dm.testModule).toBeDefined();
@@ -150,7 +135,7 @@ describe("moduleContainer", () => {
 
     expect(testModule.config.testConfigProperty).toBe(testConfigProperty);
 
-    const dependency = container.resolve("dependencyModule1");
+    const dependency = container.resolve("DependencyModule1");
     dependency.x();
   });
 
@@ -178,7 +163,7 @@ describe("moduleContainer", () => {
 
     container.create(() => tsyringeContainer.createChildContainer());
 
-    const config = container.resolve("TestModule").config;
+    const { config } = container.resolve("TestModule");
 
     expect(config.testConfigProperty).toBe(3);
     expect(config.testConfigProperty2).toBe(2);

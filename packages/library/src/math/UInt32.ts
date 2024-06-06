@@ -1,54 +1,51 @@
-import { Field, UInt32 as o1UInt32 } from "o1js";
+import { Field, Gadgets } from "o1js";
 
-import { UIntX } from "./UInt";
+import { UIntConstructor, UInt } from "./UInt";
+import { UInt64 } from "./UInt64";
 
-export class UInt32 extends UIntX<UInt32> {
-  public static get NUM_BITS() {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    return 32;
-  }
+export class UInt32 extends UInt<32> {
+  public static Unsafe = {
+    fromField(value: Field) {
+      return new UInt32({ value });
+    },
+  };
 
-  public numBits() {
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    return 32;
-  }
-
-  /**
-   * Static method to create a {@link UIntX} with value `0`.
-   */
-  public static get zero() {
-    return UInt32.from(Field(0));
-  }
-
-  /**
-   * Static method to create a {@link UIntX} with value `1`.
-   */
-  public static get one() {
-    return UInt32.from(Field(1));
-  }
-
-  public static MAXINT(): UInt32 {
-    return new UInt32(UIntX.maxIntField(UInt32.NUM_BITS));
-  }
+  public static Safe = {
+    fromField(value: Field) {
+      const uint = new UInt32({ value });
+      UInt32.check(uint);
+      return uint;
+    },
+  };
 
   public static check(x: { value: Field }) {
-    const actual = x.value.rangeCheckHelper(UInt32.NUM_BITS);
-    UIntX.assertionFunction(actual.equals(x.value));
+    UInt.assertionFunction(Gadgets.isDefinitelyInRangeN(32, x.value));
   }
 
-  public static from(
-    x: Field | o1UInt32 | UInt32 | bigint | number | string
-  ): UInt32 {
-    if (x instanceof UInt32 || x instanceof o1UInt32) {
-      x = x.value;
+  public static from(x: UInt32 | bigint | number | string) {
+    if (x instanceof UInt32) {
+      return x;
     }
-    return new UInt32(UInt32.checkConstant(Field(x), UInt32.NUM_BITS));
+    return new UInt32({ value: UInt.checkConstant(Field(x), 32) });
   }
 
-  public constructor(value: Field) {
-    super(value, {
-      creator: (x) => new UInt32(x),
-      from: (x) => UInt32.from(x),
-    });
+  public static get zero() {
+    return UInt32.Unsafe.fromField(Field(0));
+  }
+
+  public static get max() {
+    return UInt32.Unsafe.fromField(UInt.maxIntField(32));
+  }
+
+  public constructorReference(): UIntConstructor<32> {
+    return UInt32;
+  }
+
+  public numBits(): 32 {
+    return 32;
+  }
+
+  public toUInt64(): UInt64 {
+    return UInt64.Unsafe.fromField(this.value);
   }
 }

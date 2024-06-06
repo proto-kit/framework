@@ -31,6 +31,7 @@ export class GraphqlTransactionSender
       .toPromise();
 
     if (queryResult.error === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const hash = queryResult.data?.submitTx;
 
       if (hash === undefined) {

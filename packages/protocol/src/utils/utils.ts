@@ -1,6 +1,3 @@
-// eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-types, @typescript-eslint/no-unsafe-return */
-
 import { Field, Poseidon, Provable } from "o1js";
 import floor from "lodash/floor";
 
@@ -30,8 +27,6 @@ export function notInCircuit(): MethodDecorator {
           `Method ${propertyKey.toString()} is supposed to be only called outside of the circuit`
         );
       }
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       return childFunction.apply(this, args);
     };
     return descriptor;
@@ -39,7 +34,7 @@ export function notInCircuit(): MethodDecorator {
 }
 
 export function stringToField(value: string) {
-  const fieldSize = Field.sizeInBytes() - 1;
+  const fieldSize = Field.sizeInBytes - 1;
 
   // Encode string as byte[]
   const encoder = new TextEncoder();
@@ -59,7 +54,6 @@ export function stringToField(value: string) {
       return a;
     },
 
-    // eslint-disable-next-line array-func/from-map
     Array.from<number[]>({ length: floor(data.length / fieldSize) }).map(
       () => []
     )
@@ -73,8 +67,9 @@ export function stringToField(value: string) {
 }
 
 export function singleFieldToString(value: Field | bigint): string {
+  let fieldValue = value;
   if (typeof value === "bigint") {
-    value = Field(value);
+    fieldValue = Field(value);
   }
-  return value.toString();
+  return fieldValue.toString();
 }

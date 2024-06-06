@@ -1,4 +1,4 @@
-import { Mina } from "o1js";
+import { Mina, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
@@ -17,7 +17,7 @@ export class MinaTransactionSender {
   private txQueue: Record<SenderKey, number[]> = {};
 
   // TODO Persist
-  private cache: Mina.Transaction[] = [];
+  private cache: Transaction<any, true>[] = [];
 
   public constructor(
     private readonly creator: FlowCreator,
@@ -27,8 +27,8 @@ export class MinaTransactionSender {
   ) {}
 
   private async trySendCached(
-    tx: Mina.Transaction
-  ): Promise<Mina.TransactionId | undefined> {
+    tx: Transaction<any, true>
+  ): Promise<Mina.PendingTransaction | undefined> {
     const feePayer = tx.transaction.feePayer.body;
     const sender = feePayer.publicKey.toBase58();
     const senderQueue = this.txQueue[sender];
@@ -46,6 +46,7 @@ export class MinaTransactionSender {
   private async resolveCached(): Promise<number> {
     const indizesToRemove: number[] = [];
     for (let i = 0; i < this.cache.length; i++) {
+      // eslint-disable-next-line no-await-in-loop
       const result = await this.trySendCached(this.cache[i]);
       if (result !== undefined) {
         indizesToRemove.push(i);
@@ -57,7 +58,7 @@ export class MinaTransactionSender {
     return indizesToRemove.length;
   }
 
-  private async sendOrQueue(tx: Mina.Transaction) {
+  private async sendOrQueue(tx: Transaction<any, true>) {
     this.cache.push(tx);
 
     let removedLastIteration = 0;
@@ -67,7 +68,7 @@ export class MinaTransactionSender {
     } while (removedLastIteration > 0);
   }
 
-  public async proveAndSendTransaction(transaction: Mina.Transaction) {
+  public async proveAndSendTransaction(transaction: Transaction<false, true>) {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
 
     // Add Transaction to sender's queue

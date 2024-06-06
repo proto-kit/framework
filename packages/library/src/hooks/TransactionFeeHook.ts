@@ -1,4 +1,3 @@
-/* eslint-disable import/no-unused-modules */
 import {
   getAllPropertyNames,
   isRuntimeMethod,
@@ -11,9 +10,10 @@ import {
   BlockProverExecutionData,
   PublicKeyOption,
 } from "@proto-kit/protocol";
-import { Field, Provable, PublicKey, UInt64 as O1JSUInt64 } from "o1js";
+import { Field, Provable, PublicKey } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
+import { Balance, TokenId } from "../runtime/Balances";
 
 import {
   MethodFeeConfigData,
@@ -21,22 +21,19 @@ import {
   RuntimeFeeAnalyzerServiceConfig,
 } from "./RuntimeFeeAnalyzerService";
 
-export class TokenId extends Field {}
-export class Balance extends UInt64 {}
-export interface Balances {
+interface Balances {
   transfer: (
     tokenId: TokenId,
     from: PublicKey,
     to: PublicKey,
     amount: Balance
-  ) => void;
+  ) => Promise<void>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TransactionFeeHookConfig
   extends RuntimeFeeAnalyzerServiceConfig {}
 
-export const errors = {
+const errors = {
   invalidFeeTreeRoot: () =>
     "Root hash of the provided fee config witness is invalid",
 
@@ -44,7 +41,7 @@ export const errors = {
     "Method id of the provided fee config does not match the executed transaction method id",
 
   invalidMethod: (method: string) =>
-    `${method} does not exist in the current runtime.`,
+    new Error(`${method} does not exist in the current runtime.`),
 };
 
 /**
@@ -62,7 +59,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   protected persistedFeeAnalyzer: RuntimeFeeAnalyzerService | null = null;
 
   // check if the fee config is compatible with the current runtime
-  // we couldnt resolve this purely on the type level, so we have to do it here
+  // we couldn't resolve this purely on the type level, so we have to do it here
   public verifyConfig() {
     Object.keys(super.config.methods).forEach((combinedMethodName) => {
       const [runtimeModule, runtimeMethod] = combinedMethodName.split(".");
@@ -98,12 +95,12 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     return this.persistedFeeAnalyzer;
   }
 
-  public transferFee(from: PublicKeyOption, fee: UInt64) {
-    this.balances.transfer(
+  public async transferFee(from: PublicKeyOption, fee: UInt64) {
+    await this.balances.transfer(
       new TokenId(this.config.tokenId),
       from.value,
       PublicKey.fromBase58(this.config.feeRecipient),
-      Balance.from(fee.value)
+      Balance.Unsafe.fromField(fee.value)
     );
   }
 
@@ -113,22 +110,26 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
    *
    * @param executionData
    */
-  public onTransaction(executionData: BlockProverExecutionData): void {
-    const feeConfig = Provable.witness(MethodFeeConfigData, () =>
-      this.feeAnalyzer.getFeeConfig(
-        executionData.transaction.methodId.toBigInt()
-      )
-    );
-
-    const witness = Provable.witness(
-      RuntimeFeeAnalyzerService.getWitnessType(),
-      () =>
-        this.feeAnalyzer.getWitness(
+  public async onTransaction(
+    executionData: BlockProverExecutionData
+  ): Promise<void> {
+    const feeConfig = await Provable.witnessAsync(
+      MethodFeeConfigData,
+      async () =>
+        await this.feeAnalyzer.getFeeConfig(
           executionData.transaction.methodId.toBigInt()
         )
     );
 
-    const root = Field(this.feeAnalyzer.getRoot());
+    const witness = await Provable.witnessAsync(
+      RuntimeFeeAnalyzerService.getWitnessType(),
+      async () =>
+        await this.feeAnalyzer.getWitness(
+          executionData.transaction.methodId.toBigInt()
+        )
+    );
+
+    const root = Field(await this.feeAnalyzer.getRoot());
     const calculatedRoot = witness.calculateRoot(feeConfig.hash());
 
     root.assertEquals(calculatedRoot, errors.invalidFeeTreeRoot());
@@ -137,12 +138,15 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       errors.invalidFeeConfigMethodId()
     );
 
-    const fee = O1JSUInt64.from(feeConfig.baseFee.value).add(
-      O1JSUInt64.from(feeConfig.weight.value).mul(
-        O1JSUInt64.from(feeConfig.perWeightUnitFee.value)
+    const fee = UInt64.Unsafe.fromField(feeConfig.baseFee.value).add(
+      UInt64.Unsafe.fromField(feeConfig.weight.value).mul(
+        UInt64.Unsafe.fromField(feeConfig.perWeightUnitFee.value)
       )
     );
 
-    this.transferFee(executionData.transaction.sender, new UInt64(fee.value));
+    await this.transferFee(
+      executionData.transaction.sender,
+      UInt64.Unsafe.fromField(fee.value)
+    );
   }
 }

@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-extraneous-class */
-/* eslint-disable @shopify/no-fully-static-classes */
-import { Field, type FlexibleProvablePure, Poseidon, Provable } from "o1js";
+import { Field, type FlexibleProvablePure, Poseidon } from "o1js";
 
 import { stringToField } from "../utils/utils";
 

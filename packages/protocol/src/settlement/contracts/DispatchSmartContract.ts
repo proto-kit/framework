@@ -26,8 +26,8 @@ export interface DispatchContractType {
   updateMessagesHash: (
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
-  ) => void;
-  initialize: (settlementContract: PublicKey) => void;
+  ) => Promise<void>;
+  initialize: (settlementContract: PublicKey) => Promise<void>;
 
   promisedMessagesHash: State<Field>;
 }
@@ -48,29 +48,30 @@ export class DispatchSmartContract
   @state(PublicKey) public settlementContract = State<PublicKey>();
 
   @method
-  public updateMessagesHash(
+  public async updateMessagesHash(
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
   ) {
-    const promisedMessagesHash = this.promisedMessagesHash.getAndAssertEquals();
-    this.honoredMessagesHash.getAndAssertEquals();
+    const promisedMessagesHash =
+      this.promisedMessagesHash.getAndRequireEquals();
+    this.honoredMessagesHash.getAndRequireEquals();
 
     executedMessagesHash.assertEquals(promisedMessagesHash);
 
     this.honoredMessagesHash.set(executedMessagesHash);
 
     // Assert and apply new promisedMessagesHash
-    this.self.account.actionState.assertEquals(newPromisedMessagesHash);
+    this.self.account.actionState.requireEquals(newPromisedMessagesHash);
     this.promisedMessagesHash.set(newPromisedMessagesHash);
   }
 
   @method
-  public initialize(settlementContract: PublicKey) {
-    this.promisedMessagesHash.getAndAssertEquals().assertEquals(Field(0));
-    this.honoredMessagesHash.getAndAssertEquals().assertEquals(Field(0));
+  public async initialize(settlementContract: PublicKey) {
+    this.promisedMessagesHash.getAndRequireEquals().assertEquals(Field(0));
+    this.honoredMessagesHash.getAndRequireEquals().assertEquals(Field(0));
     this.settlementContract
-      .getAndAssertEquals()
-      .assertEquals(PublicKey.empty());
+      .getAndRequireEquals()
+      .assertEquals(PublicKey.empty<typeof PublicKey>());
 
     this.promisedMessagesHash.set(ACTIONS_EMPTY_HASH);
     this.honoredMessagesHash.set(ACTIONS_EMPTY_HASH);
@@ -107,12 +108,12 @@ export class DispatchSmartContract
   }
 
   @method
-  public deposit(amount: UInt64) {
+  public async deposit(amount: UInt64) {
     // Save this, since otherwise it would be a second witness later,
     // which could be a different values than the first
-    const { sender } = this;
+    const sender = this.sender.getUnconstrained();
 
-    const settlementContract = this.settlementContract.getAndAssertEquals();
+    const settlementContract = this.settlementContract.getAndRequireEquals();
 
     // Credit the amount to the settlement contract
     const balanceAU = AccountUpdate.create(settlementContract);

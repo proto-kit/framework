@@ -1,15 +1,12 @@
 import "reflect-metadata";
-import { Field } from "o1js";
 
 import { stringToField } from "../src";
 
 describe("stringToField", () => {
   const stringToFieldInputs: string[] = [];
 
-  // eslint-disable-next-line jest/require-hook
   [31, 32, 33, 63, 64, 65, 1000].forEach((length) => {
     stringToFieldInputs.push(
-      // eslint-disable-next-line array-func/from-map
       Array.from({ length })
         .map(() => "A")
         .reduce((a, b) => a + b)

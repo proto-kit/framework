@@ -6,26 +6,26 @@ import {
 } from "@proto-kit/module";
 import {
   MethodPublicOutput,
-  RuntimeTransaction,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
 
-import { Task } from "../../../worker/flow/Task";
-import { TaskSerializer } from "../../../worker/manager/ReducableTask";
+import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
+import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
 import {
   RuntimeProofParameters,
   RuntimeProofParametersSerializer,
 } from "./RuntimeTaskParameters";
-import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class RuntimeProvingTask
+  extends TaskWorkerModule
   implements Task<RuntimeProofParameters, RuntimeProof>
 {
   protected readonly runtimeZkProgrammable =
@@ -36,7 +36,9 @@ export class RuntimeProvingTask
   public constructor(
     @inject("Runtime") protected readonly runtime: Runtime<never>,
     private readonly executionContext: RuntimeMethodExecutionContext
-  ) {}
+  ) {
+    super();
+  }
 
   public inputSerializer(): TaskSerializer<RuntimeProofParameters> {
     return new RuntimeProofParametersSerializer();
@@ -63,7 +65,7 @@ export class RuntimeProvingTask
       this.runtime.resolve(moduleName),
       methodName
     );
-    const decodedArguments = parameterEncoder.decode(input.tx.argsJSON);
+    const decodedArguments = await parameterEncoder.decode(input.tx.argsJSON);
 
     const prefilledStateService = new PreFilledStateService(input.state);
     this.runtime.stateServiceProvider.setCurrentStateService(
@@ -79,7 +81,7 @@ export class RuntimeProvingTask
     };
     this.executionContext.setup(contextInputs);
 
-    method(...decodedArguments);
+    await method(...decodedArguments);
     const { result } = this.executionContext.current();
 
     this.executionContext.setup(contextInputs);

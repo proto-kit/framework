@@ -1,5 +1,3 @@
-// eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any */
 import { QueryTransportModule } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
@@ -51,6 +49,7 @@ export class GraphqlQueryTransportModule
       .toPromise();
 
     if (queryResult.error === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const stringArray = queryResult.data?.state;
 
       if (stringArray === undefined || stringArray === null) {
@@ -80,6 +79,7 @@ export class GraphqlQueryTransportModule
       .toPromise();
 
     if (queryResult.error === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const witnessJson = queryResult.data?.witness;
 
       if (witnessJson === undefined || witnessJson === null) {
@@ -98,7 +98,9 @@ export class GraphqlQueryTransportModule
 
       return new RollupMerkleTreeWitness(
         RollupMerkleTreeWitness.fromJSON({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           path: witnessJson.siblings,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           isLeft: witnessJson.isLefts,
         })
       );

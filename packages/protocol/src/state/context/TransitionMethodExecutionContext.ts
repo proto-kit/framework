@@ -1,7 +1,6 @@
 import { StateTransition } from "../../model/StateTransition";
 
 export class TransitionMethodExecutionResult {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public stateTransitions: StateTransition<any>[] = [];
 }
 

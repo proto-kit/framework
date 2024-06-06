@@ -9,8 +9,9 @@ import {
   PublicKey,
 } from "o1js";
 import { ReturnType } from "@proto-kit/protocol";
-import { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { match } from "ts-pattern";
+
+import { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 @injectable()
 export class MinaSimulationService {
@@ -43,24 +44,25 @@ export class MinaSimulationService {
     );
     const getAccountSafe = () => {
       try {
-        Mina.getAccount(publicKey, tokenId);
+        return Mina.getAccount(publicKey, tokenId);
       } catch {
         return undefined;
       }
     };
-    const account = match(fetchedAccount).with(undefined, () => getAccountSafe())
+    const account = match(fetchedAccount)
+      .with(undefined, () => getAccountSafe())
       .with({ account: undefined }, () => getAccountSafe())
       .with({ error: undefined }, (v) => v.account)
-      .exhaustive()
+      .exhaustive();
 
     // this.ledger.addAccount(Ml.fromPublicKey(publicKey));
 
-    if(account !== undefined){
+    if (account !== undefined) {
       addCachedAccount(account);
     }
   }
 
-  public applyTransaction(tx: Mina.Transaction) {
+  public applyTransaction(tx: Mina.Transaction<boolean, boolean>) {
     const txJson = tx.toJSON();
     this.ledger.applyJsonTransaction(
       txJson,

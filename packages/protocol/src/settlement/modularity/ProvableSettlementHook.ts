@@ -1,9 +1,8 @@
 import { Field, PublicKey, UInt32 } from "o1js";
 
-import type { BlockProof } from "../../prover/block/BlockProver";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { NetworkState } from "../../model/network/NetworkState";
-
+import type { BlockProof } from "../../prover/block/BlockProver";
 import type { SettlementSmartContract } from "../contracts/SettlementSmartContract";
 
 export type SettlementStateRecord = {
@@ -25,10 +24,10 @@ export type SettlementHookInputs = {
 };
 
 export abstract class ProvableSettlementHook<
-  Config
+  Config,
 > extends ProtocolModule<Config> {
   public abstract beforeSettlement(
     smartContract: SettlementSmartContract,
     inputs: SettlementHookInputs
-  ): void;
+  ): Promise<void>;
 }

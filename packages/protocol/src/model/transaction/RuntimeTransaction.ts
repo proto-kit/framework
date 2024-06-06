@@ -1,14 +1,7 @@
-import {
-  Bool,
-  Field,
-  Poseidon,
-  Provable,
-  PublicKey,
-  Struct,
-  UInt64,
-} from "o1js";
-import { PublicKeyOption, UInt64Option } from "./ValueOption";
+import { Bool, Field, Poseidon, PublicKey, Struct, UInt64 } from "o1js";
 import { EMPTY_PUBLICKEY, EMPTY_PUBLICKEY_X } from "@proto-kit/common";
+
+import { PublicKeyOption, UInt64Option } from "./ValueOption";
 
 /**
  * This struct is used to expose transaction information to the runtime method
@@ -30,8 +23,8 @@ export class RuntimeTransaction extends Struct({
     return new RuntimeTransaction({
       methodId: input.methodId,
       argsHash: input.argsHash,
-      nonce: UInt64Option.fromValue(input.nonce),
-      sender: PublicKeyOption.fromValue(input.sender),
+      nonce: UInt64Option.fromSome(input.nonce),
+      sender: PublicKeyOption.fromSome(input.sender),
     });
   }
 

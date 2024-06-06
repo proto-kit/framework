@@ -1,10 +1,10 @@
-import { EventEmittingComponent, EventsRecord } from "@proto-kit/common";
+import { EventEmittingComponent } from "@proto-kit/common";
 
 import type { PendingTransaction } from "./PendingTransaction";
 
 export type MempoolEvents = {
   "mempool-transaction-added": [PendingTransaction];
-}
+};
 
 export interface Mempool<Events extends MempoolEvents = MempoolEvents>
   extends EventEmittingComponent<Events> {

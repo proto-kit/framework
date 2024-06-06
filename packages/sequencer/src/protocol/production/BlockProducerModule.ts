@@ -14,7 +14,6 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import { BaseLayer } from "../baselayer/BaseLayer";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { SettleableBatch } from "../../storage/model/Block";
 import { CachedStateService } from "../../state/state/CachedStateService";
@@ -35,9 +34,7 @@ import { BlockTaskFlowService } from "./BlockTaskFlowService";
 import { NewBlockProverParameters } from "./tasks/NewBlockTask";
 import { BlockProofSerializer } from "./helpers/BlockProofSerializer";
 
-export interface StateRecord {
-  [key: string]: Field[] | undefined;
-}
+export type StateRecord = Record<string, Field[] | undefined>;
 
 export interface TransactionTrace {
   runtimeProver: RuntimeProofParameters;
@@ -114,24 +111,24 @@ export class BlockProducerModule extends SequencerModule {
 
     const height = await this.blockStorage.getCurrentBlockHeight();
 
-    const blockMetadata = await this.tryProduceBlock(unprovenBlocks, height);
+    const blockWithStateDiff = await this.tryProduceBlock(
+      unprovenBlocks,
+      height
+    );
 
-    if (blockMetadata !== undefined) {
+    if (blockWithStateDiff !== undefined) {
       log.info(
-        `Batch produced (${blockMetadata.block.bundles.length} bundles, ${
-          blockMetadata.block.bundles.flat(1).length
+        `Batch produced (${blockWithStateDiff.block.bundles.length} bundles, ${
+          blockWithStateDiff.block.bundles.flat(1).length
         } txs)`
       );
       // Apply state changes to current StateService
       await this.applyStateChanges(
         unprovenBlocks.map((data) => data.block.block),
-        blockMetadata
+        blockWithStateDiff
       );
-
-      // Mock for now
-      await this.blockStorage.pushBlock(blockMetadata.block);
     }
-    return blockMetadata?.block;
+    return blockWithStateDiff?.block;
   }
 
   public async start(): Promise<void> {
@@ -195,7 +192,7 @@ export class BlockProducerModule extends SequencerModule {
         bundles: computedBundles,
         height,
         fromNetworkState: block.fromNetworkState,
-        toNetworkState: block.toNetworkState
+        toNetworkState: block.toNetworkState,
       },
 
       stateService: block.stateService,
@@ -215,6 +212,7 @@ export class BlockProducerModule extends SequencerModule {
    * 3. We create tasks based on those traces
    *
    */
+
   private async computeBlock(
     bundles: UnprovenBlockWithPreviousMetadata[],
     blockId: number
@@ -247,14 +245,14 @@ export class BlockProducerModule extends SequencerModule {
     );
 
     for (const bundleWithMetadata of bundles) {
-      const block = bundleWithMetadata.block.block;
+      const { block } = bundleWithMetadata.block;
       const txs = block.transactions;
 
       const bundleTracker = new DefaultProvableHashList(Field);
 
       const transactionTraces: TransactionTrace[] = [];
 
-      for (const [index, tx] of txs.entries()) {
+      for (const [, tx] of txs.entries()) {
         // eslint-disable-next-line no-await-in-loop
         const result = await this.traceService.createTransactionTrace(
           tx,

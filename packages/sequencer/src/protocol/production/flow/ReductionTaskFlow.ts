@@ -3,11 +3,20 @@ import { log } from "@proto-kit/common";
 import { Flow, FlowCreator } from "../../../worker/flow/Flow";
 import { Task } from "../../../worker/flow/Task";
 import { PairTuple } from "../../../helpers/utils";
-import { BlockProverPublicInput, BlockProverPublicOutput } from "@proto-kit/protocol";
 
 interface ReductionState<Output> {
   numMergesCompleted: 0;
   queue: Output[];
+}
+
+/**
+ *  This type is used to consistently define the input type of a MapReduce flow
+ *  that is depenend on the result a pairing.
+ */
+export interface PairingDerivedInput<Input1, Input2, AdditionalParameters> {
+  input1: Input1;
+  input2: Input2;
+  params: AdditionalParameters;
 }
 
 /**
@@ -50,18 +59,20 @@ export class ReductionTaskFlow<Input, Output> {
   } {
     const res: { r1: Type; r2: Type }[] = [];
 
+    let remainingInputs = pendingInputs;
+
     const touchedIndizes: number[] = [];
 
-    for (const [index, first] of pendingInputs.entries()) {
-      const secondIndex = pendingInputs.findIndex(
+    for (const [index, first] of remainingInputs.entries()) {
+      const secondIndex = remainingInputs.findIndex(
         (second, index2) =>
           index2 > index &&
           (reducible(first, second) || reducible(second, first))
       );
 
       if (secondIndex > 0) {
-        const r2 = pendingInputs[secondIndex];
-        pendingInputs = pendingInputs.filter(
+        const r2 = remainingInputs[secondIndex];
+        remainingInputs = remainingInputs.filter(
           (unused, index2) => index2 !== index && index2 !== secondIndex
         );
 
@@ -112,7 +123,6 @@ export class ReductionTaskFlow<Input, Output> {
 
       // I don't know exactly what this rule wants from me, I suspect
       // it complains bcs the function is called forEach
-      // eslint-disable-next-line unicorn/no-array-method-this-argument
       await flow.forEach(availableReductions, async (reduction) => {
         const taskParameters: PairTuple<Output> = [reduction.r1, reduction.r2];
         await flow.pushTask(
@@ -188,7 +198,6 @@ export class ReductionTaskFlow<Input, Output> {
     }
     this.started = true;
     return await this.flow.withFlow<Output>(async () => {
-      // eslint-disable-next-line unicorn/no-array-method-this-argument
       await this.flow.forEach(inputs, async (input) => {
         await this.pushInput(input);
       });

@@ -1,13 +1,14 @@
 import { log, noop } from "@proto-kit/common";
 
-import { TaskPayload } from "../manager/ReducableTask";
+import { SequencerModule } from "../../sequencer/builder/SequencerModule";
+import { TaskPayload } from "../flow/Task";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
-import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 
 async function sleep(ms: number) {
-  // eslint-disable-next-line promise/avoid-new,no-promise-executor-return
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 // Had to extract it to here bc eslint would ruin the code
@@ -45,8 +46,6 @@ export class LocalTaskQueue
       if (tasks.length > 0 && this.workers[queueName]) {
         tasks.forEach((task) => {
           // Execute task in worker
-          // eslint-disable-next-line max-len
-          // eslint-disable-next-line promise/prefer-await-to-then,promise/always-return
           void this.workers[queueName]
             ?.handler(task.payload)
             .then((payload) => {
@@ -81,7 +80,6 @@ export class LocalTaskQueue
     };
     this.workNextTasks();
     return {
-      // eslint-disable-next-line putout/putout
       close: async () => {
         noop();
       },
@@ -96,7 +94,6 @@ export class LocalTaskQueue
     return {
       name: queueName,
 
-      // eslint-disable-next-line putout/putout
       addTask: async (payload: TaskPayload): Promise<{ taskId: string }> => {
         id += 1;
         const nextId = String(id).toString();
@@ -107,11 +104,9 @@ export class LocalTaskQueue
         return { taskId: nextId };
       },
 
-      // eslint-disable-next-line putout/putout
       onCompleted: async (
         listener: (payload: TaskPayload) => Promise<void>
       ): Promise<void> => {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         (this.listeners[queueName] ??= []).push(listener);
       },
 

@@ -1,11 +1,11 @@
-import { Provable, PublicKey, Struct, UInt64 } from "o1js";
+import { PublicKey, Struct, UInt64 } from "o1js";
+import { injectable } from "tsyringe";
 
 import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { StateMap } from "../state/StateMap";
 import { protocolState } from "../state/protocol/ProtocolState";
 import { ProvableTransactionHook } from "../protocol/ProvableTransactionHook";
 import { assert } from "../state/assert/assert";
-import { injectable } from "tsyringe";
 
 export class AccountState extends Struct({
   nonce: UInt64,
@@ -18,12 +18,12 @@ export class AccountStateHook extends ProvableTransactionHook {
     AccountState
   );
 
-  public onTransaction({ transaction }: BlockProverExecutionData): void {
+  public async onTransaction({ transaction }: BlockProverExecutionData) {
     const sender = transaction.sender.value;
 
-    const accountState = this.accountState
-      .get(sender)
-      .orElse(new AccountState({ nonce: UInt64.zero }));
+    const aso = await this.accountState.get(sender);
+
+    const accountState = aso.orElse(new AccountState({ nonce: UInt64.zero }));
 
     const currentNonce = accountState.nonce;
 
@@ -32,15 +32,17 @@ export class AccountStateHook extends ProvableTransactionHook {
       currentNonce
         .equals(transaction.nonce.value)
         .or(transaction.sender.isSome.not()),
-      "Nonce not matching"
+      () =>
+        `Nonce not matching: tx sent ${transaction.nonce.value.toString()}, onchain value is ${currentNonce.toString()}`
     );
 
     // Optimized version of transaction.sender.isSome ? currentNonce.add(1) : Field(0)
     // Bcs Bool(true).toField() == 1
-    const newNonce = UInt64.from(
+    // TODO Think about if we want to rangecheck this. If not, we should store it as Field
+    const newNonce = UInt64.Unsafe.fromField(
       currentNonce.value.add(1).mul(transaction.sender.isSome.toField())
     );
 
-    this.accountState.set(sender, new AccountState({ nonce: newNonce }));
+    await this.accountState.set(sender, new AccountState({ nonce: newNonce }));
   }
 }

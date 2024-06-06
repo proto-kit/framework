@@ -46,12 +46,14 @@ export class SettlementContractProtocolModule extends ContractModule<
   ): SmartContractClassFromInterface<SettlementContractType> {
     const { hooks, config } = this;
 
-    const withdrawalStatePathSplit = this.config.withdrawalStatePath.split(
-      "."
-    ) as [string, string];
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const withdrawalStatePathSplit = config.withdrawalStatePath.split(".") as [
+      string,
+      string,
+    ];
 
     const escapeHatchSlotsInterval =
-      this.config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
+      config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
 
     SettlementSmartContract.args = {
       DispatchContract: dispatchContract,

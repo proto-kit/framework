@@ -16,7 +16,7 @@ export abstract class ContractModule<
   ContractType,
   // undefined = no args
   Arguments = undefined,
-  Config = NoConfig
+  Config = NoConfig,
 > extends ConfigurableModule<Config> {
   public abstract contractFactory(
     args: Arguments

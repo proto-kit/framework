@@ -58,17 +58,15 @@ export class CachedMerkleTreeStore
     // Algo from RollupMerkleTree.getWitness()
     const { leafCount, HEIGHT } = RollupMerkleTree;
 
-    if (index >= leafCount) {
-      index %= leafCount;
-    }
+    let currentIndex = index >= leafCount ? index % leafCount : index;
 
     const nodesToRetrieve: MerkleTreeNodeQuery[] = [];
 
     for (let level = 0; level < HEIGHT; level++) {
-      const key = index;
+      const key = currentIndex;
 
-      const isLeft = index % 2n === 0n;
-      const siblingKey = isLeft ? index + 1n : index - 1n;
+      const isLeft = key % 2n === 0n;
+      const siblingKey = isLeft ? key + 1n : key - 1n;
 
       // Only preload node if it is not already preloaded.
       // We also don't want to overwrite because changes will get lost (tracing)
@@ -88,7 +86,7 @@ export class CachedMerkleTreeStore
           level,
         });
       }
-      index /= 2n;
+      currentIndex /= 2n;
     }
     return nodesToRetrieve;
   }
@@ -163,10 +161,11 @@ export class CachedMerkleTreeStore
       }
     });
 
+    // Reverse here, so that we can use pop() later
     const fetchResult = (await this.parent.getNodesAsync(toFetch)).reverse();
 
     results.forEach((result, index) => {
-      if (result === -1n) {
+      if (result === undefined) {
         results[index] = fetchResult.pop();
       }
     });

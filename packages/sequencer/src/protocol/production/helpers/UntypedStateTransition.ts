@@ -1,4 +1,4 @@
-import { Bool, Field } from "o1js";
+import { Field } from "o1js";
 import { ProvableStateTransition, StateTransition } from "@proto-kit/protocol";
 
 import { UntypedOption } from "./UntypedOption";

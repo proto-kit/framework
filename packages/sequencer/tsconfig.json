@@ -1,10 +1,8 @@
 {
   "extends": "./../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "baseUrl": ".",
-    "lib": ["esnext.asynciterable"]
+    "outDir": "./dist"
   },
-  "include": ["./src/**/*.ts"],
-  "exclude": ["./dist/**/*.ts", "../../node_modules", "./**/*.test.ts"]
+  "include": ["./src/index.ts"],
+  "exclude": ["./dist/**/*.ts"]
 }

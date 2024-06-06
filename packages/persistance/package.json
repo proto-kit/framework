@@ -9,10 +9,11 @@
     "prisma-generate": "prisma generate",
     "prisma-migrate": "prisma migrate deploy",
     "dev": "tsc -p tsconfig.json --watch",
-    "lint": "eslint ./src ./test",
+    "lint": "eslint ./src ./test ./test-integration",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
-    "test": "npm run test:file -- ./src/** ./test/**",
-    "test:watch": "npm run test:file -- ./src/** ./test/** --watch"
+    "test": "npm run test:file -- ./test/**",
+    "integration": "npm run test:file -- ./test-integration/** --runInBand",
+    "test:watch": "npm run test:file -- ./test/** --watch"
   },
   "main": "dist/index.js",
   "publishConfig": {
@@ -21,6 +22,7 @@
   "dependencies": {
     "@prisma/client": "^5.7.1",
     "@proto-kit/common": "*",
+    "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
     "lodash": "^4.17.21",
@@ -28,7 +30,7 @@
     "reflect-metadata": "^0.1.13"
   },
   "peerDependencies": {
-    "o1js": "0.13.1",
+    "o1js": "1.1.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

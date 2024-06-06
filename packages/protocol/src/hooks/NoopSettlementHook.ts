@@ -11,10 +11,10 @@ import {
 export class NoopSettlementHook extends ProvableSettlementHook<
   Record<string, never>
 > {
-  public beforeSettlement(
+  public async beforeSettlement(
     contract: SmartContract,
     state: SettlementHookInputs
-  ): void {
+  ) {
     noop();
   }
 }

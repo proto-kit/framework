@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
   ModuleContainer,
@@ -31,13 +30,10 @@ import {
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   ProtocolModule,
-  AccountStateHook,
   StateServiceProvider,
   MandatoryProtocolModulesRecord,
-  PublicKeyOption,
-  UInt64Option,
 } from "@proto-kit/protocol";
-import { Field, ProvableExtended, PublicKey, UInt64, Proof, Bool } from "o1js";
+import { Field, PublicKey, UInt64 } from "o1js";
 import { container, DependencyContainer } from "tsyringe";
 
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
@@ -57,7 +53,7 @@ export interface AppChainDefinition<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > {
   Runtime: TypedClass<Runtime<RuntimeModules>>;
   Protocol: TypedClass<Protocol<ProtocolModules>>;
@@ -65,13 +61,12 @@ export interface AppChainDefinition<
   modules: AppChainModules;
 }
 
-// eslint-disable-next-line etc/prefer-interface
 export type ExpandAppChainModules<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > = AppChainModules & {
   Runtime: TypedClass<Runtime<RuntimeModules>>;
   Protocol: TypedClass<Protocol<ProtocolModules>>;
@@ -83,7 +78,7 @@ export interface ExpandAppChainDefinition<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > {
   modules: ExpandAppChainModules<
     RuntimeModules,
@@ -101,7 +96,7 @@ export interface AppChainConfig<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > {
   Runtime: ModulesConfig<RuntimeModules>;
   Protocol: ModulesConfig<ProtocolModules>;
@@ -117,7 +112,7 @@ export class AppChain<
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
   SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord
+  AppChainModules extends AppChainModulesRecord,
 > extends ModuleContainer<
   ExpandAppChainModules<
     RuntimeModules,
@@ -132,7 +127,7 @@ export class AppChain<
     ProtocolModules extends ProtocolModulesRecord &
       MandatoryProtocolModulesRecord,
     SequencerModules extends SequencerModulesRecord,
-    AppChainModules extends AppChainModulesRecord
+    AppChainModules extends AppChainModulesRecord,
   >(
     definition: AppChainDefinition<
       RuntimeModules,
@@ -219,10 +214,9 @@ export class AppChain<
     return this.resolve("Protocol");
   }
 
-  // eslint-disable-next-line max-statements, sonarjs/cognitive-complexity
   public async transaction(
     sender: PublicKey,
-    callback: () => void,
+    callback: () => Promise<void>,
     options?: { nonce?: number }
   ): Promise<AppChainTransaction> {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
@@ -230,48 +224,35 @@ export class AppChain<
     );
 
     executionContext.setup({
-      transaction: {
-        sender: new PublicKeyOption({
-          value: sender,
-          isSome: Bool(true),
-        }),
-        nonce: new UInt64Option({
-          isSome: Bool(true),
-          value: UInt64.from(options?.nonce ?? 0),
-        }),
-        argsHash: Field(0),
-      } as unknown as RuntimeTransaction,
-
-      networkState: {
-        block: {
-          height: UInt64.from(0),
-        },
-        previous: {
-          rootHash: Field(0),
-        },
-      } as unknown as NetworkState,
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
     });
+    executionContext.setSimulated(true);
 
     const stateServiceProvider = this.container.resolve<StateServiceProvider>(
       "StateServiceProvider"
     );
     stateServiceProvider.setCurrentStateService(new DummyStateService());
 
-    callback();
+    await callback();
 
     stateServiceProvider.popCurrentStateService();
 
     const { methodName, moduleName, args } = executionContext.current().result;
 
     // TODO: extract error
-    if (!methodName || !moduleName || !args) {
+    if (
+      methodName === undefined ||
+      moduleName === undefined ||
+      args === undefined
+    ) {
       throw new Error(
         "Unable to determine moduleName, methodName or args for the transaction"
       );
     }
 
     // forgive me, i'll fix this type issue soon
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const runtimeModule = this.runtime.resolve(moduleName as any);
 
     const encoder = MethodParameterEncoder.fromMethod(
@@ -290,9 +271,10 @@ export class AppChain<
       return accountState?.nonce;
     };
 
-    const nonce = options?.nonce
-      ? UInt64.from(options.nonce)
-      : (await retrieveNonce(sender)) ?? UInt64.from(0);
+    const nonce =
+      options?.nonce !== undefined
+        ? UInt64.from(options.nonce)
+        : (await retrieveNonce(sender)) ?? UInt64.from(0);
 
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(
@@ -351,3 +333,4 @@ export class AppChain<
     await this.sequencer.start();
   }
 }
+/* eslint-enable @typescript-eslint/consistent-type-assertions */

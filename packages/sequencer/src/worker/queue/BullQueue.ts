@@ -1,9 +1,7 @@
-// eslint-disable-next-line max-len
-/* eslint-disable @typescript-eslint/no-non-null-assertion,@typescript-eslint/consistent-type-assertions */
 import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
 import { log } from "@proto-kit/common";
 
-import { TaskPayload } from "../manager/ReducableTask";
+import { TaskPayload } from "../flow/Task";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
 
@@ -34,7 +32,7 @@ export class BullQueue implements TaskQueue {
       {
         concurrency: options?.concurrency ?? 1,
         connection: this.redis,
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+
         metrics: { maxDataPoints: MetricsTime.ONE_HOUR * 24 },
       }
     );
@@ -73,8 +71,8 @@ export class BullQueue implements TaskQueue {
       },
 
       async onCompleted(listener: (payload: TaskPayload) => Promise<void>) {
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         events.on("completed", async (result) => {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           await listener(JSON.parse(result.returnvalue) as TaskPayload);
         });
         await events.waitUntilReady();

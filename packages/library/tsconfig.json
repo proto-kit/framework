@@ -3,6 +3,6 @@
   "compilerOptions": {
     "outDir": "./dist"
   },
-  "include": ["./src/index.ts", "./src/declarations.d.ts"],
+  "include": ["./src/**/*.ts", "./src/declarations.d.ts"],
   "exclude": ["./dist/**/*.ts"]
 }

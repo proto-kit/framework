@@ -53,6 +53,7 @@ export class MethodIdResolver {
     const rawMappings = this.runtime.moduleNames.flatMap((moduleName) => {
       const module = this.runtime.resolve(moduleName);
       return module.runtimeMethodNames.map((method) => {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const type = Reflect.getMetadata(
           runtimeMethodTypeMetadataKey,
           module,

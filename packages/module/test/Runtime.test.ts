@@ -1,26 +1,28 @@
-import { Bool } from "o1js";
+import "reflect-metadata";
+import { container } from "tsyringe";
+import {
+  RuntimeMethodExecutionContext,
+  RuntimeTransaction,
+  NetworkState,
+} from "@proto-kit/protocol";
 
-import { InMemoryStateService, MethodIdResolver, Runtime } from "../src";
+import { MethodIdResolver } from "../src";
 
 import { Balances } from "./modules/Balances";
+import { createTestingRuntime } from "./TestingRuntime";
 
 describe("runtime", () => {
   it("should encode methodnames correctly", () => {
     expect.assertions(2);
 
-    const runtime = Runtime.from({
-      state: new InMemoryStateService(),
-
-      modules: {
+    const { runtime } = createTestingRuntime(
+      {
         Balances,
       },
-
-      config: {
-        Balances: {
-          test: Bool(true),
-        },
-      },
-    });
+      {
+        Balances: {},
+      }
+    );
 
     const balances = runtime.resolve("Balances");
 
@@ -37,7 +39,25 @@ describe("runtime", () => {
       .getMethodId(moduleName, methodName);
     const method = runtime.getMethodById(methodId);
 
-    // eslint-disable-next-line jest/no-restricted-matchers
     expect(method).toBeDefined();
+  });
+
+  it("regression - check that analyzeMethods works on runtime", async () => {
+    const { runtime } = createTestingRuntime(
+      {
+        Balances,
+      },
+      {
+        Balances: {},
+      }
+    );
+
+    const context = container.resolve(RuntimeMethodExecutionContext);
+    context.setup({
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
+    });
+
+    await runtime.zkProgrammable.zkProgram.analyzeMethods();
   });
 });

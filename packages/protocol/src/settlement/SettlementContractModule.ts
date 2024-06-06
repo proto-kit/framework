@@ -2,8 +2,8 @@ import {
   AreProofsEnabled,
   ChildContainerProvider,
   ModuleContainer,
-  ModulesRecord, ResolvableModules, StringKeyOf,
-  TypedClass
+  ModulesRecord,
+  TypedClass,
 } from "@proto-kit/common";
 import { PublicKey, SmartContract } from "o1js";
 import { injectable } from "tsyringe";
@@ -43,7 +43,7 @@ export type MandatorySettlementModulesRecord = {
 @injectable()
 export class SettlementContractModule<
     SettlementModules extends SettlementModulesRecord &
-      MandatorySettlementModulesRecord
+      MandatorySettlementModulesRecord,
   >
   extends ModuleContainer<SettlementModules>
   implements ProtocolModule<unknown>
@@ -54,7 +54,7 @@ export class SettlementContractModule<
 
   public static from<
     SettlementModules extends SettlementModulesRecord &
-      MandatorySettlementModulesRecord
+      MandatorySettlementModulesRecord,
   >(
     modules: SettlementModules
   ): TypedClass<SettlementContractModule<SettlementModules>> {
@@ -90,10 +90,10 @@ export class SettlementContractModule<
     settlement: SmartContractClassFromInterface<SettlementContractType>;
     dispatch: SmartContractClassFromInterface<DispatchContractType>;
   } {
-    const settlementContractKey = "SettlementContract"
-    const dispatchContractKey = "DispatchContract"
-    this.assertIsValidModuleName(settlementContractKey)
-    this.assertIsValidModuleName(dispatchContractKey)
+    const settlementContractKey = "SettlementContract";
+    const dispatchContractKey = "DispatchContract";
+    this.assertIsValidModuleName(settlementContractKey);
+    this.assertIsValidModuleName(dispatchContractKey);
 
     const settlementModule = this.resolve(settlementContractKey);
     const dispatchModule = this.resolve(dispatchContractKey);
@@ -116,7 +116,9 @@ export class SettlementContractModule<
   } {
     const { dispatch, settlement } = this.getContractClasses();
 
+    // eslint-disable-next-line new-cap
     const dispatchInstance = new dispatch(addresses.dispatch);
+    // eslint-disable-next-line new-cap
     const settlementInstance = new settlement(addresses.settlement);
 
     return {
