@@ -1,5 +1,4 @@
 import { Field, ObjectType, Query } from "type-graphql";
-import { ChildContainerProvider } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 import {
@@ -7,6 +6,7 @@ import {
   NodeStatusService,
   ProcessInformation,
 } from "../services/NodeStatusService";
+
 import { NodeInformationObject } from "./NodeStatusResolver";
 
 @ObjectType()
