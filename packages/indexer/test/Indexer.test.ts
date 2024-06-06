@@ -6,7 +6,7 @@ import {
   StateServiceQueryModule,
   TestingAppChain,
 } from "@proto-kit/sdk";
-import { PrivateKey } from "o1js";
+import { PrivateKey, Provable } from "o1js";
 import {
   Balance,
   Balances,
@@ -16,20 +16,24 @@ import {
   VanillaRuntimeModules,
 } from "@proto-kit/library";
 import { Runtime, runtimeMethod } from "@proto-kit/module";
-import { Sequencer } from "@proto-kit/sequencer";
-import { IndexerNotifier } from "../src/IndexerNotifier";
+import { InMemoryDatabase, Sequencer } from "@proto-kit/sequencer";
 import { Protocol } from "@proto-kit/protocol";
 import {
-  Indexer,
-  InMemoryDatabase,
-  SharedLocalTaskQueue,
-  Worker,
-} from "../src";
+  GraphqlSequencerModule,
+  GraphqlServer,
+  UnprovenBlockResolver,
+} from "@proto-kit/api";
+
+import { IndexerNotifier } from "../src/IndexerNotifier";
+import { Indexer, SharedLocalTaskQueue, Worker } from "../src";
 
 class TestBalances extends Balances {
   @runtimeMethod()
-  public mintSigned(tokenId: TokenId, amount: Balance) {
-    const balance = this.getBalance(tokenId, this.transaction.sender.value);
+  public async mintSigned(tokenId: TokenId, amount: Balance) {
+    const balance = await this.getBalance(
+      tokenId,
+      this.transaction.sender.value
+    );
     this.setBalance(
       tokenId,
       this.transaction.sender.value,
@@ -42,8 +46,6 @@ describe("indexer", () => {
   it("should index every block", async () => {
     const aliceKey = PrivateKey.random();
     const alice = aliceKey.toPublicKey();
-    const bobKey = PrivateKey.random();
-    const bob = bobKey.toPublicKey();
 
     const appChain = new TestingAppChain({
       Runtime: Runtime.from({
@@ -57,9 +59,12 @@ describe("indexer", () => {
       }),
 
       Sequencer: Sequencer.from({
-        modules: InMemorySequencerModules.with({
-          IndexerNotifier,
-        }),
+        modules: InMemorySequencerModules.with(
+          {
+            IndexerNotifier,
+          },
+          {}
+        ),
       }),
 
       modules: {
@@ -93,15 +98,18 @@ describe("indexer", () => {
         BlockTrigger: {},
         Mempool: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: {
+          StateTransitionReductionTask: {},
+          StateTransitionTask: {},
+          RuntimeProvingTask: {},
+          BlockBuildingTask: {},
+          BlockProvingTask: {},
+          BlockReductionTask: {},
+        },
         BaseLayer: {},
         UnprovenProducerModule: {},
         TaskQueue: {
           simulatedDuration: 0,
-        },
-        SettlementModule: {
-          feepayer: PrivateKey.random(),
-          address: PrivateKey.random().toPublicKey(),
         },
         IndexerNotifier: {},
       },
@@ -120,6 +128,12 @@ describe("indexer", () => {
         Database: InMemoryDatabase,
         TaskQueue: SharedLocalTaskQueue,
         Worker: Worker,
+        GraphqlServer: GraphqlServer,
+        Graphql: GraphqlSequencerModule.from({
+          modules: {
+            UnprovenBlockResolver,
+          },
+        }),
       },
     });
 
@@ -127,6 +141,14 @@ describe("indexer", () => {
       Database: {},
       TaskQueue: {},
       Worker: {},
+      GraphqlServer: {
+        port: 8080,
+        host: "0.0.0.0",
+        graphiql: true,
+      },
+      Graphql: {
+        UnprovenBlockResolver: {},
+      },
     });
 
     // dont forget to initialize worker later
@@ -142,26 +164,25 @@ describe("indexer", () => {
     const tokenId = TokenId.from(0);
 
     appChain.setSigner(aliceKey);
-    const tx = await appChain.transaction(alice, () => {
-      balances.mintSigned(tokenId, Balance.from(100));
-    });
 
-    await tx.sign();
-    await tx.send();
+    for (let i = 0; i < 10; i++) {
+      const tx = await appChain.transaction(alice, async () => {
+        await balances.mintSigned(tokenId, Balance.from(100));
+      });
 
-    const block = await appChain.produceBlock();
+      await tx.sign();
+      await tx.send();
 
-    console.log("block produced", block);
+      console.log("sent tx", { nonce: i });
+      const block = await appChain.produceBlock();
+      const accState =
+        await appChain.query.protocol.AccountState.accountState.get(alice);
+      Provable.log("produced block", i, accState, block);
+      await new Promise((resolve) => {
+        setTimeout(resolve, 10000);
+      });
+    }
 
-    const done = new Promise<void>((resolve) => {
-      setTimeout(async () => {
-        const blockStorage = indexer.blockStorage;
-        console.log("blockStorage", blockStorage);
-        const block = await blockStorage.getBlockAt(0);
-        console.log("block retrieved from indexer", block);
-        resolve();
-      }, 2000);
-    });
-    await done;
-  });
+    await new Promise((resolve) => {});
+  }, 1_000_000_000);
 });

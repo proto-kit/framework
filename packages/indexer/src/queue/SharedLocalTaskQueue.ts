@@ -11,7 +11,6 @@ export class SharedLocalTaskQueue extends LocalTaskQueue implements TaskQueue {
   public sharedQueue?: LocalTaskQueue;
 
   public shareQueueWith(queue: LocalTaskQueue): void {
-    console.log("setting shared queue", queue);
     this.sharedQueue = queue;
   }
 

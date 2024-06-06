@@ -1,5 +1,6 @@
 import { ModuleContainer, ModulesRecord, TypedClass } from "@proto-kit/common";
 import { container } from "tsyringe";
+
 import { IndexerModule } from "./IndexerModule";
 
 export type IndexerModulesRecord = ModulesRecord<
@@ -7,14 +8,10 @@ export type IndexerModulesRecord = ModulesRecord<
 >;
 
 export class Indexer<
-  Modules extends IndexerModulesRecord
+  Modules extends IndexerModulesRecord,
 > extends ModuleContainer<Modules> {
   public get taskQueue(): InstanceType<Modules["TaskQueue"]> {
     return this.container.resolve("TaskQueue");
-  }
-
-  public get blockStorage(): InstanceType<Modules["BlockStorage"]> {
-    return this.container.resolve("BlockStorage");
   }
 
   public async start() {

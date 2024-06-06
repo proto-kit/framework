@@ -1,29 +1,32 @@
-import { UnprovenBlock, Task, TaskSerializer } from "@proto-kit/sequencer";
-import { BlockMapper } from "@proto-kit/persistance";
-import { injectable } from "tsyringe";
+import {
+  UnprovenBlock,
+  Task,
+  TaskSerializer,
+  UnprovenBlockStorage,
+} from "@proto-kit/sequencer";
+import { inject, injectable } from "tsyringe";
+
+import { IndexBlockTaskParametersSerializer } from "./IndexBlockTaskParameters";
 
 @injectable()
 export class IndexBlockTask implements Task<UnprovenBlock, void> {
   public name = "index-block";
 
-  public constructor(public blockMapper: BlockMapper) {}
+  public constructor(
+    public taskSerializer: IndexBlockTaskParametersSerializer,
+    @inject("UnprovenBlockStorage") public blockStorage: UnprovenBlockStorage
+  ) {}
 
   public async prepare(): Promise<void> {
     throw new Error("Not implemented");
   }
+
   public async compute(input: UnprovenBlock): Promise<void> {
-    throw new Error("Not implemented");
+    this.blockStorage.pushBlock(input);
   }
 
   public inputSerializer(): TaskSerializer<UnprovenBlock> {
-    return {
-      toJSON: (input: UnprovenBlock): string => {
-        return JSON.stringify(this.blockMapper.mapOut(input));
-      },
-      fromJSON: (input: string): UnprovenBlock => {
-        return this.blockMapper.mapIn(JSON.parse(input));
-      },
-    };
+    return this.taskSerializer;
   }
 
   public resultSerializer(): TaskSerializer<void> {

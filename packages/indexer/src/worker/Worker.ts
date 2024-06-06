@@ -1,25 +1,30 @@
 import { inject, injectable } from "tsyringe";
+import {
+  TaskQueue,
+  TaskPayload,
+  UnprovenBlockStorage,
+} from "@proto-kit/sequencer";
+
 import { IndexerModule } from "../IndexerModule";
-import { TaskQueue, TaskPayload } from "@proto-kit/sequencer";
 import { IndexerNotifier } from "../IndexerNotifier";
-import { Database } from "../database/Database";
 import { IndexBlockTask } from "../tasks/IndexBlockTask";
-import { BlockStorage } from "../database/BlockStorage";
 
 @injectable()
 export class Worker extends IndexerModule<Record<never, never>> {
   public constructor(
     @inject("TaskQueue") public taskQueue: TaskQueue,
-    @inject("BlockStorage") public blockStorage: BlockStorage,
+    @inject("BlockStorage") public blockStorage: UnprovenBlockStorage,
     public indexBlockTask: IndexBlockTask
   ) {
     super();
   }
 
   public async workBlockTask(task: TaskPayload): Promise<TaskPayload> {
-    const block = this.indexBlockTask.inputSerializer().fromJSON(task.payload);
+    const input = await this.indexBlockTask
+      .inputSerializer()
+      .fromJSON(task.payload);
 
-    this.blockStorage.pushBlock(block);
+    this.indexBlockTask.compute(input);
     return {
       ...task,
       status: "success",
@@ -31,5 +36,9 @@ export class Worker extends IndexerModule<Record<never, never>> {
       IndexerNotifier.indexerQueueName,
       async (task: TaskPayload) => await this.workBlockTask(task)
     );
+  }
+
+  public async start() {
+    return await Promise.resolve();
   }
 }

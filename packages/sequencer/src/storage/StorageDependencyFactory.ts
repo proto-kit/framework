@@ -9,6 +9,7 @@ import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 
 import { BlockStorage } from "./repositories/BlockStorage";
 import {
+  HistoricalUnprovenBlockStorage,
   UnprovenBlockQueue,
   UnprovenBlockStorage,
 } from "./repositories/UnprovenBlockStorage";
@@ -21,7 +22,9 @@ export interface StorageDependencyMinimumDependencies extends DependencyRecord {
   asyncMerkleStore: DependencyDeclaration<AsyncMerkleTreeStore>;
   blockStorage: DependencyDeclaration<BlockStorage>;
   unprovenBlockQueue: DependencyDeclaration<UnprovenBlockQueue>;
-  unprovenBlockStorage: DependencyDeclaration<UnprovenBlockStorage>;
+  unprovenBlockStorage: DependencyDeclaration<
+    UnprovenBlockStorage & HistoricalUnprovenBlockStorage
+  >;
   unprovenStateService: DependencyDeclaration<AsyncStateService>;
   unprovenMerkleStore: DependencyDeclaration<AsyncMerkleTreeStore>;
   blockTreeStore: DependencyDeclaration<AsyncMerkleTreeStore>;

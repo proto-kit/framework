@@ -9,3 +9,4 @@ export * from "./services/prisma/PrismaMessageStorage";
 export * from "./services/prisma/PrismaTransactionStorage";
 export * from "./services/redis/RedisMerkleTreeStore";
 export * from "./services/prisma/mappers/BlockMapper";
+export * from "./services/prisma/mappers/TransactionMapper";

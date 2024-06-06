@@ -7,6 +7,7 @@ import {
   TaskQueue,
 } from "@proto-kit/sequencer";
 import { inject } from "tsyringe";
+
 import { IndexBlockTask } from "./tasks/IndexBlockTask";
 
 export type NotifierMandatorySequencerModules = {
@@ -37,7 +38,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
     this.sequencer.events.on("block-produced", async (block) => {
       const task: TaskPayload = {
         name: this.indexBlockTask.name,
-        payload: inputSerializer.toJSON(block),
+        payload: await inputSerializer.toJSON(block),
         flowId: "", // empty for now
       };
       queue.addTask(task);
