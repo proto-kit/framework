@@ -16,16 +16,24 @@ import {
   VanillaRuntimeModules,
 } from "@proto-kit/library";
 import { Runtime, runtimeMethod } from "@proto-kit/module";
-import { InMemoryDatabase, Sequencer } from "@proto-kit/sequencer";
+import { Sequencer } from "@proto-kit/sequencer";
 import { Protocol } from "@proto-kit/protocol";
 import {
   GraphqlSequencerModule,
   GraphqlServer,
-  UnprovenBlockResolver,
+  ExtendedUnprovenBlockResolver,
+  TransactionResolver,
 } from "@proto-kit/api";
+import {
+  IndexerNotifier,
+  Indexer,
+  SharedLocalTaskQueue,
+  Worker,
+  InMemoryDatabase,
+} from "@proto-kit/indexer";
+import { log } from "@proto-kit/common";
 
-import { IndexerNotifier } from "../src/IndexerNotifier";
-import { Indexer, SharedLocalTaskQueue, Worker } from "../src";
+log.setLevel("DEBUG");
 
 class TestBalances extends Balances {
   @runtimeMethod()
@@ -131,7 +139,8 @@ describe("indexer", () => {
         GraphqlServer: GraphqlServer,
         Graphql: GraphqlSequencerModule.from({
           modules: {
-            UnprovenBlockResolver,
+            ExtendedUnprovenBlockResolver,
+            TransactionResolver,
           },
         }),
       },
@@ -147,7 +156,8 @@ describe("indexer", () => {
         graphiql: true,
       },
       Graphql: {
-        UnprovenBlockResolver: {},
+        ExtendedUnprovenBlockResolver: {},
+        TransactionResolver: {},
       },
     });
 
@@ -175,9 +185,8 @@ describe("indexer", () => {
 
       console.log("sent tx", { nonce: i });
       const block = await appChain.produceBlock();
-      const accState =
-        await appChain.query.protocol.AccountState.accountState.get(alice);
-      Provable.log("produced block", i, accState, block);
+
+      Provable.log("produced block", i, block);
       await new Promise((resolve) => {
         setTimeout(resolve, 10000);
       });

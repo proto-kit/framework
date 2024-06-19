@@ -9,3 +9,5 @@ export * from "./graphql/modules/NodeStatusResolver";
 export * from "./graphql/modules/AdvancedNodeStatusResolver";
 export * from "./graphql/services/NodeStatusService";
 export * from "./graphql/modules/MerkleWitnessResolver";
+export * from "./graphql/modules/indexer/ExtendedUnprovenBlockResolver";
+export * from "./graphql/modules/indexer/TransactionResolver";

@@ -27,7 +27,6 @@
     "yargs": "^17.7.2"
   },
   "peerDependencies": {
-    "@proto-kit/api": "*",
     "@proto-kit/common": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",

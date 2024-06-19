@@ -18,6 +18,7 @@
     "access": "public"
   },
   "peerDependencies": {
+    "@proto-kit/indexer": "*",
     "@proto-kit/common": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",

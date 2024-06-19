@@ -9,10 +9,8 @@ import { MOCK_PROOF } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
-import {
-  UnprovenBlockModel,
-  UnprovenBlockResolver,
-} from "./UnprovenBlockResolver";
+import { UnprovenBlockResolver } from "./UnprovenBlockResolver";
+import { UnprovenBlockModel } from "./model/UnprovenBlockModel";
 
 @ObjectType()
 export class ComputedBlockModel {

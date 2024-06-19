@@ -1,7 +1,8 @@
-import { UnprovenBlock } from "@proto-kit/sequencer";
+import { UnprovenBlockWithMetadata } from "@proto-kit/sequencer";
 import {
   BlockMapper,
   TransactionExecutionResultMapper,
+  UnprovenBlockMetadataMapper,
 } from "@proto-kit/persistance";
 import { injectable } from "tsyringe";
 
@@ -9,31 +10,40 @@ import { injectable } from "tsyringe";
 export class IndexBlockTaskParametersSerializer {
   public constructor(
     public blockMapper: BlockMapper,
+    public blockMetadataMapper: UnprovenBlockMetadataMapper,
     public transactionResultMapper: TransactionExecutionResultMapper
   ) {}
 
-  public toJSON(parameters: UnprovenBlock): string {
+  public toJSON(parameters: UnprovenBlockWithMetadata): string {
     return JSON.stringify({
-      ...this.blockMapper.mapOut(parameters),
-      transactions: parameters.transactions.map((tx) =>
+      block: this.blockMapper.mapOut(parameters.block),
+      transactions: parameters.block.transactions.map((tx) =>
         this.transactionResultMapper.mapOut(tx)
       ),
+      metadata: this.blockMetadataMapper.mapOut(parameters.metadata),
     });
   }
 
-  public fromJSON(json: string): UnprovenBlock {
+  public fromJSON(json: string): UnprovenBlockWithMetadata {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const parsed = JSON.parse(json) as ReturnType<BlockMapper["mapOut"]> & {
+    const parsed = JSON.parse(json) as {
+      block: ReturnType<BlockMapper["mapOut"]>;
       transactions: ReturnType<TransactionExecutionResultMapper["mapOut"]>[];
+      metadata: ReturnType<UnprovenBlockMetadataMapper["mapOut"]>;
     };
 
     const transactions = parsed.transactions.map((tx) =>
       this.transactionResultMapper.mapIn(tx)
     );
 
+    const metadata = this.blockMetadataMapper.mapIn(parsed.metadata);
+
     return {
-      ...this.blockMapper.mapIn(parsed),
-      transactions,
+      block: {
+        ...this.blockMapper.mapIn(parsed.block),
+        transactions,
+      },
+      metadata,
     };
   }
 }

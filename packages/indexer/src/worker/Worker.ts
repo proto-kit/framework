@@ -1,9 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import {
-  TaskQueue,
-  TaskPayload,
-  UnprovenBlockStorage,
-} from "@proto-kit/sequencer";
+import { TaskQueue, TaskPayload } from "@proto-kit/sequencer";
 
 import { IndexerModule } from "../IndexerModule";
 import { IndexerNotifier } from "../IndexerNotifier";
@@ -13,7 +9,6 @@ import { IndexBlockTask } from "../tasks/IndexBlockTask";
 export class Worker extends IndexerModule<Record<never, never>> {
   public constructor(
     @inject("TaskQueue") public taskQueue: TaskQueue,
-    @inject("BlockStorage") public blockStorage: UnprovenBlockStorage,
     public indexBlockTask: IndexBlockTask
   ) {
     super();
@@ -24,7 +19,8 @@ export class Worker extends IndexerModule<Record<never, never>> {
       .inputSerializer()
       .fromJSON(task.payload);
 
-    this.indexBlockTask.compute(input);
+    await this.indexBlockTask.compute(input);
+
     return {
       ...task,
       status: "success",

@@ -34,6 +34,7 @@
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
+    "@proto-kit/indexer": "*",
     "o1js": "1.1.0",
     "tsyringe": "^4.7.0"
   },
