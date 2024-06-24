@@ -7,5 +7,6 @@ export * from "./protocol/VanillaProtocolModules";
 export * from "./runtime/Balances";
 export * from "./runtime/VanillaRuntimeModules";
 export * from "./sequencer/InMemorySequencerModules";
+export * from "./sequencer/SimpleSequencerModules";
 export * from "./hooks/TransactionFeeHook";
 export * from "./hooks/RuntimeFeeAnalyzerService";

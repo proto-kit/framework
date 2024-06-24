@@ -1,9 +1,13 @@
 // eslint-disable-next-line max-len
 /* eslint-disable @typescript-eslint/no-shadow,@typescript-eslint/no-use-before-define,@typescript-eslint/strict-boolean-expressions,@typescript-eslint/no-unsafe-assignment,consistent-return,no-nested-ternary */
 import "reflect-metadata";
+import { pathToFileURL } from "node:url";
+import * as path from "path";
+
 import { log } from "@proto-kit/common";
 import { UnprovenBlock, ManualBlockTrigger } from "@proto-kit/sequencer";
 import { AppChain } from "@proto-kit/sdk";
+import { Environments } from "@proto-kit/deployment";
 import React, { useEffect, useReducer, useMemo } from "react";
 // @ts-ignore
 import { render, Text, Box } from "ink";
@@ -12,6 +16,7 @@ import { Spinner } from "@inkjs/ui";
 
 log.setLevel("ERROR");
 
+let environments: Environments<any>;
 let appChain: AppChain<any, any, any, any>;
 
 export interface UnprovenBlockExtras {
@@ -152,17 +157,43 @@ export function Blocks({ blocks }: { blocks: CliState["blocks"] }) {
   );
 }
 
-export function Server({ configFile }: { configFile: string }) {
+export function Server(args: {
+  configFile: string;
+  environment: string;
+  configuration: string;
+  logLevel: string;
+  prune: boolean;
+}) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
     (async () => {
-      appChain = (await import(configFile)).default;
+      // Normalize path to solve multiplatform issues
+      let normalizedPath = args.configFile;
+      if (path.sep === "\\") {
+        normalizedPath.replace("/", "\\");
+      }
+      normalizedPath = pathToFileURL(normalizedPath).toString();
+
+      environments = (await import(normalizedPath)).default;
+
+      appChain = await environments.start({
+        ...args,
+        returnInsteadOfStarting: true,
+      });
+
       await appChain.start();
+
+      // TODO
+      // appChain.events.on("tick", (totalTime: number) => {
+      //   dispatch({ type: "TICK", totalTime });
+      // });
+
       dispatch({ type: "HAS_STARTED" });
     })();
   }, []);
 
+  // TODO Remove in favor of timed block trigger
   useEffect(() => {
     if (!state.isStarted) return;
 
@@ -252,10 +283,26 @@ export function Server({ configFile }: { configFile: string }) {
   );
 }
 
-export function start(argv: { configFile: string }) {
-  render(<Server configFile={`${process.cwd()}/${argv.configFile}`} />, {
-    patchConsole: false,
-  });
+export function start(argv: {
+  configFile: string;
+  environment: string;
+  configuration: string;
+  logLevel: string;
+  prune: boolean;
+}) {
+  render(
+    <Server
+      // ${process.cwd()}/
+      configFile={`${argv.configFile}`}
+      environment={argv.environment}
+      configuration={argv.configuration}
+      logLevel={argv.logLevel}
+      prune={argv.prune}
+    />,
+    {
+      patchConsole: false,
+    }
+  );
 }
 
 // eslint-disable-next-line max-len

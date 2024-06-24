@@ -7,8 +7,9 @@ import {
 } from "@proto-kit/module";
 import { Option, State, StateMap } from "@proto-kit/protocol";
 import { PublicKey, UInt64 } from "o1js";
+import { AppChain } from "@proto-kit/sdk";
 
-import { LocalhostAppChain } from "../src";
+import { LocalhostAppChainModules } from "../src";
 
 @runtimeModule()
 export class Balances extends RuntimeModule<object> {
@@ -36,9 +37,13 @@ export class Balances extends RuntimeModule<object> {
   }
 }
 
-const appChain = LocalhostAppChain.fromRuntime({
-  Balances,
-});
+const appChain = AppChain.from(
+  LocalhostAppChainModules.fromRuntime({
+    Balances,
+  })
+);
+
+appChain.configurePartial(LocalhostAppChainModules.defaultConfig());
 
 appChain.configurePartial({
   Runtime: {

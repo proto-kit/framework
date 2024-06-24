@@ -87,7 +87,6 @@ describe("worker", () => {
     return queue;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // function createBullQueue(): BullQueue {
   //   return new BullQueue({
   //     host: "rpanic.com",

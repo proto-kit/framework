@@ -17,8 +17,10 @@
     "access": "public"
   },
   "dependencies": {
+    "@types/yargs": "^17.0.29",
     "loglevel": "^1.8.1",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "yargs": "^17.7.2"
   },
   "peerDependencies": {
     "@proto-kit/common": "*",

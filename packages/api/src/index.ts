@@ -8,3 +8,4 @@ export * from "./graphql/GraphqlSequencerModule";
 export * from "./graphql/modules/NodeStatusResolver";
 export * from "./graphql/services/NodeStatusService";
 export * from "./graphql/modules/MerkleWitnessResolver";
+export * from "./graphql/DefaultGraphqlModules";

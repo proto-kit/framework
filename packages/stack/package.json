@@ -11,7 +11,8 @@
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
     "test:watch": "npm run test:file -- ./test/** --watch",
-    "graphql": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/src/scripts/graphql/run-graphql.js"
+    "graphql": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/src/scripts/graphql/run-graphql.js",
+    "start": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads --es-module-specifier-resolution=node ./dist/start.js"
   },
   "main": "dist/index.js",
   "publishConfig": {

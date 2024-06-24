@@ -15,6 +15,19 @@ yargs(hideBin(process.argv))
       configFile: {
         default: "dist/chain.config.js",
       },
+      environment: {
+        default: "default",
+      },
+      configuration: {
+        default: "sequencer",
+      },
+      logLevel: {
+        default: "WARN",
+      },
+      prune: {
+        type: "boolean",
+        default: false,
+      },
     },
     start
   )

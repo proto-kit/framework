@@ -63,7 +63,9 @@ export class SettlementProvingTask
 {
   public name = "settlementTransactions";
 
-  public settlementContractModule: SettlementContractModule<MandatorySettlementModulesRecord>;
+  public settlementContractModule:
+    | SettlementContractModule<MandatorySettlementModulesRecord>
+    | undefined = undefined;
 
   public constructor(
     @inject("Protocol")
@@ -71,9 +73,13 @@ export class SettlementProvingTask
     private readonly compileRegistry: CompileRegistry
   ) {
     super();
-    this.settlementContractModule = this.protocol.dependencyContainer.resolve<
-      SettlementContractModule<MandatorySettlementModulesRecord>
-    >("SettlementContractModule");
+    if (
+      this.protocol.dependencyContainer.isRegistered("SettlementContractModule")
+    ) {
+      this.settlementContractModule = this.protocol.dependencyContainer.resolve<
+        SettlementContractModule<MandatorySettlementModulesRecord>
+      >("SettlementContractModule");
+    }
   }
 
   private async withCustomInstance<T>(
@@ -102,6 +108,12 @@ export class SettlementProvingTask
   public async compute(
     input: TransactionTaskArgs
   ): Promise<TransactionTaskResult> {
+    if (this.settlementContractModule === undefined) {
+      throw new Error(
+        "Settlement hasn't been configure in the protocol, but settlement task has been dispatched"
+      );
+    }
+
     const { transaction, chainState } = input;
 
     const provenTx = await this.withCustomInstance(chainState, async () => {
@@ -328,6 +340,11 @@ export class SettlementProvingTask
   }
 
   public async prepare(): Promise<void> {
+    // Guard in case the task is configured but settlement is not
+    if (this.settlementContractModule === undefined) {
+      return;
+    }
+
     const contract = this.settlementContractModule.getContractClasses();
 
     // TODO Replace by global AreProofsEnabled reference

@@ -37,7 +37,8 @@
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "@proto-kit/library": "*",
-    "o1js": "0.13.1"
+    "@proto-kit/deployment": "*",
+    "o1js": "1.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
