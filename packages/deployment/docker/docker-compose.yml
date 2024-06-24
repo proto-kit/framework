@@ -1,22 +1,9 @@
 version: '3.9'
 
 include:
+  # Enabled by db profile
   - ./persistence/docker-compose.yml
-
-services:
-  sequencer:
-    image: protokit-base
-    build:
-      dockerfile: ./packages/deployment/docker/base/Dockerfile
-      context: ../../..
-    container_name: protokit-sequencer
-    environment:
-      - DATABASE_URL=${POSTGRES_URL}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - db-net
-    ports:
-      - "8080:8080"
-    command: ["${INDEX_JS}", "${PROTOKIT_ENV}", "${PROTOKIT_CONFIG}"]
+  # Enabled by simple-sequencer profile
+  - ./sequencer/docker-compose.yml
+  # Enabled by worker profile
+  - ./worker/docker-compose.yml
