@@ -76,7 +76,7 @@ export class PrismaDatabaseConnection
     };
   }
 
-  public async clearDatabase(): Promise<void> {
+  public async pruneDatabase(): Promise<void> {
     const tables = [
       "TransactionExecutionResult",
       "Transaction",
