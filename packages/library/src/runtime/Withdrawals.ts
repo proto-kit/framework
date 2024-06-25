@@ -1,6 +1,6 @@
 import { runtimeModule, RuntimeModule, state } from "@proto-kit/module";
 import { State, StateMap, Withdrawal } from "@proto-kit/protocol";
-import { Field, PublicKey, Mina } from "o1js";
+import { Field, PublicKey } from "o1js";
 import { inject } from "tsyringe";
 
 import { UInt64 } from "../math/UInt64";
@@ -17,20 +17,18 @@ export class Withdrawals extends RuntimeModule {
     super();
   }
 
-  protected queueWithdrawal(withdrawal: Withdrawal) {
-    const counter = this.withdrawalCounter.get().orElse(Field(0));
+  protected async queueWithdrawal(withdrawal: Withdrawal) {
+    const counter = (await this.withdrawalCounter.get()).orElse(Field(0));
 
     this.withdrawals.set(counter, withdrawal);
 
     this.withdrawalCounter.set(counter.add(1));
   }
 
-  public withdraw(address: PublicKey, amount: UInt64) {
-    const balance = this.balances.getBalance(TokenId.from(0), address);
+  public async withdraw(address: PublicKey, amount: UInt64) {
+    const balance = await this.balances.getBalance(TokenId.from(0), address);
 
-    const accountCreationFee = UInt64.Unsafe.fromField(
-      Mina.accountCreationFee().value.toConstant()
-    );
+    const accountCreationFee = UInt64.Unsafe.fromField(Field(1n).mul(1e9));
     amount.assertGreaterThanOrEqual(
       accountCreationFee,
       "Minimum withdrawal amount not met"

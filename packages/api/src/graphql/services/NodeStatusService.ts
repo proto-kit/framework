@@ -1,12 +1,12 @@
+import * as process from "node:process";
+
 import { inject, injectable } from "tsyringe";
 import {
   BlockStorage,
   SettlementStorage,
   UnprovenBlockStorage,
 } from "@proto-kit/sequencer";
-
 import humanizeDuration from "humanize-duration";
-import * as process from "node:process";
 
 export interface ProcessInformation {
   uptime: number;
@@ -39,8 +39,8 @@ export class NodeStatusService {
 
     const memory = process.memoryUsage();
     const nodeVersion = process.version;
-    const arch = process.arch;
-    const platform = process.platform;
+    const { arch } = process;
+    const { platform } = process;
 
     return {
       uptime,
