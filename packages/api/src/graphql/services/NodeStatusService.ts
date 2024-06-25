@@ -1,35 +1,65 @@
 import { inject, injectable } from "tsyringe";
-import { BlockStorage, UnprovenBlockStorage } from "@proto-kit/sequencer";
-import humanizeDuration from "humanize-duration";
+import {
+  BlockStorage,
+  SettlementStorage,
+  UnprovenBlockStorage,
+} from "@proto-kit/sequencer";
 
-export interface NodeStatus {
+import humanizeDuration from "humanize-duration";
+import * as process from "node:process";
+
+export interface ProcessInformation {
   uptime: number;
   uptimeHumanReadable: string;
-  height: number;
-  settlements: number;
+  headUsed: number;
+  headTotal: number;
+  nodeVersion: string;
+  arch: string;
+  platform: string;
+}
+
+export interface NodeInformation {
+  blockHeight: number;
+  batchHeight: number;
 }
 
 @injectable()
 export class NodeStatusService {
-  private readonly startupTime = Date.now();
-
   public constructor(
     @inject("UnprovenBlockStorage")
     private readonly unprovenBlockStorage: UnprovenBlockStorage,
-    @inject("BlockStorage") private readonly blockStorage: BlockStorage
+    @inject("BlockStorage") private readonly blockStorage: BlockStorage,
+    @inject("SettlementStorage")
+    private readonly settlementStorage: SettlementStorage
   ) {}
 
-  public async getNodeStatus(): Promise<NodeStatus> {
-    const uptime = Date.now() - this.startupTime;
+  public getProcessInfo(): ProcessInformation {
+    const uptime = Math.floor(process.uptime() * 1000);
     const uptimeHumanReadable = humanizeDuration(uptime);
-    const height = await this.unprovenBlockStorage.getCurrentBlockHeight();
-    const settlements = await this.blockStorage.getCurrentBlockHeight();
+
+    const memory = process.memoryUsage();
+    const nodeVersion = process.version;
+    const arch = process.arch;
+    const platform = process.platform;
 
     return {
       uptime,
       uptimeHumanReadable,
-      height,
-      settlements,
+      headTotal: memory.heapTotal,
+      headUsed: memory.heapUsed,
+      nodeVersion,
+      arch,
+      platform,
+    };
+  }
+
+  public async getNodeInformation(): Promise<NodeInformation> {
+    const blockHeight = await this.unprovenBlockStorage.getCurrentBlockHeight();
+    const batchHeight = await this.blockStorage.getCurrentBlockHeight();
+
+    return {
+      blockHeight,
+      batchHeight,
     };
   }
 }

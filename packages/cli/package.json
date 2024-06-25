@@ -53,8 +53,7 @@
     "@types/ink": "^2.0.3",
     "@types/node": "^20.8.10",
     "@types/react": "^18.2.34",
-    "@types/ws": "^8.5.4",
-    "o1js": "1.1.0"
+    "@types/ws": "^8.5.4"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }
