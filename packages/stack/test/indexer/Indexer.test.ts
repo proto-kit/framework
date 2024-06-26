@@ -6,10 +6,11 @@ import {
   StateServiceQueryModule,
   TestingAppChain,
 } from "@proto-kit/sdk";
-import { PrivateKey, Provable } from "o1js";
+import { Field, PrivateKey, Provable, Struct, UInt64, ZkProgram } from "o1js";
 import {
   Balance,
   Balances,
+  BalancesKey,
   InMemorySequencerModules,
   TokenId,
   VanillaProtocolModules,
@@ -17,7 +18,7 @@ import {
 } from "@proto-kit/library";
 import { Runtime, runtimeMethod } from "@proto-kit/module";
 import { Sequencer } from "@proto-kit/sequencer";
-import { Protocol } from "@proto-kit/protocol";
+import { Protocol, assert } from "@proto-kit/protocol";
 import {
   GraphqlSequencerModule,
   GraphqlServer,
@@ -38,10 +39,17 @@ log.setLevel("DEBUG");
 class TestBalances extends Balances {
   @runtimeMethod()
   public async mintSigned(tokenId: TokenId, amount: Balance) {
-    const balance = await this.getBalance(
-      tokenId,
-      this.transaction.sender.value
-    );
+    // const balance = await this.getBalance(
+    //   tokenId,
+    //   this.transaction.sender.value
+    // );
+    const balance = (
+      await this.balances.get(
+        new BalancesKey({ tokenId, address: this.transaction.sender.value })
+      )
+    ).value;
+
+    assert(tokenId.equals(0n), "only token 0 is supported");
     this.setBalance(
       tokenId,
       this.transaction.sender.value,
@@ -54,6 +62,8 @@ describe("indexer", () => {
   it("should index every block", async () => {
     const aliceKey = PrivateKey.random();
     const alice = aliceKey.toPublicKey();
+    const bobKey = PrivateKey.random();
+    const bob = bobKey.toPublicKey();
 
     const appChain = new TestingAppChain({
       Runtime: Runtime.from({
@@ -173,22 +183,23 @@ describe("indexer", () => {
     const balances = appChain.runtime.resolve("Balances");
     const tokenId = TokenId.from(0);
 
-    appChain.setSigner(aliceKey);
-
-    for (let i = 0; i < 10; i++) {
-      const tx = await appChain.transaction(alice, async () => {
-        await balances.mintSigned(tokenId, Balance.from(100));
+    for (let i = 0; i < 100; i++) {
+      const isEven = i % 2 === 0;
+      const txTokenId = isEven ? tokenId : TokenId.from(1);
+      appChain.setSigner(isEven ? aliceKey : bobKey);
+      const tx = await appChain.transaction(isEven ? alice : bob, async () => {
+        await balances.mintSigned(txTokenId, Balance.from(100));
       });
 
       await tx.sign();
       await tx.send();
 
-      console.log("sent tx", { nonce: i });
+      console.log("sent tx", { nonce: i, tokenId: txTokenId.toString() });
       const block = await appChain.produceBlock();
 
       Provable.log("produced block", i, block);
       await new Promise((resolve) => {
-        setTimeout(resolve, 10000);
+        setTimeout(resolve, 1000);
       });
     }
 

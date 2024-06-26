@@ -8,7 +8,7 @@ export interface PaginatedResult<Item> {
 export interface UnprovenBlockFilter {
   hash?: string;
   height?: string;
-  isEmpty?: boolean;
+  hideEmpty?: boolean;
 }
 
 export interface UnprovenBlockPagination {

@@ -53,30 +53,28 @@ export class ExtendedUnprovenBlockResolver extends GraphqlModule<object> {
       nullable: true,
     })
     height?: string,
-    @Arg("isEmpty", {
+    @Arg("hideEmpty", {
       nullable: true,
     })
-    isEmpty?: boolean
+    hideEmpty?: boolean
   ) {
-    return new PaginatedUnprovenBlockWithMetadataModel([], 0);
+    const blocks = await this.unprovenBlockStorage.getBlocks(
+      { take, skip },
+      { hash, height, hideEmpty }
+    );
 
-    // const blocks = await this.unprovenBlockStorage.getBlocks(
-    //   { take, skip },
-    //   { hash, height, isEmpty }
-    // );
+    if (!blocks.totalCount)
+      return new PaginatedUnprovenBlockWithMetadataModel([], 0);
 
-    // if (!blocks.totalCount)
-    //   return new PaginatedUnprovenBlockWithMetadataModel([], 0);
+    const mappedBlocks = blocks.items
+      .filter((block) => block)
+      .map((block) => {
+        return UnprovenBlockWithMetadataModel.fromServiceLayerModel(block!);
+      });
 
-    // const mappedBlocks = blocks.items
-    //   .filter((block) => block)
-    //   .map((block) => {
-    //     return UnprovenBlockWithMetadataModel.fromServiceLayerModel(block!);
-    //   });
-
-    // return new PaginatedUnprovenBlockWithMetadataModel(
-    //   mappedBlocks,
-    //   blocks.totalCount
-    // );
+    return new PaginatedUnprovenBlockWithMetadataModel(
+      mappedBlocks,
+      blocks.totalCount
+    );
   }
 }

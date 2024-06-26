@@ -92,7 +92,7 @@ describe("InMemoryUnprovenBlockStorage", () => {
         const { items: blocks } = await storage.getBlocks(
           { take: 100 },
           {
-            isEmpty: true,
+            hideEmpty: true,
           }
         );
 
@@ -103,11 +103,11 @@ describe("InMemoryUnprovenBlockStorage", () => {
         const { items: blocks } = await storage.getBlocks(
           { take: 100 },
           {
-            isEmpty: false,
+            hideEmpty: false,
           }
         );
 
-        expect(blocks.length).toBe(1);
+        expect(blocks.length).toBe(10);
       });
     });
   });
