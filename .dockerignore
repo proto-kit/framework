@@ -1,3 +1,5 @@
 packages/*/dist
 packages/research
 entry.sh
+node_modules
+packages/*/node_modules

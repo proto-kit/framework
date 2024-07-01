@@ -13,6 +13,11 @@ import {
 } from "@proto-kit/sequencer";
 
 import { app } from "./app";
+import {
+  DefaultGraphqlModules,
+  GraphqlSequencerModule,
+  GraphqlServer,
+} from "@proto-kit/api";
 
 export const sequencer = AppChain.from({
   Runtime: app.Runtime,
@@ -23,7 +28,13 @@ export const sequencer = AppChain.from({
       InMemoryDatabase,
       MinaBaseLayer,
       TimedBlockTrigger,
-      {}
+      {
+        GraphqlServer: GraphqlServer,
+
+        Graphql: GraphqlSequencerModule.from({
+          modules: DefaultGraphqlModules.with({}),
+        }),
+      }
     ),
   }),
   modules: {
@@ -59,6 +70,15 @@ sequencer.configure({
       host: "0.0.0.0",
       port: 8080,
       graphiql: true,
+    },
+
+    Graphql: {
+      QueryGraphqlModule: {},
+      MempoolResolver: {},
+      BlockStorageResolver: {},
+      NodeStatusResolver: {},
+      MerkleWitnessResolver: {},
+      UnprovenBlockResolver: {},
     },
   },
   QueryTransportModule: {},
