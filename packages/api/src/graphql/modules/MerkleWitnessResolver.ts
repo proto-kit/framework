@@ -39,7 +39,10 @@ export class MerkleWitnessResolver extends GraphqlModule<object> {
     super();
   }
 
-  @Query(() => MerkleWitnessDTO)
+  @Query(() => MerkleWitnessDTO, {
+    description:
+      "Allows retrieval of merkle witnesses corresponding to a specific path in the appchain's state tree. These proves are generally retrieved from the current 'proven' state",
+  })
   public async witness(@Arg("path") path: string) {
     const syncStore = new CachedMerkleTreeStore(this.treeStore);
     await syncStore.preloadKey(BigInt(path));

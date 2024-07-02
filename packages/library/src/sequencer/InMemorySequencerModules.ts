@@ -10,6 +10,7 @@ import {
   UnprovenProducerModule,
   VanillaTaskWorkerModules,
   TaskWorkerModulesWithoutSettlement,
+  TaskWorkerModulesRecord,
 } from "@proto-kit/sequencer";
 import { TypedClass } from "@proto-kit/common";
 
@@ -29,15 +30,20 @@ export type InMemorySequencerModulesRecord = {
 
 // TODO Delete
 export class InMemorySequencerModules {
-  public static with<SequencerModules extends SequencerModulesRecord>(
-    additionalModules: SequencerModules
+  public static with<
+    SequencerModules extends SequencerModulesRecord,
+    AdditionalTasks extends TaskWorkerModulesRecord,
+  >(
+    additionalModules: SequencerModules,
+    additionalTaskWorkerModules: AdditionalTasks
   ) {
     return {
       Database: InMemoryDatabase,
       Mempool: PrivateMempool,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.withoutSettlement()
-      ),
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from({
+        ...VanillaTaskWorkerModules.withoutSettlement(),
+        ...additionalTaskWorkerModules,
+      }),
       BaseLayer: NoopBaseLayer,
       BlockProducerModule: BlockProducerModule,
       UnprovenProducerModule: UnprovenProducerModule,

@@ -43,21 +43,28 @@ export class BlockStorageResolver extends GraphqlModule {
   // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
+    private readonly batchStorage: BlockStorage & HistoricalBlockStorage,
     private readonly unprovenResolver: UnprovenBlockResolver
   ) {
     super();
   }
 
-  @Query(() => ComputedBlockModel, { nullable: true })
-  public async settlements(
-    @Arg("height", () => Number, { nullable: true })
+  @Query(() => ComputedBlockModel, {
+    nullable: true,
+    description:
+      "Returns previously computed batches of blocks used for settlement",
+  })
+  public async batches(
+    @Arg("height", () => Number, {
+      nullable: true,
+      description: "Filters the batches for a specific height",
+    })
     height: number | undefined
   ) {
     const blockHeight =
-      height ?? (await this.blockStorage.getCurrentBlockHeight()) - 1;
+      height ?? (await this.batchStorage.getCurrentBlockHeight()) - 1;
 
-    const batch = await this.blockStorage.getBlockAt(blockHeight);
+    const batch = await this.batchStorage.getBlockAt(blockHeight);
 
     if (batch !== undefined) {
       const blocks = await Promise.all(
