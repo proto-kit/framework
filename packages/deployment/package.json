@@ -26,8 +26,9 @@
     "@proto-kit/common": "*",
     "@proto-kit/persistance": "*",
     "@proto-kit/sequencer": "*",
+    "@proto-kit/sdk": "*",
     "bullmq": "^3.15.8",
-    "o1js": "1.1.0",
+    "o1js": "^1.1.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

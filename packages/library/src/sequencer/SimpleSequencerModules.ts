@@ -12,19 +12,11 @@ import {
   Database,
 } from "@proto-kit/sequencer";
 import { TypedClass, ModulesConfig } from "@proto-kit/common";
-import {
-  GraphqlSequencerModule,
-  GraphqlServer,
-  DefaultGraphqlModules,
-  DefaultGraphqlModulesRecord,
-} from "@proto-kit/api";
 
 type PreconfiguredSimpleSequencerModulesRecord = {
   Mempool: typeof PrivateMempool;
   BlockProducerModule: typeof BlockProducerModule;
   UnprovenProducerModule: typeof UnprovenProducerModule;
-  GraphqlServer: typeof GraphqlServer;
-  Graphql: TypedClass<GraphqlSequencerModule<DefaultGraphqlModulesRecord>>;
   DatabasePruneModule: typeof DatabasePruneModule;
 };
 
@@ -79,10 +71,6 @@ export class SimpleSequencerModules {
       UnprovenProducerModule: UnprovenProducerModule,
       BlockTrigger: trigger,
       TaskQueue: queue,
-      GraphqlServer: GraphqlServer,
-      Graphql: GraphqlSequencerModule.from({
-        modules: DefaultGraphqlModules.with({}),
-      }),
       ...additionalModules,
     } satisfies SimpleSequencerModulesRecord;
   }
@@ -91,21 +79,6 @@ export class SimpleSequencerModules {
     return {
       UnprovenProducerModule: {
         allowEmptyBlock: true,
-      },
-
-      GraphqlServer: {
-        port: 8080,
-        host: "0.0.0.0",
-        graphiql: true,
-      },
-
-      Graphql: {
-        QueryGraphqlModule: {},
-        MempoolResolver: {},
-        BlockStorageResolver: {},
-        NodeStatusResolver: {},
-        MerkleWitnessResolver: {},
-        UnprovenBlockResolver: {},
       },
 
       Mempool: {},
