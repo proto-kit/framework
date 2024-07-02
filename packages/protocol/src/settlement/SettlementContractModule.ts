@@ -4,6 +4,7 @@ import {
   ModuleContainer,
   ModulesRecord,
   TypedClass,
+  noop,
 } from "@proto-kit/common";
 import { PublicKey, SmartContract } from "o1js";
 import { injectable } from "tsyringe";
@@ -84,7 +85,9 @@ export class SettlementContractModule<
     super.create(childContainerProvider);
   }
 
-  // private assertIsKeyofModules
+  public async start() {
+    noop();
+  }
 
   public getContractClasses(): {
     settlement: SmartContractClassFromInterface<SettlementContractType>;
