@@ -20,4 +20,8 @@ export abstract class ProtocolModule<
   public create(childContainerProvider: ChildContainerProvider): void {
     noop();
   }
+
+  public async start() {
+    noop();
+  }
 }
