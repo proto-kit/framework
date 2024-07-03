@@ -39,10 +39,6 @@ log.setLevel("DEBUG");
 class TestBalances extends Balances {
   @runtimeMethod()
   public async mintSigned(tokenId: TokenId, amount: Balance) {
-    // const balance = await this.getBalance(
-    //   tokenId,
-    //   this.transaction.sender.value
-    // );
     const balance = (
       await this.balances.get(
         new BalancesKey({ tokenId, address: this.transaction.sender.value })

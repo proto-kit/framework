@@ -55,5 +55,8 @@
     "*.ts": [
       "npm run lint:staged"
     ]
+  },
+  "dependencies": {
+    "react-json-view-lite": "^1.4.0"
   }
 }

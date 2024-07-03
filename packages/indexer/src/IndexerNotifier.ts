@@ -42,6 +42,10 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
         flowId: "", // empty for now
       };
       queue.addTask(task);
+      console.log(
+        "notifying block",
+        block.block.transactions[0].stateTransitions
+      );
     });
   }
 

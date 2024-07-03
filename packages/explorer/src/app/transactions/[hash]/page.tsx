@@ -22,6 +22,14 @@ import { useCallback, useEffect, useState } from "react";
 import config from "@/config";
 import Truncate from "react-truncate-inside/es";
 import useQuery from "@/hooks/use-query";
+import {
+  JsonView,
+  allExpanded,
+  darkStyles,
+  defaultStyles,
+} from "react-json-view-lite";
+import "react-json-view-lite/dist/index.css";
+import { cn } from "@/lib/utils";
 
 export interface GetTransactionQueryResponse {
   transactions: {
@@ -36,6 +44,28 @@ export interface GetTransactionQueryResponse {
           };
           status: boolean;
           statusMessage?: string;
+          stateTransitions: {
+            path: string;
+            from: {
+              isSome: boolean;
+              value: string;
+            };
+            to: {
+              isSome: boolean;
+              value: string;
+            };
+          }[];
+          protocolTransitions: {
+            path: string;
+            from: {
+              isSome: boolean;
+              value: string;
+            };
+            to: {
+              isSome: boolean;
+              value: string;
+            };
+          }[];
         }
       | undefined
     )[];
@@ -65,7 +95,29 @@ export default function BlockDetail() {
             nonce
           },
           status,
-          statusMessage
+          statusMessage,
+          stateTransitions {
+            path,
+            from {
+              isSome, 
+              value
+            }
+            to {
+              isSome,
+              value
+            }
+          }
+          protocolTransitions {
+            path,
+            from {
+              isSome, 
+              value
+            }
+            to {
+              isSome,
+              value
+            }
+          }
         }
       }
     }`);
@@ -123,44 +175,52 @@ export default function BlockDetail() {
       details={details}
       loading={loading}
     >
-      <></>
-      {/* <Form {...form}>
-        <form
-          id="table"
-          className="w-full"
-          onSubmit={form.handleSubmit(() => {})}
-        >
-          <List
-            view={Object.keys(columns)}
-            onViewChange={() => {}}
-            loading={loading}
-            tableRow={(item, i, loading, view) => (
-              <TransactionsTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={loading}
-                view={view}
-              />
-            )}
-            page={0}
-            data={{
-              totalCount: "0",
-              items:
-                data?.blocks.items[0]?.block.txs.map((tx) => ({
-                  ...tx.tx,
-                  status: `${tx.status}`,
-                  statusMessage: tx.statusMessage ?? "—",
-                })) ?? [],
-            }}
-            columns={columns}
-            title={"Transactions"}
-            titleClassName="text-4xl lg:text-4xl"
-            hasDetails={true}
-            pagination={false}
-          />
-        </form>
-      </Form> */}
+      {loading ? (
+        <></>
+      ) : (
+        <div className="flex flex-col w-full flex-grow">
+          <div>
+            <h1 className={cn("text-3xl font-extrabold tracking-tight mb-4")}>
+              Runtime state transitions (
+              {data?.transactions.items[0]?.stateTransitions.length})
+            </h1>
+            <Card>
+              {data?.transactions.items[0]?.stateTransitions && (
+                <JsonView
+                  data={data?.transactions.items[0]?.stateTransitions}
+                  shouldExpandNode={allExpanded}
+                  style={{
+                    ...defaultStyles,
+                    container: "",
+                    booleanValue: "",
+                  }}
+                />
+              )}
+            </Card>
+          </div>
+          <div>
+            <h1
+              className={cn("text-3xl font-extrabold tracking-tight mt-4 mb-4")}
+            >
+              Protocol state transitions (
+              {data?.transactions.items[0]?.protocolTransitions.length})
+            </h1>
+            <Card>
+              {data?.transactions.items[0]?.protocolTransitions && (
+                <JsonView
+                  data={data?.transactions.items[0]?.protocolTransitions}
+                  shouldExpandNode={allExpanded}
+                  style={{
+                    ...defaultStyles,
+                    container: "",
+                    booleanValue: "",
+                  }}
+                />
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
     </DetailsLayout>
   );
 }

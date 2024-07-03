@@ -37,19 +37,15 @@ export class StateTransitionModel {
   public path: string;
 
   @Field(() => OptionModel)
-  public fromValue: OptionModel;
+  public from: OptionModel;
 
   @Field(() => OptionModel)
-  public toValue: OptionModel;
+  public to: OptionModel;
 
-  public constructor(
-    path: string,
-    fromValue: OptionModel,
-    toValue: OptionModel
-  ) {
+  public constructor(path: string, from: OptionModel, to: OptionModel) {
     this.path = path;
-    this.fromValue = fromValue;
-    this.toValue = toValue;
+    this.from = from;
+    this.to = to;
   }
 }
 
