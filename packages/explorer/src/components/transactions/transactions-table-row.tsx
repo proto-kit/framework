@@ -5,6 +5,7 @@ import Truncate from "react-truncate-inside";
 import { ChevronRight, CircleCheck, CircleX, Clipboard } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { TableItemTitle } from "../list";
 
 export interface TableItem {
   hash: string;
@@ -17,7 +18,7 @@ export interface TableItem {
 
 export interface TableRowProps {
   key: number;
-  columns: Record<string, string>;
+  columns: Record<string, TableItemTitle>;
   view: string[];
   loading: boolean;
   item: TableItem;

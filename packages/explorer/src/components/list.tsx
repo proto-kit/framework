@@ -29,6 +29,11 @@ import { useCallback, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFormContext } from "react-hook-form";
 
+export interface TableItemTitle {
+  label: string;
+  className?: string;
+}
+
 export interface ListProps<TableItem> {
   title: string;
   filters?: JSX.Element;
@@ -38,7 +43,8 @@ export interface ListProps<TableItem> {
     totalCount: string;
     items: TableItem[];
   };
-  columns: Record<string, string>;
+  columns: Record<string, TableItemTitle>;
+  dummyItem: TableItem;
   tableRow: (
     item: TableItem,
     i: number,
@@ -60,6 +66,7 @@ export default function List<TableItem>({
   page,
   loading,
   data,
+  dummyItem,
   tableRow,
   columns,
   view,
@@ -138,26 +145,21 @@ export default function List<TableItem>({
               <TableRow>
                 {view.length ? (
                   Object.keys(columns).map((key, i) => (
-                    <TableHead
-                      className={cn({
-                        "w-[100px]": i === 0,
-                      })}
-                      key={i}
-                    >
-                      {columns[key]}
+                    <TableHead className={cn(columns[key].className)} key={i}>
+                      {columns[key].label}
                     </TableHead>
                   ))
                 ) : (
                   <></>
                 )}
-                <TableHead className="w-12" />
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody className="cursor-pointer">
               {!loading
                 ? data?.items.map((item, i) => tableRow(item, i, loading, view))
                 : loadingData.items.map((item, i) =>
-                    tableRow(item as any, i, true, view)
+                    tableRow(dummyItem, i, true, view)
                   )}
             </TableBody>
           </Table>
@@ -169,8 +171,7 @@ export default function List<TableItem>({
                   className="h-16 w-16 text-muted-foreground"
                 />
                 <p className="text-center text-muted-foreground text-md">
-                  No data found, <br />
-                  try changing the filters.
+                  No data found
                 </p>
               </div>
             </div>

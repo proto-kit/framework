@@ -1,7 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import List, { ListProps, showPerPage } from "@/components/list";
+import List, {
+  ListProps,
+  TableItemTitle,
+  showPerPage,
+} from "@/components/list";
 import { useCallback, useEffect, useState } from "react";
 
 import useQueryParams from "@/hooks/use-query-params";
@@ -33,13 +37,13 @@ export interface GetBlocksQueryResponse {
   };
 }
 
-const columns: Record<keyof TableItem, string> = {
-  hash: "Hash",
-  methodId: "Method ID",
-  sender: "Sender",
-  nonce: "Nonce",
-  status: "Status",
-  statusMessage: "Status Message",
+const columns: Record<keyof TableItem, TableItemTitle> = {
+  hash: { label: "Hash" },
+  methodId: { label: "Method ID" },
+  sender: { label: "Sender" },
+  nonce: { label: "Nonce" },
+  status: { label: "Status" },
+  statusMessage: { label: "Status Message" },
 };
 
 const formSchema = z.object({

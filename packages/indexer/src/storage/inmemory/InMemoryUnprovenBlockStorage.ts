@@ -28,8 +28,6 @@ export class InMemoryUnprovenBlockStorage implements UnprovenBlockStorage {
   ) {
     let blocks = [...this.blocks];
 
-    console.log("getting blocks", blocks);
-
     if (filter?.hash !== undefined) {
       blocks = blocks.filter(
         ({ block }) => block.hash.toString() === filter.hash?.toString()

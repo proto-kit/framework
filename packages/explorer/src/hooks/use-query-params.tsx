@@ -1,7 +1,10 @@
+import { TableItemTitle } from "@/components/list";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-export default function useQueryParams(columns: Record<string, string>) {
+export default function useQueryParams(
+  columns: Record<string, TableItemTitle>
+) {
   const [view, setView] = useState<string[]>(Object.keys(columns));
   const searchParams = useSearchParams();
 
@@ -13,11 +16,6 @@ export default function useQueryParams(columns: Record<string, string>) {
 
   initalFilters?.forEach((value, key) => {
     filtersObject[key] = value;
-  });
-
-  console.log("initialFilters", {
-    initalFilters,
-    filtersObject,
   });
 
   const [filters, setFilters] =
@@ -66,5 +64,30 @@ export default function useQueryParams(columns: Record<string, string>) {
     );
   }, [view, filters, page]);
 
-  return [page, view, filters, setPage, setView, setFilters] as const;
+  const clearFilters = useCallback(() => {
+    setFilters({});
+  }, []);
+
+  const filterString = Object.entries(filters).reduce(
+    (filterString, [key, value]) => {
+      if (value) {
+        return (
+          filterString + `, ${key}: ${value === "true" ? true : `"${value}"`}`
+        );
+      }
+      return filterString;
+    },
+    ""
+  );
+
+  return [
+    page,
+    view,
+    filters,
+    setPage,
+    setView,
+    setFilters,
+    clearFilters,
+    filterString,
+  ] as const;
 }

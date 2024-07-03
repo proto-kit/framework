@@ -1,7 +1,6 @@
 "use client";
-import { useSearchParams } from "next/navigation";
-import List, { ListProps, showPerPage } from "@/components/list";
-import { useCallback, useEffect, useState } from "react";
+import List, { TableItemTitle, showPerPage } from "@/components/list";
+import { useCallback } from "react";
 import BlocksFilters from "@/components/blocks/blocks-filters";
 
 import useQueryParams from "@/hooks/use-query-params";
@@ -9,50 +8,59 @@ import BlocksTableRow, {
   TableItem,
 } from "@/components/blocks/blocks-table-row";
 import { Form } from "@/components/ui/form";
-import { set, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import config from "@/config";
+import useQuery from "@/hooks/use-query";
 
 export interface GetBlocksQueryResponse {
-  data: {
-    blocks: {
-      totalCount: string;
-      items: {
-        block: {
-          hash: string;
-          txs: string[];
-          height: string;
-        };
-        metadata: {
-          stateRoot: string;
-        };
-      }[];
-    };
+  blocks: {
+    totalCount: string;
+    items: {
+      block: {
+        hash: string;
+        txs: string[];
+        height: string;
+      };
+      metadata: {
+        stateRoot: string;
+      };
+    }[];
   };
 }
 
-const columns: Record<keyof TableItem, string> = {
-  height: "Height",
-  hash: "Hash",
-  transactions: "Transactions",
-  stateRoot: "State root",
+const columns: Record<keyof TableItem, TableItemTitle> = {
+  height: {
+    label: "Height",
+  },
+  hash: {
+    label: "Hash",
+  },
+  transactions: {
+    label: "Transactions",
+  },
+  stateRoot: {
+    label: "State root",
+  },
 };
 
 const formSchema = z.object({
   height: z.string().optional(),
-
   hash: z.string().optional(),
   hideEmpty: z.boolean().optional(),
 });
 
 export default function Blocks() {
-  const searchParams = useSearchParams();
-
-  const [page, view, filters, setPage, setView, setFilters] =
-    useQueryParams(columns);
-  const [data, setData] = useState<ListProps<TableItem>["data"]>();
-  const [loading, setLoading] = useState(true);
+  const [
+    page,
+    view,
+    filters,
+    setPage,
+    setView,
+    setFilters,
+    clearQueryParamsFilters,
+    filterString,
+  ] = useQueryParams(columns);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,81 +80,37 @@ export default function Blocks() {
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters({});
+    clearQueryParamsFilters();
+    // set empty values manually, since default values correspond to the current filters on load
     form.setValue("height", "");
     form.setValue("hash", "");
     form.setValue("hideEmpty", false);
     form.trigger();
-  }, [handleSubmit]);
+  }, [handleSubmit, clearQueryParamsFilters]);
 
-  const query = useCallback(async () => {
-    setLoading(true);
+  const skip = showPerPage * (page - 1);
 
-    const skip = showPerPage * (page - 1);
-
-    const filterString = Object.entries(filters).reduce(
-      (filterString, [key, value]) => {
-        if (value) {
-          return (
-            filterString + `, ${key}: ${value === "true" ? true : `"${value}"`}`
-          );
-        }
-        return filterString;
-      },
-      ""
-    );
-
-    const responseData = await fetch(`${config.INDEXER_URL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `{
-          blocks(take: ${showPerPage}, skip: ${skip} ${filterString ? `${filterString}` : ""}){
-            totalCount,
-            items {
-              block {
-                height,
-                hash,
-                txs {
-                  tx {
-                    hash
-                  }
-                }
-              }
-              metadata {
-                stateRoot
+  const [data, loading] = useQuery<GetBlocksQueryResponse>(
+    `{
+      blocks(take: ${showPerPage}, skip: ${skip} ${filterString ? `${filterString}` : ""}){
+        totalCount,
+        items {
+          block {
+            height,
+            hash,
+            txs {
+              tx {
+                hash
               }
             }
           }
-        }`,
-      }),
-    });
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    try {
-      const response = (await responseData.json()) as GetBlocksQueryResponse;
-
-      setData({
-        totalCount: response.data.blocks.totalCount,
-        items: response.data.blocks.items.map((item) => ({
-          height: item.block.height,
-          hash: item.block.hash,
-          transactions: item.block.txs.length.toString(),
-          stateRoot: item.metadata.stateRoot,
-        })),
-      });
-      setLoading(false);
-    } catch (e) {
-      console.error(e);
-      setLoading(false);
-      setData(undefined);
-    }
-  }, [searchParams, filters, page]);
-
-  useEffect(() => {
-    query();
-  }, [filters, page]);
+          metadata {
+            stateRoot
+          }
+        }
+      }
+    }`
+  );
 
   return (
     <>
@@ -157,17 +121,35 @@ export default function Blocks() {
             onViewChange={setView}
             filters={<BlocksFilters clearFilters={clearFilters} />}
             loading={loading}
-            tableRow={(item, i, loading, view) => (
-              <BlocksTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={loading}
-                view={view}
-              />
-            )}
+            dummyItem={{
+              block: {
+                height: "0",
+                hash: "0",
+                txs: ["0"],
+              },
+              metadata: {
+                stateRoot: "0",
+              },
+            }}
+            tableRow={(item, i, loading, view) => {
+              console.log("item", item);
+              return (
+                <BlocksTableRow
+                  columns={columns}
+                  key={i}
+                  item={{
+                    height: item.block.height,
+                    hash: item.block.hash,
+                    transactions: item.block.txs.length.toString(),
+                    stateRoot: item.metadata.stateRoot,
+                  }}
+                  loading={loading}
+                  view={view}
+                />
+              );
+            }}
             page={page}
-            data={data}
+            data={data?.blocks}
             columns={columns}
             title={"Blocks"}
             hasDetails={true}
