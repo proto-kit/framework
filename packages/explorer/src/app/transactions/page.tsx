@@ -18,22 +18,21 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import TransactionsFilters from "@/components/transactions/transactions-filters";
 import config from "../../config";
+import useQuery from "@/hooks/use-query";
 
-export interface GetBlocksQueryResponse {
-  data: {
-    transactions: {
-      totalCount: string;
-      items: {
-        tx: {
-          hash: string;
-          sender: string;
-          methodId: string;
-          nonce: string;
-        };
-        status: boolean;
-        statusMessage?: string;
-      }[];
-    };
+export interface GetTransactionsQueryResponse {
+  transactions: {
+    totalCount: string;
+    items: {
+      tx: {
+        hash: string;
+        sender: string;
+        methodId: string;
+        nonce: string;
+      };
+      status: boolean;
+      statusMessage?: string;
+    }[];
   };
 }
 
@@ -53,12 +52,16 @@ const formSchema = z.object({
 });
 
 export default function Transactions() {
-  const searchParams = useSearchParams();
-
-  const [page, view, filters, setPage, setView, setFilters] =
-    useQueryParams(columns);
-  const [data, setData] = useState<ListProps<TableItem>["data"]>();
-  const [loading, setLoading] = useState(true);
+  const [
+    page,
+    view,
+    filters,
+    setPage,
+    setView,
+    setFilters,
+    clearQueryParamsFilters,
+    filterString,
+  ] = useQueryParams(columns);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,7 +73,6 @@ export default function Transactions() {
   });
 
   const handleSubmit = useCallback((data: z.infer<typeof formSchema>) => {
-    console.log("submit", data);
     setFilters({
       ...data,
     });
@@ -78,79 +80,32 @@ export default function Transactions() {
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters({});
+    clearQueryParamsFilters();
     form.setValue("sender", "");
     form.setValue("hash", "");
     form.setValue("methodId", "");
     form.trigger();
-  }, [handleSubmit]);
+  }, [handleSubmit, clearQueryParamsFilters]);
 
-  const query = useCallback(async () => {
-    setLoading(true);
+  const skip = showPerPage * (page - 1);
 
-    const skip = showPerPage * (page - 1);
-
-    const filterString = Object.entries(filters).reduce(
-      (filterString, [key, value]) => {
-        if (value) {
-          return (
-            filterString + `, ${key}: ${value === "true" ? true : `"${value}"`}`
-          );
+  const [data, loading] = useQuery<GetTransactionsQueryResponse>(
+    `{
+      transactions(take: ${showPerPage}, skip: ${skip} ${filterString ? `${filterString}` : ""}){
+        totalCount,
+        items {
+          tx {
+            hash,
+            methodId,
+            sender,
+            nonce
+          },
+          status,
+          statusMessage
         }
-        return filterString;
-      },
-      ""
-    );
-
-    const responseData = await fetch(`${config.INDEXER_URL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `{
-          transactions(take: ${showPerPage}, skip: ${skip} ${filterString ? `${filterString}` : ""}){
-            totalCount,
-            items {
-              tx {
-                hash,
-                methodId,
-                sender,
-                nonce
-              },
-              status,
-              statusMessage
-            }
-          }
-        }`,
-      }),
-    });
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    try {
-      const response = (await responseData.json()) as GetBlocksQueryResponse;
-
-      setData({
-        totalCount: response.data.transactions.totalCount,
-        items: response.data.transactions.items.map((item) => ({
-          hash: item.tx.hash,
-          methodId: item.tx.methodId,
-          sender: item.tx.sender,
-          nonce: item.tx.nonce,
-          status: item.status ? "true" : "false",
-          statusMessage: item.statusMessage ?? "—",
-        })),
-      });
-      setLoading(false);
-    } catch (e) {
-      console.error(e);
-      setLoading(false);
-      setData(undefined);
-    }
-  }, [searchParams, filters, page]);
-
-  useEffect(() => {
-    query();
-  }, [filters, page]);
+      }
+    }`
+  );
 
   return (
     <>
@@ -161,17 +116,38 @@ export default function Transactions() {
             onViewChange={setView}
             filters={<TransactionsFilters clearFilters={clearFilters} />}
             loading={loading}
-            tableRow={(item, i, loading, view) => (
-              <TransactionsTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={loading}
-                view={view}
-              />
-            )}
+            dummyItem={{
+              tx: {
+                hash: "0",
+                methodId: "0",
+                sender: "0",
+                nonce: "0",
+              },
+              status: true,
+              statusMessage: "0",
+            }}
+            tableRow={(item, i, loading, view) => {
+              console.log("item", item);
+
+              return (
+                <TransactionsTableRow
+                  columns={columns}
+                  key={i}
+                  item={{
+                    hash: item.tx.hash,
+                    methodId: item.tx.methodId,
+                    sender: item.tx.sender,
+                    nonce: item.tx.nonce,
+                    status: item.status ? "true" : "false",
+                    statusMessage: item.statusMessage ?? "—",
+                  }}
+                  loading={loading}
+                  view={view}
+                />
+              );
+            }}
             page={page}
-            data={data}
+            data={data?.transactions}
             columns={columns}
             title={"Transactions"}
             hasDetails={true}

@@ -132,7 +132,6 @@ export default function Blocks() {
               },
             }}
             tableRow={(item, i, loading, view) => {
-              console.log("item", item);
               return (
                 <BlocksTableRow
                   columns={columns}

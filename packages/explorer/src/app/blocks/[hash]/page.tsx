@@ -1,26 +1,13 @@
 "use client";
-import { Card } from "@/components/ui/card";
-import { CircleCheck } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { DetailsLayout } from "@/components/details/layout";
 import TransactionsTableRow, {
   TableItem,
 } from "@/components/transactions/transactions-table-row";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import List, { ListProps, TableItemTitle } from "@/components/list";
-import { useCallback, useEffect, useState } from "react";
-import config from "@/config";
-import Truncate from "react-truncate-inside/es";
+import List, { TableItemTitle } from "@/components/list";
 import useQuery from "@/hooks/use-query";
 
 export interface GetBlockQueryResponse {
@@ -135,12 +122,12 @@ export default function BlockDetail() {
               methodId: "0",
               nonce: "0",
             }}
-            tableRow={(item, i, loading, view) => (
+            tableRow={(item, i, _loading, view) => (
               <TransactionsTableRow
                 columns={columns}
                 key={i}
                 item={item}
-                loading={loading}
+                loading={_loading}
                 view={view}
               />
             )}
