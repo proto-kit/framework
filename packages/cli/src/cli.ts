@@ -25,6 +25,19 @@ yargs(hideBin(process.argv))
         describe: "block interval in seconds",
         type: "number",
       },
+      environment: {
+        default: "default",
+      },
+      configuration: {
+        default: "sequencer",
+      },
+      logLevel: {
+        default: "WARN",
+      },
+      prune: {
+        type: "boolean",
+        default: false,
+      },
     },
     start
   )

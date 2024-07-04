@@ -32,7 +32,7 @@ class Ballot extends Struct({
   ballot: Provable.Array(UInt64, BALLOT_LENGTH),
 }) {
   public static empty(): Ballot {
-    const ballot = Array(10).fill(UInt64.from(0));
+    const ballot = Array<UInt64>(10).fill(UInt64.from(0));
     return new Ballot({ ballot });
   }
 }
@@ -84,9 +84,9 @@ class TestRuntime extends RuntimeModule<unknown> {
       TestStruct.toFields(struct)
     );
     assert(valid, "Signature invalid");
-    this.test1.set(field);
-    this.ballots.get(Field(1));
-    this.ballots.set(Field(1), ballot);
+    await this.test1.set(field);
+    await this.ballots.get(Field(1));
+    await this.ballots.set(Field(1), ballot);
 
     const [root, key] = witness.computeRootAndKey(Field(0));
     const knownRoot = Provable.witness(Field, () => map.getRoot());

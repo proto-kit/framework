@@ -17,6 +17,6 @@ export class TestBalances extends Balances<BalancesConfig> {
     address: PublicKey,
     amount: Balance
   ) {
-    super.setBalance(tokenId, address, amount);
+    await super.setBalance(tokenId, address, amount);
   }
 }

@@ -7,6 +7,7 @@ import {
   StateTransitionProver,
   LastStateRootBlockHook,
 } from "@proto-kit/protocol";
+import { PrivateKey } from "o1js";
 
 import { TransactionFeeHook } from "../hooks/TransactionFeeHook";
 
@@ -34,6 +35,29 @@ export class VanillaProtocolModules {
     return {
       ...VanillaProtocolModules.mandatoryModules(additionalModules),
       TransactionFee: TransactionFeeHook,
+    };
+  }
+
+  public static mandatoryConfig() {
+    return {
+      BlockProver: {},
+      StateTransitionProver: {},
+      AccountState: {},
+      BlockHeight: {},
+      LastStateRoot: {},
+    };
+  }
+
+  public static defaultConfig() {
+    return {
+      ...VanillaProtocolModules.mandatoryConfig(),
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 0n,
+        perWeightUnitFee: 0n,
+        methods: {},
+      },
     };
   }
 }

@@ -62,7 +62,7 @@ export class TestBalances extends Balances {
     tokenId: TokenId,
     address: PublicKey
   ): Promise<Balance> {
-    return super.getBalance(tokenId, address);
+    return await super.getBalance(tokenId, address);
   }
 
   @runtimeMethod()
@@ -71,11 +71,13 @@ export class TestBalances extends Balances {
     address: PublicKey,
     balance: UInt64
   ) {
-    const totalSupply = this.totalSupply.get();
-    this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(balance));
+    const totalSupply = await this.totalSupply.get();
+    await this.totalSupply.set(totalSupply.orElse(UInt64.zero).add(balance));
 
-    const previous = this.balances.get(new BalancesKey({ tokenId, address }));
-    this.balances.set(
+    const previous = await this.balances.get(
+      new BalancesKey({ tokenId, address })
+    );
+    await this.balances.set(
       new BalancesKey({ tokenId, address }),
       previous.orElse(UInt64.zero).add(balance)
     );

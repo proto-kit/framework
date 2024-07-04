@@ -53,7 +53,7 @@ export class PrismaStateService implements AsyncStateService {
     this.cache = [];
   }
 
-  public async getAsync(keys: Field[]): Promise<StateEntry[]> {
+  public async getMany(keys: Field[]): Promise<StateEntry[]> {
     const records = await this.connection.prismaClient.state.findMany({
       where: {
         AND: [
@@ -78,8 +78,8 @@ export class PrismaStateService implements AsyncStateService {
     noop();
   }
 
-  public async getSingleAsync(key: Field): Promise<Field[] | undefined> {
-    const state = await this.getAsync([key]);
+  public async get(key: Field): Promise<Field[] | undefined> {
+    const state = await this.getMany([key]);
     return state.at(-1)?.value;
   }
 

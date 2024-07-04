@@ -23,13 +23,11 @@ export function assert(condition: Bool, message?: string | (() => string)) {
       if (!executionContext.current().isSimulated) {
         log.debug("Assertion failed: ", message);
       }
-      let messageString: string | undefined = undefined;
-      if (message !== undefined && typeof message === "function") {
-        messageString = message();
-      } else {
-        messageString = message;
-      }
-      executionContext.setStatusMessage(messageString);
+      const messageString =
+        message !== undefined && typeof message === "function"
+          ? message()
+          : message;
+      executionContext.setStatusMessage(messageString, new Error().stack);
     }
   });
 

@@ -1,26 +1,30 @@
 import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
-import { log } from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
+import {
+  TaskPayload,
+  Closeable,
+  InstantiatedQueue,
+  TaskQueue,
+  SequencerModule,
+} from "@proto-kit/sequencer";
 
-import { TaskPayload } from "../flow/Task";
-
-import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
+export interface BullQueueConfig {
+  redis: {
+    host: string;
+    port: number;
+    username?: string;
+    password?: string;
+  };
+  retryAttempts?: number;
+}
 
 /**
  * TaskQueue implementation for BullMQ
  */
-export class BullQueue implements TaskQueue {
-  public constructor(
-    private readonly redis: {
-      host: string;
-      port: number;
-      username?: string;
-      password?: string;
-    },
-    private readonly options: {
-      retryAttempts?: number;
-    } = {}
-  ) {}
-
+export class BullQueue
+  extends SequencerModule<BullQueueConfig>
+  implements TaskQueue
+{
   public createWorker(
     name: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>,
@@ -31,7 +35,7 @@ export class BullQueue implements TaskQueue {
       async (job) => JSON.stringify(await executor(job.data)),
       {
         concurrency: options?.concurrency ?? 1,
-        connection: this.redis,
+        connection: this.config.redis,
 
         metrics: { maxDataPoints: MetricsTime.ONE_HOUR * 24 },
       }
@@ -51,21 +55,21 @@ export class BullQueue implements TaskQueue {
   }
 
   public async getQueue(queueName: string): Promise<InstantiatedQueue> {
+    const { retryAttempts, redis } = this.config;
+
     const queue = new Queue<TaskPayload, TaskPayload>(queueName, {
-      connection: this.redis,
+      connection: redis,
     });
-    const events = new QueueEvents(queueName, { connection: this.redis });
+    const events = new QueueEvents(queueName, { connection: redis });
 
     await queue.drain();
-
-    const { options } = this;
 
     return {
       name: queueName,
 
       async addTask(payload: TaskPayload): Promise<{ taskId: string }> {
         const job = await queue.add(queueName, payload, {
-          attempts: options.retryAttempts ?? 2,
+          attempts: retryAttempts ?? 2,
         });
         return { taskId: job.id! };
       },
@@ -83,5 +87,9 @@ export class BullQueue implements TaskQueue {
         await queue.close();
       },
     };
+  }
+
+  public async start() {
+    noop();
   }
 }

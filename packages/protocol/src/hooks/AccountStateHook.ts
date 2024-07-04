@@ -21,7 +21,7 @@ export class AccountStateHook extends ProvableTransactionHook {
   public async onTransaction({ transaction }: BlockProverExecutionData) {
     const sender = transaction.sender.value;
 
-    const aso = this.accountState.get(sender);
+    const aso = await this.accountState.get(sender);
 
     const accountState = aso.orElse(new AccountState({ nonce: UInt64.zero }));
 
@@ -43,6 +43,6 @@ export class AccountStateHook extends ProvableTransactionHook {
       currentNonce.value.add(1).mul(transaction.sender.isSome.toField())
     );
 
-    this.accountState.set(sender, new AccountState({ nonce: newNonce }));
+    await this.accountState.set(sender, new AccountState({ nonce: newNonce }));
   }
 }

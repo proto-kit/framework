@@ -3,6 +3,7 @@ import {
   EventEmittingComponent,
   NoConfig,
   noop,
+  log,
 } from "@proto-kit/common";
 
 import { ComputedBlock, SettleableBatch } from "../../../storage/model/Block";
@@ -86,9 +87,10 @@ export class BlockTriggerBase<
 
   protected async settle(batch: SettleableBatch) {
     if (this.settlementModule === undefined) {
-      throw new Error(
-        "SettlementModule not configured, cannot compute settlement"
+      log.info(
+        "SettlementModule not configured, cannot compute settlement, skipping"
       );
+      return undefined;
     }
     if (this.settlementStorage === undefined) {
       throw new Error(

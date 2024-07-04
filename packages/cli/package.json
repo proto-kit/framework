@@ -39,7 +39,8 @@
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "@proto-kit/library": "*",
-    "o1js": "1.1.0"
+    "@proto-kit/deployment": "*",
+    "o1js": "^1.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
@@ -54,8 +55,7 @@
     "@types/figlet": "^1.5.8",
     "@types/gradient-string": "^1.1.6",
     "@types/node": "^20.8.10",
-    "@types/ws": "^8.5.4",
-    "o1js": "1.1.0"
+    "@types/ws": "^8.5.4"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }

@@ -116,6 +116,8 @@ describe("block production", () => {
   it("should produce a dummy block proof", async () => {
     expect.assertions(25);
 
+    log.setLevel("TRACE");
+
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
 
@@ -178,15 +180,14 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       publicKey
     );
-    const newState = await stateService.getSingleAsync(balancesPath);
-    const newUnprovenState =
-      await unprovenStateService.getSingleAsync(balancesPath);
+    const newState = await stateService.get(balancesPath);
+    const newUnprovenState = await unprovenStateService.get(balancesPath);
 
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
-    expect(UInt64.fromFields(newState!)).toStrictEqual(UInt64.from(100));
-    expect(UInt64.fromFields(newUnprovenState!)).toStrictEqual(
-      UInt64.from(100)
+    expect(UInt64.fromFields(newState!).toString()).toStrictEqual("100");
+    expect(UInt64.fromFields(newUnprovenState!).toString()).toStrictEqual(
+      "100"
     );
 
     // Check that nonce has been set
@@ -196,7 +197,7 @@ describe("block production", () => {
       accountModule.accountState.keyType,
       publicKey
     );
-    const newAccountState = await stateService.getSingleAsync(accountStatePath);
+    const newAccountState = await stateService.get(accountStatePath);
 
     expect(newAccountState).toBeDefined();
     expect(AccountState.fromFields(newAccountState!).nonce.toBigInt()).toBe(1n);
@@ -227,7 +228,7 @@ describe("block production", () => {
     expect(batch!.bundles).toHaveLength(1);
     expect(batch!.proof.proof).toBe("mock-proof");
 
-    const state2 = await stateService.getSingleAsync(balancesPath);
+    const state2 = await stateService.get(balancesPath);
 
     expect(state2).toBeDefined();
     expect(UInt64.fromFields(state2!)).toStrictEqual(UInt64.from(200));
@@ -274,9 +275,8 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       PublicKey.empty()
     );
-    const unprovenState =
-      await unprovenStateService.getSingleAsync(balancesPath);
-    const newState = await stateService.getSingleAsync(balancesPath);
+    const unprovenState = await unprovenStateService.get(balancesPath);
+    const newState = await stateService.get(balancesPath);
 
     // Assert that state is not set
     expect(unprovenState).toBeUndefined();
@@ -341,7 +341,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       publicKey
     );
-    const newState = await stateService.getSingleAsync(balancesPath);
+    const newState = await stateService.get(balancesPath);
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
@@ -393,7 +393,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       pk1.toPublicKey()
     );
-    const newState1 = await stateService.getSingleAsync(balancesPath1);
+    const newState1 = await stateService.get(balancesPath1);
 
     expect(newState1).toBeUndefined();
 
@@ -402,7 +402,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       pk2.toPublicKey()
     );
-    const newState2 = await stateService.getSingleAsync(balancesPath2);
+    const newState2 = await stateService.get(balancesPath2);
 
     expect(newState2).toBeDefined();
     expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
@@ -505,7 +505,7 @@ describe("block production", () => {
         "AsyncStateService"
       );
     const supplyPath = Path.fromProperty("Balance", "totalSupply");
-    const newState = await stateService.getSingleAsync(supplyPath);
+    const newState = await stateService.get(supplyPath);
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
@@ -521,7 +521,7 @@ describe("block production", () => {
       pk2
     );
 
-    const newBalance = await stateService.getSingleAsync(balancesPath);
+    const newBalance = await stateService.get(balancesPath);
 
     expect(newBalance).toBeDefined();
     expect(UInt64.fromFields(newBalance!)).toStrictEqual(UInt64.from(200));

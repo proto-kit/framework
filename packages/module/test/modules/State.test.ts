@@ -51,7 +51,7 @@ describe("state", () => {
   });
 
   describe("transient state", () => {
-    it("should track previously set state", () => {
+    it("should track previously set state", async () => {
       expect.assertions(2);
 
       const executionContext = container.resolve(RuntimeMethodExecutionContext);
@@ -59,7 +59,7 @@ describe("state", () => {
         networkState: NetworkState.empty(),
         transaction: RuntimeTransaction.dummyTransaction(),
       });
-      balances.transientState();
+      await balances.transientState();
 
       const stateTransitions = executionContext
         .current()

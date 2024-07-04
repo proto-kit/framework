@@ -1,4 +1,4 @@
-import { log } from "@proto-kit/common";
+import { log, TypedClass } from "@proto-kit/common";
 import {
   InMemoryStateService,
   Runtime,
@@ -22,9 +22,10 @@ import { GraphqlClient } from "../graphql/GraphqlClient";
 import { GraphqlQueryTransportModule } from "../graphql/GraphqlQueryTransportModule";
 import { GraphqlNetworkStateTransportModule } from "../graphql/GraphqlNetworkStateTransportModule";
 import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
-import { AuroSigner } from "../transaction/AuroSigner";
+import { Signer } from "../transaction/InMemorySigner";
 
 import { AppChain, AppChainModulesRecord } from "./AppChain";
+import { AppChainModule } from "./AppChainModule";
 
 export class ClientAppChain<
   RuntimeModules extends RuntimeModulesRecord,
@@ -38,9 +39,10 @@ export class ClientAppChain<
   SequencerModules,
   AppChainModules
 > {
-  public static fromRuntime<RuntimeModules extends RuntimeModulesRecord>(
-    runtimeModules: RuntimeModules
-  ) {
+  public static fromRuntime<
+    RuntimeModules extends RuntimeModulesRecord,
+    SignerType extends Signer & AppChainModule<unknown>,
+  >(runtimeModules: RuntimeModules, signer: TypedClass<SignerType>) {
     const appChain = new ClientAppChain({
       Runtime: Runtime.from({
         modules: VanillaRuntimeModules.with(runtimeModules),
@@ -54,7 +56,7 @@ export class ClientAppChain<
 
       modules: {
         GraphqlClient,
-        Signer: AuroSigner,
+        Signer: signer,
         TransactionSender: GraphqlTransactionSender,
         QueryTransportModule: GraphqlQueryTransportModule,
         NetworkStateTransportModule: GraphqlNetworkStateTransportModule,

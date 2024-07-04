@@ -92,8 +92,8 @@ describe("xyk", () => {
     const balanceIn = await getBalance(tokenInId, alice);
     const balanceOut = await getBalance(tokenOutId, alice);
 
-    expect(balanceIn?.toBigInt()).toBe(balanceToMint);
-    expect(balanceOut?.toBigInt()).toBe(balanceToMint);
+    expect(balanceIn?.toString()).toBe(balanceToMint.toString());
+    expect(balanceOut?.toString()).toBe(balanceToMint.toString());
   }, 30_000);
 
   it("should create a pool", async () => {

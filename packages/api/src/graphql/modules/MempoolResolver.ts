@@ -127,7 +127,9 @@ export class MempoolResolver extends GraphqlModule {
     super();
   }
 
-  @Mutation(() => String)
+  @Mutation(() => String, {
+    description: "Adds a transaction to the mempool and validates it",
+  })
   public async submitTx(@Arg("tx") tx: TransactionObject): Promise<string> {
     const decoded = PendingTransaction.fromJSON(tx);
     await this.mempool.add(decoded);
@@ -135,9 +137,14 @@ export class MempoolResolver extends GraphqlModule {
     return decoded.hash().toString();
   }
 
-  @Query(() => InclusionStatus)
+  @Query(() => InclusionStatus, {
+    description: "Returns the state of a given transaction",
+  })
   public async transactionState(
-    @Arg("hash") hash: string
+    @Arg("hash", {
+      description: "The hash of the transaction to be queried for",
+    })
+    hash: string
   ): Promise<InclusionStatus> {
     const txs = await this.mempool.getTxs();
     const tx = txs.find((x) => x.hash().toString() === hash);
@@ -160,7 +167,10 @@ export class MempoolResolver extends GraphqlModule {
     return InclusionStatus.UNKNOWN;
   }
 
-  @Query(() => [String])
+  @Query(() => [String], {
+    description:
+      "Returns the hashes of all transactions that are currently inside the mempool",
+  })
   public async transactions() {
     const txs = await this.mempool.getTxs();
     return txs.map((x) => x.hash().toString());
