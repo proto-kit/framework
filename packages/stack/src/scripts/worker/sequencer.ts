@@ -10,32 +10,32 @@ import {
   InMemoryDatabase,
   MinaBaseLayer,
   TimedBlockTrigger,
+  DatabasePruneModule,
 } from "@proto-kit/sequencer";
-
-import { app } from "./app";
 import {
   DefaultGraphqlModules,
   GraphqlSequencerModule,
   GraphqlServer,
 } from "@proto-kit/api";
 
+import { app } from "./app";
+
 export const sequencer = AppChain.from({
   Runtime: app.Runtime,
   Protocol: app.Protocol,
   Sequencer: Sequencer.from({
-    modules: SimpleSequencerModules.with(
-      BullQueue,
-      InMemoryDatabase,
-      MinaBaseLayer,
-      TimedBlockTrigger,
-      {
-        GraphqlServer: GraphqlServer,
+    modules: SimpleSequencerModules.with({
+      TaskQueue: BullQueue,
+      Database: InMemoryDatabase,
+      BaseLayer: MinaBaseLayer,
+      BlockTrigger: TimedBlockTrigger,
+      DatabasePruneModule: DatabasePruneModule,
 
-        Graphql: GraphqlSequencerModule.from({
-          modules: DefaultGraphqlModules.with({}),
-        }),
-      }
-    ),
+      GraphqlServer: GraphqlServer,
+      Graphql: GraphqlSequencerModule.from({
+        modules: DefaultGraphqlModules.with({}),
+      }),
+    }),
   }),
   modules: {
     QueryTransportModule: StateServiceQueryModule,
@@ -49,6 +49,7 @@ sequencer.configure({
   Sequencer: {
     ...SimpleSequencerModules.defaultConfig(),
     Database: {},
+    DatabasePruneModule: {},
     BaseLayer: {
       network: {
         local: true,

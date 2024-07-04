@@ -8,8 +8,8 @@ import {
   TaskQueue,
   BaseLayer,
   BlockTrigger,
-  DatabasePruneModule,
   Database,
+  SequencerModule,
 } from "@proto-kit/sequencer";
 import { TypedClass, ModulesConfig } from "@proto-kit/common";
 
@@ -17,16 +17,23 @@ type PreconfiguredSimpleSequencerModulesRecord = {
   Mempool: typeof PrivateMempool;
   BlockProducerModule: typeof BlockProducerModule;
   UnprovenProducerModule: typeof UnprovenProducerModule;
-  DatabasePruneModule: typeof DatabasePruneModule;
 };
 
-export type SimpleSequencerModulesRecord = {
-  Database: TypedClass<Database>;
-  TaskQueue: TypedClass<TaskQueue>;
-  BaseLayer: TypedClass<BaseLayer>;
-  BlockTrigger: TypedClass<BlockTrigger>;
+export type MinimumAdditionalSequencerModules = {
+  TaskQueue: TypedClass<TaskQueue & SequencerModule<unknown>>;
+  Database: TypedClass<Database & SequencerModule<unknown>>;
+  BaseLayer: TypedClass<BaseLayer & SequencerModule<unknown>>;
+  BlockTrigger: TypedClass<BlockTrigger & SequencerModule<unknown>>;
+  // We can't make this optional, therefore if this is not needed, a noop module should be provided
+  DatabasePruneModule: TypedClass<SequencerModule<unknown>>;
   // SettlementModule: typeof SettlementModule;
-} & PreconfiguredSimpleSequencerModulesRecord;
+};
+
+export type SimpleSequencerModulesRecord = MinimumAdditionalSequencerModules &
+  PreconfiguredSimpleSequencerModulesRecord;
+
+export type AdditionalSequencerModules = SequencerModulesRecord &
+  MinimumAdditionalSequencerModules;
 
 export type SimpleSequencerWorkerModulesRecord = {
   LocalTaskWorkerModule: TypedClass<
@@ -49,29 +56,47 @@ export class SimpleSequencerModules {
     } satisfies SimpleSequencerWorkerModulesRecord;
   }
 
-  public static with<
-    QueueModule extends TaskQueue,
-    DatabaseModule extends Database,
-    BaseLayerModule extends BaseLayer,
-    SequencerModules extends SequencerModulesRecord,
-    BlockTriggerModule extends BlockTrigger,
-  >(
-    queue: TypedClass<QueueModule>,
-    database: TypedClass<DatabaseModule>,
-    baselayer: TypedClass<BaseLayerModule>,
-    trigger: TypedClass<BlockTriggerModule>,
+  public static with<SequencerModules extends AdditionalSequencerModules>(
     additionalModules: SequencerModules
   ) {
+    /* eslint-disable @typescript-eslint/no-shadow */
+    const {
+      Database,
+      BlockTrigger,
+      TaskQueue,
+      BaseLayer,
+      DatabasePruneModule,
+    } = additionalModules;
+    /* eslint-enable @typescript-eslint/no-shadow */
+
+    const modulesCopy: SequencerModulesRecord = { ...additionalModules };
+    /* eslint-disable @typescript-eslint/dot-notation */
+    delete modulesCopy["Database"];
+    delete modulesCopy["TaskQueue"];
+    delete modulesCopy["BaseLayer"];
+    delete modulesCopy["BlockTrigger"];
+    delete modulesCopy["DatabasePruneModule"];
+    /* eslint-enable @typescript-eslint/dot-notation */
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const reducedModules = modulesCopy as Omit<
+      SequencerModules,
+      | "Database"
+      | "TaskQueue"
+      | "BaseLayer"
+      | "BlockTrigger"
+      | "DatabasePruneModule"
+    >;
+
     return {
-      Database: database,
+      Database,
       DatabasePruneModule,
       Mempool: PrivateMempool,
-      BaseLayer: baselayer,
+      BaseLayer,
       BlockProducerModule: BlockProducerModule,
       UnprovenProducerModule: UnprovenProducerModule,
-      BlockTrigger: trigger,
-      TaskQueue: queue,
-      ...additionalModules,
+      BlockTrigger,
+      TaskQueue,
+      ...reducedModules,
     } satisfies SimpleSequencerModulesRecord;
   }
 
@@ -83,9 +108,6 @@ export class SimpleSequencerModules {
 
       Mempool: {},
       BlockProducerModule: {},
-      DatabasePruneModule: {
-        pruneOnStartup: false,
-      },
     } satisfies ModulesConfig<PreconfiguredSimpleSequencerModulesRecord>;
   }
 

@@ -78,7 +78,7 @@ export class TestingAppChain<
         modules: VanillaProtocolModules.with({}),
       }),
       Sequencer: Sequencer.from({
-        modules: InMemorySequencerModules.with({}, {}),
+        modules: InMemorySequencerModules.with({}),
       }),
       modules: {
         Signer: InMemorySigner,

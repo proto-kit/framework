@@ -1,3 +1,5 @@
+import { ModulesConfig } from "@proto-kit/common";
+
 import { GraphqlModulesRecord } from "./GraphqlSequencerModule";
 import { MempoolResolver } from "./modules/MempoolResolver";
 import { QueryGraphqlModule } from "./modules/QueryGraphqlModule";
@@ -28,5 +30,16 @@ export class DefaultGraphqlModules {
       MerkleWitnessResolver,
       ...additionalModules,
     } satisfies DefaultGraphqlModulesRecord;
+  }
+
+  public static defaultConfig() {
+    return {
+      MempoolResolver: {},
+      QueryGraphqlModule: {},
+      BlockStorageResolver: {},
+      NodeStatusResolver: {},
+      UnprovenBlockResolver: {},
+      MerkleWitnessResolver: {},
+    } satisfies ModulesConfig<DefaultGraphqlModulesRecord>;
   }
 }

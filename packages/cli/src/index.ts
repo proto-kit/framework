@@ -1,1 +1,2 @@
-export * from "./LocalhostAppChain";
+const nothing = "";
+export { nothing };
