@@ -32,6 +32,8 @@ export async function startupEnvironment(environment: Environments<Startable>) {
     })
     .parse();
 
+  console.log(args);
+
   await environment.start({
     ...args,
     logLevel: args.logLevel!,
