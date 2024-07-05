@@ -1,20 +1,24 @@
-//@ts-ignore
-/* eslint-disable */
+/* eslint-disable no-console */
 import "reflect-metadata";
-import { Presets, log, TypedClass } from "@proto-kit/common";
+
+import * as path from "path";
+import { exit } from "process";
+import { pathToFileURL } from "node:url";
+
+import { log } from "@proto-kit/common";
 import {
   UnprovenBlock,
   ManualBlockTrigger,
   PrivateMempool,
 } from "@proto-kit/sequencer";
-import { AppChain, InMemorySigner } from "@proto-kit/sdk";
+import { AppChain } from "@proto-kit/sdk";
 import { MethodIdResolver } from "@proto-kit/module";
+import { Environments } from "@proto-kit/deployment";
 import chalk from "chalk";
 import Table from "cli-table";
 import figlet from "figlet";
 import ansiEscapes from "ansi-escapes";
 import gradient from "gradient-string";
-import { exit } from "process";
 
 log.setLevel("ERROR");
 
@@ -72,13 +76,37 @@ async function produceBlock(trigger: ManualBlockTrigger) {
   return await trigger.produceUnproven();
 }
 
-async function startChain({ configFile }: { configFile: string }) {
-  // remove starting "." if present from configFile
-  const path =
-    process.cwd() +
-    (configFile.startsWith("./") ? configFile.slice(1) : configFile);
-  appChain = (await import(path)).default;
+async function startChain(args: {
+  configFile: string;
+  environment: string;
+  configuration: string;
+  logLevel: string;
+  prune: boolean;
+}) {
+  // Normalize path to solve multiplatform issues
+  let normalizedPath = args.configFile;
+  if (path.sep === "\\") {
+    normalizedPath.replace("/", "\\");
+  }
+  normalizedPath = pathToFileURL(normalizedPath).toString();
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const environments: Environments<any> = (await import(normalizedPath))
+    .default;
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  appChain = await environments.start({
+    ...args,
+    returnInsteadOfStarting: true,
+  });
+
   await appChain.start();
+
+  // TODO
+  // appChain.events.on("tick", (totalTime: number) => {
+  //   dispatch({ type: "TICK", totalTime });
+  // });
+
   const trigger = appChain.sequencer.resolveOrFail(
     "BlockTrigger",
     ManualBlockTrigger
@@ -118,7 +146,7 @@ async function startChain({ configFile }: { configFile: string }) {
       console.log(
         `[${chalk.gray(
           new Date().toLocaleTimeString()
-        )}] Block #${blockHeight} (${chalk.gray(blockGenerationTime)}ms)\n`
+        )}] Block #${blockHeight} (${chalk.gray(blockGenerationTime.toString())}ms)\n`
       );
       console.error(e);
     }
@@ -137,7 +165,7 @@ export function printBlockDetails(
   const txnCount = unprovenBlock?.transactions?.length || 0;
   process.stdout.write(ansiEscapes.eraseEndLine);
   let str = `[${chalk.gray(new Date().toLocaleTimeString())}]`;
-  str += ` Block #${chalk.whiteBright(blockHeight)}`;
+  str += ` Block #${chalk.whiteBright(blockHeight.toString())}`;
   str += `\t${chalk.gray(`took ${blockGenerationTime}ms`)}`;
   str += ` ${chalk.gray(`(${txnCount} txns)`)}`;
   process.stdout.write(str);
@@ -172,7 +200,7 @@ export function printBlockDetails(
       } else {
         str = `  ${chalk.gray("status:")}❌`;
         str += ` ${chalk.gray("statusMessage:")} ${chalk.redBright.bold(
-          txn.statusMessage
+          txn.statusMessage ?? ""
         )}`;
         // process.stdout.write(ansiEscapes.eraseEndLine);
       }
@@ -190,7 +218,7 @@ async function displayChainStats(mempool: PrivateMempool) {
       Math.max(0, (chainState.nextTrigger || 0) - Date.now()) / 1000
     );
 
-    let table = new Table({});
+    const table = new Table({});
     table.push([
       `Transactions in Mempool: ${pendingTxns.length}`,
       `Producing Next Block in ${remaining}s`,
@@ -205,7 +233,14 @@ async function displayChainStats(mempool: PrivateMempool) {
   }, 100);
 }
 
-export async function start(argv: { configFile: string; blockTime: number }) {
+export async function start(argv: {
+  configFile: string;
+  environment: string;
+  configuration: string;
+  logLevel: string;
+  prune: boolean;
+  blockTime: number;
+}) {
   blockTime = argv.blockTime * 1000;
   showWelcome();
   startChain(argv);
@@ -218,3 +253,5 @@ const handleExit = () => {
 process.on("SIGINT", () => {
   handleExit();
 });
+
+/* eslint-enable no-console */
