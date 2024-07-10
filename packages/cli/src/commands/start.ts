@@ -153,6 +153,8 @@ async function displayChainStats(mempool: PrivateMempool) {
   }, 100);
 }
 
+import * as tsnode from "ts-node";
+
 async function startChain(args: {
   configFile: string;
   environment: string;
@@ -166,6 +168,17 @@ async function startChain(args: {
     normalizedPath.replace("/", "\\");
   }
   normalizedPath = pathToFileURL(normalizedPath).toString();
+
+  const service = tsnode.register({
+    esm: true,
+    experimentalSpecifierResolution: "node",
+    skipIgnore: true,
+    compilerOptions: {
+      module: "esnext",
+    },
+  });
+  service.enabled(true);
+  tsnode.createEsmHooks(service);
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const environments: Environments<any> = (await import(normalizedPath))

@@ -41,3 +41,5 @@ yargs(hideBin(process.argv))
     start
   )
   .help().argv;
+
+export {};
