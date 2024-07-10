@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { afterAll, beforeAll, describe, expect } from "@jest/globals";
-import { expectDefined, equalProvable } from "@proto-kit/common";
+import { expectDefined } from "@proto-kit/common";
+import { equalProvable } from "@proto-kit/test";
 import { BalancesKey, TokenId } from "@proto-kit/library";
 import { NetworkState } from "@proto-kit/protocol";
 import { AppChainTransaction } from "@proto-kit/sdk";
