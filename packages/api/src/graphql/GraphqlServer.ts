@@ -36,6 +36,8 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
 
   private server?: Server;
 
+  public prismaClient: any;
+
   public setContainer(container: DependencyContainer) {
     this.dependencyContainer = container;
   }
@@ -64,23 +66,23 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     const { dependencyContainer, modules } = this;
     this.assertDependencyContainerSet(dependencyContainer);
 
-    assertArrayIsNotEmpty(
-      modules,
-      "At least one module has to be provided to GraphqlServer"
-    );
+    // assertArrayIsNotEmpty(
+    //   modules,
+    //   "At least one module has to be provided to GraphqlServer"
+    // );
 
-    // Building schema
-    const resolverSchema = buildSchemaSync({
-      resolvers: modules,
+    // // Building schema
+    // const resolverSchema = buildSchemaSync({
+    //   resolvers: modules,
 
-      // resolvers: [MempoolResolver as Function],
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      container: { get: (cls) => dependencyContainer.resolve(cls) },
+    //   // resolvers: [MempoolResolver as Function],
+    //   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    //   container: { get: (cls) => dependencyContainer.resolve(cls) },
 
-      validate: {
-        enableDebugMessages: true,
-      },
-    });
+    //   validate: {
+    //     enableDebugMessages: true,
+    //   },
+    // });
 
     // TODO Injection token of Graphql Container not respected atm, only class is used
 
@@ -89,11 +91,10 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
       dependencyContainer?.resolve(module);
     });
 
-    const schema = [resolverSchema, ...this.schemas].reduce(
-      (schema1, schema2) =>
-        stitchSchemas({
-          subschemas: [{ schema: schema1 }, { schema: schema2 }],
-        })
+    const schema = [...this.schemas].reduce((schema1, schema2) =>
+      stitchSchemas({
+        subschemas: [{ schema: schema1 }, { schema: schema2 }],
+      })
     );
 
     const app = new Koa();
@@ -101,6 +102,7 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     const yoga = createYoga<Koa.ParameterizedContext>({
       schema,
       graphiql: this.config.graphiql,
+      context: { prisma: this.prismaClient },
     });
 
     // Bind GraphQL Yoga to `/graphql` endpoint

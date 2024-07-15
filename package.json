@@ -57,6 +57,7 @@
     ]
   },
   "dependencies": {
+    "prisma": "^5.16.1",
     "react-json-view-lite": "^1.4.0"
   }
 }
