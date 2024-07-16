@@ -5,10 +5,6 @@
     "allowJs": true,
     "moduleResolution": "node"
   },
-  "ts-node": {
-    "experimentalSpecifierResolution": "node",
-    "esm": true
-  },
   "include": ["./src/*.ts", "./test"],
   "exclude": ["./dist/**/*.ts"]
 }
