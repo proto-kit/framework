@@ -1,7 +1,7 @@
 import {
   Environments,
   Environment,
-  startupEnvironment,
+  startEnvironment,
 } from "@proto-kit/deployment";
 
 import { SequencerStartable } from "./scripts/graphql/run-graphql";
@@ -14,4 +14,4 @@ const env = Environments.from({
   distributed: WorkerEnvironment,
 });
 
-await startupEnvironment(env);
+await startEnvironment(env);

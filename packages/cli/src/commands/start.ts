@@ -50,7 +50,13 @@ const chainState: ChainState = {
   blockTime,
 };
 
-function showWelcome() {
+function showWelcome({
+  environment,
+  configuration,
+}: {
+  environment: string;
+  configuration: string;
+}) {
   figlet(
     "PROTOKIT",
     { font: "Slant", horizontalLayout: "fitted" },
@@ -66,6 +72,8 @@ function showWelcome() {
         gradient("orange", "#FF763C")("\tSandbox Network Started 🚀")
       );
       const table = new Table({});
+      table.push(["Environment", environment]);
+      table.push(["Configuration", configuration]);
       table.push(["GraphiQL URL", `${gqlUrl}`]);
       console.log(table.toString());
     }
@@ -242,7 +250,10 @@ export async function start(argv: {
   blockTime: number;
 }) {
   blockTime = argv.blockTime * 1000;
-  showWelcome();
+  showWelcome({
+    environment: argv.environment,
+    configuration: argv.configuration,
+  });
   await startChain(argv);
 }
 

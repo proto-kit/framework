@@ -7,6 +7,7 @@ import { start } from "./commands/start.js";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
 yargs(hideBin(process.argv))
+  .env("PROTOKIT")
   .command(
     "start [configFile]",
     "Start the chain in development mode",
@@ -26,12 +27,17 @@ yargs(hideBin(process.argv))
       },
       environment: {
         default: "default",
+        requiresArg: true,
+        alias: ["env"],
       },
       configuration: {
         default: "sequencer",
+        requiresArg: true,
+        alias: ["config"],
       },
       logLevel: {
-        default: "WARN",
+        type: "string",
+        default: "DEBUG",
       },
       prune: {
         type: "boolean",

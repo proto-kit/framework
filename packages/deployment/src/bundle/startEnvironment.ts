@@ -6,7 +6,7 @@ import { Environments, Startable } from "./Environment";
 /**
  * Function that starts up an appchain based on a given environment
  */
-export async function startupEnvironment(environment: Environments<Startable>) {
+export async function startEnvironment(environment: Environments<Startable>) {
   const args = await yargs(hideBin(process.argv))
     .env("PROTOKIT")
     .options({
