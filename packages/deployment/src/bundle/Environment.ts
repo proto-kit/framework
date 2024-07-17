@@ -1,19 +1,18 @@
 import { log, assertValidTextLogLevel } from "@proto-kit/common";
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { AppChain } from "@proto-kit/sdk";
 
 export interface Startable {
   start(): Promise<void>;
 }
 
-export type StartableBundle<T> = Record<string, T>;
+export type StartableEnvironment<T> = Record<string, T>;
 
 export class Environment<T extends Startable> {
-  public constructor(private readonly bundle: StartableBundle<T>) {}
+  public constructor(private readonly bundle: StartableEnvironment<T>) {}
 
   public hasModule(
     configurationName: string
-  ): configurationName is keyof StartableBundle<T> {
+  ): configurationName is keyof StartableEnvironment<T> {
     return Object.keys(this.bundle).includes(configurationName);
   }
 
@@ -34,7 +33,7 @@ export class Environment<T extends Startable> {
     await this.getConfiguration(configurationName).start();
   }
 
-  public static from<T extends Startable>(bundle: StartableBundle<T>) {
+  public static from<T extends Startable>(bundle: StartableEnvironment<T>) {
     return new Environment(bundle);
   }
 }

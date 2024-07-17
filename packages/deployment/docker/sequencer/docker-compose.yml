@@ -9,7 +9,7 @@ services:
     container_name: protokit-sequencer
     environment:
       - DATABASE_URL=${POSTGRES_URL}
-      - LOGGING-LEVEL=${LOGGING_LEVEL:-INFO}
+      - PROTOKIT_LOG_LEVEL=${PROTOKIT_LOG_LEVEL:-INFO}
     profiles:
       - simple-sequencer
     depends_on:

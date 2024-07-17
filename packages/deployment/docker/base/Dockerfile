@@ -17,7 +17,7 @@ COPY ./packages/sdk/package.json ./packages/sdk/package.json
 COPY ./packages/sequencer/package.json ./packages/sequencer/package.json
 COPY ./packages/stack/package.json ./packages/stack/package.json
 
-RUN npm i
+RUN npm ci
 
 COPY ./packages/ ./packages
 # Copy all files on the top level
