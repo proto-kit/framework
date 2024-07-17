@@ -7,14 +7,14 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import {
-  UnprovenBlock,
-  UnprovenBlockWithMetadata,
-} from "../../../storage/model/UnprovenBlock";
+  Block,
+  BlockWithResult,
+} from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 
@@ -35,8 +35,8 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenMerkleStore")
     private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
-    @inject("UnprovenBlockQueue")
-    private readonly unprovenBlockQueue: UnprovenBlockQueue,
+    @inject("BlockQueue")
+    private readonly unprovenBlockQueue: BlockQueue,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly executionService: TransactionExecutionService
@@ -49,7 +49,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
   }
 
   public async tryProduceUnprovenBlock(): Promise<
-    UnprovenBlockWithMetadata | undefined
+    BlockWithResult | undefined
   > {
     if (!this.productionInProgress) {
       try {
@@ -96,7 +96,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
 
   private async collectProductionData(): Promise<{
     txs: PendingTransaction[];
-    metadata: UnprovenBlockWithMetadata;
+    metadata: BlockWithResult;
   }> {
     const txs = await this.mempool.getTxs();
 
@@ -112,7 +112,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
       parentBlock?.block.toMessagesHash.toString() ??
         ACTIONS_EMPTY_HASH.toString()
     );
-    const metadata = parentBlock ?? UnprovenBlockWithMetadata.createEmpty();
+    const metadata = parentBlock ?? BlockWithResult.createEmpty();
 
     log.debug(
       `Unproven block collected, ${txs.length} txs, ${messages.length} messages`
@@ -124,7 +124,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     };
   }
 
-  private async produceUnprovenBlock(): Promise<UnprovenBlock | undefined> {
+  private async produceUnprovenBlock(): Promise<Block | undefined> {
     this.productionInProgress = true;
 
     const { txs, metadata } = await this.collectProductionData();

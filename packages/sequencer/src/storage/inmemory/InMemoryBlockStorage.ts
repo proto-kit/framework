@@ -5,23 +5,16 @@ import {
   BlockQueue,
   BlockStorage,
 } from "../repositories/BlockStorage";
-import type {
-  Block,
-  BlockResult,
-  BlockWithResult,
-} from "../model/Block";
+import type { Block, BlockResult, BlockWithResult } from "../model/Block";
 import { BlockWithPreviousResult } from "../../protocol/production/BatchProducerModule";
 import { BatchStorage } from "../repositories/BatchStorage";
 
 @injectable()
 export class InMemoryBlockStorage
-  implements
-    BlockStorage,
-    HistoricalBlockStorage,
-    BlockQueue
+  implements BlockStorage, HistoricalBlockStorage, BlockQueue
 {
   public constructor(
-    @inject("BlockStorage") private readonly batchStorage: BatchStorage
+    @inject("BatchStorage") private readonly batchStorage: BatchStorage
   ) {}
 
   private readonly blocks: Block[] = [];
@@ -36,9 +29,7 @@ export class InMemoryBlockStorage
     return this.blocks.length;
   }
 
-  public async getLatestBlock(): Promise<
-    BlockWithResult | undefined
-  > {
+  public async getLatestBlock(): Promise<BlockWithResult | undefined> {
     const currentHeight = await this.getCurrentBlockHeight();
     const block = await this.getBlockAt(currentHeight - 1);
     const metadata = this.metadata[currentHeight - 1];

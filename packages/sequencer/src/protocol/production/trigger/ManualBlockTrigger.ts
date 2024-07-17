@@ -27,8 +27,8 @@ export class ManualBlockTrigger
     settlementModule: SettlementModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue,
-    @inject("BlockStorage")
-    blockStorage: BatchStorage,
+    @inject("BatchStorage")
+    batchStorage: BatchStorage,
     @injectOptional("SettlementStorage")
     settlementStorage: SettlementStorage | undefined
   ) {
@@ -38,7 +38,7 @@ export class ManualBlockTrigger
       settlementModule,
 
       blockQueue,
-      blockStorage,
+      batchStorage,
       settlementStorage
     );
   }

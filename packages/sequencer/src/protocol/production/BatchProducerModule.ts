@@ -14,17 +14,17 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import { BlockStorage } from "../../storage/repositories/BlockStorage";
-import { SettleableBatch } from "../../storage/model/Block";
+import { BatchStorage } from "../../storage/repositories/BatchStorage";
+import { SettleableBatch } from "../../storage/model/Batch";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import {
-  UnprovenBlock,
-  UnprovenBlockMetadata,
-  UnprovenBlockWithMetadata,
-} from "../../storage/model/UnprovenBlock";
+  Block,
+  BlockResult,
+  BlockWithResult,
+} from "../../storage/model/Block";
 
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
@@ -48,12 +48,12 @@ export interface BlockTrace {
   transactions: TransactionTrace[];
 }
 
-export interface UnprovenBlockWithPreviousMetadata {
-  block: UnprovenBlockWithMetadata;
-  lastBlockMetadata?: UnprovenBlockMetadata;
+export interface BlockWithPreviousResult {
+  block: BlockWithResult;
+  lastBlockMetadata?: BlockResult;
 }
 
-interface ComputedBlockMetadata {
+interface BatchMetadata {
   block: SettleableBatch;
   stateService: CachedStateService;
   merkleStore: CachedMerkleTreeStore;
@@ -65,7 +65,7 @@ const errors = {
 };
 
 /**
- * The BlockProducerModule has the resposiblity to oversee the block production
+ * The BatchProducerModule has the resposiblity to oversee the block production
  * and combine all necessary parts for that to happen. The flow roughly follows
  * the following steps:
  *
@@ -73,7 +73,7 @@ const errors = {
  * 2.
  */
 @sequencerModule()
-export class BlockProducerModule extends SequencerModule {
+export class BatchProducerModule extends SequencerModule {
   private productionInProgress = false;
 
   public constructor(
@@ -81,7 +81,7 @@ export class BlockProducerModule extends SequencerModule {
     private readonly asyncStateService: AsyncStateService,
     @inject("AsyncMerkleStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
-    @inject("BlockStorage") private readonly blockStorage: BlockStorage,
+    @inject("BlockStorage") private readonly blockStorage: BatchStorage,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly traceService: TransactionTraceService,
@@ -92,11 +92,11 @@ export class BlockProducerModule extends SequencerModule {
   }
 
   private async applyStateChanges(
-    unprovenBlocks: UnprovenBlock[],
-    block: ComputedBlockMetadata
+    blocks: Block[],
+    batch: BatchMetadata
   ) {
-    await block.stateService.mergeIntoParent();
-    await block.merkleStore.mergeIntoParent();
+    await batch.stateService.mergeIntoParent();
+    await batch.merkleStore.mergeIntoParent();
   }
 
   /**
@@ -105,7 +105,7 @@ export class BlockProducerModule extends SequencerModule {
    * be the one called by BlockTriggers
    */
   public async createBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
+    unprovenBlocks: BlockWithPreviousResult[]
   ): Promise<SettleableBatch | undefined> {
     log.info("Producing batch...");
 
@@ -136,9 +136,9 @@ export class BlockProducerModule extends SequencerModule {
   }
 
   private async tryProduceBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
+    unprovenBlocks: BlockWithPreviousResult[],
     height: number
-  ): Promise<ComputedBlockMetadata | undefined> {
+  ): Promise<BatchMetadata | undefined> {
     if (!this.productionInProgress) {
       try {
         this.productionInProgress = true;
@@ -173,9 +173,9 @@ export class BlockProducerModule extends SequencerModule {
   }
 
   private async produceBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
+    unprovenBlocks: BlockWithPreviousResult[],
     height: number
-  ): Promise<ComputedBlockMetadata | undefined> {
+  ): Promise<BatchMetadata | undefined> {
     const block = await this.computeBlock(unprovenBlocks, height);
 
     const computedBundles = unprovenBlocks.map((bundle) =>
@@ -214,7 +214,7 @@ export class BlockProducerModule extends SequencerModule {
    */
 
   private async computeBlock(
-    bundles: UnprovenBlockWithPreviousMetadata[],
+    bundles: BlockWithPreviousResult[],
     blockId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;

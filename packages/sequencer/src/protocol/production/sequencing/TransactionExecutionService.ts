@@ -42,12 +42,12 @@ import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeSto
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import {
   TransactionExecutionResult,
-  UnprovenBlock,
-  UnprovenBlockMetadata,
-  UnprovenBlockWithMetadata,
-} from "../../../storage/model/UnprovenBlock";
+  Block,
+  BlockResult,
+  BlockWithResult,
+} from "../../../storage/model/Block";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
-import type { StateRecord } from "../BlockProducerModule";
+import type { StateRecord } from "../BatchProducerModule";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -229,9 +229,9 @@ export class TransactionExecutionService {
   public async createUnprovenBlock(
     stateService: CachedStateService,
     transactions: PendingTransaction[],
-    lastBlockWithMetadata: UnprovenBlockWithMetadata,
+    lastBlockWithMetadata: BlockWithResult,
     allowEmptyBlocks: boolean
-  ): Promise<UnprovenBlock | undefined> {
+  ): Promise<Block | undefined> {
     const lastMetadata = lastBlockWithMetadata.metadata;
     const lastBlock = lastBlockWithMetadata.block;
     const executionResults: TransactionExecutionResult[] = [];
@@ -299,7 +299,7 @@ export class TransactionExecutionService {
       return undefined;
     }
 
-    const block: Omit<UnprovenBlock, "hash"> = {
+    const block: Omit<Block, "hash"> = {
       transactions: executionResults,
       transactionsHash: transactionsHashList.commitment,
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
@@ -317,7 +317,7 @@ export class TransactionExecutionService {
       },
     };
 
-    const hash = UnprovenBlock.hash(block);
+    const hash = Block.hash(block);
 
     return {
       ...block,
@@ -326,11 +326,11 @@ export class TransactionExecutionService {
   }
 
   public async generateMetadataForNextBlock(
-    block: UnprovenBlock,
+    block: Block,
     merkleTreeStore: AsyncMerkleTreeStore,
     blockHashTreeStore: AsyncMerkleTreeStore,
     modifyTreeStore = true
-  ): Promise<UnprovenBlockMetadata> {
+  ): Promise<BlockResult> {
     // Flatten diff list into a single diff by applying them over each other
     const combinedDiff = block.transactions
       .map((tx) => {

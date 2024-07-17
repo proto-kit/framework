@@ -47,10 +47,10 @@ export class TimedBlockTrigger
     unprovenProducerModule: UnprovenProducerModule,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
-    @inject("UnprovenBlockQueue")
-    unprovenBlockQueue: BlockQueue,
-    @inject("BlockStorage")
-    blockStorage: BatchStorage,
+    @inject("BlockQueue")
+    blockQueue: BlockQueue,
+    @inject("BatchStorage")
+    batchStorage: BatchStorage,
     @injectOptional("SettlementStorage")
     settlementStorage: SettlementStorage | undefined,
     @inject("Mempool")
@@ -60,8 +60,8 @@ export class TimedBlockTrigger
       unprovenProducerModule,
       batchProducerModule,
       settlementModule,
-      unprovenBlockQueue,
-      blockStorage,
+      blockQueue,
+      batchStorage,
       settlementStorage
     );
   }
