@@ -23,7 +23,7 @@ import {
   ManualBlockTrigger,
   PendingTransaction,
   PrivateMempool,
-  UnprovenBlockQueue,
+  BlockQueue,
   SettlementModule,
 } from "../../src";
 import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
@@ -47,7 +47,7 @@ describe("settlement contracts", () => {
 
   let trigger: ManualBlockTrigger;
   let settlementModule: SettlementModule;
-  let blockQueue: UnprovenBlockQueue;
+  let blockQueue: BlockQueue;
 
   let blockSerializer: BlockProofSerializer;
 
@@ -101,7 +101,7 @@ describe("settlement contracts", () => {
         Database: {},
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {},
+        BatchProducerModule: {},
         LocalTaskWorkerModule: {},
         OutgoingMessageQueue: {},
         BaseLayer: {
@@ -202,7 +202,7 @@ describe("settlement contracts", () => {
       );
     blockQueue = appChain.sequencer.resolve(
       "UnprovenBlockQueue"
-    ) as UnprovenBlockQueue;
+    ) as BlockQueue;
 
     const baseLayer = appChain.sequencer.resolve("BaseLayer") as MinaBaseLayer;
 

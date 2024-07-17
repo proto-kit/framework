@@ -1,34 +1,34 @@
 import { inject, injectable } from "tsyringe";
 
 import {
-  HistoricalUnprovenBlockStorage,
-  UnprovenBlockQueue,
-  UnprovenBlockStorage,
-} from "../repositories/UnprovenBlockStorage";
+  HistoricalBlockStorage,
+  BlockQueue,
+  BlockStorage,
+} from "../repositories/BlockStorage";
 import type {
-  UnprovenBlock,
-  UnprovenBlockMetadata,
-  UnprovenBlockWithMetadata,
-} from "../model/UnprovenBlock";
-import { UnprovenBlockWithPreviousMetadata } from "../../protocol/production/BlockProducerModule";
-import { BlockStorage } from "../repositories/BlockStorage";
+  Block,
+  BlockResult,
+  BlockWithResult,
+} from "../model/Block";
+import { BlockWithPreviousResult } from "../../protocol/production/BatchProducerModule";
+import { BatchStorage } from "../repositories/BatchStorage";
 
 @injectable()
 export class InMemoryBlockStorage
   implements
-    UnprovenBlockStorage,
-    HistoricalUnprovenBlockStorage,
-    UnprovenBlockQueue
+    BlockStorage,
+    HistoricalBlockStorage,
+    BlockQueue
 {
   public constructor(
-    @inject("BlockStorage") private readonly batchStorage: BlockStorage
+    @inject("BlockStorage") private readonly batchStorage: BatchStorage
   ) {}
 
-  private readonly blocks: UnprovenBlock[] = [];
+  private readonly blocks: Block[] = [];
 
-  private readonly metadata: UnprovenBlockMetadata[] = [];
+  private readonly metadata: BlockResult[] = [];
 
-  public async getBlockAt(height: number): Promise<UnprovenBlock | undefined> {
+  public async getBlockAt(height: number): Promise<Block | undefined> {
     return this.blocks.at(height);
   }
 
@@ -37,7 +37,7 @@ export class InMemoryBlockStorage
   }
 
   public async getLatestBlock(): Promise<
-    UnprovenBlockWithMetadata | undefined
+    BlockWithResult | undefined
   > {
     const currentHeight = await this.getCurrentBlockHeight();
     const block = await this.getBlockAt(currentHeight - 1);
@@ -51,7 +51,7 @@ export class InMemoryBlockStorage
     };
   }
 
-  public async getNewBlocks(): Promise<UnprovenBlockWithPreviousMetadata[]> {
+  public async getNewBlocks(): Promise<BlockWithPreviousResult[]> {
     const latestBatch = await this.batchStorage.getLatestBlock();
 
     let cursor = 0;
@@ -65,7 +65,7 @@ export class InMemoryBlockStorage
 
     const slice = this.blocks.slice(cursor);
 
-    let metadata: (UnprovenBlockMetadata | undefined)[] = this.metadata.slice(
+    let metadata: (BlockResult | undefined)[] = this.metadata.slice(
       Math.max(cursor - 1, 0)
     );
     if (cursor === 0) {
@@ -81,19 +81,19 @@ export class InMemoryBlockStorage
     }));
   }
 
-  public async pushBlock(block: UnprovenBlock): Promise<void> {
+  public async pushBlock(block: Block): Promise<void> {
     this.blocks.push(block);
   }
 
-  public async getNewestMetadata(): Promise<UnprovenBlockMetadata | undefined> {
+  public async getNewestMetadata(): Promise<BlockResult | undefined> {
     return this.metadata.length > 0 ? this.metadata.at(-1) : undefined;
   }
 
-  public async pushMetadata(metadata: UnprovenBlockMetadata): Promise<void> {
+  public async pushMetadata(metadata: BlockResult): Promise<void> {
     this.metadata.push(metadata);
   }
 
-  public async getBlock(hash: string): Promise<UnprovenBlock | undefined> {
+  public async getBlock(hash: string): Promise<Block | undefined> {
     return this.blocks.find((block) => block.hash.toString() === hash);
   }
 }

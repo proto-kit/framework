@@ -1,7 +1,7 @@
 import { TypedClass } from "@proto-kit/common";
 
 import {
-  BlockProducerModule,
+  BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
@@ -20,7 +20,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   Mempool: typeof PrivateMempool;
   LocalTaskWorkerModule: TypedClass<LocalTaskWorkerModule<any>>;
   BaseLayer: typeof NoopBaseLayer;
-  BlockProducerModule: typeof BlockProducerModule;
+  BatchProducerModule: typeof BatchProducerModule;
   UnprovenProducerModule: typeof UnprovenProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
@@ -44,7 +44,7 @@ export function testingSequencerFromModules<
     Mempool: PrivateMempool,
     BaseLayer: NoopBaseLayer,
     // LocalTaskWorkerModule: taskWorkerModule,
-    BlockProducerModule,
+    BatchProducerModule,
     UnprovenProducerModule,
     BlockTrigger: ManualBlockTrigger,
     TaskQueue: LocalTaskQueue,

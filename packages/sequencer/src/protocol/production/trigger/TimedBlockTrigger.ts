@@ -3,13 +3,13 @@ import { injectOptional, log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
 import { Closeable } from "../../../worker/queue/TaskQueue";
-import { BlockProducerModule } from "../BlockProducerModule";
+import { BatchProducerModule } from "../BatchProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
-import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
+import { BlockQueue } from "../../../storage/repositories/BlockStorage";
+import { UnprovenProducerModule } from "../sequencing/UnprovenProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
-import { BlockStorage } from "../../../storage/repositories/BlockStorage";
+import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 
 import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
@@ -41,16 +41,16 @@ export class TimedBlockTrigger
   private interval?: any;
 
   public constructor(
-    @inject("BlockProducerModule")
-    blockProducerModule: BlockProducerModule,
+    @inject("BatchProducerModule")
+    batchProducerModule: BatchProducerModule,
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
     @inject("UnprovenBlockQueue")
-    unprovenBlockQueue: UnprovenBlockQueue,
+    unprovenBlockQueue: BlockQueue,
     @inject("BlockStorage")
-    blockStorage: BlockStorage,
+    blockStorage: BatchStorage,
     @injectOptional("SettlementStorage")
     settlementStorage: SettlementStorage | undefined,
     @inject("Mempool")
@@ -58,7 +58,7 @@ export class TimedBlockTrigger
   ) {
     super(
       unprovenProducerModule,
-      blockProducerModule,
+      batchProducerModule,
       settlementModule,
       unprovenBlockQueue,
       blockStorage,

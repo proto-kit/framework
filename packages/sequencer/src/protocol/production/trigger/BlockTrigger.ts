@@ -6,17 +6,17 @@ import {
   log,
 } from "@proto-kit/common";
 
-import { ComputedBlock, SettleableBatch } from "../../../storage/model/Block";
-import { BlockProducerModule } from "../BlockProducerModule";
-import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import { Batch, SettleableBatch } from "../../../storage/model/Batch";
+import { BatchProducerModule } from "../BatchProducerModule";
+import { UnprovenProducerModule } from "../sequencing/UnprovenProducerModule";
+import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import {
-  UnprovenBlock,
-  UnprovenBlockWithMetadata,
-} from "../../../storage/model/UnprovenBlock";
-import { BlockStorage } from "../../../storage/repositories/BlockStorage";
+  Block,
+  BlockWithResult,
+} from "../../../storage/model/Block";
+import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
 /**
@@ -29,9 +29,9 @@ export interface BlockTrigger {}
 // TODO Move events and storage interactions back to production modules
 // BlockTriggers should only be responsible for triggering, nothing else
 export type BlockEvents = {
-  "block-produced": [UnprovenBlock];
-  "block-metadata-produced": [UnprovenBlockWithMetadata];
-  "batch-produced": [ComputedBlock];
+  "block-produced": [Block];
+  "block-metadata-produced": [BlockWithResult];
+  "batch-produced": [Batch];
   // TODO Settlement
 };
 
@@ -46,19 +46,19 @@ export class BlockTriggerBase<
 
   public constructor(
     protected readonly unprovenProducerModule: UnprovenProducerModule,
-    protected readonly blockProducerModule: BlockProducerModule,
+    protected readonly batchProducerModule: BatchProducerModule,
     protected readonly settlementModule: SettlementModule | undefined,
-    protected readonly unprovenBlockQueue: UnprovenBlockQueue,
-    protected readonly batchQueue: BlockStorage,
+    protected readonly blockQueue: BlockQueue,
+    protected readonly batchQueue: BatchStorage,
     protected readonly settlementStorage: SettlementStorage | undefined
   ) {
     super();
   }
 
   protected async produceProven(): Promise<SettleableBatch | undefined> {
-    const blocks = await this.unprovenBlockQueue.getNewBlocks();
+    const blocks = await this.blockQueue.getNewBlocks();
     if (blocks.length > 0) {
-      const batch = await this.blockProducerModule.createBlock(blocks);
+      const batch = await this.batchProducerModule.createBlock(blocks);
       if (batch !== undefined) {
         await this.batchQueue.pushBlock(batch);
         this.events.emit("batch-produced", batch);
@@ -70,15 +70,15 @@ export class BlockTriggerBase<
 
   protected async produceUnproven(
     enqueueInSettlementQueue: boolean
-  ): Promise<UnprovenBlock | undefined> {
+  ): Promise<Block | undefined> {
     const unprovenBlock =
       await this.unprovenProducerModule.tryProduceUnprovenBlock();
 
     if (unprovenBlock && enqueueInSettlementQueue) {
-      await this.unprovenBlockQueue.pushBlock(unprovenBlock.block);
+      await this.blockQueue.pushBlock(unprovenBlock.block);
       this.events.emit("block-produced", unprovenBlock.block);
 
-      await this.unprovenBlockQueue.pushMetadata(unprovenBlock.metadata);
+      await this.blockQueue.pushMetadata(unprovenBlock.metadata);
       this.events.emit("block-metadata-produced", unprovenBlock);
     }
 

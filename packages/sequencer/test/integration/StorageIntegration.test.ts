@@ -9,16 +9,16 @@ import { TypedClass, expectDefined } from "@proto-kit/common";
 
 import {
   AsyncStateService,
-  BlockStorage,
+  BatchStorage,
+  HistoricalBatchStorage,
   HistoricalBlockStorage,
-  HistoricalUnprovenBlockStorage,
   InMemoryDatabase,
   Sequencer,
   SequencerModule,
   StateEntry,
   StateRecord,
   StorageDependencyFactory,
-  UnprovenBlockStorage,
+  BlockStorage,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -102,7 +102,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           Database: {},
           BlockTrigger: {},
           Mempool: {},
-          BlockProducerModule: {},
+          BatchProducerModule: {},
           UnprovenProducerModule: {},
           LocalTaskWorkerModule: {},
           BaseLayer: {},
@@ -144,7 +144,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expectDefined(generatedBlock);
 
       const blocks = await sequencer
-        .resolve("UnprovenBlockQueue")
+        .resolve("BlockQueue")
         .getNewBlocks();
 
       expect(blocks).toHaveLength(1);
@@ -157,8 +157,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
       );
 
       const blockStorage = sequencer.resolve(
-        "UnprovenBlockStorage"
-      ) as HistoricalUnprovenBlockStorage & UnprovenBlockStorage;
+        "BlockStorage"
+      ) as HistoricalBlockStorage & BlockStorage;
       const block2 = await blockStorage.getBlockAt(
         Number(blocks[0].block.block.height.toString())
       );
@@ -192,13 +192,13 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expectDefined(generatedBatch);
 
       const blocks = await sequencer
-        .resolve("UnprovenBlockQueue")
+        .resolve("BlockQueue")
         .getNewBlocks();
       expect(blocks).toHaveLength(0);
 
       const batchStorage = sequencer.resolve(
-        "BlockStorage"
-      ) as HistoricalBlockStorage & BlockStorage;
+        "BatchStorage"
+      ) as HistoricalBatchStorage & BatchStorage;
       const batch = await batchStorage.getBlockAt(0);
 
       expectDefined(batch);

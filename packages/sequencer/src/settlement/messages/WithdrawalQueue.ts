@@ -11,7 +11,7 @@ import type { BlockTriggerBase } from "../../protocol/production/trigger/BlockTr
 import { SettlementModule } from "../SettlementModule";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 import { Sequencer } from "../../sequencer/executor/Sequencer";
-import { UnprovenBlock } from "../../storage/model/UnprovenBlock";
+import { Block } from "../../storage/model/Block";
 
 export interface OutgoingMessage<Type> {
   index: number;
@@ -37,7 +37,7 @@ export class WithdrawalQueue
   extends SequencerModule
   implements OutgoingMessageQueue
 {
-  private lockedQueue: UnprovenBlock[] = [];
+  private lockedQueue: Block[] = [];
 
   private unlockedQueue: OutgoingMessage<Withdrawal>[] = [];
 

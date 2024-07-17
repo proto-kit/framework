@@ -2,13 +2,13 @@ import { inject } from "tsyringe";
 import { injectOptional } from "@proto-kit/common";
 
 import { sequencerModule } from "../../../sequencer/builder/SequencerModule";
-import { SettleableBatch } from "../../../storage/model/Block";
-import { BlockProducerModule } from "../BlockProducerModule";
-import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
-import { UnprovenBlock } from "../../../storage/model/UnprovenBlock";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import { SettleableBatch } from "../../../storage/model/Batch";
+import { BatchProducerModule } from "../BatchProducerModule";
+import { UnprovenProducerModule } from "../sequencing/UnprovenProducerModule";
+import { Block } from "../../../storage/model/Block";
+import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-import { BlockStorage } from "../../../storage/repositories/BlockStorage";
+import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
@@ -19,25 +19,25 @@ export class ManualBlockTrigger
   implements BlockTrigger
 {
   public constructor(
-    @inject("BlockProducerModule")
-    blockProducerModule: BlockProducerModule,
+    @inject("BatchProducerModule")
+    batchProducerModule: BatchProducerModule,
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
-    @inject("UnprovenBlockQueue")
-    unprovenBlockQueue: UnprovenBlockQueue,
+    @inject("BlockQueue")
+    blockQueue: BlockQueue,
     @inject("BlockStorage")
-    blockStorage: BlockStorage,
+    blockStorage: BatchStorage,
     @injectOptional("SettlementStorage")
     settlementStorage: SettlementStorage | undefined
   ) {
     super(
       unprovenProducerModule,
-      blockProducerModule,
+      batchProducerModule,
       settlementModule,
 
-      unprovenBlockQueue,
+      blockQueue,
       blockStorage,
       settlementStorage
     );
@@ -48,7 +48,7 @@ export class ManualBlockTrigger
    * settlement block proof
    */
   public async produceBlock(): Promise<
-    [UnprovenBlock | undefined, SettleableBatch | undefined]
+    [Block | undefined, SettleableBatch | undefined]
   > {
     return [await this.produceUnproven(), await this.produceProven()];
   }
@@ -63,7 +63,7 @@ export class ManualBlockTrigger
 
   public async produceUnproven(
     enqueueInSettlementQueue: boolean = true
-  ): Promise<UnprovenBlock | undefined> {
+  ): Promise<Block | undefined> {
     return await super.produceUnproven(enqueueInSettlementQueue);
   }
 }

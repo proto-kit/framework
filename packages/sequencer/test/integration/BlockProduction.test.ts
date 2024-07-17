@@ -14,8 +14,8 @@ import { container } from "tsyringe";
 
 import {
   AsyncStateService,
-  BlockStorage,
-  HistoricalBlockStorage,
+  BatchStorage,
+  HistoricalBatchStorage,
   ManualBlockTrigger,
   PrivateMempool,
   Sequencer,
@@ -83,7 +83,7 @@ describe("block production", () => {
         Database: {},
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {},
+        BatchProducerModule: {},
         UnprovenProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
@@ -144,7 +144,7 @@ describe("block production", () => {
     expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
 
     const latestBlockWithMetadata = await sequencer
-      .resolve("UnprovenBlockQueue")
+      .resolve("BlockQueue")
       .getLatestBlock();
 
     let batch = await blockTrigger.produceProven();
@@ -159,8 +159,8 @@ describe("block production", () => {
     ).toStrictEqual(batch!.toNetworkState.hash().toString());
 
     // Check if the batchstorage has received the block
-    const batchStorage = sequencer.resolve("BlockStorage") as BlockStorage &
-      HistoricalBlockStorage;
+    const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage &
+      HistoricalBatchStorage;
     const retrievedBatch = await batchStorage.getBlockAt(0);
     expect(retrievedBatch).toBeDefined();
 
