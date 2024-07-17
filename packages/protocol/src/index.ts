@@ -29,7 +29,6 @@ export * from "./protocol/ProtocolModule";
 export * from "./protocol/ProtocolEnvironment";
 export * from "./protocol/ProvableTransactionHook";
 export * from "./protocol/ProvableBlockHook";
-export * from "./state/context/ProtocolMethodExecutionContext";
 export * from "./state/context/TransitionMethodExecutionContext";
 export * from "./state/context/RuntimeMethodExecutionContext";
 export * from "./state/protocol/ProtocolState";
