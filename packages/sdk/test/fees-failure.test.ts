@@ -28,26 +28,9 @@ class Faucet extends RuntimeModule<unknown> {
   }
 }
 
-@runtimeModule()
-class Pit extends RuntimeModule<unknown> {
-  public constructor(@inject("Balances") public balances: Balances) {
-    super();
-  }
-
-  @runtimeMethod()
-  public async burn(amount: Balance) {
-    await this.balances.burn(
-      TokenId.from(0),
-      this.transaction.sender.value,
-      amount
-    );
-  }
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RuntimeModules extends RuntimeModulesRecord {
   Faucet: typeof Faucet;
-  Pit: typeof Pit;
 }
 
 describe("fees", () => {
@@ -56,14 +39,12 @@ describe("fees", () => {
 
   const appChain = TestingAppChain.fromRuntime({
     Faucet,
-    Pit,
   });
 
   beforeAll(async () => {
     appChain.configurePartial({
       Runtime: {
         Faucet: {},
-        Pit: {},
         Balances: {},
       },
       Protocol: {
@@ -114,11 +95,11 @@ describe("fees", () => {
   });
 
   it("should crash when the transaction fee exceeds the balance", async () => {
-
+    expect.assertions(2);
     const balances = appChain.runtime.resolve("Balances");
 
     const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
-      await balances.transfer(
+      await balances.transferSigned(
         TokenId.from(0),
         senderKey.toPublicKey(),
         feeRecipientKey.toPublicKey(),
@@ -138,6 +119,6 @@ describe("fees", () => {
     );
 
     expectDefined(balance);
-    expect(balance.toString()).toBe("512");
+    expect(balance.toString()).toBe("1000");
   });
 });
