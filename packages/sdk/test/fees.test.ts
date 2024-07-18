@@ -1,4 +1,5 @@
 import "reflect-metadata";
+
 import { Balance, Balances, BalancesKey, TokenId } from "@proto-kit/library";
 import {
   runtimeMethod,
@@ -115,12 +116,33 @@ describe("fees", () => {
   });
 
   it("should allow burning of tokens with a fixed fee", async () => {
-    expect.assertions(2);
+    expect.assertions(6);
 
     const pit = appChain.runtime.resolve("Pit");
 
+    const balanceSenderBefore =
+      await appChain.query.runtime.Balances.balances.get(
+        new BalancesKey({
+          tokenId: new TokenId(0),
+          address: senderKey.toPublicKey(),
+        })
+      );
+    const balanceFeeReceiverBefore =
+      await appChain.query.runtime.Balances.balances.get(
+        new BalancesKey({
+          tokenId: new TokenId(0),
+          address: feeRecipientKey.toPublicKey(),
+        })
+      );
+
+    expectDefined(balanceFeeReceiverBefore);
+    expect(balanceFeeReceiverBefore.toString()).toBe("0");
+
+    const burnAmount = Balance.from(100);
+    const senderBalanceBefore = balanceSenderBefore;
+    const transactionfee = Balance.from(388);
     const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
-      await pit.burn(Balance.from(100));
+      await pit.burn(burnAmount);
     });
 
     await tx.sign();
@@ -128,14 +150,32 @@ describe("fees", () => {
 
     await appChain.produceBlock();
 
-    const balance = await appChain.query.runtime.Balances.balances.get(
-      new BalancesKey({
-        tokenId: new TokenId(0),
-        address: senderKey.toPublicKey(),
-      })
+    const balanceSenderAfter =
+      await appChain.query.runtime.Balances.balances.get(
+        new BalancesKey({
+          tokenId: new TokenId(0),
+          address: senderKey.toPublicKey(),
+        })
+      );
+
+    const balanceFeeReceiverAfter =
+      await appChain.query.runtime.Balances.balances.get(
+        new BalancesKey({
+          tokenId: new TokenId(0),
+          address: feeRecipientKey.toPublicKey(),
+        })
+      );
+
+    const expectedSenderBalanceAfter = senderBalanceBefore!
+      .sub(burnAmount)
+      .sub(transactionfee);
+
+    expectDefined(balanceSenderAfter);
+    expect(balanceSenderAfter.toString()).toBe(
+      expectedSenderBalanceAfter.toString()
     );
 
-    expectDefined(balance);
-    expect(balance.toString()).toBe("512");
+    expectDefined(balanceFeeReceiverAfter);
+    expect(balanceFeeReceiverAfter.toString()).toBe(transactionfee.toString());
   });
 });
