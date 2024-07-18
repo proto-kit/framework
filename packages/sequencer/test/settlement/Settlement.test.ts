@@ -200,9 +200,7 @@ describe("settlement contracts", () => {
       appChain.sequencer.dependencyContainer.resolve<ManualBlockTrigger>(
         "BlockTrigger"
       );
-    blockQueue = appChain.sequencer.resolve(
-      "BlockQueue"
-    ) as BlockQueue;
+    blockQueue = appChain.sequencer.resolve("BlockQueue") as BlockQueue;
 
     const baseLayer = appChain.sequencer.resolve("BaseLayer") as MinaBaseLayer;
 

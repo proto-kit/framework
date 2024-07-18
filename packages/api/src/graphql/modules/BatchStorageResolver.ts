@@ -9,10 +9,7 @@ import { MOCK_PROOF } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
-import {
-  BlockModel,
-  BlockResolver,
-} from "./BlockResolver";
+import { BlockModel, BlockResolver } from "./BlockResolver";
 
 @ObjectType()
 export class ComputedBlockModel {

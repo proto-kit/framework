@@ -1,9 +1,5 @@
 import { BlockWithPreviousResult } from "../../protocol/production/BatchProducerModule";
-import type {
-  Block,
-  BlockResult,
-  BlockWithResult,
-} from "../model/Block";
+import type { Block, BlockResult, BlockWithResult } from "../model/Block";
 
 export interface BlockQueue {
   pushBlock: (block: Block) => Promise<void>;

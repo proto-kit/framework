@@ -27,10 +27,7 @@ import { BlockMapper } from "./mappers/BlockMapper";
 
 @injectable()
 export class PrismaBlockStorage
-  implements
-    BlockQueue,
-    BlockStorage,
-    HistoricalBlockStorage
+  implements BlockQueue, BlockStorage, HistoricalBlockStorage
 {
   public constructor(
     @inject("Database") private readonly connection: PrismaConnection,
@@ -171,9 +168,7 @@ export class PrismaBlockStorage
     return (result?._max.height ?? -1) + 1;
   }
 
-  public async getLatestBlock(): Promise<
-    BlockWithResult | undefined
-  > {
+  public async getLatestBlock(): Promise<BlockWithResult | undefined> {
     const latestBlock = await this.connection.prismaClient.$queryRaw<
       { hash: string }[]
     >`SELECT b1."hash" FROM "Block" b1 
@@ -210,14 +205,13 @@ export class PrismaBlockStorage
       .flatMap((block) => [block.parentHash, block.hash])
       .filter(filterNonNull)
       .filter(distinctByString);
-    const result =
-      await this.connection.prismaClient.blockResult.findMany({
-        where: {
-          blockHash: {
-            in: blockHashes,
-          },
+    const result = await this.connection.prismaClient.blockResult.findMany({
+      where: {
+        blockHash: {
+          in: blockHashes,
         },
-      });
+      },
+    });
 
     return blocks.map((block, index) => {
       const transactions = block.transactions.map<TransactionExecutionResult>(
@@ -233,7 +227,9 @@ export class PrismaBlockStorage
       );
 
       if (correspondingResult === undefined) {
-        throw new Error(`No BlockResult has been set for block ${block.hash} yet`);
+        throw new Error(
+          `No BlockResult has been set for block ${block.hash} yet`
+        );
       }
 
       const parentResult = result.find(

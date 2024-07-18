@@ -8,10 +8,7 @@ import { AsyncStateService } from "../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 
 import { BatchStorage } from "./repositories/BatchStorage";
-import {
-  BlockQueue,
-  BlockStorage,
-} from "./repositories/BlockStorage";
+import { BlockQueue, BlockStorage } from "./repositories/BlockStorage";
 import { MessageStorage } from "./repositories/MessageStorage";
 import { SettlementStorage } from "./repositories/SettlementStorage";
 import { TransactionStorage } from "./repositories/TransactionStorage";

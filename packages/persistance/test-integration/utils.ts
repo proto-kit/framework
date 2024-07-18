@@ -17,7 +17,7 @@ import {
   StateServiceQueryModule,
 } from "@proto-kit/sdk";
 import {
-  BlockProducerModule,
+  BatchProducerModule,
   LocalTaskQueue,
   LocalTaskWorkerModule,
   ManualBlockTrigger,
@@ -68,8 +68,8 @@ export const IntegrationTestDBConfig = {
 @runtimeModule()
 export class MintableBalances extends Balances {
   @runtimeMethod()
-  public mintDefaultToken(address: PublicKey, amount: Balance) {
-    this.mint(TokenId.from(0), address, amount);
+  public async mintDefaultToken(address: PublicKey, amount: Balance) {
+    await this.mint(TokenId.from(0), address, amount);
   }
 }
 
@@ -95,7 +95,7 @@ export function createPrismaAppchain(
           VanillaTaskWorkerModules.withoutSettlement()
         ),
         BaseLayer: NoopBaseLayer,
-        BlockProducerModule,
+        BatchProducerModule,
         UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
@@ -129,7 +129,7 @@ export function createPrismaAppchain(
       },
       BlockTrigger: {},
       Mempool: {},
-      BlockProducerModule: {},
+      BatchProducerModule: {},
       LocalTaskWorkerModule: {
         StateTransitionTask: {},
         RuntimeProvingTask: {},
@@ -163,8 +163,8 @@ export async function prepareBlock(
   const balances = appChain.runtime.resolve("Balances");
   const tx = await appChain.transaction(
     sender,
-    () => {
-      balances.mintDefaultToken(sender, Balance.from(100));
+    async () => {
+      await balances.mintDefaultToken(sender, Balance.from(100));
     },
     { nonce }
   );

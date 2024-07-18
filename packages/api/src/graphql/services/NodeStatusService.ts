@@ -4,7 +4,7 @@ import { inject, injectable } from "tsyringe";
 import {
   BatchStorage,
   BlockStorage,
-  SettlementStorage, Block
+  SettlementStorage,
 } from "@proto-kit/sequencer";
 import humanizeDuration from "humanize-duration";
 
