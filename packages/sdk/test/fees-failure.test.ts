@@ -8,7 +8,8 @@ import {
 } from "@proto-kit/module";
 import { PrivateKey } from "o1js";
 import { inject } from "tsyringe";
-import { expectDefined } from "@proto-kit/common";
+import { expectDefined, log } from "@proto-kit/common";
+import { jest } from "@jest/globals";
 
 import { TestingAppChain } from "../src";
 
@@ -94,8 +95,8 @@ describe("fees", () => {
     expect(balance.toString()).toBe("1000");
   });
 
-  it("should crash when the transaction fee exceeds the balance", async () => {
-    expect.assertions(2);
+  it("should reject transaction when the transaction fee exceeds the balance", async () => {
+    expect.assertions(3);
     const balances = appChain.runtime.resolve("Balances");
 
     const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
@@ -103,14 +104,21 @@ describe("fees", () => {
         TokenId.from(0),
         senderKey.toPublicKey(),
         feeRecipientKey.toPublicKey(),
-        Balance.from(100));
+        Balance.from(100)
+      );
     });
 
     await tx.sign();
     await tx.send();
+    const logSpy = jest.spyOn(log, "error");
+
     await appChain.produceBlock();
 
-    console.log('Printed Block')
+    expect(logSpy).toHaveBeenCalledWith(
+      "Error in inclusion of tx, skipping",
+      Error("Protocol hooks not executable: Subtraction overflow")
+    );
+
     const balance = await appChain.query.runtime.Balances.balances.get(
       new BalancesKey({
         tokenId: new TokenId(0),
@@ -119,6 +127,7 @@ describe("fees", () => {
     );
 
     expectDefined(balance);
+    // The balance should be unchanged as the transaction should have failed
     expect(balance.toString()).toBe("1000");
   });
 });
