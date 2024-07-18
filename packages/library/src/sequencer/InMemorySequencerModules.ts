@@ -1,5 +1,5 @@
 import {
-  BlockProducerModule,
+  BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
@@ -20,7 +20,7 @@ export type InMemorySequencerModulesRecord = {
     LocalTaskWorkerModule<TaskWorkerModulesWithoutSettlement>
   >;
   BaseLayer: typeof NoopBaseLayer;
-  BlockProducerModule: typeof BlockProducerModule;
+  BatchProducerModule: typeof BatchProducerModule;
   UnprovenProducerModule: typeof UnprovenProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
@@ -39,7 +39,7 @@ export class InMemorySequencerModules {
         ...VanillaTaskWorkerModules.withoutSettlement(),
       }),
       BaseLayer: NoopBaseLayer,
-      BlockProducerModule: BlockProducerModule,
+      BatchProducerModule: BatchProducerModule,
       UnprovenProducerModule: UnprovenProducerModule,
       BlockTrigger: ManualBlockTrigger,
       TaskQueue: LocalTaskQueue,

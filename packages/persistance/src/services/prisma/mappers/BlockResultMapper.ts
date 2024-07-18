@@ -1,6 +1,6 @@
 import { singleton } from "tsyringe";
-import { UnprovenBlockMetadata } from "@proto-kit/sequencer";
-import { UnprovenBlockMetadata as DBUnprovenBlockMetadata } from "@prisma/client";
+import { BlockResult } from "@proto-kit/sequencer";
+import { BlockResult as DBBlockResult } from "@prisma/client";
 import { BlockHashMerkleTreeWitness, NetworkState } from "@proto-kit/protocol";
 
 import { ObjectMapper } from "../../../ObjectMapper";
@@ -8,14 +8,14 @@ import { ObjectMapper } from "../../../ObjectMapper";
 import { StateTransitionArrayMapper } from "./StateTransitionMapper";
 
 @singleton()
-export class UnprovenBlockMetadataMapper
-  implements ObjectMapper<UnprovenBlockMetadata, DBUnprovenBlockMetadata>
+export class BlockResultMapper
+  implements ObjectMapper<BlockResult, DBBlockResult>
 {
   public constructor(
     private readonly stArrayMapper: StateTransitionArrayMapper
   ) {}
 
-  public mapIn(input: DBUnprovenBlockMetadata): UnprovenBlockMetadata {
+  public mapIn(input: DBBlockResult): BlockResult {
     return {
       afterNetworkState: new NetworkState(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -35,7 +35,7 @@ export class UnprovenBlockMetadataMapper
     };
   }
 
-  public mapOut(input: UnprovenBlockMetadata): DBUnprovenBlockMetadata {
+  public mapOut(input: BlockResult): DBBlockResult {
     return {
       stateRoot: input.stateRoot.toString(),
       blockHash: input.blockHash.toString(),

@@ -16,7 +16,7 @@ import {
   Sequencer,
   LocalTaskWorkerModule,
   NoopBaseLayer,
-  BlockProducerModule,
+  BatchProducerModule,
   ManualBlockTrigger,
   LocalTaskQueue,
   UnprovenProducerModule,
@@ -38,7 +38,7 @@ export type TestingSequencerModulesRecord = {
   Mempool: typeof PrivateMempool;
   LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
   BaseLayer: typeof NoopBaseLayer;
-  BlockProducerModule: typeof BlockProducerModule;
+  BatchProducerModule: typeof BatchProducerModule;
   UnprovenProducerModule: typeof UnprovenProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
@@ -107,7 +107,7 @@ export class TestingAppChain<
         Database: {},
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {},
+        BatchProducerModule: {},
         LocalTaskWorkerModule: {
           StateTransitionTask: {},
           RuntimeProvingTask: {},

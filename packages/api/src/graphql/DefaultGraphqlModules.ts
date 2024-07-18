@@ -3,17 +3,17 @@ import { ModulesConfig } from "@proto-kit/common";
 import { GraphqlModulesRecord } from "./GraphqlSequencerModule";
 import { MempoolResolver } from "./modules/MempoolResolver";
 import { QueryGraphqlModule } from "./modules/QueryGraphqlModule";
-import { BlockStorageResolver } from "./modules/BlockStorageResolver";
+import { BatchStorageResolver } from "./modules/BatchStorageResolver";
 import { NodeStatusResolver } from "./modules/NodeStatusResolver";
-import { UnprovenBlockResolver } from "./modules/UnprovenBlockResolver";
+import { BlockResolver } from "./modules/BlockResolver";
 import { MerkleWitnessResolver } from "./modules/MerkleWitnessResolver";
 
 export type DefaultGraphqlModulesRecord = {
   MempoolResolver: typeof MempoolResolver;
   QueryGraphqlModule: typeof QueryGraphqlModule;
-  BlockStorageResolver: typeof BlockStorageResolver;
+  BlockStorageResolver: typeof BatchStorageResolver;
   NodeStatusResolver: typeof NodeStatusResolver;
-  UnprovenBlockResolver: typeof UnprovenBlockResolver;
+  BlockResolver: typeof BlockResolver;
   MerkleWitnessResolver: typeof MerkleWitnessResolver;
 };
 
@@ -24,9 +24,9 @@ export class DefaultGraphqlModules {
     return {
       MempoolResolver,
       QueryGraphqlModule,
-      BlockStorageResolver,
+      BlockStorageResolver: BatchStorageResolver,
       NodeStatusResolver,
-      UnprovenBlockResolver,
+      BlockResolver,
       MerkleWitnessResolver,
       ...additionalModules,
     } satisfies DefaultGraphqlModulesRecord;
@@ -38,7 +38,7 @@ export class DefaultGraphqlModules {
       QueryGraphqlModule: {},
       BlockStorageResolver: {},
       NodeStatusResolver: {},
-      UnprovenBlockResolver: {},
+      BlockResolver: {},
       MerkleWitnessResolver: {},
     } satisfies ModulesConfig<DefaultGraphqlModulesRecord>;
   }

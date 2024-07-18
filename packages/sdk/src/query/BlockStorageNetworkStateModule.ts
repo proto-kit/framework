@@ -2,12 +2,12 @@ import { inject, injectable } from "tsyringe";
 import {
   BlockStorage,
   HistoricalBlockStorage,
-  HistoricalUnprovenBlockStorage,
+  HistoricalBatchStorage,
   NetworkStateTransportModule,
   Sequencer,
   SequencerModulesRecord,
-  UnprovenBlockQueue,
-  UnprovenBlockStorage,
+  BlockQueue,
+  BatchStorage,
 } from "@proto-kit/sequencer";
 import { NetworkState } from "@proto-kit/protocol";
 
@@ -25,23 +25,20 @@ export class BlockStorageNetworkStateModule
     super();
   }
 
-  private get unprovenQueue(): UnprovenBlockQueue {
-    return this.sequencer.dependencyContainer.resolve<UnprovenBlockQueue>(
-      "UnprovenBlockQueue"
-    );
+  private get unprovenQueue(): BlockQueue {
+    return this.sequencer.dependencyContainer.resolve<BlockQueue>("BlockQueue");
   }
 
-  private get unprovenStorage(): UnprovenBlockStorage &
-    HistoricalUnprovenBlockStorage {
-    return this.sequencer.dependencyContainer.resolve<
-      UnprovenBlockStorage & HistoricalUnprovenBlockStorage
-    >("UnprovenBlockStorage");
-  }
-
-  private get provenStorage(): BlockStorage & HistoricalBlockStorage {
+  private get unprovenStorage(): BlockStorage & HistoricalBlockStorage {
     return this.sequencer.dependencyContainer.resolve<
       BlockStorage & HistoricalBlockStorage
     >("BlockStorage");
+  }
+
+  private get provenStorage(): BatchStorage & HistoricalBatchStorage {
+    return this.sequencer.dependencyContainer.resolve<
+      BatchStorage & HistoricalBatchStorage
+    >("BatchStorage");
   }
 
   public async getUnprovenNetworkState(): Promise<NetworkState | undefined> {
@@ -54,8 +51,8 @@ export class BlockStorageNetworkStateModule
    * with afterBundle() hooks executed
    */
   public async getStagedNetworkState(): Promise<NetworkState | undefined> {
-    const metadata = await this.unprovenQueue.getLatestBlock();
-    return metadata?.metadata.afterNetworkState;
+    const result = await this.unprovenQueue.getLatestBlock();
+    return result?.result.afterNetworkState;
   }
 
   public async getProvenNetworkState(): Promise<NetworkState | undefined> {

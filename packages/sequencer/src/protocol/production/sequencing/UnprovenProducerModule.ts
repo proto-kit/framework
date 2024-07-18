@@ -11,10 +11,7 @@ import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
-import {
-  Block,
-  BlockWithResult,
-} from "../../../storage/model/Block";
+import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 
@@ -36,7 +33,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     @inject("UnprovenMerkleStore")
     private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
     @inject("BlockQueue")
-    private readonly unprovenBlockQueue: BlockQueue,
+    private readonly blockQueue: BlockQueue,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly executionService: TransactionExecutionService
@@ -48,9 +45,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     return this.config.allowEmptyBlock ?? true;
   }
 
-  public async tryProduceUnprovenBlock(): Promise<
-    BlockWithResult | undefined
-  > {
+  public async tryProduceUnprovenBlock(): Promise<BlockWithResult | undefined> {
     if (!this.productionInProgress) {
       try {
         const block = await this.produceUnprovenBlock();
@@ -69,17 +64,16 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
         // Generate metadata for next block
 
         // TODO: make async of production in the future
-        const metadata =
-          await this.executionService.generateMetadataForNextBlock(
-            block,
-            this.unprovenMerkleStore,
-            this.blockTreeStore,
-            true
-          );
+        const result = await this.executionService.generateMetadataForNextBlock(
+          block,
+          this.unprovenMerkleStore,
+          this.blockTreeStore,
+          true
+        );
 
         return {
           block,
-          metadata,
+          result,
         };
       } catch (error: unknown) {
         if (error instanceof Error) {
@@ -100,7 +94,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
   }> {
     const txs = await this.mempool.getTxs();
 
-    const parentBlock = await this.unprovenBlockQueue.getLatestBlock();
+    const parentBlock = await this.blockQueue.getLatestBlock();
 
     if (parentBlock === undefined) {
       log.debug(

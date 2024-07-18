@@ -84,7 +84,7 @@ export class TransactionTraceService {
     beforeBlockStateRoot: Field,
     block: BlockWithResult
   ): Promise<BlockTrace> {
-    const stateTransitions = block.metadata.blockStateTransitions;
+    const stateTransitions = block.result.blockStateTransitions;
 
     const startingState = await this.collectStartingState(stateTransitions);
 
@@ -141,7 +141,7 @@ export class TransactionTraceService {
       block: {
         networkState: fromNetworkState,
         publicInput,
-        blockWitness: block.metadata.blockHashWitness,
+        blockWitness: block.result.blockHashWitness,
         startingState,
       },
     };

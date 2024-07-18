@@ -17,10 +17,9 @@ export class InMemoryTransactionStorage implements TransactionStorage {
   private latestScannedBlock = -1;
 
   public constructor(
-    @inject("UnprovenBlockStorage")
-    private readonly blockStorage: BlockStorage &
-      HistoricalBlockStorage,
-    @inject("BlockStorage") private readonly batchStorage: InMemoryBatchStorage
+    @inject("BlockStorage")
+    private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
+    @inject("BatchStorage") private readonly batchStorage: InMemoryBatchStorage
   ) {}
 
   public async getPendingUserTransactions(): Promise<PendingTransaction[]> {

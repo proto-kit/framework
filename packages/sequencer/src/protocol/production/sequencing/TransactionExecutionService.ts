@@ -229,11 +229,11 @@ export class TransactionExecutionService {
   public async createUnprovenBlock(
     stateService: CachedStateService,
     transactions: PendingTransaction[],
-    lastBlockWithMetadata: BlockWithResult,
+    lastBlockWithResult: BlockWithResult,
     allowEmptyBlocks: boolean
   ): Promise<Block | undefined> {
-    const lastMetadata = lastBlockWithMetadata.metadata;
-    const lastBlock = lastBlockWithMetadata.block;
+    const lastResult = lastBlockWithResult.result;
+    const lastBlock = lastBlockWithResult.block;
     const executionResults: TransactionExecutionResult[] = [];
 
     const transactionsHashList = new DefaultProvableHashList(Field);
@@ -250,14 +250,14 @@ export class TransactionExecutionService {
     const networkState = await this.blockHooks.reduce<Promise<NetworkState>>(
       async (reduceNetworkState, hook) =>
         await hook.beforeBlock(await reduceNetworkState, {
-          blockHashRoot: Field(lastMetadata.blockHashRoot),
+          blockHashRoot: Field(lastResult.blockHashRoot),
           eternalTransactionsHash: lastBlock.toEternalTransactionsHash,
-          stateRoot: Field(lastMetadata.stateRoot),
+          stateRoot: Field(lastResult.stateRoot),
           transactionsHash: Field(0),
-          networkStateHash: lastMetadata.afterNetworkState.hash(),
+          networkStateHash: lastResult.afterNetworkState.hash(),
           incomingMessagesHash: lastBlock.toMessagesHash,
         }),
-      Promise.resolve(lastMetadata.afterNetworkState)
+      Promise.resolve(lastResult.afterNetworkState)
     );
 
     for (const [, tx] of transactions.entries()) {
@@ -290,7 +290,7 @@ export class TransactionExecutionService {
     }
 
     const previousBlockHash =
-      lastMetadata.blockHash === 0n ? undefined : Field(lastMetadata.blockHash);
+      lastResult.blockHash === 0n ? undefined : Field(lastResult.blockHash);
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
@@ -306,13 +306,13 @@ export class TransactionExecutionService {
       toEternalTransactionsHash: eternalTransactionsHashList.commitment,
       height:
         lastBlock.hash.toBigInt() !== 0n ? lastBlock.height.add(1) : Field(0),
-      fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
+      fromBlockHashRoot: Field(lastResult.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       toMessagesHash: incomingMessagesList.commitment,
       previousBlockHash,
 
       networkState: {
-        before: new NetworkState(lastMetadata.afterNetworkState),
+        before: new NetworkState(lastResult.afterNetworkState),
         during: networkState,
       },
     };

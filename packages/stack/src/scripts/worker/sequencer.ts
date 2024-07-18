@@ -79,7 +79,7 @@ sequencer.configure({
       BlockStorageResolver: {},
       NodeStatusResolver: {},
       MerkleWitnessResolver: {},
-      UnprovenBlockResolver: {},
+      BlockResolver: {},
     },
   },
   QueryTransportModule: {},

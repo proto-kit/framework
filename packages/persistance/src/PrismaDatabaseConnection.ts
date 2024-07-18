@@ -55,13 +55,13 @@ export class PrismaDatabaseConnection
       asyncStateService: {
         useFactory: () => new PrismaStateService(this, "batch"),
       },
-      blockStorage: {
+      batchStorage: {
         useClass: PrismaBatchStore,
       },
-      unprovenBlockQueue: {
+      blockQueue: {
         useClass: PrismaBlockStorage,
       },
-      unprovenBlockStorage: {
+      blockStorage: {
         useClass: PrismaBlockStorage,
       },
       unprovenStateService: {

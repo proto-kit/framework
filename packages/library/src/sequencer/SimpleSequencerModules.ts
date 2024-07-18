@@ -1,5 +1,5 @@
 import {
-  BlockProducerModule,
+  BatchProducerModule,
   LocalTaskWorkerModule,
   PrivateMempool,
   SequencerModulesRecord,
@@ -15,7 +15,7 @@ import { TypedClass, ModulesConfig } from "@proto-kit/common";
 
 type PreconfiguredSimpleSequencerModulesRecord = {
   Mempool: typeof PrivateMempool;
-  BlockProducerModule: typeof BlockProducerModule;
+  BatchProducerModule: typeof BatchProducerModule;
   UnprovenProducerModule: typeof UnprovenProducerModule;
 };
 
@@ -92,7 +92,7 @@ export class SimpleSequencerModules {
       DatabasePruneModule,
       Mempool: PrivateMempool,
       BaseLayer,
-      BlockProducerModule: BlockProducerModule,
+      BatchProducerModule,
       UnprovenProducerModule: UnprovenProducerModule,
       BlockTrigger,
       TaskQueue,
@@ -107,7 +107,7 @@ export class SimpleSequencerModules {
       },
 
       Mempool: {},
-      BlockProducerModule: {},
+      BatchProducerModule: {},
     } satisfies ModulesConfig<PreconfiguredSimpleSequencerModulesRecord>;
   }
 

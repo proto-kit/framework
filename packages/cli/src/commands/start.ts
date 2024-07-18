@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 
 import { log } from "@proto-kit/common";
 import {
-  UnprovenBlock,
+  Block,
   ManualBlockTrigger,
   PrivateMempool,
 } from "@proto-kit/sequencer";
@@ -24,8 +24,8 @@ log.setLevel("ERROR");
 
 let appChain: AppChain<any, any, any, any>;
 
-export interface UnprovenBlockExtras {
-  block?: UnprovenBlock;
+export interface BlockExtras {
+  block?: Block;
   blockError?: string;
   logs: string[];
   height?: number;
@@ -33,7 +33,7 @@ export interface UnprovenBlockExtras {
   time: string;
 }
 export interface ChainState {
-  blocks: UnprovenBlockExtras[];
+  blocks: BlockExtras[];
   isProducingBlock: boolean;
   isStarted: boolean;
   blockTime: number;
@@ -85,12 +85,12 @@ async function produceBlock(trigger: ManualBlockTrigger) {
 }
 
 export function printBlockDetails(
-  unprovenBlock: UnprovenBlock | undefined,
+  block: Block | undefined,
   blockHeight: number,
   blockGenerationTime: number,
   methodIdResolver: MethodIdResolver
 ) {
-  const txnCount = unprovenBlock?.transactions?.length ?? 0;
+  const txnCount = block?.transactions?.length ?? 0;
   process.stdout.write(ansiEscapes.eraseEndLine);
   let str = `[${chalk.gray(new Date().toLocaleTimeString())}]`;
   str += ` Block #${chalk.whiteBright(blockHeight.toString())}`;
@@ -99,9 +99,9 @@ export function printBlockDetails(
   process.stdout.write(str);
   process.stdout.write(ansiEscapes.eraseEndLine);
   process.stdout.write(ansiEscapes.cursorNextLine);
-  if (unprovenBlock?.transactions) {
+  if (block?.transactions) {
     for (let i = 0; i < txnCount; i++) {
-      const txn = unprovenBlock.transactions[i];
+      const txn = block.transactions[i];
       const name = methodIdResolver.getMethodNameFromId(
         txn.tx.methodId.toBigInt()
       );

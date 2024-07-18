@@ -1,30 +1,30 @@
 import { inject } from "tsyringe";
 import {
-  HistoricalUnprovenBlockStorage,
-  UnprovenBlock,
-  UnprovenBlockStorage,
+  HistoricalBlockStorage,
+  Block,
+  BlockStorage,
 } from "@proto-kit/sequencer";
 import { Arg, Field, ObjectType, Query } from "type-graphql";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";
 
-import { ComputedBlockTransactionModel } from "./model/ComputedBlockTransactionModel";
+import { BatchTransactionModel } from "./model/BatchTransactionModel";
 
 @ObjectType()
-export class UnprovenBlockModel {
-  public static fromServiceLayerModel(unprovenBlock: UnprovenBlock) {
-    return new UnprovenBlockModel(
-      Number(unprovenBlock.networkState.during.block.height.toBigInt()),
-      unprovenBlock.transactions.map((tx) =>
-        ComputedBlockTransactionModel.fromServiceLayerModel({
+export class BlockModel {
+  public static fromServiceLayerModel(block: Block) {
+    return new BlockModel(
+      Number(block.networkState.during.block.height.toBigInt()),
+      block.transactions.map((tx) =>
+        BatchTransactionModel.fromServiceLayerModel({
           tx: tx.tx,
           status: tx.status.toBoolean(),
           statusMessage: tx.statusMessage,
         })
       ),
-      unprovenBlock.transactionsHash.toString(),
-      unprovenBlock.hash.toString(),
-      unprovenBlock.previousBlockHash?.toString()
+      block.transactionsHash.toString(),
+      block.hash.toString(),
+      block.previousBlockHash?.toString()
     );
   }
 
@@ -37,15 +37,15 @@ export class UnprovenBlockModel {
   @Field()
   height: number;
 
-  @Field(() => [ComputedBlockTransactionModel])
-  txs: ComputedBlockTransactionModel[];
+  @Field(() => [BatchTransactionModel])
+  txs: BatchTransactionModel[];
 
   @Field()
   transactionsHash: string;
 
   private constructor(
     height: number,
-    txs: ComputedBlockTransactionModel[],
+    txs: BatchTransactionModel[],
     transactionsHash: string,
     hash: string,
     previousBlockHash: string | undefined
@@ -59,16 +59,15 @@ export class UnprovenBlockModel {
 }
 
 @graphqlModule()
-export class UnprovenBlockResolver extends GraphqlModule<object> {
+export class BlockResolver extends GraphqlModule<object> {
   public constructor(
-    @inject("UnprovenBlockStorage")
-    private readonly blockStorage: HistoricalUnprovenBlockStorage &
-      UnprovenBlockStorage
+    @inject("BlockStorage")
+    private readonly blockStorage: HistoricalBlockStorage & BlockStorage
   ) {
     super();
   }
 
-  @Query(() => UnprovenBlockModel, {
+  @Query(() => BlockModel, {
     nullable: true,
     description:
       "Queries for blocks that have been sequenced and included into the chain",
@@ -85,7 +84,7 @@ export class UnprovenBlockResolver extends GraphqlModule<object> {
     })
     hash: string | undefined
   ) {
-    let block: UnprovenBlock | undefined;
+    let block: Block | undefined;
 
     if (hash !== undefined) {
       block = await this.blockStorage.getBlock(hash);
@@ -97,7 +96,7 @@ export class UnprovenBlockResolver extends GraphqlModule<object> {
     }
 
     if (block !== undefined) {
-      return UnprovenBlockModel.fromServiceLayerModel(block);
+      return BlockModel.fromServiceLayerModel(block);
     }
     return undefined;
   }

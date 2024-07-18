@@ -143,7 +143,7 @@ describe("block production", () => {
     expect(block!.transactions[0].stateTransitions).toHaveLength(1);
     expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
 
-    const latestBlockWithMetadata = await sequencer
+    const latestBlockWithResult = await sequencer
       .resolve("BlockQueue")
       .getLatestBlock();
 
@@ -155,7 +155,7 @@ describe("block production", () => {
     expect(batch!.proof.proof).toBe("mock-proof");
 
     expect(
-      latestBlockWithMetadata!.metadata.afterNetworkState.hash().toString()
+      latestBlockWithResult!.result.afterNetworkState.hash().toString()
     ).toStrictEqual(batch!.toNetworkState.hash().toString());
 
     // Check if the batchstorage has received the block

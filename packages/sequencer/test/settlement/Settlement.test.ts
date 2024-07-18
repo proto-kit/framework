@@ -201,7 +201,7 @@ describe("settlement contracts", () => {
         "BlockTrigger"
       );
     blockQueue = appChain.sequencer.resolve(
-      "UnprovenBlockQueue"
+      "BlockQueue"
     ) as BlockQueue;
 
     const baseLayer = appChain.sequencer.resolve("BaseLayer") as MinaBaseLayer;
@@ -252,13 +252,13 @@ describe("settlement contracts", () => {
 
     const { settlement } = settlementModule.getContracts();
     expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
-      lastBlock!.metadata.afterNetworkState.hash().toBigInt()
+      lastBlock!.result.afterNetworkState.hash().toBigInt()
     );
     expect(settlement.stateRoot.get().toBigInt()).toStrictEqual(
-      lastBlock!.metadata.stateRoot
+      lastBlock!.result.stateRoot
     );
     expect(settlement.blockHashRoot.get().toBigInt()).toStrictEqual(
-      lastBlock!.metadata.blockHashRoot
+      lastBlock!.result.blockHashRoot
     );
   }, 120_000);
 

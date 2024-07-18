@@ -24,7 +24,7 @@ import {
 } from "@proto-kit/library";
 import { log } from "@proto-kit/common";
 import {
-  BlockProducerModule,
+  BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
@@ -36,14 +36,14 @@ import {
   VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 import {
-  BlockStorageResolver,
+  BatchStorageResolver,
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
   MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
-  UnprovenBlockResolver,
+  BlockResolver,
 } from "@proto-kit/api";
 import { container } from "tsyringe";
 
@@ -109,7 +109,7 @@ export async function startServer() {
           VanillaTaskWorkerModules.withoutSettlement()
         ),
         BaseLayer: NoopBaseLayer,
-        BlockProducerModule,
+        BatchProducerModule,
         UnprovenProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
@@ -119,8 +119,8 @@ export async function startServer() {
           modules: {
             MempoolResolver,
             QueryGraphqlModule,
-            BlockStorageResolver,
-            UnprovenBlockResolver,
+            BatchStorageResolver,
+            BlockResolver,
             NodeStatusResolver,
             MerkleWitnessResolver,
           },
@@ -128,10 +128,10 @@ export async function startServer() {
           config: {
             MempoolResolver: {},
             QueryGraphqlModule: {},
-            BlockStorageResolver: {},
+            BatchStorageResolver: {},
             NodeStatusResolver: {},
             MerkleWitnessResolver: {},
-            UnprovenBlockResolver: {},
+            BlockResolver: {},
           },
         }),
       },
@@ -179,9 +179,9 @@ export async function startServer() {
       Graphql: {
         QueryGraphqlModule: {},
         MempoolResolver: {},
-        BlockStorageResolver: {},
+        BatchStorageResolver: {},
         NodeStatusResolver: {},
-        UnprovenBlockResolver: {},
+        BlockResolver: {},
         MerkleWitnessResolver: {},
       },
 
@@ -205,7 +205,7 @@ export async function startServer() {
       },
 
       Mempool: {},
-      BlockProducerModule: {},
+      BatchProducerModule: {},
       LocalTaskWorkerModule: {
         StateTransitionTask: {},
         // SettlementProvingTask: {},

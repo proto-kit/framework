@@ -149,9 +149,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       expect(blocks).toHaveLength(1);
 
-      const { lastBlockMetadata, block } = blocks[0];
+      const { lastBlockResult, block } = blocks[0];
 
-      expect(lastBlockMetadata).toBeUndefined();
+      expect(lastBlockResult).toBeUndefined();
       expect(block.block.hash.toBigInt()).toStrictEqual(
         generatedBlock.hash.toBigInt()
       );

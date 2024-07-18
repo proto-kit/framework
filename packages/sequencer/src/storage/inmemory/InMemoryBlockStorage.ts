@@ -19,7 +19,7 @@ export class InMemoryBlockStorage
 
   private readonly blocks: Block[] = [];
 
-  private readonly metadata: BlockResult[] = [];
+  private readonly results: BlockResult[] = [];
 
   public async getBlockAt(height: number): Promise<Block | undefined> {
     return this.blocks.at(height);
@@ -32,13 +32,13 @@ export class InMemoryBlockStorage
   public async getLatestBlock(): Promise<BlockWithResult | undefined> {
     const currentHeight = await this.getCurrentBlockHeight();
     const block = await this.getBlockAt(currentHeight - 1);
-    const metadata = this.metadata[currentHeight - 1];
+    const result = this.results[currentHeight - 1];
     if (block === undefined) {
       return undefined;
     }
     return {
       block,
-      metadata,
+      result,
     };
   }
 
@@ -56,19 +56,19 @@ export class InMemoryBlockStorage
 
     const slice = this.blocks.slice(cursor);
 
-    let metadata: (BlockResult | undefined)[] = this.metadata.slice(
+    let results: (BlockResult | undefined)[] = this.results.slice(
       Math.max(cursor - 1, 0)
     );
     if (cursor === 0) {
-      metadata = [undefined, ...metadata];
+      results = [undefined, ...results];
     }
 
     return slice.map((block, index) => ({
       block: {
         block,
-        metadata: metadata[index + 1]!,
+        result: results[index + 1]!,
       },
-      lastBlockMetadata: metadata[index],
+      lastBlockResult: results[index],
     }));
   }
 
@@ -77,11 +77,11 @@ export class InMemoryBlockStorage
   }
 
   public async getNewestMetadata(): Promise<BlockResult | undefined> {
-    return this.metadata.length > 0 ? this.metadata.at(-1) : undefined;
+    return this.results.length > 0 ? this.results.at(-1) : undefined;
   }
 
   public async pushMetadata(metadata: BlockResult): Promise<void> {
-    this.metadata.push(metadata);
+    this.results.push(metadata);
   }
 
   public async getBlock(hash: string): Promise<Block | undefined> {

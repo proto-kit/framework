@@ -60,7 +60,7 @@ export interface BlockResult {
 
 export interface BlockWithResult {
   block: Block;
-  metadata: BlockResult;
+  result: BlockResult;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -85,7 +85,7 @@ export const BlockWithResult = {
 
         previousBlockHash: undefined,
       },
-      metadata: {
+      result: {
         afterNetworkState: NetworkState.empty(),
         stateRoot: RollupMerkleTree.EMPTY_ROOT,
         blockHashRoot: BlockHashMerkleTree.EMPTY_ROOT,

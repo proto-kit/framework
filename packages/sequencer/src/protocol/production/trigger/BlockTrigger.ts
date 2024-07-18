@@ -12,10 +12,7 @@ import { UnprovenProducerModule } from "../sequencing/UnprovenProducerModule";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-import {
-  Block,
-  BlockWithResult,
-} from "../../../storage/model/Block";
+import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
@@ -71,18 +68,17 @@ export class BlockTriggerBase<
   protected async produceUnproven(
     enqueueInSettlementQueue: boolean
   ): Promise<Block | undefined> {
-    const unprovenBlock =
-      await this.unprovenProducerModule.tryProduceUnprovenBlock();
+    const block = await this.unprovenProducerModule.tryProduceUnprovenBlock();
 
-    if (unprovenBlock && enqueueInSettlementQueue) {
-      await this.blockQueue.pushBlock(unprovenBlock.block);
-      this.events.emit("block-produced", unprovenBlock.block);
+    if (block && enqueueInSettlementQueue) {
+      await this.blockQueue.pushBlock(block.block);
+      this.events.emit("block-produced", block.block);
 
-      await this.blockQueue.pushMetadata(unprovenBlock.metadata);
-      this.events.emit("block-metadata-produced", unprovenBlock);
+      await this.blockQueue.pushMetadata(block.result);
+      this.events.emit("block-metadata-produced", block);
     }
 
-    return unprovenBlock?.block;
+    return block?.block;
   }
 
   protected async settle(batch: SettleableBatch) {

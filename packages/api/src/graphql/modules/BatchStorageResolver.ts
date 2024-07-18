@@ -1,24 +1,24 @@
 import { inject } from "tsyringe";
 import { Arg, Field, ObjectType, Query } from "type-graphql";
 import {
-  BlockStorage,
-  HistoricalBlockStorage,
-  ComputedBlock,
+  Batch,
+  BatchStorage,
+  HistoricalBatchStorage,
 } from "@proto-kit/sequencer";
 import { MOCK_PROOF } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 
 import {
-  UnprovenBlockModel,
-  UnprovenBlockResolver,
-} from "./UnprovenBlockResolver";
+  BlockModel,
+  BlockResolver,
+} from "./BlockResolver";
 
 @ObjectType()
 export class ComputedBlockModel {
   public static fromServiceLayerModel(
-    { bundles, proof }: ComputedBlock,
-    blocks: (UnprovenBlockModel | undefined)[]
+    { bundles, proof }: Batch,
+    blocks: (BlockModel | undefined)[]
   ): ComputedBlockModel {
     return new ComputedBlockModel(
       bundles.map((bundle) => blocks.find((block) => block?.hash === bundle)!),
@@ -26,25 +26,25 @@ export class ComputedBlockModel {
     );
   }
 
-  @Field(() => [UnprovenBlockModel])
-  public bundles: UnprovenBlockModel[];
+  @Field(() => [BlockModel])
+  public bundles: BlockModel[];
 
   @Field()
   public proof: string;
 
-  public constructor(bundles: UnprovenBlockModel[], proof: string) {
+  public constructor(bundles: BlockModel[], proof: string) {
     this.bundles = bundles;
     this.proof = proof;
   }
 }
 
 @graphqlModule()
-export class BlockStorageResolver extends GraphqlModule {
+export class BatchStorageResolver extends GraphqlModule {
   // TODO seperate these two block interfaces
   public constructor(
     @inject("BlockStorage")
-    private readonly batchStorage: BlockStorage & HistoricalBlockStorage,
-    private readonly unprovenResolver: UnprovenBlockResolver
+    private readonly batchStorage: BatchStorage & HistoricalBatchStorage,
+    private readonly unprovenResolver: BlockResolver
   ) {
     super();
   }
