@@ -56,7 +56,8 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     super();
   }
 
-  protected persistedFeeAnalyzer: RuntimeFeeAnalyzerService | null = null;
+  protected persistedFeeAnalyzer: RuntimeFeeAnalyzerService | undefined =
+    undefined;
 
   // check if the fee config is compatible with the current runtime
   // we couldn't resolve this purely on the type level, so we have to do it here
@@ -75,6 +76,12 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     });
   }
 
+  public async start() {
+    this.persistedFeeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
+    this.persistedFeeAnalyzer.config = this.config;
+    await this.persistedFeeAnalyzer.intializeFeeTree();
+  }
+
   public get config() {
     this.verifyConfig();
     return super.config;
@@ -89,9 +96,9 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   }
 
   public get feeAnalyzer() {
-    if (this.persistedFeeAnalyzer) return this.persistedFeeAnalyzer;
-    this.persistedFeeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
-    this.persistedFeeAnalyzer.config = this.config;
+    if (this.persistedFeeAnalyzer === undefined) {
+      throw new Error("TransactionFeeHook.start not called by protocol");
+    }
     return this.persistedFeeAnalyzer;
   }
 
@@ -113,23 +120,21 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   public async onTransaction(
     executionData: BlockProverExecutionData
   ): Promise<void> {
-    const feeConfig = await Provable.witnessAsync(
-      MethodFeeConfigData,
-      async () =>
-        await this.feeAnalyzer.getFeeConfig(
-          executionData.transaction.methodId.toBigInt()
-        )
+    const feeConfig = Provable.witness(MethodFeeConfigData, () =>
+      this.feeAnalyzer.getFeeConfig(
+        executionData.transaction.methodId.toBigInt()
+      )
     );
 
-    const witness = await Provable.witnessAsync(
+    const witness = Provable.witness(
       RuntimeFeeAnalyzerService.getWitnessType(),
-      async () =>
-        await this.feeAnalyzer.getWitness(
+      () =>
+        this.feeAnalyzer.getWitness(
           executionData.transaction.methodId.toBigInt()
         )
     );
 
-    const root = Field(await this.feeAnalyzer.getRoot());
+    const root = Field(this.feeAnalyzer.getRoot());
     const calculatedRoot = witness.calculateRoot(feeConfig.hash());
 
     root.assertEquals(calculatedRoot, errors.invalidFeeTreeRoot());
