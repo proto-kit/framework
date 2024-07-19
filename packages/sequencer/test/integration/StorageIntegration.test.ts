@@ -139,7 +139,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const generatedBlock = await sequencer
         .resolve("BlockTrigger")
-        .produceUnproven(true);
+        .produceBlock(true);
 
       expectDefined(generatedBlock);
 
@@ -185,7 +185,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
     it("test proven block prod", async () => {
       const generatedBatch = await sequencer
         .resolve("BlockTrigger")
-        .produceProven();
+        .produceBatch();
 
       expectDefined(generatedBatch);
 
@@ -223,7 +223,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(txs).toHaveLength(1);
       expect(txs[0].hash().toString()).toStrictEqual(tx.hash().toString());
 
-      await sequencer.resolve("BlockTrigger").produceUnproven();
+      await sequencer.resolve("BlockTrigger").produceBlock();
 
       await expect(
         txStorage.getPendingUserTransactions()

@@ -131,8 +131,8 @@ describe("block production", () => {
       })
     );
 
-    // let [block, batch] = await blockTrigger.produceBlock();
-    let block = await blockTrigger.produceUnproven();
+    // let [block, batch] = await blockTrigger.produceBlockAndBatch();
+    let block = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();
 
@@ -147,7 +147,7 @@ describe("block production", () => {
       .resolve("BlockQueue")
       .getLatestBlock();
 
-    let batch = await blockTrigger.produceProven();
+    let batch = await blockTrigger.produceBatch();
 
     expect(batch).toBeDefined();
 
@@ -215,7 +215,7 @@ describe("block production", () => {
 
     log.info("Starting second block");
 
-    [block, batch] = await blockTrigger.produceBlock();
+    [block, batch] = await blockTrigger.produceBlockAndBatch();
 
     expect(block).toBeDefined();
 
@@ -255,7 +255,7 @@ describe("block production", () => {
       })
     );
 
-    const [block] = await blockTrigger.produceBlock();
+    const [block] = await blockTrigger.produceBlockAndBatch();
 
     expect(block?.transactions).toHaveLength(1);
     expect(block?.transactions[0].status.toBoolean()).toBe(false);
@@ -306,7 +306,7 @@ describe("block production", () => {
     });
     await Promise.all(p);
 
-    const block = await blockTrigger.produceUnproven();
+    const block = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();
     expect(block!.transactions).toHaveLength(numberTxs);
@@ -326,7 +326,7 @@ describe("block production", () => {
       );
     });
 
-    const batch = await blockTrigger.produceProven();
+    const batch = await blockTrigger.produceBatch();
 
     expect(batch!.bundles).toHaveLength(1);
     expect(batch!.proof.proof).toBe("mock-proof");
@@ -374,9 +374,9 @@ describe("block production", () => {
       })
     );
 
-    const block = await blockTrigger.produceUnproven();
-    await blockTrigger.produceUnproven();
-    const batch = await blockTrigger.produceProven();
+    const block = await blockTrigger.produceBlock();
+    await blockTrigger.produceBlock();
+    const batch = await blockTrigger.produceBatch();
 
     expect(block).toBeDefined();
 
@@ -407,9 +407,9 @@ describe("block production", () => {
     expect(newState2).toBeDefined();
     expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
 
-    await blockTrigger.produceUnproven();
-    await blockTrigger.produceUnproven();
-    const proven2 = await blockTrigger.produceProven();
+    await blockTrigger.produceBlock();
+    await blockTrigger.produceBlock();
+    const proven2 = await blockTrigger.produceBatch();
 
     expect(proven2?.bundles.length).toBe(2);
   }, 720_000);
@@ -454,14 +454,14 @@ describe("block production", () => {
           }
 
           // Produce block
-          const block = await blockTrigger.produceUnproven();
+          const block = await blockTrigger.produceBlock();
 
           expect(block).toBeDefined();
           expect(block!.transactions).toHaveLength(txsPerBlock);
           expect(block!.transactions[0].status.toBoolean()).toBe(true);
         }
 
-        const batch = await blockTrigger.produceProven();
+        const batch = await blockTrigger.produceBatch();
 
         expect(batch).toBeDefined();
         expect(batch!.bundles).toHaveLength(blocksPerBatch);
@@ -487,7 +487,7 @@ describe("block production", () => {
       })
     );
 
-    const [block, batch] = await blockTrigger.produceBlock();
+    const [block, batch] = await blockTrigger.produceBlockAndBatch();
 
     expect(block).toBeDefined();
     expect(batch).toBeDefined();

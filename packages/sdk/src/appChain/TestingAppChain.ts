@@ -144,6 +144,6 @@ export class TestingAppChain<
       ManualBlockTrigger
     );
 
-    return await blockTrigger.produceUnproven();
+    return await blockTrigger.produceBlock();
   }
 }

@@ -47,23 +47,24 @@ export class ManualBlockTrigger
    * Produces both an unproven block and immediately produce a
    * settlement block proof
    */
-  public async produceBlock(): Promise<
+  public async produceBlockAndBatch(): Promise<
     [Block | undefined, SettleableBatch | undefined]
   > {
-    return [await this.produceUnproven(), await this.produceProven()];
+    return [await this.produceBlock(), await this.produceBatch()];
   }
 
-  public async produceProven(): Promise<SettleableBatch | undefined> {
-    return await super.produceProven();
+  // These methods expose the internal methods publicly
+  public async produceBatch(): Promise<SettleableBatch | undefined> {
+    return await super.produceBatch();
   }
 
   public async settle(batch: SettleableBatch) {
     return await super.settle(batch);
   }
 
-  public async produceUnproven(
+  public async produceBlock(
     enqueueInSettlementQueue: boolean = true
   ): Promise<Block | undefined> {
-    return await super.produceUnproven(enqueueInSettlementQueue);
+    return await super.produceBlock(enqueueInSettlementQueue);
   }
 }

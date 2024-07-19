@@ -25,16 +25,16 @@ import {
   PrivateMempool,
   BlockQueue,
   SettlementModule,
+  MinaBaseLayer,
+  WithdrawalQueue,
+  SettlementProvingTask,
+  MinaTransactionSender,
 } from "../../src";
-import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
-import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
-import { SettlementProvingTask } from "../../src/settlement/tasks/SettlementProvingTask";
 import { Balance } from "../integration/mocks/Balance";
 import { Withdrawals } from "../integration/mocks/Withdrawals";
 import { testingSequencerFromModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
-import { MinaTransactionSender } from "../../src/settlement/transactions/MinaTransactionSender";
 
 log.setLevel("INFO");
 
@@ -171,7 +171,7 @@ describe("settlement contracts", () => {
       mempool.add(tx);
     });
 
-    const result = await trigger.produceBlock();
+    const result = await trigger.produceBlockAndBatch();
     const [block, batch] = result;
 
     console.log(

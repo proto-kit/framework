@@ -109,7 +109,7 @@ export class TimedBlockTrigger
           settlementInterval !== undefined &&
           totalTime % settlementInterval === 0
         ) {
-          const batch = await this.produceProven();
+          const batch = await this.produceBatch();
           if (batch !== undefined) {
             await this.settle(batch);
           }
@@ -127,7 +127,7 @@ export class TimedBlockTrigger
     // Produce a block if either produceEmptyBlocks is true or we have more
     // than 1 tx in mempool
     if (mempoolTxs.length > 0 || (this.config.produceEmptyBlocks ?? true)) {
-      await this.produceUnproven(true);
+      await this.produceBlock(true);
     }
   }
 

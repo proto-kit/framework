@@ -81,7 +81,7 @@ function showWelcome({
 }
 
 async function produceBlock(trigger: ManualBlockTrigger) {
-  return await trigger.produceUnproven();
+  return await trigger.produceBlock();
 }
 
 export function printBlockDetails(

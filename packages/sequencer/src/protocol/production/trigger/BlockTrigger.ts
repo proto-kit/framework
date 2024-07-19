@@ -52,7 +52,7 @@ export class BlockTriggerBase<
     super();
   }
 
-  protected async produceProven(): Promise<SettleableBatch | undefined> {
+  protected async produceBatch(): Promise<SettleableBatch | undefined> {
     const blocks = await this.blockQueue.getNewBlocks();
     if (blocks.length > 0) {
       const batch = await this.batchProducerModule.createBlock(blocks);
@@ -65,7 +65,7 @@ export class BlockTriggerBase<
     return undefined;
   }
 
-  protected async produceUnproven(
+  protected async produceBlock(
     enqueueInSettlementQueue: boolean
   ): Promise<Block | undefined> {
     const block = await this.unprovenProducerModule.tryProduceUnprovenBlock();
