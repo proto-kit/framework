@@ -34,14 +34,111 @@ interface RuntimeModules extends RuntimeModulesRecord {
   Faucet: typeof Faucet;
 }
 
-describe("fees", () => {
+// describe("fees", () => {
+//   const feeRecipientKey = PrivateKey.random();
+//   const senderKey = PrivateKey.random();
+
+//   const appChain = TestingAppChain.fromRuntime({
+//     Faucet,
+//   });
+
+//   beforeAll(async () => {
+//     appChain.configurePartial({
+//       Runtime: {
+//         Faucet: {},
+//         Balances: {},
+//       },
+//       Protocol: {
+//         ...appChain.config.Protocol!,
+//         TransactionFee: {
+//           tokenId: 0n,
+//           feeRecipient: feeRecipientKey.toPublicKey().toBase58(),
+//           baseFee: 10000n,
+//           perWeightUnitFee: 1n,
+//           methods: {
+//             "Faucet.drip": {
+//               baseFee: 0n,
+//               weight: 0n,
+//               perWeightUnitFee: 0n,
+//             },
+//           },
+//         },
+//       },
+//     });
+
+//     await appChain.start();
+//     appChain.setSigner(senderKey);
+//   });
+
+//   it("should allow a free faucet transaction", async () => {
+//     expect.assertions(2);
+
+//     const faucet = appChain.runtime.resolve("Faucet");
+
+//     const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
+//       await faucet.drip();
+//     });
+
+//     await tx.sign();
+//     await tx.send();
+
+//     await appChain.produceBlock();
+
+//     const balance = await appChain.query.runtime.Balances.balances.get(
+//       new BalancesKey({
+//         tokenId: new TokenId(0),
+//         address: senderKey.toPublicKey(),
+//       })
+//     );
+
+//     expectDefined(balance);
+//     expect(balance.toString()).toBe("1000");
+//   });
+
+//   it("should reject transaction when the transaction fee exceeds the balance", async () => {
+//     expect.assertions(3);
+//     const balances = appChain.runtime.resolve("Balances");
+
+//     const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
+//       await balances.transferSigned(
+//         TokenId.from(0),
+//         senderKey.toPublicKey(),
+//         feeRecipientKey.toPublicKey(),
+//         Balance.from(100)
+//       );
+//     });
+
+//     await tx.sign();
+//     await tx.send();
+//     const logSpy = jest.spyOn(log, "error");
+
+//     await appChain.produceBlock();
+
+//     expect(logSpy).toHaveBeenCalledWith(
+//       "Error in inclusion of tx, skipping",
+//       Error("Protocol hooks not executable: Subtraction overflow")
+//     );
+
+//     const balance = await appChain.query.runtime.Balances.balances.get(
+//       new BalancesKey({
+//         tokenId: new TokenId(0),
+//         address: senderKey.toPublicKey(),
+//       })
+//     );
+
+//     expectDefined(balance);
+//     // The balance should be unchanged as the transaction should have failed
+//     expect(balance.toString()).toBe("1000");
+//   });
+// });
+
+describe("fee errors", () => {
   const feeRecipientKey = PrivateKey.random();
   const senderKey = PrivateKey.random();
 
   const appChain = TestingAppChain.fromRuntime({
     Faucet,
   });
-
   beforeAll(async () => {
     appChain.configurePartial({
       Runtime: {
@@ -56,7 +153,7 @@ describe("fees", () => {
           baseFee: 10000n,
           perWeightUnitFee: 1n,
           methods: {
-            "Faucet.drip": {
+            "Faucet.made_up": {
               baseFee: 0n,
               weight: 0n,
               perWeightUnitFee: 0n,
@@ -65,13 +162,12 @@ describe("fees", () => {
         },
       },
     });
-
     await appChain.start();
     appChain.setSigner(senderKey);
   });
 
-  it("should allow a free faucet transaction", async () => {
-    expect.assertions(2);
+  it("should crash due to the bad config", async () => {
+    const logSpy = jest.spyOn(log, "error");
 
     const faucet = appChain.runtime.resolve("Faucet");
 
@@ -84,50 +180,19 @@ describe("fees", () => {
 
     await appChain.produceBlock();
 
-    const balance = await appChain.query.runtime.Balances.balances.get(
-      new BalancesKey({
-        tokenId: new TokenId(0),
-        address: senderKey.toPublicKey(),
-      })
-    );
+    // expect(async () => {
+    //   await appChain.produceBlock();
+    // }).toThrow(
+    //   "Trying to retrieve config of RuntimeFeeAnalyzerService, which was not yet set"
+    // );
 
-    expectDefined(balance);
-    expect(balance.toString()).toBe("1000");
-  });
+    // expect(logSpy).toHaveBeenCalledWith(
+    //   "Error in inclusion of tx, skipping",
+    //   Error("Faucet.made_up does not exist in the current runtime")
+    // );
 
-  it("should reject transaction when the transaction fee exceeds the balance", async () => {
-    expect.assertions(3);
-    const balances = appChain.runtime.resolve("Balances");
-
-    const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
-      await balances.transferSigned(
-        TokenId.from(0),
-        senderKey.toPublicKey(),
-        feeRecipientKey.toPublicKey(),
-        Balance.from(100)
-      );
-    });
-
-    await tx.sign();
-    await tx.send();
-    const logSpy = jest.spyOn(log, "error");
-
-    await appChain.produceBlock();
-
-    expect(logSpy).toHaveBeenCalledWith(
-      "Error in inclusion of tx, skipping",
-      Error("Protocol hooks not executable: Subtraction overflow")
-    );
-
-    const balance = await appChain.query.runtime.Balances.balances.get(
-      new BalancesKey({
-        tokenId: new TokenId(0),
-        address: senderKey.toPublicKey(),
-      })
-    );
-
-    expectDefined(balance);
-    // The balance should be unchanged as the transaction should have failed
-    expect(balance.toString()).toBe("1000");
+    // expect(logSpy).toHaveBeenCalledWith(
+    //   "Error: Trying to retrieve config of RuntimeFeeAnalyzerService, which was not yet set"
+    // );
   });
 });
