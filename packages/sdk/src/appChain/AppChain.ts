@@ -329,6 +329,8 @@ export class AppChain<
     // console.log("creating sequencer");
     // this.sequencer.create(() => this.container);
 
+    await this.protocol.start();
+
     // this.runtime.start();
     await this.sequencer.start();
   }
