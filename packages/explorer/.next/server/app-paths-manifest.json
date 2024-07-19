@@ -1,0 +1,8 @@
+{
+  "/transactions/[hash]/page": "app/transactions/[hash]/page.js",
+  "/blocks/page": "app/blocks/page.js",
+  "/transactions/page": "app/transactions/page.js",
+  "/blocks/[hash]/page": "app/blocks/[hash]/page.js",
+  "/page": "app/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js"
+}

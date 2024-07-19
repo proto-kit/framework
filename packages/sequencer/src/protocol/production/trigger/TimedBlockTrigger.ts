@@ -82,10 +82,12 @@ export class TimedBlockTrigger
         timerInterval = definedTick;
       }
     }
+
     return timerInterval;
   }
 
   public async start(): Promise<void> {
+    log.info("Starting timed block trigger");
     const { settlementInterval, blockInterval } = this.config;
 
     const timerInterval = this.getTimerInterval();

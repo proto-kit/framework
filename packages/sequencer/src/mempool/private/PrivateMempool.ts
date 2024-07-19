@@ -1,4 +1,4 @@
-import { EventEmitter, noop } from "@proto-kit/common";
+import { EventEmitter, log, noop } from "@proto-kit/common";
 import { inject } from "tsyringe";
 
 import type { Mempool, MempoolEvents } from "../Mempool";
@@ -28,10 +28,26 @@ export class PrivateMempool extends SequencerModule implements Mempool {
       const success = await this.transactionStorage.pushUserTransaction(tx);
       if (success) {
         this.events.emit("mempool-transaction-added", tx);
+        log.info(
+          `Transaction added to mempool: ${tx.hash().toString()} (${(await this.getTxs()).length} transactions in mempool)`
+        );
+      } else {
+        log.error(
+          `Transaction ${tx.hash().toString()} rejected: already exists in mempool`
+        );
       }
+
       return success;
     }
-    throw new Error(`Validation of tx failed: ${error ?? "unknown error"}`);
+
+    log.error(
+      `Validation of tx ${tx.hash().toString()} failed:`,
+      `${error ?? "unknown error"}`
+    );
+
+    throw new Error(
+      `Validation of tx  ${tx.hash().toString()} failed: ${error ?? "unknown error"}`
+    );
   }
 
   public async getTxs(): Promise<PendingTransaction[]> {

@@ -87,8 +87,9 @@ export class Environments<T extends Startable> {
 
     assertValidTextLogLevel(logLevel);
     // eslint-disable-next-line no-console
-    console.log(`Setting log level to: ${logLevel}`);
+    log.info(`Setting log level to: ${logLevel}`);
     log.setLevel(logLevel);
+    log.info(`Configuring environment: ${environment}`);
 
     const appchain = this.getEnvironment(environment).getConfiguration(
       configuration ?? "sequencer"

@@ -1,6 +1,12 @@
 import { inject } from "tsyringe";
 import { log, noop } from "@proto-kit/common";
 import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
+import {
+  MethodIdResolver,
+  MethodParameterEncoder,
+  Runtime,
+  RuntimeModulesRecord,
+} from "@proto-kit/module";
 
 import { Mempool } from "../../../mempool/Mempool";
 import {
@@ -19,6 +25,7 @@ import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 
 import { TransactionExecutionService } from "./TransactionExecutionService";
+import { Provable } from "o1js";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
@@ -39,7 +46,9 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     private readonly unprovenBlockQueue: UnprovenBlockQueue,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
-    private readonly executionService: TransactionExecutionService
+    private readonly executionService: TransactionExecutionService,
+    private readonly methodIdResolver: MethodIdResolver,
+    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {
     super();
   }
@@ -65,6 +74,34 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
         }
 
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
+        block.transactions.forEach((tx, i) => {
+          const methodName = this.methodIdResolver.getMethodNameFromId(
+            tx.tx.methodId.toBigInt()
+          );
+          if (!methodName) return;
+
+          const module = this.runtime.resolve(methodName[0]);
+          const paramEncoder = MethodParameterEncoder.fromMethod(
+            module,
+            methodName[1]
+          );
+
+          log.info("---------------------------------------");
+          log.info(`Transaction #${i}`);
+          log.info(`Method: ${methodName?.join(".")}`);
+          log.info(
+            `Status: ${tx.status.toBoolean()}`,
+            tx.statusMessage !== undefined ? `Reason: ${tx.statusMessage}` : ""
+          );
+          log.info("Sender:", tx.tx.sender.toBase58());
+          log.info("Nonce:", tx.tx.nonce.toBigInt());
+          if (log.getLevel() === log.levels.INFO) {
+            Provable.log(
+              "Arguments:",
+              paramEncoder.decodeFields(tx.tx.argsFields)
+            );
+          }
+        });
 
         // Generate metadata for next block
 

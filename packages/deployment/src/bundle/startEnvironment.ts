@@ -23,7 +23,7 @@ export async function startEnvironment(environment: Environments<Startable>) {
       logLevel: {
         type: "string",
         requiresArg: false,
-        default: "DEBUG",
+        default: "INFO",
       },
       prune: {
         type: "boolean",
