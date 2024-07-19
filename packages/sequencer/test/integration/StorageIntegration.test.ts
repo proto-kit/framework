@@ -103,7 +103,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           BlockTrigger: {},
           Mempool: {},
           BatchProducerModule: {},
-          UnprovenProducerModule: {},
+          BlockProducerModule: {},
           LocalTaskWorkerModule: {},
           BaseLayer: {},
           TaskQueue: {},

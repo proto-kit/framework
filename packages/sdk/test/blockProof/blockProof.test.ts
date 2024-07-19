@@ -116,7 +116,7 @@ describe.skip("blockProof", () => {
       "BlockTrigger",
       ManualBlockTrigger
     );
-    const provenBlock = await trigger.produceProven();
+    const provenBlock = await trigger.produceBatch();
 
     expectDefined(provenBlock);
     const publicOutput = BlockProverPublicOutput.fromFields(

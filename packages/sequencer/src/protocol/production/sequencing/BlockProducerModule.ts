@@ -22,7 +22,7 @@ export interface BlockConfig {
 }
 
 @sequencerModule()
-export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
+export class BlockProducerModule extends SequencerModule<BlockConfig> {
   private productionInProgress = false;
 
   public constructor(
@@ -45,10 +45,10 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     return this.config.allowEmptyBlock ?? true;
   }
 
-  public async tryProduceUnprovenBlock(): Promise<BlockWithResult | undefined> {
+  public async tryProduceBlock(): Promise<BlockWithResult | undefined> {
     if (!this.productionInProgress) {
       try {
-        const block = await this.produceUnprovenBlock();
+        const block = await this.produceBlock();
 
         if (block === undefined) {
           if (!this.allowEmptyBlock()) {
@@ -59,7 +59,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
           return undefined;
         }
 
-        log.info(`Produced unproven block (${block.transactions.length} txs)`);
+        log.info(`Produced block (${block.transactions.length} txs)`);
 
         // Generate metadata for next block
 
@@ -98,7 +98,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
 
     if (parentBlock === undefined) {
       log.debug(
-        "No unproven block metadata given, assuming first block, generating genesis metadata"
+        "No block metadata given, assuming first block, generating genesis metadata"
       );
     }
 
@@ -109,7 +109,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     const metadata = parentBlock ?? BlockWithResult.createEmpty();
 
     log.debug(
-      `Unproven block collected, ${txs.length} txs, ${messages.length} messages`
+      `Block collected, ${txs.length} txs, ${messages.length} messages`
     );
 
     return {
@@ -118,7 +118,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     };
   }
 
-  private async produceUnprovenBlock(): Promise<Block | undefined> {
+  private async produceBlock(): Promise<Block | undefined> {
     this.productionInProgress = true;
 
     const { txs, metadata } = await this.collectProductionData();
@@ -132,7 +132,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
       this.unprovenStateService
     );
 
-    const block = await this.executionService.createUnprovenBlock(
+    const block = await this.executionService.createBlock(
       cachedStateService,
       txs,
       metadata,

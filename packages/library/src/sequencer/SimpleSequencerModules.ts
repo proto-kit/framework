@@ -3,7 +3,7 @@ import {
   LocalTaskWorkerModule,
   PrivateMempool,
   SequencerModulesRecord,
-  UnprovenProducerModule,
+  BlockProducerModule,
   VanillaTaskWorkerModules,
   TaskQueue,
   BaseLayer,
@@ -16,7 +16,7 @@ import { TypedClass, ModulesConfig } from "@proto-kit/common";
 type PreconfiguredSimpleSequencerModulesRecord = {
   Mempool: typeof PrivateMempool;
   BatchProducerModule: typeof BatchProducerModule;
-  UnprovenProducerModule: typeof UnprovenProducerModule;
+  BlockProducerModule: typeof BlockProducerModule;
 };
 
 export type MinimumAdditionalSequencerModules = {
@@ -93,7 +93,7 @@ export class SimpleSequencerModules {
       Mempool: PrivateMempool,
       BaseLayer,
       BatchProducerModule,
-      UnprovenProducerModule: UnprovenProducerModule,
+      BlockProducerModule,
       BlockTrigger,
       TaskQueue,
       ...reducedModules,
@@ -102,7 +102,7 @@ export class SimpleSequencerModules {
 
   public static defaultConfig() {
     return {
-      UnprovenProducerModule: {
+      BlockProducerModule: {
         allowEmptyBlock: true,
       },
 

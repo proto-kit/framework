@@ -84,7 +84,7 @@ describe("block production", () => {
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        UnprovenProducerModule: {},
+        BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},

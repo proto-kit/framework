@@ -6,7 +6,7 @@ import { Closeable } from "../../../worker/queue/TaskQueue";
 import { BatchProducerModule } from "../BatchProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
-import { UnprovenProducerModule } from "../sequencing/UnprovenProducerModule";
+import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 import { BatchStorage } from "../../../storage/repositories/BatchStorage";
@@ -43,8 +43,8 @@ export class TimedBlockTrigger
   public constructor(
     @inject("BatchProducerModule")
     batchProducerModule: BatchProducerModule,
-    @inject("UnprovenProducerModule")
-    unprovenProducerModule: UnprovenProducerModule,
+    @inject("BlockProducerModule")
+    blockProducerModule: BlockProducerModule,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
     @inject("BlockQueue")
@@ -57,7 +57,7 @@ export class TimedBlockTrigger
     private readonly mempool: Mempool
   ) {
     super(
-      unprovenProducerModule,
+      blockProducerModule,
       batchProducerModule,
       settlementModule,
       blockQueue,

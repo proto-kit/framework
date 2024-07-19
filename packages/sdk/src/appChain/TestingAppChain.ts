@@ -19,7 +19,7 @@ import {
   BatchProducerModule,
   ManualBlockTrigger,
   LocalTaskQueue,
-  UnprovenProducerModule,
+  BlockProducerModule,
   InMemoryDatabase,
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
@@ -39,7 +39,7 @@ export type TestingSequencerModulesRecord = {
   LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
   BaseLayer: typeof NoopBaseLayer;
   BatchProducerModule: typeof BatchProducerModule;
-  UnprovenProducerModule: typeof UnprovenProducerModule;
+  BlockProducerModule: typeof BlockProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
 };
@@ -117,7 +117,7 @@ export class TestingAppChain<
           BlockBuildingTask: {},
         },
         BaseLayer: {},
-        UnprovenProducerModule: {},
+        BlockProducerModule: {},
         TaskQueue: {
           simulatedDuration: 0,
         },

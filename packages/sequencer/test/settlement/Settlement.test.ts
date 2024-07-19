@@ -109,7 +109,7 @@ describe("settlement contracts", () => {
             local: true,
           },
         },
-        UnprovenProducerModule: {},
+        BlockProducerModule: {},
         SettlementModule: {
           feepayer: sequencerKey,
         },

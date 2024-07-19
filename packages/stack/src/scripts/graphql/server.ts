@@ -32,7 +32,7 @@ import {
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
-  UnprovenProducerModule,
+  BlockProducerModule,
   VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 import {
@@ -110,7 +110,7 @@ export async function startServer() {
         ),
         BaseLayer: NoopBaseLayer,
         BatchProducerModule,
-        UnprovenProducerModule,
+        BlockProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
         // SettlementModule: SettlementModule,
@@ -218,7 +218,7 @@ export async function startServer() {
       BaseLayer: {},
       TaskQueue: {},
 
-      UnprovenProducerModule: {
+      BlockProducerModule: {
         allowEmptyBlock: true,
       },
 

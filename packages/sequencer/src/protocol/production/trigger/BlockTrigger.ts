@@ -8,7 +8,7 @@ import {
 
 import { Batch, SettleableBatch } from "../../../storage/model/Batch";
 import { BatchProducerModule } from "../BatchProducerModule";
-import { UnprovenProducerModule } from "../sequencing/UnprovenProducerModule";
+import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
@@ -42,7 +42,7 @@ export class BlockTriggerBase<
   public readonly events = new EventEmitter<Events>();
 
   public constructor(
-    protected readonly unprovenProducerModule: UnprovenProducerModule,
+    protected readonly blockProducerModule: BlockProducerModule,
     protected readonly batchProducerModule: BatchProducerModule,
     protected readonly settlementModule: SettlementModule | undefined,
     protected readonly blockQueue: BlockQueue,
@@ -55,7 +55,7 @@ export class BlockTriggerBase<
   protected async produceBatch(): Promise<SettleableBatch | undefined> {
     const blocks = await this.blockQueue.getNewBlocks();
     if (blocks.length > 0) {
-      const batch = await this.batchProducerModule.createBlock(blocks);
+      const batch = await this.batchProducerModule.createBatch(blocks);
       if (batch !== undefined) {
         await this.batchQueue.pushBlock(batch);
         this.events.emit("batch-produced", batch);
@@ -68,7 +68,7 @@ export class BlockTriggerBase<
   protected async produceBlock(
     enqueueInSettlementQueue: boolean
   ): Promise<Block | undefined> {
-    const block = await this.unprovenProducerModule.tryProduceUnprovenBlock();
+    const block = await this.blockProducerModule.tryProduceBlock();
 
     if (block && enqueueInSettlementQueue) {
       await this.blockQueue.pushBlock(block.block);

@@ -4,7 +4,7 @@ import { injectOptional } from "@proto-kit/common";
 import { sequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettleableBatch } from "../../../storage/model/Batch";
 import { BatchProducerModule } from "../BatchProducerModule";
-import { UnprovenProducerModule } from "../sequencing/UnprovenProducerModule";
+import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { Block } from "../../../storage/model/Block";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
@@ -21,8 +21,8 @@ export class ManualBlockTrigger
   public constructor(
     @inject("BatchProducerModule")
     batchProducerModule: BatchProducerModule,
-    @inject("UnprovenProducerModule")
-    unprovenProducerModule: UnprovenProducerModule,
+    @inject("BlockProducerModule")
+    blockProducerModule: BlockProducerModule,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
     @inject("BlockQueue")
@@ -33,7 +33,7 @@ export class ManualBlockTrigger
     settlementStorage: SettlementStorage | undefined
   ) {
     super(
-      unprovenProducerModule,
+      blockProducerModule,
       batchProducerModule,
       settlementModule,
 

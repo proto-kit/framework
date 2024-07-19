@@ -97,7 +97,7 @@ export class BatchProducerModule extends SequencerModule {
    * transactions that are present in the mempool. This function should also
    * be the one called by BlockTriggers
    */
-  public async createBlock(
+  public async createBatch(
     blocks: BlockWithPreviousResult[]
   ): Promise<SettleableBatch | undefined> {
     log.info("Producing batch...");
@@ -133,13 +133,14 @@ export class BatchProducerModule extends SequencerModule {
       try {
         this.productionInProgress = true;
 
-        const block = await this.produceBlock(blocks, height);
+        const batch = await this.produceBatch(blocks, height);
 
         this.productionInProgress = false;
 
-        return block;
+        return batch;
       } catch (error: unknown) {
         this.productionInProgress = false;
+        // TODO Check if that still makes sense
         if (error instanceof Error) {
           if (
             !error.message.includes(
@@ -162,11 +163,11 @@ export class BatchProducerModule extends SequencerModule {
     return undefined;
   }
 
-  private async produceBlock(
+  private async produceBatch(
     blocks: BlockWithPreviousResult[],
     height: number
   ): Promise<BatchMetadata | undefined> {
-    const block = await this.computeBlock(blocks, height);
+    const block = await this.computeBatch(blocks, height);
 
     const computedBundles = blocks.map((bundle) =>
       bundle.block.block.hash.toString()
@@ -193,7 +194,7 @@ export class BatchProducerModule extends SequencerModule {
   /**
    * Very naive impl for now
    *
-   * How we produce Blocks (batches):
+   * How we produce batches:
    *
    * 1. We get all pending txs from the mempool and define an order
    * 2. We execute them to get results / intermediate state-roots.
@@ -203,8 +204,8 @@ export class BatchProducerModule extends SequencerModule {
    *
    */
 
-  private async computeBlock(
-    bundles: BlockWithPreviousResult[],
+  private async computeBatch(
+    blocks: BlockWithPreviousResult[],
     blockId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -213,7 +214,7 @@ export class BatchProducerModule extends SequencerModule {
     fromNetworkState: NetworkState;
     toNetworkState: NetworkState;
   }> {
-    if (bundles.length === 0 || bundles.flat(1).length === 0) {
+    if (blocks.length === 0 || blocks.flat(1).length === 0) {
       throw errors.blockWithoutTxs();
     }
 
@@ -226,16 +227,16 @@ export class BatchProducerModule extends SequencerModule {
 
     const eternalBundleTracker = new DefaultProvableHashList(
       Field,
-      bundles[0].block.block.fromEternalTransactionsHash
+      blocks[0].block.block.fromEternalTransactionsHash
     );
     const messageTracker = new MinaPrefixedProvableHashList(
       Field,
       MINA_EVENT_PREFIXES.sequenceEvents,
-      bundles[0].block.block.fromMessagesHash
+      blocks[0].block.block.fromMessagesHash
     );
 
-    for (const bundleWithMetadata of bundles) {
-      const { block } = bundleWithMetadata.block;
+    for (const blockWithPreviousResult of blocks) {
+      const { block } = blockWithPreviousResult.block;
       const txs = block.transactions;
 
       const bundleTracker = new DefaultProvableHashList(Field);
@@ -262,18 +263,18 @@ export class BatchProducerModule extends SequencerModule {
         stateServices,
         this.blockTreeStore,
         Field(
-          bundleWithMetadata.lastBlockResult?.stateRoot ??
+          blockWithPreviousResult.lastBlockResult?.stateRoot ??
             RollupMerkleTree.EMPTY_ROOT
         ),
-        bundleWithMetadata.block
+        blockWithPreviousResult.block
       );
       blockTraces.push(blockTrace);
     }
 
     const proof = await this.blockFlowService.executeFlow(blockTraces, blockId);
 
-    const fromNetworkState = bundles[0].block.block.networkState.before;
-    const toNetworkState = bundles.at(-1)!.block.result.afterNetworkState;
+    const fromNetworkState = blocks[0].block.block.networkState.before;
+    const toNetworkState = blocks.at(-1)!.block.result.afterNetworkState;
 
     return {
       proof,

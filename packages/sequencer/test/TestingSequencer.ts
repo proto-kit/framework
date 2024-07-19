@@ -11,7 +11,7 @@ import {
   Sequencer,
   SequencerModulesRecord,
   TaskWorkerModulesRecord,
-  UnprovenProducerModule,
+  BlockProducerModule,
   VanillaTaskWorkerModules,
 } from "../src";
 
@@ -21,7 +21,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   LocalTaskWorkerModule: TypedClass<LocalTaskWorkerModule<any>>;
   BaseLayer: typeof NoopBaseLayer;
   BatchProducerModule: typeof BatchProducerModule;
-  UnprovenProducerModule: typeof UnprovenProducerModule;
+  BlockProducerModule: typeof BlockProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
 }
@@ -45,7 +45,7 @@ export function testingSequencerFromModules<
     BaseLayer: NoopBaseLayer,
     // LocalTaskWorkerModule: taskWorkerModule,
     BatchProducerModule,
-    UnprovenProducerModule,
+    BlockProducerModule,
     BlockTrigger: ManualBlockTrigger,
     TaskQueue: LocalTaskQueue,
   } as DefaultTestingSequencerModules;

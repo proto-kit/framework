@@ -7,7 +7,7 @@ import {
   NoopBaseLayer,
   PrivateMempool,
   SequencerModulesRecord,
-  UnprovenProducerModule,
+  BlockProducerModule,
   VanillaTaskWorkerModules,
   TaskWorkerModulesWithoutSettlement,
 } from "@proto-kit/sequencer";
@@ -21,7 +21,7 @@ export type InMemorySequencerModulesRecord = {
   >;
   BaseLayer: typeof NoopBaseLayer;
   BatchProducerModule: typeof BatchProducerModule;
-  UnprovenProducerModule: typeof UnprovenProducerModule;
+  BlockProducerModule: typeof BlockProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
   // SettlementModule: typeof SettlementModule;
@@ -39,8 +39,8 @@ export class InMemorySequencerModules {
         ...VanillaTaskWorkerModules.withoutSettlement(),
       }),
       BaseLayer: NoopBaseLayer,
-      BatchProducerModule: BatchProducerModule,
-      UnprovenProducerModule: UnprovenProducerModule,
+      BatchProducerModule,
+      BlockProducerModule,
       BlockTrigger: ManualBlockTrigger,
       TaskQueue: LocalTaskQueue,
       // SettlementModule: SettlementModule,

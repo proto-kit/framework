@@ -226,7 +226,7 @@ export class TransactionExecutionService {
    * Main entry point for creating a unproven block with everything
    * attached that is needed for tracing
    */
-  public async createUnprovenBlock(
+  public async createBlock(
     stateService: CachedStateService,
     transactions: PendingTransaction[],
     lastBlockWithResult: BlockWithResult,

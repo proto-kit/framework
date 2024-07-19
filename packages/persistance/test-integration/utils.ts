@@ -24,7 +24,7 @@ import {
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
-  UnprovenProducerModule,
+  BlockProducerModule,
   VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
@@ -96,7 +96,7 @@ export function createPrismaAppchain(
         ),
         BaseLayer: NoopBaseLayer,
         BatchProducerModule,
-        UnprovenProducerModule,
+        BlockProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
       },
@@ -139,7 +139,7 @@ export function createPrismaAppchain(
         BlockBuildingTask: {},
       },
       BaseLayer: {},
-      UnprovenProducerModule: {},
+      BlockProducerModule: {},
       TaskQueue: {
         simulatedDuration: 0,
       },
