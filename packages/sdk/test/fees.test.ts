@@ -119,6 +119,7 @@ describe("fees", () => {
     expect.assertions(6);
 
     const pit = appChain.runtime.resolve("Pit");
+    const transactionFeeModule = appChain.protocol.resolve("TransactionFee");
 
     const balanceSenderBefore =
       await appChain.query.runtime.Balances.balances.get(
@@ -140,10 +141,16 @@ describe("fees", () => {
 
     const burnAmount = Balance.from(100);
     const senderBalanceBefore = balanceSenderBefore;
-    const transactionfee = Balance.from(388);
+
     const tx = await appChain.transaction(senderKey.toPublicKey(), async () => {
       await pit.burn(burnAmount);
     });
+
+    const methodId = tx.transaction?.methodId.toBigInt();
+    if (methodId === undefined) {
+      throw new Error("Method ID is undefined");
+    }
+    const transactionFee = transactionFeeModule.getFee(methodId);
 
     await tx.sign();
     await tx.send();
@@ -168,7 +175,7 @@ describe("fees", () => {
 
     const expectedSenderBalanceAfter = senderBalanceBefore!
       .sub(burnAmount)
-      .sub(transactionfee);
+      .sub(transactionFee);
 
     expectDefined(balanceSenderAfter);
     expect(balanceSenderAfter.toString()).toBe(
@@ -176,6 +183,6 @@ describe("fees", () => {
     );
 
     expectDefined(balanceFeeReceiverAfter);
-    expect(balanceFeeReceiverAfter.toString()).toBe(transactionfee.toString());
+    expect(balanceFeeReceiverAfter.toString()).toBe(transactionFee.toString());
   });
 });

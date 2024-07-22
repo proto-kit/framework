@@ -134,7 +134,6 @@ describe("fee errors due to limited funds in sender accounts", () => {
 
 describe("fee errors due to non-existent module config", () => {
   const feeRecipientKey = PrivateKey.random();
-  const senderKey = PrivateKey.random();
 
   const appChain = TestingAppChain.fromRuntime({
     Faucet,

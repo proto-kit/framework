@@ -111,6 +111,13 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     );
   }
 
+  public getFee(methodId: bigint) {
+    const feeAnalyzer = this.feeAnalyzer.getFeeConfig(methodId);
+    return feeAnalyzer.baseFee
+      .add(feeAnalyzer.weight)
+      .mul(feeAnalyzer.perWeightUnitFee);
+  }
+
   /**
    * Determine the transaction fee for the given transaction, and transfer it
    * from the transaction sender to the fee recipient.
@@ -125,7 +132,6 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
         executionData.transaction.methodId.toBigInt()
       )
     );
-
     const witness = Provable.witness(
       RuntimeFeeAnalyzerService.getWitnessType(),
       () =>
