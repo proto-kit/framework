@@ -70,7 +70,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     super();
   }
 
-  public async intializeFeeTree() {
+  public async initializeFeeTree() {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );

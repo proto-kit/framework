@@ -79,7 +79,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   public async start() {
     this.persistedFeeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
     this.persistedFeeAnalyzer.config = this.config;
-    await this.persistedFeeAnalyzer.intializeFeeTree();
+    await this.persistedFeeAnalyzer.initializeFeeTree();
   }
 
   public get config() {
