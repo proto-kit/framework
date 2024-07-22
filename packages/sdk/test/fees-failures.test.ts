@@ -34,7 +34,7 @@ interface RuntimeModules extends RuntimeModulesRecord {
   Faucet: typeof Faucet;
 }
 
-describe("fees", () => {
+describe("fee errors due to limited funds in sender accounts", () => {
   const feeRecipientKey = PrivateKey.random();
   const senderKey = PrivateKey.random();
 
@@ -132,7 +132,7 @@ describe("fees", () => {
   });
 });
 
-describe("fee errors", () => {
+describe("fee errors due to non-existent module config", () => {
   const feeRecipientKey = PrivateKey.random();
   const senderKey = PrivateKey.random();
 
