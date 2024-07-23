@@ -34,7 +34,7 @@ interface RuntimeModules extends RuntimeModulesRecord {
   Faucet: typeof Faucet;
 }
 
-describe("Balances Transfer", () => {
+describe("balances", () => {
   const feeRecipientKey = PrivateKey.random();
   const senderKey = PrivateKey.random();
 
@@ -71,7 +71,7 @@ describe("Balances Transfer", () => {
     appChain.setSigner(senderKey);
   });
 
-  it("transfer does not cause minting error", async () => {
+  it("transfer from and to same account does not cause minting error", async () => {
     // expect.assertions(2);
     const faucet = appChain.runtime.resolve("Faucet");
     const balancesRuntime = appChain.runtime.resolve("Balances");
