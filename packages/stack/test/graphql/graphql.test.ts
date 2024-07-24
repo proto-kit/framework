@@ -110,7 +110,7 @@ describe("graphql client test", () => {
       "BlockTrigger",
       ManualBlockTrigger
     );
-    await trigger.produceUnproven();
+    await trigger.produceBlock();
   });
 
   afterAll(async () => {
@@ -136,7 +136,7 @@ describe("graphql client test", () => {
     await tx.sign();
     await tx.send();
 
-    await trigger.produceUnproven();
+    await trigger.produceBlock();
 
     const balance = await appChain.query.runtime.Balances.balances.get(
       new BalancesKey({

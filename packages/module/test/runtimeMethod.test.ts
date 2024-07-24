@@ -30,14 +30,15 @@ describe("runtimeMethod", () => {
     ));
   });
 
-  it("should create correct param types", () => {
+  it("should create correct param types", async () => {
     expect.assertions(1 + parameters.length);
 
     const module = runtime.resolve("Balances");
 
     const decoder = MethodParameterEncoder.fromMethod(module, "getBalance");
-    const recodedParameters = decoder.decodeFields(
-      parameters.flatMap((x) => x.toFields())
+    const recodedParameters = await decoder.decode(
+      parameters.flatMap((x) => x.toFields()),
+      []
     );
 
     expect(parameters).toHaveLength(recodedParameters.length);
@@ -64,7 +65,7 @@ describe("runtimeMethod", () => {
     });
 
     const module = runtime.resolve("Balances");
-    module.getBalance(PublicKey.empty<typeof PublicKey>());
+    await module.getBalance(PublicKey.empty<typeof PublicKey>());
 
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),

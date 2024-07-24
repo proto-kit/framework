@@ -27,7 +27,7 @@ model Transaction {
   sender String
   nonce String
   argsFields String[]
-  argsJSON String[]
+  auxiliaryData String[]
   signature_r String
   signature_s String
 
