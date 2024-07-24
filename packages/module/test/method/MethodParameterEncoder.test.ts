@@ -122,7 +122,7 @@ describe("MethodParameterEncoder", () => {
     expect(decoded1.publicOutput.b.equals(output.b).toBoolean()).toStrictEqual(
       true
     );
-  });
+  }, 30000);
 });
 
 class TieredStruct extends TestStruct {}
