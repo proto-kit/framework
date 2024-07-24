@@ -9,7 +9,7 @@ describe("tx objects hash equality", () => {
     const data = {
       methodId: Field(1234),
       argsFields: [Field(1), Field(6676)],
-      argsJSON: [],
+      auxiliaryData: [],
       isMessage: false,
       sender: PublicKey.empty<typeof PublicKey>(),
       nonce: UInt64.from(100),
