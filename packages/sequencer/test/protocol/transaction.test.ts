@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import { Field, PublicKey, UInt64 } from "o1js";
 
 import { UnsignedTransaction } from "../../src/mempool/PendingTransaction";

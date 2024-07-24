@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import { Field, PrivateKey, Signature, UInt64 } from "o1js";
 
 import { CompressedSignature, UnsignedTransaction } from "../src";
