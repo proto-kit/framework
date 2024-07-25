@@ -1,11 +1,5 @@
 import "reflect-metadata";
-import {
-  Balance,
-  Balances,
-  BalancesKey,
-  TokenId,
-  VanillaRuntimeModulesRecord,
-} from "@proto-kit/library";
+import { Balance, Balances, BalancesKey, TokenId } from "@proto-kit/library";
 import { runtimeMethod, runtimeModule, RuntimeModule } from "@proto-kit/module";
 import { PrivateKey } from "o1js";
 import { inject } from "tsyringe";
@@ -28,11 +22,6 @@ class Faucet extends RuntimeModule<unknown> {
       Balance.from(1000)
     );
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface RuntimeModules extends VanillaRuntimeModulesRecord {
-  Faucet: typeof Faucet;
 }
 
 describe("fee errors due to limited funds in sender accounts", () => {
