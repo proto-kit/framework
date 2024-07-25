@@ -111,11 +111,10 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     );
   }
 
-  public getFee(methodId: bigint) {
-    const feeAnalyzer = this.feeAnalyzer.getFeeConfig(methodId);
-    return UInt64.Unsafe.fromField(feeAnalyzer.baseFee.value).add(
-      UInt64.Unsafe.fromField(feeAnalyzer.weight.value).mul(
-        UInt64.Unsafe.fromField(feeAnalyzer.perWeightUnitFee.value)
+  public getFee(feeConfig: MethodFeeConfigData) {
+    return UInt64.Unsafe.fromField(feeConfig.baseFee.value).add(
+      UInt64.Unsafe.fromField(feeConfig.weight.value).mul(
+        UInt64.Unsafe.fromField(feeConfig.perWeightUnitFee.value)
       )
     );
   }
@@ -151,8 +150,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       errors.invalidFeeConfigMethodId()
     );
 
-    // getFee(executionData.transaction.methodId.toBigInt());
-    const fee = this.getFee(executionData.transaction.methodId.toBigInt());
+    const fee = this.getFee(feeConfig);
 
     await this.transferFee(
       executionData.transaction.sender,

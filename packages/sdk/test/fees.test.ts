@@ -148,8 +148,10 @@ describe("fees", () => {
 
     const methodId = tx.transaction?.methodId.toBigInt();
     expectDefined(methodId);
-    const transactionFee = transactionFeeModule.getFee(methodId);
+    const transactionFeeConfig =
+      transactionFeeModule.feeAnalyzer.getFeeConfig(methodId);
 
+    const transactionFee = transactionFeeModule.getFee(transactionFeeConfig);
     await tx.sign();
     await tx.send();
 
