@@ -1,11 +1,12 @@
 import "reflect-metadata";
-import { Balance, Balances, BalancesKey, TokenId } from "@proto-kit/library";
 import {
-  runtimeMethod,
-  runtimeModule,
-  RuntimeModule,
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
+  Balance,
+  Balances,
+  BalancesKey,
+  TokenId,
+  VanillaRuntimeModulesRecord,
+} from "@proto-kit/library";
+import { runtimeMethod, runtimeModule, RuntimeModule } from "@proto-kit/module";
 import { PrivateKey } from "o1js";
 import { inject } from "tsyringe";
 import { expectDefined, log } from "@proto-kit/common";
@@ -30,7 +31,7 @@ class Faucet extends RuntimeModule<unknown> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface RuntimeModules extends RuntimeModulesRecord {
+interface RuntimeModules extends VanillaRuntimeModulesRecord {
   Faucet: typeof Faucet;
 }
 
