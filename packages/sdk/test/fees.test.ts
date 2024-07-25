@@ -116,7 +116,7 @@ describe("fees", () => {
   });
 
   it("should allow burning of tokens with a fixed fee", async () => {
-    expect.assertions(6);
+    expect.assertions(7);
 
     const pit = appChain.runtime.resolve("Pit");
     const transactionFeeModule = appChain.protocol.resolve("TransactionFee");
@@ -147,9 +147,7 @@ describe("fees", () => {
     });
 
     const methodId = tx.transaction?.methodId.toBigInt();
-    if (methodId === undefined) {
-      throw new Error("Method ID is undefined");
-    }
+    expectDefined(methodId);
     const transactionFee = transactionFeeModule.getFee(methodId);
 
     await tx.sign();
