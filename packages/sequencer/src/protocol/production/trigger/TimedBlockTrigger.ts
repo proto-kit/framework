@@ -41,8 +41,8 @@ export class TimedBlockTrigger
   private interval?: any;
 
   public constructor(
-    @inject("BlockProducerModule")
-    blockProducerModule: BlockProducerModule,
+    @injectOptional("BlockProducerModule")
+    blockProducerModule: BlockProducerModule | undefined,
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
     @injectOptional("SettlementModule")

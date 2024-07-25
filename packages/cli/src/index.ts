@@ -1,2 +1,0 @@
-const nothing = "";
-export { nothing };

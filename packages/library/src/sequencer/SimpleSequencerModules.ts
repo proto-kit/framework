@@ -24,9 +24,6 @@ export type MinimumAdditionalSequencerModules = {
   Database: TypedClass<Database & SequencerModule<unknown>>;
   BaseLayer: TypedClass<BaseLayer & SequencerModule<unknown>>;
   BlockTrigger: TypedClass<BlockTrigger & SequencerModule<unknown>>;
-  // We can't make this optional, therefore if this is not needed, a noop module should be provided
-  DatabasePruneModule: TypedClass<SequencerModule<unknown>>;
-  // SettlementModule: typeof SettlementModule;
 };
 
 export type SimpleSequencerModulesRecord = MinimumAdditionalSequencerModules &
@@ -60,13 +57,7 @@ export class SimpleSequencerModules {
     additionalModules: SequencerModules
   ) {
     /* eslint-disable @typescript-eslint/no-shadow */
-    const {
-      Database,
-      BlockTrigger,
-      TaskQueue,
-      BaseLayer,
-      DatabasePruneModule,
-    } = additionalModules;
+    const { Database, BlockTrigger, TaskQueue, BaseLayer } = additionalModules;
     /* eslint-enable @typescript-eslint/no-shadow */
 
     const modulesCopy: SequencerModulesRecord = { ...additionalModules };
@@ -75,7 +66,6 @@ export class SimpleSequencerModules {
     delete modulesCopy["TaskQueue"];
     delete modulesCopy["BaseLayer"];
     delete modulesCopy["BlockTrigger"];
-    delete modulesCopy["DatabasePruneModule"];
     /* eslint-enable @typescript-eslint/dot-notation */
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const reducedModules = modulesCopy as Omit<
@@ -89,7 +79,6 @@ export class SimpleSequencerModules {
 
     return {
       Database,
-      DatabasePruneModule,
       Mempool: PrivateMempool,
       BaseLayer,
       BlockProducerModule: BlockProducerModule,

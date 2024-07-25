@@ -46,7 +46,7 @@ export class BlockTriggerBase<
 
   public constructor(
     protected readonly unprovenProducerModule: UnprovenProducerModule,
-    protected readonly blockProducerModule: BlockProducerModule,
+    protected readonly blockProducerModule: BlockProducerModule | undefined,
     protected readonly settlementModule: SettlementModule | undefined,
     protected readonly unprovenBlockQueue: UnprovenBlockQueue,
     protected readonly batchQueue: BlockStorage,
@@ -58,7 +58,7 @@ export class BlockTriggerBase<
   protected async produceProven(): Promise<SettleableBatch | undefined> {
     const blocks = await this.unprovenBlockQueue.getNewBlocks();
     if (blocks.length > 0) {
-      const batch = await this.blockProducerModule.createBlock(blocks);
+      const batch = await this.blockProducerModule?.createBlock(blocks);
       if (batch !== undefined) {
         await this.batchQueue.pushBlock(batch);
         this.events.emit("batch-produced", batch);
