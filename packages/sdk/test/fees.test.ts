@@ -1,12 +1,7 @@
 import "reflect-metadata";
 
 import { Balance, Balances, BalancesKey, TokenId } from "@proto-kit/library";
-import {
-  runtimeMethod,
-  runtimeModule,
-  RuntimeModule,
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
+import { runtimeMethod, runtimeModule, RuntimeModule } from "@proto-kit/module";
 import { PrivateKey } from "o1js";
 import { inject } from "tsyringe";
 import { expectDefined } from "@proto-kit/common";
@@ -43,12 +38,6 @@ class Pit extends RuntimeModule<unknown> {
       amount
     );
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface RuntimeModules extends RuntimeModulesRecord {
-  Faucet: typeof Faucet;
-  Pit: typeof Pit;
 }
 
 describe("fees", () => {
