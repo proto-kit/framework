@@ -7,7 +7,7 @@ import {
   RuntimeMethodExecutionData,
   RuntimeMethodExecutionDataStruct,
 } from "@proto-kit/protocol";
-import { Provable } from "o1js";
+import { FlexibleProvablePure, Provable } from "o1js";
 
 import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
@@ -73,7 +73,8 @@ export class RuntimeModule<
     return this.getInputs().networkState;
   }
 
-  public emit() {
+  public emit(event: FlexibleProvablePure<any>) {
     // Emit the result of the runtime method
+    return container.resolve(RuntimeMethodExecutionContext).addEvent(event);
   }
 }
