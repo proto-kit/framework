@@ -72,4 +72,8 @@ export class RuntimeModule<
   public get network(): NetworkState {
     return this.getInputs().networkState;
   }
+
+  public emit() {
+    // Emit the result of the runtime method
+  }
 }
