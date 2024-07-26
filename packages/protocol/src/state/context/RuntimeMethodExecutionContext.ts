@@ -25,7 +25,7 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
 
   public stackTrace?: string;
 
-  public events: any[] = [];
+  public events: FlexibleProvablePure<any>[] = [];
 }
 
 export interface RuntimeMethodExecutionData {
