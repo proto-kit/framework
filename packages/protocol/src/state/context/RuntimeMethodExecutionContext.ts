@@ -75,7 +75,7 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     this.result.stateTransitions.push(stateTransition);
   }
 
-  public addEvent(event: FlexibleProvablePure<any>[]) {
+  public addEvent(event: FlexibleProvablePure<any>) {
     this.assertSetupCalled();
     this.result.events.push(event);
   }
