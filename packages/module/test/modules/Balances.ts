@@ -1,4 +1,4 @@
-import { PublicKey, UInt64 } from "o1js";
+import { PublicKey, UInt64, Struct, Field, InferProvable } from "o1js";
 import { State, StateMap } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 
@@ -8,6 +8,12 @@ import { Admin } from "./Admin.js";
 
 interface BalancesConfig {}
 
+export class TransferEvent extends Struct({
+  from: PublicKey,
+  to: PublicKey,
+  amount: UInt64,
+}) {}
+
 @runtimeModule()
 export class Balances extends RuntimeModule<BalancesConfig> {
   /**
@@ -15,6 +21,10 @@ export class Balances extends RuntimeModule<BalancesConfig> {
    * presets by key in a type safe way.
    */
   public static presets = {} satisfies Presets<BalancesConfig>;
+
+  events = {
+    transfer: TransferEvent,
+  } as const;
 
   @state() public totalSupply = State.from<UInt64>(UInt64);
 
@@ -25,6 +35,28 @@ export class Balances extends RuntimeModule<BalancesConfig> {
 
   public constructor(public admin: Admin) {
     super();
+  }
+
+  @runtimeMethod()
+  public async transfer(a: PublicKey, b: PublicKey, amount: UInt64) {
+    // Transfer
+    // type X = InferProvable<this["events"]["transfer"]>;
+    // const x: T = {
+    //   from: a,
+    //   to: b,
+    //   amount,
+    // };
+
+    // type T = InferProvable<this["events"]["transfer"]>;
+
+    this.emit(
+      "transfer",
+      new TransferEvent({
+        from: a,
+        to: b,
+        amount,
+      })
+    );
   }
 
   @runtimeMethod()

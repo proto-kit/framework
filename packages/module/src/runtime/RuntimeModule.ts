@@ -7,7 +7,7 @@ import {
   RuntimeMethodExecutionData,
   RuntimeMethodExecutionDataStruct,
 } from "@proto-kit/protocol";
-import { FlexibleProvablePure, Provable } from "o1js";
+import { FlexibleProvablePure, Provable, InferProvable } from "o1js";
 
 import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
@@ -16,6 +16,16 @@ import { RuntimeEnvironment } from "./RuntimeEnvironment";
 const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
 };
+
+// type Infer<t extends FlexibleProvablePure<any>> =
+//   t extends Provable<infer U> ? U : never;
+
+// type ExtractEvents<
+//   Module extends { events: Record<string, FlexibleProvablePure<any>> },
+//   Key extends string,
+// > = Key extends keyof Module["events"]
+//   ? [Key, InferProvable<Module["events"][Key]>]
+//   : never;
 
 /**
  * Base class for runtime modules providing the necessary utilities.
@@ -41,6 +51,16 @@ export class RuntimeModule<
   public name?: string;
 
   public runtime?: RuntimeEnvironment;
+
+  public events: Record<string, FlexibleProvablePure<any>> = {};
+
+  public emit<Key extends keyof this["events"]>(eventType: Key, event: any) {
+    const provable: FlexibleProvablePure<any> = this["events"][eventType];
+    const fields = provable.toFields(event);
+
+    // Emit the result of the runtime method
+    return container.resolve(RuntimeMethodExecutionContext).addEvent(event);
+  }
 
   public constructor() {
     super();
@@ -71,10 +91,5 @@ export class RuntimeModule<
 
   public get network(): NetworkState {
     return this.getInputs().networkState;
-  }
-
-  public emit(event: FlexibleProvablePure<any>) {
-    // Emit the result of the runtime method
-    return container.resolve(RuntimeMethodExecutionContext).addEvent(event);
   }
 }
