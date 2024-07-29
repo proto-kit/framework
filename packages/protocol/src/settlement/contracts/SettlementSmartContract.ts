@@ -126,7 +126,9 @@ export class SettlementSmartContract
     this.dispatchContractAddressX.set(dispatchContract.x);
 
     const { DispatchContract } = SettlementSmartContract.args;
-    await new DispatchContract(dispatchContract).initialize(this.address);
+    const contractInstance = new DispatchContract(dispatchContract);
+    await contractInstance.initialize(this.address);
+    contractInstance.self.requireSignature();
   }
 
   @method

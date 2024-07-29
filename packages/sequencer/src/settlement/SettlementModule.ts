@@ -20,7 +20,6 @@ import {
   PublicKey,
   Signature,
   Transaction,
-  Permissions,
 } from "o1js";
 import { inject } from "tsyringe";
 import {
@@ -29,6 +28,7 @@ import {
   log,
   noop,
   RollupMerkleTree,
+  AreProofsEnabled,
 } from "@proto-kit/common";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 
@@ -49,6 +49,8 @@ import { Settlement } from "../storage/model/Settlement";
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
+import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermissions";
+import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
@@ -98,7 +100,9 @@ export class SettlementModule
     private readonly merkleTreeStore: AsyncMerkleTreeStore,
     private readonly blockProofSerializer: BlockProofSerializer,
     @inject("TransactionSender")
-    private readonly transactionSender: MinaTransactionSender
+    private readonly transactionSender: MinaTransactionSender,
+    @inject("AreProofsEnabled")
+    private readonly areProofsEnabled: AreProofsEnabled
   ) {
     super();
   }
@@ -143,6 +147,38 @@ export class SettlementModule
       };
     }
     return this.contracts;
+  }
+
+  private isSignedSettlement(): boolean {
+    return (
+      // TODO Enable, add tests that test both signed settlement and normal
+      // !this.baseLayer.isLocalBlockChain() &&
+      !this.areProofsEnabled.areProofsEnabled
+    );
+  }
+
+  private signTransaction(
+    tx: Transaction<false, false>,
+    pks: PrivateKey[]
+  ): Transaction<false, true> {
+    this.requireSignatureIfNecessary(tx);
+    return tx.sign(pks);
+  }
+
+  private requireSignatureIfNecessary(tx: Transaction<false, false>) {
+    const { addresses } = this;
+    if (this.isSignedSettlement() && addresses !== undefined) {
+      tx.transaction.accountUpdates.forEach((au) => {
+        if (
+          au.publicKey
+            .equals(addresses.settlement)
+            .or(au.publicKey.equals(addresses.dispatch))
+            .toBoolean()
+        ) {
+          au.requireSignature();
+        }
+      });
+    }
   }
 
   /* eslint-disable no-await-in-loop */
@@ -200,7 +236,7 @@ export class SettlementModule
         }
       );
 
-      const signedTx = tx.sign([feepayer]);
+      const signedTx = this.signTransaction(tx, [feepayer]);
 
       await this.transactionSender.proveAndSendTransaction(signedTx);
 
@@ -274,7 +310,7 @@ export class SettlementModule
       }
     );
 
-    tx.sign([feepayer]);
+    this.signTransaction(tx, [feepayer]);
 
     await this.transactionSender.proveAndSendTransaction(tx);
 
@@ -299,11 +335,6 @@ export class SettlementModule
 
     const nonce = options?.nonce ?? 0;
 
-    // const flow = this.flowCreator.createFlow<undefined>(
-    //   `deploy-${feepayer.toBase58()}-${nonce.toString()}`,
-    //   undefined
-    // );
-
     const sm = this.protocol.dependencyContainer.resolve<
       SettlementContractModule<MandatorySettlementModulesRecord>
     >("SettlementContractModule");
@@ -311,6 +342,10 @@ export class SettlementModule
       settlement: settlementKey.toPublicKey(),
       dispatch: dispatchKey.toPublicKey(),
     });
+
+    const permissions = this.isSignedSettlement()
+      ? new SignedSettlementPermissions()
+      : new ProvenSettlementPermissions();
 
     const tx = await Mina.transaction(
       {
@@ -324,22 +359,26 @@ export class SettlementModule
         await settlement.deploy({
           verificationKey: undefined,
         });
-        settlement.account.permissions.set({
-          ...Permissions.default(),
-          access: Permissions.none(),
-        });
+        settlement.account.permissions.set(permissions.settlementContract());
 
         await dispatch.deploy({
           verificationKey: undefined,
         });
+        dispatch.account.permissions.set(permissions.dispatchContract());
       }
     ).sign([feepayerKey, settlementKey, dispatchKey]);
+    // Note: We can't use this.signTransaction on the above tx
 
     // This should already apply the tx result to the
     // cached accounts / local blockchain
     await this.transactionSender.proveAndSendTransaction(tx);
 
-    const tx2 = await Mina.transaction(
+    this.addresses = {
+      settlement: settlementKey.toPublicKey(),
+      dispatch: dispatchKey.toPublicKey(),
+    };
+
+    const initTx = await Mina.transaction(
       {
         sender: feepayer,
         nonce: nonce + 1,
@@ -352,14 +391,15 @@ export class SettlementModule
           dispatchKey.toPublicKey()
         );
       }
-    ).sign([feepayerKey]);
+    );
 
-    await this.transactionSender.proveAndSendTransaction(tx2);
+    const initTxSigned = this.signTransaction(initTx, [
+      feepayerKey,
+      settlementKey,
+      dispatchKey,
+    ]);
 
-    this.addresses = {
-      settlement: settlementKey.toPublicKey(),
-      dispatch: dispatchKey.toPublicKey(),
-    };
+    await this.transactionSender.proveAndSendTransaction(initTxSigned);
   }
 
   public async start(): Promise<void> {

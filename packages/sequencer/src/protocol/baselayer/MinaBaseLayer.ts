@@ -38,6 +38,10 @@ export class MinaBaseLayer
     };
   }
 
+  public isLocalBlockChain(): boolean {
+    return this.config.network.local;
+  }
+
   public async start(): Promise<void> {
     const { network } = this.config;
 
