@@ -59,12 +59,14 @@ export function toEventsHash(
     eventName: string;
   }[]
 ) {
-  // const provable: FlexibleProvablePure<any> = this.events[eventType];
-  // const fields = provable.toFields(event);
-  const fieldList = events.map((event) => {
-    return event.eventType.toFields(event.event);
-  });
-  return Poseidon.hash(fieldList.map((fields) => Poseidon.hash(fields)));
+  return events
+    .map((event) => {
+      return event.eventType.toFields(event.event);
+    })
+    .reduce(
+      (accum, next) => Poseidon.hash([accum, ...next]),
+      Poseidon.hash([Field(0)])
+    );
 }
 
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;

@@ -12,7 +12,7 @@ import {
   RuntimeMethodExecutionData,
   RuntimeMethodExecutionDataStruct,
 } from "@proto-kit/protocol";
-import { FlexibleProvablePure, Provable, InferProvable } from "o1js";
+import { FlexibleProvablePure, Provable } from "o1js";
 
 import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
