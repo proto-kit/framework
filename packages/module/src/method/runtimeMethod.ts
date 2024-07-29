@@ -52,8 +52,19 @@ export function toStateTransitionsHash(
     .toField();
 }
 
-export function toEventsHash(events: FlexibleProvablePure<any>[]) {
-  return Poseidon.hash(events.map((event) => Field([event])));
+export function toEventsHash(
+  events: {
+    eventType: FlexibleProvablePure<any>;
+    event: any;
+    eventName: string;
+  }[]
+) {
+  // const provable: FlexibleProvablePure<any> = this.events[eventType];
+  // const fields = provable.toFields(event);
+  const fieldList = events.map((event) => {
+    return event.eventType.toFields(event.event);
+  });
+  return Poseidon.hash(fieldList.map((fields) => Poseidon.hash(fields)));
 }
 
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;

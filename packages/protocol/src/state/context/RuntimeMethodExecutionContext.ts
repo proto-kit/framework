@@ -25,7 +25,11 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
 
   public stackTrace?: string;
 
-  public events: FlexibleProvablePure<any>[] = [];
+  public events: {
+    eventType: FlexibleProvablePure<any>;
+    event: any;
+    eventName: string;
+  }[] = [];
 }
 
 export interface RuntimeMethodExecutionData {
@@ -75,9 +79,17 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     this.result.stateTransitions.push(stateTransition);
   }
 
-  public addEvent(event: FlexibleProvablePure<any>) {
+  public addEvent(
+    eventType: FlexibleProvablePure<any>,
+    event: any,
+    eventName: string
+  ) {
     this.assertSetupCalled();
-    this.result.events.push(event);
+    this.result.events.push({
+      eventType,
+      event,
+      eventName,
+    });
   }
 
   /**

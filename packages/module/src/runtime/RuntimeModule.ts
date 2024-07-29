@@ -54,12 +54,14 @@ export class RuntimeModule<
 
   public events: Record<string, FlexibleProvablePure<any>> = {};
 
-  public emit<Key extends keyof this["events"]>(eventType: Key, event: any) {
-    const provable: FlexibleProvablePure<any> = this["events"][eventType];
-    const fields = provable.toFields(event);
-
-    // Emit the result of the runtime method
-    return container.resolve(RuntimeMethodExecutionContext).addEvent(event);
+  public emit<Key extends keyof this["events"]>(
+    eventName: Key,
+    event: FlexibleProvablePure<any>
+  ) {
+    const eventType: FlexibleProvablePure<any> = this.events[eventName];
+    return container
+      .resolve(RuntimeMethodExecutionContext)
+      .addEvent(eventType, event, eventName);
   }
 
   public constructor() {
