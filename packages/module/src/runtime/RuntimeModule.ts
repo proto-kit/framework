@@ -1,4 +1,9 @@
-import { ConfigurableModule, NoConfig, Presets } from "@proto-kit/common";
+import {
+  ConfigurableModule,
+  NoConfig,
+  Presets,
+  StringKeyOf,
+} from "@proto-kit/common";
 import { container, injectable } from "tsyringe";
 import {
   NetworkState,
@@ -54,7 +59,7 @@ export class RuntimeModule<
 
   public events: Record<string, FlexibleProvablePure<any>> = {};
 
-  public emit<Key extends keyof this["events"]>(
+  public emit<Key extends StringKeyOf<this["events"]>>(
     eventName: Key,
     event: FlexibleProvablePure<any>
   ) {
