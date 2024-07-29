@@ -10,5 +10,5 @@ export class MethodPublicOutput extends Struct({
   transactionHash: Field,
   networkStateHash: Field,
   isMessage: Bool,
-  events: Field,
+  eventsHash: Field,
 }) {}
