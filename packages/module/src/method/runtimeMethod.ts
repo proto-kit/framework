@@ -63,10 +63,7 @@ export function toEventsHash(
     .map((event) => {
       return event.eventType.toFields(event.event);
     })
-    .reduce(
-      (accum, next) => Poseidon.hash([accum, ...next]),
-      Poseidon.hash([Field(0)])
-    );
+    .reduce((accum, next) => Poseidon.hash([accum, ...next]), Field(0));
 }
 
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
