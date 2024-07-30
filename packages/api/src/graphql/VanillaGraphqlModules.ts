@@ -11,7 +11,7 @@ import { MerkleWitnessResolver } from "./modules/MerkleWitnessResolver";
 export type VanillaGraphqlModulesRecord = {
   MempoolResolver: typeof MempoolResolver;
   QueryGraphqlModule: typeof QueryGraphqlModule;
-  BlockStorageResolver: typeof BatchStorageResolver;
+  BatchStorageResolver: typeof BatchStorageResolver;
   NodeStatusResolver: typeof NodeStatusResolver;
   BlockResolver: typeof BlockResolver;
   MerkleWitnessResolver: typeof MerkleWitnessResolver;
@@ -24,7 +24,7 @@ export class VanillaGraphqlModules {
     return {
       MempoolResolver,
       QueryGraphqlModule,
-      BlockStorageResolver: BatchStorageResolver,
+      BatchStorageResolver,
       NodeStatusResolver,
       BlockResolver,
       MerkleWitnessResolver,
@@ -36,7 +36,7 @@ export class VanillaGraphqlModules {
     return {
       MempoolResolver: {},
       QueryGraphqlModule: {},
-      BlockStorageResolver: {},
+      BatchStorageResolver: {},
       NodeStatusResolver: {},
       BlockResolver: {},
       MerkleWitnessResolver: {},

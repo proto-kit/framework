@@ -55,7 +55,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return this.config.allowEmptyBlock ?? true;
   }
 
-  private prettyPrintBlockContents(block: UnprovenBlock) {
+  private prettyPrintBlockContents(block: Block) {
     block.transactions.forEach((tx, i) => {
       const methodName = this.methodIdResolver.getMethodNameFromId(
         tx.tx.methodId.toBigInt()
@@ -91,7 +91,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     }
   }
 
-  public async tryProduceUnprovenBlock(): Promise<BlockWithResult | undefined> {
+  public async tryProduceBlock(): Promise<BlockWithResult | undefined> {
     if (!this.productionInProgress) {
       try {
         const block = await this.produceBlock();
