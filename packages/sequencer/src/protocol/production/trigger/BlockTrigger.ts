@@ -43,7 +43,7 @@ export class BlockTriggerBase<
 
   public constructor(
     protected readonly blockProducerModule: BlockProducerModule,
-    protected readonly batchProducerModule: BatchProducerModule,
+    protected readonly batchProducerModule: BatchProducerModule | undefined,
     protected readonly settlementModule: SettlementModule | undefined,
     protected readonly blockQueue: BlockQueue,
     protected readonly batchQueue: BatchStorage,
@@ -55,7 +55,7 @@ export class BlockTriggerBase<
   protected async produceBatch(): Promise<SettleableBatch | undefined> {
     const blocks = await this.blockQueue.getNewBlocks();
     if (blocks.length > 0) {
-      const batch = await this.batchProducerModule.createBatch(blocks);
+      const batch = await this.batchProducerModule?.createBatch(blocks);
       if (batch !== undefined) {
         await this.batchQueue.pushBlock(batch);
         this.events.emit("batch-produced", batch);

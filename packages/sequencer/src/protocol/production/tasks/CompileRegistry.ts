@@ -38,6 +38,7 @@ export class CompileRegistry {
       this.compilationPromises[name] = zkProgram.compile();
     }
     await this.compilationPromises[name];
+    log.info(`Compiled ${name}`);
   }
 
   public async compileSmartContract(

@@ -76,13 +76,7 @@ export class ClientAppChain<
           feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
           baseFee: 0n,
           perWeightUnitFee: 1n,
-          methods: {
-            "Faucet.drip": {
-              baseFee: 0n,
-              weight: 0n,
-              perWeightUnitFee: 0n,
-            },
-          },
+          methods: {},
         },
       },
 

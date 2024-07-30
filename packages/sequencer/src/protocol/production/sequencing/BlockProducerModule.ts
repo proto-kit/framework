@@ -1,6 +1,13 @@
 import { inject } from "tsyringe";
 import { log, noop } from "@proto-kit/common";
 import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
+import {
+  MethodIdResolver,
+  MethodParameterEncoder,
+  Runtime,
+  RuntimeModulesRecord,
+} from "@proto-kit/module";
+import { Provable } from "o1js";
 
 import { Mempool } from "../../../mempool/Mempool";
 import {
@@ -36,13 +43,52 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly blockQueue: BlockQueue,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
-    private readonly executionService: TransactionExecutionService
+    private readonly executionService: TransactionExecutionService,
+    @inject("MethodIdResolver")
+    private readonly methodIdResolver: MethodIdResolver,
+    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {
     super();
   }
 
   private allowEmptyBlock() {
     return this.config.allowEmptyBlock ?? true;
+  }
+
+  private prettyPrintBlockContents(block: Block) {
+    block.transactions.forEach((tx, i) => {
+      const methodName = this.methodIdResolver.getMethodNameFromId(
+        tx.tx.methodId.toBigInt()
+      );
+      if (!methodName) return;
+
+      const module = this.runtime.resolve(methodName[0]);
+      const paramEncoder = MethodParameterEncoder.fromMethod(
+        module,
+        methodName[1]
+      );
+
+      log.info("---------------------------------------");
+      log.info(`Transaction #${i}`);
+      log.info(
+        "Sender:",
+        tx.tx.sender.toBase58(),
+        "Nonce:",
+        tx.tx.nonce.toBigInt()
+      );
+      log.info(`Method: ${methodName?.join(".")}`);
+      log.info();
+      if (log.getLevel() <= log.levels.INFO) {
+        Provable.log("Arguments:", paramEncoder.decodeFields(tx.tx.argsFields));
+      }
+      log.info(
+        `Status: ${tx.status.toBoolean()}`,
+        tx.statusMessage !== undefined ? `Reason: ${tx.statusMessage}` : ""
+      );
+    });
+    if (block.transactions.length > 0) {
+      log.info("---------------------------------------");
+    }
   }
 
   public async tryProduceBlock(): Promise<BlockWithResult | undefined> {
@@ -60,6 +106,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         }
 
         log.info(`Produced block (${block.transactions.length} txs)`);
+        this.prettyPrintBlockContents(block);
 
         // Generate metadata for next block
 

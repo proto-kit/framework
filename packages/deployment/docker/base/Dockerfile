@@ -30,6 +30,4 @@ EXPOSE 8080
 
 COPY ./packages/deployment/docker/base/entry.sh ./entry.sh
 
-# Migrate + execute
-#ENTRYPOINT ["npm", "run", "migrate", "&&", "node", "--experimental-vm-modules", "--experimental-wasm-modules", "--experimental-wasm-threads", "--es-module-specifier-resolution=node"]
 ENTRYPOINT ["./entry.sh"]

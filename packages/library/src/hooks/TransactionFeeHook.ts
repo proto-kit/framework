@@ -79,7 +79,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   public async start() {
     this.persistedFeeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
     this.persistedFeeAnalyzer.config = this.config;
-    await this.persistedFeeAnalyzer.intializeFeeTree();
+    await this.persistedFeeAnalyzer.initializeFeeTree();
   }
 
   public get config() {
@@ -111,6 +111,14 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     );
   }
 
+  public getFee(feeConfig: MethodFeeConfigData) {
+    return UInt64.Unsafe.fromField(feeConfig.baseFee.value).add(
+      UInt64.Unsafe.fromField(feeConfig.weight.value).mul(
+        UInt64.Unsafe.fromField(feeConfig.perWeightUnitFee.value)
+      )
+    );
+  }
+
   /**
    * Determine the transaction fee for the given transaction, and transfer it
    * from the transaction sender to the fee recipient.
@@ -125,7 +133,6 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
         executionData.transaction.methodId.toBigInt()
       )
     );
-
     const witness = Provable.witness(
       RuntimeFeeAnalyzerService.getWitnessType(),
       () =>
@@ -143,11 +150,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       errors.invalidFeeConfigMethodId()
     );
 
-    const fee = UInt64.Unsafe.fromField(feeConfig.baseFee.value).add(
-      UInt64.Unsafe.fromField(feeConfig.weight.value).mul(
-        UInt64.Unsafe.fromField(feeConfig.perWeightUnitFee.value)
-      )
-    );
+    const fee = this.getFee(feeConfig);
 
     await this.transferFee(
       executionData.transaction.sender,
