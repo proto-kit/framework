@@ -4,9 +4,9 @@ import { Field } from "o1js";
 import { TransactionStorage } from "../repositories/TransactionStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import {
-  HistoricalUnprovenBlockStorage,
-  UnprovenBlockStorage,
-} from "../repositories/UnprovenBlockStorage";
+  HistoricalBlockStorage,
+  BlockStorage,
+} from "../repositories/BlockStorage";
 
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 
@@ -17,10 +17,9 @@ export class InMemoryTransactionStorage implements TransactionStorage {
   private latestScannedBlock = -1;
 
   public constructor(
-    @inject("UnprovenBlockStorage")
-    private readonly blockStorage: UnprovenBlockStorage &
-      HistoricalUnprovenBlockStorage,
-    @inject("BlockStorage") private readonly batchStorage: InMemoryBatchStorage
+    @inject("BlockStorage")
+    private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
+    @inject("BatchStorage") private readonly batchStorage: InMemoryBatchStorage
   ) {}
 
   public async getPendingUserTransactions(): Promise<PendingTransaction[]> {

@@ -42,12 +42,12 @@ import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeSto
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import {
   TransactionExecutionResult,
-  UnprovenBlock,
-  UnprovenBlockMetadata,
-  UnprovenBlockWithMetadata,
-} from "../../../storage/model/UnprovenBlock";
+  Block,
+  BlockResult,
+  BlockWithResult,
+} from "../../../storage/model/Block";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
-import type { StateRecord } from "../BlockProducerModule";
+import type { StateRecord } from "../BatchProducerModule";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -236,14 +236,14 @@ export class TransactionExecutionService {
    * Main entry point for creating a unproven block with everything
    * attached that is needed for tracing
    */
-  public async createUnprovenBlock(
+  public async createBlock(
     stateService: CachedStateService,
     transactions: PendingTransaction[],
-    lastBlockWithMetadata: UnprovenBlockWithMetadata,
+    lastBlockWithResult: BlockWithResult,
     allowEmptyBlocks: boolean
-  ): Promise<UnprovenBlock | undefined> {
-    const lastMetadata = lastBlockWithMetadata.metadata;
-    const lastBlock = lastBlockWithMetadata.block;
+  ): Promise<Block | undefined> {
+    const lastResult = lastBlockWithResult.result;
+    const lastBlock = lastBlockWithResult.block;
     const executionResults: TransactionExecutionResult[] = [];
 
     const transactionsHashList = new DefaultProvableHashList(Field);
@@ -260,14 +260,14 @@ export class TransactionExecutionService {
     const networkState = await this.blockHooks.reduce<Promise<NetworkState>>(
       async (reduceNetworkState, hook) =>
         await hook.beforeBlock(await reduceNetworkState, {
-          blockHashRoot: Field(lastMetadata.blockHashRoot),
+          blockHashRoot: Field(lastResult.blockHashRoot),
           eternalTransactionsHash: lastBlock.toEternalTransactionsHash,
-          stateRoot: Field(lastMetadata.stateRoot),
+          stateRoot: Field(lastResult.stateRoot),
           transactionsHash: Field(0),
-          networkStateHash: lastMetadata.afterNetworkState.hash(),
+          networkStateHash: lastResult.afterNetworkState.hash(),
           incomingMessagesHash: lastBlock.toMessagesHash,
         }),
-      Promise.resolve(lastMetadata.afterNetworkState)
+      Promise.resolve(lastResult.afterNetworkState)
     );
 
     for (const [, tx] of transactions.entries()) {
@@ -300,7 +300,7 @@ export class TransactionExecutionService {
     }
 
     const previousBlockHash =
-      lastMetadata.blockHash === 0n ? undefined : Field(lastMetadata.blockHash);
+      lastResult.blockHash === 0n ? undefined : Field(lastResult.blockHash);
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
@@ -309,25 +309,25 @@ export class TransactionExecutionService {
       return undefined;
     }
 
-    const block: Omit<UnprovenBlock, "hash"> = {
+    const block: Omit<Block, "hash"> = {
       transactions: executionResults,
       transactionsHash: transactionsHashList.commitment,
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash: eternalTransactionsHashList.commitment,
       height:
         lastBlock.hash.toBigInt() !== 0n ? lastBlock.height.add(1) : Field(0),
-      fromBlockHashRoot: Field(lastMetadata.blockHashRoot),
+      fromBlockHashRoot: Field(lastResult.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       toMessagesHash: incomingMessagesList.commitment,
       previousBlockHash,
 
       networkState: {
-        before: new NetworkState(lastMetadata.afterNetworkState),
+        before: new NetworkState(lastResult.afterNetworkState),
         during: networkState,
       },
     };
 
-    const hash = UnprovenBlock.hash(block);
+    const hash = Block.hash(block);
 
     return {
       ...block,
@@ -336,11 +336,11 @@ export class TransactionExecutionService {
   }
 
   public async generateMetadataForNextBlock(
-    block: UnprovenBlock,
+    block: Block,
     merkleTreeStore: AsyncMerkleTreeStore,
     blockHashTreeStore: AsyncMerkleTreeStore,
     modifyTreeStore = true
-  ): Promise<UnprovenBlockMetadata> {
+  ): Promise<BlockResult> {
     // Flatten diff list into a single diff by applying them over each other
     const combinedDiff = block.transactions
       .map((tx) => {

@@ -14,7 +14,7 @@ import { log, MOCK_PROOF } from "@proto-kit/common";
 import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { Flow, FlowCreator } from "../../worker/flow/Flow";
 
-import type { BlockTrace } from "./BlockProducerModule";
+import type { BlockTrace } from "./BatchProducerModule";
 import {
   StateTransitionReductionTask,
   StateTransitionTask,

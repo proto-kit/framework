@@ -25,14 +25,14 @@ export class InMemoryDatabase extends SequencerModule implements Database {
       asyncStateService: {
         useFactory: () => new CachedStateService(undefined),
       },
-      blockStorage: {
+      batchStorage: {
         useClass: InMemoryBatchStorage,
       },
-      unprovenBlockQueue: {
+      blockQueue: {
         useClass: InMemoryBlockStorage,
       },
-      unprovenBlockStorage: {
-        useToken: "UnprovenBlockQueue",
+      blockStorage: {
+        useToken: "BlockQueue",
       },
       unprovenStateService: {
         useFactory: () => new CachedStateService(undefined),

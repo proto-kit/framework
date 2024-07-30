@@ -14,17 +14,13 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import { BlockStorage } from "../../storage/repositories/BlockStorage";
-import { SettleableBatch } from "../../storage/model/Block";
+import { BatchStorage } from "../../storage/repositories/BatchStorage";
+import { SettleableBatch } from "../../storage/model/Batch";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
-import {
-  UnprovenBlock,
-  UnprovenBlockMetadata,
-  UnprovenBlockWithMetadata,
-} from "../../storage/model/UnprovenBlock";
+import { Block, BlockResult, BlockWithResult } from "../../storage/model/Block";
 
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
@@ -48,13 +44,13 @@ export interface BlockTrace {
   transactions: TransactionTrace[];
 }
 
-export interface UnprovenBlockWithPreviousMetadata {
-  block: UnprovenBlockWithMetadata;
-  lastBlockMetadata?: UnprovenBlockMetadata;
+export interface BlockWithPreviousResult {
+  block: BlockWithResult;
+  lastBlockResult?: BlockResult;
 }
 
-interface ComputedBlockMetadata {
-  block: SettleableBatch;
+interface BatchMetadata {
+  batch: SettleableBatch;
   stateService: CachedStateService;
   merkleStore: CachedMerkleTreeStore;
 }
@@ -65,7 +61,7 @@ const errors = {
 };
 
 /**
- * The BlockProducerModule has the resposiblity to oversee the block production
+ * The BatchProducerModule has the resposiblity to oversee the block production
  * and combine all necessary parts for that to happen. The flow roughly follows
  * the following steps:
  *
@@ -73,7 +69,7 @@ const errors = {
  * 2.
  */
 @sequencerModule()
-export class BlockProducerModule extends SequencerModule {
+export class BatchProducerModule extends SequencerModule {
   private productionInProgress = false;
 
   public constructor(
@@ -81,7 +77,7 @@ export class BlockProducerModule extends SequencerModule {
     private readonly asyncStateService: AsyncStateService,
     @inject("AsyncMerkleStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
-    @inject("BlockStorage") private readonly blockStorage: BlockStorage,
+    @inject("BlockStorage") private readonly blockStorage: BatchStorage,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly traceService: TransactionTraceService,
@@ -91,12 +87,9 @@ export class BlockProducerModule extends SequencerModule {
     super();
   }
 
-  private async applyStateChanges(
-    unprovenBlocks: UnprovenBlock[],
-    block: ComputedBlockMetadata
-  ) {
-    await block.stateService.mergeIntoParent();
-    await block.merkleStore.mergeIntoParent();
+  private async applyStateChanges(blocks: Block[], batch: BatchMetadata) {
+    await batch.stateService.mergeIntoParent();
+    await batch.merkleStore.mergeIntoParent();
   }
 
   /**
@@ -104,31 +97,28 @@ export class BlockProducerModule extends SequencerModule {
    * transactions that are present in the mempool. This function should also
    * be the one called by BlockTriggers
    */
-  public async createBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[]
+  public async createBatch(
+    blocks: BlockWithPreviousResult[]
   ): Promise<SettleableBatch | undefined> {
     log.info("Producing batch...");
 
     const height = await this.blockStorage.getCurrentBlockHeight();
 
-    const blockWithStateDiff = await this.tryProduceBlock(
-      unprovenBlocks,
-      height
-    );
+    const blockWithStateDiff = await this.tryProduceBlock(blocks, height);
 
     if (blockWithStateDiff !== undefined) {
       log.info(
-        `Batch produced (${blockWithStateDiff.block.bundles.length} bundles, ${
-          blockWithStateDiff.block.bundles.flat(1).length
+        `Batch produced (${blockWithStateDiff.batch.bundles.length} bundles, ${
+          blockWithStateDiff.batch.bundles.flat(1).length
         } txs)`
       );
       // Apply state changes to current StateService
       await this.applyStateChanges(
-        unprovenBlocks.map((data) => data.block.block),
+        blocks.map((data) => data.block.block),
         blockWithStateDiff
       );
     }
-    return blockWithStateDiff?.block;
+    return blockWithStateDiff?.batch;
   }
 
   public async start(): Promise<void> {
@@ -136,20 +126,21 @@ export class BlockProducerModule extends SequencerModule {
   }
 
   private async tryProduceBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
+    blocks: BlockWithPreviousResult[],
     height: number
-  ): Promise<ComputedBlockMetadata | undefined> {
+  ): Promise<BatchMetadata | undefined> {
     if (!this.productionInProgress) {
       try {
         this.productionInProgress = true;
 
-        const block = await this.produceBlock(unprovenBlocks, height);
+        const batch = await this.produceBatch(blocks, height);
 
         this.productionInProgress = false;
 
-        return block;
+        return batch;
       } catch (error: unknown) {
         this.productionInProgress = false;
+        // TODO Check if that still makes sense
         if (error instanceof Error) {
           if (
             !error.message.includes(
@@ -172,13 +163,13 @@ export class BlockProducerModule extends SequencerModule {
     return undefined;
   }
 
-  private async produceBlock(
-    unprovenBlocks: UnprovenBlockWithPreviousMetadata[],
+  private async produceBatch(
+    blocks: BlockWithPreviousResult[],
     height: number
-  ): Promise<ComputedBlockMetadata | undefined> {
-    const block = await this.computeBlock(unprovenBlocks, height);
+  ): Promise<BatchMetadata | undefined> {
+    const block = await this.computeBatch(blocks, height);
 
-    const computedBundles = unprovenBlocks.map((bundle) =>
+    const computedBundles = blocks.map((bundle) =>
       bundle.block.block.hash.toString()
     );
 
@@ -187,7 +178,7 @@ export class BlockProducerModule extends SequencerModule {
       .toJSONProof(block.proof);
 
     return {
-      block: {
+      batch: {
         proof: jsonProof,
         bundles: computedBundles,
         height,
@@ -203,7 +194,7 @@ export class BlockProducerModule extends SequencerModule {
   /**
    * Very naive impl for now
    *
-   * How we produce Blocks (batches):
+   * How we produce batches:
    *
    * 1. We get all pending txs from the mempool and define an order
    * 2. We execute them to get results / intermediate state-roots.
@@ -213,8 +204,8 @@ export class BlockProducerModule extends SequencerModule {
    *
    */
 
-  private async computeBlock(
-    bundles: UnprovenBlockWithPreviousMetadata[],
+  private async computeBatch(
+    blocks: BlockWithPreviousResult[],
     blockId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -223,7 +214,7 @@ export class BlockProducerModule extends SequencerModule {
     fromNetworkState: NetworkState;
     toNetworkState: NetworkState;
   }> {
-    if (bundles.length === 0 || bundles.flat(1).length === 0) {
+    if (blocks.length === 0 || blocks.flat(1).length === 0) {
       throw errors.blockWithoutTxs();
     }
 
@@ -236,16 +227,16 @@ export class BlockProducerModule extends SequencerModule {
 
     const eternalBundleTracker = new DefaultProvableHashList(
       Field,
-      bundles[0].block.block.fromEternalTransactionsHash
+      blocks[0].block.block.fromEternalTransactionsHash
     );
     const messageTracker = new MinaPrefixedProvableHashList(
       Field,
       MINA_EVENT_PREFIXES.sequenceEvents,
-      bundles[0].block.block.fromMessagesHash
+      blocks[0].block.block.fromMessagesHash
     );
 
-    for (const bundleWithMetadata of bundles) {
-      const { block } = bundleWithMetadata.block;
+    for (const blockWithPreviousResult of blocks) {
+      const { block } = blockWithPreviousResult.block;
       const txs = block.transactions;
 
       const bundleTracker = new DefaultProvableHashList(Field);
@@ -272,18 +263,18 @@ export class BlockProducerModule extends SequencerModule {
         stateServices,
         this.blockTreeStore,
         Field(
-          bundleWithMetadata.lastBlockMetadata?.stateRoot ??
+          blockWithPreviousResult.lastBlockResult?.stateRoot ??
             RollupMerkleTree.EMPTY_ROOT
         ),
-        bundleWithMetadata.block
+        blockWithPreviousResult.block
       );
       blockTraces.push(blockTrace);
     }
 
     const proof = await this.blockFlowService.executeFlow(blockTraces, blockId);
 
-    const fromNetworkState = bundles[0].block.block.networkState.before;
-    const toNetworkState = bundles.at(-1)!.block.metadata.afterNetworkState;
+    const fromNetworkState = blocks[0].block.block.networkState.before;
+    const toNetworkState = blocks.at(-1)!.block.result.afterNetworkState;
 
     return {
       proof,

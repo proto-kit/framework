@@ -1,30 +1,30 @@
 import { log } from "@proto-kit/common";
 
 import {
-  BlockStorage,
-  HistoricalBlockStorage,
-} from "../repositories/BlockStorage";
-import { ComputedBlock } from "../model/Block";
+  BatchStorage,
+  HistoricalBatchStorage,
+} from "../repositories/BatchStorage";
+import { Batch } from "../model/Batch";
 
 export class InMemoryBatchStorage
-  implements BlockStorage, HistoricalBlockStorage
+  implements BatchStorage, HistoricalBatchStorage
 {
-  private readonly blocks: ComputedBlock[] = [];
+  private readonly blocks: Batch[] = [];
 
   public async getCurrentBlockHeight(): Promise<number> {
     return this.blocks.length;
   }
 
-  public async getBlockAt(height: number): Promise<ComputedBlock | undefined> {
+  public async getBlockAt(height: number): Promise<Batch | undefined> {
     return this.blocks.at(height);
   }
 
-  public async pushBlock(block: ComputedBlock): Promise<void> {
+  public async pushBlock(block: Batch): Promise<void> {
     log.info("Pushed Batch");
     this.blocks.push(block);
   }
 
-  public async getLatestBlock(): Promise<ComputedBlock | undefined> {
+  public async getLatestBlock(): Promise<Batch | undefined> {
     return this.blocks.at(-1);
   }
 }

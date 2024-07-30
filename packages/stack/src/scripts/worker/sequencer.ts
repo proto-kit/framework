@@ -75,10 +75,10 @@ sequencer.configure({
     Graphql: {
       QueryGraphqlModule: {},
       MempoolResolver: {},
-      BlockStorageResolver: {},
+      BatchStorageResolver: {},
       NodeStatusResolver: {},
       MerkleWitnessResolver: {},
-      UnprovenBlockResolver: {},
+      BlockResolver: {},
     },
   },
   QueryTransportModule: {},

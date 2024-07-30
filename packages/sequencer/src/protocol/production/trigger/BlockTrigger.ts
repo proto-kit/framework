@@ -6,17 +6,14 @@ import {
   log,
 } from "@proto-kit/common";
 
-import { ComputedBlock, SettleableBatch } from "../../../storage/model/Block";
-import { BlockProducerModule } from "../BlockProducerModule";
-import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
+import { Batch, SettleableBatch } from "../../../storage/model/Batch";
+import { BatchProducerModule } from "../BatchProducerModule";
+import { BlockProducerModule } from "../sequencing/BlockProducerModule";
+import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-import {
-  UnprovenBlock,
-  UnprovenBlockWithMetadata,
-} from "../../../storage/model/UnprovenBlock";
-import { BlockStorage } from "../../../storage/repositories/BlockStorage";
+import { Block, BlockWithResult } from "../../../storage/model/Block";
+import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
 /**
@@ -29,9 +26,9 @@ export interface BlockTrigger {}
 // TODO Move events and storage interactions back to production modules
 // BlockTriggers should only be responsible for triggering, nothing else
 export type BlockEvents = {
-  "block-produced": [UnprovenBlock];
-  "block-metadata-produced": [UnprovenBlockWithMetadata];
-  "batch-produced": [ComputedBlock];
+  "block-produced": [Block];
+  "block-metadata-produced": [BlockWithResult];
+  "batch-produced": [Batch];
   // TODO Settlement
 };
 
@@ -45,20 +42,20 @@ export class BlockTriggerBase<
   public readonly events = new EventEmitter<Events>();
 
   public constructor(
-    protected readonly unprovenProducerModule: UnprovenProducerModule,
-    protected readonly blockProducerModule: BlockProducerModule | undefined,
+    protected readonly blockProducerModule: BlockProducerModule,
+    protected readonly batchProducerModule: BatchProducerModule | undefined,
     protected readonly settlementModule: SettlementModule | undefined,
-    protected readonly unprovenBlockQueue: UnprovenBlockQueue,
-    protected readonly batchQueue: BlockStorage,
+    protected readonly blockQueue: BlockQueue,
+    protected readonly batchQueue: BatchStorage,
     protected readonly settlementStorage: SettlementStorage | undefined
   ) {
     super();
   }
 
-  protected async produceProven(): Promise<SettleableBatch | undefined> {
-    const blocks = await this.unprovenBlockQueue.getNewBlocks();
+  protected async produceBatch(): Promise<SettleableBatch | undefined> {
+    const blocks = await this.blockQueue.getNewBlocks();
     if (blocks.length > 0) {
-      const batch = await this.blockProducerModule?.createBlock(blocks);
+      const batch = await this.batchProducerModule?.createBatch(blocks);
       if (batch !== undefined) {
         await this.batchQueue.pushBlock(batch);
         this.events.emit("batch-produced", batch);
@@ -68,21 +65,20 @@ export class BlockTriggerBase<
     return undefined;
   }
 
-  protected async produceUnproven(
+  protected async produceBlock(
     enqueueInSettlementQueue: boolean
-  ): Promise<UnprovenBlock | undefined> {
-    const unprovenBlock =
-      await this.unprovenProducerModule.tryProduceUnprovenBlock();
+  ): Promise<Block | undefined> {
+    const block = await this.blockProducerModule.tryProduceBlock();
 
-    if (unprovenBlock && enqueueInSettlementQueue) {
-      await this.unprovenBlockQueue.pushBlock(unprovenBlock.block);
-      this.events.emit("block-produced", unprovenBlock.block);
+    if (block && enqueueInSettlementQueue) {
+      await this.blockQueue.pushBlock(block.block);
+      this.events.emit("block-produced", block.block);
 
-      await this.unprovenBlockQueue.pushMetadata(unprovenBlock.metadata);
-      this.events.emit("block-metadata-produced", unprovenBlock);
+      await this.blockQueue.pushMetadata(block.result);
+      this.events.emit("block-metadata-produced", block);
     }
 
-    return unprovenBlock?.block;
+    return block?.block;
   }
 
   protected async settle(batch: SettleableBatch) {

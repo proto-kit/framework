@@ -23,18 +23,18 @@ import {
   ManualBlockTrigger,
   PendingTransaction,
   PrivateMempool,
-  UnprovenBlockQueue,
+  BlockQueue,
   SettlementModule,
+  MinaBaseLayer,
+  WithdrawalQueue,
+  SettlementProvingTask,
+  MinaTransactionSender,
 } from "../../src";
-import { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
-import { WithdrawalQueue } from "../../src/settlement/messages/WithdrawalQueue";
-import { SettlementProvingTask } from "../../src/settlement/tasks/SettlementProvingTask";
 import { Balance } from "../integration/mocks/Balance";
 import { Withdrawals } from "../integration/mocks/Withdrawals";
 import { testingSequencerFromModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
-import { MinaTransactionSender } from "../../src/settlement/transactions/MinaTransactionSender";
 
 log.setLevel("INFO");
 
@@ -47,7 +47,7 @@ describe("settlement contracts", () => {
 
   let trigger: ManualBlockTrigger;
   let settlementModule: SettlementModule;
-  let blockQueue: UnprovenBlockQueue;
+  let blockQueue: BlockQueue;
 
   let blockSerializer: BlockProofSerializer;
 
@@ -101,7 +101,7 @@ describe("settlement contracts", () => {
         Database: {},
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {},
+        BatchProducerModule: {},
         LocalTaskWorkerModule: {},
         OutgoingMessageQueue: {},
         BaseLayer: {
@@ -109,7 +109,7 @@ describe("settlement contracts", () => {
             local: true,
           },
         },
-        UnprovenProducerModule: {},
+        BlockProducerModule: {},
         SettlementModule: {
           feepayer: sequencerKey,
         },
@@ -171,7 +171,7 @@ describe("settlement contracts", () => {
       mempool.add(tx);
     });
 
-    const result = await trigger.produceBlock();
+    const result = await trigger.produceBlockAndBatch();
     const [block, batch] = result;
 
     console.log(
@@ -200,9 +200,7 @@ describe("settlement contracts", () => {
       appChain.sequencer.dependencyContainer.resolve<ManualBlockTrigger>(
         "BlockTrigger"
       );
-    blockQueue = appChain.sequencer.resolve(
-      "UnprovenBlockQueue"
-    ) as UnprovenBlockQueue;
+    blockQueue = appChain.sequencer.resolve("BlockQueue") as BlockQueue;
 
     const baseLayer = appChain.sequencer.resolve("BaseLayer") as MinaBaseLayer;
 
@@ -252,13 +250,13 @@ describe("settlement contracts", () => {
 
     const { settlement } = settlementModule.getContracts();
     expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
-      lastBlock!.metadata.afterNetworkState.hash().toBigInt()
+      lastBlock!.result.afterNetworkState.hash().toBigInt()
     );
     expect(settlement.stateRoot.get().toBigInt()).toStrictEqual(
-      lastBlock!.metadata.stateRoot
+      lastBlock!.result.stateRoot
     );
     expect(settlement.blockHashRoot.get().toBigInt()).toStrictEqual(
-      lastBlock!.metadata.blockHashRoot
+      lastBlock!.result.blockHashRoot
     );
   }, 120_000);
 

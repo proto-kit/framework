@@ -40,7 +40,7 @@ import { FlowCreator } from "../worker/flow/Flow";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../storage/repositories/MessageStorage";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
-import { ComputedBlock, SettleableBatch } from "../storage/model/Block";
+import { Batch, SettleableBatch } from "../storage/model/Batch";
 import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
 import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
@@ -56,7 +56,7 @@ export interface SettlementModuleConfig {
 }
 
 export type SettlementModuleEvents = {
-  "settlement-submitted": [ComputedBlock];
+  "settlement-submitted": [Batch];
 };
 
 @sequencerModule()

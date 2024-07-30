@@ -1,15 +1,15 @@
 import { singleton } from "tsyringe";
-import { ComputedBlock } from "@proto-kit/sequencer";
-import { Batch } from "@prisma/client";
+import { Batch } from "@proto-kit/sequencer";
+import { Batch as PrismaBatch } from "@prisma/client";
 import { JsonProof } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
 @singleton()
 export class BatchMapper
-  implements ObjectMapper<ComputedBlock, [Batch, string[]]>
+  implements ObjectMapper<Batch, [PrismaBatch, string[]]>
 {
-  public mapIn(input: [Batch, string[]]): ComputedBlock {
+  public mapIn(input: [PrismaBatch, string[]]): Batch {
     return {
       bundles: input[1],
       proof: input[0].proof as JsonProof,
@@ -17,8 +17,8 @@ export class BatchMapper
     };
   }
 
-  public mapOut(input: ComputedBlock): [Batch, string[]] {
-    const batch: Batch = {
+  public mapOut(input: Batch): [PrismaBatch, string[]] {
+    const batch: PrismaBatch = {
       proof: input.proof,
       height: input.height,
       settlementTransactionHash: null,

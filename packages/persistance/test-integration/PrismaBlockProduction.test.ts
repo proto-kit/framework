@@ -1,11 +1,10 @@
 import "reflect-metadata";
 import { afterAll, beforeAll, describe, expect } from "@jest/globals";
 import { expectDefined } from "@proto-kit/common";
-import { equalProvable } from "@proto-kit/test";
 import { BalancesKey, TokenId } from "@proto-kit/library";
 import { NetworkState } from "@proto-kit/protocol";
 import { AppChainTransaction } from "@proto-kit/sdk";
-import { ComputedBlock, UnprovenBlock } from "@proto-kit/sequencer";
+import { Block, Batch } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
 import { container } from "tsyringe";
 
@@ -51,8 +50,8 @@ describe("prisma integration", () => {
   };
 
   describe("produce fuzzed block", () => {
-    let block: UnprovenBlock | undefined;
-    let batch: ComputedBlock | undefined;
+    let block: Block | undefined;
+    let batch: Batch | undefined;
 
     beforeAll(async () => {
       await setup();
@@ -79,7 +78,7 @@ describe("prisma integration", () => {
 
       // Check equality of block
       const blockStorage = await appChain.sequencer.resolveOrFail(
-        "UnprovenBlockStorage",
+        "BlockStorage",
         PrismaBlockStorage
       );
       const retrievedBlock = await blockStorage.getBlockAt(0);
@@ -95,13 +94,23 @@ describe("prisma integration", () => {
         block.hash.toString()
       );
 
-      equalProvable(
-        NetworkState.toFields(retrievedBlock.networkState.before),
-        NetworkState.toFields(block.networkState.before)
+      expect(
+        NetworkState.toFields(retrievedBlock.networkState.before).map((x) =>
+          x.toString()
+        )
+      ).toStrictEqual(
+        NetworkState.toFields(block.networkState.before).map((x) =>
+          x.toString()
+        )
       );
-      equalProvable(
-        NetworkState.toFields(retrievedBlock.networkState.during),
-        NetworkState.toFields(block.networkState.during)
+      expect(
+        NetworkState.toFields(retrievedBlock.networkState.during).map((x) =>
+          x.toString()
+        )
+      ).toStrictEqual(
+        NetworkState.toFields(block.networkState.during).map((x) =>
+          x.toString()
+        )
       );
     });
 

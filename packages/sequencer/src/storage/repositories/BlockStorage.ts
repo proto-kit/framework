@@ -1,12 +1,20 @@
-import { ComputedBlock } from "../model/Block";
+import { BlockWithPreviousResult } from "../../protocol/production/BatchProducerModule";
+import type { Block, BlockResult, BlockWithResult } from "../model/Block";
+
+export interface BlockQueue {
+  pushBlock: (block: Block) => Promise<void>;
+  pushMetadata: (metadata: BlockResult) => Promise<void>;
+  getNewBlocks: () => Promise<BlockWithPreviousResult[]>;
+  getLatestBlock: () => Promise<BlockWithResult | undefined>;
+}
 
 export interface BlockStorage {
-  // TODO Rename to getCurrentChainLength(), blockheight seems misleading here
   getCurrentBlockHeight: () => Promise<number>;
-  getLatestBlock: () => Promise<ComputedBlock | undefined>;
-  pushBlock: (block: ComputedBlock) => Promise<void>;
+  getLatestBlock: () => Promise<BlockWithResult | undefined>;
+  pushBlock: (block: Block) => Promise<void>;
 }
 
 export interface HistoricalBlockStorage {
-  getBlockAt: (height: number) => Promise<ComputedBlock | undefined>;
+  getBlockAt: (height: number) => Promise<Block | undefined>;
+  getBlock: (hash: string) => Promise<Block | undefined>;
 }

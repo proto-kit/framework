@@ -1,14 +1,14 @@
 import { ObjectType, Field } from "type-graphql";
-import { ComputedBlockTransaction } from "@proto-kit/sequencer";
+import { BatchTransaction } from "@proto-kit/sequencer";
 import { IsBoolean } from "class-validator";
 
 import { TransactionObject } from "../MempoolResolver";
 
 @ObjectType()
-export class ComputedBlockTransactionModel {
-  public static fromServiceLayerModel(cbt: ComputedBlockTransaction) {
+export class BatchTransactionModel {
+  public static fromServiceLayerModel(cbt: BatchTransaction) {
     const { tx, status, statusMessage } = cbt;
-    return new ComputedBlockTransactionModel(
+    return new BatchTransactionModel(
       TransactionObject.fromServiceLayerModel(tx),
       status,
       statusMessage
