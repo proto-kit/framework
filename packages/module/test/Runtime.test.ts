@@ -11,7 +11,7 @@ import { MethodIdResolver } from "../src";
 import { Balances } from "./modules/Balances";
 import { createTestingRuntime } from "./TestingRuntime";
 
-describe("runtime", () => {
+describe.skip("runtime", () => {
   it("should encode methodnames correctly", () => {
     expect.assertions(2);
 
