@@ -17,4 +17,3 @@ export * from "./trees/InMemoryMerkleTreeStorage";
 export * from "./trees/RollupMerkleTree";
 export * from "./events/EventEmitterProxy";
 export * from "./trees/MockAsyncMerkleStore";
-export * from "./test/equalProvable";

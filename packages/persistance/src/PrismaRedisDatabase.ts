@@ -2,8 +2,9 @@ import {
   sequencerModule,
   SequencerModule,
   StorageDependencyMinimumDependencies,
+  Database,
 } from "@proto-kit/sequencer";
-import { ChildContainerProvider, DependencyFactory } from "@proto-kit/common";
+import { ChildContainerProvider } from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
 import { RedisClientType } from "redis";
 
@@ -26,7 +27,7 @@ export interface PrismaRedisCombinedConfig {
 @sequencerModule()
 export class PrismaRedisDatabase
   extends SequencerModule<PrismaRedisCombinedConfig>
-  implements DependencyFactory, PrismaConnection, RedisConnection
+  implements PrismaConnection, RedisConnection, Database
 {
   public prisma: PrismaDatabaseConnection;
 
@@ -70,5 +71,10 @@ export class PrismaRedisDatabase
   public async close() {
     await this.prisma.close();
     await this.redis.close();
+  }
+
+  public async pruneDatabase(): Promise<void> {
+    await this.prisma.pruneDatabase();
+    await this.redis.pruneDatabase();
   }
 }

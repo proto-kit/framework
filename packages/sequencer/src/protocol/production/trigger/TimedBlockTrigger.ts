@@ -41,8 +41,8 @@ export class TimedBlockTrigger
   private interval?: any;
 
   public constructor(
-    @inject("BlockProducerModule")
-    blockProducerModule: BlockProducerModule,
+    @injectOptional("BlockProducerModule")
+    blockProducerModule: BlockProducerModule | undefined,
     @inject("UnprovenProducerModule")
     unprovenProducerModule: UnprovenProducerModule,
     @injectOptional("SettlementModule")
@@ -74,17 +74,20 @@ export class TimedBlockTrigger
         ? gcd(settlementInterval, blockInterval)
         : blockInterval;
 
-    if (tick !== undefined && tick <= timerInterval) {
+    const definedTick = tick ?? 1000;
+    if (definedTick <= timerInterval) {
       // Check if tick is a divisor of the calculated interval
-      const div = timerInterval / tick;
+      const div = timerInterval / definedTick;
       if (Math.floor(div) === div) {
-        timerInterval = tick;
+        timerInterval = definedTick;
       }
     }
+
     return timerInterval;
   }
 
   public async start(): Promise<void> {
+    log.info("Starting timed block trigger");
     const { settlementInterval, blockInterval } = this.config;
 
     const timerInterval = this.getTimerInterval();

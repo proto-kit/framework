@@ -3,6 +3,7 @@ import {
   EventEmittingComponent,
   NoConfig,
   noop,
+  log,
 } from "@proto-kit/common";
 
 import { ComputedBlock, SettleableBatch } from "../../../storage/model/Block";
@@ -45,7 +46,7 @@ export class BlockTriggerBase<
 
   public constructor(
     protected readonly unprovenProducerModule: UnprovenProducerModule,
-    protected readonly blockProducerModule: BlockProducerModule,
+    protected readonly blockProducerModule: BlockProducerModule | undefined,
     protected readonly settlementModule: SettlementModule | undefined,
     protected readonly unprovenBlockQueue: UnprovenBlockQueue,
     protected readonly batchQueue: BlockStorage,
@@ -57,7 +58,7 @@ export class BlockTriggerBase<
   protected async produceProven(): Promise<SettleableBatch | undefined> {
     const blocks = await this.unprovenBlockQueue.getNewBlocks();
     if (blocks.length > 0) {
-      const batch = await this.blockProducerModule.createBlock(blocks);
+      const batch = await this.blockProducerModule?.createBlock(blocks);
       if (batch !== undefined) {
         await this.batchQueue.pushBlock(batch);
         this.events.emit("batch-produced", batch);
@@ -86,9 +87,10 @@ export class BlockTriggerBase<
 
   protected async settle(batch: SettleableBatch) {
     if (this.settlementModule === undefined) {
-      throw new Error(
-        "SettlementModule not configured, cannot compute settlement"
+      log.info(
+        "SettlementModule not configured, cannot compute settlement, skipping"
       );
+      return undefined;
     }
     if (this.settlementStorage === undefined) {
       throw new Error(

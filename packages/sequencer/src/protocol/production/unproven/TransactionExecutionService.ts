@@ -183,10 +183,6 @@ export class TransactionExecutionService {
     const { stateTransitions, status, statusMessage } =
       executionContext.current().result;
 
-    // Clear executionContext
-    executionContext.afterMethod();
-    executionContext.clear();
-
     const reducedSTs = reduceStateTransitions(stateTransitions);
 
     return {
@@ -196,27 +192,41 @@ export class TransactionExecutionService {
     };
   }
 
-  private executeRuntimeMethod(
+  private async executeRuntimeMethod(
     method: SomeRuntimeMethod,
     args: unknown[],
     contextInputs: RuntimeMethodExecutionData
   ) {
-    return this.executeWithExecutionContext(async () => {
+    return await this.executeWithExecutionContext(async () => {
       await method(...args);
     }, contextInputs);
   }
 
-  private executeProtocolHooks(
+  private async wrapHooksForContext(method: () => Promise<void>) {
+    const executionContext = container.resolve(RuntimeMethodExecutionContext);
+
+    executionContext.beforeMethod("protocol", "hook", []);
+
+    await method();
+
+    executionContext.afterMethod();
+  }
+
+  private async executeProtocolHooks(
     runtimeContextInputs: RuntimeMethodExecutionData,
     blockContextInputs: BlockProverExecutionData,
     runSimulated = false
   ) {
-    return this.executeWithExecutionContext(
-      async () => {
-        await mapSequential(this.transactionHooks, async (transactionHook) => {
-          await transactionHook.onTransaction(blockContextInputs);
-        });
-      },
+    return await this.executeWithExecutionContext(
+      async () =>
+        await this.wrapHooksForContext(async () => {
+          await mapSequential(
+            this.transactionHooks,
+            async (transactionHook) => {
+              await transactionHook.onTransaction(blockContextInputs);
+            }
+          );
+        }),
       runtimeContextInputs,
       runSimulated
     );

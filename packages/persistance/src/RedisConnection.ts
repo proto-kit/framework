@@ -78,4 +78,8 @@ export class RedisConnectionModule
   public async close() {
     await this.redisClient.disconnect();
   }
+
+  public async pruneDatabase() {
+    await this.redisClient.flushDb();
+  }
 }

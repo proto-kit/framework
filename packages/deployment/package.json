@@ -1,5 +1,5 @@
 {
-  "name": "@proto-kit/cli",
+  "name": "@proto-kit/deployment",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -12,47 +12,27 @@
     "test": "npm run test:file -- ./test/**",
     "test:watch": "npm run test:file -- ./test/** --watch"
   },
+  "main": "dist/index.js",
   "publishConfig": {
     "access": "public"
   },
-  "bin": {
-    "protokit": "dist/src/cli.js"
-  },
-  "main": "dist/src/index.js",
   "dependencies": {
-    "@inkjs/ui": "^1.0.0",
     "@types/yargs": "^17.0.29",
-    "figlet": "^1.7.0",
-    "ink": "^4.4.1",
-    "ink-ascii": "^0.0.4",
-    "react": "^18.2.0",
+    "loglevel": "^1.8.1",
     "reflect-metadata": "^0.1.13",
     "yargs": "^17.7.2"
   },
   "peerDependencies": {
-    "@proto-kit/api": "*",
     "@proto-kit/common": "*",
-    "@proto-kit/module": "*",
-    "@proto-kit/protocol": "*",
-    "@proto-kit/sdk": "*",
+    "@proto-kit/persistance": "*",
     "@proto-kit/sequencer": "*",
-    "@proto-kit/library": "*",
-    "o1js": "1.1.0"
+    "@proto-kit/sdk": "*",
+    "bullmq": "^3.15.8",
+    "o1js": "^1.1.0",
+    "tsyringe": "^4.7.0"
   },
   "devDependencies": {
-    "@jest/globals": "^29.5.0",
-    "@proto-kit/api": "*",
-    "@proto-kit/common": "*",
-    "@proto-kit/module": "*",
-    "@proto-kit/protocol": "*",
-    "@proto-kit/sdk": "*",
-    "@proto-kit/sequencer": "*",
-    "@proto-kit/library": "*",
-    "@types/figlet": "^1.5.7",
-    "@types/ink": "^2.0.3",
-    "@types/node": "^20.8.10",
-    "@types/react": "^18.2.34",
-    "@types/ws": "^8.5.4"
+    "@jest/globals": "^29.5.0"
   },
   "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
 }
