@@ -8,7 +8,7 @@ import { NodeStatusResolver } from "./modules/NodeStatusResolver";
 import { BlockResolver } from "./modules/BlockResolver";
 import { MerkleWitnessResolver } from "./modules/MerkleWitnessResolver";
 
-export type DefaultGraphqlModulesRecord = {
+export type VanillaGraphqlModulesRecord = {
   MempoolResolver: typeof MempoolResolver;
   QueryGraphqlModule: typeof QueryGraphqlModule;
   BlockStorageResolver: typeof BatchStorageResolver;
@@ -17,7 +17,7 @@ export type DefaultGraphqlModulesRecord = {
   MerkleWitnessResolver: typeof MerkleWitnessResolver;
 };
 
-export class DefaultGraphqlModules {
+export class VanillaGraphqlModules {
   public static with<AdditionalModules extends GraphqlModulesRecord>(
     additionalModules: AdditionalModules
   ) {
@@ -29,7 +29,7 @@ export class DefaultGraphqlModules {
       BlockResolver,
       MerkleWitnessResolver,
       ...additionalModules,
-    } satisfies DefaultGraphqlModulesRecord;
+    } satisfies VanillaGraphqlModulesRecord;
   }
 
   public static defaultConfig() {
@@ -40,6 +40,6 @@ export class DefaultGraphqlModules {
       NodeStatusResolver: {},
       BlockResolver: {},
       MerkleWitnessResolver: {},
-    } satisfies ModulesConfig<DefaultGraphqlModulesRecord>;
+    } satisfies ModulesConfig<VanillaGraphqlModulesRecord>;
   }
 }
