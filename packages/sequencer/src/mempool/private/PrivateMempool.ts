@@ -46,7 +46,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     );
 
     throw new Error(
-      `Validation of tx  ${tx.hash().toString()} failed: ${error ?? "unknown error"}`
+      `Validation of tx ${tx.hash().toString()} failed: ${error ?? "unknown error"}`
     );
   }
 

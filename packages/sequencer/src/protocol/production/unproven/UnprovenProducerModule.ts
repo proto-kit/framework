@@ -7,6 +7,7 @@ import {
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
+import { Provable } from "o1js";
 
 import { Mempool } from "../../../mempool/Mempool";
 import {
@@ -25,7 +26,6 @@ import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 
 import { TransactionExecutionService } from "./TransactionExecutionService";
-import { Provable } from "o1js";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
@@ -47,6 +47,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly executionService: TransactionExecutionService,
+    @inject("MethodIdResolver")
     private readonly methodIdResolver: MethodIdResolver,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {
@@ -55,6 +56,42 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
 
   private allowEmptyBlock() {
     return this.config.allowEmptyBlock ?? true;
+  }
+
+  private prettyPrintBlockContents(block: UnprovenBlock) {
+    block.transactions.forEach((tx, i) => {
+      const methodName = this.methodIdResolver.getMethodNameFromId(
+        tx.tx.methodId.toBigInt()
+      );
+      if (!methodName) return;
+
+      const module = this.runtime.resolve(methodName[0]);
+      const paramEncoder = MethodParameterEncoder.fromMethod(
+        module,
+        methodName[1]
+      );
+
+      log.info("---------------------------------------");
+      log.info(`Transaction #${i}`);
+      log.info(
+        "Sender:",
+        tx.tx.sender.toBase58(),
+        "Nonce:",
+        tx.tx.nonce.toBigInt()
+      );
+      log.info(`Method: ${methodName?.join(".")}`);
+      log.info();
+      if (log.getLevel() <= log.levels.INFO) {
+        Provable.log("Arguments:", paramEncoder.decodeFields(tx.tx.argsFields));
+      }
+      log.info(
+        `Status: ${tx.status.toBoolean()}`,
+        tx.statusMessage !== undefined ? `Reason: ${tx.statusMessage}` : ""
+      );
+    });
+    if (block.transactions.length > 0) {
+      log.info("---------------------------------------");
+    }
   }
 
   public async tryProduceUnprovenBlock(): Promise<
@@ -74,34 +111,7 @@ export class UnprovenProducerModule extends SequencerModule<BlockConfig> {
         }
 
         log.info(`Produced unproven block (${block.transactions.length} txs)`);
-        block.transactions.forEach((tx, i) => {
-          const methodName = this.methodIdResolver.getMethodNameFromId(
-            tx.tx.methodId.toBigInt()
-          );
-          if (!methodName) return;
-
-          const module = this.runtime.resolve(methodName[0]);
-          const paramEncoder = MethodParameterEncoder.fromMethod(
-            module,
-            methodName[1]
-          );
-
-          log.info("---------------------------------------");
-          log.info(`Transaction #${i}`);
-          log.info(`Method: ${methodName?.join(".")}`);
-          log.info(
-            `Status: ${tx.status.toBoolean()}`,
-            tx.statusMessage !== undefined ? `Reason: ${tx.statusMessage}` : ""
-          );
-          log.info("Sender:", tx.tx.sender.toBase58());
-          log.info("Nonce:", tx.tx.nonce.toBigInt());
-          if (log.getLevel() === log.levels.INFO) {
-            Provable.log(
-              "Arguments:",
-              paramEncoder.decodeFields(tx.tx.argsFields)
-            );
-          }
-        });
+        this.prettyPrintBlockContents(block);
 
         // Generate metadata for next block
 
