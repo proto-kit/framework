@@ -30,7 +30,7 @@ import {
   State,
   StateMap,
 } from "@proto-kit/protocol";
-import { Field, FlexibleProvablePure, ProvableExtended } from "o1js";
+import { Field, FlexibleProvablePure } from "o1js";
 import {
   Query,
   QueryBuilderFactory,
@@ -109,6 +109,9 @@ export class QueryGraphqlModule<
       }
       case "number": {
         return GraphQLInt;
+      }
+      case "bigint": {
+        return GraphQLString;
       }
       default:
     }
@@ -202,16 +205,12 @@ export class QueryGraphqlModule<
     name: string,
     jsonFunction: (json: any, name: string) => ObjectType
   ): GraphQLScalarType | ObjectType {
-    // This is a temporary workaround until transport-layer has been
-    // switched to json
-    const valueType = type as ProvableExtended<unknown>;
-    const valueFieldLength = MethodParameterEncoder.fieldSize(valueType);
+    const valueFieldLength = MethodParameterEncoder.fieldSize(type);
 
-    const dummyValue = valueType.fromFields(
-      range(0, valueFieldLength).map(() => Field(0)),
-      []
-    );
-    const json = valueType.toJSON(dummyValue);
+    const dummyValue = type.fromFields(
+      range(0, valueFieldLength).map(() => Field(0))
+    ) as ProvableType;
+    const json = type.toValue(dummyValue);
 
     if (typeof json === "object") {
       return jsonFunction(json, name);
@@ -258,7 +257,9 @@ export class QueryGraphqlModule<
           const value: Value | undefined = await query.get(provableKey);
 
           return value !== undefined
-            ? (stateMap.valueType as ProvableExtension<unknown>).toJSON(value)
+            ? (
+                stateMap.valueType as unknown as ProvableExtension<Value>
+              ).toJSON(value)
             : undefined;
         } catch (error: unknown) {
           log.error(error);

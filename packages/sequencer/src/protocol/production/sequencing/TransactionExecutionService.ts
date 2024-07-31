@@ -139,7 +139,7 @@ export class TransactionExecutionService {
       module,
       methodName
     );
-    const args = await parameterDecoder.decode(tx.argsJSON);
+    const args = await parameterDecoder.decode(tx.argsFields, tx.auxiliaryData);
 
     return {
       method,

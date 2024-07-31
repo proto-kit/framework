@@ -106,13 +106,13 @@ export function toWrappedMethod(
      * Use the type info obtained previously to convert
      * the args passed to fields
      */
-    const { argsFields } = MethodParameterEncoder.fromMethod(
+    const { fields } = MethodParameterEncoder.fromMethod(
       this,
       methodName
     ).encode(args);
 
     // Assert that the argsHash that has been signed matches the given arguments
-    const argsHash = Poseidon.hash(argsFields);
+    const argsHash = Poseidon.hash(fields);
 
     transaction.argsHash.assertEquals(
       argsHash,

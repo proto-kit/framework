@@ -35,7 +35,7 @@ export class TransactionMapper
       nonce: json.nonce,
       sender: json.sender,
       argsFields: json.argsFields,
-      argsJSON: json.argsJSON,
+      auxiliaryData: json.auxiliaryData,
       isMessage: json.isMessage,
       signature_r: json.signature.r,
       signature_s: json.signature.s,

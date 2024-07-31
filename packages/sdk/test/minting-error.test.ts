@@ -61,7 +61,7 @@ describe("balances", () => {
     appChain.setSigner(senderKey);
   });
 
-  it("transfer from and to same account does not cause minting error", async () => {
+  it("regression - transfer from and to same account does not cause minting error", async () => {
     // expect.assertions(2);
     const faucet = appChain.runtime.resolve("Faucet");
     const balancesRuntime = appChain.runtime.resolve("Balances");
@@ -89,7 +89,7 @@ describe("balances", () => {
         await balancesRuntime.transferSigned(
           TokenId.from(0),
           senderKey.toPublicKey(),
-          feeRecipientKey.toPublicKey(),
+          senderKey.toPublicKey(),
           Balance.from(99)
         );
       }
