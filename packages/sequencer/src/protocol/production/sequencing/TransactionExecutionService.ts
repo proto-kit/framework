@@ -529,11 +529,10 @@ export class TransactionExecutionService {
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
 
-    const eventsReduced: { eventName: string; data: Field[] }[] = runtimeResult.events.map(
-      (event) => ({eventName: event.eventName; 
-        data: event.eventType.toFields(event.event)}) 
-    );
-    
+    const eventsReduced: { eventName: string; data: Field[] }[] =
+      runtimeResult.events.map((event) => ({
+        eventName: event.eventName,
+        data: event.eventType.toFields(event.event)}));
     return {
       tx,
       status: runtimeResult.status,
@@ -548,7 +547,6 @@ export class TransactionExecutionService {
       ),
 
       events: eventsReduced,
-
     };
   }
 }
