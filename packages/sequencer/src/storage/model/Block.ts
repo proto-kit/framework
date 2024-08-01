@@ -16,7 +16,7 @@ export interface TransactionExecutionResult {
   protocolTransitions: UntypedStateTransition[];
   status: Bool;
   statusMessage?: string;
-  events: Record<string, Field[]>;
+  events: { eventName: string; data: Field[] }[];
 }
 
 export interface Block {

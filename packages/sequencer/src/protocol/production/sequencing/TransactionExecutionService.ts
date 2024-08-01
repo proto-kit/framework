@@ -168,7 +168,7 @@ export class TransactionExecutionService {
   ): Promise<
     Pick<
       RuntimeProvableMethodExecutionResult,
-      "stateTransitions" | "status" | "statusMessage" | "stackTrace"
+      "stateTransitions" | "status" | "statusMessage" | "stackTrace" | "events"
     >
   > {
     // Set up context
@@ -180,7 +180,7 @@ export class TransactionExecutionService {
     // Execute method
     await method();
 
-    const { stateTransitions, status, statusMessage } =
+    const { stateTransitions, status, statusMessage, events } =
       executionContext.current().result;
 
     const reducedSTs = reduceStateTransitions(stateTransitions);
@@ -189,6 +189,7 @@ export class TransactionExecutionService {
       stateTransitions: reducedSTs,
       status,
       statusMessage,
+      events,
     };
   }
 
@@ -502,7 +503,6 @@ export class TransactionExecutionService {
       args,
       runtimeContextInputs
     );
-
     log.trace(
       "STs:",
       JSON.stringify(
@@ -529,6 +529,11 @@ export class TransactionExecutionService {
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
 
+    const eventsReduced: { eventName: string; data: Field[] }[] = runtimeResult.events.map(
+      (event) => ({eventName: event.eventName; 
+        data: event.eventType.toFields(event.event)}) 
+    );
+    
     return {
       tx,
       status: runtimeResult.status,
@@ -541,6 +546,9 @@ export class TransactionExecutionService {
       protocolTransitions: protocolResult.stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
+
+      events: eventsReduced,
+
     };
   }
 }
