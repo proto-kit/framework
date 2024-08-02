@@ -1,6 +1,5 @@
 import { Mina, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
-import { AreProofsEnabled } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { FlowCreator } from "../../worker/flow/Flow";
@@ -24,9 +23,7 @@ export class MinaTransactionSender {
     private readonly creator: FlowCreator,
     private readonly provingTask: SettlementProvingTask,
     private readonly simulator: MinaTransactionSimulator,
-    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
-    @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
+    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
   ) {}
 
   private async trySendCached(
@@ -73,8 +70,6 @@ export class MinaTransactionSender {
 
   public async proveAndSendTransaction(transaction: Transaction<false, true>) {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
-
-    // If Proofs are disabled, make all
 
     // Add Transaction to sender's queue
     (this.txQueue[publicKey.toBase58()] ??= []).push(Number(nonce.toString()));
