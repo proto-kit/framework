@@ -126,10 +126,12 @@ describe("prisma integration", () => {
       expectDefined(retrievedBatch);
 
       expect(retrievedBatch.height).toStrictEqual(batch.height);
-      expect(retrievedBatch.bundles).toHaveLength(
-        retrievedBatch.bundles.length
+      expect(retrievedBatch.blockHashes).toHaveLength(
+        retrievedBatch.blockHashes.length
       );
-      expect(retrievedBatch.bundles).toStrictEqual(retrievedBatch.bundles);
+      expect(retrievedBatch.blockHashes).toStrictEqual(
+        retrievedBatch.blockHashes
+      );
     });
 
     it("should query fetches correct nonce", async () => {
