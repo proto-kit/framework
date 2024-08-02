@@ -57,7 +57,7 @@ export class PrismaBatchStore implements BatchStorage, HistoricalBatchStorage {
         proof: entity.proof as Prisma.InputJsonValue,
         height,
         blocks: {
-          connect: batch.bundles.map((hash) => ({
+          connect: batch.blockHashes.map((hash) => ({
             hash,
           })),
         },
