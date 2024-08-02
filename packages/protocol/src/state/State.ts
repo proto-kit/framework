@@ -1,7 +1,7 @@
 import { Mixin } from "ts-mixer";
 import { Bool, Field, Provable, type FlexibleProvablePure, Struct } from "o1js";
 import { container } from "tsyringe";
-import { dummyValue } from "@proto-kit/common";
+import { dummyValue, ensureAwaited } from "@proto-kit/common";
 
 import { Path } from "../model/Path";
 import { Option } from "../model/Option";
@@ -130,6 +130,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @returns Option representation of the current state.
    */
+  @ensureAwaited
   public async get(): Promise<Option<Value>> {
     const option = await this.witnessFromState();
 
@@ -155,6 +156,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @param value - Value to be set as the current state
    */
+  @ensureAwaited
   public async set(value: Value) {
     // link the transition to the current state
     const fromOption = await this.witnessFromState();
