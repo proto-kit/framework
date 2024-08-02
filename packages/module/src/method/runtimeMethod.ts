@@ -61,6 +61,7 @@ export function toEventsHash(
 ) {
   return events
     .map((event) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return event.eventType.toFields(event.event);
     })
     .reduce((accum, next) => Poseidon.hash([accum, ...next]), Field(0));
