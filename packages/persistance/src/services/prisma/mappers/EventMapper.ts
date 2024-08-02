@@ -11,14 +11,22 @@ export class EventMapper
 {
   public mapIn(input: Prisma.JsonObject): { eventName: string; data: Field[] } {
     if (input === undefined) return { eventName: "", data: [] };
-    return { eventName: Prisma.JsonNullValueInput(input.eventName), data: input.data };
+    return {
+      eventName: input.eventName as string,
+      data: (input.data as Prisma.JsonArray).map((field) =>
+        Field.fromJSON(field as string)
+      ),
+    };
   }
 
   public mapOut(input: {
     eventName: string;
     data: Field[];
   }): Prisma.JsonObject {
-    return input.toJSON();
+    return {
+      eventName: input.eventName,
+      data: input.data.map((field) => field.toString()),
+    } as Prisma.JsonObject;
   }
 }
 
