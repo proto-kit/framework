@@ -55,7 +55,7 @@ export class NodeStatusService {
 
   public async getNodeInformation(): Promise<NodeInformation> {
     const blockHeight = await this.blockStorage.getCurrentBlockHeight();
-    const batchHeight = await this.batchStorage.getCurrentBlockHeight();
+    const batchHeight = await this.batchStorage.getCurrentBatchHeight();
 
     return {
       blockHeight,

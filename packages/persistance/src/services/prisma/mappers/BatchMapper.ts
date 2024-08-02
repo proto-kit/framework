@@ -11,7 +11,7 @@ export class BatchMapper
 {
   public mapIn(input: [PrismaBatch, string[]]): Batch {
     return {
-      bundles: input[1],
+      blockHashes: input[1],
       proof: input[0].proof as JsonProof,
       height: input[0].height,
     };

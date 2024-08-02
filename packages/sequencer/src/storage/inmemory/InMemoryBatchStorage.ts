@@ -9,22 +9,22 @@ import { Batch } from "../model/Batch";
 export class InMemoryBatchStorage
   implements BatchStorage, HistoricalBatchStorage
 {
-  private readonly blocks: Batch[] = [];
+  private readonly batches: Batch[] = [];
 
-  public async getCurrentBlockHeight(): Promise<number> {
-    return this.blocks.length;
+  public async getCurrentBatchHeight(): Promise<number> {
+    return this.batches.length;
   }
 
-  public async getBlockAt(height: number): Promise<Batch | undefined> {
-    return this.blocks.at(height);
+  public async getBatchAt(height: number): Promise<Batch | undefined> {
+    return this.batches.at(height);
   }
 
-  public async pushBlock(block: Batch): Promise<void> {
+  public async pushBatch(batch: Batch): Promise<void> {
     log.info("Pushed Batch");
-    this.blocks.push(block);
+    this.batches.push(batch);
   }
 
-  public async getLatestBlock(): Promise<Batch | undefined> {
-    return this.blocks.at(-1);
+  public async getLatestBatch(): Promise<Batch | undefined> {
+    return this.batches.at(-1);
   }
 }
