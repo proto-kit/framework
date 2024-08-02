@@ -87,6 +87,7 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     this.assertSetupCalled();
     this.result.events.push({
       eventType,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       event,
       eventName,
     });

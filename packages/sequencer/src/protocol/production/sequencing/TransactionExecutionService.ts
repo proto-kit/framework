@@ -532,7 +532,9 @@ export class TransactionExecutionService {
     const eventsReduced: { eventName: string; data: Field[] }[] =
       runtimeResult.events.map((event) => ({
         eventName: event.eventName,
-        data: event.eventType.toFields(event.event)}));
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        data: event.eventType.toFields(event.event),
+      }));
     return {
       tx,
       status: runtimeResult.status,
