@@ -128,7 +128,6 @@ export class SettlementSmartContract
     const { DispatchContract } = SettlementSmartContract.args;
     const contractInstance = new DispatchContract(dispatchContract);
     await contractInstance.initialize(this.address);
-    contractInstance.self.requireSignature();
   }
 
   @method

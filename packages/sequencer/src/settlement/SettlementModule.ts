@@ -78,6 +78,11 @@ export class SettlementModule
     dispatch: PublicKey;
   };
 
+  public keys?: {
+    settlement: PrivateKey;
+    dispatch: PrivateKey;
+  };
+
   public events = new EventEmitter<SettlementModuleEvents>();
 
   public constructor(
@@ -107,7 +112,7 @@ export class SettlementModule
     super();
   }
 
-  private settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
+  protected settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
     return this.protocol.dependencyContainer.resolve(
       "SettlementContractModule"
     );
@@ -149,20 +154,23 @@ export class SettlementModule
     return this.contracts;
   }
 
-  private isSignedSettlement(): boolean {
+  protected isSignedSettlement(): boolean {
     return (
       // TODO Enable, add tests that test both signed settlement and normal
-      // !this.baseLayer.isLocalBlockChain() &&
+      !this.baseLayer.isLocalBlockChain() &&
       !this.areProofsEnabled.areProofsEnabled
     );
   }
 
-  private signTransaction(
+  public signTransaction(
     tx: Transaction<false, false>,
     pks: PrivateKey[]
   ): Transaction<false, true> {
     this.requireSignatureIfNecessary(tx);
-    return tx.sign(pks);
+    const contractKeys = this.isSignedSettlement()
+      ? Object.values(this.keys ?? {})
+      : [];
+    return tx.sign([...pks, ...contractKeys]);
   }
 
   private requireSignatureIfNecessary(tx: Transaction<false, false>) {
@@ -377,6 +385,10 @@ export class SettlementModule
       settlement: settlementKey.toPublicKey(),
       dispatch: dispatchKey.toPublicKey(),
     };
+    this.keys = {
+      settlement: settlementKey,
+      dispatch: dispatchKey,
+    };
 
     const initTx = await Mina.transaction(
       {
@@ -393,11 +405,7 @@ export class SettlementModule
       }
     );
 
-    const initTxSigned = this.signTransaction(initTx, [
-      feepayerKey,
-      settlementKey,
-      dispatchKey,
-    ]);
+    const initTxSigned = this.signTransaction(initTx, [feepayerKey]);
 
     await this.transactionSender.proveAndSendTransaction(initTxSigned);
   }

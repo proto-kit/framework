@@ -38,381 +38,396 @@ import { createTransaction } from "../integration/utils";
 
 log.setLevel("INFO");
 
-describe("settlement contracts", () => {
-  let localInstance: Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
+describe.each(["signed", "mock-proofs"] as const)(
+  "settlement contracts: %s",
+  (settlementType) => {
+    let localInstance: Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
 
-  const sequencerKey = PrivateKey.random();
-  const settlementKey = PrivateKey.random();
-  const dispatchKey = PrivateKey.random();
+    const sequencerKey = PrivateKey.random();
+    const settlementKey = PrivateKey.random();
+    const dispatchKey = PrivateKey.random();
 
-  let trigger: ManualBlockTrigger;
-  let settlementModule: SettlementModule;
-  let blockQueue: BlockQueue;
+    let trigger: ManualBlockTrigger;
+    let settlementModule: SettlementModule;
+    let blockQueue: BlockQueue;
 
-  let blockSerializer: BlockProofSerializer;
+    let blockSerializer: BlockProofSerializer;
 
-  function setupAppChain() {
-    const runtime = Runtime.from({
-      modules: {
-        Balances: Balance,
-        Withdrawals,
-      },
-    });
-
-    const sequencer = testingSequencerFromModules(
-      {
-        BaseLayer: MinaBaseLayer,
-        SettlementModule: SettlementModule,
-        OutgoingMessageQueue: WithdrawalQueue,
-      },
-      {
-        SettlementProvingTask,
-      }
-    );
-
-    const appchain = AppChain.from({
-      Runtime: runtime,
-      Sequencer: sequencer,
-
-      Protocol: Protocol.from({
+    function setupAppChain() {
+      const runtime = Runtime.from({
         modules: {
-          ...VanillaProtocolModules.mandatoryModules({}),
-          SettlementContractModule: SettlementContractModule.fromDefaults(),
+          Balances: Balance,
+          Withdrawals,
         },
-      }),
+      });
 
-      modules: {
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
-        QueryTransportModule: StateServiceQueryModule,
-        NetworkStateTransportModule: BlockStorageNetworkStateModule,
-      },
-    });
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      SettlementModule.prototype["isSignedSettlement"] = () =>
+        settlementType === "signed";
 
-    appchain.configure({
-      Runtime: {
-        Balances: {
-          totalSupply: UInt64.from(1000),
+      const sequencer = testingSequencerFromModules(
+        {
+          BaseLayer: MinaBaseLayer,
+          SettlementModule: SettlementModule,
+          OutgoingMessageQueue: WithdrawalQueue,
         },
-        Withdrawals: {},
-      },
+        {
+          SettlementProvingTask,
+        }
+      );
 
-      Sequencer: {
-        Database: {},
-        BlockTrigger: {},
-        Mempool: {},
-        BatchProducerModule: {},
-        LocalTaskWorkerModule: {},
-        OutgoingMessageQueue: {},
-        BaseLayer: {
-          network: {
-            local: true,
+      const appchain = AppChain.from({
+        Runtime: runtime,
+        Sequencer: sequencer,
+
+        Protocol: Protocol.from({
+          modules: {
+            ...VanillaProtocolModules.mandatoryModules({}),
+            SettlementContractModule: SettlementContractModule.fromDefaults(),
+          },
+        }),
+
+        modules: {
+          Signer: InMemorySigner,
+          TransactionSender: InMemoryTransactionSender,
+          QueryTransportModule: StateServiceQueryModule,
+          NetworkStateTransportModule: BlockStorageNetworkStateModule,
+        },
+      });
+
+      appchain.configure({
+        Runtime: {
+          Balances: {
+            totalSupply: UInt64.from(1000),
+          },
+          Withdrawals: {},
+        },
+
+        Sequencer: {
+          Database: {},
+          BlockTrigger: {},
+          Mempool: {},
+          BatchProducerModule: {},
+          LocalTaskWorkerModule: {},
+          OutgoingMessageQueue: {},
+          BaseLayer: {
+            network: {
+              local: true,
+            },
+          },
+          BlockProducerModule: {},
+          SettlementModule: {
+            feepayer: sequencerKey,
+          },
+
+          TaskQueue: {
+            simulatedDuration: 0,
           },
         },
-        BlockProducerModule: {},
-        SettlementModule: {
-          feepayer: sequencerKey,
-        },
-
-        TaskQueue: {
-          simulatedDuration: 0,
-        },
-      },
-      Protocol: {
-        StateTransitionProver: {},
-        BlockHeight: {},
-        AccountState: {},
-        BlockProver: {},
-        LastStateRoot: {},
-        SettlementContractModule: {
-          SettlementContract: {
-            withdrawalStatePath: "Withdrawals.withdrawals",
-            withdrawalMethodPath: "Withdrawals.withdraw",
-          },
-          DispatchContract: {
-            incomingMessagesMethods: {
-              deposit: "Balances.deposit",
+        Protocol: {
+          StateTransitionProver: {},
+          BlockHeight: {},
+          AccountState: {},
+          BlockProver: {},
+          LastStateRoot: {},
+          SettlementContractModule: {
+            SettlementContract: {
+              withdrawalStatePath: "Withdrawals.withdrawals",
+              withdrawalMethodPath: "Withdrawals.withdraw",
+            },
+            DispatchContract: {
+              incomingMessagesMethods: {
+                deposit: "Balances.deposit",
+              },
             },
           },
         },
-      },
-      TransactionSender: {},
-      QueryTransportModule: {},
-      Signer: {
-        signer: sequencerKey,
-      },
-      NetworkStateTransportModule: {},
-    });
-
-    return appchain;
-  }
-
-  let appChain: ReturnType<typeof setupAppChain>;
-
-  async function createBatch(
-    withTransactions: boolean,
-    customNonce: number = 0,
-    txs: PendingTransaction[] = []
-  ) {
-    const mempool = appChain.sequencer.resolve("Mempool") as PrivateMempool;
-    if (withTransactions) {
-      const { key } = localInstance.testAccounts[0];
-      const tx = createTransaction({
-        runtime: appChain.runtime,
-        method: ["Balances", "addBalance"],
-        privateKey: key,
-        args: [key.toPublicKey(), UInt64.from(1e9 * 100)],
-        nonce: customNonce,
+        TransactionSender: {},
+        QueryTransportModule: {},
+        Signer: {
+          signer: sequencerKey,
+        },
+        NetworkStateTransportModule: {},
       });
 
-      await mempool.add(tx);
+      return appchain;
     }
-    txs.forEach((tx) => {
-      mempool.add(tx);
-    });
 
-    const result = await trigger.produceBlockAndBatch();
-    const [block, batch] = result;
+    let appChain: ReturnType<typeof setupAppChain>;
 
-    console.log(
-      `block ${block?.height.toString()} ${block?.fromMessagesHash.toString()} -> ${block?.toMessagesHash.toString()}`
-    );
-    const proof = await blockSerializer
-      .getBlockProofSerializer()
-      .fromJSONProof(batch!.proof);
-    console.log(
-      `block ${proof.publicInput.incomingMessagesHash} -> ${proof.publicOutput.incomingMessagesHash}`
-    );
-
-    return result;
-  }
-
-  beforeAll(async () => {
-    appChain = setupAppChain();
-
-    await appChain.start(container.createChildContainer());
-
-    settlementModule = appChain.sequencer.resolve(
-      "SettlementModule"
-    ) as SettlementModule;
-
-    trigger =
-      appChain.sequencer.dependencyContainer.resolve<ManualBlockTrigger>(
-        "BlockTrigger"
-      );
-    blockQueue = appChain.sequencer.resolve("BlockQueue") as BlockQueue;
-
-    const baseLayer = appChain.sequencer.resolve("BaseLayer") as MinaBaseLayer;
-
-    blockSerializer =
-      appChain.sequencer.dependencyContainer.resolve(BlockProofSerializer);
-
-    const localChain = baseLayer.network as Awaited<
-      ReturnType<typeof Mina.LocalBlockchain>
-    >;
-
-    localChain.addAccount(sequencerKey.toPublicKey(), String(20 * 1e9));
-    localInstance = localChain;
-  }, 50_000);
-
-  let nonceCounter = 0;
-  let user0Nonce = 0;
-
-  it("should deploy", async () => {
-    // Deploy contract
-    await settlementModule.deploy(settlementKey, dispatchKey, {
-      nonce: nonceCounter,
-    });
-
-    nonceCounter += 2;
-
-    console.log("Deployed");
-  }, 120_000);
-
-  it("should settle", async () => {
-    const [, batch] = await createBatch(true);
-
-    const input = BlockProverPublicInput.fromFields(
-      batch!.proof.publicInput.map((x) => Field(x))
-    );
-    expect(input.stateRoot.toBigInt()).toStrictEqual(
-      RollupMerkleTree.EMPTY_ROOT
-    );
-
-    const lastBlock = await blockQueue.getLatestBlock();
-
-    await trigger.settle(batch!);
-    nonceCounter++;
-
-    // TODO Check Smartcontract tx layout (call to dispatch with good preconditions, etc)
-
-    console.log("Block settled");
-
-    const { settlement } = settlementModule.getContracts();
-    expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
-      lastBlock!.result.afterNetworkState.hash().toBigInt()
-    );
-    expect(settlement.stateRoot.get().toBigInt()).toStrictEqual(
-      lastBlock!.result.stateRoot
-    );
-    expect(settlement.blockHashRoot.get().toBigInt()).toStrictEqual(
-      lastBlock!.result.blockHashRoot
-    );
-  }, 120_000);
-
-  it("should include deposit", async () => {
-    const { settlement, dispatch } = settlementModule.getContracts();
-
-    const userKey = localInstance.testAccounts[0].key;
-
-    const contractBalanceBefore = settlement.account.balance.get();
-
-    const tx = await Mina.transaction(
-      { sender: userKey.toPublicKey(), fee: 0.01 * 1e9, nonce: user0Nonce++ },
-      async () => {
-        const au = AccountUpdate.createSigned(userKey.toPublicKey());
-        au.balance.subInPlace(UInt64.from(100));
-        await dispatch.deposit(UInt64.from(100));
-      }
-    ).sign([userKey]);
-
-    await appChain.sequencer
-      .resolveOrFail("TransactionSender", MinaTransactionSender)
-      .proveAndSendTransaction(tx);
-
-    const actions = Mina.getActions(dispatch.address);
-    const balanceDiff = settlement.account.balance
-      .get()
-      .sub(contractBalanceBefore);
-
-    expect(actions).toHaveLength(1);
-    expect(balanceDiff.toBigInt()).toBe(100n);
-
-    const [, batch] = await createBatch(false);
-
-    console.log("Settling");
-
-    await trigger.settle(batch!);
-    nonceCounter++;
-
-    const [, batch2] = await createBatch(false);
-
-    const networkstateHash = Mina.activeInstance.getAccount(settlement.address);
-    console.log("On-chain values");
-    console.log(networkstateHash.zkapp!.appState.map((x) => x.toString()));
-
-    console.log(
-      `Empty Network State ${NetworkState.empty().hash().toString()}`
-    );
-    console.log(batch!.toNetworkState.hash().toString());
-    console.log(batch2!.fromNetworkState.hash().toString());
-
-    expect(batch!.toNetworkState.hash().toString()).toStrictEqual(
-      batch2!.fromNetworkState.hash().toString()
-    );
-
-    expect(batch2!.bundles).toHaveLength(1);
-
-    await trigger.settle(batch2!);
-    nonceCounter++;
-
-    const balance = await appChain.query.runtime.Balances.balances.get(
-      userKey.toPublicKey()
-    );
-
-    expect(balance).toBeDefined();
-  }, 100000);
-
-  it("should process withdrawal", async () => {
-    const { settlement } = settlementModule.getContracts();
-
-    // Send mina to contract
-    const usertx = await Mina.transaction(
-      {
-        sender: localInstance.testAccounts[1],
-        fee: "10000",
-      },
-      async () => {
-        const au = AccountUpdate.createSigned(localInstance.testAccounts[1]);
-        au.send({
-          to: settlement.address,
-          amount: UInt64.from(100 * 1e9),
+    async function createBatch(
+      withTransactions: boolean,
+      customNonce: number = 0,
+      txs: PendingTransaction[] = []
+    ) {
+      const mempool = appChain.sequencer.resolve("Mempool") as PrivateMempool;
+      if (withTransactions) {
+        const { key } = localInstance.testAccounts[0];
+        const tx = createTransaction({
+          runtime: appChain.runtime,
+          method: ["Balances", "addBalance"],
+          privateKey: key,
+          args: [key.toPublicKey(), UInt64.from(1e9 * 100)],
+          nonce: customNonce,
         });
+
+        await mempool.add(tx);
       }
-    );
-    usertx.sign([localInstance.testAccounts[1].key]);
-    // await usertx.send();
+      txs.forEach((tx) => {
+        mempool.add(tx);
+      });
 
-    await appChain.sequencer
-      .resolveOrFail("TransactionSender", MinaTransactionSender)
-      .proveAndSendTransaction(usertx);
+      const result = await trigger.produceBlockAndBatch();
+      const [block, batch] = result;
 
-    const userKey = localInstance.testAccounts[0].key;
+      console.log(
+        `block ${block?.height.toString()} ${block?.fromMessagesHash.toString()} -> ${block?.toMessagesHash.toString()}`
+      );
+      const proof = await blockSerializer
+        .getBlockProofSerializer()
+        .fromJSONProof(batch!.proof);
+      console.log(
+        `block ${proof.publicInput.incomingMessagesHash} -> ${proof.publicOutput.incomingMessagesHash}`
+      );
 
-    log.setLevel("TRACE");
+      return result;
+    }
 
-    const withdrawalTx = createTransaction({
-      runtime: appChain.runtime,
-      method: ["Withdrawals", "withdraw"],
-      args: [userKey.toPublicKey(), UInt64.from(50 * 1e9)],
-      nonce: 2,
-      privateKey: userKey,
-    });
-    const [block, batch] = await createBatch(true, 1, [withdrawalTx]);
+    beforeAll(async () => {
+      appChain = setupAppChain();
 
-    console.log("Test netowrkstate");
-    console.log(NetworkState.toJSON(block!.networkState.during));
-    console.log(NetworkState.toJSON(batch!.toNetworkState));
+      await appChain.start(container.createChildContainer());
 
-    await trigger.settle(batch!);
-    nonceCounter++;
+      settlementModule = appChain.sequencer.resolve(
+        "SettlementModule"
+      ) as SettlementModule;
 
-    const txs = await settlementModule.sendRollupTransactions({
-      nonce: nonceCounter++,
-    });
+      trigger =
+        appChain.sequencer.dependencyContainer.resolve<ManualBlockTrigger>(
+          "BlockTrigger"
+        );
+      blockQueue = appChain.sequencer.resolve("BlockQueue") as BlockQueue;
 
-    expect(txs).toHaveLength(1);
+      const baseLayer = appChain.sequencer.resolve(
+        "BaseLayer"
+      ) as MinaBaseLayer;
 
-    const account = Mina.getAccount(
-      userKey.toPublicKey(),
-      settlement.deriveTokenId()
-    );
+      blockSerializer =
+        appChain.sequencer.dependencyContainer.resolve(BlockProofSerializer);
 
-    expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 49n);
-  }, 100_000000);
+      const localChain = baseLayer.network as Awaited<
+        ReturnType<typeof Mina.LocalBlockchain>
+      >;
 
-  it("should be able to redeem withdrawal", async () => {
-    const { settlement } = settlementModule.getContracts();
+      localChain.addAccount(sequencerKey.toPublicKey(), String(20 * 1e9));
+      localInstance = localChain;
+    }, 50_000);
 
-    const userKey = localInstance.testAccounts[0].key;
+    let nonceCounter = 0;
+    let user0Nonce = 0;
 
-    const balanceBefore = Mina.getAccount(
-      userKey.toPublicKey()
-    ).balance.toBigInt();
+    it("should deploy", async () => {
+      // Deploy contract
+      await settlementModule.deploy(settlementKey, dispatchKey, {
+        nonce: nonceCounter,
+      });
 
-    const amount = BigInt(1e9 * 49);
+      nonceCounter += 2;
 
-    const tx = await Mina.transaction(
-      {
-        sender: userKey.toPublicKey(),
-        nonce: user0Nonce++,
-        fee: 10000,
-      },
-      async () => {
-        const mintAU = AccountUpdate.create(userKey.toPublicKey());
-        mintAU.balance.addInPlace(amount);
-        // mintAU.requireSignature(); // TODO ?
-        await settlement.redeem(mintAU);
-      }
-    );
-    tx.sign([userKey]);
-    await tx.prove();
-    await tx.send();
+      console.log("Deployed");
+    }, 120_000);
 
-    const balanceAfter = Mina.getAccount(
-      userKey.toPublicKey()
-    ).balance.toBigInt();
+    it("should settle", async () => {
+      const [, batch] = await createBatch(true);
 
-    expect(balanceAfter - balanceBefore).toBe(amount - 10000n);
-  }, 100_000);
-});
+      const input = BlockProverPublicInput.fromFields(
+        batch!.proof.publicInput.map((x) => Field(x))
+      );
+      expect(input.stateRoot.toBigInt()).toStrictEqual(
+        RollupMerkleTree.EMPTY_ROOT
+      );
+
+      const lastBlock = await blockQueue.getLatestBlock();
+
+      await trigger.settle(batch!);
+      nonceCounter++;
+
+      // TODO Check Smartcontract tx layout (call to dispatch with good preconditions, etc)
+
+      console.log("Block settled");
+
+      const { settlement } = settlementModule.getContracts();
+      expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
+        lastBlock!.result.afterNetworkState.hash().toBigInt()
+      );
+      expect(settlement.stateRoot.get().toBigInt()).toStrictEqual(
+        lastBlock!.result.stateRoot
+      );
+      expect(settlement.blockHashRoot.get().toBigInt()).toStrictEqual(
+        lastBlock!.result.blockHashRoot
+      );
+    }, 120_000);
+
+    it("should include deposit", async () => {
+      const { settlement, dispatch } = settlementModule.getContracts();
+
+      const userKey = localInstance.testAccounts[0].key;
+
+      const contractBalanceBefore = settlement.account.balance.get();
+
+      const tx = await Mina.transaction(
+        { sender: userKey.toPublicKey(), fee: 0.01 * 1e9, nonce: user0Nonce++ },
+        async () => {
+          const au = AccountUpdate.createSigned(userKey.toPublicKey());
+          au.balance.subInPlace(UInt64.from(100));
+          await dispatch.deposit(UInt64.from(100));
+        }
+      );
+
+      settlementModule.signTransaction(tx, [userKey]);
+
+      await appChain.sequencer
+        .resolveOrFail("TransactionSender", MinaTransactionSender)
+        .proveAndSendTransaction(tx);
+
+      const actions = Mina.getActions(dispatch.address);
+      const balanceDiff = settlement.account.balance
+        .get()
+        .sub(contractBalanceBefore);
+
+      expect(actions).toHaveLength(1);
+      expect(balanceDiff.toBigInt()).toBe(100n);
+
+      const [, batch] = await createBatch(false);
+
+      console.log("Settling");
+
+      await trigger.settle(batch!);
+      nonceCounter++;
+
+      const [, batch2] = await createBatch(false);
+
+      const networkstateHash = Mina.activeInstance.getAccount(
+        settlement.address
+      );
+      console.log("On-chain values");
+      console.log(networkstateHash.zkapp!.appState.map((x) => x.toString()));
+
+      console.log(
+        `Empty Network State ${NetworkState.empty().hash().toString()}`
+      );
+      console.log(batch!.toNetworkState.hash().toString());
+      console.log(batch2!.fromNetworkState.hash().toString());
+
+      expect(batch!.toNetworkState.hash().toString()).toStrictEqual(
+        batch2!.fromNetworkState.hash().toString()
+      );
+
+      expect(batch2!.bundles).toHaveLength(1);
+
+      await trigger.settle(batch2!);
+      nonceCounter++;
+
+      const balance = await appChain.query.runtime.Balances.balances.get(
+        userKey.toPublicKey()
+      );
+
+      expect(balance).toBeDefined();
+    }, 100000);
+
+    it("should process withdrawal", async () => {
+      const { settlement } = settlementModule.getContracts();
+
+      // Send mina to contract
+      const usertx = await Mina.transaction(
+        {
+          sender: localInstance.testAccounts[1],
+          fee: "10000",
+        },
+        async () => {
+          const au = AccountUpdate.createSigned(localInstance.testAccounts[1]);
+          au.send({
+            to: settlement.address,
+            amount: UInt64.from(100 * 1e9),
+          });
+        }
+      );
+      settlementModule.signTransaction(usertx, [
+        localInstance.testAccounts[1].key,
+      ]);
+      // await usertx.send();
+
+      await appChain.sequencer
+        .resolveOrFail("TransactionSender", MinaTransactionSender)
+        .proveAndSendTransaction(usertx);
+
+      const userKey = localInstance.testAccounts[0].key;
+
+      log.setLevel("TRACE");
+
+      const withdrawalTx = createTransaction({
+        runtime: appChain.runtime,
+        method: ["Withdrawals", "withdraw"],
+        args: [userKey.toPublicKey(), UInt64.from(50 * 1e9)],
+        nonce: 2,
+        privateKey: userKey,
+      });
+      const [block, batch] = await createBatch(true, 1, [withdrawalTx]);
+
+      console.log("Test netowrkstate");
+      console.log(NetworkState.toJSON(block!.networkState.during));
+      console.log(NetworkState.toJSON(batch!.toNetworkState));
+
+      await trigger.settle(batch!);
+      nonceCounter++;
+
+      const txs = await settlementModule.sendRollupTransactions({
+        nonce: nonceCounter++,
+      });
+
+      expect(txs).toHaveLength(1);
+
+      const account = Mina.getAccount(
+        userKey.toPublicKey(),
+        settlement.deriveTokenId()
+      );
+
+      expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 49n);
+    }, 100_000000);
+
+    it("should be able to redeem withdrawal", async () => {
+      const { settlement } = settlementModule.getContracts();
+
+      const userKey = localInstance.testAccounts[0].key;
+
+      const balanceBefore = Mina.getAccount(
+        userKey.toPublicKey()
+      ).balance.toBigInt();
+
+      const amount = BigInt(1e9 * 49);
+
+      const tx = await Mina.transaction(
+        {
+          sender: userKey.toPublicKey(),
+          nonce: user0Nonce++,
+          fee: 10000,
+        },
+        async () => {
+          const mintAU = AccountUpdate.create(userKey.toPublicKey());
+          mintAU.balance.addInPlace(amount);
+          // mintAU.requireSignature(); // TODO ?
+          await settlement.redeem(mintAU);
+        }
+      );
+      settlementModule.signTransaction(tx, [userKey]);
+      await tx.prove();
+      await tx.send();
+
+      const balanceAfter = Mina.getAccount(
+        userKey.toPublicKey()
+      ).balance.toBigInt();
+
+      expect(balanceAfter - balanceBefore).toBe(amount - 10000n);
+    }, 100_000);
+  }
+);

@@ -12,7 +12,8 @@ export class SignedSettlementPermissions
       send: Permissions.signature(),
       editActionState: Permissions.signature(),
       // set access permission, to prevent unauthorized token operations
-      access: Permissions.proofOrSignature(),
+      // access: Permissions.proofOrSignature(),
+      access: Permissions.none(),
     };
   }
 

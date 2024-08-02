@@ -9,7 +9,11 @@ export class ProvenSettlementPermissions
     return {
       ...Permissions.default(),
       // set access permission, to prevent unauthorized token operations
-      access: Permissions.proofOrSignature(),
+      // access: Permissions.proofOrSignature(),
+      // TODO We need to figure out how to correctly instantiate the permissions for access
+      // Since this makes receive: none permissions impossible. Probably a seperate
+      // token holder contract makes sense
+      access: Permissions.none(),
       // The following only makes sense if the chain has a way to self-upgrade
       setPermissions: Permissions.proof(),
       setVerificationKey: {
