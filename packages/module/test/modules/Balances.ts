@@ -1,4 +1,4 @@
-import { PublicKey, UInt64, Struct, Field, InferProvable } from "o1js";
+import { PublicKey, UInt64, Struct } from "o1js";
 import { State, StateMap } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 
@@ -46,17 +46,15 @@ export class Balances extends RuntimeModule<BalancesConfig> {
     //   to: b,
     //   amount,
     // };
-
     // type T = InferProvable<this["events"]["transfer"]>;
-
-    this.emit(
-      "transfer",
-      new TransferEvent({
-        from: a,
-        to: b,
-        amount,
-      })
-    );
+    // this.emit(
+    //   "transfer",
+    //   new TransferEvent({
+    //     from: a,
+    //     to: b,
+    //     amount,
+    //   })
+    // );
   }
 
   @runtimeMethod()
