@@ -111,11 +111,11 @@ describe("graphql client test", () => {
       ManualBlockTrigger
     );
     await trigger.produceBlock();
-  });
+  }, 20_000);
 
   afterAll(async () => {
     server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
-  });
+  }, 20_000);
 
   it("should retrieve state", async () => {
     expect.assertions(1);

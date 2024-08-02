@@ -1,3 +1,2 @@
 export * from "./queue/BullQueue";
-export * from "./bundle/Environment";
-export * from "./bundle/startEnvironment";
+export * from "./environment/Environment";

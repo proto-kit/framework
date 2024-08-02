@@ -13,7 +13,7 @@ import {
   DatabasePruneModule,
 } from "@proto-kit/sequencer";
 import {
-  DefaultGraphqlModules,
+  VanillaGraphqlModules,
   GraphqlSequencerModule,
   GraphqlServer,
 } from "@proto-kit/api";
@@ -33,7 +33,7 @@ export const sequencer = AppChain.from({
 
       GraphqlServer: GraphqlServer,
       Graphql: GraphqlSequencerModule.from({
-        modules: DefaultGraphqlModules.with({}),
+        modules: VanillaGraphqlModules.with({}),
       }),
     }),
   }),
@@ -49,7 +49,6 @@ sequencer.configure({
   Sequencer: {
     ...SimpleSequencerModules.defaultConfig(),
     Database: {},
-    DatabasePruneModule: {},
     BaseLayer: {
       network: {
         local: true,
@@ -76,7 +75,7 @@ sequencer.configure({
     Graphql: {
       QueryGraphqlModule: {},
       MempoolResolver: {},
-      BlockStorageResolver: {},
+      BatchStorageResolver: {},
       NodeStatusResolver: {},
       MerkleWitnessResolver: {},
       BlockResolver: {},
