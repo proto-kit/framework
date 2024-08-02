@@ -323,7 +323,7 @@ describe.each(["signed", "mock-proofs"] as const)(
         batch2!.fromNetworkState.hash().toString()
       );
 
-      expect(batch2!.bundles).toHaveLength(1);
+      expect(batch2!.blockHashes).toHaveLength(1);
 
       await trigger.settle(batch2!);
       nonceCounter++;

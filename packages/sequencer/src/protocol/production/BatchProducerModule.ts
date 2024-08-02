@@ -20,7 +20,7 @@ import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
-import { Block, BlockResult, BlockWithResult } from "../../storage/model/Block";
+import { BlockResult, BlockWithResult } from "../../storage/model/Block";
 
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
@@ -87,7 +87,7 @@ export class BatchProducerModule extends SequencerModule {
     super();
   }
 
-  private async applyStateChanges(blocks: Block[], batch: BatchMetadata) {
+  private async applyStateChanges(batch: BatchMetadata) {
     await batch.stateService.mergeIntoParent();
     await batch.merkleStore.mergeIntoParent();
   }
@@ -102,21 +102,21 @@ export class BatchProducerModule extends SequencerModule {
   ): Promise<SettleableBatch | undefined> {
     log.info("Producing batch...");
 
-    const height = await this.batchStorage.getCurrentBlockHeight();
+    const height = await this.batchStorage.getCurrentBatchHeight();
 
     const batchWithStateDiff = await this.tryProduceBatch(blocks, height);
 
     if (batchWithStateDiff !== undefined) {
+      const numTxs = blocks.reduce(
+        (sum, block) => sum + block.block.block.transactions.length,
+        0
+      );
       log.info(
-        `Batch produced (${batchWithStateDiff.batch.bundles.length} blocks, ${
-          batchWithStateDiff.batch.bundles.flat(1).length
-        } txs)`
+        `Batch produced (${batchWithStateDiff.batch.blockHashes.length} blocks, ${numTxs} txs)`
       );
+
       // Apply state changes to current StateService
-      await this.applyStateChanges(
-        blocks.map((data) => data.block.block),
-        batchWithStateDiff
-      );
+      await this.applyStateChanges(batchWithStateDiff);
     }
     return batchWithStateDiff?.batch;
   }
@@ -169,7 +169,7 @@ export class BatchProducerModule extends SequencerModule {
   ): Promise<BatchMetadata | undefined> {
     const batch = await this.computeBatch(blocks, height);
 
-    const computedBundles = blocks.map((bundle) =>
+    const blockHashes = blocks.map((bundle) =>
       bundle.block.block.hash.toString()
     );
 
@@ -180,7 +180,7 @@ export class BatchProducerModule extends SequencerModule {
     return {
       batch: {
         proof: jsonProof,
-        bundles: computedBundles,
+        blockHashes,
         height,
         fromNetworkState: batch.fromNetworkState,
         toNetworkState: batch.toNetworkState,

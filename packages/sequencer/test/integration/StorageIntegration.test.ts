@@ -195,12 +195,12 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const batchStorage = sequencer.resolve(
         "BatchStorage"
       ) as HistoricalBatchStorage & BatchStorage;
-      const batch = await batchStorage.getBlockAt(0);
+      const batch = await batchStorage.getBatchAt(0);
 
       expectDefined(batch);
       expect(batch.height).toStrictEqual(generatedBatch?.height);
 
-      await expect(batchStorage.getCurrentBlockHeight()).resolves.toStrictEqual(
+      await expect(batchStorage.getCurrentBatchHeight()).resolves.toStrictEqual(
         1
       );
     }, 50_000);

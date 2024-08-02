@@ -14,23 +14,25 @@ import { BlockModel, BlockResolver } from "./BlockResolver";
 @ObjectType()
 export class ComputedBlockModel {
   public static fromServiceLayerModel(
-    { bundles, proof }: Batch,
+    { blockHashes, proof }: Batch,
     blocks: (BlockModel | undefined)[]
   ): ComputedBlockModel {
     return new ComputedBlockModel(
-      bundles.map((bundle) => blocks.find((block) => block?.hash === bundle)!),
+      blockHashes.map(
+        (blockHash) => blocks.find((block) => block?.hash === blockHash)!
+      ),
       proof.proof === MOCK_PROOF ? "mock-proof" : JSON.stringify(proof)
     );
   }
 
   @Field(() => [BlockModel])
-  public bundles: BlockModel[];
+  public blocks: BlockModel[];
 
   @Field()
   public proof: string;
 
-  public constructor(bundles: BlockModel[], proof: string) {
-    this.bundles = bundles;
+  public constructor(blocks: BlockModel[], proof: string) {
+    this.blocks = blocks;
     this.proof = proof;
   }
 }
@@ -39,9 +41,9 @@ export class ComputedBlockModel {
 export class BatchStorageResolver extends GraphqlModule {
   // TODO seperate these two block interfaces
   public constructor(
-    @inject("BlockStorage")
+    @inject("BatchStorage")
     private readonly batchStorage: BatchStorage & HistoricalBatchStorage,
-    private readonly unprovenResolver: BlockResolver
+    private readonly blockResolver: BlockResolver
   ) {
     super();
   }
@@ -59,15 +61,15 @@ export class BatchStorageResolver extends GraphqlModule {
     height: number | undefined
   ) {
     const blockHeight =
-      height ?? (await this.batchStorage.getCurrentBlockHeight()) - 1;
+      height ?? (await this.batchStorage.getCurrentBatchHeight()) - 1;
 
-    const batch = await this.batchStorage.getBlockAt(blockHeight);
+    const batch = await this.batchStorage.getBatchAt(blockHeight);
 
     if (batch !== undefined) {
       const blocks = await Promise.all(
-        batch.bundles.map((bundle) =>
+        batch.blockHashes.map((blockHash) =>
           // TODO Find a graphql-native way of doing this relational 1-n mapping
-          this.unprovenResolver.block(undefined, bundle)
+          this.blockResolver.block(undefined, blockHash)
         )
       );
       return ComputedBlockModel.fromServiceLayerModel(batch, blocks);

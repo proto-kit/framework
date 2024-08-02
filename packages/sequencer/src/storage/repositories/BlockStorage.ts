@@ -3,7 +3,7 @@ import type { Block, BlockResult, BlockWithResult } from "../model/Block";
 
 export interface BlockQueue {
   pushBlock: (block: Block) => Promise<void>;
-  pushMetadata: (metadata: BlockResult) => Promise<void>;
+  pushResult: (result: BlockResult) => Promise<void>;
   getNewBlocks: () => Promise<BlockWithPreviousResult[]>;
   getLatestBlock: () => Promise<BlockWithResult | undefined>;
 }
