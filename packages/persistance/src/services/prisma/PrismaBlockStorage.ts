@@ -128,6 +128,7 @@ export class PrismaBlockStorage
                     tx.stateTransitions as Prisma.InputJsonArray,
                   protocolTransitions:
                     tx.protocolTransitions as Prisma.InputJsonArray,
+                  events: tx.events as Prisma.InputJsonArray,
                 };
               }),
               skipDuplicates: true,
