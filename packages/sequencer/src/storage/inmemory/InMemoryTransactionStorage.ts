@@ -63,7 +63,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       if (batch === undefined) {
         return undefined;
       }
-      if (batch.bundles.includes(block)) {
+      if (batch.blockHashes.includes(block)) {
         return height;
       }
     }

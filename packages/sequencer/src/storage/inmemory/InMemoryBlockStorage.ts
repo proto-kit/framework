@@ -49,7 +49,9 @@ export class InMemoryBlockStorage
     if (latestBatch !== undefined) {
       cursor = this.blocks.reduce(
         (c, block, index) =>
-          latestBatch.bundles.includes(block.hash.toString()) ? index + 1 : c,
+          latestBatch.blockHashes.includes(block.hash.toString())
+            ? index + 1
+            : c,
         0
       );
     }
