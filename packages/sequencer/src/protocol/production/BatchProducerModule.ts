@@ -102,7 +102,7 @@ export class BatchProducerModule extends SequencerModule {
   ): Promise<SettleableBatch | undefined> {
     log.info("Producing batch...");
 
-    const height = await this.batchStorage.getCurrentBlockHeight();
+    const height = await this.batchStorage.getCurrentBatchHeight();
 
     const batchWithStateDiff = await this.tryProduceBatch(blocks, height);
 

@@ -168,7 +168,7 @@ describe("block production", () => {
     // Check if the batchstorage has received the block
     const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage &
       HistoricalBatchStorage;
-    const retrievedBatch = await batchStorage.getBlockAt(0);
+    const retrievedBatch = await batchStorage.getBatchAt(0);
     expect(retrievedBatch).toBeDefined();
 
     const stateService =

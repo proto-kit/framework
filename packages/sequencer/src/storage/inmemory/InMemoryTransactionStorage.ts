@@ -55,11 +55,11 @@ export class InMemoryTransactionStorage implements TransactionStorage {
   }
 
   private async findBatch(block: string): Promise<number | undefined> {
-    const tipHeight = await this.batchStorage.getCurrentBlockHeight();
+    const tipHeight = await this.batchStorage.getCurrentBatchHeight();
 
     for (let height = tipHeight - 1; height >= 0; height--) {
       // eslint-disable-next-line no-await-in-loop
-      const batch = await this.batchStorage.getBlockAt(height);
+      const batch = await this.batchStorage.getBatchAt(height);
       if (batch === undefined) {
         return undefined;
       }

@@ -2,11 +2,11 @@ import { Batch } from "../model/Batch";
 
 export interface BatchStorage {
   // TODO Rename to getCurrentChainLength(), blockheight seems misleading here
-  getCurrentBlockHeight: () => Promise<number>;
-  getLatestBlock: () => Promise<Batch | undefined>;
-  pushBlock: (block: Batch) => Promise<void>;
+  getCurrentBatchHeight: () => Promise<number>;
+  getLatestBatch: () => Promise<Batch | undefined>;
+  pushBatch: (block: Batch) => Promise<void>;
 }
 
 export interface HistoricalBatchStorage {
-  getBlockAt: (height: number) => Promise<Batch | undefined>;
+  getBatchAt: (height: number) => Promise<Batch | undefined>;
 }
