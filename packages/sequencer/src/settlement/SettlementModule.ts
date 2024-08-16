@@ -11,6 +11,7 @@ import {
   SettlementContractConfig,
   MandatorySettlementModulesRecord,
   MandatoryProtocolModulesRecord,
+  BlockProverPublicOutput,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -20,6 +21,7 @@ import {
   PublicKey,
   Signature,
   Transaction,
+  fetchAccount,
 } from "o1js";
 import { inject } from "tsyringe";
 import {
@@ -45,6 +47,7 @@ import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
 import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
+import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
@@ -107,7 +110,9 @@ export class SettlementModule
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender,
     @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
+    private readonly areProofsEnabled: AreProofsEnabled,
+    @inject("FeeStrategy")
+    private readonly feeStrategy: FeeStrategy
   ) {
     super();
   }
@@ -234,8 +239,8 @@ export class SettlementModule
           sender: feepayer.toPublicKey(),
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
-          fee: String(0.01 * 1e9),
-          memo: "Protokit settle",
+          fee: this.feeStrategy.getFee(),
+          memo: "roll up actions",
         },
         async () => {
           await settlement.rollupOutgoingMessages(
@@ -246,7 +251,10 @@ export class SettlementModule
 
       const signedTx = this.signTransaction(tx, [feepayer]);
 
-      await this.transactionSender.proveAndSendTransaction(signedTx);
+      await this.transactionSender.proveAndSendTransaction(
+        signedTx,
+        "included"
+      );
 
       this.outgoingMessageQueue.pop(OUTGOING_MESSAGE_BATCH_SIZE);
 
@@ -259,33 +267,51 @@ export class SettlementModule
   }
   /* eslint-enable no-await-in-loop */
 
+  private async fetchContractAccounts() {
+    const contracts = this.getContracts();
+    if (contracts !== undefined) {
+      const c1 = await fetchAccount({
+        publicKey: contracts.settlement.address,
+        tokenId: contracts.settlement.tokenId,
+      });
+      const c2 = await fetchAccount({
+        publicKey: contracts.dispatch.address,
+        tokenId: contracts.dispatch.tokenId,
+      });
+    }
+  }
+
   public async settleBatch(
     batch: SettleableBatch,
     options: {
       nonce?: number;
     } = {}
   ): Promise<Settlement> {
+    await this.fetchContractAccounts();
     const { settlement, dispatch } = this.getContracts();
     const { feepayer } = this.config;
 
     log.debug("Preparing settlement");
 
-    const lastSettlementL1Block = settlement.lastSettlementL1Block.get().value;
+    const lastSettlementL1BlockHeight =
+      settlement.lastSettlementL1BlockHeight.get().value;
     const signature = Signature.create(feepayer, [
       BATCH_SIGNATURE_PREFIX,
-      lastSettlementL1Block,
+      lastSettlementL1BlockHeight,
     ]);
 
-    const fromSequenceStateHash = dispatch.honoredMessagesHash.get();
-    const latestSequenceStateHash = settlement.account.actionState.get();
+    const fromSequenceStateHash = BlockProverPublicOutput.fromFields(
+      batch.proof.publicOutput.map((x) => Field(x))
+    ).incomingMessagesHash;
+    const latestSequenceStateHash = dispatch.account.actionState.get();
 
     // Fetch actions and store them into the messageStorage
     const actions = await this.incomingMessagesAdapter.getPendingMessages(
-      settlement.address,
+      dispatch.address,
       {
         fromActionHash: fromSequenceStateHash.toString(),
         toActionHash: latestSequenceStateHash.toString(),
-        fromL1Block: Number(lastSettlementL1Block.toString()),
+        fromL1BlockHeight: Number(lastSettlementL1BlockHeight.toString()),
       }
     );
     await this.messageStorage.pushMessages(
@@ -302,7 +328,7 @@ export class SettlementModule
       {
         sender: feepayer.toPublicKey(),
         nonce: options?.nonce,
-        fee: String(0.01 * 1e9),
+        fee: this.feeStrategy.getFee(),
         memo: "Protokit settle",
       },
       async () => {
@@ -320,7 +346,7 @@ export class SettlementModule
 
     this.signTransaction(tx, [feepayer]);
 
-    await this.transactionSender.proveAndSendTransaction(tx);
+    await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     log.info("Settlement transaction send queued");
 
@@ -355,16 +381,24 @@ export class SettlementModule
       ? new SignedSettlementPermissions()
       : new ProvenSettlementPermissions();
 
+    if (this.baseLayer.config.network.type !== "local") {
+      // const ac1 = await fetchAccount({ publicKey: feepayer });
+      // console.log(ac1);
+    }
+
+    // this.baseLayer
+    //       .originalNetwork!
     const tx = await Mina.transaction(
       {
         sender: feepayer,
         nonce,
-        fee: String(0.01 * 1e9),
+        fee: this.feeStrategy.getFee(),
         memo: "Protokit settlement deploy",
       },
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
         await settlement.deploy({
+          // TODO Create compilation task that generates those artifacts if proofs enabled
           verificationKey: undefined,
         });
         settlement.account.permissions.set(permissions.settlementContract());
@@ -379,7 +413,7 @@ export class SettlementModule
 
     // This should already apply the tx result to the
     // cached accounts / local blockchain
-    await this.transactionSender.proveAndSendTransaction(tx);
+    await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     this.addresses = {
       settlement: settlementKey.toPublicKey(),
@@ -394,7 +428,7 @@ export class SettlementModule
       {
         sender: feepayer,
         nonce: nonce + 1,
-        fee: String(0.01 * 1e9),
+        fee: this.feeStrategy.getFee(),
         memo: "Protokit settlement init",
       },
       async () => {
@@ -407,7 +441,10 @@ export class SettlementModule
 
     const initTxSigned = this.signTransaction(initTx, [feepayerKey]);
 
-    await this.transactionSender.proveAndSendTransaction(initTxSigned);
+    await this.transactionSender.proveAndSendTransaction(
+      initTxSigned,
+      "included"
+    );
   }
 
   public async start(): Promise<void> {

@@ -73,7 +73,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     params: {
       fromActionHash: string;
       toActionHash?: string;
-      fromL1Block: number;
+      fromL1BlockHeight: number;
     }
   ): Promise<{
     from: string;
@@ -96,15 +96,19 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       //   : undefined,
     });
 
-    const events = await network.fetchEvents(address, undefined, {
-      from: UInt32.from(Math.max(params.fromL1Block - 5, 0)),
-    });
-
     if ("error" in actions) {
       throw new Error(
         `Error ${actions.error.statusCode}: ${actions.error.statusText}`
       );
     }
+
+    if (actions.length > 0) {
+      console.log(params.fromL1BlockHeight);
+    }
+
+    const events = await network.fetchEvents(address, undefined, {
+      from: UInt32.from(Math.max(params.fromL1BlockHeight - 5, 0)),
+    });
 
     const messages = await mapSequential(actions, async (action) => {
       // Find events corresponding to the transaction to get the raw args
