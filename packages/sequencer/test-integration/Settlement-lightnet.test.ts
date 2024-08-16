@@ -1,6 +1,7 @@
-import { settlementTestFn } from "../test/settlement/Settlement";
 import { PrivateKey } from "o1js";
 import { log } from "@proto-kit/common";
+
+import { settlementTestFn } from "../test/settlement/Settlement";
 
 console.log(PrivateKey.random().toPublicKey().toBase58());
 

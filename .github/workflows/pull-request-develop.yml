@@ -115,6 +115,20 @@ jobs:
         image: redis:6.2-alpine
         ports:
           - 6379:6379
+      lighnet:
+        image: o1labs/mina-local-network:compatible-latest-lightnet
+        env:
+          RUN_ARCHIVE_NODE: true
+          LOG_LEVEL: 'INFO'
+          PROOF_LEVEL: 'none'
+          NETWORK_TYPE: 'single-node'
+        ports:
+          - 3085:3085
+          - 8080:8080
+          - 8181:8181
+          #     archive endpoints
+          - 5432:5432
+          - 8282:8282
 
     steps:
       - uses: actions/checkout@v3
@@ -131,6 +145,13 @@ jobs:
 
       - name: "Migrate DB"
         run: npm run migrate
+
+      - name: "Wait for lightnet readiness"
+        uses: o1-labs/wait-for-mina-network-action@v1
+        with:
+          mina-graphql-port: 3085
+          max-attempts: 30
+          polling-interval-ms: 5000
 
       - name: "Integration tests"
         run: npm run test:integration
