@@ -1,5 +1,11 @@
 import { Mina, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
+import {
+  EventEmitter,
+  EventsRecord,
+  EventListenable,
+  log,
+} from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { FlowCreator } from "../../worker/flow/Flow";
@@ -12,12 +18,34 @@ import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
 
 type SenderKey = string;
 
+interface TxEvents extends EventsRecord {
+  sent: [{ hash: string }];
+  included: [{ hash: string }];
+  rejected: [any];
+}
+
+class OnceEventEmitter<
+  Events extends EventsRecord,
+> extends EventEmitter<Events> {
+  public emit<Key extends keyof Events>(
+    event: Key,
+    ...parameters: Events[Key]
+  ) {
+    super.emit(event, ...parameters);
+    this.listeners[event] = [];
+  }
+}
+
 @injectable()
 export class MinaTransactionSender {
+  private txStatusEmitters: Record<string, EventEmitter<TxEvents>> = {};
+
+  // TODO Persist all of that
   private txQueue: Record<SenderKey, number[]> = {};
 
-  // TODO Persist
-  private cache: Transaction<any, true>[] = [];
+  private txIdCursor: number = 0;
+
+  private cache: { tx: Transaction<any, true>; id: number }[] = [];
 
   public constructor(
     private readonly creator: FlowCreator,
@@ -26,9 +54,13 @@ export class MinaTransactionSender {
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
   ) {}
 
-  private async trySendCached(
-    tx: Transaction<any, true>
-  ): Promise<Mina.PendingTransaction | undefined> {
+  private async trySendCached({
+    tx,
+    id,
+  }: {
+    tx: Transaction<any, true>;
+    id: number;
+  }): Promise<Mina.PendingTransaction | undefined> {
     const feePayer = tx.transaction.feePayer.body;
     const sender = feePayer.publicKey.toBase58();
     const senderQueue = this.txQueue[sender];
@@ -36,6 +68,21 @@ export class MinaTransactionSender {
     const sendable = senderQueue.at(0) === Number(feePayer.nonce.toString());
     if (sendable) {
       const txId = await tx.send();
+
+      const statusEmitter = this.txStatusEmitters[id];
+      log.info(`Sent L1 transaction ${txId.hash}`);
+      statusEmitter.emit("sent", { hash: txId.hash });
+
+      txId.wait().then(
+        (included) => {
+          log.info(`L1 transaction ${included.hash} has been included`);
+          statusEmitter.emit("included", { hash: included.hash });
+        },
+        (error) => {
+          log.info("Waiting on L1 transaction threw and error", error);
+          statusEmitter.emit("rejected", error);
+        }
+      );
 
       senderQueue.pop();
       return txId;
@@ -58,17 +105,29 @@ export class MinaTransactionSender {
     return indizesToRemove.length;
   }
 
-  private async sendOrQueue(tx: Transaction<any, true>) {
-    this.cache.push(tx);
+  private async sendOrQueue(
+    tx: Transaction<any, true>
+  ): Promise<EventListenable<TxEvents>> {
+    // eslint-disable-next-line no-plusplus
+    const id = this.txIdCursor++;
+    this.cache.push({ tx, id });
+    const eventEmitter = new OnceEventEmitter<TxEvents>();
+    this.txStatusEmitters[id] = eventEmitter;
 
     let removedLastIteration = 0;
     do {
       // eslint-disable-next-line no-await-in-loop
       removedLastIteration = await this.resolveCached();
     } while (removedLastIteration > 0);
+
+    // This altered return type only exposes listening-related functions and erases the rest
+    return eventEmitter;
   }
 
-  public async proveAndSendTransaction(transaction: Transaction<false, true>) {
+  public async proveAndSendTransaction(
+    transaction: Transaction<false, true>,
+    waitOnStatus: "sent" | "included" | "none" = "none"
+  ) {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
 
     // Add Transaction to sender's queue
@@ -83,6 +142,9 @@ export class MinaTransactionSender {
 
     await this.simulator.applyTransaction(transaction);
 
+    const { network } = this.baseLayer.config;
+    const graphql = network.type === "local" ? undefined : network.graphql;
+
     const resultPromise = flow.withFlow<TransactionTaskResult>(
       async (resolve, reject) => {
         await flow.pushTask(
@@ -90,7 +152,7 @@ export class MinaTransactionSender {
           {
             transaction,
             chainState: {
-              graphql: this.baseLayer.config.network.graphql,
+              graphql,
               accounts,
             },
           },
@@ -102,6 +164,18 @@ export class MinaTransactionSender {
     );
 
     const result = await resultPromise;
-    await this.sendOrQueue(result.transaction);
+    const txStatus = await this.sendOrQueue(result.transaction);
+
+    if (waitOnStatus !== "none") {
+      await new Promise<void>((resolve, reject) => {
+        txStatus.on(waitOnStatus, () => {
+          resolve();
+        });
+        txStatus.on("rejected", (error) => {
+          reject(error);
+        });
+      });
+    }
+    return txStatus;
   }
 }
