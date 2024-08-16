@@ -97,7 +97,7 @@ export class SettlementSmartContract
   };
 
   @state(Field) public sequencerKey = State<Field>();
-  @state(UInt32) public lastSettlementL1Block = State<UInt32>();
+  @state(UInt32) public lastSettlementL1BlockHeight = State<UInt32>();
 
   @state(Field) public stateRoot = State<Field>();
   @state(Field) public networkStateHash = State<Field>();
@@ -148,8 +148,8 @@ export class SettlementSmartContract
     const networkStateHash = this.networkStateHash.getAndRequireEquals();
     const blockHashRoot = this.blockHashRoot.getAndRequireEquals();
     const sequencerKey = this.sequencerKey.getAndRequireEquals();
-    const lastSettlementL1Block =
-      this.lastSettlementL1Block.getAndRequireEquals();
+    const lastSettlementL1BlockHeight =
+      this.lastSettlementL1BlockHeight.getAndRequireEquals();
     const onChainDispatchContractAddressX =
       this.dispatchContractAddressX.getAndRequireEquals();
 
@@ -168,11 +168,11 @@ export class SettlementSmartContract
     const promisedMessagesHash = dispatchContract.promisedMessagesHash.get();
 
     // Get block height and use the lower bound for all ops
-    const minBlockIncluded = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.requireBetween(
-      minBlockIncluded,
+    const minBlockHeightIncluded = this.network.blockchainLength.get();
+    this.network.blockchainLength.requireBetween(
+      minBlockHeightIncluded,
       // 5 because that is the length the newPromisedMessagesHash will be valid
-      minBlockIncluded.add(4)
+      minBlockHeightIncluded.add(4)
     );
 
     // Check signature/escape catch
@@ -182,11 +182,11 @@ export class SettlementSmartContract
     );
     const signatureValid = signature.verify(publicKey, [
       BATCH_SIGNATURE_PREFIX,
-      lastSettlementL1Block.value,
+      lastSettlementL1BlockHeight.value,
     ]);
-    const escapeHatchActivated = lastSettlementL1Block
+    const escapeHatchActivated = lastSettlementL1BlockHeight
       .add(UInt32.from(escapeHatchSlotsInterval))
-      .lessThan(minBlockIncluded);
+      .lessThan(minBlockHeightIncluded);
     signatureValid
       .or(escapeHatchActivated)
       .assertTrue(
@@ -194,10 +194,6 @@ export class SettlementSmartContract
       );
 
     // Assert correctness of networkState witness
-    Provable.log("Network State Hash ", networkStateHash);
-    Provable.log("input Hash ", inputNetworkState.hash());
-    Provable.log("equals ", inputNetworkState.hash().equals(networkStateHash));
-
     inputNetworkState
       .hash()
       .assertEquals(networkStateHash, "InputNetworkState witness not valid");
@@ -218,7 +214,7 @@ export class SettlementSmartContract
       blockHashRoot,
       stateRoot,
       networkStateHash,
-      lastSettlementL1Block,
+      lastSettlementL1BlockHeight,
       sequencerKey: publicKey,
     };
     const inputs: SettlementHookInputs = {
@@ -227,7 +223,7 @@ export class SettlementSmartContract
       newPromisedMessagesHash,
       fromNetworkState: inputNetworkState,
       toNetworkState: outputNetworkState,
-      currentL1Block: minBlockIncluded,
+      currentL1BlockHeight: minBlockHeightIncluded,
     };
     await mapSequential(hooks, async (hook) => {
       await hook.beforeSettlement(this, inputs);
@@ -238,9 +234,6 @@ export class SettlementSmartContract
       blockProof.publicInput.stateRoot,
       "Input state root not matching"
     );
-    Provable.log("Network State Hash ", networkStateHash);
-    Provable.log("input Hash ", inputNetworkState.hash());
-    Provable.log("Proof Hash ", blockProof.publicInput.networkStateHash);
 
     networkStateHash.assertEquals(
       blockProof.publicInput.networkStateHash,
@@ -270,7 +263,7 @@ export class SettlementSmartContract
       newPromisedMessagesHash
     );
 
-    this.lastSettlementL1Block.set(minBlockIncluded);
+    this.lastSettlementL1BlockHeight.set(minBlockHeightIncluded);
   }
 
   @method

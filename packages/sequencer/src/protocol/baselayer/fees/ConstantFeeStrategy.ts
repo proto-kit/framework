@@ -1,8 +1,10 @@
+import { noop } from "@proto-kit/common";
+
 import {
   sequencerModule,
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
-import { noop } from "@proto-kit/common";
+
 import { FeeStrategy } from "./FeeStrategy";
 
 export type ConstantFeeStrategyConfig = {

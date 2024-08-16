@@ -1,9 +1,10 @@
 import { injectable, inject } from "tsyringe";
 import { range } from "@proto-kit/common";
+import { PrivateKey, Mina, Lightnet, PublicKey, AccountUpdate } from "o1js";
+
+import { MinaTransactionSender } from "../../../settlement/transactions/MinaTransactionSender";
 import { BaseLayer } from "../BaseLayer";
 import { MinaBaseLayer } from "../MinaBaseLayer";
-import { PrivateKey, Mina, Lightnet, PublicKey, AccountUpdate } from "o1js";
-import { MinaTransactionSender } from "../../../settlement/transactions/MinaTransactionSender";
 import { FeeStrategy } from "../fees/FeeStrategy";
 
 type LocalBlockchain = Awaited<ReturnType<typeof Mina.LocalBlockchain>>;

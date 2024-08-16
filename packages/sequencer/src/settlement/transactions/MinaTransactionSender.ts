@@ -24,15 +24,35 @@ interface TxEvents extends EventsRecord {
   rejected: [any];
 }
 
-class OnceEventEmitter<
+class OnceReplayingEventEmitter<
   Events extends EventsRecord,
 > extends EventEmitter<Events> {
+  public emitted: Partial<Events> = {};
+
   public emit<Key extends keyof Events>(
     event: Key,
     ...parameters: Events[Key]
   ) {
     super.emit(event, ...parameters);
+    this.emitted[event] = parameters;
     this.listeners[event] = [];
+  }
+
+  public onAll(listener: (event: keyof Events, args: unknown[]) => void) {
+    Object.entries(this.emitted).forEach(([key, params]) => {
+      if (params !== undefined) listener(key, params);
+    });
+    super.onAll(listener);
+  }
+
+  public on<Key extends keyof Events>(
+    event: Key,
+    listener: (...args: Events[Key]) => void
+  ) {
+    if (this.emitted[event] !== undefined) {
+      listener(...this.emitted[event]!);
+    }
+    super.on(event, listener);
   }
 }
 
@@ -111,7 +131,7 @@ export class MinaTransactionSender {
     // eslint-disable-next-line no-plusplus
     const id = this.txIdCursor++;
     this.cache.push({ tx, id });
-    const eventEmitter = new OnceEventEmitter<TxEvents>();
+    const eventEmitter = new OnceReplayingEventEmitter<TxEvents>();
     this.txStatusEmitters[id] = eventEmitter;
 
     let removedLastIteration = 0;

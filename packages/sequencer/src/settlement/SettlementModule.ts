@@ -269,12 +269,15 @@ export class SettlementModule
 
   private async fetchContractAccounts() {
     const contracts = this.getContracts();
-    if (contracts !== undefined) {
-      const c1 = await fetchAccount({
+    if (
+      contracts !== undefined &&
+      this.baseLayer.config.network.type !== "local"
+    ) {
+      await fetchAccount({
         publicKey: contracts.settlement.address,
         tokenId: contracts.settlement.tokenId,
       });
-      const c2 = await fetchAccount({
+      await fetchAccount({
         publicKey: contracts.dispatch.address,
         tokenId: contracts.dispatch.tokenId,
       });

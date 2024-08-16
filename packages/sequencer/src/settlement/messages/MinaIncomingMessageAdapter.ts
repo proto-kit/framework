@@ -102,10 +102,6 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       );
     }
 
-    if (actions.length > 0) {
-      console.log(params.fromL1BlockHeight);
-    }
-
     const events = await network.fetchEvents(address, undefined, {
       from: UInt32.from(Math.max(params.fromL1BlockHeight - 5, 0)),
     });

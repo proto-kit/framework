@@ -19,14 +19,14 @@ export class NetworkStateSettlementModule extends ProvableSettlementHook<Network
       fromNetworkState,
       toNetworkState,
       contractState,
-      currentL1Block,
+      currentL1BlockHeight,
     }: SettlementHookInputs
   ) {
-    const { lastSettlementL1Block } = contractState;
+    const { lastSettlementL1BlockHeight } = contractState;
 
     const blocksPerL1Block = this.config.blocksPerL1Block.toConstant();
 
-    const numL1Blocks = currentL1Block.sub(lastSettlementL1Block);
+    const numL1Blocks = currentL1BlockHeight.sub(lastSettlementL1BlockHeight);
     const expectedHeightDiff = numL1Blocks.toUInt64().mul(blocksPerL1Block);
 
     const actualHeightDiff = toNetworkState.block.height.sub(

@@ -231,10 +231,6 @@ export const settlementTestFn = (
       const accs = await accountService.getFundedAccounts(3);
       testAccounts = accs.slice(1);
 
-      // const acc3 = Mina.getAccount(sequencerKey.toPublicKey());
-
-      const acc = await fetchAccount({ publicKey: accs[0].toPublicKey() });
-
       console.log(
         `Funding ${sequencerKey.toPublicKey().toBase58()} from ${accs[0].toPublicKey().toBase58()}`
       );
@@ -250,6 +246,7 @@ export const settlementTestFn = (
 
     let nonceCounter = 0;
     let user0Nonce = 0;
+    let acc0L2Nonce = 0;
 
     it(
       "should deploy",
@@ -266,10 +263,11 @@ export const settlementTestFn = (
       timeout
     );
 
-    it.skip(
+    it(
       "should settle",
       async () => {
         const [, batch] = await createBatch(true);
+        acc0L2Nonce++;
 
         const input = BlockProverPublicInput.fromFields(
           batch!.proof.publicInput.map((x) => Field(x))
@@ -412,10 +410,13 @@ export const settlementTestFn = (
           runtime: appChain.runtime,
           method: ["Withdrawals", "withdraw"],
           args: [userKey.toPublicKey(), UInt64.from(50 * 1e9)],
-          nonce: 2,
+          nonce: acc0L2Nonce + 1,
           privateKey: userKey,
         });
-        const [block, batch] = await createBatch(true, 1, [withdrawalTx]);
+        const [block, batch] = await createBatch(true, acc0L2Nonce, [
+          withdrawalTx,
+        ]);
+        acc0L2Nonce += 2;
 
         console.log("Test netowrkstate");
         console.log(NetworkState.toJSON(block!.networkState.during));
