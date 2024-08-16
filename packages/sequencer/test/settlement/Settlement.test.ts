@@ -1,6 +1,6 @@
 import { settlementTestFn } from "./Settlement";
 
-describe.each(["signed", "mock-proofs"] as const)(
+describe.each(["mock-proofs", "signed"] as const)(
   "settlement contracts: localblockchain - %s",
   (type) => {
     settlementTestFn(type, {

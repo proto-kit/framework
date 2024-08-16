@@ -160,11 +160,7 @@ export class SettlementModule
   }
 
   protected isSignedSettlement(): boolean {
-    return (
-      // TODO Enable, add tests that test both signed settlement and normal
-      !this.baseLayer.isLocalBlockChain() &&
-      !this.areProofsEnabled.areProofsEnabled
-    );
+    return !this.areProofsEnabled.areProofsEnabled;
   }
 
   public signTransaction(
@@ -356,7 +352,6 @@ export class SettlementModule
     this.events.emit("settlement-submitted", batch);
 
     return {
-      // transactionHash: sent.hash() ?? "",
       batches: [batch.height],
       promisedMessagesHash: latestSequenceStateHash.toString(),
     };
@@ -384,13 +379,6 @@ export class SettlementModule
       ? new SignedSettlementPermissions()
       : new ProvenSettlementPermissions();
 
-    if (this.baseLayer.config.network.type !== "local") {
-      // const ac1 = await fetchAccount({ publicKey: feepayer });
-      // console.log(ac1);
-    }
-
-    // this.baseLayer
-    //       .originalNetwork!
     const tx = await Mina.transaction(
       {
         sender: feepayer,
