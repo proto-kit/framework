@@ -1,5 +1,13 @@
 import "reflect-metadata";
-import { PublicKey, Struct, Bool, PrivateKey, Field, UInt64, Poseidon } from "o1js";
+import {
+  PublicKey,
+  Struct,
+  Bool,
+  PrivateKey,
+  Field,
+  UInt64,
+  Poseidon,
+} from "o1js";
 import {
   MethodPublicOutput,
   NetworkState,
@@ -8,7 +16,6 @@ import {
 } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 import { AreProofsEnabled, log } from "@proto-kit/common";
-import { createTransaction } from "o1js/dist/node/lib/mina/transaction";
 
 import {
   Runtime,
@@ -152,6 +159,7 @@ describe("runtimeMethod", () => {
     expect(eventsResults[0]).toStrictEqual(expectedEvent);
 
     context.afterMethod();
+
     const proof = await context.current().result.prover!();
     const publicOuput = proof.publicOutput as MethodPublicOutput;
     const { eventsHash } = publicOuput;
