@@ -59,10 +59,7 @@ export class RuntimeModule<
 
   public events: Record<string, FlexibleProvablePure<any>> = {};
 
-  public emit<Key extends StringKeyOf<this["events"]>>(
-    eventName: Key,
-    event: FlexibleProvablePure<any>
-  ) {
+  public emit(eventName: string, event: any) {
     const eventType: FlexibleProvablePure<any> = this.events[eventName];
     return container
       .resolve(RuntimeMethodExecutionContext)
