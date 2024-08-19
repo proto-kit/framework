@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { PublicKey, Struct, Bool, PrivateKey } from "o1js";
+import { PublicKey, Struct, Bool, PrivateKey, Field, UInt64, Poseidon } from "o1js";
 import {
   MethodPublicOutput,
   NetworkState,
@@ -111,7 +111,7 @@ describe("runtimeMethod", () => {
   });
 
   it("should capture event", async () => {
-    expect.assertions(2);
+    expect.assertions(3);
 
     const context = container.resolve(RuntimeMethodExecutionContext);
 
@@ -121,38 +121,40 @@ describe("runtimeMethod", () => {
       } as AreProofsEnabled,
     });
 
-    // const privateKey = PrivateKey.random();
-    // context.setup({
-    //   transaction: new RuntimeTransaction({
-    //     runtime,
-    //     method: ["EventMaker", "MakeEvent"],
-    //     privateKey,
-    //     args: [],
-    //     // nonce: 0,
-    //   }),
-    //   networkState: NetworkState.empty(),
-    // });
+    const eventMakerMethodId = runtime.methodIdResolver.getMethodId(
+      "EventMaker",
+      "makeEvent"
+    );
 
-    // context.beforeMethod();
+    const privateKey = PrivateKey.random();
+    context.setup({
+      transaction: RuntimeTransaction.fromTransaction({
+        sender: privateKey.toPublicKey(),
+        nonce: UInt64.from(0),
+        methodId: Field(eventMakerMethodId),
+        argsHash: Poseidon.hash([]),
+      }),
+      networkState: NetworkState.empty(),
+    });
 
     const module = runtime.resolve("EventMaker");
     module.makeEvent();
 
     const expectedEvent = {
+      eventType: TestEvent,
       event: new TestEvent({
         message: Bool(false),
       }),
       eventName: "test",
-      eventType: TestEvent,
     };
     const eventsResults = context.current().result.events;
     expect(eventsResults).toHaveLength(1);
     expect(eventsResults[0]).toStrictEqual(expectedEvent);
 
-  //   const proof = await context.current().result.prover!();
-    //   const publicOuput = proof.publicOutput as MethodPublicOutput;
-  //   const { eventsHash } = publicOuput;
-  //   expect(eventsHash).toStrictEqual(toEventsHash([expectedEvent]));
-  // });
+    context.afterMethod();
+    const proof = await context.current().result.prover!();
+    const publicOuput = proof.publicOutput as MethodPublicOutput;
+    const { eventsHash } = publicOuput;
+    expect(eventsHash).toStrictEqual(toEventsHash([expectedEvent]));
   });
 });
