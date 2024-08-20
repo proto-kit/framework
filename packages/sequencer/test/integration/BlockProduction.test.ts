@@ -1,6 +1,11 @@
 import { log, range, MOCK_PROOF } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
-import { Runtime } from "@proto-kit/module";
+import {
+  Runtime,
+  runtimeMethod,
+  RuntimeModule,
+  runtimeModule,
+} from "@proto-kit/module";
 import {
   AccountState,
   MandatoryProtocolModulesRecord,
@@ -8,7 +13,7 @@ import {
   Protocol,
 } from "@proto-kit/protocol";
 import { AppChain } from "@proto-kit/sdk";
-import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
@@ -30,10 +35,31 @@ import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
 import { createTransaction } from "./utils";
 import { NoopRuntime } from "./mocks/NoopRuntime";
 
+export class TestEvent extends Struct({
+  message: Bool,
+}) {}
+
+@runtimeModule()
+class EventMaker extends RuntimeModule<unknown> {
+  public constructor() {
+    super();
+  }
+
+  public events = {
+    test: TestEvent,
+  };
+
+  @runtimeMethod()
+  public async makeEvent() {
+    this.emit("test", new TestEvent({ message: Bool(false) }));
+  }
+}
+
 describe("block production", () => {
   let runtime: Runtime<{
     Balance: typeof Balance;
     NoopRuntime: typeof NoopRuntime;
+    EventMaker: typeof EventMaker;
   }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
@@ -59,11 +85,13 @@ describe("block production", () => {
       modules: {
         Balance,
         NoopRuntime,
+        EventMaker,
       },
 
       config: {
         Balance: {},
         NoopRuntime: {},
+        EventMaker: {},
       },
     });
 
@@ -98,6 +126,7 @@ describe("block production", () => {
       Runtime: {
         Balance: {},
         NoopRuntime: {},
+        EventMaker: {},
       },
       Protocol: {
         AccountState: {},
@@ -560,6 +589,48 @@ describe("block production", () => {
 
     expect(block!.transactions[0].stateTransitions).toHaveLength(0);
     expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
+
+    const batch = await blockTrigger.produceBatch();
+
+    expect(batch).toBeDefined();
+
+    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.proof.proof).toBe(MOCK_PROOF);
+  }, 30000);
+
+  it("events - should produce block with the right events", async () => {
+    log.setLevel("TRACE");
+
+    const privateKey = PrivateKey.random();
+
+    const tx = createTransaction({
+      runtime,
+      method: ["EventMaker", "makeEvent"],
+      privateKey,
+      args: [],
+      nonce: 0,
+    });
+    await mempool.add(tx);
+
+    const expectedEvent = {
+      eventType: TestEvent,
+      event: new TestEvent({
+        message: Bool(false),
+      }),
+      eventName: "test",
+    };
+    const eventReduced = {
+      eventName: expectedEvent.eventName,
+      data: expectedEvent.eventType.toFields(expectedEvent.event),
+    };
+
+    const block = await blockTrigger.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.transactions).toHaveLength(1);
+    expect(block!.transactions[0].events).toHaveLength(1);
+    expect(block!.transactions[0].events[0]).toStrictEqual(eventReduced);
 
     const batch = await blockTrigger.produceBatch();
 
