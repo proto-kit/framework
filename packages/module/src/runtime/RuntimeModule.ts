@@ -1,9 +1,4 @@
-import {
-  ConfigurableModule,
-  NoConfig,
-  Presets,
-  StringKeyOf,
-} from "@proto-kit/common";
+import { ConfigurableModule, NoConfig, Presets } from "@proto-kit/common";
 import { container, injectable } from "tsyringe";
 import {
   NetworkState,
