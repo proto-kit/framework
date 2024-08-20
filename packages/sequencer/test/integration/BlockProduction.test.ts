@@ -636,7 +636,7 @@ describe("block production", () => {
 
     expect(batch).toBeDefined();
 
-    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
   }, 30000);
 });
