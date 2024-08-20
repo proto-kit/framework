@@ -5,7 +5,12 @@ import {
   TokenId,
   VanillaProtocolModules,
 } from "@proto-kit/library";
-import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
+import {
+  Runtime,
+  runtimeMethod,
+  RuntimeModule,
+  runtimeModule,
+} from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
@@ -27,7 +32,7 @@ import {
   BlockProducerModule,
   VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
-import { PrivateKey, PublicKey } from "o1js";
+import { Bool, PrivateKey, PublicKey, Struct } from "o1js";
 
 import {
   PrismaDatabaseConfig,
@@ -65,11 +70,20 @@ export const IntegrationTestDBConfig = {
   redisConfig,
 };
 
+export class TestEvent extends Struct({
+  message: Bool,
+}) {}
+
 @runtimeModule()
 export class MintableBalances extends Balances {
+  public events = {
+    test: TestEvent,
+  };
+
   @runtimeMethod()
   public async mintDefaultToken(address: PublicKey, amount: Balance) {
     await this.mint(TokenId.from(0), address, amount);
+    this.emit("test", new TestEvent({ message: Bool(false) }));
   }
 }
 
@@ -172,3 +186,21 @@ export async function prepareBlock(
   await tx.send();
   return tx;
 }
+
+// export async function prepareBlockEvents(
+//   appChain: ReturnType<typeof createPrismaAppchain>,
+//   sender: PublicKey,
+//   nonce: number
+// ): Promise<AppChainTransaction> {
+//   const eventMaker = appChain.runtime.resolve("EventMaker");
+//   const tx = await appChain.transaction(
+//     sender,
+//     async () => {
+//       await eventMaker.makeEvent();
+//     },
+//     { nonce }
+//   );
+//   await tx.sign();
+//   await tx.send();
+//   return tx;
+// }
