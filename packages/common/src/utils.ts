@@ -1,4 +1,10 @@
-import { Field, FlexibleProvablePure, Poseidon } from "o1js";
+import {
+  Field,
+  FlexibleProvablePure,
+  Poseidon,
+  DynamicProof,
+  Proof,
+} from "o1js";
 
 export function requireTrue(
   condition: boolean,
@@ -85,10 +91,14 @@ export interface ToJSONableStatic {
   toJSON: (value: unknown) => any;
 }
 
-export interface ProofTypes {
-  publicOutputType?: ToFieldableStatic;
-  publicInputType?: ToFieldableStatic;
-}
+// export interface ProofTypes {
+//   publicOutputType?: ToFieldableStatic;
+//   publicInputType?: ToFieldableStatic;
+// }
+
+export type ProofTypes =
+  | typeof Proof<unknown, unknown>
+  | typeof DynamicProof<unknown, unknown>;
 
 export async function sleep(ms: number) {
   await new Promise((resolve) => {

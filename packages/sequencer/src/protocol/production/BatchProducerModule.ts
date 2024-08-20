@@ -20,7 +20,7 @@ import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
-import { Block, BlockResult, BlockWithResult } from "../../storage/model/Block";
+import { BlockResult, BlockWithResult } from "../../storage/model/Block";
 
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
@@ -77,7 +77,7 @@ export class BatchProducerModule extends SequencerModule {
     private readonly asyncStateService: AsyncStateService,
     @inject("AsyncMerkleStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
-    @inject("BlockStorage") private readonly blockStorage: BatchStorage,
+    @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly traceService: TransactionTraceService,
@@ -87,7 +87,7 @@ export class BatchProducerModule extends SequencerModule {
     super();
   }
 
-  private async applyStateChanges(blocks: Block[], batch: BatchMetadata) {
+  private async applyStateChanges(batch: BatchMetadata) {
     await batch.stateService.mergeIntoParent();
     await batch.merkleStore.mergeIntoParent();
   }
@@ -102,30 +102,30 @@ export class BatchProducerModule extends SequencerModule {
   ): Promise<SettleableBatch | undefined> {
     log.info("Producing batch...");
 
-    const height = await this.blockStorage.getCurrentBlockHeight();
+    const height = await this.batchStorage.getCurrentBatchHeight();
 
-    const blockWithStateDiff = await this.tryProduceBlock(blocks, height);
+    const batchWithStateDiff = await this.tryProduceBatch(blocks, height);
 
-    if (blockWithStateDiff !== undefined) {
+    if (batchWithStateDiff !== undefined) {
+      const numTxs = blocks.reduce(
+        (sum, block) => sum + block.block.block.transactions.length,
+        0
+      );
       log.info(
-        `Batch produced (${blockWithStateDiff.batch.bundles.length} bundles, ${
-          blockWithStateDiff.batch.bundles.flat(1).length
-        } txs)`
+        `Batch produced (${batchWithStateDiff.batch.blockHashes.length} blocks, ${numTxs} txs)`
       );
+
       // Apply state changes to current StateService
-      await this.applyStateChanges(
-        blocks.map((data) => data.block.block),
-        blockWithStateDiff
-      );
+      await this.applyStateChanges(batchWithStateDiff);
     }
-    return blockWithStateDiff?.batch;
+    return batchWithStateDiff?.batch;
   }
 
   public async start(): Promise<void> {
     noop();
   }
 
-  private async tryProduceBlock(
+  private async tryProduceBatch(
     blocks: BlockWithPreviousResult[],
     height: number
   ): Promise<BatchMetadata | undefined> {
@@ -167,27 +167,27 @@ export class BatchProducerModule extends SequencerModule {
     blocks: BlockWithPreviousResult[],
     height: number
   ): Promise<BatchMetadata | undefined> {
-    const block = await this.computeBatch(blocks, height);
+    const batch = await this.computeBatch(blocks, height);
 
-    const computedBundles = blocks.map((bundle) =>
+    const blockHashes = blocks.map((bundle) =>
       bundle.block.block.hash.toString()
     );
 
     const jsonProof = this.blockProofSerializer
       .getBlockProofSerializer()
-      .toJSONProof(block.proof);
+      .toJSONProof(batch.proof);
 
     return {
       batch: {
         proof: jsonProof,
-        bundles: computedBundles,
+        blockHashes,
         height,
-        fromNetworkState: block.fromNetworkState,
-        toNetworkState: block.toNetworkState,
+        fromNetworkState: batch.fromNetworkState,
+        toNetworkState: batch.toNetworkState,
       },
 
-      stateService: block.stateService,
-      merkleStore: block.merkleStore,
+      stateService: batch.stateService,
+      merkleStore: batch.merkleStore,
     };
   }
 

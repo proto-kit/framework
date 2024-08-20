@@ -110,12 +110,12 @@ describe("graphql client test", () => {
       "BlockTrigger",
       ManualBlockTrigger
     );
-    await trigger.produceUnproven();
-  });
+    await trigger.produceBlock();
+  }, 20_000);
 
   afterAll(async () => {
     server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
-  });
+  }, 20_000);
 
   it("should retrieve state", async () => {
     expect.assertions(1);
@@ -136,7 +136,7 @@ describe("graphql client test", () => {
     await tx.sign();
     await tx.send();
 
-    await trigger.produceUnproven();
+    await trigger.produceBlock();
 
     const balance = await appChain.query.runtime.Balances.balances.get(
       new BalancesKey({

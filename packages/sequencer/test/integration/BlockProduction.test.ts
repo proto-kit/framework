@@ -187,7 +187,7 @@ describe("block production", () => {
 
     expect(batch).toBeDefined();
 
-    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
     expect(
@@ -197,7 +197,7 @@ describe("block production", () => {
     // Check if the batchstorage has received the block
     const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage &
       HistoricalBatchStorage;
-    const retrievedBatch = await batchStorage.getBlockAt(0);
+    const retrievedBatch = await batchStorage.getBatchAt(0);
     expect(retrievedBatch).toBeDefined();
 
     const stateService =
@@ -261,7 +261,7 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
-    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
     const state2 = await stateService.get(balancesPath);
@@ -364,7 +364,7 @@ describe("block production", () => {
 
     const batch = await blockTrigger.produceBatch();
 
-    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
     const stateService =
@@ -416,7 +416,7 @@ describe("block production", () => {
 
     expect(block).toBeDefined();
 
-    expect(batch!.bundles).toHaveLength(2);
+    expect(batch!.blockHashes).toHaveLength(2);
     expect(block!.transactions).toHaveLength(2);
 
     const stateService =
@@ -447,7 +447,7 @@ describe("block production", () => {
     await blockTrigger.produceBlock();
     const proven2 = await blockTrigger.produceBatch();
 
-    expect(proven2?.bundles.length).toBe(2);
+    expect(proven2?.blockHashes.length).toBe(2);
   }, 720_000);
 
   it.skip.each([
@@ -500,7 +500,7 @@ describe("block production", () => {
         const batch = await blockTrigger.produceBatch();
 
         expect(batch).toBeDefined();
-        expect(batch!.bundles).toHaveLength(blocksPerBatch);
+        expect(batch!.blockHashes).toHaveLength(blocksPerBatch);
       }
     },
     500_000
@@ -533,7 +533,7 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBe(undefined);
 
-    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
     const stateService =
@@ -594,7 +594,7 @@ describe("block production", () => {
 
     expect(batch).toBeDefined();
 
-    expect(batch!.bundles).toHaveLength(1);
+    expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
   }, 30000);
 

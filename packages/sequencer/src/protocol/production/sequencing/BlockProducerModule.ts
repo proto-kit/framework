@@ -79,7 +79,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       log.info(`Method: ${methodName?.join(".")}`);
       log.info();
       if (log.getLevel() <= log.levels.INFO) {
-        Provable.log("Arguments:", paramEncoder.decodeFields(tx.tx.argsFields));
+        Provable.log(
+          "Arguments:",
+          paramEncoder.decode(tx.tx.argsFields, tx.tx.auxiliaryData)
+        );
       }
       log.info(
         `Status: ${tx.status.toBoolean()}`,

@@ -85,7 +85,7 @@ export class PrismaDatabaseConnection
       "Transaction",
       "Block",
       "Batch",
-      "UnprovenBlockMetadata",
+      "BlockResult",
       "State",
       "Settlement",
       "IncomingMessageBatch",

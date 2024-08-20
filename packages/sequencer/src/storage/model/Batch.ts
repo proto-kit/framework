@@ -11,7 +11,7 @@ export interface BatchTransaction {
 
 export interface Batch {
   proof: JsonProof;
-  bundles: string[];
+  blockHashes: string[];
   height: number;
 }
 

@@ -28,12 +28,12 @@ export function createTransaction(spec: {
     spec.runtime.resolve(spec.method[0]),
     spec.method[1]
   );
-  const { argsFields, argsJSON } = decoder.encode(spec.args);
+  const { fields, auxiliary } = decoder.encode(spec.args);
 
   return new UnsignedTransaction({
     methodId: Field(methodId),
-    argsFields,
-    argsJSON,
+    argsFields: fields,
+    auxiliaryData: auxiliary,
     sender: spec.privateKey.toPublicKey(),
     nonce: UInt64.from(spec.nonce),
     isMessage: false,

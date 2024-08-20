@@ -57,7 +57,7 @@ export class BlockTriggerBase<
     if (blocks.length > 0) {
       const batch = await this.batchProducerModule?.createBatch(blocks);
       if (batch !== undefined) {
-        await this.batchQueue.pushBlock(batch);
+        await this.batchQueue.pushBatch(batch);
         this.events.emit("batch-produced", batch);
       }
       return batch;
@@ -74,7 +74,7 @@ export class BlockTriggerBase<
       await this.blockQueue.pushBlock(block.block);
       this.events.emit("block-produced", block.block);
 
-      await this.blockQueue.pushMetadata(block.result);
+      await this.blockQueue.pushResult(block.result);
       this.events.emit("block-metadata-produced", block);
     }
 

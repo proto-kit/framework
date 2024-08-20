@@ -44,7 +44,7 @@ export class TransactionObject {
       nonce,
       signature,
       argsFields,
-      argsJSON,
+      auxiliaryData,
       isMessage,
     } = pt.toJSON();
     return new TransactionObject(
@@ -54,7 +54,7 @@ export class TransactionObject {
       nonce,
       signature,
       argsFields,
-      argsJSON,
+      auxiliaryData,
       isMessage
     );
   }
@@ -80,7 +80,7 @@ export class TransactionObject {
   public argsFields: string[];
 
   @Field(() => [String])
-  public argsJSON: string[];
+  public auxiliaryData: string[];
 
   @Field()
   public isMessage: boolean;
@@ -92,7 +92,7 @@ export class TransactionObject {
     nonce: string,
     signature: Signature,
     argsFields: string[],
-    argsJSON: string[],
+    auxiliaryData: string[],
     isMessage: boolean
   ) {
     this.hash = hash;
@@ -101,7 +101,7 @@ export class TransactionObject {
     this.nonce = nonce;
     this.signature = signature;
     this.argsFields = argsFields;
-    this.argsJSON = argsJSON;
+    this.auxiliaryData = auxiliaryData;
     this.isMessage = isMessage;
   }
 }

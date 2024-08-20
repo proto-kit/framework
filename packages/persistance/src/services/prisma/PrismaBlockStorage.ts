@@ -141,8 +141,8 @@ export class PrismaBlockStorage
     ]);
   }
 
-  public async pushMetadata(metadata: BlockResult): Promise<void> {
-    const encoded = this.blockResultMapper.mapOut(metadata);
+  public async pushResult(result: BlockResult): Promise<void> {
+    const encoded = this.blockResultMapper.mapOut(result);
 
     await this.connection.prismaClient.blockResult.create({
       data: {

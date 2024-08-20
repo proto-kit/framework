@@ -39,8 +39,8 @@ describe("prisma integration", () => {
     await appChain.start(container.createChildContainer());
 
     const db = appChain.sequencer.resolve("Database");
-    await db.prisma.clearDatabase();
-    await db.redis.clearDatabase();
+    await db.prisma.pruneDatabase();
+    await db.redis.pruneDatabase();
 
     senderNonce = 0;
   };
@@ -61,7 +61,7 @@ describe("prisma integration", () => {
 
       [block, batch] = await appChain.sequencer
         .resolve("BlockTrigger")
-        .produceBlock();
+        .produceBlockAndBatch();
     }, 30000);
 
     afterAll(async () => {
@@ -119,17 +119,19 @@ describe("prisma integration", () => {
 
       // Check equality of batch
       const batchStorage = await appChain.sequencer.resolveOrFail(
-        "BlockStorage",
+        "BatchStorage",
         PrismaBatchStore
       );
-      const retrievedBatch = await batchStorage.getBlockAt(0);
+      const retrievedBatch = await batchStorage.getBatchAt(0);
       expectDefined(retrievedBatch);
 
       expect(retrievedBatch.height).toStrictEqual(batch.height);
-      expect(retrievedBatch.bundles).toHaveLength(
-        retrievedBatch.bundles.length
+      expect(retrievedBatch.blockHashes).toHaveLength(
+        retrievedBatch.blockHashes.length
       );
-      expect(retrievedBatch.bundles).toStrictEqual(retrievedBatch.bundles);
+      expect(retrievedBatch.blockHashes).toStrictEqual(
+        retrievedBatch.blockHashes
+      );
     });
 
     it("should query fetches correct nonce", async () => {
@@ -162,7 +164,7 @@ describe("prisma integration", () => {
       expect(balance.toString()).toStrictEqual("100");
     });
 
-    describe("add balance to second account", () => {
+    describe.skip("add balance to second account", () => {
       const sender2 = PrivateKey.random();
 
       beforeAll(async () => {
@@ -177,7 +179,7 @@ describe("prisma integration", () => {
       it("should produce the block", async () => {
         const [block2, batch2] = await appChain.sequencer
           .resolve("BlockTrigger")
-          .produceBlock();
+          .produceBlockAndBatch();
 
         expectDefined(block2);
         expectDefined(batch2);

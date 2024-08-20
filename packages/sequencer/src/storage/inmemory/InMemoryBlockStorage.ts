@@ -43,13 +43,15 @@ export class InMemoryBlockStorage
   }
 
   public async getNewBlocks(): Promise<BlockWithPreviousResult[]> {
-    const latestBatch = await this.batchStorage.getLatestBlock();
+    const latestBatch = await this.batchStorage.getLatestBatch();
 
     let cursor = 0;
     if (latestBatch !== undefined) {
       cursor = this.blocks.reduce(
         (c, block, index) =>
-          latestBatch.bundles.includes(block.hash.toString()) ? index + 1 : c,
+          latestBatch.blockHashes.includes(block.hash.toString())
+            ? index + 1
+            : c,
         0
       );
     }
@@ -76,12 +78,12 @@ export class InMemoryBlockStorage
     this.blocks.push(block);
   }
 
-  public async getNewestMetadata(): Promise<BlockResult | undefined> {
+  public async getNewestResult(): Promise<BlockResult | undefined> {
     return this.results.length > 0 ? this.results.at(-1) : undefined;
   }
 
-  public async pushMetadata(metadata: BlockResult): Promise<void> {
-    this.results.push(metadata);
+  public async pushResult(result: BlockResult): Promise<void> {
+    this.results.push(result);
   }
 
   public async getBlock(hash: string): Promise<Block | undefined> {

@@ -56,10 +56,10 @@ export class BlockStorageNetworkStateModule
   }
 
   public async getProvenNetworkState(): Promise<NetworkState | undefined> {
-    const batch = await this.provenStorage.getLatestBlock();
+    const batch = await this.provenStorage.getLatestBatch();
 
     if (batch !== undefined) {
-      const lastBlock = batch.bundles.at(-1);
+      const lastBlock = batch.blockHashes.at(-1);
       if (lastBlock === undefined) {
         throw new Error(
           "Batches shouldn't be able to generate proofs without bundles"

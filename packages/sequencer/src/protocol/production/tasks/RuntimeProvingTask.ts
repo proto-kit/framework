@@ -65,7 +65,10 @@ export class RuntimeProvingTask
       this.runtime.resolve(moduleName),
       methodName
     );
-    const decodedArguments = await parameterEncoder.decode(input.tx.argsJSON);
+    const decodedArguments = await parameterEncoder.decode(
+      input.tx.argsFields,
+      input.tx.auxiliaryData
+    );
 
     const prefilledStateService = new PreFilledStateService(input.state);
     this.runtime.stateServiceProvider.setCurrentStateService(
