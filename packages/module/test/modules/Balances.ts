@@ -38,26 +38,6 @@ export class Balances extends RuntimeModule<BalancesConfig> {
   }
 
   @runtimeMethod()
-  public async transfer(a: PublicKey, b: PublicKey, amount: UInt64) {
-    // Transfer
-    // type X = InferProvable<this["events"]["transfer"]>;
-    // const x: T = {
-    //   from: a,
-    //   to: b,
-    //   amount,
-    // };
-    // type T = InferProvable<this["events"]["transfer"]>;
-    // this.emit(
-    //   "transfer",
-    //   new TransferEvent({
-    //     from: a,
-    //     to: b,
-    //     amount,
-    //   })
-    // );
-  }
-
-  @runtimeMethod()
   public async getTotalSupply() {
     await this.totalSupply.get();
   }

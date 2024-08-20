@@ -22,16 +22,6 @@ const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
 };
 
-// type Infer<t extends FlexibleProvablePure<any>> =
-//   t extends Provable<infer U> ? U : never;
-
-// type ExtractEvents<
-//   Module extends { events: Record<string, FlexibleProvablePure<any>> },
-//   Key extends string,
-// > = Key extends keyof Module["events"]
-//   ? [Key, InferProvable<Module["events"][Key]>]
-//   : never;
-
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
