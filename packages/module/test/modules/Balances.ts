@@ -1,4 +1,4 @@
-import { PublicKey, UInt64, Struct } from "o1js";
+import { PublicKey, UInt64 } from "o1js";
 import { State, StateMap } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 
