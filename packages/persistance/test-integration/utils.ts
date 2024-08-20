@@ -5,12 +5,7 @@ import {
   TokenId,
   VanillaProtocolModules,
 } from "@proto-kit/library";
-import {
-  Runtime,
-  runtimeMethod,
-  RuntimeModule,
-  runtimeModule,
-} from "@proto-kit/module";
+import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
@@ -186,21 +181,3 @@ export async function prepareBlock(
   await tx.send();
   return tx;
 }
-
-// export async function prepareBlockEvents(
-//   appChain: ReturnType<typeof createPrismaAppchain>,
-//   sender: PublicKey,
-//   nonce: number
-// ): Promise<AppChainTransaction> {
-//   const eventMaker = appChain.runtime.resolve("EventMaker");
-//   const tx = await appChain.transaction(
-//     sender,
-//     async () => {
-//       await eventMaker.makeEvent();
-//     },
-//     { nonce }
-//   );
-//   await tx.sign();
-//   await tx.send();
-//   return tx;
-// }

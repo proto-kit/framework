@@ -8,12 +8,6 @@ import { Admin } from "./Admin.js";
 
 interface BalancesConfig {}
 
-export class TransferEvent extends Struct({
-  from: PublicKey,
-  to: PublicKey,
-  amount: UInt64,
-}) {}
-
 @runtimeModule()
 export class Balances extends RuntimeModule<BalancesConfig> {
   /**
@@ -21,10 +15,6 @@ export class Balances extends RuntimeModule<BalancesConfig> {
    * presets by key in a type safe way.
    */
   public static presets = {} satisfies Presets<BalancesConfig>;
-
-  events = {
-    transfer: TransferEvent,
-  } as const;
 
   @state() public totalSupply = State.from<UInt64>(UInt64);
 
