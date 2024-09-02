@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */
-import { ZkProgram } from "o1js";
+import { Int64, Provable, ZkProgram } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
@@ -30,6 +30,7 @@ import { MethodIdFactory } from "../factories/MethodIdFactory";
 import { RuntimeModule } from "./RuntimeModule";
 import { MethodIdResolver } from "./MethodIdResolver";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
+import { Tuple } from "o1js/dist/node/lib/util/types";
 
 export function getAllPropertyNames(obj: any) {
   let currentPrototype: any | undefined = obj;
@@ -175,6 +176,49 @@ export class RuntimeZkProgrammable<
     const sortedRuntimeMethods = Object.fromEntries(
       Object.entries(runtimeMethods).sort()
     );
+
+    const splitRunTimeMethods = () => {
+      const buckets: Array<
+        [
+          Record<
+            string,
+            {
+              privateInputs: any;
+              method: AsyncWrappedMethod;
+            }
+          >,
+          number,
+        ]
+      > = [];
+      Object.entries(runtimeMethods).forEach(async ([methodName, method]) => {
+        const rowCount = (await Provable.constraintSystem(() => method)).rows;
+        let methodAdded = false;
+        for (const bucket of buckets) {
+          if (buckets.length === 0) {
+            const record: Record<
+              string,
+              {
+                privateInputs: any;
+                method: AsyncWrappedMethod;
+              }
+            > = {};
+            record[methodName] = method;
+            buckets.push([record, rowCount]);
+            methodAdded = true;
+            break;
+          } else if (bucket[1] + rowCount <= 2 ** 16) {
+            bucket[0][methodName] = method;
+            bucket[1] += rowCount;
+            methodAdded = true;
+            break;
+          }
+        }
+        if (!methodAdded) {
+          buckets.push([{ methodName: method }, rowCount]);
+        }
+      });
+      return buckets;
+    };
 
     const program = ZkProgram({
       name: "RuntimeProgram",
