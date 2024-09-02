@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */
-import { Int64, Provable, ZkProgram } from "o1js";
+import { Provable, ZkProgram } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
@@ -30,7 +30,6 @@ import { MethodIdFactory } from "../factories/MethodIdFactory";
 import { RuntimeModule } from "./RuntimeModule";
 import { MethodIdResolver } from "./MethodIdResolver";
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
-import { Tuple } from "o1js/dist/node/lib/util/types";
 
 export function getAllPropertyNames(obj: any) {
   let currentPrototype: any | undefined = obj;
@@ -190,58 +189,86 @@ export class RuntimeZkProgrammable<
           number,
         ]
       > = [];
-      Object.entries(runtimeMethods).forEach(async ([methodName, method]) => {
-        const rowCount = (await Provable.constraintSystem(() => method)).rows;
-        let methodAdded = false;
-        for (const bucket of buckets) {
-          if (buckets.length === 0) {
-            const record: Record<
-              string,
-              {
-                privateInputs: any;
-                method: AsyncWrappedMethod;
-              }
-            > = {};
-            record[methodName] = method;
-            buckets.push([record, rowCount]);
-            methodAdded = true;
-            break;
-          } else if (bucket[1] + rowCount <= 2 ** 16) {
-            bucket[0][methodName] = method;
-            bucket[1] += rowCount;
-            methodAdded = true;
-            break;
+      Object.entries(sortedRuntimeMethods).forEach(
+        async ([methodName, method]) => {
+          const rowCount = (await Provable.constraintSystem(() => method)).rows;
+          let methodAdded = false;
+          for (const bucket of buckets) {
+            if (buckets.length === 0) {
+              const record: Record<
+                string,
+                {
+                  privateInputs: any;
+                  method: AsyncWrappedMethod;
+                }
+              > = {};
+              record[methodName] = method;
+              buckets.push([record, rowCount]);
+              methodAdded = true;
+              break;
+            } else if (bucket[1] + rowCount <= 2 ** 16) {
+              bucket[0][methodName] = method;
+              bucket[1] += rowCount;
+              methodAdded = true;
+              break;
+            }
+          }
+          if (!methodAdded) {
+            buckets.push([{ methodName: method }, rowCount]);
           }
         }
-        if (!methodAdded) {
-          buckets.push([{ methodName: method }, rowCount]);
-        }
-      });
+      );
       return buckets;
     };
 
-    const program = ZkProgram({
-      name: "RuntimeProgram",
-      publicOutput: MethodPublicOutput,
-      methods: sortedRuntimeMethods,
+    return splitRunTimeMethods().map((bucket) => {
+      const program = ZkProgram({
+        name: "RuntimeProgram",
+        publicOutput: MethodPublicOutput,
+        methods: bucket[0],
+      });
+
+      const SelfProof = ZkProgram.Proof(program);
+
+      const methods = Object.keys(bucket[0]).reduce<Record<string, any>>(
+        (boundMethods, methodName) => {
+          boundMethods[methodName] = program[methodName].bind(program);
+          return boundMethods;
+        },
+        {}
+      );
+
+      return {
+        compile: program.compile.bind(program),
+        verify: program.verify.bind(program),
+        analyzeMethods: program.analyzeMethods.bind(program),
+        Proof: SelfProof,
+        methods,
+      };
     });
 
-    const SelfProof = ZkProgram.Proof(program);
+    // const program = ZkProgram({
+    //   name: "RuntimeProgram",
+    //   publicOutput: MethodPublicOutput,
+    //   methods: sortedRuntimeMethods,
+    // });
 
-    const methods = Object.keys(sortedRuntimeMethods).reduce<
-      Record<string, any>
-    >((boundMethods, methodName) => {
-      boundMethods[methodName] = program[methodName].bind(program);
-      return boundMethods;
-    }, {});
+    // const SelfProof = ZkProgram.Proof(program);
 
-    return {
-      compile: program.compile.bind(program),
-      verify: program.verify.bind(program),
-      analyzeMethods: program.analyzeMethods.bind(program),
-      Proof: SelfProof,
-      methods,
-    };
+    // const methods = Object.keys(sortedRuntimeMethods).reduce<
+    //   Record<string, any>
+    // >((boundMethods, methodName) => {
+    //   boundMethods[methodName] = program[methodName].bind(program);
+    //   return boundMethods;
+    // }, {});
+
+    // return {
+    //   compile: program.compile.bind(program),
+    //   verify: program.verify.bind(program),
+    //   analyzeMethods: program.analyzeMethods.bind(program),
+    //   Proof: SelfProof,
+    //   methods,
+    // };
   }
 }
 
