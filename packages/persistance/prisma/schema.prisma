@@ -27,7 +27,7 @@ model Transaction {
   sender String
   nonce String
   argsFields String[]
-  argsJSON String[]
+  auxiliaryData String[]
   signature_r String
   signature_s String
 
@@ -69,7 +69,7 @@ model Block {
   successor Block? @relation("Parent")
 
   transactions TransactionExecutionResult[]
-  metadata UnprovenBlockMetadata?
+  result BlockResult?
 
   batch Batch? @relation(fields: [batchHeight], references: [height])
   batchHeight Int?
@@ -86,7 +86,7 @@ model Batch {
   settlement Settlement? @relation(fields: [settlementTransactionHash], references: [transactionHash])
 }
 
-model UnprovenBlockMetadata {
+model BlockResult {
   blockHash String @id @unique
 
   stateRoot String

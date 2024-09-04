@@ -260,7 +260,7 @@ export class AppChain<
       methodName
     );
 
-    const { argsJSON, argsFields } = encoder.encode(args);
+    const { fields, auxiliary } = encoder.encode(args);
 
     const retrieveNonce = async (publicKey: PublicKey) => {
       const query = this.query.protocol as Query<
@@ -283,8 +283,8 @@ export class AppChain<
           .getMethodId(moduleName, methodName)
       ),
 
-      argsFields,
-      argsJSON,
+      argsFields: fields,
+      auxiliaryData: auxiliary,
       nonce,
       sender,
       isMessage: false,
@@ -328,6 +328,8 @@ export class AppChain<
 
     // console.log("creating sequencer");
     // this.sequencer.create(() => this.container);
+
+    await this.protocol.start();
 
     // this.runtime.start();
     await this.sequencer.start();

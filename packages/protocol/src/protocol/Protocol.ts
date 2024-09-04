@@ -181,4 +181,17 @@ export class Protocol<
       }
     });
   }
+
+  public async start() {
+    // eslint-disable-next-line guard-for-in
+    for (const moduleName in this.definition.modules) {
+      const protocolModule = this.resolve(moduleName);
+
+      log.info(
+        `Starting protocol module ${moduleName} (${protocolModule.constructor.name})`
+      );
+      // eslint-disable-next-line no-await-in-loop
+      await protocolModule.start();
+    }
+  }
 }

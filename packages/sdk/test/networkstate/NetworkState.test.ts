@@ -88,7 +88,7 @@ describe.skip("block production", () => {
     await tx.sign();
     await tx.send();
 
-    const [block] = await blockTrigger.produceBlock();
+    const [block] = await blockTrigger.produceBlockAndBatch();
 
     expectDefined(block);
     expect(block.transactions).toHaveLength(1);
@@ -112,7 +112,7 @@ describe.skip("block production", () => {
     await tx2.sign();
     await tx2.send();
 
-    const [block2] = await blockTrigger.produceBlock();
+    const [block2] = await blockTrigger.produceBlockAndBatch();
 
     expectDefined(block2);
 
@@ -133,7 +133,7 @@ describe.skip("block production", () => {
     await tx.sign();
     await tx.send();
 
-    const [block, batch] = await blockTrigger.produceBlock();
+    const [block, batch] = await blockTrigger.produceBlockAndBatch();
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
 
     expectDefined(batch);
@@ -150,7 +150,7 @@ describe.skip("block production", () => {
     await tx2.sign();
     await tx2.send();
 
-    const [block2, batch2] = await blockTrigger.produceBlock();
+    const [block2, batch2] = await blockTrigger.produceBlockAndBatch();
     expect(block2!.transactions[0].status.toBoolean()).toBe(true);
 
     expectDefined(batch2);
@@ -167,7 +167,7 @@ describe.skip("block production", () => {
     await tx3.sign();
     await tx3.send();
 
-    const [block3] = await blockTrigger.produceBlock();
+    const [block3] = await blockTrigger.produceBlockAndBatch();
     expect(block3!.transactions[0].status.toBoolean()).toBe(false);
   }, 30000);
 });

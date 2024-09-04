@@ -8,5 +8,6 @@ export * from "./runtime/Balances";
 export * from "./runtime/VanillaRuntimeModules";
 export * from "./runtime/Withdrawals";
 export * from "./sequencer/InMemorySequencerModules";
+export * from "./sequencer/SimpleSequencerModules";
 export * from "./hooks/TransactionFeeHook";
 export * from "./hooks/RuntimeFeeAnalyzerService";

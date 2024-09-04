@@ -1,4 +1,4 @@
-import { log, range } from "@proto-kit/common";
+import { log, range, MOCK_PROOF } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import {
@@ -14,8 +14,8 @@ import { container } from "tsyringe";
 
 import {
   AsyncStateService,
-  BlockStorage,
-  HistoricalBlockStorage,
+  BatchStorage,
+  HistoricalBatchStorage,
   ManualBlockTrigger,
   PrivateMempool,
   Sequencer,
@@ -28,9 +28,13 @@ import {
 import { Balance } from "./mocks/Balance";
 import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
 import { createTransaction } from "./utils";
+import { NoopRuntime } from "./mocks/NoopRuntime";
 
 describe("block production", () => {
-  let runtime: Runtime<{ Balance: typeof Balance }>;
+  let runtime: Runtime<{
+    Balance: typeof Balance;
+    NoopRuntime: typeof NoopRuntime;
+  }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
   let protocol: Protocol<
@@ -54,10 +58,12 @@ describe("block production", () => {
     const runtimeClass = Runtime.from({
       modules: {
         Balance,
+        NoopRuntime,
       },
 
       config: {
         Balance: {},
+        NoopRuntime: {},
       },
     });
 
@@ -83,14 +89,15 @@ describe("block production", () => {
         Database: {},
         BlockTrigger: {},
         Mempool: {},
+        BatchProducerModule: {},
         BlockProducerModule: {},
-        UnprovenProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
       },
       Runtime: {
         Balance: {},
+        NoopRuntime: {},
       },
       Protocol: {
         AccountState: {},
@@ -131,8 +138,8 @@ describe("block production", () => {
       })
     );
 
-    // let [block, batch] = await blockTrigger.produceBlock();
-    let block = await blockTrigger.produceUnproven();
+    // let [block, batch] = await blockTrigger.produceBlockAndBatch();
+    let block = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();
 
@@ -143,25 +150,25 @@ describe("block production", () => {
     expect(block!.transactions[0].stateTransitions).toHaveLength(1);
     expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
 
-    const latestBlockWithMetadata = await sequencer
-      .resolve("UnprovenBlockQueue")
+    const latestBlockWithResult = await sequencer
+      .resolve("BlockQueue")
       .getLatestBlock();
 
-    let batch = await blockTrigger.produceProven();
+    let batch = await blockTrigger.produceBatch();
 
     expect(batch).toBeDefined();
 
-    expect(batch!.bundles).toHaveLength(1);
-    expect(batch!.proof.proof).toBe("mock-proof");
+    expect(batch!.blockHashes).toHaveLength(1);
+    expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
     expect(
-      latestBlockWithMetadata!.metadata.afterNetworkState.hash().toString()
+      latestBlockWithResult!.result.afterNetworkState.hash().toString()
     ).toStrictEqual(batch!.toNetworkState.hash().toString());
 
     // Check if the batchstorage has received the block
-    const batchStorage = sequencer.resolve("BlockStorage") as BlockStorage &
-      HistoricalBlockStorage;
-    const retrievedBatch = await batchStorage.getBlockAt(0);
+    const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage &
+      HistoricalBatchStorage;
+    const retrievedBatch = await batchStorage.getBatchAt(0);
     expect(retrievedBatch).toBeDefined();
 
     const stateService =
@@ -215,7 +222,7 @@ describe("block production", () => {
 
     log.info("Starting second block");
 
-    [block, batch] = await blockTrigger.produceBlock();
+    [block, batch] = await blockTrigger.produceBlockAndBatch();
 
     expect(block).toBeDefined();
 
@@ -225,8 +232,8 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
-    expect(batch!.bundles).toHaveLength(1);
-    expect(batch!.proof.proof).toBe("mock-proof");
+    expect(batch!.blockHashes).toHaveLength(1);
+    expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
     const state2 = await stateService.get(balancesPath);
 
@@ -255,7 +262,7 @@ describe("block production", () => {
       })
     );
 
-    const [block] = await blockTrigger.produceBlock();
+    const [block] = await blockTrigger.produceBlockAndBatch();
 
     expect(block?.transactions).toHaveLength(1);
     expect(block?.transactions[0].status.toBoolean()).toBe(false);
@@ -306,7 +313,7 @@ describe("block production", () => {
     });
     await Promise.all(p);
 
-    const block = await blockTrigger.produceUnproven();
+    const block = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();
     expect(block!.transactions).toHaveLength(numberTxs);
@@ -326,10 +333,10 @@ describe("block production", () => {
       );
     });
 
-    const batch = await blockTrigger.produceProven();
+    const batch = await blockTrigger.produceBatch();
 
-    expect(batch!.bundles).toHaveLength(1);
-    expect(batch!.proof.proof).toBe("mock-proof");
+    expect(batch!.blockHashes).toHaveLength(1);
+    expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
@@ -374,13 +381,13 @@ describe("block production", () => {
       })
     );
 
-    const block = await blockTrigger.produceUnproven();
-    await blockTrigger.produceUnproven();
-    const batch = await blockTrigger.produceProven();
+    const block = await blockTrigger.produceBlock();
+    await blockTrigger.produceBlock();
+    const batch = await blockTrigger.produceBatch();
 
     expect(block).toBeDefined();
 
-    expect(batch!.bundles).toHaveLength(2);
+    expect(batch!.blockHashes).toHaveLength(2);
     expect(block!.transactions).toHaveLength(2);
 
     const stateService =
@@ -407,11 +414,11 @@ describe("block production", () => {
     expect(newState2).toBeDefined();
     expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
 
-    await blockTrigger.produceUnproven();
-    await blockTrigger.produceUnproven();
-    const proven2 = await blockTrigger.produceProven();
+    await blockTrigger.produceBlock();
+    await blockTrigger.produceBlock();
+    const proven2 = await blockTrigger.produceBatch();
 
-    expect(proven2?.bundles.length).toBe(2);
+    expect(proven2?.blockHashes.length).toBe(2);
   }, 720_000);
 
   it.skip.each([
@@ -454,17 +461,17 @@ describe("block production", () => {
           }
 
           // Produce block
-          const block = await blockTrigger.produceUnproven();
+          const block = await blockTrigger.produceBlock();
 
           expect(block).toBeDefined();
           expect(block!.transactions).toHaveLength(txsPerBlock);
           expect(block!.transactions[0].status.toBoolean()).toBe(true);
         }
 
-        const batch = await blockTrigger.produceProven();
+        const batch = await blockTrigger.produceBatch();
 
         expect(batch).toBeDefined();
-        expect(batch!.bundles).toHaveLength(blocksPerBatch);
+        expect(batch!.blockHashes).toHaveLength(blocksPerBatch);
       }
     },
     500_000
@@ -487,7 +494,7 @@ describe("block production", () => {
       })
     );
 
-    const [block, batch] = await blockTrigger.produceBlock();
+    const [block, batch] = await blockTrigger.produceBlockAndBatch();
 
     expect(block).toBeDefined();
     expect(batch).toBeDefined();
@@ -497,8 +504,8 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBe(undefined);
 
-    expect(batch!.bundles).toHaveLength(1);
-    expect(batch!.proof.proof).toBe("mock-proof");
+    expect(batch!.blockHashes).toHaveLength(1);
+    expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
     const stateService =
       sequencer.dependencyContainer.resolve<AsyncStateService>(
@@ -526,4 +533,39 @@ describe("block production", () => {
     expect(newBalance).toBeDefined();
     expect(UInt64.fromFields(newBalance!)).toStrictEqual(UInt64.from(200));
   }, 360_000);
+
+  it("regression - should produce block with no STs emitted", async () => {
+    log.setLevel("TRACE");
+
+    const privateKey = PrivateKey.random();
+
+    const tx = createTransaction({
+      runtime,
+      method: ["NoopRuntime", "emittingNoSTs"],
+      privateKey,
+      args: [],
+      nonce: 0,
+    });
+    console.log(tx.argsHash().toString());
+    console.log(tx.toProtocolTransaction().transaction.argsHash.toString());
+    await mempool.add(tx);
+
+    const block = await blockTrigger.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.transactions).toHaveLength(1);
+    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].statusMessage).toBeUndefined();
+
+    expect(block!.transactions[0].stateTransitions).toHaveLength(0);
+    expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
+
+    const batch = await blockTrigger.produceBatch();
+
+    expect(batch).toBeDefined();
+
+    expect(batch!.blockHashes).toHaveLength(1);
+    expect(batch!.proof.proof).toBe(MOCK_PROOF);
+  }, 30000);
 });

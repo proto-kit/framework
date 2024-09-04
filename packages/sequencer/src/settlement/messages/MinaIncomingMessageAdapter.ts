@@ -13,7 +13,7 @@ import {
   RuntimeModulesRecord,
   MethodParameterEncoder,
 } from "@proto-kit/module";
-import { EMPTY_PUBLICKEY } from "@proto-kit/common";
+import { EMPTY_PUBLICKEY, mapSequential } from "@proto-kit/common";
 import { RuntimeTransaction } from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
@@ -33,10 +33,10 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {}
 
-  private mapActionToTransactions(
+  private async mapActionToTransactions(
     tx: RuntimeTransaction,
     fieldArgs: Field[]
-  ): PendingTransaction {
+  ): Promise<PendingTransaction> {
     const { methodId } = tx;
 
     const methodPointer = this.runtime.methodIdResolver.getMethodNameFromId(
@@ -51,17 +51,19 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     const module = this.runtime.resolve(moduleName);
     const methodEncoder = MethodParameterEncoder.fromMethod(module, methodName);
 
-    const args = methodEncoder.decodeFields(fieldArgs);
+    // The reason why auxiliary is empty here, is that proof verification in the case
+    // of incoming messages has to happen on the L1 for multiple reasons.
+    const args = await methodEncoder.decode(fieldArgs, []);
 
-    const { argsJSON, argsFields } = methodEncoder.encode(args);
+    const { fields, auxiliary } = methodEncoder.encode(args);
 
     return new PendingTransaction({
       methodId,
       sender: EMPTY_PUBLICKEY,
       nonce: UInt64.zero,
       signature: Signature.create(PrivateKey.random(), [Field(0)]),
-      argsJSON,
-      argsFields,
+      argsFields: fields,
+      auxiliaryData: auxiliary,
       isMessage: true,
     });
   }
@@ -104,7 +106,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       );
     }
 
-    const messages = actions.map((action) => {
+    const messages = await mapSequential(actions, async (action) => {
       // Find events corresponding to the transaction to get the raw args
       const tx = RuntimeTransaction.fromHashData(
         action.actions[0].map((x) => Field(x))
@@ -124,7 +126,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       }
       const args = correspondingEvent.data.map((x) => Field(x));
 
-      return this.mapActionToTransactions(tx, args);
+      return await this.mapActionToTransactions(tx, args);
     });
 
     return {

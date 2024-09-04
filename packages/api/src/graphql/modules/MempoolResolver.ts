@@ -8,7 +8,94 @@ import {
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule.js";
 
-import { TransactionModel } from "./model/TransactionModel.js";
+@ObjectType()
+@InputType("SignatureInput")
+export class Signature {
+  @Field()
+  @IsNumberString()
+  public r: string;
+
+  @Field()
+  @IsNumberString()
+  public s: string;
+
+  public constructor(r: string, s: string) {
+    this.r = r;
+    this.s = s;
+  }
+}
+
+@ObjectType()
+@InputType("TransactionObjectInput")
+export class TransactionObject {
+  public static fromServiceLayerModel(pt: PendingTransaction) {
+    const {
+      methodId,
+      sender,
+      nonce,
+      signature,
+      argsFields,
+      auxiliaryData,
+      isMessage,
+    } = pt.toJSON();
+    return new TransactionObject(
+      pt.hash().toString(),
+      methodId,
+      sender,
+      nonce,
+      signature,
+      argsFields,
+      auxiliaryData,
+      isMessage
+    );
+  }
+
+  @Field()
+  public hash: string;
+
+  @Field()
+  @IsNumberString()
+  public methodId: string;
+
+  @Field()
+  public sender: string;
+
+  @Field()
+  @IsNumberString()
+  public nonce: string;
+
+  @Field(() => Signature)
+  public signature: Signature;
+
+  @Field(() => [String])
+  public argsFields: string[];
+
+  @Field(() => [String])
+  public auxiliaryData: string[];
+
+  @Field()
+  public isMessage: boolean;
+
+  public constructor(
+    hash: string,
+    methodId: string,
+    sender: string,
+    nonce: string,
+    signature: Signature,
+    argsFields: string[],
+    auxiliaryData: string[],
+    isMessage: boolean
+  ) {
+    this.hash = hash;
+    this.methodId = methodId;
+    this.sender = sender;
+    this.nonce = nonce;
+    this.signature = signature;
+    this.argsFields = argsFields;
+    this.auxiliaryData = auxiliaryData;
+    this.isMessage = isMessage;
+  }
+}
 
 enum InclusionStatus {
   UNKNOWN = "unknown",

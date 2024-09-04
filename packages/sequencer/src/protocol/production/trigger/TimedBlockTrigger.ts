@@ -3,13 +3,13 @@ import { injectOptional, log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
 import { Closeable } from "../../../worker/queue/TaskQueue";
-import { BlockProducerModule } from "../BlockProducerModule";
+import { BatchProducerModule } from "../BatchProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
-import { UnprovenBlockQueue } from "../../../storage/repositories/UnprovenBlockStorage";
-import { UnprovenProducerModule } from "../unproven/UnprovenProducerModule";
+import { BlockQueue } from "../../../storage/repositories/BlockStorage";
+import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
-import { BlockStorage } from "../../../storage/repositories/BlockStorage";
+import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 
 import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
@@ -41,27 +41,27 @@ export class TimedBlockTrigger
   private interval?: any;
 
   public constructor(
+    @injectOptional("BatchProducerModule")
+    batchProducerModule: BatchProducerModule | undefined,
     @inject("BlockProducerModule")
     blockProducerModule: BlockProducerModule,
-    @inject("UnprovenProducerModule")
-    unprovenProducerModule: UnprovenProducerModule,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
-    @inject("UnprovenBlockQueue")
-    unprovenBlockQueue: UnprovenBlockQueue,
-    @inject("BlockStorage")
-    blockStorage: BlockStorage,
+    @inject("BlockQueue")
+    blockQueue: BlockQueue,
+    @inject("BatchStorage")
+    batchStorage: BatchStorage,
     @injectOptional("SettlementStorage")
     settlementStorage: SettlementStorage | undefined,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
     super(
-      unprovenProducerModule,
       blockProducerModule,
+      batchProducerModule,
       settlementModule,
-      unprovenBlockQueue,
-      blockStorage,
+      blockQueue,
+      batchStorage,
       settlementStorage
     );
   }
@@ -74,17 +74,20 @@ export class TimedBlockTrigger
         ? gcd(settlementInterval, blockInterval)
         : blockInterval;
 
-    if (tick !== undefined && tick <= timerInterval) {
+    const definedTick = tick ?? 1000;
+    if (definedTick <= timerInterval) {
       // Check if tick is a divisor of the calculated interval
-      const div = timerInterval / tick;
+      const div = timerInterval / definedTick;
       if (Math.floor(div) === div) {
-        timerInterval = tick;
+        timerInterval = definedTick;
       }
     }
+
     return timerInterval;
   }
 
   public async start(): Promise<void> {
+    log.info("Starting timed block trigger");
     const { settlementInterval, blockInterval } = this.config;
 
     const timerInterval = this.getTimerInterval();
@@ -108,7 +111,7 @@ export class TimedBlockTrigger
           settlementInterval !== undefined &&
           totalTime % settlementInterval === 0
         ) {
-          const batch = await this.produceProven();
+          const batch = await this.produceBatch();
           if (batch !== undefined) {
             await this.settle(batch);
           }
@@ -126,7 +129,7 @@ export class TimedBlockTrigger
     // Produce a block if either produceEmptyBlocks is true or we have more
     // than 1 tx in mempool
     if (mempoolTxs.length > 0 || (this.config.produceEmptyBlocks ?? true)) {
-      await this.produceUnproven(true);
+      await this.produceBlock(true);
     }
   }
 

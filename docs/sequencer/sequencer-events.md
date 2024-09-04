@@ -3,9 +3,9 @@
 Following events are available for each module:
 
 All BlockTriggers:
-- `block-produced: UnprovenBlock`
-- `block-metadata-produced: UnprovenBlockWithMetadata`
-- `batch-produced: ComputedBlock`
+- `block-produced: Block`
+- `block-metadata-produced: BlockWithResult`
+- `batch-produced: Batch`
 
 TimedBlockTrigger:
 - `tick: number`: Number of milliseconds that passed since start of sequencer

@@ -18,8 +18,8 @@ describe("sequencer restart", () => {
 
   const clearDB = async () => {
     const db = appChain.sequencer.resolve("Database");
-    await db.prisma.clearDatabase();
-    await db.redis.clearDatabase();
+    await db.prisma.pruneDatabase();
+    await db.redis.pruneDatabase();
   };
 
   const setup = async () => {
@@ -51,7 +51,7 @@ describe("sequencer restart", () => {
       await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
       senderNonce++;
 
-      const [producedBlock] = await blockTrigger.produceBlock();
+      const [producedBlock] = await blockTrigger.produceBlockAndBatch();
       if ((producedBlock?.transactions.length ?? 0) === 0) {
         throw new Error(`Block not produced correctly: ${block}`);
       }
@@ -84,7 +84,7 @@ describe("sequencer restart", () => {
     await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
     senderNonce++;
 
-    const [block, batch] = await blockTrigger.produceBlock();
+    const [block, batch] = await blockTrigger.produceBlockAndBatch();
 
     expectDefined(block);
     expectDefined(batch);

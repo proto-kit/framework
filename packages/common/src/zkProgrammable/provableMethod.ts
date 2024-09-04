@@ -1,13 +1,16 @@
-import { Proof } from "o1js";
+import { Proof, DynamicProof } from "o1js";
 import { container } from "tsyringe";
-
-import { ToFieldable } from "../utils";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";
 import type { WithZkProgrammable, ZkProgrammable } from "./ZkProgrammable";
 
-export type O1JSPrimitive = ToFieldable;
-export type ArgumentTypes = (O1JSPrimitive | Proof<unknown, unknown>)[];
+// Now, in o1js provable types are normal js objects, therefore any
+export type O1JSPrimitive = object | string | boolean | number;
+export type ArgumentTypes = (
+  | O1JSPrimitive
+  | Proof<unknown, unknown>
+  | DynamicProof<unknown, unknown>
+)[];
 
 export type DecoratedMethod = (...args: ArgumentTypes) => Promise<unknown>;
 

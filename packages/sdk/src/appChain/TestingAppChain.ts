@@ -16,10 +16,10 @@ import {
   Sequencer,
   LocalTaskWorkerModule,
   NoopBaseLayer,
-  BlockProducerModule,
+  BatchProducerModule,
   ManualBlockTrigger,
   LocalTaskQueue,
-  UnprovenProducerModule,
+  BlockProducerModule,
   InMemoryDatabase,
   SequencerModulesRecord,
 } from "@proto-kit/sequencer";
@@ -38,8 +38,8 @@ export type TestingSequencerModulesRecord = {
   Mempool: typeof PrivateMempool;
   LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
   BaseLayer: typeof NoopBaseLayer;
+  BatchProducerModule: typeof BatchProducerModule;
   BlockProducerModule: typeof BlockProducerModule;
-  UnprovenProducerModule: typeof UnprovenProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
 };
@@ -78,7 +78,7 @@ export class TestingAppChain<
         modules: VanillaProtocolModules.with({}),
       }),
       Sequencer: Sequencer.from({
-        modules: InMemorySequencerModules.with({}, {}),
+        modules: InMemorySequencerModules.with({}),
       }),
       modules: {
         Signer: InMemorySigner,
@@ -107,7 +107,7 @@ export class TestingAppChain<
         Database: {},
         BlockTrigger: {},
         Mempool: {},
-        BlockProducerModule: {},
+        BatchProducerModule: {},
         LocalTaskWorkerModule: {
           StateTransitionTask: {},
           RuntimeProvingTask: {},
@@ -117,7 +117,7 @@ export class TestingAppChain<
           BlockBuildingTask: {},
         },
         BaseLayer: {},
-        UnprovenProducerModule: {},
+        BlockProducerModule: {},
         TaskQueue: {
           simulatedDuration: 0,
         },
@@ -144,6 +144,6 @@ export class TestingAppChain<
       ManualBlockTrigger
     );
 
-    return await blockTrigger.produceUnproven();
+    return await blockTrigger.produceBlock();
   }
 }

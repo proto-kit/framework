@@ -1,7 +1,7 @@
 import {
-  ComputedBlock,
-  HistoricalBlockStorage,
-  BlockStorage,
+  Batch,
+  HistoricalBatchStorage,
+  BatchStorage,
 } from "@proto-kit/sequencer";
 import { Prisma } from "@prisma/client";
 import { inject, injectable } from "tsyringe";
@@ -11,13 +11,13 @@ import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 import { BatchMapper } from "./mappers/BatchMapper";
 
 @injectable()
-export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
+export class PrismaBatchStore implements BatchStorage, HistoricalBatchStorage {
   public constructor(
     @inject("Database") private readonly connection: PrismaConnection,
     private readonly batchMapper: BatchMapper
   ) {}
 
-  public async getBlockAt(height: number): Promise<ComputedBlock | undefined> {
+  public async getBatchAt(height: number): Promise<Batch | undefined> {
     const batch = await this.connection.prismaClient.batch.findFirst({
       where: {
         height,
@@ -39,7 +39,7 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
     return this.batchMapper.mapIn([batch, blocks]);
   }
 
-  public async getCurrentBlockHeight(): Promise<number> {
+  public async getCurrentBatchHeight(): Promise<number> {
     const batch = await this.connection.prismaClient.batch.aggregate({
       _max: {
         height: true,
@@ -48,16 +48,16 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
     return (batch?._max.height ?? -1) + 1;
   }
 
-  public async pushBlock(block: ComputedBlock): Promise<void> {
-    const height = await this.getCurrentBlockHeight();
+  public async pushBatch(batch: Batch): Promise<void> {
+    const height = await this.getCurrentBatchHeight();
 
-    const [entity] = this.batchMapper.mapOut(block);
+    const [entity] = this.batchMapper.mapOut(batch);
     await this.connection.prismaClient.batch.create({
       data: {
         proof: entity.proof as Prisma.InputJsonValue,
         height,
         blocks: {
-          connect: block.bundles.map((hash) => ({
+          connect: batch.blockHashes.map((hash) => ({
             hash,
           })),
         },
@@ -68,7 +68,7 @@ export class PrismaBatchStore implements BlockStorage, HistoricalBlockStorage {
     });
   }
 
-  public async getLatestBlock(): Promise<ComputedBlock | undefined> {
+  public async getLatestBatch(): Promise<Batch | undefined> {
     const batch = await this.connection.prismaClient.batch.findFirst({
       orderBy: {
         height: Prisma.SortOrder.desc,

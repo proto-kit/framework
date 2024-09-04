@@ -1,4 +1,4 @@
-import { singleton } from "tsyringe";
+import { singleton, injectable } from "tsyringe";
 import {
   PendingTransaction,
   TransactionExecutionResult,
@@ -14,6 +14,7 @@ import { ObjectMapper } from "../../../ObjectMapper";
 import { StateTransitionArrayMapper } from "./StateTransitionMapper";
 
 @singleton()
+@injectable()
 export class TransactionMapper
   implements ObjectMapper<PendingTransaction, DBTransaction>
 {
@@ -34,7 +35,7 @@ export class TransactionMapper
       nonce: json.nonce,
       sender: json.sender,
       argsFields: json.argsFields,
-      argsJSON: json.argsJSON,
+      auxiliaryData: json.auxiliaryData,
       isMessage: json.isMessage,
       signature_r: json.signature.r,
       signature_s: json.signature.s,

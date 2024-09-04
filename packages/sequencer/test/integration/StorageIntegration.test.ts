@@ -9,16 +9,16 @@ import { TypedClass, expectDefined } from "@proto-kit/common";
 
 import {
   AsyncStateService,
-  BlockStorage,
+  BatchStorage,
+  HistoricalBatchStorage,
   HistoricalBlockStorage,
-  HistoricalUnprovenBlockStorage,
   InMemoryDatabase,
   Sequencer,
   SequencerModule,
   StateEntry,
   StateRecord,
   StorageDependencyFactory,
-  UnprovenBlockStorage,
+  BlockStorage,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -102,8 +102,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
           Database: {},
           BlockTrigger: {},
           Mempool: {},
+          BatchProducerModule: {},
           BlockProducerModule: {},
-          UnprovenProducerModule: {},
           LocalTaskWorkerModule: {},
           BaseLayer: {},
           TaskQueue: {},
@@ -139,26 +139,24 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const generatedBlock = await sequencer
         .resolve("BlockTrigger")
-        .produceUnproven(true);
+        .produceBlock(true);
 
       expectDefined(generatedBlock);
 
-      const blocks = await sequencer
-        .resolve("UnprovenBlockQueue")
-        .getNewBlocks();
+      const blocks = await sequencer.resolve("BlockQueue").getNewBlocks();
 
       expect(blocks).toHaveLength(1);
 
-      const { lastBlockMetadata, block } = blocks[0];
+      const { lastBlockResult, block } = blocks[0];
 
-      expect(lastBlockMetadata).toBeUndefined();
+      expect(lastBlockResult).toBeUndefined();
       expect(block.block.hash.toBigInt()).toStrictEqual(
         generatedBlock.hash.toBigInt()
       );
 
       const blockStorage = sequencer.resolve(
-        "UnprovenBlockStorage"
-      ) as HistoricalUnprovenBlockStorage & UnprovenBlockStorage;
+        "BlockStorage"
+      ) as HistoricalBlockStorage & BlockStorage;
       const block2 = await blockStorage.getBlockAt(
         Number(blocks[0].block.block.height.toString())
       );
@@ -187,24 +185,22 @@ describe.each([["InMemory", InMemoryDatabase]])(
     it("test proven block prod", async () => {
       const generatedBatch = await sequencer
         .resolve("BlockTrigger")
-        .produceProven();
+        .produceBatch();
 
       expectDefined(generatedBatch);
 
-      const blocks = await sequencer
-        .resolve("UnprovenBlockQueue")
-        .getNewBlocks();
+      const blocks = await sequencer.resolve("BlockQueue").getNewBlocks();
       expect(blocks).toHaveLength(0);
 
       const batchStorage = sequencer.resolve(
-        "BlockStorage"
-      ) as HistoricalBlockStorage & BlockStorage;
-      const batch = await batchStorage.getBlockAt(0);
+        "BatchStorage"
+      ) as HistoricalBatchStorage & BatchStorage;
+      const batch = await batchStorage.getBatchAt(0);
 
       expectDefined(batch);
       expect(batch.height).toStrictEqual(generatedBatch?.height);
 
-      await expect(batchStorage.getCurrentBlockHeight()).resolves.toStrictEqual(
+      await expect(batchStorage.getCurrentBatchHeight()).resolves.toStrictEqual(
         1
       );
     }, 50_000);
@@ -227,7 +223,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(txs).toHaveLength(1);
       expect(txs[0].hash().toString()).toStrictEqual(tx.hash().toString());
 
-      await sequencer.resolve("BlockTrigger").produceUnproven();
+      await sequencer.resolve("BlockTrigger").produceBlock();
 
       await expect(
         txStorage.getPendingUserTransactions()

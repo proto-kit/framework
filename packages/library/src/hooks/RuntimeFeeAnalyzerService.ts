@@ -64,19 +64,13 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     indexes: FeeIndexes;
   };
 
-  private readonly initPromise: ReturnType<typeof this.createFeeTree>;
-
   public constructor(
     @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
   ) {
     super();
-    // Start fee tree creation so that it definitely happens outside of provable context
-    // eslint-disable-next-line max-len
-    // TODO This can always only be a workaround, we need to make this promise awaited in a predicatable way
-    this.initPromise = this.createFeeTree();
   }
 
-  public async createFeeTree() {
+  public async initializeFeeTree() {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -86,8 +80,6 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
       networkState: NetworkState.empty(),
     });
 
-    // TODO: figure out what side effects analyzeMethods has,
-    // and why it breaks runtime execution context with wierd errors
     const analyzedMethods =
       await this.runtime.zkProgrammable.zkProgram.analyzeMethods();
 
@@ -150,19 +142,19 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
       tree.setLeaf(BigInt(index), feeConfig.hash());
     });
 
-    return { tree, values, indexes };
+    this.persistedFeeTree = { tree, values, indexes };
   }
 
-  public async getFeeTree() {
+  public getFeeTree() {
     if (this.persistedFeeTree === undefined) {
-      this.persistedFeeTree = await this.initPromise;
+      throw new Error("Fee Tree not intialized");
     }
 
     return this.persistedFeeTree;
   }
 
-  public async getFeeConfig(methodId: bigint) {
-    const feeConfig = (await this.getFeeTree()).values[methodId.toString()];
+  public getFeeConfig(methodId: bigint) {
+    const feeConfig = this.getFeeTree().values[methodId.toString()];
 
     return new MethodFeeConfigData({
       methodId: Field(feeConfig.methodId),
@@ -172,13 +164,13 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     });
   }
 
-  public async getWitness(methodId: bigint) {
-    const feeTree = await this.getFeeTree();
+  public getWitness(methodId: bigint) {
+    const feeTree = this.getFeeTree();
     return feeTree.tree.getWitness(feeTree.indexes[methodId.toString()]);
   }
 
-  public async getRoot(): Promise<bigint> {
-    const { tree } = await this.getFeeTree();
+  public getRoot(): bigint {
+    const { tree } = this.getFeeTree();
     return tree.getRoot().toBigInt();
   }
 }

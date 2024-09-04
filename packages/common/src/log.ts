@@ -1,4 +1,4 @@
-import loglevel, { LogLevelDesc } from "loglevel";
+import loglevel, { LogLevelDesc, LogLevelNames } from "loglevel";
 import { Provable } from "o1js";
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -82,3 +82,16 @@ export const log = {
 
   getLevel: () => loglevel.getLevel(),
 };
+
+const validLogLevels = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "SILENT"];
+
+export function assertValidTextLogLevel(
+  level: string | number
+): asserts level is LogLevelNames {
+  if (
+    typeof level === "number" ||
+    !validLogLevels.includes(level.toUpperCase())
+  ) {
+    throw new Error(`${level} is not a valid loglevel`);
+  }
+}

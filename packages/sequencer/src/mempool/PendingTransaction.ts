@@ -14,7 +14,20 @@ import {
   UInt64Option,
 } from "@proto-kit/protocol";
 
-export class UnsignedTransaction {
+export type UnsignedTransactionBody = {
+  methodId: Field;
+  nonce: UInt64;
+  sender: PublicKey;
+  argsFields: Field[];
+  /**
+   * Used to transport non-provable data, mainly proof data for now
+   * These values will not be part of the signature message or transaction hash
+   */
+  auxiliaryData: string[];
+  isMessage: boolean;
+};
+
+export class UnsignedTransaction implements UnsignedTransactionBody {
   public methodId: Field;
 
   public nonce: UInt64;
@@ -23,7 +36,7 @@ export class UnsignedTransaction {
 
   public argsFields: Field[];
 
-  public argsJSON: string[];
+  public auxiliaryData: string[];
 
   public isMessage: boolean;
 
@@ -32,14 +45,14 @@ export class UnsignedTransaction {
     nonce: UInt64;
     sender: PublicKey;
     argsFields: Field[];
-    argsJSON: string[];
+    auxiliaryData: string[];
     isMessage: boolean;
   }) {
     this.methodId = data.methodId;
     this.nonce = data.nonce;
     this.sender = data.sender;
     this.argsFields = data.argsFields;
-    this.argsJSON = data.argsJSON;
+    this.auxiliaryData = data.auxiliaryData;
     this.isMessage = data.isMessage;
   }
 
@@ -87,7 +100,7 @@ export class UnsignedTransaction {
       nonce: this.nonce,
       signature,
       argsFields: this.argsFields,
-      argsJSON: this.argsJSON,
+      auxiliaryData: this.auxiliaryData,
       isMessage: this.isMessage,
     });
   }
@@ -99,7 +112,7 @@ interface PendingTransactionJSONType {
   nonce: string;
   sender: string;
   argsFields: string[];
-  argsJSON: string[];
+  auxiliaryData: string[];
   signature: {
     r: string;
     s: string;
@@ -117,7 +130,7 @@ export class PendingTransaction extends UnsignedTransaction {
       sender: PublicKey.fromBase58(object.sender),
       argsFields: object.argsFields.map((x) => Field.fromJSON(x)),
       signature: Signature.fromJSON(object.signature),
-      argsJSON: object.argsJSON,
+      auxiliaryData: object.auxiliaryData.slice(),
       isMessage: object.isMessage,
     });
   }
@@ -130,7 +143,7 @@ export class PendingTransaction extends UnsignedTransaction {
     sender: PublicKey;
     signature: Signature;
     argsFields: Field[];
-    argsJSON: string[];
+    auxiliaryData: string[];
     isMessage: boolean;
   }) {
     super(data);
@@ -144,6 +157,7 @@ export class PendingTransaction extends UnsignedTransaction {
       nonce: this.nonce.toString(),
       sender: this.sender.toBase58(),
       argsFields: this.argsFields.map((x) => x.toJSON()),
+      auxiliaryData: this.auxiliaryData.slice(),
       isMessage: this.isMessage,
 
       signature: {
@@ -151,8 +165,6 @@ export class PendingTransaction extends UnsignedTransaction {
 
         s: this.signature.s.toJSON(),
       },
-
-      argsJSON: this.argsJSON,
     };
   }
 

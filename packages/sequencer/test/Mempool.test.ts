@@ -1,7 +1,8 @@
+import "reflect-metadata";
+
 import { Field, PrivateKey, Signature, UInt64 } from "o1js";
 
-import { CompressedSignature } from "../src/mempool/CompressedSignature.js";
-import { UnsignedTransaction } from "../src/mempool/PendingTransaction.js";
+import { CompressedSignature, UnsignedTransaction } from "../src";
 
 describe("memPool", () => {
   describe("pendingTransaction", () => {
@@ -14,7 +15,7 @@ describe("memPool", () => {
         nonce: UInt64.one,
         sender: pk.toPublicKey(),
         argsFields: [Field(13), Field(14)],
-        argsJSON: [],
+        auxiliaryData: [],
         isMessage: false,
       });
 

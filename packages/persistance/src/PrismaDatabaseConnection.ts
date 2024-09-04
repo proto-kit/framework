@@ -14,16 +14,19 @@ import { PrismaMessageStorage } from "./services/prisma/PrismaMessageStorage";
 import { PrismaTransactionStorage } from "./services/prisma/PrismaTransactionStorage";
 
 export interface PrismaDatabaseConfig {
-  connection?: {
-    username: string;
-    password: string;
-    host: string;
-    port?: number;
-    db?: {
-      name: string;
-      schema?: string;
-    };
-  };
+  // Either object-based config or connection string
+  connection?:
+    | {
+        username: string;
+        password: string;
+        host: string;
+        port?: number;
+        db?: {
+          name: string;
+          schema?: string;
+        };
+      }
+    | string;
 }
 
 export interface PrismaConnection {
@@ -52,13 +55,13 @@ export class PrismaDatabaseConnection
       asyncStateService: {
         useFactory: () => new PrismaStateService(this, "batch"),
       },
-      blockStorage: {
+      batchStorage: {
         useClass: PrismaBatchStore,
       },
-      unprovenBlockQueue: {
+      blockQueue: {
         useClass: PrismaBlockStorage,
       },
-      unprovenBlockStorage: {
+      blockStorage: {
         useClass: PrismaBlockStorage,
       },
       unprovenStateService: {
@@ -76,13 +79,13 @@ export class PrismaDatabaseConnection
     };
   }
 
-  public async clearDatabase(): Promise<void> {
+  public async pruneDatabase(): Promise<void> {
     const tables = [
       "TransactionExecutionResult",
       "Transaction",
       "Block",
       "Batch",
-      "UnprovenBlockMetadata",
+      "BlockResult",
       "State",
       "Settlement",
       "IncomingMessageBatch",
@@ -96,19 +99,28 @@ export class PrismaDatabaseConnection
     );
   }
 
+  private buildConnectionString(
+    connection: Exclude<NonNullable<PrismaDatabaseConfig["connection"]>, string>
+  ): string {
+    const { host, port, username, password, db } = connection;
+
+    const dbString =
+      db !== undefined
+        ? `${db.name}?schema=${db.schema ?? "public"}`
+        : "protokit?schema=public";
+
+    return `postgresql://${username}:${password}@${host}:${
+      port ?? 5432
+    }/${dbString}`;
+  }
+
   public async start(): Promise<void> {
     const { connection } = this.config;
     if (connection !== undefined) {
-      const { host, port, username, password, db } = connection;
-
-      const dbString =
-        db !== undefined
-          ? `${db.name}?schema=${db.schema ?? "public"}`
-          : "protokit?schema=public";
-
-      const url = `postgresql://${username}:${password}@${host}:${
-        port ?? 5432
-      }/${dbString}`;
+      const url =
+        typeof connection === "string"
+          ? connection
+          : this.buildConnectionString(connection);
 
       this.initializedClient = new PrismaClient({
         datasources: {

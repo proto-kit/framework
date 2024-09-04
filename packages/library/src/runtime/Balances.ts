@@ -76,16 +76,17 @@ export class Balances<Config = NoConfig>
     amount: Balance
   ) {
     const fromBalance = await this.getBalance(tokenId, from);
-    const toBalance = await this.getBalance(tokenId, to);
 
     const fromBalanceIsSufficient = fromBalance.greaterThanOrEqual(amount);
 
     assert(fromBalanceIsSufficient, errors.fromBalanceInsufficient());
 
     const newFromBalance = fromBalance.sub(amount);
+    await this.setBalance(tokenId, from, newFromBalance);
+
+    const toBalance = await this.getBalance(tokenId, to);
     const newToBalance = toBalance.add(amount);
 
-    await this.setBalance(tokenId, from, newFromBalance);
     await this.setBalance(tokenId, to, newToBalance);
   }
 

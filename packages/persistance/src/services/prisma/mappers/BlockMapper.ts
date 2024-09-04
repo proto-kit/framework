@@ -1,14 +1,14 @@
 import { singleton } from "tsyringe";
-import { UnprovenBlock } from "@proto-kit/sequencer";
-import { Block } from "@prisma/client";
+import { Block } from "@proto-kit/sequencer";
+import { Block as PrismaBlock } from "@prisma/client";
 import { NetworkState } from "@proto-kit/protocol";
 import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
 @singleton()
-export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
-  public mapIn(input: Block): UnprovenBlock {
+export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
+  public mapIn(input: PrismaBlock): Block {
     return {
       transactions: [],
 
@@ -37,7 +37,7 @@ export class BlockMapper implements ObjectMapper<UnprovenBlock, Block> {
     };
   }
 
-  public mapOut(input: UnprovenBlock): Block {
+  public mapOut(input: Block): PrismaBlock {
     return {
       height: Number(input.height.toBigInt()),
       beforeNetworkState: NetworkState.toJSON(input.networkState.before),

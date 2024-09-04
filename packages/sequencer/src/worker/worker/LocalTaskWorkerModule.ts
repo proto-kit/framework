@@ -123,6 +123,18 @@ export class VanillaTaskWorkerModules {
       SettlementProvingTask,
     } satisfies TaskWorkerModulesRecord;
   }
+
+  public static defaultConfig() {
+    return {
+      StateTransitionTask: {},
+      RuntimeProvingTask: {},
+      BlockProvingTask: {},
+      BlockReductionTask: {},
+      BlockBuildingTask: {},
+      StateTransitionReductionTask: {},
+      SettlementProvingTask: {},
+    };
+  }
 }
 
 export type TaskWorkerModulesWithoutSettlement = ReturnType<

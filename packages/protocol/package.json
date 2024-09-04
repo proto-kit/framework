@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "version": "0.1.1-develop.267+b252853",
+  "version": "0.1.1-develop.833+397881ed",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -24,13 +24,13 @@
   },
   "peerDependencies": {
     "@proto-kit/common": "*",
-    "o1js": "1.1.0",
-    "tsyringe": "^4.7.0",
-    "ts-pattern": "^4.3.0"
+    "o1js": "^1.1.0",
+    "ts-pattern": "^4.3.0",
+    "tsyringe": "^4.7.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
     "@types/lodash": "^4.14.194"
   },
-  "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
+  "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
 }

@@ -1,0 +1,9 @@
+version: '3.9'
+
+include:
+  # Enabled by db profile
+  - ./persistence/docker-compose.yml
+  # Enabled by simple-sequencer profile
+  - ./sequencer/docker-compose.yml
+  # Enabled by worker profile
+  - ./worker/docker-compose.yml

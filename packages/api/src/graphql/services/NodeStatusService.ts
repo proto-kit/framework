@@ -2,9 +2,9 @@ import * as process from "node:process";
 
 import { inject, injectable } from "tsyringe";
 import {
+  BatchStorage,
   BlockStorage,
   SettlementStorage,
-  UnprovenBlockStorage,
 } from "@proto-kit/sequencer";
 import humanizeDuration from "humanize-duration";
 
@@ -26,9 +26,9 @@ export interface NodeInformation {
 @injectable()
 export class NodeStatusService {
   public constructor(
-    @inject("UnprovenBlockStorage")
-    private readonly unprovenBlockStorage: UnprovenBlockStorage,
-    @inject("BlockStorage") private readonly blockStorage: BlockStorage,
+    @inject("BlockStorage")
+    private readonly blockStorage: BlockStorage,
+    @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("SettlementStorage")
     private readonly settlementStorage: SettlementStorage
   ) {}
@@ -54,8 +54,8 @@ export class NodeStatusService {
   }
 
   public async getNodeInformation(): Promise<NodeInformation> {
-    const blockHeight = await this.unprovenBlockStorage.getCurrentBlockHeight();
-    const batchHeight = await this.blockStorage.getCurrentBlockHeight();
+    const blockHeight = await this.blockStorage.getCurrentBlockHeight();
+    const batchHeight = await this.batchStorage.getCurrentBatchHeight();
 
     return {
       blockHeight,

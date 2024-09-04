@@ -5,10 +5,8 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import {
-  StorageDependencyFactory,
-  StorageDependencyMinimumDependencies,
-} from "../StorageDependencyFactory";
+import { StorageDependencyMinimumDependencies } from "../StorageDependencyFactory";
+import { Database } from "../Database";
 
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
 import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
@@ -18,10 +16,7 @@ import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
 import { InMemoryTransactionStorage } from "./InMemoryTransactionStorage";
 
 @sequencerModule()
-export class InMemoryDatabase
-  extends SequencerModule
-  implements StorageDependencyFactory
-{
+export class InMemoryDatabase extends SequencerModule implements Database {
   public dependencies(): StorageDependencyMinimumDependencies {
     return {
       asyncMerkleStore: {
@@ -30,14 +25,14 @@ export class InMemoryDatabase
       asyncStateService: {
         useFactory: () => new CachedStateService(undefined),
       },
-      blockStorage: {
+      batchStorage: {
         useClass: InMemoryBatchStorage,
       },
-      unprovenBlockQueue: {
+      blockQueue: {
         useClass: InMemoryBlockStorage,
       },
-      unprovenBlockStorage: {
-        useToken: "UnprovenBlockQueue",
+      blockStorage: {
+        useToken: "BlockQueue",
       },
       unprovenStateService: {
         useFactory: () => new CachedStateService(undefined),
@@ -61,6 +56,13 @@ export class InMemoryDatabase
   }
 
   public async start(): Promise<void> {
+    noop();
+  }
+
+  public async pruneDatabase(): Promise<void> {
+    // Figure out how to implement this nicely.
+    // However, this would only be a op when pruneDatabase will be called
+    // at some point that is after startup (which we don't do currently)
     noop();
   }
 }
