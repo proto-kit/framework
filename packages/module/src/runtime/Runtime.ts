@@ -80,7 +80,7 @@ export class RuntimeZkProgrammable<
     return this.runtime.appChain;
   }
 
-  public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
+  public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
     type Methods = Record<
       string,
       {
@@ -246,29 +246,6 @@ export class RuntimeZkProgrammable<
         methods,
       };
     });
-
-    // const program = ZkProgram({
-    //   name: "RuntimeProgram",
-    //   publicOutput: MethodPublicOutput,
-    //   methods: sortedRuntimeMethods,
-    // });
-
-    // const SelfProof = ZkProgram.Proof(program);
-
-    // const methods = Object.keys(sortedRuntimeMethods).reduce<
-    //   Record<string, any>
-    // >((boundMethods, methodName) => {
-    //   boundMethods[methodName] = program[methodName].bind(program);
-    //   return boundMethods;
-    // }, {});
-
-    // return {
-    //   compile: program.compile.bind(program),
-    //   verify: program.verify.bind(program),
-    //   analyzeMethods: program.analyzeMethods.bind(program),
-    //   Proof: SelfProof,
-    //   methods,
-    // };
   }
 }
 
