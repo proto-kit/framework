@@ -746,10 +746,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
   public zkProgramFactory(): PlainZkProgram<
     BlockProverPublicInput,
     BlockProverPublicOutput
-  > {
+  >[] {
     const { prover, stateTransitionProver, runtime } = this;
-    const StateTransitionProofClass = stateTransitionProver.zkProgram.Proof;
-    const RuntimeProofClass = runtime.zkProgram.Proof;
+    const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
+    const RuntimeProofClass = runtime.zkProgram[0].Proof;
 
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveBlock = prover.proveBlock.bind(prover);
@@ -831,13 +831,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     const SelfProofClass = ZkProgram.Proof(program);
 
-    return {
-      compile: program.compile.bind(program),
-      verify: program.verify.bind(program),
-      analyzeMethods: program.analyzeMethods.bind(program),
-      Proof: SelfProofClass,
-      methods,
-    };
+    return [
+      {
+        compile: program.compile.bind(program),
+        verify: program.verify.bind(program),
+        analyzeMethods: program.analyzeMethods.bind(program),
+        Proof: SelfProofClass,
+        methods,
+      },
+    ];
   }
 }
 
