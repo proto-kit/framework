@@ -77,7 +77,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   public zkProgramFactory(): PlainZkProgram<
     StateTransitionProverPublicInput,
     StateTransitionProverPublicOutput
-  > {
+  >[] {
     const instance = this;
 
     const program = ZkProgram({
@@ -121,13 +121,15 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
     const SelfProofClass = ZkProgram.Proof(program);
 
-    return {
-      compile: program.compile.bind(program),
-      verify: program.verify.bind(program),
-      analyzeMethods: program.analyzeMethods.bind(program),
-      Proof: SelfProofClass,
-      methods,
-    };
+    return [
+      {
+        compile: program.compile.bind(program),
+        verify: program.verify.bind(program),
+        analyzeMethods: program.analyzeMethods.bind(program),
+        Proof: SelfProofClass,
+        methods,
+      },
+    ];
   }
 
   private get witnessProvider(): StateTransitionWitnessProvider {
