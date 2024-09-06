@@ -73,12 +73,9 @@ describe("indexer", () => {
       }),
 
       Sequencer: Sequencer.from({
-        modules: InMemorySequencerModules.with(
-          {
-            IndexerNotifier,
-          },
-          {}
-        ),
+        modules: InMemorySequencerModules.with({
+          IndexerNotifier,
+        }),
       }),
 
       modules: {
@@ -121,7 +118,7 @@ describe("indexer", () => {
           BlockReductionTask: {},
         },
         BaseLayer: {},
-        UnprovenProducerModule: {},
+        BatchProducerModule: {},
         TaskQueue: {
           simulatedDuration: 0,
         },

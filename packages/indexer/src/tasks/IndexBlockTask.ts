@@ -1,37 +1,47 @@
 import {
+  BlockQueue,
   Task,
   TaskSerializer,
-  UnprovenBlockWithMetadata,
+  TaskWorkerModule,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 
-import { UnprovenBlockStorage } from "../storage/repositories/UnprovenBlockStorage";
-
-import { IndexBlockTaskParametersSerializer } from "./IndexBlockTaskParameters";
+import {
+  IndexBlockTaskParameters,
+  IndexBlockTaskParametersSerializer,
+} from "./IndexBlockTaskParameters";
 
 @injectable()
-export class IndexBlockTask implements Task<UnprovenBlockWithMetadata, void> {
+export class IndexBlockTask
+  extends TaskWorkerModule
+  implements Task<IndexBlockTaskParameters, void>
+{
   public name = "index-block";
 
   public constructor(
     public taskSerializer: IndexBlockTaskParametersSerializer,
-    @inject("UnprovenBlockStorage")
-    public unprovenBlockStorage: UnprovenBlockStorage
-  ) {}
-
-  public async prepare(): Promise<void> {
-    throw new Error("Not implemented");
+    @inject("BlockQueue")
+    public blockStorage: BlockQueue
+  ) {
+    super();
   }
 
-  public async compute(input: UnprovenBlockWithMetadata): Promise<void> {
-    this.unprovenBlockStorage.pushBlock(input);
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  public async prepare(): Promise<void> {}
+
+  public async compute(input: IndexBlockTaskParameters): Promise<void> {
+    await this.blockStorage.pushBlock(input.block);
+    await this.blockStorage.pushResult(input.result);
   }
 
-  public inputSerializer(): TaskSerializer<UnprovenBlockWithMetadata> {
+  public inputSerializer(): TaskSerializer<IndexBlockTaskParameters> {
     return this.taskSerializer;
   }
 
   public resultSerializer(): TaskSerializer<void> {
-    throw new Error("Not implemented");
+    return {
+      fromJSON: async () => {},
+      toJSON: async () => "",
+    };
   }
 }

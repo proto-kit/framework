@@ -1,4 +1,6 @@
 import "reflect-metadata";
+import { container } from "tsyringe";
+import { jest } from "@jest/globals";
 import { PrivateKey } from "o1js";
 import {
   Balance,
@@ -18,12 +20,10 @@ import {
   StateServiceQueryModule,
   TestingAppChain,
 } from "@proto-kit/sdk";
-import { Sequencer } from "@proto-kit/sequencer";
+import { LocalTaskQueue, Sequencer, TaskPayload } from "@proto-kit/sequencer";
 
 import { IndexerNotifier } from "../src/IndexerNotifier";
-import { log } from "@proto-kit/common";
-
-log.setLevel("DEBUG");
+import { IndexBlockTaskParametersSerializer } from "../src/tasks/IndexBlockTaskParameters";
 
 class TestBalances extends Balances {
   @runtimeMethod()
@@ -54,12 +54,9 @@ function createAppChain() {
       modules: VanillaProtocolModules.with({}),
     }),
     Sequencer: Sequencer.from({
-      modules: InMemorySequencerModules.with(
-        {
-          IndexerNotifier: IndexerNotifier,
-        },
-        {}
-      ),
+      modules: InMemorySequencerModules.with({
+        IndexerNotifier: IndexerNotifier,
+      }),
     }),
 
     modules: {
@@ -102,7 +99,7 @@ function createAppChain() {
         BlockReductionTask: {},
       },
       BaseLayer: {},
-      UnprovenProducerModule: {},
+      BatchProducerModule: {},
       TaskQueue: {
         simulatedDuration: 0,
       },
@@ -144,20 +141,45 @@ async function sendTransactions(
     await tx.send();
   }
 
+  const mempool = appChain.sequencer.resolve("Mempool");
+
+  const txs = await mempool.getTxs();
+  console.log(
+    "txs",
+    txs.map((tx) => tx.nonce.toBigInt())
+  );
+
   return await appChain.produceBlock();
 }
 
 describe("IndexerNotifier", () => {
   let appChain: ReturnType<typeof createAppChain>;
+  const getQueueSpy = jest.spyOn(LocalTaskQueue.prototype, "getQueue");
+  const addTaskSpy = jest.fn(async (payload: TaskPayload) => ({
+    taskId: "0",
+  }));
+
+  getQueueSpy.mockImplementation(async (queueName: string) => {
+    return {
+      name: queueName,
+      addTask: addTaskSpy,
+      onCompleted: jest.fn(async () => {}),
+      close: jest.fn(async () => {}),
+    };
+  });
 
   beforeAll(async () => {
     appChain = createAppChain();
 
     await appChain.start();
+    await sendTransactions(appChain, 2);
   });
 
   it("should create a task for every unproven block produced", async () => {
-    const block = await sendTransactions(appChain, 2);
-    console.log("block", block?.transactions);
+    const { block } = container
+      .resolve(IndexBlockTaskParametersSerializer)
+      .fromJSON(addTaskSpy.mock.lastCall?.[0].payload!);
+
+    expect(block.height.toBigInt()).toBe(0n);
   });
 });

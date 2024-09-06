@@ -16,8 +16,6 @@ export type NotifierMandatorySequencerModules = {
 
 @sequencerModule()
 export class IndexerNotifier extends SequencerModule<Record<never, never>> {
-  public static indexerQueueName = "indexer";
-
   public constructor(
     @inject("Sequencer")
     public sequencer: Sequencer<NotifierMandatorySequencerModules>,
@@ -29,23 +27,19 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
   }
 
   public async propagateEventsAsTasks() {
-    const queue = await this.taskQueue.getQueue(
-      IndexerNotifier.indexerQueueName
-    );
-
+    const queue = await this.taskQueue.getQueue(this.indexBlockTask.name);
     const inputSerializer = this.indexBlockTask.inputSerializer();
 
     this.sequencer.events.on("block-metadata-produced", async (block) => {
+      const payload = await inputSerializer.toJSON(block);
+
       const task: TaskPayload = {
         name: this.indexBlockTask.name,
-        payload: await inputSerializer.toJSON(block),
+        payload,
         flowId: "", // empty for now
       };
-      queue.addTask(task);
-      console.log(
-        "notifying block",
-        block.block.transactions[0].stateTransitions
-      );
+
+      await queue.addTask(task);
     });
   }
 

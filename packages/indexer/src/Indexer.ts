@@ -1,4 +1,9 @@
-import { ModuleContainer, ModulesRecord, TypedClass } from "@proto-kit/common";
+import {
+  ModuleContainer,
+  ModuleContainerDefinition,
+  ModulesRecord,
+  TypedClass,
+} from "@proto-kit/common";
 import { container } from "tsyringe";
 
 import { IndexerModule } from "./IndexerModule";
@@ -10,6 +15,16 @@ export type IndexerModulesRecord = ModulesRecord<
 export class Indexer<
   Modules extends IndexerModulesRecord,
 > extends ModuleContainer<Modules> {
+  public static from<Modules extends IndexerModulesRecord>(
+    definition: ModuleContainerDefinition<Modules>
+  ): TypedClass<Indexer<Modules>> {
+    return class ScopedSequencer extends Indexer<Modules> {
+      public constructor() {
+        super(definition);
+      }
+    };
+  }
+
   public get taskQueue(): InstanceType<Modules["TaskQueue"]> {
     return this.container.resolve("TaskQueue");
   }

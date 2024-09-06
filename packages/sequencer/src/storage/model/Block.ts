@@ -16,13 +16,10 @@ export interface TransactionExecutionResult {
   protocolTransitions: UntypedStateTransition[];
   status: Bool;
   statusMessage?: string;
-  stateTransitions: UntypedStateTransition[];
-  protocolTransitions: UntypedStateTransition[];
 }
 
 export interface Block {
   hash: Field;
-
   height: Field;
   networkState: {
     before: NetworkState;
@@ -35,7 +32,6 @@ export interface Block {
   fromBlockHashRoot: Field;
   fromMessagesHash: Field;
   toMessagesHash: Field;
-
   previousBlockHash: Field | undefined;
 }
 
@@ -52,7 +48,6 @@ export const Block = {
 
 export interface BlockResult {
   blockHash: bigint;
-
   stateRoot: bigint;
   blockHashRoot: bigint;
   afterNetworkState: NetworkState;

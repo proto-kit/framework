@@ -12,7 +12,7 @@
     "lint": "eslint ./src ./test ./test-integration",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
-    "integration": "npm run test:file -- ./test-integration/** --runInBand",
+    "test:integration": "npm run test:file -- ./test-integration/** --runInBand",
     "test:watch": "npm run test:file -- ./test/** --watch"
   },
   "main": "dist/index.js",

@@ -1,49 +1,49 @@
-import { UnprovenBlockWithMetadata } from "@proto-kit/sequencer";
+import { BlockWithResult } from "@proto-kit/sequencer";
 import {
   BlockMapper,
+  BlockResultMapper,
   TransactionExecutionResultMapper,
-  UnprovenBlockMetadataMapper,
 } from "@proto-kit/persistance";
 import { injectable } from "tsyringe";
+
+export interface IndexBlockTaskParameters extends BlockWithResult {}
 
 @injectable()
 export class IndexBlockTaskParametersSerializer {
   public constructor(
     public blockMapper: BlockMapper,
-    public blockMetadataMapper: UnprovenBlockMetadataMapper,
+    public blockResultMapper: BlockResultMapper,
     public transactionResultMapper: TransactionExecutionResultMapper
   ) {}
 
-  public toJSON(parameters: UnprovenBlockWithMetadata): string {
+  public toJSON(parameters: IndexBlockTaskParameters): string {
     return JSON.stringify({
       block: this.blockMapper.mapOut(parameters.block),
       transactions: parameters.block.transactions.map((tx) =>
         this.transactionResultMapper.mapOut(tx)
       ),
-      metadata: this.blockMetadataMapper.mapOut(parameters.metadata),
+      result: this.blockResultMapper.mapOut(parameters.result),
     });
   }
 
-  public fromJSON(json: string): UnprovenBlockWithMetadata {
+  public fromJSON(json: string): IndexBlockTaskParameters {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const parsed = JSON.parse(json) as {
       block: ReturnType<BlockMapper["mapOut"]>;
       transactions: ReturnType<TransactionExecutionResultMapper["mapOut"]>[];
-      metadata: ReturnType<UnprovenBlockMetadataMapper["mapOut"]>;
+      result: ReturnType<BlockResultMapper["mapOut"]>;
     };
 
     const transactions = parsed.transactions.map((tx) =>
       this.transactionResultMapper.mapIn(tx)
     );
 
-    const metadata = this.blockMetadataMapper.mapIn(parsed.metadata);
-
     return {
       block: {
         ...this.blockMapper.mapIn(parsed.block),
         transactions,
       },
-      metadata,
+      result: this.blockResultMapper.mapIn(parsed.result),
     };
   }
 }
