@@ -4,6 +4,7 @@ import {
   TaskSerializer,
   TaskWorkerModule,
 } from "@proto-kit/sequencer";
+import { log } from "@proto-kit/common"
 import { inject, injectable } from "tsyringe";
 
 import {
@@ -30,8 +31,15 @@ export class IndexBlockTask
   public async prepare(): Promise<void> {}
 
   public async compute(input: IndexBlockTaskParameters): Promise<void> {
-    await this.blockStorage.pushBlock(input.block);
-    await this.blockStorage.pushResult(input.result);
+    log.debug("Indexing block", input.block.height.toBigInt());
+    try {
+      await this.blockStorage.pushBlock(input.block);
+      await this.blockStorage.pushResult(input.result);
+    } catch (error) {
+      log.error("Failed to index block", input.block.height.toBigInt(), error);
+      throw error;
+    }
+    log.debug(`Block ${input.block.height.toBigInt()} indexed sucessfully`);
   }
 
   public inputSerializer(): TaskSerializer<IndexBlockTaskParameters> {

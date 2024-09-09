@@ -4,8 +4,9 @@
     "outDir": "./dist",
     "allowJs": true,
     "jsx": "react",
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "esModuleInterop": true
   },
-  "include": ["./src/*.tsx", "./src/*.ts", "./test"],
-  "exclude": ["./dist/**/*.ts"]
+  "include": ["./src/*.tsx", "./src/*.ts"],
+  "exclude": ["./dist/**/*.ts", "./test"]
 }

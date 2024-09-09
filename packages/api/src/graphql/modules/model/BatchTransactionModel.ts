@@ -1,9 +1,8 @@
 import { ObjectType, Field } from "type-graphql";
 import { BatchTransaction } from "@proto-kit/sequencer";
 import { IsBoolean } from "class-validator";
-import { ComputedBlockTransactionWithBlockHash } from "@proto-kit/indexer";
 
-import { TransactionModel } from "./TransactionModel";
+import { TransactionObject } from "../MempoolResolver";
 
 @ObjectType()
 export class BatchTransactionModel {
@@ -16,51 +15,8 @@ export class BatchTransactionModel {
     );
   }
 
-  @Field(() => String)
-  public path: string;
-
-  @Field(() => OptionModel)
-  public from: OptionModel;
-
-  @Field(() => OptionModel)
-  public to: OptionModel;
-
-  public constructor(path: string, from: OptionModel, to: OptionModel) {
-    this.path = path;
-    this.from = from;
-    this.to = to;
-  }
-}
-
-@ObjectType()
-export class ComputedBlockTransactionModel {
-  public static fromServiceLayerModel(
-    cbt: ComputedBlockTransactionWithBlockHash
-  ) {
-    const {
-      tx,
-      status,
-      statusMessage,
-      stateTransitions,
-      protocolTransitions,
-      blockHash,
-    } = cbt;
-    return new ComputedBlockTransactionModel(
-      TransactionModel.fromServiceLayerModel(tx),
-      status,
-      statusMessage,
-      stateTransitions.map((st) =>
-        StateTransitionModel.fromServiceLayerModel(st)
-      ),
-      protocolTransitions.map((st) =>
-        StateTransitionModel.fromServiceLayerModel(st)
-      ),
-      blockHash
-    );
-  }
-
-  @Field(() => TransactionModel)
-  public tx: TransactionModel;
+  @Field(() => TransactionObject)
+  public tx: TransactionObject;
 
   @Field()
   @IsBoolean()
@@ -69,28 +25,13 @@ export class ComputedBlockTransactionModel {
   @Field(() => String, { nullable: true })
   public statusMessage: string | undefined;
 
-  @Field(() => [StateTransitionModel], { nullable: true })
-  public stateTransitions: StateTransitionModel[] | undefined;
-
-  @Field(() => [StateTransitionModel], { nullable: true })
-  public protocolTransitions: StateTransitionModel[] | undefined;
-
-  @Field(() => String)
-  public blockHash: string;
-
   public constructor(
-    tx: TransactionModel,
+    tx: TransactionObject,
     status: boolean,
-    statusMessage: string | undefined,
-    stateTransitions: StateTransitionModel[],
-    protocolTransitions: StateTransitionModel[],
-    blockHash: string
+    statusMessage: string | undefined
   ) {
     this.tx = tx;
     this.status = status;
     this.statusMessage = statusMessage;
-    this.stateTransitions = stateTransitions;
-    this.protocolTransitions = protocolTransitions;
-    this.blockHash = blockHash;
   }
 }

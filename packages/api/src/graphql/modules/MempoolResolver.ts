@@ -1,5 +1,14 @@
-import { Arg, Mutation, Query, registerEnumType } from "type-graphql";
+import {
+  Arg,
+  Field,
+  InputType,
+  Mutation,
+  ObjectType,
+  Query,
+  registerEnumType,
+} from "type-graphql";
 import { inject } from "tsyringe";
+import { IsNumberString } from "class-validator";
 import {
   Mempool,
   PendingTransaction,
@@ -121,7 +130,7 @@ export class MempoolResolver extends GraphqlModule {
   @Mutation(() => String, {
     description: "Adds a transaction to the mempool and validates it",
   })
-  public async submitTx(@Arg("tx") tx: TransactionModel): Promise<string> {
+  public async submitTx(@Arg("tx") tx: TransactionObject): Promise<string> {
     const decoded = PendingTransaction.fromJSON(tx);
     await this.mempool.add(decoded);
 

@@ -20,9 +20,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^5.18.0",
     "lodash": "^4.17.21",
-    "prisma": "^5.7.1",
+    "prisma": "^5.18.0",
     "redis": "^4.6.12",
     "reflect-metadata": "^0.1.13"
   },

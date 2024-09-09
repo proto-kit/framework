@@ -16,6 +16,7 @@ module.exports = {
       "<rootDir>/node_modules/o1js/dist/$1",
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
+
   transform: {
     // '^.+\\.[tj]sx?$' to process js/ts with `ts-jest`
     // '^.+\\.m?[tj]sx?$' to process js/ts/mjs/mts with `ts-jest`

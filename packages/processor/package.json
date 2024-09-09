@@ -5,7 +5,7 @@
   "type": "module",
   "version": "0.1.1-develop.267+b252853",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "no-build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
@@ -18,7 +18,7 @@
   "main": "dist/src/index.js",
   "dependencies": {
     "@inkjs/ui": "^1.0.0",
-    "@prisma/client": "^5.16.1",
+    "@prisma/client": "^5.19.1",
     "@types/yargs": "^17.0.29",
     "figlet": "^1.7.0",
     "ink": "^4.4.1",
@@ -39,7 +39,7 @@
     "o1js": "1.1.0",
     "tsyringe": "^4.7.0",
     "type-graphql": "2.0.0-rc.2",
-    "typegraphql-prisma": "^0.27.2"
+    "typegraphql-prisma": "^0.28"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",

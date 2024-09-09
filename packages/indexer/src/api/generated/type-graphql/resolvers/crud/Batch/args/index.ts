@@ -1,0 +1,15 @@
+export { AggregateBatchArgs } from "./AggregateBatchArgs";
+export { CreateManyAndReturnBatchArgs } from "./CreateManyAndReturnBatchArgs";
+export { CreateManyBatchArgs } from "./CreateManyBatchArgs";
+export { CreateOneBatchArgs } from "./CreateOneBatchArgs";
+export { DeleteManyBatchArgs } from "./DeleteManyBatchArgs";
+export { DeleteOneBatchArgs } from "./DeleteOneBatchArgs";
+export { FindFirstBatchArgs } from "./FindFirstBatchArgs";
+export { FindFirstBatchOrThrowArgs } from "./FindFirstBatchOrThrowArgs";
+export { FindManyBatchArgs } from "./FindManyBatchArgs";
+export { FindUniqueBatchArgs } from "./FindUniqueBatchArgs";
+export { FindUniqueBatchOrThrowArgs } from "./FindUniqueBatchOrThrowArgs";
+export { GroupByBatchArgs } from "./GroupByBatchArgs";
+export { UpdateManyBatchArgs } from "./UpdateManyBatchArgs";
+export { UpdateOneBatchArgs } from "./UpdateOneBatchArgs";
+export { UpsertOneBatchArgs } from "./UpsertOneBatchArgs";

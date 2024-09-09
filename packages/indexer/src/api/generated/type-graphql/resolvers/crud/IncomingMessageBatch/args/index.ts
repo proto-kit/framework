@@ -1,0 +1,15 @@
+export { AggregateIncomingMessageBatchArgs } from "./AggregateIncomingMessageBatchArgs";
+export { CreateManyAndReturnIncomingMessageBatchArgs } from "./CreateManyAndReturnIncomingMessageBatchArgs";
+export { CreateManyIncomingMessageBatchArgs } from "./CreateManyIncomingMessageBatchArgs";
+export { CreateOneIncomingMessageBatchArgs } from "./CreateOneIncomingMessageBatchArgs";
+export { DeleteManyIncomingMessageBatchArgs } from "./DeleteManyIncomingMessageBatchArgs";
+export { DeleteOneIncomingMessageBatchArgs } from "./DeleteOneIncomingMessageBatchArgs";
+export { FindFirstIncomingMessageBatchArgs } from "./FindFirstIncomingMessageBatchArgs";
+export { FindFirstIncomingMessageBatchOrThrowArgs } from "./FindFirstIncomingMessageBatchOrThrowArgs";
+export { FindManyIncomingMessageBatchArgs } from "./FindManyIncomingMessageBatchArgs";
+export { FindUniqueIncomingMessageBatchArgs } from "./FindUniqueIncomingMessageBatchArgs";
+export { FindUniqueIncomingMessageBatchOrThrowArgs } from "./FindUniqueIncomingMessageBatchOrThrowArgs";
+export { GroupByIncomingMessageBatchArgs } from "./GroupByIncomingMessageBatchArgs";
+export { UpdateManyIncomingMessageBatchArgs } from "./UpdateManyIncomingMessageBatchArgs";
+export { UpdateOneIncomingMessageBatchArgs } from "./UpdateOneIncomingMessageBatchArgs";
+export { UpsertOneIncomingMessageBatchArgs } from "./UpsertOneIncomingMessageBatchArgs";

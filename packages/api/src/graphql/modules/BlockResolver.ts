@@ -4,7 +4,7 @@ import {
   Block,
   BlockStorage,
 } from "@proto-kit/sequencer";
-import { Arg, Query } from "type-graphql";
+import { Arg, Field, ObjectType, Query } from "type-graphql";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";
 

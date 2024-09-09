@@ -17,12 +17,8 @@ export class Indexer<
 > extends ModuleContainer<Modules> {
   public static from<Modules extends IndexerModulesRecord>(
     definition: ModuleContainerDefinition<Modules>
-  ): TypedClass<Indexer<Modules>> {
-    return class ScopedSequencer extends Indexer<Modules> {
-      public constructor() {
-        super(definition);
-      }
-    };
+  ): Indexer<Modules> {
+    return new Indexer(definition);
   }
 
   public get taskQueue(): InstanceType<Modules["TaskQueue"]> {
@@ -35,7 +31,8 @@ export class Indexer<
     // need to start each module in order for dependencies() to be registred
     for (const moduleName of this.moduleNames) {
       const module = this.container.resolve<IndexerModule<unknown>>(moduleName);
-      module.start();
+      // eslint-disable-next-line no-await-in-loop
+      await module.start();
     }
   }
 }

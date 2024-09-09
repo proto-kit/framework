@@ -17,4 +17,3 @@ export * from "./services/prisma/mappers/BlockResultMapper";
 export * from "./services/redis/RedisMerkleTreeStore";
 export * from "./services/prisma/mappers/BlockMapper";
 export * from "./services/prisma/mappers/TransactionMapper";
-export * from "./services/prisma/mappers/UnprovenBlockMetadataMapper";

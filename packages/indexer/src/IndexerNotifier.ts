@@ -6,6 +6,7 @@ import {
   TaskPayload,
   TaskQueue,
 } from "@proto-kit/sequencer";
+import { log } from "@proto-kit/common";
 import { inject } from "tsyringe";
 
 import { IndexBlockTask } from "./tasks/IndexBlockTask";
@@ -31,6 +32,10 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
     const inputSerializer = this.indexBlockTask.inputSerializer();
 
     this.sequencer.events.on("block-metadata-produced", async (block) => {
+      log.debug(
+        "Notifiying the indexer about block",
+        block.block.height.toBigInt()
+      );
       const payload = await inputSerializer.toJSON(block);
 
       const task: TaskPayload = {

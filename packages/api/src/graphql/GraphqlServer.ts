@@ -32,11 +32,13 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
 
   private readonly schemas: GraphQLSchema[] = [];
 
+  private resolvers: NonEmptyArray<Function> | undefined;
+
   private dependencyContainer?: DependencyContainer;
 
   private server?: Server;
 
-  public prismaClient: any;
+  private context: {} = {};
 
   public setContainer(container: DependencyContainer) {
     this.dependencyContainer = container;
@@ -58,6 +60,18 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     this.schemas.push(schema);
   }
 
+  public registerResolvers(resolvers: NonEmptyArray<Function>) {
+    if (this.resolvers === undefined) {
+      this.resolvers = resolvers;
+    } else {
+      this.resolvers = [...this.resolvers, ...resolvers];
+    }
+  }
+
+  public setContext(context: {}) {
+    this.context = context;
+  }
+
   public async start() {
     noop();
   }
@@ -66,23 +80,24 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     const { dependencyContainer, modules } = this;
     this.assertDependencyContainerSet(dependencyContainer);
 
-    // assertArrayIsNotEmpty(
-    //   modules,
-    //   "At least one module has to be provided to GraphqlServer"
-    // );
+    const resolvers = [...modules, ...(this.resolvers || [])];
 
-    // // Building schema
-    // const resolverSchema = buildSchemaSync({
-    //   resolvers: modules,
+    assertArrayIsNotEmpty(
+      resolvers,
+      "At least one module has to be provided to GraphqlServer"
+    );
 
-    //   // resolvers: [MempoolResolver as Function],
-    //   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    //   container: { get: (cls) => dependencyContainer.resolve(cls) },
+    // Building schema
+    const resolverSchema = buildSchemaSync({
+      resolvers,
 
-    //   validate: {
-    //     enableDebugMessages: true,
-    //   },
-    // });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      container: { get: (cls) => dependencyContainer.resolve(cls) },
+
+      validate: {
+        enableDebugMessages: true,
+      },
+    });
 
     // TODO Injection token of Graphql Container not respected atm, only class is used
 
@@ -91,10 +106,11 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
       dependencyContainer?.resolve(module);
     });
 
-    const schema = [...this.schemas].reduce((schema1, schema2) =>
-      stitchSchemas({
-        subschemas: [{ schema: schema1 }, { schema: schema2 }],
-      })
+    const schema = [resolverSchema, ...this.schemas].reduce(
+      (schema1, schema2) =>
+        stitchSchemas({
+          subschemas: [{ schema: schema1 }, { schema: schema2 }],
+        })
     );
 
     const app = new Koa();
@@ -102,7 +118,7 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     const yoga = createYoga<Koa.ParameterizedContext>({
       schema,
       graphiql: this.config.graphiql,
-      context: { prisma: this.prismaClient },
+      context: this.context,
     });
 
     // Bind GraphQL Yoga to `/graphql` endpoint
