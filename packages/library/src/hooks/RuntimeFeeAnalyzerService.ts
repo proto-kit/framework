@@ -80,51 +80,61 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
       networkState: NetworkState.empty(),
     });
 
-    const analyzedMethods =
-      await this.runtime.zkProgrammable.zkProgram.analyzeMethods();
-
     container.resolve(RuntimeMethodExecutionContext).clear();
 
-    const [values, indexes] = Object.keys(
-      this.runtime.zkProgrammable.zkProgram.methods
-    ).reduce<[FeeTreeValues, FeeIndexes]>(
-      // eslint-disable-next-line @typescript-eslint/no-shadow
-      ([values, indexes], combinedMethodName, index) => {
-        const { rows } = analyzedMethods[combinedMethodName];
-        // const rows = 1000;
-        const [moduleName, methodName] = combinedMethodName.split(".");
-        const methodId = this.runtime.methodIdResolver.getMethodId(
-          moduleName,
-          methodName
+    const [values, indexes] = this.runtime.zkProgrammable.zkProgram.reduce<
+      [FeeTreeValues, FeeIndexes]
+    >(
+      async ([valuesProg, indexesProg], program) => {
+        const analyzedMethods = await program.analyzeMethods();
+        const [valuesMeth, indexesMeth] = Object.keys(program.methods).reduce<
+          [FeeTreeValues, FeeIndexes]
+        >(
+          // eslint-disable-next-line @typescript-eslint/no-shadow
+          ([values, indexes], combinedMethodName, index) => {
+            const { rows } = analyzedMethods[combinedMethodName];
+            // const rows = 1000;
+            const [moduleName, methodName] = combinedMethodName.split(".");
+            const methodId = this.runtime.methodIdResolver.getMethodId(
+              moduleName,
+              methodName
+            );
+
+            /**
+             * Determine the fee config for the given method id, and merge it with
+             * the default fee config.
+             */
+            return [
+              {
+                ...values,
+
+                [methodId.toString()]: {
+                  methodId,
+
+                  baseFee:
+                    this.config.methods[combinedMethodName]?.baseFee ??
+                    this.config.baseFee,
+
+                  perWeightUnitFee:
+                    this.config.methods[combinedMethodName]?.perWeightUnitFee ??
+                    this.config.perWeightUnitFee,
+
+                  weight:
+                    this.config.methods[combinedMethodName]?.weight ??
+                    BigInt(rows),
+                },
+              },
+              {
+                ...indexes,
+                [methodId.toString()]: BigInt(index),
+              },
+            ];
+          },
+          [{}, {}]
         );
-
-        /**
-         * Determine the fee config for the given method id, and merge it with
-         * the default fee config.
-         */
         return [
-          {
-            ...values,
-
-            [methodId.toString()]: {
-              methodId,
-
-              baseFee:
-                this.config.methods[combinedMethodName]?.baseFee ??
-                this.config.baseFee,
-
-              perWeightUnitFee:
-                this.config.methods[combinedMethodName]?.perWeightUnitFee ??
-                this.config.perWeightUnitFee,
-
-              weight:
-                this.config.methods[combinedMethodName]?.weight ?? BigInt(rows),
-            },
-          },
-          {
-            ...indexes,
-            [methodId.toString()]: BigInt(index),
-          },
+          { ...valuesProg, ...valuesMeth },
+          { ...indexesProg, ...indexesMeth },
         ];
       },
       [{}, {}]
