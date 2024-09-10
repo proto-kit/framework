@@ -17,6 +17,33 @@ const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
 };
 
+type EventRecord = Record<string, FlexibleProvablePure<any>>;
+
+type InferProvable<T extends FlexibleProvablePure<any>> =
+  T extends Provable<infer U> ? U : never;
+
+export class RuntimeEvents<Events extends EventRecord> {
+  public constructor(private readonly events: Events) {}
+
+  public emit<Key extends keyof Events>(
+    eventName: Key,
+    event: InferProvable<Events[Key]>
+  ) {
+    if (this.events === undefined) {
+      throw new Error(
+        "'events' property not defined, make sure to define the event types on your runtimemodule"
+      );
+    }
+    const eventType: FlexibleProvablePure<any> = this.events[eventName];
+    if (typeof eventName !== "string") {
+      throw new Error("Only string");
+    }
+    return container
+      .resolve(RuntimeMethodExecutionContext)
+      .addEvent(eventType, event, eventName);
+  }
+}
+
 /**
  * Base class for runtime modules providing the necessary utilities.
  */
@@ -42,14 +69,7 @@ export class RuntimeModule<
 
   public runtime?: RuntimeEnvironment;
 
-  public events: Record<string, FlexibleProvablePure<any>> = {};
-
-  public emit(eventName: string, event: any) {
-    const eventType: FlexibleProvablePure<any> = this.events[eventName];
-    return container
-      .resolve(RuntimeMethodExecutionContext)
-      .addEvent(eventType, event, eventName);
-  }
+  public events?: RuntimeEvents<any> = undefined;
 
   public constructor() {
     super();

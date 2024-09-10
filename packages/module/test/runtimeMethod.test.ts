@@ -24,6 +24,7 @@ import {
   RuntimeModule,
   runtimeMethod,
   toEventsHash,
+  RuntimeEvents,
 } from "../src";
 
 import { Balances } from "./modules/Balances";
@@ -34,18 +35,18 @@ export class TestEvent extends Struct({
 }) {}
 
 @runtimeModule()
-class EventMaker extends RuntimeModule<unknown> {
+class EventMaker extends RuntimeModule {
   public constructor() {
     super();
   }
 
-  public events = {
+  public events = new RuntimeEvents({
     test: TestEvent,
-  };
+  });
 
   @runtimeMethod()
   public async makeEvent() {
-    this.emit("test", new TestEvent({ message: Bool(false) }));
+    this.events.emit("test", new TestEvent({ message: Bool(false) }));
   }
 }
 
@@ -146,7 +147,7 @@ describe("runtimeMethod", () => {
     });
 
     const module = runtime.resolve("EventMaker");
-    module.makeEvent();
+    await module.makeEvent();
 
     const expectedEvent = {
       eventType: TestEvent,
