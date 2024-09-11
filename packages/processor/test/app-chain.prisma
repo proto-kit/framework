@@ -1,5 +1,0 @@
-model Balance {
-  height  Int    @id @default(autoincrement())
-  address String
-  balance Int
-}

@@ -359,7 +359,6 @@ export class QueryGraphqlModule<
   }
 
   public generateSchema(): GraphQLSchema {
-    console.log("generating schema");
     const runtimeQuery = QueryBuilderFactory.fromRuntime(
       this.runtime,
       this.queryTransportModule
