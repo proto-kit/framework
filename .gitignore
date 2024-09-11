@@ -41,3 +41,4 @@ lerna-debug.log
 
 docs/save
 packages/research
+packages/indexer/src/api/generated
