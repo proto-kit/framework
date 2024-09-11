@@ -11,6 +11,7 @@ import { PrismaClient } from "@prisma/client-indexer";
 import {
   AggregateBlockResolver,
   AggregateBlockResultResolver,
+  AggregateTransactionExecutionResultResolver,
   AggregateTransactionResolver,
   BlockRelationsResolver,
   BlockResultRelationsResolver,
@@ -18,19 +19,26 @@ import {
   FindFirstBlockResolver,
   FindFirstBlockResultOrThrowResolver,
   FindFirstBlockResultResolver,
+  FindFirstTransactionExecutionResultOrThrowResolver,
+  FindFirstTransactionExecutionResultResolver,
   FindFirstTransactionOrThrowResolver,
   FindFirstTransactionResolver,
   FindManyBlockResolver,
   FindManyBlockResultResolver,
+  FindManyTransactionExecutionResultResolver,
   FindManyTransactionResolver,
   FindUniqueBlockResolver,
   FindUniqueBlockResultOrThrowResolver,
   FindUniqueBlockResultResolver,
+  FindUniqueTransactionExecutionResultOrThrowResolver,
+  FindUniqueTransactionExecutionResultResolver,
   FindUniqueTransactionOrThrowResolver,
   FindUniqueTransactionResolver,
   GroupByBlockResolver,
   GroupByBlockResultResolver,
+  GroupByTransactionExecutionResultResolver,
   GroupByTransactionResolver,
+  TransactionExecutionResultRelationsResolver,
   TransactionRelationsResolver,
 } from "./generated/type-graphql";
 
@@ -107,6 +115,15 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
       FindUniqueTransactionResolver,
       GroupByTransactionResolver,
       TransactionRelationsResolver,
+      // transaction execution result resolvers
+      AggregateTransactionExecutionResultResolver,
+      FindFirstTransactionExecutionResultOrThrowResolver,
+      FindFirstTransactionExecutionResultResolver,
+      FindManyTransactionExecutionResultResolver,
+      FindUniqueTransactionExecutionResultOrThrowResolver,
+      FindUniqueTransactionExecutionResultResolver,
+      GroupByTransactionExecutionResultResolver,
+      TransactionExecutionResultRelationsResolver,
     ]) as NonEmptyArray<Function>;
   }
 }

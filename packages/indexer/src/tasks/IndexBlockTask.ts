@@ -31,7 +31,6 @@ export class IndexBlockTask
   public async prepare(): Promise<void> {}
 
   public async compute(input: IndexBlockTaskParameters): Promise<void> {
-    log.debug("Indexing block", input.block.height.toBigInt());
     try {
       await this.blockStorage.pushBlock(input.block);
       await this.blockStorage.pushResult(input.result);
@@ -39,7 +38,7 @@ export class IndexBlockTask
       log.error("Failed to index block", input.block.height.toBigInt(), error);
       throw error;
     }
-    log.debug(`Block ${input.block.height.toBigInt()} indexed sucessfully`);
+    log.info(`Block ${input.block.height.toBigInt()} indexed sucessfully`);
   }
 
   public inputSerializer(): TaskSerializer<IndexBlockTaskParameters> {
