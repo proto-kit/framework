@@ -25,12 +25,12 @@ export interface ZkProgramIndexes {
   [methodId: string]: bigint;
 }
 
-export class MethodZkprogramConfigData extends Struct({
+export class MethodZkProgramConfigData extends Struct({
   methodId: Field,
   vkHash: Field,
 }) {
   public hash() {
-    return Poseidon.hash(MethodZkprogramConfigData.toFields(this));
+    return Poseidon.hash(MethodZkProgramConfigData.toFields(this));
   }
 }
 export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
@@ -40,7 +40,7 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
     super();
   }
 
-  private persistedFeeTree?: {
+  private persistedZkProgramTree?: {
     tree: ZkProgramTree;
     values: ZkProgramTreeValues;
     indexes: ZkProgramIndexes;
@@ -104,13 +104,42 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
     const tree = new ZkProgramTree(new InMemoryMerkleTreeStorage());
 
     Object.values(values).forEach((value, index) => {
-      const ZkProgramConfig = new MethodZkprogramConfigData({
+      const ZkProgramConfig = new MethodZkProgramConfigData({
         methodId: Field(value.methodId),
         vkHash: Field(value.vkHash),
       });
       tree.setLeaf(BigInt(index), ZkProgramConfig.hash());
     });
 
-    this.persistedFeeTree = { tree, values, indexes };
+    this.persistedZkProgramTree = { tree, values, indexes };
+  }
+
+  public getZkProgramTree() {
+    if (this.persistedZkProgramTree === undefined) {
+      throw new Error("ZkProgram Tree not intialized");
+    }
+
+    return this.persistedZkProgramTree;
+  }
+
+  public getZkProgramConfig(methodId: bigint) {
+    const zkProgramConfig = this.getZkProgramTree().values[methodId.toString()];
+
+    return new MethodZkProgramConfigData({
+      methodId: Field(zkProgramConfig.methodId),
+      vkHash: Field(zkProgramConfig.vkHash),
+    });
+  }
+
+  public getWitness(methodId: bigint) {
+    const zkprogramTree = this.getZkProgramTree();
+    return zkprogramTree.tree.getWitness(
+      zkprogramTree.indexes[methodId.toString()]
+    );
+  }
+
+  public getRoot(): bigint {
+    const { tree } = this.getZkProgramTree();
+    return tree.getRoot().toBigInt();
   }
 }
