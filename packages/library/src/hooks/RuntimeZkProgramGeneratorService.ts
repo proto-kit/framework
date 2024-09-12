@@ -1,18 +1,52 @@
-import { Field, UInt64 } from "o1js";
-import { InMemoryMerkleTreeStorage } from "packages/common/dist";
+import { Field, Poseidon, Struct } from "o1js";
+import {
+  createMerkleTree,
+  InMemoryMerkleTreeStorage,
+} from "packages/common/dist";
 import { ConfigurableModule } from "packages/common/dist/config/ConfigurableModule";
 import { NetworkState, RuntimeTransaction } from "packages/protocol/dist";
 import { RuntimeMethodExecutionContext } from "packages/protocol/dist/state/context/RuntimeMethodExecutionContext";
-import { container } from "tsyringe";
-import {
-  FeeTreeValues,
-  FeeIndexes,
-  FeeTree,
-  MethodFeeConfigData,
-} from "./RuntimeFeeAnalyzerService";
+import { container, inject } from "tsyringe";
+import { Runtime, RuntimeModulesRecord } from "packages/module/dist";
 
+export const treeFeeHeight = 10;
+export class ZkProgramTree extends createMerkleTree(treeFeeHeight) {}
+
+export interface MethodZkProgramConfig {
+  methodId: bigint;
+  vkHash: string;
+}
+
+export interface ZkProgramTreeValues {
+  [methodId: string]: MethodZkProgramConfig;
+}
+
+export interface ZkProgramIndexes {
+  [methodId: string]: bigint;
+}
+
+export class MethodZkprogramConfigData extends Struct({
+  methodId: Field,
+  vkHash: Field,
+}) {
+  public hash() {
+    return Poseidon.hash(MethodZkprogramConfigData.toFields(this));
+  }
+}
 export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
-  public async initializeFeeTree() {
+  public constructor(
+    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
+  ) {
+    super();
+  }
+
+  private persistedFeeTree?: {
+    tree: ZkProgramTree;
+    values: ZkProgramTreeValues;
+    indexes: ZkProgramIndexes;
+  };
+
+  public async initializeZkProgramTree() {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -26,45 +60,28 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
 
     const [values, indexes] =
       await this.runtime.zkProgrammable.zkProgram.reduce<
-        Promise<[FeeTreeValues, FeeIndexes]>
+        Promise<[ZkProgramTreeValues, ZkProgramIndexes]>
       >(
         async (accum, program) => {
-          const analyzedMethods = await program.analyzeMethods();
+          const vk = (await program.compile()).verificationKey.hash;
+          const vkHash = Poseidon.hash([vk]);
           const [valuesMeth, indexesMeth] = Object.keys(program.methods).reduce<
-            [FeeTreeValues, FeeIndexes]
+            [ZkProgramTreeValues, ZkProgramIndexes]
           >(
             // eslint-disable-next-line @typescript-eslint/no-shadow
             ([values, indexes], combinedMethodName, index) => {
-              const { rows } = analyzedMethods[combinedMethodName];
-              // const rows = 1000;
               const [moduleName, methodName] = combinedMethodName.split(".");
               const methodId = this.runtime.methodIdResolver.getMethodId(
                 moduleName,
                 methodName
               );
-
-              /**
-               * Determine the fee config for the given method id, and merge it with
-               * the default fee config.
-               */
               return [
                 {
                   ...values,
 
                   [methodId.toString()]: {
                     methodId,
-
-                    baseFee:
-                      this.config.methods[combinedMethodName]?.baseFee ??
-                      this.config.baseFee,
-
-                    perWeightUnitFee:
-                      this.config.methods[combinedMethodName]
-                        ?.perWeightUnitFee ?? this.config.perWeightUnitFee,
-
-                    weight:
-                      this.config.methods[combinedMethodName]?.weight ??
-                      BigInt(rows),
+                    vkHash: vkHash.toString(),
                   },
                 },
                 {
@@ -84,16 +101,14 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
         Promise.resolve([{}, {}])
       );
 
-    const tree = new FeeTree(new InMemoryMerkleTreeStorage());
+    const tree = new ZkProgramTree(new InMemoryMerkleTreeStorage());
 
     Object.values(values).forEach((value, index) => {
-      const feeConfig = new MethodFeeConfigData({
+      const ZkProgramConfig = new MethodZkprogramConfigData({
         methodId: Field(value.methodId),
-        baseFee: UInt64.from(value.baseFee),
-        weight: UInt64.from(value.weight),
-        perWeightUnitFee: UInt64.from(value.perWeightUnitFee),
+        vkHash: Field(value.vkHash),
       });
-      tree.setLeaf(BigInt(index), feeConfig.hash());
+      tree.setLeaf(BigInt(index), ZkProgramConfig.hash());
     });
 
     this.persistedFeeTree = { tree, values, indexes };
