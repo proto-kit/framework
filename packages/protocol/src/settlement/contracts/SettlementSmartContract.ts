@@ -83,10 +83,7 @@ export interface SettlementContractType {
 // Some random prefix for the sequencer signature
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
-export class SettlementSmartContract
-  extends TokenContract
-  implements SettlementContractType
-{
+export abstract class SettlementSmartContractBase extends TokenContract {
   // This pattern of injecting args into a smartcontract is currently the only
   // viable solution that works given the inheritance issues of o1js
   public static args: {
@@ -96,23 +93,18 @@ export class SettlementSmartContract
     escapeHatchSlotsInterval: number;
   };
 
-  @state(Field) public sequencerKey = State<Field>();
-  @state(UInt32) public lastSettlementL1BlockHeight = State<UInt32>();
+  abstract sequencerKey: State<Field>;
+  abstract lastSettlementL1BlockHeight: State<UInt32>;
+  abstract stateRoot: State<Field>;
+  abstract networkStateHash: State<Field>;
+  abstract blockHashRoot: State<Field>;
+  abstract dispatchContractAddressX: State<Field>;
+  abstract outgoingMessageCursor: State<Field>;
 
-  @state(Field) public stateRoot = State<Field>();
-  @state(Field) public networkStateHash = State<Field>();
-  @state(Field) public blockHashRoot = State<Field>();
-
-  @state(Field) public dispatchContractAddressX = State<Field>();
-
-  @state(Field) public outgoingMessageCursor = State<Field>();
-
-  @method async approveBase(forest: AccountUpdateForest) {
-    this.checkZeroBalanceChange(forest);
-  }
-
-  @method
-  public async initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
+  protected async initializeBase(
+    sequencer: PublicKey,
+    dispatchContract: PublicKey
+  ) {
     this.sequencerKey.getAndRequireEquals().assertEquals(Field(0));
     this.stateRoot.getAndRequireEquals().assertEquals(Field(0));
     this.blockHashRoot.getAndRequireEquals().assertEquals(Field(0));
@@ -125,13 +117,12 @@ export class SettlementSmartContract
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);
 
-    const { DispatchContract } = SettlementSmartContract.args;
+    const { DispatchContract } = SettlementSmartContractBase.args;
     const contractInstance = new DispatchContract(dispatchContract);
     await contractInstance.initialize(this.address);
   }
 
-  @method
-  public async settle(
+  protected async settleBase(
     blockProof: LazyBlockProof,
     signature: Signature,
     dispatchContractAddress: PublicKey,
@@ -159,7 +150,7 @@ export class SettlementSmartContract
     );
 
     const { DispatchContract, escapeHatchSlotsInterval, hooks } =
-      SettlementSmartContract.args;
+      SettlementSmartContractBase.args;
 
     // Get dispatch contract values
     // These values are witnesses but will be checked later on the AU
@@ -265,6 +256,52 @@ export class SettlementSmartContract
 
     this.lastSettlementL1BlockHeight.set(minBlockHeightIncluded);
   }
+}
+
+export class SettlementSmartContract
+  extends SettlementSmartContractBase
+  implements SettlementContractType
+{
+  @state(Field) public sequencerKey = State<Field>();
+  @state(UInt32) public lastSettlementL1BlockHeight = State<UInt32>();
+
+  @state(Field) public stateRoot = State<Field>();
+  @state(Field) public networkStateHash = State<Field>();
+  @state(Field) public blockHashRoot = State<Field>();
+
+  @state(Field) public dispatchContractAddressX = State<Field>();
+
+  @state(Field) public outgoingMessageCursor = State<Field>();
+
+  @method async approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
+  }
+
+  @method
+  public async initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
+    return await this.initializeBase(sequencer, dispatchContract);
+  }
+
+  @method
+  public async settle(
+    blockProof: LazyBlockProof,
+    signature: Signature,
+    dispatchContractAddress: PublicKey,
+    publicKey: PublicKey,
+    inputNetworkState: NetworkState,
+    outputNetworkState: NetworkState,
+    newPromisedMessagesHash: Field
+  ) {
+    return await this.settleBase(
+      blockProof,
+      signature,
+      dispatchContractAddress,
+      publicKey,
+      inputNetworkState,
+      outputNetworkState,
+      newPromisedMessagesHash
+    );
+  }
 
   @method
   public async rollupOutgoingMessages(batch: OutgoingMessageArgumentBatch) {
@@ -272,7 +309,7 @@ export class SettlementSmartContract
     const stateRoot = this.stateRoot.getAndRequireEquals();
 
     const [withdrawalModule, withdrawalStateName] =
-      SettlementSmartContract.args.withdrawalStatePath;
+      SettlementSmartContractBase.args.withdrawalStatePath;
     const mapPath = Path.fromProperty(withdrawalModule, withdrawalStateName);
 
     let accountCreationFeePaid = Field(0);

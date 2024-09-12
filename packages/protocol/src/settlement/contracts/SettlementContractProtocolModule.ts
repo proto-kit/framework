@@ -14,6 +14,7 @@ import {
   LazyBlockProof,
   SettlementContractType,
   SettlementSmartContract,
+  SettlementSmartContractBase,
 } from "./SettlementSmartContract";
 
 export type SettlementContractConfig = {
@@ -55,7 +56,7 @@ export class SettlementContractProtocolModule extends ContractModule<
     const escapeHatchSlotsInterval =
       config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
 
-    SettlementSmartContract.args = {
+    SettlementSmartContractBase.args = {
       DispatchContract: dispatchContract,
       hooks,
       withdrawalStatePath: withdrawalStatePathSplit,
