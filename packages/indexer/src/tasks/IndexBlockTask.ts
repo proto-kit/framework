@@ -4,7 +4,7 @@ import {
   TaskSerializer,
   TaskWorkerModule,
 } from "@proto-kit/sequencer";
-import { log } from "@proto-kit/common"
+import { log } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 
 import {
