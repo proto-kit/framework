@@ -15,7 +15,12 @@ import {
   WithZkProgrammable,
   ZkProgrammable,
 } from "@proto-kit/common";
+import { Runtime, RuntimeModulesRecord } from "packages/module/dist";
 
+import {
+  MethodZkProgramConfigData,
+  RuntimeZkProgramGeneratorService,
+} from "../../protocol/RuntimeZkProgramGeneratorService";
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
@@ -72,6 +77,12 @@ const errors = {
 
   networkStateHashNotMatching: (step: string) =>
     errors.propertyNotMatchingStep("Network state hash", step),
+
+  invalidZkProgramTreeRoot: () =>
+    "Root hash of the provided zkProgram config witness is invalid",
+
+  invalidZkProgramConfigMethodId: () =>
+    "Method id of the provided zkProgram config does not match the executed transaction method id",
 };
 
 // Should be equal to BlockProver.PublicInput
@@ -128,7 +139,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     >,
     public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
-    private readonly blockHooks: ProvableBlockHook<unknown>[]
+    private readonly blockHooks: ProvableBlockHook<unknown>[],
+    @inject("Runtime") public runtimeModule: Runtime<RuntimeModulesRecord>
   ) {
     super();
   }
@@ -395,6 +407,32 @@ export class BlockProverProgrammable extends ZkProgrammable<
     state.networkStateHash.assertEquals(
       executionData.networkState.hash(),
       "ExecutionData Networkstate doesn't equal public input hash"
+    );
+
+    const zkProgramGenerator = new RuntimeZkProgramGeneratorService(
+      this.runtimeModule
+    );
+    await zkProgramGenerator.initializeZkProgramTree();
+    const zkProgramConfig = Provable.witness(MethodZkProgramConfigData, () =>
+      zkProgramGenerator.getZkProgramConfig(
+        executionData.transaction.methodId.toBigInt()
+      )
+    );
+    const witness = Provable.witness(
+      RuntimeZkProgramGeneratorService.getWitnessType(),
+      () =>
+        zkProgramGenerator.getWitness(
+          executionData.transaction.methodId.toBigInt()
+        )
+    );
+
+    const root = Field(zkProgramGenerator.getRoot());
+    const calculatedRoot = witness.calculateRoot(zkProgramConfig.hash());
+
+    root.assertEquals(calculatedRoot, errors.invalidZkProgramTreeRoot());
+    zkProgramConfig.methodId.assertEquals(
+      executionData.transaction.methodId,
+      errors.invalidZkProgramConfigMethodId()
     );
 
     const bundleInclusionState = this.addTransactionToBundle(

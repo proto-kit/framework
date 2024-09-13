@@ -40,6 +40,10 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
     super();
   }
 
+  public static getWitnessType() {
+    return ZkProgramTree.WITNESS;
+  }
+
   private persistedZkProgramTree?: {
     tree: ZkProgramTree;
     values: ZkProgramTreeValues;
