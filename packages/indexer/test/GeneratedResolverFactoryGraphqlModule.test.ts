@@ -121,7 +121,7 @@ describe("GeneratedResolverFactoryGraphqlModule", () => {
         },
         body: JSON.stringify({
           query: `{
-            blocks(take: 10) {
+            blocks(take: 101) {
               hash,
               height
               
@@ -130,15 +130,14 @@ describe("GeneratedResolverFactoryGraphqlModule", () => {
         }),
       });
     } finally {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const response: {
+        errors: unknown[];
+      } = await result?.json();
       expect(result?.status).toBe(200);
+      expect(response.errors.length).toBe(1);
     }
-
-    console.log("response", await result.json());
-
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 300000);
-    });
-  }, 300000);
+  });
 
   afterAll(() => {
     indexer.resolve("GraphqlServer").close();
