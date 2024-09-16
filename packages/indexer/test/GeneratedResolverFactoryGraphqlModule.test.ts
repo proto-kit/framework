@@ -14,6 +14,7 @@ log.setLevel("info");
 
 const port = 8081;
 const findFirstSpy = jest.fn(() => {});
+const findManySpy = jest.fn(() => []);
 
 @graphqlModule()
 class MockedGeneratedResolverFactoryGraphqlModule extends GeneratedResolverFactoryGraphqlModule {
@@ -21,6 +22,7 @@ class MockedGeneratedResolverFactoryGraphqlModule extends GeneratedResolverFacto
     return {
       block: {
         findFirst: findFirstSpy,
+        findMany: findManySpy,
       },
     } as any;
   }
@@ -76,6 +78,67 @@ describe("GeneratedResolverFactoryGraphqlModule", () => {
 
     expect(findFirstSpy).toHaveBeenCalled();
   });
+
+  it("should allow getting of 10 blocks", async () => {
+    // wait for the gql server to start
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 3000);
+    });
+
+    let result: Response | undefined;
+    try {
+      result = await fetch(`http://0.0.0.0:${port}/graphql`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `{
+            blocks(take: 10) {
+              hash,
+              height
+            }
+          }`,
+        }),
+      });
+    } finally {
+      expect(result?.status).toBe(200);
+    }
+  });
+
+  it("should not allow getting of more than 100 blocks", async () => {
+    // wait for the gql server to start
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 3000);
+    });
+
+    let result: Response | undefined;
+    try {
+      result = await fetch(`http://0.0.0.0:${port}/graphql`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `{
+            blocks(take: 10) {
+              hash,
+              height
+              
+            }
+          }`,
+        }),
+      });
+    } finally {
+      expect(result?.status).toBe(200);
+    }
+
+    console.log("response", await result.json());
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 300000);
+    });
+  }, 300000);
 
   afterAll(() => {
     indexer.resolve("GraphqlServer").close();

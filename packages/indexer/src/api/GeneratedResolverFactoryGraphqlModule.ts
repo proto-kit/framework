@@ -3,7 +3,7 @@ import {
   ResolverFactoryGraphqlModule,
   graphqlModule,
 } from "@proto-kit/api";
-import { NonEmptyArray } from "type-graphql";
+import { NonEmptyArray, createMethodMiddlewareDecorator } from "type-graphql";
 import { inject } from "tsyringe";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { PrismaClient } from "@prisma/client-indexer";
@@ -38,8 +38,10 @@ import {
   GroupByBlockResultResolver,
   GroupByTransactionExecutionResultResolver,
   GroupByTransactionResolver,
+  ResolversEnhanceMap,
   TransactionExecutionResultRelationsResolver,
   TransactionRelationsResolver,
+  applyResolversEnhanceMap,
 } from "./generated/type-graphql";
 
 function cleanResolvers(resolvers: NonEmptyArray<Function>) {
@@ -52,13 +54,28 @@ function cleanResolvers(resolvers: NonEmptyArray<Function>) {
         method.includes("update") ||
         method.includes("create") ||
         method.includes("delete") ||
-        method.includes("upsert");
+        method.includes("upsert") ||
+        method.includes("batch");
 
       if (shouldRemove) {
         delete resolver.prototype[method];
       }
     });
     return resolver;
+  });
+}
+
+export function ValidateTakeArg() {
+  return createMethodMiddlewareDecorator(async ({ args }, next) => {
+    // Middleware code that uses custom decorator arguments
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const take: number | undefined = args?.take;
+    if (take === undefined || take < 1 || take > 100) {
+      throw new Error("You must specify 'take' between 1 and 100");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/return-await
+    return next();
   });
 }
 
@@ -86,6 +103,32 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
   }
 
   public resolvers(): NonEmptyArray<Function> {
+    // basic way to limit the number of results returned at the argument level
+    const resolversEnchanceMap: ResolversEnhanceMap = {
+      Block: {
+        aggregateBlock: [ValidateTakeArg()],
+        blocks: [ValidateTakeArg()],
+        groupByBlock: [ValidateTakeArg()],
+      },
+      BlockResult: {
+        aggregateBlockResult: [ValidateTakeArg()],
+        blockResults: [ValidateTakeArg()],
+        groupByBlockResult: [ValidateTakeArg()],
+      },
+      Transaction: {
+        aggregateTransaction: [ValidateTakeArg()],
+        transactions: [ValidateTakeArg()],
+        groupByTransaction: [ValidateTakeArg()],
+      },
+      TransactionExecutionResult: {
+        aggregateTransactionExecutionResult: [ValidateTakeArg()],
+        transactionExecutionResults: [ValidateTakeArg()],
+        groupByTransactionExecutionResult: [ValidateTakeArg()],
+      },
+    };
+
+    applyResolversEnhanceMap(resolversEnchanceMap);
+
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return cleanResolvers([
       // block resolvers
