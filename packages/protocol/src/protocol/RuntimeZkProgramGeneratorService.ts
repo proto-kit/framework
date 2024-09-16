@@ -1,4 +1,4 @@
-import { Field, Poseidon, Struct } from "o1js";
+import { Field, Poseidon, Struct, VerificationKey } from "o1js";
 import {
   createMerkleTree,
   InMemoryMerkleTreeStorage,
@@ -15,7 +15,7 @@ export class ZkProgramTree extends createMerkleTree(treeFeeHeight) {}
 export interface MethodZkProgramConfig {
   methodId: bigint;
   vkHash: string;
-  vk: { data: string; hash: Field };
+  vk: VerificationKey;
 }
 
 export interface ZkProgramTreeValues {
@@ -52,7 +52,7 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
   };
 
   private persistedVk?: {
-    [methodId: string]: { data: string; hash: Field };
+    [methodId: string]: VerificationKey;
   };
 
   public async initializeZkProgramTree() {
@@ -132,6 +132,19 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
     }
 
     return this.persistedZkProgramTree;
+  }
+
+  public getVkRecord() {
+    if (this.persistedVk === undefined) {
+      throw new Error("VK record nots intialized");
+    }
+
+    return this.persistedVk;
+  }
+
+  public getVkRecordEntry(methodId: bigint) {
+    const persistedVk = this.getVkRecord();
+    return persistedVk[methodId.toString()];
   }
 
   public getZkProgramConfig(methodId: bigint) {

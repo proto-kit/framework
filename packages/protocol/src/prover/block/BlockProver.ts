@@ -5,6 +5,7 @@ import {
   type Proof,
   Provable,
   SelfProof,
+  VerificationKey,
   ZkProgram,
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
@@ -15,7 +16,6 @@ import {
   WithZkProgrammable,
   ZkProgrammable,
 } from "@proto-kit/common";
-import { Runtime, RuntimeModulesRecord } from "packages/module/dist";
 
 import {
   MethodZkProgramConfigData,
@@ -140,7 +140,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
     private readonly blockHooks: ProvableBlockHook<unknown>[],
-    @inject("Runtime") public runtimeModule: Runtime<RuntimeModulesRecord>
+    private readonly generateZkProgram: RuntimeZkProgramGeneratorService
   ) {
     super();
   }
@@ -409,31 +409,36 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "ExecutionData Networkstate doesn't equal public input hash"
     );
 
-    const zkProgramGenerator = new RuntimeZkProgramGeneratorService(
-      this.runtimeModule
-    );
-    await zkProgramGenerator.initializeZkProgramTree();
     const zkProgramConfig = Provable.witness(MethodZkProgramConfigData, () =>
-      zkProgramGenerator.getZkProgramConfig(
+      this.generateZkProgram.getZkProgramConfig(
         executionData.transaction.methodId.toBigInt()
       )
     );
     const witness = Provable.witness(
       RuntimeZkProgramGeneratorService.getWitnessType(),
       () =>
-        zkProgramGenerator.getWitness(
+        this.generateZkProgram.getWitness(
           executionData.transaction.methodId.toBigInt()
         )
     );
+    const vkRecord = Provable.witness(VerificationKey, () =>
+      this.generateZkProgram.getVkRecordEntry(
+        executionData.transaction.methodId.toBigInt()
+      )
+    );
 
-    const root = Field(zkProgramGenerator.getRoot());
+    const root = Field(this.generateZkProgram.getRoot());
     const calculatedRoot = witness.calculateRoot(zkProgramConfig.hash());
-
     root.assertEquals(calculatedRoot, errors.invalidZkProgramTreeRoot());
+
     zkProgramConfig.methodId.assertEquals(
       executionData.transaction.methodId,
       errors.invalidZkProgramConfigMethodId()
     );
+    vkRecord.hash.assertEquals(zkProgramConfig.vkHash);
+
+    // Now need to set up Sideloading with dynamic data type.
+    runtimeProof.verify(vk);
 
     const bundleInclusionState = this.addTransactionToBundle(
       state,
@@ -901,7 +906,8 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     @injectAll("ProvableTransactionHook")
     transactionHooks: ProvableTransactionHook<unknown>[],
     @injectAll("ProvableBlockHook")
-    blockHooks: ProvableBlockHook<unknown>[]
+    blockHooks: ProvableBlockHook<unknown>[],
+    private readonly generateZkProgram: RuntimeZkProgramGeneratorService
   ) {
     super();
     this.zkProgrammable = new BlockProverProgrammable(
@@ -909,8 +915,13 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
       stateTransitionProver.zkProgrammable,
       runtime.zkProgrammable,
       transactionHooks,
-      blockHooks
+      blockHooks,
+      generateZkProgram
     );
+  }
+
+  public async start() {
+    await this.generateZkProgram.initializeZkProgramTree();
   }
 
   public proveTransaction(
