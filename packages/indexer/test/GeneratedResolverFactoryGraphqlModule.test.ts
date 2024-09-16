@@ -12,7 +12,7 @@ import { GeneratedResolverFactoryGraphqlModule } from "../src/api/GeneratedResol
 
 log.setLevel("info");
 
-const port = 8080;
+const port = 8081;
 const findFirstSpy = jest.fn(() => {});
 
 @graphqlModule()
@@ -59,7 +59,7 @@ describe("GeneratedResolverFactoryGraphqlModule", () => {
       setTimeout(resolve, 3000);
     });
 
-    await fetch("http://0.0.0.0:8080/graphql", {
+    await fetch(`http://0.0.0.0:${port}/graphql`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
