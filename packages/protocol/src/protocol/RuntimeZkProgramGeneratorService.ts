@@ -15,6 +15,7 @@ export class ZkProgramTree extends createMerkleTree(treeFeeHeight) {}
 export interface MethodZkProgramConfig {
   methodId: bigint;
   vkHash: string;
+  vk: { data: string; hash: Field };
 }
 
 export interface ZkProgramTreeValues {
@@ -50,6 +51,10 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
     indexes: ZkProgramIndexes;
   };
 
+  private persistedVk?: {
+    [methodId: string]: { data: string; hash: Field };
+  };
+
   public async initializeZkProgramTree() {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
@@ -67,8 +72,7 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
         Promise<[ZkProgramTreeValues, ZkProgramIndexes]>
       >(
         async (accum, program) => {
-          const vk = (await program.compile()).verificationKey.hash;
-          const vkHash = Poseidon.hash([vk]);
+          const vk = (await program.compile()).verificationKey;
           const [valuesMeth, indexesMeth] = Object.keys(program.methods).reduce<
             [ZkProgramTreeValues, ZkProgramIndexes]
           >(
@@ -85,7 +89,8 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
 
                   [methodId.toString()]: {
                     methodId,
-                    vkHash: vkHash.toString(),
+                    vk: vk,
+                    vkHash: vk.hash.toString(),
                   },
                 },
                 {
@@ -106,6 +111,7 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
       );
 
     const tree = new ZkProgramTree(new InMemoryMerkleTreeStorage());
+    const valuesVK: Record<string, { data: string; hash: Field }> = {};
 
     Object.values(values).forEach((value, index) => {
       const ZkProgramConfig = new MethodZkProgramConfigData({
@@ -113,9 +119,11 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
         vkHash: Field(value.vkHash),
       });
       tree.setLeaf(BigInt(index), ZkProgramConfig.hash());
+      valuesVK[value.methodId.toString()] = value.vk;
     });
 
     this.persistedZkProgramTree = { tree, values, indexes };
+    this.persistedVk = valuesVK;
   }
 
   public getZkProgramTree() {
