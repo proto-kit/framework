@@ -5,6 +5,7 @@ import {
   runtimeMethod,
   RuntimeModule,
   runtimeModule,
+  RuntimeEvents,
 } from "@proto-kit/module";
 import {
   AccountState,
@@ -40,18 +41,18 @@ export class TestEvent extends Struct({
 }) {}
 
 @runtimeModule()
-class EventMaker extends RuntimeModule<unknown> {
+class EventMaker extends RuntimeModule {
   public constructor() {
     super();
   }
 
-  public events = {
+  public events = new RuntimeEvents({
     test: TestEvent,
-  };
+  });
 
   @runtimeMethod()
   public async makeEvent() {
-    this.emit("test", new TestEvent({ message: Bool(false) }));
+    this.events.emit("test", new TestEvent({ message: Bool(false) }));
   }
 }
 

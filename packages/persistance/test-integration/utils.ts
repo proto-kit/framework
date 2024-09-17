@@ -5,7 +5,12 @@ import {
   TokenId,
   VanillaProtocolModules,
 } from "@proto-kit/library";
-import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
+import {
+  Runtime,
+  RuntimeEvents,
+  runtimeMethod,
+  runtimeModule,
+} from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
@@ -71,14 +76,14 @@ export class TestEvent extends Struct({
 
 @runtimeModule()
 export class MintableBalances extends Balances {
-  public events = {
+  public events = new RuntimeEvents({
     test: TestEvent,
-  };
+  });
 
   @runtimeMethod()
   public async mintDefaultToken(address: PublicKey, amount: Balance) {
     await this.mint(TokenId.from(0), address, amount);
-    this.emit("test", new TestEvent({ message: Bool(false) }));
+    this.events.emit("test", new TestEvent({ message: Bool(false) }));
   }
 }
 
