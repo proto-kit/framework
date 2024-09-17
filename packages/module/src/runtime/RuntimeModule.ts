@@ -22,6 +22,8 @@ type EventRecord = Record<string, FlexibleProvablePure<any>>;
 type InferProvable<T extends FlexibleProvablePure<any>> =
   T extends Provable<infer U> ? U : never;
 
+type emitIfConditional = (...args: any[]) => boolean;
+
 export class RuntimeEvents<Events extends EventRecord> {
   public constructor(private readonly events: Events) {}
 
@@ -41,6 +43,28 @@ export class RuntimeEvents<Events extends EventRecord> {
     return container
       .resolve(RuntimeMethodExecutionContext)
       .addEvent(eventType, event, eventName);
+  }
+
+  // eslint-disable-next-line consistent-return
+  public emitIf<Key extends keyof Events>(
+    condition: emitIfConditional,
+    eventName: Key,
+    event: InferProvable<Events[Key]>
+  ) {
+    if (this.events === undefined) {
+      throw new Error(
+        "'events' property not defined, make sure to define the event types on your runtimemodule"
+      );
+    }
+    if (condition()) {
+      const eventType: FlexibleProvablePure<any> = this.events[eventName];
+      if (typeof eventName !== "string") {
+        throw new Error("Only string");
+      }
+      return container
+        .resolve(RuntimeMethodExecutionContext)
+        .addEvent(eventType, event, eventName);
+    }
   }
 }
 
