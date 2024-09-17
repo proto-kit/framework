@@ -6,6 +6,7 @@ import {
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
   StateTransitionReductionList,
+  DefaultProvableHashList,
 } from "@proto-kit/protocol";
 import {
   DecoratedMethod,
@@ -59,12 +60,11 @@ export function toEventsHash(
     eventName: string;
   }[]
 ) {
-  return events
-    .map((event) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      return event.eventType.toFields(event.event);
-    })
-    .reduce((accum, next) => Poseidon.hash([accum, ...next]), Field(0));
+  const hashList = new DefaultProvableHashList(events[0].eventType);
+  events.forEach((event) => {
+    hashList.push(event.event);
+  });
+  return hashList.commitment;
 }
 
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
