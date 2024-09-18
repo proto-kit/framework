@@ -7,7 +7,7 @@ import {
   RuntimeMethodExecutionData,
   RuntimeMethodExecutionDataStruct,
 } from "@proto-kit/protocol";
-import { FlexibleProvablePure, Provable } from "o1js";
+import { FlexibleProvablePure, Provable, Bool } from "o1js";
 
 import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
@@ -22,14 +22,13 @@ type EventRecord = Record<string, FlexibleProvablePure<any>>;
 type InferProvable<T extends FlexibleProvablePure<any>> =
   T extends Provable<infer U> ? U : never;
 
-type emitIfConditional = (...args: any[]) => boolean;
-
 export class RuntimeEvents<Events extends EventRecord> {
   public constructor(private readonly events: Events) {}
 
-  public emit<Key extends keyof Events>(
+  public emitIf<Key extends keyof Events>(
     eventName: Key,
-    event: InferProvable<Events[Key]>
+    event: InferProvable<Events[Key]>,
+    condition: Bool
   ) {
     if (this.events === undefined) {
       throw new Error(
@@ -42,29 +41,14 @@ export class RuntimeEvents<Events extends EventRecord> {
     }
     return container
       .resolve(RuntimeMethodExecutionContext)
-      .addEvent(eventType, event, eventName);
+      .addEvent(eventType, event, eventName, condition);
   }
 
-  // eslint-disable-next-line consistent-return
-  public emitIf<Key extends keyof Events>(
-    condition: emitIfConditional,
+  public emit<Key extends keyof Events>(
     eventName: Key,
     event: InferProvable<Events[Key]>
   ) {
-    if (this.events === undefined) {
-      throw new Error(
-        "'events' property not defined, make sure to define the event types on your runtimemodule"
-      );
-    }
-    if (condition()) {
-      const eventType: FlexibleProvablePure<any> = this.events[eventName];
-      if (typeof eventName !== "string") {
-        throw new Error("Only string");
-      }
-      return container
-        .resolve(RuntimeMethodExecutionContext)
-        .addEvent(eventType, event, eventName);
-    }
+    this.emitIf(eventName, event, Bool(true));
   }
 }
 

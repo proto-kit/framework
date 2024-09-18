@@ -29,6 +29,7 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
     eventType: FlexibleProvablePure<any>;
     event: any;
     eventName: string;
+    condition: Bool;
   }[] = [];
 }
 
@@ -82,7 +83,8 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
   public addEvent(
     eventType: FlexibleProvablePure<any>,
     event: any,
-    eventName: string
+    eventName: string,
+    condition: Bool = Bool(true)
   ) {
     this.assertSetupCalled();
     this.result.events.push({
@@ -90,6 +92,7 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       event,
       eventName,
+      condition,
     });
   }
 
