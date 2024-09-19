@@ -29,7 +29,6 @@ import {
 
 import { Balances } from "./modules/Balances";
 import { createTestingRuntime } from "./TestingRuntime";
-import { cond } from "lodash";
 
 export class PrimaryTestEvent extends Struct({
   message: Bool,
