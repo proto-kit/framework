@@ -29,6 +29,7 @@ import {
 
 import { Balances } from "./modules/Balances";
 import { createTestingRuntime } from "./TestingRuntime";
+import { cond } from "lodash";
 
 export class TestEvent extends Struct({
   message: Bool,
@@ -155,6 +156,7 @@ describe("runtimeMethod", () => {
         message: Bool(false),
       }),
       eventName: "test",
+      condition: Bool(true),
     };
     const eventsResults = context.current().result.events;
     expect(eventsResults).toHaveLength(1);
