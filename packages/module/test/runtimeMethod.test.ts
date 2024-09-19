@@ -165,6 +165,8 @@ describe("runtimeMethod", () => {
     const proof = await context.current().result.prover!();
     const publicOuput = proof.publicOutput as MethodPublicOutput;
     const { eventsHash } = publicOuput;
-    expect(eventsHash).toStrictEqual(toEventsHash([expectedEvent]));
+    expect(eventsHash).toStrictEqual(
+      toEventsHash([{ ...expectedEvent, condition: Bool(true) }])
+    );
   });
 });
