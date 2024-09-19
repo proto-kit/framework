@@ -61,6 +61,9 @@ export function toEventsHash(
     condition: Bool;
   }[]
 ) {
+  if (events.length === 0) {
+    return Field(0);
+  }
   const hashList = new DefaultProvableHashList(events[0].eventType);
   events.forEach((event) => {
     hashList.pushIf(event.event, event.condition);
