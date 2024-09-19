@@ -530,11 +530,21 @@ export class TransactionExecutionService {
     appChain.setProofsEnabled(previousProofsEnabled);
 
     const eventsReduced: { eventName: string; data: Field[] }[] =
-      runtimeResult.events.map((event) => ({
-        eventName: event.eventName,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        data: event.eventType.toFields(event.event),
-      }));
+      runtimeResult.events.reduce(
+        (acc, event) => {
+          if (event.condition.toBoolean()) {
+            const obj = {
+              eventName: event.eventName,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+              data: event.eventType.toFields(event.event),
+            };
+            acc.push(obj);
+          }
+          return acc;
+        },
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        [] as { eventName: string; data: Field[] }[]
+      );
     return {
       tx,
       status: runtimeResult.status,
