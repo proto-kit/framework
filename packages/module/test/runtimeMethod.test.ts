@@ -29,8 +29,13 @@ import {
 
 import { Balances } from "./modules/Balances";
 import { createTestingRuntime } from "./TestingRuntime";
+import { cond } from "lodash";
 
-export class TestEvent extends Struct({
+export class PrimaryTestEvent extends Struct({
+  message: Bool,
+}) {}
+
+export class SecondaryTestEvent extends Struct({
   message: Bool,
 }) {}
 
@@ -41,12 +46,23 @@ class EventMaker extends RuntimeModule {
   }
 
   public events = new RuntimeEvents({
-    test: TestEvent,
+    primary: PrimaryTestEvent,
+    secondary: SecondaryTestEvent,
   });
 
   @runtimeMethod()
   public async makeEvent() {
-    this.events.emit("test", new TestEvent({ message: Bool(false) }));
+    this.events.emit("primary", new PrimaryTestEvent({ message: Bool(false) }));
+    // Should not emit as condition is false.
+    this.events.emitIf(
+      "primary",
+      new PrimaryTestEvent({ message: Bool(false) }),
+      Bool(false)
+    );
+    this.events.emit(
+      "secondary",
+      new SecondaryTestEvent({ message: Bool(true) })
+    );
   }
 }
 
@@ -120,7 +136,7 @@ describe("runtimeMethod", () => {
   });
 
   it("should capture event", async () => {
-    expect.assertions(3);
+    expect.assertions(5);
 
     const context = container.resolve(RuntimeMethodExecutionContext);
 
@@ -149,25 +165,51 @@ describe("runtimeMethod", () => {
     const module = runtime.resolve("EventMaker");
     await module.makeEvent();
 
-    const expectedEvent = {
-      eventType: TestEvent,
-      event: new TestEvent({
+    const firstExpectedEvent = {
+      eventType: PrimaryTestEvent,
+      event: new PrimaryTestEvent({
         message: Bool(false),
       }),
-      eventName: "test",
+      eventName: "primary",
       condition: Bool(true),
     };
+
+    const secondExpectedEvent = {
+      eventType: PrimaryTestEvent,
+      event: new PrimaryTestEvent({
+        message: Bool(false),
+      }),
+      eventName: "primary",
+      condition: Bool(false),
+    };
+
+    const thirdExpectedEvent = {
+      eventType: SecondaryTestEvent,
+      event: new SecondaryTestEvent({
+        message: Bool(true),
+      }),
+      eventName: "secondary",
+      condition: Bool(true),
+    };
+
     const eventsResults = context.current().result.events;
-    expect(eventsResults).toHaveLength(1);
-    expect(eventsResults[0]).toStrictEqual(expectedEvent);
+    expect(eventsResults).toHaveLength(3);
+    expect(eventsResults[0]).toStrictEqual(firstExpectedEvent);
+    expect(eventsResults[1]).toStrictEqual(secondExpectedEvent);
+    expect(eventsResults[2]).toStrictEqual(thirdExpectedEvent);
 
     context.afterMethod();
 
     const proof = await context.current().result.prover!();
     const publicOuput = proof.publicOutput as MethodPublicOutput;
     const { eventsHash } = publicOuput;
+    //  Note that we omit the second event from below as it was
+    //  not emitted due to the condition being false.
     expect(eventsHash).toStrictEqual(
-      toEventsHash([{ ...expectedEvent, condition: Bool(true) }])
+      toEventsHash([
+        { ...firstExpectedEvent, condition: Bool(true) },
+        { ...thirdExpectedEvent, condition: Bool(true) },
+      ])
     );
   });
 });
