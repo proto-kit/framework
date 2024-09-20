@@ -2,10 +2,10 @@ import { Field, Poseidon, Struct, VerificationKey } from "o1js";
 import {
   createMerkleTree,
   InMemoryMerkleTreeStorage,
-} from "packages/common/dist";
-import { ConfigurableModule } from "packages/common/dist/config/ConfigurableModule";
+  ConfigurableModule,
+} from "@proto-kit/common";
 import { container, inject } from "tsyringe";
-import { Runtime, RuntimeModulesRecord } from "packages/module/dist";
+import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 
 import { NetworkState } from "../model/network/NetworkState";
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
