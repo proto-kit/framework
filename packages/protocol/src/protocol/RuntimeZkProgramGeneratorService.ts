@@ -4,10 +4,12 @@ import {
   InMemoryMerkleTreeStorage,
 } from "packages/common/dist";
 import { ConfigurableModule } from "packages/common/dist/config/ConfigurableModule";
-import { NetworkState, RuntimeTransaction } from "packages/protocol/dist";
-import { RuntimeMethodExecutionContext } from "packages/protocol/dist/state/context/RuntimeMethodExecutionContext";
 import { container, inject } from "tsyringe";
 import { Runtime, RuntimeModulesRecord } from "packages/module/dist";
+
+import { NetworkState } from "../model/network/NetworkState";
+import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
+import { RuntimeMethodExecutionContext } from "../state/context/RuntimeMethodExecutionContext";
 
 export const treeFeeHeight = 10;
 export class ZkProgramTree extends createMerkleTree(treeFeeHeight) {}

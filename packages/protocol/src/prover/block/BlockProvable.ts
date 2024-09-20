@@ -1,4 +1,4 @@
-import { Bool, Field, Proof, Signature, Struct } from "o1js";
+import { Bool, DynamicProof, Field, Proof, Signature, Struct } from "o1js";
 import { WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
@@ -60,7 +60,7 @@ export interface BlockProvable
   proveTransaction: (
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    appProof: Proof<void, MethodPublicOutput>,
+    appProof: DynamicProof<void, MethodPublicOutput>,
     executionData: BlockProverExecutionData
   ) => Promise<BlockProverPublicOutput>;
 

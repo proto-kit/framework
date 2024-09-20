@@ -1,10 +1,12 @@
 import {
   Bool,
+  DynamicProof,
   Field,
   Poseidon,
   type Proof,
   Provable,
   SelfProof,
+  Undefined,
   VerificationKey,
   ZkProgram,
 } from "o1js";
@@ -125,8 +127,12 @@ function maxField() {
 }
 
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-export type RuntimeProof = Proof<void, MethodPublicOutput>;
 
+class DynamicRuntimeProof extends DynamicProof<void, MethodPublicOutput> {
+  static publicInputType = Undefined;
+
+  static publicOutputType = MethodPublicOutput;
+}
 export class BlockProverProgrammable extends ZkProgrammable<
   BlockProverPublicInput,
   BlockProverPublicOutput
@@ -165,14 +171,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    runtimeProof: RuntimeProof,
-    executionData: BlockProverExecutionData
+    runtimeProof: DynamicRuntimeProof,
+    executionData: BlockProverExecutionData,
+    verificationKey: VerificationKey
   ): Promise<BlockProverState> {
     const { transaction, networkState, signature } = executionData;
 
     const { isMessage } = runtimeProof.publicOutput;
 
-    runtimeProof.verify();
+    runtimeProof.verify(verificationKey);
     stateTransitionProof.verify();
 
     const stateTo = { ...state };
@@ -258,7 +265,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicOutput
     >,
     executionData: BlockProverExecutionData,
-    runtimeProof: Proof<void, MethodPublicOutput>
+    runtimeProof: DynamicProof<void, MethodPublicOutput>
   ) {
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.clear();
@@ -397,7 +404,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
   public async proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    runtimeProof: RuntimeProof,
+    runtimeProof: DynamicRuntimeProof,
     executionData: BlockProverExecutionData
   ): Promise<BlockProverPublicOutput> {
     const state: BlockProverState = {
@@ -438,7 +445,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     vkRecord.hash.assertEquals(zkProgramConfig.vkHash);
 
     // Now need to set up Sideloading with dynamic data type.
-    runtimeProof.verify(vk);
+    runtimeProof.verify(vkRecord);
 
     const bundleInclusionState = this.addTransactionToBundle(
       state,
@@ -450,7 +457,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
       bundleInclusionState,
       stateProof,
       runtimeProof,
-      executionData
+      executionData,
+      vkRecord
     );
 
     return new BlockProverPublicOutput({
@@ -790,9 +798,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     BlockProverPublicInput,
     BlockProverPublicOutput
   >[] {
-    const { prover, stateTransitionProver, runtime } = this;
+    const { prover, stateTransitionProver } = this;
     const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
-    const RuntimeProofClass = runtime.zkProgram[0].Proof;
 
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveBlock = prover.proveBlock.bind(prover);
@@ -807,14 +814,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
         proveTransaction: {
           privateInputs: [
             StateTransitionProofClass,
-            RuntimeProofClass,
+            DynamicProof<void, MethodPublicOutput>,
             BlockProverExecutionData,
           ],
 
           async method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
-            appProof: Proof<void, MethodPublicOutput>,
+            appProof: DynamicProof<void, MethodPublicOutput>,
             executionData: BlockProverExecutionData
           ) {
             return await proveTransaction(
@@ -927,7 +934,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
   public proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    appProof: Proof<void, MethodPublicOutput>,
+    appProof: DynamicRuntimeProof,
     executionData: BlockProverExecutionData
   ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveTransaction(
