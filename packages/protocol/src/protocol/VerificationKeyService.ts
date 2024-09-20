@@ -12,31 +12,31 @@ import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { RuntimeMethodExecutionContext } from "../state/context/RuntimeMethodExecutionContext";
 
 export const treeFeeHeight = 10;
-export class ZkProgramTree extends createMerkleTree(treeFeeHeight) {}
+export class VKTree extends createMerkleTree(treeFeeHeight) {}
 
-export interface MethodZkProgramConfig {
+export interface MethodVKConfig {
   methodId: bigint;
   vkHash: string;
   vk: VerificationKey;
 }
 
-export interface ZkProgramTreeValues {
-  [methodId: string]: MethodZkProgramConfig;
+export interface VKTreeValues {
+  [methodId: string]: MethodVKConfig;
 }
 
-export interface ZkProgramIndexes {
+export interface VKIndexes {
   [methodId: string]: bigint;
 }
 
-export class MethodZkProgramConfigData extends Struct({
+export class MethodVKConfigData extends Struct({
   methodId: Field,
   vkHash: Field,
 }) {
   public hash() {
-    return Poseidon.hash(MethodZkProgramConfigData.toFields(this));
+    return Poseidon.hash(MethodVKConfigData.toFields(this));
   }
 }
-export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
+export class VerificationKeyService extends ConfigurableModule<{}> {
   public constructor(
     @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
   ) {
@@ -44,20 +44,20 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
   }
 
   public static getWitnessType() {
-    return ZkProgramTree.WITNESS;
+    return VKTree.WITNESS;
   }
 
-  private persistedZkProgramTree?: {
-    tree: ZkProgramTree;
-    values: ZkProgramTreeValues;
-    indexes: ZkProgramIndexes;
+  private persistedVKTree?: {
+    tree: VKTree;
+    values: VKTreeValues;
+    indexes: VKIndexes;
   };
 
-  private persistedVk?: {
+  private persistedVKRecord?: {
     [methodId: string]: VerificationKey;
   };
 
-  public async initializeZkProgramTree() {
+  public async initializeVKTree() {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -71,12 +71,12 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
 
     const [values, indexes] =
       await this.runtime.zkProgrammable.zkProgram.reduce<
-        Promise<[ZkProgramTreeValues, ZkProgramIndexes]>
+        Promise<[VKTreeValues, VKIndexes]>
       >(
         async (accum, program) => {
           const vk = (await program.compile()).verificationKey;
           const [valuesMeth, indexesMeth] = Object.keys(program.methods).reduce<
-            [ZkProgramTreeValues, ZkProgramIndexes]
+            [VKTreeValues, VKIndexes]
           >(
             // eslint-disable-next-line @typescript-eslint/no-shadow
             ([values, indexes], combinedMethodName, index) => {
@@ -112,36 +112,36 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
         Promise.resolve([{}, {}])
       );
 
-    const tree = new ZkProgramTree(new InMemoryMerkleTreeStorage());
+    const tree = new VKTree(new InMemoryMerkleTreeStorage());
     const valuesVK: Record<string, { data: string; hash: Field }> = {};
 
     Object.values(values).forEach((value, index) => {
-      const ZkProgramConfig = new MethodZkProgramConfigData({
+      const vkConfig = new MethodVKConfigData({
         methodId: Field(value.methodId),
         vkHash: Field(value.vkHash),
       });
-      tree.setLeaf(BigInt(index), ZkProgramConfig.hash());
+      tree.setLeaf(BigInt(index), vkConfig.hash());
       valuesVK[value.methodId.toString()] = value.vk;
     });
 
-    this.persistedZkProgramTree = { tree, values, indexes };
-    this.persistedVk = valuesVK;
+    this.persistedVKTree = { tree, values, indexes };
+    this.persistedVKRecord = valuesVK;
   }
 
-  public getZkProgramTree() {
-    if (this.persistedZkProgramTree === undefined) {
+  public getVKTree() {
+    if (this.persistedVKTree === undefined) {
       throw new Error("ZkProgram Tree not intialized");
     }
 
-    return this.persistedZkProgramTree;
+    return this.persistedVKTree;
   }
 
   public getVkRecord() {
-    if (this.persistedVk === undefined) {
+    if (this.persistedVKRecord === undefined) {
       throw new Error("VK record nots intialized");
     }
 
-    return this.persistedVk;
+    return this.persistedVKRecord;
   }
 
   public getVkRecordEntry(methodId: bigint) {
@@ -149,24 +149,22 @@ export class RuntimeZkProgramGeneratorService extends ConfigurableModule<{}> {
     return persistedVk[methodId.toString()];
   }
 
-  public getZkProgramConfig(methodId: bigint) {
-    const zkProgramConfig = this.getZkProgramTree().values[methodId.toString()];
+  public getVKConfig(methodId: bigint) {
+    const vkConfig = this.getVKTree().values[methodId.toString()];
 
-    return new MethodZkProgramConfigData({
-      methodId: Field(zkProgramConfig.methodId),
-      vkHash: Field(zkProgramConfig.vkHash),
+    return new MethodVKConfigData({
+      methodId: Field(vkConfig.methodId),
+      vkHash: Field(vkConfig.vkHash),
     });
   }
 
   public getWitness(methodId: bigint) {
-    const zkprogramTree = this.getZkProgramTree();
-    return zkprogramTree.tree.getWitness(
-      zkprogramTree.indexes[methodId.toString()]
-    );
+    const vkTree = this.getVKTree();
+    return vkTree.tree.getWitness(vkTree.indexes[methodId.toString()]);
   }
 
   public getRoot(): bigint {
-    const { tree } = this.getZkProgramTree();
+    const { tree } = this.getVKTree();
     return tree.getRoot().toBigInt();
   }
 }

@@ -20,9 +20,9 @@ import {
 } from "@proto-kit/common";
 
 import {
-  MethodZkProgramConfigData,
-  RuntimeZkProgramGeneratorService,
-} from "../../protocol/RuntimeZkProgramGeneratorService";
+  MethodVKConfigData,
+  VerificationKeyService,
+} from "../../protocol/VerificationKeyService";
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
@@ -146,7 +146,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
     private readonly blockHooks: ProvableBlockHook<unknown>[],
-    private readonly generateZkProgram: RuntimeZkProgramGeneratorService
+    private readonly verificationKeyService: VerificationKeyService
   ) {
     super();
   }
@@ -416,25 +416,25 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "ExecutionData Networkstate doesn't equal public input hash"
     );
 
-    const zkProgramConfig = Provable.witness(MethodZkProgramConfigData, () =>
-      this.generateZkProgram.getZkProgramConfig(
+    const zkProgramConfig = Provable.witness(MethodVKConfigData, () =>
+      this.verificationKeyService.getVKConfig(
         executionData.transaction.methodId.toBigInt()
       )
     );
     const witness = Provable.witness(
-      RuntimeZkProgramGeneratorService.getWitnessType(),
+      VerificationKeyService.getWitnessType(),
       () =>
-        this.generateZkProgram.getWitness(
+        this.verificationKeyService.getWitness(
           executionData.transaction.methodId.toBigInt()
         )
     );
     const vkRecord = Provable.witness(VerificationKey, () =>
-      this.generateZkProgram.getVkRecordEntry(
+      this.verificationKeyService.getVkRecordEntry(
         executionData.transaction.methodId.toBigInt()
       )
     );
 
-    const root = Field(this.generateZkProgram.getRoot());
+    const root = Field(this.verificationKeyService.getRoot());
     const calculatedRoot = witness.calculateRoot(zkProgramConfig.hash());
     root.assertEquals(calculatedRoot, errors.invalidZkProgramTreeRoot());
 
@@ -914,7 +914,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     transactionHooks: ProvableTransactionHook<unknown>[],
     @injectAll("ProvableBlockHook")
     blockHooks: ProvableBlockHook<unknown>[],
-    private readonly generateZkProgram: RuntimeZkProgramGeneratorService
+    private readonly verificationKeyService: VerificationKeyService
   ) {
     super();
     this.zkProgrammable = new BlockProverProgrammable(
@@ -923,12 +923,12 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
       runtime.zkProgrammable,
       transactionHooks,
       blockHooks,
-      generateZkProgram
+      verificationKeyService
     );
   }
 
   public async start() {
-    await this.generateZkProgram.initializeZkProgramTree();
+    await this.verificationKeyService.initializeVKTree();
   }
 
   public proveTransaction(
