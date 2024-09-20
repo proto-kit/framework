@@ -3,13 +3,14 @@ import {
   createMerkleTree,
   InMemoryMerkleTreeStorage,
   ConfigurableModule,
+  ZkProgrammable,
 } from "@proto-kit/common";
 import { container, inject } from "tsyringe";
-import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 
 import { NetworkState } from "../model/network/NetworkState";
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { RuntimeMethodExecutionContext } from "../state/context/RuntimeMethodExecutionContext";
+import { MethodPublicOutput } from "../model/MethodPublicOutput";
 
 export const treeFeeHeight = 10;
 export class VKTree extends createMerkleTree(treeFeeHeight) {}
@@ -36,9 +37,22 @@ export class MethodVKConfigData extends Struct({
     return Poseidon.hash(MethodVKConfigData.toFields(this));
   }
 }
+export interface WithGetMethodId {
+  getMethodId: (moduleName: string, methodName: string) => bigint;
+}
+
+export interface WithZkProgrammableAndGetMethodById<PublicInput, PublicOutput> {
+  zkProgrammable: ZkProgrammable<PublicInput, PublicOutput>;
+  methodIdResolver: WithGetMethodId;
+}
+
 export class VerificationKeyService extends ConfigurableModule<{}> {
   public constructor(
-    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
+    @inject("Runtime")
+    public runtime: WithZkProgrammableAndGetMethodById<
+      undefined,
+      MethodPublicOutput
+    >
   ) {
     super();
   }
