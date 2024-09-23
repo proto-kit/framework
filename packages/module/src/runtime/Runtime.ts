@@ -176,7 +176,7 @@ export class RuntimeZkProgrammable<
       Object.entries(runtimeMethods).sort()
     );
 
-    const splitRunTimeMethods = () => {
+    const splitRuntimeMethods = () => {
       const buckets: Array<
         [
           Record<
@@ -221,7 +221,7 @@ export class RuntimeZkProgrammable<
       return buckets;
     };
 
-    return splitRunTimeMethods().map((bucket) => {
+    return splitRuntimeMethods().map((bucket) => {
       const program = ZkProgram({
         name: "RuntimeProgram",
         publicOutput: MethodPublicOutput,
