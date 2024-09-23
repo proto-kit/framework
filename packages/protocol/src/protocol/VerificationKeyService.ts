@@ -5,7 +5,7 @@ import {
   ConfigurableModule,
   ZkProgrammable,
 } from "@proto-kit/common";
-import { container, inject } from "tsyringe";
+import { container, inject, injectable } from "tsyringe";
 
 import { NetworkState } from "../model/network/NetworkState";
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
@@ -45,7 +45,7 @@ export interface WithZkProgrammableAndGetMethodById<PublicInput, PublicOutput> {
   zkProgrammable: ZkProgrammable<PublicInput, PublicOutput>;
   methodIdResolver: WithGetMethodId;
 }
-
+@injectable()
 export class VerificationKeyService extends ConfigurableModule<{}> {
   public constructor(
     @inject("Runtime")
