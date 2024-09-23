@@ -8,10 +8,10 @@ import {
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
-import { DynamicProof } from "o1js";
+import { Proof } from "o1js";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
-import { DynamicProofTaskSerializer } from "../../../helpers/utils";
+import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 
@@ -20,7 +20,7 @@ import {
   RuntimeProofParametersSerializer,
 } from "./RuntimeTaskParameters";
 
-type RuntimeProof = DynamicProof<undefined, MethodPublicOutput>;
+type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -45,9 +45,7 @@ export class RuntimeProvingTask
   }
 
   public resultSerializer(): TaskSerializer<RuntimeProof> {
-    return new DynamicProofTaskSerializer(
-      DynamicProof<undefined, MethodPublicOutput>
-    );
+    return new ProofTaskSerializer(Proof<undefined, MethodPublicOutput>);
   }
 
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
