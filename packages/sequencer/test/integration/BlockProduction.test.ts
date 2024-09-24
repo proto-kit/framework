@@ -60,9 +60,9 @@ class EventMaker extends RuntimeModule {
     this.events.emit("primary", new PrimaryTestEvent({ message: Bool(false) }));
     // Should not emit as condition is false.
     this.events.emitIf(
+      Bool(false),
       "primary",
-      new PrimaryTestEvent({ message: Bool(false) }),
-      Bool(false)
+      new PrimaryTestEvent({ message: Bool(false) })
     );
     this.events.emit(
       "secondary",
