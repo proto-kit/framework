@@ -191,7 +191,6 @@ describe("runtimeMethod", () => {
       condition: Bool(true),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const eventsResults = context.current().result.events;
     expect(eventsResults).toHaveLength(3);
     expect(eventsResults[0]).toStrictEqual(firstExpectedEvent);
