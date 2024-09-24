@@ -11,6 +11,7 @@ import {
   PlainZkProgram,
   AreProofsEnabled,
   ChildContainerProvider,
+  mapSequential,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -189,7 +190,8 @@ export class RuntimeZkProgrammable<
           number,
         ]
       > = [];
-      Object.entries(sortedRuntimeMethods).forEach(
+      mapSequential(
+        Object.entries(sortedRuntimeMethods),
         async ([methodName, method]) => {
           const rowCount = (await Provable.constraintSystem(method.method))
             .rows;
