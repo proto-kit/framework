@@ -26,9 +26,9 @@ export class RuntimeEvents<Events extends EventRecord> {
   public constructor(private readonly events: Events) {}
 
   public emitIf<Key extends keyof Events>(
+    condition: Bool,
     eventName: Key,
-    event: InferProvable<Events[Key]>,
-    condition: Bool
+    event: InferProvable<Events[Key]>
   ) {
     if (this.events === undefined) {
       throw new Error(
@@ -48,7 +48,7 @@ export class RuntimeEvents<Events extends EventRecord> {
     eventName: Key,
     event: InferProvable<Events[Key]>
   ) {
-    this.emitIf(eventName, event, Bool(true));
+    this.emitIf(Bool(true), eventName, event);
   }
 }
 

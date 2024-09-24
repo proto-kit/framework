@@ -54,9 +54,9 @@ class EventMaker extends RuntimeModule {
     this.events.emit("primary", new PrimaryTestEvent({ message: Bool(false) }));
     // Should not emit as condition is false.
     this.events.emitIf(
+      Bool(false),
       "primary",
-      new PrimaryTestEvent({ message: Bool(false) }),
-      Bool(false)
+      new PrimaryTestEvent({ message: Bool(false) })
     );
     this.events.emit(
       "secondary",
@@ -191,6 +191,7 @@ describe("runtimeMethod", () => {
       condition: Bool(true),
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const eventsResults = context.current().result.events;
     expect(eventsResults).toHaveLength(3);
     expect(eventsResults[0]).toStrictEqual(firstExpectedEvent);
@@ -207,6 +208,7 @@ describe("runtimeMethod", () => {
     expect(eventsHash).toStrictEqual(
       toEventsHash([
         { ...firstExpectedEvent, condition: Bool(true) },
+        { ...secondExpectedEvent, condition: Bool(false) },
         { ...thirdExpectedEvent, condition: Bool(true) },
       ])
     );
