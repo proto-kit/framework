@@ -191,7 +191,8 @@ export class RuntimeZkProgrammable<
       > = [];
       Object.entries(sortedRuntimeMethods).forEach(
         async ([methodName, method]) => {
-          const rowCount = (await Provable.constraintSystem(() => method)).rows;
+          const rowCount = (await Provable.constraintSystem(method.method))
+            .rows;
           let methodAdded = false;
           for (const bucket of buckets) {
             if (buckets.length === 0) {
