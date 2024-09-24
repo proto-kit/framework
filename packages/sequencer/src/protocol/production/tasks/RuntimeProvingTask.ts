@@ -45,7 +45,7 @@ export class RuntimeProvingTask
   }
 
   public resultSerializer(): TaskSerializer<RuntimeProof> {
-    return new ProofTaskSerializer(Proof<undefined, MethodPublicOutput>);
+    return new ProofTaskSerializer(this.runtimeZkProgrammable[0].Proof);
   }
 
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
