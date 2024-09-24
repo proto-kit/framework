@@ -7,7 +7,7 @@ import {
   RuntimeMethodExecutionData,
   RuntimeMethodExecutionDataStruct,
 } from "@proto-kit/protocol";
-import { Provable } from "o1js";
+import { FlexibleProvablePure, Provable, Bool } from "o1js";
 
 import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
 
@@ -16,6 +16,41 @@ import { RuntimeEnvironment } from "./RuntimeEnvironment";
 const errors = {
   inputDataNotSet: () => new Error("Input data for runtime execution not set"),
 };
+
+type EventRecord = Record<string, FlexibleProvablePure<any>>;
+
+type InferProvable<T extends FlexibleProvablePure<any>> =
+  T extends Provable<infer U> ? U : never;
+
+export class RuntimeEvents<Events extends EventRecord> {
+  public constructor(private readonly events: Events) {}
+
+  public emitIf<Key extends keyof Events>(
+    condition: Bool,
+    eventName: Key,
+    event: InferProvable<Events[Key]>
+  ) {
+    if (this.events === undefined) {
+      throw new Error(
+        "'events' property not defined, make sure to define the event types on your runtimemodule"
+      );
+    }
+    const eventType: FlexibleProvablePure<any> = this.events[eventName];
+    if (typeof eventName !== "string") {
+      throw new Error("Only string");
+    }
+    return container
+      .resolve(RuntimeMethodExecutionContext)
+      .addEvent(eventType, event, eventName, condition);
+  }
+
+  public emit<Key extends keyof Events>(
+    eventName: Key,
+    event: InferProvable<Events[Key]>
+  ) {
+    this.emitIf(Bool(true), eventName, event);
+  }
+}
 
 /**
  * Base class for runtime modules providing the necessary utilities.
@@ -41,6 +76,8 @@ export class RuntimeModule<
   public name?: string;
 
   public runtime?: RuntimeEnvironment;
+
+  public events?: RuntimeEvents<any> = undefined;
 
   public constructor() {
     super();

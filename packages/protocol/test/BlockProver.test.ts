@@ -89,6 +89,7 @@ describe("blockProver", () => {
         status: Bool(true),
         networkStateHash: networkState.hash(),
         isMessage: Bool(false),
+        eventsHash: Field(0),
       }),
 
       proof: "",
