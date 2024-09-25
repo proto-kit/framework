@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */
-import { Provable, ZkProgram } from "o1js";
+import { ZkProgram } from "o1js";
 import { DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
@@ -11,7 +11,6 @@ import {
   PlainZkProgram,
   AreProofsEnabled,
   ChildContainerProvider,
-  mapSequential,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -95,6 +94,8 @@ export class RuntimeZkProgrammable<
     // eslint-disable-next-line prefer-destructuring
     const runtime: Runtime<Modules> = this.runtime;
 
+    const MAXIMUM_METHODS_PER_ZK_PROGRAM = 8;
+
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
         runtime.isValidModuleName(
@@ -142,8 +143,6 @@ export class RuntimeZkProgrammable<
                 [methodName, method, { invocationType }]
               );
 
-              // TODO: find out how to import the Tuple type
-
               const privateInputs = Reflect.getMetadata(
                 "design:paramtypes",
                 runtimeModule,
@@ -179,22 +178,16 @@ export class RuntimeZkProgrammable<
 
     const splitRuntimeMethods = () => {
       const buckets: Array<
-        [
-          Record<
-            string,
-            {
-              privateInputs: any;
-              method: AsyncWrappedMethod;
-            }
-          >,
-          number,
-        ]
+        Record<
+          string,
+          {
+            privateInputs: any;
+            method: AsyncWrappedMethod;
+          }
+        >
       > = [];
-      mapSequential(
-        Object.entries(sortedRuntimeMethods),
+      Object.entries(sortedRuntimeMethods).forEach(
         async ([methodName, method]) => {
-          const rowCount = (await Provable.constraintSystem(method.method))
-            .rows;
           let methodAdded = false;
           for (const bucket of buckets) {
             if (buckets.length === 0) {
@@ -206,18 +199,19 @@ export class RuntimeZkProgrammable<
                 }
               > = {};
               record[methodName] = method;
-              buckets.push([record, rowCount]);
+              buckets.push(record);
               methodAdded = true;
               break;
-            } else if (bucket[1] + rowCount <= 2 ** 16) {
-              bucket[0][methodName] = method;
-              bucket[1] += rowCount;
+            } else if (
+              Object.keys(bucket).length <= MAXIMUM_METHODS_PER_ZK_PROGRAM
+            ) {
+              bucket[methodName] = method;
               methodAdded = true;
               break;
             }
           }
           if (!methodAdded) {
-            buckets.push([{ methodName: method }, rowCount]);
+            buckets.push({ methodName: method });
           }
         }
       );
@@ -228,12 +222,12 @@ export class RuntimeZkProgrammable<
       const program = ZkProgram({
         name: "RuntimeProgram",
         publicOutput: MethodPublicOutput,
-        methods: bucket[0],
+        methods: bucket,
       });
 
       const SelfProof = ZkProgram.Proof(program);
 
-      const methods = Object.keys(bucket[0]).reduce<Record<string, any>>(
+      const methods = Object.keys(bucket).reduce<Record<string, any>>(
         (boundMethods, methodName) => {
           boundMethods[methodName] = program[methodName].bind(program);
           return boundMethods;
