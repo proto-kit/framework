@@ -127,7 +127,6 @@ function maxField() {
 }
 
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-
 export type RuntimeProof = Proof<void, MethodPublicOutput>;
 
 class DynamicRuntimeProof extends DynamicProof<Void, MethodPublicOutput> {
@@ -174,7 +173,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    runtimeProof: Proof<void, MethodPublicOutput>,
+    runtimeProof: RuntimeProof,
     executionData: BlockProverExecutionData,
     verificationKey: VerificationKey
   ): Promise<BlockProverState> {
