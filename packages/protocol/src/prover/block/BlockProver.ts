@@ -801,9 +801,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     BlockProverPublicInput,
     BlockProverPublicOutput
   >[] {
-    const { prover, stateTransitionProver } = this;
+    const { prover, stateTransitionProver, runtime } = this;
     const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
-
+    const RuntimeProofClass = runtime.zkProgram[0].Proof;
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveBlock = prover.proveBlock.bind(prover);
     const merge = prover.merge.bind(prover);
@@ -817,7 +817,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
         proveTransaction: {
           privateInputs: [
             StateTransitionProofClass,
-            Proof<void, MethodPublicOutput>,
+            RuntimeProofClass,
             BlockProverExecutionData,
           ],
 
@@ -937,7 +937,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
   public proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    appProof: RuntimeProof,
+    appProof: Proof<void, MethodPublicOutput>,
     executionData: BlockProverExecutionData
   ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveTransaction(
