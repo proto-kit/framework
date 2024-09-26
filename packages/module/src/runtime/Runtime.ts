@@ -188,6 +188,8 @@ export class RuntimeZkProgrammable<
       > = [];
       Object.entries(sortedRuntimeMethods).forEach(
         async ([methodName, method]) => {
+          console.log("EJ Runtime MethodName", Object.keys(methodName).length);
+          console.log("EJ Runtime Method", Object.keys(method).length);
           let methodAdded = false;
           for (const bucket of buckets) {
             if (buckets.length === 0) {
@@ -211,7 +213,15 @@ export class RuntimeZkProgrammable<
             }
           }
           if (!methodAdded) {
-            buckets.push({ methodName: method });
+            const record: Record<
+              string,
+              {
+                privateInputs: any;
+                method: AsyncWrappedMethod;
+              }
+            > = {};
+            record[methodName] = method;
+            buckets.push(record);
           }
         }
       );
