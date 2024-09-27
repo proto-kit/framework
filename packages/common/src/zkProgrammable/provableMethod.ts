@@ -26,7 +26,7 @@ export function toProver(
     const areProofsEnabled = this.appChain?.areProofsEnabled;
     if (areProofsEnabled ?? false) {
       for (const prog of this.zkProgram) {
-        if (methodName in prog.methods) {
+        if (Object.keys(prog.methods).includes(methodName)) {
           const programProvableMethod = prog.methods[methodName];
           // eslint-disable-next-line no-await-in-loop
           return await Reflect.apply(programProvableMethod, this, args);
@@ -36,9 +36,9 @@ export function toProver(
 
     // create a mock proof by simulating method execution in JS
     const publicOutput = await Reflect.apply(simulatedMethod, this, args);
-    const zkProgram = this.zkProgram.find(
-      (prog) => methodName in prog.methods
-    )!;
+    const zkProgram = this.zkProgram.find((prog) => {
+      return Object.keys(prog.methods).includes(methodName);
+    })!;
     return new zkProgram.Proof({
       proof: MOCK_PROOF,
 
