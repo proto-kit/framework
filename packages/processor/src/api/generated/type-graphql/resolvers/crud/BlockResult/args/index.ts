@@ -1,0 +1,15 @@
+export { AggregateBlockResultArgs } from "./AggregateBlockResultArgs";
+export { CreateManyAndReturnBlockResultArgs } from "./CreateManyAndReturnBlockResultArgs";
+export { CreateManyBlockResultArgs } from "./CreateManyBlockResultArgs";
+export { CreateOneBlockResultArgs } from "./CreateOneBlockResultArgs";
+export { DeleteManyBlockResultArgs } from "./DeleteManyBlockResultArgs";
+export { DeleteOneBlockResultArgs } from "./DeleteOneBlockResultArgs";
+export { FindFirstBlockResultArgs } from "./FindFirstBlockResultArgs";
+export { FindFirstBlockResultOrThrowArgs } from "./FindFirstBlockResultOrThrowArgs";
+export { FindManyBlockResultArgs } from "./FindManyBlockResultArgs";
+export { FindUniqueBlockResultArgs } from "./FindUniqueBlockResultArgs";
+export { FindUniqueBlockResultOrThrowArgs } from "./FindUniqueBlockResultOrThrowArgs";
+export { GroupByBlockResultArgs } from "./GroupByBlockResultArgs";
+export { UpdateManyBlockResultArgs } from "./UpdateManyBlockResultArgs";
+export { UpdateOneBlockResultArgs } from "./UpdateOneBlockResultArgs";
+export { UpsertOneBlockResultArgs } from "./UpsertOneBlockResultArgs";

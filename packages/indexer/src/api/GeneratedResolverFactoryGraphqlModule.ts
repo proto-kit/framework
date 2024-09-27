@@ -44,7 +44,7 @@ import {
   applyResolversEnhanceMap,
 } from "./generated/type-graphql";
 
-function cleanResolvers(resolvers: NonEmptyArray<Function>) {
+export function cleanResolvers(resolvers: NonEmptyArray<Function>) {
   return resolvers.map((resolver) => {
     const methods = Object.getOwnPropertyNames(resolver.prototype).map(
       (method) => method.toLowerCase()
