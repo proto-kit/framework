@@ -36,9 +36,11 @@ export function toProver(
 
     // create a mock proof by simulating method execution in JS
     const publicOutput = await Reflect.apply(simulatedMethod, this, args);
-    const zkProgram = this.zkProgram.find((prog) => {
-      return Object.keys(prog.methods).includes(methodName);
-    })!;
+    const zkProgram =
+      this.zkProgram.find((prog) => {
+        return Object.keys(prog.methods).includes(methodName);
+      }) ?? this.zkProgram[0];
+
     return new zkProgram.Proof({
       proof: MOCK_PROOF,
 
