@@ -94,7 +94,7 @@ export class RuntimeZkProgrammable<
     // eslint-disable-next-line prefer-destructuring
     const runtime: Runtime<Modules> = this.runtime;
 
-    const MAXIMUM_METHODS_PER_ZK_PROGRAM = 8;
+    const MAXIMUM_METHODS_PER_ZK_PROGRAM = 7;
 
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
