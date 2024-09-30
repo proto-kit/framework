@@ -82,7 +82,7 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
     });
 
     container.resolve(RuntimeMethodExecutionContext).clear();
-
+    let methodCounter = 0;
     const [values, indexes] =
       await this.runtime.zkProgrammable.zkProgram.reduce<
         Promise<[VKTreeValues, VKIndexes]>
@@ -111,7 +111,8 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
                 },
                 {
                   ...indexes,
-                  [methodId.toString()]: BigInt(index),
+                  // eslint-disable-next-line no-plusplus
+                  [methodId.toString()]: BigInt(methodCounter++),
                 },
               ];
             },
