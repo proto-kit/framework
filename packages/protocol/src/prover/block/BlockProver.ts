@@ -173,7 +173,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    runtimeProof: RuntimeProof,
+    runtimeProof: DynamicRuntimeProof,
     executionData: BlockProverExecutionData,
     verificationKey: VerificationKey
   ): Promise<BlockProverState> {
@@ -181,8 +181,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     const { isMessage } = runtimeProof.publicOutput;
 
-    const runtimeProofDynamic = DynamicRuntimeProof.fromProof(runtimeProof);
-    runtimeProofDynamic.verify(verificationKey);
+    runtimeProof.verify(verificationKey);
     stateTransitionProof.verify();
 
     const stateTo = { ...state };
@@ -268,7 +267,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicOutput
     >,
     executionData: BlockProverExecutionData,
-    runtimeProof: Proof<void, MethodPublicOutput>
+    runtimeProof: DynamicProof<void, MethodPublicOutput>
   ) {
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.clear();
@@ -407,7 +406,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
   public async proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    runtimeProof: RuntimeProof,
+    runtimeProof: DynamicRuntimeProof,
     executionData: BlockProverExecutionData
   ): Promise<BlockProverPublicOutput> {
     const state: BlockProverState = {
@@ -447,8 +446,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
     vkRecord.hash.assertEquals(zkProgramConfig.vkHash);
 
-    const runtimeProofDynamic = DynamicRuntimeProof.fromProof(runtimeProof);
-    runtimeProofDynamic.verify(vkRecord);
+    runtimeProof.verify(vkRecord);
 
     const bundleInclusionState = this.addTransactionToBundle(
       state,
@@ -801,9 +799,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     BlockProverPublicInput,
     BlockProverPublicOutput
   >[] {
-    const { prover, stateTransitionProver, runtime } = this;
+    const { prover, stateTransitionProver } = this;
     const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
-    const RuntimeProofClass = runtime.zkProgram[0].Proof;
+    const RuntimeProofClass = DynamicRuntimeProof;
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveBlock = prover.proveBlock.bind(prover);
     const merge = prover.merge.bind(prover);
@@ -824,7 +822,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
           async method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
-            appProof: Proof<void, MethodPublicOutput>,
+            appProof: DynamicRuntimeProof,
             executionData: BlockProverExecutionData
           ) {
             return await proveTransaction(
@@ -937,7 +935,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
   public proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    appProof: Proof<void, MethodPublicOutput>,
+    appProof: DynamicRuntimeProof,
     executionData: BlockProverExecutionData
   ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveTransaction(

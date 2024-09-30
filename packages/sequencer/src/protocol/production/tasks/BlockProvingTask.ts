@@ -12,7 +12,7 @@ import {
   StateTransitionProof,
   StateTransitionProvable,
 } from "@proto-kit/protocol";
-import { Field, Proof } from "o1js";
+import { DynamicProof, Field, Proof, Void } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { ProvableMethodExecutionContext } from "@proto-kit/common";
@@ -63,6 +63,12 @@ export class DecodedStateSerializer {
       ])
     );
   }
+}
+
+class DynamicRuntimeProof extends DynamicProof<Void, MethodPublicOutput> {
+  static publicInputType = Void;
+
+  static publicOutputType = MethodPublicOutput;
 }
 
 @injectable()
@@ -237,7 +243,7 @@ export class BlockProvingTask
     >
   ): Promise<BlockProof> {
     const stateTransitionProof = input.input1;
-    const runtimeProof = input.input2;
+    const runtimeProofDynamic = DynamicRuntimeProof.fromProof(input.input2);
 
     await this.executeWithPrefilledStateService(
       input.params.startingState,
@@ -245,7 +251,7 @@ export class BlockProvingTask
         await this.blockProver.proveTransaction(
           input.params.publicInput,
           stateTransitionProof,
-          runtimeProof,
+          runtimeProofDynamic,
           input.params.executionData
         );
       }
