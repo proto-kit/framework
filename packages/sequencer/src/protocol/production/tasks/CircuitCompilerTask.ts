@@ -6,10 +6,7 @@ import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 
-import {
-  RuntimeProofParameters,
-  RuntimeProofParametersSerializer,
-} from "./RuntimeTaskParameters";
+import { RuntimeProofParametersSerializer } from "./RuntimeTaskParameters";
 
 export interface VKTreeValues {
   [methodId: string]: MethodVKConfig;
@@ -31,11 +28,8 @@ type CompiledResult = [VKTreeValues, VKIndexes];
 @scoped(Lifecycle.ContainerScoped)
 export class CircuitCompilerTask
   extends TaskWorkerModule
-  implements Task<RuntimeProofParameters, CompiledResult>
+  implements Task<undefined, CompiledResult>
 {
-  protected readonly runtimeZkProgrammable =
-    this.runtime.zkProgrammable.zkProgram;
-
   public name = "compiledCircuit";
 
   public constructor(
@@ -44,15 +38,17 @@ export class CircuitCompilerTask
     super();
   }
 
-  public inputSerializer(): TaskSerializer<RuntimeProofParameters> {
+  // Fix this.
+  public inputSerializer(): TaskSerializer<undefined> {
     return new RuntimeProofParametersSerializer();
   }
 
+  // Fix this.
   public resultSerializer(): TaskSerializer<CompiledResult> {
     return new ProofTaskSerializer(this.runtimeZkProgrammable[0].Proof);
   }
 
-  public async compute(input: RuntimeProofParameters): Promise<CompiledResult> {
+  public async compute(): Promise<CompiledResult> {
     let methodCounter = 0;
     const [values, indexes] =
       await this.runtime.zkProgrammable.zkProgram.reduce<
