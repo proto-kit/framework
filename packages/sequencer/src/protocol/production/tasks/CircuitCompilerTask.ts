@@ -4,9 +4,6 @@ import { VerificationKey } from "o1js";
 
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
-import { ProofTaskSerializer } from "../../../helpers/utils";
-
-import { RuntimeProofParametersSerializer } from "./RuntimeTaskParameters";
 
 export interface VKTreeValues {
   [methodId: string]: MethodVKConfig;
@@ -22,13 +19,33 @@ export interface MethodVKConfig {
   vk: VerificationKey;
 }
 
-type CompiledResult = [VKTreeValues, VKIndexes];
+type VKResult = [VKTreeValues, VKIndexes];
+
+export class DefaultSerializer implements TaskSerializer<undefined> {
+  public toJSON(parameters: undefined): string {
+    return "";
+  }
+
+  public fromJSON(json: string): undefined {
+    return undefined;
+  }
+}
+
+export class VKResultSerializer implements TaskSerializer<VKResult> {
+  public toJSON(input: VKResult): string {
+    return JSON.stringify(input);
+  }
+
+  public fromJSON(json: string): VKResult {
+    return JSON.parse(json);
+  }
+}
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class CircuitCompilerTask
   extends TaskWorkerModule
-  implements Task<undefined, CompiledResult>
+  implements Task<undefined, VKResult>
 {
   public name = "compiledCircuit";
 
@@ -38,17 +55,15 @@ export class CircuitCompilerTask
     super();
   }
 
-  // Fix this.
   public inputSerializer(): TaskSerializer<undefined> {
-    return new RuntimeProofParametersSerializer();
+    return new DefaultSerializer();
   }
 
-  // Fix this.
-  public resultSerializer(): TaskSerializer<CompiledResult> {
-    return new ProofTaskSerializer(this.runtimeZkProgrammable[0].Proof);
+  public resultSerializer(): TaskSerializer<VKResult> {
+    return new VKResultSerializer();
   }
 
-  public async compute(): Promise<CompiledResult> {
+  public async compute(): Promise<VKResult> {
     let methodCounter = 0;
     const [values, indexes] =
       await this.runtime.zkProgrammable.zkProgram.reduce<
