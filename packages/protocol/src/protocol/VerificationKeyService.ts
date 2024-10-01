@@ -5,11 +5,8 @@ import {
   ConfigurableModule,
   ZkProgrammable,
 } from "@proto-kit/common";
-import { container, inject, injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 
-import { NetworkState } from "../model/network/NetworkState";
-import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
-import { RuntimeMethodExecutionContext } from "../state/context/RuntimeMethodExecutionContext";
 import { MethodPublicOutput } from "../model/MethodPublicOutput";
 
 export const treeFeeHeight = 10;
@@ -79,71 +76,34 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
   };
 
   public async initializeVKTree(verificationKeys: VKRecord) {
-    const context = container.resolve<RuntimeMethodExecutionContext>(
-      RuntimeMethodExecutionContext
-    );
+    // const context = container.resolve<RuntimeMethodExecutionContext>(
+    //   RuntimeMethodExecutionContext
+    // );
+    // context.setup({
+    //   transaction: RuntimeTransaction.dummyTransaction(),
+    //   networkState: NetworkState.empty(),
+    // });
 
-    context.setup({
-      transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
-    });
-
-    container.resolve(RuntimeMethodExecutionContext).clear();
-    let methodCounter = 0;
-    const [values, indexes] =
-      await this.runtime.zkProgrammable.zkProgram.reduce<
-        Promise<[VKTreeValues, VKIndexes]>
-      >(
-        async (accum, program) => {
-          const vk = (await program.compile()).verificationKey;
-          const [valuesMeth, indexesMeth] = Object.keys(program.methods).reduce<
-            [VKTreeValues, VKIndexes]
-          >(
-            // eslint-disable-next-line @typescript-eslint/no-shadow
-            ([values, indexes], combinedMethodName, index) => {
-              const [moduleName, methodName] = combinedMethodName.split(".");
-              const methodId = this.runtime.methodIdResolver.getMethodId(
-                moduleName,
-                methodName
-              );
-              return [
-                {
-                  ...values,
-
-                  [methodId.toString()]: {
-                    methodId,
-                    vk: vk,
-                    vkHash: vk.hash.toString(),
-                  },
-                },
-                {
-                  ...indexes,
-                  // eslint-disable-next-line no-plusplus
-                  [methodId.toString()]: BigInt(methodCounter++),
-                },
-              ];
-            },
-            [{}, {}]
-          );
-          const [valuesProg, indexesProg] = await accum;
-          return [
-            { ...valuesProg, ...valuesMeth },
-            { ...indexesProg, ...indexesMeth },
-          ];
-        },
-        Promise.resolve([{}, {}])
-      );
+    // container.resolve(RuntimeMethodExecutionContext).clear();
 
     const tree = new VKTree(new InMemoryMerkleTreeStorage());
     const valuesVK: Record<string, { data: string; hash: Field }> = {};
+    const indexes: VKIndexes = {};
+    const values: VKTreeValues = {};
 
-    Object.values(values).forEach((value, index) => {
+    Object.entries(verificationKeys).forEach(([key, value]) => {
       const vkConfig = new MethodVKConfigData({
-        methodId: Field(value.methodId),
-        vkHash: Field(value.vkHash),
+        methodId: Field(key),
+        vkHash: Field(value.vk.hash),
       });
-      tree.setLeaf(BigInt(index), vkConfig.hash());
-      valuesVK[value.methodId.toString()] = value.vk;
+      values[key] = {
+        methodId: BigInt(key),
+        vkHash: vkConfig.hash().toBigInt().toString(),
+        vk: value.vk,
+      };
+      indexes[key] = BigInt(value.index);
+      tree.setLeaf(BigInt(value.index), vkConfig.hash());
+      valuesVK[key.toString()] = value.vk;
     });
 
     this.persistedVKTree = { tree, values, indexes };

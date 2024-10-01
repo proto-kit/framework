@@ -49,13 +49,14 @@ export class CircuitCompilerTask
 
   public async compute(): Promise<VKRecord> {
     let methodCounter = 0;
-    const vkRecord = await this.runtime.zkProgrammable.zkProgram.reduce<
+    return await this.runtime.zkProgrammable.zkProgram.reduce<
       Promise<VKRecord>
     >(async (accum, program) => {
       const vk = (await program.compile()).verificationKey;
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const vkRecordStep = Object.keys(program.methods).reduce<VKRecord>(
-        (previousRecord, combinedMethodName, index) => {
+        (previousRecord, combinedMethodName) => {
           const [moduleName, methodName] = combinedMethodName.split(".");
           const methodId = this.runtime.methodIdResolver.getMethodId(
             moduleName,
@@ -65,20 +66,20 @@ export class CircuitCompilerTask
             ...previousRecord,
             [methodId.toString()]: {
               vk,
+              // eslint-disable-next-line no-plusplus
               index: BigInt(methodCounter++),
             },
           };
         },
         {}
       );
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const vkRecord = await accum;
       return {
         ...vkRecord,
         ...vkRecordStep,
       };
     }, Promise.resolve({}));
-
-    return vkRecord;
   }
 
   public async prepare(): Promise<void> {
