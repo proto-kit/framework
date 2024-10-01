@@ -1,25 +1,9 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Runtime } from "@proto-kit/module";
-import { VerificationKey } from "o1js";
+import { VKRecord } from "@proto-kit/protocol";
 
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
-
-export interface VKTreeValues {
-  [methodId: string]: MethodVKConfig;
-}
-
-export interface VKIndexes {
-  [methodId: string]: bigint;
-}
-
-export interface MethodVKConfig {
-  methodId: bigint;
-  vkHash: string;
-  vk: VerificationKey;
-}
-
-type VKResult = [VKTreeValues, VKIndexes];
 
 export class DefaultSerializer implements TaskSerializer<undefined> {
   public toJSON(parameters: undefined): string {
@@ -31,12 +15,12 @@ export class DefaultSerializer implements TaskSerializer<undefined> {
   }
 }
 
-export class VKResultSerializer implements TaskSerializer<VKResult> {
-  public toJSON(input: VKResult): string {
+export class VKResultSerializer implements TaskSerializer<VKRecord> {
+  public toJSON(input: VKRecord): string {
     return JSON.stringify(input);
   }
 
-  public fromJSON(json: string): VKResult {
+  public fromJSON(json: string): VKRecord {
     return JSON.parse(json);
   }
 }
@@ -45,7 +29,7 @@ export class VKResultSerializer implements TaskSerializer<VKResult> {
 @scoped(Lifecycle.ContainerScoped)
 export class CircuitCompilerTask
   extends TaskWorkerModule
-  implements Task<undefined, VKResult>
+  implements Task<undefined, VKRecord>
 {
   public name = "compiledCircuit";
 
@@ -59,57 +43,42 @@ export class CircuitCompilerTask
     return new DefaultSerializer();
   }
 
-  public resultSerializer(): TaskSerializer<VKResult> {
+  public resultSerializer(): TaskSerializer<VKRecord> {
     return new VKResultSerializer();
   }
 
-  public async compute(): Promise<VKResult> {
+  public async compute(): Promise<VKRecord> {
     let methodCounter = 0;
-    const [values, indexes] =
-      await this.runtime.zkProgrammable.zkProgram.reduce<
-        Promise<[VKTreeValues, VKIndexes]>
-      >(
-        async (accum, program) => {
-          const vk = (await program.compile()).verificationKey;
-          const [valuesMeth, indexesMeth] = Object.keys(program.methods).reduce<
-            [VKTreeValues, VKIndexes]
-          >(
-            // eslint-disable-next-line @typescript-eslint/no-shadow
-            ([values, indexes], combinedMethodName, index) => {
-              const [moduleName, methodName] = combinedMethodName.split(".");
-              const methodId = this.runtime.methodIdResolver.getMethodId(
-                moduleName,
-                methodName
-              );
-              return [
-                {
-                  ...values,
+    const vkRecord = await this.runtime.zkProgrammable.zkProgram.reduce<
+      Promise<VKRecord>
+    >(async (accum, program) => {
+      const vk = (await program.compile()).verificationKey;
 
-                  [methodId.toString()]: {
-                    methodId,
-                    vk: vk,
-                    vkHash: vk.hash.toString(),
-                  },
-                },
-                {
-                  ...indexes,
-                  // eslint-disable-next-line no-plusplus
-                  [methodId.toString()]: BigInt(methodCounter++),
-                },
-              ];
-            },
-            [{}, {}]
+      const vkRecordStep = Object.keys(program.methods).reduce<VKRecord>(
+        (previousRecord, combinedMethodName, index) => {
+          const [moduleName, methodName] = combinedMethodName.split(".");
+          const methodId = this.runtime.methodIdResolver.getMethodId(
+            moduleName,
+            methodName
           );
-          const [valuesProg, indexesProg] = await accum;
-          return [
-            { ...valuesProg, ...valuesMeth },
-            { ...indexesProg, ...indexesMeth },
-          ];
+          return {
+            ...previousRecord,
+            [methodId.toString()]: {
+              vk,
+              index: BigInt(methodCounter++),
+            },
+          };
         },
-        Promise.resolve([{}, {}])
+        {}
       );
+      const vkRecord = await accum;
+      return {
+        ...vkRecord,
+        ...vkRecordStep,
+      };
+    }, Promise.resolve({}));
 
-    return [values, indexes];
+    return vkRecord;
   }
 
   public async prepare(): Promise<void> {

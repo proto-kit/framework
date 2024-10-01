@@ -29,6 +29,13 @@ export interface VKIndexes {
   [methodId: string]: bigint;
 }
 
+export type VKRecord = {
+  [methodId: string]: {
+    vk: VerificationKey;
+    index: bigint;
+  };
+};
+
 export class MethodVKConfigData extends Struct({
   methodId: Field,
   vkHash: Field,
@@ -71,7 +78,7 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
     [methodId: string]: VerificationKey;
   };
 
-  public async initializeVKTree() {
+  public async initializeVKTree(verificationKeys: VKRecord) {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );

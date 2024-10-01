@@ -20,6 +20,7 @@ import { DependencyContainer, injectable } from "tsyringe";
 import { SequencerModule } from "../builder/SequencerModule";
 
 import { Sequenceable } from "./Sequenceable";
+import { ProtocolStartupModule } from "../../protocol/ProtocolStartupModule";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -88,6 +89,15 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     log.info("Starting sequencer...");
     log.info("Modules:", moduleClassNames);
 
+    // TODO Workaround for now
+    if (this.dependencyContainer.isRegistered("ProtocolStartupModule")) {
+      await this.dependencyContainer
+        .resolve<ProtocolStartupModule>("ProtocolStartupModule")
+        .start();
+    } else {
+      await this.dependencyContainer.resolve(ProtocolStartupModule).start();
+    }
+
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
       const sequencerModule = this.resolve(moduleName);
@@ -95,7 +105,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       log.info(
         `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
       );
-      // eslint-disable-next-line no-await-in-loop
+      // eslint-disbale-next-line no-await-in-loop
       await sequencerModule.start();
     }
   }

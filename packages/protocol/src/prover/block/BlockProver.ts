@@ -915,7 +915,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     transactionHooks: ProvableTransactionHook<unknown>[],
     @injectAll("ProvableBlockHook")
     blockHooks: ProvableBlockHook<unknown>[],
-    private readonly verificationKeyService: VerificationKeyService
+    verificationKeyService: VerificationKeyService
   ) {
     super();
     this.zkProgrammable = new BlockProverProgrammable(
@@ -926,10 +926,6 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
       blockHooks,
       verificationKeyService
     );
-  }
-
-  public async start() {
-    await this.verificationKeyService.initializeVKTree();
   }
 
   public proveTransaction(
