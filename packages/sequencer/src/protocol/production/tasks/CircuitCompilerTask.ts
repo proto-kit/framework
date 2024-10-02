@@ -1,9 +1,12 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Runtime } from "@proto-kit/module";
 import { VKRecord } from "@proto-kit/protocol";
+import { VerificationKey } from "o1js";
 
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
+
+type VKRecordLite = Record<string, { vk: string; index: string }>;
 
 export class DefaultSerializer implements TaskSerializer<undefined> {
   public toJSON(parameters: undefined): string {
@@ -17,11 +20,24 @@ export class DefaultSerializer implements TaskSerializer<undefined> {
 
 export class VKResultSerializer implements TaskSerializer<VKRecord> {
   public toJSON(input: VKRecord): string {
-    return JSON.stringify(input);
+    return JSON.stringify(input, (_, v) =>
+      typeof v === "bigint" ? v.toString() : v
+    );
   }
 
   public fromJSON(json: string): VKRecord {
-    return JSON.parse(json);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const temp: VKRecordLite = JSON.parse(json);
+    return Object.keys(temp).reduce<VKRecord>((accum, key) => {
+      return {
+        ...accum,
+        [key]: {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          vk: VerificationKey.fromJSON(JSON.parse(temp[key].vk)),
+          index: BigInt(temp[key].index),
+        },
+      };
+    }, {});
   }
 }
 

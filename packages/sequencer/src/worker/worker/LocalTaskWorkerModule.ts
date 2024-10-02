@@ -4,7 +4,6 @@ import {
   ModulesConfig,
   ModulesRecord,
   NoConfig,
-  noop,
   Presets,
   TypedClass,
 } from "@proto-kit/common";
