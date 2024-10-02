@@ -16,20 +16,24 @@ import {
   SettlementSmartContract,
   SettlementSmartContractBase,
 } from "./SettlementSmartContract";
+import { BridgeContractBase, BridgeContractType } from "./BridgeContract";
 
 export type SettlementContractConfig = {
   escapeHatchSlotsInterval?: number;
-  withdrawalStatePath: `${string}.${string}`;
-  withdrawalMethodPath: `${string}.${string}`;
 };
 
 // 24 hours
 const DEFAULT_ESCAPE_HATCH = (60 / 3) * 24;
 
+export type SettlementContractModuleDependencies = [
+  TypedClass<DispatchContractType & SmartContract>,
+  TypedClass<BridgeContractType> & typeof SmartContract,
+];
+
 @injectable()
 export class SettlementContractProtocolModule extends ContractModule<
   SettlementContractType,
-  TypedClass<DispatchContractType & SmartContract>,
+  SettlementContractModuleDependencies,
   SettlementContractConfig
 > {
   public constructor(
@@ -42,16 +46,11 @@ export class SettlementContractProtocolModule extends ContractModule<
     super();
   }
 
-  public contractFactory(
-    dispatchContract: TypedClass<DispatchContractType & SmartContract>
-  ): SmartContractClassFromInterface<SettlementContractType> {
+  public contractFactory([
+    dispatchContract,
+    bridgeContract,
+  ]: SettlementContractModuleDependencies): SmartContractClassFromInterface<SettlementContractType> {
     const { hooks, config } = this;
-
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const withdrawalStatePathSplit = config.withdrawalStatePath.split(".") as [
-      string,
-      string,
-    ];
 
     const escapeHatchSlotsInterval =
       config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
@@ -59,9 +58,16 @@ export class SettlementContractProtocolModule extends ContractModule<
     SettlementSmartContractBase.args = {
       DispatchContract: dispatchContract,
       hooks,
-      withdrawalStatePath: withdrawalStatePathSplit,
       escapeHatchSlotsInterval,
+      BridgeContract: bridgeContract,
+      BridgeContractVerificationKey: undefined,
+      BridgeContractPermissions: undefined,
+      signedSettlements: undefined,
     };
+
+    // Ideally we don't want to have this cyclic dependency, but we have it in the protocol,
+    // So its logical that we can't avoid that here
+    BridgeContractBase.args.SettlementContract = SettlementSmartContract;
 
     return SettlementSmartContract;
   }
