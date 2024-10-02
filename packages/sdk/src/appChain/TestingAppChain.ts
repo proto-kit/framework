@@ -115,6 +115,7 @@ export class TestingAppChain<
           BlockReductionTask: {},
           BlockProvingTask: {},
           BlockBuildingTask: {},
+          CircuitCompilerTask: {},
         },
         BaseLayer: {},
         BlockProducerModule: {},
