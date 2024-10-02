@@ -42,8 +42,7 @@ export class VKResultSerializer implements TaskSerializer<VKRecord> {
       return {
         ...accum,
         [key]: {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          vk: VerificationKey.fromJSON(JSON.parse(temp[key].vk)),
+          vk: VerificationKey.fromJSON(temp[key].vk),
           index: BigInt(temp[key].index),
         },
       };
