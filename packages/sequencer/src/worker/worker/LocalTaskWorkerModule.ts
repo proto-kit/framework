@@ -115,6 +115,7 @@ export class VanillaTaskWorkerModules {
       BlockProvingTask,
       BlockReductionTask,
       BlockBuildingTask: NewBlockTask,
+      CircuitCompilerTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -122,7 +123,6 @@ export class VanillaTaskWorkerModules {
     return {
       ...VanillaTaskWorkerModules.withoutSettlement(),
       SettlementProvingTask,
-      CircuitCompilerTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
