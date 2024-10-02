@@ -120,6 +120,7 @@ export class VanillaTaskWorkerModules {
   public static allTasks() {
     return {
       ...VanillaTaskWorkerModules.withoutSettlement(),
+      SettlementProvingTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
