@@ -19,12 +19,13 @@
   "dependencies": {
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
+    "mina-fungible-token": "^1.0.0",
     "reflect-metadata": "^0.1.13",
     "ts-mixer": "^6.0.3"
   },
   "peerDependencies": {
     "@proto-kit/common": "*",
-    "o1js": "^1.1.0",
+    "o1js": "^1.6.0",
     "ts-pattern": "^4.3.0",
     "tsyringe": "^4.7.0"
   },
