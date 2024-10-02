@@ -52,7 +52,7 @@ export function reduceSequential<T, U>(
 export function mapSequential<T, R>(
   array: T[],
   f: (element: T, index: number, array: T[]) => Promise<R>
-) {
+): Promise<R[]> {
   return array.reduce<Promise<R[]>>(async (r, element, index, a) => {
     const ret = await r;
     const next = await f(element, index, a);
