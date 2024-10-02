@@ -41,6 +41,8 @@ export * from "./settlement/contracts/SettlementSmartContract";
 export * from "./settlement/contracts/SettlementContractProtocolModule";
 export * from "./settlement/contracts/DispatchSmartContract";
 export * from "./settlement/contracts/DispatchContractProtocolModule";
+export * from "./settlement/contracts/BridgeContract";
+export * from "./settlement/contracts/BridgeContractProtocolModule";
 export * from "./settlement/SettlementContractModule";
 export * from "./settlement/ContractModule";
 export * from "./settlement/modularity/ProvableSettlementHook";
