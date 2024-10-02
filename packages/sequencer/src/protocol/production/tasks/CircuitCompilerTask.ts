@@ -25,16 +25,14 @@ export class VKResultSerializer implements TaskSerializer<VKRecord> {
         return {
           ...accum,
           [key]: {
-            vk: VerificationKey.toJSON(input[key].vk),
+            vk: VerificationKey.toJSON(input[key].vk).toString(),
             index: input[key].index.toString(),
           },
         };
       },
       {}
     );
-    return JSON.stringify(temp, (_, v) =>
-      typeof v === "bigint" ? v.toString() : v
-    );
+    return JSON.stringify(temp);
   }
 
   public fromJSON(json: string): VKRecord {
