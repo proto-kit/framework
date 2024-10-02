@@ -5,7 +5,7 @@ import {
   VerificationKeyService,
   VKRecord,
 } from "@proto-kit/protocol";
-import { injectOptional, log } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 
 import {
   SequencerModule,
@@ -14,7 +14,6 @@ import {
 import { FlowCreator } from "../worker/flow/Flow";
 
 import { CircuitCompilerTask } from "./production/tasks/CircuitCompilerTask";
-import { LocalTaskWorkerModule } from "../worker/worker/LocalTaskWorkerModule";
 
 @sequencerModule()
 export class ProtocolStartupModule extends SequencerModule {

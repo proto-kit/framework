@@ -20,7 +20,19 @@ export class DefaultSerializer implements TaskSerializer<undefined> {
 
 export class VKResultSerializer implements TaskSerializer<VKRecord> {
   public toJSON(input: VKRecord): string {
-    return JSON.stringify(input, (_, v) =>
+    const temp: VKRecordLite = Object.keys(input).reduce<VKRecordLite>(
+      (accum, key) => {
+        return {
+          ...accum,
+          [key]: {
+            vk: VerificationKey.toJSON(input[key].vk),
+            index: input[key].index.toString(),
+          },
+        };
+      },
+      {}
+    );
+    return JSON.stringify(temp, (_, v) =>
       typeof v === "bigint" ? v.toString() : v
     );
   }
