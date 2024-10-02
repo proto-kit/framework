@@ -30,7 +30,6 @@ import {
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
-import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitCompilerTask";
 
 // Temporary workaround against the compiler emitting
 // import("common/dist") inside the library artifacts
@@ -133,7 +132,7 @@ export class VanillaTaskWorkerModules {
       BlockBuildingTask: {},
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
-      CompiledCircuitTask: {},
+      CircuitCompilerTask: {},
     };
   }
 }

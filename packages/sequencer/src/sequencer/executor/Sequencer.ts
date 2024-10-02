@@ -18,9 +18,9 @@ import {
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
+import { ProtocolStartupModule } from "../../protocol/ProtocolStartupModule";
 
 import { Sequenceable } from "./Sequenceable";
-import { ProtocolStartupModule } from "../../protocol/ProtocolStartupModule";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -105,7 +105,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       log.info(
         `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
       );
-      // eslint-disbale-next-line no-await-in-loop
+      // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
     }
   }
