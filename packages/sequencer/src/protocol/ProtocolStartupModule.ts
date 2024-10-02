@@ -23,9 +23,7 @@ export class ProtocolStartupModule extends SequencerModule {
   public constructor(
     private readonly flowCreator: FlowCreator,
     @inject("Protocol") protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly compileTask: CircuitCompilerTask,
-    @injectOptional("LocalTaskWorkerModule")
-    taskWorkerModule: LocalTaskWorkerModule<any>
+    private readonly compileTask: CircuitCompilerTask
   ) {
     super();
     this.verificationKeyService = protocol.dependencyContainer.resolve(
