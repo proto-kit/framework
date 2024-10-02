@@ -27,6 +27,7 @@ import {
   StateTransitionReductionTask,
   StateTransitionTask,
 } from "../../protocol/production/tasks/StateTransitionTask";
+import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitCompilerTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
@@ -121,6 +122,7 @@ export class VanillaTaskWorkerModules {
     return {
       ...VanillaTaskWorkerModules.withoutSettlement(),
       SettlementProvingTask,
+      CircuitCompilerTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
