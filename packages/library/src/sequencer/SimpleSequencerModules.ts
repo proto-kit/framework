@@ -18,6 +18,9 @@ type PreconfiguredSimpleSequencerModulesRecord = {
   Mempool: typeof PrivateMempool;
   BatchProducerModule: typeof BatchProducerModule;
   BlockProducerModule: typeof BlockProducerModule;
+  ProtocolStartupModule: TypedClass<
+    ProtocolStartupModule & SequencerModule<unknown>
+  >;
 };
 
 export type MinimumAdditionalSequencerModules = {
@@ -25,9 +28,6 @@ export type MinimumAdditionalSequencerModules = {
   Database: TypedClass<Database & SequencerModule<unknown>>;
   BaseLayer: TypedClass<BaseLayer & SequencerModule<unknown>>;
   BlockTrigger: TypedClass<BlockTrigger & SequencerModule<unknown>>;
-  ProtocolStartupModule: TypedClass<
-    ProtocolStartupModule & SequencerModule<unknown>
-  >;
 };
 
 export type SimpleSequencerModulesRecord = MinimumAdditionalSequencerModules &
@@ -102,6 +102,7 @@ export class SimpleSequencerModules {
 
       Mempool: {},
       BatchProducerModule: {},
+      ProtocolStartupModule: {},
     } satisfies ModulesConfig<PreconfiguredSimpleSequencerModulesRecord>;
   }
 

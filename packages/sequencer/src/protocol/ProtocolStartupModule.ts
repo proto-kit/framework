@@ -5,7 +5,7 @@ import {
   VerificationKeyService,
   VKRecord,
 } from "@proto-kit/protocol";
-import { log } from "@proto-kit/common";
+import { injectOptional, log } from "@proto-kit/common";
 
 import {
   SequencerModule,
@@ -14,6 +14,7 @@ import {
 import { FlowCreator } from "../worker/flow/Flow";
 
 import { CircuitCompilerTask } from "./production/tasks/CircuitCompilerTask";
+import { LocalTaskWorkerModule } from "../worker/worker/LocalTaskWorkerModule";
 
 @sequencerModule()
 export class ProtocolStartupModule extends SequencerModule {
@@ -22,7 +23,9 @@ export class ProtocolStartupModule extends SequencerModule {
   public constructor(
     private readonly flowCreator: FlowCreator,
     @inject("Protocol") protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly compileTask: CircuitCompilerTask
+    private readonly compileTask: CircuitCompilerTask,
+    @injectOptional("LocalTaskWorkerModule")
+    taskWorkerModule: LocalTaskWorkerModule<any>
   ) {
     super();
     this.verificationKeyService = protocol.dependencyContainer.resolve(

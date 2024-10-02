@@ -95,14 +95,7 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
     });
 
     const worker = new FlowTaskWorker(this.taskQueue(), tasks);
-    worker
-      .start()
-      .then(() => {
-        noop();
-      })
-      .catch((error: Error) => {
-        log.error(error);
-      });
+    await worker.start();
   }
 }
 
@@ -144,5 +137,5 @@ export type TaskWorkerModulesWithoutSettlement = ReturnType<
   typeof VanillaTaskWorkerModules.withoutSettlement
 >;
 export type AllTaskWorkerModules = ReturnType<
-  typeof VanillaTaskWorkerModules.withoutSettlement
+  typeof VanillaTaskWorkerModules.allTasks
 >;
