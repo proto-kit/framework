@@ -133,7 +133,7 @@ export class DispatchSmartContract
   public async deposit(amount: UInt64) {
     // Save this, since otherwise it would be a second witness later,
     // which could be a different values than the first
-    const sender = this.sender.getUnconstrained();
+    const sender = this.sender.getUnconstrainedV2();
 
     const settlementContract = this.settlementContract.getAndRequireEquals();
 
