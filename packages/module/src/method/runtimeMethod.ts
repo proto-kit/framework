@@ -1,4 +1,4 @@
-import { Bool, Field, Poseidon } from "o1js";
+import { Bool, Field, FlexibleProvablePure, Poseidon } from "o1js";
 import { container } from "tsyringe";
 import {
   StateTransition,
@@ -6,6 +6,7 @@ import {
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
   StateTransitionReductionList,
+  DefaultProvableHashList,
 } from "@proto-kit/protocol";
 import {
   DecoratedMethod,
@@ -52,6 +53,21 @@ export function toStateTransitionsHash(
     .toField();
 }
 
+export function toEventsHash(
+  events: {
+    eventType: FlexibleProvablePure<any>;
+    event: any;
+    eventName: string;
+    condition: Bool;
+  }[]
+) {
+  return events.reduce((acc, event) => {
+    const hashList = new DefaultProvableHashList(event.eventType, acc);
+    hashList.pushIf(event.event, event.condition);
+    return hashList.commitment;
+  }, Field(0));
+}
+
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
 export type AsyncWrappedMethod = (
   ...args: ArgumentTypes
@@ -74,10 +90,11 @@ export function toWrappedMethod(
   ): Promise<MethodPublicOutput> => {
     await Reflect.apply(moduleMethod, this, args);
     const {
-      result: { stateTransitions, status },
+      result: { stateTransitions, status, events },
     } = executionContext.current();
 
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
+    const eventsHash = toEventsHash(events);
 
     const { name, runtime } = this;
 
@@ -131,6 +148,7 @@ export function toWrappedMethod(
       transactionHash,
       networkStateHash,
       isMessage,
+      eventsHash,
     });
   };
 

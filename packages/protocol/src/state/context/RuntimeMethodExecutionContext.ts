@@ -1,4 +1,4 @@
-import { Bool, Provable, Struct } from "o1js";
+import { Bool, FlexibleProvablePure, Provable, Struct } from "o1js";
 import { singleton } from "tsyringe";
 import {
   ProvableMethodExecutionContext,
@@ -24,6 +24,13 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
   public statusMessage?: string;
 
   public stackTrace?: string;
+
+  public events: {
+    eventType: FlexibleProvablePure<any>;
+    event: any;
+    eventName: string;
+    condition: Bool;
+  }[] = [];
 }
 
 export interface RuntimeMethodExecutionData {
@@ -71,6 +78,22 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
   public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
     this.assertSetupCalled();
     this.result.stateTransitions.push(stateTransition);
+  }
+
+  public addEvent(
+    eventType: FlexibleProvablePure<any>,
+    event: any,
+    eventName: string,
+    condition: Bool = Bool(true)
+  ) {
+    this.assertSetupCalled();
+    this.result.events.push({
+      eventType,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      event,
+      eventName,
+      condition,
+    });
   }
 
   /**
