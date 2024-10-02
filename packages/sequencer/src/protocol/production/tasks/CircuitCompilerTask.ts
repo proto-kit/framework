@@ -54,7 +54,6 @@ export class CircuitCompilerTask
     >(async (accum, program) => {
       const vk = (await program.compile()).verificationKey;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const vkRecordStep = Object.keys(program.methods).reduce<VKRecord>(
         (previousRecord, combinedMethodName) => {
           const [moduleName, methodName] = combinedMethodName.split(".");
@@ -73,7 +72,7 @@ export class CircuitCompilerTask
         },
         {}
       );
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const vkRecord = await accum;
       return {
         ...vkRecord,
