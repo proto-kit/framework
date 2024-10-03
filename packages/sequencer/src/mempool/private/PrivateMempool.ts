@@ -53,10 +53,8 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   compareTxs(x: PendingTransaction, y: PendingTransaction): number {
     if (x.sender === y.sender) {
       return x.nonce.toBigInt() - y.nonce.toBigInt() > 0 ? 1 : -1;
-      // eslint-disable-next-line no-else-return
-    } else {
-      return x.sender < y.sender ? 1 : -1;
     }
+    return 1;
   }
 
   public async getTxs(): Promise<PendingTransaction[]> {
