@@ -76,16 +76,6 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
   };
 
   public async initializeVKTree(verificationKeys: VKRecord) {
-    // const context = container.resolve<RuntimeMethodExecutionContext>(
-    //   RuntimeMethodExecutionContext
-    // );
-    // context.setup({
-    //   transaction: RuntimeTransaction.dummyTransaction(),
-    //   networkState: NetworkState.empty(),
-    // });
-
-    // container.resolve(RuntimeMethodExecutionContext).clear();
-
     const tree = new VKTree(new InMemoryMerkleTreeStorage());
     const valuesVK: Record<string, { data: string; hash: Field }> = {};
     const indexes: VKIndexes = {};

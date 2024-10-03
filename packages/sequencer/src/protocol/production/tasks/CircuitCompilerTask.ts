@@ -1,7 +1,7 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Runtime } from "@proto-kit/module";
 import { VKRecord } from "@proto-kit/protocol";
-import { VerificationKey } from "o1js";
+import { Field, VerificationKey } from "o1js";
 
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
@@ -18,6 +18,14 @@ export class DefaultSerializer implements TaskSerializer<undefined> {
   }
 }
 
+function vkMaker(input: { data: string; hash: string }): VerificationKey {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return {
+    data: input.data,
+    hash: Field.fromJSON(input.hash),
+  } as VerificationKey;
+}
+
 export class VKResultSerializer implements TaskSerializer<VKRecord> {
   public toJSON(input: VKRecord): string {
     const temp: VKRecordLite = Object.keys(input).reduce<VKRecordLite>(
@@ -25,7 +33,10 @@ export class VKResultSerializer implements TaskSerializer<VKRecord> {
         return {
           ...accum,
           [key]: {
-            vk: VerificationKey.toJSON(input[key].vk).toString(),
+            vk:
+              input[key].vk.data === "mock-verification-key"
+                ? JSON.stringify(input[key].vk)
+                : VerificationKey.toJSON(input[key].vk).toString(),
             index: input[key].index.toString(),
           },
         };
@@ -42,7 +53,11 @@ export class VKResultSerializer implements TaskSerializer<VKRecord> {
       return {
         ...accum,
         [key]: {
-          vk: VerificationKey.fromJSON(temp[key].vk),
+          vk:
+            JSON.parse(temp[key].vk).data === "mock-verification-key"
+              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                vkMaker(JSON.parse(temp[key].vk))
+              : VerificationKey.fromJSON(temp[key].vk),
           index: BigInt(temp[key].index),
         },
       };
