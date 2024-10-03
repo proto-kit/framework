@@ -5,6 +5,7 @@ import { Field, VerificationKey } from "o1js";
 
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
+import { hash } from "crypto";
 
 type VKRecordLite = Record<string, { vk: string; index: string }>;
 
@@ -19,11 +20,7 @@ export class DefaultSerializer implements TaskSerializer<undefined> {
 }
 
 function vkMaker(input: { data: string; hash: string }): VerificationKey {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return {
-    data: input.data,
-    hash: Field.fromJSON(input.hash),
-  } as VerificationKey;
+  return new VerificationKey({ data: input.data, hash: Field(input.hash) });
 }
 
 export class VKResultSerializer implements TaskSerializer<VKRecord> {
