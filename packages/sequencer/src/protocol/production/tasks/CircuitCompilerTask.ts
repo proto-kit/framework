@@ -5,7 +5,6 @@ import { Field, VerificationKey } from "o1js";
 
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
-import { hash } from "crypto";
 
 type VKRecordLite = Record<string, { vk: string; index: string }>;
 
