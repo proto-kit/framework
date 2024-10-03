@@ -20,4 +20,5 @@ export type BasePrismaClient = {
       )[]
     >;
   };
+  $executeRawUnsafe: (query: string) => Promise<unknown>;
 };
