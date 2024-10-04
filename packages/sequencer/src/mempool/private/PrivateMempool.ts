@@ -54,7 +54,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     if (x.sender === y.sender) {
       return x.nonce.toBigInt() - y.nonce.toBigInt() > 0 ? 1 : -1;
     }
-    return 1;
+    return x.sender.toBase58().localeCompare(y.sender.toBase58());
   }
 
   public async getTxs(): Promise<PendingTransaction[]> {
