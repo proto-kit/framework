@@ -3,6 +3,7 @@ import { inject } from "tsyringe";
 import {
   AccountStateHook,
   MandatoryProtocolModulesRecord,
+  NetworkState,
   Protocol,
   ProvableTransactionHook,
 } from "@proto-kit/protocol";
@@ -15,6 +16,11 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { TransactionStorage } from "../../storage/repositories/TransactionStorage";
 import { TransactionValidator } from "../verification/TransactionValidator";
+import { BlockQueue } from "../../storage/repositories/BlockStorage";
+import {
+  Sequencer,
+  SequencerModulesRecord,
+} from "../../sequencer/executor/Sequencer";
 
 @sequencerModule()
 export class PrivateMempool extends SequencerModule implements Mempool {
@@ -27,7 +33,9 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     @inject("TransactionStorage")
     private readonly transactionStorage: TransactionStorage,
     @inject("Protocol")
-    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
+    @inject("Sequencer")
+    private readonly sequencer: Sequencer<SequencerModulesRecord>
   ) {
     super();
     this.accountStateHook =
@@ -62,13 +70,23 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     );
   }
 
+  private get unprovenQueue(): BlockQueue {
+    return this.sequencer.dependencyContainer.resolve<BlockQueue>("BlockQueue");
+  }
+
+  public async getStagedNetworkState(): Promise<NetworkState | undefined> {
+    const result = await this.unprovenQueue.getLatestBlock();
+    return result?.result.afterNetworkState;
+  }
+
   public async getTxs(): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
     const sortedTxs: PendingTransaction[] = [];
     for (const tx of txs) {
       const signedTransaction = tx.toProtocolTransaction();
       const txWithHooks = this.accountStateHook.onTransaction({
-        networkState: this.protocol.n,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, no-await-in-loop
+        networkState: (await this.getStagedNetworkState()) as NetworkState,
         transaction: signedTransaction.transaction,
         signature: signedTransaction.signature,
       });
