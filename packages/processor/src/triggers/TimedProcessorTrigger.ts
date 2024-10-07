@@ -13,6 +13,8 @@ export interface TimedProcessorTriggerConfig {
 
 @injectable()
 export class TimedProcessorTrigger extends ProcessorModule<TimedProcessorTriggerConfig> {
+  public catchingUp = false;
+
   public constructor(
     @inject("BlockStorage") public blockStorage: BlockStorage,
     @inject("BlockFetching") public blockFetching: BlockFetching,
@@ -25,14 +27,6 @@ export class TimedProcessorTrigger extends ProcessorModule<TimedProcessorTrigger
     super();
   }
 
-  public async tryProcessNextBlock() {
-    try {
-      await this.processNextBlock();
-    } catch (error) {
-      log.error("Error processing block", error);
-    }
-  }
-
   public async processNextBlock() {
     const lastProcessedBlockHeight =
       await this.blockStorage.getLastProcessedBlockHeight();
@@ -41,8 +35,9 @@ export class TimedProcessorTrigger extends ProcessorModule<TimedProcessorTrigger
       lastProcessedBlockHeight !== undefined ? lastProcessedBlockHeight + 1 : 0;
     const block = await this.blockFetching.fetchBlock(nextBlockHeight);
 
+    // caught up, no new indexed blocks available
     if (!block) {
-      throw new Error(`Block #${nextBlockHeight} not indexed yet`);
+      return false;
     }
 
     if (lastProcessedBlockHeight === Number(block?.block.height.toBigInt())) {
@@ -60,29 +55,32 @@ export class TimedProcessorTrigger extends ProcessorModule<TimedProcessorTrigger
       `Block #${block?.block.height.toString()} processed in ${Date.now() - startTime}ms`
     );
 
-    return block;
+    return true;
+  }
+
+  public async catchUp() {
+    if (this.catchingUp) return;
+
+    this.catchingUp = true;
+
+    while (this.catchingUp) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        this.catchingUp = await this.processNextBlock();
+      } catch (error) {
+        this.catchingUp = false;
+        throw error;
+      }
+    }
   }
 
   public async start() {
-    let catchingUp = true;
-
-    while (catchingUp) {
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        await this.processNextBlock();
-      } catch (error) {
-        log.error(error);
-        catchingUp = false;
-      }
-    }
+    await this.catchUp();
 
     log.info(
       "Processor caught up to the latest indexed block, starting polling"
     );
 
-    setInterval(
-      () => this.tryProcessNextBlock(),
-      this.config.interval ?? 10000
-    );
+    setInterval(() => this.catchUp(), this.config.interval ?? 1000);
   }
 }
