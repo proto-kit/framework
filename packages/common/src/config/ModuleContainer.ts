@@ -432,7 +432,6 @@ export class ModuleContainer<
    * @param moduleName
    */
   protected onAfterModuleResolution(moduleName: StringKeyOf<Modules>) {
-    console.log("onAfterModuleResolution", moduleName);
     this.container.afterResolution<InstanceType<Modules[StringKeyOf<Modules>]>>(
       moduleName,
       (containedModuleName, containedModule) => {
@@ -467,7 +466,6 @@ export class ModuleContainer<
       ChildContainerProvider: () => this.container.createChildContainer(),
     });
 
-    console.log("module container .create()", this.definition.modules);
     // register all provided modules when the container is created
     this.registerModules(this.definition.modules);
   }
