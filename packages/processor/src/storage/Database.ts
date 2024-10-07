@@ -40,7 +40,6 @@ export class Database<PrismaClient extends BasePrismaClient>
     );
     for (const modelName of modelNames) {
       const tableName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
-      console.log("pruning", tableName);
       // eslint-disable-next-line no-await-in-loop
       await this.prismaClient.$executeRawUnsafe(
         `TRUNCATE TABLE "${tableName}" CASCADE`
