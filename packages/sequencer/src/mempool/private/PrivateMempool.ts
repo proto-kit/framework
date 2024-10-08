@@ -1,11 +1,11 @@
 import { EventEmitter, log, noop } from "@proto-kit/common";
-import { inject } from "tsyringe";
+import { container, inject } from "tsyringe";
 import {
   AccountStateHook,
   MandatoryProtocolModulesRecord,
   NetworkState,
   Protocol,
-  ProvableTransactionHook,
+  RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 
 import type { Mempool, MempoolEvents } from "../Mempool";
@@ -82,15 +82,23 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   public async getTxs(): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
     const sortedTxs: PendingTransaction[] = [];
+
     for (const tx of txs) {
       const signedTransaction = tx.toProtocolTransaction();
-      const txWithHooks = this.accountStateHook.onTransaction({
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, no-await-in-loop
-        networkState: (await this.getStagedNetworkState()) as NetworkState,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, no-await-in-loop
+      const networkState = (await this.getStagedNetworkState()) as NetworkState;
+      const executionContext = container.resolve<RuntimeMethodExecutionContext>(
+        RuntimeMethodExecutionContext
+      );
+      this.accountStateHook.onTransaction({
+        networkState: networkState,
         transaction: signedTransaction.transaction,
         signature: signedTransaction.signature,
       });
-      sortedTxs.push(tx);
+      const { status } = executionContext.current().result;
+      if (status.toBoolean()) {
+        sortedTxs.push(tx);
+      }
     }
     return sortedTxs;
   }
