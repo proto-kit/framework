@@ -147,7 +147,7 @@ export class SettlementProvingTask
     type AccountJson = ReturnType<typeof Types.Account.toJSON>;
     type LazyProofJson = {
       methodName: string;
-      args: (string[] | string)[];
+      args: ({ fields: string[]; aux: string[] } | string)[];
       previousProofs: string[];
       zkappClassName: string;
       memoized: { fields: string[]; aux: any[] }[];
@@ -206,11 +206,13 @@ export class SettlementProvingTask
 
             const args = lazyProof.args.map((encodedArg, argsIndex) => {
               if (allArgs[argsIndex].type === "witness") {
-                // encodedArg is string[]
+                // encodedArg is this type
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                const arg = encodedArg as { fields: string[]; aux: string[] };
+
                 return witnessArgTypes[argsIndex - proofsDecoded].fromFields(
-                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                  (encodedArg as string[]).map((field) => Field(field)),
-                  []
+                  arg.fields.map((field) => Field(field)),
+                  arg.aux.map((auxI) => JSON.parse(auxI))
                 );
               }
               // fields is JsonProof
@@ -289,9 +291,17 @@ export class SettlementProvingTask
                 const encodedArgs = lazyProof.args
                   .map((arg, index) => {
                     if (allArgs[index].type === "witness") {
-                      return witnessArgTypes[index - proofsEncoded]
+                      const witness = witnessArgTypes[index - proofsEncoded];
+                      const fields = witness
                         .toFields(arg)
                         .map((f) => f.toString());
+                      const aux = witness
+                        .toAuxiliary(arg)
+                        .map((x) => JSON.stringify(x));
+                      return {
+                        fields,
+                        aux,
+                      };
                     }
                     if (allArgs[index].type === "proof") {
                       const serializer = this.getProofSerializer(
