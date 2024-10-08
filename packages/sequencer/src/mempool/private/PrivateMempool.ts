@@ -82,14 +82,14 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   public async getTxs(): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
     const sortedTxs: PendingTransaction[] = [];
+    const executionContext = container.resolve<RuntimeMethodExecutionContext>(
+      RuntimeMethodExecutionContext
+    );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const networkState = (await this.getStagedNetworkState()) as NetworkState;
 
     for (const tx of txs) {
       const signedTransaction = tx.toProtocolTransaction();
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, no-await-in-loop
-      const networkState = (await this.getStagedNetworkState()) as NetworkState;
-      const executionContext = container.resolve<RuntimeMethodExecutionContext>(
-        RuntimeMethodExecutionContext
-      );
       this.accountStateHook.onTransaction({
         networkState: networkState,
         transaction: signedTransaction.transaction,
