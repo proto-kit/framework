@@ -6,6 +6,7 @@ import {
   NetworkState,
   Protocol,
   RuntimeMethodExecutionContext,
+  RuntimeMethodExecutionData,
 } from "@proto-kit/protocol";
 
 import type { Mempool, MempoolEvents } from "../Mempool";
@@ -43,7 +44,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   ) {
     super();
     this.accountStateHook =
-      this.protocol.dependencyContainer.resolve("AccountStateHook");
+      this.protocol.dependencyContainer.resolve("AccountState");
     this.stateService = stateService;
   }
 
@@ -97,9 +98,14 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     );
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const networkState = (await this.getStagedNetworkState()) as NetworkState;
-
     const checkTxValid = (transactions: PendingTransaction[]) => {
       for (const tx of transactions) {
+        const contextInputs: RuntimeMethodExecutionData = {
+          networkState: networkState,
+          transaction: tx.toProtocolTransaction().transaction,
+        };
+        executionContext.setup(contextInputs);
+
         const txStateService = new CachedStateService(baseCachedStateService);
         this.protocol.stateServiceProvider.setCurrentStateService(
           txStateService
@@ -118,6 +124,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
             skippedTxs.splice(skippedTxs.indexOf(tx), 1);
           }
           txStateService.mergeIntoParent();
+          this.protocol.stateServiceProvider.popCurrentStateService();
           if (skippedTxs.length > 0) {
             checkTxValid(skippedTxs);
           }
