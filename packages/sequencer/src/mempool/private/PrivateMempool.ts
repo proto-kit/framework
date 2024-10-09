@@ -21,6 +21,8 @@ import {
   Sequencer,
   SequencerModulesRecord,
 } from "../../sequencer/executor/Sequencer";
+import { CachedStateService } from "../../state/state/CachedStateService";
+import { AsyncStateService } from "../../state/async/AsyncStateService";
 
 @sequencerModule()
 export class PrivateMempool extends SequencerModule implements Mempool {
@@ -35,11 +37,14 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     @inject("Sequencer")
-    private readonly sequencer: Sequencer<SequencerModulesRecord>
+    private readonly sequencer: Sequencer<SequencerModulesRecord>,
+    @inject("UnprovenStateService")
+    private readonly stateService: AsyncStateService
   ) {
     super();
     this.accountStateHook =
       this.protocol.dependencyContainer.resolve("AccountStateHook");
+    this.stateService = stateService;
   }
 
   public async add(tx: PendingTransaction): Promise<boolean> {
@@ -82,24 +87,45 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   public async getTxs(): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
     const sortedTxs: PendingTransaction[] = [];
+    const skippedTxs: PendingTransaction[] = [];
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
+    );
+    const baseCachedStateService = new CachedStateService(this.stateService);
+    this.protocol.stateServiceProvider.setCurrentStateService(
+      baseCachedStateService
     );
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const networkState = (await this.getStagedNetworkState()) as NetworkState;
 
-    for (const tx of txs) {
-      const signedTransaction = tx.toProtocolTransaction();
-      this.accountStateHook.onTransaction({
-        networkState: networkState,
-        transaction: signedTransaction.transaction,
-        signature: signedTransaction.signature,
-      });
-      const { status } = executionContext.current().result;
-      if (status.toBoolean()) {
-        sortedTxs.push(tx);
+    const checkTxValid = (transactions: PendingTransaction[]) => {
+      for (const tx of transactions) {
+        const txStateService = new CachedStateService(baseCachedStateService);
+        this.protocol.stateServiceProvider.setCurrentStateService(
+          txStateService
+        );
+
+        const signedTransaction = tx.toProtocolTransaction();
+        this.accountStateHook.onTransaction({
+          networkState: networkState,
+          transaction: signedTransaction.transaction,
+          signature: signedTransaction.signature,
+        });
+        const { status } = executionContext.current().result;
+        if (status.toBoolean()) {
+          sortedTxs.push(tx);
+          txStateService.mergeIntoParent();
+          if (skippedTxs.length > 0) {
+            checkTxValid(skippedTxs);
+          }
+        } else {
+          this.protocol.stateServiceProvider.popCurrentStateService();
+          skippedTxs.push(tx);
+        }
       }
-    }
+    };
+    checkTxValid(txs);
+    this.protocol.stateServiceProvider.popCurrentStateService();
     return sortedTxs;
   }
 
