@@ -114,6 +114,9 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         const { status } = executionContext.current().result;
         if (status.toBoolean()) {
           sortedTxs.push(tx);
+          if (skippedTxs.includes(tx)) {
+            skippedTxs.splice(skippedTxs.indexOf(tx), 1);
+          }
           txStateService.mergeIntoParent();
           if (skippedTxs.length > 0) {
             checkTxValid(skippedTxs);
