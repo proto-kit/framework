@@ -45,7 +45,6 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     super();
     this.accountStateHook =
       this.protocol.dependencyContainer.resolve("AccountState");
-    this.stateService = stateService;
   }
 
   public async add(tx: PendingTransaction): Promise<boolean> {
