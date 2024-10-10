@@ -95,8 +95,9 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     this.protocol.stateServiceProvider.setCurrentStateService(
       baseCachedStateService
     );
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const networkState = (await this.getStagedNetworkState()) as NetworkState;
+    const networkState =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      (await this.getStagedNetworkState()) as NetworkState;
     const checkTxValid = async (transactions: PendingTransaction[]) => {
       for await (const tx of transactions) {
         const txStateService = new CachedStateService(baseCachedStateService);
@@ -115,23 +116,19 @@ export class PrivateMempool extends SequencerModule implements Mempool {
           transaction: signedTransaction.transaction,
           signature: signedTransaction.signature,
         });
-        const { status, statusMessage } = executionContext.current().result;
-        console.log("EJ - status message", statusMessage);
+        const { status } = executionContext.current().result;
         if (status.toBoolean()) {
           sortedTxs.push(tx);
           if (skippedTxs.includes(tx)) {
-            console.log("EJ - skippedTxs includes tx", skippedTxs);
             skippedTxs.splice(skippedTxs.indexOf(tx), 1);
           }
           await txStateService.mergeIntoParent();
           this.protocol.stateServiceProvider.popCurrentStateService();
 
           if (skippedTxs.length > 0) {
-            console.log("EJ - skippedTxs", skippedTxs.length);
             checkTxValid(skippedTxs);
           }
         } else {
-          console.log("EJ - Boolean False");
           this.protocol.stateServiceProvider.popCurrentStateService();
           skippedTxs.push(tx);
         }
