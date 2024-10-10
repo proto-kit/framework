@@ -54,7 +54,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
       if (success) {
         this.events.emit("mempool-transaction-added", tx);
         log.info(
-          `Transaction added to mempool: ${tx.hash().toString()} (${(await this.getTxs()).length} transactions in mempool)`
+          `Transaction added to mempool: ${tx.hash().toString()} (${(await this.transactionStorage.getPendingUserTransactions()).length} transactions in mempool)`
         );
       } else {
         log.error(
@@ -97,22 +97,17 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     );
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const networkState = (await this.getStagedNetworkState()) as NetworkState;
-    console.log("EJ - tx Should be 6", txs.length);
     const checkTxValid = async (transactions: PendingTransaction[]) => {
       for await (const tx of transactions) {
-        console.log("EJ - sender", tx.sender.toBase58());
-        console.log("EJ - nonce", tx.nonce.toBigInt());
-
+        const txStateService = new CachedStateService(baseCachedStateService);
+        this.protocol.stateServiceProvider.setCurrentStateService(
+          txStateService
+        );
         const contextInputs: RuntimeMethodExecutionData = {
           networkState: networkState,
           transaction: tx.toProtocolTransaction().transaction,
         };
         executionContext.setup(contextInputs);
-
-        const txStateService = new CachedStateService(baseCachedStateService);
-        this.protocol.stateServiceProvider.setCurrentStateService(
-          txStateService
-        );
 
         const signedTransaction = tx.toProtocolTransaction();
         await this.accountStateHook.onTransaction({
@@ -123,14 +118,14 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         const { status, statusMessage } = executionContext.current().result;
         console.log("EJ - status message", statusMessage);
         if (status.toBoolean()) {
-          console.log("EJ - Boolean True");
           sortedTxs.push(tx);
           if (skippedTxs.includes(tx)) {
             console.log("EJ - skippedTxs includes tx", skippedTxs);
             skippedTxs.splice(skippedTxs.indexOf(tx), 1);
           }
-          txStateService.mergeIntoParent();
+          await txStateService.mergeIntoParent();
           this.protocol.stateServiceProvider.popCurrentStateService();
+
           if (skippedTxs.length > 0) {
             console.log("EJ - skippedTxs", skippedTxs.length);
             checkTxValid(skippedTxs);
