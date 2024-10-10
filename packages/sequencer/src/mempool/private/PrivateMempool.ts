@@ -97,8 +97,12 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     );
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const networkState = (await this.getStagedNetworkState()) as NetworkState;
-    const checkTxValid = (transactions: PendingTransaction[]) => {
-      for (const tx of transactions) {
+    console.log("EJ - tx Should be 6", txs.length);
+    const checkTxValid = async (transactions: PendingTransaction[]) => {
+      for await (const tx of transactions) {
+        console.log("EJ - sender", tx.sender.toBase58());
+        console.log("EJ - nonce", tx.nonce.toBigInt());
+
         const contextInputs: RuntimeMethodExecutionData = {
           networkState: networkState,
           transaction: tx.toProtocolTransaction().transaction,
@@ -111,29 +115,34 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         );
 
         const signedTransaction = tx.toProtocolTransaction();
-        this.accountStateHook.onTransaction({
+        await this.accountStateHook.onTransaction({
           networkState: networkState,
           transaction: signedTransaction.transaction,
           signature: signedTransaction.signature,
         });
-        const { status } = executionContext.current().result;
+        const { status, statusMessage } = executionContext.current().result;
+        console.log("EJ - status message", statusMessage);
         if (status.toBoolean()) {
+          console.log("EJ - Boolean True");
           sortedTxs.push(tx);
           if (skippedTxs.includes(tx)) {
+            console.log("EJ - skippedTxs includes tx", skippedTxs);
             skippedTxs.splice(skippedTxs.indexOf(tx), 1);
           }
           txStateService.mergeIntoParent();
           this.protocol.stateServiceProvider.popCurrentStateService();
           if (skippedTxs.length > 0) {
+            console.log("EJ - skippedTxs", skippedTxs.length);
             checkTxValid(skippedTxs);
           }
         } else {
+          console.log("EJ - Boolean False");
           this.protocol.stateServiceProvider.popCurrentStateService();
           skippedTxs.push(tx);
         }
       }
     };
-    checkTxValid(txs);
+    await checkTxValid(txs);
     this.protocol.stateServiceProvider.popCurrentStateService();
     return sortedTxs;
   }
