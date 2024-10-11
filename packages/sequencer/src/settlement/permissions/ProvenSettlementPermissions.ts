@@ -31,4 +31,12 @@ export class ProvenSettlementPermissions
   public dispatchContract(): Permissions {
     return this.onlyProofs();
   }
+
+  public bridgeContractMina(): Permissions {
+    return this.onlyProofs();
+  }
+
+  public bridgeContractToken(): Permissions {
+    return this.onlyProofs();
+  }
 }

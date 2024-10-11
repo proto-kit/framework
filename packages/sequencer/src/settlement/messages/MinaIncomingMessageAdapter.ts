@@ -14,7 +14,12 @@ import {
   MethodParameterEncoder,
 } from "@proto-kit/module";
 import { EMPTY_PUBLICKEY, mapSequential } from "@proto-kit/common";
-import { RuntimeTransaction } from "@proto-kit/protocol";
+import {
+  DispatchContractProtocolModule,
+  Protocol,
+  RuntimeTransaction,
+  SettlementContractModule,
+} from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
@@ -30,8 +35,31 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
   public constructor(
     @inject("BaseLayer")
     private readonly baseLayer: MinaBaseLayer,
-    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
+    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
+    @inject("Protocol") private readonly protocol: Protocol<any>
   ) {}
+
+  private incomingMessageEventIndex() {
+    const contractModule = this.protocol.resolveOrFail(
+      "SettlementContractModule",
+      SettlementContractModule
+    );
+    const DispatchContractModule = contractModule.resolveOrFail(
+      "DispatchContract",
+      DispatchContractProtocolModule
+    );
+    const index = Object.keys(DispatchContractModule.eventsDefinition())
+      .sort()
+      .indexOf("incoming-message-placeholder");
+
+    if (index < 0) {
+      throw new Error(
+        "Placeholder event for incoming messages couldn't be found"
+      );
+    }
+
+    return index;
+  }
 
   private async mapActionToTransactions(
     tx: RuntimeTransaction,
@@ -102,29 +130,36 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       );
     }
 
-    const events = await network.fetchEvents(address, undefined, {
+    const allEvents = await network.fetchEvents(address, undefined, {
       from: UInt32.from(Math.max(params.fromL1BlockHeight - 5, 0)),
     });
+
+    const eventIndex = this.incomingMessageEventIndex();
+    const events = allEvents
+      .flatMap((x) => x.events)
+      .filter((event) => event.data[0].toString() === String(eventIndex))
+      .map((event) => ({
+        // we need to crop the event data here, since the first field is the event index
+        event: {
+          data: event.data.slice(1),
+          transactionInfo: event.transactionInfo,
+        },
+        hash: Poseidon.hash(event.data.slice(1).map((x) => Field(x))),
+      }));
 
     const messages = await mapSequential(actions, async (action) => {
       // Find events corresponding to the transaction to get the raw args
       const tx = RuntimeTransaction.fromHashData(
         action.actions[0].map((x) => Field(x))
       );
-      const correspondingEvent = events
-        .map((event) => {
-          return event.events.find((event2) => {
-            return Poseidon.hash(event2.data.map((x) => Field(x))).equals(
-              tx.argsHash
-            );
-          });
-        })
-        .find((x) => x !== undefined);
+      const correspondingEvent = events.find((x) =>
+        x.hash.equals(tx.argsHash).toBoolean()
+      );
 
       if (correspondingEvent === undefined) {
         throw new Error("Couldn't find events corresponding to action");
       }
-      const args = correspondingEvent.data.map((x) => Field(x));
+      const args = correspondingEvent.event.data.map((x) => Field(x));
 
       return await this.mapActionToTransactions(tx, args);
     });
