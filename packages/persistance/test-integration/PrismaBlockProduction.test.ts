@@ -94,6 +94,12 @@ describe("prisma integration", () => {
         block.hash.toString()
       );
 
+      // Check that events match
+      expect(retrievedBlock.transactions[0].events).toHaveLength(1);
+      expect(retrievedBlock.transactions[0].events).toStrictEqual(
+        block.transactions[0].events
+      );
+
       expect(
         NetworkState.toFields(retrievedBlock.networkState.before).map((x) =>
           x.toString()

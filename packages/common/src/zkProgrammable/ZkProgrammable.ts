@@ -2,6 +2,7 @@ import { ZkProgram, FlexibleProvablePure, Proof, Field, Provable } from "o1js";
 import { Memoize } from "typescript-memoize";
 
 import { log } from "../log";
+import { dummyVerificationKey } from "../dummyVerificationKey";
 
 import { MOCK_PROOF } from "./provableMethod";
 
@@ -75,10 +76,7 @@ export function verifyToMockable<PublicInput, PublicOutput>(
   };
 }
 
-export const MOCK_VERIFICATION_KEY = {
-  data: "mock-verification-key",
-  hash: Field(0),
-};
+export const MOCK_VERIFICATION_KEY = dummyVerificationKey();
 
 export function compileToMockable(
   compile: Compile,

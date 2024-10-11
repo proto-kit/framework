@@ -22,7 +22,7 @@
     "@proto-kit/common": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
-    "o1js": "^1.1.0",
+    "o1js": "^1.6.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {
@@ -35,7 +35,8 @@
     "compute-gcd": "^1.2.1",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.1.13",
-    "ts-pattern": "^4.3.0"
+    "ts-pattern": "^4.3.0",
+    "mina-fungible-token": "^1.0.0"
   },
   "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
 }

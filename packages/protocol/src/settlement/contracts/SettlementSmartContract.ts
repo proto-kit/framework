@@ -9,34 +9,30 @@ import {
   Bool,
   Field,
   method,
-  Mina,
-  Poseidon,
   Proof,
-  Provable,
   PublicKey,
   Signature,
   SmartContract,
   State,
   state,
-  TokenId,
   UInt32,
-  UInt64,
-  TokenContract,
   AccountUpdateForest,
+  TokenContractV2,
+  PrivateKey,
+  VerificationKey,
+  Permissions,
+  Struct,
+  Provable,
+  TokenId,
 } from "o1js";
+import { singleton } from "tsyringe";
 
 import { NetworkState } from "../../model/network/NetworkState";
-import { Path } from "../../model/Path";
 import { BlockHashMerkleTree } from "../../prover/block/accummulators/BlockHashMerkleTree";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
 } from "../../prover/block/BlockProvable";
-import {
-  OUTGOING_MESSAGE_BATCH_SIZE,
-  OutgoingMessageArgumentBatch,
-} from "../messages/OutgoingMessageArgument";
-import { Withdrawal } from "../messages/Withdrawal";
 import {
   ProvableSettlementHook,
   SettlementHookInputs,
@@ -44,6 +40,9 @@ import {
 } from "../modularity/ProvableSettlementHook";
 
 import { DispatchContractType } from "./DispatchSmartContract";
+import { BridgeContractType } from "./BridgeContract";
+import { TokenBridgeDeploymentAuth } from "./authorizations/TokenBridgeDeploymentAuth";
+import { UpdateMessagesHashAuth } from "./authorizations/UpdateMessagesHashAuth";
 
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 
@@ -60,11 +59,21 @@ export class LazyBlockProof extends Proof<
   };
 }
 
+export class TokenMapping extends Struct({
+  tokenId: Field,
+  publicKey: PublicKey,
+}) {}
+
 export interface SettlementContractType {
+  authorizationField: State<Field>;
+
   initialize: (
     sequencer: PublicKey,
-    dispatchContract: PublicKey
+    dispatchContract: PublicKey,
+    bridgeContract: PublicKey,
+    contractKey: PrivateKey
   ) => Promise<void>;
+  assertStateRoot: (root: Field) => AccountUpdate;
   settle: (
     blockProof: LazyBlockProof,
     signature: Signature,
@@ -74,23 +83,48 @@ export interface SettlementContractType {
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
   ) => Promise<void>;
-  rollupOutgoingMessages: (
-    batch: OutgoingMessageArgumentBatch
+  addTokenBridge: (
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContract: PublicKey
   ) => Promise<void>;
-  redeem: (additionUpdate: AccountUpdate) => Promise<void>;
 }
 
 // Some random prefix for the sequencer signature
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
-export abstract class SettlementSmartContractBase extends TokenContract {
+@singleton()
+export class SettlementSmartContractStaticArgs {
+  public args?: {
+    DispatchContract: TypedClass<DispatchContractType & SmartContract>;
+    hooks: ProvableSettlementHook<unknown>[];
+    escapeHatchSlotsInterval: number;
+    BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
+    // Lazily initialized
+    BridgeContractVerificationKey: VerificationKey | undefined;
+    BridgeContractPermissions: Permissions | undefined;
+    signedSettlements: boolean | undefined;
+  };
+}
+
+export abstract class SettlementSmartContractBase extends TokenContractV2 {
   // This pattern of injecting args into a smartcontract is currently the only
   // viable solution that works given the inheritance issues of o1js
+  // public static args = container.resolve(SettlementSmartContractStaticArgs);
   public static args: {
     DispatchContract: TypedClass<DispatchContractType & SmartContract>;
     hooks: ProvableSettlementHook<unknown>[];
-    withdrawalStatePath: [string, string];
     escapeHatchSlotsInterval: number;
+    BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
+    // Lazily initialized
+    BridgeContractVerificationKey: VerificationKey | undefined;
+    BridgeContractPermissions: Permissions | undefined;
+    signedSettlements: boolean | undefined;
+  };
+
+  events = {
+    "announce-private-key": PrivateKey,
+    "token-bridge-deployed": TokenMapping,
   };
 
   abstract sequencerKey: State<Field>;
@@ -99,11 +133,101 @@ export abstract class SettlementSmartContractBase extends TokenContract {
   abstract networkStateHash: State<Field>;
   abstract blockHashRoot: State<Field>;
   abstract dispatchContractAddressX: State<Field>;
-  abstract outgoingMessageCursor: State<Field>;
+
+  abstract authorizationField: State<Field>;
+
+  // Not @state
+  // abstract offchainStateCommitmentsHash: State<Field>;
+
+  public assertStateRoot(root: Field): AccountUpdate {
+    this.stateRoot.requireEquals(root);
+    return this.self;
+  }
+
+  // TODO Like these properties, I am too lazy to properly infer the types here
+  private assertLazyConfigsInitialized() {
+    const uninitializedProperties: string[] = [];
+    const { args } = SettlementSmartContractBase;
+    if (args.BridgeContractPermissions === undefined) {
+      uninitializedProperties.push("BridgeContractPermissions");
+    }
+    if (args.signedSettlements === undefined) {
+      uninitializedProperties.push("signedSettlements");
+    }
+    if (uninitializedProperties.length > 0) {
+      throw new Error(
+        `Lazy configs of SettlementSmartContract haven't been initialized ${uninitializedProperties.reduce(
+          (a, b) => `${a},${b}`
+        )}`
+      );
+    }
+  }
+
+  protected async deployTokenBridge(
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContractAddress: PublicKey,
+    dispatchContractPreconditionEnforced = false
+  ) {
+    Provable.asProver(() => {
+      this.assertLazyConfigsInitialized();
+    });
+
+    const { args } = SettlementSmartContractBase;
+    const BridgeContractClass = args.BridgeContract;
+    const bridgeContract = new BridgeContractClass(address, tokenId);
+
+    // This function is not a zkapps method, therefore it will be part of this methods execution
+    // The returning account update (owner.self) is therefore part of this circuit and is assertable
+    const deploymentAccountUpdate = await bridgeContract.deployProvable(
+      args.BridgeContractVerificationKey,
+      args.signedSettlements!,
+      args.BridgeContractPermissions!,
+      this.address
+    );
+
+    this.approve(deploymentAccountUpdate);
+
+    this.self.body.mayUseToken = {
+      // Only set this if we deploy a custom token
+      parentsOwnToken: tokenId.equals(TokenId.default).not(),
+      inheritFromParent: Bool(false),
+    };
+
+    this.emitEvent(
+      "token-bridge-deployed",
+      new TokenMapping({
+        tokenId: tokenId,
+        publicKey: address,
+      })
+    );
+
+    // We can't set a precondition twice, for the $mina bridge deployment that
+    // would be the case, so we disable it in this case
+    if (!dispatchContractPreconditionEnforced) {
+      this.dispatchContractAddressX.requireEquals(dispatchContractAddress.x);
+    }
+
+    // Set authorization for the auth callback, that we need
+    this.authorizationField.set(
+      new TokenBridgeDeploymentAuth({
+        target: dispatchContractAddress,
+        tokenId,
+        address,
+      }).hash()
+    );
+    const dispatchContract =
+      new SettlementSmartContractBase.args.DispatchContract(
+        dispatchContractAddress
+      );
+    await dispatchContract.enableTokenDeposits(tokenId, address, this.address);
+  }
 
   protected async initializeBase(
     sequencer: PublicKey,
-    dispatchContract: PublicKey
+    dispatchContract: PublicKey,
+    bridgeContract: PublicKey,
+    contractKey: PrivateKey
   ) {
     this.sequencerKey.getAndRequireEquals().assertEquals(Field(0));
     this.stateRoot.getAndRequireEquals().assertEquals(Field(0));
@@ -120,6 +244,17 @@ export abstract class SettlementSmartContractBase extends TokenContract {
     const { DispatchContract } = SettlementSmartContractBase.args;
     const contractInstance = new DispatchContract(dispatchContract);
     await contractInstance.initialize(this.address);
+
+    // Deploy bridge contract for $Mina
+    await this.deployTokenBridge(
+      this.tokenId,
+      bridgeContract,
+      dispatchContract,
+      true
+    );
+
+    contractKey.toPublicKey().assertEquals(this.address);
+    this.emitEvent("announce-private-key", contractKey);
   }
 
   protected async settleBase(
@@ -244,6 +379,15 @@ export abstract class SettlementSmartContractBase extends TokenContract {
       "Promised messages not honored"
     );
 
+    // Set authorization for the dispatchContract to verify the messages hash update
+    this.authorizationField.set(
+      new UpdateMessagesHashAuth({
+        target: dispatchContract.address,
+        executedMessagesHash: promisedMessagesHash,
+        newPromisedMessagesHash,
+      }).hash()
+    );
+
     // Call DispatchContract
     // This call checks that the promisedMessagesHash, which is already proven
     // to be the blockProofs publicoutput, is actually the current on-chain
@@ -271,15 +415,34 @@ export class SettlementSmartContract
 
   @state(Field) public dispatchContractAddressX = State<Field>();
 
-  @state(Field) public outgoingMessageCursor = State<Field>();
+  @state(Field) public authorizationField = State<Field>();
 
   @method async approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
   }
 
   @method
-  public async initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
-    return await this.initializeBase(sequencer, dispatchContract);
+  public async initialize(
+    sequencer: PublicKey,
+    dispatchContract: PublicKey,
+    bridgeContract: PublicKey,
+    contractKey: PrivateKey
+  ) {
+    await this.initializeBase(
+      sequencer,
+      dispatchContract,
+      bridgeContract,
+      contractKey
+    );
+  }
+
+  @method
+  public async addTokenBridge(
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContract: PublicKey
+  ) {
+    await this.deployTokenBridge(tokenId, address, dispatchContract);
   }
 
   @method
@@ -301,80 +464,6 @@ export class SettlementSmartContract
       outputNetworkState,
       newPromisedMessagesHash
     );
-  }
-
-  @method
-  public async rollupOutgoingMessages(batch: OutgoingMessageArgumentBatch) {
-    let counter = this.outgoingMessageCursor.getAndRequireEquals();
-    const stateRoot = this.stateRoot.getAndRequireEquals();
-
-    const [withdrawalModule, withdrawalStateName] =
-      SettlementSmartContractBase.args.withdrawalStatePath;
-    const mapPath = Path.fromProperty(withdrawalModule, withdrawalStateName);
-
-    let accountCreationFeePaid = Field(0);
-
-    for (let i = 0; i < OUTGOING_MESSAGE_BATCH_SIZE; i++) {
-      const args = batch.arguments[i];
-
-      // Check witness
-      const path = Path.fromKey(mapPath, Field, counter);
-
-      args.witness
-        .checkMembership(
-          stateRoot,
-          path,
-          Poseidon.hash(Withdrawal.toFields(args.value))
-        )
-        .assertTrue("Provided Withdrawal witness not valid");
-
-      // Process message
-      const { address, amount } = args.value;
-      const isDummy = address.equals(this.address);
-
-      const tokenAu = this.internal.mint({ address, amount });
-      const isNewAccount = tokenAu.account.isNew.getAndRequireEquals();
-      tokenAu.body.balanceChange.magnitude =
-        tokenAu.body.balanceChange.magnitude.sub(
-          Provable.if(
-            isNewAccount,
-            Mina.getNetworkConstants().accountCreationFee.toConstant(),
-            UInt64.zero
-          )
-        );
-
-      accountCreationFeePaid = accountCreationFeePaid.add(
-        Provable.if(isNewAccount, Field(1e9), Field(0))
-      );
-
-      counter = counter.add(Provable.if(isDummy, Field(0), Field(1)));
-    }
-
-    this.balance.subInPlace(UInt64.Unsafe.fromField(accountCreationFeePaid));
-
-    this.outgoingMessageCursor.set(counter);
-  }
-
-  @method
-  public async redeem(additionUpdate: AccountUpdate) {
-    additionUpdate.body.tokenId.assertEquals(
-      TokenId.default,
-      "Tokenid not default token"
-    );
-    additionUpdate.body.balanceChange.sgn
-      .isPositive()
-      .assertTrue("Sign not correct");
-    const amount = additionUpdate.body.balanceChange.magnitude;
-
-    // Burn tokens
-    this.internal.burn({
-      address: additionUpdate.publicKey,
-      amount,
-    });
-
-    // Send mina
-    this.approve(additionUpdate);
-    this.balance.subInPlace(amount);
   }
 }
 

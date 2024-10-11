@@ -16,4 +16,5 @@ export * from "./trees/MerkleTreeStore";
 export * from "./trees/InMemoryMerkleTreeStorage";
 export * from "./trees/RollupMerkleTree";
 export * from "./events/EventEmitterProxy";
+export * from "./events/ReplayingSingleUseEventEmitter";
 export * from "./trees/MockAsyncMerkleStore";

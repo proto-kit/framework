@@ -59,6 +59,8 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
         const payload =
           error instanceof Error ? error.message : JSON.stringify(error);
 
+        log.debug("Error in worker (detailed trace): ", error);
+
         return {
           status: "error",
           taskId: data.taskId,

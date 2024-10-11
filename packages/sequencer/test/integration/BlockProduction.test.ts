@@ -1,6 +1,12 @@
 import { log, range, MOCK_PROOF } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
-import { Runtime } from "@proto-kit/module";
+import {
+  Runtime,
+  runtimeMethod,
+  RuntimeModule,
+  runtimeModule,
+  RuntimeEvents,
+} from "@proto-kit/module";
 import {
   AccountState,
   MandatoryProtocolModulesRecord,
@@ -8,7 +14,7 @@ import {
   Protocol,
 } from "@proto-kit/protocol";
 import { AppChain } from "@proto-kit/sdk";
-import { Bool, Field, PrivateKey, PublicKey, UInt64 } from "o1js";
+import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
@@ -30,10 +36,46 @@ import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
 import { createTransaction } from "./utils";
 import { NoopRuntime } from "./mocks/NoopRuntime";
 
+export class PrimaryTestEvent extends Struct({
+  message: Bool,
+}) {}
+
+export class SecondaryTestEvent extends Struct({
+  message: Bool,
+}) {}
+
+@runtimeModule()
+class EventMaker extends RuntimeModule {
+  public constructor() {
+    super();
+  }
+
+  public events = new RuntimeEvents({
+    primary: PrimaryTestEvent,
+    secondary: SecondaryTestEvent,
+  });
+
+  @runtimeMethod()
+  public async makeEvent() {
+    this.events.emit("primary", new PrimaryTestEvent({ message: Bool(false) }));
+    // Should not emit as condition is false.
+    this.events.emitIf(
+      Bool(false),
+      "primary",
+      new PrimaryTestEvent({ message: Bool(false) })
+    );
+    this.events.emit(
+      "secondary",
+      new SecondaryTestEvent({ message: Bool(true) })
+    );
+  }
+}
+
 describe("block production", () => {
   let runtime: Runtime<{
     Balance: typeof Balance;
     NoopRuntime: typeof NoopRuntime;
+    EventMaker: typeof EventMaker;
   }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
@@ -59,11 +101,13 @@ describe("block production", () => {
       modules: {
         Balance,
         NoopRuntime,
+        EventMaker,
       },
 
       config: {
         Balance: {},
         NoopRuntime: {},
+        EventMaker: {},
       },
     });
 
@@ -99,6 +143,7 @@ describe("block production", () => {
       Runtime: {
         Balance: {},
         NoopRuntime: {},
+        EventMaker: {},
       },
       Protocol: {
         AccountState: {},
@@ -561,6 +606,62 @@ describe("block production", () => {
 
     expect(block!.transactions[0].stateTransitions).toHaveLength(0);
     expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
+
+    const batch = await blockTrigger.produceBatch();
+
+    expect(batch).toBeDefined();
+
+    expect(batch!.blockHashes).toHaveLength(1);
+    expect(batch!.proof.proof).toBe(MOCK_PROOF);
+  }, 30000);
+
+  it("events - should produce block with the right events", async () => {
+    log.setLevel("TRACE");
+
+    const privateKey = PrivateKey.random();
+
+    const tx = createTransaction({
+      runtime,
+      method: ["EventMaker", "makeEvent"],
+      privateKey,
+      args: [],
+      nonce: 0,
+    });
+    await mempool.add(tx);
+
+    const firstExpectedEvent = {
+      eventType: PrimaryTestEvent,
+      event: new PrimaryTestEvent({
+        message: Bool(false),
+      }),
+      eventName: "primary",
+    };
+
+    const secondExpectedEvent = {
+      eventType: SecondaryTestEvent,
+      event: new SecondaryTestEvent({
+        message: Bool(true),
+      }),
+      eventName: "secondary",
+    };
+    const firstEventReduced = {
+      eventName: firstExpectedEvent.eventName,
+      data: firstExpectedEvent.eventType.toFields(firstExpectedEvent.event),
+    };
+
+    const secondEventReduced = {
+      eventName: secondExpectedEvent.eventName,
+      data: secondExpectedEvent.eventType.toFields(secondExpectedEvent.event),
+    };
+
+    const block = await blockTrigger.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.transactions).toHaveLength(1);
+    expect(block!.transactions[0].events).toHaveLength(2);
+    expect(block!.transactions[0].events[0]).toStrictEqual(firstEventReduced);
+    expect(block!.transactions[0].events[1]).toStrictEqual(secondEventReduced);
 
     const batch = await blockTrigger.produceBatch();
 

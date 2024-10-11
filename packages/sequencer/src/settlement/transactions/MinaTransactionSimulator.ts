@@ -23,6 +23,11 @@ type Account = ReturnType<typeof Mina.getAccount>;
 
 type FeePayer = Transaction<false, false>["transaction"]["feePayer"];
 
+/**
+ * Custom variant of the ocaml ledger implementation that applies account updates
+ * to a ledger state. It isn't feature complete and is mainly used to update the
+ * o1js internal account cache to create batched transactions
+ */
 @injectable()
 export class MinaTransactionSimulator {
   private networkType = this.baseLayer.config.network.type;
@@ -93,25 +98,35 @@ export class MinaTransactionSimulator {
     // This check isn't 100% accurate, since the preconditions should probably
     // be checked after previous AUs have been already applied.
     // But it should be enough for now
-    const valid = accountUpdates
-      .map((au) =>
-        this.checkPreconditions(
+    const accountUpdateErrors = accountUpdates.reduce<string[][]>(
+      (errors, au) => {
+        if (errors.flat(1).length > 0) {
+          return [...errors, ["Cancelled"]];
+        }
+
+        const error = this.checkPreconditions(
           accounts[this.cacheKey(au.publicKey, au.tokenId)],
           au
-        )
-      )
-      .reduce((a, b) => a && b);
-    if (!valid) {
-      throw new Error("AccountUpdate preconditions not satisfied");
-    }
+        );
 
-    accountUpdates.forEach((au) => {
-      this.apply(accounts[this.cacheKey(au.publicKey, au.tokenId)], au);
-    });
+        if (error.length > 0) {
+          return [...errors, error];
+        }
+
+        this.apply(accounts[this.cacheKey(au.publicKey, au.tokenId)], au);
+
+        return [...errors, []];
+      },
+      []
+    );
+
+    if (accountUpdateErrors.find((x) => x.length > 0) !== undefined) {
+      throw new Error(`Preconditions not satisfied: ${accountUpdateErrors}`);
+    }
 
     Object.entries(accounts).forEach(([, account]) => {
       addCachedAccount(account);
-      this.loaded[account.publicKey.toBase58()] = account;
+      this.loaded[this.cacheKey(account.publicKey, account.tokenId)] = account;
     });
   }
 
@@ -129,7 +144,7 @@ export class MinaTransactionSimulator {
     if (this.loaded[key] === undefined) {
       await this.reloadAccount(publicKey, tokenId);
     }
-    return this.loaded[key] ?? this.dummyAccount(publicKey);
+    return this.loaded[key] ?? this.dummyAccount(publicKey, tokenId);
   }
 
   private dummyAccount(pubkey?: PublicKey, tokenId?: Field): Account {
@@ -188,37 +203,45 @@ export class MinaTransactionSimulator {
       .toBoolean();
   }
 
-  public checkPreconditions(account: Account, au: AccountUpdate): boolean {
-    let valid = true;
+  public checkPreconditions(account: Account, au: AccountUpdate): string[] {
+    const errors: string[] = [];
 
     const { balance, nonce, state } = au.body.preconditions.account;
 
     if (balance.isSome.toBoolean()) {
-      valid &&= account.balance
+      const nonceValid = account.balance
         .greaterThanOrEqual(balance.value.lower)
         .and(account.balance.lessThanOrEqual(balance.value.upper))
         .toBoolean();
+      if (!nonceValid) errors.push("Not enough balance on account");
     }
 
     if (nonce.isSome.toBoolean()) {
-      valid &&= account.nonce
+      const nonceValid = account.nonce
         .greaterThanOrEqual(nonce.value.lower)
         .and(account.nonce.lessThanOrEqual(nonce.value.upper))
         .toBoolean();
+      if (!nonceValid)
+        errors.push(
+          `Nonce precondition not satisfied: ${account.nonce.toString()} ${nonce.value.lower.toString()}`
+        );
     }
 
     for (let i = 0; i < 8; i++) {
-      if (state[i].isSome.toBoolean()) {
-        valid &&= account.zkapp!.appState[i].equals(state[i].value).toBoolean();
+      if (state[i].isSome.toBoolean() && account.zkapp !== undefined) {
+        const stateIValid = account
+          .zkapp!.appState[i].equals(state[i].value)
+          .toBoolean();
+        if (!stateIValid) errors.push(`State [${i}] precondition not met`);
       }
     }
 
-    return valid;
+    return errors;
   }
 
   public applyFeepayer(account: Account, feepayer: FeePayer) {
     account.balance = account.balance.sub(feepayer.body.fee);
-    account.nonce = account.nonce.add(1);
+    account.nonce = feepayer.body.nonce.add(1);
   }
 
   public apply(account: Account, au: AccountUpdate) {
