@@ -19,7 +19,6 @@
   "dependencies": {
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
-    "mina-fungible-token": "^1.0.0",
     "reflect-metadata": "^0.1.13",
     "ts-mixer": "^6.0.3"
   },
