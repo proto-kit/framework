@@ -135,7 +135,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           method: ["Balance", "setBalanceIf"],
           privateKey: user2PrivateKey,
           args: [user2PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
+          nonce: 1,
         })
       );
       await mempool.add(
@@ -145,6 +145,25 @@ describe.each([["InMemory", InMemoryDatabase]])(
           privateKey: user3PrivateKey,
           args: [user3PublicKey, UInt64.from(100), Bool(true)],
           nonce: 1,
+        })
+      );
+
+      await mempool.add(
+        createTransaction({
+          runtime,
+          method: ["Balance", "setBalanceIf"],
+          privateKey: user2PrivateKey,
+          args: [user2PublicKey, UInt64.from(100), Bool(true)],
+          nonce: 0,
+        })
+      );
+      await mempool.add(
+        createTransaction({
+          runtime,
+          method: ["Balance", "setBalanceIf"],
+          privateKey: user3PrivateKey,
+          args: [user3PublicKey, UInt64.from(100), Bool(true)],
+          nonce: 0,
         })
       );
 
@@ -157,25 +176,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
           nonce: 1,
         })
       );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user2PrivateKey,
-          args: [user2PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user3PrivateKey,
-          args: [user3PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-
       const txs = await mempool.getTxs();
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
@@ -183,13 +183,13 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(txs[1].nonce.toBigInt()).toStrictEqual(0n);
       expect(txs[1].sender).toStrictEqual(user2PublicKey);
       expect(txs[2].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[2].sender).toStrictEqual(user1PublicKey);
-      expect(txs[3].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[3].sender).toStrictEqual(user2PublicKey);
-      expect(txs[4].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[2].sender).toStrictEqual(user2PublicKey);
+      expect(txs[3].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[3].sender).toStrictEqual(user3PublicKey);
+      expect(txs[4].nonce.toBigInt()).toStrictEqual(1n);
       expect(txs[4].sender).toStrictEqual(user3PublicKey);
       expect(txs[5].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[5].sender).toStrictEqual(user3PublicKey);
+      expect(txs[5].sender).toStrictEqual(user1PublicKey);
     });
   }
 );
