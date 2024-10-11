@@ -98,8 +98,12 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     const networkState =
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       (await this.getStagedNetworkState()) as NetworkState;
-    const checkTxValid = async (transactions: PendingTransaction[]) => {
-      for await (const tx of transactions) {
+
+    const checkTxValid = async (
+      transactions: PendingTransaction[],
+      reEvaluation: boolean = false
+    ) => {
+      for (const tx of transactions) {
         const txStateService = new CachedStateService(baseCachedStateService);
         this.protocol.stateServiceProvider.setCurrentStateService(
           txStateService
@@ -108,6 +112,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
           networkState: networkState,
           transaction: tx.toProtocolTransaction().transaction,
         };
+        executionContext.clear();
         executionContext.setup(contextInputs);
 
         const signedTransaction = tx.toProtocolTransaction();
@@ -116,21 +121,29 @@ export class PrivateMempool extends SequencerModule implements Mempool {
           transaction: signedTransaction.transaction,
           signature: signedTransaction.signature,
         });
-        const { status } = executionContext.current().result;
+        const { status, statusMessage, stateTransitions } =
+          executionContext.current().result;
         if (status.toBoolean()) {
+          console.log(`Accepted tx ${tx.hash().toString()}`);
           sortedTxs.push(tx);
           if (skippedTxs.includes(tx)) {
             skippedTxs.splice(skippedTxs.indexOf(tx), 1);
           }
+          await txStateService.applyStateTransitions(stateTransitions);
           await txStateService.mergeIntoParent();
           this.protocol.stateServiceProvider.popCurrentStateService();
 
           if (skippedTxs.length > 0) {
-            checkTxValid(skippedTxs);
+            await checkTxValid(skippedTxs, true);
           }
         } else {
+          console.log(
+            `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
+          );
           this.protocol.stateServiceProvider.popCurrentStateService();
-          skippedTxs.push(tx);
+          if (!reEvaluation) {
+            skippedTxs.push(tx);
+          }
         }
       }
     };

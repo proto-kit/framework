@@ -90,7 +90,8 @@
     // Reenable again
     "sonarjs/no-duplicate-string": "off",
     // Handled by prettier
-    "@typescript-eslint/indent": ["off"]
+    "@typescript-eslint/indent": ["off"],
+    "@typescript-eslint/no-floating-promises": "error"
   },
 
   "overrides": [

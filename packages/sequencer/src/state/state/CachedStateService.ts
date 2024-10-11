@@ -1,7 +1,7 @@
 import { Field } from "o1js";
 import { log, noop, mapSequential } from "@proto-kit/common";
 import { InMemoryStateService } from "@proto-kit/module";
-import { SimpleAsyncStateService } from "@proto-kit/protocol";
+import { SimpleAsyncStateService, StateTransition } from "@proto-kit/protocol";
 
 import { AsyncStateService, StateEntry } from "../async/AsyncStateService";
 
@@ -94,6 +94,20 @@ export class CachedStateService
   public async get(key: Field): Promise<Field[] | undefined> {
     const entries = await this.getMany([key]);
     return entries.at(0)?.value;
+  }
+
+  public async applyStateTransitions(
+    stateTransitions: StateTransition<any>[]
+  ): Promise<void> {
+    // Use updated stateTransitions since only they will have the
+    // right values
+    const writes = stateTransitions
+      .filter((st) => st.toValue.isSome.toBoolean())
+      .map((st) => {
+        return { key: st.path, value: st.toValue.toFields() };
+      });
+    this.writeStates(writes);
+    await this.commit();
   }
 
   /**
