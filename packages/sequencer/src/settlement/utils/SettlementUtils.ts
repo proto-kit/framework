@@ -68,7 +68,7 @@ export class SettlementUtils {
         ) {
           au.requireSignature();
 
-          const key = au.publicKey.toBase58() + "-" + au.tokenId.toString();
+          const key = `${au.publicKey.toBase58()}-${au.tokenId.toString()}`;
           const nonce = Number(
             au.body.preconditions.account.nonce.value.lower.toString()
           );

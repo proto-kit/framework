@@ -1,4 +1,4 @@
-import { Proof, DynamicProof, Field } from "o1js";
+import { Proof, DynamicProof } from "o1js";
 import { container } from "tsyringe";
 
 import { ProvableMethodExecutionContext } from "./ProvableMethodExecutionContext";

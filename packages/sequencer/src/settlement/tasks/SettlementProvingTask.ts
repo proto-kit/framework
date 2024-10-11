@@ -130,19 +130,14 @@ export class SettlementProvingTask
 
     const { transaction, chainState } = input;
 
-    try {
-      const provenTx = await this.withCustomInstance(chainState, async () => {
-        log.info(`Proving tx "${transaction.transaction.memo}"`);
-        const proven = await transaction.prove();
-        log.info("Proven!");
-        return proven;
-      });
+    const provenTx = await this.withCustomInstance(chainState, async () => {
+      log.info(`Proving tx "${transaction.transaction.memo}"`);
+      const proven = await transaction.prove();
+      log.info("Proven!");
+      return proven;
+    });
 
-      return { transaction: provenTx };
-    } catch (e) {
-      console.error(e);
-      throw e;
-    }
+    return { transaction: provenTx };
   }
 
   // Subclass<typeof ProofBase> is not exported
@@ -195,18 +190,19 @@ export class SettlementProvingTask
             // For that we need to retrieve a few things. Most prominently,
             // we need to get the contract class corresponding to that proof
 
-            const SmartContract = this.contractRegistry!.getContractClassByName(
-              lazyProof.zkappClassName
-            );
+            const SmartContractClass =
+              this.contractRegistry!.getContractClassByName(
+                lazyProof.zkappClassName
+              );
 
-            if (SmartContract === undefined) {
+            if (SmartContractClass === undefined) {
               throw new Error(
                 `SmartContract class with name ${lazyProof.zkappClassName} not found in ContractRegistry`
               );
             }
 
             // eslint-disable-next-line no-underscore-dangle
-            const method = SmartContract._methods?.find(
+            const method = SmartContractClass._methods?.find(
               (methodInterface) =>
                 methodInterface.methodName === lazyProof.methodName
             );
@@ -259,7 +255,7 @@ export class SettlementProvingTask
 
             transaction.transaction.accountUpdates[index].lazyAuthorization = {
               methodName: lazyProof.methodName,
-              ZkappClass: SmartContract,
+              ZkappClass: SmartContractClass,
               args,
               previousProofs: previousProofs,
               blindingValue: Field(lazyProof.blindingValue),
@@ -382,7 +378,6 @@ export class SettlementProvingTask
     const contractClasses: Record<string, typeof SmartContract> = {};
 
     for (const key of this.settlementContractModule.moduleNames) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const module: ContractModule<unknown, unknown> =
         this.settlementContractModule.resolve(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

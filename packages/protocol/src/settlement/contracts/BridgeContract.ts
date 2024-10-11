@@ -3,7 +3,6 @@ import {
   Bool,
   Field,
   method,
-  Mina,
   Permissions,
   Poseidon,
   Provable,
@@ -14,7 +13,6 @@ import {
   Struct,
   TokenContractV2,
   TokenId,
-  UInt64,
   VerificationKey,
 } from "o1js";
 import { noop, range, TypedClass } from "@proto-kit/common";
@@ -141,6 +139,8 @@ export abstract class BridgeContractBase extends TokenContractV2 {
       BridgeContractBase.args.withdrawalStatePath;
     const mapPath = Path.fromProperty(withdrawalModule, withdrawalStateName);
 
+    // Count account creation fee to return later, so that the sender can fund
+    // those accounts with a separate AU
     let accountCreationFeePaid = Field(0);
 
     for (let i = 0; i < OUTGOING_MESSAGE_BATCH_SIZE; i++) {
@@ -156,16 +156,6 @@ export abstract class BridgeContractBase extends TokenContractV2 {
       const { address, amount } = args.value;
       const isDummy = address.equals(this.address);
 
-      Provable.asProver(() => {
-        Provable.log(path);
-        Provable.log({
-          index: counter,
-          tokenId: this.tokenId,
-        });
-        Provable.log(Poseidon.hash(Withdrawal.toFields(args.value)));
-        Provable.log("root", stateRoot);
-      });
-
       args.witness
         .checkMembership(
           stateRoot,
@@ -178,24 +168,12 @@ export abstract class BridgeContractBase extends TokenContractV2 {
       const tokenAu = this.internal.mint({ address, amount });
       const isNewAccount = tokenAu.account.isNew.getAndRequireEquals();
 
-      // tokenAu.body.balanceChange.magnitude =
-      //   tokenAu.body.balanceChange.magnitude.sub(
-      //     Provable.if(
-      //       isNewAccount,
-      //       Mina.getNetworkConstants().accountCreationFee.toConstant(),
-      //       UInt64.zero
-      //     )
-      //   );
-
       accountCreationFeePaid = accountCreationFeePaid.add(
         Provable.if(isNewAccount, Field(1e9), Field(0))
       );
 
       counter = counter.add(Provable.if(isDummy, Field(0), Field(1)));
     }
-
-    // TODO This only works for Mina tokens, not custom tokens
-    // this.balance.subInPlace(UInt64.Unsafe.fromField(accountCreationFeePaid));
 
     this.outgoingMessageCursor.set(counter);
 
@@ -218,8 +196,11 @@ export abstract class BridgeContractBase extends TokenContractV2 {
       amount,
     });
 
-    additionUpdate.body.mayUseToken =
-      AccountUpdate.MayUseToken.InheritFromParent;
+    // Inherit from parent for custom tokens
+    additionUpdate.body.mayUseToken = {
+      inheritFromParent: this.tokenId.equals(TokenId.default).not(),
+      parentsOwnToken: Bool(false),
+    };
 
     // Send mina
     this.approve(additionUpdate);

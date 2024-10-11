@@ -113,6 +113,7 @@ export class BridgingModule extends SequencerModule {
     const tuples = events
       .filter((event) => event.type === "token-bridge-deployed")
       .map((event) => {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const mapping = event.event.data as unknown as TokenMapping;
         return [mapping.tokenId.toString(), mapping.publicKey];
       });

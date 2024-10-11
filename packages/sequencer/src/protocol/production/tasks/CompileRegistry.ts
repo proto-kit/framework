@@ -1,5 +1,5 @@
 import { injectable, singleton } from "tsyringe";
-import { CompileArtifact, TypedClass, log } from "@proto-kit/common";
+import { CompileArtifact, log } from "@proto-kit/common";
 
 export type ContractCompileArtifact = Record<string, CompileArtifact>;
 

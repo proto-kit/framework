@@ -98,27 +98,30 @@ export class MinaTransactionSimulator {
     // This check isn't 100% accurate, since the preconditions should probably
     // be checked after previous AUs have been already applied.
     // But it should be enough for now
-    const errors = accountUpdates.reduce((errors, au) => {
-      if (errors.flat(1).length > 0) {
-        return [...errors, ["Cancelled"]];
-      }
+    const accountUpdateErrors = accountUpdates.reduce<string[][]>(
+      (errors, au) => {
+        if (errors.flat(1).length > 0) {
+          return [...errors, ["Cancelled"]];
+        }
 
-      const error = this.checkPreconditions(
-        accounts[this.cacheKey(au.publicKey, au.tokenId)],
-        au
-      );
+        const error = this.checkPreconditions(
+          accounts[this.cacheKey(au.publicKey, au.tokenId)],
+          au
+        );
 
-      if (error.length > 0) {
-        return [...errors, error];
-      }
+        if (error.length > 0) {
+          return [...errors, error];
+        }
 
-      this.apply(accounts[this.cacheKey(au.publicKey, au.tokenId)], au);
+        this.apply(accounts[this.cacheKey(au.publicKey, au.tokenId)], au);
 
-      return [...errors, []];
-    }, [] as string[][]);
+        return [...errors, []];
+      },
+      []
+    );
 
-    if (errors.find((x) => x.length > 0) !== undefined) {
-      throw new Error(`Preconditions not satisfied: ${errors}`);
+    if (accountUpdateErrors.find((x) => x.length > 0) !== undefined) {
+      throw new Error(`Preconditions not satisfied: ${accountUpdateErrors}`);
     }
 
     Object.entries(accounts).forEach(([, account]) => {

@@ -3,7 +3,6 @@ import {
   expectDefined,
   log,
   RollupMerkleTree,
-  sleep,
   TypedClass,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
@@ -16,7 +15,6 @@ import {
   ReturnType,
   SettlementContractModule,
   SettlementSmartContractBase,
-  Subclass,
   TokenBridgeAttestation,
   TokenBridgeTree,
 } from "@proto-kit/protocol";
@@ -34,17 +32,14 @@ import {
   PrivateKey,
   UInt64,
   fetchAccount,
-  TokenContract,
-  TokenContractV2,
-  Permissions,
   TokenId,
-  VerificationKey,
   SmartContract,
   UInt8,
   Bool,
 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
+import { FungibleToken, FungibleTokenAdmin } from "mina-fungible-token";
 
 import {
   ManualBlockTrigger,
@@ -61,20 +56,17 @@ import {
   ProvenSettlementPermissions,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
-import { Balance } from "../integration/mocks/Balance";
-import { Withdrawals } from "./mocks/Withdrawals";
 import { testingSequencerFromModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
 import { MinaBlockchainAccounts } from "../../src/protocol/baselayer/accounts/MinaBlockchainAccounts";
 import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 import { BridgingModule } from "../../src/settlement/BridgingModule";
 import { SettlementUtils } from "../../src/settlement/utils/SettlementUtils";
-import { Balances, BalancesKey } from "./mocks/Balances";
-import { Pickles } from "o1js/dist/node/snarky";
-import { optional } from "ts-pattern/dist/patterns";
-import { FungibleToken, FungibleTokenAdmin } from "mina-fungible-token";
 import { FungibleTokenContractModule } from "../../src/settlement/utils/FungibleTokenContractModule";
 import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/FungibleTokenAdminContractModule";
+
+import { Balances, BalancesKey } from "./mocks/Balances";
+import { Withdrawals } from "./mocks/Withdrawals";
 
 log.setLevel("DEBUG");
 
@@ -299,11 +291,10 @@ export const settlementTestFn = (
         sequencerKey.toPublicKey(),
         20 * 1e9
       );
-
-      // const acc2 = await fetchAccount({ publicKey: accs[0].toPublicKey() });
     }, timeout);
 
     afterAll(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       SettlementSmartContractBase.args = undefined as any;
     });
 
@@ -788,49 +779,6 @@ export const settlementTestFn = (
       },
       timeout
     );
-
-    // it("should redeem custom token", async () => {
-    //   const { settlement } = settlementModule.getContracts();
-    //
-    //   const userKey = testAccounts[0];
-    //
-    //   if (baseLayerConfig.network.type !== "local") {
-    //     await fetchAccount({ publicKey: userKey.toPublicKey() });
-    //   }
-    //   const balanceBefore = Mina.getAccount(
-    //     userKey.toPublicKey()
-    //   ).balance.toBigInt();
-    //
-    //   const amount = BigInt(1e9 * 49);
-    //
-    //   const fee = feeStrategy.getFee();
-    //   const tx = await Mina.transaction(
-    //     {
-    //       sender: userKey.toPublicKey(),
-    //       nonce: user0Nonce++,
-    //       fee,
-    //       memo: "Redeem withdrawal",
-    //     },
-    //     async () => {
-    //       const mintAU = AccountUpdate.create(userKey.toPublicKey());
-    //       mintAU.balance.addInPlace(amount);
-    //       // mintAU.requireSignature(); // TODO ?
-    //       await settlement.redeem(mintAU);
-    //     }
-    //   );
-    //   settlementModule.signTransaction(tx, [userKey]);
-    //   await tx.prove();
-    //   await tx.send().wait();
-    //
-    //   // if (baseLayerConfig.network.type !== "local") {
-    //   //   await fetchAccount({ publicKey: userKey.toPublicKey() });
-    //   // }
-    //   // const balanceAfter = Mina.getAccount(
-    //   //   userKey.toPublicKey()
-    //   // ).balance.toBigInt();
-    //   //
-    //   // expect(balanceAfter - balanceBefore).toBe(amount - BigInt(fee));
-    // });
   }
 };
 /* eslint-enable no-inner-declarations */

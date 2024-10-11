@@ -160,7 +160,7 @@ export class MinaTransactionSender {
 
     const result = await resultPromise;
 
-    log.debug(`Tx proving complete, queueing for sending`);
+    log.debug("Tx proving complete, queueing for sending");
 
     const txStatus = await this.sendOrQueue(result.transaction);
 
