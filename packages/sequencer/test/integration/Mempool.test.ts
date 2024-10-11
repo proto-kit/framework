@@ -183,12 +183,12 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(txs[1].nonce.toBigInt()).toStrictEqual(0n);
       expect(txs[1].sender).toStrictEqual(user2PublicKey);
       expect(txs[2].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[2].sender).toStrictEqual(user3PublicKey);
+      expect(txs[2].sender).toStrictEqual(user1PublicKey);
       expect(txs[3].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[3].sender).toStrictEqual(user1PublicKey);
-      expect(txs[4].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[4].sender).toStrictEqual(user2PublicKey);
-      expect(txs[5].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[3].sender).toStrictEqual(user2PublicKey);
+      expect(txs[4].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[4].sender).toStrictEqual(user3PublicKey);
+      expect(txs[5].nonce.toBigInt()).toStrictEqual(1n);
       expect(txs[5].sender).toStrictEqual(user3PublicKey);
     });
   }
