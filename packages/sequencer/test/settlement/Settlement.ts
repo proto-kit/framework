@@ -1,13 +1,24 @@
 /* eslint-disable no-inner-declarations */
-import { log, RollupMerkleTree } from "@proto-kit/common";
+import {
+  expectDefined,
+  log,
+  RollupMerkleTree,
+  sleep,
+  TypedClass,
+} from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import {
   BlockProverPublicInput,
+  BridgeContract,
   NetworkState,
   Protocol,
   ReturnType,
   SettlementContractModule,
+  SettlementSmartContractBase,
+  Subclass,
+  TokenBridgeAttestation,
+  TokenBridgeTree,
 } from "@proto-kit/protocol";
 import {
   AppChain,
@@ -23,6 +34,14 @@ import {
   PrivateKey,
   UInt64,
   fetchAccount,
+  TokenContract,
+  TokenContractV2,
+  Permissions,
+  TokenId,
+  VerificationKey,
+  SmartContract,
+  UInt8,
+  Bool,
 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -38,20 +57,33 @@ import {
   SettlementProvingTask,
   MinaTransactionSender,
   MinaBaseLayerConfig,
+  SignedSettlementPermissions,
+  ProvenSettlementPermissions,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
 import { Balance } from "../integration/mocks/Balance";
-import { Withdrawals } from "../integration/mocks/Withdrawals";
+import { Withdrawals } from "./mocks/Withdrawals";
 import { testingSequencerFromModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
 import { MinaBlockchainAccounts } from "../../src/protocol/baselayer/accounts/MinaBlockchainAccounts";
 import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
+import { BridgingModule } from "../../src/settlement/BridgingModule";
+import { SettlementUtils } from "../../src/settlement/utils/SettlementUtils";
+import { Balances, BalancesKey } from "./mocks/Balances";
+import { Pickles } from "o1js/dist/node/snarky";
+import { optional } from "ts-pattern/dist/patterns";
+import { FungibleToken, FungibleTokenAdmin } from "mina-fungible-token";
+import { FungibleTokenContractModule } from "../../src/settlement/utils/FungibleTokenContractModule";
+import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/FungibleTokenAdminContractModule";
 
-log.setLevel("INFO");
+log.setLevel("DEBUG");
 
 export const settlementTestFn = (
   settlementType: "signed" | "mock-proofs",
   baseLayerConfig: MinaBaseLayerConfig,
+  tokenConfig?: {
+    tokenOwner: TypedClass<FungibleToken> & typeof SmartContract;
+  },
   timeout: number = 120_000
 ) => {
   // eslint-disable-next-line no-lone-blocks
@@ -61,24 +93,42 @@ export const settlementTestFn = (
     const sequencerKey = PrivateKey.random();
     const settlementKey = PrivateKey.random();
     const dispatchKey = PrivateKey.random();
+    const minaBridgeKey = PrivateKey.random();
+    // Only needed for tests with a custom token
+    const tokenBridgeKey =
+      tokenConfig === undefined ? minaBridgeKey : PrivateKey.random();
+    const tokenOwnerKey = {
+      tokenOwner: PrivateKey.random(),
+      admin: PrivateKey.random(),
+    };
+    const tokenOwner =
+      tokenConfig !== undefined
+        ? // eslint-disable-next-line new-cap
+          new tokenConfig.tokenOwner(tokenOwnerKey.tokenOwner.toPublicKey())
+        : undefined;
+
     let trigger: ManualBlockTrigger;
     let settlementModule: SettlementModule;
+    let bridgingModule: BridgingModule;
     let blockQueue: BlockQueue;
 
     let feeStrategy: FeeStrategy;
 
     let blockSerializer: BlockProofSerializer;
 
+    const bridgedTokenId =
+      tokenConfig === undefined ? TokenId.default : tokenOwner!.deriveTokenId();
+
     function setupAppChain() {
       const runtime = Runtime.from({
         modules: {
-          Balances: Balance,
+          Balances,
           Withdrawals,
         },
       });
 
       // eslint-disable-next-line @typescript-eslint/dot-notation
-      SettlementModule.prototype["isSignedSettlement"] = () =>
+      SettlementUtils.prototype["isSignedSettlement"] = () =>
         settlementType === "signed";
 
       const sequencer = testingSequencerFromModules(
@@ -99,7 +149,10 @@ export const settlementTestFn = (
         Protocol: Protocol.from({
           modules: {
             ...VanillaProtocolModules.mandatoryModules({}),
-            SettlementContractModule: SettlementContractModule.fromDefaults(),
+            SettlementContractModule: SettlementContractModule.with({
+              FungibleToken: FungibleTokenContractModule,
+              FungibleTokenAdmin: FungibleTokenAdminContractModule,
+            }),
           },
         }),
 
@@ -144,15 +197,18 @@ export const settlementTestFn = (
           BlockProver: {},
           LastStateRoot: {},
           SettlementContractModule: {
-            SettlementContract: {
+            SettlementContract: {},
+            BridgeContract: {
               withdrawalStatePath: "Withdrawals.withdrawals",
-              withdrawalMethodPath: "Withdrawals.withdraw",
+              withdrawalEventName: "withdrawal",
             },
             DispatchContract: {
               incomingMessagesMethods: {
                 deposit: "Balances.deposit",
               },
             },
+            FungibleToken: {},
+            FungibleTokenAdmin: {},
           },
         },
         TransactionSender: {},
@@ -178,9 +234,9 @@ export const settlementTestFn = (
         const key = testAccounts[0];
         const tx = createTransaction({
           runtime: appChain.runtime,
-          method: ["Balances", "addBalance"],
+          method: ["Balances", "mint"],
           privateKey: key,
-          args: [key.toPublicKey(), UInt64.from(1e9 * 100)],
+          args: [bridgedTokenId, key.toPublicKey(), UInt64.from(1e9 * 100)],
           nonce: customNonce,
         });
 
@@ -214,6 +270,9 @@ export const settlementTestFn = (
       settlementModule = appChain.sequencer.resolve(
         "SettlementModule"
       ) as SettlementModule;
+      bridgingModule = appChain.sequencer.resolve(
+        "BridgingModule"
+      ) as BridgingModule;
 
       trigger =
         appChain.sequencer.dependencyContainer.resolve<ManualBlockTrigger>(
@@ -244,6 +303,10 @@ export const settlementTestFn = (
       // const acc2 = await fetchAccount({ publicKey: accs[0].toPublicKey() });
     }, timeout);
 
+    afterAll(() => {
+      SettlementSmartContractBase.args = undefined as any;
+    });
+
     let nonceCounter = 0;
     let user0Nonce = 0;
     let acc0L2Nonce = 0;
@@ -252,49 +315,215 @@ export const settlementTestFn = (
       "should deploy",
       async () => {
         // Deploy contract
-        await settlementModule.deploy(settlementKey, dispatchKey, {
-          nonce: nonceCounter,
-        });
+        await settlementModule.deploy(
+          settlementKey,
+          dispatchKey,
+          minaBridgeKey,
+          {
+            nonce: nonceCounter,
+          }
+        );
 
         nonceCounter += 2;
 
         console.log("Deployed");
       },
-      timeout
+      timeout * 2
     );
+
+    if (tokenConfig !== undefined) {
+      it(
+        "should deploy custom token owner",
+        async () => {
+          const permissions =
+            settlementType === "signed"
+              ? new SignedSettlementPermissions()
+              : new ProvenSettlementPermissions();
+
+          const tx = await Mina.transaction(
+            {
+              sender: sequencerKey.toPublicKey(),
+              memo: "Deploy custom token",
+              nonce: nonceCounter++,
+              fee: feeStrategy.getFee(),
+            },
+            async () => {
+              AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 2);
+
+              const admin = new FungibleTokenAdmin(
+                tokenOwnerKey.admin.toPublicKey()
+              );
+              await admin.deploy({
+                verificationKey: undefined,
+                adminPublicKey: sequencerKey.toPublicKey(),
+              });
+              admin.self.account.permissions.set(
+                permissions.bridgeContractToken()
+              );
+
+              await tokenOwner!.deploy({
+                verificationKey: undefined,
+                src: "",
+                symbol: "TEST",
+              });
+              tokenOwner!.self.account.permissions.set(
+                permissions.bridgeContractToken()
+              );
+            }
+          );
+          console.log(tx.toPretty());
+
+          settlementModule.utils.signTransaction(
+            tx,
+            [sequencerKey, tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
+            [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin]
+          );
+
+          await appChain.sequencer
+            .resolveOrFail("TransactionSender", MinaTransactionSender)
+            .proveAndSendTransaction(tx, "included");
+        },
+        timeout
+      );
+
+      it(
+        "should initialize custom token",
+        async () => {
+          const tx = await Mina.transaction(
+            {
+              sender: sequencerKey.toPublicKey(),
+              memo: "Initialized custom token owner",
+              nonce: nonceCounter++,
+              fee: feeStrategy.getFee(),
+            },
+            async () => {
+              AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 1);
+
+              await tokenOwner!.initialize(
+                tokenOwnerKey.admin.toPublicKey(),
+                UInt8.from(9),
+                Bool(false)
+              );
+            }
+          );
+          console.log(tx.toPretty());
+          settlementModule.utils.signTransaction(
+            tx,
+            [sequencerKey, tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
+            [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin]
+          );
+
+          await appChain.sequencer
+            .resolveOrFail("TransactionSender", MinaTransactionSender)
+            .proveAndSendTransaction(tx, "included");
+        },
+        timeout
+      );
+
+      it(
+        "should mint custom tokens",
+        async () => {
+          await settlementModule.utils.fetchContractAccounts(
+            {
+              address: tokenOwner!.address,
+              tokenId: tokenOwner!.tokenId,
+            },
+            {
+              address: tokenOwner!.address,
+              tokenId: tokenOwner!.deriveTokenId(),
+            }
+          );
+
+          const tx = await Mina.transaction(
+            {
+              sender: sequencerKey.toPublicKey(),
+              memo: "Mint custom token",
+              nonce: nonceCounter++,
+              fee: feeStrategy.getFee(),
+            },
+            async () => {
+              AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 1);
+
+              await tokenOwner!.mint(
+                testAccounts[0].toPublicKey(),
+                UInt64.from(100e9)
+              );
+              // tokenOwner!.self.body.incrementNonce = Bool(false);
+            }
+          );
+          settlementModule.utils.signTransaction(
+            tx,
+            [sequencerKey],
+            [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin]
+          );
+
+          await appChain.sequencer
+            .resolveOrFail("TransactionSender", MinaTransactionSender)
+            .proveAndSendTransaction(tx, "included");
+        },
+        timeout
+      );
+
+      it(
+        "should deploy custom token bridge",
+        async () => {
+          await settlementModule.deployTokenBridge(
+            tokenOwner!,
+            tokenOwnerKey.tokenOwner,
+            tokenBridgeKey,
+            {
+              nonce: nonceCounter++,
+            }
+          );
+          console.log(
+            `Token bridge address: ${tokenBridgeKey.toPublicKey().toBase58()} @ ${tokenOwner!.deriveTokenId().toString()}`
+          );
+
+          expect(tokenOwner!.deriveTokenId().toString()).toStrictEqual(
+            bridgedTokenId.toString()
+          );
+        },
+        timeout
+      );
+    }
 
     it(
       "should settle",
       async () => {
-        const [, batch] = await createBatch(true);
-        acc0L2Nonce++;
+        try {
+          const [, batch] = await createBatch(true);
+          acc0L2Nonce++;
 
-        const input = BlockProverPublicInput.fromFields(
-          batch!.proof.publicInput.map((x) => Field(x))
-        );
-        expect(input.stateRoot.toBigInt()).toStrictEqual(
-          RollupMerkleTree.EMPTY_ROOT
-        );
+          const input = BlockProverPublicInput.fromFields(
+            batch!.proof.publicInput.map((x) => Field(x))
+          );
+          expect(input.stateRoot.toBigInt()).toStrictEqual(
+            RollupMerkleTree.EMPTY_ROOT
+          );
 
-        const lastBlock = await blockQueue.getLatestBlock();
+          const lastBlock = await blockQueue.getLatestBlock();
 
-        await trigger.settle(batch!);
-        nonceCounter++;
+          await trigger.settle(batch!);
+          nonceCounter++;
 
-        // TODO Check Smartcontract tx layout (call to dispatch with good preconditions, etc)
+          // TODO Check Smartcontract tx layout (call to dispatch with good preconditions, etc)
 
-        console.log("Block settled");
+          console.log("Block settled");
 
-        const { settlement } = settlementModule.getContracts();
-        expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
-          lastBlock!.result.afterNetworkState.hash().toBigInt()
-        );
-        expect(settlement.stateRoot.get().toBigInt()).toStrictEqual(
-          lastBlock!.result.stateRoot
-        );
-        expect(settlement.blockHashRoot.get().toBigInt()).toStrictEqual(
-          lastBlock!.result.blockHashRoot
-        );
+          const { settlement } = settlementModule.getContracts();
+          expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
+            lastBlock!.result.afterNetworkState.hash().toBigInt()
+          );
+          expect(settlement.stateRoot.get().toBigInt()).toStrictEqual(
+            lastBlock!.result.stateRoot
+          );
+          expect(settlement.blockHashRoot.get().toBigInt()).toStrictEqual(
+            lastBlock!.result.blockHashRoot
+          );
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
       },
       timeout
     );
@@ -302,75 +531,122 @@ export const settlementTestFn = (
     it(
       "should include deposit",
       async () => {
-        const { settlement, dispatch } = settlementModule.getContracts();
+        try {
+          const { settlement, dispatch } = settlementModule.getContracts();
+          const bridge = new BridgeContract(
+            tokenBridgeKey.toPublicKey(),
+            bridgedTokenId
+          );
 
-        const userKey = testAccounts[0];
+          const userKey = testAccounts[0];
 
-        const contractBalanceBefore = settlement.account.balance.get();
+          const depositAmount = 10n * BigInt(1e9);
 
-        const tx = await Mina.transaction(
-          {
-            sender: userKey.toPublicKey(),
-            fee: 0.01 * 1e9,
-            nonce: user0Nonce++,
-            memo: "deposit",
-          },
-          async () => {
-            const au = AccountUpdate.createSigned(userKey.toPublicKey());
-            au.balance.subInPlace(UInt64.from(100));
-            await dispatch.deposit(UInt64.from(100));
-          }
-        );
+          const contractBalanceBefore = bridge.account.balance.get();
+          const userL2BalanceBefore =
+            await appChain.query.runtime.Balances.balances.get(
+              BalancesKey.from(bridgedTokenId, userKey.toPublicKey())
+            );
 
-        settlementModule.signTransaction(tx, [userKey]);
+          const tree = await TokenBridgeTree.buildTreeFromEvents(dispatch);
+          const index = tree.getIndex(bridgedTokenId);
+          const attestation = new TokenBridgeAttestation({
+            index: Field(index),
+            witness: tree.getWitness(index),
+          });
 
-        await appChain.sequencer
-          .resolveOrFail("TransactionSender", MinaTransactionSender)
-          .proveAndSendTransaction(tx, "included");
+          const tx = await Mina.transaction(
+            {
+              sender: userKey.toPublicKey(),
+              fee: 0.01 * 1e9,
+              nonce: user0Nonce++,
+              memo: "deposit",
+            },
+            async () => {
+              const au = AccountUpdate.createSigned(
+                userKey.toPublicKey(),
+                bridgedTokenId
+              );
+              au.balance.subInPlace(UInt64.from(depositAmount));
 
-        const actions = await Mina.fetchActions(dispatch.address);
-        const balanceDiff = settlement.account.balance
-          .get()
-          .sub(contractBalanceBefore);
+              await dispatch.deposit(
+                UInt64.from(depositAmount),
+                bridgedTokenId,
+                tokenBridgeKey.toPublicKey(),
+                attestation,
+                userKey.toPublicKey()
+              );
 
-        expect(actions).toHaveLength(1);
-        expect(balanceDiff.toBigInt()).toBe(100n);
+              if (tokenConfig !== undefined) {
+                await tokenOwner!.approveAccountUpdates([au, dispatch.self]);
+              }
+            }
+          );
 
-        const [, batch] = await createBatch(false);
+          settlementModule.utils.signTransaction(
+            tx,
+            [userKey],
+            [tokenOwnerKey.tokenOwner, dispatchKey]
+          );
 
-        console.log("Settling");
+          await appChain.sequencer
+            .resolveOrFail("TransactionSender", MinaTransactionSender)
+            .proveAndSendTransaction(tx, "included");
 
-        await trigger.settle(batch!);
-        nonceCounter++;
+          const actions = await Mina.fetchActions(dispatch.address);
+          const balanceDiff = bridge.account.balance
+            .get()
+            .sub(contractBalanceBefore);
 
-        const [, batch2] = await createBatch(false);
+          expect(actions).toHaveLength(1);
+          expect(balanceDiff.toBigInt()).toBe(depositAmount);
 
-        const networkstateHash = Mina.activeInstance.getAccount(
-          settlement.address
-        );
-        console.log("On-chain values");
-        console.log(networkstateHash.zkapp!.appState.map((x) => x.toString()));
+          const [, batch] = await createBatch(false);
 
-        console.log(
-          `Empty Network State ${NetworkState.empty().hash().toString()}`
-        );
-        console.log(batch!.toNetworkState.hash().toString());
-        console.log(batch2!.fromNetworkState.hash().toString());
+          console.log("Settling");
 
-        expect(batch!.toNetworkState.hash().toString()).toStrictEqual(
-          batch2!.fromNetworkState.hash().toString()
-        );
+          await trigger.settle(batch!);
+          nonceCounter++;
 
-        expect(batch2!.blockHashes).toHaveLength(1);
+          const [, batch2] = await createBatch(false);
 
-        await trigger.settle(batch2!);
-        nonceCounter++;
+          const networkstateHash = Mina.activeInstance.getAccount(
+            settlement.address
+          );
+          console.log("On-chain values");
+          console.log(
+            networkstateHash.zkapp!.appState.map((x) => x.toString())
+          );
 
-        const balance = await appChain.query.runtime.Balances.balances.get(
-          userKey.toPublicKey()
-        );
+          console.log(
+            `Empty Network State ${NetworkState.empty().hash().toString()}`
+          );
+          console.log(batch!.toNetworkState.hash().toString());
+          console.log(batch2!.fromNetworkState.hash().toString());
 
-        expect(balance).toBeDefined();
+          expect(batch!.toNetworkState.hash().toString()).toStrictEqual(
+            batch2!.fromNetworkState.hash().toString()
+          );
+
+          expect(batch2!.blockHashes).toHaveLength(1);
+
+          await trigger.settle(batch2!);
+          nonceCounter++;
+
+          const balance = await appChain.query.runtime.Balances.balances.get(
+            BalancesKey.from(bridgedTokenId, userKey.toPublicKey())
+          );
+
+          expectDefined(balance);
+
+          const l2balanceDiff = balance.sub(
+            userL2BalanceBefore ?? UInt64.from(0)
+          );
+          expect(l2balanceDiff.toBigInt()).toStrictEqual(depositAmount);
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
       },
       timeout
     );
@@ -378,38 +654,21 @@ export const settlementTestFn = (
     it(
       "should process withdrawal",
       async () => {
-        const { settlement } = settlementModule.getContracts();
-
-        // Send mina to contract
-        const usertx = await Mina.transaction(
-          {
-            sender: testAccounts[1].toPublicKey(),
-            fee: feeStrategy.getFee(),
-            memo: "fill bridging contract",
-          },
-          async () => {
-            const au = AccountUpdate.createSigned(
-              testAccounts[1].toPublicKey()
-            );
-            au.send({
-              to: settlement.address,
-              amount: UInt64.from(100 * 1e9),
-            });
-          }
-        );
-        settlementModule.signTransaction(usertx, [testAccounts[1]]);
-        // await usertx.send();
-
-        await appChain.sequencer
-          .resolveOrFail("TransactionSender", MinaTransactionSender)
-          .proveAndSendTransaction(usertx, "included");
+        const bridgingContract =
+          await bridgingModule.getBridgeContract(bridgedTokenId);
 
         const userKey = testAccounts[0];
+
+        const withdrawAmount = 10 * 1e9;
 
         const withdrawalTx = createTransaction({
           runtime: appChain.runtime,
           method: ["Withdrawals", "withdraw"],
-          args: [userKey.toPublicKey(), UInt64.from(50 * 1e9)],
+          args: [
+            userKey.toPublicKey(),
+            UInt64.from(withdrawAmount),
+            bridgedTokenId,
+          ],
           nonce: acc0L2Nonce + 1,
           privateKey: userKey,
         });
@@ -418,50 +677,63 @@ export const settlementTestFn = (
         ]);
         acc0L2Nonce += 2;
 
-        console.log("Test netowrkstate");
+        console.log("Test networkstate");
         console.log(NetworkState.toJSON(block!.networkState.during));
         console.log(NetworkState.toJSON(batch!.toNetworkState));
 
         await trigger.settle(batch!);
         nonceCounter++;
 
-        const txs = await settlementModule.sendRollupTransactions({
-          nonce: nonceCounter++,
+        const txs = await bridgingModule.sendRollupTransactions({
+          nonce: nonceCounter,
+          bridgingContractPrivateKey: tokenBridgeKey,
+          tokenOwnerPrivateKey: tokenOwnerKey.tokenOwner,
+          tokenOwner: tokenOwner,
         });
+
+        nonceCounter += 2;
 
         expect(txs).toHaveLength(1);
 
         if (baseLayerConfig.network.type !== "local") {
           await fetchAccount({
             publicKey: userKey.toPublicKey(),
-            tokenId: settlement.deriveTokenId(),
+            tokenId: bridgingContract.deriveTokenId(),
           });
         }
         const account = Mina.getAccount(
           userKey.toPublicKey(),
-          settlement.deriveTokenId()
+          bridgingContract.deriveTokenId()
         );
 
-        expect(account.balance.toBigInt()).toStrictEqual(BigInt(1e9) * 49n);
+        expect(account.balance.toBigInt()).toStrictEqual(
+          BigInt(withdrawAmount)
+        );
       },
-      timeout
+      timeout * 2
     );
 
     it(
       "should be able to redeem withdrawal",
       async () => {
-        const { settlement } = settlementModule.getContracts();
+        const bridgingContract =
+          await bridgingModule.getBridgeContract(bridgedTokenId);
 
         const userKey = testAccounts[0];
 
+        // Mina token test case
         if (baseLayerConfig.network.type !== "local") {
-          await fetchAccount({ publicKey: userKey.toPublicKey() });
+          await fetchAccount({
+            publicKey: userKey.toPublicKey(),
+            tokenId: bridgedTokenId,
+          });
         }
         const balanceBefore = Mina.getAccount(
-          userKey.toPublicKey()
+          userKey.toPublicKey(),
+          bridgedTokenId
         ).balance.toBigInt();
 
-        const amount = BigInt(1e9 * 49);
+        const amount = BigInt(1e9 * 10);
 
         const fee = feeStrategy.getFee();
         const tx = await Mina.transaction(
@@ -472,27 +744,93 @@ export const settlementTestFn = (
             memo: "Redeem withdrawal",
           },
           async () => {
-            const mintAU = AccountUpdate.create(userKey.toPublicKey());
+            const mintAU = AccountUpdate.createSigned(
+              userKey.toPublicKey(),
+              bridgedTokenId
+            );
             mintAU.balance.addInPlace(amount);
-            // mintAU.requireSignature(); // TODO ?
-            await settlement.redeem(mintAU);
+            await bridgingContract.redeem(mintAU);
+
+            // Approve AUs if necessary
+            if (tokenConfig !== undefined) {
+              await tokenOwner!.approveAccountUpdate(bridgingContract.self);
+            }
           }
         );
-        settlementModule.signTransaction(tx, [userKey]);
-        await tx.prove();
-        await tx.send().wait();
+
+        const signed = settlementModule.utils.signTransaction(
+          tx,
+          [userKey],
+          [tokenBridgeKey, tokenOwnerKey.tokenOwner]
+        );
+
+        await appChain.sequencer
+          .resolveOrFail("TransactionSender", MinaTransactionSender)
+          .proveAndSendTransaction(signed, "included");
 
         if (baseLayerConfig.network.type !== "local") {
-          await fetchAccount({ publicKey: userKey.toPublicKey() });
+          await fetchAccount({
+            publicKey: userKey.toPublicKey(),
+            tokenId: bridgedTokenId,
+          });
         }
         const balanceAfter = Mina.getAccount(
-          userKey.toPublicKey()
+          userKey.toPublicKey(),
+          bridgedTokenId
         ).balance.toBigInt();
 
-        expect(balanceAfter - balanceBefore).toBe(amount - BigInt(fee));
+        // tx fee
+        const minaFees = BigInt(fee);
+
+        expect(balanceAfter - balanceBefore).toBe(
+          amount - (tokenConfig === undefined ? minaFees : 0n)
+        );
       },
       timeout
     );
+
+    // it("should redeem custom token", async () => {
+    //   const { settlement } = settlementModule.getContracts();
+    //
+    //   const userKey = testAccounts[0];
+    //
+    //   if (baseLayerConfig.network.type !== "local") {
+    //     await fetchAccount({ publicKey: userKey.toPublicKey() });
+    //   }
+    //   const balanceBefore = Mina.getAccount(
+    //     userKey.toPublicKey()
+    //   ).balance.toBigInt();
+    //
+    //   const amount = BigInt(1e9 * 49);
+    //
+    //   const fee = feeStrategy.getFee();
+    //   const tx = await Mina.transaction(
+    //     {
+    //       sender: userKey.toPublicKey(),
+    //       nonce: user0Nonce++,
+    //       fee,
+    //       memo: "Redeem withdrawal",
+    //     },
+    //     async () => {
+    //       const mintAU = AccountUpdate.create(userKey.toPublicKey());
+    //       mintAU.balance.addInPlace(amount);
+    //       // mintAU.requireSignature(); // TODO ?
+    //       await settlement.redeem(mintAU);
+    //     }
+    //   );
+    //   settlementModule.signTransaction(tx, [userKey]);
+    //   await tx.prove();
+    //   await tx.send().wait();
+    //
+    //   // if (baseLayerConfig.network.type !== "local") {
+    //   //   await fetchAccount({ publicKey: userKey.toPublicKey() });
+    //   // }
+    //   // const balanceAfter = Mina.getAccount(
+    //   //   userKey.toPublicKey()
+    //   // ).balance.toBigInt();
+    //   //
+    //   // expect(balanceAfter - balanceBefore).toBe(amount - BigInt(fee));
+    // });
   }
 };
 /* eslint-enable no-inner-declarations */
