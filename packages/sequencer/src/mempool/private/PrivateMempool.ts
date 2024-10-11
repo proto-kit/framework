@@ -116,6 +116,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         executionContext.setup(contextInputs);
 
         const signedTransaction = tx.toProtocolTransaction();
+        // eslint-disable-next-line no-await-in-loop
         await this.accountStateHook.onTransaction({
           networkState: networkState,
           transaction: signedTransaction.transaction,
@@ -129,11 +130,14 @@ export class PrivateMempool extends SequencerModule implements Mempool {
           if (skippedTxs.includes(tx)) {
             skippedTxs.splice(skippedTxs.indexOf(tx), 1);
           }
+          // eslint-disable-next-line no-await-in-loop
           await txStateService.applyStateTransitions(stateTransitions);
+          // eslint-disable-next-line no-await-in-loop
           await txStateService.mergeIntoParent();
           this.protocol.stateServiceProvider.popCurrentStateService();
 
           if (skippedTxs.length > 0) {
+            // eslint-disable-next-line no-await-in-loop
             await checkTxValid(skippedTxs, true);
           }
         } else {

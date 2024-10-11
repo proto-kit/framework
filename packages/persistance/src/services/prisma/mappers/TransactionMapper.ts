@@ -73,6 +73,7 @@ export class TransactionExecutionResultMapper
       protocolTransitions: this.stArrayMapper.mapIn(
         executionResult.protocolTransitions
       ),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       events: this.eventArrayMapper.mapIn(executionResult.events),
     };
   }

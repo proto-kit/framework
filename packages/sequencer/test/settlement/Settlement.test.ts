@@ -167,8 +167,8 @@ describe("settlement contracts", () => {
 
       await mempool.add(tx);
     }
-    txs.forEach((tx) => {
-      mempool.add(tx);
+    txs.forEach(async (tx) => {
+      await mempool.add(tx);
     });
 
     const result = await trigger.produceBlockAndBatch();
