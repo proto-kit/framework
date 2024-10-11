@@ -10,13 +10,12 @@ import {
 
 export type BridgeContractConfig = {
   withdrawalStatePath: `${string}.${string}`;
-  withdrawalMethodPath: `${string}.${string}`;
+  withdrawalEventName: string;
 };
 
 @injectable()
 export class BridgeContractProtocolModule extends ContractModule<
   BridgeContractType,
-  undefined,
   BridgeContractConfig
 > {
   public contractFactory() {
@@ -33,5 +32,12 @@ export class BridgeContractProtocolModule extends ContractModule<
     };
 
     return BridgeContract;
+  }
+
+  public async compile() {
+    const bridgeVK = await BridgeContract.compile();
+    return {
+      BridgeContract: bridgeVK,
+    };
   }
 }

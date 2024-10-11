@@ -1,6 +1,6 @@
 import {
   AccountUpdate,
-  DeployArgs,
+  Bool,
   Field,
   method,
   Mina,
@@ -11,11 +11,13 @@ import {
   SmartContract,
   State,
   state,
+  Struct,
   TokenContractV2,
   TokenId,
   UInt64,
+  VerificationKey,
 } from "o1js";
-import { noop, TypedClass } from "@proto-kit/common";
+import { noop, range, TypedClass } from "@proto-kit/common";
 
 import {
   OUTGOING_MESSAGE_BATCH_SIZE,
@@ -27,18 +29,29 @@ import { Withdrawal } from "../messages/Withdrawal";
 import type { SettlementContractType } from "./SettlementSmartContract";
 
 export type BridgeContractType = {
+  stateRoot: State<Field>;
+  outgoingMessageCursor: State<Field>;
+
   rollupOutgoingMessages: (
     batch: OutgoingMessageArgumentBatch
-  ) => Promise<void>;
+  ) => Promise<Field>;
   redeem: (additionUpdate: AccountUpdate) => Promise<void>;
 
-  deployWithParentAddress: (
-    args: DeployArgs,
+  deployProvable: (
+    args: VerificationKey | undefined,
     signedSettlement: boolean,
     permissions: Permissions,
     settlementContractAddress: PublicKey
-  ) => Promise<void>;
+  ) => Promise<AccountUpdate>;
+
+  updateStateRoot: (root: Field) => Promise<void>;
 };
+
+// Equal to WithdrawalKey
+export class OutgoingMessageKey extends Struct({
+  index: Field,
+  tokenId: Field,
+}) {}
 
 export abstract class BridgeContractBase extends TokenContractV2 {
   public static args: {
@@ -54,18 +67,46 @@ export abstract class BridgeContractBase extends TokenContractV2 {
 
   abstract outgoingMessageCursor: State<Field>;
 
-  public async deployWithParentAddress(
-    args: DeployArgs,
+  /**
+   * Function to deploy the bridging contract in a provable way, so that it can be
+   * a provable process initiated by the settlement contract with a baked-in vk
+   *
+   * @returns Creates and returns an account update deploying the bridge contract
+   */
+  public async deployProvable(
+    verificationKey: VerificationKey | undefined,
     signedSettlement: boolean,
     permissions: Permissions,
     settlementContractAddress: PublicKey
   ) {
+    const accountUpdate = this.self;
+
     if (!signedSettlement) {
-      await super.deploy(args);
+      if (verificationKey === undefined) {
+        throw new Error("Verification Key not provided, can't deploy");
+      }
+      accountUpdate.account.verificationKey.set(verificationKey);
     }
+
+    accountUpdate.requireSignature();
     this.account.permissions.set(permissions);
 
+    range(0, 8).forEach((i) => {
+      accountUpdate.update.appState[i] = {
+        isSome: Bool(true),
+        value: Field(0),
+      };
+    });
+
     this.settlementContractAddress.set(settlementContractAddress);
+
+    accountUpdate.body.mayUseToken = {
+      // Set to true for custom tokens only
+      inheritFromParent: accountUpdate.tokenId.equals(TokenId.default).not(),
+      parentsOwnToken: Bool(false),
+    };
+
+    return accountUpdate;
   }
 
   public async approveBase(): Promise<void> {
@@ -90,7 +131,9 @@ export abstract class BridgeContractBase extends TokenContractV2 {
     this.approve(accountUpdate);
   }
 
-  public async rollupOutgoingMessagesBase(batch: OutgoingMessageArgumentBatch) {
+  public async rollupOutgoingMessagesBase(
+    batch: OutgoingMessageArgumentBatch
+  ): Promise<Field> {
     let counter = this.outgoingMessageCursor.getAndRequireEquals();
     const stateRoot = this.stateRoot.getAndRequireEquals();
 
@@ -104,7 +147,24 @@ export abstract class BridgeContractBase extends TokenContractV2 {
       const args = batch.arguments[i];
 
       // Check witness
-      const path = Path.fromKey(mapPath, Field, counter);
+      const path = Path.fromKey(mapPath, OutgoingMessageKey, {
+        index: counter,
+        tokenId: this.tokenId,
+      });
+
+      // Process message
+      const { address, amount } = args.value;
+      const isDummy = address.equals(this.address);
+
+      Provable.asProver(() => {
+        Provable.log(path);
+        Provable.log({
+          index: counter,
+          tokenId: this.tokenId,
+        });
+        Provable.log(Poseidon.hash(Withdrawal.toFields(args.value)));
+        Provable.log("root", stateRoot);
+      });
 
       args.witness
         .checkMembership(
@@ -112,22 +172,20 @@ export abstract class BridgeContractBase extends TokenContractV2 {
           path,
           Poseidon.hash(Withdrawal.toFields(args.value))
         )
+        .or(isDummy)
         .assertTrue("Provided Withdrawal witness not valid");
-
-      // Process message
-      const { address, amount } = args.value;
-      const isDummy = address.equals(this.address);
 
       const tokenAu = this.internal.mint({ address, amount });
       const isNewAccount = tokenAu.account.isNew.getAndRequireEquals();
-      tokenAu.body.balanceChange.magnitude =
-        tokenAu.body.balanceChange.magnitude.sub(
-          Provable.if(
-            isNewAccount,
-            Mina.getNetworkConstants().accountCreationFee.toConstant(),
-            UInt64.zero
-          )
-        );
+
+      // tokenAu.body.balanceChange.magnitude =
+      //   tokenAu.body.balanceChange.magnitude.sub(
+      //     Provable.if(
+      //       isNewAccount,
+      //       Mina.getNetworkConstants().accountCreationFee.toConstant(),
+      //       UInt64.zero
+      //     )
+      //   );
 
       accountCreationFeePaid = accountCreationFeePaid.add(
         Provable.if(isNewAccount, Field(1e9), Field(0))
@@ -137,15 +195,17 @@ export abstract class BridgeContractBase extends TokenContractV2 {
     }
 
     // TODO This only works for Mina tokens, not custom tokens
-    this.balance.subInPlace(UInt64.Unsafe.fromField(accountCreationFeePaid));
+    // this.balance.subInPlace(UInt64.Unsafe.fromField(accountCreationFeePaid));
 
     this.outgoingMessageCursor.set(counter);
+
+    return accountCreationFeePaid;
   }
 
   protected async redeemBase(additionUpdate: AccountUpdate) {
     additionUpdate.body.tokenId.assertEquals(
-      TokenId.default,
-      "Tokenid not default token"
+      this.tokenId,
+      "Tokenid not same as this bridging contract's tokenId"
     );
     additionUpdate.body.balanceChange.sgn
       .isPositive()
@@ -157,6 +217,9 @@ export abstract class BridgeContractBase extends TokenContractV2 {
       address: additionUpdate.publicKey,
       amount,
     });
+
+    additionUpdate.body.mayUseToken =
+      AccountUpdate.MayUseToken.InheritFromParent;
 
     // Send mina
     this.approve(additionUpdate);
@@ -179,8 +242,10 @@ export class BridgeContract
     return await this.updateStateRootBase(root);
   }
 
-  @method
-  public async rollupOutgoingMessages(batch: OutgoingMessageArgumentBatch) {
+  @method.returns(Field)
+  public async rollupOutgoingMessages(
+    batch: OutgoingMessageArgumentBatch
+  ): Promise<Field> {
     return await this.rollupOutgoingMessagesBase(batch);
   }
 

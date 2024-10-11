@@ -20,7 +20,6 @@ import { DispatchContractProtocolModule } from "./contracts/DispatchContractProt
 import { DispatchContractType } from "./contracts/DispatchSmartContract";
 import {
   SettlementContractConfig,
-  SettlementContractModuleDependencies,
   SettlementContractProtocolModule,
 } from "./contracts/SettlementContractProtocolModule";
 import { SettlementContractType } from "./contracts/SettlementSmartContract";
@@ -31,22 +30,16 @@ import {
 } from "./contracts/BridgeContractProtocolModule";
 
 export type SettlementModulesRecord = ModulesRecord<
-  TypedClass<ContractModule<unknown, unknown, unknown>>
+  TypedClass<ContractModule<unknown, unknown>>
 >;
 
 export type MandatorySettlementModulesRecord = {
   SettlementContract: TypedClass<
-    ContractModule<
-      SettlementContractType,
-      SettlementContractModuleDependencies,
-      SettlementContractConfig
-    >
+    ContractModule<SettlementContractType, SettlementContractConfig>
   >;
-  DispatchContract: TypedClass<
-    ContractModule<DispatchContractType, unknown, unknown>
-  >;
+  DispatchContract: TypedClass<ContractModule<DispatchContractType, unknown>>;
   BridgeContract: TypedClass<
-    ContractModule<BridgeContractType, unknown, BridgeContractConfig>
+    ContractModule<BridgeContractType, BridgeContractConfig>
   >;
 };
 
@@ -75,12 +68,27 @@ export class SettlementContractModule<
     };
   }
 
-  public static fromDefaults() {
-    return SettlementContractModule.from({
+  public static mandatoryModules() {
+    return {
       SettlementContract: SettlementContractProtocolModule,
       DispatchContract: DispatchContractProtocolModule,
       BridgeContract: BridgeContractProtocolModule,
-    });
+    } as const;
+  }
+
+  public static fromDefaults() {
+    return SettlementContractModule.from(
+      SettlementContractModule.mandatoryModules()
+    );
+  }
+
+  public static with<AdditionalModules extends SettlementModulesRecord>(
+    additionalModules: AdditionalModules
+  ) {
+    return SettlementContractModule.from({
+      ...SettlementContractModule.mandatoryModules(),
+      ...additionalModules,
+    } as const);
   }
 
   // ** For protocol module
@@ -104,6 +112,7 @@ export class SettlementContractModule<
     dispatch: SmartContractClassFromInterface<DispatchContractType>;
     bridge: SmartContractClassFromInterface<BridgeContractType>;
   } {
+    // TODO Make that dynamic
     const settlementContractKey = "SettlementContract";
     const dispatchContractKey = "DispatchContract";
     const bridgeContractKey = "BridgeContract";
@@ -115,9 +124,9 @@ export class SettlementContractModule<
     const dispatchModule = this.resolve(dispatchContractKey);
     const bridgeModule = this.resolve(bridgeContractKey);
 
-    const dispatch = dispatchModule.contractFactory(undefined);
-    const bridge = bridgeModule.contractFactory(undefined);
-    const settlement = settlementModule.contractFactory([dispatch, bridge]);
+    const dispatch = dispatchModule.contractFactory();
+    const bridge = bridgeModule.contractFactory();
+    const settlement = settlementModule.contractFactory();
 
     return {
       settlement,

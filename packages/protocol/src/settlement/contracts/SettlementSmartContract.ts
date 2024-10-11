@@ -22,7 +22,10 @@ import {
   VerificationKey,
   Permissions,
   Struct,
+  Provable,
+  TokenId,
 } from "o1js";
+import { singleton } from "tsyringe";
 
 import { NetworkState } from "../../model/network/NetworkState";
 import { BlockHashMerkleTree } from "../../prover/block/accummulators/BlockHashMerkleTree";
@@ -38,6 +41,8 @@ import {
 
 import { DispatchContractType } from "./DispatchSmartContract";
 import { BridgeContractType } from "./BridgeContract";
+import { TokenBridgeDeploymentAuth } from "./authorizations/TokenBridgeDeploymentAuth";
+import { UpdateMessagesHashAuth } from "./authorizations/UpdateMessagesHashAuth";
 
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 
@@ -60,6 +65,8 @@ export class TokenMapping extends Struct({
 }) {}
 
 export interface SettlementContractType {
+  authorizationField: State<Field>;
+
   initialize: (
     sequencer: PublicKey,
     dispatchContract: PublicKey,
@@ -76,14 +83,34 @@ export interface SettlementContractType {
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
   ) => Promise<void>;
+  addTokenBridge: (
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContract: PublicKey
+  ) => Promise<void>;
 }
 
 // Some random prefix for the sequencer signature
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
+@singleton()
+export class SettlementSmartContractStaticArgs {
+  public args?: {
+    DispatchContract: TypedClass<DispatchContractType & SmartContract>;
+    hooks: ProvableSettlementHook<unknown>[];
+    escapeHatchSlotsInterval: number;
+    BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
+    // Lazily initialized
+    BridgeContractVerificationKey: VerificationKey | undefined;
+    BridgeContractPermissions: Permissions | undefined;
+    signedSettlements: boolean | undefined;
+  };
+}
+
 export abstract class SettlementSmartContractBase extends TokenContractV2 {
   // This pattern of injecting args into a smartcontract is currently the only
   // viable solution that works given the inheritance issues of o1js
+  // public static args = container.resolve(SettlementSmartContractStaticArgs);
   public static args: {
     DispatchContract: TypedClass<DispatchContractType & SmartContract>;
     hooks: ProvableSettlementHook<unknown>[];
@@ -107,18 +134,20 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
   abstract blockHashRoot: State<Field>;
   abstract dispatchContractAddressX: State<Field>;
 
+  abstract authorizationField: State<Field>;
+
+  // Not @state
+  // abstract offchainStateCommitmentsHash: State<Field>;
+
   public assertStateRoot(root: Field): AccountUpdate {
     this.stateRoot.requireEquals(root);
     return this.self;
   }
 
-  // TODO As these properties, I am too lazy to properly infer the types here
+  // TODO Like these properties, I am too lazy to properly infer the types here
   private assertLazyConfigsInitialized() {
     const uninitializedProperties: string[] = [];
     const { args } = SettlementSmartContractBase;
-    if (args.BridgeContractVerificationKey === undefined) {
-      uninitializedProperties.push("BridgeContractVerificationKey");
-    }
     if (args.BridgeContractPermissions === undefined) {
       uninitializedProperties.push("BridgeContractPermissions");
     }
@@ -134,13 +163,15 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     }
   }
 
-  @method
-  public async addTokenBridge(tokenId: Field, address: PublicKey) {
-    await this.deployTokenBridge(tokenId, address);
-  }
-
-  protected async deployTokenBridge(tokenId: Field, address: PublicKey) {
-    this.assertLazyConfigsInitialized();
+  protected async deployTokenBridge(
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContractAddress: PublicKey,
+    dispatchContractPreconditionEnforced = false
+  ) {
+    Provable.asProver(() => {
+      this.assertLazyConfigsInitialized();
+    });
 
     const { args } = SettlementSmartContractBase;
     const BridgeContractClass = args.BridgeContract;
@@ -148,16 +179,20 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
 
     // This function is not a zkapps method, therefore it will be part of this methods execution
     // The returning account update (owner.self) is therefore part of this circuit and is assertable
-    await bridgeContract.deployWithParentAddress(
-      {
-        verificationKey: args.BridgeContractVerificationKey,
-      },
+    const deploymentAccountUpdate = await bridgeContract.deployProvable(
+      args.BridgeContractVerificationKey,
       args.signedSettlements!,
       args.BridgeContractPermissions!,
       this.address
     );
 
-    this.approve(bridgeContract.self);
+    this.approve(deploymentAccountUpdate);
+
+    this.self.body.mayUseToken = {
+      // Only set this if we deploy a custom token
+      parentsOwnToken: tokenId.equals(TokenId.default).not(),
+      inheritFromParent: Bool(false),
+    };
 
     this.emitEvent(
       "token-bridge-deployed",
@@ -167,7 +202,25 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
       })
     );
 
-    // TODO add it to a list of approved tokenholders
+    // We can't set a precondition twice, for the $mina bridge deployment that
+    // would be the case, so we disable it in this case
+    if (!dispatchContractPreconditionEnforced) {
+      this.dispatchContractAddressX.requireEquals(dispatchContractAddress.x);
+    }
+
+    // Set authorization for the auth callback, that we need
+    this.authorizationField.set(
+      new TokenBridgeDeploymentAuth({
+        target: dispatchContractAddress,
+        tokenId,
+        address,
+      }).hash()
+    );
+    const dispatchContract =
+      new SettlementSmartContractBase.args.DispatchContract(
+        dispatchContractAddress
+      );
+    await dispatchContract.enableTokenDeposits(tokenId, address, this.address);
   }
 
   protected async initializeBase(
@@ -193,7 +246,12 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     await contractInstance.initialize(this.address);
 
     // Deploy bridge contract for $Mina
-    await this.deployTokenBridge(this.tokenId, bridgeContract);
+    await this.deployTokenBridge(
+      this.tokenId,
+      bridgeContract,
+      dispatchContract,
+      true
+    );
 
     contractKey.toPublicKey().assertEquals(this.address);
     this.emitEvent("announce-private-key", contractKey);
@@ -321,6 +379,15 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
       "Promised messages not honored"
     );
 
+    // Set authorization for the dispatchContract to verify the messages hash update
+    this.authorizationField.set(
+      new UpdateMessagesHashAuth({
+        target: dispatchContract.address,
+        executedMessagesHash: promisedMessagesHash,
+        newPromisedMessagesHash,
+      }).hash()
+    );
+
     // Call DispatchContract
     // This call checks that the promisedMessagesHash, which is already proven
     // to be the blockProofs publicoutput, is actually the current on-chain
@@ -348,6 +415,8 @@ export class SettlementSmartContract
 
   @state(Field) public dispatchContractAddressX = State<Field>();
 
+  @state(Field) public authorizationField = State<Field>();
+
   @method async approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
   }
@@ -365,6 +434,15 @@ export class SettlementSmartContract
       bridgeContract,
       contractKey
     );
+  }
+
+  @method
+  public async addTokenBridge(
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContract: PublicKey
+  ) {
+    await this.deployTokenBridge(tokenId, address, dispatchContract);
   }
 
   @method
