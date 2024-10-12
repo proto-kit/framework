@@ -36,8 +36,9 @@ export class IndexBlockTask
       await this.blockStorage.pushResult(input.result);
     } catch (error) {
       log.error("Failed to index block", input.block.height.toBigInt(), error);
-      throw error;
+      return;
     }
+
     log.info(`Block ${input.block.height.toBigInt()} indexed sucessfully`);
   }
 
