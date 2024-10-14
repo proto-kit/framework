@@ -18,7 +18,7 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { TransactionStorage } from "../../storage/repositories/TransactionStorage";
 import { TransactionValidator } from "../verification/TransactionValidator";
-import { BlockQueue } from "../../storage/repositories/BlockStorage";
+import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import {
   Sequencer,
   SequencerModulesRecord,
@@ -26,7 +26,7 @@ import {
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 
-type MempoolStateTransition = {
+type MempoolTransactionPaths = {
   transaction: PendingTransaction;
   paths: Field[];
 };
@@ -80,8 +80,10 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     );
   }
 
-  private get unprovenQueue(): BlockQueue {
-    return this.sequencer.dependencyContainer.resolve<BlockQueue>("BlockQueue");
+  private get unprovenQueue(): BlockStorage {
+    return this.sequencer.dependencyContainer.resolve<BlockStorage>(
+      "BlockStorage"
+    );
   }
 
   public async getStagedNetworkState(): Promise<NetworkState | undefined> {
@@ -92,17 +94,14 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   public async getTxs(): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
     const sortedTxs: PendingTransaction[] = [];
-    const skippedTxs: Record<string, MempoolStateTransition> = {};
+    const skippedTxs: Record<string, MempoolTransactionPaths> = {};
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
     const baseCachedStateService = new CachedStateService(this.stateService);
-    this.protocol.stateServiceProvider.setCurrentStateService(
-      baseCachedStateService
-    );
+
     const networkState =
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      (await this.getStagedNetworkState()) as NetworkState;
+      (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
     const checkTxValid = async (
       transactions: PendingTransaction[],
@@ -131,7 +130,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         const { status, statusMessage, stateTransitions } =
           executionContext.current().result;
         if (status.toBoolean()) {
-          console.log(`Accepted tx ${tx.hash().toString()}`);
+          log.info(`Accepted tx ${tx.hash().toString()}`);
           sortedTxs.push(tx);
 
           // eslint-disable-next-line no-await-in-loop
@@ -142,8 +141,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
           delete skippedTxs[tx.hash().toString()];
           if (Object.entries(skippedTxs).length > 0) {
             const candidateMissedTxs: PendingTransaction[] = [];
-            // eslint-disable-next-line array-callback-return
-            stateTransitions.map((st) => {
+            stateTransitions.forEach((st) => {
               Object.values(skippedTxs).forEach((value) => {
                 if (value.paths.some((x) => x.equals(st.path))) {
                   candidateMissedTxs.push(value.transaction);
@@ -156,14 +154,16 @@ export class PrivateMempool extends SequencerModule implements Mempool {
             }
           }
         } else {
-          console.log(
+          log.info(
             `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
           );
           this.protocol.stateServiceProvider.popCurrentStateService();
           if (!reEvaluation) {
             skippedTxs[tx.hash().toString()] = {
               transaction: tx,
-              paths: stateTransitions.map((x) => x.path),
+              paths: stateTransitions
+                .map((x) => x.path)
+                .filter((id, idx, arr) => arr.indexOf(id) === idx),
             };
           }
         }

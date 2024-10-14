@@ -1,4 +1,4 @@
-import { log, RollupMerkleTree } from "@proto-kit/common";
+import { log, mapSequential, RollupMerkleTree } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import {
@@ -167,7 +167,7 @@ describe("settlement contracts", () => {
 
       await mempool.add(tx);
     }
-    txs.forEach(async (tx) => {
+    await mapSequential(txs, async (tx) => {
       await mempool.add(tx);
     });
 
