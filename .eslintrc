@@ -95,7 +95,7 @@
 
   "overrides": [
     {
-      "files": ["*.test.ts"],
+      "files": ["*.test.ts", "**/test/**/*.ts"],
       "rules": {
         "no-console": "off",
         "import/no-extraneous-dependencies": "off",

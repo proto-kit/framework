@@ -5,9 +5,9 @@ type ListenersHolder<Events extends EventsRecord> = {
 };
 
 export class EventEmitter<Events extends EventsRecord> {
-  private readonly listeners: ListenersHolder<Events> = {};
+  protected readonly listeners: ListenersHolder<Events> = {};
 
-  private readonly wildcardListeners: ((
+  protected readonly wildcardListeners: ((
     event: keyof Events,
     args: Events[keyof Events]
   ) => void)[] = [];
@@ -54,3 +54,8 @@ export class EventEmitter<Events extends EventsRecord> {
     }
   }
 }
+
+export type EventListenable<Events extends EventsRecord> = Pick<
+  EventEmitter<Events>,
+  "on" | "onAll" | "off"
+>;

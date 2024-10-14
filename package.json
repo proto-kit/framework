@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "npx lerna run dev",
     "build": "npx lerna run build",
+    "build:clean": "npx nx reset && npm run build",
     "build-docker": "docker build -t protokit-base -f ./packages/deployment/docker/base/Dockerfile .",
     "lint": "npx lerna run lint",
     "lint:staged": "eslint",

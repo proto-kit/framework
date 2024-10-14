@@ -1,0 +1,16 @@
+services:
+  lightnet:
+    image: o1labs/mina-local-network:compatible-latest-lightnet
+    container_name: lightnet
+    environment:
+      - RUN_ARCHIVE_NODE=true
+      - LOG_LEVEL=INFO
+      - PROOF_LEVEL=none
+      - NETWORK_TYPE=single-node
+    ports:
+      - 3085:3085
+      - 8080:8080
+      - 8181:8181
+#     archive endpoints
+      - 5432:5432
+      - 8282:8282
