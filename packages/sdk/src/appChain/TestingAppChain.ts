@@ -22,6 +22,7 @@ import {
   BlockProducerModule,
   InMemoryDatabase,
   SequencerModulesRecord,
+  VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 import { TypedClass } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
@@ -108,15 +109,7 @@ export class TestingAppChain<
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        LocalTaskWorkerModule: {
-          StateTransitionTask: {},
-          RuntimeProvingTask: {},
-          StateTransitionReductionTask: {},
-          BlockReductionTask: {},
-          BlockProvingTask: {},
-          BlockBuildingTask: {},
-          CircuitCompilerTask: {},
-        },
+        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         BlockProducerModule: {},
         TaskQueue: {

@@ -1,10 +1,11 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Runtime } from "@proto-kit/module";
-import { VKRecord } from "@proto-kit/protocol";
 import { Field, VerificationKey } from "o1js";
+import { log } from "@proto-kit/common";
 
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
+import { VKRecord } from "../../runtime/RuntimeVerificationKeyService";
 
 type VKRecordLite = Record<string, { vk: string; index: string }>;
 
@@ -84,6 +85,8 @@ export class CircuitCompilerTask
   }
 
   public async compute(): Promise<VKRecord> {
+    log.info("Computing VKs");
+
     let methodCounter = 0;
     return await this.runtime.zkProgrammable.zkProgram.reduce<
       Promise<VKRecord>

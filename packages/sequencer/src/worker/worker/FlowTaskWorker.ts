@@ -2,6 +2,7 @@ import { log } from "@proto-kit/common";
 
 import { Closeable, TaskQueue } from "../queue/TaskQueue";
 import { Task, TaskPayload } from "../flow/Task";
+import { SingleUseTask } from "../flow/SingleUseTask";
 
 const errors = {
   notComputable: (name: string) =>
@@ -20,7 +21,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
 {
   private readonly queue: TaskQueue;
 
-  private workers: Closeable[] = [];
+  private workers: Record<string, Closeable> = {};
 
   public constructor(
     mq: TaskQueue,
@@ -33,41 +34,49 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
   // element type, and after that, we expect multiple elements of that -> []
   private initHandler<Input, Output>(task: Task<Input, Output>) {
     const queueName = task.name;
-    return this.queue.createWorker(queueName, async (data) => {
-      log.debug(`Received task in queue ${queueName}`);
+    return this.queue.createWorker(
+      queueName,
+      async (data) => {
+        log.debug(`Received task in queue ${queueName}`);
 
-      try {
-        // Use first handler that returns a non-undefined result
-        const input = await task.inputSerializer().fromJSON(data.payload);
+        try {
+          // Use first handler that returns a non-undefined result
+          const input = await task.inputSerializer().fromJSON(data.payload);
 
-        const output: Output = await task.compute(input);
+          const output: Output = await task.compute(input);
 
-        if (output === undefined) {
-          throw errors.notComputable(data.name);
+          if (output === undefined) {
+            throw errors.notComputable(data.name);
+          }
+
+          const result: TaskPayload = {
+            status: "success",
+            taskId: data.taskId,
+            flowId: data.flowId,
+            name: data.name,
+            payload: await task.resultSerializer().toJSON(output),
+          };
+
+          return result;
+        } catch (error: unknown) {
+          const payload =
+            error instanceof Error ? error.message : JSON.stringify(error);
+
+          log.debug("Error in worker (detailed trace): ", error);
+
+          return {
+            status: "error",
+            taskId: data.taskId,
+            flowId: data.flowId,
+            name: data.name,
+            payload,
+          };
         }
-
-        const result: TaskPayload = {
-          status: "success",
-          taskId: data.taskId,
-          flowId: data.flowId,
-          name: data.name,
-          payload: await task.resultSerializer().toJSON(output),
-        };
-
-        return result;
-      } catch (error: unknown) {
-        const payload =
-          error instanceof Error ? error.message : JSON.stringify(error);
-
-        return {
-          status: "error",
-          taskId: data.taskId,
-          flowId: data.flowId,
-          name: data.name,
-          payload,
-        };
+      },
+      {
+        singleUse: task instanceof SingleUseTask,
       }
-    });
+    );
   }
 
   public async start() {
@@ -79,19 +88,23 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       await task.prepare();
     }
 
-    this.workers = this.tasks.map((task: Task<unknown, unknown>) =>
-      this.initHandler<
-        InferTaskInput<typeof task>,
-        InferTaskOutput<typeof task>
-      >(task)
+    this.workers = Object.fromEntries(
+      this.tasks.map((task: Task<unknown, unknown>) => [
+        task.name,
+        this.initHandler<
+          InferTaskInput<typeof task>,
+          InferTaskOutput<typeof task>
+        >(task),
+      ])
     );
   }
 
   public async close() {
     await Promise.all(
-      this.workers.map(async (worker) => {
+      Object.values(this.workers).map(async (worker) => {
         await worker.close();
       })
     );
+    this.workers = {};
   }
 }

@@ -30,6 +30,7 @@ import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitComp
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
+import { WorkerRegistrationTask } from "./startup/WorkerRegistrationTask";
 
 // Temporary workaround against the compiler emitting
 // import("common/dist") inside the library artifacts
@@ -93,7 +94,12 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       return task;
     });
 
-    const worker = new FlowTaskWorker(this.taskQueue(), tasks);
+    const registrationTask = this.container.resolve(WorkerRegistrationTask);
+
+    const worker = new FlowTaskWorker(this.taskQueue(), [
+      registrationTask,
+      ...tasks,
+    ]);
     await worker.start();
   }
 }

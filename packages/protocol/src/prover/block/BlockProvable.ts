@@ -15,6 +15,7 @@ import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
 
 import { BlockHashMerkleTreeWitness } from "./accummulators/BlockHashMerkleTree";
+import { RuntimeVerificationKeyAttestation } from "./accummulators/RuntimeVerificationKeyTree";
 
 export class BlockProverPublicInput extends Struct({
   transactionsHash: Field,
@@ -75,7 +76,8 @@ export interface BlockProvable
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
     appProof: DynamicRuntimeProof,
-    executionData: BlockProverExecutionData
+    executionData: BlockProverExecutionData,
+    verificationKeyAttestation: RuntimeVerificationKeyAttestation
   ) => Promise<BlockProverPublicOutput>;
 
   proveBlock: (

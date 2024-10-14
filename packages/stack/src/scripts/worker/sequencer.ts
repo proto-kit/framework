@@ -11,7 +11,6 @@ import {
   MinaBaseLayer,
   TimedBlockTrigger,
   DatabasePruneModule,
-  ProtocolStartupModule,
 } from "@proto-kit/sequencer";
 import {
   VanillaGraphqlModules,
@@ -31,7 +30,6 @@ export const sequencer = AppChain.from({
       BaseLayer: MinaBaseLayer,
       BlockTrigger: TimedBlockTrigger,
       DatabasePruneModule: DatabasePruneModule,
-      ProtocolStartupModule: ProtocolStartupModule,
       GraphqlServer: GraphqlServer,
       Graphql: GraphqlSequencerModule.from({
         modules: VanillaGraphqlModules.with({}),

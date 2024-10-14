@@ -28,11 +28,11 @@ export class BullQueue
   public createWorker(
     name: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>,
-    options?: { concurrency: number }
+    options?: { concurrency?: number; singleUse?: boolean }
   ): Closeable {
-    const worker = new Worker<TaskPayload, string>(
+    const worker = new Worker<TaskPayload, TaskPayload>(
       name,
-      async (job) => JSON.stringify(await executor(job.data)),
+      async (job) => await executor(job.data),
       {
         concurrency: options?.concurrency ?? 1,
         connection: this.config.redis,
@@ -46,6 +46,13 @@ export class BullQueue
       log.error("Worker threw error:");
       log.error(error);
     });
+
+    if (options?.singleUse ?? false) {
+      worker.on("completed", () => {
+        log.info(`SingleUseTask completed, closing worker ${name}`);
+        void worker.close();
+      });
+    }
 
     return {
       async close() {
