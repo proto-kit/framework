@@ -6,7 +6,7 @@ import {
 } from "@proto-kit/protocol";
 
 import { Task } from "../../flow/Task";
-import { SingleUseTask } from "../../flow/SingleUseTask";
+import { AbstractStartupTask } from "../../flow/AbstractStartupTask";
 
 import { CloseWorkerError } from "./CloseWorkerError";
 
@@ -16,7 +16,7 @@ export type WorkerStartupPayload = {
 
 @injectable()
 export class WorkerRegistrationTask
-  extends SingleUseTask
+  extends AbstractStartupTask<WorkerStartupPayload, boolean>
   implements Task<WorkerStartupPayload, boolean>
 {
   private done = false;
@@ -43,6 +43,8 @@ export class WorkerRegistrationTask
       RuntimeVerificationKeyRootService
     );
     rootService.setRoot(input.runtimeVerificationKeyRoot);
+
+    this.events.emit("startup-task-finished");
 
     this.done = true;
     return true;

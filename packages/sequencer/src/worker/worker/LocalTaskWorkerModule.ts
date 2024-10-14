@@ -90,7 +90,7 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       this.assertIsValidModuleName(moduleName);
 
       const task = this.resolve(moduleName);
-      log.info(`Setting up task ${task.name}`);
+      log.info(`Resolved task ${task.name}`);
       return task;
     });
 

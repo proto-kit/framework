@@ -54,7 +54,6 @@ export class ProtocolStartupModule extends SequencerModule {
       .setRoot(root);
 
     await this.registrationFlow.start({
-      name: "hallo2",
       runtimeVerificationKeyRoot: root,
     });
 
