@@ -30,49 +30,43 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
   private initHandler<Input, Output>(task: Task<Input, Output>) {
     log.debug(`Init task ${task.name}`);
     const queueName = task.name;
-    return this.queue.createWorker(
-      queueName,
-      async (data) => {
-        log.debug(`Received task in queue ${queueName}`);
+    return this.queue.createWorker(queueName, async (data) => {
+      log.debug(`Received task in queue ${queueName}`);
 
-        try {
-          // Use first handler that returns a non-undefined result
-          const input = await task.inputSerializer().fromJSON(data.payload);
+      try {
+        // Use first handler that returns a non-undefined result
+        const input = await task.inputSerializer().fromJSON(data.payload);
 
-          const output: Output = await task.compute(input);
+        const output: Output = await task.compute(input);
 
-          if (output === undefined) {
-            throw errors.notComputable(data.name);
-          }
-
-          const result: TaskPayload = {
-            status: "success",
-            taskId: data.taskId,
-            flowId: data.flowId,
-            name: data.name,
-            payload: await task.resultSerializer().toJSON(output),
-          };
-
-          return result;
-        } catch (error: unknown) {
-          const payload =
-            error instanceof Error ? error.message : JSON.stringify(error);
-
-          log.debug("Error in worker (detailed trace): ", error);
-
-          return {
-            status: "error",
-            taskId: data.taskId,
-            flowId: data.flowId,
-            name: data.name,
-            payload,
-          };
+        if (output === undefined) {
+          throw errors.notComputable(data.name);
         }
-      },
-      {
-        singleUse: task instanceof AbstractStartupTask,
+
+        const result: TaskPayload = {
+          status: "success",
+          taskId: data.taskId,
+          flowId: data.flowId,
+          name: data.name,
+          payload: await task.resultSerializer().toJSON(output),
+        };
+
+        return result;
+      } catch (error: unknown) {
+        const payload =
+          error instanceof Error ? error.message : JSON.stringify(error);
+
+        log.debug("Error in worker (detailed trace): ", error);
+
+        return {
+          status: "error",
+          taskId: data.taskId,
+          flowId: data.flowId,
+          name: data.name,
+          payload,
+        };
       }
-    );
+    });
   }
 
   public async prepareTasks(tasks: Task<unknown, unknown>[]) {

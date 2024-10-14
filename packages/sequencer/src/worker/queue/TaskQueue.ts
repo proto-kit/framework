@@ -10,7 +10,7 @@ export interface TaskQueue {
   createWorker: (
     name: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>,
-    options?: { concurrency?: number; singleUse?: boolean }
+    options?: { concurrency?: number }
   ) => Closeable;
 }
 

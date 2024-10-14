@@ -28,7 +28,7 @@ export class BullQueue
   public createWorker(
     name: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>,
-    options?: { concurrency?: number; singleUse?: boolean }
+    options?: { concurrency?: number }
   ): Closeable {
     const worker = new Worker<TaskPayload, TaskPayload>(
       name,
@@ -46,13 +46,6 @@ export class BullQueue
       log.error("Worker threw error:");
       log.error(error);
     });
-
-    if (options?.singleUse ?? false) {
-      worker.on("completed", () => {
-        log.info(`SingleUseTask completed, closing worker ${name}`);
-        void worker.close();
-      });
-    }
 
     return {
       async close() {
