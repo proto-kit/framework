@@ -7,3 +7,5 @@ include:
   - ./sequencer/docker-compose.yml
   # Enabled by worker profile
   - ./worker/docker-compose.yml
+
+  - ./lightnet/docker-compose.yml
