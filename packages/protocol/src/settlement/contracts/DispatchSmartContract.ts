@@ -32,23 +32,19 @@ export interface DispatchContractType {
   promisedMessagesHash: State<Field>;
 }
 
-export class DispatchSmartContract
-  extends SmartContract
-  implements DispatchContractType
-{
+export abstract class DispatchSmartContractBase extends SmartContract {
   public static args: {
     methodIdMappings: RuntimeMethodIdMapping;
     incomingMessagesPaths: Record<string, `${string}.${string}`>;
   };
 
-  @state(Field) public promisedMessagesHash = State<Field>();
+  abstract promisedMessagesHash: State<Field>;
 
-  @state(Field) public honoredMessagesHash = State<Field>();
+  abstract honoredMessagesHash: State<Field>;
 
-  @state(PublicKey) public settlementContract = State<PublicKey>();
+  abstract settlementContract: State<PublicKey>;
 
-  @method
-  public async updateMessagesHash(
+  protected async updateMessagesHashBase(
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
   ) {
@@ -65,8 +61,7 @@ export class DispatchSmartContract
     this.promisedMessagesHash.set(newPromisedMessagesHash);
   }
 
-  @method
-  public async initialize(settlementContract: PublicKey) {
+  protected async initializeBase(settlementContract: PublicKey) {
     this.promisedMessagesHash.getAndRequireEquals().assertEquals(Field(0));
     this.honoredMessagesHash.getAndRequireEquals().assertEquals(Field(0));
     this.settlementContract
@@ -78,7 +73,7 @@ export class DispatchSmartContract
     this.settlementContract.set(settlementContract);
   }
 
-  private dispatchMessage<Type>(
+  protected dispatchMessage<Type>(
     methodId: Field,
     value: Type,
     valueType: ProvableExtended<Type>
@@ -106,6 +101,33 @@ export class DispatchSmartContract
       data: [args],
     };
   }
+}
+
+export class DispatchSmartContract
+  extends DispatchSmartContractBase
+  implements DispatchContractType
+{
+  @state(Field) public promisedMessagesHash = State<Field>();
+
+  @state(Field) public honoredMessagesHash = State<Field>();
+
+  @state(PublicKey) public settlementContract = State<PublicKey>();
+
+  @method
+  public async updateMessagesHash(
+    executedMessagesHash: Field,
+    newPromisedMessagesHash: Field
+  ) {
+    return await this.updateMessagesHashBase(
+      executedMessagesHash,
+      newPromisedMessagesHash
+    );
+  }
+
+  @method
+  public async initialize(settlementContract: PublicKey) {
+    return await this.initializeBase(settlementContract);
+  }
 
   @method
   public async deposit(amount: UInt64) {
@@ -126,7 +148,7 @@ export class DispatchSmartContract
     });
 
     const { methodIdMappings, incomingMessagesPaths } =
-      DispatchSmartContract.args;
+      DispatchSmartContractBase.args;
 
     const methodId = Field(
       methodIdMappings[incomingMessagesPaths.deposit].methodId

@@ -9,6 +9,7 @@ import {
 import {
   DispatchSmartContract,
   DispatchContractType,
+  DispatchSmartContractBase,
 } from "./DispatchSmartContract";
 
 export type DispatchContractConfig = {
@@ -29,7 +30,7 @@ export class DispatchContractProtocolModule extends ContractModule<
     const { incomingMessagesMethods } = this.config;
     const methodIdMappings = this.runtime.methodIdResolver.methodIdMap();
 
-    DispatchSmartContract.args = {
+    DispatchSmartContractBase.args = {
       incomingMessagesPaths: incomingMessagesMethods,
       methodIdMappings,
     };
