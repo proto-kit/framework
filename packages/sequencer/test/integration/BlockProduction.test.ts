@@ -138,6 +138,7 @@ describe("block production", () => {
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
+        FeeStrategy: {},
         ProtocolStartupModule: {},
       },
       Runtime: {

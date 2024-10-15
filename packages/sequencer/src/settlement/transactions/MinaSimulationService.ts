@@ -27,7 +27,7 @@ export class MinaSimulationService {
   private async fetchGraphql<Type>(
     f: () => Promise<Type>
   ): Promise<Type | undefined> {
-    if (!this.baseLayer.config.network.local) {
+    if (this.baseLayer.config.network.type !== "local") {
       return await f();
     }
     return undefined;

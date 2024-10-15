@@ -15,6 +15,7 @@ import {
   VanillaTaskWorkerModules,
   ProtocolStartupModule,
 } from "../src";
+import { ConstantFeeStrategy } from "../src/protocol/baselayer/fees/ConstantFeeStrategy";
 
 export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   Database: typeof InMemoryDatabase;
@@ -25,6 +26,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   BlockProducerModule: typeof BlockProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
+  FeeStrategy: typeof ConstantFeeStrategy;
   ProtocolStartupModule: typeof ProtocolStartupModule;
 }
 
@@ -40,7 +42,6 @@ export function testingSequencerFromModules<
     ...additionalTaskWorkerModules,
   });
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const defaultModules: DefaultTestingSequencerModules = {
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
@@ -50,6 +51,7 @@ export function testingSequencerFromModules<
     BlockProducerModule,
     BlockTrigger: ManualBlockTrigger,
     TaskQueue: LocalTaskQueue,
+    FeeStrategy: ConstantFeeStrategy,
   } as DefaultTestingSequencerModules;
 
   return Sequencer.from({

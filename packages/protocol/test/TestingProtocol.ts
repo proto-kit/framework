@@ -14,7 +14,6 @@ import {
 
 class RuntimeMock implements WithZkProgrammable<undefined, MethodPublicOutput> {
   zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput> =
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     undefined as unknown as ZkProgrammable<undefined, MethodPublicOutput>;
 }
 
