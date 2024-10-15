@@ -57,6 +57,21 @@ describe.each([["InMemory", InMemoryDatabase]])(
       );
     }
 
+    const user1PrivateKey = PrivateKey.fromBase58(
+      "EKECjie2xJey56tTqwZbMh7NuQffpA4G9LkZkCBBm3nmwYkAzBUz"
+    );
+    const user1PublicKey = user1PrivateKey.toPublicKey();
+
+    const user2PrivateKey = PrivateKey.fromBase58(
+      "EKEiWucbahaja6beCxVY72ayknTWWwT6WQHHun9bZdkcdboAA8yS"
+    );
+    const user2PublicKey = user2PrivateKey.toPublicKey();
+
+    const user3PrivateKey = PrivateKey.fromBase58(
+      "EKDvi75A2GN1vBN5Tyxfzf1H7rHRvn7abKCTBzz6Vcv6LjbMWEvJ"
+    );
+    const user3PublicKey = user3PrivateKey.toPublicKey();
+
     beforeEach(async () => {
       log.setLevel(log.levels.INFO);
 
@@ -114,21 +129,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       mempool = sequencer.resolve("Mempool");
     });
-
-    const user1PrivateKey = PrivateKey.fromBase58(
-      "EKECjie2xJey56tTqwZbMh7NuQffpA4G9LkZkCBBm3nmwYkAzBUz"
-    );
-    const user1PublicKey = user1PrivateKey.toPublicKey();
-
-    const user2PrivateKey = PrivateKey.fromBase58(
-      "EKEiWucbahaja6beCxVY72ayknTWWwT6WQHHun9bZdkcdboAA8yS"
-    );
-    const user2PublicKey = user2PrivateKey.toPublicKey();
-
-    const user3PrivateKey = PrivateKey.fromBase58(
-      "EKDvi75A2GN1vBN5Tyxfzf1H7rHRvn7abKCTBzz6Vcv6LjbMWEvJ"
-    );
-    const user3PublicKey = user3PrivateKey.toPublicKey();
 
     it("transactions are returned in right order - simple", async () => {
       expect.assertions(13);
@@ -205,12 +205,12 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(txs[1].sender).toStrictEqual(user2PublicKey);
       expect(txs[2].nonce.toBigInt()).toStrictEqual(0n);
       expect(txs[2].sender).toStrictEqual(user3PublicKey);
-      expect(txs[5].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[5].sender).toStrictEqual(user3PublicKey);
       expect(txs[3].nonce.toBigInt()).toStrictEqual(1n);
       expect(txs[3].sender).toStrictEqual(user1PublicKey);
       expect(txs[4].nonce.toBigInt()).toStrictEqual(1n);
       expect(txs[4].sender).toStrictEqual(user2PublicKey);
+      expect(txs[5].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[5].sender).toStrictEqual(user3PublicKey);
     });
   }
 );

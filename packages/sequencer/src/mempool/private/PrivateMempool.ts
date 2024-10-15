@@ -103,12 +103,8 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-    const checkTxValid = async (
-      transactions: PendingTransaction[],
-      reEvaluation: boolean = false
-      // eslint-disable-next-line sonarjs/cognitive-complexity
-    ) => {
-      for (const tx of transactions) {
+    const checkTxValid = async (transactions: PendingTransaction[]) => {
+      for (const [index, tx] of transactions.entries()) {
         const txStateService = new CachedStateService(baseCachedStateService);
         this.protocol.stateServiceProvider.setCurrentStateService(
           txStateService
@@ -127,12 +123,12 @@ export class PrivateMempool extends SequencerModule implements Mempool {
           transaction: signedTransaction.transaction,
           signature: signedTransaction.signature,
         });
+        delete transactions[index];
         const { status, statusMessage, stateTransitions } =
           executionContext.current().result;
         if (status.toBoolean()) {
           log.info(`Accepted tx ${tx.hash().toString()}`);
           sortedTxs.push(tx);
-
           // eslint-disable-next-line no-await-in-loop
           await txStateService.applyStateTransitions(stateTransitions);
           // eslint-disable-next-line no-await-in-loop
@@ -140,25 +136,27 @@ export class PrivateMempool extends SequencerModule implements Mempool {
           this.protocol.stateServiceProvider.popCurrentStateService();
           delete skippedTxs[tx.hash().toString()];
           if (Object.entries(skippedTxs).length > 0) {
-            const candidateMissedTxs: PendingTransaction[] = [];
-            stateTransitions.forEach((st) => {
+            // eslint-disable-next-line @typescript-eslint/no-loop-func
+            stateTransitions.forEach((st) =>
+            {
               Object.values(skippedTxs).forEach((value) => {
                 if (value.paths.some((x) => x.equals(st.path))) {
-                  candidateMissedTxs.push(value.transaction);
+                  transactions.push(value.transaction);
                 }
               });
             });
-            if (candidateMissedTxs.length > 0) {
-              // eslint-disable-next-line no-await-in-loop
-              await checkTxValid(candidateMissedTxs, true);
-            }
+
+            // eslint-disable-next-line no-param-reassign
+            transactions = transactions.filter(
+              (id, idx, arr) => arr.indexOf(id) === idx
+            );
           }
         } else {
           log.info(
             `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
           );
           this.protocol.stateServiceProvider.popCurrentStateService();
-          if (!reEvaluation) {
+          if (!(tx.hash().toString() in skippedTxs)) {
             skippedTxs[tx.hash().toString()] = {
               transaction: tx,
               paths: stateTransitions
