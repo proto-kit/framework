@@ -11,6 +11,7 @@ import {
   MinaBaseLayer,
   TimedBlockTrigger,
   DatabasePruneModule,
+  SequencerStartupModule,
 } from "@proto-kit/sequencer";
 import {
   VanillaGraphqlModules,
@@ -65,7 +66,7 @@ sequencer.configure({
         password: "password",
       },
     },
-    ProtocolStartupModule: {},
+    SequencerStartupModule: {},
     GraphqlServer: {
       host: "0.0.0.0",
       port: 8080,

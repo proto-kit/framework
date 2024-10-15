@@ -25,6 +25,7 @@ import {
   ManualBlockTrigger,
   PrivateMempool,
   Sequencer,
+  SequencerStartupModule,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -139,7 +140,7 @@ describe("block production", () => {
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
-        ProtocolStartupModule: {},
+        SequencerStartupModule: {},
       },
       Runtime: {
         Balance: {},

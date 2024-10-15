@@ -6,21 +6,18 @@ import {
 } from "@proto-kit/protocol";
 import { log, sleep } from "@proto-kit/common";
 
-import {
-  SequencerModule,
-  sequencerModule,
-} from "../sequencer/builder/SequencerModule";
+import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { FlowCreator } from "../worker/flow/Flow";
 import { WorkerRegistrationFlow } from "../worker/WorkerRegistrationFlow";
 
-import { CircuitCompilerTask } from "./production/tasks/CircuitCompilerTask";
+import { CircuitCompilerTask } from "../protocol/production/tasks/CircuitCompilerTask";
 import {
   VerificationKeyService,
   VKRecord,
-} from "./runtime/RuntimeVerificationKeyService";
+} from "../protocol/runtime/RuntimeVerificationKeyService";
 
 @sequencerModule()
-export class ProtocolStartupModule extends SequencerModule {
+export class SequencerStartupModule extends SequencerModule {
   public constructor(
     private readonly flowCreator: FlowCreator,
     @inject("Protocol")

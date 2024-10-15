@@ -19,6 +19,7 @@ import {
   StateRecord,
   StorageDependencyFactory,
   BlockStorage,
+  SequencerStartupModule,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -108,7 +109,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           BaseLayer: {},
           TaskQueue: {},
           FeeStrategy: {},
-          ProtocolStartupModule: {},
+          SequencerStartupModule: {},
         },
         Protocol: {
           AccountState: {},

@@ -54,6 +54,7 @@ import {
   MinaBaseLayerConfig,
   SignedSettlementPermissions,
   ProvenSettlementPermissions,
+  SequencerStartupModule,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
 import { testingSequencerFromModules } from "../TestingSequencer";
@@ -177,7 +178,7 @@ export const settlementTestFn = (
           SettlementModule: {
             feepayer: sequencerKey,
           },
-          ProtocolStartupModule: {},
+          SequencerStartupModule: {},
 
           TaskQueue: {
             simulatedDuration: 0,
