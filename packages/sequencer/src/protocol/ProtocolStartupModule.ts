@@ -2,32 +2,34 @@ import { inject } from "tsyringe";
 import {
   MandatoryProtocolModulesRecord,
   Protocol,
-  VerificationKeyService,
-  VKRecord,
+  RuntimeVerificationKeyRootService,
 } from "@proto-kit/protocol";
-import { log } from "@proto-kit/common";
+import { log, sleep } from "@proto-kit/common";
 
 import {
   SequencerModule,
   sequencerModule,
 } from "../sequencer/builder/SequencerModule";
 import { FlowCreator } from "../worker/flow/Flow";
+import { WorkerRegistrationFlow } from "../worker/WorkerRegistrationFlow";
 
 import { CircuitCompilerTask } from "./production/tasks/CircuitCompilerTask";
+import {
+  VerificationKeyService,
+  VKRecord,
+} from "./runtime/RuntimeVerificationKeyService";
 
 @sequencerModule()
 export class ProtocolStartupModule extends SequencerModule {
-  private readonly verificationKeyService: VerificationKeyService;
-
   public constructor(
     private readonly flowCreator: FlowCreator,
-    @inject("Protocol") protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly compileTask: CircuitCompilerTask
+    @inject("Protocol")
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
+    private readonly compileTask: CircuitCompilerTask,
+    private readonly verificationKeyService: VerificationKeyService,
+    private readonly registrationFlow: WorkerRegistrationFlow
   ) {
     super();
-    this.verificationKeyService = protocol.dependencyContainer.resolve(
-      VerificationKeyService
-    );
   }
 
   public async start() {
@@ -44,5 +46,19 @@ export class ProtocolStartupModule extends SequencerModule {
     log.info("Protocol circuits compiled");
 
     await this.verificationKeyService.initializeVKTree(vks);
+
+    const root = this.verificationKeyService.getRoot();
+
+    this.protocol.dependencyContainer
+      .resolve(RuntimeVerificationKeyRootService)
+      .setRoot(root);
+
+    await this.registrationFlow.start({
+      runtimeVerificationKeyRoot: root,
+    });
+
+    await sleep(500);
+
+    log.info("Protocol circuits compiled successfully, commencing startup");
   }
 }

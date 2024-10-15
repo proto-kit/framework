@@ -8,14 +8,19 @@ import {
   Protocol,
   ProtocolModulesRecord,
   ReturnType,
+  RuntimeVerificationKeyAttestation,
   StateServiceProvider,
   StateTransitionProof,
   StateTransitionProvable,
+  VKTreeWitness,
 } from "@proto-kit/protocol";
 import { DynamicProof, Field, Proof, Void } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { ProvableMethodExecutionContext } from "@proto-kit/common";
+import {
+  MOCK_VERIFICATION_KEY,
+  ProvableMethodExecutionContext,
+} from "@proto-kit/common";
 
 import {
   PairProofTaskSerializer,
@@ -27,6 +32,7 @@ import { TaskSerializer, Task } from "../../../worker/flow/Task";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { TaskStateRecord } from "../TransactionTraceService";
+import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
 
 import { CompileRegistry } from "./CompileRegistry";
 import { JSONEncodableState } from "./RuntimeTaskParameters";
@@ -37,6 +43,7 @@ export interface BlockProverParameters {
   publicInput: BlockProverPublicInput;
   executionData: BlockProverExecutionData;
   startingState: TaskStateRecord;
+  verificationKeyAttestation: RuntimeVerificationKeyAttestation;
 }
 
 export type BlockProvingTaskParameters = PairingDerivedInput<
@@ -87,7 +94,8 @@ export class BlockReductionTask
       MandatoryProtocolModulesRecord & ProtocolModulesRecord
     >,
     private readonly executionContext: ProvableMethodExecutionContext,
-    private readonly compileRegistry: CompileRegistry
+    private readonly compileRegistry: CompileRegistry,
+    private readonly verificationKeyService: VerificationKeyService
   ) {
     super();
     this.blockProver = this.protocol.blockProver;
@@ -175,6 +183,11 @@ export class BlockProvingTask
             startingState: DecodedStateSerializer.toJSON(
               input.params.startingState
             ),
+
+            verificationKeyAttestation:
+              RuntimeVerificationKeyAttestation.toJSON(
+                input.params.verificationKeyAttestation
+              ),
           },
         };
         return JSON.stringify(jsonReadyObject);
@@ -189,6 +202,9 @@ export class BlockProvingTask
             publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
             executionData: ReturnType<typeof BlockProverExecutionData.toJSON>;
             startingState: JSONEncodableState;
+            verificationKeyAttestation: ReturnType<
+              typeof RuntimeVerificationKeyAttestation.toJSON
+            >;
           };
         } = JSON.parse(json);
 
@@ -208,6 +224,22 @@ export class BlockProvingTask
             startingState: DecodedStateSerializer.fromJSON(
               jsonReadyObject.params.startingState
             ),
+
+            verificationKeyAttestation:
+              jsonReadyObject.params.verificationKeyAttestation
+                .verificationKey === MOCK_VERIFICATION_KEY.data
+                ? new RuntimeVerificationKeyAttestation({
+                    witness: new VKTreeWitness(
+                      VKTreeWitness.fromJSON(
+                        jsonReadyObject.params.verificationKeyAttestation
+                          .witness
+                      )
+                    ),
+                    verificationKey: MOCK_VERIFICATION_KEY,
+                  })
+                : RuntimeVerificationKeyAttestation.fromJSON(
+                    jsonReadyObject.params.verificationKeyAttestation
+                  ),
           },
         };
       },
@@ -252,7 +284,8 @@ export class BlockProvingTask
           input.params.publicInput,
           stateTransitionProof,
           runtimeProofDynamic,
-          input.params.executionData
+          input.params.executionData,
+          input.params.verificationKeyAttestation
         );
       }
     );

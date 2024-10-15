@@ -1,26 +1,16 @@
-import { Field, Poseidon, Struct, VerificationKey } from "o1js";
+import { Field, VerificationKey } from "o1js";
 import {
-  createMerkleTree,
-  InMemoryMerkleTreeStorage,
   ConfigurableModule,
+  InMemoryMerkleTreeStorage,
   ZkProgrammable,
 } from "@proto-kit/common";
-import { inject, injectable } from "tsyringe";
-
-import { MethodPublicOutput } from "../model/MethodPublicOutput";
-
-export const treeFeeHeight = 10;
-export class VKTree extends createMerkleTree(treeFeeHeight) {}
-
-export interface MethodVKConfig {
-  methodId: bigint;
-  vkHash: string;
-  vk: VerificationKey;
-}
-
-export interface VKTreeValues {
-  [methodId: string]: MethodVKConfig;
-}
+import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import {
+  MethodPublicOutput,
+  MethodVKConfigData,
+  RuntimeVerificationKeyAttestation,
+  VKTree,
+} from "@proto-kit/protocol";
 
 export interface VKIndexes {
   [methodId: string]: bigint;
@@ -33,14 +23,6 @@ export type VKRecord = {
   };
 };
 
-export class MethodVKConfigData extends Struct({
-  methodId: Field,
-  vkHash: Field,
-}) {
-  public hash() {
-    return Poseidon.hash(MethodVKConfigData.toFields(this));
-  }
-}
 export interface WithGetMethodId {
   getMethodId: (moduleName: string, methodName: string) => bigint;
 }
@@ -49,7 +31,9 @@ export interface WithZkProgrammableAndGetMethodById<PublicInput, PublicOutput> {
   zkProgrammable: ZkProgrammable<PublicInput, PublicOutput>;
   methodIdResolver: WithGetMethodId;
 }
+
 @injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class VerificationKeyService extends ConfigurableModule<{}> {
   public constructor(
     @inject("Runtime")
@@ -61,13 +45,8 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
     super();
   }
 
-  public static getWitnessType() {
-    return VKTree.WITNESS;
-  }
-
   private persistedVKTree?: {
     tree: VKTree;
-    values: VKTreeValues;
     indexes: VKIndexes;
   };
 
@@ -79,30 +58,24 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
     const tree = new VKTree(new InMemoryMerkleTreeStorage());
     const valuesVK: Record<string, { data: string; hash: Field }> = {};
     const indexes: VKIndexes = {};
-    const values: VKTreeValues = {};
 
     Object.entries(verificationKeys).forEach(([key, value]) => {
       const vkConfig = new MethodVKConfigData({
         methodId: Field(key),
         vkHash: Field(value.vk.hash),
       });
-      values[key] = {
-        methodId: BigInt(key),
-        vkHash: vkConfig.hash().toBigInt().toString(),
-        vk: value.vk,
-      };
       indexes[key] = BigInt(value.index);
       tree.setLeaf(BigInt(value.index), vkConfig.hash());
       valuesVK[key.toString()] = value.vk;
     });
 
-    this.persistedVKTree = { tree, values, indexes };
+    this.persistedVKTree = { tree, indexes };
     this.persistedVKRecord = valuesVK;
   }
 
   public getVKTree() {
     if (this.persistedVKTree === undefined) {
-      throw new Error("ZkProgram Tree not intialized");
+      throw new Error("ZkProgram Tree not initialized");
     }
 
     return this.persistedVKTree;
@@ -110,23 +83,25 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
 
   public getVkRecord() {
     if (this.persistedVKRecord === undefined) {
-      throw new Error("VK record nots intialized");
+      throw new Error("VK record not initialized");
     }
 
     return this.persistedVKRecord;
   }
 
-  public getVkRecordEntry(methodId: bigint) {
-    const persistedVk = this.getVkRecord();
-    return persistedVk[methodId.toString()];
-  }
+  public getAttestation(methodId: bigint) {
+    const verificationKey = this.getVkRecord()[methodId.toString()];
+    if (verificationKey === undefined) {
+      throw new Error(
+        `MethodId not registered in VerificationKeyService (${methodId})`
+      );
+    }
 
-  public getVKConfig(methodId: bigint) {
-    const vkConfig = this.getVKTree().values[methodId.toString()];
+    const witness = this.getWitness(methodId);
 
-    return new MethodVKConfigData({
-      methodId: Field(vkConfig.methodId),
-      vkHash: Field(vkConfig.vkHash),
+    return new RuntimeVerificationKeyAttestation({
+      verificationKey,
+      witness,
     });
   }
 
