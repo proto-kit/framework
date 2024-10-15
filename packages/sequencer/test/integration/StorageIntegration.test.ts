@@ -107,6 +107,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           LocalTaskWorkerModule: {},
           BaseLayer: {},
           TaskQueue: {},
+          FeeStrategy: {},
         },
         Protocol: {
           AccountState: {},

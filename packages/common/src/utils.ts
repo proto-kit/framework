@@ -19,7 +19,7 @@ export function requireTrue(
 
 export function range(
   startOrEnd: number,
-  endOrNothing: number | undefined
+  endOrNothing?: number | undefined
 ): number[] {
   let end = endOrNothing;
   let start = startOrEnd;
