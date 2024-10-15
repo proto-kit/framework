@@ -18,7 +18,6 @@ import {
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
-import { ProtocolStartupModule } from "../../protocol/ProtocolStartupModule";
 
 import { Sequenceable } from "./Sequenceable";
 
