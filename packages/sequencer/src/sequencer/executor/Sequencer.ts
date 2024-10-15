@@ -86,14 +86,5 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
     }
-
-    // TODO Workaround for now
-    if (this.dependencyContainer.isRegistered("ProtocolStartupModule")) {
-      await this.dependencyContainer
-        .resolve<ProtocolStartupModule>("ProtocolStartupModule")
-        .start();
-    } else {
-      await this.dependencyContainer.resolve(ProtocolStartupModule).start();
-    }
   }
 }

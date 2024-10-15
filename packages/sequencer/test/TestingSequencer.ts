@@ -13,6 +13,7 @@ import {
   TaskWorkerModulesRecord,
   BlockProducerModule,
   VanillaTaskWorkerModules,
+  ProtocolStartupModule,
 } from "../src";
 
 export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
@@ -24,6 +25,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   BlockProducerModule: typeof BlockProducerModule;
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
+  ProtocolStartupModule: typeof ProtocolStartupModule;
 }
 
 export function testingSequencerFromModules<
@@ -56,6 +58,7 @@ export function testingSequencerFromModules<
       ...modules,
       // We need to make sure that the taskworkermodule is initialized last
       LocalTaskWorkerModule: taskWorkerModule,
+      ProtocolStartupModule: ProtocolStartupModule,
     },
   });
 }

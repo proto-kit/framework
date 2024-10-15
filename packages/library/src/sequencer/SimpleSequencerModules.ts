@@ -89,8 +89,8 @@ export class SimpleSequencerModules {
       BlockProducerModule,
       BlockTrigger,
       TaskQueue,
-      ProtocolStartupModule,
       ...reducedModules,
+      ProtocolStartupModule,
     } satisfies SimpleSequencerModulesRecord;
   }
 
