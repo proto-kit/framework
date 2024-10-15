@@ -42,6 +42,21 @@ describe.each([["InMemory", InMemoryDatabase]])(
     let runtime: Runtime<{ Balance: typeof Balance }>;
     let mempool: PrivateMempool;
 
+    async function mempoolAddTransactions(
+      userPrivateKey: PrivateKey,
+      nonce: number
+    ) {
+      return await mempool.add(
+        createTransaction({
+          runtime,
+          method: ["Balance", "setBalanceIf"],
+          privateKey: userPrivateKey,
+          args: [userPrivateKey.toPublicKey(), UInt64.from(100), Bool(true)],
+          nonce: nonce,
+        })
+      );
+    }
+
     beforeEach(async () => {
       log.setLevel(log.levels.INFO);
 
@@ -100,83 +115,33 @@ describe.each([["InMemory", InMemoryDatabase]])(
       mempool = sequencer.resolve("Mempool");
     });
 
+    const user1PrivateKey = PrivateKey.fromBase58(
+      "EKECjie2xJey56tTqwZbMh7NuQffpA4G9LkZkCBBm3nmwYkAzBUz"
+    );
+    const user1PublicKey = user1PrivateKey.toPublicKey();
+
+    const user2PrivateKey = PrivateKey.fromBase58(
+      "EKEiWucbahaja6beCxVY72ayknTWWwT6WQHHun9bZdkcdboAA8yS"
+    );
+    const user2PublicKey = user2PrivateKey.toPublicKey();
+
+    const user3PrivateKey = PrivateKey.fromBase58(
+      "EKDvi75A2GN1vBN5Tyxfzf1H7rHRvn7abKCTBzz6Vcv6LjbMWEvJ"
+    );
+    const user3PublicKey = user3PrivateKey.toPublicKey();
+
     it("transactions are returned in right order - simple", async () => {
       expect.assertions(13);
 
-      log.setLevel("TRACE");
-
-      const user1PrivateKey = PrivateKey.fromBase58(
-        "EKECjie2xJey56tTqwZbMh7NuQffpA4G9LkZkCBBm3nmwYkAzBUz"
-      );
-      const user1PublicKey = user1PrivateKey.toPublicKey();
-
-      const user2PrivateKey = PrivateKey.fromBase58(
-        "EKEiWucbahaja6beCxVY72ayknTWWwT6WQHHun9bZdkcdboAA8yS"
-      );
-      const user2PublicKey = user2PrivateKey.toPublicKey();
-
-      const user3PrivateKey = PrivateKey.fromBase58(
-        "EKDvi75A2GN1vBN5Tyxfzf1H7rHRvn7abKCTBzz6Vcv6LjbMWEvJ"
-      );
-      const user3PublicKey = user3PrivateKey.toPublicKey();
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user1PrivateKey,
-          args: [user1PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user2PrivateKey,
-          args: [user2PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user3PrivateKey,
-          args: [user3PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user1PrivateKey,
-          args: [user1PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user2PrivateKey,
-          args: [user2PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user3PrivateKey,
-          args: [user3PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
+      await mempoolAddTransactions(user1PrivateKey, 0);
+      await mempoolAddTransactions(user2PrivateKey, 0);
+      await mempoolAddTransactions(user3PrivateKey, 0);
+      await mempoolAddTransactions(user1PrivateKey, 1);
+      await mempoolAddTransactions(user2PrivateKey, 1);
+      await mempoolAddTransactions(user3PrivateKey, 1);
 
       const txs = await mempool.getTxs();
+
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
       expect(txs[0].sender).toStrictEqual(user1PublicKey);
@@ -197,78 +162,15 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       log.setLevel("TRACE");
 
-      const user1PrivateKey = PrivateKey.fromBase58(
-        "EKECjie2xJey56tTqwZbMh7NuQffpA4G9LkZkCBBm3nmwYkAzBUz"
-      );
-      const user1PublicKey = user1PrivateKey.toPublicKey();
-
-      const user2PrivateKey = PrivateKey.fromBase58(
-        "EKEiWucbahaja6beCxVY72ayknTWWwT6WQHHun9bZdkcdboAA8yS"
-      );
-      const user2PublicKey = user2PrivateKey.toPublicKey();
-
-      const user3PrivateKey = PrivateKey.fromBase58(
-        "EKDvi75A2GN1vBN5Tyxfzf1H7rHRvn7abKCTBzz6Vcv6LjbMWEvJ"
-      );
-      const user3PublicKey = user3PrivateKey.toPublicKey();
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user1PrivateKey,
-          args: [user1PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user2PrivateKey,
-          args: [user2PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user3PrivateKey,
-          args: [user3PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user1PrivateKey,
-          args: [user1PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user2PrivateKey,
-          args: [user2PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user3PrivateKey,
-          args: [user3PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
+      await mempoolAddTransactions(user1PrivateKey, 0);
+      await mempoolAddTransactions(user2PrivateKey, 0);
+      await mempoolAddTransactions(user3PrivateKey, 1);
+      await mempoolAddTransactions(user1PrivateKey, 1);
+      await mempoolAddTransactions(user2PrivateKey, 1);
+      await mempoolAddTransactions(user3PrivateKey, 0);
 
       const txs = await mempool.getTxs();
+
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
       expect(txs[0].sender).toStrictEqual(user1PublicKey);
@@ -287,93 +189,28 @@ describe.each([["InMemory", InMemoryDatabase]])(
     it("transactions are returned in right order - harder", async () => {
       expect.assertions(13);
 
-      log.setLevel("TRACE");
+      await mempoolAddTransactions(user1PrivateKey, 0);
+      await mempoolAddTransactions(user2PrivateKey, 1);
+      await mempoolAddTransactions(user3PrivateKey, 1);
+      await mempoolAddTransactions(user2PrivateKey, 0);
+      await mempoolAddTransactions(user3PrivateKey, 0);
+      await mempoolAddTransactions(user1PrivateKey, 1);
 
-      const user1PrivateKey = PrivateKey.fromBase58(
-        "EKECjie2xJey56tTqwZbMh7NuQffpA4G9LkZkCBBm3nmwYkAzBUz"
-      );
-      const user1PublicKey = user1PrivateKey.toPublicKey();
-
-      const user2PrivateKey = PrivateKey.fromBase58(
-        "EKEiWucbahaja6beCxVY72ayknTWWwT6WQHHun9bZdkcdboAA8yS"
-      );
-      const user2PublicKey = user2PrivateKey.toPublicKey();
-
-      const user3PrivateKey = PrivateKey.fromBase58(
-        "EKDvi75A2GN1vBN5Tyxfzf1H7rHRvn7abKCTBzz6Vcv6LjbMWEvJ"
-      );
-      const user3PublicKey = user3PrivateKey.toPublicKey();
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user1PrivateKey,
-          args: [user1PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user2PrivateKey,
-          args: [user2PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user3PrivateKey,
-          args: [user3PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user2PrivateKey,
-          args: [user2PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user3PrivateKey,
-          args: [user3PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 0,
-        })
-      );
-
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "setBalanceIf"],
-          privateKey: user1PrivateKey,
-          args: [user1PublicKey, UInt64.from(100), Bool(true)],
-          nonce: 1,
-        })
-      );
       const txs = await mempool.getTxs();
+
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
       expect(txs[0].sender).toStrictEqual(user1PublicKey);
       expect(txs[1].nonce.toBigInt()).toStrictEqual(0n);
       expect(txs[1].sender).toStrictEqual(user2PublicKey);
-      expect(txs[2].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[2].sender).toStrictEqual(user2PublicKey);
-      expect(txs[3].nonce.toBigInt()).toStrictEqual(0n);
-      expect(txs[3].sender).toStrictEqual(user3PublicKey);
-      expect(txs[4].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[4].sender).toStrictEqual(user3PublicKey);
+      expect(txs[2].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[2].sender).toStrictEqual(user3PublicKey);
       expect(txs[5].nonce.toBigInt()).toStrictEqual(1n);
-      expect(txs[5].sender).toStrictEqual(user1PublicKey);
+      expect(txs[5].sender).toStrictEqual(user3PublicKey);
+      expect(txs[3].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[3].sender).toStrictEqual(user1PublicKey);
+      expect(txs[4].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[4].sender).toStrictEqual(user2PublicKey);
     });
   }
 );
