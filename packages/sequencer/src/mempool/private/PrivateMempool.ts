@@ -7,6 +7,7 @@ import {
   Protocol,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
 import { Field } from "o1js";
 
@@ -103,76 +104,93 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-    const checkTxValid = async (transactions: PendingTransaction[]) => {
-      for (const [index, tx] of transactions.entries()) {
-        const txStateService = new CachedStateService(baseCachedStateService);
-        this.protocol.stateServiceProvider.setCurrentStateService(
-          txStateService
-        );
-        const contextInputs: RuntimeMethodExecutionData = {
-          networkState: networkState,
-          transaction: tx.toProtocolTransaction().transaction,
-        };
-        executionContext.clear();
-        executionContext.setup(contextInputs);
-
-        const signedTransaction = tx.toProtocolTransaction();
-        // eslint-disable-next-line no-await-in-loop
-        await this.accountStateHook.onTransaction({
-          networkState: networkState,
-          transaction: signedTransaction.transaction,
-          signature: signedTransaction.signature,
-        });
-        delete transactions[index];
-        const { status, statusMessage, stateTransitions } =
-          executionContext.current().result;
-        if (status.toBoolean()) {
-          log.info(`Accepted tx ${tx.hash().toString()}`);
-          sortedTxs.push(tx);
-          // eslint-disable-next-line no-await-in-loop
-          await txStateService.applyStateTransitions(stateTransitions);
-          // eslint-disable-next-line no-await-in-loop
-          await txStateService.mergeIntoParent();
-          this.protocol.stateServiceProvider.popCurrentStateService();
-          delete skippedTxs[tx.hash().toString()];
-          if (Object.entries(skippedTxs).length > 0) {
-            // eslint-disable-next-line @typescript-eslint/no-loop-func
-            stateTransitions.forEach((st) =>
-            {
-              Object.values(skippedTxs).forEach((value) => {
-                if (value.paths.some((x) => x.equals(st.path))) {
-                  transactions.push(value.transaction);
-                }
-              });
-            });
-
-            // eslint-disable-next-line no-param-reassign
-            transactions = transactions.filter(
-              (id, idx, arr) => arr.indexOf(id) === idx
-            );
-          }
-        } else {
-          log.info(
-            `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
-          );
-          this.protocol.stateServiceProvider.popCurrentStateService();
-          if (!(tx.hash().toString() in skippedTxs)) {
-            skippedTxs[tx.hash().toString()] = {
-              transaction: tx,
-              paths: stateTransitions
-                .map((x) => x.path)
-                .filter((id, idx, arr) => arr.indexOf(id) === idx),
-            };
-          }
-        }
-      }
-    };
-    await checkTxValid(txs);
+    await this.checkTxValid(
+      txs,
+      sortedTxs,
+      skippedTxs,
+      baseCachedStateService,
+      this.protocol.stateServiceProvider,
+      networkState,
+      executionContext
+    );
     this.protocol.stateServiceProvider.popCurrentStateService();
     return sortedTxs;
   }
 
   public async start(): Promise<void> {
     noop();
+  }
+
+  // We iterate through the transactions. For each tx we run the account state hook.
+  // If the txs succeeds then it can be returned. If it fails then we keep track of it
+  // in the skipped txs list and when later txs succeed we check to see if any state transition
+  // paths are shared between the just succeeded tx and any of the skipped txs. This is
+  // because a failed tx may succeed now if the failure was to do with a nonce issue, say.
+  private async checkTxValid(
+    transactions: PendingTransaction[],
+    sortedTransactions: PendingTransaction[],
+    skippedTransactions: Record<string, MempoolTransactionPaths>,
+    baseService: CachedStateService,
+    stateServiceProvider: StateServiceProvider,
+    networkState: NetworkState,
+    executionContext: RuntimeMethodExecutionContext
+  ) {
+    for (const [index, tx] of transactions.entries()) {
+      const txStateService = new CachedStateService(baseService);
+      stateServiceProvider.setCurrentStateService(txStateService);
+      const contextInputs: RuntimeMethodExecutionData = {
+        networkState: networkState,
+        transaction: tx.toProtocolTransaction().transaction,
+      };
+      executionContext.clear();
+      executionContext.setup(contextInputs);
+
+      const signedTransaction = tx.toProtocolTransaction();
+      // eslint-disable-next-line no-await-in-loop
+      await this.accountStateHook.onTransaction({
+        networkState: networkState,
+        transaction: signedTransaction.transaction,
+        signature: signedTransaction.signature,
+      });
+      delete transactions[index];
+      const { status, statusMessage, stateTransitions } =
+        executionContext.current().result;
+      if (status.toBoolean()) {
+        log.info(`Accepted tx ${tx.hash().toString()}`);
+        sortedTransactions.push(tx);
+        // eslint-disable-next-line no-await-in-loop
+        await txStateService.applyStateTransitions(stateTransitions);
+        // eslint-disable-next-line no-await-in-loop
+        await txStateService.mergeIntoParent();
+        stateServiceProvider.popCurrentStateService();
+        delete skippedTransactions[tx.hash().toString()];
+        if (Object.entries(skippedTransactions).length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-loop-func
+          stateTransitions.forEach((st) => {
+            Object.values(skippedTransactions).forEach((value) => {
+              if (value.paths.some((x) => x.equals(st.path))) {
+                transactions.push(value.transaction);
+              }
+            });
+          });
+
+          // eslint-disable-next-line no-param-reassign
+          transactions = transactions.filter(
+            (id, idx, arr) => arr.indexOf(id) === idx
+          );
+        }
+      } else {
+        log.info(`Skipped tx ${tx.hash().toString()} because ${statusMessage}`);
+        this.protocol.stateServiceProvider.popCurrentStateService();
+        if (!(tx.hash().toString() in skippedTransactions)) {
+          skippedTransactions[tx.hash().toString()] = {
+            transaction: tx,
+            paths: stateTransitions
+              .map((x) => x.path)
+              .filter((id, idx, arr) => arr.indexOf(id) === idx),
+          };
+        }
+      }
+    }
   }
 }
