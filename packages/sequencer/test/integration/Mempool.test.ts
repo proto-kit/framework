@@ -106,6 +106,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           Database: {},
           BlockTrigger: {},
           Mempool: {},
+          FeeStrategy: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
           LocalTaskWorkerModule: {},
