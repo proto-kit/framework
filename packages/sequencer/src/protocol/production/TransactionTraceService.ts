@@ -23,6 +23,7 @@ import type {
   BlockWithResult,
 } from "../../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
+import { VerificationKeyService } from "../runtime/RuntimeVerificationKeyService";
 
 import type { TransactionTrace, BlockTrace } from "./BatchProducerModule";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
@@ -173,6 +174,7 @@ export class TransactionTraceService {
       stateService: CachedStateService;
       merkleStore: CachedMerkleTreeStore;
     },
+    verificationKeyService: VerificationKeyService,
     networkState: NetworkState,
     bundleTracker: ProvableHashList<Field>,
     eternalBundleTracker: ProvableHashList<Field>,
@@ -218,6 +220,10 @@ export class TransactionTraceService {
 
     const signedTransaction = tx.toProtocolTransaction();
 
+    const verificationKeyAttestation = verificationKeyService.getAttestation(
+      tx.methodId.toBigInt()
+    );
+
     return {
       runtimeProver: {
         tx,
@@ -244,6 +250,7 @@ export class TransactionTraceService {
         },
 
         startingState: protocolStartingState,
+        verificationKeyAttestation,
       },
     };
   }

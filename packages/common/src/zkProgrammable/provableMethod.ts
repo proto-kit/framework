@@ -26,14 +26,23 @@ export function toProver(
   return async function prover(this: ZkProgrammable<any, any>) {
     const areProofsEnabled = this.appChain?.areProofsEnabled;
     if (areProofsEnabled ?? false) {
-      const programProvableMethod = this.zkProgram.methods[methodName];
-      return await Reflect.apply(programProvableMethod, this, args);
+      for (const prog of this.zkProgram) {
+        if (Object.keys(prog.methods).includes(methodName)) {
+          const programProvableMethod = prog.methods[methodName];
+          // eslint-disable-next-line no-await-in-loop
+          return await Reflect.apply(programProvableMethod, this, args);
+        }
+      }
     }
 
     // create a mock proof by simulating method execution in JS
     const publicOutput = await Reflect.apply(simulatedMethod, this, args);
+    const zkProgram =
+      this.zkProgram.find((prog) => {
+        return Object.keys(prog.methods).includes(methodName);
+      }) ?? this.zkProgram[0];
 
-    return new this.zkProgram.Proof({
+    return new zkProgram.Proof({
       proof: MOCK_PROOF,
 
       // TODO: provide undefined if public input is not used

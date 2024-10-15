@@ -9,7 +9,8 @@ export interface TaskQueue {
 
   createWorker: (
     name: string,
-    executor: (data: TaskPayload) => Promise<TaskPayload>
+    executor: (data: TaskPayload) => Promise<TaskPayload>,
+    options?: { concurrency?: number }
   ) => Closeable;
 }
 
@@ -26,7 +27,10 @@ export interface InstantiatedQueue extends Closeable {
   /**
    * Adds a specific payload to the queue and returns a unique jobId
    */
-  addTask: (payload: TaskPayload) => Promise<{ taskId: string }>;
+  addTask: (
+    payload: TaskPayload,
+    taskId?: string
+  ) => Promise<{ taskId: string }>;
 
   /**
    * Registers a listener for the completion of jobs

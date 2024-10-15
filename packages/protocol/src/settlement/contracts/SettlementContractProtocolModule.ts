@@ -41,7 +41,7 @@ export class SettlementContractProtocolModule extends ContractModule<
     @inject("BridgeContract")
     private readonly bridgeContractModule: BridgeContractProtocolModule
   ) {
-    LazyBlockProof.tag = blockProver.zkProgrammable.zkProgram.Proof.tag;
+    LazyBlockProof.tag = blockProver.zkProgrammable.zkProgram[0].Proof.tag;
     super();
   }
 

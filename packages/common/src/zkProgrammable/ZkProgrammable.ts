@@ -99,21 +99,25 @@ export abstract class ZkProgrammable<
 > {
   public abstract get appChain(): AreProofsEnabled | undefined;
 
-  public abstract zkProgramFactory(): PlainZkProgram<PublicInput, PublicOutput>;
+  public abstract zkProgramFactory(): PlainZkProgram<
+    PublicInput,
+    PublicOutput
+  >[];
 
   @Memoize()
-  public get zkProgram(): PlainZkProgram<PublicInput, PublicOutput> {
+  public get zkProgram(): PlainZkProgram<PublicInput, PublicOutput>[] {
     const zkProgram = this.zkProgramFactory();
 
-    if (!this.appChain) {
-      throw errors.appChainNotSet(this.constructor.name);
-    }
-
-    return {
-      ...zkProgram,
-      verify: verifyToMockable(zkProgram.verify, this.appChain),
-      compile: compileToMockable(zkProgram.compile, this.appChain),
-    };
+    return zkProgram.map((bucket) => {
+      if (!this.appChain) {
+        throw errors.appChainNotSet(this.constructor.name);
+      }
+      return {
+        ...bucket,
+        verify: verifyToMockable(bucket.verify, this.appChain),
+        compile: compileToMockable(bucket.compile, this.appChain),
+      };
+    });
   }
 }
 
