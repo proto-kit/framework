@@ -132,6 +132,7 @@ export const settlementTestFn = (
           SettlementModule: {
             feepayer: sequencerKey,
           },
+          ProtocolStartupModule: {},
 
           TaskQueue: {
             simulatedDuration: 0,

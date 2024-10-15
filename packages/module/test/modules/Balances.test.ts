@@ -80,7 +80,7 @@ describe("balances", () => {
         "1439144406936083177718146178121957896974210157062549589517697792374542035761";
       const expectedStatus = true;
 
-      await runtime.zkProgrammable.zkProgram.compile();
+      await runtime.zkProgrammable.zkProgram[0].compile();
 
       await balances.getTotalSupply();
 
@@ -88,7 +88,7 @@ describe("balances", () => {
 
       const proof = await result.prove<Proof<undefined, MethodPublicOutput>>();
 
-      const verified = await runtime.zkProgrammable.zkProgram.verify(proof);
+      const verified = await runtime.zkProgrammable.zkProgram[0].verify(proof);
 
       runtime.zkProgrammable.appChain?.setProofsEnabled(false);
 
