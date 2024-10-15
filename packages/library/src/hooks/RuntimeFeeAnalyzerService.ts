@@ -87,6 +87,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
         Promise<[FeeTreeValues, FeeIndexes]>
       >(
         async (accum, program) => {
+          const [valuesProg, indexesProg] = await accum;
           const analyzedMethods = await program.analyzeMethods();
           const [valuesMeth, indexesMeth] = Object.keys(program.methods).reduce<
             [FeeTreeValues, FeeIndexes]
@@ -133,7 +134,6 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
             },
             [{}, {}]
           );
-          const [valuesProg, indexesProg] = await accum;
           return [
             { ...valuesProg, ...valuesMeth },
             { ...indexesProg, ...indexesMeth },

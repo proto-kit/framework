@@ -64,7 +64,10 @@ export class BlockProverExecutionData extends Struct({
   networkState: NetworkState,
 }) {}
 
-class DynamicRuntimeProof extends DynamicProof<Void, MethodPublicOutput> {
+export class DynamicRuntimeProof extends DynamicProof<
+  Void,
+  MethodPublicOutput
+> {
   static publicInputType = Void;
 
   static publicOutputType = MethodPublicOutput;

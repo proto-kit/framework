@@ -7,7 +7,6 @@ import {
   Provable,
   SelfProof,
   VerificationKey,
-  Void,
   ZkProgram,
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
@@ -49,6 +48,7 @@ import {
   BlockProverProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
+  DynamicRuntimeProof,
 } from "./BlockProvable";
 import {
   BlockHashMerkleTreeWitness,
@@ -130,12 +130,6 @@ function maxField() {
 
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 export type RuntimeProof = Proof<void, MethodPublicOutput>;
-
-class DynamicRuntimeProof extends DynamicProof<Void, MethodPublicOutput> {
-  static publicInputType = Void;
-
-  static publicOutputType = MethodPublicOutput;
-}
 
 export class BlockProverProgrammable extends ZkProgrammable<
   BlockProverPublicInput,

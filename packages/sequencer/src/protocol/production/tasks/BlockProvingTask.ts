@@ -13,8 +13,9 @@ import {
   StateTransitionProof,
   StateTransitionProvable,
   VKTreeWitness,
+  DynamicRuntimeProof,
 } from "@proto-kit/protocol";
-import { DynamicProof, Field, Proof, Void } from "o1js";
+import { Field, Proof } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
@@ -70,12 +71,6 @@ export class DecodedStateSerializer {
       ])
     );
   }
-}
-
-class DynamicRuntimeProof extends DynamicProof<Void, MethodPublicOutput> {
-  static publicInputType = Void;
-
-  static publicOutputType = MethodPublicOutput;
 }
 
 @injectable()
