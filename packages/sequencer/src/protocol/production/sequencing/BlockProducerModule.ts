@@ -142,7 +142,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     txs: PendingTransaction[];
     metadata: BlockWithResult;
   }> {
-    const txs = await this.mempool.getTxs();
+    const MAXIMUM_BLOCK_SIZE = 10;
+    const txs = (await this.mempool.getTxs()).slice(0, MAXIMUM_BLOCK_SIZE);
 
     const parentBlock = await this.blockQueue.getLatestBlock();
 
