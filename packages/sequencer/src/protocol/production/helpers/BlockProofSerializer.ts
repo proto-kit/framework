@@ -24,7 +24,7 @@ export class BlockProofSerializer {
   public getBlockProofSerializer() {
     if (this.serializer === undefined) {
       const blockProver = this.protocol.resolve("BlockProver");
-      const proofType = blockProver.zkProgrammable.zkProgram.Proof;
+      const proofType = blockProver.zkProgrammable.zkProgram[0].Proof;
       this.serializer = new ProofTaskSerializer(proofType);
     }
     return this.serializer;

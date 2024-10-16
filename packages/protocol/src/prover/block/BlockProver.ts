@@ -1,10 +1,12 @@
 import {
   Bool,
+  DynamicProof,
   Field,
   Poseidon,
-  type Proof,
+  Proof,
   Provable,
   SelfProof,
+  VerificationKey,
   ZkProgram,
 } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
@@ -46,11 +48,18 @@ import {
   BlockProverProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
+  DynamicRuntimeProof,
 } from "./BlockProvable";
 import {
   BlockHashMerkleTreeWitness,
   BlockHashTreeEntry,
 } from "./accummulators/BlockHashMerkleTree";
+import {
+  MethodVKConfigData,
+  MinimalVKTreeService,
+  RuntimeVerificationKeyAttestation,
+} from "./accummulators/RuntimeVerificationKeyTree";
+import { RuntimeVerificationKeyRootService } from "./services/RuntimeVerificationKeyRootService";
 
 const errors = {
   stateProofNotStartingAtZero: () =>
@@ -72,6 +81,12 @@ const errors = {
 
   networkStateHashNotMatching: (step: string) =>
     errors.propertyNotMatchingStep("Network state hash", step),
+
+  invalidZkProgramTreeRoot: () =>
+    "Root hash of the provided zkProgram config witness is invalid",
+
+  invalidZkProgramConfigMethodId: () =>
+    "Method id of the provided zkProgram config does not match the executed transaction method id",
 };
 
 // Should be equal to BlockProver.PublicInput
@@ -128,7 +143,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     >,
     public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
-    private readonly blockHooks: ProvableBlockHook<unknown>[]
+    private readonly blockHooks: ProvableBlockHook<unknown>[],
+    private readonly verificationKeyService: MinimalVKTreeService
   ) {
     super();
   }
@@ -145,6 +161,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
    * @param stateTransitionProof
    * @param runtimeProof
    * @param executionData
+   * @param verificationKey
    * @returns The new BlockProver-state to be used as public output
    */
   public async applyTransaction(
@@ -153,14 +170,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    runtimeProof: RuntimeProof,
-    executionData: BlockProverExecutionData
+    runtimeProof: DynamicRuntimeProof,
+    executionData: BlockProverExecutionData,
+    verificationKey: VerificationKey
   ): Promise<BlockProverState> {
     const { transaction, networkState, signature } = executionData;
 
     const { isMessage } = runtimeProof.publicOutput;
 
-    runtimeProof.verify();
+    runtimeProof.verify(verificationKey);
     stateTransitionProof.verify();
 
     const stateTo = { ...state };
@@ -246,7 +264,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       StateTransitionProverPublicOutput
     >,
     executionData: BlockProverExecutionData,
-    runtimeProof: Proof<void, MethodPublicOutput>
+    runtimeProof: DynamicProof<void, MethodPublicOutput>
   ) {
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.clear();
@@ -385,8 +403,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
   public async proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    runtimeProof: RuntimeProof,
-    executionData: BlockProverExecutionData
+    runtimeProof: DynamicRuntimeProof,
+    executionData: BlockProverExecutionData,
+    verificationKeyWitness: RuntimeVerificationKeyAttestation
   ): Promise<BlockProverPublicOutput> {
     const state: BlockProverState = {
       ...publicInput,
@@ -396,6 +415,19 @@ export class BlockProverProgrammable extends ZkProgrammable<
       executionData.networkState.hash(),
       "ExecutionData Networkstate doesn't equal public input hash"
     );
+
+    // Verify the [methodId, vk] tuple against the baked-in vk tree root
+    const { verificationKey, witness: verificationKeyTreeWitness } =
+      verificationKeyWitness;
+
+    const root = Field(this.verificationKeyService.getRoot());
+    const calculatedRoot = verificationKeyTreeWitness.calculateRoot(
+      new MethodVKConfigData({
+        methodId: executionData.transaction.methodId,
+        vkHash: verificationKey.hash,
+      }).hash()
+    );
+    root.assertEquals(calculatedRoot, errors.invalidZkProgramTreeRoot());
 
     const bundleInclusionState = this.addTransactionToBundle(
       state,
@@ -407,7 +439,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
       bundleInclusionState,
       stateProof,
       runtimeProof,
-      executionData
+      executionData,
+      verificationKey
     );
 
     return new BlockProverPublicOutput({
@@ -746,11 +779,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
   public zkProgramFactory(): PlainZkProgram<
     BlockProverPublicInput,
     BlockProverPublicOutput
-  > {
-    const { prover, stateTransitionProver, runtime } = this;
-    const StateTransitionProofClass = stateTransitionProver.zkProgram.Proof;
-    const RuntimeProofClass = runtime.zkProgram.Proof;
-
+  >[] {
+    const { prover, stateTransitionProver } = this;
+    const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
+    const RuntimeProofClass = DynamicRuntimeProof;
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveBlock = prover.proveBlock.bind(prover);
     const merge = prover.merge.bind(prover);
@@ -766,19 +798,22 @@ export class BlockProverProgrammable extends ZkProgrammable<
             StateTransitionProofClass,
             RuntimeProofClass,
             BlockProverExecutionData,
+            RuntimeVerificationKeyAttestation,
           ],
 
           async method(
             publicInput: BlockProverPublicInput,
             stateProof: StateTransitionProof,
-            appProof: Proof<void, MethodPublicOutput>,
-            executionData: BlockProverExecutionData
+            appProof: DynamicRuntimeProof,
+            executionData: BlockProverExecutionData,
+            verificationKeyAttestation: RuntimeVerificationKeyAttestation
           ) {
             return await proveTransaction(
               publicInput,
               stateProof,
               appProof,
-              executionData
+              executionData,
+              verificationKeyAttestation
             );
           },
         },
@@ -831,13 +866,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     const SelfProofClass = ZkProgram.Proof(program);
 
-    return {
-      compile: program.compile.bind(program),
-      verify: program.verify.bind(program),
-      analyzeMethods: program.analyzeMethods.bind(program),
-      Proof: SelfProofClass,
-      methods,
-    };
+    return [
+      {
+        compile: program.compile.bind(program),
+        verify: program.verify.bind(program),
+        analyzeMethods: program.analyzeMethods.bind(program),
+        Proof: SelfProofClass,
+        methods,
+      },
+    ];
   }
 }
 
@@ -861,7 +898,8 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     @injectAll("ProvableTransactionHook")
     transactionHooks: ProvableTransactionHook<unknown>[],
     @injectAll("ProvableBlockHook")
-    blockHooks: ProvableBlockHook<unknown>[]
+    blockHooks: ProvableBlockHook<unknown>[],
+    verificationKeyService: RuntimeVerificationKeyRootService
   ) {
     super();
     this.zkProgrammable = new BlockProverProgrammable(
@@ -869,21 +907,24 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
       stateTransitionProver.zkProgrammable,
       runtime.zkProgrammable,
       transactionHooks,
-      blockHooks
+      blockHooks,
+      verificationKeyService
     );
   }
 
   public proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    appProof: Proof<void, MethodPublicOutput>,
-    executionData: BlockProverExecutionData
+    appProof: DynamicRuntimeProof,
+    executionData: BlockProverExecutionData,
+    verificationKeyAttestation: RuntimeVerificationKeyAttestation
   ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveTransaction(
       publicInput,
       stateProof,
       appProof,
-      executionData
+      executionData,
+      verificationKeyAttestation
     );
   }
 

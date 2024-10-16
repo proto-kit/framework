@@ -80,7 +80,7 @@ export class RuntimeZkProgrammable<
     return this.runtime.appChain;
   }
 
-  public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
+  public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
     type Methods = Record<
       string,
       {
@@ -93,6 +93,8 @@ export class RuntimeZkProgrammable<
 
     // eslint-disable-next-line prefer-destructuring
     const runtime: Runtime<Modules> = this.runtime;
+
+    const MAXIMUM_METHODS_PER_ZK_PROGRAM = 8;
 
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
@@ -141,8 +143,6 @@ export class RuntimeZkProgrammable<
                 [methodName, method, { invocationType }]
               );
 
-              // TODO: find out how to import the Tuple type
-
               const privateInputs = Reflect.getMetadata(
                 "design:paramtypes",
                 runtimeModule,
@@ -176,28 +176,82 @@ export class RuntimeZkProgrammable<
       Object.entries(runtimeMethods).sort()
     );
 
-    const program = ZkProgram({
-      name: "RuntimeProgram",
-      publicOutput: MethodPublicOutput,
-      methods: sortedRuntimeMethods,
-    });
-
-    const SelfProof = ZkProgram.Proof(program);
-
-    const methods = Object.keys(sortedRuntimeMethods).reduce<
-      Record<string, any>
-    >((boundMethods, methodName) => {
-      boundMethods[methodName] = program[methodName].bind(program);
-      return boundMethods;
-    }, {});
-
-    return {
-      compile: program.compile.bind(program),
-      verify: program.verify.bind(program),
-      analyzeMethods: program.analyzeMethods.bind(program),
-      Proof: SelfProof,
-      methods,
+    const splitRuntimeMethods = () => {
+      const buckets: Array<
+        Record<
+          string,
+          {
+            privateInputs: any;
+            method: AsyncWrappedMethod;
+          }
+        >
+      > = [];
+      Object.entries(sortedRuntimeMethods).forEach(
+        async ([methodName, method]) => {
+          let methodAdded = false;
+          for (const bucket of buckets) {
+            if (buckets.length === 0) {
+              const record: Record<
+                string,
+                {
+                  privateInputs: any;
+                  method: AsyncWrappedMethod;
+                }
+              > = {};
+              record[methodName] = method;
+              buckets.push(record);
+              methodAdded = true;
+              break;
+            } else if (
+              Object.keys(bucket).length <=
+              MAXIMUM_METHODS_PER_ZK_PROGRAM - 1
+            ) {
+              bucket[methodName] = method;
+              methodAdded = true;
+              break;
+            }
+          }
+          if (!methodAdded) {
+            const record: Record<
+              string,
+              {
+                privateInputs: any;
+                method: AsyncWrappedMethod;
+              }
+            > = {};
+            record[methodName] = method;
+            buckets.push(record);
+          }
+        }
+      );
+      return buckets;
     };
+
+    return splitRuntimeMethods().map((bucket) => {
+      const program = ZkProgram({
+        name: "RuntimeProgram",
+        publicOutput: MethodPublicOutput,
+        methods: bucket,
+      });
+
+      const SelfProof = ZkProgram.Proof(program);
+
+      const methods = Object.keys(bucket).reduce<Record<string, any>>(
+        (boundMethods, methodName) => {
+          boundMethods[methodName] = program[methodName].bind(program);
+          return boundMethods;
+        },
+        {}
+      );
+
+      return {
+        compile: program.compile.bind(program),
+        verify: program.verify.bind(program),
+        analyzeMethods: program.analyzeMethods.bind(program),
+        Proof: SelfProof,
+        methods,
+      };
+    });
   }
 }
 
