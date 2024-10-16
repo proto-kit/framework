@@ -2,8 +2,10 @@ import {
   filterNonUndefined,
   MOCK_PROOF,
   AreProofsEnabled,
+  log,
 } from "@proto-kit/common";
 import {
+  ContractModule,
   MandatoryProtocolModulesRecord,
   MandatorySettlementModulesRecord,
   Protocol,
@@ -20,6 +22,7 @@ import {
   DynamicProof,
   Transaction,
   Void,
+  SmartContract,
 } from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
@@ -30,6 +33,8 @@ import {
 import { CompileRegistry } from "../../protocol/production/tasks/CompileRegistry";
 import { Task, TaskSerializer } from "../../worker/flow/Task";
 import { TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
+
+import { ContractRegistry } from "./ContractRegistry";
 
 type Account = ReturnType<typeof Mina.getAccount>;
 
@@ -71,6 +76,8 @@ export class SettlementProvingTask
     | SettlementContractModule<MandatorySettlementModulesRecord>
     | undefined = undefined;
 
+  private contractRegistry?: ContractRegistry;
+
   public constructor(
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
@@ -97,7 +104,7 @@ export class SettlementProvingTask
     // For this, we assume that remote networks will only be used with separate
     // worker instances, since they only work with proofs enabled. For
     // LocalBlockchain, caching is not used, as ledger is used directly and all
-    // txs are executed seequentially.
+    // txs are executed sequentially.
     // Therefore, we only need to manually add the accounts for remote networks
 
     if (graphql !== undefined) {
@@ -124,7 +131,10 @@ export class SettlementProvingTask
     const { transaction, chainState } = input;
 
     const provenTx = await this.withCustomInstance(chainState, async () => {
-      return await transaction.prove();
+      log.info(`Proving tx "${transaction.transaction.memo}"`);
+      const proven = await transaction.prove();
+      log.info("Proven!");
+      return proven;
     });
 
     return { transaction: provenTx };
@@ -147,7 +157,7 @@ export class SettlementProvingTask
     type AccountJson = ReturnType<typeof Types.Account.toJSON>;
     type LazyProofJson = {
       methodName: string;
-      args: (string[] | string)[];
+      args: ({ fields: string[]; aux: string[] } | string)[];
       previousProofs: string[];
       zkappClassName: string;
       memoized: { fields: string[]; aux: any[] }[];
@@ -180,18 +190,19 @@ export class SettlementProvingTask
             // For that we need to retrieve a few things. Most prominently,
             // we need to get the contract class corresponding to that proof
 
-            const SmartContract = this.compileRegistry.getContractClassByName(
-              lazyProof.zkappClassName
-            );
+            const SmartContractClass =
+              this.contractRegistry!.getContractClassByName(
+                lazyProof.zkappClassName
+              );
 
-            if (SmartContract === undefined) {
+            if (SmartContractClass === undefined) {
               throw new Error(
-                `SmartContract class with name ${lazyProof.zkappClassName} not found in CompileRegistry`
+                `SmartContract class with name ${lazyProof.zkappClassName} not found in ContractRegistry`
               );
             }
 
             // eslint-disable-next-line no-underscore-dangle
-            const method = SmartContract._methods?.find(
+            const method = SmartContractClass._methods?.find(
               (methodInterface) =>
                 methodInterface.methodName === lazyProof.methodName
             );
@@ -206,11 +217,13 @@ export class SettlementProvingTask
 
             const args = lazyProof.args.map((encodedArg, argsIndex) => {
               if (allArgs[argsIndex].type === "witness") {
-                // encodedArg is string[]
+                // encodedArg is this type
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                const arg = encodedArg as { fields: string[]; aux: string[] };
+
                 return witnessArgTypes[argsIndex - proofsDecoded].fromFields(
-                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                  (encodedArg as string[]).map((field) => Field(field)),
-                  []
+                  arg.fields.map((field) => Field(field)),
+                  arg.aux.map((auxI) => JSON.parse(auxI))
                 );
               }
               // fields is JsonProof
@@ -242,7 +255,7 @@ export class SettlementProvingTask
 
             transaction.transaction.accountUpdates[index].lazyAuthorization = {
               methodName: lazyProof.methodName,
-              ZkappClass: SmartContract,
+              ZkappClass: SmartContractClass,
               args,
               previousProofs: previousProofs,
               blindingValue: Field(lazyProof.blindingValue),
@@ -289,9 +302,17 @@ export class SettlementProvingTask
                 const encodedArgs = lazyProof.args
                   .map((arg, index) => {
                     if (allArgs[index].type === "witness") {
-                      return witnessArgTypes[index - proofsEncoded]
+                      const witness = witnessArgTypes[index - proofsEncoded];
+                      const fields = witness
                         .toFields(arg)
                         .map((f) => f.toString());
+                      const aux = witness
+                        .toAuxiliary(arg)
+                        .map((x) => JSON.stringify(x));
+                      return {
+                        fields,
+                        aux,
+                      };
                     }
                     if (allArgs[index].type === "proof") {
                       const serializer = this.getProofSerializer(
@@ -352,20 +373,28 @@ export class SettlementProvingTask
       return;
     }
 
-    const contract = this.settlementContractModule.getContractClasses();
-
     const { areProofsEnabled } = this.areProofsEnabled;
 
-    await this.compileRegistry.compileSmartContract(
-      "DispatchContract",
-      contract.dispatch,
-      areProofsEnabled
-    );
-    await this.compileRegistry.compileSmartContract(
-      "SettlementContract",
-      contract.settlement,
-      areProofsEnabled
-    );
+    const contractClasses: Record<string, typeof SmartContract> = {};
+
+    for (const key of this.settlementContractModule.moduleNames) {
+      const module: ContractModule<unknown, unknown> =
+        this.settlementContractModule.resolve(
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          key as keyof MandatorySettlementModulesRecord
+        );
+
+      contractClasses[key] = module.contractFactory();
+
+      // eslint-disable-next-line no-await-in-loop
+      await this.compileRegistry.compileSmartContract(
+        key,
+        module,
+        areProofsEnabled
+      );
+    }
+
+    this.contractRegistry = new ContractRegistry(contractClasses);
   }
 
   public resultSerializer(): TaskSerializer<TransactionTaskResult> {

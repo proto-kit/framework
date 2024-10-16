@@ -70,8 +70,7 @@ export class LocalTaskQueue
 
   public createWorker(
     queueName: string,
-    executor: (data: TaskPayload) => Promise<TaskPayload>,
-    options?: { concurrency?: number; singleUse?: boolean }
+    executor: (data: TaskPayload) => Promise<TaskPayload>
   ): Closeable {
     const close = async () => {
       this.workers[queueName] = {
@@ -91,10 +90,6 @@ export class LocalTaskQueue
         await sleep(this.config.simulatedDuration ?? 0);
 
         const result = await executor(data);
-
-        if (options?.singleUse ?? false) {
-          await close();
-        }
 
         return result;
       },

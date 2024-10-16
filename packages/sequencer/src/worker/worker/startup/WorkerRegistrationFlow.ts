@@ -1,12 +1,12 @@
 import { injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
 
-import { Closeable } from "./queue/TaskQueue";
-import { FlowCreator } from "./flow/Flow";
+import { Closeable } from "../../queue/TaskQueue";
+import { FlowCreator } from "../../flow/Flow";
 import {
   WorkerRegistrationTask,
   WorkerStartupPayload,
-} from "./worker/startup/WorkerRegistrationTask";
+} from "./WorkerRegistrationTask";
 
 @injectable()
 export class WorkerRegistrationFlow implements Closeable {

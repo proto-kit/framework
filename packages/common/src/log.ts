@@ -25,6 +25,26 @@ function logProvable(
 }
 /* eslint-enable */
 
+const timeMap: Record<string, number> = {};
+
+function time(label = "time") {
+  timeMap[label] = Date.now();
+}
+
+function timeLog(label = "time"): string {
+  const prev = timeMap[label];
+  if (prev === undefined) {
+    return "Label not found";
+  }
+  return Date.now() - prev + "ms";
+}
+
+function timeEnd(label = "time"): string {
+  const str = timeLog(label);
+  delete timeMap[label];
+  return str;
+}
+
 export const log = {
   provable: {
     info: (...args: unknown[]) => {
@@ -46,6 +66,24 @@ export const log = {
     warn: (...args: unknown[]) => {
       logProvable(loglevel.warn, ...args);
     },
+  },
+
+  time,
+
+  timeLog: {
+    info: (label?: string) => loglevel.info(timeLog(label)),
+    debug: (label?: string) => loglevel.debug(timeLog(label)),
+    error: (label?: string) => loglevel.error(timeLog(label)),
+    trace: (label?: string) => loglevel.trace(timeLog(label)),
+    warn: (label?: string) => loglevel.warn(timeLog(label)),
+  },
+
+  timeEnd: {
+    info: (label?: string) => loglevel.info(timeEnd(label)),
+    debug: (label?: string) => loglevel.debug(timeEnd(label)),
+    error: (label?: string) => loglevel.error(timeEnd(label)),
+    trace: (label?: string) => loglevel.trace(timeEnd(label)),
+    warn: (label?: string) => loglevel.warn(timeEnd(label)),
   },
 
   info: (...args: unknown[]) => {

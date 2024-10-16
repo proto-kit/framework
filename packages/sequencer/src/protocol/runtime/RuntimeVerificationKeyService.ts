@@ -19,7 +19,6 @@ export interface VKIndexes {
 export type VKRecord = {
   [methodId: string]: {
     vk: VerificationKey;
-    index: bigint;
   };
 };
 
@@ -59,15 +58,18 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
     const valuesVK: Record<string, { data: string; hash: Field }> = {};
     const indexes: VKIndexes = {};
 
-    Object.entries(verificationKeys).forEach(([key, value]) => {
-      const vkConfig = new MethodVKConfigData({
-        methodId: Field(key),
-        vkHash: Field(value.vk.hash),
+    Object.entries(verificationKeys)
+      // eslint-disable-next-line no-nested-ternary
+      .sort(([key], [key2]) => (key > key2 ? 1 : key === key2 ? 0 : -1))
+      .forEach(([key, value], index) => {
+        const vkConfig = new MethodVKConfigData({
+          methodId: Field(key),
+          vkHash: Field(value.vk.hash),
+        });
+        indexes[key] = BigInt(index);
+        tree.setLeaf(BigInt(index), vkConfig.hash());
+        valuesVK[key.toString()] = value.vk;
       });
-      indexes[key] = BigInt(value.index);
-      tree.setLeaf(BigInt(value.index), vkConfig.hash());
-      valuesVK[key.toString()] = value.vk;
-    });
 
     this.persistedVKTree = { tree, indexes };
     this.persistedVKRecord = valuesVK;

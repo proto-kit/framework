@@ -3,15 +3,20 @@ import { inject, injectable } from "tsyringe";
 import {
   Protocol,
   RuntimeVerificationKeyRootService,
+  SettlementSmartContractBase,
 } from "@proto-kit/protocol";
+import { VerificationKey } from "o1js";
 
 import { Task } from "../../flow/Task";
 import { AbstractStartupTask } from "../../flow/AbstractStartupTask";
 
 import { CloseWorkerError } from "./CloseWorkerError";
+import { VerificationKeySerializer } from "../../../protocol/production/helpers/VerificationKeySerializer";
 
 export type WorkerStartupPayload = {
   runtimeVerificationKeyRoot: bigint;
+  // This has to be nullable, since
+  bridgeContractVerificationKey?: VerificationKey;
 };
 
 @injectable()
@@ -19,6 +24,7 @@ export class WorkerRegistrationTask
   extends AbstractStartupTask<WorkerStartupPayload, boolean>
   implements Task<WorkerStartupPayload, boolean>
 {
+  // Theoretically not needed anymore, but still nice as a safeguard against double execution
   private done = false;
 
   public constructor(
@@ -44,6 +50,11 @@ export class WorkerRegistrationTask
     );
     rootService.setRoot(input.runtimeVerificationKeyRoot);
 
+    if (input.bridgeContractVerificationKey !== undefined) {
+      SettlementSmartContractBase.args.BridgeContractVerificationKey =
+        input.bridgeContractVerificationKey;
+    }
+
     this.events.emit("startup-task-finished");
 
     this.done = true;
@@ -56,6 +67,12 @@ export class WorkerRegistrationTask
         return JSON.stringify({
           runtimeVerificationKeyRoot:
             payload.runtimeVerificationKeyRoot.toString(),
+          bridgeContractVerificationKey:
+            payload.bridgeContractVerificationKey !== undefined
+              ? VerificationKeySerializer.toJSON(
+                  payload.bridgeContractVerificationKey
+                )
+              : undefined,
         });
       },
       fromJSON: (payload: string) => {
@@ -67,6 +84,13 @@ export class WorkerRegistrationTask
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             jsonObject.runtimeVerificationKeyRoot
           ),
+          bridgeContractVerificationKey:
+            jsonObject.bridgeContractVerificationKey !== undefined
+              ? VerificationKeySerializer.fromJSON(
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                  jsonObject.bridgeContractVerificationKey
+                )
+              : undefined,
         };
       },
     };

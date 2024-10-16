@@ -1,4 +1,9 @@
-import { ConfigurableModule, NoConfig, TypedClass } from "@proto-kit/common";
+import {
+  CompileArtifact,
+  ConfigurableModule,
+  NoConfig,
+  TypedClass,
+} from "@proto-kit/common";
 import { SmartContract } from "o1js";
 
 export type SmartContractClassFromInterface<Type> = typeof SmartContract &
@@ -14,11 +19,9 @@ export type SmartContractClassFromInterface<Type> = typeof SmartContract &
  */
 export abstract class ContractModule<
   ContractType,
-  // undefined = no args
-  Arguments = undefined,
   Config = NoConfig,
 > extends ConfigurableModule<Config> {
-  public abstract contractFactory(
-    args: Arguments
-  ): SmartContractClassFromInterface<ContractType>;
+  public abstract contractFactory(): SmartContractClassFromInterface<ContractType>;
+
+  public abstract compile(): Promise<Record<string, CompileArtifact>>;
 }

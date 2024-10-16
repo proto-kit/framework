@@ -10,7 +10,7 @@ import {
   BlockTrigger,
   Database,
   SequencerModule,
-  ProtocolStartupModule,
+  SequencerStartupModule,
 } from "@proto-kit/sequencer";
 import { TypedClass, ModulesConfig } from "@proto-kit/common";
 
@@ -18,8 +18,8 @@ type PreconfiguredSimpleSequencerModulesRecord = {
   Mempool: typeof PrivateMempool;
   BatchProducerModule: typeof BatchProducerModule;
   BlockProducerModule: typeof BlockProducerModule;
-  ProtocolStartupModule: TypedClass<
-    ProtocolStartupModule & SequencerModule<unknown>
+  SequencerStartupModule: TypedClass<
+    SequencerStartupModule & SequencerModule<unknown>
   >;
 };
 
@@ -90,7 +90,7 @@ export class SimpleSequencerModules {
       BlockTrigger,
       TaskQueue,
       ...reducedModules,
-      ProtocolStartupModule,
+      SequencerStartupModule,
     } satisfies SimpleSequencerModulesRecord;
   }
 
@@ -102,7 +102,7 @@ export class SimpleSequencerModules {
 
       Mempool: {},
       BatchProducerModule: {},
-      ProtocolStartupModule: {},
+      SequencerStartupModule: {},
     } satisfies ModulesConfig<PreconfiguredSimpleSequencerModulesRecord>;
   }
 

@@ -1,4 +1,5 @@
 import { inject, injectable } from "tsyringe";
+import { PublicKey } from "o1js";
 
 import { RuntimeLike } from "../../model/RuntimeLike";
 import {
@@ -9,6 +10,7 @@ import {
 import {
   DispatchSmartContract,
   DispatchContractType,
+  DispatchSmartContractBase,
 } from "./DispatchSmartContract";
 
 export type DispatchContractConfig = {
@@ -18,22 +20,33 @@ export type DispatchContractConfig = {
 @injectable()
 export class DispatchContractProtocolModule extends ContractModule<
   DispatchContractType,
-  undefined,
   DispatchContractConfig
 > {
   public constructor(@inject("Runtime") private readonly runtime: RuntimeLike) {
     super();
   }
 
+  public eventsDefinition() {
+    return new DispatchSmartContract(PublicKey.empty<typeof PublicKey>())
+      .events;
+  }
+
   public contractFactory(): SmartContractClassFromInterface<DispatchContractType> {
     const { incomingMessagesMethods } = this.config;
     const methodIdMappings = this.runtime.methodIdResolver.methodIdMap();
 
-    DispatchSmartContract.args = {
+    DispatchSmartContractBase.args = {
       incomingMessagesPaths: incomingMessagesMethods,
       methodIdMappings,
     };
 
     return DispatchSmartContract;
+  }
+
+  public async compile() {
+    const contractVk = await DispatchSmartContract.compile();
+    return {
+      DispatchSmartContract: contractVk,
+    };
   }
 }

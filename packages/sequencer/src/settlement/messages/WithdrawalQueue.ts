@@ -1,22 +1,30 @@
 import { inject, injectable } from "tsyringe";
-import {
-  MethodIdResolver,
-  Runtime,
-  RuntimeModulesRecord,
-} from "@proto-kit/module";
-import { Path, Withdrawal } from "@proto-kit/protocol";
-import { Field } from "o1js";
+import { Withdrawal } from "@proto-kit/protocol";
+import { Field, Struct } from "o1js";
+import { splitArray } from "@proto-kit/common";
 
 import type { BlockTriggerBase } from "../../protocol/production/trigger/BlockTrigger";
 import { SettlementModule } from "../SettlementModule";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 import { Sequencer } from "../../sequencer/executor/Sequencer";
 import { Block } from "../../storage/model/Block";
+import { BridgingModule } from "../BridgingModule";
 
 export interface OutgoingMessage<Type> {
   index: number;
   value: Type;
 }
+
+// TODO Duplicate definition in Withdrawals.ts
+export class WithdrawalKey extends Struct({
+  index: Field,
+  tokenId: Field,
+}) {}
+
+export class WithdrawalEvent extends Struct({
+  key: WithdrawalKey,
+  value: Withdrawal,
+}) {}
 
 /**
  * This interface allows the SettlementModule to retrieve information about
@@ -41,13 +49,9 @@ export class WithdrawalQueue
 
   private unlockedQueue: OutgoingMessage<Withdrawal>[] = [];
 
-  private outgoingWithdrawalIds: bigint[] = [];
-
-  private currentIndex = 0;
+  private outgoingWithdrawalEvents: string[] = [];
 
   public constructor(
-    @inject("Runtime")
-    private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Sequencer")
     private readonly sequencer: Sequencer<{
       BlockTrigger: typeof BlockTriggerBase;
@@ -77,68 +81,52 @@ export class WithdrawalQueue
       "SettlementModule",
       SettlementModule
     );
+    const bridgingModule = this.sequencer.resolveOrFail(
+      "BridgingModule",
+      BridgingModule
+    );
 
-    const resolver =
-      this.runtime.dependencyContainer.resolve<MethodIdResolver>(
-        "MethodIdResolver"
-      );
-
-    const [withdrawalModule, withdrawalMethod] = settlementModule
-      .getSettlementModuleConfig()
-      .withdrawalMethodPath.split(".");
-
-    const methodId = resolver.getMethodId(withdrawalModule, withdrawalMethod);
-    this.outgoingWithdrawalIds = [methodId];
-
-    // TODO Very primitive and error-prone, wait for runtime events
-    // TODO Replace by stateservice call?
-    if (settlementModule.addresses !== undefined) {
-      const { settlement } = settlementModule.getContracts();
-      this.currentIndex = Number(
-        settlement.outgoingMessageCursor.get().toBigInt()
-      );
-    }
+    const { withdrawalEventName } = bridgingModule.getBridgingModuleConfig();
+    this.outgoingWithdrawalEvents = [withdrawalEventName];
 
     this.sequencer.events.on("block-produced", (block) => {
       this.lockedQueue.push(block);
     });
 
+    // TODO Add event settlement-included and register it there
     settlementModule.events.on("settlement-submitted", (batch) => {
-      // TODO After persistance PR, link the blocks with the batch based on the ids
-      // TODO After runtime events, use those
+      // This finds out which blocks are contained in this batch and extracts only from those
+      const { inBatch, notInBatch } = splitArray(this.lockedQueue, (block) =>
+        batch.blockHashes.includes(block.hash.toString())
+          ? "inBatch"
+          : "notInBatch"
+      );
 
-      const withdrawals = this.lockedQueue.flatMap((block) => {
-        const [withdrawalModule2, withdrawalStatePath] = settlementModule
-          .getSettlementModuleConfig()
-          .withdrawalStatePath.split(".");
-        const path = Path.fromProperty(withdrawalModule2, withdrawalStatePath);
-
+      const withdrawals = (inBatch ?? []).flatMap((block) => {
         return block.transactions
-          .filter(
-            (tx) =>
-              this.outgoingWithdrawalIds.includes(tx.tx.methodId.toBigInt()) &&
-              tx.status.toBoolean()
+          .flatMap((tx) =>
+            tx.events
+              .filter(
+                (event) => event.eventName === this.outgoingWithdrawalEvents[0]
+              )
+              .map((event) => {
+                return {
+                  tx,
+                  event,
+                };
+              })
           )
-          .map<OutgoingMessage<Withdrawal>>((tx) => {
-            const thisPath = Path.fromKey(
-              path,
-              Field,
-              Field(this.currentIndex)
-            );
-            const fields = tx.stateTransitions
-              .filter((value) => value.path.equals(thisPath).toBoolean())
-              .at(-1)?.toValue.value;
+          .map<OutgoingMessage<Withdrawal>>(({ tx, event }) => {
+            const withdrawalEvent = WithdrawalEvent.fromFields(event.data);
 
-            const withdrawal = Withdrawal.fromFields(fields!);
             return {
-              // eslint-disable-next-line no-plusplus
-              index: this.currentIndex++,
-              value: withdrawal,
+              index: Number(withdrawalEvent.key.index.toString()),
+              value: withdrawalEvent.value,
             };
           });
       });
       this.unlockedQueue.push(...withdrawals);
-      this.lockedQueue = [];
+      this.lockedQueue = notInBatch ?? [];
     });
   }
 }
