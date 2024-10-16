@@ -3,14 +3,18 @@ import {
   MandatoryProtocolModulesRecord,
   Protocol,
   RuntimeVerificationKeyRootService,
+  SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import { log, sleep } from "@proto-kit/common";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { FlowCreator } from "../worker/flow/Flow";
-import { WorkerRegistrationFlow } from "../worker/WorkerRegistrationFlow";
+import { WorkerRegistrationFlow } from "../worker/worker/startup/WorkerRegistrationFlow";
 
-import { CircuitCompilerTask } from "../protocol/production/tasks/CircuitCompilerTask";
+import {
+  CircuitCompilerTask,
+  CompiledCircuitsRecord,
+} from "../protocol/production/tasks/CircuitCompilerTask";
 import {
   VerificationKeyService,
   VKRecord,
@@ -34,15 +38,18 @@ export class SequencerStartupModule extends SequencerModule {
 
     log.info("Compiling Protocol circuits, this can take a few minutes");
 
-    const vks = await flow.withFlow<VKRecord>(async (res, rej) => {
-      await flow.pushTask(this.compileTask, undefined, async (result) => {
-        res(result);
-      });
-    });
+    const vks = await flow.withFlow<CompiledCircuitsRecord>(
+      async (res, rej) => {
+        await flow.pushTask(this.compileTask, undefined, async (result) => {
+          res(result);
+        });
+      }
+    );
 
     log.info("Protocol circuits compiled");
 
-    await this.verificationKeyService.initializeVKTree(vks);
+    // Init runtime VK tree
+    await this.verificationKeyService.initializeVKTree(vks.runtimeCircuits);
 
     const root = this.verificationKeyService.getRoot();
 
@@ -50,8 +57,16 @@ export class SequencerStartupModule extends SequencerModule {
       .resolve(RuntimeVerificationKeyRootService)
       .setRoot(root);
 
+    // Init BridgeContract vk for settlement contract
+    const bridgeVk = vks.protocolCircuits.BridgeContract;
+    if (bridgeVk !== undefined) {
+      SettlementSmartContractBase.args.BridgeContractVerificationKey =
+        bridgeVk.vk;
+    }
+
     await this.registrationFlow.start({
       runtimeVerificationKeyRoot: root,
+      bridgeContractVerificationKey: bridgeVk?.vk,
     });
 
     await sleep(500);

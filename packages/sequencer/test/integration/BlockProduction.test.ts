@@ -96,7 +96,7 @@ describe("block production", () => {
   beforeEach(async () => {
     // container.reset();
 
-    log.setLevel(log.levels.INFO);
+    log.setLevel(log.levels.DEBUG);
 
     const runtimeClass = Runtime.from({
       modules: {
@@ -157,8 +157,13 @@ describe("block production", () => {
       },
     });
 
-    // Start AppChain
-    await app.start(container.createChildContainer());
+    try {
+      // Start AppChain
+      await app.start(container.createChildContainer());
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
 
     appChain = app;
 
