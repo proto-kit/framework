@@ -132,9 +132,10 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   ): Promise<PendingTransaction[]> {
     const skippedTransactions: Record<string, MempoolTransactionPaths> = {};
     const sortedTransactions: PendingTransaction[] = [];
-    const queue: PendingTransaction[] = [...transactions];
+    let queue: PendingTransaction[] = [...transactions];
 
-    for (const tx of queue) {
+    while (queue.length > 0) {
+      const [tx] = queue.splice(0, 1);
       const txStateService = new CachedStateService(baseService);
       stateServiceProvider.setCurrentStateService(txStateService);
       const contextInputs: RuntimeMethodExecutionData = {
@@ -153,6 +154,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
       });
       const { status, statusMessage, stateTransitions } =
         executionContext.current().result;
+
       if (status.toBoolean()) {
         log.trace(`Accepted tx ${tx.hash().toString()}`);
         sortedTransactions.push(tx);
@@ -163,18 +165,14 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         stateServiceProvider.popCurrentStateService();
         delete skippedTransactions[tx.hash().toString()];
         if (Object.entries(skippedTransactions).length > 0) {
-          const oldTxsReAdded: PendingTransaction[] = [];
           stateTransitions.forEach((st) => {
             Object.values(skippedTransactions).forEach((value) => {
               if (value.paths.some((x) => x.equals(st.path))) {
-                oldTxsReAdded.push(value.transaction);
+                queue.push(value.transaction);
               }
             });
           });
-
-          queue.push(
-            ...oldTxsReAdded.filter(distinctByPredicate((a, b) => a === b))
-          );
+          queue = queue.filter(distinctByPredicate((a, b) => a === b));
         }
       } else {
         log.trace(
