@@ -60,7 +60,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
       const success = await this.transactionStorage.pushUserTransaction(tx);
       if (success) {
         this.events.emit("mempool-transaction-added", tx);
-        log.info(
+        log.trace(
           `Transaction added to mempool: ${tx.hash().toString()} (${(await this.transactionStorage.getPendingUserTransactions()).length} transactions in mempool)`
         );
       } else {
@@ -154,7 +154,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
       const { status, statusMessage, stateTransitions } =
         executionContext.current().result;
       if (status.toBoolean()) {
-        log.info(`Accepted tx ${tx.hash().toString()}`);
+        log.trace(`Accepted tx ${tx.hash().toString()}`);
         sortedTransactions.push(tx);
         // eslint-disable-next-line no-await-in-loop
         await txStateService.applyStateTransitions(stateTransitions);
@@ -177,7 +177,9 @@ export class PrivateMempool extends SequencerModule implements Mempool {
           );
         }
       } else {
-        log.info(`Skipped tx ${tx.hash().toString()} because ${statusMessage}`);
+        log.trace(
+          `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
+        );
         this.protocol.stateServiceProvider.popCurrentStateService();
         if (!(tx.hash().toString() in skippedTransactions)) {
           skippedTransactions[tx.hash().toString()] = {
