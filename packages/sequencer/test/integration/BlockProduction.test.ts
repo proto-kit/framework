@@ -44,6 +44,8 @@ export class SecondaryTestEvent extends Struct({
   message: Bool,
 }) {}
 
+const MAXIMUM_BLOCK_SIZE = 10;
+
 @runtimeModule()
 class EventMaker extends RuntimeModule {
   public constructor() {
@@ -134,7 +136,9 @@ describe("block production", () => {
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        BlockProducerModule: {},
+        BlockProducerModule: {
+          maximumBlockSize: MAXIMUM_BLOCK_SIZE,
+        },
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
@@ -692,6 +696,6 @@ describe("block production", () => {
     const block = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();
-    expect(block!.transactions).toHaveLength(20);
+    expect(block!.transactions).toHaveLength(MAXIMUM_BLOCK_SIZE);
   }, 30000);
 });
