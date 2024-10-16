@@ -164,6 +164,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         await txStateService.mergeIntoParent();
         delete skippedTransactions[tx.hash().toString()];
         if (Object.entries(skippedTransactions).length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-loop-func
           stateTransitions.forEach((st) => {
             Object.values(skippedTransactions).forEach((value) => {
               if (value.paths.some((x) => x.equals(st.path))) {
