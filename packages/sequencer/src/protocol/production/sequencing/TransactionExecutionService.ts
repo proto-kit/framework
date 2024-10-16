@@ -87,22 +87,6 @@ export class TransactionExecutionService {
     return stateTransitions.map((st) => st.path).filter(distinctByString);
   }
 
-  // TODO Use RecordingStateservice for this
-  private async applyTransitions(
-    stateService: CachedStateService,
-    stateTransitions: StateTransition<any>[]
-  ): Promise<void> {
-    // Use updated stateTransitions since only they will have the
-    // right values
-    const writes = stateTransitions
-      .filter((st) => st.toValue.isSome.toBoolean())
-      .map((st) => {
-        return { key: st.path, value: st.toValue.toFields() };
-      });
-    stateService.writeStates(writes);
-    await stateService.commit();
-  }
-
   private collectStateDiff(
     stateTransitions: UntypedStateTransition[]
   ): StateRecord {
@@ -493,8 +477,7 @@ export class TransactionExecutionService {
     );
 
     // Apply protocol STs
-    await this.applyTransitions(
-      recordingStateService,
+    await recordingStateService.applyStateTransitions(
       protocolResult.stateTransitions
     );
 
@@ -515,8 +498,7 @@ export class TransactionExecutionService {
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
       // Apply protocol STs
-      await this.applyTransitions(
-        recordingStateService,
+      await recordingStateService.applyStateTransitions(
         runtimeResult.stateTransitions
       );
     }

@@ -41,7 +41,7 @@ describe("balances", () => {
     return stateValue;
   }
 
-  function createChain() {
+  async function createChain() {
     ({ runtime, state } = createTestingRuntime(
       {
         Balances,
@@ -58,7 +58,7 @@ describe("balances", () => {
 
     balances = runtime.resolve("Balances");
 
-    state.set(balances.totalSupply.path!, UInt64.from(10).toFields());
+    await state.set(balances.totalSupply.path!, UInt64.from(10).toFields());
   }
 
   describe.skip("compile and prove", () => {
@@ -160,10 +160,10 @@ describe("balances", () => {
     describe("state transitions from empty state", () => {
       let stateTransitions: ProvableStateTransition[];
 
-      beforeAll(() => {
-        createChain();
+      beforeAll(async () => {
+        await createChain();
 
-        state.set(balances.totalSupply.path!, undefined);
+        await state.set(balances.totalSupply.path!, undefined);
       });
 
       beforeEach(async () => {

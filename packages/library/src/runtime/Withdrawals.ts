@@ -20,9 +20,9 @@ export class Withdrawals extends RuntimeModule {
   protected async queueWithdrawal(withdrawal: Withdrawal) {
     const counter = (await this.withdrawalCounter.get()).orElse(Field(0));
 
-    this.withdrawals.set(counter, withdrawal);
+    await this.withdrawals.set(counter, withdrawal);
 
-    this.withdrawalCounter.set(counter.add(1));
+    await this.withdrawalCounter.set(counter.add(1));
   }
 
   public async withdraw(address: PublicKey, amount: UInt64) {
@@ -36,10 +36,14 @@ export class Withdrawals extends RuntimeModule {
     balance.assertGreaterThanOrEqual(amount, "Not enough balance");
 
     // Deduct balance from user
-    this.balances.setBalance(TokenId.from(0), address, balance.sub(amount));
+    await this.balances.setBalance(
+      TokenId.from(0),
+      address,
+      balance.sub(amount)
+    );
 
     // Add withdrawal to queue
-    this.queueWithdrawal(
+    await this.queueWithdrawal(
       new Withdrawal({
         address,
         // Has to be o1js UInt since the withdrawal will be processed in a o1js SmartContract
