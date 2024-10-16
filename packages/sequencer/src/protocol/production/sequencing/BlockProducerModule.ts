@@ -26,6 +26,7 @@ import { TransactionExecutionService } from "./TransactionExecutionService";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
+  maximumBlockSize: number;
 }
 
 @sequencerModule()
@@ -142,8 +143,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     txs: PendingTransaction[];
     metadata: BlockWithResult;
   }> {
-    const MAXIMUM_BLOCK_SIZE = 10;
-    const txs = (await this.mempool.getTxs()).slice(0, MAXIMUM_BLOCK_SIZE);
+    const txs = (await this.mempool.getTxs()).slice(
+      0,
+      this.config.maximumBlockSize
+    );
 
     const parentBlock = await this.blockQueue.getLatestBlock();
 
