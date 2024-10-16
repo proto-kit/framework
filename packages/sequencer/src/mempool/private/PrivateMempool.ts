@@ -162,7 +162,6 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         await txStateService.applyStateTransitions(stateTransitions);
         // eslint-disable-next-line no-await-in-loop
         await txStateService.mergeIntoParent();
-        stateServiceProvider.popCurrentStateService();
         delete skippedTransactions[tx.hash().toString()];
         if (Object.entries(skippedTransactions).length > 0) {
           stateTransitions.forEach((st) => {
@@ -178,7 +177,6 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         log.trace(
           `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
         );
-        this.protocol.stateServiceProvider.popCurrentStateService();
         if (!(tx.hash().toString() in skippedTransactions)) {
           skippedTransactions[tx.hash().toString()] = {
             transaction: tx,
@@ -187,6 +185,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
               .filter((id, idx, arr) => arr.indexOf(id) === idx),
           };
         }
+        stateServiceProvider.popCurrentStateService();
       }
     }
     return sortedTransactions;
