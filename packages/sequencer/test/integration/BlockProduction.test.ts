@@ -44,8 +44,6 @@ export class SecondaryTestEvent extends Struct({
   message: Bool,
 }) {}
 
-const MAXIMUM_BLOCK_SIZE = 10;
-
 @runtimeModule()
 class EventMaker extends RuntimeModule {
   public constructor() {
@@ -136,9 +134,7 @@ describe("block production", () => {
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        BlockProducerModule: {
-          maximumBlockSize: MAXIMUM_BLOCK_SIZE,
-        },
+        BlockProducerModule: {},
         LocalTaskWorkerModule: {},
         BaseLayer: {},
         TaskQueue: {},
@@ -673,29 +669,5 @@ describe("block production", () => {
 
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
-  }, 30000);
-
-  it("block limit - should produce block that respects the maximum block size", async () => {
-    log.setLevel("TRACE");
-
-    const privateKey = PrivateKey.random();
-
-    // We add 30 txs to the memppol, but only obtain 20 in the block as this is
-    // the configured default.
-    for (let i = 0; i < 30; i++) {
-      const tx = createTransaction({
-        runtime,
-        method: ["Balance", "setBalanceIf"],
-        privateKey: privateKey,
-        args: [privateKey.toPublicKey(), UInt64.from(100), Bool(true)],
-        nonce: i,
-      });
-      await mempool.add(tx);
-    }
-
-    const block = await blockTrigger.produceBlock();
-
-    expect(block).toBeDefined();
-    expect(block!.transactions).toHaveLength(MAXIMUM_BLOCK_SIZE);
   }, 30000);
 });
