@@ -109,7 +109,6 @@ export class VanillaTaskWorkerModules {
       BlockReductionTask,
       BlockBuildingTask: NewBlockTask,
       CircuitCompilerTask,
-      WorkerRegistrationTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
