@@ -4,7 +4,7 @@ import {
   graphqlModule,
 } from "@proto-kit/api";
 import { NonEmptyArray, createMethodMiddlewareDecorator } from "type-graphql";
-import { ChildContainerProvider, TypedClass } from "@proto-kit/common";
+import { ChildContainerProvider, log, TypedClass } from "@proto-kit/common";
 
 import { PrismaDatabaseConnection } from "../storage/PrismaDatabaseConnection";
 import { BasePrismaClient } from "../handlers/BasePrismaClient";
@@ -66,11 +66,11 @@ export class ResolverFactoryGraphqlModule<
   }
 
   public create(childContainerProvider: ChildContainerProvider): void {
-    console.log("create ResolverFactory");
+    log.debug("create ResolverFactory");
     const container = childContainerProvider();
     this.graphqlServer = container.resolve("GraphqlServer");
     this.database = container.resolve("Database");
-    console.log("database", this.database);
+    log.debug("database", this.database);
     this.graphqlServer.setContext({
       prisma: this.database?.prismaClient,
     });
