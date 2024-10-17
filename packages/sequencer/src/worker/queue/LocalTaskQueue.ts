@@ -28,11 +28,12 @@ export class LocalTaskQueue
     [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
 
-  public workers: {
+  private workers: {
     [key: string]:
       | {
           busy: boolean;
-          handler: (data: TaskPayload) => Promise<TaskPayload>;
+          handler: (data: TaskPayload) => Promise<TaskPayload | "closed">;
+          close: () => Promise<void>;
         }
       | undefined;
   } = {};
@@ -46,9 +47,13 @@ export class LocalTaskQueue
       if (tasks.length > 0 && this.workers[queueName]) {
         tasks.forEach((task) => {
           // Execute task in worker
+
           void this.workers[queueName]
             ?.handler(task.payload)
             .then((payload) => {
+              if (payload === "closed") {
+                return;
+              }
               log.trace("LocalTaskQueue got", JSON.stringify(payload));
               // Notify listeners about result
               const listenerPromises = this.listeners[queueName]?.map(
@@ -67,23 +72,42 @@ export class LocalTaskQueue
 
   public createWorker(
     queueName: string,
-    executor: (data: TaskPayload) => Promise<TaskPayload>
+    executor: (data: TaskPayload) => Promise<TaskPayload>,
+    options?: { concurrency?: number; singleUse?: boolean }
   ): Closeable {
-    this.workers[queueName] = {
+    const close = async () => {
+      this.workers[queueName] = {
+        busy: false,
+
+        handler: async () => {
+          return "closed";
+        },
+        close: async () => {},
+      };
+    };
+
+    const worker = {
       busy: false,
 
       handler: async (data: TaskPayload) => {
         await sleep(this.config.simulatedDuration ?? 0);
 
-        return await executor(data);
+        const result = await executor(data);
+
+        if (options?.singleUse ?? false) {
+          await close();
+        }
+
+        return result;
       },
+
+      close,
     };
+
+    this.workers[queueName] = worker;
     this.workNextTasks();
-    return {
-      close: async () => {
-        noop();
-      },
-    };
+
+    return worker;
   }
 
   public async getQueue(queueName: string): Promise<InstantiatedQueue> {
@@ -94,9 +118,12 @@ export class LocalTaskQueue
     return {
       name: queueName,
 
-      addTask: async (payload: TaskPayload): Promise<{ taskId: string }> => {
+      addTask: async (
+        payload: TaskPayload,
+        taskId?: string
+      ): Promise<{ taskId: string }> => {
         id += 1;
-        const nextId = String(id).toString();
+        const nextId = taskId ?? String(id).toString();
         this.queues[queueName].push({ payload, taskId: nextId });
 
         this.workNextTasks();

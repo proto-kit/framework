@@ -30,7 +30,6 @@ export const sequencer = AppChain.from({
       BaseLayer: MinaBaseLayer,
       BlockTrigger: TimedBlockTrigger,
       DatabasePruneModule: DatabasePruneModule,
-
       GraphqlServer: GraphqlServer,
       Graphql: GraphqlSequencerModule.from({
         modules: VanillaGraphqlModules.with({}),
@@ -66,6 +65,7 @@ sequencer.configure({
         password: "password",
       },
     },
+    ProtocolStartupModule: {},
     GraphqlServer: {
       host: "0.0.0.0",
       port: 8080,

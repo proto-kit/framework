@@ -25,7 +25,7 @@ type FeePayer = Transaction<false, false>["transaction"]["feePayer"];
 
 @injectable()
 export class MinaTransactionSimulator {
-  private local = this.baseLayer.config.network.local;
+  private networkType = this.baseLayer.config.network.type;
 
   private loaded: Record<string, Account | null> = {};
 
@@ -36,8 +36,12 @@ export class MinaTransactionSimulator {
   private async fetchGraphql<Type>(
     f: () => Promise<Type>
   ): Promise<Type | undefined> {
-    if (!this.baseLayer.config.network.local) {
-      return await f();
+    if (this.baseLayer.config.network.type !== "local") {
+      try {
+        return await f();
+      } catch (e) {
+        return undefined;
+      }
     }
     return undefined;
   }
@@ -143,7 +147,7 @@ export class MinaTransactionSimulator {
 
   public async reloadAccount(publicKey: PublicKey, tokenId?: Field) {
     const key = this.cacheKey(publicKey, tokenId);
-    if (!this.local) {
+    if (this.networkType !== "local") {
       const fetchedAccount = await this.fetchGraphql(() =>
         fetchAccount({ publicKey, tokenId })
       );

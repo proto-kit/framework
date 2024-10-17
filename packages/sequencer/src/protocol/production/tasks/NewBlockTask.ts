@@ -65,11 +65,11 @@ export class NewBlockTask
 
   public inputSerializer(): TaskSerializer<NewBlockProvingParameters> {
     const stProofSerializer = new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram.Proof
+      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
     );
 
     const blockProofSerializer = new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram.Proof
+      this.blockProver.zkProgrammable.zkProgram[0].Proof
     );
 
     interface JsonType {
@@ -139,7 +139,7 @@ export class NewBlockTask
 
   public resultSerializer(): TaskSerializer<BlockProof> {
     return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram.Proof
+      this.blockProver.zkProgrammable.zkProgram[0].Proof
     );
   }
 
@@ -185,7 +185,7 @@ export class NewBlockTask
     // Compile
     await this.compileRegistry.compile(
       "BlockProver",
-      this.blockProver.zkProgrammable.zkProgram
+      this.blockProver.zkProgrammable.zkProgram[0]
     );
   }
 }

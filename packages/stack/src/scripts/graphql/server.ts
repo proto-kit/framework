@@ -214,6 +214,8 @@ export async function startServer() {
         BlockReductionTask: {},
         RuntimeProvingTask: {},
         StateTransitionReductionTask: {},
+        CircuitCompilerTask: {},
+        WorkerRegistrationTask: {},
       },
       BaseLayer: {},
       TaskQueue: {},

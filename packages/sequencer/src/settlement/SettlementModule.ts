@@ -11,6 +11,7 @@ import {
   SettlementContractConfig,
   MandatorySettlementModulesRecord,
   MandatoryProtocolModulesRecord,
+  BlockProverPublicOutput,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -20,7 +21,7 @@ import {
   PublicKey,
   Signature,
   Transaction,
-  Permissions,
+  fetchAccount,
 } from "o1js";
 import { inject } from "tsyringe";
 import {
@@ -29,6 +30,7 @@ import {
   log,
   noop,
   RollupMerkleTree,
+  AreProofsEnabled,
 } from "@proto-kit/common";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 
@@ -45,10 +47,13 @@ import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
 import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
+import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
+import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermissions";
+import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
@@ -76,6 +81,11 @@ export class SettlementModule
     dispatch: PublicKey;
   };
 
+  public keys?: {
+    settlement: PrivateKey;
+    dispatch: PrivateKey;
+  };
+
   public events = new EventEmitter<SettlementModuleEvents>();
 
   public constructor(
@@ -98,12 +108,16 @@ export class SettlementModule
     private readonly merkleTreeStore: AsyncMerkleTreeStore,
     private readonly blockProofSerializer: BlockProofSerializer,
     @inject("TransactionSender")
-    private readonly transactionSender: MinaTransactionSender
+    private readonly transactionSender: MinaTransactionSender,
+    @inject("AreProofsEnabled")
+    private readonly areProofsEnabled: AreProofsEnabled,
+    @inject("FeeStrategy")
+    private readonly feeStrategy: FeeStrategy
   ) {
     super();
   }
 
-  private settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
+  protected settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
     return this.protocol.dependencyContainer.resolve(
       "SettlementContractModule"
     );
@@ -143,6 +157,37 @@ export class SettlementModule
       };
     }
     return this.contracts;
+  }
+
+  protected isSignedSettlement(): boolean {
+    return !this.areProofsEnabled.areProofsEnabled;
+  }
+
+  public signTransaction(
+    tx: Transaction<false, false>,
+    pks: PrivateKey[]
+  ): Transaction<false, true> {
+    this.requireSignatureIfNecessary(tx);
+    const contractKeys = this.isSignedSettlement()
+      ? Object.values(this.keys ?? {})
+      : [];
+    return tx.sign([...pks, ...contractKeys]);
+  }
+
+  private requireSignatureIfNecessary(tx: Transaction<false, false>) {
+    const { addresses } = this;
+    if (this.isSignedSettlement() && addresses !== undefined) {
+      tx.transaction.accountUpdates.forEach((au) => {
+        if (
+          au.publicKey
+            .equals(addresses.settlement)
+            .or(au.publicKey.equals(addresses.dispatch))
+            .toBoolean()
+        ) {
+          au.requireSignature();
+        }
+      });
+    }
   }
 
   /* eslint-disable no-await-in-loop */
@@ -190,8 +235,8 @@ export class SettlementModule
           sender: feepayer.toPublicKey(),
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
-          fee: String(0.01 * 1e9),
-          memo: "Protokit settle",
+          fee: this.feeStrategy.getFee(),
+          memo: "roll up actions",
         },
         async () => {
           await settlement.rollupOutgoingMessages(
@@ -200,9 +245,12 @@ export class SettlementModule
         }
       );
 
-      const signedTx = tx.sign([feepayer]);
+      const signedTx = this.signTransaction(tx, [feepayer]);
 
-      await this.transactionSender.proveAndSendTransaction(signedTx);
+      await this.transactionSender.proveAndSendTransaction(
+        signedTx,
+        "included"
+      );
 
       this.outgoingMessageQueue.pop(OUTGOING_MESSAGE_BATCH_SIZE);
 
@@ -215,33 +263,54 @@ export class SettlementModule
   }
   /* eslint-enable no-await-in-loop */
 
+  private async fetchContractAccounts() {
+    const contracts = this.getContracts();
+    if (
+      contracts !== undefined &&
+      this.baseLayer.config.network.type !== "local"
+    ) {
+      await fetchAccount({
+        publicKey: contracts.settlement.address,
+        tokenId: contracts.settlement.tokenId,
+      });
+      await fetchAccount({
+        publicKey: contracts.dispatch.address,
+        tokenId: contracts.dispatch.tokenId,
+      });
+    }
+  }
+
   public async settleBatch(
     batch: SettleableBatch,
     options: {
       nonce?: number;
     } = {}
   ): Promise<Settlement> {
+    await this.fetchContractAccounts();
     const { settlement, dispatch } = this.getContracts();
     const { feepayer } = this.config;
 
     log.debug("Preparing settlement");
 
-    const lastSettlementL1Block = settlement.lastSettlementL1Block.get().value;
+    const lastSettlementL1BlockHeight =
+      settlement.lastSettlementL1BlockHeight.get().value;
     const signature = Signature.create(feepayer, [
       BATCH_SIGNATURE_PREFIX,
-      lastSettlementL1Block,
+      lastSettlementL1BlockHeight,
     ]);
 
-    const fromSequenceStateHash = dispatch.honoredMessagesHash.get();
-    const latestSequenceStateHash = settlement.account.actionState.get();
+    const fromSequenceStateHash = BlockProverPublicOutput.fromFields(
+      batch.proof.publicOutput.map((x) => Field(x))
+    ).incomingMessagesHash;
+    const latestSequenceStateHash = dispatch.account.actionState.get();
 
     // Fetch actions and store them into the messageStorage
     const actions = await this.incomingMessagesAdapter.getPendingMessages(
-      settlement.address,
+      dispatch.address,
       {
         fromActionHash: fromSequenceStateHash.toString(),
         toActionHash: latestSequenceStateHash.toString(),
-        fromL1Block: Number(lastSettlementL1Block.toString()),
+        fromL1BlockHeight: Number(lastSettlementL1BlockHeight.toString()),
       }
     );
     await this.messageStorage.pushMessages(
@@ -258,7 +327,7 @@ export class SettlementModule
       {
         sender: feepayer.toPublicKey(),
         nonce: options?.nonce,
-        fee: String(0.01 * 1e9),
+        fee: this.feeStrategy.getFee(),
         memo: "Protokit settle",
       },
       async () => {
@@ -274,16 +343,15 @@ export class SettlementModule
       }
     );
 
-    tx.sign([feepayer]);
+    this.signTransaction(tx, [feepayer]);
 
-    await this.transactionSender.proveAndSendTransaction(tx);
+    await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     log.info("Settlement transaction send queued");
 
     this.events.emit("settlement-submitted", batch);
 
     return {
-      // transactionHash: sent.hash() ?? "",
       batches: [batch.height],
       promisedMessagesHash: latestSequenceStateHash.toString(),
     };
@@ -299,11 +367,6 @@ export class SettlementModule
 
     const nonce = options?.nonce ?? 0;
 
-    // const flow = this.flowCreator.createFlow<undefined>(
-    //   `deploy-${feepayer.toBase58()}-${nonce.toString()}`,
-    //   undefined
-    // );
-
     const sm = this.protocol.dependencyContainer.resolve<
       SettlementContractModule<MandatorySettlementModulesRecord>
     >("SettlementContractModule");
@@ -312,38 +375,51 @@ export class SettlementModule
       dispatch: dispatchKey.toPublicKey(),
     });
 
+    const permissions = this.isSignedSettlement()
+      ? new SignedSettlementPermissions()
+      : new ProvenSettlementPermissions();
+
     const tx = await Mina.transaction(
       {
         sender: feepayer,
         nonce,
-        fee: String(0.01 * 1e9),
+        fee: this.feeStrategy.getFee(),
         memo: "Protokit settlement deploy",
       },
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
         await settlement.deploy({
+          // TODO Create compilation task that generates those artifacts if proofs enabled
           verificationKey: undefined,
         });
-        settlement.account.permissions.set({
-          ...Permissions.default(),
-          access: Permissions.none(),
-        });
+        settlement.account.permissions.set(permissions.settlementContract());
 
         await dispatch.deploy({
           verificationKey: undefined,
         });
+        dispatch.account.permissions.set(permissions.dispatchContract());
       }
     ).sign([feepayerKey, settlementKey, dispatchKey]);
+    // Note: We can't use this.signTransaction on the above tx
 
     // This should already apply the tx result to the
     // cached accounts / local blockchain
-    await this.transactionSender.proveAndSendTransaction(tx);
+    await this.transactionSender.proveAndSendTransaction(tx, "included");
 
-    const tx2 = await Mina.transaction(
+    this.addresses = {
+      settlement: settlementKey.toPublicKey(),
+      dispatch: dispatchKey.toPublicKey(),
+    };
+    this.keys = {
+      settlement: settlementKey,
+      dispatch: dispatchKey,
+    };
+
+    const initTx = await Mina.transaction(
       {
         sender: feepayer,
         nonce: nonce + 1,
-        fee: String(0.01 * 1e9),
+        fee: this.feeStrategy.getFee(),
         memo: "Protokit settlement init",
       },
       async () => {
@@ -352,14 +428,14 @@ export class SettlementModule
           dispatchKey.toPublicKey()
         );
       }
-    ).sign([feepayerKey]);
+    );
 
-    await this.transactionSender.proveAndSendTransaction(tx2);
+    const initTxSigned = this.signTransaction(initTx, [feepayerKey]);
 
-    this.addresses = {
-      settlement: settlementKey.toPublicKey(),
-      dispatch: dispatchKey.toPublicKey(),
-    };
+    await this.transactionSender.proveAndSendTransaction(
+      initTxSigned,
+      "included"
+    );
   }
 
   public async start(): Promise<void> {

@@ -40,10 +40,11 @@ model Transaction {
 }
 
 model TransactionExecutionResult {
-  stateTransitions    Json    @db.Json
-  protocolTransitions Json    @db.Json
-  status              Boolean
-  statusMessage       String?
+  stateTransitions Json @db.Json
+  protocolTransitions Json @db.Json
+  status Boolean
+  statusMessage String?
+  events Json @db.Json
 
   tx     Transaction @relation(fields: [txHash], references: [hash])
   txHash String      @id

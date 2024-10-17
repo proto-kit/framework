@@ -7,7 +7,7 @@ import type { SettlementSmartContract } from "../contracts/SettlementSmartContra
 
 export type SettlementStateRecord = {
   sequencerKey: PublicKey;
-  lastSettlementL1Block: UInt32;
+  lastSettlementL1BlockHeight: UInt32;
 
   stateRoot: Field;
   networkStateHash: Field;
@@ -20,7 +20,7 @@ export type SettlementHookInputs = {
   toNetworkState: NetworkState;
   newPromisedMessagesHash: Field;
   contractState: SettlementStateRecord;
-  currentL1Block: UInt32;
+  currentL1BlockHeight: UInt32;
 };
 
 export abstract class ProvableSettlementHook<

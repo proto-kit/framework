@@ -90,12 +90,13 @@
     // Reenable again
     "sonarjs/no-duplicate-string": "off",
     // Handled by prettier
-    "@typescript-eslint/indent": ["off"]
+    "@typescript-eslint/indent": ["off"],
+    "@typescript-eslint/no-floating-promises": "error"
   },
 
   "overrides": [
     {
-      "files": ["*.test.ts"],
+      "files": ["*.test.ts", "**/test/**/*.ts"],
       "rules": {
         "no-console": "off",
         "import/no-extraneous-dependencies": "off",

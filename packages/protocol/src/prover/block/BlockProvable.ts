@@ -1,4 +1,12 @@
-import { Bool, Field, Proof, Signature, Struct } from "o1js";
+import {
+  Bool,
+  DynamicProof,
+  Field,
+  Proof,
+  Signature,
+  Struct,
+  Void,
+} from "o1js";
 import { WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
@@ -7,6 +15,7 @@ import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
 
 import { BlockHashMerkleTreeWitness } from "./accummulators/BlockHashMerkleTree";
+import { RuntimeVerificationKeyAttestation } from "./accummulators/RuntimeVerificationKeyTree";
 
 export class BlockProverPublicInput extends Struct({
   transactionsHash: Field,
@@ -55,13 +64,23 @@ export class BlockProverExecutionData extends Struct({
   networkState: NetworkState,
 }) {}
 
+export class DynamicRuntimeProof extends DynamicProof<
+  Void,
+  MethodPublicOutput
+> {
+  static publicInputType = Void;
+
+  static publicOutputType = MethodPublicOutput;
+}
+
 export interface BlockProvable
   extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput> {
   proveTransaction: (
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
-    appProof: Proof<void, MethodPublicOutput>,
-    executionData: BlockProverExecutionData
+    appProof: DynamicRuntimeProof,
+    executionData: BlockProverExecutionData,
+    verificationKeyAttestation: RuntimeVerificationKeyAttestation
   ) => Promise<BlockProverPublicOutput>;
 
   proveBlock: (
