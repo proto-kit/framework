@@ -21,6 +21,7 @@ import {
   TestingAppChain,
 } from "@proto-kit/sdk";
 import { LocalTaskQueue, Sequencer, TaskPayload } from "@proto-kit/sequencer";
+import { WorkerRegistrationTask } from "@proto-kit/sequencer/dist/worker/worker/startup/WorkerRegistrationTask";
 
 import { IndexerNotifier } from "../src/IndexerNotifier";
 import { IndexBlockTaskParametersSerializer } from "../src/tasks/IndexBlockTaskParameters";
@@ -98,6 +99,7 @@ function createAppChain() {
         BlockProvingTask: {},
         BlockReductionTask: {},
         CircuitCompilerTask: {},
+        WorkerRegistrationTask: {},
       },
       BaseLayer: {},
       BatchProducerModule: {},
