@@ -20,14 +20,14 @@
     "@graphql-tools/stitch": "^9.0.3",
     "@types/humanize-duration": "^3.27.2",
     "class-validator": "^0.14.0",
-    "graphql": "16.6.0",
+    "graphql": "^16.9.0",
     "graphql-scalars": "^1.22.4",
     "graphql-yoga": "^5.0.0",
     "humanize-duration": "^3.30.0",
     "koa": "^2.14.2",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.1.13",
-    "type-graphql": "2.0.0-beta.1"
+    "type-graphql": "2.0.0-rc.2"
   },
   "peerDependencies": {
     "@proto-kit/common": "*",

@@ -21,7 +21,6 @@ export interface TransactionExecutionResult {
 
 export interface Block {
   hash: Field;
-
   height: Field;
   networkState: {
     before: NetworkState;
@@ -34,7 +33,6 @@ export interface Block {
   fromBlockHashRoot: Field;
   fromMessagesHash: Field;
   toMessagesHash: Field;
-
   previousBlockHash: Field | undefined;
 }
 
@@ -51,7 +49,6 @@ export const Block = {
 
 export interface BlockResult {
   blockHash: bigint;
-
   stateRoot: bigint;
   blockHashRoot: bigint;
   afterNetworkState: NetworkState;

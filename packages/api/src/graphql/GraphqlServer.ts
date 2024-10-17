@@ -32,9 +32,13 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
 
   private readonly schemas: GraphQLSchema[] = [];
 
+  private resolvers: NonEmptyArray<Function> | undefined;
+
   private dependencyContainer?: DependencyContainer;
 
   private server?: Server;
+
+  private context: {} = {};
 
   public setContainer(container: DependencyContainer) {
     this.dependencyContainer = container;
@@ -56,6 +60,18 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     this.schemas.push(schema);
   }
 
+  public registerResolvers(resolvers: NonEmptyArray<Function>) {
+    if (this.resolvers === undefined) {
+      this.resolvers = resolvers;
+    } else {
+      this.resolvers = [...this.resolvers, ...resolvers];
+    }
+  }
+
+  public setContext(context: {}) {
+    this.context = context;
+  }
+
   public async start() {
     noop();
   }
@@ -64,16 +80,17 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     const { dependencyContainer, modules } = this;
     this.assertDependencyContainerSet(dependencyContainer);
 
+    const resolvers = [...modules, ...(this.resolvers || [])];
+
     assertArrayIsNotEmpty(
-      modules,
+      resolvers,
       "At least one module has to be provided to GraphqlServer"
     );
 
     // Building schema
     const resolverSchema = buildSchemaSync({
-      resolvers: modules,
+      resolvers,
 
-      // resolvers: [MempoolResolver as Function],
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       container: { get: (cls) => dependencyContainer.resolve(cls) },
 
@@ -101,6 +118,7 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     const yoga = createYoga<Koa.ParameterizedContext>({
       schema,
       graphiql: this.config.graphiql,
+      context: this.context,
     });
 
     // Bind GraphQL Yoga to `/graphql` endpoint

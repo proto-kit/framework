@@ -94,12 +94,7 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       return task;
     });
 
-    const registrationTask = this.container.resolve(WorkerRegistrationTask);
-
-    const worker = new FlowTaskWorker(this.taskQueue(), [
-      registrationTask,
-      ...tasks,
-    ]);
+    const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
     await worker.start();
   }
 }
@@ -114,6 +109,7 @@ export class VanillaTaskWorkerModules {
       BlockReductionTask,
       BlockBuildingTask: NewBlockTask,
       CircuitCompilerTask,
+      WorkerRegistrationTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -134,6 +130,7 @@ export class VanillaTaskWorkerModules {
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
       CircuitCompilerTask: {},
+      WorkerRegistrationTask: {},
     };
   }
 }
