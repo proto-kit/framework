@@ -91,13 +91,13 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
     });
   }
 
-  public initializePrismaClient() {
+  public async initializePrismaClient() {
     // setup the prisma client and feed it to the server,
     // since this is necessary for the returned resolvers to work
     const prismaClient = new PrismaClient({
       // datasourceUrl: 'postgresql://admin:password@localhost:5433/protokit-indexer?schema=public'
     });
-    prismaClient.$connect();
+    await prismaClient.$connect();
 
     return prismaClient;
   }
