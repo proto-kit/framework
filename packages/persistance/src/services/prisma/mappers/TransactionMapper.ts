@@ -12,6 +12,7 @@ import { Bool } from "o1js";
 import { ObjectMapper } from "../../../ObjectMapper";
 
 import { StateTransitionArrayMapper } from "./StateTransitionMapper";
+import { EventArrayMapper } from "./EventMapper";
 
 @singleton()
 @injectable()
@@ -54,7 +55,8 @@ export class TransactionExecutionResultMapper
 {
   public constructor(
     private readonly transactionMapper: TransactionMapper,
-    private readonly stArrayMapper: StateTransitionArrayMapper
+    private readonly stArrayMapper: StateTransitionArrayMapper,
+    private readonly eventArrayMapper: EventArrayMapper
   ) {}
 
   public mapIn(
@@ -71,6 +73,7 @@ export class TransactionExecutionResultMapper
       protocolTransitions: this.stArrayMapper.mapIn(
         executionResult.protocolTransitions
       ),
+      events: this.eventArrayMapper.mapIn(executionResult.events),
     };
   }
 
@@ -83,6 +86,7 @@ export class TransactionExecutionResultMapper
       statusMessage: input.statusMessage ?? null,
       stateTransitions: this.stArrayMapper.mapOut(input.stateTransitions),
       protocolTransitions: this.stArrayMapper.mapOut(input.protocolTransitions),
+      events: this.eventArrayMapper.mapOut(input.events),
       txHash: tx.hash,
     };
     return [executionResult, tx];

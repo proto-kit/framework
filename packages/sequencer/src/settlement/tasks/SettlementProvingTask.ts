@@ -1,4 +1,8 @@
-import { filterNonUndefined, MOCK_PROOF } from "@proto-kit/common";
+import {
+  filterNonUndefined,
+  MOCK_PROOF,
+  AreProofsEnabled,
+} from "@proto-kit/common";
 import {
   MandatoryProtocolModulesRecord,
   MandatorySettlementModulesRecord,
@@ -70,7 +74,9 @@ export class SettlementProvingTask
   public constructor(
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly compileRegistry: CompileRegistry
+    private readonly compileRegistry: CompileRegistry,
+    @inject("AreProofsEnabled")
+    private readonly areProofsEnabled: AreProofsEnabled
   ) {
     super();
     if (
@@ -96,6 +102,7 @@ export class SettlementProvingTask
 
     if (graphql !== undefined) {
       const newInstance = Mina.Network(graphql);
+      newInstance.proofsEnabled = this.areProofsEnabled.areProofsEnabled;
       Mina.setActiveInstance(newInstance);
 
       for (const account of accounts) {
@@ -347,18 +354,17 @@ export class SettlementProvingTask
 
     const contract = this.settlementContractModule.getContractClasses();
 
-    // TODO Replace by global AreProofsEnabled reference
-    const { proofsEnabled } = Mina.activeInstance;
+    const { areProofsEnabled } = this.areProofsEnabled;
 
     await this.compileRegistry.compileSmartContract(
       "DispatchContract",
       contract.dispatch,
-      proofsEnabled
+      areProofsEnabled
     );
     await this.compileRegistry.compileSmartContract(
       "SettlementContract",
       contract.settlement,
-      proofsEnabled
+      areProofsEnabled
     );
   }
 

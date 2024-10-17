@@ -298,7 +298,7 @@ export class BlockTaskFlowService {
 
           // Provide a dummy prove is this block is empty
           const proof =
-            new this.protocol.blockProver.zkProgrammable.zkProgram.Proof({
+            new this.protocol.blockProver.zkProgrammable.zkProgram[0].Proof({
               publicInput,
               publicOutput,
               proof: MOCK_PROOF,
@@ -314,7 +314,7 @@ export class BlockTaskFlowService {
           const [{ publicInput }] = blockTrace.stateTransitionProver;
 
           flow.state.blockPairings[blockNumber].stProof =
-            new this.protocol.stateTransitionProver.zkProgrammable.zkProgram.Proof(
+            new this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof(
               {
                 publicInput,
                 proof: MOCK_PROOF,

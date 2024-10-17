@@ -81,7 +81,7 @@ describe.skip("block production", () => {
       );
 
     const tx = await appchain.transaction(senderAddress, async () => {
-      runtime
+      await runtime
         .resolve("Balances")
         .setBalance(tokenId, senderAddress, UInt64.from(100));
     });

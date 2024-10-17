@@ -66,19 +66,6 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    * modules to start each
    */
   public async start() {
-    // Set default STWitnessProvider inside protocol
-    // eslint-disable-next-line max-len
-    // TODO But what is the default? How do we deal with stages states (i.e. simulated state) in the DI container?
-    // const witnessProviderReference = this.protocol.dependencyContainer
-    // .resolve(
-    //   StateTransitionWitnessProviderReference
-    // );
-    // const witnessProvider =
-    //   this.container.resolve<StateTransitionWitnessProvider>(
-    //     "StateTransitionWitnessProvider"
-    //   );
-    // witnessProviderReference.setWitnessProvider(witnessProvider);
-
     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
 
     // Log startup info
