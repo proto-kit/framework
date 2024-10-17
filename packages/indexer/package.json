@@ -1,0 +1,67 @@
+{
+  "name": "@proto-kit/indexer",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "version": "0.1.1-develop.267+b252853",
+  "scripts": {
+    "prebuild": "npm run prisma:generate",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "lint": "eslint ./src ./test",
+    "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
+    "test": "npm run test:file -- ./src/** ./test/**",
+    "test:watch": "npm run test:file -- ./src/** ./test/** --watch",
+    "prisma:generate": "prisma generate --schema=./prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate dev --schema=./prisma/schema.prisma"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "dependencies": {
+    "@envelop/extended-validation": "^4.1.0",
+    "@inkjs/ui": "^1.0.0",
+    "@prisma/client": "^5.18.0",
+    "@types/yargs": "^17.0.29",
+    "figlet": "^1.7.0",
+    "ink": "^4.4.1",
+    "ink-ascii": "^0.0.4",
+    "prisma": "^5.18.0",
+    "react": "^18.2.0",
+    "reflect-metadata": "^0.1.13",
+    "yargs": "^17.7.2"
+  },
+  "peerDependencies": {
+    "@proto-kit/api": "*",
+    "@proto-kit/common": "*",
+    "@proto-kit/library": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/persistance": "*",
+    "@proto-kit/protocol": "*",
+    "@proto-kit/sdk": "*",
+    "@proto-kit/sequencer": "*",
+    "koa": "^2.14.2",
+    "o1js": "^1.1.0",
+    "tsyringe": "^4.7.0",
+    "type-graphql": "2.0.0-rc.2",
+    "typegraphql-prisma": "0.28"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.5.0",
+    "@proto-kit/api": "*",
+    "@proto-kit/common": "*",
+    "@proto-kit/library": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/protocol": "*",
+    "@proto-kit/sdk": "*",
+    "@proto-kit/sequencer": "*",
+    "@types/figlet": "^1.5.7",
+    "@types/ink": "^2.0.3",
+    "@types/koa": "^2.13.10",
+    "@types/node": "^20.8.10",
+    "@types/react": "^18.2.34",
+    "@types/ws": "^8.5.4"
+  },
+  "gitHead": "b2528538c73747d000cc3ea99ee26ee415d8248d"
+}

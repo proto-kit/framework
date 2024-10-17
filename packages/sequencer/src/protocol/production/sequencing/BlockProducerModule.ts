@@ -108,7 +108,9 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
           return undefined;
         }
 
-        log.info(`Produced block (${block.transactions.length} txs)`);
+        log.info(
+          `Produced block #${block.height.toBigInt()} (${block.transactions.length} txs)`
+        );
         this.prettyPrintBlockContents(block);
 
         // Generate metadata for next block

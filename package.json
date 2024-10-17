@@ -12,7 +12,7 @@
     "lint:staged": "eslint",
     "test": "npx lerna run test -- --passWithNoTests",
     "test:ci": "npx lerna run test -- --passWithNoTests --forceExit",
-    "test:integration": "npx lerna run integration -- --passWithNoTests --forceExit",
+    "test:integration": "npx lerna run test:integration -- --passWithNoTests --forceExit",
     "test:watch": "npx lerna run test:watch",
     "migrate": "npx lerna run prisma-migrate",
     "prisma-generate": "npx lerna run prisma-generate",
@@ -58,5 +58,8 @@
     "*.ts": [
       "npm run lint:staged"
     ]
+  },
+  "dependencies": {
+    "react-json-view-lite": "^1.4.0"
   }
 }

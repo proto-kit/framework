@@ -1,16 +1,25 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+generator typegraphql {
+  provider               = "typegraphql-prisma"
+  emitTranspiledCode     = false
+  // since the output directory is custom, this path must be relative to it in order to find the client-indexer
+  customPrismaImportPath = "../../../../node_modules/@prisma/client-indexer"
+  output                 = "./../src/api/generated/type-graphql"
+}
+
 generator client {
   provider = "prisma-client-js"
-  // output   = "./../node_modules/.prisma/client"
-  // Enable after upgrade to 5.9.0
-  // previewFeatures = ["relationJoins"]
+  output   = "./../node_modules/@prisma/client-indexer"
 }
+
+// this is a copy of the persistence schema file, with a different db url env variable being used
+// TODO: find good a way to re-use parts of the schema file
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("INDEXER_DATABASE_URL")
 }
 
 model State {
@@ -40,11 +49,10 @@ model Transaction {
 }
 
 model TransactionExecutionResult {
-  stateTransitions Json @db.Json
-  protocolTransitions Json @db.Json
-  status Boolean
-  statusMessage String?
-  events Json @db.Json
+  stateTransitions    Json    @db.Json
+  protocolTransitions Json    @db.Json
+  status              Boolean
+  statusMessage       String?
 
   tx     Transaction @relation(fields: [txHash], references: [hash])
   txHash String      @id
