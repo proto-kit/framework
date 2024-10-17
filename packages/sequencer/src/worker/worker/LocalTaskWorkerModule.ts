@@ -130,6 +130,7 @@ export class VanillaTaskWorkerModules {
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
       CircuitCompilerTask: {},
+      WorkerRegistrationTask: {},
     };
   }
 }
