@@ -124,7 +124,7 @@ describe("HandlersModule", () => {
             // eslint-disable-next-line sonarjs/no-small-switch, default-case, sonarjs/no-nested-switch
             switch (methodName) {
               case "transferSigned":
-                handleBalancesTransferSigned();
+                await handleBalancesTransferSigned();
                 break;
             }
             break;
