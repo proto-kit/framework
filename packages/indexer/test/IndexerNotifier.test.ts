@@ -35,7 +35,7 @@ class TestBalances extends Balances {
     ).value;
 
     assert(tokenId.equals(0n), "only token 0 is supported");
-    this.setBalance(
+    await this.setBalance(
       tokenId,
       this.transaction.sender.value,
       balance.add(amount)
@@ -97,6 +97,8 @@ function createAppChain() {
         BlockBuildingTask: {},
         BlockProvingTask: {},
         BlockReductionTask: {},
+        CircuitCompilerTask: {},
+        WorkerRegistrationTask: {},
       },
       BaseLayer: {},
       BatchProducerModule: {},

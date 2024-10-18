@@ -38,20 +38,22 @@ class RuntimeZkProgrammable extends ZkProgrammable<
     return new MockAppChain();
   }
 
-  zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput> {
+  zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
     const program = ZkProgram({
       name: "BlockProverTestProgram",
       publicOutput: MethodPublicOutput,
       methods: {},
     });
 
-    return {
-      compile: program.compile.bind(program),
-      verify: program.verify.bind(program),
-      analyzeMethods: program.analyzeMethods.bind(program),
-      methods: {},
-      Proof: ZkProgram.Proof(program),
-    };
+    return [
+      {
+        compile: program.compile.bind(program),
+        verify: program.verify.bind(program),
+        analyzeMethods: program.analyzeMethods.bind(program),
+        methods: {},
+        Proof: ZkProgram.Proof(program),
+      },
+    ];
   }
 }
 
@@ -87,6 +89,7 @@ describe("blockProver", () => {
         status: Bool(true),
         networkStateHash: networkState.hash(),
         isMessage: Bool(false),
+        eventsHash: Field(0),
       }),
 
       proof: "",

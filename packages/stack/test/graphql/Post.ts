@@ -29,13 +29,13 @@ export class MessageBoard extends RuntimeModule<Record<string, never>> {
   @state() public posts = StateMap.from(Field, Post);
 
   @runtimeMethod()
-  public post(message: CircuitString) {
+  public async post(message: CircuitString) {
     const post = new Post({
       message,
       author: this.transaction.sender.value,
       createdAt: this.network.block.height,
     });
 
-    this.posts.set(post.id, post);
+    await this.posts.set(post.id, post);
   }
 }

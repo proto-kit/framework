@@ -4,7 +4,7 @@ import {
   graphqlModule,
 } from "@proto-kit/api";
 import { NonEmptyArray, createMethodMiddlewareDecorator } from "type-graphql";
-import { ChildContainerProvider, TypedClass } from "@proto-kit/common";
+import { ChildContainerProvider, log, TypedClass } from "@proto-kit/common";
 
 import { PrismaDatabaseConnection } from "../storage/PrismaDatabaseConnection";
 import { BasePrismaClient } from "../handlers/BasePrismaClient";

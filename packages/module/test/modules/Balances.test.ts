@@ -41,7 +41,7 @@ describe("balances", () => {
     return stateValue;
   }
 
-  function createChain() {
+  async function createChain() {
     ({ runtime, state } = createTestingRuntime(
       {
         Balances,
@@ -58,7 +58,7 @@ describe("balances", () => {
 
     balances = runtime.resolve("Balances");
 
-    state.set(balances.totalSupply.path!, UInt64.from(10).toFields());
+    await state.set(balances.totalSupply.path!, UInt64.from(10).toFields());
   }
 
   describe.skip("compile and prove", () => {
@@ -80,7 +80,7 @@ describe("balances", () => {
         "1439144406936083177718146178121957896974210157062549589517697792374542035761";
       const expectedStatus = true;
 
-      await runtime.zkProgrammable.zkProgram.compile();
+      await runtime.zkProgrammable.zkProgram[0].compile();
 
       await balances.getTotalSupply();
 
@@ -88,7 +88,7 @@ describe("balances", () => {
 
       const proof = await result.prove<Proof<undefined, MethodPublicOutput>>();
 
-      const verified = await runtime.zkProgrammable.zkProgram.verify(proof);
+      const verified = await runtime.zkProgrammable.zkProgram[0].verify(proof);
 
       runtime.zkProgrammable.appChain?.setProofsEnabled(false);
 
@@ -160,10 +160,10 @@ describe("balances", () => {
     describe("state transitions from empty state", () => {
       let stateTransitions: ProvableStateTransition[];
 
-      beforeAll(() => {
-        createChain();
+      beforeAll(async () => {
+        await createChain();
 
-        state.set(balances.totalSupply.path!, undefined);
+        await state.set(balances.totalSupply.path!, undefined);
       });
 
       beforeEach(async () => {

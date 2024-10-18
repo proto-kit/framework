@@ -21,6 +21,7 @@ import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore"
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockResult, BlockWithResult } from "../../storage/model/Block";
+import { VerificationKeyService } from "../runtime/RuntimeVerificationKeyService";
 
 import { BlockProverParameters } from "./tasks/BlockProvingTask";
 import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
@@ -82,7 +83,8 @@ export class BatchProducerModule extends SequencerModule {
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly traceService: TransactionTraceService,
     private readonly blockFlowService: BlockTaskFlowService,
-    private readonly blockProofSerializer: BlockProofSerializer
+    private readonly blockProofSerializer: BlockProofSerializer,
+    private readonly verificationKeyService: VerificationKeyService
   ) {
     super();
   }
@@ -248,6 +250,7 @@ export class BatchProducerModule extends SequencerModule {
         const result = await this.traceService.createTransactionTrace(
           tx,
           stateServices,
+          this.verificationKeyService,
           block.networkState.during,
           bundleTracker,
           eternalBundleTracker,

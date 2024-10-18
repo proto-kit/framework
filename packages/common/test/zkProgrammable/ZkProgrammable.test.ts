@@ -11,7 +11,6 @@ import {
   AreProofsEnabled,
   CompileArtifact,
   MOCK_VERIFICATION_KEY,
-  PlainZkProgram,
   ZkProgrammable,
 } from "../../src/zkProgrammable/ZkProgrammable";
 import { ProvableMethodExecutionContext } from "../../src/zkProgrammable/ProvableMethodExecutionContext";
@@ -85,38 +84,38 @@ class TestProgrammable extends ZkProgrammable<
       fail: program.fail.bind(program),
     };
 
-    return {
-      compile: program.compile.bind(program),
-      verify: program.verify.bind(program),
-      analyzeMethods: program.analyzeMethods.bind(program),
-      Proof: SelfProof,
-      methods,
-    };
+    return [
+      {
+        compile: program.compile.bind(program),
+        verify: program.verify.bind(program),
+        analyzeMethods: program.analyzeMethods.bind(program),
+        Proof: SelfProof,
+        methods,
+      },
+    ];
   }
 }
 
-class OtherTestProgrammable extends ZkProgrammable {
+class OtherTestProgrammable extends ZkProgrammable<undefined, void> {
   public appChain: AreProofsEnabled = appChainMock;
 
   public constructor(public testProgrammable: TestProgrammable) {
     super();
   }
 
+  proofType = this.testProgrammable.zkProgram[0].Proof;
+
   @provableMethod()
-  public async bar(
-    testProgrammableProof: InstanceType<
-      typeof this.testProgrammable.zkProgram.Proof
-    >
-  ) {
+  public async bar(testProgrammableProof: InstanceType<typeof this.proofType>) {
     testProgrammableProof.verify();
   }
 
-  public zkProgramFactory(): PlainZkProgram {
+  public zkProgramFactory() {
     const program = ZkProgram({
       name: "testprogram2",
       methods: {
         bar: {
-          privateInputs: [this.testProgrammable.zkProgram.Proof],
+          privateInputs: [this.testProgrammable.zkProgram[0].Proof],
           method: this.bar.bind(this),
         },
       },
@@ -128,13 +127,15 @@ class OtherTestProgrammable extends ZkProgrammable {
 
     const SelfProof = ZkProgram.Proof(program);
 
-    return {
-      compile: program.compile.bind(program),
-      verify: program.verify.bind(program),
-      analyzeMethods: program.analyzeMethods.bind(program),
-      Proof: SelfProof,
-      methods,
-    };
+    return [
+      {
+        compile: program.compile.bind(program),
+        verify: program.verify.bind(program),
+        analyzeMethods: program.analyzeMethods.bind(program),
+        Proof: SelfProof,
+        methods,
+      },
+    ];
   }
 }
 
@@ -184,7 +185,7 @@ describe("zkProgrammable", () => {
         testProgrammable = new TestProgrammable();
         testProgrammable.appChain.setProofsEnabled(areProofsEnabled);
         zkProgramFactorySpy = jest.spyOn(testProgrammable, "zkProgramFactory");
-        artifact = await testProgrammable.zkProgram.compile();
+        artifact = await testProgrammable.zkProgram[0].compile();
       }, 500_000);
 
       describe("zkProgramFactory", () => {
@@ -211,7 +212,7 @@ describe("zkProgrammable", () => {
       it("if proofs are disabled, it should successfully verify mock proofs", async () => {
         expect.assertions(1);
 
-        const proof = new testProgrammable.zkProgram.Proof({
+        const proof = new testProgrammable.zkProgram[0].Proof({
           proof: MOCK_PROOF,
 
           publicInput: new TestPublicInput({
@@ -225,7 +226,7 @@ describe("zkProgrammable", () => {
           maxProofsVerified: 0,
         });
 
-        const verified = await testProgrammable.zkProgram.verify(proof);
+        const verified = await testProgrammable.zkProgram[0].verify(proof);
 
         expect(verified).toBe(shouldVerifyMockProofs);
 
@@ -249,7 +250,7 @@ describe("zkProgrammable", () => {
         describe("zkProgram interoperability", () => {
           beforeAll(async () => {
             otherTestProgrammable = new OtherTestProgrammable(testProgrammable);
-            await otherTestProgrammable.zkProgram.compile();
+            await otherTestProgrammable.zkProgram[0].compile();
           }, 500_000);
 
           it("should successfully pass proof of one zkProgram as input to another zkProgram", async () => {
@@ -263,7 +264,7 @@ describe("zkProgrammable", () => {
               .current()
               .result.prove<Proof<TestPublicInput, TestPublicOutput>>();
             const testProofVerified =
-              await testProgrammable.zkProgram.verify(testProof);
+              await testProgrammable.zkProgram[0].verify(testProof);
 
             // execute bar
             await otherTestProgrammable.bar(testProof);
@@ -273,7 +274,7 @@ describe("zkProgrammable", () => {
               .current()
               .result.prove<Proof<undefined, void>>();
             const otherTestProofVerified =
-              await otherTestProgrammable.zkProgram.verify(otherTestProof);
+              await otherTestProgrammable.zkProgram[0].verify(otherTestProof);
 
             expect(testProof.publicOutput.bar.toString()).toBe(
               testPublicInput.foo.toString()

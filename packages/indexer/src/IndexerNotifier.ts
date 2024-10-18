@@ -49,6 +49,6 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
   }
 
   public async start(): Promise<void> {
-    this.propagateEventsAsTasks();
+    await this.propagateEventsAsTasks();
   }
 }

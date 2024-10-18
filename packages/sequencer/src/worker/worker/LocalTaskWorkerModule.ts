@@ -4,7 +4,6 @@ import {
   ModulesConfig,
   ModulesRecord,
   NoConfig,
-  noop,
   Presets,
   TypedClass,
 } from "@proto-kit/common";
@@ -27,9 +26,11 @@ import {
   StateTransitionReductionTask,
   StateTransitionTask,
 } from "../../protocol/production/tasks/StateTransitionTask";
+import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitCompilerTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
+import { WorkerRegistrationTask } from "./startup/WorkerRegistrationTask";
 
 // Temporary workaround against the compiler emitting
 // import("common/dist") inside the library artifacts
@@ -89,19 +90,12 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       this.assertIsValidModuleName(moduleName);
 
       const task = this.resolve(moduleName);
-      log.info(`Setting up task ${task.name}`);
+      log.info(`Resolved task ${task.name}`);
       return task;
     });
 
-    const worker = new FlowTaskWorker(this.taskQueue(), tasks);
-    worker
-      .start()
-      .then(() => {
-        noop();
-      })
-      .catch((error: Error) => {
-        log.error(error);
-      });
+    const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
+    await worker.start();
   }
 }
 
@@ -114,6 +108,8 @@ export class VanillaTaskWorkerModules {
       BlockProvingTask,
       BlockReductionTask,
       BlockBuildingTask: NewBlockTask,
+      CircuitCompilerTask,
+      WorkerRegistrationTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -133,6 +129,8 @@ export class VanillaTaskWorkerModules {
       BlockBuildingTask: {},
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
+      CircuitCompilerTask: {},
+      WorkerRegistrationTask: {},
     };
   }
 }
@@ -141,5 +139,5 @@ export type TaskWorkerModulesWithoutSettlement = ReturnType<
   typeof VanillaTaskWorkerModules.withoutSettlement
 >;
 export type AllTaskWorkerModules = ReturnType<
-  typeof VanillaTaskWorkerModules.withoutSettlement
+  typeof VanillaTaskWorkerModules.allTasks
 >;
