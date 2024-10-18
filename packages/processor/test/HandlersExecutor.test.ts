@@ -8,15 +8,13 @@ import { Balance, Balances, TokenId } from "@proto-kit/library";
 import { MethodParameterEncoder } from "@proto-kit/module";
 import { PrivateKey, PublicKey } from "o1js";
 import { mockDeep } from "jest-mock-extended";
+import { container } from "tsyringe";
 
 import {
   BlockHandler,
   HandlersExecutor,
   HandlersRecord,
 } from "../src/handlers/HandlersExecutor";
-import { container } from "tsyringe";
-import { Processor } from "../src";
-import { Database } from "../src/storage/Database";
 
 const alicePrivateKey = PrivateKey.random();
 const alice = alicePrivateKey.toPublicKey();
@@ -66,15 +64,11 @@ describe("HandlersModule", () => {
           );
 
           // @ts-expect-error
-          const [tokenId, from, to, amount]: [
-            TokenId,
-            PublicKey,
-            PublicKey,
-            Balance,
-          ] = await parameterDecoder.decode(
-            tx.tx.argsFields,
-            tx.tx.auxiliaryData
-          );
+          const [, from, to, amount]: [TokenId, PublicKey, PublicKey, Balance] =
+            await parameterDecoder.decode(
+              tx.tx.argsFields,
+              tx.tx.auxiliaryData
+            );
 
           const currentFromBalance = await client.balance.findFirst({
             orderBy: {
@@ -157,6 +151,7 @@ describe("HandlersModule", () => {
 
     const handlersExecutor = new (HandlersExecutor.from(handlers))();
     handlersExecutor.create(() => container);
+    handlersExecutor.config = {};
 
     appChain.setSigner(alicePrivateKey);
 

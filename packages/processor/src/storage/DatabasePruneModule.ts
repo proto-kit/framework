@@ -1,8 +1,10 @@
 import { inject, injectable } from "tsyringe";
-import { ProcessorModule } from "./../ProcessorModule";
-import { Database } from "./Database";
-import { BasePrismaClient } from "../handlers/BasePrismaClient";
 import { log } from "@proto-kit/common";
+
+import { BasePrismaClient } from "../handlers/BasePrismaClient";
+import { ProcessorModule } from "../ProcessorModule";
+
+import { Database } from "./Database";
 
 export interface DatabasePruneModuleConfig {
   pruneOnStartup?: boolean;

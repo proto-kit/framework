@@ -1,8 +1,4 @@
-import {
-  ChildContainerProvider,
-  NoConfig,
-  TypedClass,
-} from "@proto-kit/common";
+import { ChildContainerProvider, TypedClass } from "@proto-kit/common";
 import { BlockWithResult } from "@proto-kit/sequencer";
 import { injectable } from "tsyringe";
 

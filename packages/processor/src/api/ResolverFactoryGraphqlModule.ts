@@ -66,11 +66,9 @@ export class ResolverFactoryGraphqlModule<
   }
 
   public create(childContainerProvider: ChildContainerProvider): void {
-    console.log("create ResolverFactory");
     const container = childContainerProvider();
     this.graphqlServer = container.resolve("GraphqlServer");
     this.database = container.resolve("Database");
-    console.log("database", this.database);
     this.graphqlServer.setContext({
       prisma: this.database?.prismaClient,
     });
