@@ -30,7 +30,7 @@ export abstract class SchemaGeneratingGraphqlModule<
 export abstract class ResolverFactoryGraphqlModule<
   Config = NoConfig,
 > extends GraphqlModule<Config> {
-  public abstract resolvers(): NonEmptyArray<Function>;
+  public abstract resolvers(): Promise<NonEmptyArray<Function>>;
 }
 
 export function graphqlModule() {

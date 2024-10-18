@@ -85,10 +85,6 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
     @inject("GraphqlServer") public graphqlServer: GraphqlServer
   ) {
     super();
-
-    this.graphqlServer.setContext({
-      prisma: this.initializePrismaClient(),
-    });
   }
 
   public async initializePrismaClient() {
@@ -102,7 +98,11 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
     return prismaClient;
   }
 
-  public resolvers(): NonEmptyArray<Function> {
+  public async resolvers(): Promise<NonEmptyArray<Function>> {
+    this.graphqlServer.setContext({
+      prisma: await this.initializePrismaClient(),
+    });
+
     // basic way to limit the number of results returned at the argument level
     const resolversEnchanceMap: ResolversEnhanceMap = {
       Block: {

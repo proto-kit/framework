@@ -71,7 +71,8 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
         const module = this.resolve(
           moduleName
         ) as ResolverFactoryGraphqlModule<unknown>;
-        this.graphqlServer.registerResolvers(module.resolvers());
+        // eslint-disable-next-line no-await-in-loop
+        this.graphqlServer.registerResolvers(await module.resolvers());
       } else {
         this.graphqlServer.registerModule(moduleClass);
 

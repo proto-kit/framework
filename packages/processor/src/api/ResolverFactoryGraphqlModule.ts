@@ -53,7 +53,7 @@ export class ResolverFactoryGraphqlModule<
     resolvers: NonEmptyArray<Function>
   ): TypedClass<ResolverFactoryGraphqlModule<PrismaClient>> {
     return class ScopedResolverFactoryGraphqlModule extends ResolverFactoryGraphqlModule<PrismaClient> {
-      public resolvers() {
+      public async resolvers() {
         return cleanResolvers(resolvers);
       }
     };
@@ -74,7 +74,7 @@ export class ResolverFactoryGraphqlModule<
     });
   }
 
-  public resolvers(): NonEmptyArray<Function> {
+  public async resolvers(): Promise<NonEmptyArray<Function>> {
     // this is overwritten when .from is used
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return [] as unknown as NonEmptyArray<Function>;
