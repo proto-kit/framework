@@ -140,4 +140,13 @@ export class TestingAppChain<
 
     return await blockTrigger.produceBlock();
   }
+
+  public async produceBlockWithResult() {
+    const blockTrigger = this.sequencer.resolveOrFail(
+      "BlockTrigger",
+      ManualBlockTrigger
+    );
+
+    return await blockTrigger.produceBlockWithResult();
+  }
 }

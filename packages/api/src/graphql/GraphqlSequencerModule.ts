@@ -12,7 +12,11 @@ import {
 } from "@proto-kit/common";
 
 import { GraphqlServer } from "./GraphqlServer";
-import { GraphqlModule, SchemaGeneratingGraphqlModule } from "./GraphqlModule";
+import {
+  GraphqlModule,
+  ResolverFactoryGraphqlModule,
+  SchemaGeneratingGraphqlModule,
+} from "./GraphqlModule";
 
 export type GraphqlModulesRecord = ModulesRecord<
   TypedClass<GraphqlModule<unknown>>
@@ -55,22 +59,38 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
       const moduleClass = this.definition.modules[moduleName];
-      this.graphqlServer.registerModule(moduleClass);
 
       if (
         Object.prototype.isPrototypeOf.call(
-          SchemaGeneratingGraphqlModule,
+          ResolverFactoryGraphqlModule,
           moduleClass
         )
       ) {
-        log.debug(`Registering manual schema for ${moduleName}`);
+        log.debug(`Registering resolvers factory from ${moduleName}`);
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const module = this.resolve(
           moduleName
-        ) as SchemaGeneratingGraphqlModule<unknown>;
-        this.graphqlServer.registerSchema(module.generateSchema());
+        ) as ResolverFactoryGraphqlModule<unknown>;
+        // eslint-disable-next-line no-await-in-loop
+        this.graphqlServer.registerResolvers(await module.resolvers());
+      } else {
+        this.graphqlServer.registerModule(moduleClass);
+
+        if (
+          Object.prototype.isPrototypeOf.call(
+            SchemaGeneratingGraphqlModule,
+            moduleClass
+          )
+        ) {
+          log.debug(`Registering manual schema for ${moduleName}`);
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          const module = this.resolve(
+            moduleName
+          ) as SchemaGeneratingGraphqlModule<unknown>;
+          this.graphqlServer.registerSchema(module.generateSchema());
+        }
       }
     }
-    void this.graphqlServer.startServer();
+    await this.graphqlServer.startServer();
   }
 }

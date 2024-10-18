@@ -24,47 +24,49 @@ export class LocalTaskQueue
   extends SequencerModule<LocalTaskQueueConfig>
   implements TaskQueue
 {
-  private queues: {
+  public queues: {
     [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
 
   private workers: {
-    [key: string]: {
-      busy: boolean;
-      handler: (data: TaskPayload) => Promise<TaskPayload | "closed">;
-      close: () => Promise<void>;
-    };
+    [key: string]:
+      | {
+          busy: boolean;
+          handler: (data: TaskPayload) => Promise<TaskPayload | "closed">;
+          close: () => Promise<void>;
+        }
+      | undefined;
   } = {};
 
-  private readonly listeners: {
-    [key: string]: QueueListener[];
+  public readonly listeners: {
+    [key: string]: QueueListener[] | undefined;
   } = {};
 
-  private workNextTasks() {
-    Object.entries(this.queues).forEach((queue) => {
-      const [queueName, tasks] = queue;
-
-      if (tasks.length > 0) {
+  public workNextTasks() {
+    Object.entries(this.queues).forEach(([queueName, tasks]) => {
+      if (tasks.length > 0 && this.workers[queueName]) {
         tasks.forEach((task) => {
           // Execute task in worker
 
-          void this.workers[queueName].handler(task.payload).then((payload) => {
-            if (payload === "closed") {
-              return;
-            }
-            log.trace("LocalTaskQueue got", JSON.stringify(payload));
-            // Notify listeners about result
-            const listenerPromises = this.listeners[queueName].map(
-              async (listener) => {
-                await listener(payload);
+          void this.workers[queueName]
+            ?.handler(task.payload)
+            .then((payload) => {
+              if (payload === "closed") {
+                return;
               }
-            );
-            void Promise.all(listenerPromises);
-          });
+              log.trace("LocalTaskQueue got", JSON.stringify(payload));
+              // Notify listeners about result
+              const listenerPromises = this.listeners[queueName]?.map(
+                async (listener) => {
+                  await listener(payload);
+                }
+              );
+              void Promise.all(listenerPromises || []);
+            });
         });
       }
 
-      this.queues[queue[0]] = [];
+      this.queues[queueName] = [];
     });
   }
 
