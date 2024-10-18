@@ -79,6 +79,7 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
               protocolTransitions
               status
               statusMessage
+              events
               tx {
                 hash
                 methodId
