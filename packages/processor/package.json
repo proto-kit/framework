@@ -44,7 +44,7 @@
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
-    "o1js": "1.1.0",
+    "o1js": "^1.1.0",
     "tsyringe": "^4.7.0",
     "type-graphql": "2.0.0-rc.2",
     "typegraphql-prisma": "^0.28"
