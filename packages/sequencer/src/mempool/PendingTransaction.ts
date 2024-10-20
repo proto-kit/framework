@@ -152,7 +152,7 @@ export class PendingTransaction extends UnsignedTransaction {
 
   public toJSON(): PendingTransactionJSONType {
     return {
-      hash: this.hash.toString(),
+      hash: this.hash().toString(),
       methodId: this.methodId.toJSON(),
       nonce: this.nonce.toString(),
       sender: this.sender.toBase58(),
