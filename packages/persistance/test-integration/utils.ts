@@ -154,6 +154,7 @@ export function createPrismaAppchain(
         BlockProvingTask: {},
         BlockBuildingTask: {},
         CircuitCompilerTask: {},
+        WorkerRegistrationTask: {},
       },
       BaseLayer: {},
       BlockProducerModule: {},
