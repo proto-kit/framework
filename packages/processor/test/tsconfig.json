@@ -1,0 +1,12 @@
+{
+  "extends": "./../tsconfig.json",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "allowJs": true,
+    "jsx": "react",
+    "moduleResolution": "node"
+  },
+  "include": ["./**/*.ts", "./*.ts", "./../src"]
+}

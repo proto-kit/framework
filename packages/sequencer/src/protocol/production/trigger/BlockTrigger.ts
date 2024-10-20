@@ -65,9 +65,9 @@ export class BlockTriggerBase<
     return undefined;
   }
 
-  protected async produceBlock(
+  protected async produceBlockWithResult(
     enqueueInSettlementQueue: boolean
-  ): Promise<Block | undefined> {
+  ): Promise<BlockWithResult | undefined> {
     const block = await this.blockProducerModule.tryProduceBlock();
 
     if (block && enqueueInSettlementQueue) {
@@ -78,7 +78,17 @@ export class BlockTriggerBase<
       this.events.emit("block-metadata-produced", block);
     }
 
-    return block?.block;
+    return block;
+  }
+
+  protected async produceBlock(
+    enqueueInSettlementQueue: boolean
+  ): Promise<Block | undefined> {
+    const blockWithResult = await this.produceBlockWithResult(
+      enqueueInSettlementQueue
+    );
+
+    return blockWithResult?.block;
   }
 
   protected async settle(batch: SettleableBatch) {
