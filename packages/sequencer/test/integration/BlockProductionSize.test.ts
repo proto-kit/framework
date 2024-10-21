@@ -80,7 +80,7 @@ describe("block limit", () => {
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
-        ProtocolStartUpModule: {},
+        ProtocolStartupModule: {},
       },
       Runtime: {
         Balance: {},
