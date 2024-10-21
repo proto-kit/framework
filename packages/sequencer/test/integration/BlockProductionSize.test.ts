@@ -33,9 +33,6 @@ describe("block limit", () => {
   }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let appChain: AppChain<any, any, any, any>;
-
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
 
@@ -83,6 +80,7 @@ describe("block limit", () => {
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
+        ProtocolStartUpModule: {},
       },
       Runtime: {
         Balance: {},
@@ -100,8 +98,6 @@ describe("block limit", () => {
 
     // Start AppChain
     await app.start(container.createChildContainer());
-
-    appChain = app;
 
     ({ runtime, sequencer } = app);
 
