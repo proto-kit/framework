@@ -26,6 +26,7 @@ import {
 } from "../../sequencer/executor/Sequencer";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
+import { distinctByPredicate } from "../../helpers/utils";
 
 type MempoolTransactionPaths = {
   transaction: PendingTransaction;
@@ -59,7 +60,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
       const success = await this.transactionStorage.pushUserTransaction(tx);
       if (success) {
         this.events.emit("mempool-transaction-added", tx);
-        log.info(
+        log.trace(
           `Transaction added to mempool: ${tx.hash().toString()} (${(await this.transactionStorage.getPendingUserTransactions()).length} transactions in mempool)`
         );
       } else {
@@ -94,8 +95,6 @@ export class PrivateMempool extends SequencerModule implements Mempool {
 
   public async getTxs(): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
-    const sortedTxs: PendingTransaction[] = [];
-    const skippedTxs: Record<string, MempoolTransactionPaths> = {};
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -104,10 +103,8 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-    await this.checkTxValid(
+    const sortedTxs = await this.checkTxValid(
       txs,
-      sortedTxs,
-      skippedTxs,
       baseCachedStateService,
       this.protocol.stateServiceProvider,
       networkState,
@@ -128,14 +125,17 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   // because a failed tx may succeed now if the failure was to do with a nonce issue, say.
   private async checkTxValid(
     transactions: PendingTransaction[],
-    sortedTransactions: PendingTransaction[],
-    skippedTransactions: Record<string, MempoolTransactionPaths>,
     baseService: CachedStateService,
     stateServiceProvider: StateServiceProvider,
     networkState: NetworkState,
     executionContext: RuntimeMethodExecutionContext
-  ) {
-    for (const [index, tx] of transactions.entries()) {
+  ): Promise<PendingTransaction[]> {
+    const skippedTransactions: Record<string, MempoolTransactionPaths> = {};
+    const sortedTransactions: PendingTransaction[] = [];
+    let queue: PendingTransaction[] = [...transactions];
+
+    while (queue.length > 0) {
+      const [tx] = queue.splice(0, 1);
       const txStateService = new CachedStateService(baseService);
       stateServiceProvider.setCurrentStateService(txStateService);
       const contextInputs: RuntimeMethodExecutionData = {
@@ -152,36 +152,32 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         transaction: signedTransaction.transaction,
         signature: signedTransaction.signature,
       });
-      delete transactions[index];
       const { status, statusMessage, stateTransitions } =
         executionContext.current().result;
+
       if (status.toBoolean()) {
-        log.info(`Accepted tx ${tx.hash().toString()}`);
+        log.trace(`Accepted tx ${tx.hash().toString()}`);
         sortedTransactions.push(tx);
         // eslint-disable-next-line no-await-in-loop
         await txStateService.applyStateTransitions(stateTransitions);
         // eslint-disable-next-line no-await-in-loop
         await txStateService.mergeIntoParent();
-        stateServiceProvider.popCurrentStateService();
         delete skippedTransactions[tx.hash().toString()];
         if (Object.entries(skippedTransactions).length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-loop-func
           stateTransitions.forEach((st) => {
             Object.values(skippedTransactions).forEach((value) => {
               if (value.paths.some((x) => x.equals(st.path))) {
-                transactions.push(value.transaction);
+                queue.push(value.transaction);
               }
             });
           });
-
-          // eslint-disable-next-line no-param-reassign
-          transactions = transactions.filter(
-            (id, idx, arr) => arr.indexOf(id) === idx
-          );
+          queue = queue.filter(distinctByPredicate((a, b) => a === b));
         }
       } else {
-        log.info(`Skipped tx ${tx.hash().toString()} because ${statusMessage}`);
-        this.protocol.stateServiceProvider.popCurrentStateService();
+        log.trace(
+          `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
+        );
         if (!(tx.hash().toString() in skippedTransactions)) {
           skippedTransactions[tx.hash().toString()] = {
             transaction: tx,
@@ -190,7 +186,9 @@ export class PrivateMempool extends SequencerModule implements Mempool {
               .filter((id, idx, arr) => arr.indexOf(id) === idx),
           };
         }
+        stateServiceProvider.popCurrentStateService();
       }
     }
+    return sortedTransactions;
   }
 }

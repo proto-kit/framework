@@ -440,7 +440,6 @@ export class ModuleContainer<
           throw errors.unableToDecorateModule(containedModuleName);
         }
         this.decorateModule(moduleName, containedModule);
-
         containedModule.create(() => {
           const container = this.container.createChildContainer();
           container.reset();

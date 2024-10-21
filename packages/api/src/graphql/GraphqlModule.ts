@@ -1,7 +1,7 @@
 import { ConfigurableModule, NoConfig, TypedClass } from "@proto-kit/common";
 import { GraphQLSchema } from "graphql/type";
 import { injectable, Lifecycle, scoped } from "tsyringe";
-import { Resolver } from "type-graphql";
+import { NonEmptyArray, Resolver } from "type-graphql";
 
 const graphqlModuleMetadataKey = "graphqlModule";
 
@@ -25,6 +25,12 @@ export abstract class SchemaGeneratingGraphqlModule<
   Config = NoConfig,
 > extends GraphqlModule<Config> {
   public abstract generateSchema(): GraphQLSchema;
+}
+
+export abstract class ResolverFactoryGraphqlModule<
+  Config = NoConfig,
+> extends GraphqlModule<Config> {
+  public abstract resolvers(): Promise<NonEmptyArray<Function>>;
 }
 
 export function graphqlModule() {

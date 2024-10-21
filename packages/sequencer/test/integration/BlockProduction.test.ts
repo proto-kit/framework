@@ -139,6 +139,7 @@ describe("block production", () => {
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
+        ProtocolStartupModule: {},
       },
       Runtime: {
         Balance: {},

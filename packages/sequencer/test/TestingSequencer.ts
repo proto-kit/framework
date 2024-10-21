@@ -13,6 +13,7 @@ import {
   TaskWorkerModulesRecord,
   BlockProducerModule,
   VanillaTaskWorkerModules,
+  ProtocolStartupModule,
 } from "../src";
 import { ConstantFeeStrategy } from "../src/protocol/baselayer/fees/ConstantFeeStrategy";
 
@@ -26,6 +27,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
   FeeStrategy: typeof ConstantFeeStrategy;
+  ProtocolStartupModule: typeof ProtocolStartupModule;
 }
 
 export function testingSequencerFromModules<
@@ -58,6 +60,7 @@ export function testingSequencerFromModules<
       ...modules,
       // We need to make sure that the taskworkermodule is initialized last
       LocalTaskWorkerModule: taskWorkerModule,
+      ProtocolStartupModule: ProtocolStartupModule,
     },
   });
 }

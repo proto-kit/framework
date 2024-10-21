@@ -22,6 +22,7 @@ import {
   BlockProducerModule,
   InMemoryDatabase,
   SequencerModulesRecord,
+  VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 import { TypedClass } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
@@ -108,14 +109,7 @@ export class TestingAppChain<
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        LocalTaskWorkerModule: {
-          StateTransitionTask: {},
-          RuntimeProvingTask: {},
-          StateTransitionReductionTask: {},
-          BlockReductionTask: {},
-          BlockProvingTask: {},
-          BlockBuildingTask: {},
-        },
+        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         BlockProducerModule: {},
         TaskQueue: {
@@ -145,5 +139,14 @@ export class TestingAppChain<
     );
 
     return await blockTrigger.produceBlock();
+  }
+
+  public async produceBlockWithResult() {
+    const blockTrigger = this.sequencer.resolveOrFail(
+      "BlockTrigger",
+      ManualBlockTrigger
+    );
+
+    return await blockTrigger.produceBlockWithResult();
   }
 }

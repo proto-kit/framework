@@ -5,7 +5,7 @@ import { sequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettleableBatch } from "../../../storage/model/Batch";
 import { BatchProducerModule } from "../BatchProducerModule";
 import { BlockProducerModule } from "../sequencing/BlockProducerModule";
-import { Block } from "../../../storage/model/Block";
+import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { BatchStorage } from "../../../storage/repositories/BatchStorage";
@@ -66,5 +66,11 @@ export class ManualBlockTrigger
     enqueueInSettlementQueue: boolean = true
   ): Promise<Block | undefined> {
     return await super.produceBlock(enqueueInSettlementQueue);
+  }
+
+  public async produceBlockWithResult(
+    enqueueInSettlementQueue: boolean = true
+  ): Promise<BlockWithResult | undefined> {
+    return await super.produceBlockWithResult(enqueueInSettlementQueue);
   }
 }

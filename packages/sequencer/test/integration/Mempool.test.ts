@@ -112,6 +112,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           LocalTaskWorkerModule: {},
           BaseLayer: {},
           TaskQueue: {},
+          ProtocolStartupModule: {},
         },
         Protocol: {
           AccountState: {},
@@ -191,6 +192,35 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect.assertions(13);
 
       await mempoolAddTransactions(user1PrivateKey, 0);
+      await mempoolAddTransactions(user2PrivateKey, 1);
+      await mempoolAddTransactions(user3PrivateKey, 1);
+      await mempoolAddTransactions(user2PrivateKey, 0);
+      await mempoolAddTransactions(user3PrivateKey, 0);
+      await mempoolAddTransactions(user1PrivateKey, 1);
+
+      const txs = await mempool.getTxs();
+
+      expect(txs).toHaveLength(6);
+      expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[0].sender).toStrictEqual(user1PublicKey);
+      expect(txs[1].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[1].sender).toStrictEqual(user2PublicKey);
+      expect(txs[2].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[2].sender).toStrictEqual(user3PublicKey);
+      expect(txs[3].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[3].sender).toStrictEqual(user1PublicKey);
+      expect(txs[4].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[4].sender).toStrictEqual(user2PublicKey);
+      expect(txs[5].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[5].sender).toStrictEqual(user3PublicKey);
+    });
+
+    it("transactions are returned in right order - hardest", async () => {
+      expect.assertions(13);
+
+      await mempoolAddTransactions(user1PrivateKey, 0);
+      await mempoolAddTransactions(user1PrivateKey, 4);
+      await mempoolAddTransactions(user1PrivateKey, 5);
       await mempoolAddTransactions(user2PrivateKey, 1);
       await mempoolAddTransactions(user3PrivateKey, 1);
       await mempoolAddTransactions(user2PrivateKey, 0);

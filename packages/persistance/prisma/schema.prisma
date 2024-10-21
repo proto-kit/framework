@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  // output   = "./../node_modules/.prisma/client"
   // Enable after upgrade to 5.9.0
   // previewFeatures = ["relationJoins"]
 }
@@ -13,9 +14,9 @@ datasource db {
 }
 
 model State {
-  path   Decimal @db.Decimal(78, 0)
+  path   Decimal   @db.Decimal(78, 0)
   values Decimal[] @db.Decimal(78, 0)
-  mask   String @db.VarChar(256)
+  mask   String    @db.VarChar(256)
 
   @@id([path, mask])
 }
@@ -23,13 +24,13 @@ model State {
 model Transaction {
   hash String @id
 
-  methodId String
-  sender String
-  nonce String
-  argsFields String[]
+  methodId      String
+  sender        String
+  nonce         String
+  argsFields    String[]
   auxiliaryData String[]
-  signature_r String
-  signature_s String
+  signature_r   String
+  signature_s   String
 
   isMessage Boolean
 
@@ -45,34 +46,34 @@ model TransactionExecutionResult {
   statusMessage String?
   events Json @db.Json
 
-  tx Transaction @relation(fields: [txHash], references: [hash])
-  txHash String @id
+  tx     Transaction @relation(fields: [txHash], references: [hash])
+  txHash String      @id
 
-  block Block @relation(fields: [blockHash], references: [hash])
+  block     Block  @relation(fields: [blockHash], references: [hash])
   blockHash String
 }
 
 model Block {
   hash String @id
 
-  transactionsHash String
-  beforeNetworkState Json @db.Json
-  duringNetworkState Json @db.Json
-  height Int
+  transactionsHash            String
+  beforeNetworkState          Json   @db.Json
+  duringNetworkState          Json   @db.Json
+  height                      Int
   fromEternalTransactionsHash String
-  toEternalTransactionsHash String
-  fromBlockHashRoot String
-  fromMessagesHash String
-  toMessagesHash String
+  toEternalTransactionsHash   String
+  fromBlockHashRoot           String
+  fromMessagesHash            String
+  toMessagesHash              String
 
   parentHash String? @unique
-  parent Block? @relation("Parent", fields: [parentHash], references: [hash])
-  successor Block? @relation("Parent")
+  parent     Block?  @relation("Parent", fields: [parentHash], references: [hash])
+  successor  Block?  @relation("Parent")
 
   transactions TransactionExecutionResult[]
-  result BlockResult?
+  result       BlockResult?
 
-  batch Batch? @relation(fields: [batchHeight], references: [height])
+  batch       Batch? @relation(fields: [batchHeight], references: [height])
   batchHeight Int?
 }
 
@@ -84,24 +85,24 @@ model Batch {
   blocks Block[]
 
   settlementTransactionHash String?
-  settlement Settlement? @relation(fields: [settlementTransactionHash], references: [transactionHash])
+  settlement                Settlement? @relation(fields: [settlementTransactionHash], references: [transactionHash])
 }
 
 model BlockResult {
   blockHash String @id @unique
 
-  stateRoot String
-  blockHashRoot String
-  afterNetworkState Json @db.Json
-  blockStateTransitions Json @db.Json
-  blockHashWitness Json @db.Json
+  stateRoot             String
+  blockHashRoot         String
+  afterNetworkState     Json   @db.Json
+  blockStateTransitions Json   @db.Json
+  blockHashWitness      Json   @db.Json
 
   block Block? @relation(fields: [blockHash], references: [hash])
 }
 
 model Settlement {
   // transaction String
-  transactionHash String @id
+  transactionHash      String @id
   promisedMessagesHash String
 
   batches Batch[]
@@ -109,10 +110,10 @@ model Settlement {
 
 model IncomingMessageBatchTransaction {
   transactionHash String
-  transaction Transaction @relation(fields: [transactionHash], references: [hash])
+  transaction     Transaction @relation(fields: [transactionHash], references: [hash])
 
   batchId Int
-  batch IncomingMessageBatch @relation(fields: [batchId], references: [id])
+  batch   IncomingMessageBatch @relation(fields: [batchId], references: [id])
 
   @@id([transactionHash, batchId])
 }
@@ -121,7 +122,7 @@ model IncomingMessageBatch {
   id Int @id @default(autoincrement())
 
   fromMessageHash String
-  toMessageHash String
+  toMessageHash   String
 
   messages IncomingMessageBatchTransaction[]
 }

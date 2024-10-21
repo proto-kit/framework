@@ -36,6 +36,7 @@ export * from "./protocol/production/TransactionTraceService";
 export * from "./protocol/production/sequencing/TransactionExecutionService";
 export * from "./protocol/production/sequencing/BlockProducerModule";
 export * from "./protocol/production/flow/ReductionTaskFlow";
+export * from "./protocol/ProtocolStartupModule";
 export * from "./storage/model/Batch";
 export * from "./storage/model/Block";
 export * from "./storage/model/Settlement";

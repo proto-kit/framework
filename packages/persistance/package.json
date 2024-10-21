@@ -12,7 +12,7 @@
     "lint": "eslint ./src ./test ./test-integration",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
-    "integration": "npm run test:file -- ./test-integration/** --runInBand",
+    "test:integration": "npm run test:file -- ./test-integration/** --runInBand",
     "test:watch": "npm run test:file -- ./test/** --watch"
   },
   "main": "dist/index.js",
@@ -20,9 +20,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^5.18.0",
     "lodash": "^4.17.21",
-    "prisma": "^5.7.1",
+    "prisma": "^5.18.0",
     "redis": "^4.6.12",
     "reflect-metadata": "^0.1.13"
   },

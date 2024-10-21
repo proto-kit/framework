@@ -45,7 +45,7 @@ export class RuntimeProvingTask
   }
 
   public resultSerializer(): TaskSerializer<RuntimeProof> {
-    return new ProofTaskSerializer(this.runtimeZkProgrammable.Proof);
+    return new ProofTaskSerializer(this.runtimeZkProgrammable[0].Proof);
   }
 
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
@@ -95,6 +95,9 @@ export class RuntimeProvingTask
   }
 
   public async prepare(): Promise<void> {
-    await this.runtimeZkProgrammable.compile();
+    for (const zkProgram of this.runtimeZkProgrammable) {
+      // eslint-disable-next-line no-await-in-loop
+      await zkProgram.compile();
+    }
   }
 }
