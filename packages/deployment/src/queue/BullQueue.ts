@@ -21,6 +21,10 @@ export interface BullQueueConfig {
   retryAttempts?: number;
 }
 
+interface BullWorker extends Closeable {
+  get worker(): Worker;
+}
+
 /**
  * TaskQueue implementation for BullMQ
  */
@@ -29,6 +33,9 @@ export class BullQueue
   implements TaskQueue
 {
   private activePromise?: Promise<void>;
+
+  private activeWorkers: Record<string, BullWorker> = {};
+  private activeJobs = 0;
 
   public createWorker(
     name: string,
@@ -42,6 +49,7 @@ export class BullQueue
         // This is by far not optimal - since it still picks up 1 task per queue but waits until
         // computing them, so that leads to bad performance over multiple workers.
         // For that we need to restructure tasks to be flowing through a single queue however
+        this.activeJobs += 1;
 
         // TODO Use worker.pause()
         while (this.activePromise !== undefined) {
@@ -54,9 +62,26 @@ export class BullQueue
         });
         this.activePromise = promise;
 
+        // Pause all other workers
+        const workersToPause = Object.entries(this.activeWorkers).filter(
+          ([key]) => key !== name
+        );
+        await Promise.all(
+          workersToPause.map(([, workerToPause]) =>
+            workerToPause.worker.pause(true)
+          )
+        );
+
         const result = await executor(job.data);
         this.activePromise = undefined;
         void resOutside();
+
+        this.activeJobs -= 1;
+        if (this.activeJobs === 0) {
+          Object.entries(this.activeWorkers).forEach(([, resumingWorker]) =>
+            resumingWorker.worker.resume()
+          );
+        }
 
         return result;
       },
@@ -76,11 +101,16 @@ export class BullQueue
       log.error(error);
     });
 
-    return {
+    const instantiatedWorker = {
       async close() {
         await worker.close();
       },
+      get worker() {
+        return worker;
+      },
     };
+    this.activeWorkers[name] = instantiatedWorker;
+    return instantiatedWorker;
   }
 
   public async getQueue(queueName: string): Promise<InstantiatedQueue> {
