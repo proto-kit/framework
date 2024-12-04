@@ -132,21 +132,20 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * @returns Option representation of the current state.
    */
   public async get(): Promise<Option<Value>> {
-    const option = await this.witnessFromState();
+    const mutex = container.resolve(GlobalExecutionContext).mutexInstance;
+    return await mutex.runExclusive(async () => {
+      const option = await this.witnessFromState();
 
-    this.hasPathOrFail();
+      this.hasPathOrFail();
 
-    const stateTransition = StateTransition.from(this.path, option);
+      const stateTransition = StateTransition.from(this.path, option);
 
-    container
-      .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
+      container
+        .resolve(RuntimeMethodExecutionContext)
+        .addStateTransition(stateTransition);
 
-    return option;
-  }
-
-  private generateCallId(): string {
-    return `${Date.now()}-${Math.random()}`;
+      return option;
+    });
   }
 
   /**
@@ -161,37 +160,23 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * @param value - Value to be set as the current state
    */
   public async set(value: Value) {
-    // Add state call to the global execution context to ensure the state call is awaited properly
-    const callId = this.generateCallId();
-    const context = container.resolve(GlobalExecutionContext);
+    const mutex = container.resolve(GlobalExecutionContext).mutexInstance;
+    await mutex.runExclusive(async () => {
+      // link the transition to the current state
+      const fromOption = await this.witnessFromState();
+      const toOption = Option.fromValue(value, this.valueType);
 
-    context.addStateCall(callId);
+      this.hasPathOrFail();
 
-    // Introduce a delay to ensure the JS evaluation loop continues
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 0);
+      const stateTransition = StateTransition.fromTo(
+        this.path,
+        fromOption,
+        toOption
+      );
+
+      container
+        .resolve(RuntimeMethodExecutionContext)
+        .addStateTransition(stateTransition);
     });
-
-    if (!context.hasStateCall(callId)) {
-      throw new Error("State call was not awaited properly");
-    }
-
-    // link the transition to the current state
-    const fromOption = await this.witnessFromState();
-    const toOption = Option.fromValue(value, this.valueType);
-
-    this.hasPathOrFail();
-
-    const stateTransition = StateTransition.fromTo(
-      this.path,
-      fromOption,
-      toOption
-    );
-
-    container
-      .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
-
-    context.removeStateCall(callId);
   }
 }

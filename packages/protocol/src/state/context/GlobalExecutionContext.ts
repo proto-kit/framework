@@ -1,18 +1,11 @@
 import { singleton } from "tsyringe";
+import { Mutex } from "async-mutex";
 
 @singleton()
 export default class GlobalExecutionContext {
-  private stateCalls: Set<string> = new Set();
+  private mutex = new Mutex();
 
-  public addStateCall(callId: string) {
-    this.stateCalls.add(callId);
-  }
-
-  public removeStateCall(callId: string) {
-    this.stateCalls.delete(callId);
-  }
-
-  public hasStateCall(callId: string): boolean {
-    return this.stateCalls.has(callId);
+  public get mutexInstance() {
+    return this.mutex;
   }
 }
