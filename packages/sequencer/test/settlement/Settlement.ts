@@ -1,5 +1,5 @@
 /* eslint-disable no-inner-declarations */
-import { log, mapSequential, RollupMerkleTree } from "@proto-kit/common";
+import { LinkedMerkleTree, log, mapSequential } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import {
@@ -274,7 +274,7 @@ export const settlementTestFn = (
           batch!.proof.publicInput.map((x) => Field(x))
         );
         expect(input.stateRoot.toBigInt()).toStrictEqual(
-          RollupMerkleTree.EMPTY_ROOT
+          LinkedMerkleTree.EMPTY_ROOT
         );
 
         const lastBlock = await blockQueue.getLatestBlock();

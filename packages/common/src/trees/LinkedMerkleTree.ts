@@ -78,6 +78,8 @@ export interface AbstractLinkedMerkleTree {
   getWitness(path: bigint): LinkedLeafAndMerkleWitness;
 
   dummyWitness(): LinkedMerkleTreeWitness;
+
+  dummy(): LinkedLeafAndMerkleWitness;
 }
 
 export interface AbstractLinkedMerkleTreeClass {
@@ -447,7 +449,7 @@ export function createLinkedMerkleTree(
       });
     }
 
-    private dummy(): LinkedLeafAndMerkleWitness {
+    public dummy(): LinkedLeafAndMerkleWitness {
       return new LinkedLeafAndMerkleWitness({
         merkleWitness: new RollupMerkleTreeWitness({
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

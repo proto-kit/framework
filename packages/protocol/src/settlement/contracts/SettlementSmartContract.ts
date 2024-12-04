@@ -320,7 +320,7 @@ export class SettlementSmartContract
       // Check witness
       const path = Path.fromKey(mapPath, Field, counter);
 
-      args.witness
+      args.witness.merkleWitness
         .checkMembership(
           stateRoot,
           path,

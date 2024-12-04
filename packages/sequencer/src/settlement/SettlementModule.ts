@@ -29,8 +29,8 @@ import {
   EventEmittingComponent,
   log,
   noop,
-  RollupMerkleTree,
   AreProofsEnabled,
+  LinkedMerkleTree,
 } from "@proto-kit/common";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 
@@ -43,11 +43,11 @@ import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../storage/repositories/MessageStorage";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { Batch, SettleableBatch } from "../storage/model/Batch";
-import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
-import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
 import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
+import { AsyncLinkedMerkleTreeStore } from "../state/async/AsyncLinkedMerkleTreeStore";
+import { CachedLinkedMerkleTreeStore } from "../state/merkle/CachedLinkedMerkleTreeStore";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
@@ -105,7 +105,7 @@ export class SettlementModule
     @inject("OutgoingMessageQueue")
     private readonly outgoingMessageQueue: OutgoingMessageQueue,
     @inject("AsyncMerkleStore")
-    private readonly merkleTreeStore: AsyncMerkleTreeStore,
+    private readonly merkleTreeStore: AsyncLinkedMerkleTreeStore,
     private readonly blockProofSerializer: BlockProofSerializer,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender,
@@ -206,8 +206,10 @@ export class SettlementModule
 
     const { settlement } = this.getContracts();
 
-    const cachedStore = new CachedMerkleTreeStore(this.merkleTreeStore);
-    const tree = new RollupMerkleTree(cachedStore);
+    const cachedStore = await CachedLinkedMerkleTreeStore.new(
+      this.merkleTreeStore
+    );
+    const tree = new LinkedMerkleTree(cachedStore);
 
     const [withdrawalModule, withdrawalStateName] =
       this.getSettlementModuleConfig().withdrawalStatePath.split(".");
