@@ -153,31 +153,6 @@ export class CachedLinkedMerkleTreeStore
     return Object.values(this.writeCache.leaves);
   }
 
-  // This ensures all the keys needed to be loaded
-  // to find the closest path are loaded.
-  // A bit repetitive as we basically repeat the process
-  // (without the loading) when we find the closest leaf.
-  // TODO: see how we could use a returned value.
-  public async loadUpKeysForClosestPath(path: bigint): Promise<void> {
-    let largestLeaf = this.getLeaf(0n);
-    if (largestLeaf === undefined) {
-      throw Error("Path 0n should be defined.");
-    }
-    while (largestLeaf.leaf.nextPath <= path) {
-      let nextLeaf = this.getLeaf(largestLeaf.leaf.nextPath);
-      // This means the nextPath wasn't preloaded and we have to load it.
-      if (nextLeaf === undefined) {
-        // eslint-disable-next-line no-await-in-loop
-        await this.preloadKey(largestLeaf.leaf.nextPath);
-        nextLeaf = this.getLeaf(largestLeaf.leaf.nextPath);
-        if (nextLeaf === undefined) {
-          throw Error(" Next Path is defined but not fetched");
-        }
-      }
-      largestLeaf = nextLeaf;
-    }
-  }
-
   // This resets the cache (not the in memory tree).
   public resetWrittenTree() {
     this.writeCache = { nodes: {}, leaves: {} };
