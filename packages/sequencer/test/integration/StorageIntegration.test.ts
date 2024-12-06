@@ -65,9 +65,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
     let unprovenState: AsyncStateService;
     let provenState: AsyncStateService;
 
-    // let unprovenTreeStore: AsyncMerkleTreeStore;
-    // let provenTreeStore: AsyncMerkleTreeStore;
-
     const sk = PrivateKey.random();
     const pk = sk.toPublicKey();
     let pkNonce = 0;

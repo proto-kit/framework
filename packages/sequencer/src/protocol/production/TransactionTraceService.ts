@@ -276,7 +276,6 @@ export class TransactionTraceService {
 
     const tree = new RollupMerkleTree(merkleStore);
     const runtimeTree = new RollupMerkleTree(runtimeSimulationMerkleStore);
-    // const runtimeTree = new RollupMerkleTree(merkleStore);
     const initialRoot = tree.getRoot();
 
     const transitionsList = new DefaultProvableHashList(

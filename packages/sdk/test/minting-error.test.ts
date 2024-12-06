@@ -62,7 +62,6 @@ describe("balances", () => {
   });
 
   it("regression - transfer from and to same account does not cause minting error", async () => {
-    // expect.assertions(2);
     const faucet = appChain.runtime.resolve("Faucet");
     const balancesRuntime = appChain.runtime.resolve("Balances");
 

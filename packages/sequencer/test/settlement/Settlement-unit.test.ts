@@ -1,4 +1,7 @@
 import { expect } from "@jest/globals";
+/* eslint etc/no-commented-out-code:
+ */
+
 // import { Actions } from "o1js/dist/node/lib/account_update";
 // import {
 //   ACTIONS_EMPTY_HASH,

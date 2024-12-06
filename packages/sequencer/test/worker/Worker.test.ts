@@ -1,3 +1,6 @@
+/* eslint etc/no-commented-out-code:
+ */
+
 import "reflect-metadata";
 
 import { beforeAll } from "@jest/globals";

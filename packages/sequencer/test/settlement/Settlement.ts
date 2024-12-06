@@ -241,8 +241,6 @@ export const settlementTestFn = (
         sequencerKey.toPublicKey(),
         20 * 1e9
       );
-
-      // const acc2 = await fetchAccount({ publicKey: accs[0].toPublicKey() });
     }, timeout);
 
     let nonceCounter = 0;
@@ -399,7 +397,6 @@ export const settlementTestFn = (
           }
         );
         settlementModule.signTransaction(usertx, [testAccounts[1]]);
-        // await usertx.send();
 
         await appChain.sequencer
           .resolveOrFail("TransactionSender", MinaTransactionSender)
@@ -475,7 +472,6 @@ export const settlementTestFn = (
           async () => {
             const mintAU = AccountUpdate.create(userKey.toPublicKey());
             mintAU.balance.addInPlace(amount);
-            // mintAU.requireSignature(); // TODO ?
             await settlement.redeem(mintAU);
           }
         );

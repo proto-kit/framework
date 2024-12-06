@@ -36,9 +36,6 @@ export class Balance extends RuntimeModule<object> {
     await this.totalSupply.get();
   }
 
-  // @runtimeMethod()
-  // public test(a: UInt64, b: Signature, c: MyStruct, d: Struct<unknown>) {}
-
   @runtimeMethod()
   public async setTotalSupply() {
     await this.totalSupply.set(UInt64.from(20));
