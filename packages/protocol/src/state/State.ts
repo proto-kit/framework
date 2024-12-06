@@ -9,7 +9,6 @@ import { StateTransition } from "../model/StateTransition";
 
 import { StateServiceProvider } from "./StateServiceProvider";
 import { RuntimeMethodExecutionContext } from "./context/RuntimeMethodExecutionContext";
-import GlobalExecutionContext from "./context/GlobalExecutionContext";
 
 export class WithPath {
   public path?: Field;
@@ -41,6 +40,17 @@ export class WithStateServiceProvider {
  * Utilities for runtime module state, such as get/set
  */
 export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
+  private queue: Promise<void> = Promise.resolve();
+
+  private queueOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.queue.then(() => operation());
+    this.queue = result.then(
+      () => undefined,
+      () => undefined
+    );
+    return result;
+  }
+
   /**
    * Creates a new state wrapper for the provided value type.
    *
@@ -132,8 +142,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * @returns Option representation of the current state.
    */
   public async get(): Promise<Option<Value>> {
-    const mutex = container.resolve(GlobalExecutionContext).mutexInstance;
-    return await mutex.runExclusive(async () => {
+    return await this.queueOperation(async () => {
       const option = await this.witnessFromState();
 
       this.hasPathOrFail();
@@ -160,8 +169,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * @param value - Value to be set as the current state
    */
   public async set(value: Value) {
-    const mutex = container.resolve(GlobalExecutionContext).mutexInstance;
-    await mutex.runExclusive(async () => {
+    await this.queueOperation(async () => {
       // link the transition to the current state
       const fromOption = await this.witnessFromState();
       const toOption = Option.fromValue(value, this.valueType);
