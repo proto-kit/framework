@@ -1,3 +1,5 @@
+/* eslint etc/no-commented-out-code:
+ */
 import "reflect-metadata";
 import { InMemoryMerkleTreeStorage } from "@proto-kit/common";
 import { Bool, Field } from "o1js";

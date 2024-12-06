@@ -91,11 +91,6 @@ export interface ToJSONableStatic {
   toJSON: (value: unknown) => any;
 }
 
-// export interface ProofTypes {
-//   publicOutputType?: ToFieldableStatic;
-//   publicInputType?: ToFieldableStatic;
-// }
-
 export type ProofTypes =
   | typeof Proof<unknown, unknown>
   | typeof DynamicProof<unknown, unknown>;
