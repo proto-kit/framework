@@ -9,7 +9,11 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
-import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
+import {
+  log,
+  ProvableMethodExecutionContext,
+  CompileRegistry,
+} from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import {
@@ -23,7 +27,6 @@ import {
   StateTransitionParametersSerializer,
   StateTransitionProofParameters,
 } from "./StateTransitionTaskParameters";
-import { CompileRegistry } from "./CompileRegistry";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -62,13 +65,6 @@ export class StateTransitionTask
   ): Promise<StateTransitionProof> {
     const stBatch = input.stateTransitions.slice();
     const merkleWitnesses = input.merkleWitnesses.slice();
-    // Array.from({
-    //   length: ProtocolConstants.stateTransitionProverBatchSize - stBatch.length,
-    // }).forEach(() => {
-    //   stBatch.push({
-    //     ProvableStateTransition.dummy()
-    //   });
-    // });
 
     const output = await this.stateTransitionProver.runBatch(
       input.publicInput,
@@ -85,10 +81,7 @@ export class StateTransitionTask
   }
 
   public async prepare(): Promise<void> {
-    await this.compileRegistry.compile(
-      "StateTransitionProver",
-      this.stateTransitionProver.zkProgrammable.zkProgram[0]
-    );
+    await this.stateTransitionProver.compile(this.compileRegistry);
   }
 }
 
@@ -137,11 +130,7 @@ export class StateTransitionReductionTask
       .result.prove<StateTransitionProof>();
   }
 
-  // eslint-disable-next-line sonarjs/no-identical-functions
   public async prepare(): Promise<void> {
-    await this.compileRegistry.compile(
-      "StateTransitionProver",
-      this.stateTransitionProver.zkProgrammable.zkProgram[0]
-    );
+    await this.stateTransitionProver.compile(this.compileRegistry);
   }
 }

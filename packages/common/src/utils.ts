@@ -6,6 +6,8 @@ import {
   Proof,
 } from "o1js";
 
+import { TypedClass } from "./types";
+
 export function requireTrue(
   condition: boolean,
   errorOrFunction: Error | (() => Error)
@@ -15,6 +17,23 @@ export function requireTrue(
       ? errorOrFunction()
       : errorOrFunction;
   }
+}
+
+export function splitArray<T, K extends string | number>(
+  arr: T[],
+  split: (t: T) => K
+): Record<K, T[] | undefined> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const record = {} as { [Key in K]: T[] };
+  arr.forEach((element) => {
+    const k = split(element);
+    if (record[k] !== undefined) {
+      record[k].push(element);
+    } else {
+      record[k] = [element];
+    }
+  });
+  return record;
 }
 
 export function range(
@@ -39,7 +58,7 @@ export function reduceSequential<T, U>(
     array: T[]
   ) => Promise<U>,
   initialValue: U
-) {
+): Promise<U> {
   return array.reduce<Promise<U>>(
     async (previousPromise, current, index, arr) => {
       const previous = await previousPromise;
@@ -52,7 +71,7 @@ export function reduceSequential<T, U>(
 export function mapSequential<T, R>(
   array: T[],
   f: (element: T, index: number, array: T[]) => Promise<R>
-) {
+): Promise<R[]> {
   return array.reduce<Promise<R[]>>(async (r, element, index, a) => {
     const ret = await r;
     const next = await f(element, index, a);
@@ -149,3 +168,29 @@ type NonMethodKeys<Type> = {
 export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;
 
 export const MAX_FIELD = Field(Field.ORDER - 1n);
+
+/**
+ * Returns a boolean indicating whether a given class is a subclass of another class,
+ * indicated by the name parameter.
+ */
+// TODO Change to class reference based comparisons
+export function isSubtypeOfName(
+  clas: TypedClass<unknown>,
+  name: string
+): boolean {
+  if (clas === undefined || clas === null) {
+    return false;
+  }
+
+  if (clas.name === name) {
+    return true;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  return isSubtypeOfName(Object.getPrototypeOf(clas), name);
+}
+
+// TODO Eventually, replace this by a schema validation library
+export function safeParseJson<T>(json: string) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return JSON.parse(json) as T;
+}

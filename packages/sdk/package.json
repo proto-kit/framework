@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "version": "0.1.1-develop.833+397881ed",
+  "version": "0.1.1-develop.1087+9ab55c9b",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -29,12 +29,12 @@
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
-    "o1js": "^1.1.0",
+    "o1js": "^1.6.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
     "@types/lodash": "^4.14.194"
   },
-  "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
+  "gitHead": "9ab55c9b0ab4476a75b47c4d3cd2dab9e6847ffe"
 }

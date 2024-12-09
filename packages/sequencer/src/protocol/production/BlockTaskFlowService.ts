@@ -214,10 +214,16 @@ export class BlockTaskFlowService {
       },
       this.flowCreator
     );
+
     blockMergingFlow.onCompletion(async (result) => {
-      log.debug(`Block generation finished, with proof ${result.proof}`); // TODO Remove result logging
+      const printableProof =
+        result.proof === MOCK_PROOF
+          ? result.proof
+          : result.toJSON().proof.slice(100);
+      log.debug(`Block generation finished, with proof ${printableProof}`); // TODO Remove result logging
       flow.resolve(result);
     });
+
     blockMergingFlow.deferErrorsTo(flow);
 
     return await flow.withFlow<BlockProof>(async () => {
@@ -274,6 +280,8 @@ export class BlockTaskFlowService {
                 }
               );
 
+              // TODO Dummy ST Proof for transactions that don't emit STs
+
               const stReductionFlow = this.createSTMergeFlow(
                 `tx-stproof-${batchId}-${blockNumber}-${transactionIndex}`,
                 trace.stateTransitionProver.length
@@ -319,12 +327,12 @@ export class BlockTaskFlowService {
 
           // Provide a dummy prove is this block is empty
           const proof =
-            new this.protocol.blockProver.zkProgrammable.zkProgram[0].Proof({
+            await this.protocol.blockProver.zkProgrammable.zkProgram[0].Proof.dummy(
               publicInput,
               publicOutput,
-              proof: MOCK_PROOF,
-              maxProofsVerified: 2,
-            });
+              2
+            );
+
           flow.state.blockPairings[blockNumber].blockProof = proof;
           await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
         }
@@ -335,14 +343,12 @@ export class BlockTaskFlowService {
           const [{ publicInput }] = blockTrace.stateTransitionProver;
 
           flow.state.blockPairings[blockNumber].stProof =
-            new this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof(
-              {
-                publicInput,
-                proof: MOCK_PROOF,
-                publicOutput: publicInput,
-                maxProofsVerified: 2,
-              }
+            await this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof.dummy(
+              publicInput,
+              publicInput,
+              2
             );
+
           await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
         } else {
           const blockSTFlow = this.createSTMergeFlow(

@@ -5,8 +5,10 @@ import {
   Closeable,
   InstantiatedQueue,
   TaskQueue,
-  SequencerModule,
+  AbstractTaskQueue,
 } from "@proto-kit/sequencer";
+
+import { InstantiatedBullQueue } from "./InstantiatedBullQueue";
 
 export interface BullQueueConfig {
   redis: {
@@ -14,6 +16,7 @@ export interface BullQueueConfig {
     port: number;
     username?: string;
     password?: string;
+    db?: number;
   };
   retryAttempts?: number;
 }
@@ -22,9 +25,11 @@ export interface BullQueueConfig {
  * TaskQueue implementation for BullMQ
  */
 export class BullQueue
-  extends SequencerModule<BullQueueConfig>
+  extends AbstractTaskQueue<BullQueueConfig>
   implements TaskQueue
 {
+  private activePromise?: Promise<void>;
+
   public createWorker(
     name: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>,
@@ -32,10 +37,34 @@ export class BullQueue
   ): Closeable {
     const worker = new Worker<TaskPayload, TaskPayload>(
       name,
-      async (job) => await executor(job.data),
+      async (job) => {
+        // This weird promise logic is needed to make sure the worker is not proving in parallel
+        // This is by far not optimal - since it still picks up 1 task per queue but waits until
+        // computing them, so that leads to bad performance over multiple workers.
+        // For that we need to restructure tasks to be flowing through a single queue however
+
+        // TODO Use worker.pause()
+        while (this.activePromise !== undefined) {
+          // eslint-disable-next-line no-await-in-loop
+          await this.activePromise;
+        }
+        let resOutside: () => void = () => {};
+        const promise = new Promise<void>((res) => {
+          resOutside = res;
+        });
+        this.activePromise = promise;
+
+        const result = await executor(job.data);
+        this.activePromise = undefined;
+        void resOutside();
+
+        return result;
+      },
       {
         concurrency: options?.concurrency ?? 1,
         connection: this.config.redis,
+        stalledInterval: 60000, // 1 minute
+        lockDuration: 60000, // 1 minute
 
         metrics: { maxDataPoints: MetricsTime.ONE_HOUR * 24 },
       }
@@ -54,39 +83,28 @@ export class BullQueue
     };
   }
 
+  /**
+   * 14 blocks:
+   *
+   * - 14 newBlocks
+   * @param queueName
+   */
+
+  private initializedQueue: Record<string, InstantiatedQueue> = {};
+
   public async getQueue(queueName: string): Promise<InstantiatedQueue> {
-    const { retryAttempts, redis } = this.config;
+    return this.createOrGetQueue(queueName, (name) => {
+      log.debug(`Creating bull queue ${queueName}`);
 
-    const queue = new Queue<TaskPayload, TaskPayload>(queueName, {
-      connection: redis,
+      const { redis } = this.config;
+
+      const queue = new Queue<TaskPayload, TaskPayload>(queueName, {
+        connection: redis,
+      });
+      const events = new QueueEvents(queueName, { connection: redis });
+
+      return new InstantiatedBullQueue(name, queue, events, this.config);
     });
-    const events = new QueueEvents(queueName, { connection: redis });
-
-    await queue.drain();
-
-    return {
-      name: queueName,
-
-      async addTask(payload: TaskPayload): Promise<{ taskId: string }> {
-        const job = await queue.add(queueName, payload, {
-          attempts: retryAttempts ?? 2,
-        });
-        return { taskId: job.id! };
-      },
-
-      async onCompleted(listener: (payload: TaskPayload) => Promise<void>) {
-        events.on("completed", async (result) => {
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          await listener(JSON.parse(result.returnvalue) as TaskPayload);
-        });
-        await events.waitUntilReady();
-      },
-
-      async close(): Promise<void> {
-        await events.close();
-        await queue.close();
-      },
-    };
   }
 
   public async start() {

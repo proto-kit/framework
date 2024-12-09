@@ -34,7 +34,7 @@ class RuntimeZkProgrammable extends ZkProgrammable<
   undefined,
   MethodPublicOutput
 > {
-  get appChain(): AreProofsEnabled | undefined {
+  get areProofsEnabled(): AreProofsEnabled | undefined {
     return new MockAppChain();
   }
 

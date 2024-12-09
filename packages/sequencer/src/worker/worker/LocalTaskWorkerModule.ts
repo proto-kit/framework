@@ -1,4 +1,6 @@
 import {
+  EventEmitter,
+  EventEmittingContainer,
   log,
   ModuleContainer,
   ModulesConfig,
@@ -42,6 +44,8 @@ export type TaskWorkerModulesRecord = ModulesRecord<
   TypedClass<TaskWorkerModule & Task<any, any>>
 >;
 
+type LocalTaskWorkerModuleEvents = { ready: [boolean] };
+
 /**
  * This module spins up a worker in the current local node instance.
  * This should only be used for local testing/development and not in a
@@ -51,9 +55,13 @@ export type TaskWorkerModulesRecord = ModulesRecord<
 @sequencerModule()
 export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
   extends ModuleContainer<Tasks>
-  implements SequencerModule
+  implements
+    SequencerModule,
+    EventEmittingContainer<LocalTaskWorkerModuleEvents>
 {
   public static presets: Presets<unknown> = {};
+
+  public containerEvents = new EventEmitter<LocalTaskWorkerModuleEvents>();
 
   public static from<Tasks extends TaskWorkerModulesRecord>(
     modules: Tasks
@@ -90,12 +98,21 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       this.assertIsValidModuleName(moduleName);
 
       const task = this.resolve(moduleName);
-      log.info(`Resolved task ${task.name}`);
+      log.debug(`Resolved task ${task.name}`);
       return task;
     });
 
     const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
     await worker.start();
+
+    void worker
+      .waitForPrepared()
+      .then(() => {
+        this.containerEvents.emit("ready", true);
+      })
+      .catch((e) => {
+        log.error("Error occurring waiting for the ready event", e);
+      });
   }
 }
 

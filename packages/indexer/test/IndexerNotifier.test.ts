@@ -137,8 +137,6 @@ async function sendTransactions(
       { nonce: i }
     );
 
-    console.log("tx nonce", tx.transaction?.nonce.toBigInt());
-
     await tx.sign();
     await tx.send();
   }

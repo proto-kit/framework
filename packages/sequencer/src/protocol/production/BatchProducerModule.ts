@@ -71,7 +71,7 @@ const errors = {
  */
 @sequencerModule()
 export class BatchProducerModule extends SequencerModule {
-  private productionInProgress = false;
+  public productionInProgress = false;
 
   public constructor(
     @inject("AsyncStateService")
@@ -135,7 +135,9 @@ export class BatchProducerModule extends SequencerModule {
       try {
         this.productionInProgress = true;
 
+        log.trace("Producing new batch with blocks", blocks);
         const batch = await this.produceBatch(blocks, height);
+        log.trace("Produced new batch", batch);
 
         this.productionInProgress = false;
 
@@ -274,7 +276,13 @@ export class BatchProducerModule extends SequencerModule {
       blockTraces.push(blockTrace);
     }
 
+    log.provable.trace("Executing flow with traces", blockTraces);
     const proof = await this.blockFlowService.executeFlow(blockTraces, blockId);
+    log.provable.trace(
+      "Flow executed with the following output proof",
+      proof.publicInput,
+      proof.publicOutput
+    );
 
     const fromNetworkState = blocks[0].block.block.networkState.before;
     const toNetworkState = blocks.at(-1)!.block.result.afterNetworkState;

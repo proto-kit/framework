@@ -1,5 +1,5 @@
 import { Field, Proof, Struct } from "o1js";
-import { WithZkProgrammable } from "@proto-kit/common";
+import { WithZkProgrammable, CompilableModule } from "@proto-kit/common";
 
 import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
 
@@ -24,9 +24,10 @@ export type StateTransitionProof = Proof<
 
 export interface StateTransitionProvable
   extends WithZkProgrammable<
-    StateTransitionProverPublicInput,
-    StateTransitionProverPublicOutput
-  > {
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >,
+    CompilableModule {
   runBatch: (
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch

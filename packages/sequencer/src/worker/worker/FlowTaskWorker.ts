@@ -28,10 +28,10 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
   // The array type is this weird, because we first want to extract the
   // element type, and after that, we expect multiple elements of that -> []
   private initHandler<Input, Output>(task: Task<Input, Output>) {
-    log.debug(`Init task ${task.name}`);
+    log.debug(`Init task handler ${task.name}`);
     const queueName = task.name;
     return this.queue.createWorker(queueName, async (data) => {
-      log.debug(`Received task in queue ${queueName}`);
+      log.debug(`Received task ${data.taskId} in queue ${queueName}`);
 
       try {
         // Use first handler that returns a non-undefined result
@@ -51,12 +51,17 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
           payload: await task.resultSerializer().toJSON(output),
         };
 
+        log.debug(
+          `Responding to task ${data.taskId} with ${result.payload.slice(0, 100)}`
+        );
+
         return result;
       } catch (error: unknown) {
         const payload =
           error instanceof Error ? error.message : JSON.stringify(error);
 
-        log.debug("Error in worker (detailed trace): ", error);
+        log.info("Error in worker (detailed trace): ");
+        log.info(error);
 
         return {
           status: "error",
@@ -69,6 +74,14 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
     });
   }
 
+  preparePromise?: Promise<void>;
+
+  prepareResolve?: () => void;
+
+  public waitForPrepared(): Promise<void> {
+    return this.preparePromise!;
+  }
+
   public async prepareTasks(tasks: Task<unknown, unknown>[]) {
     log.info("Preparing tasks...");
 
@@ -76,8 +89,10 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
     // Call them in order of registration, because the prepare methods
     // might depend on each other or a result that is saved in a DI singleton
     for (const task of tasks) {
+      log.debug(`Preparing task ${task.constructor.name}`);
       // eslint-disable-next-line no-await-in-loop
       await task.prepare();
+      log.trace(`${task.constructor.name} prepared`);
     }
 
     const newWorkers = Object.fromEntries(
@@ -89,6 +104,8 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       ...this.workers,
       ...newWorkers,
     };
+
+    this.prepareResolve!();
   }
 
   public async start() {
@@ -113,6 +130,11 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
     const normalTasks = this.tasks.filter(
       (task) => !isUnpreparingTask(task) && !isAbstractStartupTask(task)
     );
+
+    const preparePromise = new Promise<void>((res) => {
+      this.prepareResolve = res;
+    });
+    this.preparePromise = preparePromise;
 
     if (startupTasks.length > 0) {
       this.workers = Object.fromEntries(
