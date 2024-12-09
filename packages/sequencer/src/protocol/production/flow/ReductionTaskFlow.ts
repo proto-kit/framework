@@ -213,8 +213,17 @@ export class ReductionTaskFlow<Input, Output> {
           this.flow.resolve(result);
         } else {
           this.flow.state.queue.push(result);
+          // await this.resolveReduction();
+        }
+        if (this.options.inputLength === this.flow.state.queue.length) {
           await this.resolveReduction();
         }
+        // if (this.options.inputLength === 1) {
+        //   this.flow.resolve(result);
+        // } else {
+        //   this.flow.state.queue.push(result);
+        //   await this.resolveReduction();
+        // }
       }
     );
   }

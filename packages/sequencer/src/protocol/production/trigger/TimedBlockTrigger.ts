@@ -101,6 +101,15 @@ export class TimedBlockTrigger
       try {
         // Trigger unproven blocks
         if (totalTime % blockInterval === 0) {
+          if (
+            this.blockProducerModule.productionInProgress === true ||
+            this.batchProducerModule?.productionInProgress === true
+          ) {
+            log.info(
+              "batch or block still being produced, skipping unproven block prod!"
+            );
+            return;
+          }
           await this.produceUnprovenBlock();
         }
 
@@ -111,9 +120,23 @@ export class TimedBlockTrigger
           settlementInterval !== undefined &&
           totalTime % settlementInterval === 0
         ) {
+          if (
+            this.batchProducerModule?.productionInProgress === true ||
+            this.settlementModule?.settlementInProgress === true
+          ) {
+            log.info(
+              "Previous batch or settlement still in progress, skipping"
+            );
+            return;
+          }
           const batch = await this.produceBatch();
           if (batch !== undefined) {
+            log.info("Settling batch", batch.height);
             await this.settle(batch);
+            log.info("Batch settled");
+            log.info("Rolling up outgoing messages");
+            await this.rollupOutgoingMessages();
+            log.info("Outgoing messages rolled up");
           }
         }
       } catch (error) {

@@ -94,6 +94,8 @@ export class WithdrawalQueue
     // TODO Replace by stateservice call?
     if (settlementModule.addresses !== undefined) {
       const { settlement } = settlementModule.getContracts();
+
+      await settlement.outgoingMessageCursor.fetch();
       this.currentIndex = Number(
         settlement.outgoingMessageCursor.get().toBigInt()
       );

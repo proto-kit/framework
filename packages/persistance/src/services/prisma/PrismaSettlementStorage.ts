@@ -1,5 +1,6 @@
 import { Settlement, SettlementStorage } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
+import { Provable } from "o1js";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
@@ -16,6 +17,8 @@ export class PrismaSettlementStorage implements SettlementStorage {
     const { prismaClient } = this.connection;
 
     const dbSettlement = this.settlementMapper.mapOut(settlement);
+
+    Provable.log("db settlement", settlement);
 
     await prismaClient.settlement.create({
       data: {

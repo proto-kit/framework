@@ -31,7 +31,7 @@ export interface BlockConfig {
 
 @sequencerModule()
 export class BlockProducerModule extends SequencerModule<BlockConfig> {
-  private productionInProgress = false;
+  public productionInProgress = false;
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,

@@ -22,6 +22,7 @@ import {
   Signature,
   Transaction,
   fetchAccount,
+  fetchLastBlock,
 } from "o1js";
 import { inject } from "tsyringe";
 import {
@@ -54,10 +55,18 @@ import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
 import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermissions";
 import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
+import { MinaTransactionSimulator } from "./transactions/MinaTransactionSimulator";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
-  address?: PublicKey;
+  addresses?: {
+    settlement: PublicKey;
+    dispatch: PublicKey;
+  };
+  keys?: {
+    settlement: PrivateKey;
+    dispatch: PrivateKey;
+  };
 }
 
 export type SettlementModuleEvents = {
@@ -88,6 +97,8 @@ export class SettlementModule
 
   public events = new EventEmitter<SettlementModuleEvents>();
 
+  public settlementInProgress = false;
+
   public constructor(
     @inject("BaseLayer")
     private readonly baseLayer: MinaBaseLayer,
@@ -109,6 +120,7 @@ export class SettlementModule
     private readonly blockProofSerializer: BlockProofSerializer,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender,
+    private readonly simulator: MinaTransactionSimulator,
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
     @inject("FeeStrategy")
@@ -191,14 +203,13 @@ export class SettlementModule
   }
 
   /* eslint-disable no-await-in-loop */
-  public async sendRollupTransactions(options: { nonce: number }): Promise<
+  public async sendRollupTransactions(options?: { nonce: number }): Promise<
     {
       tx: Transaction<false, true>;
     }[]
   > {
     const length = this.outgoingMessageQueue.length();
     const { feepayer } = this.config;
-    let { nonce } = options;
 
     const txs: {
       tx: Transaction<false, true>;
@@ -212,6 +223,12 @@ export class SettlementModule
     const [withdrawalModule, withdrawalStateName] =
       this.getSettlementModuleConfig().withdrawalStatePath.split(".");
     const basePath = Path.fromProperty(withdrawalModule, withdrawalStateName);
+
+    const feePayerAccount = await fetchAccount({
+      publicKey: feepayer.toPublicKey(),
+    });
+    const feePayerNonce = Number(feePayerAccount.account?.nonce.toBigint());
+    let nonce = options?.nonce ?? feePayerNonce;
 
     for (let i = 0; i < length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
       const batch = this.outgoingMessageQueue.peek(OUTGOING_MESSAGE_BATCH_SIZE);
@@ -269,15 +286,31 @@ export class SettlementModule
       contracts !== undefined &&
       this.baseLayer.config.network.type !== "local"
     ) {
-      await fetchAccount({
-        publicKey: contracts.settlement.address,
-        tokenId: contracts.settlement.tokenId,
-      });
-      await fetchAccount({
-        publicKey: contracts.dispatch.address,
-        tokenId: contracts.dispatch.tokenId,
-      });
+      await this.simulator.getAccount(
+        contracts.settlement.address,
+        contracts.settlement.tokenId
+      );
+
+      await this.simulator.getAccount(
+        contracts.dispatch.address,
+        contracts.dispatch.tokenId
+      );
     }
+  }
+
+  public async trySettleBatch(
+    batch: SettleableBatch,
+    options: {
+      nonce?: number;
+    } = {}
+  ): Promise<Settlement | undefined> {
+    if (this.settlementInProgress) {
+      log.info("Settlement already in progress, skipping");
+      return;
+    }
+
+    // eslint-disable-next-line consistent-return
+    return await this.settleBatch(batch, options);
   }
 
   public async settleBatch(
@@ -285,76 +318,95 @@ export class SettlementModule
     options: {
       nonce?: number;
     } = {}
-  ): Promise<Settlement> {
-    await this.fetchContractAccounts();
-    const { settlement, dispatch } = this.getContracts();
-    const { feepayer } = this.config;
+  ): Promise<Settlement | undefined> {
+    this.settlementInProgress = true;
+    try {
+      await this.fetchContractAccounts();
+      const { settlement, dispatch } = this.getContracts();
+      const { feepayer } = this.config;
 
-    log.debug("Preparing settlement");
+      log.debug("Preparing settlement");
 
-    const lastSettlementL1BlockHeight =
-      settlement.lastSettlementL1BlockHeight.get().value;
-    const signature = Signature.create(feepayer, [
-      BATCH_SIGNATURE_PREFIX,
-      lastSettlementL1BlockHeight,
-    ]);
+      const lastSettlementL1BlockHeight =
+        settlement.lastSettlementL1BlockHeight.get().value;
 
-    const fromSequenceStateHash = BlockProverPublicOutput.fromFields(
-      batch.proof.publicOutput.map((x) => Field(x))
-    ).incomingMessagesHash;
-    const latestSequenceStateHash = dispatch.account.actionState.get();
+      const blockchainLength = (
+        await fetchLastBlock()
+      ).blockchainLength.toBigint();
 
-    // Fetch actions and store them into the messageStorage
-    const actions = await this.incomingMessagesAdapter.getPendingMessages(
-      dispatch.address,
-      {
-        fromActionHash: fromSequenceStateHash.toString(),
-        toActionHash: latestSequenceStateHash.toString(),
-        fromL1BlockHeight: Number(lastSettlementL1BlockHeight.toString()),
-      }
-    );
-    await this.messageStorage.pushMessages(
-      actions.from,
-      actions.to,
-      actions.messages
-    );
-
-    const blockProof = await this.blockProofSerializer
-      .getBlockProofSerializer()
-      .fromJSONProof(batch.proof);
-
-    const tx = await Mina.transaction(
-      {
-        sender: feepayer.toPublicKey(),
-        nonce: options?.nonce,
-        fee: this.feeStrategy.getFee(),
-        memo: "Protokit settle",
-      },
-      async () => {
-        await settlement.settle(
-          blockProof,
-          signature,
-          dispatch.address,
-          feepayer.toPublicKey(),
-          batch.fromNetworkState,
-          batch.toNetworkState,
-          latestSequenceStateHash
+      if (blockchainLength < lastSettlementL1BlockHeight.toBigInt()) {
+        log.info(
+          "Skipping settlement due to a previous settlement not being included on the L1 yet"
         );
+
+        return;
       }
-    );
 
-    this.signTransaction(tx, [feepayer]);
+      const signature = Signature.create(feepayer, [
+        BATCH_SIGNATURE_PREFIX,
+        lastSettlementL1BlockHeight,
+      ]);
 
-    await this.transactionSender.proveAndSendTransaction(tx, "included");
+      const fromSequenceStateHash = BlockProverPublicOutput.fromFields(
+        batch.proof.publicOutput.map((x) => Field(x))
+      ).incomingMessagesHash;
+      const latestSequenceStateHash = dispatch.account.actionState.get();
 
-    log.info("Settlement transaction send queued");
+      // Fetch actions and store them into the messageStorage
+      const actions = await this.incomingMessagesAdapter.getPendingMessages(
+        dispatch.address,
+        {
+          fromActionHash: fromSequenceStateHash.toString(),
+          toActionHash: latestSequenceStateHash.toString(),
+          fromL1BlockHeight: Number(lastSettlementL1BlockHeight.toString()),
+        }
+      );
+      await this.messageStorage.pushMessages(
+        actions.from,
+        actions.to,
+        actions.messages
+      );
 
-    this.events.emit("settlement-submitted", batch);
+      const blockProof = await this.blockProofSerializer
+        .getBlockProofSerializer()
+        .fromJSONProof(batch.proof);
 
-    return {
-      batches: [batch.height],
-      promisedMessagesHash: latestSequenceStateHash.toString(),
-    };
+      const tx = await Mina.transaction(
+        {
+          sender: feepayer.toPublicKey(),
+          nonce: options?.nonce,
+          fee: this.feeStrategy.getFee(),
+          memo: "Protokit settle",
+        },
+        async () => {
+          await settlement.settle(
+            blockProof,
+            signature,
+            dispatch.address,
+            feepayer.toPublicKey(),
+            batch.fromNetworkState,
+            batch.toNetworkState,
+            latestSequenceStateHash
+          );
+        }
+      );
+
+      this.signTransaction(tx, [feepayer]);
+
+      await this.transactionSender.proveAndSendTransaction(tx, "included");
+
+      this.events.emit("settlement-submitted", batch);
+
+      // eslint-disable-next-line consistent-return
+      return {
+        // TODO: use real transaction hash instead of timestamp
+        transactionHash: Date.now().toString(),
+        batches: [batch.height],
+        promisedMessagesHash: latestSequenceStateHash.toString(),
+      };
+    } finally {
+      this.settlementInProgress = false;
+    }
   }
 
   public async deploy(
@@ -439,6 +491,8 @@ export class SettlementModule
   }
 
   public async start(): Promise<void> {
+    this.addresses = this.config.addresses;
+    this.keys = this.config.keys;
     noop();
   }
 }

@@ -178,6 +178,7 @@ export abstract class SettlementSmartContractBase extends TokenContract {
     const escapeHatchActivated = lastSettlementL1BlockHeight
       .add(UInt32.from(escapeHatchSlotsInterval))
       .lessThan(minBlockHeightIncluded);
+
     signatureValid
       .or(escapeHatchActivated)
       .assertTrue(

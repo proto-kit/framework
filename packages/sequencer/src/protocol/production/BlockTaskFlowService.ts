@@ -214,10 +214,12 @@ export class BlockTaskFlowService {
       },
       this.flowCreator
     );
+
     blockMergingFlow.onCompletion(async (result) => {
       log.debug(`Block generation finished, with proof ${result.proof}`); // TODO Remove result logging
       flow.resolve(result);
     });
+
     blockMergingFlow.deferErrorsTo(flow);
 
     return await flow.withFlow<BlockProof>(async () => {

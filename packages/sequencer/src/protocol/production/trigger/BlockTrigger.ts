@@ -103,9 +103,18 @@ export class BlockTriggerBase<
         "SettlementStorage module not configured, check provided database moduel"
       );
     }
-    const settlement = await this.settlementModule.settleBatch(batch);
-    await this.settlementStorage.pushSettlement(settlement);
+    const settlement = await this.settlementModule.trySettleBatch(batch);
+    if (settlement !== undefined) {
+      await this.settlementStorage.pushSettlement(settlement);
+    }
+
     return settlement;
+  }
+
+  protected async rollupOutgoingMessages() {
+    if (this.settlementModule) {
+      await this.settlementModule.sendRollupTransactions();
+    }
   }
 
   public async start(): Promise<void> {

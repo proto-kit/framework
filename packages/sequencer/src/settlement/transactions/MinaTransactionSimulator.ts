@@ -111,7 +111,7 @@ export class MinaTransactionSimulator {
 
     Object.entries(accounts).forEach(([, account]) => {
       addCachedAccount(account);
-      this.loaded[account.publicKey.toBase58()] = account;
+      this.loaded[this.cacheKey(account.publicKey, account.tokenId)] = account;
     });
   }
 
@@ -256,6 +256,7 @@ export class MinaTransactionSimulator {
 
     if (account.zkapp !== undefined) {
       const { appState } = update;
+
       for (let i = 0; i < 8; i++) {
         if (appState[i].isSome.toBoolean()) {
           account.zkapp.appState[i] = appState[i].value;
