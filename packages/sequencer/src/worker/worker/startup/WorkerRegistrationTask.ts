@@ -24,6 +24,7 @@ import {
   ArtifactRecordSerializer,
   SerializedArtifactRecord,
 } from "../../../protocol/production/tasks/CircuitCompilerTask";
+import { SettlementModule } from "../../../settlement/SettlementModule";
 
 import { CloseWorkerError } from "./CloseWorkerError";
 
@@ -32,6 +33,7 @@ export type WorkerStartupPayload = {
   // This has to be nullable, since
   bridgeContractVerificationKey?: VerificationKey;
   compiledArtifacts: ArtifactRecord;
+  signedSettlements: boolean;
 };
 
 @injectable()
@@ -44,6 +46,7 @@ export class WorkerRegistrationTask
 
   public constructor(
     @inject("Protocol") private readonly protocol: Protocol<any>,
+    @inject("SettlementModule") settlementModule: SettlementModule,
     private readonly compileRegistry: CompileRegistry
   ) {
     super();
@@ -71,6 +74,9 @@ export class WorkerRegistrationTask
         input.bridgeContractVerificationKey;
     }
 
+    SettlementSmartContractBase.args.signedSettlements =
+      input.signedSettlements;
+
     this.compileRegistry.addArtifactsRaw(input.compiledArtifacts);
     this.protocol.dependencyContainer
       .resolve(ChildVerificationKeyService)
@@ -87,6 +93,7 @@ export class WorkerRegistrationTask
       runtimeVerificationKeyRoot: string;
       bridgeContractVerificationKey: VerificationKeyJSON | undefined;
       compiledArtifacts: SerializedArtifactRecord;
+      signedSettlements: boolean;
     };
 
     const artifactSerializer = new ArtifactRecordSerializer();
@@ -104,6 +111,7 @@ export class WorkerRegistrationTask
           compiledArtifacts: artifactSerializer.toJSON(
             payload.compiledArtifacts
           ),
+          signedSettlements: payload.signedSettlements,
         } satisfies WorkerStartupPayloadJSON);
       },
       fromJSON: (payload: string) => {
@@ -122,6 +130,7 @@ export class WorkerRegistrationTask
           compiledArtifacts: artifactSerializer.fromJSON(
             jsonObject.compiledArtifacts
           ),
+          signedSettlements: jsonObject.signedSettlements,
         };
       },
     };

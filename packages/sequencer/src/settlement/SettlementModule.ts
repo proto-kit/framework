@@ -59,6 +59,7 @@ export interface SettlementModuleConfig {
   keys?: {
     settlement: PrivateKey;
     dispatch: PrivateKey;
+    minaBridge: PrivateKey;
   };
 }
 
@@ -428,6 +429,8 @@ export class SettlementModule
   }
 
   public async start(): Promise<void> {
+    this.keys = this.config.keys;
+    this.addresses = this.config.addresses;
     const contractArgs = SettlementSmartContractBase.args;
 
     SettlementSmartContractBase.args = {

@@ -19,6 +19,7 @@ import {
   CompilerTaskParams,
 } from "../protocol/production/tasks/CircuitCompilerTask";
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
+import { SettlementModule } from "../settlement/SettlementModule";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 
@@ -31,7 +32,8 @@ export class SequencerStartupModule extends SequencerModule {
     private readonly compileTask: CircuitCompilerTask,
     private readonly verificationKeyService: VerificationKeyService,
     private readonly registrationFlow: WorkerRegistrationFlow,
-    private readonly compileRegistry: CompileRegistry
+    private readonly compileRegistry: CompileRegistry,
+    private readonly settlementModule: SettlementModule
   ) {
     super();
   }
@@ -140,6 +142,7 @@ export class SequencerStartupModule extends SequencerModule {
       runtimeVerificationKeyRoot: root,
       bridgeContractVerificationKey: bridgeVk?.verificationKey,
       compiledArtifacts: this.compileRegistry.getAllArtifacts(),
+      signedSettlements: this.settlementModule.utils.isSignedSettlement(),
     });
 
     log.info("Protocol circuits compiled successfully, commencing startup");
