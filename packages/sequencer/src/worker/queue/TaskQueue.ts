@@ -37,5 +37,7 @@ export interface InstantiatedQueue extends Closeable {
    */
   onCompleted: (
     listener: (payload: TaskPayload) => Promise<void>
-  ) => Promise<void>;
+  ) => Promise<number>;
+
+  offCompleted: (listenerId: number) => void;
 }

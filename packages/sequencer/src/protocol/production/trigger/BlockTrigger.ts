@@ -113,7 +113,7 @@ export class BlockTriggerBase<
 
   protected async rollupOutgoingMessages() {
     if (this.settlementModule) {
-      await this.settlementModule.sendRollupTransactions();
+      // await this.settlementModule.sendRollupTransactions();
     }
   }
 

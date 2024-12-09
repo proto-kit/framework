@@ -42,7 +42,7 @@ export class ReductionTaskFlow<Input, Output> {
       reductionTask: Task<PairTuple<Output>, Output>;
       mergableFunction: (a: Output, b: Output) => boolean;
     },
-    private readonly flowCreator: FlowCreator
+    flowCreator: FlowCreator
   ) {
     this.flow = flowCreator.createFlow<ReductionState<Output>>(options.name, {
       numMergesCompleted: 0,
@@ -121,8 +121,10 @@ export class ReductionTaskFlow<Input, Output> {
       const { availableReductions, touchedIndizes } =
         this.resolveReducibleTasks(flow.state.queue, options.mergableFunction);
 
-      // I don't know exactly what this rule wants from me, I suspect
-      // it complains bcs the function is called forEach
+      flow.state.queue = flow.state.queue.filter(
+        (ignored, index) => !touchedIndizes.includes(index)
+      );
+
       await flow.forEach(availableReductions, async (reduction) => {
         const taskParameters: PairTuple<Output> = [reduction.r1, reduction.r2];
         await flow.pushTask(
@@ -135,10 +137,6 @@ export class ReductionTaskFlow<Input, Output> {
           }
         );
       });
-
-      flow.state.queue = flow.state.queue.filter(
-        (ignored, index) => !touchedIndizes.includes(index)
-      );
     }
   }
 

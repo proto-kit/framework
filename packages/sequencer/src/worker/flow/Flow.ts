@@ -1,5 +1,5 @@
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { inject, injectable } from "tsyringe";
+import { log, mapSequential } from "@proto-kit/common";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 
@@ -12,68 +12,6 @@ const errors = {
     ),
 };
 
-@injectable()
-// ResolutionScoped => We want a new instance every time we resolve it
-@scoped(Lifecycle.ResolutionScoped)
-export class ConnectionHolder implements Closeable {
-  private queues: {
-    [key: string]: InstantiatedQueue;
-  } = {};
-
-  private listeners: {
-    [key: string]: {
-      [key: string]: (payload: TaskPayload) => Promise<void>;
-    };
-  } = {};
-
-  public constructor(
-    @inject("TaskQueue") private readonly queueImpl: TaskQueue
-  ) {}
-
-  public registerListener(
-    flowId: string,
-    queue: string,
-    listener: (payload: TaskPayload) => Promise<void>
-  ) {
-    if (this.listeners[queue] === undefined) {
-      this.listeners[queue] = {};
-    }
-    this.listeners[queue][flowId] = listener;
-  }
-
-  public unregisterListener(flowId: string, queue: string) {
-    delete this.listeners[queue][flowId];
-  }
-
-  private async openQueue(name: string): Promise<InstantiatedQueue> {
-    const queue = await this.queueImpl.getQueue(name);
-    await queue.onCompleted(async (payload) => {
-      await this.onCompleted(name, payload);
-    });
-    return queue;
-  }
-
-  private async onCompleted(name: string, payload: TaskPayload) {
-    const listener = this.listeners[name]?.[payload.flowId];
-    if (listener !== undefined) {
-      await listener(payload);
-    }
-  }
-
-  public async getQueue(name: string) {
-    if (this.queues[name] !== undefined) {
-      return this.queues[name];
-    }
-    const queue = await this.openQueue(name);
-    this.queues[name] = queue;
-    return queue;
-  }
-
-  async close() {
-    // TODO
-  }
-}
-
 interface CompletedCallback<Input, Result> {
   (result: Result, originalInput: Input): Promise<any>;
 }
@@ -83,7 +21,10 @@ export class Flow<State> implements Closeable {
   // therefore cancelled
   private erroredOut = false;
 
-  private readonly registeredListeners: string[] = [];
+  private readonly registeredListeners: {
+    queueName: string;
+    listenerId: number;
+  }[] = [];
 
   private resultsPending: {
     [key: string]: (payload: TaskPayload) => Promise<void>;
@@ -98,28 +39,28 @@ export class Flow<State> implements Closeable {
   public tasksInProgress = 0;
 
   public constructor(
-    private readonly connectionHolder: ConnectionHolder,
+    private readonly queueImpl: TaskQueue,
     public readonly flowId: string,
     public state: State
   ) {}
 
-  private waitForResult(
-    queue: string,
+  private async waitForResult(
+    queue: InstantiatedQueue,
     taskId: string,
     callback: (payload: TaskPayload) => Promise<void>
   ) {
     this.resultsPending[taskId] = callback;
 
-    if (!this.registeredListeners.includes(queue)) {
-      // Open Listener onto Connectionhandler
-      this.connectionHolder.registerListener(
-        this.flowId,
-        queue,
-        async (payload) => {
+    if (!this.registeredListeners.find((l) => l.queueName === queue.name)) {
+      const listenerId = await queue.onCompleted(async (payload) => {
+        if (payload.flowId === this.flowId) {
           await this.resolveResponse(payload);
         }
-      );
-      this.registeredListeners.push(queue);
+      });
+      this.registeredListeners.push({
+        queueName: queue.name,
+        listenerId,
+      });
     }
   }
 
@@ -167,7 +108,7 @@ export class Flow<State> implements Closeable {
   ): Promise<void> {
     const queueName = task.name;
     const taskName = overrides?.taskName ?? task.name;
-    const queue = await this.connectionHolder.getQueue(queueName);
+    const queue = await this.queueImpl.getQueue(queueName);
 
     const payload = await task.inputSerializer().toJSON(input);
 
@@ -197,7 +138,7 @@ export class Flow<State> implements Closeable {
       this.tasksInProgress -= 1;
       return await completed?.(decoded, input);
     };
-    this.waitForResult(queueName, taskId, callback);
+    await this.waitForResult(queue, taskId, callback);
   }
 
   public async forEach<Type>(
@@ -222,17 +163,23 @@ export class Flow<State> implements Closeable {
   }
 
   public async close() {
-    this.registeredListeners.forEach((queue) => {
-      this.connectionHolder.unregisterListener(this.flowId, queue);
-    });
+    await mapSequential(
+      this.registeredListeners,
+      async ({ queueName, listenerId }) => {
+        const queue = await this.queueImpl.getQueue(queueName);
+        queue.offCompleted(listenerId);
+      }
+    );
   }
 }
 
 @injectable()
 export class FlowCreator {
-  public constructor(private readonly connectionHolder: ConnectionHolder) {}
+  public constructor(
+    @inject("TaskQueue") private readonly queueImpl: TaskQueue
+  ) {}
 
   public createFlow<State>(flowId: string, state: State): Flow<State> {
-    return new Flow(this.connectionHolder, flowId, state);
+    return new Flow(this.queueImpl, flowId, state);
   }
 }
