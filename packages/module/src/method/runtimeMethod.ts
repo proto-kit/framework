@@ -14,6 +14,7 @@ import {
   ZkProgrammable,
   ArgumentTypes,
 } from "@proto-kit/common";
+import { CircuitValue } from "o1js/dist/web/lib/provable/types/circuit-value";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
@@ -198,7 +199,7 @@ function runtimeMethodInternal(options: {
     methodName: string,
     descriptor: TypedPropertyDescriptor<
       // TODO Limit possible parameter types
-      (...args: FlexibleProvablePure<any>[]) => Promise<any>
+      (...args: (FlexibleProvablePure<any> | CircuitValue)[]) => Promise<any>
     >
   ) => {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
