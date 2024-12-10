@@ -198,7 +198,6 @@ function runtimeMethodInternal(options: {
     target: RuntimeModule<unknown>,
     methodName: string,
     descriptor: TypedPropertyDescriptor<
-      // TODO Limit possible parameter types
       (...args: (FlexibleProvablePure<any> | CircuitValue)[]) => Promise<any>
     >
   ) => {
