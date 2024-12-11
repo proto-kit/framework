@@ -13,6 +13,7 @@ import {
   toProver,
   ZkProgrammable,
   ArgumentTypes,
+  TypedClass,
 } from "@proto-kit/common";
 import { CircuitValue } from "o1js/dist/web/lib/provable/types/circuit-value";
 
@@ -191,15 +192,20 @@ export function isRuntimeMethod(
 
 export type RuntimeMethodInvocationType = "SIGNATURE" | "INCOMING_MESSAGE";
 
+function isSubtypeOfName(clas: TypedClass<unknown>, name: string): boolean {
+  if (clas.name === name) {
+    return true;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  return isSubtypeOfName(Object.getPrototypeOf(clas), name);
+}
 function runtimeMethodInternal(options: {
   invocationType: RuntimeMethodInvocationType;
 }) {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
-    descriptor: TypedPropertyDescriptor<
-      (...args: (FlexibleProvablePure<any> | CircuitValue)[]) => Promise<any>
-    >
+    descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<any>>
   ) => {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
@@ -233,6 +239,15 @@ function runtimeMethodInternal(options: {
       this: RuntimeModule<unknown>,
       ...args: ArgumentTypes
     ) {
+      args.forEach((arg) => {
+        const data: any = Reflect.getMetadata(
+          runtimeMethodNamesMetadataKey,
+          arg
+        );
+        if (isSubtypeOfName(data, "FlexibleProvablePure")) {
+          throw Error("Argument to method not of type FlexibleProvablePure.");
+        }
+      });
       const constructorName = this.name!;
 
       /**
