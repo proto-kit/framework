@@ -15,7 +15,6 @@ import {
   ArgumentTypes,
   TypedClass,
 } from "@proto-kit/common";
-import { CircuitValue } from "o1js/dist/web/lib/provable/types/circuit-value";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
@@ -240,11 +239,11 @@ function runtimeMethodInternal(options: {
       ...args: ArgumentTypes
     ) {
       args.forEach((arg) => {
-        const data: any = Reflect.getMetadata(
+        const argData: any | undefined = Reflect.getMetadata(
           runtimeMethodNamesMetadataKey,
           arg
         );
-        if (isSubtypeOfName(data, "FlexibleProvablePure")) {
+        if (isSubtypeOfName(argData, "FlexibleProvablePure")) {
           throw Error("Argument to method not of type FlexibleProvablePure.");
         }
       });
