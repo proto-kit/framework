@@ -1,9 +1,10 @@
 import { log } from "@proto-kit/common";
 
-import { Closeable, TaskQueue } from "../queue/TaskQueue";
+import { TaskQueue } from "../queue/TaskQueue";
 import { Task, TaskPayload } from "../flow/Task";
 import { AbstractStartupTask } from "../flow/AbstractStartupTask";
 import { UnpreparingTask } from "../flow/UnpreparingTask";
+import { Closeable } from "../../sequencer/builder/Closeable";
 
 const errors = {
   notComputable: (name: string) =>

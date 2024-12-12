@@ -1,7 +1,7 @@
 import { injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
 
-import { Closeable } from "../../queue/TaskQueue";
+import { Closeable } from "../../../sequencer/builder/Closeable";
 import { FlowCreator } from "../../flow/Flow";
 
 import {

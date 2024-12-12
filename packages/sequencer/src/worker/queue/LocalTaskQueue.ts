@@ -2,8 +2,9 @@ import { log, mapSequential, noop } from "@proto-kit/common";
 
 import { sequencerModule } from "../../sequencer/builder/SequencerModule";
 import { TaskPayload } from "../flow/Task";
+import { Closeable } from "../../sequencer/builder/Closeable";
 
-import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
+import { InstantiatedQueue, TaskQueue } from "./TaskQueue";
 import { ListenerList } from "./ListenerList";
 import { AbstractTaskQueue } from "./AbstractTaskQueue";
 

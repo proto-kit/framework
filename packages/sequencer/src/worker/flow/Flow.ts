@@ -1,7 +1,8 @@
 import { inject, injectable } from "tsyringe";
 import { log, mapSequential } from "@proto-kit/common";
 
-import { Closeable, InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
+import { InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
+import { Closeable } from "../../sequencer/builder/Closeable";
 
 import { Task, TaskPayload } from "./Task";
 

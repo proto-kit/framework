@@ -18,6 +18,7 @@ import {
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
+import { Closeable } from "../builder/Closeable";
 
 import { Sequenceable } from "./Sequenceable";
 
@@ -85,5 +86,14 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
     }
+  }
+
+  public async close() {
+    log.info("Closing sequencer...");
+    const closeables = this.container.resolveAll<Closeable>("Closeable");
+    await Promise.all(
+      closeables.map(async (closeable) => await closeable.close())
+    );
+    log.info("Sequencer closed");
   }
 }

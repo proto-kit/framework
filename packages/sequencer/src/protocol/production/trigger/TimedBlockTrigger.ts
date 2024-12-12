@@ -2,7 +2,7 @@ import { inject, injectable } from "tsyringe";
 import { injectOptional, log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
-import { Closeable } from "../../../worker/queue/TaskQueue";
+import { Closeable } from "../../../sequencer/builder/Closeable";
 import { BatchProducerModule } from "../BatchProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
