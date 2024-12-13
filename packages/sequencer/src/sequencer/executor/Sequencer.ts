@@ -91,9 +91,8 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
       const sequencerModule = this.resolve(moduleName);
-
       log.info(
-        `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
+        `Resolving sequencer module ${moduleName} (${sequencerModule.constructor.name})`
       );
     }
 
@@ -101,6 +100,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       const sequencerModule = this.resolve(moduleName);
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
+
+      log.info(
+        `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
+      );
     }
   }
 }
