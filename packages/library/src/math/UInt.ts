@@ -47,7 +47,6 @@ export abstract class UInt<BITS extends number> extends Struct({
 }) {
   public static readonly assertionFunction: (bool: Bool, msg?: string) => void =
     (bool, msg) => {
-      // const executionContext = container.resolve(RuntimeMethodExecutionContext);
       assert(bool, msg);
     };
 
@@ -82,8 +81,6 @@ export abstract class UInt<BITS extends number> extends Struct({
     if (bits === 256) {
       throw errors.usageWith256BitsForbidden();
     }
-
-    // this.checkConstant(value.value);
   }
 
   public abstract numBits(): BITS;

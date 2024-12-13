@@ -1,7 +1,7 @@
 {
   "extends": ["airbnb-base", "airbnb-typescript/base", "plugin:prettier/recommended", "plugin:eslint-comments/recommended", "plugin:sonarjs/recommended"],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "sonarjs"],
+  "plugins": ["@typescript-eslint", "sonarjs", "etc"],
   "root": true,
   "parserOptions": {
     "project": ["./tsconfig.json", "./test/tsconfig.json"]
@@ -91,7 +91,8 @@
     "sonarjs/no-duplicate-string": "off",
     // Handled by prettier
     "@typescript-eslint/indent": ["off"],
-    "@typescript-eslint/no-floating-promises": "error"
+    "@typescript-eslint/no-floating-promises": "error",
+    "etc/no-commented-out-code": "error"
   },
 
   "overrides": [

@@ -46,7 +46,6 @@ export function testingSequencerFromModules<
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
     BaseLayer: NoopBaseLayer,
-    // LocalTaskWorkerModule: taskWorkerModule,
     BatchProducerModule,
     BlockProducerModule,
     BlockTrigger: ManualBlockTrigger,

@@ -53,7 +53,6 @@ export class TestBalances extends Balances {
    * We use `satisfies` here in order to be able to access
    * presets by key in a type safe way.
    */
-  // public static presets = {} satisfies Presets<object>;
 
   @state() public totalSupply = State.from<UInt64>(UInt64);
 
@@ -101,7 +100,6 @@ export async function startServer() {
     Sequencer: Sequencer.from({
       modules: {
         Database: InMemoryDatabase,
-        // Database: PrismaRedisDatabase,
 
         Mempool: PrivateMempool,
         GraphqlServer,
@@ -113,7 +111,6 @@ export async function startServer() {
         BlockProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
-        // SettlementModule: SettlementModule,
 
         Graphql: GraphqlSequencerModule.from({
           modules: {
@@ -171,10 +168,6 @@ export async function startServer() {
         host: "0.0.0.0",
         graphiql: true,
       },
-      // SettlementModule: {
-      //   address: PrivateKey.random().toPublicKey(),
-      //   feepayer: PrivateKey.random(),
-      // },
 
       Graphql: {
         QueryGraphqlModule: {},
@@ -185,30 +178,12 @@ export async function startServer() {
         MerkleWitnessResolver: {},
       },
 
-      Database: {
-        // redis: {
-        //   host: "localhost",
-        //   port: 6379,
-        //   password: "password",
-        // },
-        // prisma: {
-        //   connection: {
-        //     host: "localhost",
-        //     password: "password",
-        //     username: "user",
-        //     port: 5432,
-        //     db: {
-        //       name: "protokit",
-        //     },
-        //   },
-        // },
-      },
+      Database: {},
 
       Mempool: {},
       BatchProducerModule: {},
       LocalTaskWorkerModule: {
         StateTransitionTask: {},
-        // SettlementProvingTask: {},
         BlockBuildingTask: {},
         BlockProvingTask: {},
         BlockReductionTask: {},
@@ -237,9 +212,6 @@ export async function startServer() {
   });
 
   await appChain.start(container.createChildContainer());
-  // const pk = PublicKey.fromBase58(
-  //   "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
-  // );
 
   const balances = appChain.runtime.resolve("Balances");
 

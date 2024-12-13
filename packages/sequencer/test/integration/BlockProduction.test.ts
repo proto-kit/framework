@@ -84,8 +84,6 @@ describe("block production", () => {
       ProtocolStateTestHook: typeof ProtocolStateTestHook;
     }
   >;
-  // let protocol: Protocol<VanillaProtocolModulesRecord>;
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let appChain: AppChain<any, any, any, any>;
 
@@ -93,8 +91,6 @@ describe("block production", () => {
   let mempool: PrivateMempool;
 
   beforeEach(async () => {
-    // container.reset();
-
     log.setLevel(log.levels.INFO);
 
     const runtimeClass = Runtime.from({
@@ -118,7 +114,6 @@ describe("block production", () => {
       modules: VanillaProtocolModules.mandatoryModules({
         ProtocolStateTestHook,
       }),
-      // modules: VanillaProtocolModules.with({}),
     });
 
     const app = AppChain.from({
@@ -185,7 +180,6 @@ describe("block production", () => {
       })
     );
 
-    // let [block, batch] = await blockTrigger.produceBlockAndBatch();
     let block = await blockTrigger.produceBlock();
 
     expect(block).toBeDefined();

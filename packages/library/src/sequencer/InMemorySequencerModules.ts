@@ -43,7 +43,6 @@ export class InMemorySequencerModules {
       BlockProducerModule,
       BlockTrigger: ManualBlockTrigger,
       TaskQueue: LocalTaskQueue,
-      // SettlementModule: SettlementModule,
       ...additionalModules,
     } satisfies InMemorySequencerModulesRecord;
   }

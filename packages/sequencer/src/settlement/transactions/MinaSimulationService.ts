@@ -55,8 +55,6 @@ export class MinaSimulationService {
       .with({ error: undefined }, (v) => v.account)
       .exhaustive();
 
-    // this.ledger.addAccount(Ml.fromPublicKey(publicKey));
-
     if (account !== undefined) {
       addCachedAccount(account);
     }

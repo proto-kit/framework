@@ -136,7 +136,6 @@ describe("HandlersModule", () => {
       onBlock: [trackBalanceOnBlockHandler],
     };
 
-    // const client = createPrismaMock<PrismaClient>();
     const client = mockDeep<PrismaClient>();
     // @ts-expect-error
     client.$transaction.mockImplementation((transaction) => {

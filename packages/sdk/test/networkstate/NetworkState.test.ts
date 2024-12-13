@@ -45,8 +45,6 @@ describe.skip("block production", () => {
   const tokenId = TokenId.from(0);
 
   beforeEach(async () => {
-    // container.reset();
-
     log.setLevel(log.levels.INFO);
 
     const app = TestingAppChain.fromRuntime({

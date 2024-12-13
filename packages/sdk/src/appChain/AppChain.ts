@@ -319,19 +319,8 @@ export class AppChain<
     this.resolve("Protocol");
     this.resolve("Sequencer");
 
-    // // Workaround to get protocol and sequencer to have
-    // // access to the same WitnessProviderReference
-    // const reference = new StateTransitionWitnessProviderReference();
-    // this.registerValue({
-    //   StateTransitionWitnessProviderReference: reference,
-    // });
-
-    // console.log("creating sequencer");
-    // this.sequencer.create(() => this.container);
-
     await this.protocol.start();
 
-    // this.runtime.start();
     await this.sequencer.start();
   }
 }

@@ -9,7 +9,6 @@ export * from "./sequencer/builder/SequencerModule";
 export * from "./worker/flow/Flow";
 export * from "./worker/flow/Task";
 export * from "./worker/flow/JSONTaskSerializer";
-// export * from "./worker/queue/BullQueue";
 export * from "./worker/queue/TaskQueue";
 export * from "./worker/queue/LocalTaskQueue";
 export * from "./worker/worker/FlowTaskWorker";

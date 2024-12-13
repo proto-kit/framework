@@ -556,11 +556,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // TODO Not possible atm bcs we can't have a seperation between protocol/runtime state roots,
     // which we would for both before and after to be able to emit STs
 
-    // stateTransitionProof.publicInput.protocolTransitionsHash.assertEquals(
-    //   beforeBlockHashList.commitment
-    // );
-    // state.stateRoot = stateTransitionProof.publicInput.protocolStateRoot;
-
     // TODO Only for now
     beforeBlockHashList.commitment.assertEquals(
       Field(0),
