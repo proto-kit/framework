@@ -7,6 +7,8 @@ import {
   ModulesRecord,
   NoConfig,
   Presets,
+  ResolvableModules,
+  StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
 import { ReturnType } from "@proto-kit/protocol";
@@ -29,6 +31,7 @@ import {
   StateTransitionTask,
 } from "../../protocol/production/tasks/StateTransitionTask";
 import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitCompilerTask";
+import { closeable } from "../../sequencer/builder/Closeable";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
@@ -53,6 +56,7 @@ type LocalTaskWorkerModuleEvents = { ready: [boolean] };
  * cloud workers.
  */
 @sequencerModule()
+@closeable()
 export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
   extends ModuleContainer<Tasks>
   implements
@@ -62,6 +66,10 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
   public static presets: Presets<unknown> = {};
 
   public containerEvents = new EventEmitter<LocalTaskWorkerModuleEvents>();
+
+  private worker?: FlowTaskWorker<
+    InstanceType<ResolvableModules<Tasks>[StringKeyOf<Tasks>]>[]
+  > = undefined;
 
   public static from<Tasks extends TaskWorkerModulesRecord>(
     modules: Tasks
@@ -103,6 +111,8 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
     });
 
     const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
+    this.worker = worker;
+
     await worker.start();
 
     void worker
@@ -113,6 +123,12 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       .catch((e) => {
         log.error("Error occurring waiting for the ready event", e);
       });
+  }
+
+  public async close() {
+    if (this.worker !== undefined) {
+      await this.worker.close();
+    }
   }
 }
 

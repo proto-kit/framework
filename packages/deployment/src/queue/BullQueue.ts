@@ -6,6 +6,7 @@ import {
   InstantiatedQueue,
   TaskQueue,
   AbstractTaskQueue,
+  closeable,
 } from "@proto-kit/sequencer";
 
 import { InstantiatedBullQueue } from "./InstantiatedBullQueue";
@@ -28,13 +29,15 @@ interface BullWorker extends Closeable {
 /**
  * TaskQueue implementation for BullMQ
  */
+@closeable()
 export class BullQueue
   extends AbstractTaskQueue<BullQueueConfig>
-  implements TaskQueue
+  implements TaskQueue, Closeable
 {
   private activePromise?: Promise<void>;
 
   private activeWorkers: Record<string, BullWorker> = {};
+
   private activeJobs = 0;
 
   public createWorker(
@@ -130,5 +133,11 @@ export class BullQueue
 
   public async start() {
     noop();
+  }
+
+  public async close() {
+    await this.closeQueues();
+
+    // Closing of active workers is handled by the LocalTaskWorkerModule
   }
 }

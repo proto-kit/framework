@@ -1,6 +1,6 @@
 import assert from "node:assert";
 
-import { SequencerModule } from "@proto-kit/sequencer";
+import { Closeable, closeable, SequencerModule } from "@proto-kit/sequencer";
 import {
   ChildContainerProvider,
   Configurable,
@@ -29,9 +29,10 @@ export interface GraphqlModulesDefintion<
   config?: ModulesConfig<GraphQLModules>;
 }
 
+@closeable()
 export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
   extends ModuleContainer<GraphQLModules>
-  implements Configurable<unknown>, SequencerModule<unknown>
+  implements Configurable<unknown>, SequencerModule<unknown>, Closeable
 {
   public static from<GraphQLModules extends GraphqlModulesRecord>(
     definition: GraphqlModulesDefintion<GraphQLModules>
@@ -92,5 +93,11 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
       }
     }
     await this.graphqlServer.startServer();
+  }
+
+  public async close() {
+    if (this.graphqlServer !== undefined) {
+      await this.graphqlServer.close();
+    }
   }
 }

@@ -46,7 +46,7 @@ describe("prisma integration", () => {
   };
 
   const teardown = async () => {
-    await appChain.sequencer.resolve("Database").close();
+    await appChain.sequencer.close();
   };
 
   describe("produce fuzzed block", () => {

@@ -26,6 +26,7 @@ export class ChildProcessWorker {
   }
 
   kill() {
-    this?.process?.kill();
+    this.process!.kill("SIGKILL");
+    console.log("Killed", this.process!.killed);
   }
 }

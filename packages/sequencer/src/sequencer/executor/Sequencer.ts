@@ -92,7 +92,9 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     log.info("Closing sequencer...");
     const closeables = this.container.resolveAll<Closeable>("Closeable");
     await Promise.all(
-      closeables.map(async (closeable) => await closeable.close())
+      closeables.map(async (closeable) => {
+        await closeable.close();
+      })
     );
     log.info("Sequencer closed");
   }

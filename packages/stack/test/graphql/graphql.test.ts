@@ -114,7 +114,7 @@ describe("graphql client test", () => {
   }, 20_000);
 
   afterAll(async () => {
-    server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
+    await server.sequencer.close();
   }, 20_000);
 
   it("should retrieve state", async () => {

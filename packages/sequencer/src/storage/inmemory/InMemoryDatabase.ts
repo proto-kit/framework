@@ -7,6 +7,7 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { StorageDependencyMinimumDependencies } from "../StorageDependencyFactory";
 import { Database } from "../Database";
+import { closeable } from "../../sequencer/builder/Closeable";
 
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
 import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
@@ -16,6 +17,7 @@ import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
 import { InMemoryTransactionStorage } from "./InMemoryTransactionStorage";
 
 @sequencerModule()
+@closeable()
 export class InMemoryDatabase extends SequencerModule implements Database {
   public dependencies(): StorageDependencyMinimumDependencies {
     return {
@@ -56,6 +58,10 @@ export class InMemoryDatabase extends SequencerModule implements Database {
   }
 
   public async start(): Promise<void> {
+    noop();
+  }
+
+  public async close() {
     noop();
   }
 

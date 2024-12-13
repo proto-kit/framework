@@ -21,9 +21,14 @@ import {
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
+import { Closeable, closeable } from "./builder/Closeable";
 
 @sequencerModule()
-export class SequencerStartupModule extends SequencerModule {
+@closeable()
+export class SequencerStartupModule
+  extends SequencerModule
+  implements Closeable
+{
   public constructor(
     private readonly flowCreator: FlowCreator,
     @inject("Protocol")
@@ -143,5 +148,9 @@ export class SequencerStartupModule extends SequencerModule {
     });
 
     log.info("Protocol circuits compiled successfully, commencing startup");
+  }
+
+  public async close() {
+    await this.registrationFlow.close();
   }
 }

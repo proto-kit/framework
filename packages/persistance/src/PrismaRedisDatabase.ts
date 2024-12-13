@@ -3,6 +3,7 @@ import {
   SequencerModule,
   StorageDependencyMinimumDependencies,
   Database,
+  closeable,
 } from "@proto-kit/sequencer";
 import { ChildContainerProvider } from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
@@ -25,6 +26,7 @@ export interface PrismaRedisCombinedConfig {
 }
 
 @sequencerModule()
+@closeable()
 export class PrismaRedisDatabase
   extends SequencerModule<PrismaRedisCombinedConfig>
   implements PrismaConnection, RedisConnection, Database
