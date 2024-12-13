@@ -75,6 +75,19 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     log.info("Starting sequencer...");
     log.info("Modules:", moduleClassNames);
 
+    const orderedModules: Extract<keyof Modules, string>[] = [];
+    // eslint-disable-next-line guard-for-in
+    for (const moduleName in this.definition.modules) {
+      this.container.afterResolution(
+        moduleName,
+        () => {
+          orderedModules.push(moduleName);
+        },
+        {
+          frequency: "Once",
+        }
+      );
+    }
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
       const sequencerModule = this.resolve(moduleName);
@@ -82,6 +95,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       log.info(
         `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
       );
+    }
+
+    for (const moduleName of orderedModules) {
+      const sequencerModule = this.resolve(moduleName);
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
     }
