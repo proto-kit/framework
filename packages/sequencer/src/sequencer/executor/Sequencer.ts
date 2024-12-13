@@ -66,8 +66,8 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    * modules to start each
    */
   public async start() {
-    // The sequencer uses Tysringe to resolve modules (and their dependencies)
-    // and then starts them. However, this can be problematic as although Tysringe may resolve
+    // The sequencer uses tsyringe to resolve modules (and their dependencies)
+    // and then starts them. However, this can be problematic as although tsyringe may resolve
     // dependencies, it doesn't actually start them. For example, a database may be created,
     // but the connection strings, etc, won't be constructed until it's started, and this may
     // cause an error if a module that relies on it is started first. The way to fix this is
