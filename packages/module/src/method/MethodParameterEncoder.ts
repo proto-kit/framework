@@ -62,7 +62,7 @@ function getAllPropertyNamesOfPrototypeChain(type: unknown): string[] {
   );
 }
 
-function isFlexibleProvablePure(
+export function isFlexibleProvablePure(
   type: unknown
 ): type is FlexibleProvablePure<unknown> {
   // The required properties are defined on the prototype for Structs and CircuitValues
@@ -73,35 +73,43 @@ function isFlexibleProvablePure(
   return mandatory.every((prop) => props.includes(prop));
 }
 
+export function checkArgsProvable(
+  target: RuntimeModule<unknown>,
+  methodName: string
+) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const paramtypes: ArgTypeArray = Reflect.getMetadata(
+    "design:paramtypes",
+    target,
+    methodName
+  );
+
+  if (paramtypes === undefined) {
+    throw new Error(
+      `Method with name ${methodName} doesn't exist on this module`
+    );
+  }
+
+  const indizes = paramtypes
+    .map((type, index) => {
+      if (isFlexibleProvablePure(type)) {
+        return undefined;
+      }
+      return `${index}`;
+    })
+    .filter(filterNonUndefined);
+  if (indizes.length > 0) {
+    const indexString = indizes.reduce((a, b) => `${a}, ${b}`);
+    throw new Error(
+      `Not all arguments of method '${target.name}.${methodName}' are provable types or proofs (indizes: [${indexString}])`
+    );
+  }
+  return paramtypes;
+}
+
 export class MethodParameterEncoder {
   public static fromMethod(target: RuntimeModule<unknown>, methodName: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const paramtypes: ArgTypeArray = Reflect.getMetadata(
-      "design:paramtypes",
-      target,
-      methodName
-    );
-
-    if (paramtypes === undefined) {
-      throw new Error(
-        `Method with name ${methodName} doesn't exist on this module`
-      );
-    }
-
-    const indizes = paramtypes
-      .map((type, index) => {
-        if (isProofBaseType(type) || isFlexibleProvablePure(type)) {
-          return undefined;
-        }
-        return `${index}`;
-      })
-      .filter(filterNonUndefined);
-    if (indizes.length > 0) {
-      const indexString = indizes.reduce((a, b) => `${a}, ${b}`);
-      throw new Error(
-        `Not all arguments of method '${target.name}.${methodName}' are provable types or proofs (indizes: [${indexString}])`
-      );
-    }
+    const paramtypes = checkArgsProvable(target, methodName);
 
     return new MethodParameterEncoder(paramtypes);
   }

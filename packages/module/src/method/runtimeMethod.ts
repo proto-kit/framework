@@ -13,12 +13,14 @@ import {
   toProver,
   ZkProgrammable,
   ArgumentTypes,
-  TypedClass,
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
-import { MethodParameterEncoder } from "./MethodParameterEncoder";
+import {
+  MethodParameterEncoder,
+  checkArgsProvable,
+} from "./MethodParameterEncoder";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -191,13 +193,6 @@ export function isRuntimeMethod(
 
 export type RuntimeMethodInvocationType = "SIGNATURE" | "INCOMING_MESSAGE";
 
-function isSubtypeOfName(clas: TypedClass<unknown>, name: string): boolean {
-  if (clas.name === name) {
-    return true;
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  return isSubtypeOfName(Object.getPrototypeOf(clas), name);
-}
 function runtimeMethodInternal(options: {
   invocationType: RuntimeMethodInvocationType;
 }) {
@@ -206,6 +201,7 @@ function runtimeMethodInternal(options: {
     methodName: string,
     descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<any>>
   ) => {
+    checkArgsProvable(target, methodName);
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -238,15 +234,6 @@ function runtimeMethodInternal(options: {
       this: RuntimeModule<unknown>,
       ...args: ArgumentTypes
     ) {
-      args.forEach((arg) => {
-        const argData: any | undefined = Reflect.getMetadata(
-          runtimeMethodNamesMetadataKey,
-          arg
-        );
-        if (isSubtypeOfName(argData, "FlexibleProvablePure")) {
-          throw Error("Argument to method not of type FlexibleProvablePure.");
-        }
-      });
       const constructorName = this.name!;
 
       /**
