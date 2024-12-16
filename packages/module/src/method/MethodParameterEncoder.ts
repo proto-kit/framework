@@ -75,8 +75,7 @@ export function isFlexibleProvablePure(
 
 export function checkArgsProvable(
   target: RuntimeModule<unknown>,
-  methodName: string,
-  base = true
+  methodName: string
 ) {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const paramtypes: ArgTypeArray = Reflect.getMetadata(
