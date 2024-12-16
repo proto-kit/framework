@@ -75,7 +75,8 @@ export function isFlexibleProvablePure(
 
 export function checkArgsProvable(
   target: RuntimeModule<unknown>,
-  methodName: string
+  methodName: string,
+  base = true
 ) {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const paramtypes: ArgTypeArray = Reflect.getMetadata(
@@ -92,7 +93,11 @@ export function checkArgsProvable(
 
   const indizes = paramtypes
     .map((type, index) => {
-      if (isProofBaseType(type) || isFlexibleProvablePure(type)) {
+      if (
+        base
+          ? isProofBaseType(type) || isFlexibleProvablePure(type)
+          : isFlexibleProvablePure(type)
+      ) {
         return undefined;
       }
       return `${index}`;
