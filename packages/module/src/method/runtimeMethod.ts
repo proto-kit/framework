@@ -201,7 +201,7 @@ function runtimeMethodInternal(options: {
     methodName: string,
     descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<any>>
   ) => {
-    checkArgsProvable(target, methodName, false);
+    checkArgsProvable(target, methodName);
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );

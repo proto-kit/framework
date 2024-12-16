@@ -44,7 +44,7 @@ describe("Creating module with non-provable method argument", () => {
         }
       }
     }).toThrow(
-      "Not all arguments of method 'undefined.foo' are provable types or proofs (indizes: [3, 4])"
+      "Not all arguments of method 'undefined.foo' are provable types or proofs (indizes: [4])"
     );
   });
 });

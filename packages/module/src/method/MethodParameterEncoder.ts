@@ -93,11 +93,7 @@ export function checkArgsProvable(
 
   const indizes = paramtypes
     .map((type, index) => {
-      if (
-        base
-          ? isProofBaseType(type) || isFlexibleProvablePure(type)
-          : isFlexibleProvablePure(type)
-      ) {
+      if (isProofBaseType(type) || isFlexibleProvablePure(type)) {
         return undefined;
       }
       return `${index}`;
