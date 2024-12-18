@@ -1,6 +1,7 @@
 import { Bool, FlexibleProvablePure, Provable, Struct } from "o1js";
 import { singleton } from "tsyringe";
 import {
+  OperationQueue,
   ProvableMethodExecutionContext,
   ProvableMethodExecutionResult,
 } from "@proto-kit/common";
@@ -62,6 +63,8 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
   public override result = new RuntimeProvableMethodExecutionResult();
 
   private isSimulated: boolean = false;
+
+  public operationQueue = new OperationQueue();
 
   private assertSetupCalled(): asserts this is {
     input: RuntimeMethodExecutionData;
