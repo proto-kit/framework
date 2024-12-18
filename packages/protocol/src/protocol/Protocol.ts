@@ -132,6 +132,15 @@ export class Protocol<
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
 
+    const runtime: ModuleContainer<any> = this.container.resolve("Runtime");
+    runtime.moduleNames.forEach((runtimeModuleName) => {
+      this.container.register(runtimeModuleName, {
+        useFactory: (dependencyContainer) => {
+          return runtime.resolve(runtimeModuleName);
+        },
+      });
+    });
+
     // Register the BlockModules seperately since we need to
     // inject them differently later
     const ABSTRACT_MODULE_TYPES = [
