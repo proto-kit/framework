@@ -1,10 +1,12 @@
 import type { Field, FlexibleProvablePure } from "o1js";
 import { Mixin } from "ts-mixer";
+import { container } from "tsyringe";
 
 import { Path } from "../model/Path";
 import { Option } from "../model/Option";
 
 import { State, WithStateServiceProvider, WithPath } from "./State";
+import { RuntimeMethodExecutionContext } from "./context/RuntimeMethodExecutionContext";
 
 /**
  * Map-like wrapper for state
@@ -46,13 +48,17 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    * @returns Value for the provided key.
    */
   public async get(key: KeyType): Promise<Option<ValueType>> {
-    const state = State.from(this.valueType);
-    this.hasPathOrFail();
-    this.hasStateServiceOrFail();
+    return await container
+      .resolve(RuntimeMethodExecutionContext)
+      .operationQueue.queueOperation(async () => {
+        const state = State.from(this.valueType);
+        this.hasPathOrFail();
+        this.hasStateServiceOrFail();
 
-    state.path = this.getPath(key);
-    state.stateServiceProvider = this.stateServiceProvider;
-    return await state.get();
+        state.path = this.getPath(key);
+        state.stateServiceProvider = this.stateServiceProvider;
+        return await state.get();
+      });
   }
 
   /**
@@ -62,12 +68,16 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    * @param value - Value to be stored under the given key
    */
   public async set(key: KeyType, value: ValueType): Promise<void> {
-    const state = State.from(this.valueType);
-    this.hasPathOrFail();
-    this.hasStateServiceOrFail();
+    await container
+      .resolve(RuntimeMethodExecutionContext)
+      .operationQueue.queueOperation(async () => {
+        const state = State.from(this.valueType);
+        this.hasPathOrFail();
+        this.hasStateServiceOrFail();
 
-    state.path = Path.fromKey(this.path, this.keyType, key);
-    state.stateServiceProvider = this.stateServiceProvider;
-    return await state.set(value);
+        state.path = Path.fromKey(this.path, this.keyType, key);
+        state.stateServiceProvider = this.stateServiceProvider;
+        return await state.set(value);
+      });
   }
 }
