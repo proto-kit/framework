@@ -49,6 +49,8 @@ export function state() {
           // TODO: why is this complaining about `any`?
 
           value.stateServiceProvider = self.runtime.stateServiceProvider;
+
+          value.isToEnqueue = true;
         }
         return value;
       },

@@ -89,6 +89,11 @@ export function toWrappedMethod(
     ...args
   ): Promise<MethodPublicOutput> => {
     await Reflect.apply(moduleMethod, this, args);
+    console.log("fiu");
+    await container
+      .resolve(RuntimeMethodExecutionContext)
+      .operationQueue.onCompleted();
+    console.log("fiu2");
     const {
       result: { stateTransitions, status, events },
     } = executionContext.current();
@@ -285,6 +290,7 @@ function runtimeMethodInternal(options: {
       let result: unknown;
       try {
         result = await Reflect.apply(simulatedMethod, this, args);
+        await executionContext.operationQueue.onCompleted();
       } finally {
         executionContext.afterMethod();
       }

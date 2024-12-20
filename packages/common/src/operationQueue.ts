@@ -46,17 +46,18 @@ export class OperationQueue {
       return;
     }
 
-    console.log("running operation");
-
     const { operation, resolve, reject } = this.queue.shift()!;
     try {
+      console.log("running operation");
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const result = await operation();
-      console.log("operation resolved");
+      console.log("operation succeeded");
       resolve(result);
     } catch (error) {
+      console.log("operation failed");
       reject(error);
     } finally {
+      console.log("operation resolved");
       this.pendingCount -= 1;
       console.log("pendingCount:", this.pendingCount);
       console.log("queue length:", this.queue.length);
@@ -78,11 +79,12 @@ export class OperationQueue {
 
   // Returns a promise that resolves when all queued operations have completed
   onCompleted() {
+    console.log("waiting for drain, pendingCount:", this.pendingCount);
     if (this.queue.length === 0 && this.pendingCount === 0) {
+      console.log("no pending tasks, resolve immediately");
       // No pending tasks, resolve immediately
       return Promise.resolve();
     }
-    console.log("waiting for drain, pendingCount:", this.pendingCount);
     return new Promise<void>((resolve) => {
       this.drainResolvers.push(resolve);
     });

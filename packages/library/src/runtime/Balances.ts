@@ -55,7 +55,9 @@ export class Balances<Config = NoConfig>
     tokenId: TokenId,
     address: PublicKey
   ): Promise<Balance> {
+    console.log(tokenId);
     const key = new BalancesKey({ tokenId, address });
+    console.log(key);
     const balanceOption = await this.balances.get(key);
     return Balance.Unsafe.fromField(balanceOption.value.value);
   }
@@ -91,6 +93,7 @@ export class Balances<Config = NoConfig>
   }
 
   public async mint(tokenId: TokenId, address: PublicKey, amount: Balance) {
+    console.log(tokenId);
     const balance = await this.getBalance(tokenId, address);
     const newBalance = balance.add(amount);
     await this.setBalance(tokenId, address, newBalance);

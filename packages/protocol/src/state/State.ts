@@ -40,13 +40,17 @@ export class WithStateServiceProvider {
  * Utilities for runtime module state, such as get/set
  */
 export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
+  public isToEnqueue = false;
+
   /**
    * Creates a new state wrapper for the provided value type.
    *
    * @param valueType - Type of value to be stored (e.g. UInt64, Struct, ...)
    * @returns New state for the given value type.
    */
-  public static from<Value>(valueType: FlexibleProvablePure<Value>) {
+  public static from<Value>(
+    valueType: FlexibleProvablePure<Value>
+  ): State<Value> {
     return new State<Value>(valueType);
   }
 
@@ -130,22 +134,29 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @returns Option representation of the current state.
    */
-  public async get(): Promise<Option<Value>> {
-    return await container
+  public async commonGet(): Promise<Option<Value>> {
+    const option = await this.witnessFromState();
+
+    this.hasPathOrFail();
+
+    const stateTransition = StateTransition.from(this.path, option);
+
+    container
       .resolve(RuntimeMethodExecutionContext)
-      .operationQueue.queueOperation(async () => {
-        const option = await this.witnessFromState();
+      .addStateTransition(stateTransition);
 
-        this.hasPathOrFail();
+    return option;
+  }
 
-        const stateTransition = StateTransition.from(this.path, option);
-
-        container
-          .resolve(RuntimeMethodExecutionContext)
-          .addStateTransition(stateTransition);
-
-        return option;
-      });
+  public async get() {
+    if (this.isToEnqueue) {
+      return await container
+        .resolve(RuntimeMethodExecutionContext)
+        .operationQueue.queueOperation(async () => {
+          return await this.commonGet();
+        });
+    }
+    return await this.commonGet();
   }
 
   /**
@@ -159,25 +170,32 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @param value - Value to be set as the current state
    */
-  public async set(value: Value) {
-    await container
+  public async commonSet(value: Value) {
+    // link the transition to the current state
+    const fromOption = await this.witnessFromState();
+    const toOption = Option.fromValue(value, this.valueType);
+
+    this.hasPathOrFail();
+
+    const stateTransition = StateTransition.fromTo(
+      this.path,
+      fromOption,
+      toOption
+    );
+
+    container
       .resolve(RuntimeMethodExecutionContext)
-      .operationQueue.queueOperation(async () => {
-        // link the transition to the current state
-        const fromOption = await this.witnessFromState();
-        const toOption = Option.fromValue(value, this.valueType);
+      .addStateTransition(stateTransition);
+  }
 
-        this.hasPathOrFail();
-
-        const stateTransition = StateTransition.fromTo(
-          this.path,
-          fromOption,
-          toOption
-        );
-
-        container
-          .resolve(RuntimeMethodExecutionContext)
-          .addStateTransition(stateTransition);
-      });
+  public set(value: Value) {
+    if (this.isToEnqueue) {
+      return container
+        .resolve(RuntimeMethodExecutionContext)
+        .operationQueue.queueOperation(async () => {
+          await this.commonSet(value);
+        });
+    }
+    return this.commonSet(value);
   }
 }
