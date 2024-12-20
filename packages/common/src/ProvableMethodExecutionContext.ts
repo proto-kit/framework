@@ -1,8 +1,18 @@
-import type { DynamicProof, Proof } from "o1js";
+import {
+  DynamicProof,
+  Field,
+  FlexibleProvablePure,
+  Proof,
+  Provable,
+  ZkProgram,
+} from "o1js";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 
 const errors = {
+  appChainNotSet: (name: string) =>
+    new Error(`Appchain was not injected for: ${name}`),
+
   moduleOrMethodNameNotSet: () => new Error("Module or method name not set"),
 
   proverNotSet: (moduleName: string, methodName: string) =>
@@ -18,9 +28,50 @@ export type ArgumentTypes = (
   | DynamicProof<unknown, unknown>
 )[];
 
+export interface CompileArtifact {
+  verificationKey: {
+    data: string;
+    hash: Field;
+  };
+}
+
 export interface AreProofsEnabled {
   areProofsEnabled: boolean;
   setProofsEnabled: (areProofsEnabled: boolean) => void;
+}
+
+export interface Verify<PublicInput, PublicOutput> {
+  (proof: Proof<PublicInput, PublicOutput>): Promise<boolean>;
+}
+
+export interface Compile {
+  (): Promise<CompileArtifact>;
+}
+
+export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
+  compile: Compile;
+  verify: Verify<PublicInput, PublicOutput>;
+  Proof: ReturnType<
+    typeof ZkProgram.Proof<
+      FlexibleProvablePure<PublicInput>,
+      FlexibleProvablePure<PublicOutput>
+    >
+  >;
+  methods: Record<
+    string,
+    | ((...args: any) => Promise<Proof<PublicInput, PublicOutput>>)
+    | ((
+        publicInput: PublicInput,
+        ...args: any
+      ) => Promise<Proof<PublicInput, PublicOutput>>)
+  >;
+  analyzeMethods: () => Promise<
+    Record<string, Awaited<ReturnType<typeof Provable.constraintSystem>>>
+  >;
+}
+
+export interface WithZkProgram<PublicInput = undefined, PublicOutput = void> {
+  zkProgrammable: PlainZkProgram<PublicInput, PublicOutput>;
 }
 
 export class ProvableMethodExecutionResult {
