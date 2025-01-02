@@ -7,7 +7,7 @@ import {
   Struct,
   Void,
 } from "o1js";
-import { WithZkProgrammable } from "@proto-kit/common";
+import { WithZkProgram } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
@@ -70,7 +70,7 @@ export class DynamicRuntimeProof extends DynamicProof<
 }
 
 export interface BlockProvable
-  extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput> {
+  extends WithZkProgram<BlockProverPublicInput, BlockProverPublicOutput> {
   proveTransaction: (
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
