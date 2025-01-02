@@ -70,8 +70,26 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   >;
 }
 
-export interface WithZkProgram<PublicInput = undefined, PublicOutput = void> {
-  zkProgrammable: PlainZkProgram<PublicInput, PublicOutput>;
+export interface ZkProgramFactories<PublicInput, PublicOutput> {
+  zkProgramFactory(): () => PlainZkProgram<PublicInput, PublicOutput>[];
+}
+
+export abstract class WithZkProgram<
+  PublicInput = undefined,
+  PublicOutput = void,
+> {
+  zkProgramInstance: PlainZkProgram<PublicInput, PublicOutput>[];
+
+  constructor(
+    zkProgramFactory: () => PlainZkProgram<PublicInput, PublicOutput>[],
+    proofsEnabled: AreProofsEnabled
+  ) {
+    this.zkProgramInstance = zkProgramFactory();
+  }
+
+  public get zkProgram() {
+    return this.zkProgramInstance;
+  }
 }
 
 export class ProvableMethodExecutionResult {
