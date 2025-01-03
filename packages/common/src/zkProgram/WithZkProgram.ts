@@ -59,20 +59,8 @@ export interface ZkProgramFactories<PublicInput, PublicOutput> {
   zkProgramFactory(): PlainZkProgram<PublicInput, PublicOutput>[];
 }
 
-export abstract class WithZkProgram<
-  PublicInput = undefined,
-  PublicOutput = void,
-> {
-  zkProgramInstance: PlainZkProgram<PublicInput, PublicOutput>[];
+export interface WithZkProgram<PublicInput = undefined, PublicOutput = void> {
+  readonly zkProgrammable: ZkProgramFactories<PublicInput, PublicOutput>;
 
-  constructor(
-    zkProgramFactory: () => PlainZkProgram<PublicInput, PublicOutput>[],
-    proofsEnabled: AreProofsEnabled
-  ) {
-    this.zkProgramInstance = zkProgramFactory();
-  }
-
-  public get zkProgram() {
-    return this.zkProgramInstance;
-  }
+  zkProgram: PlainZkProgram<PublicInput, PublicOutput>[];
 }
