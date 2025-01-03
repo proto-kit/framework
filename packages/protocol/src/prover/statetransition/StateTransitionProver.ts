@@ -335,11 +335,17 @@ export class StateTransitionProver
   extends ProtocolModule
   implements StateTransitionProvable, StateTransitionProverType
 {
-  public zkProgrammable: StateTransitionProverProgrammable;
+  readonly zkProgrammable: StateTransitionProverProgrammable;
+
+  readonly zkProgram: PlainZkProgram<
+    StateTransitionProverPublicInput,
+    StateTransitionProverPublicOutput
+  >[];
 
   public constructor() {
     super();
     this.zkProgrammable = new StateTransitionProverProgrammable(this);
+    this.zkProgram = this.zkProgrammable.zkProgramFactory();
   }
 
   public runBatch(
