@@ -55,12 +55,12 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   >;
 }
 
-export interface ZkProgramFactories<PublicInput, PublicOutput> {
+export interface ZkProgramFactory<PublicInput, PublicOutput> {
   zkProgramFactory(): PlainZkProgram<PublicInput, PublicOutput>[];
 }
 
 export interface WithZkProgram<PublicInput = undefined, PublicOutput = void> {
-  readonly zkProgrammable: ZkProgramFactories<PublicInput, PublicOutput>;
+  readonly zkProgramFactory: ZkProgramFactory<PublicInput, PublicOutput>;
 
   readonly zkProgram: PlainZkProgram<PublicInput, PublicOutput>[];
 }

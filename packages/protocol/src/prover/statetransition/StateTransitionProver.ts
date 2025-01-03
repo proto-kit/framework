@@ -2,7 +2,7 @@ import {
   AreProofsEnabled,
   PlainZkProgram,
   RollupMerkleTreeWitness,
-  ZkProgramFactories,
+  ZkProgramFactory,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
@@ -58,7 +58,7 @@ const StateTransitionSelfProofClass = SelfProof<
  */
 export class StateTransitionProverProgrammable
   implements
-    ZkProgramFactories<
+    ZkProgramFactory<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >
@@ -335,7 +335,7 @@ export class StateTransitionProver
   extends ProtocolModule
   implements StateTransitionProvable, StateTransitionProverType
 {
-  readonly zkProgrammable: StateTransitionProverProgrammable;
+  readonly zkProgramFactory: StateTransitionProverProgrammable;
 
   readonly zkProgram: PlainZkProgram<
     StateTransitionProverPublicInput,
@@ -344,15 +344,15 @@ export class StateTransitionProver
 
   public constructor() {
     super();
-    this.zkProgrammable = new StateTransitionProverProgrammable(this);
-    this.zkProgram = this.zkProgrammable.zkProgramFactory();
+    this.zkProgramFactory = new StateTransitionProverProgrammable(this);
+    this.zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 
   public runBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
   ): Promise<StateTransitionProverPublicOutput> {
-    return this.zkProgrammable.runBatch(publicInput, batch);
+    return this.zkProgramFactory.runBatch(publicInput, batch);
   }
 
   public merge(
@@ -360,6 +360,6 @@ export class StateTransitionProver
     proof1: StateTransitionProof,
     proof2: StateTransitionProof
   ): Promise<StateTransitionProverPublicOutput> {
-    return this.zkProgrammable.merge(publicInput, proof1, proof2);
+    return this.zkProgramFactory.merge(publicInput, proof1, proof2);
   }
 }
