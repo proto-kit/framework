@@ -45,11 +45,10 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   >;
   methods: Record<
     string,
-    | ((...args: any) => Promise<Proof<PublicInput, PublicOutput>>)
-    | ((
-        publicInput: PublicInput,
-        ...args: any
-      ) => Promise<Proof<PublicInput, PublicOutput>>)
+    (...args: any) => Promise<{
+      proof: Proof<PublicInput, PublicOutput>;
+      auxiliaryOutput: undefined;
+    }>
   >;
   analyzeMethods: () => Promise<
     Record<string, Awaited<ReturnType<typeof Provable.constraintSystem>>>
@@ -57,7 +56,7 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
 }
 
 export interface ZkProgramFactories<PublicInput, PublicOutput> {
-  zkProgramFactory(): () => PlainZkProgram<PublicInput, PublicOutput>[];
+  zkProgramFactory(): PlainZkProgram<PublicInput, PublicOutput>[];
 }
 
 export abstract class WithZkProgram<
