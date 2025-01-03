@@ -1,9 +1,8 @@
 import {
   AreProofsEnabled,
   PlainZkProgram,
-  provableMethod,
   RollupMerkleTreeWitness,
-  ZkProgrammable,
+  ZkProgramFactories,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
@@ -57,15 +56,16 @@ const StateTransitionSelfProofClass = SelfProof<
  * StateTransitionProver is the prover that proves the application of some state
  * transitions and checks and updates their merkle-tree entries
  */
-export class StateTransitionProverProgrammable extends ZkProgrammable<
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
-> {
+export class StateTransitionProverProgrammable
+  implements
+    ZkProgramFactories<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >
+{
   public constructor(
     private readonly stateTransitionProver: StateTransitionProver
-  ) {
-    super();
-  }
+  ) {}
 
   public get appChain(): AreProofsEnabled | undefined {
     return this.stateTransitionProver.appChain;
@@ -85,12 +85,13 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       methods: {
         proveBatch: {
           privateInputs: [StateTransitionProvableBatch],
-
           async method(
             publicInput: StateTransitionProverPublicInput,
             batch: StateTransitionProvableBatch
           ) {
-            return await instance.runBatch(publicInput, batch);
+            return {
+              publicOutput: await instance.runBatch(publicInput, batch),
+            };
           },
         },
 
@@ -105,7 +106,9 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             proof1: StateTransitionProof,
             proof2: StateTransitionProof
           ) {
-            return await instance.merge(publicInput, proof1, proof2);
+            return {
+              publicOutput: await instance.merge(publicInput, proof1, proof2),
+            };
           },
         },
       },
@@ -232,7 +235,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   /**
    * Applies a whole batch of StateTransitions at once
    */
-  @provableMethod()
   public async runBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
@@ -253,7 +255,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     });
   }
 
-  @provableMethod()
   public async merge(
     publicInput: StateTransitionProverPublicInput,
     proof1: StateTransitionProof,
