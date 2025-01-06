@@ -13,6 +13,7 @@ export type ArgumentTypes = (
   | Proof<unknown, unknown>
   | DynamicProof<unknown, unknown>
 )[];
+export type DecoratedMethod = (...args: ArgumentTypes) => Promise<unknown>;
 
 export interface CompileArtifact {
   verificationKey: {
