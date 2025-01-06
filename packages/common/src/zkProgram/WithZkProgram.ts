@@ -54,6 +54,7 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   analyzeMethods: () => Promise<
     Record<string, Awaited<ReturnType<typeof Provable.constraintSystem>>>
   >;
+  proofsEnabled: boolean;
 }
 
 export interface ZkProgramFactory<PublicInput, PublicOutput> {
@@ -64,4 +65,24 @@ export interface WithZkProgram<PublicInput = undefined, PublicOutput = void> {
   readonly zkProgramFactory: ZkProgramFactory<PublicInput, PublicOutput>;
 
   readonly zkProgram: PlainZkProgram<PublicInput, PublicOutput>[];
+}
+
+export function toProver(
+  methodName: string,
+  simulatedMethod: DecoratedMethod,
+  isFirstParameterPublicInput: boolean,
+  areProofsEnabled: boolean,
+  ...args: ArgumentTypes
+) {
+  // eslint-disable-next-line consistent-return
+  return async function prover(this: ZkProgramFactory<any, any>) {
+    for (const prog of this.zkProgramFactory()) {
+      if (Object.keys(prog.methods).includes(methodName)) {
+        prog.proofsEnabled = areProofsEnabled;
+        const programProvableMethod = prog.methods[methodName];
+        // eslint-disable-next-line no-await-in-loop
+        return await Reflect.apply(programProvableMethod, this, args);
+      }
+    }
+  };
 }
