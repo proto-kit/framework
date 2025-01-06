@@ -74,7 +74,6 @@ export function toProver(
   areProofsEnabled: boolean,
   ...args: ArgumentTypes
 ) {
-  // eslint-disable-next-line consistent-return
   return async function prover(this: ZkProgramFactory<any, any>) {
     for (const prog of this.zkProgramFactory()) {
       if (Object.keys(prog.methods).includes(methodName)) {
@@ -84,5 +83,6 @@ export function toProver(
         return await Reflect.apply(programProvableMethod, this, args);
       }
     }
+    throw Error("No zkProgram found with given method.");
   };
 }
