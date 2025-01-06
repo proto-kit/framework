@@ -1,4 +1,4 @@
-import { AreProofsEnabled, ZkProgramFactory } from "@proto-kit/common";
+import { AreProofsEnabled, WithZkProgram } from "@proto-kit/common";
 import {
   MethodPublicOutput,
   SimpleAsyncStateService,
@@ -8,7 +8,7 @@ import {
 import { MethodIdResolver } from "./MethodIdResolver";
 
 export interface RuntimeEnvironment
-  extends ZkProgramFactory<undefined, MethodPublicOutput> {
+  extends WithZkProgram<undefined, MethodPublicOutput> {
   get appChain(): AreProofsEnabled | undefined;
   get stateService(): SimpleAsyncStateService;
   get stateServiceProvider(): StateServiceProvider;
