@@ -5,6 +5,7 @@ import {
   Provable,
   DynamicProof,
   FlexibleProvablePure,
+  FlexibleProvable,
 } from "o1js";
 import {
   ArgumentTypes,
@@ -29,6 +30,7 @@ const errors = {
 };
 
 type ArgumentType =
+  | FlexibleProvable<any>
   | FlexibleProvablePure<any>
   | typeof Proof<unknown, unknown>
   | typeof DynamicProof<unknown, unknown>;
