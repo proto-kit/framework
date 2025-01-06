@@ -56,7 +56,7 @@ const StateTransitionSelfProofClass = SelfProof<
  * StateTransitionProver is the prover that proves the application of some state
  * transitions and checks and updates their merkle-tree entries
  */
-export class StateTransitionProverProgrammable
+export class StateTransitionProverFactory
   implements
     ZkProgramFactory<
       StateTransitionProverPublicInput,
@@ -335,7 +335,7 @@ export class StateTransitionProver
   extends ProtocolModule
   implements StateTransitionProvable, StateTransitionProverType
 {
-  readonly zkProgramFactory: StateTransitionProverProgrammable;
+  readonly zkProgramFactory: StateTransitionProverFactory;
 
   readonly zkProgram: PlainZkProgram<
     StateTransitionProverPublicInput,
@@ -344,7 +344,7 @@ export class StateTransitionProver
 
   public constructor() {
     super();
-    this.zkProgramFactory = new StateTransitionProverProgrammable(this);
+    this.zkProgramFactory = new StateTransitionProverFactory(this);
     this.zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 
