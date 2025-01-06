@@ -246,6 +246,8 @@ export class RuntimeZkProgramFactory<Modules extends RuntimeModulesRecord>
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
+        // TODO set this dynamically somehow
+        proofsEnabled: true,
         Proof: SelfProof,
         methods,
       };
@@ -288,6 +290,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     super(definition);
     this.definition = definition;
     this.zkProgramFactory = new RuntimeZkProgramFactory<Modules>(this);
+    this.zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 
   // TODO Remove after changing DFs to type-based approach
