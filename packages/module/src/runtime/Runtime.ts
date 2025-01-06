@@ -7,10 +7,10 @@ import {
   ModulesConfig,
   ModulesRecord,
   TypedClass,
-  ZkProgrammable,
   PlainZkProgram,
   AreProofsEnabled,
   ChildContainerProvider,
+  ZkProgramFactory,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -69,12 +69,10 @@ export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
   config?: ModulesConfig<Modules>;
 }
 
-export class RuntimeZkProgrammable<
-  Modules extends RuntimeModulesRecord,
-> extends ZkProgrammable<undefined, MethodPublicOutput> {
-  public constructor(public runtime: Runtime<Modules>) {
-    super();
-  }
+export class RuntimeZkProgramFactory<Modules extends RuntimeModulesRecord>
+  implements ZkProgramFactory<undefined, MethodPublicOutput>
+{
+  public constructor(public runtime: Runtime<Modules>) {}
 
   public get appChain() {
     return this.runtime.appChain;
@@ -275,11 +273,11 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   }
 
   // runtime modules composed into a ZkProgram
-  public program?: ReturnType<typeof ZkProgram>;
+  public zkProgram: ReturnType<typeof ZkProgram>;
 
   public definition: RuntimeDefinition<Modules>;
 
-  public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
+  public zkProgramFactory: ZkProgramFactory<undefined, MethodPublicOutput>;
 
   /**
    * Creates a new Runtime from the provided config
@@ -289,7 +287,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public constructor(definition: RuntimeDefinition<Modules>) {
     super(definition);
     this.definition = definition;
-    this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
+    this.zkProgramFactory = new RuntimeZkProgramFactory<Modules>(this);
   }
 
   // TODO Remove after changing DFs to type-based approach
