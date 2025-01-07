@@ -11,6 +11,7 @@ import {
   StateServiceProvider,
   MandatoryProtocolModulesRecord,
   reduceStateTransitions,
+  StateTransition,
 } from "@proto-kit/protocol";
 import { Field } from "o1js";
 import { AreProofsEnabled, log, mapSequential } from "@proto-kit/common";
@@ -33,6 +34,119 @@ const errors = {
 
 export type SomeRuntimeMethod = (...args: unknown[]) => Promise<unknown>;
 
+export type RuntimeContextReducedExecutionResult = Pick<
+  RuntimeProvableMethodExecutionResult,
+  "stateTransitions" | "status" | "statusMessage" | "stackTrace" | "events"
+>;
+
+function getAreProofsEnabledFromModule(
+  module: RuntimeModule<unknown>
+): AreProofsEnabled {
+  if (module.runtime === undefined) {
+    throw new Error("Runtime on RuntimeModule not set");
+  }
+  if (module.runtime.areProofsEnabled === undefined) {
+    throw new Error("AppChain on Runtime not set");
+  }
+  const { areProofsEnabled } = module.runtime;
+  return areProofsEnabled;
+}
+
+async function decodeTransaction(
+  tx: PendingTransaction,
+  runtime: Runtime<RuntimeModulesRecord>
+): Promise<{
+  method: SomeRuntimeMethod;
+  args: unknown[];
+  module: RuntimeModule<unknown>;
+}> {
+  const methodDescriptors = runtime.methodIdResolver.getMethodNameFromId(
+    tx.methodId.toBigInt()
+  );
+
+  const method = runtime.getMethodById(tx.methodId.toBigInt());
+
+  if (methodDescriptors === undefined || method === undefined) {
+    throw errors.methodIdNotFound(tx.methodId.toString());
+  }
+
+  const [moduleName, methodName] = methodDescriptors;
+  const module: RuntimeModule<unknown> = runtime.resolve(moduleName);
+
+  const parameterDecoder = MethodParameterEncoder.fromMethod(
+    module,
+    methodName
+  );
+  const args = await parameterDecoder.decode(tx.argsFields, tx.auxiliaryData);
+
+  return {
+    method,
+    args,
+    module,
+  };
+}
+
+function extractEvents(
+  runtimeResult: RuntimeContextReducedExecutionResult
+): { eventName: string; data: Field[] }[] {
+  return runtimeResult.events.reduce(
+    (acc, event) => {
+      if (event.condition.toBoolean()) {
+        const obj = {
+          eventName: event.eventName,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          data: event.eventType.toFields(event.event),
+        };
+        acc.push(obj);
+      }
+      return acc;
+    },
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    [] as { eventName: string; data: Field[] }[]
+  );
+}
+
+export async function executeWithExecutionContext<MethodResult>(
+  method: () => Promise<MethodResult>,
+  contextInputs: RuntimeMethodExecutionData,
+  runSimulated = false
+): Promise<
+  RuntimeContextReducedExecutionResult & { methodResult: MethodResult }
+> {
+  // Set up context
+  const executionContext = container.resolve(RuntimeMethodExecutionContext);
+
+  executionContext.setup(contextInputs);
+  executionContext.setSimulated(runSimulated);
+
+  // Execute method
+  const methodResult = await method();
+
+  const { stateTransitions, status, statusMessage, events } =
+    executionContext.current().result;
+
+  const reducedSTs = reduceStateTransitions(stateTransitions);
+
+  return {
+    stateTransitions: reducedSTs,
+    status,
+    statusMessage,
+    events,
+    methodResult,
+  };
+}
+
+function traceSTs(msg: string, stateTransitions: StateTransition<any>[]) {
+  log.trace(
+    msg,
+    JSON.stringify(
+      stateTransitions.map((x) => x.toJSON()),
+      null,
+      2
+    )
+  );
+}
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionExecutionService {
@@ -51,88 +165,12 @@ export class TransactionExecutionService {
     );
   }
 
-  private async decodeTransaction(tx: PendingTransaction): Promise<{
-    method: SomeRuntimeMethod;
-    args: unknown[];
-    module: RuntimeModule<unknown>;
-  }> {
-    const methodDescriptors = this.runtime.methodIdResolver.getMethodNameFromId(
-      tx.methodId.toBigInt()
-    );
-
-    const method = this.runtime.getMethodById(tx.methodId.toBigInt());
-
-    if (methodDescriptors === undefined || method === undefined) {
-      throw errors.methodIdNotFound(tx.methodId.toString());
-    }
-
-    const [moduleName, methodName] = methodDescriptors;
-    const module: RuntimeModule<unknown> = this.runtime.resolve(moduleName);
-
-    const parameterDecoder = MethodParameterEncoder.fromMethod(
-      module,
-      methodName
-    );
-    const args = await parameterDecoder.decode(tx.argsFields, tx.auxiliaryData);
-
-    return {
-      method,
-      args,
-      module,
-    };
-  }
-
-  private getAppChainForModule(
-    module: RuntimeModule<unknown>
-  ): AreProofsEnabled {
-    if (module.runtime === undefined) {
-      throw new Error("Runtime on RuntimeModule not set");
-    }
-    if (module.runtime.areProofsEnabled === undefined) {
-      throw new Error("AppChain on Runtime not set");
-    }
-    const { areProofsEnabled } = module.runtime;
-    return areProofsEnabled;
-  }
-
-  private async executeWithExecutionContext(
-    method: () => Promise<void>,
-    contextInputs: RuntimeMethodExecutionData,
-    runSimulated = false
-  ): Promise<
-    Pick<
-      RuntimeProvableMethodExecutionResult,
-      "stateTransitions" | "status" | "statusMessage" | "stackTrace" | "events"
-    >
-  > {
-    // Set up context
-    const executionContext = container.resolve(RuntimeMethodExecutionContext);
-
-    executionContext.setup(contextInputs);
-    executionContext.setSimulated(runSimulated);
-
-    // Execute method
-    await method();
-
-    const { stateTransitions, status, statusMessage, events } =
-      executionContext.current().result;
-
-    const reducedSTs = reduceStateTransitions(stateTransitions);
-
-    return {
-      stateTransitions: reducedSTs,
-      status,
-      statusMessage,
-      events,
-    };
-  }
-
   private async executeRuntimeMethod(
     method: SomeRuntimeMethod,
     args: unknown[],
     contextInputs: RuntimeMethodExecutionData
   ) {
-    return await this.executeWithExecutionContext(async () => {
+    return await executeWithExecutionContext(async () => {
       await method(...args);
     }, contextInputs);
   }
@@ -152,7 +190,7 @@ export class TransactionExecutionService {
     blockContextInputs: BlockProverExecutionData,
     runSimulated = false
   ) {
-    return await this.executeWithExecutionContext(
+    return await executeWithExecutionContext(
       async () =>
         await this.wrapHooksForContext(async () => {
           await mapSequential(
@@ -175,10 +213,10 @@ export class TransactionExecutionService {
     // TODO Use RecordingStateService -> async asProver needed
     const recordingStateService = new CachedStateService(asyncStateService);
 
-    const { method, args, module } = await this.decodeTransaction(tx);
+    const { method, args, module } = await decodeTransaction(tx, this.runtime);
 
     // Disable proof generation for tracing
-    const appChain = this.getAppChainForModule(module);
+    const appChain = getAreProofsEnabledFromModule(module);
     const previousProofsEnabled = appChain.areProofsEnabled;
     appChain.setProofsEnabled(false);
 
@@ -212,14 +250,7 @@ export class TransactionExecutionService {
       throw error;
     }
 
-    log.trace(
-      "PSTs:",
-      JSON.stringify(
-        protocolResult.stateTransitions.map((x) => x.toJSON()),
-        null,
-        2
-      )
-    );
+    traceSTs("STs:", protocolResult.stateTransitions);
 
     // Apply protocol STs
     await recordingStateService.applyStateTransitions(
@@ -231,14 +262,7 @@ export class TransactionExecutionService {
       args,
       runtimeContextInputs
     );
-    log.trace(
-      "STs:",
-      JSON.stringify(
-        runtimeResult.stateTransitions.map((x) => x.toJSON()),
-        null,
-        2
-      )
-    );
+    traceSTs("STs:", runtimeResult.stateTransitions);
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
@@ -256,22 +280,8 @@ export class TransactionExecutionService {
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
 
-    const eventsReduced: { eventName: string; data: Field[] }[] =
-      runtimeResult.events.reduce(
-        (acc, event) => {
-          if (event.condition.toBoolean()) {
-            const obj = {
-              eventName: event.eventName,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-              data: event.eventType.toFields(event.event),
-            };
-            acc.push(obj);
-          }
-          return acc;
-        },
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        [] as { eventName: string; data: Field[] }[]
-      );
+    const events = extractEvents(runtimeResult);
+
     return {
       tx,
       status: runtimeResult.status,
@@ -285,7 +295,7 @@ export class TransactionExecutionService {
         UntypedStateTransition.fromStateTransition(st)
       ),
 
-      events: eventsReduced,
+      events,
     };
   }
 }

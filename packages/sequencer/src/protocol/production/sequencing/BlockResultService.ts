@@ -1,4 +1,3 @@
-import type { StateRecord } from "../BatchProducerModule";
 import { Bool, Field, Poseidon } from "o1js";
 import { RollupMerkleTree } from "@proto-kit/common";
 import {
@@ -10,16 +9,21 @@ import {
   Protocol,
   ProtocolModulesRecord,
   ProvableBlockHook,
-  reduceStateTransitions,
-  RuntimeMethodExecutionContext,
   RuntimeTransaction,
 } from "@proto-kit/protocol";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
-import { Block, BlockResult } from "../../../storage/model/Block";
+import {
+  Block,
+  BlockResult,
+  TransactionExecutionResult,
+} from "../../../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import type { StateRecord } from "../BatchProducerModule";
+
+import { executeWithExecutionContext } from "./TransactionExecutionService";
 
 function collectStateDiff(
   stateTransitions: UntypedStateTransition[]
@@ -35,13 +39,27 @@ function collectStateDiff(
   );
 }
 
+function createCombinedStateDiff(transactions: TransactionExecutionResult[]) {
+  // Flatten diff list into a single diff by applying them over each other
+  return transactions
+    .map((tx) => {
+      const transitions = tx.protocolTransitions.concat(
+        tx.status.toBoolean() ? tx.stateTransitions : []
+      );
+      return collectStateDiff(transitions);
+    })
+    .reduce<StateRecord>((accumulator, diff) => {
+      // accumulator properties will be overwritten by diff's values
+      return Object.assign(accumulator, diff);
+    }, {});
+}
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class BlockResultService {
   private readonly blockHooks: ProvableBlockHook<unknown>[];
 
   public constructor(
-    private readonly executionContext: RuntimeMethodExecutionContext,
     @inject("Protocol")
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>
   ) {
@@ -55,18 +73,7 @@ export class BlockResultService {
     blockHashTreeStore: AsyncMerkleTreeStore,
     modifyTreeStore = true
   ): Promise<BlockResult> {
-    // Flatten diff list into a single diff by applying them over each other
-    const combinedDiff = block.transactions
-      .map((tx) => {
-        const transitions = tx.protocolTransitions.concat(
-          tx.status.toBoolean() ? tx.stateTransitions : []
-        );
-        return collectStateDiff(transitions);
-      })
-      .reduce<StateRecord>((accumulator, diff) => {
-        // accumulator properties will be overwritten by diff's values
-        return Object.assign(accumulator, diff);
-      }, {});
+    const combinedDiff = createCombinedStateDiff(block.transactions);
 
     const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
     const tree = new RollupMerkleTree(inMemoryStore);
@@ -104,23 +111,22 @@ export class BlockResultService {
     };
 
     // TODO Set StateProvider for @state access to state
-    this.executionContext.clear();
-    this.executionContext.setup({
+    const context = {
       networkState: block.networkState.during,
       transaction: RuntimeTransaction.dummyTransaction(),
-    });
+    };
 
-    const resultingNetworkState = await this.blockHooks.reduce<
-      Promise<NetworkState>
-    >(
-      async (networkState, hook) =>
-        await hook.afterBlock(await networkState, state),
-      Promise.resolve(block.networkState.during)
+    const executionResult = await executeWithExecutionContext(
+      async () =>
+        await this.blockHooks.reduce<Promise<NetworkState>>(
+          async (networkState, hook) =>
+            await hook.afterBlock(await networkState, state),
+          Promise.resolve(block.networkState.during)
+        ),
+      context
     );
 
-    const { stateTransitions } = this.executionContext.result;
-    this.executionContext.clear();
-    const reducedStateTransitions = reduceStateTransitions(stateTransitions);
+    const { stateTransitions, methodResult } = executionResult;
 
     // Update the block hash tree with this block
     blockHashTree.setLeaf(
@@ -139,12 +145,12 @@ export class BlockResultService {
     }
 
     return {
-      afterNetworkState: resultingNetworkState,
+      afterNetworkState: methodResult,
       stateRoot: stateRoot.toBigInt(),
       blockHashRoot: newBlockHashRoot.toBigInt(),
       blockHashWitness,
 
-      blockStateTransitions: reducedStateTransitions.map((st) =>
+      blockStateTransitions: stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
       blockHash: block.hash.toBigInt(),

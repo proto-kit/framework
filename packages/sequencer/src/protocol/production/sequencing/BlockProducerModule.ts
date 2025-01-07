@@ -22,7 +22,6 @@ import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 
-import { TransactionExecutionService } from "./TransactionExecutionService";
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
 
