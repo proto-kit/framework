@@ -205,10 +205,12 @@ export class SettlementProvingTask
             let proofsDecoded = 0;
 
             const args = lazyProof.args.map((encodedArg, argsIndex) => {
-              const type = isProofType(allArgs[index]) ? "proof" : "witness";
+              const type = isProofType(allArgs[argsIndex])
+                ? "proof"
+                : "witness";
               if (type === "witness") {
                 // encodedArg is string[]
-                return ProvableType.get(allArgs[index]).fromFields(
+                return ProvableType.get(allArgs[argsIndex]).fromFields(
                   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                   (encodedArg as string[]).map((field) => Field(field)),
                   []
