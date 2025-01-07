@@ -6,9 +6,9 @@ import {
   ModulesRecord,
   StringKeyOf,
   TypedClass,
+  AreProofsEnabled,
 } from "@proto-kit/common";
 import { DependencyContainer, Lifecycle } from "tsyringe";
-import { AreProofsEnabled } from "@proto-kit/common/dist/zkProgrammable/ZkProgrammable";
 
 import { BlockProvable } from "../prover/block/BlockProvable";
 import { StateTransitionProvable } from "../prover/statetransition/StateTransitionProvable";
