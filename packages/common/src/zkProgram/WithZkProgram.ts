@@ -67,6 +67,13 @@ export interface WithZkProgram<PublicInput = undefined, PublicOutput = void> {
   readonly zkProgram: PlainZkProgram<PublicInput, PublicOutput>[];
 }
 
+export const MOCK_PROOF = "mock-proof";
+
+export const MOCK_VERIFICATION_KEY = {
+  data: "mock-verification-key",
+  hash: Field(0),
+};
+
 export function toProver(
   methodName: string,
   simulatedMethod: DecoratedMethod,

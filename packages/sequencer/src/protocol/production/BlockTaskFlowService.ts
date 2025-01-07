@@ -318,14 +318,13 @@ export class BlockTaskFlowService {
           });
 
           // Provide a dummy prove is this block is empty
-          const proof =
-            new this.protocol.blockProver.zkProgrammable.zkProgram[0].Proof({
+          flow.state.blockPairings[blockNumber].blockProof =
+            new this.protocol.blockProver.zkProgram[0].Proof({
               publicInput,
               publicOutput,
               proof: MOCK_PROOF,
               maxProofsVerified: 2,
             });
-          flow.state.blockPairings[blockNumber].blockProof = proof;
           await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
         }
 
@@ -335,14 +334,12 @@ export class BlockTaskFlowService {
           const [{ publicInput }] = blockTrace.stateTransitionProver;
 
           flow.state.blockPairings[blockNumber].stProof =
-            new this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof(
-              {
-                publicInput,
-                proof: MOCK_PROOF,
-                publicOutput: publicInput,
-                maxProofsVerified: 2,
-              }
-            );
+            new this.protocol.stateTransitionProver.zkProgram[0].Proof({
+              publicInput,
+              proof: MOCK_PROOF,
+              publicOutput: publicInput,
+              maxProofsVerified: 2,
+            });
           await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
         } else {
           const blockSTFlow = this.createSTMergeFlow(
