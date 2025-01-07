@@ -2,7 +2,7 @@
 import {
   AreProofsEnabled,
   PlainZkProgram,
-  ZkProgrammable,
+  ZkProgramFactory,
 } from "@proto-kit/common";
 import { Bool, Field, Proof, UInt64, ZkProgram } from "o1js";
 import "reflect-metadata";
@@ -30,10 +30,9 @@ class MockAppChain implements AreProofsEnabled {
   }
 }
 
-class RuntimeZkProgrammable extends ZkProgrammable<
-  undefined,
-  MethodPublicOutput
-> {
+class RuntimeZkProgrammable
+  implements ZkProgramFactory<undefined, MethodPublicOutput>
+{
   get appChain(): AreProofsEnabled | undefined {
     return new MockAppChain();
   }
@@ -51,6 +50,7 @@ class RuntimeZkProgrammable extends ZkProgrammable<
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
         methods: {},
+        proofsEnabled: true,
         Proof: ZkProgram.Proof(program),
       },
     ];

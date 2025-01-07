@@ -1,4 +1,8 @@
-import { WithZkProgrammable, ZkProgrammable } from "@proto-kit/common";
+import {
+  PlainZkProgram,
+  WithZkProgram,
+  ZkProgramFactory,
+} from "@proto-kit/common";
 import { container } from "tsyringe";
 
 import {
@@ -11,9 +15,12 @@ import {
   StateTransitionProver,
 } from "../src";
 
-class RuntimeMock implements WithZkProgrammable<undefined, MethodPublicOutput> {
-  zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput> =
-    undefined as unknown as ZkProgrammable<undefined, MethodPublicOutput>;
+class RuntimeMock implements WithZkProgram<undefined, MethodPublicOutput> {
+  zkProgramFactory: ZkProgramFactory<undefined, MethodPublicOutput> =
+    undefined as unknown as ZkProgramFactory<undefined, MethodPublicOutput>;
+
+  zkProgram: PlainZkProgram<undefined, MethodPublicOutput>[] =
+    undefined as unknown as PlainZkProgram<undefined, MethodPublicOutput>[];
 }
 
 export function createAndInitTestingProtocol() {
