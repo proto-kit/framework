@@ -20,8 +20,10 @@ import {
   DynamicProof,
   Transaction,
   Void,
+  ProvableType,
 } from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { isProofType } from "@proto-kit/module";
 
 import {
   ProofTaskSerializer,
@@ -97,7 +99,7 @@ export class SettlementProvingTask
     // For this, we assume that remote networks will only be used with separate
     // worker instances, since they only work with proofs enabled. For
     // LocalBlockchain, caching is not used, as ledger is used directly and all
-    // txs are executed seequentially.
+    // txs are executed sequentially.
     // Therefore, we only need to manually add the accounts for remote networks
 
     if (graphql !== undefined) {
@@ -199,15 +201,14 @@ export class SettlementProvingTask
               throw new Error("Method interface not found");
             }
 
-            const allArgs = method.allArgs.slice(2);
-            const witnessArgTypes = method.witnessArgs.slice(2);
-            const proofTypes = method.proofArgs;
+            const allArgs = method.args.slice(2);
             let proofsDecoded = 0;
 
             const args = lazyProof.args.map((encodedArg, argsIndex) => {
-              if (allArgs[argsIndex].type === "witness") {
+              const type = isProofType(allArgs[index]) ? "proof" : "witness";
+              if (type === "witness") {
                 // encodedArg is string[]
-                return witnessArgTypes[argsIndex - proofsDecoded].fromFields(
+                return ProvableType.get(allArgs[index]).fromFields(
                   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                   (encodedArg as string[]).map((field) => Field(field)),
                   []
@@ -215,7 +216,8 @@ export class SettlementProvingTask
               }
               // fields is JsonProof
               const serializer = this.getProofSerializer(
-                proofTypes[proofsDecoded]
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                allArgs[proofsDecoded] as unknown as Subclass<any>
               );
 
               proofsDecoded += 1;
@@ -281,21 +283,24 @@ export class SettlementProvingTask
                   throw new Error("Method interface not found");
                 }
 
-                const allArgs = method.allArgs.slice(2); // .filter(arg => arg.type === "witness");
-                const witnessArgTypes = method.witnessArgs.slice(2);
-                const proofTypes = method.proofArgs;
+                const allArgs = method.args.slice(2); // .filter(arg => arg.type === "witness");
+
                 let proofsEncoded = 0;
 
                 const encodedArgs = lazyProof.args
                   .map((arg, index) => {
-                    if (allArgs[index].type === "witness") {
-                      return witnessArgTypes[index - proofsEncoded]
+                    const type = isProofType(allArgs[index])
+                      ? "proof"
+                      : "witness";
+                    if (type === "witness") {
+                      return ProvableType.get(allArgs[index - proofsEncoded])
                         .toFields(arg)
                         .map((f) => f.toString());
                     }
-                    if (allArgs[index].type === "proof") {
+                    if (type === "proof") {
                       const serializer = this.getProofSerializer(
-                        proofTypes[proofsEncoded]
+                        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                        allArgs[proofsEncoded] as unknown as Subclass<any>
                       );
                       proofsEncoded += 1;
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
