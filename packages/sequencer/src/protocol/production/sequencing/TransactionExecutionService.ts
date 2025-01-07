@@ -116,6 +116,7 @@ export async function executeWithExecutionContext<MethodResult>(
   // Set up context
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
 
+  executionContext.clear();
   executionContext.setup(contextInputs);
   executionContext.setSimulated(runSimulated);
 
@@ -250,7 +251,7 @@ export class TransactionExecutionService {
       throw error;
     }
 
-    traceSTs("STs:", protocolResult.stateTransitions);
+    traceSTs("PSTs:", protocolResult.stateTransitions);
 
     // Apply protocol STs
     await recordingStateService.applyStateTransitions(
