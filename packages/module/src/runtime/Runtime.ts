@@ -275,7 +275,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   }
 
   // runtime modules composed into a ZkProgram
-  public zkProgram: ReturnType<typeof ZkProgram>;
+  public zkProgram: PlainZkProgram<undefined, MethodPublicOutput>[];
 
   public definition: RuntimeDefinition<Modules>;
 

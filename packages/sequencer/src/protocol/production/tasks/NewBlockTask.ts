@@ -65,11 +65,11 @@ export class NewBlockTask
 
   public inputSerializer(): TaskSerializer<NewBlockProvingParameters> {
     const stProofSerializer = new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+      this.stateTransitionProver.zkProgram[0].Proof
     );
 
     const blockProofSerializer = new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+      this.blockProver.zkProgram[0].Proof
     );
 
     interface JsonType {
@@ -138,9 +138,7 @@ export class NewBlockTask
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
-    );
+    return new ProofTaskSerializer(this.blockProver.zkProgram[0].Proof);
   }
 
   private async executeWithPrefilledStateService<Return>(
@@ -185,7 +183,7 @@ export class NewBlockTask
     // Compile
     await this.compileRegistry.compile(
       "BlockProver",
-      this.blockProver.zkProgrammable.zkProgram[0]
+      this.blockProver.zkProgram[0]
     );
   }
 }

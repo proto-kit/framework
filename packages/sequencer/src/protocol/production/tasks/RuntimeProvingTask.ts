@@ -28,8 +28,7 @@ export class RuntimeProvingTask
   extends TaskWorkerModule
   implements Task<RuntimeProofParameters, RuntimeProof>
 {
-  protected readonly runtimeZkProgrammable =
-    this.runtime.zkProgrammable.zkProgram;
+  protected readonly runtimeZkProgrammable = this.runtime.zkProgram;
 
   public name = "runtimeProof";
 

@@ -39,7 +39,7 @@ type ArgTypeArray = ArgumentType[];
 
 type ArgArray = ArgumentTypes[];
 
-function isProofType(type: unknown): type is typeof Proof {
+export function isProofType(type: unknown): type is typeof Proof {
   return (type as unknown as TypedClass<unknown>).prototype instanceof Proof;
 }
 

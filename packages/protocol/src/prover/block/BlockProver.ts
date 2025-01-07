@@ -878,6 +878,8 @@ export class BlockProverFactory
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
         Proof: SelfProofClass,
+        // TODO Set this dynamically
+        proofsEnabled: true,
         methods,
       },
     ];

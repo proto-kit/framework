@@ -85,35 +85,36 @@ export class CircuitCompilerTask extends UnpreparingTask<undefined, VKRecord> {
     log.info("Computing VKs");
 
     let methodCounter = 0;
-    return await this.runtime.zkProgrammable.zkProgram.reduce<
-      Promise<VKRecord>
-    >(async (accum, program) => {
-      const vk = (await program.compile()).verificationKey;
+    return await this.runtime.zkProgram.reduce<Promise<VKRecord>>(
+      async (accum, program) => {
+        const vk = (await program.compile()).verificationKey;
 
-      const vkRecordStep = Object.keys(program.methods).reduce<VKRecord>(
-        (previousRecord, combinedMethodName) => {
-          const [moduleName, methodName] = combinedMethodName.split(".");
-          const methodId = this.runtime.methodIdResolver.getMethodId(
-            moduleName,
-            methodName
-          );
-          return {
-            ...previousRecord,
-            [methodId.toString()]: {
-              vk,
-              // eslint-disable-next-line no-plusplus
-              index: BigInt(methodCounter++),
-            },
-          };
-        },
-        {}
-      );
+        const vkRecordStep = Object.keys(program.methods).reduce<VKRecord>(
+          (previousRecord, combinedMethodName) => {
+            const [moduleName, methodName] = combinedMethodName.split(".");
+            const methodId = this.runtime.methodIdResolver.getMethodId(
+              moduleName,
+              methodName
+            );
+            return {
+              ...previousRecord,
+              [methodId.toString()]: {
+                vk,
+                // eslint-disable-next-line no-plusplus
+                index: BigInt(methodCounter++),
+              },
+            };
+          },
+          {}
+        );
 
-      const vkRecord = await accum;
-      return {
-        ...vkRecord,
-        ...vkRecordStep,
-      };
-    }, Promise.resolve({}));
+        const vkRecord = await accum;
+        return {
+          ...vkRecord,
+          ...vkRecordStep,
+        };
+      },
+      Promise.resolve({})
+    );
   }
 }

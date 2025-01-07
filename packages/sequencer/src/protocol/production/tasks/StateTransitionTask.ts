@@ -53,7 +53,7 @@ export class StateTransitionTask
 
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
     return new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+      this.stateTransitionProver.zkProgram[0].Proof
     );
   }
 
@@ -87,7 +87,7 @@ export class StateTransitionTask
   public async prepare(): Promise<void> {
     await this.compileRegistry.compile(
       "StateTransitionProver",
-      this.stateTransitionProver.zkProgrammable.zkProgram[0]
+      this.stateTransitionProver.zkProgram[0]
     );
   }
 }
@@ -116,14 +116,14 @@ export class StateTransitionReductionTask
 
   public inputSerializer(): TaskSerializer<PairTuple<StateTransitionProof>> {
     return new PairProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+      this.stateTransitionProver.zkProgram[0].Proof
     );
   }
 
   // eslint-disable-next-line sonarjs/no-identical-functions
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
     return new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+      this.stateTransitionProver.zkProgram[0].Proof
     );
   }
 
@@ -141,7 +141,7 @@ export class StateTransitionReductionTask
   public async prepare(): Promise<void> {
     await this.compileRegistry.compile(
       "StateTransitionProver",
-      this.stateTransitionProver.zkProgrammable.zkProgram[0]
+      this.stateTransitionProver.zkProgram[0]
     );
   }
 }

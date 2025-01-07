@@ -2,7 +2,7 @@ import { Field, VerificationKey } from "o1js";
 import {
   ConfigurableModule,
   InMemoryMerkleTreeStorage,
-  ZkProgrammable,
+  ZkProgramFactory,
 } from "@proto-kit/common";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
@@ -28,7 +28,7 @@ export interface WithGetMethodId {
 }
 
 export interface WithZkProgrammableAndGetMethodById<PublicInput, PublicOutput> {
-  zkProgrammable: ZkProgrammable<PublicInput, PublicOutput>;
+  zkProgrammable: ZkProgramFactory<PublicInput, PublicOutput>;
   methodIdResolver: WithGetMethodId;
 }
 
