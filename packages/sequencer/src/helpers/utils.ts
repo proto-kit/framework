@@ -1,6 +1,6 @@
 import { Field, Proof, DynamicProof } from "o1js";
 import { Subclass } from "@proto-kit/protocol";
-import { MOCK_PROOF, TypedClass } from "@proto-kit/common";
+import { TypedClass } from "@proto-kit/common";
 
 import { TaskSerializer } from "../worker/flow/Task";
 
@@ -46,12 +46,14 @@ abstract class ProofTaskSerializerBase<PublicInputType, PublicOutputType> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const publicInput: PublicInputType =
       this.proofClassInternal.publicInputType.fromFields(
-        jsonProof.publicInput.map(Field)
+        jsonProof.publicInput.map(Field),
+        []
       );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const publicOutput: PublicOutputType =
       this.proofClassInternal.publicOutputType.fromFields(
-        jsonProof.publicOutput.map(Field)
+        jsonProof.publicOutput.map(Field),
+        []
       );
     // eslint-disable-next-line new-cap
     return new c({
@@ -75,24 +77,6 @@ abstract class ProofTaskSerializerBase<PublicInputType, PublicOutputType> {
       | Proof<PublicInputType, PublicOutputType>
       | DynamicProof<PublicInputType, PublicOutputType>
   ): JsonProof {
-    if (proof.proof === MOCK_PROOF) {
-      return {
-        publicInput: this.proofClassInternal.publicInputType
-          // eslint-disable-next-line max-len
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument
-          .toFields(proof.publicInput as any)
-          .map(String),
-
-        publicOutput: this.proofClassInternal.publicOutputType
-          // eslint-disable-next-line max-len
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument
-          .toFields(proof.publicOutput as any)
-          .map(String),
-
-        maxProofsVerified: proof.maxProofsVerified,
-        proof: MOCK_PROOF,
-      };
-    }
     return proof.toJSON();
   }
 }
@@ -162,8 +146,7 @@ export class DynamicProofTaskSerializer<PublicInputType, PublicOutputType>
 export type PairTuple<Type> = [Type, Type];
 
 export class PairProofTaskSerializer<PublicInputType, PublicOutputType>
-  implements
-    TaskSerializer<PairTuple<Proof<PublicInputType, PublicOutputType>>>
+  implements TaskSerializer<PairTuple<Proof<PublicInputType, PublicOutputType>>>
 {
   private readonly proofSerializer = new ProofTaskSerializer(this.proofClass);
 
