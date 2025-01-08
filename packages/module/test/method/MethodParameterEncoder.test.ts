@@ -30,8 +30,10 @@ const TestProgram = ZkProgram({
       privateInputs: [],
       method: async (input: PublicKey) => {
         return {
-          a: Field(input.x),
-          b: Bool(input.isOdd),
+          publicOutput: {
+            a: Field(input.x),
+            b: Bool(input.isOdd),
+          },
         };
       },
     },
