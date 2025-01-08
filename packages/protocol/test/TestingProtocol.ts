@@ -48,5 +48,14 @@ export function createAndInitTestingProtocol() {
     Runtime: new RuntimeMock(),
   });
 
+  protocol.dependencyContainer.register("AreProofsEnabled", {
+    useValue: {
+      areProofsEnabled: false,
+
+      setProofsEnabled(areProofsEnabled: boolean) {
+        this.areProofsEnabled = areProofsEnabled;
+      },
+    },
+  });
   return protocol;
 }
