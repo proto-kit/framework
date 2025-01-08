@@ -64,8 +64,7 @@ export class StateTransitionProverFactory
     >
 {
   public constructor(
-    private readonly stateTransitionProver: StateTransitionProver,
-    private readonly areProofsEnabled: boolean
+    private readonly stateTransitionProver: StateTransitionProver
   ) {}
 
   public get appChain(): AreProofsEnabled | undefined {
@@ -114,7 +113,9 @@ export class StateTransitionProverFactory
         },
       },
     });
-    program.setProofsEnabled(this.areProofsEnabled);
+    program.setProofsEnabled(
+      this.stateTransitionProver.appChain!.areProofsEnabled
+    );
 
     const methods = {
       proveBatch: program.proveBatch.bind(program),
@@ -354,16 +355,10 @@ export class StateTransitionProver
     return this._zkProgramFactory!;
   }
 
-  public constructor(
-    @inject("AreProofsEnabled")
-    proofsEnabled: AreProofsEnabled
-  ) {
+  public constructor() {
     super();
     // eslint-disable-next-line no-underscore-dangle
-    this._zkProgramFactory = new StateTransitionProverFactory(
-      this,
-      proofsEnabled.areProofsEnabled
-    );
+    this._zkProgramFactory = new StateTransitionProverFactory(this);
   }
 
   public runBatch(

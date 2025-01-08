@@ -139,8 +139,7 @@ export class BlockProverFactory
     public readonly runtime: PlainZkProgram<undefined, MethodPublicOutput>[],
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
     private readonly blockHooks: ProvableBlockHook<unknown>[],
-    private readonly verificationKeyService: MinimalVKTreeService,
-    private readonly areProofsEnabled: boolean
+    private readonly verificationKeyService: MinimalVKTreeService
   ) {}
 
   public get appChain(): AreProofsEnabled | undefined {
@@ -865,7 +864,7 @@ export class BlockProverFactory
         },
       },
     });
-    program.setProofsEnabled(this.areProofsEnabled);
+    program.setProofsEnabled(this.appChain!.areProofsEnabled);
 
     const methods = {
       proveTransaction: program.proveTransaction,
@@ -922,9 +921,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     transactionHooks: ProvableTransactionHook<unknown>[],
     @injectAll("ProvableBlockHook")
     blockHooks: ProvableBlockHook<unknown>[],
-    verificationKeyService: RuntimeVerificationKeyRootService,
-    @inject("AreProofsEnabled")
-    proofsEnabled: AreProofsEnabled
+    verificationKeyService: RuntimeVerificationKeyRootService
   ) {
     super();
     // eslint-disable-next-line no-underscore-dangle
@@ -935,8 +932,7 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
       runtime.zkProgram,
       transactionHooks,
       blockHooks,
-      verificationKeyService,
-      proofsEnabled.areProofsEnabled
+      verificationKeyService
     );
   }
 
