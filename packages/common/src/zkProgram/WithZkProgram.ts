@@ -55,6 +55,7 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
     Record<string, Awaited<ReturnType<typeof Provable.constraintSystem>>>
   >;
   proofsEnabled: boolean;
+  setProofsEnabled(proofsEnabled: boolean): void;
 }
 
 export interface ZkProgramFactory<PublicInput, PublicOutput> {

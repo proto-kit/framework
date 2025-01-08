@@ -5,7 +5,7 @@ import {
   ZkProgramFactory,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 
 import { constants } from "../../Constants";
 import { ProvableStateTransition } from "../../model/StateTransition";
@@ -64,7 +64,8 @@ export class StateTransitionProverFactory
     >
 {
   public constructor(
-    private readonly stateTransitionProver: StateTransitionProver
+    private readonly stateTransitionProver: StateTransitionProver,
+    private readonly areProofsEnabled: boolean
   ) {}
 
   public get appChain(): AreProofsEnabled | undefined {
@@ -113,6 +114,7 @@ export class StateTransitionProverFactory
         },
       },
     });
+    program.setProofsEnabled(this.areProofsEnabled);
 
     const methods = {
       proveBatch: program.proveBatch.bind(program),
@@ -127,8 +129,8 @@ export class StateTransitionProverFactory
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
         Proof: SelfProofClass,
-        // TODO Set this dynamically
-        proofsEnabled: true,
+        proofsEnabled: program.proofsEnabled,
+        setProofsEnabled: program.setProofsEnabled.bind(program),
         methods,
       },
     ];
@@ -344,9 +346,15 @@ export class StateTransitionProver
     StateTransitionProverPublicOutput
   >[];
 
-  public constructor() {
+  public constructor(
+    @inject("AreProofsEnabled")
+    proofsEnabled: AreProofsEnabled
+  ) {
     super();
-    this.zkProgramFactory = new StateTransitionProverFactory(this);
+    this.zkProgramFactory = new StateTransitionProverFactory(
+      this,
+      proofsEnabled.areProofsEnabled
+    );
     this.zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 

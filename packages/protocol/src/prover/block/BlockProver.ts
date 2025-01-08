@@ -139,7 +139,8 @@ export class BlockProverFactory
     public readonly runtime: PlainZkProgram<undefined, MethodPublicOutput>[],
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
     private readonly blockHooks: ProvableBlockHook<unknown>[],
-    private readonly verificationKeyService: MinimalVKTreeService
+    private readonly verificationKeyService: MinimalVKTreeService,
+    private readonly areProofsEnabled: boolean
   ) {}
 
   public get appChain(): AreProofsEnabled | undefined {
@@ -864,6 +865,7 @@ export class BlockProverFactory
         },
       },
     });
+    program.setProofsEnabled(this.areProofsEnabled);
 
     const methods = {
       proveTransaction: program.proveTransaction,
@@ -878,8 +880,8 @@ export class BlockProverFactory
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
         Proof: SelfProofClass,
-        // TODO Set this dynamically
-        proofsEnabled: true,
+        proofsEnabled: program.proofsEnabled,
+        setProofsEnabled: program.setProofsEnabled.bind(program),
         methods,
       },
     ];
@@ -912,7 +914,9 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     transactionHooks: ProvableTransactionHook<unknown>[],
     @injectAll("ProvableBlockHook")
     blockHooks: ProvableBlockHook<unknown>[],
-    verificationKeyService: RuntimeVerificationKeyRootService
+    verificationKeyService: RuntimeVerificationKeyRootService,
+    @inject("AreProofsEnabled")
+    proofsEnabled: AreProofsEnabled
   ) {
     super();
     this.zkProgramFactory = new BlockProverFactory(
@@ -922,7 +926,8 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
       runtime.zkProgram,
       transactionHooks,
       blockHooks,
-      verificationKeyService
+      verificationKeyService,
+      proofsEnabled.areProofsEnabled
     );
     this.zkProgram = this.zkProgramFactory.zkProgramFactory();
   }

@@ -72,7 +72,10 @@ export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
 export class RuntimeZkProgramFactory<Modules extends RuntimeModulesRecord>
   implements ZkProgramFactory<undefined, MethodPublicOutput>
 {
-  public constructor(public runtime: Runtime<Modules>) {}
+  public constructor(
+    public runtime: Runtime<Modules>,
+    private readonly areProofsEnabled: boolean
+  ) {}
 
   public get appChain() {
     return this.runtime.appChain;
@@ -231,7 +234,7 @@ export class RuntimeZkProgramFactory<Modules extends RuntimeModulesRecord>
         publicOutput: MethodPublicOutput,
         methods: bucket,
       });
-
+      program.setProofsEnabled(this.areProofsEnabled);
       const SelfProof = ZkProgram.Proof(program);
 
       const methods = Object.keys(bucket).reduce<Record<string, any>>(
@@ -246,8 +249,8 @@ export class RuntimeZkProgramFactory<Modules extends RuntimeModulesRecord>
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
-        // TODO set this dynamically somehow
-        proofsEnabled: true,
+        proofsEnabled: program.proofsEnabled,
+        setProofsEnabled: program.setProofsEnabled.bind(program),
         Proof: SelfProof,
         methods,
       };
@@ -274,12 +277,25 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     };
   }
 
-  // runtime modules composed into a ZkProgram
-  public zkProgram: PlainZkProgram<undefined, MethodPublicOutput>[];
+  private _zkProgram?: PlainZkProgram<undefined, MethodPublicOutput>[];
+
+  private _zkProgramFactory?: ZkProgramFactory<undefined, MethodPublicOutput>;
 
   public definition: RuntimeDefinition<Modules>;
 
-  public zkProgramFactory: ZkProgramFactory<undefined, MethodPublicOutput>;
+  // runtime modules composed into a ZkProgram
+  public get zkProgram(): PlainZkProgram<undefined, MethodPublicOutput>[] {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._zkProgram!;
+  }
+
+  public get zkProgramFactory(): ZkProgramFactory<
+    undefined,
+    MethodPublicOutput
+  > {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._zkProgramFactory!;
+  }
 
   /**
    * Creates a new Runtime from the provided config
@@ -289,8 +305,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public constructor(definition: RuntimeDefinition<Modules>) {
     super(definition);
     this.definition = definition;
-    this.zkProgramFactory = new RuntimeZkProgramFactory<Modules>(this);
-    this.zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 
   // TODO Remove after changing DFs to type-based approach
@@ -298,6 +312,13 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     super.create(childContainerProvider);
 
     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    // eslint-disable-next-line no-underscore-dangle
+    this._zkProgramFactory = new RuntimeZkProgramFactory<Modules>(
+      this,
+      this.appChain?.areProofsEnabled!
+    );
+    // eslint-disable-next-line no-underscore-dangle
+    this._zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 
   public get appChain(): AreProofsEnabled | undefined {
