@@ -50,7 +50,8 @@ class RuntimeZkProgrammable
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
         methods: {},
-        proofsEnabled: true,
+        proofsEnabled: program.proofsEnabled,
+        setProofsEnabled: program.setProofsEnabled.bind(program),
         Proof: ZkProgram.Proof(program),
       },
     ];
