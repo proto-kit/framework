@@ -339,23 +339,31 @@ export class StateTransitionProver
   extends ProtocolModule
   implements StateTransitionProvable, StateTransitionProverType
 {
-  readonly zkProgramFactory: StateTransitionProverFactory;
+  readonly _zkProgramFactory: StateTransitionProverFactory | undefined;
 
-  readonly zkProgram: PlainZkProgram<
+  // runtime modules composed into a ZkProgram
+  public get zkProgram(): PlainZkProgram<
     StateTransitionProverPublicInput,
     StateTransitionProverPublicOutput
-  >[];
+  >[] {
+    return this.zkProgramFactory.zkProgramFactory();
+  }
+
+  public get zkProgramFactory(): StateTransitionProverFactory {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._zkProgramFactory!;
+  }
 
   public constructor(
     @inject("AreProofsEnabled")
     proofsEnabled: AreProofsEnabled
   ) {
     super();
-    this.zkProgramFactory = new StateTransitionProverFactory(
+    // eslint-disable-next-line no-underscore-dangle
+    this._zkProgramFactory = new StateTransitionProverFactory(
       this,
       proofsEnabled.areProofsEnabled
     );
-    this.zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 
   public runBatch(

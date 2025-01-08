@@ -200,7 +200,7 @@ describe("runtimeMethod", () => {
     context.afterMethod();
 
     const proof = await context.current().result.prover!();
-    const publicOuput = proof.publicOutput as MethodPublicOutput;
+    const publicOuput = proof.proof.publicOutput as MethodPublicOutput;
     const { eventsHash } = publicOuput;
     //  Note that we omit the second event from below as it was
     //  not emitted due to the condition being false.

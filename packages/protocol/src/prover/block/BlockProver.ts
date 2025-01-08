@@ -895,12 +895,20 @@ export class BlockProverFactory
  */
 @injectable()
 export class BlockProver extends ProtocolModule implements BlockProvable {
-  readonly zkProgramFactory: BlockProverFactory;
+  readonly _zkProgramFactory: BlockProverFactory;
 
-  readonly zkProgram: PlainZkProgram<
+  // runtime modules composed into a ZkProgram
+  public get zkProgram(): PlainZkProgram<
     BlockProverPublicInput,
     BlockProverPublicOutput
-  >[];
+  >[] {
+    return this.zkProgramFactory.zkProgramFactory();
+  }
+
+  public get zkProgramFactory(): BlockProverFactory {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._zkProgramFactory!;
+  }
 
   public constructor(
     @inject("StateTransitionProver")
@@ -919,7 +927,8 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     proofsEnabled: AreProofsEnabled
   ) {
     super();
-    this.zkProgramFactory = new BlockProverFactory(
+    // eslint-disable-next-line no-underscore-dangle
+    this._zkProgramFactory = new BlockProverFactory(
       this,
       stateTransitionProver.zkProgram[0],
       // The below is wrong and needs to change as we can't just take the first
@@ -929,7 +938,6 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
       verificationKeyService,
       proofsEnabled.areProofsEnabled
     );
-    this.zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 
   public proveTransaction(
