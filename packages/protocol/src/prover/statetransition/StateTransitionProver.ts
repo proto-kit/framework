@@ -5,7 +5,7 @@ import {
   ZkProgramFactory,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
-import { inject, injectable } from "tsyringe";
+import { injectable } from "tsyringe";
 
 import { constants } from "../../Constants";
 import { ProvableStateTransition } from "../../model/StateTransition";
