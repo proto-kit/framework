@@ -74,23 +74,3 @@ export const MOCK_VERIFICATION_KEY = {
   data: "mock-verification-key",
   hash: Field(0),
 };
-
-export function toProver(
-  methodName: string,
-  simulatedMethod: DecoratedMethod,
-  isFirstParameterPublicInput: boolean,
-  areProofsEnabled: boolean,
-  ...args: ArgumentTypes
-) {
-  return async function prover(this: ZkProgramFactory<any, any>) {
-    for (const prog of this.zkProgramFactory()) {
-      if (Object.keys(prog.methods).includes(methodName)) {
-        prog.proofsEnabled = areProofsEnabled;
-        const programProvableMethod = prog.methods[methodName];
-        // eslint-disable-next-line no-await-in-loop
-        return await Reflect.apply(programProvableMethod, this, args);
-      }
-    }
-    throw Error("No zkProgram found with given method.");
-  };
-}
