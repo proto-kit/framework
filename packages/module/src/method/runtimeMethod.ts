@@ -255,15 +255,14 @@ function runtimeMethodInternal(options: {
        * RuntimeMethodExecutionContext state, meaning it enters and exits
        * the context properly.
        */
-
+      const proofsEnabled = this.runtime!.appChain!.areProofsEnabled;
       async function prover(this: ZkProgramFactory<any, any>) {
         executionContext.beforeMethod(constructorName, methodName, args);
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
           simulatedWrappedMethod,
           false,
-          // TODO pass this in dynamically.
-          false,
+          proofsEnabled,
           ...args
         ).bind(this);
         let result: Awaited<ReturnType<typeof innerProver>>;
