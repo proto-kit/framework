@@ -37,7 +37,7 @@ import {
 import { MessageStorage } from "../storage/repositories/MessageStorage";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { Batch, SettleableBatch } from "../storage/model/Batch";
-import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
+import { BlockProofSerializer } from "../protocol/production/tasks/serializers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 import { SettlementStartupModule } from "../sequencer/SettlementStartupModule";

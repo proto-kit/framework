@@ -5,7 +5,6 @@ import {
   BlockProverPublicOutput,
   NetworkState,
   Protocol,
-  ReturnType,
   StateTransitionProof,
   StateTransitionProvable,
   BlockHashMerkleTreeWitness,
@@ -24,8 +23,7 @@ import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
 import { TaskStateRecord } from "../TransactionTraceService";
 
-import { JSONEncodableState } from "./RuntimeTaskParameters";
-import { DecodedStateSerializer } from "./BlockProvingTask";
+import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
 
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
@@ -74,69 +72,10 @@ export class NewBlockTask
       this.blockProver.zkProgrammable.zkProgram[0].Proof
     );
 
-    interface JsonType {
-      input1: string;
-      input2: string;
-      params: {
-        publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
-        networkState: ReturnType<typeof NetworkState.toJSON>;
-        blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
-        startingState: JSONEncodableState;
-      };
-    }
-
-    return {
-      toJSON: (input: NewBlockProvingParameters) =>
-        JSON.stringify({
-          input1: stProofSerializer.toJSON(input.input1),
-          input2: blockProofSerializer.toJSON(input.input2),
-
-          params: {
-            publicInput: BlockProverPublicInput.toJSON(
-              input.params.publicInput
-            ),
-
-            networkState: NetworkState.toJSON(input.params.networkState),
-
-            blockWitness: BlockHashMerkleTreeWitness.toJSON(
-              input.params.blockWitness
-            ),
-
-            startingState: DecodedStateSerializer.toJSON(
-              input.params.startingState
-            ),
-          },
-        } satisfies JsonType),
-
-      fromJSON: async (json: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const jsonObject: JsonType = JSON.parse(json);
-        return {
-          input1: await stProofSerializer.fromJSON(jsonObject.input1),
-          input2: await blockProofSerializer.fromJSON(jsonObject.input2),
-
-          params: {
-            publicInput: BlockProverPublicInput.fromJSON(
-              jsonObject.params.publicInput
-            ),
-
-            networkState: new NetworkState(
-              NetworkState.fromJSON(jsonObject.params.networkState)
-            ),
-
-            blockWitness: new BlockHashMerkleTreeWitness(
-              BlockHashMerkleTreeWitness.fromJSON(
-                jsonObject.params.blockWitness
-              )
-            ),
-
-            startingState: DecodedStateSerializer.fromJSON(
-              jsonObject.params.startingState
-            ),
-          },
-        };
-      },
-    };
+    return new NewBlockProvingParametersSerializer(
+      stProofSerializer,
+      blockProofSerializer
+    );
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {

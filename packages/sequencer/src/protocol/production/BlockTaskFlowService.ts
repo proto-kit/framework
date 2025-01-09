@@ -15,23 +15,21 @@ import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { Flow, FlowCreator } from "../../worker/flow/Flow";
 
 import type { BlockTrace } from "./BatchProducerModule";
-import {
-  StateTransitionReductionTask,
-  StateTransitionTask,
-} from "./tasks/StateTransitionTask";
+import { StateTransitionTask } from "./tasks/StateTransitionTask";
 import { RuntimeProvingTask } from "./tasks/RuntimeProvingTask";
-import {
-  BlockProverParameters,
-  BlockProvingTask,
-  BlockProvingTaskParameters,
-  BlockReductionTask,
-} from "./tasks/BlockProvingTask";
 import { ReductionTaskFlow } from "./flow/ReductionTaskFlow";
 import {
   NewBlockProverParameters,
   NewBlockProvingParameters,
   NewBlockTask,
 } from "./tasks/NewBlockTask";
+import { StateTransitionReductionTask } from "./tasks/StateTransitionReductionTask";
+import {
+  BlockProverParameters,
+  TransactionProvingTask,
+  TransactionProvingTaskParameters,
+} from "./tasks/TransactionProvingTask";
+import { BlockReductionTask } from "./tasks/BlockReductionTask";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -50,7 +48,7 @@ interface BlockProductionFlowState {
 }
 
 /**
- * We could rename this into BlockCreationStategy and enable the injection of
+ * We could rename this into BlockCreationStrategy and enable the injection of
  * different creation strategies.
  */
 @injectable()
@@ -62,7 +60,7 @@ export class BlockTaskFlowService {
     private readonly stateTransitionTask: StateTransitionTask,
     private readonly stateTransitionReductionTask: StateTransitionReductionTask,
     private readonly runtimeProvingTask: RuntimeProvingTask,
-    private readonly transactionProvingTask: BlockProvingTask,
+    private readonly transactionProvingTask: TransactionProvingTask,
     private readonly blockProvingTask: NewBlockTask,
     private readonly blockReductionTask: BlockReductionTask,
     @inject("Protocol")
@@ -72,7 +70,7 @@ export class BlockTaskFlowService {
   public async pushPairing(
     flow: Flow<BlockProductionFlowState>,
     transactionReductionTask: ReductionTaskFlow<
-      BlockProvingTaskParameters,
+      TransactionProvingTaskParameters,
       BlockProof
     >,
     blockIndex: number,

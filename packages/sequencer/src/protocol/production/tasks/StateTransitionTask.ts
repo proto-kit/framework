@@ -3,6 +3,8 @@ import {
   MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
+  ProvableStateTransition,
+  ProvableStateTransitionType,
   StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProvableBatch,
@@ -13,20 +15,23 @@ import {
   log,
   ProvableMethodExecutionContext,
   CompileRegistry,
+  RollupMerkleTreeWitness,
 } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
-import {
-  PairProofTaskSerializer,
-  PairTuple,
-  ProofTaskSerializer,
-} from "../../../helpers/utils";
+import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 
-import {
-  StateTransitionParametersSerializer,
-  StateTransitionProofParameters,
-} from "./StateTransitionTaskParameters";
+import { StateTransitionParametersSerializer } from "./serializers/StateTransitionParametersSerializer";
+
+export interface StateTransitionProofParameters {
+  publicInput: StateTransitionProverPublicInput;
+  stateTransitions: {
+    transition: ProvableStateTransition;
+    type: ProvableStateTransitionType;
+  }[];
+  merkleWitnesses: RollupMerkleTreeWitness[];
+}
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -75,56 +80,6 @@ export class StateTransitionTask
       output: StateTransitionProverPublicOutput.toJSON(output),
     });
 
-    return await this.executionContext
-      .current()
-      .result.prove<StateTransitionProof>();
-  }
-
-  public async prepare(): Promise<void> {
-    await this.stateTransitionProver.compile(this.compileRegistry);
-  }
-}
-
-@injectable()
-@scoped(Lifecycle.ContainerScoped)
-export class StateTransitionReductionTask
-  extends TaskWorkerModule
-  implements Task<PairTuple<StateTransitionProof>, StateTransitionProof>
-{
-  protected readonly stateTransitionProver: StateTransitionProvable;
-
-  public name = "stateTransitionReduction";
-
-  public constructor(
-    @inject("Protocol")
-    private readonly protocol: Protocol<
-      MandatoryProtocolModulesRecord & ProtocolModulesRecord
-    >,
-    private readonly executionContext: ProvableMethodExecutionContext,
-    private readonly compileRegistry: CompileRegistry
-  ) {
-    super();
-    this.stateTransitionProver = this.protocol.stateTransitionProver;
-  }
-
-  public inputSerializer(): TaskSerializer<PairTuple<StateTransitionProof>> {
-    return new PairProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
-    );
-  }
-
-  // eslint-disable-next-line sonarjs/no-identical-functions
-  public resultSerializer(): TaskSerializer<StateTransitionProof> {
-    return new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
-    );
-  }
-
-  public async compute(
-    input: PairTuple<StateTransitionProof>
-  ): Promise<StateTransitionProof> {
-    const [r1, r2] = input;
-    await this.stateTransitionProver.merge(r1.publicInput, r1, r2);
     return await this.executionContext
       .current()
       .result.prove<StateTransitionProof>();

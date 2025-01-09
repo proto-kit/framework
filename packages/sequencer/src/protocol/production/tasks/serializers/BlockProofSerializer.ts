@@ -6,7 +6,7 @@ import {
   Protocol,
 } from "@proto-kit/protocol";
 
-import { ProofTaskSerializer } from "../../../helpers/utils";
+import { ProofTaskSerializer } from "../../../../helpers/utils";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

@@ -26,8 +26,8 @@ import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { VerificationKeyService } from "../runtime/RuntimeVerificationKeyService";
 
 import type { TransactionTrace, BlockTrace } from "./BatchProducerModule";
-import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
 import { UntypedStateTransition } from "./helpers/UntypedStateTransition";
+import { StateTransitionProofParameters } from "./tasks/StateTransitionTask";
 
 export type TaskStateRecord = Record<string, Field[]>;
 
