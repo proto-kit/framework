@@ -56,7 +56,7 @@ import {
   SignedSettlementPermissions,
   ProvenSettlementPermissions,
 } from "../../src";
-import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
+import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
 import { testingSequencerFromModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
 import { MinaBlockchainAccounts } from "../../src/protocol/baselayer/accounts/MinaBlockchainAccounts";

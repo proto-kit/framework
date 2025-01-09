@@ -19,11 +19,11 @@ import { AbstractStartupTask } from "../../flow/AbstractStartupTask";
 import {
   VerificationKeyJSON,
   VerificationKeySerializer,
-} from "../../../protocol/production/helpers/VerificationKeySerializer";
+} from "../../../protocol/production/tasks/serializers/VerificationKeySerializer";
 import {
   ArtifactRecordSerializer,
   SerializedArtifactRecord,
-} from "../../../protocol/production/tasks/CircuitCompilerTask";
+} from "../../../protocol/production/tasks/serializers/ArtifactionRecordSerializer";
 
 import { CloseWorkerError } from "./CloseWorkerError";
 
