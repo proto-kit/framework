@@ -46,9 +46,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * @param valueType - Type of value to be stored (e.g. UInt64, Struct, ...)
    * @returns New state for the given value type.
    */
-  public static from<Value>(
-    valueType: FlexibleProvablePure<Value>
-  ): State<Value> {
+  public static from<Value>(valueType: FlexibleProvablePure<Value>) {
     return new State<Value>(valueType);
   }
 
@@ -133,11 +131,9 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    * @returns Option representation of the current state.
    */
   public async get() {
-    const { stateServiceProvider } = this;
     return await container
       .resolve(RuntimeMethodExecutionContext)
       .operationQueue.queueOperation(async () => {
-        this.stateServiceProvider = stateServiceProvider;
         const option = await this.witnessFromState();
 
         this.hasPathOrFail();
