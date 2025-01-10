@@ -15,7 +15,7 @@ import {
   ArgumentTypes,
 } from "@proto-kit/common";
 
-import { RuntimeModule } from "../runtime/RuntimeModule.js";
+import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import { MethodParameterEncoder } from "./MethodParameterEncoder";
 
