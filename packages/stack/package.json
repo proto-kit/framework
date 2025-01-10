@@ -2,7 +2,7 @@
   "name": "@proto-kit/stack",
   "version": "0.1.1-develop.833+397881ed",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
