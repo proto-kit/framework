@@ -40,8 +40,6 @@ export class WithStateServiceProvider {
  * Utilities for runtime module state, such as get/set
  */
 export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
-  public isToEnqueue = false;
-
   /**
    * Creates a new state wrapper for the provided value type.
    *
@@ -149,14 +147,13 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
   }
 
   public async get() {
-    if (this.isToEnqueue) {
-      return await container
-        .resolve(RuntimeMethodExecutionContext)
-        .operationQueue.queueOperation(async () => {
-          return await this.commonGet();
-        });
-    }
-    return await this.commonGet();
+    const { stateServiceProvider } = this;
+    return await container
+      .resolve(RuntimeMethodExecutionContext)
+      .operationQueue.queueOperation(async () => {
+        this.stateServiceProvider = stateServiceProvider;
+        return await this.unqueuedGet();
+      });
   }
 
   /**
@@ -188,14 +185,8 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       .addStateTransition(stateTransition);
   }
 
-  public set(value: Value) {
-    if (this.isToEnqueue) {
-      return container
-        .resolve(RuntimeMethodExecutionContext)
-        .operationQueue.queueOperation(async () => {
-          await this.commonSet(value);
-        });
-    }
-    return this.commonSet(value);
+    return await container
+      .resolve(RuntimeMethodExecutionContext)
+      .operationQueue.queueOperation(async () => await this.unqueuedSet(value));
   }
 }
