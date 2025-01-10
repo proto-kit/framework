@@ -1,12 +1,10 @@
 import type { Field, FlexibleProvablePure } from "o1js";
 import { Mixin } from "ts-mixer";
-import { container } from "tsyringe";
 
 import { Path } from "../model/Path";
 import { Option } from "../model/Option";
 
 import { State, WithStateServiceProvider, WithPath } from "./State";
-import { RuntimeMethodExecutionContext } from "./context/RuntimeMethodExecutionContext";
 
 /**
  * Map-like wrapper for state
@@ -47,8 +45,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    * @param key - Key to obtain the state for
    * @returns Value for the provided key.
    */
-  public async commonGet(key: KeyType): Promise<Option<ValueType>> {
-    console.log(key);
+  public async get(key: KeyType): Promise<Option<ValueType>> {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
     this.hasStateServiceOrFail();
@@ -64,7 +61,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    * @param key - Key to store the value under
    * @param value - Value to be stored under the given key
    */
-  public async commonSet(key: KeyType, value: ValueType): Promise<void> {
+  public async set(key: KeyType, value: ValueType): Promise<void> {
     const state = State.from(this.valueType);
     this.hasPathOrFail();
     this.hasStateServiceOrFail();
@@ -72,28 +69,5 @@ export class StateMap<KeyType, ValueType> extends Mixin(
     state.path = Path.fromKey(this.path, this.keyType, key);
     state.stateServiceProvider = this.stateServiceProvider;
     return await state.set(value);
-  }
-
-  public async get(key: KeyType): Promise<Option<ValueType>> {
-    console.log(key);
-    if (this.isToEnqueue) {
-      return await container
-        .resolve(RuntimeMethodExecutionContext)
-        .operationQueue.queueOperation(async () => {
-          return await this.commonGet(key);
-        });
-    }
-    return await this.commonGet(key);
-  }
-
-  public set(key: KeyType, value: ValueType): Promise<void> {
-    if (this.isToEnqueue) {
-      return container
-        .resolve(RuntimeMethodExecutionContext)
-        .operationQueue.queueOperation(async () => {
-          await this.commonSet(key, value);
-        });
-    }
-    return this.commonSet(key, value);
   }
 }
