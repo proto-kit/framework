@@ -12,6 +12,7 @@ import {
   ArgumentTypes,
   ZkProgramFactory,
   DecoratedMethod,
+  toProver,
 } from "@proto-kit/common";
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
@@ -255,14 +256,13 @@ function runtimeMethodInternal(options: {
        * RuntimeMethodExecutionContext state, meaning it enters and exits
        * the context properly.
        */
-      const runtime = this.runtime!;
       async function prover(this: ZkProgramFactory<any, any>) {
         executionContext.beforeMethod(constructorName, methodName, args);
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
           simulatedWrappedMethod,
           false,
-          runtime,
+          this.appChain!.areProofsEnabled,
           ...args
         ).bind(this);
         let result: Awaited<ReturnType<typeof innerProver>>;
@@ -307,24 +307,4 @@ export function runtimeMethod() {
   return runtimeMethodInternal({
     invocationType: "SIGNATURE",
   });
-}
-
-export function toProver(
-  methodName: string,
-  simulatedMethod: DecoratedMethod,
-  isFirstParameterPublicInput: boolean,
-  runtime: RuntimeEnvironment | undefined,
-  ...args: ArgumentTypes
-) {
-  return async function prover(this: ZkProgramFactory<any, any>) {
-    for (const prog of this.zkProgramFactory()) {
-      if (Object.keys(prog.methods).includes(methodName)) {
-        prog.proofsEnabled = runtime!.appChain?.areProofsEnabled!;
-        const programProvableMethod = prog.methods[methodName];
-        // eslint-disable-next-line no-await-in-loop
-        return await Reflect.apply(programProvableMethod, this, args);
-      }
-    }
-    throw Error("No zkProgram found with given method.");
-  };
 }
