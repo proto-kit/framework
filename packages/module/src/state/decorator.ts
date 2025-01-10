@@ -1,6 +1,6 @@
 import { Path, State } from "@proto-kit/protocol";
 
-import { RuntimeModule } from "../runtime/RuntimeModule.js";
+import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 const errors = {
   missingName: (className: string) =>
