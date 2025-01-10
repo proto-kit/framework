@@ -312,8 +312,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
     // eslint-disable-next-line no-underscore-dangle
     this._zkProgramFactory = new RuntimeZkProgramFactory<Modules>(this);
-
-    // this._zkProgram = this.zkProgramFactory.zkProgramFactory();
   }
 
   public get appChain(): AreProofsEnabled | undefined {
