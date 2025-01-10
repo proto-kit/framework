@@ -15,8 +15,6 @@ export class StateMap<KeyType, ValueType> extends Mixin(
   WithPath,
   WithStateServiceProvider
 ) {
-  public isToEnqueue = false;
-
   /**
    * Create a new state map with the given key and value types
    *
