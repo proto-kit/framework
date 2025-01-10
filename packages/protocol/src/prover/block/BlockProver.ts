@@ -132,11 +132,11 @@ export class BlockProverFactory
 {
   public constructor(
     private readonly prover: BlockProver,
-    public readonly stateTransitionProver: PlainZkProgram<
+    public readonly stateTransitionProver: ZkProgramFactory<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    public readonly runtime: PlainZkProgram<undefined, MethodPublicOutput>[],
+    public readonly runtime: ZkProgramFactory<undefined, MethodPublicOutput>,
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
     private readonly blockHooks: ProvableBlockHook<unknown>[],
     private readonly verificationKeyService: MinimalVKTreeService
@@ -783,7 +783,8 @@ export class BlockProverFactory
     BlockProverPublicOutput
   >[] {
     const { prover, stateTransitionProver } = this;
-    const StateTransitionProofClass = stateTransitionProver.Proof;
+    const StateTransitionProofClass =
+      stateTransitionProver.zkProgramFactory()[0].Proof;
     const RuntimeProofClass = DynamicRuntimeProof;
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveBlock = prover.proveBlock.bind(prover);
@@ -927,9 +928,8 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     // eslint-disable-next-line no-underscore-dangle
     this._zkProgramFactory = new BlockProverFactory(
       this,
-      stateTransitionProver.zkProgram[0],
-      // The below is wrong and needs to change as we can't just take the first
-      runtime.zkProgram,
+      stateTransitionProver.zkProgramFactory,
+      runtime.zkProgramFactory,
       transactionHooks,
       blockHooks,
       verificationKeyService
