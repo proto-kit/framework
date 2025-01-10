@@ -132,27 +132,23 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @returns Option representation of the current state.
    */
-  public async commonGet(): Promise<Option<Value>> {
-    const option = await this.witnessFromState();
-
-    this.hasPathOrFail();
-
-    const stateTransition = StateTransition.from(this.path, option);
-
-    container
-      .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
-
-    return option;
-  }
-
   public async get() {
     const { stateServiceProvider } = this;
     return await container
       .resolve(RuntimeMethodExecutionContext)
       .operationQueue.queueOperation(async () => {
         this.stateServiceProvider = stateServiceProvider;
-        return await this.unqueuedGet();
+        const option = await this.witnessFromState();
+
+        this.hasPathOrFail();
+
+        const stateTransition = StateTransition.from(this.path, option);
+
+        container
+          .resolve(RuntimeMethodExecutionContext)
+          .addStateTransition(stateTransition);
+
+        return option;
       });
   }
 
@@ -167,26 +163,25 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
    *
    * @param value - Value to be set as the current state
    */
-  public async commonSet(value: Value) {
-    // link the transition to the current state
-    const fromOption = await this.witnessFromState();
-    const toOption = Option.fromValue(value, this.valueType);
-
-    this.hasPathOrFail();
-
-    const stateTransition = StateTransition.fromTo(
-      this.path,
-      fromOption,
-      toOption
-    );
-
-    container
-      .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
-  }
-
+  public async set(value: Value) {
     return await container
       .resolve(RuntimeMethodExecutionContext)
-      .operationQueue.queueOperation(async () => await this.unqueuedSet(value));
+      .operationQueue.queueOperation(async () => {
+        // link the transition to the current state
+        const fromOption = await this.witnessFromState();
+        const toOption = Option.fromValue(value, this.valueType);
+
+        this.hasPathOrFail();
+
+        const stateTransition = StateTransition.fromTo(
+          this.path,
+          fromOption,
+          toOption
+        );
+
+        container
+          .resolve(RuntimeMethodExecutionContext)
+          .addStateTransition(stateTransition);
+      });
   }
 }
