@@ -18,6 +18,7 @@ import {
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import { MethodParameterEncoder } from "./MethodParameterEncoder";
+import { Runtime } from "../runtime/Runtime";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -70,6 +71,7 @@ export function toEventsHash(
 
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
 export type AsyncWrappedMethod = (
+  publicInput: undefined,
   ...args: ArgumentTypes
 ) => Promise<{ publicOutput: MethodPublicOutput }>;
 
@@ -86,6 +88,12 @@ export function toWrappedMethod(
   );
 
   const wrappedMethod: AsyncWrappedMethod = async (
+    /**
+     * Here, we ignore the publicInput, because o1js internally always populates
+     * the public input as undefined if a method doesn't use it.
+     * Therefore, the args array starts at position 1 of the args given by o1js
+     */
+    _publicInput,
     ...args
   ): Promise<{ publicOutput: MethodPublicOutput }> => {
     await Reflect.apply(moduleMethod, this, args);
@@ -238,19 +246,6 @@ function runtimeMethodInternal(options: {
       const constructorName = this.name!;
 
       /**
-       * If its a top level method call, wrap it into a wrapped method,
-       * since it'll be turned into a real/mock prover in provableMethod().
-       *
-       * Otherwise provableMethod() will just call the originalMethod provided
-       * if method is not called at the top level.
-       */
-      const simulatedWrappedMethod = Reflect.apply(toWrappedMethod, this, [
-        methodName,
-        simulatedMethod,
-        options,
-      ]);
-
-      /**
        * Before the prover runs, make sure it is operating on the correct
        * RuntimeMethodExecutionContext state, meaning it enters and exits
        * the context properly.
@@ -259,8 +254,6 @@ function runtimeMethodInternal(options: {
         executionContext.beforeMethod(constructorName, methodName, args);
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
-          simulatedWrappedMethod,
-          false,
           this.appChain!.areProofsEnabled,
           ...args
         ).bind(this);

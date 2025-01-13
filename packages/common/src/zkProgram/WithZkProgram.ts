@@ -78,8 +78,6 @@ export const MOCK_VERIFICATION_KEY = {
 
 export function toProver(
   methodName: string,
-  simulatedMethod: DecoratedMethod,
-  isFirstParameterPublicInput: boolean,
   areProofsEnabled: boolean,
   ...args: ArgumentTypes
 ) {
