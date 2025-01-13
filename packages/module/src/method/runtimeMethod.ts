@@ -18,7 +18,6 @@ import {
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
 import { MethodParameterEncoder } from "./MethodParameterEncoder";
-import { Runtime } from "../runtime/Runtime";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
