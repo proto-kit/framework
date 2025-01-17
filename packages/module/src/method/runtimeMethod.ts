@@ -11,7 +11,7 @@ import {
 import {
   DecoratedMethod,
   toProver,
-  ZkProgrammable,
+  ZkProgramFactory,
   ArgumentTypes,
 } from "@proto-kit/common";
 
@@ -70,8 +70,9 @@ export function toEventsHash(
 
 export type WrappedMethod = (...args: ArgumentTypes) => MethodPublicOutput;
 export type AsyncWrappedMethod = (
+  publicInput: undefined,
   ...args: ArgumentTypes
-) => Promise<MethodPublicOutput>;
+) => Promise<{ publicOutput: MethodPublicOutput }>;
 
 export function toWrappedMethod(
   this: RuntimeModule<unknown>,
@@ -86,8 +87,9 @@ export function toWrappedMethod(
   );
 
   const wrappedMethod: AsyncWrappedMethod = async (
+    _publicInput,
     ...args
-  ): Promise<MethodPublicOutput> => {
+  ): Promise<{ publicOutput: MethodPublicOutput }> => {
     await Reflect.apply(moduleMethod, this, args);
     const {
       result: { stateTransitions, status, events },
@@ -142,14 +144,16 @@ export function toWrappedMethod(
     const transactionHash = transaction.hash();
     const networkStateHash = networkState.hash();
 
-    return new MethodPublicOutput({
-      stateTransitionsHash,
-      status,
-      transactionHash,
-      networkStateHash,
-      isMessage,
-      eventsHash,
-    });
+    return {
+      publicOutput: new MethodPublicOutput({
+        stateTransitionsHash,
+        status,
+        transactionHash,
+        networkStateHash,
+        isMessage,
+        eventsHash,
+      }),
+    };
   };
 
   Object.defineProperty(wrappedMethod, "name", {
@@ -254,12 +258,12 @@ function runtimeMethodInternal(options: {
        * the context properly.
        */
 
-      async function prover(this: ZkProgrammable<any, any>) {
+      async function prover(this: ZkProgramFactory<any, any>) {
         executionContext.beforeMethod(constructorName, methodName, args);
         const innerProver = toProver(
           combineMethodName(constructorName, methodName),
-          simulatedWrappedMethod,
-          false,
+          // TODO: Fix this
+          true,
           ...args
         ).bind(this);
         let result: Awaited<ReturnType<typeof innerProver>>;
@@ -279,7 +283,7 @@ function runtimeMethodInternal(options: {
         if (!this.runtime) {
           throw errors.runtimeNotProvided(constructorName);
         }
-        executionContext.setProver(prover.bind(this.runtime.zkProgrammable));
+        executionContext.setProver(prover.bind(this.runtime.zkProgramFactory));
       }
 
       let result: unknown;

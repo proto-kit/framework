@@ -1,9 +1,6 @@
 import { inject, injectable, singleton } from "tsyringe";
 
-import {
-  AreProofsEnabled,
-  CompileArtifact,
-} from "../zkProgrammable/ZkProgrammable";
+import { AreProofsEnabled, CompileArtifact } from "../zkProgrammable/Helper";
 
 import {
   ArtifactRecord,

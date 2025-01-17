@@ -27,8 +27,10 @@ import {
   ProofBase,
   AccountUpdateForest,
   AccountUpdate,
+  ProvableType,
 } from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { isProofType } from "@proto-kit/module";
 
 import {
   ProofTaskSerializer,
@@ -143,7 +145,7 @@ export class SettlementProvingTask
     return { transaction: provenTx };
   }
 
-  private getProofSerializer(proofType: Subclass<typeof ProofBase>) {
+  private getProofSerializer(proofType: Subclass<any>) {
     return proofType.prototype instanceof Proof
       ? new ProofTaskSerializer(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -211,17 +213,18 @@ export class SettlementProvingTask
               throw new Error("Method interface not found");
             }
 
-            const allArgs = method.allArgs.slice(2);
-            const witnessArgTypes = method.witnessArgs.slice(2);
-            const proofTypes = method.proofArgs;
+            const allArgs = method.args.slice(2);
             let proofsDecoded = 0;
 
             // eslint-disable-next-line no-await-in-loop
             const args = await mapSequential(
               lazyProof.args,
               async (encodedArg, argsIndex) => {
-                if (allArgs[argsIndex].type === "witness") {
-                  const argType = witnessArgTypes[argsIndex - proofsDecoded];
+                const type = isProofType(allArgs[argsIndex])
+                  ? "proof"
+                  : "witness";
+                if (type === "witness") {
+                  const argType = ProvableType.get(allArgs[argsIndex]);
                   // encodedArg is this type
                   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                   const arg = encodedArg as { fields: string[]; aux: string[] };
@@ -251,7 +254,8 @@ export class SettlementProvingTask
                 }
                 // fields is JsonProof
                 const serializer = this.getProofSerializer(
-                  proofTypes[proofsDecoded]
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  allArgs[proofsDecoded] as unknown as Subclass<any>
                 );
 
                 proofsDecoded += 1;
@@ -261,8 +265,8 @@ export class SettlementProvingTask
             );
 
             const proofArgIndizes = allArgs
-              .filter((arg) => arg.type === "proof")
-              .map((arg) => arg.index);
+              .filter((arg) => isProofType(arg))
+              .map((arg, i) => i);
 
             const previousProofs = proofArgIndizes.map(
               (argIndex) =>
@@ -311,16 +315,18 @@ export class SettlementProvingTask
                   throw new Error("Method interface not found");
                 }
 
-                const allArgs = method.allArgs.slice(2);
-                const witnessArgTypes = method.witnessArgs.slice(2);
-                const proofTypes = method.proofArgs;
+                const allArgs = method.args.slice(2);
                 let proofsEncoded = 0;
 
                 const encodedArgs = lazyProof.args
                   .map((arg, index) => {
-                    if (allArgs[index].type === "witness") {
-                      const witnessType =
-                        witnessArgTypes[index - proofsEncoded];
+                    const type = isProofType(allArgs[index])
+                      ? "proof"
+                      : "witness";
+                    if (type === "witness") {
+                      const witnessType = ProvableType.get(
+                        allArgs[index - proofsEncoded]
+                      );
 
                       // Special case for AUForest
                       if (arg instanceof AccountUpdateForest) {
@@ -352,9 +358,10 @@ export class SettlementProvingTask
                         aux,
                       };
                     }
-                    if (allArgs[index].type === "proof") {
+                    if (type === "proof") {
                       const serializer = this.getProofSerializer(
-                        proofTypes[proofsEncoded]
+                        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                        allArgs[proofsEncoded] as unknown as Subclass<any>
                       );
                       proofsEncoded += 1;
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument

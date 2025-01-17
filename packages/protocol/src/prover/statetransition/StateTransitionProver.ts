@@ -1,12 +1,13 @@
 import {
   AreProofsEnabled,
   PlainZkProgram,
-  provableMethod,
   RollupMerkleTreeWitness,
-  ZkProgrammable,
+  ZkProgramFactory,
   CompilableModule,
   type ArtifactRecord,
   type CompileRegistry,
+  reduceSequential,
+  CompileArtifact,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
@@ -71,15 +72,16 @@ const StateTransitionSelfProofClass = SelfProof<
  * StateTransitionProver is the prover that proves the application of some state
  * transitions and checks and updates their merkle-tree entries
  */
-export class StateTransitionProverProgrammable extends ZkProgrammable<
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput
-> {
+export class StateTransitionProverFactory
+  implements
+    ZkProgramFactory<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >
+{
   public constructor(
     private readonly stateTransitionProver: StateTransitionProver
-  ) {
-    super();
-  }
+  ) {}
 
   public get areProofsEnabled(): AreProofsEnabled | undefined {
     return this.stateTransitionProver.areProofsEnabled;
@@ -104,7 +106,9 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             publicInput: StateTransitionProverPublicInput,
             batch: StateTransitionProvableBatch
           ) {
-            return await instance.runBatch(publicInput, batch);
+            return {
+              publicOutput: await instance.runBatch(publicInput, batch),
+            };
           },
         },
 
@@ -119,7 +123,9 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             proof1: StateTransitionProof,
             proof2: StateTransitionProof
           ) {
-            return await instance.merge(publicInput, proof1, proof2);
+            return {
+              publicOutput: await instance.merge(publicInput, proof1, proof2),
+            };
           },
         },
       },
@@ -139,9 +145,26 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
         Proof: SelfProofClass,
+        proofsEnabled: program.proofsEnabled,
+        setProofsEnabled: program.setProofsEnabled.bind(program),
         methods,
       },
     ];
+  }
+
+  public async compile(registry: CompileRegistry) {
+    return await reduceSequential(
+      this.zkProgramFactory(),
+      async (acc, program) => {
+        const result = await registry.compile(program);
+        return {
+          ...acc,
+          [program.name]: result,
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      {} as Record<string, CompileArtifact>
+    );
   }
 
   /**
@@ -242,7 +265,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   /**
    * Applies a whole batch of StateTransitions at once
    */
-  @provableMethod()
   public async runBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
@@ -263,7 +285,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     });
   }
 
-  @provableMethod()
   public async merge(
     publicInput: StateTransitionProverPublicInput,
     proof1: StateTransitionProof,
@@ -347,24 +368,38 @@ export class StateTransitionProver
     StateTransitionProverType,
     CompilableModule
 {
-  public zkProgrammable: StateTransitionProverProgrammable;
+  readonly _zkProgramFactory: StateTransitionProverFactory | undefined;
+
+  // runtime modules composed into a ZkProgram
+  public get zkProgram(): PlainZkProgram<
+    StateTransitionProverPublicInput,
+    StateTransitionProverPublicOutput
+  >[] {
+    return this.zkProgramFactory.zkProgramFactory();
+  }
+
+  public get zkProgramFactory(): StateTransitionProverFactory {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._zkProgramFactory!;
+  }
 
   public constructor() {
     super();
-    this.zkProgrammable = new StateTransitionProverProgrammable(this);
+    // eslint-disable-next-line no-underscore-dangle
+    this._zkProgramFactory = new StateTransitionProverFactory(this);
   }
 
   public async compile(
     registry: CompileRegistry
   ): Promise<void | ArtifactRecord> {
-    return await this.zkProgrammable.compile(registry);
+    return await this.zkProgramFactory.compile(registry);
   }
 
   public runBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch
   ): Promise<StateTransitionProverPublicOutput> {
-    return this.zkProgrammable.runBatch(publicInput, batch);
+    return this.zkProgramFactory.runBatch(publicInput, batch);
   }
 
   public merge(
@@ -372,6 +407,6 @@ export class StateTransitionProver
     proof1: StateTransitionProof,
     proof2: StateTransitionProof
   ): Promise<StateTransitionProverPublicOutput> {
-    return this.zkProgrammable.merge(publicInput, proof1, proof2);
+    return this.zkProgramFactory.merge(publicInput, proof1, proof2);
   }
 }

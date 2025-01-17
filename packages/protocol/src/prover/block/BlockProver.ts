@@ -17,9 +17,9 @@ import {
   CompileRegistry,
   MAX_FIELD,
   PlainZkProgram,
-  provableMethod,
-  WithZkProgrammable,
-  ZkProgrammable,
+  reduceSequential,
+  WithZkProgram,
+  ZkProgramFactory,
 } from "@proto-kit/common";
 
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
@@ -132,28 +132,40 @@ export interface BlockProverState {
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 export type RuntimeProof = Proof<void, MethodPublicOutput>;
 
-export class BlockProverProgrammable extends ZkProgrammable<
-  BlockProverPublicInput,
-  BlockProverPublicOutput
-> {
+export class BlockProverFactory
+  implements ZkProgramFactory<BlockProverPublicInput, BlockProverPublicOutput>
+{
   public constructor(
     private readonly prover: BlockProver,
-    public readonly stateTransitionProver: ZkProgrammable<
+    public readonly stateTransitionProver: ZkProgramFactory<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    public readonly runtime: ZkProgrammable<undefined, MethodPublicOutput>,
+    public readonly runtime: ZkProgramFactory<undefined, MethodPublicOutput>,
     private readonly transactionHooks: ProvableTransactionHook<unknown>[],
     private readonly blockHooks: ProvableBlockHook<unknown>[],
     private readonly verificationKeyService: MinimalVKTreeService
-  ) {
-    super();
-  }
+  ) {}
 
   name = "BlockProver";
 
   public get areProofsEnabled(): AreProofsEnabled | undefined {
     return this.prover.areProofsEnabled;
+  }
+
+  public async compile(registry: CompileRegistry) {
+    return await reduceSequential(
+      this.zkProgramFactory(),
+      async (acc, program) => {
+        const result = await registry.compile(program);
+        return {
+          ...acc,
+          [program.name]: result,
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      {} as Record<string, CompileArtifact>
+    );
   }
 
   /**
@@ -402,7 +414,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     return stateTo;
   }
 
-  @provableMethod()
   public async proveTransaction(
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
@@ -478,7 +489,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
   }
 
-  @provableMethod()
   public async proveBlock(
     publicInput: BlockProverPublicInput,
     networkState: NetworkState,
@@ -652,7 +662,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     });
   }
 
-  @provableMethod()
   public async merge(
     publicInput: BlockProverPublicInput,
     proof1: BlockProverProof,
@@ -800,7 +809,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     BlockProverPublicOutput
   >[] {
     const { prover, stateTransitionProver } = this;
-    const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
+    const StateTransitionProofClass =
+      stateTransitionProver.zkProgramFactory()[0].Proof;
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveBlock = prover.proveBlock.bind(prover);
     const merge = prover.merge.bind(prover);
@@ -826,13 +836,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
             executionData: BlockProverExecutionData,
             verificationKeyAttestation: RuntimeVerificationKeyAttestation
           ) {
-            return await proveTransaction(
-              publicInput,
-              stateProof,
-              appProof,
-              executionData,
-              verificationKeyAttestation
-            );
+            return {
+              publicOutput: await proveTransaction(
+                publicInput,
+                stateProof,
+                appProof,
+                executionData,
+                verificationKeyAttestation
+              ),
+            };
           },
         },
 
@@ -850,13 +862,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
             // stateTransitionProof: StateTransitionProof,
             transactionProof: BlockProverProof
           ) {
-            return await proveBlock(
-              publicInput,
-              networkState,
-              blockWitness,
-              // stateTransitionProof,
-              transactionProof
-            );
+            return {
+              publicOutput: await proveBlock(
+                publicInput,
+                networkState,
+                blockWitness,
+                // stateTransitionProof,
+                transactionProof
+              ),
+            };
           },
         },
 
@@ -871,7 +885,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             proof1: BlockProverProof,
             proof2: BlockProverProof
           ) {
-            return await merge(publicInput, proof1, proof2);
+            return { publicOutput: await merge(publicInput, proof1, proof2) };
           },
         },
       },
@@ -892,6 +906,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
         Proof: SelfProofClass,
+        proofsEnabled: program.proofsEnabled,
+        setProofsEnabled: program.setProofsEnabled.bind(program),
         methods,
       },
     ];
@@ -908,17 +924,30 @@ export class BlockProver
   extends ProtocolModule
   implements BlockProvable, CompilableModule
 {
-  public zkProgrammable: BlockProverProgrammable;
+  readonly _zkProgramFactory: BlockProverFactory;
+
+  // runtime modules composed into a ZkProgram
+  public get zkProgram(): PlainZkProgram<
+    BlockProverPublicInput,
+    BlockProverPublicOutput
+  >[] {
+    return this.zkProgramFactory.zkProgramFactory();
+  }
+
+  public get zkProgramFactory(): BlockProverFactory {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._zkProgramFactory!;
+  }
 
   public constructor(
     @inject("StateTransitionProver")
-    public readonly stateTransitionProver: WithZkProgrammable<
+    public readonly stateTransitionProver: WithZkProgram<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     > &
       StateTransitionProvable,
     @inject("Runtime")
-    public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput> &
+    public readonly runtime: WithZkProgram<undefined, MethodPublicOutput> &
       CompilableModule,
     @injectAll("ProvableTransactionHook")
     transactionHooks: ProvableTransactionHook<unknown>[],
@@ -927,10 +956,11 @@ export class BlockProver
     verificationKeyService: RuntimeVerificationKeyRootService
   ) {
     super();
-    this.zkProgrammable = new BlockProverProgrammable(
+    // eslint-disable-next-line no-underscore-dangle
+    this._zkProgramFactory = new BlockProverFactory(
       this,
-      stateTransitionProver.zkProgrammable,
-      runtime.zkProgrammable,
+      stateTransitionProver.zkProgramFactory,
+      runtime.zkProgramFactory,
       transactionHooks,
       blockHooks,
       verificationKeyService
@@ -945,7 +975,7 @@ export class BlockProver
       await this.runtime.compile(registry);
     });
 
-    return await this.zkProgrammable.compile(registry);
+    return await this.zkProgramFactory.compile(registry);
   }
 
   public proveTransaction(
@@ -955,7 +985,7 @@ export class BlockProver
     executionData: BlockProverExecutionData,
     verificationKeyAttestation: RuntimeVerificationKeyAttestation
   ): Promise<BlockProverPublicOutput> {
-    return this.zkProgrammable.proveTransaction(
+    return this.zkProgramFactory.proveTransaction(
       publicInput,
       stateProof,
       appProof,
@@ -971,7 +1001,7 @@ export class BlockProver
     // stateTransitionProof: StateTransitionProof,
     transactionProof: BlockProverProof
   ): Promise<BlockProverPublicOutput> {
-    return this.zkProgrammable.proveBlock(
+    return this.zkProgramFactory.proveBlock(
       publicInput,
       networkState,
       blockWitness,
@@ -985,6 +1015,6 @@ export class BlockProver
     proof1: BlockProverProof,
     proof2: BlockProverProof
   ): Promise<BlockProverPublicOutput> {
-    return this.zkProgrammable.merge(publicInput, proof1, proof2);
+    return this.zkProgramFactory.merge(publicInput, proof1, proof2);
   }
 }

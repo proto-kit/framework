@@ -7,12 +7,14 @@ import {
   ModulesConfig,
   ModulesRecord,
   TypedClass,
-  ZkProgrammable,
+  ZkProgramFactory,
   PlainZkProgram,
   AreProofsEnabled,
   ChildContainerProvider,
   CompilableModule,
   CompileRegistry,
+  reduceSequential,
+  CompileArtifact,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -74,15 +76,28 @@ export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
   config?: ModulesConfig<Modules>;
 }
 
-export class RuntimeZkProgrammable<
-  Modules extends RuntimeModulesRecord,
-> extends ZkProgrammable<undefined, MethodPublicOutput> {
-  public constructor(public runtime: Runtime<Modules>) {
-    super();
-  }
+export class RuntimeZkProgramFactory<Modules extends RuntimeModulesRecord>
+  implements ZkProgramFactory<undefined, MethodPublicOutput>
+{
+  public constructor(public runtime: Runtime<Modules>) {}
 
   public get areProofsEnabled() {
     return this.runtime.areProofsEnabled;
+  }
+
+  public async compile(registry: CompileRegistry) {
+    return await reduceSequential(
+      this.zkProgramFactory(),
+      async (acc, program) => {
+        const result = await registry.compile(program);
+        return {
+          ...acc,
+          [program.name]: result,
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      {} as Record<string, CompileArtifact>
+    );
   }
 
   public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
@@ -100,6 +115,11 @@ export class RuntimeZkProgrammable<
     const runtime: Runtime<Modules> = this.runtime;
 
     const MAXIMUM_METHODS_PER_ZK_PROGRAM = 8;
+
+    const areProofsEnabled =
+      this.runtime.dependencyContainer.resolve<AreProofsEnabled>(
+        "AreProofsEnabled"
+      );
 
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
@@ -242,6 +262,7 @@ export class RuntimeZkProgrammable<
 
       const SelfProof = ZkProgram.Proof(program);
 
+      program.setProofsEnabled(areProofsEnabled.areProofsEnabled);
       const methods = Object.keys(bucket).reduce<Record<string, any>>(
         (boundMethods, methodName) => {
           boundMethods[methodName] = program[methodName].bind(program);
@@ -255,6 +276,8 @@ export class RuntimeZkProgrammable<
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
+        proofsEnabled: program.proofsEnabled,
+        setProofsEnabled: program.setProofsEnabled.bind(program),
         Proof: SelfProof,
         methods,
       };
@@ -282,11 +305,22 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   }
 
   // runtime modules composed into a ZkProgram
-  public program?: ReturnType<typeof ZkProgram>;
+  private _zkProgramFactory?: ZkProgramFactory<undefined, MethodPublicOutput>;
 
   public definition: RuntimeDefinition<Modules>;
 
-  public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
+  // runtime modules composed into a ZkProgram
+  public get zkProgram(): PlainZkProgram<undefined, MethodPublicOutput>[] {
+    return this.zkProgramFactory.zkProgramFactory();
+  }
+
+  public get zkProgramFactory(): ZkProgramFactory<
+    undefined,
+    MethodPublicOutput
+  > {
+    // eslint-disable-next-line no-underscore-dangle
+    return this._zkProgramFactory!;
+  }
 
   /**
    * Creates a new Runtime from the provided config
@@ -296,7 +330,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public constructor(definition: RuntimeDefinition<Modules>) {
     super(definition);
     this.definition = definition;
-    this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
   }
 
   // TODO Remove after changing DFs to type-based approach
@@ -304,6 +337,8 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     super.create(childContainerProvider);
 
     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    // eslint-disable-next-line no-underscore-dangle
+    this._zkProgramFactory = new RuntimeZkProgramFactory<Modules>(this);
   }
 
   public get areProofsEnabled(): AreProofsEnabled | undefined {
@@ -389,7 +424,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
       transaction: RuntimeTransaction.dummyTransaction(),
       networkState: NetworkState.empty(),
     });
-    return await this.zkProgrammable.compile(registry);
+    return await this.zkProgramFactory.compile(registry);
   }
 }
 /* eslint-enable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */
