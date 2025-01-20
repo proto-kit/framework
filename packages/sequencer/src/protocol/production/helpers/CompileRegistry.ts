@@ -20,13 +20,18 @@ export class CompileRegistry {
     name: string,
     zkProgram: { compile: () => Promise<CompileArtifact> }
   ) {
+    let newPromise = false;
     if (this.compilationPromises[name] === undefined) {
       log.time(`Compiling ${name}`);
       this.compilationPromises[name] = zkProgram.compile();
-      log.timeEnd.info(`Compiling ${name}`);
+      newPromise = true;
     }
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return (await this.compilationPromises[name]) as CompileArtifact;
+    const result = (await this.compilationPromises[name]) as CompileArtifact;
+    if (newPromise) {
+      log.timeEnd.info(`Compiling ${name}`);
+    }
+    return result;
   }
 
   public async compileSmartContract(
@@ -36,16 +41,22 @@ export class CompileRegistry {
     },
     proofsEnabled: boolean = true
   ) {
+    let newPromise = false;
     if (this.compilationPromises[name] === undefined) {
       if (proofsEnabled) {
         log.time(`Compiling ${name}`);
         this.compilationPromises[name] = contract.compile();
-        log.timeEnd.info(`Compiling ${name}`);
       } else {
         this.compilationPromises[name] = Promise.resolve({});
       }
     }
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return (await this.compilationPromises[name]) as ContractCompileArtifact;
+    const result = (await this.compilationPromises[
+      name
+    ]) as ContractCompileArtifact;
+    if (newPromise) {
+      log.timeEnd.info(`Compiling ${name}`);
+    }
+    return result;
   }
 }

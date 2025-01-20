@@ -82,15 +82,6 @@ describe("Proven", () => {
         const childContainer = container.createChildContainer();
         await app.start(true, childContainer);
 
-        const ready = await new Promise<boolean>((res) => {
-          app
-            .resolve("Sequencer")
-            .resolve("LocalTaskWorkerModule")
-            .containerEvents.on("ready", res);
-        });
-
-        expect(ready).toBe(true);
-
         test = app.sequencer.dependencyContainer.resolve(BlockTestService);
       } catch (e) {
         console.error(e);

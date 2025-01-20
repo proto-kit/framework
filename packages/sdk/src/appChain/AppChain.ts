@@ -23,6 +23,7 @@ import {
   QueryTransportModule,
   NetworkStateTransportModule,
   DummyStateService,
+  WorkerReadyModule,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -341,6 +342,11 @@ export class AppChain<
 
     // this.runtime.start();
     await this.sequencer.start();
+
+    // Wait for readyness for worker-ish configurations
+    await this.sequencer.dependencyContainer
+      .resolve(WorkerReadyModule)
+      .waitForReady();
   }
 }
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
