@@ -24,8 +24,6 @@ export * from "./prover/block/accummulators/BlockHashMerkleTree";
 export * from "./prover/block/services/RuntimeVerificationKeyRootService";
 export * from "./prover/statetransition/StateTransitionProver";
 export * from "./prover/statetransition/StateTransitionProvable";
-export * from "./prover/statetransition/StateTransitionWitnessProvider";
-export * from "./prover/statetransition/StateTransitionWitnessProviderReference";
 export * from "./protocol/Protocol";
 export * from "./protocol/ProtocolModule";
 export * from "./protocol/ProtocolEnvironment";

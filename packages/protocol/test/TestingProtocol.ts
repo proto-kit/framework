@@ -7,7 +7,6 @@ import {
   BlockProver,
   LastStateRootBlockHook,
   MethodPublicOutput,
-  NoOpStateTransitionWitnessProvider,
   Protocol,
   StateTransitionProver,
 } from "../src";
@@ -39,7 +38,6 @@ export function createAndInitTestingProtocol() {
   protocol.create(() => container.createChildContainer());
 
   protocol.registerValue({
-    StateTransitionWitnessProvider: new NoOpStateTransitionWitnessProvider(),
     Runtime: new RuntimeMock(),
   });
 

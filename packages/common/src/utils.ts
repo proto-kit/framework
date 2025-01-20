@@ -164,3 +164,5 @@ type NonMethodKeys<Type> = {
   [Key in keyof Type]: Type[Key] extends Function ? never : Key;
 }[keyof Type];
 export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;
+
+export const MAX_FIELD = Field(Field.ORDER - 1n);
