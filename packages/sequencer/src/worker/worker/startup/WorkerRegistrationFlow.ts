@@ -18,7 +18,9 @@ export class WorkerRegistrationFlow implements Closeable {
 
   flow?: Closeable;
 
-  public async start(payload: WorkerStartupPayload): Promise<void> {
+  public async start(
+    payload: Omit<WorkerStartupPayload, "salt">
+  ): Promise<void> {
     const flow = this.flowCreator.createFlow("register-worker-flow", {});
     this.flow = flow;
 
@@ -28,6 +30,7 @@ export class WorkerRegistrationFlow implements Closeable {
         // eslint-disable-next-line no-await-in-loop
         await flow.withFlow(async (res, rej) => {
           log.trace("Pushing registration task");
+
           await flow.pushTask(this.task, payload, async (result) => {
             // Here someone could inject things to happen when the worker registers
             res(result);

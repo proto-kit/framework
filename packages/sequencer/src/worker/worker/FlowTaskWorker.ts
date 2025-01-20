@@ -31,7 +31,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
     log.debug(`Init task handler ${task.name}`);
     const queueName = task.name;
     return this.queue.createWorker(queueName, async (data) => {
-      log.debug(`Received task in queue ${queueName}`);
+      log.debug(`Received task ${data.taskId} in queue ${queueName}`);
 
       try {
         // Use first handler that returns a non-undefined result
@@ -51,12 +51,16 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
           payload: await task.resultSerializer().toJSON(output),
         };
 
+        log.debug(
+          `Responding to task ${data.taskId} with ${result.payload.slice(0, 100)}`
+        );
+
         return result;
       } catch (error: unknown) {
         const payload =
           error instanceof Error ? error.message : JSON.stringify(error);
 
-        log.debug("Error in worker (detailed trace): ", error);
+        log.info("Error in worker (detailed trace): ", error);
 
         return {
           status: "error",

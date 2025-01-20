@@ -201,7 +201,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     index = 0
   ) {
     const witness = Provable.witness(RollupMerkleTreeWitness, () =>
-      this.witnessProvider.getWitness(transition.path)
+      this.witnessProvider.getWitness(Field(transition.path.toString()))
     );
 
     const membershipValid = witness.checkMembership(
