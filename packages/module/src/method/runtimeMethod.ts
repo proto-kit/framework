@@ -37,7 +37,7 @@ const errors = {
 };
 
 export function toStateTransitionsHash(
-  stateTransitions: StateTransition<any>[]
+  stateTransitions: { toProvable: () => ProvableStateTransition }[]
 ) {
   const stateTransitionsHashList = new StateTransitionReductionList(
     ProvableStateTransition

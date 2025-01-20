@@ -1,4 +1,5 @@
 import { Bool, Field, Poseidon } from "o1js";
+
 import { DefaultProvableHashList } from "../../src";
 
 describe("defaultProvableHashList", () => {
@@ -23,10 +24,11 @@ describe("defaultProvableHashList", () => {
     it("Using only pushIf", () => {
       const hashList = new DefaultProvableHashList(Field, Field(start));
 
+      // eslint-disable-next-line sonarjs/no-unused-collection
       const appended: bigint[] = [];
       let hash = Field(start);
 
-      for (let element of elements) {
+      for (const element of elements) {
         hashList.pushIf(Field(element.value), Bool(element.push));
         if (element.push) {
           appended.push(element.value);
@@ -35,7 +37,7 @@ describe("defaultProvableHashList", () => {
         }
       }
 
-      expect([hash]).equalProvable([hashList.commitment]);
+      expect(hash.toString()).toStrictEqual(hashList.commitment.toString());
     });
   });
 });

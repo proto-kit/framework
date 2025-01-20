@@ -1,10 +1,13 @@
 import { PublicKey, Struct, UInt64 } from "o1js";
 import { injectable } from "tsyringe";
+import { noop } from "@proto-kit/common";
 
-import { BlockProverExecutionData } from "../prover/block/BlockProvable";
 import { StateMap } from "../state/StateMap";
 import { protocolState } from "../state/protocol/ProtocolState";
-import { ProvableTransactionHook } from "../protocol/ProvableTransactionHook";
+import {
+  ProvableTransactionHook,
+  BeforeTransactionHookArguments,
+} from "../protocol/ProvableTransactionHook";
 import { assert } from "../state/assert/assert";
 
 export class AccountState extends Struct({
@@ -18,7 +21,7 @@ export class AccountStateHook extends ProvableTransactionHook {
     AccountState
   );
 
-  public async onTransaction({ transaction }: BlockProverExecutionData) {
+  public async onTransaction({ transaction }: BeforeTransactionHookArguments) {
     const sender = transaction.sender.value;
 
     const aso = await this.accountState.get(sender);
@@ -44,5 +47,9 @@ export class AccountStateHook extends ProvableTransactionHook {
     );
 
     await this.accountState.set(sender, new AccountState({ nonce: newNonce }));
+  }
+
+  public async onAfterTransaction() {
+    noop();
   }
 }

@@ -14,21 +14,17 @@ import { injectable } from "tsyringe";
 import { constants } from "../../Constants";
 import { ProvableStateTransition } from "../../model/StateTransition";
 import {
-  AppliedStateTransitionBatch,
-  AppliedStateTransitionBatchState,
   MerkleWitnessBatch,
-  ProvableStateTransitionType,
   StateTransitionProvableBatch,
   StateTransitionType,
 } from "../../model/StateTransitionProvableBatch";
 import { StateTransitionProverType } from "../../protocol/Protocol";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
-import { NonMethods } from "../../utils/utils";
-
-import {
-  DefaultProvableHashList,
-  ProvableHashList,
-} from "../../utils/ProvableHashList";
+import { DefaultProvableHashList } from "../../utils/ProvableHashList";
+import { FieldOption } from "../../utils/FieldOptions";
+import { WitnessedRootHashList } from "../accumulators/WitnessedRootHashList";
+import { AppliedBatchHashList } from "../accumulators/AppliedBatchHashList";
+import { AppliedStateTransitionBatchState } from "../../model/AppliedStateTransitionBatch";
 
 import {
   StateTransitionProof,
@@ -47,8 +43,9 @@ const errors = {
 
 interface StateTransitionProverExecutionState {
   currentBatch: AppliedStateTransitionBatchState;
-  batchList: ProvableHashList<NonMethods<AppliedStateTransitionBatch>>;
+  batchList: AppliedBatchHashList;
   finalizedRoot: Field;
+  rootAccumulator: WitnessedRootHashList;
 }
 
 const StateTransitionSelfProofClass = SelfProof<
@@ -65,7 +62,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   StateTransitionProverPublicOutput
 > {
   public constructor(
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     private readonly stateTransitionProver: StateTransitionProver
   ) {
     super();
@@ -100,7 +96,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             witnesses: MerkleWitnessBatch,
             currentAppliedBatch: AppliedStateTransitionBatchState
           ) {
-            return await instance.runBatch(
+            return await instance.proveBatch(
               publicInput,
               batch,
               witnesses,
@@ -127,7 +123,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     });
 
     const methods = {
-      runBatch: program.runBatch.bind(program),
+      proveBatch: program.proveBatch.bind(program),
       merge: program.merge.bind(program),
     };
 
@@ -155,7 +151,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     witnesses: MerkleWitnessBatch
   ) {
     const transitions = batch.batch;
-    const types = batch.types;
 
     for (
       let index = 0;
@@ -164,18 +159,22 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     ) {
       const updatedBatchState = this.applyTransition(
         state.currentBatch,
-        transitions[index],
+        transitions[index].stateTransition,
         witnesses.witnesses[index],
-        types[index],
         index
       );
 
       // If the current batch is finished, we push it to the list
       // and initialize the next
-      const closing = types[index].isClosing();
-      const closingAndApply = types[index].type.equals(
+      const { type } = transitions[index];
+      const closing = type.isClosing();
+      const closingAndApply = type.type.equals(
         StateTransitionType.closeAndApply
       );
+      // Not sure if needed
+      type.accumulate
+        .implies(closingAndApply)
+        .assertTrue("Accumulate does not imply type being closeandapply");
 
       // Create the newBatch
       // The root is based on if the previous batch will be applied or not
@@ -192,12 +191,29 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       const updatedBatch = {
         applied: closingAndApply,
         batchHash: updatedBatchState.batchHash,
+        witnessedRoot: FieldOption.from(
+          type.accumulate,
+          updatedBatchState.root
+        ),
       };
       state.batchList.pushIf(updatedBatch, closing);
       state.finalizedRoot = Provable.if(
         closingAndApply,
         updatedBatchState.root,
         state.finalizedRoot
+      );
+
+      // Add computed root to the witnessed root list if needed
+      const { witnessRoot } = transitions[index];
+      witnessRoot
+        .implies(closing)
+        .assertTrue("Can only witness roots at closing batches");
+      state.rootAccumulator.pushIf(
+        {
+          root: state.finalizedRoot,
+          appliedBatchListState: state.batchList.commitment,
+        },
+        witnessRoot
       );
 
       state.currentBatch = new AppliedStateTransitionBatchState(
@@ -221,8 +237,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     currentBatch: AppliedStateTransitionBatchState,
     transition: ProvableStateTransition,
     witness: RollupMerkleTreeWitness,
-    type: ProvableStateTransitionType,
-    merkleWitness: RollupMerkleTreeWitness,
     index = 0
   ) {
     const impliedRoot = this.applyTransitionToRoot(
@@ -240,21 +254,19 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     stList.push(transition);
 
     // Update batch
-    const additiveBatch = new AppliedStateTransitionBatchState({
+    return new AppliedStateTransitionBatchState({
       batchHash: stList.commitment,
       root: impliedRoot,
     });
-
-    return additiveBatch;
   }
 
   private applyTransitionToRoot(
     transition: ProvableStateTransition,
     root: Field,
-    witness: RollupMerkleTreeWitness,
+    merkleWitness: RollupMerkleTreeWitness,
     index: number
   ): Field {
-    const membershipValid = witness.checkMembership(
+    const membershipValid = merkleWitness.checkMembership(
       root,
       transition.path,
       transition.from.value
@@ -273,7 +285,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
    * Applies a whole batch of StateTransitions at once
    */
   @provableMethod()
-  public async runBatch(
+  public async proveBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch,
     witnesses: MerkleWitnessBatch,
@@ -294,12 +306,10 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       .assertTrue();
 
     const state: StateTransitionProverExecutionState = {
-      batchList: new DefaultProvableHashList(
-        AppliedStateTransitionBatch,
-        publicInput.batchesHash
-      ),
+      batchList: new AppliedBatchHashList(publicInput.batchesHash),
       currentBatch: currentAppliedBatch,
       finalizedRoot: publicInput.root,
+      rootAccumulator: new WitnessedRootHashList(publicInput.rootAccumulator),
     };
 
     const result = this.applyTransitions(state, batch, witnesses);
@@ -308,6 +318,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       batchesHash: result.batchList.commitment,
       currentBatchStateHash: result.currentBatch.hashOrZero(),
       root: result.finalizedRoot,
+      rootAccumulator: result.rootAccumulator.commitment,
     });
   }
 
@@ -359,10 +370,24 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       errors.propertyNotMatching("root", "proof1.to -> proof2.from")
     );
 
+    // Check root accumulator
+    publicInput.rootAccumulator.assertEquals(
+      proof1.publicInput.rootAccumulator,
+      errors.propertyNotMatching(
+        "rootAccumulator",
+        "publicInput.from -> proof1.from"
+      )
+    );
+    proof1.publicOutput.rootAccumulator.assertEquals(
+      proof2.publicInput.rootAccumulator,
+      errors.propertyNotMatching("rootAccumulator", "proof1.to -> proof2.from")
+    );
+
     return new StateTransitionProverPublicInput({
       currentBatchStateHash: proof2.publicOutput.currentBatchStateHash,
       batchesHash: proof2.publicOutput.batchesHash,
       root: proof2.publicOutput.root,
+      rootAccumulator: proof2.publicOutput.rootAccumulator,
     });
   }
 }
@@ -388,13 +413,13 @@ export class StateTransitionProver
     return await this.zkProgrammable.compile(registry);
   }
 
-  public runBatch(
+  public proveBatch(
     publicInput: StateTransitionProverPublicInput,
     batch: StateTransitionProvableBatch,
     witnesses: MerkleWitnessBatch,
     startingAppliedBatch: AppliedStateTransitionBatchState
   ): Promise<StateTransitionProverPublicOutput> {
-    return this.zkProgrammable.runBatch(
+    return this.zkProgrammable.proveBatch(
       publicInput,
       batch,
       witnesses,

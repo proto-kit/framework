@@ -1,9 +1,8 @@
 import { Bool, Field, Poseidon, Provable, ProvablePure } from "o1js";
 
-import { ProvableHashList } from "./ProvableHashList";
 import { NonMethods } from "./utils";
 
-export class ProvableReductionHashList<Value>{
+export class ProvableReductionHashList<Value> {
   public constructor(
     protected readonly valueType: ProvablePure<Value>,
     public commitment: Field = Field(0)

@@ -1,10 +1,5 @@
-import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
-import {
-  range,
-  InMemoryMerkleTreeStorage,
-  RollupMerkleTree,
-  RollupMerkleTreeWitness
-} from "@proto-kit/common";
+import { Bool, Field, Provable, Struct } from "o1js";
+import { batch, RollupMerkleTreeWitness } from "@proto-kit/common";
 
 import { constants } from "../Constants";
 
@@ -12,14 +7,21 @@ import { ProvableStateTransition } from "./StateTransition.js";
 
 export class StateTransitionType {
   public static readonly nothing = 2;
+
   // The reason these are 0 and 1 is to efficiently check
   // x in [inside, closing] in-circuit via the boolean trick
   public static readonly closeAndApply = 1;
+
   public static readonly closeAndThrowAway = 0;
 }
 
+/**
+ * STType is encoding both the type and whether it should be accumulated or not in one field
+ */
 export class ProvableStateTransitionType extends Struct({
   type: Field,
+  // TODO Remove accumulate or remove the Bool array args
+  accumulate: Bool,
 }) {
   public static get nothing(): ProvableStateTransitionType {
     return this.from(StateTransitionType.nothing);
@@ -33,9 +35,10 @@ export class ProvableStateTransitionType extends Struct({
     return this.from(StateTransitionType.closeAndThrowAway);
   }
 
-  private static from(constant: number) {
+  private static from(constant: number, accumulate = false) {
     return new ProvableStateTransitionType({
       type: Field(constant),
+      accumulate: Bool(accumulate),
     });
   }
 
@@ -47,27 +50,31 @@ export class ProvableStateTransitionType extends Struct({
   }
 }
 
-export class AppliedStateTransitionBatch extends Struct({
-  batchHash: Field,
-  applied: Bool,
-}) {}
-
-export class AppliedStateTransitionBatchState extends Struct({
-  batchHash: Field,
-  root: Field,
-}) {
-  public hashOrZero(): Field {
-    const hash = Poseidon.hash(AppliedStateTransitionBatchState.toFields(this));
-    return Provable.if(this.batchHash.equals(0), Field(0), hash);
-  }
-}
-
 export class MerkleWitnessBatch extends Struct({
   witnesses: Provable.Array(
     RollupMerkleTreeWitness,
     constants.stateTransitionProverBatchSize
   ),
 }) {}
+
+// export class STProverBoolArray extends Struct({
+//   values: Provable.Array(Bool, constants.stateTransitionProverBatchSize),
+// }) {}
+
+// TODO Name
+export class ProvableStateTransitionInformation extends Struct({
+  stateTransition: ProvableStateTransition,
+  type: ProvableStateTransitionType,
+  witnessRoot: Bool,
+}) {
+  public static dummy(): ProvableStateTransitionInformation {
+    return {
+      stateTransition: ProvableStateTransition.dummy(),
+      type: ProvableStateTransitionType.nothing,
+      witnessRoot: Bool(false),
+    };
+  }
+}
 
 /**
  * A Batch of StateTransitions to be consumed by the StateTransitionProver
@@ -79,91 +86,47 @@ export class MerkleWitnessBatch extends Struct({
  */
 export class StateTransitionProvableBatch extends Struct({
   batch: Provable.Array(
-    ProvableStateTransition,
-    constants.stateTransitionProverBatchSize
-  ),
-
-  // bases: Provable.Array(Field, constants.stateTransitionProverBatchSize),
-
-  types: Provable.Array(
-    ProvableStateTransitionType,
-    constants.stateTransitionProverBatchSize
-  ),
-
-  merkleWitnesses: Provable.Array(
-    RollupMerkleTreeWitness,
+    ProvableStateTransitionInformation,
     constants.stateTransitionProverBatchSize
   ),
 }) {
-  // public static fromMappings(
-  //   transitions: {
-  //     transition: ProvableStateTransition;
-  //     type: ProvableStateTransitionType;
-  //   }[],
-  //   merkleWitnesses: RollupMerkleTreeWitness[]
-  // ): StateTransitionProvableBatch {
-  //   const batch = transitions.map((entry) => entry.transition);
-  //   const transitionTypes = transitions.map((entry) => entry.type);
-  //   const witnesses = merkleWitnesses.slice();
-  //   // Check that order is correct
-  //   let normalSTsStarted = false;
-  //   transitionTypes.forEach((x) => {
-  //     if (!normalSTsStarted && x.isNormal().toBoolean()) {
-  //       normalSTsStarted = true;
-  //     }
-  //     if (normalSTsStarted && x.isProtocol().toBoolean()) {
-  //       throw new Error("Order in initializing STBatch not correct");
-  //     }
-  //   });
-  //
-  //   while (batch.length < constants.stateTransitionProverBatchSize) {
-  //     batch.push(ProvableStateTransition.dummy());
-  //     transitionTypes.push(ProvableStateTransitionType.normal);
-  //     witnesses.push(
-  //       new RollupMerkleTree(new InMemoryMerkleTreeStorage()).getWitness(
-  //         BigInt(0)
-  //       )
-  //     );
-  //   }
-  //   return new StateTransitionProvableBatch({
-  //     batch,
-  //     transitionTypes,
-  //     merkleWitnesses: witnesses,
-  //   });
-  // }
-  //
-  // public static fromTransitions(
-  //   transitions: ProvableStateTransition[],
-  //   protocolTransitions: ProvableStateTransition[],
-  //   merkleWitnesses: RollupMerkleTreeWitness[]
-  // ): StateTransitionProvableBatch {
-  //   const array = transitions.slice().concat(protocolTransitions);
-  //
-  //   const transitionTypes = range(0, transitions.length)
-  //     .map(() => ProvableStateTransitionType.normal)
-  //     .concat(
-  //       range(0, protocolTransitions.length).map(
-  //         () => ProvableStateTransitionType.protocol
-  //       )
-  //     );
-  //
-  //   while (array.length < constants.stateTransitionProverBatchSize) {
-  //     array.push(ProvableStateTransition.dummy());
-  //     transitionTypes.push(ProvableStateTransitionType.normal);
-  //   }
-  //
-  //   return new StateTransitionProvableBatch({
-  //     batch: array,
-  //     transitionTypes,
-  //     merkleWitnesses,
-  //   });
-  // }
-  //
-  // private constructor(object: {
-  //   batch: ProvableStateTransition[];
-  //   transitionTypes: ProvableStateTransitionType[];
-  //   merkleWitnesses: RollupMerkleTreeWitness[];
-  // }) {
-  //   super(object);
-  // }
+  // TODO Test
+  public static fromBatches(
+    batches: {
+      stateTransitions: ProvableStateTransition[];
+      applied: Bool;
+      witnessRoot: Bool;
+    }[]
+  ): StateTransitionProvableBatch[] {
+    const flattened = batches.flatMap((stBatch, i) =>
+      stBatch.stateTransitions.map<ProvableStateTransitionInformation>(
+        (stateTransition, j, sts) => {
+          return {
+            stateTransition,
+            type:
+              // eslint-disable-next-line no-nested-ternary
+              j === sts.length - 1
+                ? stBatch.applied.toBoolean()
+                  ? ProvableStateTransitionType.closeAndApply
+                  : ProvableStateTransitionType.closeAndThrowAway
+                : ProvableStateTransitionType.nothing,
+            witnessRoot:
+              j === sts.length - 1 ? stBatch.witnessRoot : Bool(false),
+          };
+        }
+      )
+    );
+
+    const values = batch(
+      flattened,
+      constants.stateTransitionProverBatchSize,
+      () => ProvableStateTransitionInformation.dummy()
+    );
+
+    return values.map((stBatch) => {
+      return new StateTransitionProvableBatch({
+        batch: stBatch,
+      });
+    });
+  }
 }

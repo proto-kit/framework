@@ -1,6 +1,8 @@
 import { Bool, Field } from "o1js";
-import { AppliedStateTransitionBatch } from "../model/StateTransitionProvableBatch";
-import { DefaultProvableHashList } from "./ProvableHashList";
+
+import { DefaultProvableHashList } from "../../utils/ProvableHashList";
+import { NonMethods } from "../../utils/utils";
+import { AppliedStateTransitionBatch } from "../../model/AppliedStateTransitionBatch";
 
 /**
  * A HashList for AppliedSTBatches, that in addition to the default
@@ -9,8 +11,10 @@ import { DefaultProvableHashList } from "./ProvableHashList";
  * Note that if the batch has applied: false, the batch still has to be appended
  * if it has STs inside
  */
-export class AppliedBatchHashList extends DefaultProvableHashList<AppliedStateTransitionBatch> {
-  public constructor(commitment: Field) {
+export class AppliedBatchHashList extends DefaultProvableHashList<
+  NonMethods<AppliedStateTransitionBatch>
+> {
+  public constructor(commitment: Field = Field(0)) {
     super(AppliedStateTransitionBatch, commitment);
   }
 

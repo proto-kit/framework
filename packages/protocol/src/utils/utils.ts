@@ -1,4 +1,4 @@
-import { Field, Poseidon, Provable } from "o1js";
+import { Bool, Field, Poseidon, Provable } from "o1js";
 import floor from "lodash/floor";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
@@ -78,3 +78,15 @@ type NonMethodKeys<T> = {
   [K in keyof T]: T[K] extends Function ? never : K;
 }[keyof T];
 export type NonMethods<T> = Pick<T, NonMethodKeys<T>>;
+
+/**
+ * Asserts the equality of a and b, but only if doAssertion is true, otherwise it will assert 0 = 0
+ */
+export function assertEqualsIf(
+  a: Field,
+  b: Field,
+  doAssertion: Bool,
+  msg: string
+) {
+  a.mul(doAssertion.toField()).assertEquals(b.mul(doAssertion.toField()), msg);
+}
