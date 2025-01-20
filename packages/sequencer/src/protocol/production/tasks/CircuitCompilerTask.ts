@@ -1,63 +1,60 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import { Runtime } from "@proto-kit/module";
-import {
-  log,
-  mapSequential,
-  StringKeyOf,
-  ArtifactRecord,
-  CompileRegistry,
-  CompilableModule,
-  safeParseJson,
-} from "@proto-kit/common";
+import { VerificationKey } from "o1js";
+import { log, mapSequential } from "@proto-kit/common";
 import {
   MandatorySettlementModulesRecord,
+  NetworkState,
   Protocol,
+  RuntimeMethodExecutionContext,
+  RuntimeTransaction,
   SettlementContractModule,
-  RuntimeVerificationKeyRootService,
 } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../../../worker/flow/Task";
+import { VKRecord } from "../../runtime/RuntimeVerificationKeyService";
 import { UnpreparingTask } from "../../../worker/flow/UnpreparingTask";
 import { VerificationKeySerializer } from "../helpers/VerificationKeySerializer";
 
-export type CompilerTaskParams = {
-  existingArtifacts: ArtifactRecord;
-  targets: string[];
-  runtimeVKRoot?: string;
+export type CompiledCircuitsRecord = {
+  protocolCircuits: VKRecord;
+  runtimeCircuits: VKRecord;
 };
 
-export type SerializedArtifactRecord = Record<
-  string,
-  { verificationKey: { hash: string; data: string } }
->;
+type VKRecordLite = Record<string, { vk: { hash: string; data: string } }>;
 
-export class ArtifactRecordSerializer {
-  public toJSON(input: ArtifactRecord): SerializedArtifactRecord {
-    const temp: SerializedArtifactRecord = Object.keys(
-      input
-    ).reduce<SerializedArtifactRecord>((accum, key) => {
-      return {
-        ...accum,
-        [key]: {
-          verificationKey: VerificationKeySerializer.toJSON(
-            input[key].verificationKey
-          ),
-        },
-      };
-    }, {});
+export class UndefinedSerializer implements TaskSerializer<undefined> {
+  public toJSON(parameters: undefined): string {
+    return "";
+  }
+
+  public fromJSON(json: string): undefined {
+    return undefined;
+  }
+}
+
+export class VKResultSerializer {
+  public toJSON(input: VKRecord): VKRecordLite {
+    const temp: VKRecordLite = Object.keys(input).reduce<VKRecordLite>(
+      (accum, key) => {
+        return {
+          ...accum,
+          [key]: {
+            vk: VerificationKeySerializer.toJSON(input[key].vk),
+          },
+        };
+      },
+      {}
+    );
     return temp;
   }
 
-  public fromJSON(json: SerializedArtifactRecord): ArtifactRecord {
-    if (json === undefined || json === null) return {};
-
-    return Object.keys(json).reduce<ArtifactRecord>((accum, key) => {
+  public fromJSON(json: VKRecordLite): VKRecord {
+    return Object.keys(json).reduce<VKRecord>((accum, key) => {
       return {
         ...accum,
         [key]: {
-          verificationKey: VerificationKeySerializer.fromJSON(
-            json[key].verificationKey
-          ),
+          vk: VerificationKeySerializer.fromJSON(json[key].vk),
         },
       };
     }, {});
@@ -67,118 +64,121 @@ export class ArtifactRecordSerializer {
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class CircuitCompilerTask extends UnpreparingTask<
-  CompilerTaskParams,
-  ArtifactRecord
+  undefined,
+  CompiledCircuitsRecord
 > {
   public name = "compiledCircuit";
 
   public constructor(
     @inject("Runtime") protected readonly runtime: Runtime<never>,
-    @inject("Protocol") protected readonly protocol: Protocol<any>,
-    private readonly compileRegistry: CompileRegistry
+    @inject("Protocol") protected readonly protocol: Protocol<any>
   ) {
     super();
   }
 
-  public inputSerializer(): TaskSerializer<CompilerTaskParams> {
-    type CompilerTaskParamsJSON = {
-      targets: string[];
-      runtimeVKRoot?: string;
-      existingArtifacts: SerializedArtifactRecord;
-    };
+  public inputSerializer(): TaskSerializer<undefined> {
+    return new UndefinedSerializer();
+  }
 
-    const serializer = new ArtifactRecordSerializer();
+  public resultSerializer(): TaskSerializer<CompiledCircuitsRecord> {
+    const vkRecordSerializer = new VKResultSerializer();
     return {
-      toJSON: (input) =>
-        JSON.stringify({
-          targets: input.targets,
-          runtimeVKRoot: input.runtimeVKRoot,
-          existingArtifacts: serializer.toJSON(input.existingArtifacts),
-        } satisfies CompilerTaskParamsJSON),
-      fromJSON: (input) => {
-        const json = safeParseJson<CompilerTaskParamsJSON>(input);
+      fromJSON: (json) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const temp: {
+          runtimeCircuits: VKRecordLite;
+          protocolCircuits: VKRecordLite;
+        } = JSON.parse(json);
         return {
-          targets: json.targets,
-          runtimeVKRoot: json.runtimeVKRoot,
-          existingArtifacts: serializer.fromJSON(json.existingArtifacts),
+          runtimeCircuits: vkRecordSerializer.fromJSON(temp.runtimeCircuits),
+          protocolCircuits: vkRecordSerializer.fromJSON(temp.protocolCircuits),
         };
+      },
+      toJSON: (input) => {
+        return JSON.stringify({
+          runtimeCircuits: vkRecordSerializer.toJSON(input.runtimeCircuits),
+          protocolCircuits: vkRecordSerializer.toJSON(input.protocolCircuits),
+        });
       },
     };
   }
 
-  public resultSerializer(): TaskSerializer<ArtifactRecord> {
-    const serializer = new ArtifactRecordSerializer();
-    return {
-      toJSON: (input) => JSON.stringify(serializer.toJSON(input)),
-      fromJSON: (input) =>
-        serializer.fromJSON(safeParseJson<SerializedArtifactRecord>(input)),
-    };
+  public async compileRuntimeMethods() {
+    log.time("Compiling runtime circuits");
+
+    const context = this.runtime.dependencyContainer.resolve(
+      RuntimeMethodExecutionContext
+    );
+    context.setup({
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
+    });
+
+    const result = await mapSequential(
+      this.runtime.zkProgrammable.zkProgram,
+      async (program) => {
+        const vk = (await program.compile()).verificationKey;
+
+        return Object.keys(program.methods).map((combinedMethodName) => {
+          const [moduleName, methodName] = combinedMethodName.split(".");
+          const methodId = this.runtime.methodIdResolver.getMethodId(
+            moduleName,
+            methodName
+          );
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          return [methodId.toString(), new VerificationKey(vk)] as [
+            string,
+            VerificationKey,
+          ];
+        });
+      }
+    );
+    log.timeEnd.info("Compiling runtime circuits");
+    return result;
   }
 
-  public getSettlementTargets(): Record<string, CompilableModule> {
-    // We only care about the BridgeContract for now - later with caching,
+  public async compileProtocolCircuits(): Promise<
+    [string, VerificationKey][][]
+  > {
+    // We only care about the BridgeContract for now - later with cachine,
     // we might want to expand that to all protocol circuits
     const container = this.protocol.dependencyContainer;
     if (container.isRegistered("SettlementContractModule")) {
+      log.time("Compiling protocol circuits");
+
       const settlementModule = container.resolve<
         SettlementContractModule<MandatorySettlementModulesRecord>
       >("SettlementContractModule");
 
-      // Needed so that all contractFactory functions are called, because
-      // they set static args on the contracts
-      settlementModule.getContractClasses();
+      const BridgeClass = settlementModule.getContractClasses().bridge;
+      const artifact = await BridgeClass.compile();
 
-      const moduleNames =
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        settlementModule.moduleNames as StringKeyOf<MandatorySettlementModulesRecord>[];
+      log.timeEnd.info("Compiling protocol circuits");
 
-      const modules = moduleNames.map((name) => [
-        `Settlement.${name}`,
-        settlementModule.resolve(name),
-      ]);
-
-      return Object.fromEntries(modules);
+      return [[["BridgeContract", artifact.verificationKey]]];
     }
-    return {};
+    return [[]];
   }
 
-  public async compute(input: CompilerTaskParams): Promise<ArtifactRecord> {
-    this.compileRegistry.addArtifactsRaw(input.existingArtifacts);
+  public collectRecord(tuples: [string, VerificationKey][][]): VKRecord {
+    return tuples.flat().reduce<VKRecord>((acc, step) => {
+      acc[step[0]] = { vk: step[1] };
+      return acc;
+    }, {});
+  }
 
-    // We need to initialize the VK tree root if we have it, so that
-    // the BlockProver can bake in that root
-    if (input.runtimeVKRoot !== undefined) {
-      this.protocol.dependencyContainer
-        .resolve(RuntimeVerificationKeyRootService)
-        .setRoot(BigInt(input.runtimeVKRoot));
-    }
-
+  public async compute(): Promise<CompiledCircuitsRecord> {
     log.info("Computing VKs");
 
-    // TODO make adaptive
-    const targets: Record<string, CompilableModule> = {
-      runtime: this.runtime,
-      protocol: this.protocol.blockProver,
-      ...this.getSettlementTargets(),
+    const runtimeTuples = await this.compileRuntimeMethods();
+    const runtimeRecord = this.collectRecord(runtimeTuples);
+
+    const protocolTuples = await this.compileProtocolCircuits();
+    const protocolRecord = this.collectRecord(protocolTuples);
+
+    return {
+      runtimeCircuits: runtimeRecord,
+      protocolCircuits: protocolRecord,
     };
-
-    const msg = `Compiling targets [${input.targets}]`;
-    log.time(msg);
-    await mapSequential(input.targets, async (target) => {
-      if (target in targets) {
-        await targets[target].compile(this.compileRegistry);
-      } else {
-        log.info(
-          // TODO Is that right? Or should we check that the bridge exists on the sequencer side?
-          `Compile target ${target} not found, skipping`
-        );
-      }
-    });
-    log.timeEnd.info(msg);
-
-    const newEntries = Object.entries(
-      this.compileRegistry.getAllArtifacts()
-    ).filter(([key]) => !(key in input.existingArtifacts));
-    return Object.fromEntries(newEntries);
   }
 }

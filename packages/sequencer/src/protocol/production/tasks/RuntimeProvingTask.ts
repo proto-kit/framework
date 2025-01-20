@@ -9,7 +9,6 @@ import {
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
-import { CompileRegistry } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
@@ -36,8 +35,7 @@ export class RuntimeProvingTask
 
   public constructor(
     @inject("Runtime") protected readonly runtime: Runtime<never>,
-    private readonly executionContext: RuntimeMethodExecutionContext,
-    private readonly compileRegistry: CompileRegistry
+    private readonly executionContext: RuntimeMethodExecutionContext
   ) {
     super();
   }
@@ -97,6 +95,9 @@ export class RuntimeProvingTask
   }
 
   public async prepare(): Promise<void> {
-    await this.runtime.compile(this.compileRegistry);
+    for (const zkProgram of this.runtimeZkProgrammable) {
+      // eslint-disable-next-line no-await-in-loop
+      await zkProgram.compile();
+    }
   }
 }

@@ -1,7 +1,5 @@
 import {
-  ArtifactRecord,
-  type CompilableModule,
-  CompileRegistry,
+  CompileArtifact,
   ConfigurableModule,
   NoConfig,
   TypedClass,
@@ -19,13 +17,11 @@ export type SmartContractClassFromInterface<Type> = typeof SmartContract &
  * of SmartContract and implements a certain interface as specified by the
  * ContractType generic.
  */
-export abstract class ContractModule<ContractType, Config = NoConfig>
-  extends ConfigurableModule<Config>
-  implements CompilableModule
-{
+export abstract class ContractModule<
+  ContractType,
+  Config = NoConfig,
+> extends ConfigurableModule<Config> {
   public abstract contractFactory(): SmartContractClassFromInterface<ContractType>;
 
-  public abstract compile(
-    registry: CompileRegistry
-  ): Promise<ArtifactRecord | undefined>;
+  public abstract compile(): Promise<Record<string, CompileArtifact>>;
 }

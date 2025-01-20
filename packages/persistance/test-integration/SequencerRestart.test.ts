@@ -32,7 +32,7 @@ describe("sequencer restart", () => {
       },
     });
 
-    await appChain.start(false, container.createChildContainer());
+    await appChain.start(container.createChildContainer());
   };
 
   const teardown = async () => {

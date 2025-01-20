@@ -1,5 +1,4 @@
 import { injectable } from "tsyringe";
-import { CompileRegistry } from "@proto-kit/common";
 
 import { ContractModule } from "../ContractModule";
 
@@ -29,15 +28,16 @@ export class BridgeContractProtocolModule extends ContractModule<
 
     BridgeContractBase.args = {
       withdrawalStatePath: withdrawalStatePathSplit,
-      SettlementContract: BridgeContractBase.args?.SettlementContract,
+      SettlementContract: undefined,
     };
 
     return BridgeContract;
   }
 
-  public async compile(registry: CompileRegistry) {
+  public async compile() {
+    const bridgeVK = await BridgeContract.compile();
     return {
-      BridgeContract: await registry.compile(BridgeContract),
+      BridgeContract: bridgeVK,
     };
   }
 }

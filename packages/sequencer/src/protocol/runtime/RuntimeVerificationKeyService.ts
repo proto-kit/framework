@@ -1,9 +1,7 @@
 import { Field, VerificationKey } from "o1js";
 import {
-  CompileArtifact,
   ConfigurableModule,
   InMemoryMerkleTreeStorage,
-  mapSequential,
   ZkProgrammable,
 } from "@proto-kit/common";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
@@ -55,45 +53,7 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
     [methodId: string]: VerificationKey;
   };
 
-  public collectRecord(tuples: [string, VerificationKey][][]): VKRecord {
-    return tuples.flat().reduce<VKRecord>((acc, step) => {
-      acc[step[0]] = { vk: step[1] };
-      return acc;
-    }, {});
-  }
-
-  public async initializeVKTree(artifacts: Record<string, CompileArtifact>) {
-    const mappings = await mapSequential(
-      this.runtime.zkProgrammable.zkProgram,
-      async (program) => {
-        const artifact = artifacts[program.name];
-
-        if (artifact === undefined) {
-          throw new Error(
-            `Compiled artifact for runtime program ${program.name} not found`
-          );
-        }
-
-        return Object.keys(program.methods).map((combinedMethodName) => {
-          const [moduleName, methodName] = combinedMethodName.split(".");
-          const methodId = this.runtime.methodIdResolver.getMethodId(
-            moduleName,
-            methodName
-          );
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          return [
-            methodId.toString(),
-            new VerificationKey(artifact.verificationKey),
-          ] as [string, VerificationKey];
-        });
-      }
-    );
-    return await this.initializeVKTreeFromMethodMappings(
-      this.collectRecord(mappings)
-    );
-  }
-
-  private async initializeVKTreeFromMethodMappings(verificationKeys: VKRecord) {
+  public async initializeVKTree(verificationKeys: VKRecord) {
     const tree = new VKTree(new InMemoryMerkleTreeStorage());
     const valuesVK: Record<string, { data: string; hash: Field }> = {};
     const indexes: VKIndexes = {};

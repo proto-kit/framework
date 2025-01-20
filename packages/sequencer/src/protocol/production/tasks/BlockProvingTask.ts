@@ -18,10 +18,7 @@ import {
 import { Field, Proof } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import {
-  ProvableMethodExecutionContext,
-  CompileRegistry,
-} from "@proto-kit/common";
+import { ProvableMethodExecutionContext } from "@proto-kit/common";
 
 import {
   PairProofTaskSerializer,
@@ -35,6 +32,7 @@ import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { TaskStateRecord } from "../TransactionTraceService";
 import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
 import { VerificationKeySerializer } from "../helpers/VerificationKeySerializer";
+import { CompileRegistry } from "../helpers/CompileRegistry";
 
 import { JSONEncodableState } from "./RuntimeTaskParameters";
 
@@ -136,7 +134,10 @@ export class BlockReductionTask
   }
 
   public async prepare(): Promise<void> {
-    await this.blockProver.compile(this.compileRegistry);
+    await this.compileRegistry.compile(
+      "BlockProver",
+      this.blockProver.zkProgrammable.zkProgram[0]
+    );
   }
 }
 
@@ -301,8 +302,12 @@ export class BlockProvingTask
     );
   }
 
+  // eslint-disable-next-line sonarjs/no-identical-functions
   public async prepare(): Promise<void> {
     // Compile
-    await this.blockProver.compile(this.compileRegistry);
+    await this.compileRegistry.compile(
+      "BlockProver",
+      this.blockProver.zkProgrammable.zkProgram[0]
+    );
   }
 }

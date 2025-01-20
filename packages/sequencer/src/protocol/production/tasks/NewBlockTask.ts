@@ -12,10 +12,7 @@ import {
   MandatoryProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
-import {
-  ProvableMethodExecutionContext,
-  CompileRegistry,
-} from "@proto-kit/common";
+import { ProvableMethodExecutionContext } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
@@ -23,6 +20,7 @@ import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateSe
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
 import { TaskStateRecord } from "../TransactionTraceService";
+import { CompileRegistry } from "../helpers/CompileRegistry";
 
 import { JSONEncodableState } from "./RuntimeTaskParameters";
 import { DecodedStateSerializer } from "./BlockProvingTask";
@@ -189,6 +187,9 @@ export class NewBlockTask
 
   public async prepare(): Promise<void> {
     // Compile
-    await this.blockProver.compile(this.compileRegistry);
+    await this.compileRegistry.compile(
+      "BlockProver",
+      this.blockProver.zkProgrammable.zkProgram[0]
+    );
   }
 }

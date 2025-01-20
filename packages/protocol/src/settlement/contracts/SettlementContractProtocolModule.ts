@@ -1,10 +1,5 @@
+import { CompileArtifact } from "@proto-kit/common";
 import { inject, injectable, injectAll } from "tsyringe";
-import {
-  ArtifactRecord,
-  ChildVerificationKeyService,
-  CompileRegistry,
-  log,
-} from "@proto-kit/common";
 
 import { BlockProvable } from "../../prover/block/BlockProvable";
 import {
@@ -15,6 +10,7 @@ import { ProvableSettlementHook } from "../modularity/ProvableSettlementHook";
 
 import { DispatchSmartContractBase } from "./DispatchSmartContract";
 import {
+  LazyBlockProof,
   SettlementContractType,
   SettlementSmartContract,
   SettlementSmartContractBase,
@@ -39,13 +35,13 @@ export class SettlementContractProtocolModule extends ContractModule<
     @injectAll("ProvableSettlementHook")
     private readonly hooks: ProvableSettlementHook<unknown>[],
     @inject("BlockProver")
-    private readonly blockProver: BlockProvable,
+    blockProver: BlockProvable,
     @inject("DispatchContract")
     private readonly dispatchContractModule: DispatchContractProtocolModule,
     @inject("BridgeContract")
-    private readonly bridgeContractModule: BridgeContractProtocolModule,
-    private readonly childVerificationKeyService: ChildVerificationKeyService
+    private readonly bridgeContractModule: BridgeContractProtocolModule
   ) {
+    LazyBlockProof.tag = blockProver.zkProgrammable.zkProgram[0].Proof.tag;
     super();
   }
 
@@ -66,7 +62,6 @@ export class SettlementContractProtocolModule extends ContractModule<
       BridgeContractVerificationKey: args?.BridgeContractVerificationKey,
       BridgeContractPermissions: args?.BridgeContractPermissions,
       signedSettlements: args?.signedSettlements,
-      ChildVerificationKeyService: this.childVerificationKeyService,
     };
 
     // Ideally we don't want to have this cyclic dependency, but we have it in the protocol,
@@ -79,30 +74,10 @@ export class SettlementContractProtocolModule extends ContractModule<
     return SettlementSmartContract;
   }
 
-  public async compile(
-    registry: CompileRegistry
-  ): Promise<ArtifactRecord | undefined> {
-    // Dependencies
-    const bridgeArtifact = await this.bridgeContractModule.compile(registry);
-
-    await this.blockProver.compile(registry);
-
-    // Init params
-    SettlementSmartContractBase.args.BridgeContractVerificationKey =
-      bridgeArtifact.BridgeContract.verificationKey;
-
-    if (SettlementSmartContractBase.args.signedSettlements === undefined) {
-      throw new Error(
-        "Args not fully initialized - make sure to also include the SettlementModule in the sequencer"
-      );
-    }
-
-    log.debug("Compiling Settlement Contract");
-
-    const artifact = await registry.compile(SettlementSmartContract);
-
+  public async compile(): Promise<Record<string, CompileArtifact>> {
+    const settlementVK = await SettlementSmartContract.compile();
     return {
-      SettlementSmartContract: artifact,
+      SettlementContract: settlementVK,
     };
   }
 }

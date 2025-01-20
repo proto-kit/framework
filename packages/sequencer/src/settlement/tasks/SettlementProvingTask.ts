@@ -3,9 +3,9 @@ import {
   MOCK_PROOF,
   AreProofsEnabled,
   log,
-  CompileRegistry,
 } from "@proto-kit/common";
 import {
+  ContractModule,
   MandatoryProtocolModulesRecord,
   MandatorySettlementModulesRecord,
   Protocol,
@@ -30,6 +30,7 @@ import {
   ProofTaskSerializer,
   DynamicProofTaskSerializer,
 } from "../../helpers/utils";
+import { CompileRegistry } from "../../protocol/production/helpers/CompileRegistry";
 import { Task, TaskSerializer } from "../../worker/flow/Task";
 import { TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
 
@@ -367,37 +368,30 @@ export class SettlementProvingTask
   }
 
   public async prepare(): Promise<void> {
-    const { settlementContractModule } = this;
     // Guard in case the task is configured but settlement is not
-    if (settlementContractModule === undefined) {
-      throw new Error(
-        "Settlement task is configured, but Settlement Contracts aren't"
-      );
+    if (this.settlementContractModule === undefined) {
+      return;
     }
+
+    const { areProofsEnabled } = this.areProofsEnabled;
 
     const contractClasses: Record<string, typeof SmartContract> = {};
 
-    const modules = settlementContractModule.moduleNames.map(
-      (key) =>
-        [
-          key,
-          settlementContractModule.resolve(
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            key as keyof MandatorySettlementModulesRecord
-          ),
-        ] as const
-    );
+    for (const key of this.settlementContractModule.moduleNames) {
+      const module: ContractModule<unknown, unknown> =
+        this.settlementContractModule.resolve(
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          key as keyof MandatorySettlementModulesRecord
+        );
 
-    // First, create all contract classes (with static args), then compile them
-    for (const [key, module] of modules) {
       contractClasses[key] = module.contractFactory();
-    }
-
-    for (const [key, module] of modules) {
-      log.debug(`Compiling Settlement Module ${key}`);
 
       // eslint-disable-next-line no-await-in-loop
-      await module.compile(this.compileRegistry);
+      await this.compileRegistry.compileSmartContract(
+        key,
+        module,
+        areProofsEnabled
+      );
     }
 
     this.contractRegistry = new ContractRegistry(contractClasses);

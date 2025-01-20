@@ -8,7 +8,6 @@ import {
   MandatoryProtocolModulesRecord,
   BlockProverPublicOutput,
   SettlementSmartContractBase,
-  DynamicBlockProof,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -27,7 +26,6 @@ import {
   log,
   AreProofsEnabled,
   DependencyFactory,
-  CompileRegistry,
 } from "@proto-kit/common";
 import truncate from "lodash/truncate";
 
@@ -96,8 +94,7 @@ export class SettlementModule
     private readonly transactionSender: MinaTransactionSender,
     @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("FeeStrategy")
-    private readonly feeStrategy: FeeStrategy,
-    private readonly compileRegistry: CompileRegistry
+    private readonly feeStrategy: FeeStrategy
   ) {
     super();
     this.utils = new SettlementUtils(areProofsEnabled, baseLayer);
@@ -204,8 +201,6 @@ export class SettlementModule
       .getBlockProofSerializer()
       .fromJSONProof(batch.proof);
 
-    const dynamicBlockProof = DynamicBlockProof.fromProof(blockProof);
-
     const tx = await Mina.transaction(
       {
         sender: feepayer.toPublicKey(),
@@ -215,7 +210,7 @@ export class SettlementModule
       },
       async () => {
         await settlement.settle(
-          dynamicBlockProof,
+          blockProof,
           signature,
           dispatch.address,
           feepayer.toPublicKey(),
@@ -252,8 +247,6 @@ export class SettlementModule
     const feepayer = feepayerKey.toPublicKey();
 
     const nonce = options?.nonce ?? 0;
-
-    // const verificationKey:
 
     const sm = this.protocol.dependencyContainer.resolve<
       SettlementContractModule<MandatorySettlementModulesRecord>
@@ -385,6 +378,8 @@ export class SettlementModule
   public async start(): Promise<void> {
     const contractArgs = SettlementSmartContractBase.args;
 
+    // const dummyVk = MOCK_VERIFICATION_KEY;
+
     SettlementSmartContractBase.args = {
       ...contractArgs,
       signedSettlements: this.utils.isSignedSettlement(),
@@ -393,6 +388,11 @@ export class SettlementModule
         ? new SignedSettlementPermissions()
         : new ProvenSettlementPermissions()
       ).bridgeContractMina(),
+      // BridgeContractVerificationKey: this.utils.isSignedSettlement()
+      //   ? undefined
+      //   : dummyVk,
     };
+
+    // TODO Add task to compute verification key
   }
 }

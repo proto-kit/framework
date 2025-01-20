@@ -60,7 +60,7 @@ describe.skip("block production", () => {
     });
 
     // Start AppChain
-    await app.start(false, container.createChildContainer());
+    await app.start(container.createChildContainer());
     appchain = app;
 
     ({ runtime, protocol } = app);

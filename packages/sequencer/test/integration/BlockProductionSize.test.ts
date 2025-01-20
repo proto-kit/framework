@@ -97,7 +97,7 @@ describe("block limit", () => {
     });
 
     // Start AppChain
-    await app.start(false, container.createChildContainer());
+    await app.start(container.createChildContainer());
 
     ({ runtime, sequencer } = app);
 
