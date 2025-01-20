@@ -34,6 +34,7 @@ import {
   Sequencer,
   BlockProducerModule,
   VanillaTaskWorkerModules,
+  SequencerStartupModule,
 } from "@proto-kit/sequencer";
 import {
   BatchStorageResolver,
@@ -134,6 +135,7 @@ export async function startServer() {
             BlockResolver: {},
           },
         }),
+        SequencerStartupModule,
       },
     }),
 
@@ -171,6 +173,8 @@ export async function startServer() {
         host: "0.0.0.0",
         graphiql: true,
       },
+      SequencerStartupModule: {},
+
       // SettlementModule: {
       //   address: PrivateKey.random().toPublicKey(),
       //   feepayer: PrivateKey.random(),
