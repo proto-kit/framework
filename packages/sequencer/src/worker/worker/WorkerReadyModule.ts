@@ -1,5 +1,6 @@
 import { injectable } from "tsyringe";
 import { injectOptional } from "@proto-kit/common";
+
 import { LocalTaskWorkerModule } from "./LocalTaskWorkerModule";
 
 /**
@@ -15,10 +16,11 @@ export class WorkerReadyModule {
       | undefined
   ) {}
 
-  public async waitForReady(): Promise<void> {
+  // eslint-disable-next-line consistent-return
+  public async waitForReady() {
     if (this.localTaskWorkerModule !== undefined) {
       const module = this.localTaskWorkerModule;
-      return new Promise<void>((res, rej) => {
+      return await new Promise<void>((res, rej) => {
         module.containerEvents.on("ready", (ready) => {
           if (ready) {
             res();

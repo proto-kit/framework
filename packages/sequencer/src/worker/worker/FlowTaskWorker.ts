@@ -91,6 +91,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       log.debug(`Preparing task ${task.constructor.name}`);
       // eslint-disable-next-line no-await-in-loop
       await task.prepare();
+      log.trace(`${task.constructor.name} prepared`);
     }
 
     const newWorkers = Object.fromEntries(

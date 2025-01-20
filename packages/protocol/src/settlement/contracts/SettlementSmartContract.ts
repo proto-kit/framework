@@ -3,13 +3,13 @@ import {
   RollupMerkleTree,
   TypedClass,
   mapSequential,
+  ChildVerificationKeyService,
 } from "@proto-kit/common";
 import {
   AccountUpdate,
   Bool,
   Field,
   method,
-  Proof,
   PublicKey,
   Signature,
   SmartContract,
@@ -24,8 +24,8 @@ import {
   Struct,
   Provable,
   TokenId,
+  DynamicProof,
 } from "o1js";
-import { singleton } from "tsyringe";
 
 import { NetworkState } from "../../model/network/NetworkState";
 import { BlockHashMerkleTree } from "../../prover/block/accummulators/BlockHashMerkleTree";
@@ -46,7 +46,7 @@ import { UpdateMessagesHashAuth } from "./authorizations/UpdateMessagesHashAuth"
 
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 
-export class LazyBlockProof extends Proof<
+export class DynamicBlockProof extends DynamicProof<
   BlockProverPublicInput,
   BlockProverPublicOutput
 > {
@@ -54,9 +54,7 @@ export class LazyBlockProof extends Proof<
 
   public static publicOutputType = BlockProverPublicOutput;
 
-  public static tag: () => { name: string } = () => {
-    throw new Error("Tag not initialized yet");
-  };
+  public static maxProofsVerified = 2 as const;
 }
 
 export class TokenMapping extends Struct({
@@ -75,7 +73,7 @@ export interface SettlementContractType {
   ) => Promise<void>;
   assertStateRoot: (root: Field) => AccountUpdate;
   settle: (
-    blockProof: LazyBlockProof,
+    blockProof: DynamicBlockProof,
     signature: Signature,
     dispatchContractAddress: PublicKey,
     publicKey: PublicKey,
@@ -93,19 +91,19 @@ export interface SettlementContractType {
 // Some random prefix for the sequencer signature
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
-@singleton()
-export class SettlementSmartContractStaticArgs {
-  public args?: {
-    DispatchContract: TypedClass<DispatchContractType & SmartContract>;
-    hooks: ProvableSettlementHook<unknown>[];
-    escapeHatchSlotsInterval: number;
-    BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
-    // Lazily initialized
-    BridgeContractVerificationKey: VerificationKey | undefined;
-    BridgeContractPermissions: Permissions | undefined;
-    signedSettlements: boolean | undefined;
-  };
-}
+// @singleton()
+// export class SettlementSmartContractStaticArgs {
+//   public args?: {
+//     DispatchContract: TypedClass<DispatchContractType & SmartContract>;
+//     hooks: ProvableSettlementHook<unknown>[];
+//     escapeHatchSlotsInterval: number;
+//     BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
+//     // Lazily initialized
+//     BridgeContractVerificationKey: VerificationKey | undefined;
+//     BridgeContractPermissions: Permissions | undefined;
+//     signedSettlements: boolean | undefined;
+//   };
+// }
 
 export abstract class SettlementSmartContractBase extends TokenContractV2 {
   // This pattern of injecting args into a smartcontract is currently the only
@@ -120,10 +118,10 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     BridgeContractVerificationKey: VerificationKey | undefined;
     BridgeContractPermissions: Permissions | undefined;
     signedSettlements: boolean | undefined;
+    ChildVerificationKeyService: ChildVerificationKeyService;
   };
 
   events = {
-    "announce-private-key": PrivateKey,
     "token-bridge-deployed": TokenMapping,
   };
 
@@ -176,6 +174,28 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     const { args } = SettlementSmartContractBase;
     const BridgeContractClass = args.BridgeContract;
     const bridgeContract = new BridgeContractClass(address, tokenId);
+
+    const {
+      BridgeContractVerificationKey,
+      signedSettlements,
+      BridgeContractPermissions,
+    } = args;
+
+    if (
+      signedSettlements === undefined ||
+      BridgeContractPermissions === undefined
+    ) {
+      throw new Error(
+        "Static arguments for SettlementSmartContract not initialized"
+      );
+    }
+
+    if (
+      BridgeContractVerificationKey !== undefined &&
+      !BridgeContractVerificationKey.hash.isConstant()
+    ) {
+      throw new Error("Bridge contract verification key has to be constants");
+    }
 
     // This function is not a zkapps method, therefore it will be part of this methods execution
     // The returning account update (owner.self) is therefore part of this circuit and is assertable
@@ -254,11 +274,10 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     );
 
     contractKey.toPublicKey().assertEquals(this.address);
-    this.emitEvent("announce-private-key", contractKey);
   }
 
   protected async settleBase(
-    blockProof: LazyBlockProof,
+    blockProof: DynamicBlockProof,
     signature: Signature,
     dispatchContractAddress: PublicKey,
     publicKey: PublicKey,
@@ -266,8 +285,17 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
   ) {
+    // Brought in as a constant
+    const blockProofVk =
+      SettlementSmartContractBase.args.ChildVerificationKeyService.getVerificationKey(
+        "BlockProver"
+      );
+    if (!blockProofVk.hash.isConstant()) {
+      throw new Error("Sanity check - vk hash has to be constant");
+    }
+
     // Verify the blockproof
-    blockProof.verify();
+    blockProof.verify(blockProofVk);
 
     // Get and assert on-chain values
     const stateRoot = this.stateRoot.getAndRequireEquals();
@@ -447,7 +475,7 @@ export class SettlementSmartContract
 
   @method
   public async settle(
-    blockProof: LazyBlockProof,
+    blockProof: DynamicBlockProof,
     signature: Signature,
     dispatchContractAddress: PublicKey,
     publicKey: PublicKey,

@@ -22,7 +22,6 @@ export * from "./protocol/baselayer/NoopBaseLayer";
 export * from "./protocol/production/helpers/UntypedOption";
 export * from "./protocol/production/helpers/UntypedStateTransition";
 export * from "./protocol/production/tasks/BlockProvingTask";
-export * from "./protocol/production/helpers/CompileRegistry";
 export * from "./protocol/production/tasks/RuntimeProvingTask";
 export * from "./protocol/production/tasks/RuntimeTaskParameters";
 export * from "./protocol/production/tasks/StateTransitionTask";

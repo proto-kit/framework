@@ -9,7 +9,11 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
-import { log, ProvableMethodExecutionContext } from "@proto-kit/common";
+import {
+  log,
+  ProvableMethodExecutionContext,
+  CompileRegistry,
+} from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import {
@@ -19,7 +23,6 @@ import {
 } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledWitnessProvider } from "../../../state/prefilled/PreFilledWitnessProvider";
-import { CompileRegistry } from "../helpers/CompileRegistry";
 
 import {
   StateTransitionParametersSerializer,
@@ -89,10 +92,7 @@ export class StateTransitionTask
   }
 
   public async prepare(): Promise<void> {
-    await this.compileRegistry.compile(
-      "StateTransitionProver",
-      this.stateTransitionProver.zkProgrammable.zkProgram[0]
-    );
+    await this.stateTransitionProver.compile(this.compileRegistry);
   }
 }
 
@@ -141,11 +141,7 @@ export class StateTransitionReductionTask
       .result.prove<StateTransitionProof>();
   }
 
-  // eslint-disable-next-line sonarjs/no-identical-functions
   public async prepare(): Promise<void> {
-    await this.compileRegistry.compile(
-      "StateTransitionProver",
-      this.stateTransitionProver.zkProgrammable.zkProgram[0]
-    );
+    await this.stateTransitionProver.compile(this.compileRegistry);
   }
 }

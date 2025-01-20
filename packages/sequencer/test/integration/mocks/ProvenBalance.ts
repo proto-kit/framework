@@ -1,4 +1,5 @@
 import {
+  runtimeMessage,
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
@@ -7,7 +8,7 @@ import {
 import { log, Presets } from "@proto-kit/common";
 import { PublicKey, UInt64 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
-import { State, StateMap } from "@proto-kit/protocol";
+import { Deposit, State, StateMap } from "@proto-kit/protocol";
 
 @runtimeModule()
 export class ProvenBalance extends RuntimeModule<object> {
@@ -35,5 +36,10 @@ export class ProvenBalance extends RuntimeModule<object> {
 
     const newBalance = balance.orElse(UInt64.zero).add(value);
     await this.balances.set(address, newBalance);
+  }
+
+  @runtimeMessage()
+  public async deposit(deposit: Deposit) {
+    await this.addBalance(deposit.address, deposit.amount);
   }
 }

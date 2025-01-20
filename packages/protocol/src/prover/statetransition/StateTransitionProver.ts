@@ -4,6 +4,9 @@ import {
   provableMethod,
   RollupMerkleTreeWitness,
   ZkProgrammable,
+  CompilableModule,
+  type ArtifactRecord,
+  type CompileRegistry,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
@@ -134,6 +137,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
     return [
       {
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -345,7 +349,10 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 @injectable()
 export class StateTransitionProver
   extends ProtocolModule
-  implements StateTransitionProvable, StateTransitionProverType
+  implements
+    StateTransitionProvable,
+    StateTransitionProverType,
+    CompilableModule
 {
   public zkProgrammable: StateTransitionProverProgrammable;
 
@@ -358,6 +365,12 @@ export class StateTransitionProver
       this,
       witnessProviderReference
     );
+  }
+
+  public async compile(
+    registry: CompileRegistry
+  ): Promise<void | ArtifactRecord> {
+    return await this.zkProgrammable.compile(registry);
   }
 
   public runBatch(
