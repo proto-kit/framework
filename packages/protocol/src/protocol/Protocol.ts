@@ -27,6 +27,12 @@ import { ProvableTransactionHook } from "./ProvableTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
 import { ProvableBlockHook } from "./ProvableBlockHook";
 
+/**
+ * This is a mapping of abstract classes to their respective injection tokens.
+ * Keys are the abstract classes names, which need to be set dynamically
+ * and can't be hardcoded since producing optimized builds may mangle the
+ * class names, making them different from the ones in the source code.
+ */
 const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
   [ProvableTransactionHook.name]: "ProvableTransactionHook",
   [ProvableBlockHook.name]: "ProvableBlockHook",
