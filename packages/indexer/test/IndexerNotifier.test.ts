@@ -22,8 +22,7 @@ import {
 } from "@proto-kit/sdk";
 import { LocalTaskQueue, Sequencer, TaskPayload } from "@proto-kit/sequencer";
 
-import { IndexerNotifier } from "../src/IndexerNotifier";
-import { IndexBlockTaskParametersSerializer } from "../src/tasks/IndexBlockTaskParameters";
+import { IndexerNotifier, IndexBlockTaskParametersSerializer } from "../src";
 
 class TestBalances extends Balances {
   @runtimeMethod()
@@ -105,6 +104,7 @@ function createAppChain() {
       TaskQueue: {
         simulatedDuration: 0,
       },
+      SequencerStartupModule: {},
       IndexerNotifier: {},
     },
     Signer: {
@@ -164,8 +164,9 @@ describe("IndexerNotifier", () => {
   getQueueSpy.mockImplementation(async (queueName: string) => {
     return {
       name: queueName,
+      offCompleted: jest.fn(async (x) => {}),
       addTask: addTaskSpy,
-      onCompleted: jest.fn(async () => {}),
+      onCompleted: jest.fn(async () => 5),
       close: jest.fn(async () => {}),
     };
   });
