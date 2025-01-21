@@ -10,6 +10,7 @@ import {
   BlockProducerModule,
   VanillaTaskWorkerModules,
   TaskWorkerModulesWithoutSettlement,
+  SequencerStartupModule,
 } from "@proto-kit/sequencer";
 import { TypedClass } from "@proto-kit/common";
 
@@ -44,6 +45,7 @@ export class InMemorySequencerModules {
       BlockTrigger: ManualBlockTrigger,
       TaskQueue: LocalTaskQueue,
       // SettlementModule: SettlementModule,
+      SequencerStartupModule: SequencerStartupModule,
       ...additionalModules,
     } satisfies InMemorySequencerModulesRecord;
   }
