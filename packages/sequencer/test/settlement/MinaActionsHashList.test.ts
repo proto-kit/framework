@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import {
   ACTIONS_EMPTY_HASH,
   MinaActions,
