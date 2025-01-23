@@ -88,7 +88,7 @@ describe.skip("blockProof", () => {
       );
 
     await mapSequential(txHooks, async (hook) => {
-      await hook.onTransaction({
+      await hook.beforeTransaction({
         transaction: RuntimeTransaction.fromTransaction({
           sender: alice,
           nonce: O1UInt64.from(0),

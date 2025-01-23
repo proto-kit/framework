@@ -3,11 +3,11 @@ import { noop } from "@proto-kit/common";
 import { ProvableTransactionHook } from "../protocol/ProvableTransactionHook";
 
 export class NoopTransactionHook extends ProvableTransactionHook {
-  public async onTransaction() {
+  public async beforeTransaction() {
     noop();
   }
 
-  public async onAfterTransaction() {
+  public async afterTransaction() {
     noop();
   }
 }

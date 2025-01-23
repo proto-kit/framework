@@ -166,7 +166,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
 
       const signedTransaction = tx.toProtocolTransaction();
       // eslint-disable-next-line no-await-in-loop
-      await this.accountStateHook.onTransaction({
+      await this.accountStateHook.beforeTransaction({
         networkState: networkState,
         transaction: signedTransaction.transaction,
         signature: signedTransaction.signature,

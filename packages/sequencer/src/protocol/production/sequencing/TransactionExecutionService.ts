@@ -311,7 +311,7 @@ export class TransactionExecutionService {
     );
     const beforeTxHookResult = await this.executeProtocolHooks(
       beforeTxArguments,
-      async (hook, hookArgs) => await hook.onTransaction(hookArgs),
+      async (hook, hookArgs) => await hook.beforeTransaction(hookArgs),
       "beforeTx"
     );
 
@@ -360,7 +360,7 @@ export class TransactionExecutionService {
 
     const afterTxHookResult = await this.executeProtocolHooks(
       afterTxArguments,
-      async (hook, hookArgs) => await hook.onAfterTransaction(hookArgs),
+      async (hook, hookArgs) => await hook.afterTransaction(hookArgs),
       "afterTx"
     );
     await recordingStateService.applyStateTransitions(

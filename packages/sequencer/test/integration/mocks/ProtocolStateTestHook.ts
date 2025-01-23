@@ -14,7 +14,7 @@ import { noop } from "@proto-kit/common";
 export class ProtocolStateTestHook extends ProvableTransactionHook {
   @protocolState() methodIdInvocations = StateMap.from(Field, Field);
 
-  public async onTransaction(
+  public async beforeTransaction(
     executionData: BeforeTransactionHookArguments
   ): Promise<void> {
     const { methodId } = executionData.transaction;
@@ -25,7 +25,7 @@ export class ProtocolStateTestHook extends ProvableTransactionHook {
     );
   }
 
-  public async onAfterTransaction(execution: AfterTransactionHookArguments) {
+  public async afterTransaction(execution: AfterTransactionHookArguments) {
     noop();
   }
 }

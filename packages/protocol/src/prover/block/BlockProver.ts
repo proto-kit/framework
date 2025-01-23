@@ -169,7 +169,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     // Apply beforeTransaction hook state transitions
     const beforeBatch = await this.executeTransactionHooks(
-      async (module, args) => await module.onTransaction(args),
+      async (module, args) => await module.beforeTransaction(args),
       beforeTxHookArguments
     );
 
@@ -198,7 +198,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     this.stateServiceProvider.popCurrentStateService();
 
     const afterBatch = await this.executeTransactionHooks(
-      async (module, args) => await module.onAfterTransaction(args),
+      async (module, args) => await module.afterTransaction(args),
       afterTxHookArguments
     );
     state.pendingSTBatches.push(afterBatch);

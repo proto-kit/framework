@@ -67,12 +67,11 @@ export interface AfterTransactionHookArguments
 export abstract class ProvableTransactionHook<
   Config = NoConfig,
 > extends TransitioningProtocolModule<Config> {
-  // TODO Rename to onBeforeTransaction
-  public abstract onTransaction(
+  public abstract beforeTransaction(
     executionData: BeforeTransactionHookArguments
   ): Promise<void>;
 
-  public abstract onAfterTransaction(
+  public abstract afterTransaction(
     execution: AfterTransactionHookArguments
   ): Promise<void>;
 }
