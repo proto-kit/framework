@@ -86,6 +86,9 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
     }
+    if (!moduleClassNames.includes("SequencerStartupModule")) {
+      log.warn("SequencerStartupModule is not defined.");
+    }
   }
 
   public async close() {

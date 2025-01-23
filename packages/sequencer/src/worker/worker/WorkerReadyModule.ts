@@ -1,8 +1,6 @@
 import { injectable } from "tsyringe";
 import { injectOptional } from "@proto-kit/common";
 
-import { SequencerStartupModule } from "../../sequencer/SequencerStartupModule";
-
 import { LocalTaskWorkerModule } from "./LocalTaskWorkerModule";
 
 /**
@@ -15,19 +13,8 @@ export class WorkerReadyModule {
     @injectOptional("LocalTaskWorkerModule")
     private readonly localTaskWorkerModule:
       | LocalTaskWorkerModule<any>
-      | undefined,
-    @injectOptional("SequencerStartupModule")
-    private readonly sequencerStartupModule: SequencerStartupModule | undefined
-  ) {
-    if (
-      localTaskWorkerModule !== undefined &&
-      sequencerStartupModule === undefined
-    ) {
-      throw new Error(
-        "The LocalTaskWorkerModule requires the SequencerStartupModule to be defined as well."
-      );
-    }
-  }
+      | undefined
+  ) {}
 
   // eslint-disable-next-line consistent-return
   public async waitForReady() {
