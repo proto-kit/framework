@@ -170,7 +170,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const stateDiff = collectStateDiff(
         block.block.transactions.flatMap((tx) =>
-          tx.stateTransitions.concat(tx.protocolTransitions)
+          tx.stateTransitions.flatMap((batch) => batch.stateTransitions)
         )
       );
 

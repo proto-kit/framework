@@ -1,6 +1,7 @@
+import assert from "node:assert";
+
 import { container, inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
-  BlockProverExecutionData,
   NetworkState,
   Protocol,
   ProtocolModulesRecord,
@@ -12,19 +13,34 @@ import {
   MandatoryProtocolModulesRecord,
   reduceStateTransitions,
   StateTransition,
+  BlockProver,
+  BlockProverProgrammable,
+  BeforeTransactionHookArguments,
+  AfterTransactionHookArguments,
+  BlockProverState,
+  MethodPublicOutput,
+  toBeforeTransactionHookArgument,
+  toAfterTransactionHookArgument,
 } from "@proto-kit/protocol";
-import { Field } from "o1js";
+import { Bool, Field } from "o1js";
 import { AreProofsEnabled, log, mapSequential } from "@proto-kit/common";
 import {
   MethodParameterEncoder,
   Runtime,
   RuntimeModule,
   RuntimeModulesRecord,
+  toEventsHash,
+  toStateTransitionsHash,
 } from "@proto-kit/module";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import zip from "lodash/zip";
 
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { CachedStateService } from "../../../state/state/CachedStateService";
-import { TransactionExecutionResult } from "../../../storage/model/Block";
+import {
+  StateTransitionBatch,
+  TransactionExecutionResult,
+} from "../../../storage/model/Block";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 
 const errors = {
@@ -37,6 +53,14 @@ export type SomeRuntimeMethod = (...args: unknown[]) => Promise<unknown>;
 export type RuntimeContextReducedExecutionResult = Pick<
   RuntimeProvableMethodExecutionResult,
   "stateTransitions" | "status" | "statusMessage" | "stackTrace" | "events"
+>;
+
+export type BlockTrackers = Pick<
+  BlockProverState,
+  | "transactionList"
+  | "eternalTransactionsList"
+  | "incomingMessages"
+  | "blockHashRoot"
 >;
 
 function getAreProofsEnabledFromModule(
@@ -153,6 +177,8 @@ function traceSTs(msg: string, stateTransitions: StateTransition<any>[]) {
 export class TransactionExecutionService {
   private readonly transactionHooks: ProvableTransactionHook<unknown>[];
 
+  private readonly blockProver: BlockProverProgrammable;
+
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Protocol")
@@ -164,6 +190,8 @@ export class TransactionExecutionService {
     this.transactionHooks = protocol.dependencyContainer.resolveAll(
       "ProvableTransactionHook"
     );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    this.blockProver = (protocol.blockProver as BlockProver).zkProgrammable;
   }
 
   private async executeRuntimeMethod(
@@ -186,76 +214,109 @@ export class TransactionExecutionService {
     executionContext.afterMethod();
   }
 
-  private async executeProtocolHooks(
-    runtimeContextInputs: RuntimeMethodExecutionData,
-    blockContextInputs: BlockProverExecutionData,
+  private async executeProtocolHooks<
+    T extends BeforeTransactionHookArguments | AfterTransactionHookArguments,
+  >(
+    hookArguments: T,
+    method: (
+      module: ProvableTransactionHook<unknown>,
+      args: T
+    ) => Promise<void>,
+    hookName: string,
     runSimulated = false
   ) {
-    return await executeWithExecutionContext(
+    const result = await executeWithExecutionContext(
       async () =>
         await this.wrapHooksForContext(async () => {
           await mapSequential(
             this.transactionHooks,
             async (transactionHook) => {
-              await transactionHook.onTransaction(blockContextInputs);
+              await method(transactionHook, hookArguments);
             }
           );
         }),
-      runtimeContextInputs,
+      {
+        transaction: hookArguments.transaction,
+        networkState: hookArguments.networkState,
+      },
       runSimulated
+    );
+
+    if (!result.status.toBoolean()) {
+      const error = new Error(
+        `Protocol hooks not executable: ${result.statusMessage ?? "unknown"}`
+      );
+      log.debug("Protocol hook error stack trace:", result.stackTrace);
+      // Propagate stack trace from the assertion
+      throw error;
+    }
+
+    traceSTs(`${hookName} STs:`, result.stateTransitions);
+
+    return result;
+  }
+
+  private buildSTBatches(
+    transitions: StateTransition<unknown>[][],
+    runtimeStatus: Bool
+  ): StateTransitionBatch[] {
+    const statuses = [true, runtimeStatus.toBoolean(), false];
+    const reducedTransitions = transitions.map((batch) =>
+      reduceStateTransitions(batch).map((transition) =>
+        UntypedStateTransition.fromStateTransition(transition)
+      )
+    );
+
+    assert.equal(reducedTransitions.length, 3);
+
+    return zip(reducedTransitions, statuses).map(
+      ([stateTransitions, applied]) => ({
+        stateTransitions: stateTransitions!,
+        applied: applied!,
+      })
     );
   }
 
   public async createExecutionTrace(
     asyncStateService: CachedStateService,
     tx: PendingTransaction,
-    networkState: NetworkState
-  ): Promise<TransactionExecutionResult> {
+    networkState: NetworkState,
+    state: BlockTrackers
+  ): Promise<[BlockTrackers, TransactionExecutionResult]> {
     // TODO Use RecordingStateService -> async asProver needed
     const recordingStateService = new CachedStateService(asyncStateService);
 
     const { method, args, module } = await decodeTransaction(tx, this.runtime);
 
-    // Disable proof generation for tracing
+    // Disable proof generation for sequencing the runtime
+    // TODO Is that even needed?
     const appChain = getAreProofsEnabledFromModule(module);
     const previousProofsEnabled = appChain.areProofsEnabled;
     appChain.setProofsEnabled(false);
 
     const signedTransaction = tx.toProtocolTransaction();
-    const blockContextInputs: BlockProverExecutionData = {
-      networkState,
-      transaction: signedTransaction.transaction,
-      signature: signedTransaction.signature,
-    };
     const runtimeContextInputs = {
-      transaction: blockContextInputs.transaction,
-      networkState: blockContextInputs.networkState,
+      transaction: signedTransaction.transaction,
+      networkState,
     };
 
     // The following steps generate and apply the correct STs with the right values
     this.stateServiceProvider.setCurrentStateService(recordingStateService);
 
-    const protocolResult = await this.executeProtocolHooks(
-      runtimeContextInputs,
-      blockContextInputs
+    // Execute beforeTransaction hooks
+    const beforeTxArguments = toBeforeTransactionHookArgument(
+      signedTransaction,
+      networkState,
+      state
+    );
+    const beforeTxHookResult = await this.executeProtocolHooks(
+      beforeTxArguments,
+      async (hook, hookArgs) => await hook.onTransaction(hookArgs),
+      "beforeTx"
     );
 
-    if (!protocolResult.status.toBoolean()) {
-      const error = new Error(
-        `Protocol hooks not executable: ${
-          protocolResult.statusMessage ?? "unknown"
-        }`
-      );
-      log.debug("Protocol hook error stack trace:", protocolResult.stackTrace);
-      // Propagate stack trace from the assertion
-      throw error;
-    }
-
-    traceSTs("PSTs:", protocolResult.stateTransitions);
-
-    // Apply protocol STs
     await recordingStateService.applyStateTransitions(
-      protocolResult.stateTransitions
+      beforeTxHookResult.stateTransitions
     );
 
     const runtimeResult = await this.executeRuntimeMethod(
@@ -273,6 +334,39 @@ export class TransactionExecutionService {
       );
     }
 
+    // Add runtime to commitments
+    const newState = this.blockProver.addTransactionToBundle(
+      state,
+      Bool(tx.isMessage),
+      signedTransaction.transaction
+    );
+
+    // Execute afterTransaction hook
+    const afterTxArguments = toAfterTransactionHookArgument(
+      signedTransaction,
+      networkState,
+      newState,
+      new MethodPublicOutput({
+        status: runtimeResult.status,
+        networkStateHash: networkState.hash(),
+        isMessage: Bool(tx.isMessage),
+        transactionHash: tx.hash(),
+        eventsHash: toEventsHash(runtimeResult.events),
+        stateTransitionsHash: toStateTransitionsHash(
+          runtimeResult.stateTransitions
+        ),
+      })
+    );
+
+    const afterTxHookResult = await this.executeProtocolHooks(
+      afterTxArguments,
+      async (hook, hookArgs) => await hook.onAfterTransaction(hookArgs),
+      "afterTx"
+    );
+    await recordingStateService.applyStateTransitions(
+      afterTxHookResult.stateTransitions
+    );
+
     await recordingStateService.mergeIntoParent();
 
     // Reset global stateservice
@@ -281,22 +375,27 @@ export class TransactionExecutionService {
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
 
+    // Extract sequencing results
     const events = extractEvents(runtimeResult);
+    const stateTransitions = this.buildSTBatches(
+      [
+        beforeTxHookResult.stateTransitions,
+        runtimeResult.stateTransitions,
+        afterTxHookResult.stateTransitions,
+      ],
+      runtimeResult.status
+    );
 
-    return {
-      tx,
-      status: runtimeResult.status,
-      statusMessage: runtimeResult.statusMessage,
+    return [
+      state,
+      {
+        tx,
+        status: runtimeResult.status,
+        statusMessage: runtimeResult.statusMessage,
 
-      stateTransitions: runtimeResult.stateTransitions.map((st) =>
-        UntypedStateTransition.fromStateTransition(st)
-      ),
-
-      protocolTransitions: protocolResult.stateTransitions.map((st) =>
-        UntypedStateTransition.fromStateTransition(st)
-      ),
-
-      events,
-    };
+        stateTransitions,
+        events,
+      },
+    ];
   }
 }

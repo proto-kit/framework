@@ -1,15 +1,16 @@
 import { Bool, Field, Poseidon } from "o1js";
 import { RollupMerkleTree } from "@proto-kit/common";
 import {
+  AfterBlockHookArguments,
   BlockHashMerkleTree,
   BlockHashTreeEntry,
-  BlockProverState,
   MandatoryProtocolModulesRecord,
   NetworkState,
   Protocol,
   ProtocolModulesRecord,
   ProvableBlockHook,
   RuntimeTransaction,
+  StateServiceProvider,
 } from "@proto-kit/protocol";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
@@ -21,6 +22,8 @@ import {
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import { CachedStateService } from "../../../state/state/CachedStateService";
+import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import type { StateRecord } from "../BatchProducerModule";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
@@ -39,13 +42,19 @@ function collectStateDiff(
   );
 }
 
-function createCombinedStateDiff(transactions: TransactionExecutionResult[]) {
+function createCombinedStateDiff(
+  transactions: TransactionExecutionResult[],
+  blockHookSTs: UntypedStateTransition[]
+) {
   // Flatten diff list into a single diff by applying them over each other
   return transactions
     .map((tx) => {
-      const transitions = tx.protocolTransitions.concat(
-        tx.status.toBoolean() ? tx.stateTransitions : []
-      );
+      const transitions = tx.stateTransitions
+        .filter(({ applied }) => applied)
+        .flatMap(({ stateTransitions }) => stateTransitions);
+
+      transitions.push(...blockHookSTs);
+
       return collectStateDiff(transitions);
     })
     .reduce<StateRecord>((accumulator, diff) => {
@@ -61,58 +70,25 @@ export class BlockResultService {
 
   public constructor(
     @inject("Protocol")
-    protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>
+    protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
+    @inject("StateServiceProvider")
+    private readonly stateServiceProvider: StateServiceProvider
   ) {
     this.blockHooks =
       protocol.dependencyContainer.resolveAll("ProvableBlockHook");
   }
 
-  public async generateMetadataForNextBlock(
-    block: Block,
-    merkleTreeStore: AsyncMerkleTreeStore,
-    blockHashTreeStore: AsyncMerkleTreeStore,
-    modifyTreeStore = true
-  ): Promise<BlockResult> {
-    const combinedDiff = createCombinedStateDiff(block.transactions);
+  public async executeAfterBlockHook(
+    args: AfterBlockHookArguments,
+    inputNetworkState: NetworkState,
+    asyncStateService: AsyncStateService
+  ) {
+    const cachedStateService = new CachedStateService(asyncStateService);
+    this.stateServiceProvider.setCurrentStateService(cachedStateService);
 
-    const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
-    const tree = new RollupMerkleTree(inMemoryStore);
-    const blockHashInMemoryStore = new CachedMerkleTreeStore(
-      blockHashTreeStore
-    );
-    const blockHashTree = new BlockHashMerkleTree(blockHashInMemoryStore);
-
-    await inMemoryStore.preloadKeys(Object.keys(combinedDiff).map(BigInt));
-
-    // In case the diff is empty, we preload key 0 in order to
-    // retrieve the root, which we need later
-    if (Object.keys(combinedDiff).length === 0) {
-      await inMemoryStore.preloadKey(0n);
-    }
-
-    // TODO This can be optimized a lot (we are only interested in the root at this step)
-    await blockHashInMemoryStore.preloadKey(block.height.toBigInt());
-
-    Object.entries(combinedDiff).forEach(([key, state]) => {
-      const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
-      tree.setLeaf(BigInt(key), treeValue);
-    });
-
-    const stateRoot = tree.getRoot();
-    const fromBlockHashRoot = blockHashTree.getRoot();
-
-    const state: BlockProverState = {
-      stateRoot,
-      transactionsHash: block.transactionsHash,
-      networkStateHash: block.networkState.during.hash(),
-      eternalTransactionsHash: block.toEternalTransactionsHash,
-      blockHashRoot: fromBlockHashRoot,
-      incomingMessagesHash: block.toMessagesHash,
-    };
-
-    // TODO Set StateProvider for @state access to state
+    // Execute afterBlock hooks
     const context = {
-      networkState: block.networkState.during,
+      networkState: inputNetworkState,
       transaction: RuntimeTransaction.dummyTransaction(),
     };
 
@@ -120,19 +96,39 @@ export class BlockResultService {
       async () =>
         await this.blockHooks.reduce<Promise<NetworkState>>(
           async (networkState, hook) =>
-            await hook.afterBlock(await networkState, state),
-          Promise.resolve(block.networkState.during)
+            await hook.afterBlock(await networkState, args),
+          Promise.resolve(inputNetworkState)
         ),
       context
     );
 
-    const { stateTransitions, methodResult } = executionResult;
+    this.stateServiceProvider.popCurrentStateService();
+    await cachedStateService.mergeIntoParent();
 
-    // Update the block hash tree with this block
+    return executionResult;
+  }
+
+  /** Update the block hash tree with this block */
+  private async insertIntoBlockHashTree(
+    block: Block,
+    blockHashTreeStore: AsyncMerkleTreeStore
+  ) {
+    const blockHashInMemoryStore = new CachedMerkleTreeStore(
+      blockHashTreeStore
+    );
+
+    // TODO This can be optimized a lot (we are only interested in the root at this step)
+    await blockHashInMemoryStore.preloadKey(block.height.toBigInt());
+
+    const blockHashTree = new BlockHashMerkleTree(blockHashInMemoryStore);
+
     blockHashTree.setLeaf(
       block.height.toBigInt(),
       new BlockHashTreeEntry({
-        blockHash: Poseidon.hash([block.height, state.transactionsHash]),
+        block: {
+          index: block.height,
+          transactionListHash: block.transactionsHash,
+        },
         closed: Bool(true),
       }).hash()
     );
@@ -140,17 +136,91 @@ export class BlockResultService {
     const newBlockHashRoot = blockHashTree.getRoot();
     await blockHashInMemoryStore.mergeIntoParent();
 
+    return {
+      blockHashWitness,
+      blockHashRoot: newBlockHashRoot,
+    };
+  }
+
+  public async applyStateDiff(
+    store: CachedMerkleTreeStore,
+    stateDiff: StateRecord
+  ): Promise<RollupMerkleTree> {
+    await store.preloadKeys(Object.keys(stateDiff).map(BigInt));
+
+    // In case the diff is empty, we preload key 0 in order to
+    // retrieve the root, which we need later
+    if (Object.keys(stateDiff).length === 0) {
+      await store.preloadKey(0n);
+    }
+
+    const tree = new RollupMerkleTree(store);
+
+    Object.entries(stateDiff).forEach(([key, state]) => {
+      const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
+      tree.setLeaf(BigInt(key), treeValue);
+    });
+
+    return tree;
+  }
+
+  public async generateMetadataForNextBlock(
+    block: Block,
+    merkleTreeStore: AsyncMerkleTreeStore,
+    blockHashTreeStore: AsyncMerkleTreeStore,
+    stateService: AsyncStateService,
+    modifyTreeStore = true
+  ): Promise<BlockResult> {
+    const combinedDiff = createCombinedStateDiff(
+      block.transactions,
+      block.beforeBlockStateTransitions
+    );
+
+    const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
+
+    const tree = await this.applyStateDiff(inMemoryStore, combinedDiff);
+
+    const witnessedStateRoot = tree.getRoot();
+
+    const { blockHashWitness, blockHashRoot } =
+      await this.insertIntoBlockHashTree(block, blockHashTreeStore);
+
+    const { stateTransitions, methodResult } = await this.executeAfterBlockHook(
+      {
+        blockHashRoot,
+        stateRoot: witnessedStateRoot,
+        incomingMessagesHash: block.toMessagesHash,
+        transactionsHash: block.transactionsHash,
+        eternalTransactionsHash: block.toEternalTransactionsHash,
+      },
+      block.networkState.during,
+      stateService
+    );
+
+    // Apply afterBlock STs to the tree
+    const tree2 = await this.applyStateDiff(
+      inMemoryStore,
+      collectStateDiff(
+        stateTransitions.map((stateTransition) =>
+          UntypedStateTransition.fromStateTransition(stateTransition)
+        )
+      )
+    );
+
+    const stateRoot = tree2.getRoot();
     if (modifyTreeStore) {
       await inMemoryStore.mergeIntoParent();
     }
 
     return {
       afterNetworkState: methodResult,
+      // This is the state root after the last tx and before the afterBlock hook
       stateRoot: stateRoot.toBigInt(),
-      blockHashRoot: newBlockHashRoot.toBigInt(),
+      witnessedRoots: [witnessedStateRoot.toBigInt()],
+      blockHashRoot: blockHashRoot.toBigInt(),
       blockHashWitness,
 
-      blockStateTransitions: stateTransitions.map((st) =>
+      afterBlockStateTransitions: stateTransitions.map((st) =>
         UntypedStateTransition.fromStateTransition(st)
       ),
       blockHash: block.hash.toBigInt(),

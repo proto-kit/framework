@@ -8,6 +8,7 @@ import {
   LastStateRootBlockHook,
   MethodPublicOutput,
   Protocol,
+  StateServiceProvider,
   StateTransitionProver,
 } from "../src";
 
@@ -39,6 +40,7 @@ export function createAndInitTestingProtocol() {
 
   protocol.registerValue({
     Runtime: new RuntimeMock(),
+    StateServiceProvider: new StateServiceProvider(),
   });
 
   return protocol;

@@ -1,7 +1,6 @@
 import { Bool, Field, FlexibleProvablePure, Poseidon } from "o1js";
 import { container } from "tsyringe";
 import {
-  StateTransition,
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,

@@ -11,6 +11,7 @@ export * from "./model/transaction/RuntimeTransaction";
 export * from "./model/transaction/ValueOption";
 export * from "./model/MethodPublicOutput";
 export * from "./model/RuntimeLike";
+export * from "./model/AppliedStateTransitionBatch";
 export * from "./utils/ProvableHashList";
 export * from "./utils/PrefixedProvableHashList";
 export * from "./utils/MinaPrefixedProvableHashList";

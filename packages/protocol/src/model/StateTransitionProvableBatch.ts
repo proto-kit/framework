@@ -20,8 +20,6 @@ export class StateTransitionType {
  */
 export class ProvableStateTransitionType extends Struct({
   type: Field,
-  // TODO Remove accumulate or remove the Bool array args
-  accumulate: Bool,
 }) {
   public static get nothing(): ProvableStateTransitionType {
     return this.from(StateTransitionType.nothing);
@@ -35,10 +33,9 @@ export class ProvableStateTransitionType extends Struct({
     return this.from(StateTransitionType.closeAndThrowAway);
   }
 
-  private static from(constant: number, accumulate = false) {
+  private static from(constant: number) {
     return new ProvableStateTransitionType({
       type: Field(constant),
-      accumulate: Bool(accumulate),
     });
   }
 
@@ -47,6 +44,10 @@ export class ProvableStateTransitionType extends Struct({
     // check if base is 0 or 1
     // 0^2 == 0 && 1^2 == 1
     return type.mul(type).equals(type);
+  }
+
+  public isNothing() {
+    return this.type.equals(ProvableStateTransitionType.nothing.type);
   }
 }
 
@@ -57,17 +58,12 @@ export class MerkleWitnessBatch extends Struct({
   ),
 }) {}
 
-// export class STProverBoolArray extends Struct({
-//   values: Provable.Array(Bool, constants.stateTransitionProverBatchSize),
-// }) {}
-
-// TODO Name
-export class ProvableStateTransitionInformation extends Struct({
+export class ProvableStateTransitionEntry extends Struct({
   stateTransition: ProvableStateTransition,
   type: ProvableStateTransitionType,
   witnessRoot: Bool,
 }) {
-  public static dummy(): ProvableStateTransitionInformation {
+  public static dummy(): ProvableStateTransitionEntry {
     return {
       stateTransition: ProvableStateTransition.dummy(),
       type: ProvableStateTransitionType.nothing,
@@ -80,17 +76,15 @@ export class ProvableStateTransitionInformation extends Struct({
  * A Batch of StateTransitions to be consumed by the StateTransitionProver
  * to prove multiple STs at once
  *
- * bases: Describes the state root on which the ST will be applied on
- * If it is zero, this means that this ST should connect with the previous one
- * If it is one, this means that the batch should be closed
+ * The batch is formed as an array fo ProvableSTEntries, which have a type and
+ * witnessesRoot flag attached to them.
  */
 export class StateTransitionProvableBatch extends Struct({
   batch: Provable.Array(
-    ProvableStateTransitionInformation,
+    ProvableStateTransitionEntry,
     constants.stateTransitionProverBatchSize
   ),
 }) {
-  // TODO Test
   public static fromBatches(
     batches: {
       stateTransitions: ProvableStateTransition[];
@@ -98,29 +92,37 @@ export class StateTransitionProvableBatch extends Struct({
       witnessRoot: Bool;
     }[]
   ): StateTransitionProvableBatch[] {
-    const flattened = batches.flatMap((stBatch, i) =>
-      stBatch.stateTransitions.map<ProvableStateTransitionInformation>(
-        (stateTransition, j, sts) => {
-          return {
-            stateTransition,
-            type:
-              // eslint-disable-next-line no-nested-ternary
-              j === sts.length - 1
-                ? stBatch.applied.toBoolean()
-                  ? ProvableStateTransitionType.closeAndApply
-                  : ProvableStateTransitionType.closeAndThrowAway
-                : ProvableStateTransitionType.nothing,
-            witnessRoot:
-              j === sts.length - 1 ? stBatch.witnessRoot : Bool(false),
-          };
-        }
-      )
-    );
+    const flattened: ProvableStateTransitionEntry[] = [];
+
+    for (const stBatch of batches) {
+      const entries =
+        stBatch.stateTransitions.map<ProvableStateTransitionEntry>(
+          (stateTransition, j, sts) => {
+            return {
+              stateTransition,
+              type:
+                // eslint-disable-next-line no-nested-ternary
+                j === sts.length - 1
+                  ? stBatch.applied.toBoolean()
+                    ? ProvableStateTransitionType.closeAndApply
+                    : ProvableStateTransitionType.closeAndThrowAway
+                  : ProvableStateTransitionType.nothing,
+              witnessRoot: Bool(false),
+            };
+          }
+        );
+
+      flattened.push(...entries);
+
+      if (stBatch.witnessRoot.toBoolean() && flattened.length > 0) {
+        flattened.at(-1)!.witnessRoot = Bool(true);
+      }
+    }
 
     const values = batch(
       flattened,
       constants.stateTransitionProverBatchSize,
-      () => ProvableStateTransitionInformation.dummy()
+      () => ProvableStateTransitionEntry.dummy()
     );
 
     return values.map((stBatch) => {

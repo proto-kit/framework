@@ -1,7 +1,6 @@
 import {
   Bool,
   Field,
-  Poseidon,
   Proof,
   Provable,
   SelfProof,
@@ -84,12 +83,6 @@ import {
 import { RuntimeVerificationKeyRootService } from "./services/RuntimeVerificationKeyRootService";
 
 const errors = {
-  stateProofNotStartingAtZero: () =>
-    "StateProof not starting ST-commitment at zero",
-
-  stateTransitionsHashNotEqual: () =>
-    "StateTransition list commitments are not equal",
-
   propertyNotMatchingStep: (propertyName: string, step: string) =>
     `${propertyName} not matching: ${step}`,
 
@@ -106,9 +99,6 @@ const errors = {
 
   invalidZkProgramTreeRoot: () =>
     "Root hash of the provided zkProgram config witness is invalid",
-
-  invalidZkProgramConfigMethodId: () =>
-    "Method id of the provided zkProgram config does not match the executed transaction method id",
 };
 
 type ApplyTransactionArguments = Omit<
@@ -484,7 +474,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
   public includeSTProof(
     stateTransitionProof: StateTransitionProof,
-    defer: Bool,
+    apply: Bool,
     stateRoot: Field,
     pendingSTBatchesHash: Field,
     rootAccumulator: Field
@@ -493,25 +483,23 @@ export class BlockProverProgrammable extends ZkProgrammable<
     pendingSTBatchesHash: Field;
     rootAccumulator: Field;
   } {
-    const notDefer = defer.not();
-
     assertEqualsIf(
       stateTransitionProof.publicInput.currentBatchStateHash,
       Field(0),
-      notDefer,
+      apply,
       "State for STProof has to be empty at the start"
     );
     assertEqualsIf(
       stateTransitionProof.publicOutput.currentBatchStateHash,
       Field(0),
-      notDefer,
+      apply,
       "State for STProof has to be empty at the end"
     );
 
     assertEqualsIf(
       stateTransitionProof.publicInput.batchesHash,
       Field(0),
-      notDefer,
+      apply,
       "Batcheshash doesn't start at 0"
     );
 
@@ -519,14 +507,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
     assertEqualsIf(
       stateRoot,
       stateTransitionProof.publicInput.root,
-      notDefer,
+      apply,
       errors.propertyNotMatching("from state root")
     );
     // Assert the stBatchesHash executed is the same
     assertEqualsIf(
       pendingSTBatchesHash,
-      stateTransitionProof.publicOutput.currentBatchStateHash,
-      notDefer,
+      stateTransitionProof.publicOutput.batchesHash,
+      apply,
       "Pending STBatches are not the same that have been executed by the ST proof"
     );
 
@@ -534,26 +522,26 @@ export class BlockProverProgrammable extends ZkProgrammable<
     assertEqualsIf(
       Field(0),
       stateTransitionProof.publicInput.rootAccumulator,
-      notDefer,
+      apply,
       errors.propertyNotMatching("from state root")
     );
     // Assert the rootAccumulator created is the same
     assertEqualsIf(
       rootAccumulator,
       stateTransitionProof.publicOutput.rootAccumulator,
-      notDefer,
+      apply,
       "Root accumulator Commitment is not the same that have been executed by the ST proof"
     );
 
     // update root only if we didn't defer
     const newRoot = Provable.if(
-      defer,
-      stateRoot,
-      stateTransitionProof.publicOutput.root
+      apply,
+      stateTransitionProof.publicOutput.root,
+      stateRoot
     );
     // Reset only if we didn't defer
-    const newBatchesHash = Provable.if(defer, pendingSTBatchesHash, Field(0));
-    const newRootAccumulator = Provable.if(defer, rootAccumulator, Field(0));
+    const newBatchesHash = Provable.if(apply, Field(0), pendingSTBatchesHash);
+    const newRootAccumulator = Provable.if(apply, Field(0), rootAccumulator);
     return {
       stateRoot: newRoot,
       pendingSTBatchesHash: newBatchesHash,
@@ -578,10 +566,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
 
     // TransactionProof format checks
-    transactionProof.publicInput.transactionsHash.assertEquals(
-      Field(0),
-      "TransactionProof transactionshash has to start at 0"
-    );
     transactionProof.publicInput.blockHashRoot.assertEquals(
       Field(0),
       "TransactionProof cannot carry the blockHashRoot - publicInput"
@@ -593,14 +577,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     transactionProof.publicInput.networkStateHash.assertEquals(
       transactionProof.publicOutput.networkStateHash,
       "TransactionProof cannot alter the network state"
-    );
-    transactionProof.publicInput.eternalTransactionsHash.assertEquals(
-      publicInput.eternalTransactionsHash,
-      "TransactionProof starting eternalTransactionHash not matching"
-    );
-    transactionProof.publicInput.incomingMessagesHash.assertEquals(
-      publicInput.incomingMessagesHash,
-      "TransactionProof starting incomingMessagesHash not matching"
     );
 
     const state = BlockProverStateCommitments.toBlockProverState(
@@ -619,7 +595,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
     const skipTransactionProofVerification = isEmptyTransition;
     const verifyTransactionProof = isEmptyTransition.not();
-    Provable.log("VerifyIf 2", verifyTransactionProof);
+    Provable.log("VerifyIf TxProof", verifyTransactionProof);
     transactionProof.verifyIf(verifyTransactionProof);
 
     // 2. Execute beforeBlock hooks
@@ -655,13 +631,20 @@ export class BlockProverProgrammable extends ZkProgrammable<
       transactionProof.publicOutput.pendingSTBatchesHash;
 
     // Fast-forward block content commitments by the results of the aggregated transaction proof
-    // TODO Make separate method on ProvableHashList for that
-    state.transactionList.commitment =
-      transactionProof.publicOutput.transactionsHash;
-    state.eternalTransactionsList.commitment =
-      transactionProof.publicOutput.eternalTransactionsHash;
-    state.incomingMessages.commitment =
-      transactionProof.publicOutput.incomingMessagesHash;
+    // Implicitly, the 'from' values here are asserted against the publicInput, since the hashlists
+    // are created out of the public input
+    state.transactionList.fastForward({
+      from: transactionProof.publicInput.transactionsHash,
+      to: transactionProof.publicOutput.transactionsHash,
+    });
+    state.eternalTransactionsList.fastForward({
+      from: transactionProof.publicInput.eternalTransactionsHash,
+      to: transactionProof.publicOutput.eternalTransactionsHash,
+    });
+    state.incomingMessages.fastForward({
+      from: transactionProof.publicInput.incomingMessagesHash,
+      to: transactionProof.publicOutput.incomingMessagesHash,
+    });
 
     // Witness root
     const isEmpty = state.pendingSTBatches.commitment.equals(0);
@@ -669,7 +652,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       .implies(state.stateRoot.equals(afterBlockRootWitness.witnessedRoot))
       .assertTrue();
 
-    state.witnessedRoots.validateWitnessedRoot(
+    state.witnessedRoots.witnessRoot(
       {
         appliedBatchListState: state.pendingSTBatches.commitment,
         root: afterBlockRootWitness.witnessedRoot,
@@ -692,11 +675,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     state.blockHashRoot = blockWitness.calculateRoot(
       new BlockHashTreeEntry({
-        // Mirroring UnprovenBlock.hash()
-        blockHash: Poseidon.hash([
-          blockIndex,
-          state.transactionList.commitment,
-        ]),
+        block: {
+          index: blockIndex,
+          transactionListHash: state.transactionList.commitment,
+        },
         closed: Bool(true),
       }).hash()
     );
@@ -726,16 +708,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Verify ST Proof only if STs have been emitted,
     // and we don't defer the verification of the STs
     // otherwise we can input a dummy proof
-    const batchesEmpty = state.pendingSTBatches.commitment
-      .equals(Field(0))
-      .not();
-    const doVerifyStProof = deferSTProof.not().and(batchesEmpty.not());
-    stateTransitionProof.verifyIf(doVerifyStProof);
+    const batchesEmpty = state.pendingSTBatches.commitment.equals(Field(0));
+    const verifyStProof = deferSTProof.not().and(batchesEmpty.not());
+    Provable.log("Verify STProof", verifyStProof);
+    stateTransitionProof.verifyIf(verifyStProof);
 
     // Apply STProof if not deferred
     const stateProofResult = this.includeSTProof(
       stateTransitionProof,
-      doVerifyStProof.not(),
+      verifyStProof,
       state.stateRoot,
       state.pendingSTBatches.commitment,
       state.witnessedRoots.commitment

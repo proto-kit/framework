@@ -5,9 +5,9 @@ import {
   DynamicProof,
   Proof,
 } from "o1js";
+import _ from "lodash";
 
 import { TypedClass } from "./types";
-import _ from "lodash";
 
 export function requireTrue(
   condition: boolean,
@@ -216,20 +216,24 @@ export function safeParseJson<T>(json: string) {
   return JSON.parse(json) as T;
 }
 
-export function isFull<T>(t: Partial<T>): t is T {
+export type Nullable<T> = {
+  [Key in keyof T]: T[Key] | undefined;
+};
+
+export function isFull<T>(t: Nullable<T>): t is T {
   return Object.values(t).findIndex((v) => v === undefined) === -1;
 }
 
 // TODO Restructure utils into separate package and multiple files
 
 export function padArray<T>(
-  batch: T[],
+  array: T[],
   batchSize: number,
   generator: (index: number) => T
 ): T[] {
-  const slice = batch.slice();
-  const dummies = range(0, batchSize - (batch.length % batchSize)).map((i) =>
-    generator(i + batch.length)
+  const slice = array.slice();
+  const dummies = range(0, batchSize - (array.length % batchSize)).map((i) =>
+    generator(i + array.length)
   );
   slice.push(...dummies);
   return slice;
@@ -247,7 +251,7 @@ export function batch<T>(
     ([v, i]) => Math.floor(i / batchSize)
   );
 
-  const numBatches = Math.floor(arr.length / batchSize);
+  const numBatches = Math.ceil(arr.length / batchSize);
 
   return range(0, numBatches).map((i) => partitioned[i].map((x) => x[0]));
 }

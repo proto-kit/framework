@@ -136,7 +136,7 @@ export class VanillaTaskWorkerModules {
       RuntimeProvingTask,
       TransactionProvingTask,
       BlockReductionTask,
-      BlockBuildingTask: NewBlockTask,
+      NewBlockTask,
       CircuitCompilerTask,
       WorkerRegistrationTask,
     } satisfies TaskWorkerModulesRecord;
@@ -153,9 +153,9 @@ export class VanillaTaskWorkerModules {
     return {
       StateTransitionTask: {},
       RuntimeProvingTask: {},
-      BlockProvingTask: {},
+      TransactionProvingTask: {},
       BlockReductionTask: {},
-      BlockBuildingTask: {},
+      NewBlockTask: {},
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
       CircuitCompilerTask: {},

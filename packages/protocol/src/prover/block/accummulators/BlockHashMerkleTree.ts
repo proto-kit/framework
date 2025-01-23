@@ -5,12 +5,20 @@ export class BlockHashMerkleTree extends createMerkleTree(40) {}
 export class BlockHashMerkleTreeWitness extends BlockHashMerkleTree.WITNESS {}
 
 export class BlockHashTreeEntry extends Struct({
-  blockHash: Field,
+  block: Struct({
+    index: Field,
+    transactionListHash: Field,
+  }),
   closed: Bool,
   // TODO We could add startingEternalTransactionsHash here to offer
-  // a more trivial connection to the sequence state
+  //  a more trivial connection to the sequence state
 }) {
   public hash(): Field {
-    return Poseidon.hash([this.blockHash, ...this.closed.toFields()]);
+    // Mirroring Block.hash()
+    const blockHash = Poseidon.hash([
+      this.block.index,
+      this.block.transactionListHash,
+    ]);
+    return Poseidon.hash([blockHash, ...this.closed.toFields()]);
   }
 }

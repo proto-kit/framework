@@ -25,11 +25,19 @@ export class WitnessedRootHashList extends DefaultProvableHashList<WitnessedRoot
     super(WitnessedRoot, commitment);
   }
 
-  // To be used by the STProver
-  // public pushWitness() {}
-
-  // To be used by the BlockProver
-  public validateWitnessedRoot(
+  /**
+   * To be used by the BlockProver or for tracing
+   *
+   * The main purpose of this method compared to the simple push methods
+   * is for deduplicating witnessed roots. We need to do this because the
+   * STProver can only witness once per batch, therefore if multiple witness
+   * points fall back to the same ST (because any batches in between were empty),
+   * this has to be detected and compensated for.
+   * This function does this using the preimage of the current list state.
+   *
+   * @param preimage The preimage to the **current** state of the list.
+   */
+  public witnessRoot(
     witnessedRoot: WitnessedRoot,
     preimage: Field,
     condition: Bool

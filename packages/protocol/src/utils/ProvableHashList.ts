@@ -14,6 +14,11 @@ export type ProvableHashListData<Value> = {
   value: NonMethods<Value>;
 };
 
+export type VerifiedTransition<T> = {
+  from: T;
+  to: T;
+};
+
 /**
  * Utilities for creating a hash list from a given value type.
  */
@@ -36,6 +41,24 @@ export abstract class ProvableHashList<Value> {
       preimage: preimage.toConstant(),
       value: valueConstant,
     });
+  }
+
+  /**
+   * Fast-forwards the state of the hashlist to a specified new tip.
+   * This assumes the transition (from -> to) to be already verified somewhere
+   * else that is outside this scope.
+   */
+  public fastForward(
+    transition: VerifiedTransition<Field>,
+    message: string = "some hashlist"
+  ) {
+    const { from, to } = transition;
+    from.assertEquals(
+      this.commitment,
+      `From-commitment for ${message} not matching`
+    );
+
+    this.commitment = to;
   }
 
   public witnessTip(preimage: Field, value: Value): Bool {

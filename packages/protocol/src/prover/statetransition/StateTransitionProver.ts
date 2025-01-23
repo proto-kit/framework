@@ -21,7 +21,6 @@ import {
 import { StateTransitionProverType } from "../../protocol/Protocol";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
-import { FieldOption } from "../../utils/FieldOptions";
 import { WitnessedRootHashList } from "../accumulators/WitnessedRootHashList";
 import { AppliedBatchHashList } from "../accumulators/AppliedBatchHashList";
 import { AppliedStateTransitionBatchState } from "../../model/AppliedStateTransitionBatch";
@@ -62,7 +61,10 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   StateTransitionProverPublicOutput
 > {
   public constructor(
-    private readonly stateTransitionProver: StateTransitionProver
+    private readonly stateTransitionProver: Pick<
+      StateTransitionProver,
+      "areProofsEnabled"
+    >
   ) {
     super();
   }
@@ -166,15 +168,11 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
       // If the current batch is finished, we push it to the list
       // and initialize the next
-      const { type } = transitions[index];
+      const { type, witnessRoot } = transitions[index];
       const closing = type.isClosing();
       const closingAndApply = type.type.equals(
         StateTransitionType.closeAndApply
       );
-      // Not sure if needed
-      type.accumulate
-        .implies(closingAndApply)
-        .assertTrue("Accumulate does not imply type being closeandapply");
 
       // Create the newBatch
       // The root is based on if the previous batch will be applied or not
@@ -191,10 +189,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       const updatedBatch = {
         applied: closingAndApply,
         batchHash: updatedBatchState.batchHash,
-        witnessedRoot: FieldOption.from(
-          type.accumulate,
-          updatedBatchState.root
-        ),
       };
       state.batchList.pushIf(updatedBatch, closing);
       state.finalizedRoot = Provable.if(
@@ -204,7 +198,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       );
 
       // Add computed root to the witnessed root list if needed
-      const { witnessRoot } = transitions[index];
       witnessRoot
         .implies(closing)
         .assertTrue("Can only witness roots at closing batches");
@@ -216,9 +209,28 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
         witnessRoot
       );
 
+      const isDummy = ProvableStateTransition.isDummy(
+        transitions[index].stateTransition
+      );
+
+      // Dummy STs cannot change any state, as to prevent any
+      // dummy-in-the-middle attacks. This is given if the type is nothing.
+      isDummy
+        .implies(type.isNothing())
+        .assertTrue("Dummies have to be of type 'nothing'");
+
+      isDummy
+        .implies(state.currentBatch.batchHash.equals(0))
+        .assertTrue("Dummies can only be placed on closed batchLists");
+
+      // Dummies don't close the batch, but we still want to ignore any
+      // updated batch, since we need to result to stay.
+      // This will break the pipeline if there is a dummy in the middle,
+      // but will only end up to invalid proofs (i.e. mismatched batches)
+
       state.currentBatch = new AppliedStateTransitionBatchState(
         Provable.if(
-          closing,
+          closing.or(isDummy),
           AppliedStateTransitionBatchState,
           newBatchState,
           updatedBatchState

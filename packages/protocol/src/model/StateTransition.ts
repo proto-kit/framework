@@ -23,6 +23,12 @@ export class ProvableStateTransition extends Struct({
       to: Option.none().toProvable(),
     });
   }
+
+  public static isDummy(stateTransition: ProvableStateTransition) {
+    return stateTransition.path
+      .equals(0)
+      .and(stateTransition.from.isSome.not());
+  }
 }
 
 /**

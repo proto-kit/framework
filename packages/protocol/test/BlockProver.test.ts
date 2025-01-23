@@ -47,6 +47,7 @@ class RuntimeZkProgrammable extends ZkProgrammable<
 
     return [
       {
+        name: "Runtime",
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -69,6 +70,7 @@ describe("blockProver", () => {
 
   const protocol = createAndInitTestingProtocol();
 
+  /*
   function generateTestProofs(
     fromStateRoot: Field,
     toStateRoot: Field,
@@ -119,6 +121,7 @@ describe("blockProver", () => {
 
     return [appProof, stProof];
   }
+  */
 
   it("dummy", () => {
     expect(1).toBe(1);

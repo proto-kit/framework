@@ -2,13 +2,10 @@ import { inject } from "tsyringe";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  DefaultProvableHashList,
-  MINA_EVENT_PREFIXES,
-  MinaPrefixedProvableHashList,
   NetworkState,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
-import { log, noop, RollupMerkleTree } from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
 
 import {
   sequencerModule,
@@ -21,29 +18,12 @@ import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore"
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockResult, BlockWithResult } from "../../storage/model/Block";
-import { VerificationKeyService } from "../runtime/RuntimeVerificationKeyService";
 
-import { TransactionTraceService } from "./TransactionTraceService";
-import { BlockTaskFlowService } from "./BlockTaskFlowService";
-import { NewBlockProverParameters } from "./tasks/NewBlockTask";
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
-import { RuntimeProofParameters } from "./tasks/RuntimeProvingTask";
-import { StateTransitionProofParameters } from "./tasks/StateTransitionTask";
-import { BlockProverParameters } from "./tasks/TransactionProvingTask";
+import { BatchTracingService } from "./tracing/BatchTracingService";
+import { BatchFlow } from "./flow/BatchFlow";
 
 export type StateRecord = Record<string, Field[] | undefined>;
-
-export interface TransactionTrace {
-  runtimeProver: RuntimeProofParameters;
-  stateTransitionProver: StateTransitionProofParameters[];
-  blockProver: BlockProverParameters;
-}
-
-export interface BlockTrace {
-  block: NewBlockProverParameters;
-  stateTransitionProver: StateTransitionProofParameters[];
-  transactions: TransactionTrace[];
-}
 
 export interface BlockWithPreviousResult {
   block: BlockWithResult;
@@ -79,12 +59,9 @@ export class BatchProducerModule extends SequencerModule {
     @inject("AsyncMerkleStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
-    @inject("BlockTreeStore")
-    private readonly blockTreeStore: AsyncMerkleTreeStore,
-    private readonly traceService: TransactionTraceService,
-    private readonly blockFlowService: BlockTaskFlowService,
+    private readonly batchFlow: BatchFlow,
     private readonly blockProofSerializer: BlockProofSerializer,
-    private readonly verificationKeyService: VerificationKeyService
+    private readonly batchTraceService: BatchTracingService
   ) {
     super();
   }
@@ -194,23 +171,25 @@ export class BatchProducerModule extends SequencerModule {
   }
 
   /**
-   * Very naive impl for now
+   * Computes a batch based on an array of sequenced blocks.
+   * This process is also known as tracing, as we "trace" every computational step
+   * into witnesses that we can use in the provers.
    *
-   * How we produce batches:
+   * The workflow of computing batches works as follows:
    *
-   * 1. We get all pending txs from the mempool and define an order
-   * 2. We execute them to get results / intermediate state-roots.
-   * We define a tuple of (tx data (methodId, args), state-input, state-output)
-   * as a "tx trace"
-   * 3. We create tasks based on those traces
    *
+   *
+   * @param blocks
+   * @param blockId
+   * @private
    */
-
   private async computeBatch(
+    // TODO Remove previous results
     blocks: BlockWithPreviousResult[],
     blockId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
+    // TODO Return State services as commit-only object
     stateService: CachedStateService;
     merkleStore: CachedMerkleTreeStore;
     fromNetworkState: NetworkState;
@@ -221,60 +200,17 @@ export class BatchProducerModule extends SequencerModule {
     }
 
     const stateServices = {
+      // TODO Remove stateService
       stateService: new CachedStateService(this.asyncStateService),
-      merkleStore: new CachedMerkleTreeStore(this.merkleStore),
+      merkleTreeStore: new CachedMerkleTreeStore(this.merkleStore),
     };
 
-    const blockTraces: BlockTrace[] = [];
-
-    const eternalBundleTracker = new DefaultProvableHashList(
-      Field,
-      blocks[0].block.block.fromEternalTransactionsHash
-    );
-    const messageTracker = new MinaPrefixedProvableHashList(
-      Field,
-      MINA_EVENT_PREFIXES.sequenceEvents,
-      blocks[0].block.block.fromMessagesHash
+    const trace = await this.batchTraceService.traceBatch(
+      blocks.map((block) => block.block),
+      stateServices
     );
 
-    for (const blockWithPreviousResult of blocks) {
-      const { block } = blockWithPreviousResult.block;
-      const txs = block.transactions;
-
-      const bundleTracker = new DefaultProvableHashList(Field);
-
-      const transactionTraces: TransactionTrace[] = [];
-
-      for (const [, tx] of txs.entries()) {
-        // eslint-disable-next-line no-await-in-loop
-        const result = await this.traceService.createTransactionTrace(
-          tx,
-          stateServices,
-          this.verificationKeyService,
-          block.networkState.during,
-          bundleTracker,
-          eternalBundleTracker,
-          messageTracker
-        );
-
-        transactionTraces.push(result);
-      }
-
-      // eslint-disable-next-line no-await-in-loop
-      const blockTrace = await this.traceService.createBlockTrace(
-        transactionTraces,
-        stateServices,
-        this.blockTreeStore,
-        Field(
-          blockWithPreviousResult.lastBlockResult?.stateRoot ??
-            RollupMerkleTree.EMPTY_ROOT
-        ),
-        blockWithPreviousResult.block
-      );
-      blockTraces.push(blockTrace);
-    }
-
-    const proof = await this.blockFlowService.executeFlow(blockTraces, blockId);
+    const proof = await this.batchFlow.executeBatch(trace, blockId);
 
     const fromNetworkState = blocks[0].block.block.networkState.before;
     const toNetworkState = blocks.at(-1)!.block.result.afterNetworkState;
@@ -282,7 +218,7 @@ export class BatchProducerModule extends SequencerModule {
     return {
       proof,
       stateService: stateServices.stateService,
-      merkleStore: stateServices.merkleStore,
+      merkleStore: stateServices.merkleTreeStore,
       fromNetworkState,
       toNetworkState,
     };

@@ -200,7 +200,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
     public static dummy() {
       return new RollupMerkleWitness({
-        isLeft: Array<Bool>(height - 1).fill(Bool(false)),
+        isLeft: Array<Bool>(height - 1).fill(Bool(true)),
         path: Array<Field>(height - 1).fill(Field(0)),
       });
     }

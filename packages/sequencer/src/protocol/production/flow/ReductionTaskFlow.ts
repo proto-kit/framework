@@ -28,7 +28,7 @@ export interface PairingDerivedInput<Input1, Input2, AdditionalParameters> {
  * We use this pattern extensively in our pipeline,
  */
 export class ReductionTaskFlow<Input, Output> {
-  private readonly flow: Flow<ReductionState<Output>>;
+  public readonly flow: Flow<ReductionState<Output>>;
 
   private started = false;
 

@@ -113,6 +113,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           BaseLayer: {},
           TaskQueue: {},
           ProtocolStartupModule: {},
+          SequencerStartupModule: {},
         },
         Protocol: {
           AccountState: {},
@@ -124,7 +125,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       });
 
       // Start AppChain
-      await appChain.start(container.createChildContainer());
+      await appChain.start(false, container.createChildContainer());
 
       runtime = appChain.runtime;
       sequencer = appChain.sequencer;

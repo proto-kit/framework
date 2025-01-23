@@ -127,6 +127,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
           block,
           this.unprovenMerkleStore,
           this.blockTreeStore,
+          this.unprovenStateService,
           true
         );
 
