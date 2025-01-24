@@ -6,8 +6,14 @@ import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
+import { StateTransitionArrayMapper } from "./StateTransitionMapper";
+
 @singleton()
 export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
+  public constructor(
+    private readonly stArrayMapper: StateTransitionArrayMapper
+  ) {}
+
   public mapIn(input: PrismaBlock): Block {
     return {
       transactions: [],
@@ -30,10 +36,15 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       fromBlockHashRoot: Field(input.fromBlockHashRoot),
       fromMessagesHash: Field(input.fromMessagesHash),
       toMessagesHash: Field(input.toMessagesHash),
+      fromStateRoot: Field(input.fromStateRoot),
 
       transactionsHash: Field(input.transactionsHash),
       previousBlockHash:
         input.parentHash !== null ? Field(input.parentHash) : undefined,
+
+      beforeBlockStateTransitions: this.stArrayMapper.mapIn(
+        input.beforeBlockStateTransitions
+      ),
     };
   }
 
@@ -47,11 +58,16 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       fromBlockHashRoot: input.fromBlockHashRoot.toString(),
       fromMessagesHash: input.fromMessagesHash.toString(),
       toMessagesHash: input.toMessagesHash.toString(),
+      fromStateRoot: input.fromStateRoot.toString(),
 
       hash: input.hash.toString(),
       transactionsHash: input.transactionsHash.toString(),
       parentHash: input.previousBlockHash?.toString() ?? null,
       batchHeight: null,
+
+      beforeBlockStateTransitions: this.stArrayMapper.mapOut(
+        input.beforeBlockStateTransitions
+      ),
     };
   }
 }

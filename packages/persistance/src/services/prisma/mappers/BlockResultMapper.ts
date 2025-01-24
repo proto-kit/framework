@@ -28,10 +28,12 @@ export class BlockResultMapper
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         BlockHashMerkleTreeWitness.fromJSON(input.blockHashWitness as any)
       ),
-      blockStateTransitions: this.stArrayMapper.mapIn(
-        input.blockStateTransitions
+      afterBlockStateTransitions: this.stArrayMapper.mapIn(
+        input.afterBlockStateTransitions
       ),
       blockHash: BigInt(input.blockHash),
+
+      witnessedRoots: [BigInt(input.witnessedRoots[0])],
     };
   }
 
@@ -44,10 +46,12 @@ export class BlockResultMapper
       blockHashWitness: BlockHashMerkleTreeWitness.toJSON(
         input.blockHashWitness
       ),
-      blockStateTransitions: this.stArrayMapper.mapOut(
-        input.blockStateTransitions
+      afterBlockStateTransitions: this.stArrayMapper.mapOut(
+        input.afterBlockStateTransitions
       ),
       afterNetworkState: NetworkState.toJSON(input.afterNetworkState),
+
+      witnessedRoots: [input.witnessedRoots[0].toString()],
     };
   }
 }
