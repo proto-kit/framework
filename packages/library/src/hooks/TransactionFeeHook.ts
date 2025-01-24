@@ -126,7 +126,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
    *
    * @param executionData
    */
-  public async onTransaction(
+  public async beforeTransaction(
     executionData: BeforeTransactionHookArguments
   ): Promise<void> {
     const feeConfig = Provable.witness(MethodFeeConfigData, () =>
@@ -159,7 +159,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     );
   }
 
-  public async onAfterTransaction(): Promise<void> {
+  public async afterTransaction(): Promise<void> {
     noop();
   }
 }

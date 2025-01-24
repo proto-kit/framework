@@ -17,18 +17,13 @@ import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
-import { BlockResult, BlockWithResult } from "../../storage/model/Block";
+import { BlockWithResult } from "../../storage/model/Block";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
 import { BatchFlow } from "./flow/BatchFlow";
 
 export type StateRecord = Record<string, Field[] | undefined>;
-
-export interface BlockWithPreviousResult {
-  block: BlockWithResult;
-  lastBlockResult?: BlockResult;
-}
 
 interface BatchMetadata {
   batch: SettleableBatch;
@@ -77,7 +72,7 @@ export class BatchProducerModule extends SequencerModule {
    * be the one called by BlockTriggers
    */
   public async createBatch(
-    blocks: BlockWithPreviousResult[]
+    blocks: BlockWithResult[]
   ): Promise<SettleableBatch | undefined> {
     log.info("Producing batch...");
 
@@ -87,7 +82,7 @@ export class BatchProducerModule extends SequencerModule {
 
     if (batchWithStateDiff !== undefined) {
       const numTxs = blocks.reduce(
-        (sum, block) => sum + block.block.block.transactions.length,
+        (sum, block) => sum + block.block.transactions.length,
         0
       );
       log.info(
@@ -105,7 +100,7 @@ export class BatchProducerModule extends SequencerModule {
   }
 
   private async tryProduceBatch(
-    blocks: BlockWithPreviousResult[],
+    blocks: BlockWithResult[],
     height: number
   ): Promise<BatchMetadata | undefined> {
     if (!this.productionInProgress) {
@@ -143,14 +138,12 @@ export class BatchProducerModule extends SequencerModule {
   }
 
   private async produceBatch(
-    blocks: BlockWithPreviousResult[],
+    blocks: BlockWithResult[],
     height: number
   ): Promise<BatchMetadata | undefined> {
     const batch = await this.computeBatch(blocks, height);
 
-    const blockHashes = blocks.map((bundle) =>
-      bundle.block.block.hash.toString()
-    );
+    const blockHashes = blocks.map((bundle) => bundle.block.hash.toString());
 
     const jsonProof = this.blockProofSerializer
       .getBlockProofSerializer()
@@ -184,8 +177,7 @@ export class BatchProducerModule extends SequencerModule {
    * @private
    */
   private async computeBatch(
-    // TODO Remove previous results
-    blocks: BlockWithPreviousResult[],
+    blocks: BlockWithResult[],
     blockId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -206,14 +198,14 @@ export class BatchProducerModule extends SequencerModule {
     };
 
     const trace = await this.batchTraceService.traceBatch(
-      blocks.map((block) => block.block),
+      blocks.map((block) => block),
       stateServices
     );
 
     const proof = await this.batchFlow.executeBatch(trace, blockId);
 
-    const fromNetworkState = blocks[0].block.block.networkState.before;
-    const toNetworkState = blocks.at(-1)!.block.result.afterNetworkState;
+    const fromNetworkState = blocks[0].block.networkState.before;
+    const toNetworkState = blocks.at(-1)!.result.afterNetworkState;
 
     return {
       proof,
