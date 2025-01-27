@@ -149,10 +149,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       expect(blocks).toHaveLength(1);
 
-      const { lastBlockResult, block } = blocks[0];
+      const { block } = blocks[0];
 
-      expect(lastBlockResult).toBeUndefined();
-      expect(block.block.hash.toBigInt()).toStrictEqual(
+      expect(block.hash.toBigInt()).toStrictEqual(
         generatedBlock.hash.toBigInt()
       );
 
@@ -160,7 +159,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         "BlockStorage"
       ) as HistoricalBlockStorage & BlockStorage;
       const block2 = await blockStorage.getBlockAt(
-        Number(blocks[0].block.block.height.toString())
+        Number(blocks[0].block.height.toString())
       );
 
       expectDefined(block2);
@@ -169,7 +168,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       );
 
       const stateDiff = collectStateDiff(
-        block.block.transactions.flatMap((tx) =>
+        block.transactions.flatMap((tx) =>
           tx.stateTransitions.flatMap((batch) => batch.stateTransitions)
         )
       );

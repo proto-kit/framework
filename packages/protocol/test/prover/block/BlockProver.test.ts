@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /**
  * Testing strategy:
  *
@@ -9,3 +10,5 @@
  * - Test correct integration of the STProof - both defer and notDefer
  * - proveBlock: correct blockNumber progression, closed flag (doesn't accepts closed proofs as tx proofs)
  */
+
+/* eslint-enable max-len */

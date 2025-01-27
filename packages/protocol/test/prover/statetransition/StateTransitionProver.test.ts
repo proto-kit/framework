@@ -44,19 +44,19 @@ describe("StateTransitionProver", () => {
     });
   }
 
-  function applyToTree(
-    tree: RollupMerkleTree,
-    batches: StateTransitionProvableBatch[],
-    indizes: number[]
-  ) {
-    const flat = batches.flatMap((batch) => batch.batch);
-    indizes.forEach((index) => {
-      const st = flat[index].stateTransition;
-      if (st.to.isSome) {
-        tree.setLeaf(st.path.toBigInt(), st.to.value);
-      }
-    });
-  }
+  // function applyToTree(
+  //   tree: RollupMerkleTree,
+  //   batches: StateTransitionProvableBatch[],
+  //   indizes: number[]
+  // ) {
+  //   const flat = batches.flatMap((batch) => batch.batch);
+  //   indizes.forEach((index) => {
+  //     const st = flat[index].stateTransition;
+  //     if (st.to.isSome) {
+  //       tree.setLeaf(st.path.toBigInt(), st.to.value);
+  //     }
+  //   });
+  // }
 
   describe("currentBatchHash", () => {
     it.each([

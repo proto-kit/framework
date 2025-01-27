@@ -119,6 +119,8 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   // in the skipped txs list and when later txs succeed we check to see if any state transition
   // paths are shared between the just succeeded tx and any of the skipped txs. This is
   // because a failed tx may succeed now if the failure was to do with a nonce issue, say.
+  // TODO Refactor
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async checkTxValid(
     transactions: PendingTransaction[],
     baseService: CachedStateService,

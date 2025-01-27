@@ -43,10 +43,6 @@ export type BlockTrace = {
 export class BlockTracingService {
   public constructor(
     private readonly transactionTracing: TransactionTracingService
-    // TODO Think about remove the state service for tracing
-    // TODO Properly replace AsyncStateService by masking
-    // @inject("AsyncStateService")
-    // stateService: AsyncStateService
   ) {}
 
   public async traceBlock(

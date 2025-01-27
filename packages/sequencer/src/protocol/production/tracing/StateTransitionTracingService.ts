@@ -155,8 +155,10 @@ export class StateTransitionTracingService {
 
               finalizedStateRoot = danglingStateRoot;
 
+              // We can reuse the batchMerkleStore here, since mergeIntoParent()
+              // resets the only state that the store has, therefore its equivalent
+              // to creating a new one
               batchMerkleStore.mergeIntoParent();
-              // TODO See if reusing the existing store works
             } else if (
               type.type
                 .equals(StateTransitionType.closeAndThrowAway)
