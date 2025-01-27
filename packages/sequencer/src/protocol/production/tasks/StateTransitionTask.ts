@@ -18,7 +18,6 @@ import {
   ProofTaskSerializer,
 } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
-import { PreFilledWitnessProvider } from "../../../state/prefilled/PreFilledWitnessProvider";
 import { CompileRegistry } from "../helpers/CompileRegistry";
 
 import {
