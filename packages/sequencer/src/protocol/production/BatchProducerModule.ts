@@ -198,7 +198,7 @@ export class BatchProducerModule extends SequencerModule {
     const toNetworkState = blocks.at(-1)!.result.afterNetworkState;
 
     const changes = {
-      commit: merkleTreeStore.commit,
+      commit: async () => await merkleTreeStore.mergeIntoParent(),
     };
 
     return {

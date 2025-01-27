@@ -85,21 +85,20 @@ export class BatchTracingService {
 
   public async traceBatch(
     blocks: BlockWithResult[],
-    merkleTreeStore: CachedMerkleTreeStore,
-    // TODO Implement and then also test
-    parallel: boolean = false
+    merkleTreeStore: CachedMerkleTreeStore
   ): Promise<BatchTrace> {
     if (blocks.length === 0) {
       return { blocks: [], stateTransitionTrace: [] };
     }
 
-    const blockTraces = await this.traceBlocks(blocks);
-
-    // Trace STs
-    const stateTransitionTrace = await this.traceStateTransitions(
-      blocks,
-      merkleTreeStore
-    );
+    // Traces the STs and the blocks in parallel, however not in separate processes
+    // Therefore, we only optimize the idle time for async operations like DB reads
+    const [blockTraces, stateTransitionTrace] = await Promise.all([
+      // Trace blocks
+      this.traceBlocks(blocks),
+      // Trace STs
+      this.traceStateTransitions(blocks, merkleTreeStore),
+    ]);
 
     return {
       blocks: blockTraces,
