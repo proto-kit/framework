@@ -21,7 +21,10 @@ export type CompiledCircuitsRecord = {
   runtimeCircuits: VKRecord;
 };
 
-type VKRecordLite = Record<string, { vk: { hash: string; data: string } }>;
+type VKRecordLite = Record<
+  string,
+  { vk: { hash: string; data: string }; index: string }
+>;
 
 export class UndefinedSerializer implements TaskSerializer<undefined> {
   public toJSON(parameters: undefined): string {

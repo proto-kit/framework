@@ -17,6 +17,10 @@ export function requireTrue(
   }
 }
 
+/**
+ * Utility function to split an array of type T into a record <K, T[]> based on a
+ * function T => K that determines the key of each record
+ */
 export function splitArray<T, K extends string | number>(
   arr: T[],
   split: (t: T) => K
