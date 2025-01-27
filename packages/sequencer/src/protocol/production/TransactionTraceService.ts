@@ -97,8 +97,8 @@ export class TransactionTraceService {
 
       ({ stParameters, fromStateRoot } = await this.createMerkleTrace(
         stateServices.merkleStore,
-        stateTransitions,
         [],
+        stateTransitions,
         true
       ));
     } else {

@@ -21,11 +21,12 @@ export class CompileRegistry {
     zkProgram: { compile: () => Promise<CompileArtifact> }
   ) {
     if (this.compilationPromises[name] === undefined) {
-      log.info(`Compiling ${name}`);
+      log.time(`Compiling ${name}`);
       this.compilationPromises[name] = zkProgram.compile();
+      log.timeEnd.info(`Compiling ${name}`);
     }
-    await this.compilationPromises[name];
-    log.info(`Compiled ${name}`);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return (await this.compilationPromises[name]) as CompileArtifact;
   }
 
   public async compileSmartContract(
@@ -37,11 +38,14 @@ export class CompileRegistry {
   ) {
     if (this.compilationPromises[name] === undefined) {
       if (proofsEnabled) {
+        log.time(`Compiling ${name}`);
         this.compilationPromises[name] = contract.compile();
+        log.timeEnd.info(`Compiling ${name}`);
       } else {
         this.compilationPromises[name] = Promise.resolve({});
       }
     }
-    await this.compilationPromises[name];
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return (await this.compilationPromises[name]) as ContractCompileArtifact;
   }
 }

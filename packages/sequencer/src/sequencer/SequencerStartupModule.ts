@@ -3,24 +3,22 @@ import {
   MandatoryProtocolModulesRecord,
   Protocol,
   RuntimeVerificationKeyRootService,
+  SettlementSmartContractBase,
 } from "@proto-kit/protocol";
-import { log, sleep } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 
-import {
-  SequencerModule,
-  sequencerModule,
-} from "../sequencer/builder/SequencerModule";
 import { FlowCreator } from "../worker/flow/Flow";
-import { WorkerRegistrationFlow } from "../worker/WorkerRegistrationFlow";
-
-import { CircuitCompilerTask } from "./production/tasks/CircuitCompilerTask";
+import { WorkerRegistrationFlow } from "../worker/worker/startup/WorkerRegistrationFlow";
 import {
-  VerificationKeyService,
-  VKRecord,
-} from "./runtime/RuntimeVerificationKeyService";
+  CircuitCompilerTask,
+  CompiledCircuitsRecord,
+} from "../protocol/production/tasks/CircuitCompilerTask";
+import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
+
+import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 
 @sequencerModule()
-export class ProtocolStartupModule extends SequencerModule {
+export class SequencerStartupModule extends SequencerModule {
   public constructor(
     private readonly flowCreator: FlowCreator,
     @inject("Protocol")
@@ -37,15 +35,18 @@ export class ProtocolStartupModule extends SequencerModule {
 
     log.info("Compiling Protocol circuits, this can take a few minutes");
 
-    const vks = await flow.withFlow<VKRecord>(async (res, rej) => {
-      await flow.pushTask(this.compileTask, undefined, async (result) => {
-        res(result);
-      });
-    });
+    const vks = await flow.withFlow<CompiledCircuitsRecord>(
+      async (res, rej) => {
+        await flow.pushTask(this.compileTask, undefined, async (result) => {
+          res(result);
+        });
+      }
+    );
 
     log.info("Protocol circuits compiled");
 
-    await this.verificationKeyService.initializeVKTree(vks);
+    // Init runtime VK tree
+    await this.verificationKeyService.initializeVKTree(vks.runtimeCircuits);
 
     const root = this.verificationKeyService.getRoot();
 
@@ -53,11 +54,17 @@ export class ProtocolStartupModule extends SequencerModule {
       .resolve(RuntimeVerificationKeyRootService)
       .setRoot(root);
 
+    // Init BridgeContract vk for settlement contract
+    const bridgeVk = vks.protocolCircuits.BridgeContract;
+    if (bridgeVk !== undefined) {
+      SettlementSmartContractBase.args.BridgeContractVerificationKey =
+        bridgeVk.vk;
+    }
+
     await this.registrationFlow.start({
       runtimeVerificationKeyRoot: root,
+      bridgeContractVerificationKey: bridgeVk?.vk,
     });
-
-    await sleep(500);
 
     log.info("Protocol circuits compiled successfully, commencing startup");
   }

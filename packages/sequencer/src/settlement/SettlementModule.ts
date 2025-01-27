@@ -26,7 +26,6 @@ import {
   log,
   AreProofsEnabled,
   DependencyFactory,
-  MOCK_VERIFICATION_KEY,
 } from "@proto-kit/common";
 import truncate from "lodash/truncate";
 
@@ -379,7 +378,7 @@ export class SettlementModule
   public async start(): Promise<void> {
     const contractArgs = SettlementSmartContractBase.args;
 
-    const dummyVk = MOCK_VERIFICATION_KEY;
+    // const dummyVk = MOCK_VERIFICATION_KEY;
 
     SettlementSmartContractBase.args = {
       ...contractArgs,
@@ -389,9 +388,9 @@ export class SettlementModule
         ? new SignedSettlementPermissions()
         : new ProvenSettlementPermissions()
       ).bridgeContractMina(),
-      BridgeContractVerificationKey: this.utils.isSignedSettlement()
-        ? undefined
-        : dummyVk,
+      // BridgeContractVerificationKey: this.utils.isSignedSettlement()
+      //   ? undefined
+      //   : dummyVk,
     };
 
     // TODO Add task to compute verification key

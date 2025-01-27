@@ -18,10 +18,7 @@ import {
 import { Field, Proof } from "o1js";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import {
-  MOCK_VERIFICATION_KEY,
-  ProvableMethodExecutionContext,
-} from "@proto-kit/common";
+import { ProvableMethodExecutionContext } from "@proto-kit/common";
 
 import {
   PairProofTaskSerializer,
@@ -34,8 +31,9 @@ import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateSe
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { TaskStateRecord } from "../TransactionTraceService";
 import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
+import { VerificationKeySerializer } from "../helpers/VerificationKeySerializer";
+import { CompileRegistry } from "../helpers/CompileRegistry";
 
-import { CompileRegistry } from "./CompileRegistry";
 import { JSONEncodableState } from "./RuntimeTaskParameters";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
@@ -70,6 +68,27 @@ export class DecodedStateSerializer {
         value.map((field) => field.toString()),
       ])
     );
+  }
+}
+
+class RuntimeVerificationKeyAttestationSerializer {
+  static fromJSON(json: {
+    verificationKey: { hash: string; data: string };
+    witness: ReturnType<typeof VKTreeWitness.toJSON>;
+  }) {
+    return new RuntimeVerificationKeyAttestation({
+      verificationKey: VerificationKeySerializer.fromJSON(json.verificationKey),
+      witness: new VKTreeWitness(VKTreeWitness.fromJSON(json.witness)),
+    });
+  }
+
+  static toJSON(attestation: RuntimeVerificationKeyAttestation) {
+    return {
+      verificationKey: VerificationKeySerializer.toJSON(
+        attestation.verificationKey
+      ),
+      witness: VKTreeWitness.toJSON(attestation.witness),
+    };
   }
 }
 
@@ -180,7 +199,7 @@ export class BlockProvingTask
             ),
 
             verificationKeyAttestation:
-              RuntimeVerificationKeyAttestation.toJSON(
+              RuntimeVerificationKeyAttestationSerializer.toJSON(
                 input.params.verificationKeyAttestation
               ),
           },
@@ -198,7 +217,7 @@ export class BlockProvingTask
             executionData: ReturnType<typeof BlockProverExecutionData.toJSON>;
             startingState: JSONEncodableState;
             verificationKeyAttestation: ReturnType<
-              typeof RuntimeVerificationKeyAttestation.toJSON
+              typeof RuntimeVerificationKeyAttestationSerializer.toJSON
             >;
           };
         } = JSON.parse(json);
@@ -221,20 +240,9 @@ export class BlockProvingTask
             ),
 
             verificationKeyAttestation:
-              jsonReadyObject.params.verificationKeyAttestation
-                .verificationKey === MOCK_VERIFICATION_KEY.data
-                ? new RuntimeVerificationKeyAttestation({
-                    witness: new VKTreeWitness(
-                      VKTreeWitness.fromJSON(
-                        jsonReadyObject.params.verificationKeyAttestation
-                          .witness
-                      )
-                    ),
-                    verificationKey: MOCK_VERIFICATION_KEY,
-                  })
-                : RuntimeVerificationKeyAttestation.fromJSON(
-                    jsonReadyObject.params.verificationKeyAttestation
-                  ),
+              RuntimeVerificationKeyAttestationSerializer.fromJSON(
+                jsonReadyObject.params.verificationKeyAttestation
+              ),
           },
         };
       },
@@ -252,7 +260,9 @@ export class BlockProvingTask
     startingState: TaskStateRecord,
     callback: () => Promise<Return>
   ): Promise<Return> {
-    const prefilledStateService = new PreFilledStateService(startingState);
+    const prefilledStateService = new PreFilledStateService({
+      ...startingState,
+    });
     this.stateServiceProvider.setCurrentStateService(prefilledStateService);
 
     const returnValue = await callback();

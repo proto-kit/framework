@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
+  AreProofsEnabled,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
@@ -304,11 +305,18 @@ export class AppChain<
   /**
    * Starts the appchain and cross-registers runtime to sequencer
    */
-  public async start(dependencyContainer: DependencyContainer = container) {
+  public async start(
+    proofsEnabled: boolean = false,
+    dependencyContainer: DependencyContainer = container
+  ) {
     this.create(() => dependencyContainer);
 
     this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
     this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
+
+    this.container
+      .resolve<AreProofsEnabled>("AreProofsEnabled")
+      .setProofsEnabled(proofsEnabled);
 
     // These three statements are crucial for dependencies inside any of these
     // components to access their siblings inside their constructor.

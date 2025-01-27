@@ -20,9 +20,9 @@ import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateSe
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
 import { TaskStateRecord } from "../TransactionTraceService";
+import { CompileRegistry } from "../helpers/CompileRegistry";
 
 import { JSONEncodableState } from "./RuntimeTaskParameters";
-import { CompileRegistry } from "./CompileRegistry";
 import { DecodedStateSerializer } from "./BlockProvingTask";
 
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -147,7 +147,9 @@ export class NewBlockTask
     startingState: TaskStateRecord,
     callback: () => Promise<Return>
   ): Promise<Return> {
-    const prefilledStateService = new PreFilledStateService(startingState);
+    const prefilledStateService = new PreFilledStateService({
+      ...startingState,
+    });
     this.protocol.stateServiceProvider.setCurrentStateService(
       prefilledStateService
     );
@@ -160,7 +162,9 @@ export class NewBlockTask
   }
 
   public async compute(input: NewBlockProvingParameters): Promise<BlockProof> {
-    const { input1, input2, params: parameters } = input;
+    // TODO I left the task arg for the ST Proof in, until it will be reworked
+    //  with the new ST Prover
+    const { input2, params: parameters } = input;
     const { networkState, blockWitness, startingState, publicInput } =
       parameters;
 
@@ -169,7 +173,7 @@ export class NewBlockTask
         publicInput,
         networkState,
         blockWitness,
-        input1,
+        // input1,
         input2
       );
     });

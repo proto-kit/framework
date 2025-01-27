@@ -76,8 +76,8 @@ export class RuntimeZkProgrammable<
     super();
   }
 
-  public get appChain() {
-    return this.runtime.appChain;
+  public get areProofsEnabled() {
+    return this.runtime.areProofsEnabled;
   }
 
   public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
@@ -299,7 +299,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     this.useDependencyFactory(this.container.resolve(MethodIdFactory));
   }
 
-  public get appChain(): AreProofsEnabled | undefined {
+  public get areProofsEnabled(): AreProofsEnabled | undefined {
     return this.container.resolve<AreProofsEnabled>("AreProofsEnabled");
   }
 

@@ -138,11 +138,11 @@ export class TransactionExecutionService {
     if (module.runtime === undefined) {
       throw new Error("Runtime on RuntimeModule not set");
     }
-    if (module.runtime.appChain === undefined) {
+    if (module.runtime.areProofsEnabled === undefined) {
       throw new Error("AppChain on Runtime not set");
     }
-    const { appChain } = module.runtime;
-    return appChain;
+    const { areProofsEnabled } = module.runtime;
+    return areProofsEnabled;
   }
 
   private async executeWithExecutionContext(

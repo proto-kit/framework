@@ -32,8 +32,19 @@ const errors = {
   propertyNotMatching: (property: string, step: string) =>
     `${property} not matching ${step}`,
 
-  merkleWitnessNotCorrect: (index: number, type: string) =>
-    `MerkleWitness not valid for StateTransition (${index}, type ${type})`,
+  merkleWitnessNotCorrect: (
+    index: number,
+    type: ProvableStateTransitionType
+  ) => {
+    let s = `MerkleWitness not valid for StateTransition (${index}, type unknown)`;
+    Provable.asProver(() => {
+      s = s.replace(
+        "unknown",
+        type.isNormal().toBoolean() ? "normal" : "protocol"
+      );
+    });
+    return s;
+  },
 
   noWitnessProviderSet: () =>
     new Error(
@@ -67,8 +78,8 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     super();
   }
 
-  public get appChain(): AreProofsEnabled | undefined {
-    return this.stateTransitionProver.appChain;
+  public get areProofsEnabled(): AreProofsEnabled | undefined {
+    return this.stateTransitionProver.areProofsEnabled;
   }
 
   public zkProgramFactory(): PlainZkProgram<
@@ -83,7 +94,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       publicOutput: StateTransitionProverPublicOutput,
 
       methods: {
-        proveBatch: {
+        runBatch: {
           privateInputs: [StateTransitionProvableBatch],
 
           async method(
@@ -112,7 +123,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     });
 
     const methods = {
-      proveBatch: program.proveBatch.bind(program),
+      runBatch: program.runBatch.bind(program),
       merge: program.merge.bind(program),
     };
 
@@ -194,12 +205,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
     membershipValid
       .or(transition.from.isSome.not())
-      .assertTrue(
-        errors.merkleWitnessNotCorrect(
-          index,
-          type.isNormal().toBoolean() ? "normal" : "protocol"
-        )
-      );
+      .assertTrue(errors.merkleWitnessNotCorrect(index, type));
 
     const newRoot = merkleWitness.calculateRoot(transition.to.value);
 

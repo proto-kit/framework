@@ -178,7 +178,7 @@ export const settlementTestFn = (
           SettlementModule: {
             feepayer: sequencerKey,
           },
-          ProtocolStartupModule: {},
+          SequencerStartupModule: {},
 
           TaskQueue: {
             simulatedDuration: 0,
@@ -259,7 +259,7 @@ export const settlementTestFn = (
     beforeAll(async () => {
       appChain = setupAppChain();
 
-      await appChain.start(container.createChildContainer());
+      await appChain.start(false, container.createChildContainer());
 
       settlementModule = appChain.sequencer.resolve(
         "SettlementModule"

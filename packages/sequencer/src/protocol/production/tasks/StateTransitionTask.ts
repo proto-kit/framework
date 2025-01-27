@@ -18,12 +18,12 @@ import {
   ProofTaskSerializer,
 } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import { CompileRegistry } from "../helpers/CompileRegistry";
 
 import {
   StateTransitionParametersSerializer,
   StateTransitionProofParameters,
 } from "./StateTransitionTaskParameters";
-import { CompileRegistry } from "./CompileRegistry";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

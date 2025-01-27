@@ -24,23 +24,23 @@ export function toProver(
   ...args: ArgumentTypes
 ) {
   return async function prover(this: ZkProgrammable<any, any>) {
-    const areProofsEnabled = this.appChain?.areProofsEnabled;
-    if (areProofsEnabled ?? false) {
-      for (const prog of this.zkProgram) {
-        if (Object.keys(prog.methods).includes(methodName)) {
-          const programProvableMethod = prog.methods[methodName];
-          // eslint-disable-next-line no-await-in-loop
-          return await Reflect.apply(programProvableMethod, this, args);
-        }
-      }
+    const { areProofsEnabled } = this.areProofsEnabled!;
+
+    const zkProgram = this.zkProgram.find((prog) =>
+      Object.keys(prog.methods).includes(methodName)
+    );
+
+    if (zkProgram === undefined) {
+      throw new Error("Correct ZkProgram not found");
     }
 
-    // create a mock proof by simulating method execution in JS
+    if (areProofsEnabled) {
+      const programProvableMethod = zkProgram.methods[methodName];
+      return await Reflect.apply(programProvableMethod, this, args);
+    }
+
+    // create a mock proof by simulating method> execution in JS
     const publicOutput = await Reflect.apply(simulatedMethod, this, args);
-    const zkProgram =
-      this.zkProgram.find((prog) => {
-        return Object.keys(prog.methods).includes(methodName);
-      }) ?? this.zkProgram[0];
 
     return new zkProgram.Proof({
       proof: MOCK_PROOF,

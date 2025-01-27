@@ -67,6 +67,9 @@ export class DynamicRuntimeProof extends DynamicProof<
   static publicInputType = Void;
 
   static publicOutputType = MethodPublicOutput;
+
+  // TODO this won't be 0 for proofs-as-args
+  static maxProofsVerified = 0 as const;
 }
 
 export interface BlockProvable
@@ -83,7 +86,7 @@ export interface BlockProvable
     publicInput: BlockProverPublicInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof,
+    // stateTransitionProof: StateTransitionProof,
     transactionProof: BlockProverProof
   ) => Promise<BlockProverPublicOutput>;
 

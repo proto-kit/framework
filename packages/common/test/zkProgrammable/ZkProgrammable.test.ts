@@ -39,7 +39,7 @@ class TestProgrammable extends ZkProgrammable<
   TestPublicInput,
   TestPublicOutput
 > {
-  public appChain: AreProofsEnabled = appChainMock;
+  public areProofsEnabled: AreProofsEnabled = appChainMock;
 
   @provableMethod()
   public async foo(publicInput: TestPublicInput, bar: Balance) {
@@ -97,7 +97,7 @@ class TestProgrammable extends ZkProgrammable<
 }
 
 class OtherTestProgrammable extends ZkProgrammable<undefined, void> {
-  public appChain: AreProofsEnabled = appChainMock;
+  public areProofsEnabled: AreProofsEnabled = appChainMock;
 
   public constructor(public testProgrammable: TestProgrammable) {
     super();
@@ -183,7 +183,7 @@ describe("zkProgrammable", () => {
     (areProofsEnabled, { verificationKey, shouldVerifyMockProofs }) => {
       beforeAll(async () => {
         testProgrammable = new TestProgrammable();
-        testProgrammable.appChain.setProofsEnabled(areProofsEnabled);
+        testProgrammable.areProofsEnabled.setProofsEnabled(areProofsEnabled);
         zkProgramFactorySpy = jest.spyOn(testProgrammable, "zkProgramFactory");
         artifact = await testProgrammable.zkProgram[0].compile();
       }, 500_000);

@@ -7,8 +7,8 @@ import { dummyVerificationKey } from "../dummyVerificationKey";
 import { MOCK_PROOF } from "./provableMethod";
 
 const errors = {
-  appChainNotSet: (name: string) =>
-    new Error(`Appchain was not injected for: ${name}`),
+  areProofsEnabledNotSet: (name: string) =>
+    new Error(`AreProofsEnabled was not injected for: ${name}`),
 };
 
 export interface CompileArtifact {
@@ -72,6 +72,8 @@ export function verifyToMockable<PublicInput, PublicOutput>(
       return verified;
     }
 
+    console.log("VerifyMocked");
+
     return proof.proof === MOCK_PROOF;
   };
 }
@@ -97,25 +99,29 @@ export abstract class ZkProgrammable<
   PublicInput = undefined,
   PublicOutput = void,
 > {
-  public abstract get appChain(): AreProofsEnabled | undefined;
+  public abstract get areProofsEnabled(): AreProofsEnabled | undefined;
 
   public abstract zkProgramFactory(): PlainZkProgram<
     PublicInput,
     PublicOutput
   >[];
 
+  private zkProgramSingleton?: PlainZkProgram<PublicInput, PublicOutput>[];
+
   @Memoize()
   public get zkProgram(): PlainZkProgram<PublicInput, PublicOutput>[] {
-    const zkProgram = this.zkProgramFactory();
+    if (this.zkProgramSingleton === undefined) {
+      this.zkProgramSingleton = this.zkProgramFactory();
+    }
 
-    return zkProgram.map((bucket) => {
-      if (!this.appChain) {
-        throw errors.appChainNotSet(this.constructor.name);
+    return this.zkProgramSingleton.map((bucket) => {
+      if (!this.areProofsEnabled) {
+        throw errors.areProofsEnabledNotSet(this.constructor.name);
       }
       return {
         ...bucket,
-        verify: verifyToMockable(bucket.verify, this.appChain),
-        compile: compileToMockable(bucket.compile, this.appChain),
+        verify: verifyToMockable(bucket.verify, this.areProofsEnabled),
+        compile: compileToMockable(bucket.compile, this.areProofsEnabled),
       };
     });
   }

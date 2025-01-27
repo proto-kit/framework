@@ -94,7 +94,7 @@ export class SettlementContractModule<
   // ** For protocol module
   public protocol?: ProtocolEnvironment;
 
-  public get appChain(): AreProofsEnabled | undefined {
+  public get areProofsEnabled(): AreProofsEnabled | undefined {
     return this.protocol?.getAreProofsEnabled();
   }
   // **

@@ -30,7 +30,7 @@ import {
   ProofTaskSerializer,
   DynamicProofTaskSerializer,
 } from "../../helpers/utils";
-import { CompileRegistry } from "../../protocol/production/tasks/CompileRegistry";
+import { CompileRegistry } from "../../protocol/production/helpers/CompileRegistry";
 import { Task, TaskSerializer } from "../../worker/flow/Task";
 import { TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
 
