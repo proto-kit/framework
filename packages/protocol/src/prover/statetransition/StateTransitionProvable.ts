@@ -11,14 +11,14 @@ export class StateTransitionProverPublicInput extends Struct({
   batchesHash: Field,
   currentBatchStateHash: Field,
   root: Field,
-  rootAccumulator: Field,
+  witnessedRootsHash: Field,
 }) {}
 
 export class StateTransitionProverPublicOutput extends Struct({
   batchesHash: Field,
   currentBatchStateHash: Field,
   root: Field,
-  rootAccumulator: Field,
+  witnessedRootsHash: Field,
 }) {}
 
 export type StateTransitionProof = Proof<

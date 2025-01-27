@@ -103,7 +103,7 @@ export class StateTransitionTracingService {
 
     const batchList = new AppliedBatchHashList(Field(0));
     let currentSTList = new DefaultProvableHashList(ProvableStateTransition);
-    const rootAccumulator = new DefaultProvableHashList<WitnessedRoot>(
+    const witnessedRootsList = new DefaultProvableHashList<WitnessedRoot>(
       WitnessedRoot
     );
 
@@ -122,7 +122,7 @@ export class StateTransitionTracingService {
         batchesHash: batchList.commitment,
         currentBatchStateHash: batchState.hashOrZero(),
         root: finalizedStateRoot,
-        rootAccumulator: rootAccumulator.commitment,
+        witnessedRootsHash: witnessedRootsList.commitment,
       };
 
       const witnesses = await mapSequential(
@@ -180,7 +180,7 @@ export class StateTransitionTracingService {
             });
 
             if (witnessRoot.toBoolean()) {
-              rootAccumulator.push({
+              witnessedRootsList.push({
                 root: finalizedStateRoot,
                 appliedBatchListState: batchList.commitment,
               });

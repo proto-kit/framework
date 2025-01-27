@@ -80,7 +80,7 @@ describe("StateTransitionProver", () => {
         const result = await prover.proveBatch(
           {
             root: tree.getRoot(),
-            rootAccumulator: Field(0),
+            witnessedRootsHash: Field(0),
             batchesHash: Field(0),
             currentBatchStateHash: Field(0),
           },
@@ -117,7 +117,7 @@ describe("StateTransitionProver", () => {
         await prover.proveBatch(
           {
             root: Field(RollupMerkleTree.EMPTY_ROOT),
-            rootAccumulator: Field(0),
+            witnessedRootsHash: Field(0),
             batchesHash: Field(0),
             currentBatchStateHash: Field(0),
           },
@@ -163,7 +163,7 @@ describe("StateTransitionProver", () => {
         await prover.proveBatch(
           {
             root: inputRoot,
-            rootAccumulator: Field(0),
+            witnessedRootsHash: Field(0),
             batchesHash: Field(0),
             currentBatchStateHash: Field(0),
           },
@@ -219,7 +219,7 @@ describe("StateTransitionProver", () => {
       const result = await prover.proveBatch(
         {
           root: Field(RollupMerkleTree.EMPTY_ROOT),
-          rootAccumulator: Field(0),
+          witnessedRootsHash: Field(0),
           batchesHash: Field(0),
           currentBatchStateHash: Field(0),
         },

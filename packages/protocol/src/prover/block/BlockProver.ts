@@ -477,11 +477,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
     apply: Bool,
     stateRoot: Field,
     pendingSTBatchesHash: Field,
-    rootAccumulator: Field
+    witnessedRootsHash: Field
   ): {
     stateRoot: Field;
     pendingSTBatchesHash: Field;
-    rootAccumulator: Field;
+    witnessedRootsHash: Field;
   } {
     assertEqualsIf(
       stateTransitionProof.publicInput.currentBatchStateHash,
@@ -521,14 +521,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Assert root Accumulator
     assertEqualsIf(
       Field(0),
-      stateTransitionProof.publicInput.rootAccumulator,
+      stateTransitionProof.publicInput.witnessedRootsHash,
       apply,
       errors.propertyNotMatching("from state root")
     );
-    // Assert the rootAccumulator created is the same
+    // Assert the witnessedRootsHash created is the same
     assertEqualsIf(
-      rootAccumulator,
-      stateTransitionProof.publicOutput.rootAccumulator,
+      witnessedRootsHash,
+      stateTransitionProof.publicOutput.witnessedRootsHash,
       apply,
       "Root accumulator Commitment is not the same that have been executed by the ST proof"
     );
@@ -541,11 +541,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
     // Reset only if we didn't defer
     const newBatchesHash = Provable.if(apply, Field(0), pendingSTBatchesHash);
-    const newRootAccumulator = Provable.if(apply, Field(0), rootAccumulator);
+    const newWitnessedRootsHash = Provable.if(
+      apply,
+      Field(0),
+      witnessedRootsHash
+    );
     return {
       stateRoot: newRoot,
       pendingSTBatchesHash: newBatchesHash,
-      rootAccumulator: newRootAccumulator,
+      witnessedRootsHash: newWitnessedRootsHash,
     };
   }
 
@@ -723,7 +727,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
     state.stateRoot = stateProofResult.stateRoot;
     state.pendingSTBatches.commitment = stateProofResult.pendingSTBatchesHash;
-    state.witnessedRoots.commitment = stateProofResult.rootAccumulator;
+    state.witnessedRoots.commitment = stateProofResult.witnessedRootsHash;
 
     state.blockNumber = blockIndex.add(1);
 
@@ -823,13 +827,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
       errors.transactionsHashNotMatching("proof1.to -> proof2.from")
     );
 
-    // Check rootAccumulator
-    publicInput.rootAccumulator.assertEquals(
-      proof1.publicInput.rootAccumulator,
+    // Check witnessedRootsHash
+    publicInput.witnessedRootsHash.assertEquals(
+      proof1.publicInput.witnessedRootsHash,
       errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
     );
-    proof1.publicOutput.rootAccumulator.assertEquals(
-      proof2.publicInput.rootAccumulator,
+    proof1.publicOutput.witnessedRootsHash.assertEquals(
+      proof2.publicInput.witnessedRootsHash,
       errors.transactionsHashNotMatching("proof1.to -> proof2.from")
     );
 
@@ -889,7 +893,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       closed: isValidClosedMerge,
       blockNumber: proof2.publicOutput.blockNumber,
       pendingSTBatchesHash: proof2.publicOutput.pendingSTBatchesHash,
-      rootAccumulator: proof2.publicOutput.rootAccumulator,
+      witnessedRootsHash: proof2.publicOutput.witnessedRootsHash,
     });
   }
 

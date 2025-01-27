@@ -44,7 +44,7 @@ interface StateTransitionProverExecutionState {
   currentBatch: AppliedStateTransitionBatchState;
   batchList: AppliedBatchHashList;
   finalizedRoot: Field;
-  rootAccumulator: WitnessedRootHashList;
+  witnessedRoots: WitnessedRootHashList;
 }
 
 const StateTransitionSelfProofClass = SelfProof<
@@ -201,7 +201,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       witnessRoot
         .implies(closing)
         .assertTrue("Can only witness roots at closing batches");
-      state.rootAccumulator.pushIf(
+      state.witnessedRoots.pushIf(
         {
           root: state.finalizedRoot,
           appliedBatchListState: state.batchList.commitment,
@@ -321,7 +321,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       batchList: new AppliedBatchHashList(publicInput.batchesHash),
       currentBatch: currentAppliedBatch,
       finalizedRoot: publicInput.root,
-      rootAccumulator: new WitnessedRootHashList(publicInput.rootAccumulator),
+      witnessedRoots: new WitnessedRootHashList(publicInput.witnessedRootsHash),
     };
 
     const result = this.applyTransitions(state, batch, witnesses);
@@ -330,7 +330,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       batchesHash: result.batchList.commitment,
       currentBatchStateHash: result.currentBatch.hashOrZero(),
       root: result.finalizedRoot,
-      rootAccumulator: result.rootAccumulator.commitment,
+      witnessedRootsHash: result.witnessedRoots.commitment,
     });
   }
 
@@ -383,23 +383,26 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     );
 
     // Check root accumulator
-    publicInput.rootAccumulator.assertEquals(
-      proof1.publicInput.rootAccumulator,
+    publicInput.witnessedRootsHash.assertEquals(
+      proof1.publicInput.witnessedRootsHash,
       errors.propertyNotMatching(
-        "rootAccumulator",
+        "witnessedRootsHash",
         "publicInput.from -> proof1.from"
       )
     );
-    proof1.publicOutput.rootAccumulator.assertEquals(
-      proof2.publicInput.rootAccumulator,
-      errors.propertyNotMatching("rootAccumulator", "proof1.to -> proof2.from")
+    proof1.publicOutput.witnessedRootsHash.assertEquals(
+      proof2.publicInput.witnessedRootsHash,
+      errors.propertyNotMatching(
+        "witnessedRootsHash",
+        "proof1.to -> proof2.from"
+      )
     );
 
     return new StateTransitionProverPublicInput({
       currentBatchStateHash: proof2.publicOutput.currentBatchStateHash,
       batchesHash: proof2.publicOutput.batchesHash,
       root: proof2.publicOutput.root,
-      rootAccumulator: proof2.publicOutput.rootAccumulator,
+      witnessedRootsHash: proof2.publicOutput.witnessedRootsHash,
     });
   }
 }

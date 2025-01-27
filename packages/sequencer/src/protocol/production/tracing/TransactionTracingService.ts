@@ -93,7 +93,7 @@ export class TransactionTracingService {
       eternalTransactionsHash: previousState.eternalTransactionsList.commitment,
       incomingMessagesHash: previousState.incomingMessages.commitment,
       networkStateHash: previousState.networkState.hash(),
-      rootAccumulator: previousState.witnessedRoots.commitment,
+      witnessedRootsHash: previousState.witnessedRoots.commitment,
       pendingSTBatchesHash: previousState.pendingSTBatches.commitment,
       blockHashRoot: Field(0),
       blockNumber: MAX_FIELD,

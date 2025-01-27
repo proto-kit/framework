@@ -58,7 +58,7 @@ export class BlockTracingService {
       incomingMessagesHash: block.block.fromMessagesHash,
       transactionsHash: Field(0),
       networkStateHash: block.block.networkState.before.hash(),
-      rootAccumulator: state.witnessedRoots.commitment,
+      witnessedRootsHash: state.witnessedRoots.commitment,
       pendingSTBatchesHash: state.pendingSTBatches.commitment,
     });
 

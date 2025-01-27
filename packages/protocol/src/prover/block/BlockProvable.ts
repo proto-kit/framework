@@ -72,7 +72,7 @@ export class BlockProverStateCommitments extends Struct({
   stateRoot: Field,
   // Commitment to the list of unprocessed (pending) batches of STs that need to be proven
   pendingSTBatchesHash: Field,
-  rootAccumulator: Field,
+  witnessedRootsHash: Field,
   networkStateHash: Field,
   blockHashRoot: Field,
   eternalTransactionsHash: Field,
@@ -91,7 +91,7 @@ export class BlockProverStateCommitments extends Struct({
       transactionsHash: state.transactionList.commitment,
       eternalTransactionsHash: state.eternalTransactionsList.commitment,
       incomingMessagesHash: state.incomingMessages.commitment,
-      rootAccumulator: state.witnessedRoots.commitment,
+      witnessedRootsHash: state.witnessedRoots.commitment,
     };
   }
 
@@ -118,7 +118,7 @@ export class BlockProverStateCommitments extends Struct({
       pendingSTBatches: new AppliedBatchHashList(
         publicInput.pendingSTBatchesHash
       ),
-      witnessedRoots: new WitnessedRootHashList(publicInput.rootAccumulator),
+      witnessedRoots: new WitnessedRootHashList(publicInput.witnessedRootsHash),
       blockNumber: publicInput.blockNumber,
     };
   }
@@ -130,7 +130,7 @@ export class BlockProverPublicOutput extends Struct({
   transactionsHash: Field,
   stateRoot: Field,
   pendingSTBatchesHash: Field,
-  rootAccumulator: Field,
+  witnessedRootsHash: Field,
   networkStateHash: Field,
   blockHashRoot: Field,
   eternalTransactionsHash: Field,

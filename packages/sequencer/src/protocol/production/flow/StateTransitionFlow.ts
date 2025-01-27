@@ -34,7 +34,7 @@ export class StateTransitionFlow {
       root: Field(0),
       currentBatchStateHash: Field(0),
       batchesHash: Field(0),
-      rootAccumulator: Field(0),
+      witnessedRootsHash: Field(0),
     };
 
     return await this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof.dummy(
@@ -56,8 +56,8 @@ export class StateTransitionFlow {
           a.publicOutput.root
             .equals(b.publicInput.root)
             .and(
-              a.publicOutput.rootAccumulator.equals(
-                b.publicInput.rootAccumulator
+              a.publicOutput.witnessedRootsHash.equals(
+                b.publicInput.witnessedRootsHash
               )
             )
             .and(

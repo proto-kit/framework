@@ -211,23 +211,23 @@ describe("StateTransitionTracingService", () => {
         batchList.commitment.toString()
       );
 
-      const rootAccumulator = new WitnessedRootHashList();
+      const witnessedRootsList = new WitnessedRootHashList();
       const tempTree = await applyBatchesToTree(
         batch.slice(0, 2),
         new CachedMerkleTreeStore(store)
       );
 
-      rootAccumulator.push({
+      witnessedRootsList.push({
         root: tempTree.getRoot(),
         appliedBatchListState: tempBatchListHash,
       });
-      rootAccumulator.push({
+      witnessedRootsList.push({
         root: tree.getRoot(),
         appliedBatchListState: batchList.commitment,
       });
 
-      expect(trace[1].publicInput.rootAccumulator.toString()).toStrictEqual(
-        rootAccumulator.commitment.toString()
+      expect(trace[1].publicInput.witnessedRootsHash.toString()).toStrictEqual(
+        witnessedRootsList.commitment.toString()
       );
     });
   });
@@ -272,8 +272,8 @@ describe("StateTransitionTracingService", () => {
     });
 
     it("check rootAccumulator is zero", () => {
-      expect(trace1[0].publicInput.rootAccumulator.toString()).toBe("0");
-      expect(trace2[0].publicInput.rootAccumulator.toString()).toBe("0");
+      expect(trace1[0].publicInput.witnessedRootsHash.toString()).toBe("0");
+      expect(trace2[0].publicInput.witnessedRootsHash.toString()).toBe("0");
     });
 
     it("check currentBatchHash is zero", () => {
