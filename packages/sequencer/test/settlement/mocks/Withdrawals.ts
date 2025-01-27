@@ -1,14 +1,13 @@
 import {
   RuntimeEvents,
+  runtimeMethod,
   runtimeModule,
   RuntimeModule,
   state,
 } from "@proto-kit/module";
 import { StateMap, Withdrawal } from "@proto-kit/protocol";
-import { Field, PublicKey, Struct } from "o1js";
+import { Field, PublicKey, Struct, UInt64 } from "o1js";
 import { inject } from "tsyringe";
-
-import { UInt64 } from "../math/UInt64";
 
 import { Balances } from "./Balances";
 
@@ -56,6 +55,7 @@ export class Withdrawals extends RuntimeModule {
     });
   }
 
+  @runtimeMethod()
   public async withdraw(address: PublicKey, amount: UInt64, tokenId: Field) {
     const balance = await this.balances.getBalance(tokenId, address);
 
@@ -74,7 +74,7 @@ export class Withdrawals extends RuntimeModule {
       new Withdrawal({
         address,
         // Has to be o1js UInt since the withdrawal will be processed in a o1js SmartContract
-        amount: amount.toO1UInt64(),
+        amount: amount,
         tokenId: tokenId,
       })
     );

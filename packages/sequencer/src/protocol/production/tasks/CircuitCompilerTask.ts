@@ -7,7 +7,10 @@ import { TaskSerializer } from "../../../worker/flow/Task";
 import { VKRecord } from "../../runtime/RuntimeVerificationKeyService";
 import { UnpreparingTask } from "../../../worker/flow/UnpreparingTask";
 
-type VKRecordLite = Record<string, { vk: string; index: string }>;
+type VKRecordLite = Record<
+  string,
+  { vk: { hash: string; data: string }; index: string }
+>;
 
 export class DefaultSerializer implements TaskSerializer<undefined> {
   public toJSON(parameters: undefined): string {
@@ -19,10 +22,6 @@ export class DefaultSerializer implements TaskSerializer<undefined> {
   }
 }
 
-function vkMaker(input: { data: string; hash: string }): VerificationKey {
-  return new VerificationKey({ data: input.data, hash: Field(input.hash) });
-}
-
 export class VKResultSerializer implements TaskSerializer<VKRecord> {
   public toJSON(input: VKRecord): string {
     const temp: VKRecordLite = Object.keys(input).reduce<VKRecordLite>(
@@ -30,10 +29,10 @@ export class VKResultSerializer implements TaskSerializer<VKRecord> {
         return {
           ...accum,
           [key]: {
-            vk:
-              input[key].vk.data === "mock-verification-key"
-                ? JSON.stringify(input[key].vk)
-                : VerificationKey.toJSON(input[key].vk).toString(),
+            vk: {
+              hash: input[key].vk.hash.toString(),
+              data: input[key].vk.data,
+            },
             index: input[key].index.toString(),
           },
         };
@@ -50,11 +49,10 @@ export class VKResultSerializer implements TaskSerializer<VKRecord> {
       return {
         ...accum,
         [key]: {
-          vk:
-            JSON.parse(temp[key].vk).data === "mock-verification-key"
-              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                vkMaker(JSON.parse(temp[key].vk))
-              : VerificationKey.fromJSON(temp[key].vk),
+          vk: new VerificationKey({
+            data: temp[key].vk.data,
+            hash: Field(temp[key].vk.hash),
+          }),
           index: BigInt(temp[key].index),
         },
       };

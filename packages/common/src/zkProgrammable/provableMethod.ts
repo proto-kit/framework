@@ -15,6 +15,7 @@ export type ArgumentTypes = (
 export type DecoratedMethod = (...args: ArgumentTypes) => Promise<unknown>;
 
 export const MOCK_PROOF = "mock-proof";
+// (await Proof.dummy(Field(0), Field(0), 2)).proof as string;
 
 export function toProver(
   methodName: string,

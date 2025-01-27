@@ -17,6 +17,27 @@ export function requireTrue(
   }
 }
 
+/**
+ * Utility function to split an array of type T into a record <K, T[]> based on a
+ * function T => K that determines the key of each record
+ */
+export function splitArray<T, K extends string | number>(
+  arr: T[],
+  split: (t: T) => K
+): Record<K, T[] | undefined> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const record = {} as { [Key in K]: T[] };
+  arr.forEach((element) => {
+    const k = split(element);
+    if (record[k] !== undefined) {
+      record[k].push(element);
+    } else {
+      record[k] = [element];
+    }
+  });
+  return record;
+}
+
 export function range(
   startOrEnd: number,
   endOrNothing?: number | undefined
@@ -52,7 +73,7 @@ export function reduceSequential<T, U>(
 export function mapSequential<T, R>(
   array: T[],
   f: (element: T, index: number, array: T[]) => Promise<R>
-) {
+): Promise<R[]> {
   return array.reduce<Promise<R[]>>(async (r, element, index, a) => {
     const ret = await r;
     const next = await f(element, index, a);
