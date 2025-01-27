@@ -60,6 +60,7 @@ export class BullQueue
           await this.activePromise;
         }
         let resOutside: () => void = () => {};
+        // TODO Use Promise.withResolvers() for that
         const promise = new Promise<void>((res) => {
           resOutside = res;
         });

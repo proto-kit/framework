@@ -13,9 +13,7 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { BatchStorage } from "../../storage/repositories/BatchStorage";
 import { SettleableBatch } from "../../storage/model/Batch";
-import { CachedStateService } from "../../state/state/CachedStateService";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
-import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockWithResult } from "../../storage/model/Block";
 
@@ -27,8 +25,9 @@ export type StateRecord = Record<string, Field[] | undefined>;
 
 interface BatchMetadata {
   batch: SettleableBatch;
-  stateService: CachedStateService;
-  merkleStore: CachedMerkleTreeStore;
+  changes: {
+    commit: () => Promise<void>;
+  };
 }
 
 const errors = {
@@ -49,8 +48,6 @@ export class BatchProducerModule extends SequencerModule {
   private productionInProgress = false;
 
   public constructor(
-    @inject("AsyncStateService")
-    private readonly asyncStateService: AsyncStateService,
     @inject("AsyncMerkleStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
@@ -59,11 +56,6 @@ export class BatchProducerModule extends SequencerModule {
     private readonly batchTraceService: BatchTracingService
   ) {
     super();
-  }
-
-  private async applyStateChanges(batch: BatchMetadata) {
-    await batch.stateService.mergeIntoParent();
-    await batch.merkleStore.mergeIntoParent();
   }
 
   /**
@@ -89,8 +81,11 @@ export class BatchProducerModule extends SequencerModule {
         `Batch produced (${batchWithStateDiff.batch.blockHashes.length} blocks, ${numTxs} txs)`
       );
 
-      // Apply state changes to current StateService
-      await this.applyStateChanges(batchWithStateDiff);
+      // Apply state changes to current MerkleTreeStore
+      await batchWithStateDiff.changes.commit();
+
+      // TODO Add transition from unproven to proven state for stateservice
+      //  This needs proper DB-level masking
     }
     return batchWithStateDiff?.batch;
   }
@@ -158,8 +153,7 @@ export class BatchProducerModule extends SequencerModule {
         toNetworkState: batch.toNetworkState,
       },
 
-      stateService: batch.stateService,
-      merkleStore: batch.merkleStore,
+      changes: batch.changes,
     };
   }
 
@@ -181,9 +175,9 @@ export class BatchProducerModule extends SequencerModule {
     blockId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-    // TODO Return State services as commit-only object
-    stateService: CachedStateService;
-    merkleStore: CachedMerkleTreeStore;
+    changes: {
+      commit: () => Promise<void>;
+    };
     fromNetworkState: NetworkState;
     toNetworkState: NetworkState;
   }> {
@@ -191,15 +185,11 @@ export class BatchProducerModule extends SequencerModule {
       throw errors.blockWithoutTxs();
     }
 
-    const stateServices = {
-      // TODO Remove stateService
-      stateService: new CachedStateService(this.asyncStateService),
-      merkleTreeStore: new CachedMerkleTreeStore(this.merkleStore),
-    };
+    const merkleTreeStore = new CachedMerkleTreeStore(this.merkleStore);
 
     const trace = await this.batchTraceService.traceBatch(
       blocks.map((block) => block),
-      stateServices
+      merkleTreeStore
     );
 
     const proof = await this.batchFlow.executeBatch(trace, blockId);
@@ -207,10 +197,13 @@ export class BatchProducerModule extends SequencerModule {
     const fromNetworkState = blocks[0].block.networkState.before;
     const toNetworkState = blocks.at(-1)!.result.afterNetworkState;
 
+    const changes = {
+      commit: merkleTreeStore.commit,
+    };
+
     return {
       proof,
-      stateService: stateServices.stateService,
-      merkleStore: stateServices.merkleTreeStore,
+      changes,
       fromNetworkState,
       toNetworkState,
     };

@@ -73,23 +73,19 @@ export class BatchTracingService {
 
   public async traceStateTransitions(
     blocks: BlockWithResult[],
-    stateServices: {
-      merkleTreeStore: CachedMerkleTreeStore;
-    }
+    merkleTreeStore: CachedMerkleTreeStore
   ) {
     const batches = this.stateTransitionTracingService.extractSTBatches(blocks);
 
     return await this.stateTransitionTracingService.createMerkleTrace(
-      stateServices.merkleTreeStore,
+      merkleTreeStore,
       batches
     );
   }
 
   public async traceBatch(
     blocks: BlockWithResult[],
-    stateServices: {
-      merkleTreeStore: CachedMerkleTreeStore;
-    },
+    merkleTreeStore: CachedMerkleTreeStore,
     // TODO Implement and then also test
     parallel: boolean = false
   ): Promise<BatchTrace> {
@@ -102,7 +98,7 @@ export class BatchTracingService {
     // Trace STs
     const stateTransitionTrace = await this.traceStateTransitions(
       blocks,
-      stateServices
+      merkleTreeStore
     );
 
     return {
