@@ -5,17 +5,15 @@ import {
   ModulesRecord,
   TypedClass,
   noop,
+  StringKeyOf,
 } from "@proto-kit/common";
-import { PublicKey, SmartContract } from "o1js";
+import { Field, PublicKey, SmartContract } from "o1js";
 import { injectable } from "tsyringe";
 
 import { ProtocolEnvironment } from "../protocol/ProtocolEnvironment";
 import { ProtocolModule } from "../protocol/ProtocolModule";
 
-import {
-  ContractModule,
-  SmartContractClassFromInterface,
-} from "./ContractModule";
+import { ContractModule } from "./ContractModule";
 import { DispatchContractProtocolModule } from "./contracts/DispatchContractProtocolModule";
 import { DispatchContractType } from "./contracts/DispatchSmartContract";
 import {
@@ -23,21 +21,24 @@ import {
   SettlementContractProtocolModule,
 } from "./contracts/SettlementContractProtocolModule";
 import { SettlementContractType } from "./contracts/SettlementSmartContract";
+import { BridgeContractType } from "./contracts/BridgeContract";
+import {
+  BridgeContractConfig,
+  BridgeContractProtocolModule,
+} from "./contracts/BridgeContractProtocolModule";
+import { GetContracts } from "./modularity/types";
 
 export type SettlementModulesRecord = ModulesRecord<
-  TypedClass<ContractModule<unknown, unknown, unknown>>
+  TypedClass<ContractModule<unknown, unknown>>
 >;
 
 export type MandatorySettlementModulesRecord = {
   SettlementContract: TypedClass<
-    ContractModule<
-      SettlementContractType,
-      SmartContractClassFromInterface<DispatchContractType>,
-      SettlementContractConfig
-    >
+    ContractModule<SettlementContractType, SettlementContractConfig>
   >;
-  DispatchContract: TypedClass<
-    ContractModule<DispatchContractType, unknown, unknown>
+  DispatchContract: TypedClass<ContractModule<DispatchContractType, unknown>>;
+  BridgeContract: TypedClass<
+    ContractModule<BridgeContractType, BridgeContractConfig>
   >;
 };
 
@@ -66,17 +67,33 @@ export class SettlementContractModule<
     };
   }
 
-  public static fromDefaults() {
-    return SettlementContractModule.from({
+  public static mandatoryModules() {
+    return {
       SettlementContract: SettlementContractProtocolModule,
       DispatchContract: DispatchContractProtocolModule,
-    });
+      BridgeContract: BridgeContractProtocolModule,
+    } as const;
+  }
+
+  public static fromDefaults() {
+    return SettlementContractModule.from(
+      SettlementContractModule.mandatoryModules()
+    );
+  }
+
+  public static with<AdditionalModules extends SettlementModulesRecord>(
+    additionalModules: AdditionalModules
+  ) {
+    return SettlementContractModule.from({
+      ...SettlementContractModule.mandatoryModules(),
+      ...additionalModules,
+    } as const);
   }
 
   // ** For protocol module
   public protocol?: ProtocolEnvironment;
 
-  public get appChain(): AreProofsEnabled | undefined {
+  public get areProofsEnabled(): AreProofsEnabled | undefined {
     return this.protocol?.getAreProofsEnabled();
   }
   // **
@@ -89,25 +106,14 @@ export class SettlementContractModule<
     noop();
   }
 
-  public getContractClasses(): {
-    settlement: SmartContractClassFromInterface<SettlementContractType>;
-    dispatch: SmartContractClassFromInterface<DispatchContractType>;
-  } {
-    const settlementContractKey = "SettlementContract";
-    const dispatchContractKey = "DispatchContract";
-    this.assertIsValidModuleName(settlementContractKey);
-    this.assertIsValidModuleName(dispatchContractKey);
-
-    const settlementModule = this.resolve(settlementContractKey);
-    const dispatchModule = this.resolve(dispatchContractKey);
-
-    const dispatch = dispatchModule.contractFactory(undefined);
-    const settlement = settlementModule.contractFactory(dispatch);
-
-    return {
-      settlement,
-      dispatch,
-    };
+  public getContractClasses(): GetContracts<SettlementModules> {
+    const contracts =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      (this.moduleNames as StringKeyOf<SettlementModules>[]).map((name) => {
+        const module = this.resolve(name);
+        return [name, module.contractFactory()];
+      });
+    return Object.fromEntries(contracts);
   }
 
   public createContracts(addresses: {
@@ -117,16 +123,23 @@ export class SettlementContractModule<
     settlement: SettlementContractType & SmartContract;
     dispatch: DispatchContractType & SmartContract;
   } {
-    const { dispatch, settlement } = this.getContractClasses();
+    const { DispatchContract, SettlementContract } = this.getContractClasses();
 
-    // eslint-disable-next-line new-cap
-    const dispatchInstance = new dispatch(addresses.dispatch);
-    // eslint-disable-next-line new-cap
-    const settlementInstance = new settlement(addresses.settlement);
+    const dispatchInstance = new DispatchContract(addresses.dispatch);
+    const settlementInstance = new SettlementContract(addresses.settlement);
 
     return {
       dispatch: dispatchInstance,
       settlement: settlementInstance,
     };
+  }
+
+  public createBridgeContract(
+    address: PublicKey,
+    tokenId?: Field
+  ): BridgeContractType & SmartContract {
+    const { BridgeContract } = this.getContractClasses();
+
+    return new BridgeContract(address, tokenId);
   }
 }

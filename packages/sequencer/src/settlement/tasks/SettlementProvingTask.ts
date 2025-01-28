@@ -1,7 +1,10 @@
 import {
   filterNonUndefined,
-  MOCK_PROOF,
   AreProofsEnabled,
+  log,
+  CompileRegistry,
+  mapSequential,
+  safeParseJson,
 } from "@proto-kit/common";
 import {
   MandatoryProtocolModulesRecord,
@@ -20,6 +23,10 @@ import {
   DynamicProof,
   Transaction,
   Void,
+  SmartContract,
+  ProofBase,
+  AccountUpdateForest,
+  AccountUpdate,
 } from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
@@ -27,9 +34,10 @@ import {
   ProofTaskSerializer,
   DynamicProofTaskSerializer,
 } from "../../helpers/utils";
-import { CompileRegistry } from "../../protocol/production/tasks/CompileRegistry";
 import { Task, TaskSerializer } from "../../worker/flow/Task";
 import { TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
+
+import { ContractRegistry } from "./ContractRegistry";
 
 type Account = ReturnType<typeof Mina.getAccount>;
 
@@ -71,6 +79,8 @@ export class SettlementProvingTask
     | SettlementContractModule<MandatorySettlementModulesRecord>
     | undefined = undefined;
 
+  private contractRegistry?: ContractRegistry;
+
   public constructor(
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
@@ -97,7 +107,7 @@ export class SettlementProvingTask
     // For this, we assume that remote networks will only be used with separate
     // worker instances, since they only work with proofs enabled. For
     // LocalBlockchain, caching is not used, as ledger is used directly and all
-    // txs are executed seequentially.
+    // txs are executed sequentially.
     // Therefore, we only need to manually add the accounts for remote networks
 
     if (graphql !== undefined) {
@@ -124,14 +134,16 @@ export class SettlementProvingTask
     const { transaction, chainState } = input;
 
     const provenTx = await this.withCustomInstance(chainState, async () => {
-      return await transaction.prove();
+      log.info(`Proving tx "${transaction.transaction.memo}"`);
+      const proven = await transaction.prove();
+      log.info("Proven!");
+      return proven;
     });
 
     return { transaction: provenTx };
   }
 
-  // Subclass<typeof ProofBase> is not exported
-  private getProofSerializer(proofType: Subclass<any>) {
+  private getProofSerializer(proofType: Subclass<typeof ProofBase>) {
     return proofType.prototype instanceof Proof
       ? new ProofTaskSerializer(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -147,8 +159,7 @@ export class SettlementProvingTask
     type AccountJson = ReturnType<typeof Types.Account.toJSON>;
     type LazyProofJson = {
       methodName: string;
-      args: (string[] | string)[];
-      previousProofs: string[];
+      args: ({ fields: string[]; aux: string[] } | string)[];
       zkappClassName: string;
       memoized: { fields: string[]; aux: any[] }[];
       blindingValue: string;
@@ -180,18 +191,19 @@ export class SettlementProvingTask
             // For that we need to retrieve a few things. Most prominently,
             // we need to get the contract class corresponding to that proof
 
-            const SmartContract = this.compileRegistry.getContractClassByName(
-              lazyProof.zkappClassName
-            );
+            const SmartContractClass =
+              this.contractRegistry!.getContractClassByName(
+                lazyProof.zkappClassName
+              );
 
-            if (SmartContract === undefined) {
+            if (SmartContractClass === undefined) {
               throw new Error(
-                `SmartContract class with name ${lazyProof.zkappClassName} not found in CompileRegistry`
+                `SmartContract class with name ${lazyProof.zkappClassName} not found in ContractRegistry`
               );
             }
 
             // eslint-disable-next-line no-underscore-dangle
-            const method = SmartContract._methods?.find(
+            const method = SmartContractClass._methods?.find(
               (methodInterface) =>
                 methodInterface.methodName === lazyProof.methodName
             );
@@ -204,45 +216,63 @@ export class SettlementProvingTask
             const proofTypes = method.proofArgs;
             let proofsDecoded = 0;
 
-            const args = lazyProof.args.map((encodedArg, argsIndex) => {
-              if (allArgs[argsIndex].type === "witness") {
-                // encodedArg is string[]
-                return witnessArgTypes[argsIndex - proofsDecoded].fromFields(
-                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                  (encodedArg as string[]).map((field) => Field(field)),
-                  []
-                );
-              }
-              // fields is JsonProof
-              const serializer = this.getProofSerializer(
-                proofTypes[proofsDecoded]
-              );
-
-              proofsDecoded += 1;
-              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-              return serializer.fromJSON(encodedArg as string);
-            });
-
             // eslint-disable-next-line no-await-in-loop
-            const previousProofs = await Promise.all(
-              lazyProof.previousProofs.map(async (proofString) => {
-                if (proofString === MOCK_PROOF) {
-                  return MOCK_PROOF;
-                }
+            const args = await mapSequential(
+              lazyProof.args,
+              async (encodedArg, argsIndex) => {
+                if (allArgs[argsIndex].type === "witness") {
+                  const argType = witnessArgTypes[argsIndex - proofsDecoded];
+                  // encodedArg is this type
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  const arg = encodedArg as { fields: string[]; aux: string[] };
 
-                const p = await SomeProofSubclass.fromJSON({
-                  maxProofsVerified: 0,
-                  publicInput: ["0"],
-                  publicOutput: [],
-                  proof: proofString,
-                });
-                return p.proof;
-              })
+                  // Special case for AccountUpdateForest
+                  if (
+                    arg.aux.length > 0 &&
+                    JSON.parse(arg.aux[0]).typeName === "AccountUpdateForest"
+                  ) {
+                    const [accountUpdatesJSON] = arg.aux.map((aux) =>
+                      safeParseJson<{
+                        accountUpdates: Types.Json.AccountUpdate[];
+                        typeName: "AccountUpdateForest";
+                      }>(aux)
+                    );
+                    const accountUpdates =
+                      accountUpdatesJSON.accountUpdates.map((auJSON) =>
+                        AccountUpdate.fromJSON(auJSON)
+                      );
+                    return AccountUpdateForest.fromFlatArray(accountUpdates);
+                  }
+
+                  return argType.fromFields(
+                    arg.fields.map((field) => Field(field)),
+                    arg.aux.map((auxI) => JSON.parse(auxI))
+                  );
+                }
+                // fields is JsonProof
+                const serializer = this.getProofSerializer(
+                  proofTypes[proofsDecoded]
+                );
+
+                proofsDecoded += 1;
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                return await serializer.fromJSON(encodedArg as string);
+              }
+            );
+
+            const proofArgIndizes = allArgs
+              .filter((arg) => arg.type === "proof")
+              .map((arg) => arg.index);
+
+            const previousProofs = proofArgIndizes.map(
+              (argIndex) =>
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                (args[argIndex] as ProofBase<unknown, unknown>).proof
             );
 
             transaction.transaction.accountUpdates[index].lazyAuthorization = {
               methodName: lazyProof.methodName,
-              ZkappClass: SmartContract,
+              ZkappClass: SmartContractClass,
               args,
               previousProofs: previousProofs,
               blindingValue: Field(lazyProof.blindingValue),
@@ -281,7 +311,7 @@ export class SettlementProvingTask
                   throw new Error("Method interface not found");
                 }
 
-                const allArgs = method.allArgs.slice(2); // .filter(arg => arg.type === "witness");
+                const allArgs = method.allArgs.slice(2);
                 const witnessArgTypes = method.witnessArgs.slice(2);
                 const proofTypes = method.proofArgs;
                 let proofsEncoded = 0;
@@ -289,9 +319,38 @@ export class SettlementProvingTask
                 const encodedArgs = lazyProof.args
                   .map((arg, index) => {
                     if (allArgs[index].type === "witness") {
-                      return witnessArgTypes[index - proofsEncoded]
+                      const witnessType =
+                        witnessArgTypes[index - proofsEncoded];
+
+                      // Special case for AUForest
+                      if (arg instanceof AccountUpdateForest) {
+                        const accountUpdates = AccountUpdateForest.toFlatArray(
+                          arg
+                        ).map((update) => AccountUpdate.toJSON(update));
+
+                        return {
+                          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                          fields: [] as string[],
+                          aux: [
+                            JSON.stringify({
+                              accountUpdates,
+                              typeName: "AccountUpdateForest",
+                            }),
+                          ],
+                        };
+                      }
+
+                      const fields = witnessType
                         .toFields(arg)
                         .map((f) => f.toString());
+                      const aux = witnessType
+                        .toAuxiliary(arg)
+                        .map((x) => JSON.stringify(x));
+
+                      return {
+                        fields,
+                        aux,
+                      };
                     }
                     if (allArgs[index].type === "proof") {
                       const serializer = this.getProofSerializer(
@@ -301,7 +360,7 @@ export class SettlementProvingTask
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                       return serializer.toJSON(arg);
                     }
-                    throw new Error("Generic parameters not supported");
+                    throw new Error("Non-provable parameters not supported");
                   })
                   .filter(filterNonUndefined);
 
@@ -312,19 +371,6 @@ export class SettlementProvingTask
 
                   blindingValue: lazyProof.blindingValue.toString(),
                   memoized: [],
-
-                  previousProofs: lazyProof.previousProofs.map((proof) => {
-                    if (proof === MOCK_PROOF) {
-                      return MOCK_PROOF;
-                    }
-                    const p = new SomeProofSubclass({
-                      proof,
-                      publicInput: Field(0),
-                      publicOutput: undefined,
-                      maxProofsVerified: 0,
-                    });
-                    return p.toJSON().proof;
-                  }),
                 };
               }
               return null;
@@ -347,25 +393,40 @@ export class SettlementProvingTask
   }
 
   public async prepare(): Promise<void> {
+    const { settlementContractModule } = this;
     // Guard in case the task is configured but settlement is not
-    if (this.settlementContractModule === undefined) {
-      return;
+    if (settlementContractModule === undefined) {
+      throw new Error(
+        "Settlement task is configured, but Settlement Contracts aren't"
+      );
     }
 
-    const contract = this.settlementContractModule.getContractClasses();
+    const contractClasses: Record<string, typeof SmartContract> = {};
 
-    const { areProofsEnabled } = this.areProofsEnabled;
+    const modules = settlementContractModule.moduleNames.map(
+      (key) =>
+        [
+          key,
+          settlementContractModule.resolve(
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            key as keyof MandatorySettlementModulesRecord
+          ),
+        ] as const
+    );
 
-    await this.compileRegistry.compileSmartContract(
-      "DispatchContract",
-      contract.dispatch,
-      areProofsEnabled
-    );
-    await this.compileRegistry.compileSmartContract(
-      "SettlementContract",
-      contract.settlement,
-      areProofsEnabled
-    );
+    // First, create all contract classes (with static args), then compile them
+    for (const [key, module] of modules) {
+      contractClasses[key] = module.contractFactory();
+    }
+
+    for (const [key, module] of modules) {
+      log.debug(`Compiling Settlement Module ${key}`);
+
+      // eslint-disable-next-line no-await-in-loop
+      await module.compile(this.compileRegistry);
+    }
+
+    this.contractRegistry = new ContractRegistry(contractClasses);
   }
 
   public resultSerializer(): TaskSerializer<TransactionTaskResult> {

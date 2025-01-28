@@ -31,7 +31,7 @@ import {
   Sequencer,
   BlockProducerModule,
   VanillaTaskWorkerModules,
-  ProtocolStartupModule,
+  SequencerStartupModule,
 } from "@proto-kit/sequencer";
 import { Bool, PrivateKey, PublicKey, Struct } from "o1js";
 
@@ -114,7 +114,7 @@ export function createPrismaAppchain(
         BlockProducerModule,
         BlockTrigger: ManualBlockTrigger,
         TaskQueue: LocalTaskQueue,
-        ProtocolStartupModule,
+        SequencerStartupModule,
       },
     }),
     modules: {
@@ -161,7 +161,7 @@ export function createPrismaAppchain(
       TaskQueue: {
         simulatedDuration: 0,
       },
-      ProtocolStartupModule: {},
+      SequencerStartupModule: {},
     },
     Signer: {
       signer: PrivateKey.random(),

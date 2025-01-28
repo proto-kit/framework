@@ -4,6 +4,9 @@ import {
   provableMethod,
   RollupMerkleTreeWitness,
   ZkProgrammable,
+  CompilableModule,
+  type ArtifactRecord,
+  type CompileRegistry,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
@@ -27,15 +30,24 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "./StateTransitionProvable";
-import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider";
-import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
 
 const errors = {
   propertyNotMatching: (property: string, step: string) =>
     `${property} not matching ${step}`,
 
-  merkleWitnessNotCorrect: (index: number, type: string) =>
-    `MerkleWitness not valid for StateTransition (${index}, type ${type})`,
+  merkleWitnessNotCorrect: (
+    index: number,
+    type: ProvableStateTransitionType
+  ) => {
+    let s = `MerkleWitness not valid for StateTransition (${index}, type unknown)`;
+    Provable.asProver(() => {
+      s = s.replace(
+        "unknown",
+        type.isNormal().toBoolean() ? "normal" : "protocol"
+      );
+    });
+    return s;
+  },
 
   noWitnessProviderSet: () =>
     new Error(
@@ -64,14 +76,13 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   StateTransitionProverPublicOutput
 > {
   public constructor(
-    private readonly stateTransitionProver: StateTransitionProver,
-    public readonly witnessProviderReference: StateTransitionWitnessProviderReference
+    private readonly stateTransitionProver: StateTransitionProver
   ) {
     super();
   }
 
-  public get appChain(): AreProofsEnabled | undefined {
-    return this.stateTransitionProver.appChain;
+  public get areProofsEnabled(): AreProofsEnabled | undefined {
+    return this.stateTransitionProver.areProofsEnabled;
   }
 
   public zkProgramFactory(): PlainZkProgram<
@@ -86,7 +97,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       publicOutput: StateTransitionProverPublicOutput,
 
       methods: {
-        proveBatch: {
+        runBatch: {
           privateInputs: [StateTransitionProvableBatch],
 
           async method(
@@ -115,7 +126,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     });
 
     const methods = {
-      proveBatch: program.proveBatch.bind(program),
+      runBatch: program.runBatch.bind(program),
       merge: program.merge.bind(program),
     };
 
@@ -123,6 +134,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
     return [
       {
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -130,14 +142,6 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
         methods,
       },
     ];
-  }
-
-  private get witnessProvider(): StateTransitionWitnessProvider {
-    const provider = this.witnessProviderReference.getWitnessProvider();
-    if (provider === undefined) {
-      throw errors.noWitnessProviderSet();
-    }
-    return provider;
   }
 
   /**
@@ -168,12 +172,19 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
     const transitions = transitionBatch.batch;
     const types = transitionBatch.transitionTypes;
+    const merkleWitness = transitionBatch.merkleWitnesses;
     for (
       let index = 0;
       index < constants.stateTransitionProverBatchSize;
       index++
     ) {
-      this.applyTransition(state, transitions[index], types[index], index);
+      this.applyTransition(
+        state,
+        transitions[index],
+        types[index],
+        merkleWitness[index],
+        index
+      );
     }
 
     return state;
@@ -187,13 +198,10 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     state: StateTransitionProverExecutionState,
     transition: ProvableStateTransition,
     type: ProvableStateTransitionType,
+    merkleWitness: RollupMerkleTreeWitness,
     index = 0
   ) {
-    const witness = Provable.witness(RollupMerkleTreeWitness, () =>
-      this.witnessProvider.getWitness(transition.path)
-    );
-
-    const membershipValid = witness.checkMembership(
+    const membershipValid = merkleWitness.checkMembership(
       state.stateRoot,
       transition.path,
       transition.from.value
@@ -201,14 +209,9 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
     membershipValid
       .or(transition.from.isSome.not())
-      .assertTrue(
-        errors.merkleWitnessNotCorrect(
-          index,
-          type.isNormal().toBoolean() ? "normal" : "protocol"
-        )
-      );
+      .assertTrue(errors.merkleWitnessNotCorrect(index, type));
 
-    const newRoot = witness.calculateRoot(transition.to.value);
+    const newRoot = merkleWitness.calculateRoot(transition.to.value);
 
     state.stateRoot = Provable.if(
       transition.to.isSome,
@@ -339,19 +342,22 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 @injectable()
 export class StateTransitionProver
   extends ProtocolModule
-  implements StateTransitionProvable, StateTransitionProverType
+  implements
+    StateTransitionProvable,
+    StateTransitionProverType,
+    CompilableModule
 {
   public zkProgrammable: StateTransitionProverProgrammable;
 
-  public constructor(
-    // Injected
-    public readonly witnessProviderReference: StateTransitionWitnessProviderReference
-  ) {
+  public constructor() {
     super();
-    this.zkProgrammable = new StateTransitionProverProgrammable(
-      this,
-      witnessProviderReference
-    );
+    this.zkProgrammable = new StateTransitionProverProgrammable(this);
+  }
+
+  public async compile(
+    registry: CompileRegistry
+  ): Promise<void | ArtifactRecord> {
+    return await this.zkProgrammable.compile(registry);
   }
 
   public runBatch(

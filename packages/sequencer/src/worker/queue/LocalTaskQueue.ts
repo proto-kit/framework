@@ -1,4 +1,4 @@
-import { log, noop } from "@proto-kit/common";
+import { log, mapSequential, noop } from "@proto-kit/common";
 
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 import { TaskPayload } from "../flow/Task";
@@ -42,32 +42,54 @@ export class LocalTaskQueue
     [key: string]: QueueListener[] | undefined;
   } = {};
 
-  public workNextTasks() {
-    Object.entries(this.queues).forEach(([queueName, tasks]) => {
-      if (tasks.length > 0 && this.workers[queueName]) {
-        tasks.forEach((task) => {
-          // Execute task in worker
+  private taskInProgress = false;
 
-          void this.workers[queueName]
-            ?.handler(task.payload)
-            .then((payload) => {
-              if (payload === "closed") {
-                return;
+  public async workNextTasks() {
+    if (this.taskInProgress) {
+      return;
+    }
+    this.taskInProgress = true;
+
+    // Collect all tasks
+    const tasksToExecute = Object.entries(this.queues).flatMap(
+      ([queueName, tasks]) => {
+        if (tasks.length > 0 && this.workers[queueName]) {
+          const functions = tasks.map((task) => async () => {
+            // Execute task in worker
+
+            const payload = await this.workers[queueName]?.handler(
+              task.payload
+            );
+
+            if (payload === "closed" || payload === undefined) {
+              return;
+            }
+            log.trace("LocalTaskQueue got", JSON.stringify(payload));
+            // Notify listeners about result
+            const listenerPromises = this.listeners[queueName]?.map(
+              async (listener) => {
+                await listener(payload);
               }
-              log.trace("LocalTaskQueue got", JSON.stringify(payload));
-              // Notify listeners about result
-              const listenerPromises = this.listeners[queueName]?.map(
-                async (listener) => {
-                  await listener(payload);
-                }
-              );
-              void Promise.all(listenerPromises || []);
-            });
-        });
-      }
+            );
+            void Promise.all(listenerPromises || []);
+          });
+          this.queues[queueName] = [];
+          return functions;
+        }
 
-      this.queues[queueName] = [];
-    });
+        return [];
+      }
+    );
+
+    // Execute all tasks
+    await mapSequential(tasksToExecute, async (task) => await task());
+
+    this.taskInProgress = false;
+
+    // In case new tasks came up in the meantime, execute them as well
+    if (tasksToExecute.length > 0) {
+      await this.workNextTasks();
+    }
   }
 
   public createWorker(
@@ -105,7 +127,7 @@ export class LocalTaskQueue
     };
 
     this.workers[queueName] = worker;
-    this.workNextTasks();
+    void this.workNextTasks();
 
     return worker;
   }
@@ -126,7 +148,7 @@ export class LocalTaskQueue
         const nextId = taskId ?? String(id).toString();
         this.queues[queueName].push({ payload, taskId: nextId });
 
-        this.workNextTasks();
+        void this.workNextTasks();
 
         return { taskId: nextId };
       },

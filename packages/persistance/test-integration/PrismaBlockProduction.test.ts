@@ -36,7 +36,7 @@ describe("prisma integration", () => {
       },
     });
 
-    await appChain.start(container.createChildContainer());
+    await appChain.start(false, container.createChildContainer());
 
     const db = appChain.sequencer.resolve("Database");
     await db.prisma.pruneDatabase();
@@ -77,7 +77,7 @@ describe("prisma integration", () => {
       expectDefined(block);
 
       // Check equality of block
-      const blockStorage = await appChain.sequencer.resolveOrFail(
+      const blockStorage = appChain.sequencer.resolveOrFail(
         "BlockStorage",
         PrismaBlockStorage
       );
@@ -124,7 +124,7 @@ describe("prisma integration", () => {
       expectDefined(batch);
 
       // Check equality of batch
-      const batchStorage = await appChain.sequencer.resolveOrFail(
+      const batchStorage = appChain.sequencer.resolveOrFail(
         "BatchStorage",
         PrismaBatchStore
       );

@@ -7,7 +7,7 @@ import {
   Struct,
   Void,
 } from "o1js";
-import { WithZkProgrammable } from "@proto-kit/common";
+import { WithZkProgrammable, CompilableModule } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
@@ -24,6 +24,7 @@ export class BlockProverPublicInput extends Struct({
   blockHashRoot: Field,
   eternalTransactionsHash: Field,
   incomingMessagesHash: Field,
+  blockNumber: Field,
 }) {}
 
 export class BlockProverPublicOutput extends Struct({
@@ -36,15 +37,10 @@ export class BlockProverPublicOutput extends Struct({
   closed: Bool,
   blockNumber: Field,
 }) {
-  public equals(
-    input: BlockProverPublicInput,
-    closed: Bool,
-    blockNumber: Field
-  ): Bool {
+  public equals(input: BlockProverPublicInput, closed: Bool): Bool {
     const output2 = BlockProverPublicOutput.toFields({
       ...input,
       closed,
-      blockNumber,
     });
     const output1 = BlockProverPublicOutput.toFields(this);
     return output1
@@ -71,10 +67,14 @@ export class DynamicRuntimeProof extends DynamicProof<
   static publicInputType = Void;
 
   static publicOutputType = MethodPublicOutput;
+
+  // TODO this won't be 0 for proofs-as-args
+  static maxProofsVerified = 0 as const;
 }
 
 export interface BlockProvable
-  extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput> {
+  extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput>,
+    CompilableModule {
   proveTransaction: (
     publicInput: BlockProverPublicInput,
     stateProof: StateTransitionProof,
@@ -87,7 +87,7 @@ export interface BlockProvable
     publicInput: BlockProverPublicInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof,
+    // stateTransitionProof: StateTransitionProof,
     transactionProof: BlockProverProof
   ) => Promise<BlockProverPublicOutput>;
 
