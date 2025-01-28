@@ -26,6 +26,8 @@ import { ChildProcessWorker } from "./ChildProcessWorker";
 
 const timeout = 300000;
 
+const proofsEnabled = false;
+
 describe("worker-proven", () => {
   describe("sequencer", () => {
     let test: BlockTestService;
@@ -87,7 +89,7 @@ describe("worker-proven", () => {
         try {
           // Start AppChain
           const childContainer = container.createChildContainer();
-          await app.start(false, childContainer);
+          await app.start(proofsEnabled, childContainer);
 
           test = app.sequencer.dependencyContainer.resolve(BlockTestService);
 
@@ -124,8 +126,31 @@ describe("worker-proven", () => {
 
         console.log(batch.proof);
 
-        expect(batch.proof.proof.length).toBeGreaterThan(50);
+        expect(batch.proof.proof.length).toBeGreaterThan(
+          proofsEnabled ? 50 : 0
+        );
         expect(batch.blockHashes).toHaveLength(1);
+      },
+      timeout
+    );
+
+    it.each([5, 14, 20])(
+      "should produce a batch of a %s of blocks",
+      async (numBlocks) => {
+        for (let i = 0; i < numBlocks; i++) {
+          await test.produceBlock();
+        }
+
+        const batch = await test.produceBatch();
+
+        expectDefined(batch);
+
+        console.log(batch.proof);
+
+        expect(batch.proof.proof.length).toBeGreaterThan(
+          proofsEnabled ? 50 : 0
+        );
+        expect(batch.blockHashes).toHaveLength(numBlocks);
       },
       timeout
     );

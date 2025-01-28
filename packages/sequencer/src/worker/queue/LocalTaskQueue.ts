@@ -1,6 +1,9 @@
 import { log, mapSequential, noop } from "@proto-kit/common";
 
-import { SequencerModule } from "../../sequencer/builder/SequencerModule";
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../../sequencer/builder/SequencerModule";
 import { TaskPayload } from "../flow/Task";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
@@ -20,6 +23,7 @@ export interface LocalTaskQueueConfig {
   simulatedDuration?: number;
 }
 
+@sequencerModule()
 export class LocalTaskQueue
   extends SequencerModule<LocalTaskQueueConfig>
   implements TaskQueue
