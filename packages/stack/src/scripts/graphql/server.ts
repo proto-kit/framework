@@ -210,17 +210,7 @@ export async function startServer() {
 
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: {
-        StateTransitionTask: {},
-        // SettlementProvingTask: {},
-        BlockBuildingTask: {},
-        BlockProvingTask: {},
-        BlockReductionTask: {},
-        RuntimeProvingTask: {},
-        StateTransitionReductionTask: {},
-        CircuitCompilerTask: {},
-        WorkerRegistrationTask: {},
-      },
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       TaskQueue: {},
 
