@@ -11,7 +11,7 @@ import {
 import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
 import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
-import {w
+import {
   AppChain,
   InMemorySigner,
   GraphqlTransactionSender,
