@@ -19,6 +19,10 @@ export function requireTrue(
   }
 }
 
+/**
+ * Utility function to split an array of type T into a record <K, T[]> based on a
+ * function T => K that determines the key of each record
+ */
 export function splitArray<T, K extends string | number>(
   arr: T[],
   split: (t: T) => K
@@ -166,6 +170,8 @@ type NonMethodKeys<Type> = {
   [Key in keyof Type]: Type[Key] extends Function ? never : Key;
 }[keyof Type];
 export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;
+
+export const MAX_FIELD = Field(Field.ORDER - 1n);
 
 /**
  * Returns a boolean indicating whether a given class is a subclass of another class,

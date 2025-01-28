@@ -10,7 +10,7 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionType,
 } from "@proto-kit/protocol";
-import { RollupMerkleTree } from "@proto-kit/common";
+import { MAX_FIELD, RollupMerkleTree } from "@proto-kit/common";
 import { Bool, Field } from "o1js";
 import chunk from "lodash/chunk";
 
@@ -133,6 +133,7 @@ export class TransactionTraceService {
       blockHashRoot: block.block.fromBlockHashRoot,
       eternalTransactionsHash: block.block.fromEternalTransactionsHash,
       incomingMessagesHash: block.block.fromMessagesHash,
+      blockNumber: block.block.height,
     });
 
     return {
@@ -241,6 +242,7 @@ export class TransactionTraceService {
           incomingMessagesHash,
           networkStateHash: networkState.hash(),
           blockHashRoot: Field(0),
+          blockNumber: MAX_FIELD,
         },
 
         executionData: {

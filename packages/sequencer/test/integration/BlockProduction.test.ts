@@ -416,10 +416,17 @@ describe("block production", () => {
     [1, 2, 1],
     [1, 1, 2],
     [2, 2, 2],
+    [1, 14, 0],
   ])(
     "should produce multiple blocks with multiple batches with multiple transactions",
     async (batches, blocksPerBatch, txsPerBlock) => {
-      expect.assertions(2 * batches + 3 * batches * blocksPerBatch);
+      expect.assertions(
+        2 * batches +
+          1 * batches * blocksPerBatch +
+          2 * batches * blocksPerBatch * txsPerBlock
+      );
+
+      log.setLevel("DEBUG");
 
       const sender = PrivateKey.random();
 
@@ -450,8 +457,11 @@ describe("block production", () => {
           const block = await test.produceBlock();
 
           expect(block).toBeDefined();
-          expect(block!.transactions).toHaveLength(txsPerBlock);
-          expect(block!.transactions[0].status.toBoolean()).toBe(true);
+
+          for (let k = 0; k < txsPerBlock; k++) {
+            expect(block!.transactions).toHaveLength(txsPerBlock);
+            expect(block!.transactions[0].status.toBoolean()).toBe(true);
+          }
         }
 
         const batch = await test.produceBatch();

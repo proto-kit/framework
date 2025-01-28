@@ -15,6 +15,7 @@ import {
   CompilableModule,
   CompileArtifact,
   CompileRegistry,
+  MAX_FIELD,
   PlainZkProgram,
   provableMethod,
   WithZkProgrammable,
@@ -126,10 +127,6 @@ export interface BlockProverState {
   eternalTransactionsHash: Field;
 
   incomingMessagesHash: Field;
-}
-
-function maxField() {
-  return Field(Field.ORDER - 1n);
 }
 
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -422,6 +419,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "ExecutionData Networkstate doesn't equal public input hash"
     );
 
+    publicInput.blockNumber.assertEquals(
+      MAX_FIELD,
+      "blockNumber has to be MAX for transaction proofs"
+    );
+
     // Verify the [methodId, vk] tuple against the baked-in vk tree root
     const { verificationKey, witness: verificationKeyTreeWitness } =
       verificationKeyWitness;
@@ -451,7 +453,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     return new BlockProverPublicOutput({
       ...stateTo,
-      blockNumber: maxField(),
+      blockNumber: publicInput.blockNumber,
       closed: Bool(false),
     });
   }
@@ -534,14 +536,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // stateTransitionProof.verifyIf(Bool(false));
     // stateTransitionProof.verifyIf(stsEmitted);
 
-    // Verify Transaction proof if it has at least 1 tx
+    // Verify Transaction proof if it has at least 1 tx - i.e. the
+    // input and output doesn't match fully
     // We have to compare the whole input and output because we can make no
     // assumptions about the values, since it can be an arbitrary dummy-proof
     const txProofOutput = transactionProof.publicOutput;
     const isEmptyTransition = txProofOutput.equals(
       transactionProof.publicInput,
-      txProofOutput.closed,
-      txProofOutput.blockNumber
+      txProofOutput.closed
     );
     Provable.log("VerifyIf 2", isEmptyTransition.not());
     transactionProof.verifyIf(isEmptyTransition.not());
@@ -626,6 +628,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Calculate the new block index
     const blockIndex = blockWitness.calculateIndex();
 
+    blockIndex.assertEquals(publicInput.blockNumber);
+
     blockWitness
       .calculateRoot(Field(0))
       .assertEquals(
@@ -643,7 +647,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     return new BlockProverPublicOutput({
       ...state,
-      blockNumber: blockIndex,
+      blockNumber: blockIndex.add(1),
       closed: Bool(true),
     });
   }
@@ -750,19 +754,25 @@ export class BlockProverProgrammable extends ZkProgrammable<
     //   assert proof1.height == proof2.height
     // }
 
-    const proof1Height = proof1.publicOutput.blockNumber;
     const proof1Closed = proof1.publicOutput.closed;
-    const proof2Height = proof2.publicOutput.blockNumber;
     const proof2Closed = proof2.publicOutput.closed;
 
-    const isValidTransactionMerge = proof1Height
-      .equals(maxField())
-      .and(proof2Height.equals(proof1Height))
+    const blockNumberProgressionValid = publicInput.blockNumber
+      .equals(proof1.publicInput.blockNumber)
+      .and(
+        proof1.publicOutput.blockNumber.equals(proof2.publicInput.blockNumber)
+      );
+
+    // For tx proofs, we check that the progression starts and end with MAX
+    // in addition to that both proofs are non-closed
+    const isValidTransactionMerge = publicInput.blockNumber
+      .equals(MAX_FIELD)
+      .and(blockNumberProgressionValid)
       .and(proof1Closed.or(proof2Closed).not());
 
     const isValidClosedMerge = proof1Closed
       .and(proof2Closed)
-      .and(proof1Height.add(1).equals(proof2Height));
+      .and(blockNumberProgressionValid);
 
     isValidTransactionMerge
       .or(isValidClosedMerge)
@@ -775,9 +785,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
       blockHashRoot: proof2.publicOutput.blockHashRoot,
       eternalTransactionsHash: proof2.publicOutput.eternalTransactionsHash,
       incomingMessagesHash: proof2.publicOutput.incomingMessagesHash,
-      // Provable.if(isValidClosedMerge, Bool(true), Bool(false));
       closed: isValidClosedMerge,
-      blockNumber: proof2Height,
+      blockNumber: proof2.publicOutput.blockNumber,
     });
   }
 

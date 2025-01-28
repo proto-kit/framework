@@ -24,6 +24,7 @@ export class BlockProverPublicInput extends Struct({
   blockHashRoot: Field,
   eternalTransactionsHash: Field,
   incomingMessagesHash: Field,
+  blockNumber: Field,
 }) {}
 
 export class BlockProverPublicOutput extends Struct({
@@ -36,15 +37,10 @@ export class BlockProverPublicOutput extends Struct({
   closed: Bool,
   blockNumber: Field,
 }) {
-  public equals(
-    input: BlockProverPublicInput,
-    closed: Bool,
-    blockNumber: Field
-  ): Bool {
+  public equals(input: BlockProverPublicInput, closed: Bool): Bool {
     const output2 = BlockProverPublicOutput.toFields({
       ...input,
       closed,
-      blockNumber,
     });
     const output1 = BlockProverPublicOutput.toFields(this);
     return output1

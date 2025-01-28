@@ -454,8 +454,6 @@ export class ModuleContainer<
     );
   }
 
-  protected createSuperClassAliases(module: any) {}
-
   /**
    * This is a placeholder for individual modules to override.
    * This method will be called whenever the underlying container fully
