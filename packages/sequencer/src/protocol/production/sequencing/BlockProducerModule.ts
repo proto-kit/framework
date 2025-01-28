@@ -109,7 +109,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public async generateMetadata(block: Block): Promise<BlockResult> {
     const { result, blockHashTreeStore, treeStore } =
-      await this.executionService.generateMetadataForNextBlock(
+      await this.resultService.generateMetadataForNextBlock(
         block,
         this.unprovenMerkleStore,
         this.blockTreeStore

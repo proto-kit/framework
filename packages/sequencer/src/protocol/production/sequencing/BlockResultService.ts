@@ -72,7 +72,11 @@ export class BlockResultService {
     merkleTreeStore: AsyncMerkleTreeStore,
     blockHashTreeStore: AsyncMerkleTreeStore,
     modifyTreeStore = true
-  ): Promise<BlockResult> {
+  ): Promise<{
+    result: BlockResult;
+    treeStore: CachedMerkleTreeStore;
+    blockHashTreeStore: CachedMerkleTreeStore;
+  }> {
     const combinedDiff = createCombinedStateDiff(block.transactions);
 
     const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
@@ -138,22 +142,21 @@ export class BlockResultService {
     );
     const blockHashWitness = blockHashTree.getWitness(block.height.toBigInt());
     const newBlockHashRoot = blockHashTree.getRoot();
-    await blockHashInMemoryStore.mergeIntoParent();
-
-    if (modifyTreeStore) {
-      await inMemoryStore.mergeIntoParent();
-    }
 
     return {
-      afterNetworkState: methodResult,
-      stateRoot: stateRoot.toBigInt(),
-      blockHashRoot: newBlockHashRoot.toBigInt(),
-      blockHashWitness,
+      result: {
+        afterNetworkState: methodResult,
+        stateRoot: stateRoot.toBigInt(),
+        blockHashRoot: newBlockHashRoot.toBigInt(),
+        blockHashWitness,
 
-      blockStateTransitions: stateTransitions.map((st) =>
-        UntypedStateTransition.fromStateTransition(st)
-      ),
-      blockHash: block.hash.toBigInt(),
+        blockStateTransitions: stateTransitions.map((st) =>
+          UntypedStateTransition.fromStateTransition(st)
+        ),
+        blockHash: block.hash.toBigInt(),
+      },
+      treeStore: inMemoryStore,
+      blockHashTreeStore: blockHashInMemoryStore,
     };
   }
 }
