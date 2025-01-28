@@ -24,13 +24,13 @@ import { BlockResult, BlockWithResult } from "../../storage/model/Block";
 import { VerificationKeyService } from "../runtime/RuntimeVerificationKeyService";
 import type { Database } from "../../storage/Database";
 
-import { BlockProverParameters } from "./tasks/BlockProvingTask";
-import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
-import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
 import { NewBlockProverParameters } from "./tasks/NewBlockTask";
-import { BlockProofSerializer } from "./helpers/BlockProofSerializer";
+import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
+import { RuntimeProofParameters } from "./tasks/RuntimeProvingTask";
+import { StateTransitionProofParameters } from "./tasks/StateTransitionTask";
+import { BlockProverParameters } from "./tasks/TransactionProvingTask";
 
 export type StateRecord = Record<string, Field[] | undefined>;
 

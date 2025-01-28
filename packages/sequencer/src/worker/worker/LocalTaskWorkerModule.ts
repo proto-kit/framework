@@ -22,16 +22,12 @@ import {
 import { SettlementProvingTask } from "../../settlement/tasks/SettlementProvingTask";
 import { Task } from "../flow/Task";
 import { TaskQueue } from "../queue/TaskQueue";
-import {
-  BlockProvingTask,
-  BlockReductionTask,
-} from "../../protocol/production/tasks/BlockProvingTask";
-import {
-  StateTransitionReductionTask,
-  StateTransitionTask,
-} from "../../protocol/production/tasks/StateTransitionTask";
+import { StateTransitionTask } from "../../protocol/production/tasks/StateTransitionTask";
 import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitCompilerTask";
 import { closeable } from "../../sequencer/builder/Closeable";
+import { StateTransitionReductionTask } from "../../protocol/production/tasks/StateTransitionReductionTask";
+import { TransactionProvingTask } from "../../protocol/production/tasks/TransactionProvingTask";
+import { BlockReductionTask } from "../../protocol/production/tasks/BlockReductionTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
@@ -138,7 +134,7 @@ export class VanillaTaskWorkerModules {
       StateTransitionTask,
       StateTransitionReductionTask,
       RuntimeProvingTask,
-      BlockProvingTask,
+      TransactionProvingTask,
       BlockReductionTask,
       BlockBuildingTask: NewBlockTask,
       CircuitCompilerTask,

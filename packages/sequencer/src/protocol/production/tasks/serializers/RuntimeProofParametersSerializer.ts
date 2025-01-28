@@ -1,18 +1,12 @@
-import { Field } from "o1js";
 import { NetworkState, ReturnType } from "@proto-kit/protocol";
+import { Field } from "o1js";
 
-import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import { TaskSerializer } from "../../../worker/flow/Task";
-import { TaskStateRecord } from "../TransactionTraceService";
-
-export interface RuntimeProofParameters {
-  // publicInput: MethodPublicInput;
-  tx: PendingTransaction;
-  networkState: NetworkState;
-  state: TaskStateRecord;
-}
-
-export type JSONEncodableState = Record<string, string[]>;
+import { TaskSerializer } from "../../../../worker/flow/Task";
+import { PendingTransaction } from "../../../../mempool/PendingTransaction";
+import type {
+  JSONEncodableState,
+  RuntimeProofParameters,
+} from "../RuntimeProvingTask";
 
 export class RuntimeProofParametersSerializer
   implements TaskSerializer<RuntimeProofParameters>
