@@ -12,6 +12,8 @@ export * from "./worker/flow/JSONTaskSerializer";
 // export * from "./worker/queue/BullQueue";
 export * from "./worker/queue/TaskQueue";
 export * from "./worker/queue/LocalTaskQueue";
+export * from "./worker/queue/ListenerList";
+export * from "./worker/queue/AbstractTaskQueue";
 export * from "./worker/worker/FlowTaskWorker";
 export * from "./worker/worker/LocalTaskWorkerModule";
 export * from "./worker/worker/TaskWorkerModule";

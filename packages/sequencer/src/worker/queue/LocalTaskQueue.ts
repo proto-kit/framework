@@ -1,12 +1,11 @@
 import { log, mapSequential, noop } from "@proto-kit/common";
 
-import {
-  sequencerModule,
-  SequencerModule,
-} from "../../sequencer/builder/SequencerModule";
+import { sequencerModule } from "../../sequencer/builder/SequencerModule";
 import { TaskPayload } from "../flow/Task";
 
 import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
+import { ListenerList } from "./ListenerList";
+import { AbstractTaskQueue } from "./AbstractTaskQueue";
 
 async function sleep(ms: number) {
   await new Promise((resolve) => {
@@ -23,12 +22,59 @@ export interface LocalTaskQueueConfig {
   simulatedDuration?: number;
 }
 
+class InMemoryInstantiatedQueue implements InstantiatedQueue {
+  public constructor(
+    public readonly name: string,
+    public taskQueue: LocalTaskQueue
+  ) {}
+
+  private id = 0;
+
+  private instantiated = false;
+
+  private listeners = new ListenerList<TaskPayload>();
+
+  async addTask(
+    payload: TaskPayload,
+    taskId?: string
+  ): Promise<{ taskId: string }> {
+    this.id += 1;
+    const nextId = taskId ?? String(this.id).toString();
+    this.taskQueue.queuedTasks[this.name].push({ payload, taskId: nextId });
+
+    void this.taskQueue.workNextTasks();
+
+    return { taskId: nextId };
+  }
+
+  async onCompleted(
+    listener: (payload: TaskPayload) => Promise<void>
+  ): Promise<number> {
+    if (!this.instantiated) {
+      (this.taskQueue.listeners[this.name] ??= []).push(async (result) => {
+        await this.listeners.executeListeners(result);
+      });
+
+      this.instantiated = false;
+    }
+    return this.listeners.pushListener(listener);
+  }
+
+  async offCompleted(listenerId: number) {
+    this.listeners.removeListener(listenerId);
+  }
+
+  async close() {
+    noop();
+  }
+}
+
 @sequencerModule()
 export class LocalTaskQueue
-  extends SequencerModule<LocalTaskQueueConfig>
+  extends AbstractTaskQueue<LocalTaskQueueConfig>
   implements TaskQueue
 {
-  public queues: {
+  public queuedTasks: {
     [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
 
@@ -55,7 +101,7 @@ export class LocalTaskQueue
     this.taskInProgress = true;
 
     // Collect all tasks
-    const tasksToExecute = Object.entries(this.queues).flatMap(
+    const tasksToExecute = Object.entries(this.queuedTasks).flatMap(
       ([queueName, tasks]) => {
         if (tasks.length > 0 && this.workers[queueName]) {
           const functions = tasks.map((task) => async () => {
@@ -77,7 +123,7 @@ export class LocalTaskQueue
             );
             void Promise.all(listenerPromises || []);
           });
-          this.queues[queueName] = [];
+          this.queuedTasks[queueName] = [];
           return functions;
         }
 
@@ -137,36 +183,10 @@ export class LocalTaskQueue
   }
 
   public async getQueue(queueName: string): Promise<InstantiatedQueue> {
-    this.queues[queueName] = [];
-
-    let id = 0;
-
-    return {
-      name: queueName,
-
-      addTask: async (
-        payload: TaskPayload,
-        taskId?: string
-      ): Promise<{ taskId: string }> => {
-        id += 1;
-        const nextId = taskId ?? String(id).toString();
-        this.queues[queueName].push({ payload, taskId: nextId });
-
-        void this.workNextTasks();
-
-        return { taskId: nextId };
-      },
-
-      onCompleted: async (
-        listener: (payload: TaskPayload) => Promise<void>
-      ): Promise<void> => {
-        (this.listeners[queueName] ??= []).push(listener);
-      },
-
-      close: async () => {
-        noop();
-      },
-    };
+    return this.createOrGetQueue(queueName, (name) => {
+      this.queuedTasks[name] = [];
+      return new InMemoryInstantiatedQueue(name, this);
+    });
   }
 
   public async start(): Promise<void> {
