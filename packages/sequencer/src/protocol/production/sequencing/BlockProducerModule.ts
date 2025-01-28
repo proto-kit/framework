@@ -27,7 +27,8 @@ import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 import { Database } from "../../../storage/Database";
 
-import { TransactionExecutionService } from "./TransactionExecutionService";
+import { BlockProductionService } from "./BlockProductionService";
+import { BlockResultService } from "./BlockResultService";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
@@ -49,7 +50,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly blockQueue: BlockQueue,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
-    private readonly executionService: TransactionExecutionService,
+    private readonly productionService: BlockProductionService,
+    private readonly resultService: BlockResultService,
     @inject("MethodIdResolver")
     private readonly methodIdResolver: MethodIdResolver,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
@@ -107,7 +109,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public async generateMetadata(block: Block): Promise<BlockResult> {
     const { result, blockHashTreeStore, treeStore } =
-      await this.executionService.generateMetadataForNextBlock(
+      await this.resultService.generateMetadataForNextBlock(
         block,
         this.unprovenMerkleStore,
         this.blockTreeStore
@@ -212,7 +214,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       this.unprovenStateService
     );
 
-    const block = await this.executionService.createBlock(
+    const block = await this.productionService.createBlock(
       cachedStateService,
       txs,
       metadata,
