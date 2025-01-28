@@ -91,6 +91,8 @@ jobs:
 
       - name: "Test"
         run: npm run test:ci
+        env:
+          IN_CI: true
 
   integration:
     runs-on: ubuntu-latest

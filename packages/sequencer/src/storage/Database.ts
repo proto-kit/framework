@@ -1,6 +1,6 @@
 import { Closeable } from "../sequencer/builder/Closeable";
 
-import { StorageDependencyFactory } from "./StorageDependencyFactory";
+import type { StorageDependencyFactory } from "./StorageDependencyFactory";
 
 export interface Database extends StorageDependencyFactory, Closeable {
   /**
@@ -9,4 +9,6 @@ export interface Database extends StorageDependencyFactory, Closeable {
    * everything else will lead to unexpected behaviour and errors
    */
   pruneDatabase(): Promise<void>;
+
+  executeInTransaction(f: () => Promise<void>): Promise<void>;
 }

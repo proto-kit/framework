@@ -14,8 +14,11 @@ export interface RedisConnectionConfig {
   username?: string;
 }
 
+export type RedisTransaction = ReturnType<RedisClientType["multi"]>;
+
 export interface RedisConnection {
   get redisClient(): RedisClientType;
+  get currentMulti(): RedisTransaction;
 }
 
 export class RedisConnectionModule
@@ -81,5 +84,21 @@ export class RedisConnectionModule
 
   public async pruneDatabase() {
     await this.redisClient.flushDb();
+  }
+
+  private multi?: RedisTransaction;
+
+  public get currentMulti() {
+    if (this.multi === undefined) {
+      throw new Error("Redis multi was access outside of a transaction");
+    }
+    return this.multi;
+  }
+
+  public async executeInTransaction(f: () => Promise<void>) {
+    this.multi = this.redisClient.multi();
+    await f();
+    await this.multi.exec();
+    this.multi = undefined;
   }
 }
