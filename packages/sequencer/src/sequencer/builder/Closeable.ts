@@ -1,4 +1,4 @@
-import { implement } from "@proto-kit/common/dist/config/injectAlias";
+import { implement } from "@proto-kit/common";
 
 export interface Closeable {
   close: () => Promise<void>;

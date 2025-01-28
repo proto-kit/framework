@@ -8,6 +8,7 @@ import {
   BlockStorage,
   BlockWithResult,
   BlockWithPreviousResult,
+  BlockWithMaybeResult,
 } from "@proto-kit/sequencer";
 import { filterNonNull, log } from "@proto-kit/common";
 import {
@@ -39,7 +40,7 @@ export class PrismaBlockStorage
 
   private async getBlockByQuery(
     where: { height: number } | { hash: string }
-  ): Promise<BlockWithResult | undefined> {
+  ): Promise<BlockWithMaybeResult | undefined> {
     const dbResult = await this.connection.prismaClient.block.findFirst({
       where,
       include: {
@@ -57,18 +58,15 @@ export class PrismaBlockStorage
     const transactions = dbResult.transactions.map<TransactionExecutionResult>(
       (txresult) => this.transactionResultMapper.mapIn([txresult, txresult.tx])
     );
-    if (dbResult.result === undefined || dbResult.result === null) {
-      throw new Error(
-        `No Metadata has been set for block ${JSON.stringify(where)} yet`
-      );
-    }
 
     return {
       block: {
         ...this.blockMapper.mapIn(dbResult),
         transactions,
       },
-      result: this.blockResultMapper.mapIn(dbResult.result),
+      result: dbResult.result
+        ? this.blockResultMapper.mapIn(dbResult.result)
+        : undefined,
     };
   }
 
@@ -100,45 +98,42 @@ export class PrismaBlockStorage
 
     const { prismaClient } = this.connection;
 
-    await prismaClient.$transaction([
-      prismaClient.transaction.createMany({
-        data: block.transactions.map((txr) =>
-          this.transactionMapper.mapOut(txr.tx)
-        ),
-        skipDuplicates: true,
-      }),
+    await prismaClient.transaction.createMany({
+      data: block.transactions.map((txr) =>
+        this.transactionMapper.mapOut(txr.tx)
+      ),
+      skipDuplicates: true,
+    });
 
-      prismaClient.block.create({
-        data: {
-          ...encodedBlock,
-          beforeNetworkState:
-            encodedBlock.beforeNetworkState as Prisma.InputJsonObject,
-          duringNetworkState:
-            encodedBlock.duringNetworkState as Prisma.InputJsonObject,
+    await prismaClient.block.create({
+      data: {
+        ...encodedBlock,
+        beforeNetworkState:
+          encodedBlock.beforeNetworkState as Prisma.InputJsonObject,
+        duringNetworkState:
+          encodedBlock.duringNetworkState as Prisma.InputJsonObject,
 
-          transactions: {
-            createMany: {
-              data: transactions.map((tx) => {
-                return {
-                  status: tx.status,
-                  statusMessage: tx.statusMessage,
-                  txHash: tx.txHash,
+        transactions: {
+          createMany: {
+            data: transactions.map((tx) => {
+              return {
+                status: tx.status,
+                statusMessage: tx.statusMessage,
+                txHash: tx.txHash,
 
-                  stateTransitions:
-                    tx.stateTransitions as Prisma.InputJsonArray,
-                  protocolTransitions:
-                    tx.protocolTransitions as Prisma.InputJsonArray,
-                  events: tx.events as Prisma.InputJsonArray,
-                };
-              }),
-              skipDuplicates: true,
-            },
+                stateTransitions: tx.stateTransitions as Prisma.InputJsonArray,
+                protocolTransitions:
+                  tx.protocolTransitions as Prisma.InputJsonArray,
+                events: tx.events as Prisma.InputJsonArray,
+              };
+            }),
+            skipDuplicates: true,
           },
-
-          batchHeight: undefined,
         },
-      }),
-    ]);
+
+        batchHeight: undefined,
+      },
+    });
   }
 
   public async pushResult(result: BlockResult): Promise<void> {
@@ -169,7 +164,9 @@ export class PrismaBlockStorage
     return (result?._max.height ?? -1) + 1;
   }
 
-  public async getLatestBlock(): Promise<BlockWithResult | undefined> {
+  public async getLatestBlockAndResult(): Promise<
+    BlockWithMaybeResult | undefined
+  > {
     const latestBlock = await this.connection.prismaClient.$queryRaw<
       { hash: string }[]
     >`SELECT b1."hash" FROM "Block" b1 
@@ -183,6 +180,22 @@ export class PrismaBlockStorage
     return await this.getBlockByQuery({
       hash: latestBlock[0].hash,
     });
+  }
+
+  public async getLatestBlock(): Promise<BlockWithResult | undefined> {
+    const result = await this.getLatestBlockAndResult();
+    if (result !== undefined) {
+      if (result.result === undefined) {
+        throw new Error(
+          `Block result for block ${result.block.height.toString()} not found`
+        );
+      }
+      return {
+        block: result.block,
+        result: result.result,
+      };
+    }
+    return result;
   }
 
   public async getNewBlocks(): Promise<BlockWithPreviousResult[]> {

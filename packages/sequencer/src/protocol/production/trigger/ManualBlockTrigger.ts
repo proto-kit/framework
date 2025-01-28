@@ -62,15 +62,11 @@ export class ManualBlockTrigger
     return await super.settle(batch);
   }
 
-  public async produceBlock(
-    enqueueInSettlementQueue: boolean = true
-  ): Promise<Block | undefined> {
-    return await super.produceBlock(enqueueInSettlementQueue);
+  public async produceBlock(): Promise<Block | undefined> {
+    return await super.produceBlock();
   }
 
-  public async produceBlockWithResult(
-    enqueueInSettlementQueue: boolean = true
-  ): Promise<BlockWithResult | undefined> {
-    return await super.produceBlockWithResult(enqueueInSettlementQueue);
+  public async produceBlockWithResult(): Promise<BlockWithResult | undefined> {
+    return await super.produceBlockWithResult();
   }
 }
