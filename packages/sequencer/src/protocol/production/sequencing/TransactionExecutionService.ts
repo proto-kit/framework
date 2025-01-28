@@ -323,9 +323,12 @@ export class TransactionExecutionService {
   public async generateMetadataForNextBlock(
     block: Block,
     merkleTreeStore: AsyncMerkleTreeStore,
-    blockHashTreeStore: AsyncMerkleTreeStore,
-    modifyTreeStore = true
-  ): Promise<BlockResult> {
+    blockHashTreeStore: AsyncMerkleTreeStore
+  ): Promise<{
+    result: BlockResult;
+    treeStore: CachedMerkleTreeStore;
+    blockHashTreeStore: CachedMerkleTreeStore;
+  }> {
     // Flatten diff list into a single diff by applying them over each other
     const combinedDiff = block.transactions
       .map((tx) => {
@@ -403,22 +406,21 @@ export class TransactionExecutionService {
     );
     const blockHashWitness = blockHashTree.getWitness(block.height.toBigInt());
     const newBlockHashRoot = blockHashTree.getRoot();
-    await blockHashInMemoryStore.mergeIntoParent();
-
-    if (modifyTreeStore) {
-      await inMemoryStore.mergeIntoParent();
-    }
 
     return {
-      afterNetworkState: resultingNetworkState,
-      stateRoot: stateRoot.toBigInt(),
-      blockHashRoot: newBlockHashRoot.toBigInt(),
-      blockHashWitness,
+      result: {
+        afterNetworkState: resultingNetworkState,
+        stateRoot: stateRoot.toBigInt(),
+        blockHashRoot: newBlockHashRoot.toBigInt(),
+        blockHashWitness,
 
-      blockStateTransitions: reducedStateTransitions.map((st) =>
-        UntypedStateTransition.fromStateTransition(st)
-      ),
-      blockHash: block.hash.toBigInt(),
+        blockStateTransitions: reducedStateTransitions.map((st) =>
+          UntypedStateTransition.fromStateTransition(st)
+        ),
+        blockHash: block.hash.toBigInt(),
+      },
+      treeStore: inMemoryStore,
+      blockHashTreeStore: blockHashInMemoryStore,
     };
   }
 

@@ -129,7 +129,7 @@ export class TimedBlockTrigger
     // Produce a block if either produceEmptyBlocks is true or we have more
     // than 1 tx in mempool
     if (mempoolTxs.length > 0 || (this.config.produceEmptyBlocks ?? true)) {
-      await this.produceBlock(true);
+      await this.produceBlock();
     }
   }
 
