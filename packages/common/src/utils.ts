@@ -255,3 +255,24 @@ export function batch<T>(
 
   return range(0, numBatches).map((i) => partitioned[i].map((x) => x[0]));
 }
+
+export type Reference<T> = {
+  set value(value: T);
+  get value(): T;
+};
+
+class ReferenceObject<T> {
+  public constructor(private internalValue: T) {}
+
+  get value() {
+    return this.internalValue;
+  }
+
+  set value(t: T) {
+    this.internalValue = t;
+  }
+}
+
+export function createReference<T>(initial: T): Reference<T> {
+  return new ReferenceObject(initial);
+}

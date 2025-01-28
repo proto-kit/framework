@@ -1,6 +1,8 @@
 import { Field, Poseidon, ProvablePure } from "o1js";
 import { hashWithPrefix, prefixToField } from "@proto-kit/common";
 
+import { MINA_PREFIXES, MINA_SALTS } from "../hashing/mina-prefixes";
+
 import { ProvableHashList } from "./ProvableHashList";
 
 function salt(prefix: string) {
@@ -11,18 +13,12 @@ function salt(prefix: string) {
   ) as [Field, Field, Field];
 }
 
-export const MINA_EVENT_PREFIXES = {
-  event: "MinaZkappEvent******",
-  events: "MinaZkappEvents*****",
-  sequenceEvents: "MinaZkappSeqEvents**",
-} as const;
-
 export function emptyActions(): Field {
-  return salt("MinaZkappActionsEmpty")[0];
+  return salt(MINA_SALTS.empty_actions)[0];
 }
 
 export function emptyEvents(): Field {
-  return salt("MinaZkappEventsEmpty")[0];
+  return salt(MINA_SALTS.empty_events)[0];
 }
 
 export class MinaActions {
@@ -30,8 +26,8 @@ export class MinaActions {
     action: Field[],
     previousHash: Field = emptyActions()
   ): Field {
-    const actionDataHash = hashWithPrefix(MINA_EVENT_PREFIXES.event, action);
-    return hashWithPrefix(MINA_EVENT_PREFIXES.sequenceEvents, [
+    const actionDataHash = hashWithPrefix(MINA_PREFIXES.event, action);
+    return hashWithPrefix(MINA_PREFIXES.sequenceEvents, [
       previousHash,
       actionDataHash,
     ]);
@@ -40,11 +36,8 @@ export class MinaActions {
 
 export class MinaEvents {
   static eventHash(event: Field[], previousHash: Field = emptyEvents()): Field {
-    const actionDataHash = hashWithPrefix(MINA_EVENT_PREFIXES.event, event);
-    return hashWithPrefix(MINA_EVENT_PREFIXES.events, [
-      previousHash,
-      actionDataHash,
-    ]);
+    const actionDataHash = hashWithPrefix(MINA_PREFIXES.event, event);
+    return hashWithPrefix(MINA_PREFIXES.events, [previousHash, actionDataHash]);
   }
 }
 
@@ -68,6 +61,6 @@ export class MinaPrefixedProvableHashList<
 
 export class MinaActionsHashList extends MinaPrefixedProvableHashList<Field> {
   public constructor(internalCommitment: Field = Field(0)) {
-    super(Field, MINA_EVENT_PREFIXES.sequenceEvents, internalCommitment);
+    super(Field, MINA_PREFIXES.sequenceEvents, internalCommitment);
   }
 }

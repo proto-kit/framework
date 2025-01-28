@@ -6,13 +6,8 @@ import {
   StateServiceQueryModule,
 } from "@proto-kit/sdk";
 import { PrivateKey, PublicKey } from "o1js";
-import {
-  Runtime,
-  runtimeMethod,
-  runtimeModule,
-  state,
-} from "@proto-kit/module";
-import { Protocol, State } from "@proto-kit/protocol";
+import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
+import { Protocol, State, state } from "@proto-kit/protocol";
 import {
   Balance,
   Balances,

@@ -3,7 +3,7 @@ import { injectable } from "tsyringe";
 import { noop } from "@proto-kit/common";
 
 import { StateMap } from "../state/StateMap";
-import { protocolState } from "../state/protocol/ProtocolState";
+import { state } from "../state/protocol/ProtocolState";
 import {
   ProvableTransactionHook,
   BeforeTransactionHookArguments,
@@ -16,7 +16,7 @@ export class AccountState extends Struct({
 
 @injectable()
 export class AccountStateHook extends ProvableTransactionHook {
-  @protocolState() public accountState = StateMap.from<PublicKey, AccountState>(
+  @state() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState
   );

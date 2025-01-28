@@ -12,6 +12,7 @@ import {
   Protocol,
   SettlementContractModule,
   TokenMapping,
+  PROTOKIT_PREFIXES,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -362,7 +363,11 @@ export class BridgingModule extends SequencerModule {
 
     const [withdrawalModule, withdrawalStateName] =
       this.getBridgingModuleConfig().withdrawalStatePath.split(".");
-    const basePath = Path.fromProperty(withdrawalModule, withdrawalStateName);
+    const basePath = Path.fromProperty(
+      withdrawalModule,
+      withdrawalStateName,
+      PROTOKIT_PREFIXES.STATE_RUNTIME
+    );
 
     // Create withdrawal batches and send them as L1 transactions
     for (let i = 0; i < length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
