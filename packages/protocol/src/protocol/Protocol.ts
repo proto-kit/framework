@@ -26,6 +26,7 @@ import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
 import { ProvableBlockHook } from "./ProvableBlockHook";
+import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
 const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
   ProvableTransactionHook: "ProvableTransactionHook",
@@ -94,7 +95,7 @@ export class Protocol<
     log.debug(`Decorated ${moduleName}`);
     containedModule.protocol = this;
 
-    if (containedModule instanceof ProvableTransactionHook) {
+    if (containedModule instanceof TransitioningProtocolModule) {
       containedModule.name = moduleName;
     }
 

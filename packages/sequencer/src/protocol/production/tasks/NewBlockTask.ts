@@ -12,7 +12,10 @@ import {
   MandatoryProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
-import { ProvableMethodExecutionContext } from "@proto-kit/common";
+import {
+  ProvableMethodExecutionContext,
+  CompileRegistry,
+} from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
@@ -22,7 +25,6 @@ import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
 import { TaskStateRecord } from "../TransactionTraceService";
 
 import { JSONEncodableState } from "./RuntimeTaskParameters";
-import { CompileRegistry } from "./CompileRegistry";
 import { DecodedStateSerializer } from "./BlockProvingTask";
 
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
@@ -147,7 +149,9 @@ export class NewBlockTask
     startingState: TaskStateRecord,
     callback: () => Promise<Return>
   ): Promise<Return> {
-    const prefilledStateService = new PreFilledStateService(startingState);
+    const prefilledStateService = new PreFilledStateService({
+      ...startingState,
+    });
     this.protocol.stateServiceProvider.setCurrentStateService(
       prefilledStateService
     );
@@ -160,7 +164,9 @@ export class NewBlockTask
   }
 
   public async compute(input: NewBlockProvingParameters): Promise<BlockProof> {
-    const { input1, input2, params: parameters } = input;
+    // TODO I left the task arg for the ST Proof in, until it will be reworked
+    //  with the new ST Prover
+    const { input2, params: parameters } = input;
     const { networkState, blockWitness, startingState, publicInput } =
       parameters;
 
@@ -169,7 +175,7 @@ export class NewBlockTask
         publicInput,
         networkState,
         blockWitness,
-        input1,
+        // input1,
         input2
       );
     });
@@ -183,9 +189,6 @@ export class NewBlockTask
 
   public async prepare(): Promise<void> {
     // Compile
-    await this.compileRegistry.compile(
-      "BlockProver",
-      this.blockProver.zkProgrammable.zkProgram[0]
-    );
+    await this.blockProver.compile(this.compileRegistry);
   }
 }

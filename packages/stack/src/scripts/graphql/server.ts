@@ -236,7 +236,7 @@ export async function startServer() {
     },
   });
 
-  await appChain.start(container.createChildContainer());
+  await appChain.start(false, container.createChildContainer());
   // const pk = PublicKey.fromBase58(
   //   "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   // );
