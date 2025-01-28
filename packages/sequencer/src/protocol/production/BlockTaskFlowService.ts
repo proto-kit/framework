@@ -9,29 +9,27 @@ import {
   Protocol,
   StateTransitionProof,
 } from "@proto-kit/protocol";
-import { log, MAX_FIELD, MOCK_PROOF } from "@proto-kit/common";
+import { log, MAX_FIELD } from "@proto-kit/common";
 
 import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { Flow, FlowCreator } from "../../worker/flow/Flow";
 
 import type { BlockTrace } from "./BatchProducerModule";
-import {
-  StateTransitionReductionTask,
-  StateTransitionTask,
-} from "./tasks/StateTransitionTask";
+import { StateTransitionTask } from "./tasks/StateTransitionTask";
 import { RuntimeProvingTask } from "./tasks/RuntimeProvingTask";
-import {
-  BlockProverParameters,
-  BlockProvingTask,
-  BlockProvingTaskParameters,
-  BlockReductionTask,
-} from "./tasks/BlockProvingTask";
 import { ReductionTaskFlow } from "./flow/ReductionTaskFlow";
 import {
   NewBlockProverParameters,
   NewBlockProvingParameters,
   NewBlockTask,
 } from "./tasks/NewBlockTask";
+import { StateTransitionReductionTask } from "./tasks/StateTransitionReductionTask";
+import {
+  BlockProverParameters,
+  TransactionProvingTask,
+  TransactionProvingTaskParameters,
+} from "./tasks/TransactionProvingTask";
+import { BlockReductionTask } from "./tasks/BlockReductionTask";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -50,7 +48,7 @@ interface BlockProductionFlowState {
 }
 
 /**
- * We could rename this into BlockCreationStategy and enable the injection of
+ * We could rename this into BlockCreationStrategy and enable the injection of
  * different creation strategies.
  */
 @injectable()
@@ -62,7 +60,7 @@ export class BlockTaskFlowService {
     private readonly stateTransitionTask: StateTransitionTask,
     private readonly stateTransitionReductionTask: StateTransitionReductionTask,
     private readonly runtimeProvingTask: RuntimeProvingTask,
-    private readonly transactionProvingTask: BlockProvingTask,
+    private readonly transactionProvingTask: TransactionProvingTask,
     private readonly blockProvingTask: NewBlockTask,
     private readonly blockReductionTask: BlockReductionTask,
     @inject("Protocol")
@@ -72,7 +70,7 @@ export class BlockTaskFlowService {
   public async pushPairing(
     flow: Flow<BlockProductionFlowState>,
     transactionReductionTask: ReductionTaskFlow<
-      BlockProvingTaskParameters,
+      TransactionProvingTaskParameters,
       BlockProof
     >,
     blockIndex: number,
@@ -215,11 +213,7 @@ export class BlockTaskFlowService {
       this.flowCreator
     );
     blockMergingFlow.onCompletion(async (result) => {
-      const printableProof =
-        result.proof === MOCK_PROOF
-          ? result.proof
-          : result.toJSON().proof.slice(100);
-      log.debug(`Block generation finished, with proof ${printableProof}`); // TODO Remove result logging
+      log.debug(`Block generation finished, with proof ${result.proof}`); // TODO Remove result logging
       flow.resolve(result);
     });
     blockMergingFlow.deferErrorsTo(flow);

@@ -6,6 +6,7 @@ import {
 } from "@proto-kit/module";
 import {
   MethodPublicOutput,
+  NetworkState,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
@@ -15,13 +16,20 @@ import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
+import { PendingTransaction } from "../../../mempool/PendingTransaction";
+import { TaskStateRecord } from "../TransactionTraceService";
 
-import {
-  RuntimeProofParameters,
-  RuntimeProofParametersSerializer,
-} from "./RuntimeTaskParameters";
+import { RuntimeProofParametersSerializer } from "./serializers/RuntimeProofParametersSerializer";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
+
+export interface RuntimeProofParameters {
+  tx: PendingTransaction;
+  networkState: NetworkState;
+  state: TaskStateRecord;
+}
+
+export type JSONEncodableState = Record<string, string[]>;
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

@@ -137,6 +137,7 @@ export class MempoolResolver extends GraphqlModule {
     return decoded.hash().toString();
   }
 
+  // TODO Add retrieval of pending messages somewhere as well
   @Query(() => InclusionStatus, {
     description: "Returns the state of a given transaction",
   })
@@ -146,13 +147,6 @@ export class MempoolResolver extends GraphqlModule {
     })
     hash: string
   ): Promise<InclusionStatus> {
-    const txs = await this.mempool.getTxs();
-    const tx = txs.find((x) => x.hash().toString() === hash);
-
-    if (tx) {
-      return InclusionStatus.PENDING;
-    }
-
     const dbTx = await this.transactionStorage.findTransaction(hash);
 
     if (dbTx !== undefined) {
@@ -162,6 +156,7 @@ export class MempoolResolver extends GraphqlModule {
       if (dbTx.block !== undefined) {
         return InclusionStatus.INCLUDED;
       }
+      return InclusionStatus.PENDING;
     }
 
     return InclusionStatus.UNKNOWN;
@@ -172,7 +167,7 @@ export class MempoolResolver extends GraphqlModule {
       "Returns the hashes of all transactions that are currently inside the mempool",
   })
   public async transactions() {
-    const txs = await this.mempool.getTxs();
+    const txs = await this.transactionStorage.getPendingUserTransactions();
     return txs.map((x) => x.hash().toString());
   }
 }

@@ -137,4 +137,8 @@ export class PrismaDatabaseConnection
   public async close() {
     await this.prismaClient.$disconnect();
   }
+
+  public async executeInTransaction(f: () => Promise<void>) {
+    await this.prismaClient.$transaction(f);
+  }
 }

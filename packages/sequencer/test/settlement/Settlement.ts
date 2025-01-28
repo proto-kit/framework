@@ -2,9 +2,9 @@
 import {
   expectDefined,
   log,
-  RollupMerkleTree,
-  TypedClass,
   mapSequential,
+  TypedClass,
+  RollupMerkleTree,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
@@ -56,7 +56,7 @@ import {
   SignedSettlementPermissions,
   ProvenSettlementPermissions,
 } from "../../src";
-import { BlockProofSerializer } from "../../src/protocol/production/helpers/BlockProofSerializer";
+import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
 import { testingSequencerFromModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
 import { MinaBlockchainAccounts } from "../../src/protocol/baselayer/accounts/MinaBlockchainAccounts";
@@ -497,7 +497,7 @@ export const settlementTestFn = (
             RollupMerkleTree.EMPTY_ROOT
           );
 
-          const lastBlock = await blockQueue.getLatestBlock();
+          const lastBlock = await blockQueue.getLatestBlockAndResult();
 
           await trigger.settle(batch!);
           nonceCounter++;
@@ -507,6 +507,8 @@ export const settlementTestFn = (
           console.log("Block settled");
 
           const { settlement } = settlementModule.getContracts();
+          expectDefined(lastBlock);
+          expectDefined(lastBlock.result);
           expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
             lastBlock!.result.afterNetworkState.hash().toBigInt()
           );
