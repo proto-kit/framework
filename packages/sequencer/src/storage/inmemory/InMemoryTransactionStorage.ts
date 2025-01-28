@@ -78,6 +78,14 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       }
     | undefined
   > {
+    const pending = await this.getPendingUserTransactions();
+    const pendingResult = pending.find((tx) => tx.hash().toString() === hash);
+    if (pendingResult !== undefined) {
+      return {
+        transaction: pendingResult,
+      };
+    }
+
     const tipHeight = await this.blockStorage.getCurrentBlockHeight();
     const hashField = Field(hash);
 
