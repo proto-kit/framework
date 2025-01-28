@@ -156,14 +156,6 @@ describe("block production", () => {
       throw e;
     }
 
-    // Await worker readiness
-    await new Promise<boolean>((res) => {
-      app
-        .resolve("Sequencer")
-        .resolve("LocalTaskWorkerModule")
-        .containerEvents.on("ready", res);
-    });
-
     appChain = app;
 
     ({ runtime, sequencer, protocol } = app);

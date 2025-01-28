@@ -1,9 +1,12 @@
 import { Field, PublicKey, UInt32 } from "o1js";
+import { InferProofBase } from "@proto-kit/common";
 
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { NetworkState } from "../../model/network/NetworkState";
 import type { BlockProof } from "../../prover/block/BlockProver";
 import type { SettlementSmartContractBase } from "../contracts/SettlementSmartContract";
+
+export type InputBlockProof = InferProofBase<BlockProof>;
 
 export type SettlementStateRecord = {
   sequencerKey: PublicKey;
@@ -15,7 +18,7 @@ export type SettlementStateRecord = {
 };
 
 export type SettlementHookInputs = {
-  blockProof: BlockProof;
+  blockProof: InputBlockProof;
   fromNetworkState: NetworkState;
   toNetworkState: NetworkState;
   newPromisedMessagesHash: Field;

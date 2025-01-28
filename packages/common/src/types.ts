@@ -1,5 +1,5 @@
 // allows to reference interfaces as 'classes' rather than instances
-import { Bool, Field, PublicKey } from "o1js";
+import { Bool, DynamicProof, Field, Proof, ProofBase, PublicKey } from "o1js";
 
 export type TypedClass<Class> = new (...args: any[]) => Class;
 
@@ -47,3 +47,12 @@ export const EMPTY_PUBLICKEY = PublicKey.fromObject({
 export type OverwriteObjectType<Base, New> = {
   [Key in keyof Base]: Key extends keyof New ? New[Key] : Base[Key];
 } & New;
+
+export type InferProofBase<
+  ProofType extends Proof<any, any> | DynamicProof<any, any>,
+> =
+  ProofType extends Proof<infer PI, infer PO>
+    ? ProofBase<PI, PO>
+    : ProofType extends DynamicProof<infer PI, infer PO>
+      ? ProofBase<PI, PO>
+      : undefined;

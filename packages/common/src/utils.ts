@@ -6,6 +6,8 @@ import {
   Proof,
 } from "o1js";
 
+import { TypedClass } from "./types";
+
 export function requireTrue(
   condition: boolean,
   errorOrFunction: Error | (() => Error)
@@ -60,7 +62,7 @@ export function reduceSequential<T, U>(
     array: T[]
   ) => Promise<U>,
   initialValue: U
-) {
+): Promise<U> {
   return array.reduce<Promise<U>>(
     async (previousPromise, current, index, arr) => {
       const previous = await previousPromise;
@@ -170,3 +172,25 @@ type NonMethodKeys<Type> = {
 export type NonMethods<Type> = Pick<Type, NonMethodKeys<Type>>;
 
 export const MAX_FIELD = Field(Field.ORDER - 1n);
+
+/**
+ * Returns a boolean indicating whether a given class is a subclass of another class,
+ * indicated by the name parameter.
+ */
+// TODO Change to class reference based comparisons
+export function isSubtypeOfName(
+  clas: TypedClass<unknown>,
+  name: string
+): boolean {
+  if (clas.name === name) {
+    return true;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  return isSubtypeOfName(Object.getPrototypeOf(clas), name);
+}
+
+// TODO Eventually, replace this by a schema validation library
+export function safeParseJson<T>(json: string) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return JSON.parse(json) as T;
+}

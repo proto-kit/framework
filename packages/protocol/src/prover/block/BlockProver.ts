@@ -12,6 +12,9 @@ import {
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
   AreProofsEnabled,
+  CompilableModule,
+  CompileArtifact,
+  CompileRegistry,
   MAX_FIELD,
   PlainZkProgram,
   provableMethod,
@@ -24,6 +27,7 @@ import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import {
   StateTransitionProof,
+  StateTransitionProvable,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "../statetransition/StateTransitionProvable";
@@ -145,6 +149,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
   ) {
     super();
   }
+
+  name = "BlockProver";
 
   public get areProofsEnabled(): AreProofsEnabled | undefined {
     return this.prover.areProofsEnabled;
@@ -881,6 +887,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     return [
       {
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -897,7 +904,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
  * then be merged to be committed to the base-layer contract
  */
 @injectable()
-export class BlockProver extends ProtocolModule implements BlockProvable {
+export class BlockProver
+  extends ProtocolModule
+  implements BlockProvable, CompilableModule
+{
   public zkProgrammable: BlockProverProgrammable;
 
   public constructor(
@@ -905,9 +915,11 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
     public readonly stateTransitionProver: WithZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
-    >,
+    > &
+      StateTransitionProvable,
     @inject("Runtime")
-    public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput>,
+    public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput> &
+      CompilableModule,
     @injectAll("ProvableTransactionHook")
     transactionHooks: ProvableTransactionHook<unknown>[],
     @injectAll("ProvableBlockHook")
@@ -923,6 +935,15 @@ export class BlockProver extends ProtocolModule implements BlockProvable {
       blockHooks,
       verificationKeyService
     );
+  }
+
+  public async compile(
+    registry: CompileRegistry
+  ): Promise<Record<string, CompileArtifact> | undefined> {
+    await this.stateTransitionProver.compile(registry);
+    await this.runtime.compile(registry);
+
+    return await this.zkProgrammable.compile(registry);
   }
 
   public proveTransaction(

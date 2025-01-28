@@ -18,3 +18,7 @@ export * from "./trees/RollupMerkleTree";
 export * from "./events/EventEmitterProxy";
 export * from "./events/ReplayingSingleUseEventEmitter";
 export * from "./trees/MockAsyncMerkleStore";
+export * from "./compiling/AtomicCompileHelper";
+export * from "./compiling/CompileRegistry";
+export * from "./compiling/CompilableModule";
+export * from "./compiling/services/ChildVerificationKeyService";
