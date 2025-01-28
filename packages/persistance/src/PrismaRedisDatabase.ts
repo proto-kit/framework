@@ -17,6 +17,7 @@ import {
   RedisConnection,
   RedisConnectionConfig,
   RedisConnectionModule,
+  RedisTransaction,
 } from "./RedisConnection";
 
 export interface PrismaRedisCombinedConfig {
@@ -45,6 +46,10 @@ export class PrismaRedisDatabase
 
   public get redisClient(): RedisClientType {
     return this.redis.redisClient;
+  }
+
+  public get currentMulti(): RedisTransaction {
+    return this.redis.currentMulti;
   }
 
   public create(childContainerProvider: ChildContainerProvider) {
@@ -76,5 +81,13 @@ export class PrismaRedisDatabase
   public async pruneDatabase(): Promise<void> {
     await this.prisma.pruneDatabase();
     await this.redis.pruneDatabase();
+  }
+
+  public async executeInTransaction(f: () => Promise<void>) {
+    // TODO Long-term we want to somehow make sure we can rollback one data source
+    //  if commiting the other one's transaction fails
+    await this.prisma.executeInTransaction(async () => {
+      await this.redis.executeInTransaction(f);
+    });
   }
 }

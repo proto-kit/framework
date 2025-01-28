@@ -65,4 +65,8 @@ export class InMemoryDatabase extends SequencerModule implements Database {
     // at some point that is after startup (which we don't do currently)
     noop();
   }
+
+  public async executeInTransaction(f: () => Promise<void>) {
+    await f();
+  }
 }

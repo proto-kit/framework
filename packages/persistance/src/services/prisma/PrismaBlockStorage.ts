@@ -98,45 +98,42 @@ export class PrismaBlockStorage
 
     const { prismaClient } = this.connection;
 
-    await prismaClient.$transaction([
-      prismaClient.transaction.createMany({
-        data: block.transactions.map((txr) =>
-          this.transactionMapper.mapOut(txr.tx)
-        ),
-        skipDuplicates: true,
-      }),
+    await prismaClient.transaction.createMany({
+      data: block.transactions.map((txr) =>
+        this.transactionMapper.mapOut(txr.tx)
+      ),
+      skipDuplicates: true,
+    });
 
-      prismaClient.block.create({
-        data: {
-          ...encodedBlock,
-          beforeNetworkState:
-            encodedBlock.beforeNetworkState as Prisma.InputJsonObject,
-          duringNetworkState:
-            encodedBlock.duringNetworkState as Prisma.InputJsonObject,
+    await prismaClient.block.create({
+      data: {
+        ...encodedBlock,
+        beforeNetworkState:
+          encodedBlock.beforeNetworkState as Prisma.InputJsonObject,
+        duringNetworkState:
+          encodedBlock.duringNetworkState as Prisma.InputJsonObject,
 
-          transactions: {
-            createMany: {
-              data: transactions.map((tx) => {
-                return {
-                  status: tx.status,
-                  statusMessage: tx.statusMessage,
-                  txHash: tx.txHash,
+        transactions: {
+          createMany: {
+            data: transactions.map((tx) => {
+              return {
+                status: tx.status,
+                statusMessage: tx.statusMessage,
+                txHash: tx.txHash,
 
-                  stateTransitions:
-                    tx.stateTransitions as Prisma.InputJsonArray,
-                  protocolTransitions:
-                    tx.protocolTransitions as Prisma.InputJsonArray,
-                  events: tx.events as Prisma.InputJsonArray,
-                };
-              }),
-              skipDuplicates: true,
-            },
+                stateTransitions: tx.stateTransitions as Prisma.InputJsonArray,
+                protocolTransitions:
+                  tx.protocolTransitions as Prisma.InputJsonArray,
+                events: tx.events as Prisma.InputJsonArray,
+              };
+            }),
+            skipDuplicates: true,
           },
-
-          batchHeight: undefined,
         },
-      }),
-    ]);
+
+        batchHeight: undefined,
+      },
+    });
   }
 
   public async pushResult(result: BlockResult): Promise<void> {

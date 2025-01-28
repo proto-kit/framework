@@ -25,6 +25,7 @@ import {
 } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
+import { Database } from "../../../storage/Database";
 
 import { TransactionExecutionService } from "./TransactionExecutionService";
 
@@ -51,7 +52,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly executionService: TransactionExecutionService,
     @inject("MethodIdResolver")
     private readonly methodIdResolver: MethodIdResolver,
-    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
+    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
+    @inject("Database") private readonly database: Database
   ) {
     super();
   }
@@ -111,10 +113,12 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         this.blockTreeStore
       );
 
-    await blockHashTreeStore.mergeIntoParent();
-    await treeStore.mergeIntoParent();
+    await this.database.executeInTransaction(async () => {
+      await blockHashTreeStore.mergeIntoParent();
+      await treeStore.mergeIntoParent();
 
-    await this.blockQueue.pushResult(result);
+      await this.blockQueue.pushResult(result);
+    });
 
     return result;
   }
@@ -216,9 +220,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     );
 
     if (block !== undefined) {
-      await cachedStateService.mergeIntoParent();
-
-      await this.blockQueue.pushBlock(block);
+      await this.database.executeInTransaction(async () => {
+        await cachedStateService.mergeIntoParent();
+        await this.blockQueue.pushBlock(block);
+      });
     }
 
     this.productionInProgress = false;
@@ -226,7 +231,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return block;
   }
 
-  public async start() {
+  public async blockResultCompleteCheck() {
     // Check if metadata height is behind block production.
     // This can happen when the sequencer crashes after a block has been produced
     // but before the metadata generation has finished
@@ -239,5 +244,9 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       // Here, the metadata has been computed already
     }
     // If we reach here, its a genesis startup, no blocks exist yet
+  }
+
+  public async start() {
+    await this.blockResultCompleteCheck();
   }
 }

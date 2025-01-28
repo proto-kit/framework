@@ -1,4 +1,4 @@
-import { StorageDependencyFactory } from "./StorageDependencyFactory";
+import type { StorageDependencyFactory } from "./StorageDependencyFactory";
 
 export interface Database extends StorageDependencyFactory {
   /**
@@ -7,4 +7,6 @@ export interface Database extends StorageDependencyFactory {
    * everything else will lead to unexpected behaviour and errors
    */
   pruneDatabase(): Promise<void>;
+
+  executeInTransaction(f: () => Promise<void>): Promise<void>;
 }
