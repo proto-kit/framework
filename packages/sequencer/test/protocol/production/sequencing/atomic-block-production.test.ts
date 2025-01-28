@@ -11,6 +11,7 @@ import {
   BlockQueue,
   ManualBlockTrigger,
   TransactionExecutionService,
+  VanillaTaskWorkerModules,
 } from "../../../../src";
 import { ProtocolStateTestHook } from "../../../integration/mocks/ProtocolStateTestHook";
 import {
@@ -57,7 +58,7 @@ describe("atomic block production", () => {
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},

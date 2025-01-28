@@ -20,7 +20,12 @@ import {
   StateServiceQueryModule,
   TestingAppChain,
 } from "@proto-kit/sdk";
-import { LocalTaskQueue, Sequencer, TaskPayload } from "@proto-kit/sequencer";
+import {
+  LocalTaskQueue,
+  Sequencer,
+  TaskPayload,
+  VanillaTaskWorkerModules,
+} from "@proto-kit/sequencer";
 
 import { IndexerNotifier, IndexBlockTaskParametersSerializer } from "../src";
 
@@ -89,16 +94,7 @@ function createAppChain() {
       BlockTrigger: {},
       Mempool: {},
       BlockProducerModule: {},
-      LocalTaskWorkerModule: {
-        StateTransitionReductionTask: {},
-        StateTransitionTask: {},
-        RuntimeProvingTask: {},
-        BlockBuildingTask: {},
-        BlockProvingTask: {},
-        BlockReductionTask: {},
-        CircuitCompilerTask: {},
-        WorkerRegistrationTask: {},
-      },
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       BatchProducerModule: {},
       TaskQueue: {
@@ -176,7 +172,7 @@ describe("IndexerNotifier", () => {
 
     await appChain.start();
     await sendTransactions(appChain, 2);
-  });
+  }, 20000);
 
   it("should create a task for every unproven block produced", async () => {
     const { block } = container

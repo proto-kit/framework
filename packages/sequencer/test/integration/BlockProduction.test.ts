@@ -24,7 +24,12 @@ import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
-import { BatchStorage, HistoricalBatchStorage, Sequencer } from "../../src";
+import {
+  BatchStorage,
+  HistoricalBatchStorage,
+  Sequencer,
+  VanillaTaskWorkerModules,
+} from "../../src";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
@@ -133,7 +138,7 @@ describe("block production", () => {
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
