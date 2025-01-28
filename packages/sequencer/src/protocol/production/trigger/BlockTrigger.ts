@@ -65,28 +65,29 @@ export class BlockTriggerBase<
     return undefined;
   }
 
-  protected async produceBlockWithResult(
-    enqueueInSettlementQueue: boolean
-  ): Promise<BlockWithResult | undefined> {
+  protected async produceBlockWithResult(): Promise<
+    BlockWithResult | undefined
+  > {
     const block = await this.blockProducerModule.tryProduceBlock();
+    if (block) {
+      this.events.emit("block-produced", block);
 
-    if (block && enqueueInSettlementQueue) {
-      await this.blockQueue.pushBlock(block.block);
-      this.events.emit("block-produced", block.block);
+      const result = await this.blockProducerModule.generateMetadata(block);
 
-      await this.blockQueue.pushResult(block.result);
-      this.events.emit("block-metadata-produced", block);
+      const blockWithMetadata = {
+        block,
+        result,
+      };
+
+      this.events.emit("block-metadata-produced", blockWithMetadata);
+
+      return blockWithMetadata;
     }
-
-    return block;
+    return undefined;
   }
 
-  protected async produceBlock(
-    enqueueInSettlementQueue: boolean
-  ): Promise<Block | undefined> {
-    const blockWithResult = await this.produceBlockWithResult(
-      enqueueInSettlementQueue
-    );
+  protected async produceBlock(): Promise<Block | undefined> {
+    const blockWithResult = await this.produceBlockWithResult();
 
     return blockWithResult?.block;
   }

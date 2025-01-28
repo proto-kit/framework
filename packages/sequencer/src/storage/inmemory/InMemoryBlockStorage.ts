@@ -5,7 +5,12 @@ import {
   BlockQueue,
   BlockStorage,
 } from "../repositories/BlockStorage";
-import type { Block, BlockResult, BlockWithResult } from "../model/Block";
+import type {
+  Block,
+  BlockResult,
+  BlockWithMaybeResult,
+  BlockWithResult,
+} from "../model/Block";
 import { BlockWithPreviousResult } from "../../protocol/production/BatchProducerModule";
 import { BatchStorage } from "../repositories/BatchStorage";
 
@@ -29,10 +34,12 @@ export class InMemoryBlockStorage
     return this.blocks.length;
   }
 
-  public async getLatestBlock(): Promise<BlockWithResult | undefined> {
+  public async getLatestBlockAndResult(): Promise<
+    BlockWithMaybeResult | undefined
+  > {
     const currentHeight = await this.getCurrentBlockHeight();
     const block = await this.getBlockAt(currentHeight - 1);
-    const result = this.results[currentHeight - 1];
+    const result: BlockResult | undefined = this.results[currentHeight - 1];
     if (block === undefined) {
       return undefined;
     }
@@ -40,6 +47,22 @@ export class InMemoryBlockStorage
       block,
       result,
     };
+  }
+
+  public async getLatestBlock(): Promise<BlockWithResult | undefined> {
+    const result = await this.getLatestBlockAndResult();
+    if (result !== undefined) {
+      if (result.result === undefined) {
+        throw new Error(
+          `Block result for block ${result.block.height.toString()} not found`
+        );
+      }
+      return {
+        block: result.block,
+        result: result.result,
+      };
+    }
+    return result;
   }
 
   public async getNewBlocks(): Promise<BlockWithPreviousResult[]> {
