@@ -65,13 +65,6 @@ export class StateTransitionTask
   ): Promise<StateTransitionProof> {
     const stBatch = input.stateTransitions.slice();
     const merkleWitnesses = input.merkleWitnesses.slice();
-    // Array.from({
-    //   length: ProtocolConstants.stateTransitionProverBatchSize - stBatch.length,
-    // }).forEach(() => {
-    //   stBatch.push({
-    //     ProvableStateTransition.dummy()
-    //   });
-    // });
 
     const output = await this.stateTransitionProver.runBatch(
       input.publicInput,

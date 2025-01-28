@@ -136,16 +136,6 @@ export class SequencerStartupModule extends SequencerModule {
         bridgeVk.verificationKey;
     }
 
-    const record = await this.pushCompileTask(flow, {
-      existingArtifacts: this.compileRegistry.getAllArtifacts(),
-      targets: ["Settlement.SettlementContract"],
-    });
-
-    this.compileRegistry.addArtifactsRaw(record);
-
-    // TODO Compile all contracts and retrieve artifacts to enable crafting of
-    //  the deployments - edit: can also be done on-demand with the CompileTask
-
     await this.registrationFlow.start({
       runtimeVerificationKeyRoot: root,
       bridgeContractVerificationKey: bridgeVk?.verificationKey,

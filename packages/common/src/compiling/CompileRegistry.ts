@@ -1,6 +1,9 @@
 import { inject, injectable, singleton } from "tsyringe";
 
-import { AreProofsEnabled } from "../zkProgrammable/ZkProgrammable";
+import {
+  AreProofsEnabled,
+  CompileArtifact,
+} from "../zkProgrammable/ZkProgrammable";
 
 import {
   ArtifactRecord,
@@ -27,10 +30,24 @@ export class CompileRegistry {
 
   private artifacts: ArtifactRecord = {};
 
-  // TODO Add possibility to force recompilation for non-sideloaded dependencies
+  private inForceProverBlock = false;
+
+  /**
+   * This function forces compilation even if the artifact itself is in the registry.
+   * Basically the statement is: The artifact along is not enough, we need to
+   * actually have the prover compiled.
+   * This is true for non-sideloaded circuit dependencies.
+   */
+  public async forceProverExists(
+    f: (registry: CompileRegistry) => Promise<void>
+  ) {
+    this.inForceProverBlock = true;
+    await f(this);
+    this.inForceProverBlock = false;
+  }
 
   public async compile(target: CompileTarget) {
-    if (this.artifacts[target.name] === undefined) {
+    if (this.artifacts[target.name] === undefined || this.inForceProverBlock) {
       const artifact = await this.compiler.compileContract(target);
       this.artifacts[target.name] = artifact;
       return artifact;
@@ -38,7 +55,7 @@ export class CompileRegistry {
     return this.artifacts[target.name];
   }
 
-  public getArtifact(name: string) {
+  public getArtifact(name: string): CompileArtifact | undefined {
     if (this.artifacts[name] === undefined) {
       throw new Error(
         `Artifact for ${name} not available, did you compile it via the CompileRegistry?`

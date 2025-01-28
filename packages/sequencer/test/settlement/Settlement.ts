@@ -69,10 +69,8 @@ import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/Fun
 import { Balances, BalancesKey } from "./mocks/Balances";
 import { Withdrawals } from "./mocks/Withdrawals";
 
-log.setLevel("DEBUG");
-
 export const settlementTestFn = (
-  settlementType: "signed" | "mock-proofs",
+  settlementType: "signed" | "mock-proofs" | "proven",
   baseLayerConfig: MinaBaseLayerConfig,
   tokenConfig?: {
     tokenOwner: TypedClass<FungibleToken> & typeof SmartContract;
@@ -257,9 +255,14 @@ export const settlementTestFn = (
     }
 
     beforeAll(async () => {
+      log.setLevel("DEBUG");
+
       appChain = setupAppChain();
 
-      await appChain.start(false, container.createChildContainer());
+      await appChain.start(
+        settlementType === "proven",
+        container.createChildContainer()
+      );
 
       settlementModule = appChain.sequencer.resolve(
         "SettlementModule"

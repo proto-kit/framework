@@ -182,6 +182,10 @@ export function isSubtypeOfName(
   clas: TypedClass<unknown>,
   name: string
 ): boolean {
+  if (clas === undefined || clas === null) {
+    return false;
+  }
+
   if (clas.name === name) {
     return true;
   }

@@ -1,9 +1,10 @@
 import {
   filterNonUndefined,
-  MOCK_PROOF,
   AreProofsEnabled,
   log,
   CompileRegistry,
+  mapSequential,
+  safeParseJson,
 } from "@proto-kit/common";
 import {
   MandatoryProtocolModulesRecord,
@@ -23,6 +24,9 @@ import {
   Transaction,
   Void,
   SmartContract,
+  ProofBase,
+  AccountUpdateForest,
+  AccountUpdate,
 } from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
@@ -139,8 +143,7 @@ export class SettlementProvingTask
     return { transaction: provenTx };
   }
 
-  // Subclass<typeof ProofBase> is not exported
-  private getProofSerializer(proofType: Subclass<any>) {
+  private getProofSerializer(proofType: Subclass<typeof ProofBase>) {
     return proofType.prototype instanceof Proof
       ? new ProofTaskSerializer(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -157,7 +160,6 @@ export class SettlementProvingTask
     type LazyProofJson = {
       methodName: string;
       args: ({ fields: string[]; aux: string[] } | string)[];
-      previousProofs: string[];
       zkappClassName: string;
       memoized: { fields: string[]; aux: any[] }[];
       blindingValue: string;
@@ -214,42 +216,58 @@ export class SettlementProvingTask
             const proofTypes = method.proofArgs;
             let proofsDecoded = 0;
 
-            const args = lazyProof.args.map((encodedArg, argsIndex) => {
-              if (allArgs[argsIndex].type === "witness") {
-                // encodedArg is this type
-                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                const arg = encodedArg as { fields: string[]; aux: string[] };
-
-                return witnessArgTypes[argsIndex - proofsDecoded].fromFields(
-                  arg.fields.map((field) => Field(field)),
-                  arg.aux.map((auxI) => JSON.parse(auxI))
-                );
-              }
-              // fields is JsonProof
-              const serializer = this.getProofSerializer(
-                proofTypes[proofsDecoded]
-              );
-
-              proofsDecoded += 1;
-              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-              return serializer.fromJSON(encodedArg as string);
-            });
-
             // eslint-disable-next-line no-await-in-loop
-            const previousProofs = await Promise.all(
-              lazyProof.previousProofs.map(async (proofString) => {
-                if (proofString === MOCK_PROOF) {
-                  return MOCK_PROOF;
-                }
+            const args = await mapSequential(
+              lazyProof.args,
+              async (encodedArg, argsIndex) => {
+                if (allArgs[argsIndex].type === "witness") {
+                  const argType = witnessArgTypes[argsIndex - proofsDecoded];
+                  // encodedArg is this type
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  const arg = encodedArg as { fields: string[]; aux: string[] };
 
-                const p = await SomeProofSubclass.fromJSON({
-                  maxProofsVerified: 0,
-                  publicInput: ["0"],
-                  publicOutput: [],
-                  proof: proofString,
-                });
-                return p.proof;
-              })
+                  // Special case for AccountUpdateForest
+                  if (
+                    arg.aux.length > 0 &&
+                    JSON.parse(arg.aux[0]).typeName === "AccountUpdateForest"
+                  ) {
+                    const [accountUpdatesJSON] = arg.aux.map((aux) =>
+                      safeParseJson<{
+                        accountUpdates: Types.Json.AccountUpdate[];
+                        typeName: "AccountUpdateForest";
+                      }>(aux)
+                    );
+                    const accountUpdates =
+                      accountUpdatesJSON.accountUpdates.map((auJSON) =>
+                        AccountUpdate.fromJSON(auJSON)
+                      );
+                    return AccountUpdateForest.fromFlatArray(accountUpdates);
+                  }
+
+                  return argType.fromFields(
+                    arg.fields.map((field) => Field(field)),
+                    arg.aux.map((auxI) => JSON.parse(auxI))
+                  );
+                }
+                // fields is JsonProof
+                const serializer = this.getProofSerializer(
+                  proofTypes[proofsDecoded]
+                );
+
+                proofsDecoded += 1;
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                return await serializer.fromJSON(encodedArg as string);
+              }
+            );
+
+            const proofArgIndizes = allArgs
+              .filter((arg) => arg.type === "proof")
+              .map((arg) => arg.index);
+
+            const previousProofs = proofArgIndizes.map(
+              (argIndex) =>
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                (args[argIndex] as ProofBase<unknown, unknown>).proof
             );
 
             transaction.transaction.accountUpdates[index].lazyAuthorization = {
@@ -293,7 +311,7 @@ export class SettlementProvingTask
                   throw new Error("Method interface not found");
                 }
 
-                const allArgs = method.allArgs.slice(2); // .filter(arg => arg.type === "witness");
+                const allArgs = method.allArgs.slice(2);
                 const witnessArgTypes = method.witnessArgs.slice(2);
                 const proofTypes = method.proofArgs;
                 let proofsEncoded = 0;
@@ -301,13 +319,34 @@ export class SettlementProvingTask
                 const encodedArgs = lazyProof.args
                   .map((arg, index) => {
                     if (allArgs[index].type === "witness") {
-                      const witness = witnessArgTypes[index - proofsEncoded];
-                      const fields = witness
+                      const witnessType =
+                        witnessArgTypes[index - proofsEncoded];
+
+                      // Special case for AUForest
+                      if (arg instanceof AccountUpdateForest) {
+                        const accountUpdates = AccountUpdateForest.toFlatArray(
+                          arg
+                        ).map((update) => AccountUpdate.toJSON(update));
+
+                        return {
+                          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                          fields: [] as string[],
+                          aux: [
+                            JSON.stringify({
+                              accountUpdates,
+                              typeName: "AccountUpdateForest",
+                            }),
+                          ],
+                        };
+                      }
+
+                      const fields = witnessType
                         .toFields(arg)
                         .map((f) => f.toString());
-                      const aux = witness
+                      const aux = witnessType
                         .toAuxiliary(arg)
                         .map((x) => JSON.stringify(x));
+
                       return {
                         fields,
                         aux,
@@ -321,7 +360,7 @@ export class SettlementProvingTask
                       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                       return serializer.toJSON(arg);
                     }
-                    throw new Error("Generic parameters not supported");
+                    throw new Error("Non-provable parameters not supported");
                   })
                   .filter(filterNonUndefined);
 
@@ -332,19 +371,6 @@ export class SettlementProvingTask
 
                   blindingValue: lazyProof.blindingValue.toString(),
                   memoized: [],
-
-                  previousProofs: lazyProof.previousProofs.map((proof) => {
-                    if (proof === MOCK_PROOF) {
-                      return MOCK_PROOF;
-                    }
-                    const p = new SomeProofSubclass({
-                      proof,
-                      publicInput: Field(0),
-                      publicOutput: undefined,
-                      maxProofsVerified: 0,
-                    });
-                    return p.toJSON().proof;
-                  }),
                 };
               }
               return null;

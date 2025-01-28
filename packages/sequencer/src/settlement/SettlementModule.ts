@@ -27,7 +27,6 @@ import {
   log,
   AreProofsEnabled,
   DependencyFactory,
-  CompileRegistry,
 } from "@proto-kit/common";
 import truncate from "lodash/truncate";
 
@@ -41,6 +40,7 @@ import { Batch, SettleableBatch } from "../storage/model/Batch";
 import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
+import { SettlementStartupModule } from "../sequencer/SettlementStartupModule";
 
 import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
@@ -97,7 +97,7 @@ export class SettlementModule
     @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
-    private readonly compileRegistry: CompileRegistry
+    private readonly settlementStartupModule: SettlementStartupModule
   ) {
     super();
     this.utils = new SettlementUtils(areProofsEnabled, baseLayer);
@@ -253,8 +253,6 @@ export class SettlementModule
 
     const nonce = options?.nonce ?? 0;
 
-    // const verificationKey:
-
     const sm = this.protocol.dependencyContainer.resolve<
       SettlementContractModule<MandatorySettlementModulesRecord>
     >("SettlementContractModule");
@@ -262,6 +260,9 @@ export class SettlementModule
       settlement: settlementKey.toPublicKey(),
       dispatch: dispatchKey.toPublicKey(),
     });
+
+    const verificationsKeys =
+      await this.settlementStartupModule.retrieveVerificationKeys();
 
     const permissions = this.utils.isSignedSettlement()
       ? new SignedSettlementPermissions()
@@ -277,13 +278,14 @@ export class SettlementModule
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
         await settlement.deploy({
-          // TODO Create compilation task that generates those artifacts if proofs enabled
-          verificationKey: undefined,
+          verificationKey:
+            verificationsKeys.SettlementSmartContract.verificationKey,
         });
         settlement.account.permissions.set(permissions.settlementContract());
 
         await dispatch.deploy({
-          verificationKey: undefined,
+          verificationKey:
+            verificationsKeys.DispatchSmartContract.verificationKey,
         });
         dispatch.account.permissions.set(permissions.dispatchContract());
       }

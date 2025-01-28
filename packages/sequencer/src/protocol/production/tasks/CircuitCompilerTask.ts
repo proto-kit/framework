@@ -8,6 +8,7 @@ import {
   CompileRegistry,
   CompilableModule,
   safeParseJson,
+  reduceSequential,
 } from "@proto-kit/common";
 import {
   MandatorySettlementModulesRecord,
@@ -132,10 +133,28 @@ export class CircuitCompilerTask extends UnpreparingTask<
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         settlementModule.moduleNames as StringKeyOf<MandatorySettlementModulesRecord>[];
 
-      const modules = moduleNames.map((name) => [
+      const modules = moduleNames.map<[string, CompilableModule]>((name) => [
         `Settlement.${name}`,
         settlementModule.resolve(name),
       ]);
+
+      const sumModule = {
+        compile: async (registry: CompileRegistry) => {
+          await reduceSequential<CompilableModule, ArtifactRecord>(
+            modules.map(([, module]) => module),
+            async (record, module) => {
+              const artifacts = await module.compile(registry);
+              return {
+                ...record,
+                ...artifacts,
+              };
+            },
+            {}
+          );
+        },
+      };
+
+      modules.push(["Settlement", sumModule]);
 
       return Object.fromEntries(modules);
     }

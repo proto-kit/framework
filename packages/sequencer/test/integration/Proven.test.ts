@@ -28,6 +28,7 @@ import {
   SettlementProvingTask,
   WithdrawalQueue,
 } from "../../src";
+import { SettlementStartupModule } from "../../src/sequencer/SettlementStartupModule";
 
 import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
 import { BlockTestService } from "./services/BlockTestService";
@@ -37,6 +38,8 @@ const timeout = 300000;
 
 describe("Proven", () => {
   let test: BlockTestService;
+
+  let appChain: AppChain<any, any, any, any>;
 
   it(
     "should start up and compile",
@@ -136,6 +139,8 @@ describe("Proven", () => {
         await app.start(true, childContainer);
 
         test = app.sequencer.dependencyContainer.resolve(BlockTestService);
+
+        appChain = app;
       } catch (e) {
         console.error(e);
         throw e;
@@ -143,6 +148,19 @@ describe("Proven", () => {
     },
     timeout
   );
+
+  it("should compile settlement contracts", async () => {
+    const module = appChain.sequencer.dependencyContainer.resolve(
+      SettlementStartupModule
+    );
+
+    const vks = await module.retrieveVerificationKeys();
+
+    console.log(vks);
+
+    expect(vks.DispatchSmartContract).toBeDefined();
+    expect(vks.SettlementSmartContract).toBeDefined();
+  });
 
   it.skip("Hello", async () => {
     try {

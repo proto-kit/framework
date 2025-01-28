@@ -162,6 +162,8 @@ export class MinaTransactionSender {
 
     log.debug("Tx proving complete, queueing for sending");
 
+    log.trace(result.transaction.toPretty());
+
     const txStatus = await this.sendOrQueue(result.transaction);
 
     if (waitOnStatus !== "none") {
