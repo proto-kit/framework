@@ -348,5 +348,9 @@ export class AppChain<
       .resolve(WorkerReadyModule)
       .waitForReady();
   }
+
+  public async close() {
+    await this.sequencer.close();
+  }
 }
 /* eslint-enable @typescript-eslint/consistent-type-assertions */

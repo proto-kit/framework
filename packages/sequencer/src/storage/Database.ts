@@ -1,6 +1,8 @@
+import { Closeable } from "../sequencer/builder/Closeable";
+
 import type { StorageDependencyFactory } from "./StorageDependencyFactory";
 
-export interface Database extends StorageDependencyFactory {
+export interface Database extends StorageDependencyFactory, Closeable {
   /**
    * Prunes all data from the database connection.
    * Note: This function should only be called immediately at startup,

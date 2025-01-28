@@ -6,6 +6,7 @@ export * from "./mempool/private/PrivateMempool";
 export * from "./sequencer/executor/Sequencer";
 export * from "./sequencer/executor/Sequenceable";
 export * from "./sequencer/builder/SequencerModule";
+export * from "./sequencer/builder/Closeable";
 export * from "./worker/flow/Flow";
 export * from "./worker/flow/Task";
 export * from "./worker/flow/JSONTaskSerializer";

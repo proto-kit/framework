@@ -16,4 +16,10 @@ export abstract class AbstractTaskQueue<
     }
     return this.queues[name];
   }
+
+  protected async closeQueues() {
+    await Promise.all(
+      Object.values(this.queues).map(async (queue) => await queue.close())
+    );
+  }
 }

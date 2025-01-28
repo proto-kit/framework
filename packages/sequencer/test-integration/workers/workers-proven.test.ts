@@ -1,16 +1,10 @@
 import "reflect-metadata";
-import { expectDefined, log, sleep } from "@proto-kit/common";
-import { AppChain } from "@proto-kit/sdk";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
-import { BlockTestService } from "../../test/integration/services/BlockTestService";
+import { expectDefined, log } from "@proto-kit/common";
+import { AppChain } from "@proto-kit/sdk";
 import { BullQueue } from "@proto-kit/deployment";
-import {
-  BullConfig,
-  protocolClass,
-  runtimeClass,
-  runtimeProtocolConfig,
-} from "./modules";
+
 import {
   BatchProducerModule,
   BlockProducerModule,
@@ -21,7 +15,15 @@ import {
   Sequencer,
   SequencerStartupModule,
 } from "../../src";
+import { BlockTestService } from "../../test/integration/services/BlockTestService";
 import { ConstantFeeStrategy } from "../../src/protocol/baselayer/fees/ConstantFeeStrategy";
+
+import {
+  BullConfig,
+  protocolClass,
+  runtimeClass,
+  runtimeProtocolConfig,
+} from "./modules";
 import { ChildProcessWorker } from "./ChildProcessWorker";
 
 const timeout = 300000;
@@ -41,8 +43,10 @@ describe("worker-proven", () => {
       worker.start(true);
     });
 
-    afterAll(() => {
+    afterAll(async () => {
       worker.kill();
+
+      await appChain.close();
     });
 
     it(
