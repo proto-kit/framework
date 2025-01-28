@@ -38,7 +38,7 @@ export function state() {
           throw errors.missingName(self.constructor.name);
         }
 
-        if (!self.runtime) {
+        if (!self.parent) {
           throw errors.missingRuntime(self.constructor.name);
         }
 
@@ -48,7 +48,7 @@ export function state() {
 
           // TODO: why is this complaining about `any`?
 
-          value.stateServiceProvider = self.runtime.stateServiceProvider;
+          value.stateServiceProvider = self.parent.stateServiceProvider;
         }
         return value;
       },

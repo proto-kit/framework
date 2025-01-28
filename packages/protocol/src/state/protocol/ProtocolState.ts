@@ -16,6 +16,8 @@ const errors = {
     ),
 };
 
+// TODO Homogenize @protocolState() towards a single @state() API
+
 /**
  * Decorates a runtime module property as state, passing down some
  * underlying values to improve developer experience.
@@ -40,7 +42,7 @@ export function protocolState() {
           throw errors.missingName(self.constructor.name);
         }
 
-        if (!self.protocol) {
+        if (!self.parent) {
           throw errors.missingProtocol(self.constructor.name);
         }
 
@@ -48,7 +50,7 @@ export function protocolState() {
         const path = Path.fromProperty(self.name, propertyKey);
         if (value) {
           value.path = path;
-          value.stateServiceProvider = self.protocol.stateServiceProvider;
+          value.stateServiceProvider = self.parent.stateServiceProvider;
         }
         return value;
       },

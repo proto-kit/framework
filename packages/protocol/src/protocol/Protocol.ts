@@ -93,7 +93,7 @@ export class Protocol<
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
     log.debug(`Decorated ${moduleName}`);
-    containedModule.protocol = this;
+    containedModule.parent = this;
 
     if (containedModule instanceof TransitioningProtocolModule) {
       containedModule.name = moduleName;
