@@ -39,7 +39,7 @@ export * from "./state/context/RuntimeMethodExecutionContext";
 export * from "./state/protocol/ProtocolState";
 export * from "./state/State";
 export * from "./state/StateMap";
-export * from "./state/StateService";
+export * from "./state/SimpleAsyncStateService";
 export * from "./state/StateServiceProvider";
 export * from "./state/assert/assert";
 export * from "./settlement/contracts/authorizations/ContractAuthorization";
