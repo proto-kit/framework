@@ -23,7 +23,6 @@ import {
   BlockResult,
   BlockWithResult,
 } from "../../../storage/model/Block";
-import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 import { Database } from "../../../storage/Database";
 
@@ -108,16 +107,18 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   }
 
   public async generateMetadata(block: Block): Promise<BlockResult> {
-    const { result, blockHashTreeStore, treeStore } =
+    const { result, blockHashTreeStore, treeStore, stateService } =
       await this.resultService.generateMetadataForNextBlock(
         block,
         this.unprovenMerkleStore,
-        this.blockTreeStore
+        this.blockTreeStore,
+        this.unprovenStateService
       );
 
     await this.database.executeInTransaction(async () => {
       await blockHashTreeStore.mergeIntoParent();
       await treeStore.mergeIntoParent();
+      await stateService.mergeIntoParent();
 
       await this.blockQueue.pushResult(result);
     });
@@ -210,27 +211,25 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       return undefined;
     }
 
-    const cachedStateService = new CachedStateService(
-      this.unprovenStateService
-    );
-
-    const block = await this.productionService.createBlock(
-      cachedStateService,
+    const blockResult = await this.productionService.createBlock(
+      this.unprovenStateService,
       txs,
       metadata,
       this.allowEmptyBlock()
     );
 
-    if (block !== undefined) {
+    if (blockResult !== undefined) {
+      const { block, stateChanges } = blockResult;
+
       await this.database.executeInTransaction(async () => {
-        await cachedStateService.mergeIntoParent();
+        await stateChanges.mergeIntoParent();
         await this.blockQueue.pushBlock(block);
       });
     }
 
     this.productionInProgress = false;
 
-    return block;
+    return blockResult?.block;
   }
 
   public async blockResultCompleteCheck() {

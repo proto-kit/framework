@@ -11,7 +11,6 @@ import type {
   BlockWithMaybeResult,
   BlockWithResult,
 } from "../model/Block";
-import { BlockWithPreviousResult } from "../../protocol/production/BatchProducerModule";
 import { BatchStorage } from "../repositories/BatchStorage";
 
 @injectable()
@@ -49,7 +48,6 @@ export class InMemoryBlockStorage
     };
   }
 
-  // TODO Maybe remove
   public async getLatestBlock(): Promise<BlockWithResult | undefined> {
     const result = await this.getLatestBlockAndResult();
     if (result !== undefined) {
@@ -65,7 +63,6 @@ export class InMemoryBlockStorage
     }
     return result;
   }
-
 
   public async getNewBlocks(): Promise<BlockWithResult[]> {
     const latestBatch = await this.batchStorage.getLatestBatch();

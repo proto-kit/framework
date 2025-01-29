@@ -9,7 +9,6 @@ import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
-import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 
 import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
@@ -50,8 +49,6 @@ export class TimedBlockTrigger
     settlementModule: SettlementModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue,
-    @inject("BatchStorage")
-    batchStorage: BatchStorage,
     @injectOptional("SettlementStorage")
     settlementStorage: SettlementStorage | undefined,
     @inject("Mempool")
@@ -62,7 +59,6 @@ export class TimedBlockTrigger
       batchProducerModule,
       settlementModule,
       blockQueue,
-      batchStorage,
       settlementStorage
     );
   }

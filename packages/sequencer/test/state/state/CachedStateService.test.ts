@@ -25,8 +25,6 @@ describe("cachedStateService", () => {
   });
 
   it("should preload through multiple layers of services", async () => {
-    await mask2.preloadKey(Field(5));
-
     const record = await mask2.get(Field(5));
 
     expectDefined(record);
@@ -51,11 +49,8 @@ describe("cachedStateService", () => {
   });
 
   it("should delete correctly through multiple layers of services", async () => {
-    await mask2.preloadKey(Field(5));
-
     await mask2.set(Field(5), undefined);
 
-    await mask1.preloadKey(Field(5));
     await expect(mask1.get(Field(5))).resolves.toHaveLength(2);
 
     await mask2.mergeIntoParent();

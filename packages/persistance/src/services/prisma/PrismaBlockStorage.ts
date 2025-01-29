@@ -121,8 +121,7 @@ export class PrismaBlockStorage
                 statusMessage: tx.statusMessage,
                 txHash: tx.txHash,
 
-                stateTransitions:
-                  tx.stateTransitions as Prisma.InputJsonArray,
+                stateTransitions: tx.stateTransitions as Prisma.InputJsonArray,
                 events: tx.events as Prisma.InputJsonArray,
               };
             }),

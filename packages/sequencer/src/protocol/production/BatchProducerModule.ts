@@ -26,9 +26,7 @@ export type StateRecord = Record<string, Field[] | undefined>;
 
 interface BatchMetadata {
   batch: SettleableBatch;
-  changes: {
-    commit: () => Promise<void>;
-  };
+  changes: CachedMerkleTreeStore;
 }
 
 const errors = {
@@ -61,60 +59,19 @@ export class BatchProducerModule extends SequencerModule {
     super();
   }
 
-  // TODO
-  private async applyStateChanges(batch: BatchMetadata) {
-    // TODO Introduce Proven and Unproven BlockHashTree stores - for rollbacks
-    await this.database.executeInTransaction(async () => {
-      await batch.stateService.mergeIntoParent();
-      await batch.merkleStore.mergeIntoParent();
-    });
-  }
-
   /**
    * Main function to call when wanting to create a new block based on the
    * transactions that are present in the mempool. This function should also
-   * be the one called by BlockTriggers
+   * be the one called by BlockTriggerss
    */
   public async createBatch(
     blocks: BlockWithResult[]
   ): Promise<SettleableBatch | undefined> {
-    log.info("Producing batch...");
-
-    const height = await this.batchStorage.getCurrentBatchHeight();
-
-    const batchWithStateDiff = await this.tryProduceBatch(blocks, height);
-
-    if (batchWithStateDiff !== undefined) {
-      const numTxs = blocks.reduce(
-        (sum, block) => sum + block.block.transactions.length,
-        0
-      );
-      log.info(
-        `Batch produced (${batchWithStateDiff.batch.blockHashes.length} blocks, ${numTxs} txs)`
-      );
-
-      // Apply state changes to current MerkleTreeStore
-      await batchWithStateDiff.changes.commit();
-
-      // TODO Add transition from unproven to proven state for stateservice
-      //  This needs proper DB-level masking
-    }
-    return batchWithStateDiff?.batch;
-  }
-
-  public async start(): Promise<void> {
-    noop();
-  }
-
-  private async tryProduceBatch(
-    blocks: BlockWithResult[],
-    height: number
-  ): Promise<BatchMetadata | undefined> {
     if (!this.productionInProgress) {
       try {
         this.productionInProgress = true;
 
-        const batch = await this.produceBatch(blocks, height);
+        const batch = await this.tryProduceBatch(blocks);
 
         this.productionInProgress = false;
 
@@ -142,6 +99,40 @@ export class BatchProducerModule extends SequencerModule {
       );
     }
     return undefined;
+  }
+
+  private async tryProduceBatch(
+    blocks: BlockWithResult[]
+  ): Promise<SettleableBatch | undefined> {
+    log.info("Producing batch...");
+
+    const height = await this.batchStorage.getCurrentBatchHeight();
+
+    const batchWithStateDiff = await this.produceBatch(blocks, height);
+
+    if (batchWithStateDiff !== undefined) {
+      const numTxs = blocks.reduce(
+        (sum, block) => sum + block.block.transactions.length,
+        0
+      );
+      log.info(
+        `Batch produced (${batchWithStateDiff.batch.blockHashes.length} blocks, ${numTxs} txs)`
+      );
+
+      // Apply state changes to current MerkleTreeStore
+      await this.database.executeInTransaction(async () => {
+        await this.batchStorage.pushBatch(batchWithStateDiff.batch);
+        await batchWithStateDiff.changes.mergeIntoParent();
+      });
+
+      // TODO Add transition from unproven to proven state for stateservice
+      //  This needs proper DB-level masking
+    }
+    return batchWithStateDiff?.batch;
+  }
+
+  public async start(): Promise<void> {
+    noop();
   }
 
   private async produceBatch(
@@ -187,9 +178,7 @@ export class BatchProducerModule extends SequencerModule {
     blockId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-    changes: {
-      commit: () => Promise<void>;
-    };
+    changes: CachedMerkleTreeStore;
     fromNetworkState: NetworkState;
     toNetworkState: NetworkState;
   }> {
@@ -209,13 +198,9 @@ export class BatchProducerModule extends SequencerModule {
     const fromNetworkState = blocks[0].block.networkState.before;
     const toNetworkState = blocks.at(-1)!.result.afterNetworkState;
 
-    const changes = {
-      commit: async () => await merkleTreeStore.mergeIntoParent(),
-    };
-
     return {
       proof,
-      changes,
+      changes: merkleTreeStore,
       fromNetworkState,
       toNetworkState,
     };

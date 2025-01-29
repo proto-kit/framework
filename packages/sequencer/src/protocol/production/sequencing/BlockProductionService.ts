@@ -51,9 +51,8 @@ export class BlockProductionService {
   public async executeBeforeBlockHook(
     args: BeforeBlockHookArguments,
     inputNetworkState: NetworkState,
-    asyncStateService: AsyncStateService
+    cachedStateService: CachedStateService
   ) {
-    const cachedStateService = new CachedStateService(asyncStateService);
     this.stateServiceProvider.setCurrentStateService(cachedStateService);
 
     // Execute afterBlock hooks
@@ -73,7 +72,9 @@ export class BlockProductionService {
     );
 
     this.stateServiceProvider.popCurrentStateService();
-    await cachedStateService.mergeIntoParent();
+    await cachedStateService.applyStateTransitions(
+      executionResult.stateTransitions
+    );
 
     return executionResult;
   }
@@ -83,11 +84,19 @@ export class BlockProductionService {
    * attached that is needed for tracing
    */
   public async createBlock(
-    stateService: CachedStateService,
+    asyncStateService: AsyncStateService,
     transactions: PendingTransaction[],
     lastBlockWithResult: BlockWithResult,
     allowEmptyBlocks: boolean
-  ): Promise<Block | undefined> {
+  ): Promise<
+    | {
+        block: Block;
+        stateChanges: CachedStateService;
+      }
+    | undefined
+  > {
+    const stateService = new CachedStateService(asyncStateService);
+
     const lastResult = lastBlockWithResult.result;
     const lastBlock = lastBlockWithResult.block;
     const executionResults: TransactionExecutionResult[] = [];
@@ -147,7 +156,7 @@ export class BlockProductionService {
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
-        "After sequencing, block has no sequencable transactions left, skipping block"
+        "After sequencing, block has no sequenceable transactions left, skipping block"
       );
       return undefined;
     }
@@ -175,8 +184,11 @@ export class BlockProductionService {
     const hash = Block.hash(block);
 
     return {
-      ...block,
-      hash,
+      block: {
+        ...block,
+        hash,
+      },
+      stateChanges: stateService,
     };
   }
 }

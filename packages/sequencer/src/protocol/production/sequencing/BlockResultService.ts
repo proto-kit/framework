@@ -103,9 +103,14 @@ export class BlockResultService {
     );
 
     this.stateServiceProvider.popCurrentStateService();
-    await cachedStateService.mergeIntoParent();
+    await cachedStateService.applyStateTransitions(
+      executionResult.stateTransitions
+    );
 
-    return executionResult;
+    return {
+      executionResult,
+      cachedStateService,
+    };
   }
 
   /** Update the block hash tree with this block */
@@ -134,11 +139,11 @@ export class BlockResultService {
     );
     const blockHashWitness = blockHashTree.getWitness(block.height.toBigInt());
     const newBlockHashRoot = blockHashTree.getRoot();
-    await blockHashInMemoryStore.mergeIntoParent();
 
     return {
       blockHashWitness,
       blockHashRoot: newBlockHashRoot,
+      cachedBlockHashTreeStore: blockHashInMemoryStore,
     };
   }
 
@@ -168,9 +173,13 @@ export class BlockResultService {
     block: Block,
     merkleTreeStore: AsyncMerkleTreeStore,
     blockHashTreeStore: AsyncMerkleTreeStore,
-    stateService: AsyncStateService,
-    modifyTreeStore = true
-  ): Promise<BlockResult> {
+    stateService: AsyncStateService
+  ): Promise<{
+    result: BlockResult;
+    treeStore: CachedMerkleTreeStore;
+    blockHashTreeStore: CachedMerkleTreeStore;
+    stateService: CachedStateService;
+  }> {
     const combinedDiff = createCombinedStateDiff(
       block.transactions,
       block.beforeBlockStateTransitions
@@ -182,10 +191,13 @@ export class BlockResultService {
 
     const witnessedStateRoot = tree.getRoot();
 
-    const { blockHashWitness, blockHashRoot } =
+    const { blockHashWitness, blockHashRoot, cachedBlockHashTreeStore } =
       await this.insertIntoBlockHashTree(block, blockHashTreeStore);
 
-    const { stateTransitions, methodResult } = await this.executeAfterBlockHook(
+    const {
+      executionResult: { stateTransitions, methodResult },
+      cachedStateService,
+    } = await this.executeAfterBlockHook(
       {
         blockHashRoot,
         stateRoot: witnessedStateRoot,
@@ -208,22 +220,24 @@ export class BlockResultService {
     );
 
     const stateRoot = tree2.getRoot();
-    if (modifyTreeStore) {
-      await inMemoryStore.mergeIntoParent();
-    }
 
     return {
-      afterNetworkState: methodResult,
-      // This is the state root after the last tx and before the afterBlock hook
-      stateRoot: stateRoot.toBigInt(),
-      witnessedRoots: [witnessedStateRoot.toBigInt()],
-      blockHashRoot: blockHashRoot.toBigInt(),
-      blockHashWitness,
+      result: {
+        afterNetworkState: methodResult,
+        // This is the state root after the last tx and the afterBlock hook
+        stateRoot: stateRoot.toBigInt(),
+        witnessedRoots: [witnessedStateRoot.toBigInt()],
+        blockHashRoot: blockHashRoot.toBigInt(),
+        blockHashWitness,
 
-      afterBlockStateTransitions: stateTransitions.map((st) =>
-        UntypedStateTransition.fromStateTransition(st)
-      ),
-      blockHash: block.hash.toBigInt(),
+        afterBlockStateTransitions: stateTransitions.map((st) =>
+          UntypedStateTransition.fromStateTransition(st)
+        ),
+        blockHash: block.hash.toBigInt(),
+      },
+      treeStore: inMemoryStore,
+      blockHashTreeStore: cachedBlockHashTreeStore,
+      stateService: cachedStateService,
     };
   }
 }
