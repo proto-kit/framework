@@ -1,10 +1,15 @@
-import type { Block, BlockResult, BlockWithResult } from "../model/Block";
+import type {
+  Block,
+  BlockResult,
+  BlockWithMaybeResult,
+  BlockWithResult,
+} from "../model/Block";
 
 export interface BlockQueue {
   pushBlock: (block: Block) => Promise<void>;
   pushResult: (result: BlockResult) => Promise<void>;
   getNewBlocks: () => Promise<BlockWithResult[]>;
-  getLatestBlock: () => Promise<BlockWithResult | undefined>;
+  getLatestBlockAndResult: () => Promise<BlockWithMaybeResult | undefined>;
 }
 
 export interface BlockStorage {

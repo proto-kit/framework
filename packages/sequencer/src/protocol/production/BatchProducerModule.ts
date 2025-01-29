@@ -16,6 +16,7 @@ import { SettleableBatch } from "../../storage/model/Batch";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockWithResult } from "../../storage/model/Block";
+import type { Database } from "../../storage/Database";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -51,11 +52,22 @@ export class BatchProducerModule extends SequencerModule {
     @inject("AsyncMerkleStore")
     private readonly merkleStore: AsyncMerkleTreeStore,
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
+    @inject("Database")
+    private readonly database: Database,
     private readonly batchFlow: BatchFlow,
     private readonly blockProofSerializer: BlockProofSerializer,
     private readonly batchTraceService: BatchTracingService
   ) {
     super();
+  }
+
+  // TODO
+  private async applyStateChanges(batch: BatchMetadata) {
+    // TODO Introduce Proven and Unproven BlockHashTree stores - for rollbacks
+    await this.database.executeInTransaction(async () => {
+      await batch.stateService.mergeIntoParent();
+      await batch.merkleStore.mergeIntoParent();
+    });
   }
 
   /**

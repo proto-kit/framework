@@ -51,25 +51,24 @@ export class PrismaMessageStorage implements MessageStorage {
     );
 
     const { prismaClient } = this.connection;
-    await prismaClient.$transaction([
-      prismaClient.transaction.createMany({
-        data: transactions,
-        skipDuplicates: true,
-      }),
 
-      prismaClient.incomingMessageBatch.create({
-        data: {
-          fromMessageHash,
-          toMessageHash,
-          messages: {
-            createMany: {
-              data: transactions.map((transaction) => ({
-                transactionHash: transaction.hash,
-              })),
-            },
+    await prismaClient.transaction.createMany({
+      data: transactions,
+      skipDuplicates: true,
+    });
+
+    await prismaClient.incomingMessageBatch.create({
+      data: {
+        fromMessageHash,
+        toMessageHash,
+        messages: {
+          createMany: {
+            data: transactions.map((transaction) => ({
+              transactionHash: transaction.hash,
+            })),
           },
         },
-      }),
-    ]);
+      },
+    });
   }
 }

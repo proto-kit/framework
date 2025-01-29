@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { log, noop } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 import {
   MethodIdResolver,
@@ -18,9 +18,14 @@ import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
-import { Block, BlockWithResult } from "../../../storage/model/Block";
+import {
+  Block,
+  BlockResult,
+  BlockWithResult,
+} from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
+import { Database } from "../../../storage/Database";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -49,7 +54,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly resultService: BlockResultService,
     @inject("MethodIdResolver")
     private readonly methodIdResolver: MethodIdResolver,
-    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
+    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
+    @inject("Database") private readonly database: Database
   ) {
     super();
   }
@@ -101,7 +107,25 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     }
   }
 
-  public async tryProduceBlock(): Promise<BlockWithResult | undefined> {
+  public async generateMetadata(block: Block): Promise<BlockResult> {
+    const { result, blockHashTreeStore, treeStore } =
+      await this.resultService.generateMetadataForNextBlock(
+        block,
+        this.unprovenMerkleStore,
+        this.blockTreeStore
+      );
+
+    await this.database.executeInTransaction(async () => {
+      await blockHashTreeStore.mergeIntoParent();
+      await treeStore.mergeIntoParent();
+
+      await this.blockQueue.pushResult(result);
+    });
+
+    return result;
+  }
+
+  public async tryProduceBlock(): Promise<Block | undefined> {
     if (!this.productionInProgress) {
       try {
         const block = await this.produceBlock();
@@ -120,21 +144,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         );
         this.prettyPrintBlockContents(block);
 
-        // Generate metadata for next block
-
-        // TODO: make async of production in the future
-        const result = await this.resultService.generateMetadataForNextBlock(
-          block,
-          this.unprovenMerkleStore,
-          this.blockTreeStore,
-          this.unprovenStateService,
-          true
-        );
-
-        return {
-          block,
-          result,
-        };
+        return block;
       } catch (error: unknown) {
         if (error instanceof Error) {
           throw error;
@@ -154,19 +164,31 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   }> {
     const txs = await this.mempool.getTxs(this.maximumBlockSize());
 
-    const parentBlock = await this.blockQueue.getLatestBlock();
+    const parentBlock = await this.blockQueue.getLatestBlockAndResult();
+
+    let metadata: BlockWithResult;
 
     if (parentBlock === undefined) {
       log.debug(
         "No block metadata given, assuming first block, generating genesis metadata"
       );
+      metadata = BlockWithResult.createEmpty();
+    } else if (parentBlock.result === undefined) {
+      throw new Error(
+        `Metadata for block at height ${parentBlock.block.height.toString()} not available`
+      );
+    } else {
+      metadata = {
+        block: parentBlock.block,
+        // By reconstructing this object, typescript correctly infers the result to be defined
+        result: parentBlock.result,
+      };
     }
 
     const messages = await this.messageStorage.getMessages(
       parentBlock?.block.toMessagesHash.toString() ??
         ACTIONS_EMPTY_HASH.toString()
     );
-    const metadata = parentBlock ?? BlockWithResult.createEmpty();
 
     log.debug(
       `Block collected, ${txs.length} txs, ${messages.length} messages`
@@ -199,14 +221,34 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       this.allowEmptyBlock()
     );
 
-    await cachedStateService.mergeIntoParent();
+    if (block !== undefined) {
+      await this.database.executeInTransaction(async () => {
+        await cachedStateService.mergeIntoParent();
+        await this.blockQueue.pushBlock(block);
+      });
+    }
 
     this.productionInProgress = false;
 
     return block;
   }
 
+  public async blockResultCompleteCheck() {
+    // Check if metadata height is behind block production.
+    // This can happen when the sequencer crashes after a block has been produced
+    // but before the metadata generation has finished
+    const latestBlock = await this.blockQueue.getLatestBlockAndResult();
+    // eslint-disable-next-line sonarjs/no-collapsible-if
+    if (latestBlock !== undefined) {
+      if (latestBlock.result === undefined) {
+        await this.generateMetadata(latestBlock.block);
+      }
+      // Here, the metadata has been computed already
+    }
+    // If we reach here, its a genesis startup, no blocks exist yet
+  }
+
   public async start() {
-    noop();
+    await this.blockResultCompleteCheck();
   }
 }

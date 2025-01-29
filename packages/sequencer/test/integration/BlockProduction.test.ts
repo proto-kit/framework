@@ -1,4 +1,10 @@
-import { log, range, MOCK_PROOF, mapSequential } from "@proto-kit/common";
+import {
+  log,
+  range,
+  MOCK_PROOF,
+  expectDefined,
+  mapSequential,
+} from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import {
   Runtime,
@@ -164,7 +170,7 @@ describe("block production", () => {
   });
 
   it("should produce a dummy block proof", async () => {
-    expect.assertions(24);
+    expect.assertions(26);
 
     log.setLevel("TRACE");
 
@@ -196,7 +202,7 @@ describe("block production", () => {
 
     const latestBlockWithResult = await sequencer
       .resolve("BlockQueue")
-      .getLatestBlock();
+      .getLatestBlockAndResult();
 
     let batch = await test.produceBatch();
 
@@ -205,8 +211,10 @@ describe("block production", () => {
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
+    expectDefined(latestBlockWithResult);
+    expectDefined(latestBlockWithResult.result);
     expect(
-      latestBlockWithResult!.result.afterNetworkState.hash().toString()
+      latestBlockWithResult.result.afterNetworkState.hash().toString()
     ).toStrictEqual(batch!.toNetworkState.hash().toString());
 
     // Check if the batchstorage has received the block

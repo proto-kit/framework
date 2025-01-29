@@ -141,7 +141,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const generatedBlock = await sequencer
         .resolve("BlockTrigger")
-        .produceBlock(true);
+        .produceBlock();
 
       expectDefined(generatedBlock);
 

@@ -73,6 +73,11 @@ export interface BlockWithResult {
   result: BlockResult;
 }
 
+export interface BlockWithMaybeResult {
+  block: Block;
+  result?: BlockResult;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BlockWithResult = {
   // toBlockProverState: ({ block, result }: BlockWithResult) => ({
