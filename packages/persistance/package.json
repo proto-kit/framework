@@ -6,7 +6,7 @@
   "version": "0.1.1-develop.833+397881ed",
   "scripts": {
     "build": "npm run prisma-generate && tsc -p tsconfig.json",
-    "prisma-generate": "npx prisma generate",
+    "prisma-generate": "npx prisma generate --sql",
     "prisma-migrate": "npx prisma migrate deploy",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test ./test-integration",
@@ -20,9 +20,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/client": "^5.18.0",
+    "@prisma/client": "^5.22.0",
     "lodash": "^4.17.21",
-    "prisma": "^5.18.0",
+    "prisma": "^5.22.0",
     "redis": "^4.6.12",
     "reflect-metadata": "^0.1.13"
   },

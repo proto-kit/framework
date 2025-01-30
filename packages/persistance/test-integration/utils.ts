@@ -146,16 +146,7 @@ export function createPrismaAppchain(
       BlockTrigger: {},
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: {
-        StateTransitionTask: {},
-        RuntimeProvingTask: {},
-        StateTransitionReductionTask: {},
-        BlockReductionTask: {},
-        BlockProvingTask: {},
-        BlockBuildingTask: {},
-        CircuitCompilerTask: {},
-        WorkerRegistrationTask: {},
-      },
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       BlockProducerModule: {},
       TaskQueue: {
