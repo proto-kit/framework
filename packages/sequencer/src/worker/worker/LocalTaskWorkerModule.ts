@@ -160,6 +160,7 @@ export class VanillaTaskWorkerModules {
       SettlementProvingTask: {},
       CircuitCompilerTask: {},
       WorkerRegistrationTask: {},
+      TransactionProvingTask: {},
     };
   }
 }
