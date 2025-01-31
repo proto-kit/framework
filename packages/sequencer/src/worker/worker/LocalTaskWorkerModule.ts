@@ -131,7 +131,9 @@ export class VanillaTaskWorkerModules {
       SettlementProvingTask: {},
       CircuitCompilerTask: {},
       WorkerRegistrationTask: {},
-    };
+    } satisfies ModulesConfig<
+      ReturnType<typeof VanillaTaskWorkerModules.allTasks>
+    >;
   }
 }
 
