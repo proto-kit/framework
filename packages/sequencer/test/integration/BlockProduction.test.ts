@@ -307,6 +307,107 @@ describe("block production", () => {
     expect(newState).toBeUndefined();
   }, 30_000);
 
+  it("should produce txs in non-consecutive blocks", async () => {
+    log.setLevel("TRACE");
+
+    const privateKey = PrivateKey.random();
+    const publicKey = privateKey.toPublicKey();
+
+    const privateKey2 = PrivateKey.random();
+    const publicKey2 = privateKey2.toPublicKey();
+
+    await mempool.add(
+      createTransaction({
+        runtime,
+        method: ["Balance", "setBalanceIf"],
+        privateKey,
+        args: [publicKey, UInt64.from(100), Bool(true)],
+        nonce: 0,
+      })
+    );
+
+    // let [block, batch] = await blockTrigger.produceBlockAndBatch();
+    const block = await blockTrigger.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.transactions).toHaveLength(1);
+    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].statusMessage).toBeUndefined();
+
+    expect(block!.transactions[0].stateTransitions).toHaveLength(1);
+    expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
+
+    await blockTrigger.produceBlock();
+
+    await mempool.add(
+      createTransaction({
+        runtime,
+        method: ["Balance", "setBalanceIf"],
+        privateKey: privateKey2,
+        args: [publicKey2, UInt64.from(100), Bool(true)],
+        nonce: 0,
+      })
+    );
+    await blockTrigger.produceBlock();
+
+    await mempool.add(
+      createTransaction({
+        runtime,
+        method: ["Balance", "setBalanceIf"],
+        privateKey: privateKey2,
+        args: [publicKey2, UInt64.from(100), Bool(true)],
+        nonce: 1,
+      })
+    );
+    await blockTrigger.produceBlock();
+
+    await mempool.add(
+      createTransaction({
+        runtime,
+        method: ["Balance", "setBalanceIf"],
+        privateKey: privateKey2,
+        args: [publicKey2, UInt64.from(100), Bool(true)],
+        nonce: 2,
+      })
+    );
+    await blockTrigger.produceBlock();
+
+    await mempool.add(
+      createTransaction({
+        runtime,
+        method: ["Balance", "setBalanceIf"],
+        privateKey: privateKey2,
+        args: [publicKey2, UInt64.from(100), Bool(true)],
+        nonce: 3,
+      })
+    );
+    await blockTrigger.produceBlock();
+
+    // Second tx
+    await mempool.add(
+      createTransaction({
+        runtime,
+        method: ["Balance", "setBalanceIf"],
+        privateKey,
+        args: [publicKey, UInt64.from(100), Bool(true)],
+        nonce: 1,
+      })
+    );
+
+    log.info("Starting second block");
+
+    const block2 = await blockTrigger.produceBlock();
+
+    expect(block2).toBeDefined();
+
+    expect(block2!.transactions).toHaveLength(1);
+    console.log(block2!.transactions[0]);
+    console.log(block2!.transactions[0].statusMessage);
+    expect(block2!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block2!.transactions[0].statusMessage).toBeUndefined();
+  }, 60_000);
+
   const numberTxs = 3;
 
   it("should produce block with multiple transaction", async () => {

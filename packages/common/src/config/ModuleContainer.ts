@@ -4,7 +4,7 @@ import {
   DependencyContainer,
   Frequency,
   InjectionToken,
-  instancePerContainerCachingFactory,
+  instanceCachingFactory,
   isClassProvider,
   isFactoryProvider,
   isTokenProvider,
@@ -417,9 +417,7 @@ export class ModuleContainer<
           // this enables us to have a singletoned factory
           // that returns the same instance for each resolve
           this.container.register(key, {
-            useFactory: instancePerContainerCachingFactory(
-              declaration.useFactory
-            ),
+            useFactory: instanceCachingFactory(declaration.useFactory),
           });
         } else if (isClassProvider(declaration)) {
           this.container.register(key, declaration, {
