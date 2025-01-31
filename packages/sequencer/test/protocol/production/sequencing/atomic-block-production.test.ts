@@ -10,7 +10,6 @@ import { expectDefined } from "@proto-kit/common";
 import {
   BlockQueue,
   ManualBlockTrigger,
-  TransactionExecutionService,
   VanillaTaskWorkerModules,
 } from "../../../../src";
 import { ProtocolStateTestHook } from "../../../integration/mocks/ProtocolStateTestHook";
