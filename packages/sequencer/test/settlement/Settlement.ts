@@ -1,7 +1,6 @@
 /* eslint-disable no-inner-declarations */
 import {
   expectDefined,
-  log,
   mapSequential,
   TypedClass,
   RollupMerkleTree,
