@@ -116,6 +116,7 @@ export class TestingAppChain<
         TaskQueue: {
           simulatedDuration: 0,
         },
+        FeeStrategy: {},
       },
       Signer: {
         signer: PrivateKey.random(),

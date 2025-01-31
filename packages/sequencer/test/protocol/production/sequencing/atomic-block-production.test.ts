@@ -19,6 +19,7 @@ import {
   testingSequencerFromModules,
 } from "../../../TestingSequencer";
 import { Balance } from "../../../integration/mocks/Balance";
+import { BlockResultService } from "../../../../src/protocol/production/sequencing/BlockResultService";
 
 describe("atomic block production", () => {
   let appchain: AppChain<any, any, DefaultTestingSequencerModules, any>;
@@ -63,6 +64,7 @@ describe("atomic block production", () => {
         TaskQueue: {},
         FeeStrategy: {},
         ProtocolStartupModule: {},
+        SequencerStartupModule: {},
       },
       Runtime: {
         Balance: {},
@@ -80,7 +82,7 @@ describe("atomic block production", () => {
     appchain = app;
 
     // Start AppChain
-    await app.start(container.createChildContainer());
+    await app.start(false, container.createChildContainer());
 
     trigger = app.sequencer.resolve("BlockTrigger");
   });
@@ -96,9 +98,8 @@ describe("atomic block production", () => {
   it("should recover from non-generated metadata", async () => {
     expect.assertions(6);
 
-    const module = appchain.sequencer.dependencyContainer.resolve(
-      TransactionExecutionService
-    );
+    const module =
+      appchain.sequencer.dependencyContainer.resolve(BlockResultService);
 
     module.generateMetadataForNextBlock = jest
       .fn(module.generateMetadataForNextBlock)

@@ -15,7 +15,7 @@
     "test:integration": "npx lerna run test:integration -- --passWithNoTests --forceExit",
     "test:watch": "npx lerna run test:watch",
     "migrate": "npx lerna run prisma-migrate",
-    "prisma-generate": "npx lerna run prisma-generate",
+    "prisma:generate": "npx lerna run prisma:generate",
     "commit": "cz",
     "publish:canary": "npx lerna publish prerelease --no-private --exact --yes --canary --preid develop --dist-tag latest --loglevel verbose --force-git-tag --force-publish"
   },

@@ -5,9 +5,9 @@
   "type": "module",
   "version": "0.1.1-develop.833+397881ed",
   "scripts": {
-    "build": "npm run prisma-generate && tsc -p tsconfig.json",
-    "prisma-generate": "npx prisma generate",
-    "prisma-migrate": "npx prisma migrate deploy",
+    "build": "npm run prisma:generate && tsc -p tsconfig.json",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate deploy",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test ./test-integration",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
