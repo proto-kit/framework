@@ -256,8 +256,6 @@ export const settlementTestFn = (
     }
 
     beforeAll(async () => {
-      log.setLevel("DEBUG");
-
       appChain = setupAppChain();
 
       await appChain.start(
