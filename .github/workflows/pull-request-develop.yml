@@ -145,7 +145,7 @@ jobs:
         run: npm run build
 
       - name: "Migrate DB"
-        run: npm run migrate
+        run: npm run prisma:migrate
 
       - name: "Wait for lightnet readiness"
         uses: o1-labs/wait-for-mina-network-action@v1
