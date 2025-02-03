@@ -1,10 +1,14 @@
 import {
+  EventEmitter,
+  EventEmittingContainer,
   log,
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
   NoConfig,
   Presets,
+  ResolvableModules,
+  StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
 import { ReturnType } from "@proto-kit/protocol";
@@ -18,15 +22,12 @@ import {
 import { SettlementProvingTask } from "../../settlement/tasks/SettlementProvingTask";
 import { Task } from "../flow/Task";
 import { TaskQueue } from "../queue/TaskQueue";
-import {
-  BlockProvingTask,
-  BlockReductionTask,
-} from "../../protocol/production/tasks/BlockProvingTask";
-import {
-  StateTransitionReductionTask,
-  StateTransitionTask,
-} from "../../protocol/production/tasks/StateTransitionTask";
+import { StateTransitionTask } from "../../protocol/production/tasks/StateTransitionTask";
 import { CircuitCompilerTask } from "../../protocol/production/tasks/CircuitCompilerTask";
+import { closeable } from "../../sequencer/builder/Closeable";
+import { StateTransitionReductionTask } from "../../protocol/production/tasks/StateTransitionReductionTask";
+import { TransactionProvingTask } from "../../protocol/production/tasks/TransactionProvingTask";
+import { BlockReductionTask } from "../../protocol/production/tasks/BlockReductionTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
@@ -42,6 +43,8 @@ export type TaskWorkerModulesRecord = ModulesRecord<
   TypedClass<TaskWorkerModule & Task<any, any>>
 >;
 
+type LocalTaskWorkerModuleEvents = { ready: [boolean] };
+
 /**
  * This module spins up a worker in the current local node instance.
  * This should only be used for local testing/development and not in a
@@ -49,11 +52,20 @@ export type TaskWorkerModulesRecord = ModulesRecord<
  * cloud workers.
  */
 @sequencerModule()
+@closeable()
 export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
   extends ModuleContainer<Tasks>
-  implements SequencerModule
+  implements
+    SequencerModule,
+    EventEmittingContainer<LocalTaskWorkerModuleEvents>
 {
   public static presets: Presets<unknown> = {};
+
+  public containerEvents = new EventEmitter<LocalTaskWorkerModuleEvents>();
+
+  private worker?: FlowTaskWorker<
+    InstanceType<ResolvableModules<Tasks>[StringKeyOf<Tasks>]>[]
+  > = undefined;
 
   public static from<Tasks extends TaskWorkerModulesRecord>(
     modules: Tasks
@@ -90,12 +102,29 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
       this.assertIsValidModuleName(moduleName);
 
       const task = this.resolve(moduleName);
-      log.info(`Resolved task ${task.name}`);
+      log.debug(`Resolved task ${task.name}`);
       return task;
     });
 
     const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
+    this.worker = worker;
+
     await worker.start();
+
+    void worker
+      .waitForPrepared()
+      .then(() => {
+        this.containerEvents.emit("ready", true);
+      })
+      .catch((e) => {
+        log.error("Error occurring waiting for the ready event", e);
+      });
+  }
+
+  public async close() {
+    if (this.worker !== undefined) {
+      await this.worker.close();
+    }
   }
 }
 
@@ -105,7 +134,7 @@ export class VanillaTaskWorkerModules {
       StateTransitionTask,
       StateTransitionReductionTask,
       RuntimeProvingTask,
-      BlockProvingTask,
+      TransactionProvingTask,
       BlockReductionTask,
       BlockBuildingTask: NewBlockTask,
       CircuitCompilerTask,
@@ -124,9 +153,9 @@ export class VanillaTaskWorkerModules {
     return {
       StateTransitionTask: {},
       RuntimeProvingTask: {},
-      BlockProvingTask: {},
-      BlockReductionTask: {},
+      TransactionProvingTask: {},
       BlockBuildingTask: {},
+      BlockReductionTask: {},
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
       CircuitCompilerTask: {},

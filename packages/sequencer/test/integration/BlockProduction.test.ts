@@ -1,4 +1,10 @@
-import { log, range, MOCK_PROOF } from "@proto-kit/common";
+import {
+  log,
+  range,
+  MOCK_PROOF,
+  expectDefined,
+  mapSequential,
+} from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import {
   Runtime,
@@ -19,12 +25,10 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 
 import {
-  AsyncStateService,
   BatchStorage,
   HistoricalBatchStorage,
-  ManualBlockTrigger,
-  PrivateMempool,
   Sequencer,
+  VanillaTaskWorkerModules,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -33,8 +37,8 @@ import {
 
 import { Balance } from "./mocks/Balance";
 import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
-import { createTransaction } from "./utils";
 import { NoopRuntime } from "./mocks/NoopRuntime";
+import { BlockTestService } from "./services/BlockTestService";
 
 export class PrimaryTestEvent extends Struct({
   message: Bool,
@@ -89,14 +93,9 @@ describe("block production", () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let appChain: AppChain<any, any, any, any>;
 
-  let blockTrigger: ManualBlockTrigger;
-  let mempool: PrivateMempool;
+  let test: BlockTestService;
 
   beforeEach(async () => {
-    // container.reset();
-
-    log.setLevel(log.levels.INFO);
-
     const runtimeClass = Runtime.from({
       modules: {
         Balance,
@@ -135,11 +134,11 @@ describe("block production", () => {
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
-        ProtocolStartupModule: {},
+        SequencerStartupModule: {},
       },
       Runtime: {
         Balance: {},
@@ -156,37 +155,36 @@ describe("block production", () => {
       },
     });
 
-    // Start AppChain
-    await app.start(container.createChildContainer());
+    try {
+      // Start AppChain
+      await app.start(false, container.createChildContainer());
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
 
     appChain = app;
 
+    // @ts-ignore
     ({ runtime, sequencer, protocol } = app);
 
-    blockTrigger = sequencer.resolve("BlockTrigger");
-    mempool = sequencer.resolve("Mempool");
+    test = app.sequencer.dependencyContainer.resolve(BlockTestService);
   });
 
   it("should produce a dummy block proof", async () => {
-    expect.assertions(25);
-
-    log.setLevel("TRACE");
+    expect.assertions(27);
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
 
-    await mempool.add(
-      createTransaction({
-        runtime,
-        method: ["Balance", "setBalanceIf"],
-        privateKey,
-        args: [publicKey, UInt64.from(100), Bool(true)],
-        nonce: 0,
-      })
-    );
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey,
+      args: [publicKey, UInt64.from(100), Bool(true)],
+    });
 
     // let [block, batch] = await blockTrigger.produceBlockAndBatch();
-    let block = await blockTrigger.produceBlock();
+    let block = await test.produceBlock();
 
     expect(block).toBeDefined();
 
@@ -199,17 +197,19 @@ describe("block production", () => {
 
     const latestBlockWithResult = await sequencer
       .resolve("BlockQueue")
-      .getLatestBlock();
+      .getLatestBlockAndResult();
 
-    let batch = await blockTrigger.produceBatch();
+    let batch = await test.produceBatch();
 
     expect(batch).toBeDefined();
 
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
+    expectDefined(latestBlockWithResult);
+    expectDefined(latestBlockWithResult.result);
     expect(
-      latestBlockWithResult!.result.afterNetworkState.hash().toString()
+      latestBlockWithResult.result.afterNetworkState.hash().toString()
     ).toStrictEqual(batch!.toNetworkState.hash().toString());
 
     // Check if the batchstorage has received the block
@@ -218,24 +218,14 @@ describe("block production", () => {
     const retrievedBatch = await batchStorage.getBatchAt(0);
     expect(retrievedBatch).toBeDefined();
 
-    const stateService =
-      sequencer.dependencyContainer.resolve<AsyncStateService>(
-        "AsyncStateService"
-      );
-
-    const unprovenStateService =
-      sequencer.dependencyContainer.resolve<AsyncStateService>(
-        "UnprovenStateService"
-      );
-
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
       balanceModule.balances.path!,
       balanceModule.balances.keyType,
       publicKey
     );
-    const newState = await stateService.get(balancesPath);
-    const newUnprovenState = await unprovenStateService.get(balancesPath);
+    const newState = await test.getState(balancesPath, "batch");
+    const newUnprovenState = await test.getState(balancesPath, "block");
 
     expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
@@ -251,38 +241,32 @@ describe("block production", () => {
       accountModule.accountState.keyType,
       publicKey
     );
-    const newAccountState = await stateService.get(accountStatePath);
+    const newAccountState = await test.getState(accountStatePath, "batch");
 
     expect(newAccountState).toBeDefined();
     expect(AccountState.fromFields(newAccountState!).nonce.toBigInt()).toBe(1n);
 
     // Second tx
-    await mempool.add(
-      createTransaction({
-        runtime,
-        method: ["Balance", "addBalanceToSelf"],
-        privateKey,
-        args: [UInt64.from(100), UInt64.from(1)],
-        nonce: 1,
-      })
-    );
+    await test.addTransaction({
+      method: ["Balance", "addBalanceToSelf"],
+      privateKey,
+      args: [UInt64.from(100), UInt64.from(1)],
+    });
 
     log.info("Starting second block");
 
-    [block, batch] = await blockTrigger.produceBlockAndBatch();
+    [block, batch] = await test.produceBlockAndBatch();
 
     expect(block).toBeDefined();
 
     expect(block!.transactions).toHaveLength(1);
-    console.log(block!.transactions[0]);
-    console.log(block!.transactions[0].statusMessage);
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
-    const state2 = await stateService.get(balancesPath);
+    const state2 = await test.getState(balancesPath, "batch");
 
     expect(state2).toBeDefined();
     expect(UInt64.fromFields(state2!)).toStrictEqual(UInt64.from(200));
@@ -291,51 +275,108 @@ describe("block production", () => {
   it("should reject tx and not apply the state", async () => {
     expect.assertions(5);
 
-    log.setLevel("INFO");
-
     const privateKey = PrivateKey.random();
 
-    await mempool.add(
-      createTransaction({
-        runtime,
-        method: ["Balance", "setBalanceIf"],
-        privateKey,
-        args: [
-          PrivateKey.random().toPublicKey(),
-          UInt64.from(100),
-          Bool(false),
-        ],
-        nonce: 0,
-      })
-    );
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey,
+      args: [PrivateKey.random().toPublicKey(), UInt64.from(100), Bool(false)],
+    });
 
-    const [block] = await blockTrigger.produceBlockAndBatch();
+    const [block] = await test.produceBlockAndBatch();
 
     expect(block?.transactions).toHaveLength(1);
     expect(block?.transactions[0].status.toBoolean()).toBe(false);
     expect(block?.transactions[0].statusMessage).toBe("Condition not met");
 
-    const stateService =
-      sequencer.dependencyContainer.resolve<AsyncStateService>(
-        "AsyncStateService"
-      );
-    const unprovenStateService =
-      sequencer.dependencyContainer.resolve<AsyncStateService>(
-        "UnprovenStateService"
-      );
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
       balanceModule.balances.path!,
       balanceModule.balances.keyType,
       PublicKey.empty()
     );
-    const unprovenState = await unprovenStateService.get(balancesPath);
-    const newState = await stateService.get(balancesPath);
+    const unprovenState = await test.getState(balancesPath, "block");
+    const newState = await test.getState(balancesPath, "batch");
 
     // Assert that state is not set
     expect(unprovenState).toBeUndefined();
     expect(newState).toBeUndefined();
   }, 30_000);
+
+  it("should produce txs in non-consecutive blocks", async () => {
+    const privateKey = PrivateKey.random();
+    const publicKey = privateKey.toPublicKey();
+
+    const privateKey2 = PrivateKey.random();
+    const publicKey2 = privateKey2.toPublicKey();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey,
+      args: [publicKey, UInt64.from(100), Bool(true)],
+    });
+
+    // let [block, batch] = await blockTrigger.produceBlockAndBatch();
+    const block = await test.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.transactions).toHaveLength(1);
+    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].statusMessage).toBeUndefined();
+
+    expect(block!.transactions[0].stateTransitions).toHaveLength(1);
+    expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
+
+    await test.produceBlock();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: privateKey2,
+      args: [publicKey2, UInt64.from(100), Bool(true)],
+    });
+    await test.produceBlock();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: privateKey2,
+      args: [publicKey2, UInt64.from(100), Bool(true)],
+    });
+
+    await test.produceBlock();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: privateKey2,
+      args: [publicKey2, UInt64.from(100), Bool(true)],
+    });
+
+    await test.produceBlock();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: privateKey2,
+      args: [publicKey2, UInt64.from(100), Bool(true)],
+    });
+    await test.produceBlock();
+
+    // Second tx
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey,
+      args: [publicKey, UInt64.from(100), Bool(true)],
+    });
+
+    log.info("Starting second block");
+
+    const block2 = await test.produceBlock();
+
+    expect(block2).toBeDefined();
+
+    expect(block2!.transactions).toHaveLength(1);
+    expect(block2!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block2!.transactions[0].statusMessage).toBeUndefined();
+  }, 60_000);
 
   const numberTxs = 3;
 
@@ -347,20 +388,15 @@ describe("block production", () => {
 
     const increment = 100;
 
-    const p = range(0, numberTxs).map(async (index) => {
-      await mempool.add(
-        createTransaction({
-          runtime,
-          method: ["Balance", "addBalanceToSelf"],
-          privateKey,
-          args: [UInt64.from(increment), UInt64.from(0)],
-          nonce: index,
-        })
-      );
+    await mapSequential(range(0, numberTxs), async (index) => {
+      await test.addTransaction({
+        method: ["Balance", "addBalanceToSelf"],
+        privateKey,
+        args: [UInt64.from(increment), UInt64.from(0)],
+      });
     });
-    await Promise.all(p);
 
-    const block = await blockTrigger.produceBlock();
+    const block = await test.produceBlock();
 
     expect(block).toBeDefined();
     expect(block!.transactions).toHaveLength(numberTxs);
@@ -380,22 +416,18 @@ describe("block production", () => {
       );
     });
 
-    const batch = await blockTrigger.produceBatch();
+    const batch = await test.produceBatch();
 
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
-    const stateService =
-      sequencer.dependencyContainer.resolve<AsyncStateService>(
-        "AsyncStateService"
-      );
     const balanceModule = runtime.resolve("Balance");
     const balancesPath = Path.fromKey(
       balanceModule.balances.path!,
       balanceModule.balances.keyType,
       publicKey
     );
-    const newState = await stateService.get(balancesPath);
+    const newState = await test.getState(balancesPath, "batch");
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
@@ -409,45 +441,33 @@ describe("block production", () => {
     const pk1 = PrivateKey.random();
     const pk2 = PrivateKey.random();
 
-    await mempool.add(
-      createTransaction({
-        runtime,
-        method: ["Balance", "setBalanceIf"],
-        privateKey: pk1,
-        args: [pk1.toPublicKey(), UInt64.from(100), Bool(false)],
-        nonce: 0,
-      })
-    );
-    await mempool.add(
-      createTransaction({
-        runtime,
-        method: ["Balance", "setBalanceIf"],
-        privateKey: pk2,
-        args: [pk2.toPublicKey(), UInt64.from(100), Bool(true)],
-        nonce: 0,
-      })
-    );
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: pk1,
+      args: [pk1.toPublicKey(), UInt64.from(100), Bool(false)],
+    });
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: pk2,
+      args: [pk2.toPublicKey(), UInt64.from(100), Bool(true)],
+    });
 
-    const block = await blockTrigger.produceBlock();
-    await blockTrigger.produceBlock();
-    const batch = await blockTrigger.produceBatch();
+    const block = await test.produceBlock();
+    await test.produceBlock();
+    const batch = await test.produceBatch();
 
     expect(block).toBeDefined();
 
     expect(batch!.blockHashes).toHaveLength(2);
     expect(block!.transactions).toHaveLength(2);
 
-    const stateService =
-      sequencer.dependencyContainer.resolve<AsyncStateService>(
-        "AsyncStateService"
-      );
     const balanceModule = runtime.resolve("Balance");
     const balancesPath1 = Path.fromKey(
       balanceModule.balances.path!,
       balanceModule.balances.keyType,
       pk1.toPublicKey()
     );
-    const newState1 = await stateService.get(balancesPath1);
+    const newState1 = await test.getState(balancesPath1, "batch");
 
     expect(newState1).toBeUndefined();
 
@@ -456,17 +476,19 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       pk2.toPublicKey()
     );
-    const newState2 = await stateService.get(balancesPath2);
+    const newState2 = await test.getState(balancesPath2, "batch");
 
     expect(newState2).toBeDefined();
     expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
 
-    await blockTrigger.produceBlock();
-    await blockTrigger.produceBlock();
-    const proven2 = await blockTrigger.produceBatch();
+    await test.produceBlock();
+    await test.produceBlock();
+    const proven2 = await test.produceBatch();
 
     expect(proven2?.blockHashes.length).toBe(2);
   }, 720_000);
+
+  // TODO Test with batch that only consists of empty blocks
 
   it.skip.each([
     [2, 1, 1],
@@ -498,24 +520,20 @@ describe("block production", () => {
       for (let i = 0; i < batches; i++) {
         for (let j = 0; j < blocksPerBatch; j++) {
           for (let k = 0; k < txsPerBlock; k++) {
-            await mempool.add(
-              createTransaction({
-                runtime,
-                method: ["Balance", "addBalance"],
-                privateKey: sender,
-                args: [
-                  keys[iterationIndex].toPublicKey(),
-                  UInt64.from(increment * (iterationIndex + 1)),
-                ],
-                nonce: iterationIndex,
-              })
-            );
+            await test.addTransaction({
+              method: ["Balance", "addBalance"],
+              privateKey: sender,
+              args: [
+                keys[iterationIndex].toPublicKey(),
+                UInt64.from(increment * (iterationIndex + 1)),
+              ],
+            });
 
             iterationIndex += 1;
           }
 
           // Produce block
-          const block = await blockTrigger.produceBlock();
+          const block = await test.produceBlock();
 
           expect(block).toBeDefined();
 
@@ -525,7 +543,7 @@ describe("block production", () => {
           }
         }
 
-        const batch = await blockTrigger.produceBatch();
+        const batch = await test.produceBatch();
 
         expect(batch).toBeDefined();
         expect(batch!.blockHashes).toHaveLength(blocksPerBatch);
@@ -541,17 +559,13 @@ describe("block production", () => {
 
     const field = Field(100);
 
-    await mempool.add(
-      createTransaction({
-        runtime,
-        method: ["Balance", "lotOfSTs"],
-        privateKey,
-        args: [field],
-        nonce: 0,
-      })
-    );
+    await test.addTransaction({
+      method: ["Balance", "lotOfSTs"],
+      privateKey,
+      args: [field],
+    });
 
-    const [block, batch] = await blockTrigger.produceBlockAndBatch();
+    const [block, batch] = await test.produceBlockAndBatch();
 
     expect(block).toBeDefined();
     expect(batch).toBeDefined();
@@ -564,12 +578,8 @@ describe("block production", () => {
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
-    const stateService =
-      sequencer.dependencyContainer.resolve<AsyncStateService>(
-        "AsyncStateService"
-      );
     const supplyPath = Path.fromProperty("Balance", "totalSupply");
-    const newState = await stateService.get(supplyPath);
+    const newState = await test.getState(supplyPath, "batch");
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
@@ -585,29 +595,22 @@ describe("block production", () => {
       pk2
     );
 
-    const newBalance = await stateService.get(balancesPath);
+    const newBalance = await test.getState(balancesPath, "batch");
 
     expect(newBalance).toBeDefined();
     expect(UInt64.fromFields(newBalance!)).toStrictEqual(UInt64.from(200));
   }, 360_000);
 
   it("regression - should produce block with no STs emitted", async () => {
-    log.setLevel("TRACE");
-
     const privateKey = PrivateKey.random();
 
-    const tx = createTransaction({
-      runtime,
+    await test.addTransaction({
       method: ["NoopRuntime", "emittingNoSTs"],
       privateKey,
       args: [],
-      nonce: 0,
     });
-    console.log(tx.argsHash().toString());
-    console.log(tx.toProtocolTransaction().transaction.argsHash.toString());
-    await mempool.add(tx);
 
-    const block = await blockTrigger.produceBlock();
+    const block = await test.produceBlock();
 
     expect(block).toBeDefined();
 
@@ -618,7 +621,7 @@ describe("block production", () => {
     expect(block!.transactions[0].stateTransitions).toHaveLength(0);
     expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
 
-    const batch = await blockTrigger.produceBatch();
+    const batch = await test.produceBatch();
 
     expect(batch).toBeDefined();
 
@@ -631,14 +634,11 @@ describe("block production", () => {
 
     const privateKey = PrivateKey.random();
 
-    const tx = createTransaction({
-      runtime,
+    await test.addTransaction({
       method: ["EventMaker", "makeEvent"],
       privateKey,
       args: [],
-      nonce: 0,
     });
-    await mempool.add(tx);
 
     const firstExpectedEvent = {
       eventType: PrimaryTestEvent,
@@ -665,7 +665,7 @@ describe("block production", () => {
       data: secondExpectedEvent.eventType.toFields(secondExpectedEvent.event),
     };
 
-    const block = await blockTrigger.produceBlock();
+    const block = await test.produceBlock();
 
     expect(block).toBeDefined();
 
@@ -674,7 +674,7 @@ describe("block production", () => {
     expect(block!.transactions[0].events[0]).toStrictEqual(firstEventReduced);
     expect(block!.transactions[0].events[1]).toStrictEqual(secondEventReduced);
 
-    const batch = await blockTrigger.produceBatch();
+    const batch = await test.produceBatch();
 
     expect(batch).toBeDefined();
 

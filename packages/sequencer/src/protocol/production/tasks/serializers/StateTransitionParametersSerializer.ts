@@ -6,16 +6,8 @@ import {
 import { RollupMerkleTreeWitness } from "@proto-kit/common";
 import { Bool } from "o1js";
 
-import { TaskSerializer } from "../../../worker/flow/Task";
-
-export interface StateTransitionProofParameters {
-  publicInput: StateTransitionProverPublicInput;
-  stateTransitions: {
-    transition: ProvableStateTransition;
-    type: ProvableStateTransitionType;
-  }[];
-  merkleWitnesses: RollupMerkleTreeWitness[];
-}
+import { TaskSerializer } from "../../../../worker/flow/Task";
+import type { StateTransitionProofParameters } from "../StateTransitionTask";
 
 interface StateTransitionParametersJSON {
   publicInput: ReturnType<typeof StateTransitionProverPublicInput.toJSON>;

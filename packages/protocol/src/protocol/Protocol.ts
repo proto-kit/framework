@@ -26,11 +26,18 @@ import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
 import { ProtocolEnvironment } from "./ProtocolEnvironment";
 import { ProvableBlockHook } from "./ProvableBlockHook";
+import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
+/**
+ * This is a mapping of abstract classes to their respective injection tokens.
+ * Keys are the abstract classes names, which need to be set dynamically
+ * and can't be hardcoded since producing optimized builds may mangle the
+ * class names, making them different from the ones in the source code.
+ */
 const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
-  ProvableTransactionHook: "ProvableTransactionHook",
-  ProvableBlockHook: "ProvableBlockHook",
-  ProvableSettlementHook: "ProvableSettlementHook",
+  [ProvableTransactionHook.name]: "ProvableTransactionHook",
+  [ProvableBlockHook.name]: "ProvableBlockHook",
+  [ProvableSettlementHook.name]: "ProvableSettlementHook",
 };
 
 export type ProtocolModulesRecord = ModulesRecord<
@@ -94,7 +101,7 @@ export class Protocol<
     log.debug(`Decorated ${moduleName}`);
     containedModule.protocol = this;
 
-    if (containedModule instanceof ProvableTransactionHook) {
+    if (containedModule instanceof TransitioningProtocolModule) {
       containedModule.name = moduleName;
     }
 
@@ -161,7 +168,7 @@ export class Protocol<
 
       implementingModules.forEach(([key]) => {
         this.container.register(
-          abstractType.name,
+          newInjectionToken,
           { useToken: key },
           { lifecycle: Lifecycle.ContainerScoped }
         );
@@ -174,7 +181,7 @@ export class Protocol<
 
         // Register default (noop) version
         this.container.register(
-          abstractType.name,
+          newInjectionToken,
           { useClass: defaultType },
           { lifecycle: Lifecycle.ContainerScoped }
         );

@@ -18,6 +18,7 @@ import {
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
+import { Closeable } from "../builder/Closeable";
 
 import { Sequenceable } from "./Sequenceable";
 
@@ -112,12 +113,26 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // and start the modules in the order they were resolved.
     for (const moduleName of orderedModules) {
       const sequencerModule = this.resolve(moduleName);
-      // eslint-disable-next-line no-await-in-loop
-      await sequencerModule.start();
 
       log.info(
         `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
       );
+      // eslint-disable-next-line no-await-in-loop
+      await sequencerModule.start();
     }
+    if (!moduleClassNames.includes("SequencerStartupModule")) {
+      log.warn("SequencerStartupModule is not defined.");
+    }
+  }
+
+  public async close() {
+    log.info("Closing sequencer...");
+    const closeables = this.container.resolveAll<Closeable>("Closeable");
+    await Promise.all(
+      closeables.map(async (closeable) => {
+        await closeable.close();
+      })
+    );
+    log.info("Sequencer closed");
   }
 }

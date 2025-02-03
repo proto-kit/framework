@@ -34,7 +34,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     }
 
     try {
-      await this.connection.redisClient.mSet(array.flat(1));
+      this.connection.currentMulti.mSet(array.flat(1));
     } catch (error) {
       log.error(error);
     }
@@ -62,8 +62,8 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   public writeNodes(nodes: MerkleTreeNode[]): void {
     this.cache = this.cache.concat(nodes);
     // TODO Filter distinct
-    // We might not even need this, since the distinctness filter might already
-    // be implicitely done by the layer above (i.e. cachedmtstore)
+    //  We might not even need this, since the distinctness filter might already
+    //  be implicitely done by the layer above (i.e. cachedmtstore)
 
     // Leaving this for now until I get to implementing it
     // const concat = this.cache.concat(nodes);

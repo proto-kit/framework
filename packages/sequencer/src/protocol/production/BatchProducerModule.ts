@@ -22,14 +22,15 @@ import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockResult, BlockWithResult } from "../../storage/model/Block";
 import { VerificationKeyService } from "../runtime/RuntimeVerificationKeyService";
+import type { Database } from "../../storage/Database";
 
-import { BlockProverParameters } from "./tasks/BlockProvingTask";
-import { StateTransitionProofParameters } from "./tasks/StateTransitionTaskParameters";
-import { RuntimeProofParameters } from "./tasks/RuntimeTaskParameters";
 import { TransactionTraceService } from "./TransactionTraceService";
 import { BlockTaskFlowService } from "./BlockTaskFlowService";
 import { NewBlockProverParameters } from "./tasks/NewBlockTask";
-import { BlockProofSerializer } from "./helpers/BlockProofSerializer";
+import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
+import { RuntimeProofParameters } from "./tasks/RuntimeProvingTask";
+import { StateTransitionProofParameters } from "./tasks/StateTransitionTask";
+import { BlockProverParameters } from "./tasks/TransactionProvingTask";
 
 export type StateRecord = Record<string, Field[] | undefined>;
 
@@ -81,6 +82,8 @@ export class BatchProducerModule extends SequencerModule {
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
+    @inject("Database")
+    private readonly database: Database,
     private readonly traceService: TransactionTraceService,
     private readonly blockFlowService: BlockTaskFlowService,
     private readonly blockProofSerializer: BlockProofSerializer,
@@ -90,8 +93,11 @@ export class BatchProducerModule extends SequencerModule {
   }
 
   private async applyStateChanges(batch: BatchMetadata) {
-    await batch.stateService.mergeIntoParent();
-    await batch.merkleStore.mergeIntoParent();
+    // TODO Introduce Proven and Unproven BlockHashTree stores - for rollbacks
+    await this.database.executeInTransaction(async () => {
+      await batch.stateService.mergeIntoParent();
+      await batch.merkleStore.mergeIntoParent();
+    });
   }
 
   /**

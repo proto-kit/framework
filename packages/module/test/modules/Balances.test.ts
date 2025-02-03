@@ -68,7 +68,7 @@ describe("balances", () => {
     it("should compile and prove a method execution", async () => {
       expect.assertions(3);
 
-      runtime.zkProgrammable.appChain?.setProofsEnabled(true);
+      runtime.zkProgrammable.areProofsEnabled?.setProofsEnabled(true);
 
       const executionContext = container.resolve(RuntimeMethodExecutionContext);
       executionContext.setup({
@@ -90,7 +90,7 @@ describe("balances", () => {
 
       const verified = await runtime.zkProgrammable.zkProgram[0].verify(proof);
 
-      runtime.zkProgrammable.appChain?.setProofsEnabled(false);
+      runtime.zkProgrammable.areProofsEnabled?.setProofsEnabled(false);
 
       expect(verified).toBe(true);
 
