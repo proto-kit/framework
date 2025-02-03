@@ -29,6 +29,7 @@ import {
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { distinctByPredicate } from "../../helpers/utils";
+import { Tracer } from "../../logging/Tracer";
 
 type MempoolTransactionPaths = {
   transaction: PendingTransaction;
@@ -49,11 +50,17 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     @inject("Sequencer")
     private readonly sequencer: Sequencer<SequencerModulesRecord>,
     @inject("UnprovenStateService")
-    private readonly stateService: AsyncStateService
+    private readonly stateService: AsyncStateService,
+    @inject("Tracer") private readonly tracer: Tracer
   ) {
     super();
     this.accountStateHook =
       this.protocol.dependencyContainer.resolve("AccountState");
+  }
+
+  public async length(): Promise<number> {
+    const txs = await this.transactionStorage.getPendingUserTransactions();
+    return txs.length;
   }
 
   public async add(tx: PendingTransaction): Promise<boolean> {
@@ -96,22 +103,29 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   }
 
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
-    const txs = await this.transactionStorage.getPendingUserTransactions();
+    return await this.tracer.trace("mempool.get_txs", async () => {
+      const txs = await this.transactionStorage.getPendingUserTransactions();
 
-    const baseCachedStateService = new CachedStateService(this.stateService);
+      const baseCachedStateService = new CachedStateService(this.stateService);
 
-    const networkState =
-      (await this.getStagedNetworkState()) ?? NetworkState.empty();
+      const networkState =
+        (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-    const sortedTxs = await this.checkTxValid(
-      txs,
-      baseCachedStateService,
-      this.protocol.stateServiceProvider,
-      networkState,
-      limit
-    );
-    this.protocol.stateServiceProvider.popCurrentStateService();
-    return sortedTxs;
+      const sortedTxs = await this.tracer.trace(
+        "mempool.validate_txs",
+        async () =>
+          await this.checkTxValid(
+            txs,
+            baseCachedStateService,
+            this.protocol.stateServiceProvider,
+            networkState,
+            limit
+          )
+      );
+
+      this.protocol.stateServiceProvider.popCurrentStateService();
+      return sortedTxs;
+    });
   }
 
   // We iterate through the transactions. For each tx we run the account state hook.

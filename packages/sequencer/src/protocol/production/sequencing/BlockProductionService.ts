@@ -31,6 +31,7 @@ import {
   executeWithExecutionContext,
   TransactionExecutionService,
 } from "./TransactionExecutionService";
+import { Tracer } from "../../../logging/Tracer";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -40,6 +41,8 @@ export class BlockProductionService {
   public constructor(
     @inject("Protocol")
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
+    @inject("Tracer")
+    private readonly tracer: Tracer,
     private readonly transactionExecutionService: TransactionExecutionService,
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider

@@ -25,6 +25,7 @@ import {
 } from "../../../storage/model/Block";
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 import { Database } from "../../../storage/Database";
+import { Tracer } from "../../../logging/Tracer";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -54,7 +55,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     @inject("MethodIdResolver")
     private readonly methodIdResolver: MethodIdResolver,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
-    @inject("Database") private readonly database: Database
+    @inject("Database") private readonly database: Database,
+    @inject("Tracer") public readonly tracer: Tracer
   ) {
     super();
   }
@@ -107,6 +109,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   }
 
   public async generateMetadata(block: Block): Promise<BlockResult> {
+    const traceMetadata = {
+      height: block.height.toString(),
+    };
+
     const { result, blockHashTreeStore, treeStore, stateService } =
       await this.resultService.generateMetadataForNextBlock(
         block,
@@ -129,7 +135,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   public async tryProduceBlock(): Promise<Block | undefined> {
     if (!this.productionInProgress) {
       try {
-        const block = await this.produceBlock();
+        const block = await this.tracer.trace(
+          "block",
+          async () => await this.produceBlock()
+        );
 
         if (block === undefined) {
           if (!this.allowEmptyBlock()) {
@@ -204,7 +213,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   private async produceBlock(): Promise<Block | undefined> {
     this.productionInProgress = true;
 
-    const { txs, metadata } = await this.collectProductionData();
+    const { txs, metadata } = await this.tracer.trace(
+      "block.collect_inputs",
+      async () => await this.collectProductionData()
+    );
 
     // Skip production if no transactions are available for now
     if (txs.length === 0 && !this.allowEmptyBlock()) {
@@ -221,10 +233,18 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     if (blockResult !== undefined) {
       const { block, stateChanges } = blockResult;
 
-      await this.database.executeInTransaction(async () => {
-        await stateChanges.mergeIntoParent();
-        await this.blockQueue.pushBlock(block);
-      });
+      await this.tracer.trace(
+        "block.commit",
+        async () =>
+          // Push changes to the database atomically
+          await this.database.executeInTransaction(async () => {
+            await stateChanges.mergeIntoParent();
+            await this.blockQueue.pushBlock(block);
+          }),
+        {
+          height: block.height.toString(),
+        }
+      );
     }
 
     this.productionInProgress = false;

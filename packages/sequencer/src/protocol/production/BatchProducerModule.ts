@@ -17,6 +17,7 @@ import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore"
 import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockWithResult } from "../../storage/model/Block";
 import type { Database } from "../../storage/Database";
+import { Tracer } from "../../logging/Tracer";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -52,6 +53,8 @@ export class BatchProducerModule extends SequencerModule {
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("Database")
     private readonly database: Database,
+    @inject("Tracer")
+    private readonly tracer: Tracer,
     private readonly batchFlow: BatchFlow,
     private readonly blockProofSerializer: BlockProofSerializer,
     private readonly batchTraceService: BatchTracingService
