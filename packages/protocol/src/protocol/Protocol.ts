@@ -28,10 +28,16 @@ import { ProtocolEnvironment } from "./ProtocolEnvironment";
 import { ProvableBlockHook } from "./ProvableBlockHook";
 import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
+/**
+ * This is a mapping of abstract classes to their respective injection tokens.
+ * Keys are the abstract classes names, which need to be set dynamically
+ * and can't be hardcoded since producing optimized builds may mangle the
+ * class names, making them different from the ones in the source code.
+ */
 const PROTOCOL_INJECTION_TOKENS: Record<string, string> = {
-  ProvableTransactionHook: "ProvableTransactionHook",
-  ProvableBlockHook: "ProvableBlockHook",
-  ProvableSettlementHook: "ProvableSettlementHook",
+  [ProvableTransactionHook.name]: "ProvableTransactionHook",
+  [ProvableBlockHook.name]: "ProvableBlockHook",
+  [ProvableSettlementHook.name]: "ProvableSettlementHook",
 };
 
 export type ProtocolModulesRecord = ModulesRecord<
@@ -162,7 +168,7 @@ export class Protocol<
 
       implementingModules.forEach(([key]) => {
         this.container.register(
-          abstractType.name,
+          newInjectionToken,
           { useToken: key },
           { lifecycle: Lifecycle.ContainerScoped }
         );
@@ -175,12 +181,34 @@ export class Protocol<
 
         // Register default (noop) version
         this.container.register(
-          abstractType.name,
+          newInjectionToken,
           { useClass: defaultType },
           { lifecycle: Lifecycle.ContainerScoped }
         );
       }
     });
+
+    // Cross-register all runtime modules to the protocol container for easier
+    // access of runtime modules inside protocol hooks
+    if (this.container.isRegistered("Runtime", true)) {
+      const runtimeContainer: ModuleContainer<any> =
+        this.container.resolve("Runtime");
+
+      runtimeContainer.moduleNames.forEach((runtimeModuleName) => {
+        this.container.register(runtimeModuleName, {
+          useFactory: (dependencyContainer) => {
+            // Prevents creation of closure
+            const runtime: ModuleContainer<any> =
+              dependencyContainer.resolve("Runtime");
+            return runtime.resolve(runtimeModuleName);
+          },
+        });
+      });
+    } else {
+      log.warn(
+        "Couldn't resolve Runtime reference in Protocol, resolving RuntimeModules in hooks won't be available"
+      );
+    }
   }
 
   public async start() {

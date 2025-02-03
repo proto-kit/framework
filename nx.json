@@ -5,6 +5,7 @@
       "options": {
         "cacheableOperations": [
           "build",
+          "prisma:generate",
           "lint",
           "test",
           "integration"
@@ -13,6 +14,12 @@
     }
   },
   "targetDefaults": {
+    "prisma:generate": {
+      "inputs": [
+        "{projectRoot}/package.json",
+        "{projectRoot}/prisma/**/*"
+      ]
+    },
     "build": {
       "dependsOn": [
         "^build"

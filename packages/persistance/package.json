@@ -7,10 +7,10 @@
   "scripts": {
     "build": "npm run prisma:generate && tsc -p tsconfig.json",
     "prisma:generate": "npx prisma generate",
-    "prisma-migrate": "npx prisma migrate deploy",
+    "prisma:migrate": "npx prisma migrate deploy",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test ./test-integration",
-    "test:file": "node --experimental-vm-modules --experimental-wasm-modules  ../../node_modules/jest/bin/jest.js",
+    "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
     "test:integration": "npm run test:file -- ./test-integration/** --runInBand",
     "test:watch": "npm run test:file -- ./test/** --watch"

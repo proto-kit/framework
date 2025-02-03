@@ -17,7 +17,10 @@ import {
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
-import { MethodParameterEncoder } from "./MethodParameterEncoder";
+import {
+  MethodParameterEncoder,
+  checkArgsProvable,
+} from "./MethodParameterEncoder";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -196,11 +199,9 @@ function runtimeMethodInternal(options: {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
-    descriptor: TypedPropertyDescriptor<
-      // TODO Limit possible parameter types
-      (...args: any[]) => Promise<any>
-    >
+    descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<any>>
   ) => {
+    checkArgsProvable(target, methodName);
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );

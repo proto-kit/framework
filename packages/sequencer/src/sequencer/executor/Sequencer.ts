@@ -113,12 +113,15 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // and start the modules in the order they were resolved.
     for (const moduleName of orderedModules) {
       const sequencerModule = this.resolve(moduleName);
-      // eslint-disable-next-line no-await-in-loop
-      await sequencerModule.start();
 
       log.info(
         `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
       );
+      // eslint-disable-next-line no-await-in-loop
+      await sequencerModule.start();
+    }
+    if (!moduleClassNames.includes("SequencerStartupModule")) {
+      log.warn("SequencerStartupModule is not defined.");
     }
   }
 
