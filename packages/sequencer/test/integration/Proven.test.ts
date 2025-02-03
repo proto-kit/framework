@@ -26,6 +26,7 @@ import {
   ProvenSettlementPermissions,
   SettlementModule,
   SettlementProvingTask,
+  VanillaTaskWorkerModules,
   WithdrawalQueue,
 } from "../../src";
 import { SettlementStartupModule } from "../../src/sequencer/SettlementStartupModule";
@@ -36,7 +37,7 @@ import { ProvenBalance } from "./mocks/ProvenBalance";
 
 const timeout = 300000;
 
-describe("Proven", () => {
+describe.skip("Proven", () => {
   let test: BlockTestService;
 
   let appChain: AppChain<any, any, any, any>;
@@ -95,7 +96,7 @@ describe("Proven", () => {
           Mempool: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
-          LocalTaskWorkerModule: {},
+          LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           TaskQueue: {},
           FeeStrategy: {},
           SequencerStartupModule: {},

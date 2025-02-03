@@ -51,7 +51,8 @@ const errors = {
 export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHookConfig> {
   public constructor(
     // dependency on runtime, since balances are part of runtime logic
-    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
+    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>,
+    @inject("Balances") public balances: Balances
   ) {
     super();
   }
@@ -89,10 +90,6 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
 
   public set config(value: TransactionFeeHookConfig) {
     super.config = value;
-  }
-
-  public get balances() {
-    return this.runtime.dependencyContainer.resolve<Balances>("Balances");
   }
 
   public get feeAnalyzer() {
