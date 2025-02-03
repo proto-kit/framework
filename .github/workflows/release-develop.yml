@@ -25,7 +25,7 @@ jobs:
       - name: "NPM Identity"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm config set registry "https://registry.npmjs.org/" && npm config set _auth $NPM_TOKEN
+        run: npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
 
       - name: Run Lerna Release
         run: npm run publish:canary
