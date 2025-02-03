@@ -54,7 +54,8 @@
     "typedoc-plugin-frontmatter": "^1.1.2",
     "typedoc-plugin-inline-sources": "^1.2.0",
     "typedoc-plugin-markdown": "^4.4.1",
-    "typescript": "5.1"
+    "typescript": "5.1",
+    "istanbul-merge": "^2.0.0"
   },
   "workspaces": [
     "packages/*"
@@ -70,7 +71,6 @@
     ]
   },
   "dependencies": {
-    "istanbul-merge": "^2.0.0",
     "react-json-view-lite": "^1.4.0"
   }
 }
