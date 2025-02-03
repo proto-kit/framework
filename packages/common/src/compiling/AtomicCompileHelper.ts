@@ -2,7 +2,7 @@ import {
   AreProofsEnabled,
   CompileArtifact,
   MOCK_VERIFICATION_KEY,
-} from "../zkProgrammable/ZkProgrammable";
+} from "../zkProgrammable/Helper";
 import { isSubtypeOfName } from "../utils";
 import { TypedClass } from "../types";
 import { log } from "../log";

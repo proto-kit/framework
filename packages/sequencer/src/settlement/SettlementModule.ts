@@ -17,7 +17,7 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
-  TokenContractV2,
+  TokenContract,
   Transaction,
 } from "o1js";
 import { inject } from "tsyringe";
@@ -341,7 +341,7 @@ export class SettlementModule
   }
 
   public async deployTokenBridge(
-    owner: TokenContractV2,
+    owner: TokenContract,
     ownerKey: PrivateKey,
     contractKey: PrivateKey,
     options: {

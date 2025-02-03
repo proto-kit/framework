@@ -2,7 +2,7 @@ import type { Proof } from "o1js";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 
-import type { ArgumentTypes } from "./provableMethod";
+import type { ArgumentTypes } from "./WithZkProgram";
 
 const errors = {
   moduleOrMethodNameNotSet: () => new Error("Module or method name not set"),
@@ -20,7 +20,10 @@ export class ProvableMethodExecutionResult {
 
   public args?: ArgumentTypes;
 
-  public prover?: () => Promise<Proof<unknown, unknown>>;
+  public prover?: () => Promise<{
+    proof: Proof<unknown, unknown>;
+    auxiliaryOutput: undefined;
+  }>;
 
   public async prove<
     ProofType extends Proof<unknown, unknown>,
@@ -35,7 +38,7 @@ export class ProvableMethodExecutionResult {
 
     // turn the prover result into the desired proof type
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return (await this.prover()) as ProofType;
+    return (await this.prover()).proof as ProofType;
   }
 }
 
@@ -58,10 +61,15 @@ export class ProvableMethodExecutionContext {
    * Adds a method prover to the current execution context,
    * which can be collected and ran asynchronously at a later point in time.
    *
-   * @param prove - Prover function to be ran later,
    * when the method execution needs to be proven
+   * @param prover
    */
-  public setProver(prover: () => Promise<Proof<unknown, unknown>>) {
+  public setProver(
+    prover: () => Promise<{
+      proof: Proof<any, any>;
+      auxiliaryOutput: undefined;
+    }>
+  ) {
     this.result.prover = prover;
   }
 

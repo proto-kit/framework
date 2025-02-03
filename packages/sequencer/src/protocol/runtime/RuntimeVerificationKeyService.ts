@@ -4,7 +4,7 @@ import {
   ConfigurableModule,
   InMemoryMerkleTreeStorage,
   mapSequential,
-  ZkProgrammable,
+  ZkProgramFactory,
 } from "@proto-kit/common";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
@@ -29,7 +29,7 @@ export interface WithGetMethodId {
 }
 
 export interface WithZkProgrammableAndGetMethodById<PublicInput, PublicOutput> {
-  zkProgrammable: ZkProgrammable<PublicInput, PublicOutput>;
+  zkProgrammable: ZkProgramFactory<PublicInput, PublicOutput>;
   methodIdResolver: WithGetMethodId;
 }
 
@@ -64,7 +64,7 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
 
   public async initializeVKTree(artifacts: Record<string, CompileArtifact>) {
     const mappings = await mapSequential(
-      this.runtime.zkProgrammable.zkProgram,
+      this.runtime.zkProgrammable.zkProgramFactory(),
       async (program) => {
         const artifact = artifacts[program.name];
 

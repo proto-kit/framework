@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test",
-    "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
+    "test:file": "node --experimental-vm-modules  ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
     "test:watch": "npm run test:file -- ./test/** --watch"
   },
@@ -24,7 +24,7 @@
   },
   "peerDependencies": {
     "@proto-kit/common": "*",
-    "o1js": "^1.6.0",
+    "o1js": "^2.0.0",
     "ts-pattern": "^4.3.0",
     "tsyringe": "^4.7.0"
   },

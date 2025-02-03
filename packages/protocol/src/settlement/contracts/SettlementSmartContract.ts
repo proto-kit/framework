@@ -17,7 +17,7 @@ import {
   state,
   UInt32,
   AccountUpdateForest,
-  TokenContractV2,
+  TokenContract,
   PrivateKey,
   VerificationKey,
   Permissions,
@@ -105,7 +105,7 @@ export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 //   };
 // }
 
-export abstract class SettlementSmartContractBase extends TokenContractV2 {
+export abstract class SettlementSmartContractBase extends TokenContract {
   // This pattern of injecting args into a smartcontract is currently the only
   // viable solution that works given the inheritance issues of o1js
   // public static args = container.resolve(SettlementSmartContractStaticArgs);

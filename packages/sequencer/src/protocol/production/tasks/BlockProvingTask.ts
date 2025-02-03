@@ -118,15 +118,11 @@ export class BlockReductionTask
   }
 
   public inputSerializer(): TaskSerializer<PairTuple<BlockProof>> {
-    return new PairProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
-    );
+    return new PairProofTaskSerializer(this.blockProver.zkProgram[0].Proof);
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
-    );
+    return new ProofTaskSerializer(this.blockProver.zkProgram[0].Proof);
   }
 
   public async compute(input: PairTuple<BlockProof>): Promise<BlockProof> {
@@ -150,8 +146,7 @@ export class BlockProvingTask
 
   private readonly blockProver: BlockProvable;
 
-  private readonly runtimeProofType =
-    this.runtime.zkProgrammable.zkProgram[0].Proof;
+  private readonly runtimeProofType = this.runtime.zkProgram[0].Proof;
 
   public name = "block";
 
@@ -173,7 +168,7 @@ export class BlockProvingTask
 
   public inputSerializer(): TaskSerializer<BlockProvingTaskParameters> {
     const stProofSerializer = new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+      this.stateTransitionProver.zkProgram[0].Proof
     );
     const runtimeProofSerializer = new ProofTaskSerializer(
       this.runtimeProofType
@@ -248,11 +243,8 @@ export class BlockProvingTask
     };
   }
 
-  // eslint-disable-next-line sonarjs/no-identical-functions
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
-    );
+    return new ProofTaskSerializer(this.blockProver.zkProgram[0].Proof);
   }
 
   private async executeWithPrefilledStateService<Return>(
