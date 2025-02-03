@@ -26,7 +26,7 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc && git status
+          npm config set "//registry.npmjs.org/:_authToken=$NPM_TOKEN"
 
       - name: Run Lerna Release
         run: npm run publish:canary
