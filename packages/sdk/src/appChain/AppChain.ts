@@ -24,6 +24,7 @@ import {
   NetworkStateTransportModule,
   DummyStateService,
   WorkerReadyModule,
+  ConsoleLoggingFactory,
 } from "@proto-kit/sequencer";
 import {
   NetworkState,
@@ -314,6 +315,7 @@ export class AppChain<
 
     this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
     this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
+    this.useDependencyFactory(this.container.resolve(ConsoleLoggingFactory));
 
     this.container
       .resolve<AreProofsEnabled>("AreProofsEnabled")
