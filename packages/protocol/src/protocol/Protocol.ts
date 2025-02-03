@@ -187,6 +187,28 @@ export class Protocol<
         );
       }
     });
+
+    // Cross-register all runtime modules to the protocol container for easier
+    // access of runtime modules inside protocol hooks
+    if (this.container.isRegistered("Runtime", true)) {
+      const runtimeContainer: ModuleContainer<any> =
+        this.container.resolve("Runtime");
+
+      runtimeContainer.moduleNames.forEach((runtimeModuleName) => {
+        this.container.register(runtimeModuleName, {
+          useFactory: (dependencyContainer) => {
+            // Prevents creation of closure
+            const runtime: ModuleContainer<any> =
+              dependencyContainer.resolve("Runtime");
+            return runtime.resolve(runtimeModuleName);
+          },
+        });
+      });
+    } else {
+      log.warn(
+        "Couldn't resolve Runtime reference in Protocol, resolving RuntimeModules in hooks won't be available"
+      );
+    }
   }
 
   public async start() {
