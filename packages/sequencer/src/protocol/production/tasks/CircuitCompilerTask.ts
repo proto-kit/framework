@@ -128,6 +128,8 @@ export class CircuitCompilerTask extends UnpreparingTask<
   }
 
   public async compute(input: CompilerTaskParams): Promise<ArtifactRecord> {
+    log.info("Computing VKs");
+
     this.compileRegistry.addArtifactsRaw(input.existingArtifacts);
 
     // We need to initialize the VK tree root if we have it, so that
@@ -137,8 +139,6 @@ export class CircuitCompilerTask extends UnpreparingTask<
         .resolve(RuntimeVerificationKeyRootService)
         .setRoot(BigInt(input.runtimeVKRoot));
     }
-
-    log.info("Computing VKs");
 
     // TODO make adaptive
     const targets: Record<string, CompilableModule> = {

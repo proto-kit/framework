@@ -1,7 +1,6 @@
 /* eslint-disable no-inner-declarations */
 import {
   expectDefined,
-  log,
   mapSequential,
   TypedClass,
   RollupMerkleTree,
@@ -55,6 +54,7 @@ import {
   MinaBaseLayerConfig,
   SignedSettlementPermissions,
   ProvenSettlementPermissions,
+  VanillaTaskWorkerModules,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
 import { testingSequencerFromModules } from "../TestingSequencer";
@@ -168,7 +168,7 @@ export const settlementTestFn = (
           BlockTrigger: {},
           Mempool: {},
           BatchProducerModule: {},
-          LocalTaskWorkerModule: {},
+          LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           OutgoingMessageQueue: {},
           BaseLayer: baseLayerConfig,
           BlockProducerModule: {},
@@ -255,8 +255,6 @@ export const settlementTestFn = (
     }
 
     beforeAll(async () => {
-      log.setLevel("DEBUG");
-
       appChain = setupAppChain();
 
       await appChain.start(

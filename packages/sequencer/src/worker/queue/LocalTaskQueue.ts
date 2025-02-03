@@ -108,6 +108,8 @@ export class LocalTaskQueue
           const functions = tasks.map((task) => async () => {
             // Execute task in worker
 
+            log.trace(`Working ${task.payload.name} with id ${task.taskId}`);
+
             const payload = await this.workers[queueName]?.handler(
               task.payload
             );
@@ -116,13 +118,14 @@ export class LocalTaskQueue
               return;
             }
             log.trace("LocalTaskQueue got", JSON.stringify(payload));
+
             // Notify listeners about result
             const listenerPromises = this.listeners[queueName]?.map(
               async (listener) => {
                 await listener(payload);
               }
             );
-            void Promise.all(listenerPromises || []);
+            await Promise.all(listenerPromises || []);
           });
           this.queuedTasks[queueName] = [];
           return functions;

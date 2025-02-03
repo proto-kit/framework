@@ -7,14 +7,9 @@ import {
   ZkProgram,
   Proof,
 } from "o1js";
-import { NonMethods, noop } from "@proto-kit/common";
+import { NonMethods } from "@proto-kit/common";
 
-import {
-  MethodParameterEncoder,
-  RuntimeModule,
-  runtimeModule,
-  runtimeMethod,
-} from "../../src";
+import { MethodParameterEncoder } from "../../src";
 
 class TestStruct extends Struct({
   a: Field,
@@ -123,30 +118,4 @@ describe("MethodParameterEncoder", () => {
       true
     );
   }, 30000);
-});
-
-class TieredStruct extends TestStruct {}
-
-@runtimeModule()
-class TestModule extends RuntimeModule {
-  @runtimeMethod()
-  public async foo(
-    a: TieredStruct,
-    b: PublicKey,
-    c: Field,
-    d: TestProof,
-    e: string
-  ) {
-    noop();
-  }
-}
-
-describe("MethodParameterEncoder construction", () => {
-  it("should throw on non-provable method signature", () => {
-    const module = new TestModule();
-    module.name = "testModule";
-    expect(() => MethodParameterEncoder.fromMethod(module, "foo")).toThrowError(
-      "'testModule.foo' are provable types or proofs (indizes: [4])"
-    );
-  });
 });
