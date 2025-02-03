@@ -153,14 +153,16 @@ export class VanillaTaskWorkerModules {
     return {
       StateTransitionTask: {},
       RuntimeProvingTask: {},
-      BlockProvingTask: {},
-      BlockReductionTask: {},
+      TransactionProvingTask: {},
       BlockBuildingTask: {},
+      BlockReductionTask: {},
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
       CircuitCompilerTask: {},
       WorkerRegistrationTask: {},
-    };
+    } satisfies ModulesConfig<
+      ReturnType<typeof VanillaTaskWorkerModules.allTasks>
+    >;
   }
 }
 

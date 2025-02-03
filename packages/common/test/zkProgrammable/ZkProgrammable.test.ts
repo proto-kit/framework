@@ -6,14 +6,12 @@ import { Field, Struct, Proof, ZkProgram } from "o1js";
 import {
   MOCK_PROOF,
   provableMethod,
-} from "../../src/zkProgrammable/provableMethod";
-import {
   AreProofsEnabled,
   CompileArtifact,
   MOCK_VERIFICATION_KEY,
   ZkProgrammable,
-} from "../../src/zkProgrammable/ZkProgrammable";
-import { ProvableMethodExecutionContext } from "../../src/zkProgrammable/ProvableMethodExecutionContext";
+  ProvableMethodExecutionContext,
+} from "../../src";
 
 const appChainMock: AreProofsEnabled = {
   areProofsEnabled: false,
@@ -86,6 +84,7 @@ class TestProgrammable extends ZkProgrammable<
 
     return [
       {
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -129,6 +128,7 @@ class OtherTestProgrammable extends ZkProgrammable<undefined, void> {
 
     return [
       {
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),

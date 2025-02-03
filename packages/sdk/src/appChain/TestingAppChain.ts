@@ -112,9 +112,11 @@ export class TestingAppChain<
         LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         BlockProducerModule: {},
+        SequencerStartupModule: {},
         TaskQueue: {
           simulatedDuration: 0,
         },
+        FeeStrategy: {},
       },
       Signer: {
         signer: PrivateKey.random(),
