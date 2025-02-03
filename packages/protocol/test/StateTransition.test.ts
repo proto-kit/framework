@@ -67,13 +67,13 @@ describe.skip("stateTransition", () => {
     [
       [
         new ProvableStateTransition({
-          from: Option.fromValue(Field(1), Field).toProvable(),
-          to: Option.fromValue(Field(14), Field).toProvable(),
+          from: Option.fromSome(Field(1), Field).toProvable(),
+          to: Option.fromSome(Field(14), Field).toProvable(),
           path: Field(1),
         }),
         new ProvableStateTransition({
-          from: Option.fromValue(Field(14), Field).toProvable(),
-          to: Option.fromValue(Field(4), Field).toProvable(),
+          from: Option.fromSome(Field(14), Field).toProvable(),
+          to: Option.fromSome(Field(4), Field).toProvable(),
           path: Field(1),
         }),
       ],
@@ -103,8 +103,8 @@ describe.skip("stateTransition", () => {
     const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
 
     // Is ignored because overwritten by first transition
-    tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
-    tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
+    tree.setLeaf(1n, Option.fromSome(Field(1), Field).treeValue);
+    tree.setLeaf(2n, Option.fromSome(Field(5), Field).treeValue);
 
     await checkTransitions(tree, transitions);
   });
@@ -163,8 +163,8 @@ describe.skip("stateTransition", () => {
       const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
 
       // Is ignored because overwritten by first transition
-      tree.setLeaf(1n, Option.fromValue(Field(1), Field).treeValue);
-      tree.setLeaf(2n, Option.fromValue(Field(5), Field).treeValue);
+      tree.setLeaf(1n, Option.fromSome(Field(1), Field).treeValue);
+      tree.setLeaf(2n, Option.fromSome(Field(5), Field).treeValue);
 
       await expect(checkTransitions(tree, transitions)).rejects.toThrow(
         `MerkleWitness not valid for StateTransition (${index})`

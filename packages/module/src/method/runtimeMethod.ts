@@ -40,10 +40,12 @@ const errors = {
 };
 
 export function toStateTransitionsHash(
-  stateTransitions: StateTransition<any>[]
+  stateTransitions: StateTransition<any>[],
+  startingHash?: Field
 ) {
   const stateTransitionsHashList = new StateTransitionReductionList(
-    ProvableStateTransition
+    ProvableStateTransition,
+    startingHash
   );
 
   return stateTransitions
@@ -91,6 +93,13 @@ export function toWrappedMethod(
   const wrappedMethod: AsyncWrappedMethod = async (
     ...args
   ): Promise<MethodPublicOutput> => {
+    // We need to witness the transaction and networkState first to be then usable via .input
+    const { transaction, networkState } = executionContext.witnessInput();
+    executionContext.setup({
+      transaction,
+      networkState,
+    });
+
     await Reflect.apply(moduleMethod, this, args);
     const {
       result: { stateTransitions, status, events },
@@ -108,7 +117,6 @@ export function toWrappedMethod(
       throw errors.runtimeNotProvided(name);
     }
 
-    const { transaction, networkState } = executionContext.witnessInput();
     const { methodIdResolver } = runtime;
 
     // Assert that the given transaction has the correct methodId

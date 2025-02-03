@@ -105,7 +105,7 @@ export class Option<Value> extends OptionBase {
    * @param valueType
    * @returns New option from the provided parameters.
    */
-  public static fromValue<Value>(
+  public static fromSome<Value>(
     value: Value,
     valueType: FlexibleProvablePure<Value>
   ) {
@@ -168,5 +168,13 @@ export class Option<Value> extends OptionBase {
       this.valueType,
       boolConstant(this.isForcedSome)
     );
+  }
+
+  public static toFields<Value>(obj: Option<Value>) {
+    return [...obj.isSome.toFields(), ...obj.valueType.toFields(obj.value)];
+  }
+
+  public toFields() {
+    return Option.toFields(this);
   }
 }

@@ -67,7 +67,7 @@ describe("state", () => {
           stateTransition.toProvable()
         );
 
-      const expectedLastOption = Option.fromValue(
+      const expectedLastOption = Option.fromSome(
         UInt64.from(200),
         UInt64
       ).toProvable();

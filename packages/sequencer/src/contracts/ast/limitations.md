@@ -1,0 +1,2 @@
+- Constructing Fields from Fields - same for Bool
+- no assertions (on purpose) - protokit assert could work

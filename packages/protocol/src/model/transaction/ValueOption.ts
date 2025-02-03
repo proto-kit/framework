@@ -1,6 +1,6 @@
-import { Bool, ProvableExtended, PublicKey, Struct, UInt64 } from "o1js";
+ import { Bool, PublicKey, Struct, UInt64, ProvablePure } from "o1js";
 
-function genericOptionFactory<Type>(valueType: ProvableExtended<Type>) {
+function genericOptionFactory<Type>(valueType: ProvablePure<Type>) {
   return class Generic extends Struct({
     isSome: Bool,
     value: valueType,
