@@ -1,20 +1,16 @@
-import { WithZkProgrammable, ZkProgrammable } from "@proto-kit/common";
 import { container } from "tsyringe";
+import { Runtime } from "@proto-kit/module";
+import { Balance } from "@proto-kit/sequencer/test/integration/mocks/Balance";
+import { NoopRuntime } from "@proto-kit/sequencer/test/integration/mocks/NoopRuntime";
 
 import {
   AccountStateHook,
   BlockHeightHook,
   BlockProver,
   LastStateRootBlockHook,
-  MethodPublicOutput,
   Protocol,
   StateTransitionProver,
 } from "../src";
-
-class RuntimeMock implements WithZkProgrammable<undefined, MethodPublicOutput> {
-  zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput> =
-    undefined as unknown as ZkProgrammable<undefined, MethodPublicOutput>;
-}
 
 export function createAndInitTestingProtocol() {
   const ProtocolClass = Protocol.from({
@@ -35,11 +31,22 @@ export function createAndInitTestingProtocol() {
     StateTransitionProver: {},
     LastStateRoot: {},
   });
-  protocol.create(() => container.createChildContainer());
 
-  protocol.registerValue({
-    Runtime: new RuntimeMock(),
+  const appChain = container.createChildContainer();
+
+  appChain.register("Runtime", {
+    useClass: Runtime.from({
+      modules: {
+        Balance,
+        NoopRuntime,
+      },
+      config: {
+        Balance: {},
+        NoopRuntime: {},
+      },
+    }),
   });
+  protocol.create(() => appChain.createChildContainer());
 
   return protocol;
 }

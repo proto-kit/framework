@@ -34,6 +34,7 @@ import {
   Sequencer,
   BlockProducerModule,
   VanillaTaskWorkerModules,
+  SequencerStartupModule,
 } from "@proto-kit/sequencer";
 import {
   BatchStorageResolver,
@@ -134,6 +135,7 @@ export async function startServer() {
             BlockResolver: {},
           },
         }),
+        SequencerStartupModule,
       },
     }),
 
@@ -171,6 +173,8 @@ export async function startServer() {
         host: "0.0.0.0",
         graphiql: true,
       },
+      SequencerStartupModule: {},
+
       // SettlementModule: {
       //   address: PrivateKey.random().toPublicKey(),
       //   feepayer: PrivateKey.random(),
@@ -206,17 +210,7 @@ export async function startServer() {
 
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: {
-        StateTransitionTask: {},
-        // SettlementProvingTask: {},
-        BlockBuildingTask: {},
-        BlockProvingTask: {},
-        BlockReductionTask: {},
-        RuntimeProvingTask: {},
-        StateTransitionReductionTask: {},
-        CircuitCompilerTask: {},
-        WorkerRegistrationTask: {},
-      },
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       TaskQueue: {},
 
@@ -236,7 +230,7 @@ export async function startServer() {
     },
   });
 
-  await appChain.start(container.createChildContainer());
+  await appChain.start(false, container.createChildContainer());
   // const pk = PublicKey.fromBase58(
   //   "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   // );

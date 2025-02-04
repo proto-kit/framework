@@ -11,7 +11,6 @@ import {
 import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
 import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
-import { GraphqlServer } from "@proto-kit/api";
 import {
   AppChain,
   InMemorySigner,
@@ -114,7 +113,7 @@ describe("graphql client test", () => {
   }, 20_000);
 
   afterAll(async () => {
-    server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
+    await server.sequencer.close();
   }, 20_000);
 
   it("should retrieve state", async () => {

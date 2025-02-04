@@ -7,7 +7,12 @@ import { Bool, PrivateKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
-import { ManualBlockTrigger, PrivateMempool, Sequencer } from "../../src";
+import {
+  ManualBlockTrigger,
+  PrivateMempool,
+  Sequencer,
+  VanillaTaskWorkerModules,
+} from "../../src";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
@@ -76,11 +81,12 @@ describe("block limit", () => {
         BlockProducerModule: {
           maximumBlockSize: maxBlockSize,
         },
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
         ProtocolStartupModule: {},
+        SequencerStartupModule: {},
       },
       Runtime: {
         Balance: {},
@@ -97,7 +103,7 @@ describe("block limit", () => {
     });
 
     // Start AppChain
-    await app.start(container.createChildContainer());
+    await app.start(false, container.createChildContainer());
 
     ({ runtime, sequencer } = app);
 

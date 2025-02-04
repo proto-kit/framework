@@ -36,19 +36,17 @@ export class PrismaStateService implements AsyncStateService {
         mask: this.mask,
       }));
 
-    await prismaClient.$transaction([
-      prismaClient.state.deleteMany({
-        where: {
-          path: {
-            in: this.cache.map((x) => new Decimal(x.key.toString())),
-          },
-          mask: this.mask,
+    await prismaClient.state.deleteMany({
+      where: {
+        path: {
+          in: this.cache.map((x) => new Decimal(x.key.toString())),
         },
-      }),
-      prismaClient.state.createMany({
-        data,
-      }),
-    ]);
+        mask: this.mask,
+      },
+    });
+    await prismaClient.state.createMany({
+      data,
+    });
 
     this.cache = [];
   }

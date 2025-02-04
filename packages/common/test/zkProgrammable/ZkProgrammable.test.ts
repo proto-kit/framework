@@ -6,14 +6,12 @@ import { Field, Struct, Proof, ZkProgram } from "o1js";
 import {
   MOCK_PROOF,
   provableMethod,
-} from "../../src/zkProgrammable/provableMethod";
-import {
   AreProofsEnabled,
   CompileArtifact,
   MOCK_VERIFICATION_KEY,
   ZkProgrammable,
-} from "../../src/zkProgrammable/ZkProgrammable";
-import { ProvableMethodExecutionContext } from "../../src/zkProgrammable/ProvableMethodExecutionContext";
+  ProvableMethodExecutionContext,
+} from "../../src";
 
 const appChainMock: AreProofsEnabled = {
   areProofsEnabled: false,
@@ -39,7 +37,7 @@ class TestProgrammable extends ZkProgrammable<
   TestPublicInput,
   TestPublicOutput
 > {
-  public appChain: AreProofsEnabled = appChainMock;
+  public areProofsEnabled: AreProofsEnabled = appChainMock;
 
   @provableMethod()
   public async foo(publicInput: TestPublicInput, bar: Balance) {
@@ -86,6 +84,7 @@ class TestProgrammable extends ZkProgrammable<
 
     return [
       {
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -97,7 +96,7 @@ class TestProgrammable extends ZkProgrammable<
 }
 
 class OtherTestProgrammable extends ZkProgrammable<undefined, void> {
-  public appChain: AreProofsEnabled = appChainMock;
+  public areProofsEnabled: AreProofsEnabled = appChainMock;
 
   public constructor(public testProgrammable: TestProgrammable) {
     super();
@@ -129,6 +128,7 @@ class OtherTestProgrammable extends ZkProgrammable<undefined, void> {
 
     return [
       {
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -183,7 +183,7 @@ describe("zkProgrammable", () => {
     (areProofsEnabled, { verificationKey, shouldVerifyMockProofs }) => {
       beforeAll(async () => {
         testProgrammable = new TestProgrammable();
-        testProgrammable.appChain.setProofsEnabled(areProofsEnabled);
+        testProgrammable.areProofsEnabled.setProofsEnabled(areProofsEnabled);
         zkProgramFactorySpy = jest.spyOn(testProgrammable, "zkProgramFactory");
         artifact = await testProgrammable.zkProgram[0].compile();
       }, 500_000);

@@ -4,7 +4,7 @@ import {
   DependencyContainer,
   Frequency,
   InjectionToken,
-  instancePerContainerCachingFactory,
+  instanceCachingFactory,
   isClassProvider,
   isFactoryProvider,
   isTokenProvider,
@@ -28,6 +28,7 @@ import {
 } from "./ConfigurableModule";
 import { ChildContainerProvider } from "./ChildContainerProvider";
 import { ChildContainerCreatable } from "./ChildContainerCreatable";
+import { getInjectAliases } from "./injectAlias";
 
 const errors = {
   configNotSetInContainer: (moduleName: string) =>
@@ -228,6 +229,16 @@ export class ModuleContainer<
     }
   }
 
+  protected registerAliases(originalToken: string, clas: TypedClass<any>) {
+    const aliases = getInjectAliases(clas);
+
+    aliases.forEach((alias) =>
+      this.container.register(alias, {
+        useToken: originalToken,
+      })
+    );
+  }
+
   /**
    * Register modules into the current container, and registers
    * a respective resolution hook in order to decorate the module
@@ -250,6 +261,8 @@ export class ModuleContainer<
           { lifecycle: Lifecycle.ContainerScoped }
         );
         this.onAfterModuleResolution(moduleName);
+
+        this.registerAliases(moduleName, useClass);
       }
     });
   }
@@ -404,15 +417,17 @@ export class ModuleContainer<
           // this enables us to have a singletoned factory
           // that returns the same instance for each resolve
           this.container.register(key, {
-            useFactory: instancePerContainerCachingFactory(
-              declaration.useFactory
-            ),
+            useFactory: instanceCachingFactory(declaration.useFactory),
           });
         } else if (isClassProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,
           });
-          // eslint-disable-next-line sonarjs/no-duplicated-branches
+          this.registerAliases(
+            key,
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            declaration.useClass as TypedClass<unknown>
+          );
         } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,

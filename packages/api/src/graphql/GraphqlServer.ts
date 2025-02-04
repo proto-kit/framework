@@ -145,7 +145,18 @@ export class GraphqlServer extends SequencerModule<GraphqlServerOptions> {
     });
   }
 
-  public close() {
-    this.server?.close();
+  public async close() {
+    if (this.server !== undefined) {
+      const { server } = this;
+
+      await new Promise<void>((res) => {
+        server.close((error) => {
+          if (error !== undefined) {
+            log.error(error);
+          }
+          res();
+        });
+      });
+    }
   }
 }

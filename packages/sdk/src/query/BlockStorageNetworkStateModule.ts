@@ -51,7 +51,7 @@ export class BlockStorageNetworkStateModule
    * with afterBundle() hooks executed
    */
   public async getStagedNetworkState(): Promise<NetworkState | undefined> {
-    const result = await this.unprovenQueue.getLatestBlock();
+    const result = await this.unprovenStorage.getLatestBlock();
     return result?.result.afterNetworkState;
   }
 

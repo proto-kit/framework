@@ -10,7 +10,8 @@ import {
   ModulesRecord,
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { DependencyFactory } from "../../src";
+import { DependencyFactory, expectDefined } from "../../src";
+import { injectAlias } from "../../src/config/injectAlias";
 
 // module container will accept modules that extend this type
 class BaseTestModule<Config> extends ConfigurableModule<Config> {}
@@ -24,6 +25,7 @@ interface TestModuleConfig {
 }
 
 @injectable()
+@injectAlias(["child-alias", "multi-alias"])
 class ChildModule extends BaseTestModule<NoConfig> {
   public constructor(@inject("TestModule") public readonly testModule: any) {
     super();
@@ -34,6 +36,7 @@ class ChildModule extends BaseTestModule<NoConfig> {
   }
 }
 
+@injectAlias(["base-alias", "multi-alias"])
 class TestModule
   extends BaseTestModule<TestModuleConfig>
   implements DependencyFactory
@@ -66,7 +69,11 @@ class WrongTestModule {}
 
 class TestModuleContainer<
   Modules extends TestModulesRecord,
-> extends ModuleContainer<Modules> {}
+> extends ModuleContainer<Modules> {
+  public get dependencyContainer() {
+    return this.container;
+  }
+}
 
 describe("moduleContainer", () => {
   let container: TestModuleContainer<{
@@ -168,5 +175,41 @@ describe("moduleContainer", () => {
     expect(config.testConfigProperty).toBe(3);
     expect(config.testConfigProperty2).toBe(2);
     expect(config.testConfigProperty3).toBe(undefined);
+  });
+
+  it("should resolve dependencies correctly via alias", () => {
+    container.configure({
+      TestModule: {
+        testConfigProperty,
+      },
+
+      OtherTestModule: {
+        otherTestConfigProperty: testConfigProperty,
+      },
+    });
+
+    container.create(() => tsyringeContainer.createChildContainer());
+
+    // Unfortunately we still need this so that the dependencies are registered
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const m1 = container.resolve("base-alias" as any);
+    const m2 = container.resolve("TestModule");
+
+    expectDefined(m1);
+    // Check if its the same reference
+    expect(m1).toBe(m2);
+
+    const dm1 = container.resolve("child-alias" as any) as ChildModule;
+    const dm2 = container.resolve("DependencyModule1");
+
+    expect(dm1.x()).toBe("dependency factory works");
+    expect(dm1.testModule).toBeDefined();
+    expect(dm1).toBe(dm2);
+
+    const multi =
+      container.dependencyContainer.resolveAll<BaseTestModule<unknown>>(
+        "multi-alias"
+      );
+    expect(multi).toHaveLength(2);
   });
 });

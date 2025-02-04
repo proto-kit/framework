@@ -9,29 +9,27 @@ import {
   Protocol,
   StateTransitionProof,
 } from "@proto-kit/protocol";
-import { log, MAX_FIELD, MOCK_PROOF } from "@proto-kit/common";
+import { log, MAX_FIELD } from "@proto-kit/common";
 
 import { TaskQueue } from "../../worker/queue/TaskQueue";
 import { Flow, FlowCreator } from "../../worker/flow/Flow";
 
 import type { BlockTrace } from "./BatchProducerModule";
-import {
-  StateTransitionReductionTask,
-  StateTransitionTask,
-} from "./tasks/StateTransitionTask";
+import { StateTransitionTask } from "./tasks/StateTransitionTask";
 import { RuntimeProvingTask } from "./tasks/RuntimeProvingTask";
-import {
-  BlockProverParameters,
-  BlockProvingTask,
-  BlockProvingTaskParameters,
-  BlockReductionTask,
-} from "./tasks/BlockProvingTask";
 import { ReductionTaskFlow } from "./flow/ReductionTaskFlow";
 import {
   NewBlockProverParameters,
   NewBlockProvingParameters,
   NewBlockTask,
 } from "./tasks/NewBlockTask";
+import { StateTransitionReductionTask } from "./tasks/StateTransitionReductionTask";
+import {
+  BlockProverParameters,
+  TransactionProvingTask,
+  TransactionProvingTaskParameters,
+} from "./tasks/TransactionProvingTask";
+import { BlockReductionTask } from "./tasks/BlockReductionTask";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -50,7 +48,7 @@ interface BlockProductionFlowState {
 }
 
 /**
- * We could rename this into BlockCreationStategy and enable the injection of
+ * We could rename this into BlockCreationStrategy and enable the injection of
  * different creation strategies.
  */
 @injectable()
@@ -62,7 +60,7 @@ export class BlockTaskFlowService {
     private readonly stateTransitionTask: StateTransitionTask,
     private readonly stateTransitionReductionTask: StateTransitionReductionTask,
     private readonly runtimeProvingTask: RuntimeProvingTask,
-    private readonly transactionProvingTask: BlockProvingTask,
+    private readonly transactionProvingTask: TransactionProvingTask,
     private readonly blockProvingTask: NewBlockTask,
     private readonly blockReductionTask: BlockReductionTask,
     @inject("Protocol")
@@ -72,7 +70,7 @@ export class BlockTaskFlowService {
   public async pushPairing(
     flow: Flow<BlockProductionFlowState>,
     transactionReductionTask: ReductionTaskFlow<
-      BlockProvingTaskParameters,
+      TransactionProvingTaskParameters,
       BlockProof
     >,
     blockIndex: number,
@@ -274,6 +272,8 @@ export class BlockTaskFlowService {
                 }
               );
 
+              // TODO Dummy ST Proof for transactions that don't emit STs
+
               const stReductionFlow = this.createSTMergeFlow(
                 `tx-stproof-${batchId}-${blockNumber}-${transactionIndex}`,
                 trace.stateTransitionProver.length
@@ -319,12 +319,12 @@ export class BlockTaskFlowService {
 
           // Provide a dummy prove is this block is empty
           const proof =
-            new this.protocol.blockProver.zkProgrammable.zkProgram[0].Proof({
+            await this.protocol.blockProver.zkProgrammable.zkProgram[0].Proof.dummy(
               publicInput,
               publicOutput,
-              proof: MOCK_PROOF,
-              maxProofsVerified: 2,
-            });
+              2
+            );
+
           flow.state.blockPairings[blockNumber].blockProof = proof;
           await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
         }
@@ -335,14 +335,12 @@ export class BlockTaskFlowService {
           const [{ publicInput }] = blockTrace.stateTransitionProver;
 
           flow.state.blockPairings[blockNumber].stProof =
-            new this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof(
-              {
-                publicInput,
-                proof: MOCK_PROOF,
-                publicOutput: publicInput,
-                maxProofsVerified: 2,
-              }
+            await this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof.dummy(
+              publicInput,
+              publicInput,
+              2
             );
+
           await this.pushBlockPairing(flow, blockMergingFlow, blockNumber);
         } else {
           const blockSTFlow = this.createSTMergeFlow(

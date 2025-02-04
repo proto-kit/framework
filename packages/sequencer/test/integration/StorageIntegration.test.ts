@@ -19,6 +19,7 @@ import {
   StateRecord,
   StorageDependencyFactory,
   BlockStorage,
+  VanillaTaskWorkerModules,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -104,11 +105,11 @@ describe.each([["InMemory", InMemoryDatabase]])(
           Mempool: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
-          LocalTaskWorkerModule: {},
+          LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           BaseLayer: {},
           TaskQueue: {},
           FeeStrategy: {},
-          ProtocolStartupModule: {},
+          SequencerStartupModule: {},
         },
         Protocol: {
           AccountState: {},
@@ -119,7 +120,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         },
       });
 
-      await appChain.start();
+      await appChain.start(false);
 
       runtime = appChain.runtime;
       sequencer = appChain.sequencer;
@@ -141,7 +142,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const generatedBlock = await sequencer
         .resolve("BlockTrigger")
-        .produceBlock(true);
+        .produceBlock();
 
       expectDefined(generatedBlock);
 

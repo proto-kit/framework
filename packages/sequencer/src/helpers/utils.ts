@@ -57,7 +57,7 @@ abstract class ProofTaskSerializerBase<PublicInputType, PublicOutputType> {
     return new c({
       publicInput,
       publicOutput,
-      proof: "mock-proof",
+      proof: MOCK_PROOF,
       maxProofsVerified: jsonProof.maxProofsVerified,
     });
   }
@@ -119,7 +119,7 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
   public async fromJSONProof(
     jsonProof: JsonProof
   ): Promise<Proof<PublicInputType, PublicOutputType>> {
-    if (jsonProof.proof === "mock-proof") {
+    if (jsonProof.proof === MOCK_PROOF) {
       return this.getDummy(this.proofClass, jsonProof);
     }
 
@@ -149,7 +149,7 @@ export class DynamicProofTaskSerializer<PublicInputType, PublicOutputType>
   public async fromJSONProof(
     jsonProof: JsonProof
   ): Promise<DynamicProof<PublicInputType, PublicOutputType>> {
-    if (jsonProof.proof === "mock-proof") {
+    if (jsonProof.proof === MOCK_PROOF) {
       return this.getDummy(this.proofClass, jsonProof);
     }
 

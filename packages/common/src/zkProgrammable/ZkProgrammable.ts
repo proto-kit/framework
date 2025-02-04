@@ -2,12 +2,15 @@ import { ZkProgram, FlexibleProvablePure, Proof, Field, Provable } from "o1js";
 import { Memoize } from "typescript-memoize";
 
 import { log } from "../log";
+import { dummyVerificationKey } from "../dummyVerificationKey";
+import { reduceSequential } from "../utils";
+import type { CompileRegistry } from "../compiling/CompileRegistry";
 
 import { MOCK_PROOF } from "./provableMethod";
 
 const errors = {
-  appChainNotSet: (name: string) =>
-    new Error(`Appchain was not injected for: ${name}`),
+  areProofsEnabledNotSet: (name: string) =>
+    new Error(`AreProofsEnabled was not injected for: ${name}`),
 };
 
 export interface CompileArtifact {
@@ -31,6 +34,7 @@ export interface Compile {
 }
 
 export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
+  name: string;
   compile: Compile;
   verify: Verify<PublicInput, PublicOutput>;
   Proof: ReturnType<
@@ -75,10 +79,7 @@ export function verifyToMockable<PublicInput, PublicOutput>(
   };
 }
 
-export const MOCK_VERIFICATION_KEY = {
-  data: "mock-verification-key",
-  hash: Field(0),
-};
+export const MOCK_VERIFICATION_KEY = dummyVerificationKey();
 
 export function compileToMockable(
   compile: Compile,
@@ -99,27 +100,46 @@ export abstract class ZkProgrammable<
   PublicInput = undefined,
   PublicOutput = void,
 > {
-  public abstract get appChain(): AreProofsEnabled | undefined;
+  public abstract get areProofsEnabled(): AreProofsEnabled | undefined;
 
   public abstract zkProgramFactory(): PlainZkProgram<
     PublicInput,
     PublicOutput
   >[];
 
+  private zkProgramSingleton?: PlainZkProgram<PublicInput, PublicOutput>[];
+
   @Memoize()
   public get zkProgram(): PlainZkProgram<PublicInput, PublicOutput>[] {
-    const zkProgram = this.zkProgramFactory();
+    if (this.zkProgramSingleton === undefined) {
+      this.zkProgramSingleton = this.zkProgramFactory();
+    }
 
-    return zkProgram.map((bucket) => {
-      if (!this.appChain) {
-        throw errors.appChainNotSet(this.constructor.name);
+    return this.zkProgramSingleton.map((bucket) => {
+      if (!this.areProofsEnabled) {
+        throw errors.areProofsEnabledNotSet(this.constructor.name);
       }
       return {
         ...bucket,
-        verify: verifyToMockable(bucket.verify, this.appChain),
-        compile: compileToMockable(bucket.compile, this.appChain),
+        verify: verifyToMockable(bucket.verify, this.areProofsEnabled),
+        compile: compileToMockable(bucket.compile, this.areProofsEnabled),
       };
     });
+  }
+
+  public async compile(registry: CompileRegistry) {
+    return await reduceSequential(
+      this.zkProgram,
+      async (acc, program) => {
+        const result = await registry.compile(program);
+        return {
+          ...acc,
+          [program.name]: result,
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      {} as Record<string, CompileArtifact>
+    );
   }
 }
 
