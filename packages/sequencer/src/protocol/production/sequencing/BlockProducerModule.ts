@@ -26,10 +26,10 @@ import {
 import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 import { Database } from "../../../storage/Database";
 import { Tracer } from "../../../logging/Tracer";
+import { trace } from "../../../logging/trace";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
-import { trace } from "../../../logging/trace";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
@@ -109,7 +109,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     }
   }
 
-  @trace("block.metadata", ([block]) => ({ height: block.height.toString() }))
+  @trace("block.result", ([block]) => ({ height: block.height.toString() }))
   public async generateMetadata(block: Block): Promise<BlockResult> {
     const traceMetadata = {
       height: block.height.toString(),
@@ -123,13 +123,18 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         this.unprovenStateService
       );
 
-    await this.database.executeInTransaction(async () => {
-      await blockHashTreeStore.mergeIntoParent();
-      await treeStore.mergeIntoParent();
-      await stateService.mergeIntoParent();
+    await this.tracer.trace(
+      "block.result.commit",
+      async () =>
+        await this.database.executeInTransaction(async () => {
+          await blockHashTreeStore.mergeIntoParent();
+          await treeStore.mergeIntoParent();
+          await stateService.mergeIntoParent();
 
-      await this.blockQueue.pushResult(result);
-    });
+          await this.blockQueue.pushResult(result);
+        }),
+      traceMetadata
+    );
 
     return result;
   }

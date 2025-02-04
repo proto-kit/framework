@@ -17,8 +17,9 @@
 //
 // await startEnvironment(env);
 
-import { startServer } from "./scripts/graphql/server";
 import { sleep } from "@proto-kit/common";
+
+import { startServer } from "./scripts/graphql/server";
 
 await startServer();
 await sleep(1000);

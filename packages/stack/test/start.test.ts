@@ -1,5 +1,6 @@
-import { startServer } from "../src";
 import { sleep } from "@proto-kit/common";
+
+import { startServer } from "../src";
 
 describe("Start", () => {
   it("a", async () => {

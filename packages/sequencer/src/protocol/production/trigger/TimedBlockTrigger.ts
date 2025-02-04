@@ -10,7 +10,7 @@ import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
-import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { BlockEvents, BlockTriggerBase } from "./BlockTrigger";
 
 export interface TimedBlockTriggerConfig {
   /**

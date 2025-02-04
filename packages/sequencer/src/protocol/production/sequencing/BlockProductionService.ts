@@ -25,13 +25,14 @@ import { CachedStateService } from "../../../state/state/CachedStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import { Tracer } from "../../../logging/Tracer";
+import { trace } from "../../../logging/trace";
 
 import {
   BlockTrackers,
   executeWithExecutionContext,
   TransactionExecutionService,
 } from "./TransactionExecutionService";
-import { Tracer } from "../../../logging/Tracer";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -42,7 +43,7 @@ export class BlockProductionService {
     @inject("Protocol")
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
     @inject("Tracer")
-    private readonly tracer: Tracer,
+    public readonly tracer: Tracer,
     private readonly transactionExecutionService: TransactionExecutionService,
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider
@@ -51,6 +52,7 @@ export class BlockProductionService {
       protocol.dependencyContainer.resolveAll("ProvableBlockHook");
   }
 
+  @trace("block.hook.before")
   public async executeBeforeBlockHook(
     args: BeforeBlockHookArguments,
     inputNetworkState: NetworkState,

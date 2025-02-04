@@ -28,7 +28,6 @@ import {
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
-  ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,

@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import snakeCase from "lodash/snakeCase";
 
 import { Tracer } from "./Tracer";
@@ -6,7 +7,7 @@ type Attributes = Record<string, string | number | boolean>;
 
 export function trace<P extends any[], R>(
   name?: string,
-  metadata?: ((p: P /*, r: R*/) => Attributes) | Attributes
+  metadata?: ((p: P) => Attributes) | Attributes
 ) {
   return (
     target: { tracer: Tracer },
