@@ -13,6 +13,7 @@ import {
   Sequencer,
   SequencerModule,
   StorageDependencyFactory,
+  VanillaTaskWorkerModules,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -109,9 +110,10 @@ describe.each([["InMemory", InMemoryDatabase]])(
           FeeStrategy: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
-          LocalTaskWorkerModule: {},
+          LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           BaseLayer: {},
           TaskQueue: {},
+          SequencerStartupModule: {},
           ProtocolStartupModule: {},
           SequencerStartupModule: {},
         },

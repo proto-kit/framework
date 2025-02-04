@@ -19,6 +19,7 @@ import {
   StateRecord,
   StorageDependencyFactory,
   BlockStorage,
+  VanillaTaskWorkerModules,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -104,7 +105,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           Mempool: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
-          LocalTaskWorkerModule: {},
+          LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           BaseLayer: {},
           TaskQueue: {},
           FeeStrategy: {},
@@ -119,7 +120,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         },
       });
 
-      await appChain.start();
+      await appChain.start(false);
 
       runtime = appChain.runtime;
       sequencer = appChain.sequencer;

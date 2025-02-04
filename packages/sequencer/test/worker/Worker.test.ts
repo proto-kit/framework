@@ -3,9 +3,8 @@ import "reflect-metadata";
 import { beforeAll } from "@jest/globals";
 // import { BullQueue } from "@proto-kit/deployment";
 
-import { Closeable, TaskQueue } from "../../src/worker/queue/TaskQueue";
+import { TaskQueue, Closeable, LocalTaskQueue } from "../../src";
 // TODO Properly move out
-import { LocalTaskQueue } from "../../src/worker/queue/LocalTaskQueue";
 
 // // The implementation of the task, known by both master and worker
 // class SumTask implements MapReduceTask<number, number> {
