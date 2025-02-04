@@ -111,12 +111,6 @@ export class BlockTriggerBase<
     return settlement;
   }
 
-  protected async rollupOutgoingMessages() {
-    if (this.settlementModule) {
-      // await this.settlementModule.sendRollupTransactions();
-    }
-  }
-
   public async start(): Promise<void> {
     noop();
   }

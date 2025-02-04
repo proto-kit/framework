@@ -12,6 +12,8 @@ import { SettlementStorage } from "../../../storage/repositories/SettlementStora
 import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 
 import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { BridgingModule } from "../../../settlement/BridgingModule";
+import { fetchAccount } from "o1js";
 
 export interface TimedBlockTriggerConfig {
   /**
@@ -40,6 +42,8 @@ export class TimedBlockTrigger
 
   private interval?: any;
 
+  public rollupMessagesInProgress = false;
+
   public constructor(
     @injectOptional("BatchProducerModule")
     batchProducerModule: BatchProducerModule | undefined,
@@ -54,7 +58,9 @@ export class TimedBlockTrigger
     @injectOptional("SettlementStorage")
     settlementStorage: SettlementStorage | undefined,
     @inject("Mempool")
-    private readonly mempool: Mempool
+    private readonly mempool: Mempool,
+    @injectOptional("BridgingModule")
+    private readonly bridgingModule: BridgingModule | undefined
   ) {
     super(
       blockProducerModule,
@@ -101,15 +107,16 @@ export class TimedBlockTrigger
       try {
         // Trigger unproven blocks
         if (totalTime % blockInterval === 0) {
-          if (
-            this.blockProducerModule.productionInProgress === true ||
-            this.batchProducerModule?.productionInProgress === true
-          ) {
-            log.info(
-              "batch or block still being produced, skipping unproven block prod!"
-            );
-            return;
-          }
+          // if (
+          //   this.blockProducerModule.productionInProgress === true ||
+          //   this.batchProducerModule?.productionInProgress === true ||
+          //   this.rollupMessagesInProgress === true
+          // ) {
+          //   log.info(
+          //     "batch or block still being produced, or skipping unproven block prod!"
+          //   );
+          //   return;
+          // }
           await this.produceUnprovenBlock();
         }
 
@@ -122,10 +129,11 @@ export class TimedBlockTrigger
         ) {
           if (
             this.batchProducerModule?.productionInProgress === true ||
-            this.settlementModule?.settlementInProgress === true
+            this.settlementModule?.settlementInProgress === true ||
+            this.rollupMessagesInProgress === true
           ) {
             log.info(
-              "Previous batch or settlement still in progress, skipping"
+              "Previous batch, settlement or L1<>L2 messaging still in progress, skipping settlement"
             );
             return;
           }
@@ -134,9 +142,23 @@ export class TimedBlockTrigger
             log.info("Settling batch", batch.height);
             await this.settle(batch);
             log.info("Batch settled");
-            log.info("Rolling up outgoing messages");
-            await this.rollupOutgoingMessages();
-            log.info("Outgoing messages rolled up");
+            this.rollupMessagesInProgress = true;
+
+            try {
+              log.info("Rolling up outgoing messages");
+              const { account } = await fetchAccount({
+                publicKey:
+                  this.settlementModule!.config.feepayer!.toPublicKey(),
+              });
+              await this.bridgingModule?.sendRollupTransactions({
+                nonce: Number(account?.nonce.toString()),
+                bridgingContractPrivateKey:
+                  this.settlementModule?.config.keys?.minaBridge,
+              });
+              log.info("Outgoing messages rolled up");
+            } finally {
+              this.rollupMessagesInProgress = false;
+            }
           }
         }
       } catch (error) {

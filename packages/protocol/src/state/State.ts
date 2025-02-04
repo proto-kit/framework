@@ -116,11 +116,15 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
   private async witnessFromState() {
     // get the value from storage, or return a dummy value instead
     // also check if the value exists in the storage or not
-    const { value, isSome } = await Provable.witnessAsync(
-      this.stateType,
-      async () => await this.getState()
-    );
+    if (Provable.inCheckedComputation()) {
+      const { value, isSome } = await Provable.witnessAsync(
+        this.stateType,
+        async () => await this.getState()
+      );
+      return Option.from(isSome, value, this.valueType);
+    }
 
+    const { value, isSome } = await this.getState();
     return Option.from(isSome, value, this.valueType);
   }
 

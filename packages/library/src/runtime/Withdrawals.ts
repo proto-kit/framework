@@ -4,7 +4,7 @@ import {
   RuntimeModule,
   state,
 } from "@proto-kit/module";
-import { StateMap, Withdrawal } from "@proto-kit/protocol";
+import { assert, StateMap, Withdrawal } from "@proto-kit/protocol";
 import { Field, PublicKey, Struct } from "o1js";
 import { inject } from "tsyringe";
 
@@ -60,11 +60,11 @@ export class Withdrawals extends RuntimeModule {
     const balance = await this.balances.getBalance(tokenId, address);
 
     const accountCreationFee = UInt64.Unsafe.fromField(Field(1n).mul(1e9));
-    amount.assertGreaterThanOrEqual(
-      accountCreationFee,
+    assert(
+      amount.greaterThanOrEqual(accountCreationFee),
       "Minimum withdrawal amount not met"
     );
-    balance.assertGreaterThanOrEqual(amount, "Not enough balance");
+    assert(balance.greaterThanOrEqual(amount), "Not enough balance");
 
     // Deduct balance from user
     await this.balances.setBalance(tokenId, address, balance.sub(amount));

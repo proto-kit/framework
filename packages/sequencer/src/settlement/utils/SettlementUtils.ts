@@ -2,6 +2,7 @@ import {
   fetchAccount,
   Field,
   PrivateKey,
+  Provable,
   PublicKey,
   Transaction,
   UInt32,

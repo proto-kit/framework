@@ -20,6 +20,7 @@ import {
   TokenContractV2,
   fetchLastBlock,
   Transaction,
+  Provable,
 } from "o1js";
 import { inject } from "tsyringe";
 import {
@@ -234,6 +235,7 @@ export class SettlementModule
           fromL1BlockHeight: Number(lastSettlementL1BlockHeight.toString()),
         }
       );
+
       await this.messageStorage.pushMessages(
         actions.from,
         actions.to,

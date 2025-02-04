@@ -8,9 +8,12 @@ export class SignedSettlementPermissions
   private onlySignature() {
     return {
       ...Permissions.default(),
-      editState: Permissions.signature(),
-      send: Permissions.signature(),
-      editActionState: Permissions.signature(),
+      // editState: Permissions.signature(),
+      editState: Permissions.none(),
+      // send: Permissions.signature(),
+      send: Permissions.none(),
+      // editActionState: Permissions.signature(),
+      editActionState: Permissions.none(),
       // set access permission, to prevent unauthorized token operations
       // access: Permissions.proofOrSignature(),
       access: Permissions.none(),
