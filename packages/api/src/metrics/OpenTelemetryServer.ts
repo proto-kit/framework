@@ -24,7 +24,7 @@ export type OpenTelemetryServerConfig = {
     prometheus?: ConstructorParameters<typeof PrometheusExporter>[0];
     nodeScrapeInterval?: number;
   };
-  tracing: {
+  tracing?: {
     enabled?: boolean;
     otlp?: ConstructorParameters<typeof OTLPTraceExporter>[0];
   };

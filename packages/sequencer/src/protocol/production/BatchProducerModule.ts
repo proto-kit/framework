@@ -22,6 +22,7 @@ import { Tracer } from "../../logging/Tracer";
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
 import { BatchFlow } from "./flow/BatchFlow";
+import { trace } from "../../logging/trace";
 
 export type StateRecord = Record<string, Field[] | undefined>;
 
@@ -54,7 +55,7 @@ export class BatchProducerModule extends SequencerModule {
     @inject("Database")
     private readonly database: Database,
     @inject("Tracer")
-    private readonly tracer: Tracer,
+    public readonly tracer: Tracer,
     private readonly batchFlow: BatchFlow,
     private readonly blockProofSerializer: BlockProofSerializer,
     private readonly batchTraceService: BatchTracingService
@@ -138,6 +139,7 @@ export class BatchProducerModule extends SequencerModule {
     noop();
   }
 
+  @trace("batch")
   private async produceBatch(
     blocks: BlockWithResult[],
     height: number

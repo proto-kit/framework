@@ -195,7 +195,14 @@ export async function startServer() {
         MerkleWitnessResolver: {},
       },
 
-      OpenTelemetryServer: {},
+      OpenTelemetryServer: {
+        tracing: {
+          enabled: true,
+          otlp: {
+            url: "http://localhost:4318",
+          },
+        },
+      },
 
       Database: {
         // redis: {

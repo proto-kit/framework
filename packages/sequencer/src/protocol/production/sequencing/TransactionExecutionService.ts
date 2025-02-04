@@ -42,6 +42,8 @@ import {
   TransactionExecutionResult,
 } from "../../../storage/model/Block";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import { trace } from "../../../logging/trace";
+import { Tracer } from "../../../logging/Tracer";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -185,7 +187,9 @@ export class TransactionExecutionService {
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
     // Coming in from the appchain scope (accessible by protocol & runtime)
     @inject("StateServiceProvider")
-    private readonly stateServiceProvider: StateServiceProvider
+    private readonly stateServiceProvider: StateServiceProvider,
+    @inject("Tracer")
+    public readonly tracer: Tracer
   ) {
     this.transactionHooks = protocol.dependencyContainer.resolveAll(
       "ProvableTransactionHook"
@@ -277,6 +281,11 @@ export class TransactionExecutionService {
     );
   }
 
+  @trace("block.transaction", ([, tx, networkState]) => ({
+    height: networkState.block.height.toString(),
+    methodId: tx.methodId.toString(),
+    isMessage: tx.isMessage,
+  }))
   public async createExecutionTrace(
     asyncStateService: CachedStateService,
     tx: PendingTransaction,

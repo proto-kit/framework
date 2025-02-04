@@ -30,11 +30,13 @@ import { CachedStateService } from "../../state/state/CachedStateService";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { distinctByPredicate } from "../../helpers/utils";
 import { Tracer } from "../../logging/Tracer";
+import { trace } from "../../logging/trace";
 
 type MempoolTransactionPaths = {
   transaction: PendingTransaction;
   paths: Field[];
 };
+
 @sequencerModule()
 export class PrivateMempool extends SequencerModule implements Mempool {
   public readonly events = new EventEmitter<MempoolEvents>();
@@ -51,7 +53,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     private readonly sequencer: Sequencer<SequencerModulesRecord>,
     @inject("UnprovenStateService")
     private readonly stateService: AsyncStateService,
-    @inject("Tracer") private readonly tracer: Tracer
+    @inject("Tracer") public readonly tracer: Tracer
   ) {
     super();
     this.accountStateHook =
@@ -102,30 +104,25 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     return result?.result.afterNetworkState;
   }
 
+  @trace("mempool.get_txs")
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
-    return await this.tracer.trace("mempool.get_txs", async () => {
-      const txs = await this.transactionStorage.getPendingUserTransactions();
+    const txs = await this.transactionStorage.getPendingUserTransactions();
 
-      const baseCachedStateService = new CachedStateService(this.stateService);
+    const baseCachedStateService = new CachedStateService(this.stateService);
 
-      const networkState =
-        (await this.getStagedNetworkState()) ?? NetworkState.empty();
+    const networkState =
+      (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-      const sortedTxs = await this.tracer.trace(
-        "mempool.validate_txs",
-        async () =>
-          await this.checkTxValid(
-            txs,
-            baseCachedStateService,
-            this.protocol.stateServiceProvider,
-            networkState,
-            limit
-          )
-      );
+    const sortedTxs = await this.checkTxValid(
+      txs,
+      baseCachedStateService,
+      this.protocol.stateServiceProvider,
+      networkState,
+      limit
+    );
 
-      this.protocol.stateServiceProvider.popCurrentStateService();
-      return sortedTxs;
-    });
+    this.protocol.stateServiceProvider.popCurrentStateService();
+    return sortedTxs;
   }
 
   // We iterate through the transactions. For each tx we run the account state hook.
@@ -135,6 +132,7 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   // because a failed tx may succeed now if the failure was to do with a nonce issue, say.
   // TODO Refactor
   // eslint-disable-next-line sonarjs/cognitive-complexity
+  @trace("mempool.validate_txs")
   private async checkTxValid(
     transactions: PendingTransaction[],
     baseService: CachedStateService,

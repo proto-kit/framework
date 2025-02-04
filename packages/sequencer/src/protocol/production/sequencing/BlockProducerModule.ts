@@ -29,6 +29,7 @@ import { Tracer } from "../../../logging/Tracer";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
+import { trace } from "../../../logging/trace";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
@@ -108,6 +109,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     }
   }
 
+  @trace("block.metadata", ([block]) => ({ height: block.height.toString() }))
   public async generateMetadata(block: Block): Promise<BlockResult> {
     const traceMetadata = {
       height: block.height.toString(),
@@ -135,10 +137,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   public async tryProduceBlock(): Promise<Block | undefined> {
     if (!this.productionInProgress) {
       try {
-        const block = await this.tracer.trace(
-          "block",
-          async () => await this.produceBlock()
-        );
+        const block = await this.produceBlock();
 
         if (block === undefined) {
           if (!this.allowEmptyBlock()) {
@@ -168,6 +167,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return undefined;
   }
 
+  @trace("block.collect_inputs")
   private async collectProductionData(): Promise<{
     txs: PendingTransaction[];
     metadata: BlockWithResult;
@@ -210,13 +210,11 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     };
   }
 
+  @trace("block")
   private async produceBlock(): Promise<Block | undefined> {
     this.productionInProgress = true;
 
-    const { txs, metadata } = await this.tracer.trace(
-      "block.collect_inputs",
-      async () => await this.collectProductionData()
-    );
+    const { txs, metadata } = await this.collectProductionData();
 
     // Skip production if no transactions are available for now
     if (txs.length === 0 && !this.allowEmptyBlock()) {
