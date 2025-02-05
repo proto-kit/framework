@@ -16,7 +16,7 @@ import {
 import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
 
 class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
-  async getPendingMessages(
+  async fetchPendingMessages(
     address: PublicKey,
     params: {
       fromActionHash: string;

@@ -12,9 +12,41 @@ export class PrismaMessageStorage implements MessageStorage {
     private readonly transactionMapper: TransactionMapper
   ) {}
 
-  public async getMessages(
-    fromMessageHash: string
-  ): Promise<PendingTransaction[]> {
+  public async getMessageBatches(
+    fromMessagesHash: string,
+    toMessagesHash: string
+  ) {
+    // TODO Make efficient
+
+    const batches: {
+      fromMessagesHash: string;
+      toMessagesHash: string;
+      messages: PendingTransaction[];
+    }[] = [];
+    let currentHash = fromMessagesHash;
+
+    while (currentHash !== toMessagesHash) {
+      // eslint-disable-next-line no-await-in-loop
+      const batch = await this.getNextMessagesBatch(currentHash);
+
+      if (batch === undefined) {
+        return batches;
+      }
+
+      batches.push(batch);
+      currentHash = batch.toMessagesHash;
+    }
+    return batches;
+  }
+
+  public async getNextMessagesBatch(fromMessageHash: string): Promise<
+    | {
+        fromMessagesHash: string;
+        toMessagesHash: string;
+        messages: PendingTransaction[];
+      }
+    | undefined
+  > {
     const { prismaClient } = this.connection;
 
     const batch = await prismaClient.incomingMessageBatch.findFirst({
@@ -31,14 +63,22 @@ export class PrismaMessageStorage implements MessageStorage {
     });
 
     if (batch === null) {
-      return [];
+      return undefined;
     }
 
     const dbTransactions = batch.messages.map((message) => {
       return message.transaction;
     });
 
-    return dbTransactions.map((dbTx) => this.transactionMapper.mapIn(dbTx));
+    const messages = dbTransactions.map((dbTx) =>
+      this.transactionMapper.mapIn(dbTx)
+    );
+
+    return {
+      fromMessagesHash: fromMessageHash,
+      toMessagesHash: batch.toMessageHash,
+      messages,
+    };
   }
 
   public async pushMessages(

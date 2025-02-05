@@ -6,13 +6,11 @@ import {
   SettlementSmartContract,
   MandatorySettlementModulesRecord,
   MandatoryProtocolModulesRecord,
-  BlockProverPublicOutput,
   SettlementSmartContractBase,
   DynamicBlockProof,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
-  Field,
   Mina,
   PrivateKey,
   PublicKey,
@@ -35,15 +33,14 @@ import {
   SequencerModule,
   sequencerModule,
 } from "../sequencer/builder/SequencerModule";
-import { MessageStorage } from "../storage/repositories/MessageStorage";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { Batch, SettleableBatch } from "../storage/model/Batch";
 import { BlockProofSerializer } from "../protocol/production/tasks/serializers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 import { SettlementStartupModule } from "../sequencer/SettlementStartupModule";
+import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 
-import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
 import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermissions";
 import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
@@ -88,10 +85,8 @@ export class SettlementModule
     @inject("BaseLayer") baseLayer: MinaBaseLayer,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    @inject("IncomingMessageAdapter")
-    private readonly incomingMessagesAdapter: IncomingMessageAdapter,
-    @inject("MessageStorage")
-    private readonly messageStorage: MessageStorage,
+    @inject("SettlementStorage")
+    private readonly settlementStorage: SettlementStorage,
     private readonly blockProofSerializer: BlockProofSerializer,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender,
@@ -169,37 +164,19 @@ export class SettlementModule
     } = {}
   ): Promise<Settlement> {
     await this.fetchContractAccounts();
-    const { settlement, dispatch } = this.getContracts();
+    const { settlement: settlementContract, dispatch } = this.getContracts();
     const { feepayer } = this.config;
 
     log.debug("Preparing settlement");
 
     const lastSettlementL1BlockHeight =
-      settlement.lastSettlementL1BlockHeight.get().value;
+      settlementContract.lastSettlementL1BlockHeight.get().value;
     const signature = Signature.create(feepayer, [
       BATCH_SIGNATURE_PREFIX,
       lastSettlementL1BlockHeight,
     ]);
 
-    const fromSequenceStateHash = BlockProverPublicOutput.fromFields(
-      batch.proof.publicOutput.map((x) => Field(x))
-    ).incomingMessagesHash;
     const latestSequenceStateHash = dispatch.account.actionState.get();
-
-    // Fetch actions and store them into the messageStorage
-    const actions = await this.incomingMessagesAdapter.getPendingMessages(
-      dispatch.address,
-      {
-        fromActionHash: fromSequenceStateHash.toString(),
-        toActionHash: latestSequenceStateHash.toString(),
-        fromL1BlockHeight: Number(lastSettlementL1BlockHeight.toString()),
-      }
-    );
-    await this.messageStorage.pushMessages(
-      actions.from,
-      actions.to,
-      actions.messages
-    );
 
     const blockProof = await this.blockProofSerializer
       .getBlockProofSerializer()
@@ -215,7 +192,7 @@ export class SettlementModule
         memo: "Protokit settle",
       },
       async () => {
-        await settlement.settle(
+        await settlementContract.settle(
           dynamicBlockProof,
           signature,
           dispatch.address,
@@ -233,12 +210,16 @@ export class SettlementModule
 
     log.info("Settlement transaction send queued");
 
-    this.events.emit("settlement-submitted", batch);
-
-    return {
+    const settlement = {
       batches: [batch.height],
       promisedMessagesHash: latestSequenceStateHash.toString(),
     };
+
+    await this.settlementStorage.pushSettlement(settlement);
+
+    this.events.emit("settlement-submitted", batch);
+
+    return settlement;
   }
 
   public async deploy(
