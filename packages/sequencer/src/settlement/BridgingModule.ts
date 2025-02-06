@@ -44,7 +44,7 @@ import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 
-import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
+import type { OutgoingMessageAdapter } from "./messages/WithdrawalQueue";
 import type { SettlementModule } from "./SettlementModule";
 import { SettlementUtils } from "./utils/SettlementUtils";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
@@ -73,7 +73,7 @@ export class BridgingModule extends SequencerModule {
     @inject("SettlementModule")
     private readonly settlementModule: SettlementModule,
     @inject("OutgoingMessageQueue")
-    private readonly outgoingMessageQueue: OutgoingMessageQueue,
+    private readonly outgoingMessageQueue: OutgoingMessageAdapter,
     @inject("AsyncMerkleStore")
     private readonly merkleTreeStore: AsyncMerkleTreeStore,
     @inject("FeeStrategy")
@@ -326,7 +326,6 @@ export class BridgingModule extends SequencerModule {
       tx: Transaction<false, true>;
     }[]
   > {
-    const length = this.outgoingMessageQueue.length();
     const { feepayer } = this.settlementModule.config;
     let { nonce } = options;
 
@@ -364,9 +363,27 @@ export class BridgingModule extends SequencerModule {
       this.getBridgingModuleConfig().withdrawalStatePath.split(".");
     const basePath = Path.fromProperty(withdrawalModule, withdrawalStateName);
 
+    // TODO Not sure if we should re-fetch the account state here
+    const outgoingMessageCursor = parseInt(
+      bridgeContract.outgoingMessageCursor.get().toString(),
+      10
+    );
+
+    const pendingWithdrawals = await this.outgoingMessageQueue.fetchWithdrawals(
+      tokenId,
+      outgoingMessageCursor
+    );
+
     // Create withdrawal batches and send them as L1 transactions
-    for (let i = 0; i < length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
-      const batch = this.outgoingMessageQueue.peek(OUTGOING_MESSAGE_BATCH_SIZE);
+    for (
+      let i = 0;
+      i < pendingWithdrawals.length;
+      i += OUTGOING_MESSAGE_BATCH_SIZE
+    ) {
+      const batch = pendingWithdrawals.slice(
+        i,
+        i + OUTGOING_MESSAGE_BATCH_SIZE
+      );
 
       const keys = batch.map((x) =>
         Path.fromKey(basePath, OutgoingMessageKey, {
@@ -426,8 +443,6 @@ export class BridgingModule extends SequencerModule {
         signedTx,
         "included"
       );
-
-      this.outgoingMessageQueue.pop(OUTGOING_MESSAGE_BATCH_SIZE);
 
       txs.push({
         tx: signedTx,
