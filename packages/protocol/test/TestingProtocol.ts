@@ -33,10 +33,6 @@ export function createAndInitTestingProtocol() {
     LastStateRoot: {},
   });
 
-  protocol.registerValue({
-    StateServiceProvider: new StateServiceProvider(),
-  });
-
   const appChain = container.createChildContainer();
 
   appChain.register("Runtime", {
@@ -52,6 +48,10 @@ export function createAndInitTestingProtocol() {
     }),
   });
   protocol.create(() => appChain.createChildContainer());
+
+  protocol.registerValue({
+    StateServiceProvider: new StateServiceProvider(),
+  });
 
   return protocol;
 }
