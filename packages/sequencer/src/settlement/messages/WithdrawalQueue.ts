@@ -79,6 +79,8 @@ export class WithdrawalQueue
     );
   }
 
+  // TODO Not really efficient right now in regards to DB trips, can be
+  //  easily built as a join query though
   private async getLatestSettledBlock(): Promise<Block | undefined> {
     const settlement = await this.settlementStorage.getLatestSettlement();
     if (settlement !== undefined) {
