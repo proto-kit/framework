@@ -50,10 +50,10 @@
     "nyc": "^17.1.0",
     "prettier": "^3.2.5",
     "ts-jest": "^29.0.5",
-    "typedoc": "^0.27.6",
-    "typedoc-plugin-frontmatter": "^1.1.2",
+    "typedoc": "^0.26.11",
+    "typedoc-plugin-frontmatter": "1.0.0",
     "typedoc-plugin-inline-sources": "^1.2.0",
-    "typedoc-plugin-markdown": "^4.4.1",
+    "typedoc-plugin-markdown": "4.2.10",
     "typescript": "5.1",
     "istanbul-merge": "^2.0.0"
   },
