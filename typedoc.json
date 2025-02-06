@@ -1,0 +1,10 @@
+{
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-plugin-inline-sources",
+    "typedoc-plugin-frontmatter",
+    "./typedoc-title-annotate.mjs"
+  ],
+  "entryPoints": ["packages/*"],
+  "entryPointStrategy": "packages"
+}

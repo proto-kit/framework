@@ -1,1 +1,12 @@
-module.exports = require("../../jest.config.cjs");
+// @ts-ignore
+const config = require("../../jest.config.cjs");
+
+module.exports = {
+  ...config,
+  collectCoverageFrom: [
+    "packages/deployment/src/**",
+    "!**/node_modules/**",
+    "!**/dist/**",
+  ],
+  coverageDirectory: "coverage/deployment",
+};
