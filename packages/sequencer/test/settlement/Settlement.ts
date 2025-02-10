@@ -255,7 +255,9 @@ export const settlementTestFn = (
     }
 
     beforeAll(async () => {
+      console.log("Setup");
       appChain = setupAppChain();
+      console.log("Start");
 
       await appChain.start(
         settlementType === "proven",
@@ -282,6 +284,7 @@ export const settlementTestFn = (
       const accountService = appChain.sequencer.dependencyContainer.resolve(
         MinaBlockchainAccounts
       );
+      console.log("GetFunded");
       const accs = await accountService.getFundedAccounts(3);
       testAccounts = accs.slice(1);
 
@@ -289,11 +292,14 @@ export const settlementTestFn = (
         `Funding ${sequencerKey.toPublicKey().toBase58()} from ${accs[0].toPublicKey().toBase58()}`
       );
 
+      console.log("FundAccount");
       await accountService.fundAccountFrom(
         accs[0],
         sequencerKey.toPublicKey(),
         20 * 1e9
       );
+
+      console.log("beforeAll finished");
     }, timeout);
 
     afterAll(() => {
