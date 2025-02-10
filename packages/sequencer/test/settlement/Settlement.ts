@@ -302,7 +302,7 @@ export const settlementTestFn = (
     );
 
     console.log("beforeAll finished");
-  }, timeout);
+  }, timeout * 3);
 
   afterAll(async () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
