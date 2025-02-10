@@ -175,9 +175,9 @@ export class MinaTransactionSender {
       const waitInstruction: "sent" | "included" = waitOnStatus;
       const hash = await new Promise<TxSendResult<"sent" | "included">>(
         (resolve, reject) => {
-          txStatus.on(waitInstruction, (result) => {
-            log.info(`Tx ${result.hash} included`);
-            resolve(result);
+          txStatus.on(waitInstruction, (txSendResult) => {
+            log.info(`Tx ${txSendResult.hash} included`);
+            resolve(txSendResult);
           });
           txStatus.on("rejected", (error) => {
             reject(error);
