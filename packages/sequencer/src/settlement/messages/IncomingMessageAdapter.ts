@@ -9,7 +9,7 @@ import { PendingTransaction } from "../../mempool/PendingTransaction";
  * (Dispatched Deposit Actions for example)
  */
 export interface IncomingMessageAdapter {
-  getPendingMessages: (
+  fetchPendingMessages: (
     address: PublicKey,
     params: {
       fromActionHash: string;

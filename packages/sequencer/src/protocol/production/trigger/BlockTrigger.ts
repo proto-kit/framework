@@ -13,7 +13,6 @@ import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { Block, BlockWithResult } from "../../../storage/model/Block";
-import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
 /**
  * A BlockTrigger is the primary method to start the production of a block and
@@ -44,8 +43,7 @@ export class BlockTriggerBase<
     protected readonly blockProducerModule: BlockProducerModule,
     protected readonly batchProducerModule: BatchProducerModule | undefined,
     protected readonly settlementModule: SettlementModule | undefined,
-    protected readonly blockQueue: BlockQueue,
-    protected readonly settlementStorage: SettlementStorage | undefined
+    protected readonly blockQueue: BlockQueue
   ) {
     super();
   }
@@ -96,14 +94,7 @@ export class BlockTriggerBase<
       );
       return undefined;
     }
-    if (this.settlementStorage === undefined) {
-      throw new Error(
-        "SettlementStorage module not configured, check provided database moduel"
-      );
-    }
-    const settlement = await this.settlementModule.settleBatch(batch);
-    await this.settlementStorage.pushSettlement(settlement);
-    return settlement;
+    return await this.settlementModule.settleBatch(batch);
   }
 
   public async start(): Promise<void> {
