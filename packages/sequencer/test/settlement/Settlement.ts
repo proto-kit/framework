@@ -3,7 +3,6 @@ import {
   mapSequential,
   TypedClass,
   RollupMerkleTree,
-  sleep,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
