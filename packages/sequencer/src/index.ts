@@ -22,6 +22,7 @@ export * from "./worker/worker/WorkerReadyModule";
 export * from "./protocol/baselayer/BaseLayer";
 export * from "./protocol/baselayer/MinaBaseLayer";
 export * from "./protocol/baselayer/NoopBaseLayer";
+export * from "./protocol/baselayer/fees/ConstantFeeStrategy";
 export * from "./protocol/production/helpers/UntypedOption";
 export * from "./protocol/production/helpers/UntypedStateTransition";
 export * from "./protocol/production/tasks/TransactionProvingTask";

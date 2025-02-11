@@ -11,9 +11,9 @@ import {
   VanillaTaskWorkerModules,
   TaskWorkerModulesWithoutSettlement,
   SequencerStartupModule,
+  ConstantFeeStrategy,
 } from "@proto-kit/sequencer";
 import { TypedClass } from "@proto-kit/common";
-import { ConstantFeeStrategy } from "@proto-kit/sequencer/src/protocol/baselayer/fees/ConstantFeeStrategy";
 
 export type InMemorySequencerModulesRecord = {
   Database: typeof InMemoryDatabase;
