@@ -1,5 +1,9 @@
+import { createReference, Reference } from "@proto-kit/common";
+
 import { State } from "../State";
 import { Path } from "../../model/Path";
+import { StateServiceProvider } from "../StateServiceProvider";
+import { PROTOKIT_PREFIXES } from "../../hashing/protokit-prefixes";
 import { TransitioningProtocolModule } from "../../protocol/TransitioningProtocolModule";
 
 const errors = {
@@ -9,52 +13,89 @@ const errors = {
       Did you forget to extend your block module with 'extends ...Hook'?`
     ),
 
-  missingProtocol: (className: string) =>
+  missingParent: (className: string, type: string, moduleType: string) =>
     new Error(
-      `Unable to provide 'procotol' for state, ${className} is missing a name. 
-      Did you forget to extend your block module with 'extends ...Hook'?`
+      `Unable to provide parent '${type}' for state, ${className} is missing a name. 
+      Did you forget to extend your module with 'extends ${moduleType}'?`
     ),
 };
+
+export interface StatefulModule {
+  name?: string;
+  parent?: {
+    stateServiceProvider: StateServiceProvider;
+  };
+}
+
+export function createStateGetter<TargetModule extends StatefulModule>(
+  target: TargetModule,
+  propertyKey: string,
+  valueReference: Reference<State<unknown> | undefined>,
+  prefix: string,
+  debugInfo: { parentName: string; baseModuleNames: string }
+) {
+  return () => {
+    const { value } = valueReference;
+    // Short-circuit this to return the state in case its already initialized
+    if (value !== undefined && value.path !== undefined) {
+      return value;
+    }
+
+    if (target.name === undefined) {
+      throw errors.missingName(target.constructor.name);
+    }
+
+    if (!target.parent) {
+      throw errors.missingParent(
+        target.constructor.name,
+        debugInfo.parentName,
+        debugInfo.baseModuleNames
+      );
+    }
+
+    const path = Path.fromProperty(target.name, propertyKey, prefix);
+    if (value) {
+      value.path = path;
+      value.stateServiceProvider = target.parent.stateServiceProvider;
+    }
+    return value;
+  };
+}
 
 /**
  * Decorates a runtime module property as state, passing down some
  * underlying values to improve developer experience.
  */
-export function protocolState() {
-  return <
-    TargetTransitioningModule extends TransitioningProtocolModule<unknown>,
-  >(
+export function state() {
+  return <TargetTransitioningModule extends StatefulModule>(
     target: TargetTransitioningModule,
     propertyKey: string
   ) => {
-    let value: State<unknown> | undefined;
+    const stateReference = createReference<State<unknown> | undefined>(
+      undefined
+    );
+
+    const isProtocol = target instanceof TransitioningProtocolModule;
+    const statePrefix = isProtocol
+      ? PROTOKIT_PREFIXES.STATE_PROTOCOL
+      : PROTOKIT_PREFIXES.STATE_RUNTIME;
+    const debugInfo = isProtocol
+      ? { parentName: "protocol", baseModuleNames: "...Hook" }
+      : { parentName: "runtime", baseModuleNames: "RuntimeModule" };
 
     Object.defineProperty(target, propertyKey, {
       enumerable: true,
 
-      get: function get() {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const self = this as TargetTransitioningModule;
-
-        if (self.name === undefined) {
-          throw errors.missingName(self.constructor.name);
-        }
-
-        if (!self.protocol) {
-          throw errors.missingProtocol(self.constructor.name);
-        }
-
-        // TODO Add Prefix?
-        const path = Path.fromProperty(self.name, propertyKey);
-        if (value) {
-          value.path = path;
-          value.stateServiceProvider = self.protocol.stateServiceProvider;
-        }
-        return value;
-      },
+      get: createStateGetter(
+        target,
+        propertyKey,
+        stateReference,
+        statePrefix,
+        debugInfo
+      ),
 
       set: (newValue: State<unknown>) => {
-        value = newValue;
+        stateReference.value = newValue;
       },
     });
   };

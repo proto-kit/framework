@@ -371,7 +371,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
     containedModule.name = moduleName;
-    containedModule.runtime = this;
+    containedModule.parent = this;
 
     super.decorateModule(moduleName, containedModule);
   }

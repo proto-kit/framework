@@ -1,4 +1,5 @@
 import { Field } from "o1js";
+import { NoConfig } from "@proto-kit/common";
 
 import { NetworkState } from "../model/network/NetworkState";
 import { MethodPublicOutput } from "../model/MethodPublicOutput";
@@ -53,7 +54,7 @@ export function toAfterTransactionHookArgument(
 
 // Purpose is to build transition from -> to network state
 export abstract class ProvableBlockHook<
-  Config,
+  Config = NoConfig,
 > extends TransitioningProtocolModule<Config> {
   public abstract beforeBlock(
     networkState: NetworkState,
