@@ -4,6 +4,7 @@ import {
   StorageDependencyMinimumDependencies,
 } from "@proto-kit/sequencer";
 import { DependencyFactory } from "@proto-kit/common";
+import isArray from "lodash/isArray";
 
 import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
 
@@ -66,9 +67,15 @@ export class RedisConnectionModule
     });
     try {
       await this.redisClient.connect();
-    } catch (error: unknown) {
+    } catch (error: any) {
       if (error instanceof Error) {
         throw new Error(`Connection to Redis failed: ${error.message}`);
+      }
+      if (error.errors !== undefined && isArray(error.errors)) {
+        const errors = (error.errors as Error[])
+          .map((err) => err.message)
+          .reduce((a, b) => `${a}\n${b}`);
+        throw new Error(`Connection to Redis failed: \n${errors}`);
       }
       throw error;
     }
