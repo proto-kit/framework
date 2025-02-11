@@ -11,13 +11,8 @@ import {
   PublicKey,
   ZkProgram,
 } from "o1js";
-import {
-  runtimeMethod,
-  RuntimeModule,
-  runtimeModule,
-  state,
-} from "@proto-kit/module";
-import { assert, State, StateMap } from "@proto-kit/protocol";
+import { runtimeMethod, RuntimeModule, runtimeModule } from "@proto-kit/module";
+import { assert, State, StateMap, state } from "@proto-kit/protocol";
 import { expectDefined } from "@proto-kit/common";
 
 import { TestingAppChain } from "../src/index";
