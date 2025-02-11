@@ -362,6 +362,10 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
       Bool(true),
       "Supplied proof is not a closed BlockProof"
     );
+    blockProof.publicOutput.pendingSTBatchesHash.assertEquals(
+      Field(0),
+      "Supplied proof is has outstanding STs to be proven"
+    );
 
     // Execute onSettlementHooks for additional checks
     const stateRecord: SettlementStateRecord = {

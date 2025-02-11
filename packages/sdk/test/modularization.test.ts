@@ -2,7 +2,10 @@ import "reflect-metadata";
 import { MethodIdResolver, Runtime, RuntimeModule } from "@proto-kit/module";
 import { ChildContainerProvider } from "@proto-kit/common";
 import { Protocol, ProtocolModule } from "@proto-kit/protocol";
-import { VanillaProtocolModules } from "@proto-kit/library";
+import {
+  VanillaProtocolModules,
+  VanillaRuntimeModules,
+} from "@proto-kit/library";
 import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
 
@@ -13,7 +16,6 @@ class TestRuntimeModule extends RuntimeModule<object> {
 
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
-
     // Just to test if it doesn't throw
     childContainerProvider();
 
@@ -47,9 +49,9 @@ describe("modularization", () => {
   it("should initialize all modules correctly", async () => {
     const appChain = AppChain.from({
       Runtime: Runtime.from({
-        modules: {
+        modules: VanillaRuntimeModules.with({
           TestRuntimeModule,
-        },
+        }),
       }),
       Protocol: Protocol.from({
         modules: VanillaProtocolModules.with({
@@ -66,6 +68,7 @@ describe("modularization", () => {
 
     appChain.configurePartial({
       Runtime: {
+        Balances: {},
         TestRuntimeModule: {},
       },
       Protocol: {

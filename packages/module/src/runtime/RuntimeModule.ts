@@ -75,7 +75,7 @@ export class RuntimeModule<
 
   public name?: string;
 
-  public runtime?: RuntimeEnvironment;
+  public parent?: RuntimeEnvironment;
 
   public events?: RuntimeEvents<any> = undefined;
 

@@ -331,8 +331,12 @@ describe("block production", () => {
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
-    expect(block!.transactions[0].stateTransitions).toHaveLength(1);
-    expect(block!.transactions[0].protocolTransitions).toHaveLength(2);
+    expect(
+      block!.transactions[0].stateTransitions[0].stateTransitions
+    ).toHaveLength(2);
+    expect(
+      block!.transactions[0].stateTransitions[1].stateTransitions
+    ).toHaveLength(1);
 
     await test.produceBlock();
 

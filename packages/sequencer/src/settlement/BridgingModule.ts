@@ -12,6 +12,7 @@ import {
   Protocol,
   SettlementContractModule,
   TokenMapping,
+  PROTOKIT_PREFIXES,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -361,7 +362,11 @@ export class BridgingModule extends SequencerModule {
 
     const [withdrawalModule, withdrawalStateName] =
       this.getBridgingModuleConfig().withdrawalStatePath.split(".");
-    const basePath = Path.fromProperty(withdrawalModule, withdrawalStateName);
+    const basePath = Path.fromProperty(
+      withdrawalModule,
+      withdrawalStateName,
+      PROTOKIT_PREFIXES.STATE_RUNTIME
+    );
 
     // TODO Not sure if we should re-fetch the account state here
     const outgoingMessageCursor = parseInt(
