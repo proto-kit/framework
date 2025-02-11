@@ -2,14 +2,9 @@ import "reflect-metadata";
 import { randomUUID } from "crypto";
 
 import { inject } from "tsyringe";
-import {
-  runtimeMethod,
-  RuntimeModule,
-  runtimeModule,
-  state,
-} from "@proto-kit/module";
+import { runtimeMethod, RuntimeModule, runtimeModule } from "@proto-kit/module";
 import { PrivateKey, Provable, PublicKey } from "o1js";
-import { assert, State } from "@proto-kit/protocol";
+import { assert, State, state } from "@proto-kit/protocol";
 import { Balances, BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
 import { log, expectDefined, sleep } from "@proto-kit/common";
 

@@ -13,7 +13,7 @@ import {
 } from "o1js";
 import {
   ACTIONS_EMPTY_HASH,
-  MINA_EVENT_PREFIXES,
+  MINA_PREFIXES,
   ReturnType,
 } from "@proto-kit/protocol";
 import { match } from "ts-pattern";
@@ -301,10 +301,10 @@ export class MinaTransactionSimulator {
         // populate the full array with the current value
         const previousActionState =
           account.zkapp.actionState.at(0) ?? ACTIONS_EMPTY_HASH;
-        const newActionsHash = hashWithPrefix(
-          MINA_EVENT_PREFIXES.sequenceEvents,
-          [previousActionState, actions.hash]
-        );
+        const newActionsHash = hashWithPrefix(MINA_PREFIXES.sequenceEvents, [
+          previousActionState,
+          actions.hash,
+        ]);
         account.zkapp.actionState = range(0, 5).map(() => newActionsHash);
       }
     }

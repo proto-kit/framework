@@ -18,6 +18,7 @@ import {
   MandatoryProtocolModulesRecord,
   Path,
   Protocol,
+  PROTOKIT_PREFIXES,
 } from "@proto-kit/protocol";
 import { AppChain } from "@proto-kit/sdk";
 import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
@@ -595,7 +596,11 @@ describe("block production", () => {
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
-    const supplyPath = Path.fromProperty("Balance", "totalSupply");
+    const supplyPath = Path.fromProperty(
+      "Balance",
+      "totalSupply",
+      PROTOKIT_PREFIXES.STATE_RUNTIME
+    );
     const newState = await test.getState(supplyPath, "block");
 
     expect(newState).toBeDefined();
