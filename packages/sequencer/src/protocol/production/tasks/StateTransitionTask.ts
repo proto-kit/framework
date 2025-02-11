@@ -1,10 +1,10 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
+  AppliedStateTransitionBatchState,
   MandatoryProtocolModulesRecord,
+  MerkleWitnessBatch,
   Protocol,
   ProtocolModulesRecord,
-  ProvableStateTransition,
-  ProvableStateTransitionType,
   StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProvableBatch,
@@ -26,10 +26,8 @@ import { StateTransitionParametersSerializer } from "./serializers/StateTransiti
 
 export interface StateTransitionProofParameters {
   publicInput: StateTransitionProverPublicInput;
-  stateTransitions: {
-    transition: ProvableStateTransition;
-    type: ProvableStateTransitionType;
-  }[];
+  batch: StateTransitionProvableBatch;
+  batchState: AppliedStateTransitionBatchState;
   merkleWitnesses: RollupMerkleTreeWitness[];
 }
 
@@ -68,12 +66,11 @@ export class StateTransitionTask
   public async compute(
     input: StateTransitionProofParameters
   ): Promise<StateTransitionProof> {
-    const stBatch = input.stateTransitions.slice();
-    const merkleWitnesses = input.merkleWitnesses.slice();
-
-    const output = await this.stateTransitionProver.runBatch(
+    const output = await this.stateTransitionProver.proveBatch(
       input.publicInput,
-      StateTransitionProvableBatch.fromMappings(stBatch, merkleWitnesses)
+      input.batch,
+      new MerkleWitnessBatch({ witnesses: input.merkleWitnesses.slice() }),
+      input.batchState
     );
     log.debug("STTask public io:", {
       input: StateTransitionProverPublicInput.toJSON(input.publicInput),

@@ -28,6 +28,7 @@ import {
   AreProofsEnabled,
   DependencyFactory,
 } from "@proto-kit/common";
+// eslint-disable-next-line import/no-extraneous-dependencies
 import truncate from "lodash/truncate";
 
 import {

@@ -9,8 +9,9 @@ import {
   StateTransitionProvable,
   BlockHashMerkleTreeWitness,
   MandatoryProtocolModulesRecord,
+  WitnessedRootWitness,
 } from "@proto-kit/protocol";
-import { Proof } from "o1js";
+import { Bool, Proof } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
@@ -18,12 +19,12 @@ import {
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
-import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
-import { TaskStateRecord } from "../TransactionTraceService";
+import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
+import { executeWithPrefilledStateService } from "./TransactionProvingTask";
 
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
@@ -31,7 +32,10 @@ export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
   networkState: NetworkState;
   blockWitness: BlockHashMerkleTreeWitness;
-  startingState: TaskStateRecord;
+  deferSTProof: Bool;
+  afterBlockRootWitness: WitnessedRootWitness;
+  startingStateBeforeHook: TaskStateRecord;
+  startingStateAfterHook: TaskStateRecord;
 }
 
 export type NewBlockProvingParameters = PairingDerivedInput<
@@ -84,43 +88,37 @@ export class NewBlockTask
     );
   }
 
-  private async executeWithPrefilledStateService<Return>(
-    startingState: TaskStateRecord,
-    callback: () => Promise<Return>
-  ): Promise<Return> {
-    const prefilledStateService = new PreFilledStateService({
-      ...startingState,
-    });
-    this.protocol.stateServiceProvider.setCurrentStateService(
-      prefilledStateService
+  public async compute(input: NewBlockProvingParameters): Promise<BlockProof> {
+    const { input1, input2, params: parameters } = input;
+    const {
+      networkState,
+      blockWitness,
+      startingStateBeforeHook,
+      startingStateAfterHook,
+      publicInput,
+      deferSTProof,
+      afterBlockRootWitness,
+    } = parameters;
+
+    await this.blockProver.proveBlock(
+      publicInput,
+      networkState,
+      blockWitness,
+      input1,
+      deferSTProof,
+      afterBlockRootWitness,
+      input2
     );
 
-    const returnValue = await callback();
+    await executeWithPrefilledStateService(
+      this.protocol.stateServiceProvider,
+      [startingStateBeforeHook, startingStateAfterHook],
+      async () => {}
+    );
 
-    this.protocol.stateServiceProvider.popCurrentStateService();
-
-    return returnValue;
-  }
-
-  public async compute(input: NewBlockProvingParameters): Promise<BlockProof> {
-    // TODO I left the task arg for the ST Proof in, until it will be reworked
-    //  with the new ST Prover
-    const { input2, params: parameters } = input;
-    const { networkState, blockWitness, startingState, publicInput } =
-      parameters;
-
-    await this.executeWithPrefilledStateService(startingState, async () => {
-      await this.blockProver.proveBlock(
-        publicInput,
-        networkState,
-        blockWitness,
-        // input1,
-        input2
-      );
-    });
-
-    return await this.executeWithPrefilledStateService(
-      startingState,
+    return await executeWithPrefilledStateService(
+      this.protocol.stateServiceProvider,
+      [startingStateBeforeHook, startingStateAfterHook],
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );

@@ -1,20 +1,24 @@
 import { Field, Proof, Struct } from "o1js";
 import { WithZkProgrammable, CompilableModule } from "@proto-kit/common";
 
-import { StateTransitionProvableBatch } from "../../model/StateTransitionProvableBatch";
+import {
+  MerkleWitnessBatch,
+  StateTransitionProvableBatch,
+} from "../../model/StateTransitionProvableBatch";
+import { AppliedStateTransitionBatchState } from "../../model/AppliedStateTransitionBatch";
 
 export class StateTransitionProverPublicInput extends Struct({
-  stateTransitionsHash: Field,
-  protocolTransitionsHash: Field,
-  stateRoot: Field,
-  protocolStateRoot: Field,
+  batchesHash: Field,
+  currentBatchStateHash: Field,
+  root: Field,
+  witnessedRootsHash: Field,
 }) {}
 
 export class StateTransitionProverPublicOutput extends Struct({
-  stateTransitionsHash: Field,
-  protocolTransitionsHash: Field,
-  stateRoot: Field,
-  protocolStateRoot: Field,
+  batchesHash: Field,
+  currentBatchStateHash: Field,
+  root: Field,
+  witnessedRootsHash: Field,
 }) {}
 
 export type StateTransitionProof = Proof<
@@ -28,9 +32,11 @@ export interface StateTransitionProvable
       StateTransitionProverPublicOutput
     >,
     CompilableModule {
-  runBatch: (
+  proveBatch: (
     publicInput: StateTransitionProverPublicInput,
-    batch: StateTransitionProvableBatch
+    batch: StateTransitionProvableBatch,
+    witnesses: MerkleWitnessBatch,
+    currentAppliedBatch: AppliedStateTransitionBatchState
   ) => Promise<StateTransitionProverPublicOutput>;
 
   merge: (

@@ -70,6 +70,7 @@ describe("blockProver", () => {
 
   const protocol = createAndInitTestingProtocol();
 
+  /*
   function generateTestProofs(
     fromStateRoot: Field,
     toStateRoot: Field,
@@ -120,6 +121,7 @@ describe("blockProver", () => {
 
     return [appProof, stProof];
   }
+  */
 
   it("dummy", () => {
     expect(1).toBe(1);

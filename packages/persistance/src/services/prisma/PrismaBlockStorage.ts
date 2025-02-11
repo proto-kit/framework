@@ -1,5 +1,4 @@
 import {
-  distinctByString,
   HistoricalBlockStorage,
   TransactionExecutionResult,
   Block,
@@ -7,10 +6,9 @@ import {
   BlockQueue,
   BlockStorage,
   BlockWithResult,
-  BlockWithPreviousResult,
   BlockWithMaybeResult,
 } from "@proto-kit/sequencer";
-import { filterNonNull, log } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import {
   Prisma,
   TransactionExecutionResult as DBTransactionExecutionResult,
@@ -108,6 +106,8 @@ export class PrismaBlockStorage
     await prismaClient.block.create({
       data: {
         ...encodedBlock,
+        beforeBlockStateTransitions:
+          encodedBlock.beforeBlockStateTransitions as Prisma.InputJsonArray,
         beforeNetworkState:
           encodedBlock.beforeNetworkState as Prisma.InputJsonObject,
         duringNetworkState:
@@ -122,8 +122,6 @@ export class PrismaBlockStorage
                 txHash: tx.txHash,
 
                 stateTransitions: tx.stateTransitions as Prisma.InputJsonArray,
-                protocolTransitions:
-                  tx.protocolTransitions as Prisma.InputJsonArray,
                 events: tx.events as Prisma.InputJsonArray,
               };
             }),
@@ -143,8 +141,8 @@ export class PrismaBlockStorage
       data: {
         afterNetworkState: encoded.afterNetworkState as Prisma.InputJsonValue,
         blockHashWitness: encoded.blockHashWitness as Prisma.InputJsonValue,
-        blockStateTransitions:
-          encoded.blockStateTransitions as Prisma.InputJsonValue,
+        afterBlockStateTransitions:
+          encoded.afterBlockStateTransitions as Prisma.InputJsonValue,
 
         stateRoot: encoded.stateRoot,
         blockHash: encoded.blockHash,
@@ -198,7 +196,7 @@ export class PrismaBlockStorage
     return result;
   }
 
-  public async getNewBlocks(): Promise<BlockWithPreviousResult[]> {
+  public async getNewBlocks(): Promise<BlockWithResult[]> {
     const blocks = await this.connection.prismaClient.block.findMany({
       where: {
         batch: null,
@@ -209,21 +207,10 @@ export class PrismaBlockStorage
             tx: true,
           },
         },
+        result: true,
       },
       orderBy: {
         height: Prisma.SortOrder.asc,
-      },
-    });
-
-    const blockHashes = blocks
-      .flatMap((block) => [block.parentHash, block.hash])
-      .filter(filterNonNull)
-      .filter(distinctByString);
-    const result = await this.connection.prismaClient.blockResult.findMany({
-      where: {
-        blockHash: {
-          in: blockHashes,
-        },
       },
     });
 
@@ -236,28 +223,17 @@ export class PrismaBlockStorage
       const decodedBlock = this.blockMapper.mapIn(block);
       decodedBlock.transactions = transactions;
 
-      const correspondingResult = result.find(
-        (candidate) => candidate.blockHash === block.hash
-      );
+      const { result } = block;
 
-      if (correspondingResult === undefined) {
+      if (result === null) {
         throw new Error(
           `No BlockResult has been set for block ${block.hash} yet`
         );
       }
 
-      const parentResult = result.find(
-        (candidate) => candidate.blockHash === block.parentHash
-      );
       return {
-        block: {
-          block: decodedBlock,
-          result: this.blockResultMapper.mapIn(correspondingResult),
-        },
-        lastBlockResult:
-          parentResult !== undefined
-            ? this.blockResultMapper.mapIn(parentResult)
-            : undefined,
+        block: decodedBlock,
+        result: this.blockResultMapper.mapIn(result),
       };
     });
   }

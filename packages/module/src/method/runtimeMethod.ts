@@ -1,7 +1,6 @@
 import { Bool, Field, FlexibleProvablePure, Poseidon } from "o1js";
 import { container } from "tsyringe";
 import {
-  StateTransition,
   ProvableStateTransition,
   MethodPublicOutput,
   RuntimeMethodExecutionContext,
@@ -40,7 +39,7 @@ const errors = {
 };
 
 export function toStateTransitionsHash(
-  stateTransitions: StateTransition<any>[]
+  stateTransitions: { toProvable: () => ProvableStateTransition }[]
 ) {
   const stateTransitionsHashList = new StateTransitionReductionList(
     ProvableStateTransition

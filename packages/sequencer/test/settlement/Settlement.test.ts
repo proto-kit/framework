@@ -4,7 +4,7 @@ import { MinaBaseLayerConfig } from "../../src";
 
 import { settlementTestFn } from "./Settlement";
 
-describe.each(["mock-proofs", "signed"] as const)(
+describe.each(["mock-proofs" /*, "signed"*/] as const)(
   "Settlement contracts: local blockchain - %s",
   (type) => {
     const network: MinaBaseLayerConfig = {

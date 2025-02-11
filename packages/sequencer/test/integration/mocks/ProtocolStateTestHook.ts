@@ -1,10 +1,12 @@
 import {
-  BlockProverExecutionData,
+  AfterTransactionHookArguments,
+  BeforeTransactionHookArguments,
   protocolState,
   ProvableTransactionHook,
   StateMap,
 } from "@proto-kit/protocol";
 import { Field } from "o1js";
+import { noop } from "@proto-kit/common";
 
 /**
  * A hook used to test protocolstate inside the blockproduction tests
@@ -12,8 +14,8 @@ import { Field } from "o1js";
 export class ProtocolStateTestHook extends ProvableTransactionHook {
   @protocolState() methodIdInvocations = StateMap.from(Field, Field);
 
-  public async onTransaction(
-    executionData: BlockProverExecutionData
+  public async beforeTransaction(
+    executionData: BeforeTransactionHookArguments
   ): Promise<void> {
     const { methodId } = executionData.transaction;
     const invocations = await this.methodIdInvocations.get(methodId);
@@ -21,5 +23,9 @@ export class ProtocolStateTestHook extends ProvableTransactionHook {
       methodId,
       invocations.orElse(Field(0)).add(1)
     );
+  }
+
+  public async afterTransaction(execution: AfterTransactionHookArguments) {
+    noop();
   }
 }

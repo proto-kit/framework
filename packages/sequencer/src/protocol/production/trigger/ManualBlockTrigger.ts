@@ -8,7 +8,6 @@ import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
@@ -27,8 +26,6 @@ export class ManualBlockTrigger
     settlementModule: SettlementModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue,
-    @inject("BatchStorage")
-    batchStorage: BatchStorage,
     @injectOptional("SettlementStorage")
     settlementStorage: SettlementStorage | undefined
   ) {
@@ -38,7 +35,6 @@ export class ManualBlockTrigger
       settlementModule,
 
       blockQueue,
-      batchStorage,
       settlementStorage
     );
   }

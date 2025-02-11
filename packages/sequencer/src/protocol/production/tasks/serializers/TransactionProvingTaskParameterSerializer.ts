@@ -1,97 +1,220 @@
 import {
-  BlockProverExecutionData,
   BlockProverPublicInput,
+  BlockProverTransactionArguments,
   MethodPublicOutput,
+  NetworkState,
   ReturnType,
-  StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput,
+  RuntimeTransaction,
 } from "@proto-kit/protocol";
+import { JsonProof, Signature } from "o1js";
 
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../../helpers/utils";
-import type { TransactionProvingTaskParameters } from "../TransactionProvingTask";
-import type { JSONEncodableState } from "../RuntimeProvingTask";
 
-import { DecodedStateSerializer } from "./DecodedStateSerializer";
+import {
+  TransactionProvingTaskParameters,
+  TransactionProvingType,
+} from "./types/TransactionProvingTypes";
+import {
+  DecodedStateSerializer,
+  JSONEncodableState,
+} from "./DecodedStateSerializer";
 import { RuntimeVerificationKeyAttestationSerializer } from "./RuntimeVerificationKeyAttestationSerializer";
+
+export type BlockProverTransactionArgumentsJSON = {
+  transaction: ReturnType<typeof RuntimeTransaction.toJSON>;
+  signature: ReturnType<typeof Signature.toJSON>;
+  verificationKeyAttestation: ReturnType<
+    typeof RuntimeVerificationKeyAttestationSerializer.toJSON
+  >;
+};
+
+export type SingleExecutionDataJSON = {
+  transaction: BlockProverTransactionArgumentsJSON;
+  networkState: ReturnType<typeof NetworkState.toJSON>;
+};
+
+export type MultiExecutionDataJSON = {
+  transaction1: BlockProverTransactionArgumentsJSON;
+  transaction2: BlockProverTransactionArgumentsJSON;
+  networkState: ReturnType<typeof NetworkState.toJSON>;
+};
+
+export type TransactionProverTaskParametersJSON<
+  ExecutionData extends SingleExecutionDataJSON | MultiExecutionDataJSON,
+> = {
+  startingState: JSONEncodableState[];
+  publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
+  executionData: ExecutionData;
+};
+
+export type TransactionProvingTaskParametersJSON =
+  | {
+      type: TransactionProvingType.SINGLE;
+      proof1: JsonProof;
+      parameters: TransactionProverTaskParametersJSON<SingleExecutionDataJSON>;
+    }
+  | {
+      type: TransactionProvingType.MULTI;
+      proof1: JsonProof;
+      proof2: JsonProof;
+      parameters: TransactionProverTaskParametersJSON<MultiExecutionDataJSON>;
+    };
 
 export class TransactionProvingTaskParameterSerializer
   implements TaskSerializer<TransactionProvingTaskParameters>
 {
   public constructor(
-    private readonly stProofSerializer: ProofTaskSerializer<
-      StateTransitionProverPublicInput,
-      StateTransitionProverPublicOutput
-    >,
     private readonly runtimeProofSerializer: ProofTaskSerializer<
-      undefined,
+      void,
       MethodPublicOutput
     >
   ) {}
 
-  toJSON(input: TransactionProvingTaskParameters): string {
-    const jsonReadyObject = {
-      input1: this.stProofSerializer.toJSON(input.input1),
-      input2: this.runtimeProofSerializer.toJSON(input.input2),
-
-      params: {
-        publicInput: BlockProverPublicInput.toJSON(input.params.publicInput),
-
-        executionData: BlockProverExecutionData.toJSON(
-          input.params.executionData
+  private blockProverArgumentsToJson(
+    args: BlockProverTransactionArguments
+  ): BlockProverTransactionArgumentsJSON {
+    return {
+      transaction: RuntimeTransaction.toJSON(args.transaction),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      signature: Signature.toJSON<typeof Signature>(args.signature),
+      verificationKeyAttestation:
+        RuntimeVerificationKeyAttestationSerializer.toJSON(
+          args.verificationKeyAttestation
         ),
-
-        startingState: DecodedStateSerializer.toJSON(
-          input.params.startingState
-        ),
-
-        verificationKeyAttestation:
-          RuntimeVerificationKeyAttestationSerializer.toJSON(
-            input.params.verificationKeyAttestation
-          ),
-      },
     };
-    return JSON.stringify(jsonReadyObject);
   }
 
-  async fromJSON(json: string): Promise<TransactionProvingTaskParameters> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const jsonReadyObject: {
-      input1: string;
-      input2: string;
-      params: {
-        publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
-        executionData: ReturnType<typeof BlockProverExecutionData.toJSON>;
-        startingState: JSONEncodableState;
-        verificationKeyAttestation: ReturnType<
-          typeof RuntimeVerificationKeyAttestationSerializer.toJSON
-        >;
+  private blockProverArgumentsFromJson(
+    args: BlockProverTransactionArgumentsJSON
+  ): BlockProverTransactionArguments {
+    return {
+      transaction: new RuntimeTransaction(
+        RuntimeTransaction.fromJSON(args.transaction)
+      ),
+      signature: Signature.fromJSON<typeof Signature>(args.signature),
+      verificationKeyAttestation:
+        RuntimeVerificationKeyAttestationSerializer.fromJSON(
+          args.verificationKeyAttestation
+        ),
+    };
+  }
+
+  public toJSON(input: TransactionProvingTaskParameters): string {
+    let taskParamsJson: TransactionProvingTaskParametersJSON;
+
+    const { type, parameters } = input;
+
+    const partialParameters = {
+      publicInput: BlockProverPublicInput.toJSON(parameters.publicInput),
+
+      startingState: parameters.startingState.map((stateRecord) =>
+        DecodedStateSerializer.toJSON(stateRecord)
+      ),
+    };
+
+    // The reason we can't just use the structs toJSON is that the VerificationKey
+    // toJSON and fromJSON isn't consistent -> i.e. the serialization doesn't work
+    // the same both ways. We fix that in our custom serializer
+    if (type === TransactionProvingType.SINGLE) {
+      const { executionData } = parameters;
+      const executionDataJson: SingleExecutionDataJSON = {
+        networkState: NetworkState.toJSON(executionData.networkState),
+        transaction: this.blockProverArgumentsToJson(executionData.transaction),
       };
-    } = JSON.parse(json);
+
+      taskParamsJson = {
+        type,
+        proof1: this.runtimeProofSerializer.toJSONProof(input.proof1),
+        parameters: {
+          ...partialParameters,
+          executionData: executionDataJson,
+        },
+      };
+    } else {
+      const { executionData } = parameters;
+      const executionDataJson: MultiExecutionDataJSON = {
+        networkState: NetworkState.toJSON(executionData.networkState),
+        transaction1: this.blockProverArgumentsToJson(
+          executionData.transaction1
+        ),
+        transaction2: this.blockProverArgumentsToJson(
+          executionData.transaction2
+        ),
+      };
+
+      taskParamsJson = {
+        type,
+        proof1: this.runtimeProofSerializer.toJSONProof(input.proof1),
+        proof2: this.runtimeProofSerializer.toJSONProof(input.proof2),
+        parameters: {
+          ...partialParameters,
+          executionData: executionDataJson,
+        },
+      };
+    }
+
+    return JSON.stringify(taskParamsJson);
+  }
+
+  public async fromJSON(
+    json: string
+  ): Promise<TransactionProvingTaskParameters> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const jsonReadyObject: TransactionProvingTaskParametersJSON =
+      JSON.parse(json);
+
+    const { type, parameters } = jsonReadyObject;
+
+    const partialParameters = {
+      publicInput: BlockProverPublicInput.fromJSON(parameters.publicInput),
+
+      startingState: parameters.startingState.map((stateRecord) =>
+        DecodedStateSerializer.fromJSON(stateRecord)
+      ),
+    };
+
+    if (type === TransactionProvingType.SINGLE) {
+      return {
+        type,
+        proof1: await this.runtimeProofSerializer.fromJSONProof(
+          jsonReadyObject.proof1
+        ),
+        parameters: {
+          ...partialParameters,
+          executionData: {
+            transaction: this.blockProverArgumentsFromJson(
+              parameters.executionData.transaction
+            ),
+            networkState: new NetworkState(
+              NetworkState.fromJSON(parameters.executionData.networkState)
+            ),
+          },
+        },
+      };
+    }
 
     return {
-      input1: await this.stProofSerializer.fromJSON(jsonReadyObject.input1),
-      input2: await this.runtimeProofSerializer.fromJSON(
-        jsonReadyObject.input2
+      type,
+      proof1: await this.runtimeProofSerializer.fromJSONProof(
+        jsonReadyObject.proof1
       ),
-
-      params: {
-        publicInput: BlockProverPublicInput.fromJSON(
-          jsonReadyObject.params.publicInput
-        ),
-
-        executionData: BlockProverExecutionData.fromJSON(
-          jsonReadyObject.params.executionData
-        ),
-
-        startingState: DecodedStateSerializer.fromJSON(
-          jsonReadyObject.params.startingState
-        ),
-
-        verificationKeyAttestation:
-          RuntimeVerificationKeyAttestationSerializer.fromJSON(
-            jsonReadyObject.params.verificationKeyAttestation
+      proof2: await this.runtimeProofSerializer.fromJSONProof(
+        jsonReadyObject.proof2
+      ),
+      parameters: {
+        ...partialParameters,
+        executionData: {
+          transaction1: this.blockProverArgumentsFromJson(
+            parameters.executionData.transaction1
           ),
+          transaction2: this.blockProverArgumentsFromJson(
+            parameters.executionData.transaction2
+          ),
+          networkState: new NetworkState(
+            NetworkState.fromJSON(parameters.executionData.networkState)
+          ),
+        },
       },
     };
   }
