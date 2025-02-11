@@ -1,5 +1,5 @@
 import { noop } from "@proto-kit/common";
-import { PublicKey } from "o1js";
+import { Field, PublicKey } from "o1js";
 import { Withdrawal } from "@proto-kit/protocol";
 
 import {
@@ -10,7 +10,7 @@ import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessag
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import {
   OutgoingMessage,
-  OutgoingMessageQueue,
+  OutgoingMessageAdapter,
 } from "../../settlement/messages/WithdrawalQueue";
 
 import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
@@ -35,16 +35,11 @@ class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   }
 }
 
-class NoopOutgoingMessageQueue implements OutgoingMessageQueue {
-  length(): number {
-    return 0;
-  }
-
-  peek(num: number): OutgoingMessage<Withdrawal>[] {
-    return [];
-  }
-
-  pop(num: number): OutgoingMessage<Withdrawal>[] {
+class NoopOutgoingMessageAdapter implements OutgoingMessageAdapter {
+  async fetchWithdrawals(
+    tokenId: Field,
+    offset: number
+  ): Promise<OutgoingMessage<Withdrawal>[]> {
     return [];
   }
 }
@@ -65,7 +60,7 @@ export class NoopBaseLayer extends SequencerModule implements BaseLayer {
         useClass: NoopIncomingMessageAdapter,
       },
       OutgoingMessageQueue: {
-        useClass: NoopOutgoingMessageQueue,
+        useClass: NoopOutgoingMessageAdapter,
       },
     };
   }
