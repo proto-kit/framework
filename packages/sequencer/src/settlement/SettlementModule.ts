@@ -206,13 +206,15 @@ export class SettlementModule
 
     this.utils.signTransaction(tx, [feepayer], this.getContractKeys());
 
-    await this.transactionSender.proveAndSendTransaction(tx, "included");
+    const { hash: transactionHash } =
+      await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     log.info("Settlement transaction send queued");
 
     const settlement = {
       batches: [batch.height],
       promisedMessagesHash: latestSequenceStateHash.toString(),
+      transactionHash,
     };
 
     await this.settlementStorage.pushSettlement(settlement);
