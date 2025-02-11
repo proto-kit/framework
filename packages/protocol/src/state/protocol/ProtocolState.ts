@@ -34,29 +34,30 @@ export function createStateGetter<TargetModule extends StatefulModule>(
   prefix: string,
   debugInfo: { parentName: string; baseModuleNames: string }
 ) {
-  return () => {
+  return function getter(this: TargetModule) {
+    // const self = this;
     const { value } = valueReference;
     // Short-circuit this to return the state in case its already initialized
     if (value !== undefined && value.path !== undefined) {
       return value;
     }
 
-    if (target.name === undefined) {
-      throw errors.missingName(target.constructor.name);
+    if (this.name === undefined) {
+      throw errors.missingName(this.constructor.name);
     }
 
-    if (!target.parent) {
+    if (!this.parent) {
       throw errors.missingParent(
-        target.constructor.name,
+        this.constructor.name,
         debugInfo.parentName,
         debugInfo.baseModuleNames
       );
     }
 
-    const path = Path.fromProperty(target.name, propertyKey, prefix);
+    const path = Path.fromProperty(this.name, propertyKey, prefix);
     if (value) {
       value.path = path;
-      value.stateServiceProvider = target.parent.stateServiceProvider;
+      value.stateServiceProvider = this.parent.stateServiceProvider;
     }
     return value;
   };

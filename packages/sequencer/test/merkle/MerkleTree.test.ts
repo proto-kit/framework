@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { Field } from "o1js";
 import { RollupMerkleTree, log } from "@proto-kit/common";
 
