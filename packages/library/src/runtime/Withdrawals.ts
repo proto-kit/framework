@@ -1,10 +1,5 @@
-import {
-  RuntimeEvents,
-  runtimeModule,
-  RuntimeModule,
-  state,
-} from "@proto-kit/module";
-import { StateMap, Withdrawal } from "@proto-kit/protocol";
+import { RuntimeEvents, runtimeModule, RuntimeModule } from "@proto-kit/module";
+import { StateMap, Withdrawal, state } from "@proto-kit/protocol";
 import { Field, PublicKey, Struct } from "o1js";
 import { inject } from "tsyringe";
 

@@ -1,6 +1,5 @@
 import { inject } from "tsyringe";
 import { log } from "@proto-kit/common";
-import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 import {
   MethodIdResolver,
   MethodParameterEncoder,
@@ -23,8 +22,8 @@ import {
   BlockResult,
   BlockWithResult,
 } from "../../../storage/model/Block";
-import { MessageStorage } from "../../../storage/repositories/MessageStorage";
 import { Database } from "../../../storage/Database";
+import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
 
@@ -42,7 +41,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @inject("MessageStorage") private readonly messageStorage: MessageStorage,
+    private readonly messageService: IncomingMessagesService,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenMerkleStore")
@@ -200,10 +199,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       };
     }
 
-    const messages = await this.messageStorage.getMessages(
-      parentBlock?.block.toMessagesHash.toString() ??
-        ACTIONS_EMPTY_HASH.toString()
-    );
+    const messages = await this.messageService.getPendingMessages();
 
     log.debug(
       `Block collected, ${txs.length} txs, ${messages.length} messages`

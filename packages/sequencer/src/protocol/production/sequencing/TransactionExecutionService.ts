@@ -68,13 +68,13 @@ export type BlockTrackers = Pick<
 function getAreProofsEnabledFromModule(
   module: RuntimeModule<unknown>
 ): AreProofsEnabled {
-  if (module.runtime === undefined) {
+  if (module.parent === undefined) {
     throw new Error("Runtime on RuntimeModule not set");
   }
-  if (module.runtime.areProofsEnabled === undefined) {
+  if (module.parent.areProofsEnabled === undefined) {
     throw new Error("AppChain on Runtime not set");
   }
-  const { areProofsEnabled } = module.runtime;
+  const { areProofsEnabled } = module.parent;
   return areProofsEnabled;
 }
 
