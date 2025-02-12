@@ -1,10 +1,5 @@
-import {
-  RuntimeModule,
-  runtimeMethod,
-  runtimeModule,
-  state,
-} from "@proto-kit/module";
-import { StateMap } from "@proto-kit/protocol";
+import { RuntimeModule, runtimeMethod, runtimeModule } from "@proto-kit/module";
+import { StateMap, state } from "@proto-kit/protocol";
 import {
   CircuitString,
   Field,

@@ -3,12 +3,11 @@ import {
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
-  state,
 } from "@proto-kit/module";
 import { log, Presets } from "@proto-kit/common";
 import { PublicKey, UInt64 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
-import { Deposit, State, StateMap } from "@proto-kit/protocol";
+import { Deposit, State, StateMap, state } from "@proto-kit/protocol";
 
 @runtimeModule()
 export class ProvenBalance extends RuntimeModule<object> {

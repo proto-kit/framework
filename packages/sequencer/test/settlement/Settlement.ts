@@ -3,7 +3,6 @@ import {
   mapSequential,
   TypedClass,
   RollupMerkleTree,
-  sleep,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
@@ -59,12 +58,12 @@ import {
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
 import { testingSequencerFromModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
-import { MinaBlockchainAccounts } from "../../src/protocol/baselayer/accounts/MinaBlockchainAccounts";
 import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 import { BridgingModule } from "../../src/settlement/BridgingModule";
 import { SettlementUtils } from "../../src/settlement/utils/SettlementUtils";
 import { FungibleTokenContractModule } from "../../src/settlement/utils/FungibleTokenContractModule";
 import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/FungibleTokenAdminContractModule";
+import { MinaNetworkUtils } from "../../src/protocol/baselayer/network-utils/MinaNetworkUtils";
 
 import { Balances, BalancesKey } from "./mocks/Balances";
 import { Withdrawals } from "./mocks/Withdrawals";
@@ -277,22 +276,20 @@ export const settlementTestFn = (
     blockSerializer =
       appChain.sequencer.dependencyContainer.resolve(BlockProofSerializer);
 
-    const accountService = appChain.sequencer.dependencyContainer.resolve(
-      MinaBlockchainAccounts
-    );
-    const accs = await accountService.getFundedAccounts(3);
+    const networkUtils =
+      appChain.sequencer.dependencyContainer.resolve<MinaNetworkUtils>(
+        "NetworkUtils"
+      );
+    const accs = await networkUtils.getFundedAccounts(3);
     testAccounts = accs.slice(1);
+
+    await networkUtils.waitForNetwork();
 
     console.log(
       `Funding ${sequencerKey.toPublicKey().toBase58()} from ${accs[0].toPublicKey().toBase58()}`
     );
 
-    await sleep(100);
-    await accountService.fundAccountFrom(
-      accs[0],
-      sequencerKey.toPublicKey(),
-      20 * 1e9
-    );
+    await networkUtils.faucet(sequencerKey.toPublicKey(), 20 * 1e9);
   }, timeout * 3);
 
   afterAll(async () => {

@@ -1,8 +1,8 @@
 import { PublicKey, UInt64 } from "o1js";
-import { State, StateMap } from "@proto-kit/protocol";
+import { State, StateMap, state } from "@proto-kit/protocol";
 import { Presets } from "@proto-kit/common";
 
-import { RuntimeModule, runtimeMethod, runtimeModule, state } from "../../src";
+import { RuntimeModule, runtimeMethod, runtimeModule } from "../../src";
 
 import { Admin } from "./Admin.js";
 

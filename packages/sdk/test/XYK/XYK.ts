@@ -1,11 +1,6 @@
 import "reflect-metadata";
-import {
-  RuntimeModule,
-  runtimeMethod,
-  state,
-  runtimeModule,
-} from "@proto-kit/module";
-import { StateMap, assert } from "@proto-kit/protocol";
+import { RuntimeModule, runtimeMethod, runtimeModule } from "@proto-kit/module";
+import { StateMap, assert, state } from "@proto-kit/protocol";
 import { Field, Poseidon, PublicKey, Provable, Struct } from "o1js";
 import { inject } from "tsyringe";
 import { Balance, Balances, TokenId } from "@proto-kit/library";

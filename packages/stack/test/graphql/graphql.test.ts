@@ -20,6 +20,7 @@ import {
   GraphqlNetworkStateTransportModule,
 } from "@proto-kit/sdk";
 import { beforeAll } from "@jest/globals";
+import { container } from "tsyringe";
 
 import { startServer, TestBalances } from "../../src/scripts/graphql/server";
 
@@ -103,7 +104,7 @@ describe("graphql client test", () => {
 
     appChain = prepareClient();
 
-    await appChain.start();
+    await appChain.start(false, container.createChildContainer());
 
     trigger = server.sequencer.resolveOrFail(
       "BlockTrigger",
