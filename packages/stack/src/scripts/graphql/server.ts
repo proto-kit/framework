@@ -196,6 +196,9 @@ export async function startServer() {
             url: "http://localhost:4318",
           },
         },
+        metrics: {
+          enabled: true,
+        },
       },
 
       Database: {

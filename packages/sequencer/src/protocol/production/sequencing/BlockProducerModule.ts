@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { injectOptional, log } from "@proto-kit/common";
 import {
   MethodIdResolver,
   MethodParameterEncoder,
@@ -41,7 +41,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    private readonly messageService: IncomingMessagesService,
+    @injectOptional("IncomingMessagesService")
+    private readonly messageService: IncomingMessagesService | undefined,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenMerkleStore")
@@ -171,6 +172,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return undefined;
   }
 
+  // TODO Move to different service, to remove dependency on mempool and messagequeue
+  //  Idea: Create a service that aggregates a bunch of different sources
   @trace("block.collect_inputs")
   private async collectProductionData(): Promise<{
     txs: PendingTransaction[];
@@ -199,7 +202,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       };
     }
 
-    const messages = await this.messageService.getPendingMessages();
+    let messages: PendingTransaction[] = [];
+    if (this.messageService !== undefined) {
+      messages = await this.messageService.getPendingMessages();
+    }
 
     log.debug(
       `Block collected, ${txs.length} txs, ${messages.length} messages`

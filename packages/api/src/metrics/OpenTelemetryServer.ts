@@ -13,10 +13,11 @@ import { PrometheusExporter } from "@opentelemetry/exporter-prometheus";
 import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { inject } from "tsyringe";
-import { DependencyFactory, DependencyRecord } from "@proto-kit/common";
+import { DependencyFactory, DependencyRecord, log } from "@proto-kit/common";
 
 import { SequencerInstrumentation } from "./SequencerInstrumentation";
 import { OpenTelemetryTracer } from "./OpenTelemetryTracer";
+import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 
 export type OpenTelemetryServerConfig = {
   metrics?: {
@@ -91,5 +92,10 @@ export class OpenTelemetryServer
     });
 
     sdk.start();
+
+    // TODO Write logger to directly integrate with our logging library
+    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
+
+    log.info("OpenTelemetryServer started");
   }
 }

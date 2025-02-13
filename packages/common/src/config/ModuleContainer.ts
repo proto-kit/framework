@@ -410,6 +410,12 @@ export class ModuleContainer<
         !this.container.isRegistered(key) ||
         declaration.forceOverwrite === true
       ) {
+        if (this.container.isRegistered(key) && declaration.forceOverwrite) {
+          log.warn(
+            `You are trying to overwrite dependency ${key}, which is already registered. This is currently not supported. Try to define your dependency earlier.`
+          );
+        }
+
         // Find correct provider type and call respective register
         if (isValueProvider(declaration)) {
           this.container.register(key, declaration);
