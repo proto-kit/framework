@@ -281,6 +281,7 @@ export class TransactionExecutionService {
     // Reset proofs enabled
     appChain.setProofsEnabled(previousProofsEnabled);
 
+    const protocolHookEvents = extractEvents(protocolResult);
     const events = extractEvents(runtimeResult);
 
     return {
@@ -296,7 +297,7 @@ export class TransactionExecutionService {
         UntypedStateTransition.fromStateTransition(st)
       ),
 
-      events,
+      events: { ...events, ...protocolHookEvents },
     };
   }
 }
