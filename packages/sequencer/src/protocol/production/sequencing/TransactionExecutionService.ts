@@ -112,8 +112,12 @@ async function decodeTransaction(
 
 function extractEvents(
   runtimeResult: RuntimeContextReducedExecutionResult,
-  source: string
-): { eventName: string; data: Field[] }[] {
+  source: "afterTxHook" | "beforeTxHook" | "runtime"
+): {
+  eventName: string;
+  data: Field[];
+  source: "afterTxHook" | "beforeTxHook" | "runtime";
+}[] {
   return runtimeResult.events.reduce(
     (acc, event) => {
       if (event.condition.toBoolean()) {
@@ -128,7 +132,11 @@ function extractEvents(
       return acc;
     },
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    [] as { eventName: string; data: Field[]; source: string }[]
+    [] as {
+      eventName: string;
+      data: Field[];
+      source: "afterTxHook" | "beforeTxHook" | "runtime";
+    }[]
   );
 }
 
