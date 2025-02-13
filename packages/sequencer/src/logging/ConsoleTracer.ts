@@ -14,9 +14,9 @@ export class ConsoleTracer implements Tracer {
     const result = await f();
     const message = `Routine ${name} took ${Date.now() - timeStart}ms`;
     if (metadata !== undefined) {
-      log.info(message, metadata);
+      log.debug(message, metadata);
     } else {
-      log.info(message);
+      log.debug(message);
     }
     return result;
   }
