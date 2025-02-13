@@ -1,12 +1,13 @@
 import { NetworkState, ReturnType } from "@proto-kit/protocol";
-import { Field } from "o1js";
 
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import { PendingTransaction } from "../../../../mempool/PendingTransaction";
-import type {
+import type { RuntimeProofParameters } from "../RuntimeProvingTask";
+
+import {
+  DecodedStateSerializer,
   JSONEncodableState,
-  RuntimeProofParameters,
-} from "../RuntimeProvingTask";
+} from "./DecodedStateSerializer";
 
 export class RuntimeProofParametersSerializer
   implements TaskSerializer<RuntimeProofParameters>
@@ -15,13 +16,7 @@ export class RuntimeProofParametersSerializer
     const jsonReadyObject = {
       tx: parameters.tx.toJSON(),
       networkState: NetworkState.toJSON(parameters.networkState),
-
-      state: Object.fromEntries(
-        Object.entries(parameters.state).map(([key, value]) => [
-          key,
-          value?.map((v) => v.toString()),
-        ])
-      ),
+      state: DecodedStateSerializer.toJSON(parameters.state),
     };
     return JSON.stringify(jsonReadyObject);
   }
@@ -40,12 +35,7 @@ export class RuntimeProofParametersSerializer
         NetworkState.fromJSON(jsonReadyObject.networkState)
       ),
 
-      state: Object.fromEntries(
-        Object.entries(jsonReadyObject.state).map(([key, values]) => [
-          key,
-          values?.map((encodedField) => Field(encodedField)),
-        ])
-      ),
+      state: DecodedStateSerializer.fromJSON(jsonReadyObject.state),
     };
   }
 }

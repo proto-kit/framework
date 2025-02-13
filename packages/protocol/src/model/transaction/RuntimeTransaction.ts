@@ -73,6 +73,10 @@ export class RuntimeTransaction extends Struct({
       .assertTrue("Transaction sender is not set to dummy");
   }
 
+  public isDummy(): Bool {
+    return this.methodId.equals(0);
+  }
+
   public hashData(): Field[] {
     return [
       this.methodId,

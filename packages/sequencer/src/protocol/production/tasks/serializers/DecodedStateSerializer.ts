@@ -1,7 +1,8 @@
 import { Field } from "o1js";
 
-import { TaskStateRecord } from "../../TransactionTraceService";
-import { JSONEncodableState } from "../RuntimeProvingTask";
+import type { TaskStateRecord } from "../../tracing/BlockTracingService";
+
+export type JSONEncodableState = Record<string, string[]>;
 
 export class DecodedStateSerializer {
   public static fromJSON(json: JSONEncodableState): TaskStateRecord {

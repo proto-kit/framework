@@ -96,7 +96,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     });
   }
 
-  public async getPendingMessages(
+  public async fetchPendingMessages(
     address: PublicKey,
     params: {
       fromActionHash: string;
@@ -116,12 +116,19 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       throw new Error("L1 contract hasn't been deployed yet");
     }
 
+    const toActionHashField =
+      params.toActionHash !== undefined
+        ? Field(params.toActionHash)
+        : undefined;
+
     const actions = await network.fetchActions(address, {
       fromActionState: Field(params.fromActionHash),
-      // TODO Somehow that doesn't work on localBlockchain
-      // endActionState: params.toActionHash
-      //   ? Field(params.toActionHash)
-      //   : undefined,
+      // TODO Somehow endActionState doesn't work on localBlockchain
+      //  For now, we can assume this function to be called synchronously so
+      //  no further actions after the 'to' have been emitted
+      endActionState: this.baseLayer.isLocalBlockChain()
+        ? undefined
+        : toActionHashField,
     });
 
     if ("error" in actions) {
@@ -163,6 +170,8 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
 
       return await this.mapActionToTransactions(tx, args);
     });
+
+    // TODO Add check that the endActionHash matches
 
     return {
       messages,

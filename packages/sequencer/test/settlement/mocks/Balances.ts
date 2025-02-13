@@ -2,11 +2,10 @@ import { NoConfig } from "@proto-kit/common";
 import {
   RuntimeModule,
   runtimeMethod,
-  state,
   runtimeModule,
   runtimeMessage,
 } from "@proto-kit/module";
-import { StateMap, assert, Deposit } from "@proto-kit/protocol";
+import { StateMap, assert, Deposit, state } from "@proto-kit/protocol";
 import { Field, PublicKey, Struct, Provable, UInt64 } from "o1js";
 
 export const errors = {

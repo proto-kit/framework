@@ -17,7 +17,7 @@ import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import { TaskStateRecord } from "../TransactionTraceService";
+import { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { RuntimeProofParametersSerializer } from "./serializers/RuntimeProofParametersSerializer";
 
@@ -28,8 +28,6 @@ export interface RuntimeProofParameters {
   networkState: NetworkState;
   state: TaskStateRecord;
 }
-
-export type JSONEncodableState = Record<string, string[]>;
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

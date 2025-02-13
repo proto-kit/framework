@@ -31,8 +31,9 @@ export class StateTransitionReductionTask
 
   public constructor(
     @inject("Protocol")
-    private readonly protocol: Protocol<
-      MandatoryProtocolModulesRecord & ProtocolModulesRecord
+    private readonly protocol: Pick<
+      Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
+      "stateTransitionProver"
     >,
     private readonly executionContext: ProvableMethodExecutionContext,
     private readonly compileRegistry: CompileRegistry

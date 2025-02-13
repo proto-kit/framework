@@ -25,6 +25,9 @@ export interface TxEvents extends EventsRecord {
   rejected: [any];
 }
 
+export type TxSendResult<Input extends "sent" | "included" | "none"> =
+  Input extends "none" ? void : { hash: string };
+
 @injectable()
 export class MinaTransactionSender {
   private txStatusEmitters: Record<string, EventEmitter<TxEvents>> = {};
@@ -113,10 +116,12 @@ export class MinaTransactionSender {
     return eventEmitter;
   }
 
-  public async proveAndSendTransaction(
+  public async proveAndSendTransaction<
+    Wait extends "sent" | "included" | "none",
+  >(
     transaction: Transaction<false, true>,
-    waitOnStatus: "sent" | "included" | "none" = "none"
-  ) {
+    waitOnStatus: Wait
+  ): Promise<TxSendResult<Wait>> {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
 
     log.debug(
@@ -167,16 +172,24 @@ export class MinaTransactionSender {
     const txStatus = await this.sendOrQueue(result.transaction);
 
     if (waitOnStatus !== "none") {
-      await new Promise<void>((resolve, reject) => {
-        txStatus.on(waitOnStatus, () => {
-          log.info("Tx included");
-          resolve();
-        });
-        txStatus.on("rejected", (error) => {
-          reject(error);
-        });
-      });
+      const waitInstruction: "sent" | "included" = waitOnStatus;
+      const hash = await new Promise<TxSendResult<"sent" | "included">>(
+        (resolve, reject) => {
+          txStatus.on(waitInstruction, (txSendResult) => {
+            log.info(`Tx ${txSendResult.hash} included`);
+            resolve(txSendResult);
+          });
+          txStatus.on("rejected", (error) => {
+            reject(error);
+          });
+        }
+      );
+
+      // Yeah that's not super clean, but couldn't figure out a better way tbh
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return hash as TxSendResult<Wait>;
     }
-    return txStatus;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return undefined as TxSendResult<Wait>;
   }
 }

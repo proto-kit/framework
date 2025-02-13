@@ -1,5 +1,4 @@
-import { BlockWithPreviousResult } from "../../protocol/production/BatchProducerModule";
-import {
+import type {
   Block,
   BlockResult,
   BlockWithMaybeResult,
@@ -9,7 +8,7 @@ import {
 export interface BlockQueue {
   pushBlock: (block: Block) => Promise<void>;
   pushResult: (result: BlockResult) => Promise<void>;
-  getNewBlocks: () => Promise<BlockWithPreviousResult[]>;
+  getNewBlocks: () => Promise<BlockWithResult[]>;
   getLatestBlockAndResult: () => Promise<BlockWithMaybeResult | undefined>;
 }
 

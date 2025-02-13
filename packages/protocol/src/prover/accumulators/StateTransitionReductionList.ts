@@ -1,12 +1,11 @@
 import { Provable } from "o1js";
 
-import { ProvableOption } from "../model/Option";
+import { ProvableOption } from "../../model/Option";
 import {
   ProvableStateTransition,
   StateTransition,
-} from "../model/StateTransition";
-
-import { ProvableReductionHashList } from "./ProvableReductionHashList";
+} from "../../model/StateTransition";
+import { ProvableReductionHashList } from "../../utils/ProvableReductionHashList";
 
 export class StateTransitionReductionList extends ProvableReductionHashList<ProvableStateTransition> {
   public push(value: ProvableStateTransition) {
@@ -55,6 +54,10 @@ export class StateTransitionReductionList extends ProvableReductionHashList<Prov
 
       return [transition, pathsMatch];
     });
+  }
+
+  public toField() {
+    return this.commitment;
   }
 }
 

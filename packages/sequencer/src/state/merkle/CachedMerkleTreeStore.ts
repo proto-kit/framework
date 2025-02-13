@@ -134,6 +134,8 @@ export class CachedMerkleTreeStore
     this.parent.writeNodes(writes);
 
     await this.parent.commit();
+
+    // Reset write cache
     this.resetWrittenNodes();
   }
 

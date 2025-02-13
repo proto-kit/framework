@@ -3,12 +3,18 @@ import {
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
-  state,
 } from "@proto-kit/module";
 import { log, Presets, range, mapSequential } from "@proto-kit/common";
 import { Bool, Field, PublicKey, UInt64 } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
-import { Option, State, StateMap, assert, Deposit } from "@proto-kit/protocol";
+import {
+  Option,
+  State,
+  StateMap,
+  assert,
+  Deposit,
+  state,
+} from "@proto-kit/protocol";
 
 @runtimeModule()
 export class Balance extends RuntimeModule<object> {

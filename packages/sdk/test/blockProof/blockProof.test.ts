@@ -88,7 +88,7 @@ describe.skip("blockProof", () => {
       );
 
     await mapSequential(txHooks, async (hook) => {
-      await hook.onTransaction({
+      await hook.beforeTransaction({
         transaction: RuntimeTransaction.fromTransaction({
           sender: alice,
           nonce: O1UInt64.from(0),
@@ -97,6 +97,12 @@ describe.skip("blockProof", () => {
         }),
         networkState: NetworkState.empty(),
         signature: Signature.create(PrivateKey.random(), [Field(0)]),
+        prover: {
+          incomingMessagesHash: Field(0),
+          transactionsHash: Field(0),
+          eternalTransactionsHash: Field(0),
+          blockHashRoot: Field(0),
+        },
       });
     });
 

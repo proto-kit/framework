@@ -1,21 +1,18 @@
 import {
-  ProvableStateTransition,
-  ProvableStateTransitionType,
+  AppliedStateTransitionBatchState,
+  StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
 } from "@proto-kit/protocol";
 import { RollupMerkleTreeWitness } from "@proto-kit/common";
-import { Bool } from "o1js";
 
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import type { StateTransitionProofParameters } from "../StateTransitionTask";
 
 interface StateTransitionParametersJSON {
   publicInput: ReturnType<typeof StateTransitionProverPublicInput.toJSON>;
-  stateTransitions: {
-    transition: ReturnType<typeof ProvableStateTransition.toJSON>;
-    type: boolean;
-  }[];
+  batch: ReturnType<typeof StateTransitionProvableBatch.toJSON>;
   merkleWitnesses: ReturnType<typeof RollupMerkleTreeWitness.toJSON>[];
+  batchState: ReturnType<typeof AppliedStateTransitionBatchState.toJSON>;
 }
 
 export class StateTransitionParametersSerializer
@@ -27,15 +24,14 @@ export class StateTransitionParametersSerializer
         parameters.publicInput
       ),
 
-      stateTransitions: parameters.stateTransitions.map((st) => {
-        return {
-          transition: ProvableStateTransition.toJSON(st.transition),
-          type: st.type.type.toBoolean(),
-        };
-      }),
+      batch: StateTransitionProvableBatch.toJSON(parameters.batch),
 
       merkleWitnesses: parameters.merkleWitnesses.map((witness) =>
         RollupMerkleTreeWitness.toJSON(witness)
+      ),
+
+      batchState: AppliedStateTransitionBatchState.toJSON(
+        parameters.batchState
       ),
     } satisfies StateTransitionParametersJSON);
   }
@@ -49,19 +45,15 @@ export class StateTransitionParametersSerializer
         parsed.publicInput
       ),
 
-      stateTransitions: parsed.stateTransitions.map((st) => {
-        return {
-          transition: new ProvableStateTransition(
-            ProvableStateTransition.fromJSON(st.transition)
-          ),
-
-          type: new ProvableStateTransitionType({ type: Bool(st.type) }),
-        };
-      }),
+      batch: StateTransitionProvableBatch.fromJSON(parsed.batch),
 
       merkleWitnesses: parsed.merkleWitnesses.map(
         (witness) =>
           new RollupMerkleTreeWitness(RollupMerkleTreeWitness.fromJSON(witness))
+      ),
+
+      batchState: new AppliedStateTransitionBatchState(
+        AppliedStateTransitionBatchState.fromJSON(parsed.batchState)
       ),
     };
   }

@@ -2,9 +2,11 @@ import { EventEmitter, log, noop } from "@proto-kit/common";
 import { container, inject } from "tsyringe";
 import {
   AccountStateHook,
+  BlockHashMerkleTree,
   MandatoryProtocolModulesRecord,
   NetworkState,
   Protocol,
+  ProvableHookBlockState,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
   StateServiceProvider,
@@ -117,6 +119,8 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   // in the skipped txs list and when later txs succeed we check to see if any state transition
   // paths are shared between the just succeeded tx and any of the skipped txs. This is
   // because a failed tx may succeed now if the failure was to do with a nonce issue, say.
+  // TODO Refactor
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async checkTxValid(
     transactions: PendingTransaction[],
     baseService: CachedStateService,
@@ -135,6 +139,20 @@ export class PrivateMempool extends SequencerModule implements Mempool {
 
     let queue: PendingTransaction[] = [...transactions];
 
+    const previousBlock = await this.unprovenQueue.getLatestBlock();
+
+    // TODO This is not sound currently as the prover state changes all the time
+    //  in the actual blockprover. We need to properly simulate that
+    const proverState: ProvableHookBlockState = {
+      blockHashRoot: Field(
+        previousBlock?.result.blockHashRoot ?? BlockHashMerkleTree.EMPTY_ROOT
+      ),
+      eternalTransactionsHash:
+        previousBlock?.block.toEternalTransactionsHash ?? Field(0),
+      transactionsHash: previousBlock?.block.transactionsHash ?? Field(0),
+      incomingMessagesHash: previousBlock?.block.toMessagesHash ?? Field(0),
+    };
+
     while (
       queue.length > 0 &&
       sortedTransactions.length < (limit ?? Number.MAX_VALUE)
@@ -150,10 +168,11 @@ export class PrivateMempool extends SequencerModule implements Mempool {
 
       const signedTransaction = tx.toProtocolTransaction();
       // eslint-disable-next-line no-await-in-loop
-      await this.accountStateHook.onTransaction({
+      await this.accountStateHook.beforeTransaction({
         networkState: networkState,
         transaction: signedTransaction.transaction,
         signature: signedTransaction.signature,
+        prover: proverState,
       });
       const { status, statusMessage, stateTransitions } =
         executionContext.current().result;
