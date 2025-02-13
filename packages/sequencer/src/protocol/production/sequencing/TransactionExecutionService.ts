@@ -111,7 +111,8 @@ async function decodeTransaction(
 }
 
 function extractEvents(
-  runtimeResult: RuntimeContextReducedExecutionResult
+  runtimeResult: RuntimeContextReducedExecutionResult,
+  source: string
 ): { eventName: string; data: Field[] }[] {
   return runtimeResult.events.reduce(
     (acc, event) => {
@@ -120,13 +121,14 @@ function extractEvents(
           eventName: event.eventName,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           data: event.eventType.toFields(event.event),
+          source: source,
         };
         acc.push(obj);
       }
       return acc;
     },
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    [] as { eventName: string; data: Field[] }[]
+    [] as { eventName: string; data: Field[]; source: string }[]
   );
 }
 
@@ -314,7 +316,7 @@ export class TransactionExecutionService {
       async (hook, hookArgs) => await hook.beforeTransaction(hookArgs),
       "beforeTx"
     );
-    const beforeHookEvents = extractEvents(beforeTxHookResult);
+    const beforeHookEvents = extractEvents(beforeTxHookResult, "beforeTxHook");
 
     await recordingStateService.applyStateTransitions(
       beforeTxHookResult.stateTransitions
@@ -364,7 +366,7 @@ export class TransactionExecutionService {
       async (hook, hookArgs) => await hook.afterTransaction(hookArgs),
       "afterTx"
     );
-    const afterHookEvents = extractEvents(afterTxHookResult);
+    const afterHookEvents = extractEvents(afterTxHookResult, "afterTxHook");
     await recordingStateService.applyStateTransitions(
       afterTxHookResult.stateTransitions
     );
@@ -378,7 +380,7 @@ export class TransactionExecutionService {
     appChain.setProofsEnabled(previousProofsEnabled);
 
     // Extract sequencing results
-    const runtimeResultEvents = extractEvents(runtimeResult);
+    const runtimeResultEvents = extractEvents(runtimeResult, "runtime");
     const stateTransitions = this.buildSTBatches(
       [
         beforeTxHookResult.stateTransitions,
