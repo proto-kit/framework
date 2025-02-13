@@ -263,6 +263,10 @@ export class ModuleContainer<
         this.onAfterModuleResolution(moduleName);
 
         this.registerAliases(moduleName, useClass);
+
+        if (this.isDependencyFactory(useClass)) {
+          this.useDependencyFactory(useClass);
+        }
       }
     });
   }
@@ -282,16 +286,6 @@ export class ModuleContainer<
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
       this.container.register(moduleName, { useValue });
-    });
-  }
-
-  protected registerClasses(modules: Record<string, TypedClass<unknown>>) {
-    Object.entries(modules).forEach(([moduleName, useClass]) => {
-      this.container.register(
-        moduleName,
-        { useClass },
-        { lifecycle: Lifecycle.ContainerScoped }
-      );
     });
   }
 
@@ -403,6 +397,7 @@ export class ModuleContainer<
   protected useDependencyFactory(factory: DependencyFactory) {
     const dependencies = factory.dependencies();
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     Object.entries(dependencies).forEach(([rawKey, declaration]) => {
       const key = rawKey.charAt(0).toUpperCase() + rawKey.slice(1);
 
@@ -410,7 +405,10 @@ export class ModuleContainer<
         !this.container.isRegistered(key) ||
         declaration.forceOverwrite === true
       ) {
-        if (this.container.isRegistered(key) && declaration.forceOverwrite) {
+        if (
+          this.container.isRegistered(key) &&
+          (declaration?.forceOverwrite ?? false)
+        ) {
           log.warn(
             `You are trying to overwrite dependency ${key}, which is already registered. This is currently not supported. Try to define your dependency earlier.`
           );
@@ -434,6 +432,11 @@ export class ModuleContainer<
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             declaration.useClass as TypedClass<unknown>
           );
+
+          // Register static dependencies
+          if (this.isDependencyFactory(declaration.useClass)) {
+            this.useDependencyFactory(declaration.useClass);
+          }
         } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,

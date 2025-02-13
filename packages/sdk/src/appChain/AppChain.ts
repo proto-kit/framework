@@ -313,9 +313,9 @@ export class AppChain<
   ) {
     this.create(() => dependencyContainer);
 
-    this.useDependencyFactory(this.container.resolve(AreProofsEnabledFactory));
-    this.useDependencyFactory(this.container.resolve(SharedDependencyFactory));
-    this.useDependencyFactory(this.container.resolve(ConsoleLoggingFactory));
+    this.useDependencyFactory(AreProofsEnabledFactory);
+    this.useDependencyFactory(SharedDependencyFactory);
+    this.useDependencyFactory(ConsoleLoggingFactory);
 
     this.container
       .resolve<AreProofsEnabled>("AreProofsEnabled")
