@@ -32,6 +32,7 @@ import {
   toEventsHash,
   toStateTransitionsHash,
 } from "@proto-kit/module";
+// eslint-disable-next-line import/no-extraneous-dependencies
 import zip from "lodash/zip";
 
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
