@@ -52,7 +52,9 @@ export class EventMapper
     ) {
       return input;
     }
-    throw new Error();
+    throw new Error(
+      "Event Source must be one of 'beforeTxHook', 'afterTxHook' or 'runtime'"
+    );
   }
 }
 
