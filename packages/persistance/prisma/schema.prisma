@@ -39,18 +39,37 @@ model Transaction {
   IncomingMessageBatchTransaction IncomingMessageBatchTransaction[]
 }
 
+model StateTransition {
+  id      Int     @id @default(autoincrement())
+  batchId Int
+  path    String
+  from    String?
+  to      String?
+
+  batch StateTransitionBatch @relation(fields: [batchId], references: [id])
+}
+
+model StateTransitionBatch {
+  id                  Int               @id @default(autoincrement())
+  txExecutionresultId String
+  stateTransitions    String
+  StateTransition     StateTransition[]
+  applied             Boolean
+
+  transctionExecutionResult TransactionExecutionResult @relation(fields: [txExecutionresultId], references: [txHash])
+}
+
 model TransactionExecutionResult {
-  // TODO Make StateTransitionBatch and StateTransition Table
-  stateTransitions Json    @db.Json
-  status           Boolean
-  statusMessage    String?
-  events           Json    @db.Json
+  status        Boolean
+  statusMessage String?
+  events        Json    @db.Json
 
   tx     Transaction @relation(fields: [txHash], references: [hash])
   txHash String      @id
 
-  block     Block  @relation(fields: [blockHash], references: [hash])
-  blockHash String
+  block                Block                  @relation(fields: [blockHash], references: [hash])
+  blockHash            String
+  StateTransitionBatch StateTransitionBatch[]
 }
 
 model Block {
