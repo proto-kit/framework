@@ -50,6 +50,8 @@ class TestModule
   }
 }
 
+class NoConfigModule extends BaseTestModule<NoConfig> {}
+
 interface OtherTestModuleConfig {
   otherTestConfigProperty: number;
 }
@@ -79,6 +81,7 @@ describe("moduleContainer", () => {
   let container: TestModuleContainer<{
     TestModule: typeof TestModule;
     OtherTestModule: typeof OtherTestModule;
+    NoConfigModule: typeof NoConfigModule;
   }>;
   const testConfigProperty = 0;
 
@@ -88,6 +91,7 @@ describe("moduleContainer", () => {
       OtherTestModule,
       // this module would not be assignable to TestModuleContainer
       // WrongTestModule,
+      NoConfigModule,
     });
   });
 
