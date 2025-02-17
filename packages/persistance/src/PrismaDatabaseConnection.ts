@@ -6,7 +6,6 @@ import {
   Tracer,
 } from "@proto-kit/sequencer";
 import { DependencyFactory, OmitKeys } from "@proto-kit/common";
-import { inject } from "tsyringe";
 
 import { PrismaStateService } from "./services/prisma/PrismaStateService";
 import { PrismaBatchStore } from "./services/prisma/PrismaBatchStore";
@@ -40,7 +39,7 @@ export class PrismaDatabaseConnection
   extends SequencerModule<PrismaDatabaseConfig>
   implements DependencyFactory, PrismaConnection
 {
-  public constructor(@inject("Tracer") private readonly tracer: Tracer) {
+  public constructor(private readonly tracer: Tracer) {
     super();
   }
 

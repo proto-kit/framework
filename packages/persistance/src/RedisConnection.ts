@@ -8,7 +8,6 @@ import { DependencyFactory } from "@proto-kit/common";
 import isArray from "lodash/isArray";
 
 import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
-import { inject } from "tsyringe";
 
 export interface RedisConnectionConfig {
   host: string;
@@ -28,7 +27,7 @@ export class RedisConnectionModule
   extends SequencerModule<RedisConnectionConfig>
   implements DependencyFactory, RedisConnection
 {
-  public constructor(@inject("Tracer") private readonly tracer: Tracer) {
+  public constructor(private readonly tracer: Tracer) {
     super();
   }
 
