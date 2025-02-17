@@ -1,4 +1,9 @@
-import { AsyncStateService, StateEntry } from "@proto-kit/sequencer";
+import {
+  AsyncStateService,
+  StateEntry,
+  Tracer,
+  trace,
+} from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { Prisma } from "@prisma/client";
 import { noop } from "@proto-kit/common";
@@ -19,12 +24,15 @@ export class PrismaStateService implements AsyncStateService {
   /**
    * @param connection
    * @param mask A indicator to which masking level the values belong
+   * @param tracer
    */
   public constructor(
     private readonly connection: PrismaConnection,
-    private readonly mask: string
+    private readonly mask: string,
+    public readonly tracer: Tracer
   ) {}
 
+  @trace("db.state.commit")
   public async commit(): Promise<void> {
     const { prismaClient } = this.connection;
 
