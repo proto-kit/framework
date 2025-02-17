@@ -58,7 +58,7 @@ export class PrismaDatabaseConnection
   > {
     return {
       asyncStateService: {
-        useFactory: () => new PrismaStateService(this, "batch", this.tracer),
+        useFactory: () => new PrismaStateService(this, this.tracer, "batch"),
       },
       batchStorage: {
         useClass: PrismaBatchStore,
@@ -70,7 +70,7 @@ export class PrismaDatabaseConnection
         useClass: PrismaBlockStorage,
       },
       unprovenStateService: {
-        useFactory: () => new PrismaStateService(this, "block", this.tracer),
+        useFactory: () => new PrismaStateService(this, this.tracer, "block"),
       },
       settlementStorage: {
         useClass: PrismaSettlementStorage,

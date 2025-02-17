@@ -28,8 +28,8 @@ export class PrismaStateService implements AsyncStateService {
    */
   public constructor(
     private readonly connection: PrismaConnection,
-    private readonly mask: string,
-    public readonly tracer: Tracer
+    public readonly tracer: Tracer,
+    private readonly mask: string
   ) {}
 
   @trace("db.state.commit")
