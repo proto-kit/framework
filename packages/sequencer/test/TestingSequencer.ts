@@ -30,37 +30,36 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   SequencerStartupModule: typeof SequencerStartupModule;
 }
 
-export function testingSequencerFromModules<
+export function testingSequencerModules<
   AdditionalModules extends SequencerModulesRecord,
   AdditionalTaskWorkerModules extends TaskWorkerModulesRecord,
 >(
   modules: AdditionalModules,
   additionalTaskWorkerModules?: AdditionalTaskWorkerModules
-): TypedClass<Sequencer<DefaultTestingSequencerModules & AdditionalModules>> {
+) {
   const taskWorkerModule = LocalTaskWorkerModule.from({
     ...VanillaTaskWorkerModules.withoutSettlement(),
     ...additionalTaskWorkerModules,
   });
 
-  const defaultModules: DefaultTestingSequencerModules = {
+  const defaultModules = {
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
     BaseLayer: NoopBaseLayer,
-    // LocalTaskWorkerModule: taskWorkerModule,
+    LocalTaskWorkerModule: taskWorkerModule,
     BatchProducerModule,
     BlockProducerModule,
     BlockTrigger: ManualBlockTrigger,
     TaskQueue: LocalTaskQueue,
     FeeStrategy: ConstantFeeStrategy,
-  } as DefaultTestingSequencerModules;
+    SequencerStartupModule,
+  } satisfies DefaultTestingSequencerModules;
 
-  return Sequencer.from({
-    modules: {
-      ...defaultModules,
-      ...modules,
-      // We need to make sure that the taskworkermodule is initialized last
-      LocalTaskWorkerModule: taskWorkerModule,
-      SequencerStartupModule,
-    },
-  });
+  return {
+    ...defaultModules,
+    ...modules,
+    // We need to make sure that the taskworkermodule is initialized last
+    LocalTaskWorkerModule: defaultModules.LocalTaskWorkerModule,
+    SequencerStartupModule: defaultModules.SequencerStartupModule,
+  };
 }

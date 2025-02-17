@@ -33,7 +33,7 @@ import {
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
-  testingSequencerFromModules,
+  testingSequencerModules,
 } from "../TestingSequencer";
 
 import { Balance } from "./mocks/Balance";
@@ -111,7 +111,10 @@ describe("block production", () => {
       },
     });
 
-    const sequencerClass = testingSequencerFromModules({});
+    const modules = testingSequencerModules({});
+    const sequencerClass = Sequencer.from({
+      modules,
+    });
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
@@ -130,8 +133,8 @@ describe("block production", () => {
 
     app.configure({
       Sequencer: {
-        Database: {},
-        BlockTrigger: {},
+        // Database: {},
+        // BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
@@ -140,7 +143,7 @@ describe("block production", () => {
         TaskQueue: {},
         FeeStrategy: {},
         SequencerStartupModule: {},
-      },
+      } as any,
       Runtime: {
         Balance: {},
         NoopRuntime: {},
