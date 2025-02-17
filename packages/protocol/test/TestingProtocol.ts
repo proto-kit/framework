@@ -9,6 +9,7 @@ import {
   BlockProver,
   LastStateRootBlockHook,
   Protocol,
+  StateServiceProvider,
   StateTransitionProver,
 } from "../src";
 
@@ -47,6 +48,10 @@ export function createAndInitTestingProtocol() {
     }),
   });
   protocol.create(() => appChain.createChildContainer());
+
+  protocol.registerValue({
+    StateServiceProvider: new StateServiceProvider(),
+  });
 
   return protocol;
 }

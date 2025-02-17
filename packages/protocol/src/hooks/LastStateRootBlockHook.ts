@@ -1,26 +1,25 @@
-import { ProvableBlockHook } from "../protocol/ProvableBlockHook";
+import {
+  AfterBlockHookArguments,
+  ProvableBlockHook,
+} from "../protocol/ProvableBlockHook";
 import { NetworkState } from "../model/network/NetworkState";
-import { BlockProverState } from "../prover/block/BlockProver";
 
 export class LastStateRootBlockHook extends ProvableBlockHook<
   Record<string, never>
 > {
   public async afterBlock(
     networkState: NetworkState,
-    state: BlockProverState
+    { stateRoot }: AfterBlockHookArguments
   ): Promise<NetworkState> {
     return new NetworkState({
       block: networkState.block,
       previous: {
-        rootHash: state.stateRoot,
+        rootHash: stateRoot,
       },
     });
   }
 
-  public async beforeBlock(
-    networkState: NetworkState,
-    state: BlockProverState
-  ): Promise<NetworkState> {
+  public async beforeBlock(networkState: NetworkState): Promise<NetworkState> {
     return networkState;
   }
 }

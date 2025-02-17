@@ -11,7 +11,6 @@ import type {
   BlockWithMaybeResult,
   BlockWithResult,
 } from "../model/Block";
-import { BlockWithPreviousResult } from "../../protocol/production/BatchProducerModule";
 import { BatchStorage } from "../repositories/BatchStorage";
 
 @injectable()
@@ -65,7 +64,7 @@ export class InMemoryBlockStorage
     return result;
   }
 
-  public async getNewBlocks(): Promise<BlockWithPreviousResult[]> {
+  public async getNewBlocks(): Promise<BlockWithResult[]> {
     const latestBatch = await this.batchStorage.getLatestBatch();
 
     let cursor = 0;
@@ -89,11 +88,8 @@ export class InMemoryBlockStorage
     }
 
     return slice.map((block, index) => ({
-      block: {
-        block,
-        result: results[index + 1]!,
-      },
-      lastBlockResult: results[index],
+      block,
+      result: results[index + 1]!,
     }));
   }
 

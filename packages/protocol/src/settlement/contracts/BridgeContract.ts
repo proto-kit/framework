@@ -23,6 +23,7 @@ import {
 } from "../messages/OutgoingMessageArgument";
 import { Path } from "../../model/Path";
 import { Withdrawal } from "../messages/Withdrawal";
+import { PROTOKIT_PREFIXES } from "../../hashing/protokit-prefixes";
 
 import type { SettlementContractType } from "./SettlementSmartContract";
 
@@ -137,7 +138,11 @@ export abstract class BridgeContractBase extends TokenContractV2 {
 
     const [withdrawalModule, withdrawalStateName] =
       BridgeContractBase.args.withdrawalStatePath;
-    const mapPath = Path.fromProperty(withdrawalModule, withdrawalStateName);
+    const mapPath = Path.fromProperty(
+      withdrawalModule,
+      withdrawalStateName,
+      PROTOKIT_PREFIXES.STATE_RUNTIME
+    );
 
     // Count account creation fee to return later, so that the sender can fund
     // those accounts with a separate AU

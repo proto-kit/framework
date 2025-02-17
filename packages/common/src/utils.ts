@@ -5,6 +5,7 @@ import {
   DynamicProof,
   Proof,
 } from "o1js";
+import _ from "lodash";
 
 import { TypedClass } from "./types";
 
@@ -69,6 +70,26 @@ export function reduceSequential<T, U>(
       return await callbackfn(previous, current, index, arr);
     },
     Promise.resolve(initialValue)
+  );
+}
+
+export function yieldSequential<Source, State, Target>(
+  array: Source[],
+  callbackfn: (
+    previousValue: State,
+    currentValue: Source,
+    currentIndex: number,
+    array: Source[]
+  ) => Promise<[State, Target]>,
+  initialValue: State
+): Promise<[State, Target[]]> {
+  return reduceSequential<Source, [State, Target[]]>(
+    array,
+    async ([state, collectedTargets], curr, index, arr) => {
+      const [newState, addition] = await callbackfn(state, curr, index, arr);
+      return [newState, collectedTargets.concat(addition)];
+    },
+    [initialValue, []]
   );
 }
 
@@ -197,4 +218,65 @@ export function isSubtypeOfName(
 export function safeParseJson<T>(json: string) {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return JSON.parse(json) as T;
+}
+
+export type Nullable<T> = {
+  [Key in keyof T]: T[Key] | undefined;
+};
+
+export function isFull<T>(t: Nullable<T>): t is T {
+  return Object.values(t).findIndex((v) => v === undefined) === -1;
+}
+
+// TODO Restructure utils into separate package and multiple files
+
+export function padArray<T>(
+  array: T[],
+  batchSize: number,
+  generator: (index: number) => T
+): T[] {
+  const slice = array.slice();
+  const dummies = range(0, batchSize - (array.length % batchSize)).map((i) =>
+    generator(i + array.length)
+  );
+  slice.push(...dummies);
+  return slice;
+}
+
+export function batch<T>(
+  arr: T[],
+  batchSize: number,
+  dummy: (index: number) => T
+): T[][] {
+  const padded = padArray(arr, batchSize, dummy);
+
+  const partitioned = _.groupBy(
+    padded.map((v, i) => [v, i] as const),
+    ([v, i]) => Math.floor(i / batchSize)
+  );
+
+  const numBatches = Math.ceil(arr.length / batchSize);
+
+  return range(0, numBatches).map((i) => partitioned[i].map((x) => x[0]));
+}
+
+export type Reference<T> = {
+  set value(value: T);
+  get value(): T;
+};
+
+class ReferenceObject<T> {
+  public constructor(private internalValue: T) {}
+
+  get value() {
+    return this.internalValue;
+  }
+
+  set value(t: T) {
+    this.internalValue = t;
+  }
+}
+
+export function createReference<T>(initial: T): Reference<T> {
+  return new ReferenceObject(initial);
 }

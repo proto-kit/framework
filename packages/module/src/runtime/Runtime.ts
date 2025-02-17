@@ -311,9 +311,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   }
 
   public get stateServiceProvider(): StateServiceProvider {
-    return this.dependencyContainer.resolve<StateServiceProvider>(
-      "StateServiceProvider"
-    );
+    return this.container.resolve<StateServiceProvider>("StateServiceProvider");
   }
 
   public get stateService(): SimpleAsyncStateService {
@@ -371,7 +369,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
     containedModule.name = moduleName;
-    containedModule.runtime = this;
+    containedModule.parent = this;
 
     super.decorateModule(moduleName, containedModule);
   }

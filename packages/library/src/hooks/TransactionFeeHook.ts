@@ -6,11 +6,12 @@ import {
 } from "@proto-kit/module";
 import { inject, injectable } from "tsyringe";
 import {
+  BeforeTransactionHookArguments,
   ProvableTransactionHook,
-  BlockProverExecutionData,
   PublicKeyOption,
 } from "@proto-kit/protocol";
 import { Field, Provable, PublicKey } from "o1js";
+import { noop } from "@proto-kit/common";
 
 import { UInt64 } from "../math/UInt64";
 import { Balance, TokenId } from "../runtime/Balances";
@@ -122,8 +123,8 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
    *
    * @param executionData
    */
-  public async onTransaction(
-    executionData: BlockProverExecutionData
+  public async beforeTransaction(
+    executionData: BeforeTransactionHookArguments
   ): Promise<void> {
     const feeConfig = Provable.witness(MethodFeeConfigData, () =>
       this.feeAnalyzer.getFeeConfig(
@@ -153,5 +154,9 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       executionData.transaction.sender,
       UInt64.Unsafe.fromField(fee.value)
     );
+  }
+
+  public async afterTransaction(): Promise<void> {
+    noop();
   }
 }

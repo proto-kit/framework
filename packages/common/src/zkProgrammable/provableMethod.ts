@@ -31,7 +31,9 @@ export function toProver(
     );
 
     if (zkProgram === undefined) {
-      throw new Error("Correct ZkProgram not found");
+      throw new Error(
+        `Correct ZkProgram not found (searching for method ${methodName})`
+      );
     }
 
     if (areProofsEnabled) {

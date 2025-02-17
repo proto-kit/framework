@@ -11,10 +11,14 @@ import {
   UInt32,
   Transaction,
 } from "o1js";
-import { ReturnType } from "@proto-kit/protocol";
+import {
+  ACTIONS_EMPTY_HASH,
+  MINA_PREFIXES,
+  ReturnType,
+} from "@proto-kit/protocol";
 import { match } from "ts-pattern";
 import { inject, injectable } from "tsyringe";
-import { noop } from "@proto-kit/common";
+import { hashWithPrefix, noop, range } from "@proto-kit/common";
 
 import { distinctByPredicate } from "../../helpers/utils";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
@@ -277,12 +281,31 @@ export class MinaTransactionSimulator {
       }).verificationKey = update.verificationKey.value;
     }
 
+    this.applyZkApp(account, au.body);
+  }
+
+  private applyZkApp(
+    account: Account,
+    { update, actions }: AccountUpdate["body"]
+  ) {
     if (account.zkapp !== undefined) {
       const { appState } = update;
       for (let i = 0; i < 8; i++) {
         if (appState[i].isSome.toBoolean()) {
           account.zkapp.appState[i] = appState[i].value;
         }
+      }
+
+      if (actions.data.length > 0) {
+        // We don't care about the correct historical array, so we just
+        // populate the full array with the current value
+        const previousActionState =
+          account.zkapp.actionState.at(0) ?? ACTIONS_EMPTY_HASH;
+        const newActionsHash = hashWithPrefix(MINA_PREFIXES.sequenceEvents, [
+          previousActionState,
+          actions.hash,
+        ]);
+        account.zkapp.actionState = range(0, 5).map(() => newActionsHash);
       }
     }
   }

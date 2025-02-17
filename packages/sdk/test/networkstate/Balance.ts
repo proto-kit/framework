@@ -5,11 +5,11 @@ import {
   TokenId,
   UInt64,
 } from "@proto-kit/library";
-import { runtimeMethod, runtimeModule, state } from "@proto-kit/module";
+import { runtimeMethod, runtimeModule } from "@proto-kit/module";
 import { log, Presets, range, mapSequential } from "@proto-kit/common";
 import { Bool, Field, PublicKey } from "o1js";
 import { Admin } from "@proto-kit/module/test/modules/Admin";
-import { State, assert } from "@proto-kit/protocol";
+import { State, assert, state } from "@proto-kit/protocol";
 
 @runtimeModule()
 export class BalanceChild extends Balances {
