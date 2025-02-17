@@ -687,11 +687,13 @@ describe("block production", () => {
     const firstEventReduced = {
       eventName: firstExpectedEvent.eventName,
       data: firstExpectedEvent.eventType.toFields(firstExpectedEvent.event),
+      source: "runtime",
     };
 
     const secondEventReduced = {
       eventName: secondExpectedEvent.eventName,
       data: secondExpectedEvent.eventType.toFields(secondExpectedEvent.event),
+      source: "runtime",
     };
 
     const block = await test.produceBlock();
