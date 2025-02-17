@@ -111,9 +111,8 @@ describe("block production", () => {
       },
     });
 
-    const modules = testingSequencerModules({});
     const sequencerClass = Sequencer.from({
-      modules,
+      modules: testingSequencerModules({}),
     });
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
@@ -133,8 +132,8 @@ describe("block production", () => {
 
     app.configure({
       Sequencer: {
-        // Database: {},
-        // BlockTrigger: {},
+        Database: {},
+        BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
@@ -143,7 +142,7 @@ describe("block production", () => {
         TaskQueue: {},
         FeeStrategy: {},
         SequencerStartupModule: {},
-      } as any,
+      },
       Runtime: {
         Balance: {},
         NoopRuntime: {},

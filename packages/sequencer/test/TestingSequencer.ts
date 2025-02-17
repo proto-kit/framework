@@ -8,7 +8,6 @@ import {
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
-  Sequencer,
   SequencerModulesRecord,
   TaskWorkerModulesRecord,
   BlockProducerModule,
@@ -61,5 +60,5 @@ export function testingSequencerModules<
     // We need to make sure that the taskworkermodule is initialized last
     LocalTaskWorkerModule: defaultModules.LocalTaskWorkerModule,
     SequencerStartupModule: defaultModules.SequencerStartupModule,
-  };
+  } satisfies SequencerModulesRecord;
 }

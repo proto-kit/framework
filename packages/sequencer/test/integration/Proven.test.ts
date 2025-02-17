@@ -20,10 +20,11 @@ import { AppChain, InMemoryAreProofsEnabled } from "@proto-kit/sdk";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 
-import { testingSequencerFromModules } from "../TestingSequencer";
+import { testingSequencerModules } from "../TestingSequencer";
 import {
   MinaBaseLayer,
   ProvenSettlementPermissions,
+  Sequencer,
   SettlementModule,
   SettlementProvingTask,
   VanillaTaskWorkerModules,
@@ -56,16 +57,18 @@ describe.skip("Proven", () => {
         },
       });
 
-      const sequencerClass = testingSequencerFromModules(
-        {
-          BaseLayer: MinaBaseLayer,
-          SettlementModule,
-          OutgoingMessageQueue: WithdrawalQueue,
-        },
-        {
-          SettlementProvingTask,
-        }
-      );
+      const sequencerClass = Sequencer.from({
+        modules: testingSequencerModules(
+          {
+            BaseLayer: MinaBaseLayer,
+            SettlementModule,
+            OutgoingMessageQueue: WithdrawalQueue,
+          },
+          {
+            SettlementProvingTask,
+          }
+        ),
+      });
 
       // TODO Analyze how we can get rid of the library import for mandatory modules
       const protocolClass = Protocol.from({
@@ -105,7 +108,10 @@ describe.skip("Proven", () => {
               type: "local",
             },
           },
-          SettlementModule: {},
+          SettlementModule: {
+            // TODO
+            feepayer: PrivateKey.random(),
+          },
           OutgoingMessageQueue: {},
         },
         Runtime: {
