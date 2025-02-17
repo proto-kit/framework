@@ -54,8 +54,8 @@ model StateTransitionBatch {
   txExecutionResultId String
   applied             Boolean
 
-  transctionExecutionResult TransactionExecutionResult @relation(fields: [txExecutionResultId], references: [txHash])
-  StateTransition           StateTransition[]
+  transactionExecutionResult TransactionExecutionResult @relation(fields: [txExecutionResultId], references: [txHash])
+  StateTransition            StateTransition[]
 }
 
 model TransactionExecutionResult {
