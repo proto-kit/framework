@@ -406,7 +406,7 @@ export class TransactionExecutionService {
         statusMessage: runtimeResult.statusMessage,
 
         stateTransitions,
-        events: beforeHookEvents.concat(afterHookEvents, runtimeResultEvents),
+        events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
       },
     ];
   }

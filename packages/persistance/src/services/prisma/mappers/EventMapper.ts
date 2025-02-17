@@ -4,25 +4,15 @@ import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
+type EventData = {
+  eventName: string;
+  data: Field[];
+  source: "afterTxHook" | "beforeTxHook" | "runtime";
+};
+
 @singleton()
-export class EventMapper
-  implements
-    ObjectMapper<
-      {
-        eventName: string;
-        data: Field[];
-        source: "afterTxHook" | "beforeTxHook" | "runtime";
-      },
-      Prisma.JsonObject
-    >
-{
-  public mapIn(input: Prisma.JsonObject): {
-    eventName: string;
-    data: Field[];
-    source: "afterTxHook" | "beforeTxHook" | "runtime";
-  } {
-    if (input === undefined)
-      return { eventName: "", data: [], source: "runtime" };
+export class EventMapper implements ObjectMapper<EventData, Prisma.JsonObject> {
+  public mapIn(input: Prisma.JsonObject): EventData {
     return {
       eventName: input.eventName as string,
       data: (input.data as Prisma.JsonArray).map((field) =>
@@ -32,11 +22,7 @@ export class EventMapper
     };
   }
 
-  public mapOut(input: {
-    eventName: string;
-    data: Field[];
-    source: "afterTxHook" | "beforeTxHook" | "runtime";
-  }): Prisma.JsonObject {
+  public mapOut(input: EventData): Prisma.JsonObject {
     return {
       eventName: input.eventName,
       data: input.data.map((field) => field.toString()),
@@ -60,23 +46,11 @@ export class EventMapper
 
 @singleton()
 export class EventArrayMapper
-  implements
-    ObjectMapper<
-      {
-        eventName: string;
-        data: Field[];
-        source: "afterTxHook" | "beforeTxHook" | "runtime";
-      }[],
-      Prisma.JsonValue | undefined
-    >
+  implements ObjectMapper<EventData[], Prisma.JsonValue | undefined>
 {
   public constructor(private readonly eventMapper: EventMapper) {}
 
-  public mapIn(input: Prisma.JsonValue | undefined): {
-    eventName: string;
-    data: Field[];
-    source: "afterTxHook" | "beforeTxHook" | "runtime";
-  }[] {
+  public mapIn(input: Prisma.JsonValue | undefined): EventData[] {
     if (input === undefined) return [];
 
     if (Array.isArray(input)) {
@@ -87,13 +61,7 @@ export class EventArrayMapper
     return [];
   }
 
-  public mapOut(
-    input: {
-      eventName: string;
-      data: Field[];
-      source: "afterTxHook" | "beforeTxHook" | "runtime";
-    }[]
-  ): Prisma.JsonValue {
+  public mapOut(input: EventData[]): Prisma.JsonValue {
     return input.map((event) =>
       this.eventMapper.mapOut(event)
     ) as Prisma.JsonArray;
