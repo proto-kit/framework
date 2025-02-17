@@ -1,4 +1,6 @@
 import {
+  closeable,
+  Closeable,
   Sequencer,
   SequencerModule,
   sequencerModule,
@@ -32,7 +34,13 @@ export type OpenTelemetryServerConfig = {
 };
 
 @sequencerModule()
-export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConfig> {
+@closeable()
+export class OpenTelemetryServer
+  extends SequencerModule<OpenTelemetryServerConfig>
+  implements Closeable
+{
+  private sdk?: NodeSDK;
+
   public constructor(
     @inject("Sequencer") private readonly sequencer: Sequencer<any>
   ) {
@@ -89,11 +97,16 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
     });
 
     sdk.start();
+    this.sdk = sdk;
 
     // TODO Write logger to directly integrate with our logging library
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
 
     log.info("OpenTelemetryServer started");
+  }
+
+  public async close() {
+    await this.sdk?.shutdown();
   }
 }
 
