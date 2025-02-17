@@ -87,7 +87,6 @@ describe("block limit", () => {
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
-        ProtocolStartupModule: {},
         SequencerStartupModule: {},
       },
       Runtime: {
