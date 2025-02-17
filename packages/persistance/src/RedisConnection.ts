@@ -2,11 +2,13 @@ import { createClient, RedisClientType } from "redis";
 import {
   SequencerModule,
   StorageDependencyMinimumDependencies,
+  Tracer,
 } from "@proto-kit/sequencer";
 import { DependencyFactory } from "@proto-kit/common";
 import isArray from "lodash/isArray";
 
 import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
+import { inject } from "tsyringe";
 
 export interface RedisConnectionConfig {
   host: string;
@@ -26,6 +28,10 @@ export class RedisConnectionModule
   extends SequencerModule<RedisConnectionConfig>
   implements DependencyFactory, RedisConnection
 {
+  public constructor(@inject("Tracer") private readonly tracer: Tracer) {
+    super();
+  }
+
   private client?: RedisClientType;
 
   public get redisClient(): RedisClientType {
@@ -43,13 +49,15 @@ export class RedisConnectionModule
   > {
     return {
       asyncMerkleStore: {
-        useFactory: () => new RedisMerkleTreeStore(this),
+        useFactory: () => new RedisMerkleTreeStore(this, this.tracer),
       },
       unprovenMerkleStore: {
-        useFactory: () => new RedisMerkleTreeStore(this, "unproven"),
+        useFactory: () =>
+          new RedisMerkleTreeStore(this, this.tracer, "unproven"),
       },
       blockTreeStore: {
-        useFactory: () => new RedisMerkleTreeStore(this, "blockHash"),
+        useFactory: () =>
+          new RedisMerkleTreeStore(this, this.tracer, "blockHash"),
       },
     };
   }

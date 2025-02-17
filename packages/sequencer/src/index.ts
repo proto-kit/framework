@@ -102,5 +102,6 @@ export * from "./settlement/transactions/MinaTransactionSender";
 export * from "./settlement/transactions/MinaTransactionSimulator";
 export * from "./settlement/transactions/MinaSimulationService";
 export * from "./logging/Tracer";
+export * from "./logging/trace";
 export * from "./logging/ConsoleLoggingFactory";
 export * from "./logging/ConsoleTracer";
