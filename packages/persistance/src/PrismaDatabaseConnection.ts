@@ -73,6 +73,9 @@ export class PrismaDatabaseConnection
       transactionStorage: {
         useClass: PrismaTransactionStorage,
       },
+      unprovenStateService: {
+        useFactory: () => new PrismaStateService(this, "block"),
+      },
     };
   }
 
