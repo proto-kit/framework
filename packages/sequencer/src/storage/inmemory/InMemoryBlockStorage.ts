@@ -1,10 +1,6 @@
 import { inject, injectable } from "tsyringe";
 
-import {
-  HistoricalBlockStorage,
-  BlockQueue,
-  BlockStorage,
-} from "../repositories/BlockStorage";
+import { BlockQueue, BlockStorage } from "../repositories/BlockStorage";
 import type {
   Block,
   BlockResult,
@@ -14,9 +10,7 @@ import type {
 import { BatchStorage } from "../repositories/BatchStorage";
 
 @injectable()
-export class InMemoryBlockStorage
-  implements BlockStorage, HistoricalBlockStorage, BlockQueue
-{
+export class InMemoryBlockStorage implements BlockStorage, BlockQueue {
   public constructor(
     @inject("BatchStorage") private readonly batchStorage: BatchStorage
   ) {}

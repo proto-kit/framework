@@ -11,7 +11,6 @@ import {
   AsyncStateService,
   BatchStorage,
   HistoricalBatchStorage,
-  HistoricalBlockStorage,
   InMemoryDatabase,
   Sequencer,
   SequencerModule,
@@ -158,9 +157,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         generatedBlock.hash.toBigInt()
       );
 
-      const blockStorage = sequencer.resolve(
-        "BlockStorage"
-      ) as HistoricalBlockStorage & BlockStorage;
+      const blockStorage = sequencer.resolve("BlockStorage") as BlockStorage;
       const block2 = await blockStorage.getBlockAt(
         Number(blocks[0].block.height.toString())
       );

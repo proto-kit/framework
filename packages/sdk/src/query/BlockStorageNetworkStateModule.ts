@@ -1,7 +1,6 @@
 import { inject, injectable } from "tsyringe";
 import {
   BlockStorage,
-  HistoricalBlockStorage,
   HistoricalBatchStorage,
   NetworkStateTransportModule,
   Sequencer,
@@ -29,10 +28,10 @@ export class BlockStorageNetworkStateModule
     return this.sequencer.dependencyContainer.resolve<BlockQueue>("BlockQueue");
   }
 
-  private get unprovenStorage(): BlockStorage & HistoricalBlockStorage {
-    return this.sequencer.dependencyContainer.resolve<
-      BlockStorage & HistoricalBlockStorage
-    >("BlockStorage");
+  private get unprovenStorage(): BlockStorage {
+    return this.sequencer.dependencyContainer.resolve<BlockStorage>(
+      "BlockStorage"
+    );
   }
 
   private get provenStorage(): BatchStorage & HistoricalBatchStorage {

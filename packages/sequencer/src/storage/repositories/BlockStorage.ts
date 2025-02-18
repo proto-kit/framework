@@ -16,9 +16,7 @@ export interface BlockStorage {
   getCurrentBlockHeight: () => Promise<number>;
   getLatestBlock: () => Promise<BlockWithResult | undefined>;
   pushBlock: (block: Block) => Promise<void>;
-}
 
-export interface HistoricalBlockStorage {
   getBlockAt: (height: number) => Promise<Block | undefined>;
   getBlock: (hash: string) => Promise<Block | undefined>;
 }

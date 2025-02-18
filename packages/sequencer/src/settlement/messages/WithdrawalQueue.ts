@@ -8,10 +8,7 @@ import { SequencerModule } from "../../sequencer/builder/SequencerModule";
 import { Sequencer } from "../../sequencer/executor/Sequencer";
 import { Block } from "../../storage/model/Block";
 import { BridgingModule } from "../BridgingModule";
-import {
-  BlockStorage,
-  HistoricalBlockStorage,
-} from "../../storage/repositories/BlockStorage";
+import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { SettlementStorage } from "../../storage/repositories/SettlementStorage";
 import { HistoricalBatchStorage } from "../../storage/repositories/BatchStorage";
 
@@ -60,7 +57,7 @@ export class WithdrawalQueue
       SettlementModule: typeof SettlementModule;
     }>,
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
+    private readonly blockStorage: BlockStorage,
     @inject("BatchStorage")
     private readonly batchStorage: HistoricalBatchStorage,
     @inject("SettlementStorage")
