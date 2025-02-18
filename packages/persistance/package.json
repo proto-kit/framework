@@ -6,7 +6,7 @@
   "version": "0.1.1-develop.833+397881ed",
   "scripts": {
     "build": "npm run prisma:generate && tsc -p tsconfig.json",
-    "prisma:generate": "npx prisma generate --sql",
+    "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate deploy",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test ./test-integration",

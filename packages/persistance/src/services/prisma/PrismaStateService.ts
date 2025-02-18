@@ -1,15 +1,14 @@
 import { AsyncStateService, StateEntry } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { Prisma } from "@prisma/client";
-import {
-  readState,
-  deleteCollisionsFromParentMask,
-  mergeIntoParent,
-} from "@prisma/client/sql";
 import { noop } from "@proto-kit/common";
 import { injectable } from "tsyringe";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
+
+import { readState } from "./sql/readState";
+import { deleteCollisionsFromParentMask } from "./sql/deleteCollisionsFromParentMask";
+import { mergeIntoParent } from "./sql/mergeIntoParent";
 
 // We need to create a correctly configured Decimal constructor
 // with our parameters
@@ -96,7 +95,10 @@ export class PrismaStateService implements AsyncStateService {
     const maskId = await this.getMaskId();
     const paths = keys.map((key) => new Decimal(key.toString()));
 
-    const records = await this.connection.prismaClient.$queryRawTyped(
+    const records: {
+      path: Prisma.Decimal;
+      values: Prisma.Decimal[] | null;
+    }[] = await this.connection.prismaClient.$queryRaw(
       readState(maskId, paths)
     );
 
@@ -138,11 +140,11 @@ export class PrismaStateService implements AsyncStateService {
       // 4. Delete mask
 
       await client.$transaction([
-        client.$queryRawTyped(deleteCollisionsFromParentMask(maskId)),
+        client.$queryRaw(deleteCollisionsFromParentMask(maskId)),
         // MergeIntoParent could be a prisma query, but it isn't, because eventually,
         // this Service should be stateless, therefore the parentId wouldn't be on hand
         // anymore, so we need to inline it's retrieval into the query
-        client.$queryRawTyped(mergeIntoParent(maskId)),
+        client.$queryRaw(mergeIntoParent(maskId)),
         client.mask.updateMany({
           where: {
             parent: maskId,

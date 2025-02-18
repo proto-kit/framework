@@ -2,10 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
-  // output   = "./../node_modules/.prisma/client"
-  // Enable after upgrade to 5.9.0
-  previewFeatures = ["typedSql"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
