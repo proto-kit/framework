@@ -10,25 +10,38 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { WithdrawalQueue } from "../../settlement/messages/WithdrawalQueue";
+import {
+  Sequencer,
+  SequencerModulesRecord,
+} from "../../sequencer/executor/Sequencer";
 
 import { BaseLayer } from "./BaseLayer";
+import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
+import { LightnetUtils } from "./network-utils/LightnetUtils";
+import { RemoteNetworkUtils } from "./network-utils/RemoteNetworkUtils";
+
+export type LocalMinaBaseLayerConfig = {
+  type: "local";
+};
+
+export type LightnetMinaBaseLayerConfig = {
+  type: "lightnet";
+  graphql: string;
+  archive: string;
+  accountManager?: string;
+};
+
+export type RemoteMinaBaseLayerConfig = {
+  type: "remote";
+  graphql: string;
+  archive: string;
+};
 
 export interface MinaBaseLayerConfig {
   network:
-    | {
-        type: "local";
-      }
-    | {
-        type: "lightnet";
-        graphql: string;
-        archive: string;
-        accountManager?: string;
-      }
-    | {
-        type: "remote";
-        graphql: string;
-        archive: string;
-      };
+    | LocalMinaBaseLayerConfig
+    | LightnetMinaBaseLayerConfig
+    | RemoteMinaBaseLayerConfig;
 }
 
 @sequencerModule()
@@ -42,12 +55,20 @@ export class MinaBaseLayer
 
   public constructor(
     @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
+    private readonly areProofsEnabled: AreProofsEnabled,
+    @inject("Sequencer")
+    private readonly sequencer: Sequencer<SequencerModulesRecord>
   ) {
     super();
   }
 
   public dependencies() {
+    const NetworkUtilsClass = match(this.config.network.type)
+      .with("local", () => LocalBlockchainUtils)
+      .with("lightnet", () => LightnetUtils)
+      .with("remote", () => RemoteNetworkUtils)
+      .exhaustive();
+
     return {
       IncomingMessageAdapter: {
         useClass: MinaIncomingMessageAdapter,
@@ -60,7 +81,18 @@ export class MinaBaseLayer
       OutgoingMessageQueue: {
         useClass: WithdrawalQueue,
       },
+
+      NetworkUtils: {
+        useClass: NetworkUtilsClass,
+      },
     };
+  }
+
+  public get networkUtils() {
+    if (this.config.network.type === "remote") {
+      throw new Error("NetworkUtils not available for remote networks");
+    }
+    return this.sequencer.dependencyContainer.resolve("NetworkUtils");
   }
 
   public isLocalBlockChain(): boolean {

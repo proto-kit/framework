@@ -47,7 +47,7 @@ class RuntimeZkProgrammable extends ZkProgrammable<
 
     return [
       {
-        name: "Runtime",
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),

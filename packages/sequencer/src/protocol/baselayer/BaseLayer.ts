@@ -5,12 +5,12 @@ import {
 } from "@proto-kit/common";
 
 import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
-import type { OutgoingMessageQueue } from "../../settlement/messages/WithdrawalQueue";
+import type { OutgoingMessageAdapter } from "../../settlement/messages/WithdrawalQueue";
 
 export interface BaseLayerDependencyRecord extends DependencyRecord {
   IncomingMessageAdapter: DependencyDeclaration<IncomingMessageAdapter>;
   // TODO Move that to Database?
-  OutgoingMessageQueue: DependencyDeclaration<OutgoingMessageQueue>;
+  OutgoingMessageQueue: DependencyDeclaration<OutgoingMessageAdapter>;
 }
 
 export interface BaseLayer extends DependencyFactory {

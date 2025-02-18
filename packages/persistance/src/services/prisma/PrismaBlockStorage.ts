@@ -147,6 +147,7 @@ export class PrismaBlockStorage
         stateRoot: encoded.stateRoot,
         blockHash: encoded.blockHash,
         blockHashRoot: encoded.blockHashRoot,
+        witnessedRoots: encoded.witnessedRoots,
       },
     });
   }

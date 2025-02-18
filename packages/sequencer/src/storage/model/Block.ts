@@ -20,7 +20,11 @@ export interface TransactionExecutionResult {
   stateTransitions: StateTransitionBatch[];
   status: Bool;
   statusMessage?: string;
-  events: { eventName: string; data: Field[] }[];
+  events: {
+    eventName: string;
+    data: Field[];
+    source: "afterTxHook" | "beforeTxHook" | "runtime";
+  }[];
 }
 
 // TODO Why is Block using Fields, but BlockResult bigints? Align that towards the best option

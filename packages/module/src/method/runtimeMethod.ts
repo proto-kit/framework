@@ -16,7 +16,10 @@ import {
 
 import type { RuntimeModule } from "../runtime/RuntimeModule.js";
 
-import { MethodParameterEncoder } from "./MethodParameterEncoder";
+import {
+  MethodParameterEncoder,
+  checkArgsProvable,
+} from "./MethodParameterEncoder";
 
 const errors = {
   runtimeNotProvided: (name: string) =>
@@ -95,7 +98,7 @@ export function toWrappedMethod(
     const stateTransitionsHash = toStateTransitionsHash(stateTransitions);
     const eventsHash = toEventsHash(events);
 
-    const { name, runtime } = this;
+    const { name, parent: runtime } = this;
 
     if (name === undefined) {
       throw errors.runtimeNameNotSet();
@@ -195,11 +198,9 @@ function runtimeMethodInternal(options: {
   return (
     target: RuntimeModule<unknown>,
     methodName: string,
-    descriptor: TypedPropertyDescriptor<
-      // TODO Limit possible parameter types
-      (...args: any[]) => Promise<any>
-    >
+    descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<any>>
   ) => {
+    checkArgsProvable(target, methodName);
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -275,10 +276,10 @@ function runtimeMethodInternal(options: {
       executionContext.beforeMethod(constructorName, methodName, args);
 
       if (executionContext.isTopLevel) {
-        if (!this.runtime) {
+        if (!this.parent) {
           throw errors.runtimeNotProvided(constructorName);
         }
-        executionContext.setProver(prover.bind(this.runtime.zkProgrammable));
+        executionContext.setProver(prover.bind(this.parent.zkProgrammable));
       }
 
       let result: unknown;

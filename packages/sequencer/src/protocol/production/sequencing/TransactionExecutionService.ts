@@ -66,13 +66,13 @@ export type BlockTrackers = Pick<
 function getAreProofsEnabledFromModule(
   module: RuntimeModule<unknown>
 ): AreProofsEnabled {
-  if (module.runtime === undefined) {
+  if (module.parent === undefined) {
     throw new Error("Runtime on RuntimeModule not set");
   }
-  if (module.runtime.areProofsEnabled === undefined) {
+  if (module.parent.areProofsEnabled === undefined) {
     throw new Error("AppChain on Runtime not set");
   }
-  const { areProofsEnabled } = module.runtime;
+  const { areProofsEnabled } = module.parent;
   return areProofsEnabled;
 }
 
@@ -111,8 +111,13 @@ async function decodeTransaction(
 }
 
 function extractEvents(
-  runtimeResult: RuntimeContextReducedExecutionResult
-): { eventName: string; data: Field[] }[] {
+  runtimeResult: RuntimeContextReducedExecutionResult,
+  source: "afterTxHook" | "beforeTxHook" | "runtime"
+): {
+  eventName: string;
+  data: Field[];
+  source: "afterTxHook" | "beforeTxHook" | "runtime";
+}[] {
   return runtimeResult.events.reduce(
     (acc, event) => {
       if (event.condition.toBoolean()) {
@@ -120,13 +125,18 @@ function extractEvents(
           eventName: event.eventName,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           data: event.eventType.toFields(event.event),
+          source: source,
         };
         acc.push(obj);
       }
       return acc;
     },
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    [] as { eventName: string; data: Field[] }[]
+    [] as {
+      eventName: string;
+      data: Field[];
+      source: "afterTxHook" | "beforeTxHook" | "runtime";
+    }[]
   );
 }
 
@@ -314,6 +324,7 @@ export class TransactionExecutionService {
       async (hook, hookArgs) => await hook.beforeTransaction(hookArgs),
       "beforeTx"
     );
+    const beforeHookEvents = extractEvents(beforeTxHookResult, "beforeTxHook");
 
     await recordingStateService.applyStateTransitions(
       beforeTxHookResult.stateTransitions
@@ -363,6 +374,7 @@ export class TransactionExecutionService {
       async (hook, hookArgs) => await hook.afterTransaction(hookArgs),
       "afterTx"
     );
+    const afterHookEvents = extractEvents(afterTxHookResult, "afterTxHook");
     await recordingStateService.applyStateTransitions(
       afterTxHookResult.stateTransitions
     );
@@ -376,7 +388,7 @@ export class TransactionExecutionService {
     appChain.setProofsEnabled(previousProofsEnabled);
 
     // Extract sequencing results
-    const events = extractEvents(runtimeResult);
+    const runtimeResultEvents = extractEvents(runtimeResult, "runtime");
     const stateTransitions = this.buildSTBatches(
       [
         beforeTxHookResult.stateTransitions,
@@ -394,7 +406,7 @@ export class TransactionExecutionService {
         statusMessage: runtimeResult.statusMessage,
 
         stateTransitions,
-        events,
+        events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
       },
     ];
   }

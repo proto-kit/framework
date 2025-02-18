@@ -13,6 +13,7 @@ import {
   CompilableModule,
   CompileArtifact,
   CompileRegistry,
+  log,
   MAX_FIELD,
   PlainZkProgram,
   provableMethod,
@@ -599,7 +600,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
     const skipTransactionProofVerification = isEmptyTransition;
     const verifyTransactionProof = isEmptyTransition.not();
-    Provable.log("VerifyIf TxProof", verifyTransactionProof);
+    log.provable.debug("VerifyIf TxProof", verifyTransactionProof);
     transactionProof.verifyIf(verifyTransactionProof);
 
     // 2. Execute beforeBlock hooks
@@ -714,7 +715,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // otherwise we can input a dummy proof
     const batchesEmpty = state.pendingSTBatches.commitment.equals(Field(0));
     const verifyStProof = deferSTProof.not().and(batchesEmpty.not());
-    Provable.log("Verify STProof", verifyStProof);
+    log.provable.debug("Verify STProof", verifyStProof);
     stateTransitionProof.verifyIf(verifyStProof);
 
     // Apply STProof if not deferred

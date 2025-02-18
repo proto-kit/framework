@@ -18,13 +18,19 @@ import {
   MandatoryProtocolModulesRecord,
   Path,
   Protocol,
+  PROTOKIT_PREFIXES,
 } from "@proto-kit/protocol";
 import { AppChain } from "@proto-kit/sdk";
 import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
-import { BatchStorage, HistoricalBatchStorage, Sequencer } from "../../src";
+import {
+  BatchStorage,
+  HistoricalBatchStorage,
+  Sequencer,
+  VanillaTaskWorkerModules,
+} from "../../src";
 import {
   DefaultTestingSequencerModules,
   testingSequencerFromModules,
@@ -91,10 +97,6 @@ describe("block production", () => {
   let test: BlockTestService;
 
   beforeEach(async () => {
-    // container.reset();
-
-    log.setLevel(log.levels.DEBUG);
-
     const runtimeClass = Runtime.from({
       modules: {
         Balance,
@@ -133,7 +135,7 @@ describe("block production", () => {
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: {},
+        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
@@ -164,6 +166,7 @@ describe("block production", () => {
 
     appChain = app;
 
+    // @ts-ignore
     ({ runtime, sequencer, protocol } = app);
 
     test = app.sequencer.dependencyContainer.resolve(BlockTestService);
@@ -171,8 +174,6 @@ describe("block production", () => {
 
   it("should produce a dummy block proof", async () => {
     expect.assertions(26);
-
-    log.setLevel("TRACE");
 
     const privateKey = PrivateKey.random();
     const publicKey = privateKey.toPublicKey();
@@ -266,8 +267,6 @@ describe("block production", () => {
     expect(block).toBeDefined();
 
     expect(block!.transactions).toHaveLength(1);
-    console.log(block!.transactions[0]);
-    console.log(block!.transactions[0].statusMessage);
     expect(block!.transactions[0].status.toBoolean()).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
@@ -282,8 +281,6 @@ describe("block production", () => {
 
   it("should reject tx and not apply the state", async () => {
     expect.assertions(5);
-
-    log.setLevel("INFO");
 
     const privateKey = PrivateKey.random();
 
@@ -312,6 +309,85 @@ describe("block production", () => {
     expect(unprovenState).toBeUndefined();
     expect(newState).toBeUndefined();
   }, 30_000);
+
+  it("should produce txs in non-consecutive blocks", async () => {
+    const privateKey = PrivateKey.random();
+    const publicKey = privateKey.toPublicKey();
+
+    const privateKey2 = PrivateKey.random();
+    const publicKey2 = privateKey2.toPublicKey();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey,
+      args: [publicKey, UInt64.from(100), Bool(true)],
+    });
+
+    // let [block, batch] = await blockTrigger.produceBlockAndBatch();
+    const block = await test.produceBlock();
+
+    expect(block).toBeDefined();
+
+    expect(block!.transactions).toHaveLength(1);
+    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].statusMessage).toBeUndefined();
+
+    expect(
+      block!.transactions[0].stateTransitions[0].stateTransitions
+    ).toHaveLength(2);
+    expect(
+      block!.transactions[0].stateTransitions[1].stateTransitions
+    ).toHaveLength(1);
+
+    await test.produceBlock();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: privateKey2,
+      args: [publicKey2, UInt64.from(100), Bool(true)],
+    });
+    await test.produceBlock();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: privateKey2,
+      args: [publicKey2, UInt64.from(100), Bool(true)],
+    });
+
+    await test.produceBlock();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: privateKey2,
+      args: [publicKey2, UInt64.from(100), Bool(true)],
+    });
+
+    await test.produceBlock();
+
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey: privateKey2,
+      args: [publicKey2, UInt64.from(100), Bool(true)],
+    });
+    await test.produceBlock();
+
+    // Second tx
+    await test.addTransaction({
+      method: ["Balance", "setBalanceIf"],
+      privateKey,
+      args: [publicKey, UInt64.from(100), Bool(true)],
+    });
+
+    log.info("Starting second block");
+
+    const block2 = await test.produceBlock();
+
+    expect(block2).toBeDefined();
+
+    expect(block2!.transactions).toHaveLength(1);
+    expect(block2!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block2!.transactions[0].statusMessage).toBeUndefined();
+  }, 60_000);
 
   const numberTxs = 3;
 
@@ -520,7 +596,11 @@ describe("block production", () => {
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
-    const supplyPath = Path.fromProperty("Balance", "totalSupply");
+    const supplyPath = Path.fromProperty(
+      "Balance",
+      "totalSupply",
+      PROTOKIT_PREFIXES.STATE_RUNTIME
+    );
     const newState = await test.getState(supplyPath, "block");
 
     expect(newState).toBeDefined();
@@ -544,8 +624,6 @@ describe("block production", () => {
   }, 360_000);
 
   it("regression - should produce block with no STs emitted", async () => {
-    log.setLevel("TRACE");
-
     const privateKey = PrivateKey.random();
 
     await test.addTransaction({
@@ -606,11 +684,13 @@ describe("block production", () => {
     const firstEventReduced = {
       eventName: firstExpectedEvent.eventName,
       data: firstExpectedEvent.eventType.toFields(firstExpectedEvent.event),
+      source: "runtime",
     };
 
     const secondEventReduced = {
       eventName: secondExpectedEvent.eventName,
       data: secondExpectedEvent.eventType.toFields(secondExpectedEvent.event),
+      source: "runtime",
     };
 
     const block = await test.produceBlock();
