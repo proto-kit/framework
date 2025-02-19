@@ -142,11 +142,9 @@ export class PrismaBlockStorage
       );
       const resultMapper = this.transactionResultMapper.mapOut(tx)[0];
       return batches.map((batch, index) => ({
-        ...batch,
+        ...batch[0],
         txExecutionResultId: resultMapper.txHash,
-        stateTransitions: tx.stateTransitions[index].stateTransitions.map(
-          (sts) => this.stateTransitionMapper.mapOut(sts)
-        ),
+        stateTransitions: batch[1],
       }));
     });
 

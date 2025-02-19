@@ -58,10 +58,13 @@ export class StateTransitionBatchArrayMapper
   implements
     ObjectMapper<
       StateTransitionBatch[],
-      Omit<
-        DBStateTransitionBatch,
-        "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-      >[]
+      [
+        Omit<
+          DBStateTransitionBatch,
+          "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+        >,
+        Omit<DBStateTransition, "batchId" | "id">[],
+      ][]
     >
 {
   public constructor(
@@ -70,25 +73,35 @@ export class StateTransitionBatchArrayMapper
 
   public mapOut(
     input: StateTransitionBatch[]
-  ): Omit<
-    DBStateTransitionBatch,
-    "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-  >[] {
-    return input.map((stBatch) => ({
-      applied: stBatch.applied,
-    }));
+  ): [
+    Omit<
+      DBStateTransitionBatch,
+      "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+    >,
+    Omit<DBStateTransition, "batchId" | "id">[],
+  ][] {
+    return input.map((stBatch) => [
+      {
+        applied: stBatch.applied,
+      },
+      stBatch.stateTransitions.map((st) =>
+        this.stateTransitionMapper.mapOut(st)
+      ),
+    ]);
   }
 
   public mapIn(
-    input: Omit<
-      DBStateTransitionBatch,
-      "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-    >[]
+    input: [
+      Omit<
+        DBStateTransitionBatch,
+        "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+      >,
+      Omit<DBStateTransition, "batchId" | "id">[],
+    ][]
   ): StateTransitionBatch[] {
-    return input.map(stBatch=>
-      ({
-      applied: stBatch.applied,
-        stateTransitions: fhfhf,
-    });
+    return input.map((x) => ({
+      applied: x[0].applied,
+      stateTransitions: x[1].map((st) => this.stateTransitionMapper.mapIn(st)),
+    }));
   }
 }
