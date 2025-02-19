@@ -51,10 +51,14 @@ model StateTransition {
 
 model StateTransitionBatch {
   id                  Int     @id @default(autoincrement())
-  txExecutionResultId String
+  txExecutionResultId String?
+  blockId             String?
+  blockResultId       String?
   applied             Boolean
 
-  transactionExecutionResult TransactionExecutionResult @relation(fields: [txExecutionResultId], references: [txHash])
+  transactionExecutionResult TransactionExecutionResult? @relation(fields: [txExecutionResultId], references: [txHash])
+  block                      Block?                      @relation(fields: [blockId], references: [hash])
+  blockResult                BlockResult?                @relation(fields: [blockResultId], references: [blockHash])
   StateTransition            StateTransition[]
 }
 
@@ -94,8 +98,9 @@ model Block {
   transactions TransactionExecutionResult[]
   result       BlockResult?
 
-  batch       Batch? @relation(fields: [batchHeight], references: [height])
-  batchHeight Int?
+  batch                Batch?                 @relation(fields: [batchHeight], references: [height])
+  batchHeight          Int?
+  StateTransitionBatch StateTransitionBatch[]
 }
 
 model Batch {
@@ -119,7 +124,8 @@ model BlockResult {
   afterBlockStateTransitions Json     @db.Json
   blockHashWitness           Json     @db.Json
 
-  block Block? @relation(fields: [blockHash], references: [hash])
+  block                Block?                 @relation(fields: [blockHash], references: [hash])
+  StateTransitionBatch StateTransitionBatch[]
 }
 
 model Settlement {
