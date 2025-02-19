@@ -1,6 +1,5 @@
 import { noop } from "@proto-kit/common";
 
-import { CachedStateService } from "../../state/state/CachedStateService";
 import {
   sequencerModule,
   SequencerModule,
@@ -8,6 +7,7 @@ import {
 import { StorageDependencyMinimumDependencies } from "../StorageDependencyFactory";
 import { Database } from "../Database";
 import { closeable } from "../../sequencer/builder/Closeable";
+import { InMemoryStateServiceCreator } from "../../state/StateServiceCreator";
 
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
 import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
@@ -24,9 +24,6 @@ export class InMemoryDatabase extends SequencerModule implements Database {
       asyncMerkleStore: {
         useClass: InMemoryAsyncMerkleTreeStore,
       },
-      asyncStateService: {
-        useFactory: () => new CachedStateService(undefined),
-      },
       batchStorage: {
         useClass: InMemoryBatchStorage,
       },
@@ -36,8 +33,8 @@ export class InMemoryDatabase extends SequencerModule implements Database {
       blockStorage: {
         useToken: "BlockQueue",
       },
-      unprovenStateService: {
-        useFactory: () => new CachedStateService(undefined),
+      stateServiceCreator: {
+        useClass: InMemoryStateServiceCreator,
       },
       unprovenMerkleStore: {
         useClass: InMemoryAsyncMerkleTreeStore,

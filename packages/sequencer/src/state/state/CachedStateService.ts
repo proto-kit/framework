@@ -22,7 +22,7 @@ export class CachedStateService
     super();
   }
 
-  public async createMask(name: string): Promise<AsyncStateService> {
+  public async createMask(name: string): Promise<CachedStateService> {
     return new CachedStateService(this, name);
   }
 

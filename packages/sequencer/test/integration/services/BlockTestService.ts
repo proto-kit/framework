@@ -3,12 +3,9 @@ import { Field, PrivateKey } from "o1js";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import { ArgumentTypes } from "@proto-kit/common";
 
-import {
-  AsyncStateService,
-  ManualBlockTrigger,
-  PrivateMempool,
-} from "../../../src";
+import { ManualBlockTrigger, PrivateMempool } from "../../../src";
 import { createTransaction } from "../utils";
+import { StateServiceCreator } from "../../../src/state/StateServiceCreator";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -17,8 +14,8 @@ export class BlockTestService {
     @inject("BlockTrigger") private trigger: ManualBlockTrigger,
     @inject("Mempool") private mempool: PrivateMempool,
     @inject("Runtime") private runtime: Runtime<RuntimeModulesRecord>,
-    @inject("AsyncStateService") private batchStateService: AsyncStateService,
-    @inject("UnprovenStateService") private blockStateService: AsyncStateService
+    @inject("StateServiceCreator")
+    private stateServiceCreator: StateServiceCreator
   ) {}
 
   private nonces: Record<string, number> = {};
@@ -47,9 +44,8 @@ export class BlockTestService {
     this.nonces[privateKey.toPublicKey().toBase58()] = nonce + 1;
   }
 
-  public async getState(path: Field, type: "block" | "batch" = "block") {
-    const service =
-      type === "batch" ? this.batchStateService : this.blockStateService;
+  public async getState(path: Field) {
+    const service = await this.stateServiceCreator.getMask("latest");
     return await service.get(path);
   }
 

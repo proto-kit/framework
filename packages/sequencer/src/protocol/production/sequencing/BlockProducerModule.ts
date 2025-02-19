@@ -16,7 +16,6 @@ import {
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
-import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import {
   Block,
   BlockResult,
@@ -24,6 +23,7 @@ import {
 } from "../../../storage/model/Block";
 import { Database } from "../../../storage/Database";
 import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
+import { StateServiceCreator } from "../../../state/StateServiceCreator";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -40,8 +40,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
     private readonly messageService: IncomingMessagesService,
-    @inject("UnprovenStateService")
-    private readonly unprovenStateService: AsyncStateService,
+    @inject("StateServiceCreator")
+    private readonly stateServiceCreator: StateServiceCreator,
     @inject("UnprovenMerkleStore")
     private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
     @inject("BlockQueue")
@@ -106,12 +106,16 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   }
 
   public async generateMetadata(block: Block): Promise<BlockResult> {
+    const stateServiceMask = `block-${block.height.toBigInt()}`;
+    const asyncStateService =
+      await this.stateServiceCreator.getMask(stateServiceMask);
+
     const { result, blockHashTreeStore, treeStore, stateService } =
       await this.resultService.generateMetadataForNextBlock(
         block,
         this.unprovenMerkleStore,
         this.blockTreeStore,
-        this.unprovenStateService
+        asyncStateService
       );
 
     await this.database.executeInTransaction(async () => {
@@ -120,6 +124,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       await stateService.mergeIntoParent();
 
       await this.blockQueue.pushResult(result);
+
+      await this.stateServiceCreator.mergeIntoParent(stateServiceMask);
     });
 
     return result;
@@ -197,6 +203,15 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     };
   }
 
+  private async createMask(previousBlock: Block) {
+    const isFirstBlock = previousBlock.hash.equals(0n).toBoolean();
+    const height = isFirstBlock ? 0n : previousBlock.height.toBigInt() + 1n;
+
+    // const parent = isFirstBlock ? "base" : `block-${height - 1n}`;
+
+    return await this.stateServiceCreator.createMask(`block-${height}`, "base");
+  }
+
   private async produceBlock(): Promise<Block | undefined> {
     this.productionInProgress = true;
 
@@ -207,8 +222,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       return undefined;
     }
 
+    const stateService = await this.createMask(metadata.block);
+
     const blockResult = await this.productionService.createBlock(
-      this.unprovenStateService,
+      stateService,
       txs,
       metadata,
       this.allowEmptyBlock()
