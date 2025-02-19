@@ -1,14 +1,13 @@
 import { singleton } from "tsyringe";
 import {
   StateTransitionBatch,
-  UntypedOption,
   UntypedStateTransition,
 } from "@proto-kit/sequencer";
 import {
   StateTransitionBatch as DBStateTransitionBatch,
   StateTransition as DBStateTransition,
 } from "@prisma/client";
-import { Bool, Field } from "o1js";
+import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
