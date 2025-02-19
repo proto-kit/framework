@@ -23,6 +23,10 @@ import {
 } from "./mappers/TransactionMapper";
 import { BlockResultMapper } from "./mappers/BlockResultMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
+import {
+  StateTransitionBatchArrayMapper,
+  StateTransitionMapper,
+} from "./mappers/StateTransitionMapper";
 
 @injectable()
 export class PrismaBlockStorage
@@ -33,7 +37,9 @@ export class PrismaBlockStorage
     private readonly transactionResultMapper: TransactionExecutionResultMapper,
     private readonly transactionMapper: TransactionMapper,
     private readonly blockResultMapper: BlockResultMapper,
-    private readonly blockMapper: BlockMapper
+    private readonly blockMapper: BlockMapper,
+    private readonly stateTransitionBatchMapper: StateTransitionBatchArrayMapper,
+    private readonly stateTransitionMapper: StateTransitionMapper
   ) {}
 
   private async getBlockByQuery(
@@ -120,17 +126,40 @@ export class PrismaBlockStorage
                 status: tx.status,
                 statusMessage: tx.statusMessage,
                 txHash: tx.txHash,
-
-                stateTransitions: tx.stateTransitions as Prisma.InputJsonArray,
                 events: tx.events as Prisma.InputJsonArray,
               };
             }),
             skipDuplicates: true,
           },
         },
-
         batchHeight: undefined,
       },
+    });
+
+    const stateTransitionBatches = block.transactions.flatMap((tx) => {
+      const batches = this.stateTransitionBatchMapper.mapOut(
+        tx.stateTransitions
+      );
+      const resultMapper = this.transactionResultMapper.mapOut(tx)[0];
+      return batches.map((batch, index) => ({
+        ...batch,
+        txExecutionResultId: resultMapper.txHash,
+        stateTransitions: tx.stateTransitions[index].stateTransitions.map(
+          (sts) => this.stateTransitionMapper.mapOut(sts)
+        ),
+      }));
+    });
+
+    await prismaClient.stateTransitionBatch.createMany({
+      data: stateTransitionBatches.map((batch) => ({
+        ...batch,
+        stateTransitions: {
+          create: {
+            data: batch.stateTransitions,
+          },
+        },
+      })),
+      skipDuplicates: false,
     });
   }
 
