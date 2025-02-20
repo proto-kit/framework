@@ -1,55 +1,97 @@
 import { singleton } from "tsyringe";
 import { Block } from "@proto-kit/sequencer";
-import { Block as PrismaBlock } from "@prisma/client";
+import {
+  Block as PrismaBlock,
+  StateTransition as DBStateTransition,
+  StateTransitionBatch as DBStateTransitionBatch,
+} from "@prisma/client";
 import { NetworkState } from "@proto-kit/protocol";
 import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
-import { StateTransitionArrayMapper } from "./StateTransitionMapper";
+import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 
 @singleton()
-export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
+export class BlockMapper
+  implements
+    ObjectMapper<
+      Block,
+      [
+        PrismaBlock,
+        [
+          Omit<
+            DBStateTransitionBatch,
+            "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+          >,
+          Omit<DBStateTransition, "batchId" | "id">[],
+        ][],
+      ]
+    >
+{
   public constructor(
-    private readonly stArrayMapper: StateTransitionArrayMapper
+    private readonly stArrayMapper: StateTransitionBatchArrayMapper
   ) {}
 
-  public mapIn(input: PrismaBlock): Block {
+  public mapIn(
+    input: [
+      PrismaBlock,
+      [
+        Omit<
+          DBStateTransitionBatch,
+          "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+        >,
+        Omit<DBStateTransition, "batchId" | "id">[],
+      ][],
+    ]
+  ): Block {
+    const block = input[0];
+    const stBatch = input[1];
     return {
       transactions: [],
 
       networkState: {
         before: new NetworkState(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          NetworkState.fromJSON(input.beforeNetworkState as any)
+          NetworkState.fromJSON(block.beforeNetworkState as any)
         ),
         during: new NetworkState(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          NetworkState.fromJSON(input.duringNetworkState as any)
+          NetworkState.fromJSON(block.duringNetworkState as any)
         ),
       },
 
-      hash: Field(input.hash),
-      height: Field(input.height),
-      fromEternalTransactionsHash: Field(input.fromEternalTransactionsHash),
-      toEternalTransactionsHash: Field(input.toEternalTransactionsHash),
-      fromBlockHashRoot: Field(input.fromBlockHashRoot),
-      fromMessagesHash: Field(input.fromMessagesHash),
-      toMessagesHash: Field(input.toMessagesHash),
-      fromStateRoot: Field(input.fromStateRoot),
+      hash: Field(block.hash),
+      height: Field(block.height),
+      fromEternalTransactionsHash: Field(block.fromEternalTransactionsHash),
+      toEternalTransactionsHash: Field(block.toEternalTransactionsHash),
+      fromBlockHashRoot: Field(block.fromBlockHashRoot),
+      fromMessagesHash: Field(block.fromMessagesHash),
+      toMessagesHash: Field(block.toMessagesHash),
+      fromStateRoot: Field(block.fromStateRoot),
 
-      transactionsHash: Field(input.transactionsHash),
+      transactionsHash: Field(block.transactionsHash),
       previousBlockHash:
-        input.parentHash !== null ? Field(input.parentHash) : undefined,
+        block.parentHash !== null ? Field(block.parentHash) : undefined,
 
-      beforeBlockStateTransitions: this.stArrayMapper.mapIn(
-        input.beforeBlockStateTransitions
-      ),
+      beforeBlockStateTransitions:
+        this.stArrayMapper.mapIn(stBatch)[0].stateTransitions,
     };
   }
 
-  public mapOut(input: Block): PrismaBlock {
-    return {
+  public mapOut(
+    input: Block
+  ): [
+    PrismaBlock,
+    [
+      Omit<
+        DBStateTransitionBatch,
+        "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+      >,
+      Omit<DBStateTransition, "batchId" | "id">[],
+    ][],
+  ] {
+    const block = {
       height: Number(input.height.toBigInt()),
       beforeNetworkState: NetworkState.toJSON(input.networkState.before),
       duringNetworkState: NetworkState.toJSON(input.networkState.during),
@@ -64,10 +106,10 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       transactionsHash: input.transactionsHash.toString(),
       parentHash: input.previousBlockHash?.toString() ?? null,
       batchHeight: null,
-
-      beforeBlockStateTransitions: this.stArrayMapper.mapOut(
-        input.beforeBlockStateTransitions
-      ),
     };
+    const stBatches = this.stArrayMapper.mapOut([
+      { stateTransitions: input.beforeBlockStateTransitions, applied: true },
+    ]);
+    return [block, stBatches];
   }
 }
