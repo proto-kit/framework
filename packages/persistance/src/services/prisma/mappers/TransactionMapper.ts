@@ -6,13 +6,15 @@ import {
 import {
   Transaction as DBTransaction,
   TransactionExecutionResult as DBTransactionExecutionResult,
+  StateTransition as DBStateTransition,
+  StateTransitionBatch as DBStateTransitionBatch,
 } from "@prisma/client";
 import { Bool } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
-import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 import { EventArrayMapper } from "./EventMapper";
+import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 
 @singleton()
 @injectable()
@@ -50,41 +52,73 @@ export class TransactionExecutionResultMapper
   implements
     ObjectMapper<
       TransactionExecutionResult,
-      [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction]
+      [
+        Omit<DBTransactionExecutionResult, "blockHash">,
+        DBTransaction,
+        [
+          Omit<
+            DBStateTransitionBatch,
+            "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+          >,
+          Omit<DBStateTransition, "batchId" | "id">[],
+        ][],
+      ]
     >
 {
   public constructor(
     private readonly transactionMapper: TransactionMapper,
-    private readonly stBatchMapper: StateTransitionBatchArrayMapper,
-    private readonly eventArrayMapper: EventArrayMapper
+    private readonly eventArrayMapper: EventArrayMapper,
+    private readonly stBatchArrayMapper: StateTransitionBatchArrayMapper
   ) {}
 
   public mapIn(
-    input: [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction]
+    input: [
+      Omit<DBTransactionExecutionResult, "blockHash">,
+      DBTransaction,
+      [
+        Omit<
+          DBStateTransitionBatch,
+          "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+        >,
+        Omit<DBStateTransition, "batchId" | "id">[],
+      ][],
+    ]
   ): TransactionExecutionResult {
     const executionResult = input[0];
+    const stateTransitions = input[2];
     return {
       tx: this.transactionMapper.mapIn(input[1]),
       status: Bool(executionResult.status),
       statusMessage: executionResult.statusMessage ?? undefined,
-      stateTransitions: this.stBatchMapper.mapIn(
-        executionResult.stateTransitions
-      ),
       events: this.eventArrayMapper.mapIn(executionResult.events),
+      stateTransitions: this.stBatchArrayMapper.mapIn(stateTransitions),
     };
   }
 
   mapOut(
     input: TransactionExecutionResult
-  ): [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction] {
+  ): [
+    Omit<DBTransactionExecutionResult, "blockHash">,
+    DBTransaction,
+    [
+      Omit<
+        DBStateTransitionBatch,
+        "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+      >,
+      Omit<DBStateTransition, "batchId" | "id">[],
+    ][],
+  ] {
     const tx = this.transactionMapper.mapOut(input.tx);
     const executionResult = {
       status: input.status.toBoolean(),
       statusMessage: input.statusMessage ?? null,
-      stateTransitions: this.stBatchMapper.mapOut(input.stateTransitions),
       events: this.eventArrayMapper.mapOut(input.events),
       txHash: tx.hash,
     };
-    return [executionResult, tx];
+    const stateTransitions = this.stBatchArrayMapper.mapOut(
+      input.stateTransitions
+    );
+
+    return [executionResult, tx, stateTransitions];
   }
 }
