@@ -1,10 +1,6 @@
 import { singleton } from "tsyringe";
 import { Block } from "@proto-kit/sequencer";
-import {
-  Block as PrismaBlock,
-  StateTransition as DBStateTransition,
-  StateTransitionBatch as DBStateTransitionBatch,
-} from "@prisma/client";
+import { Block as PrismaBlock } from "@prisma/client";
 import { NetworkState } from "@proto-kit/protocol";
 import { Field } from "o1js";
 
@@ -15,83 +11,46 @@ import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 @singleton()
 export class BlockMapper
   implements
-    ObjectMapper<
-      Block,
-      [
-        PrismaBlock,
-        [
-          Omit<
-            DBStateTransitionBatch,
-            "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-          >,
-          Omit<DBStateTransition, "batchId" | "id">[],
-        ][],
-      ]
-    >
+    ObjectMapper<Omit<Block, "beforeBlockStateTransitions">, PrismaBlock>
 {
   public constructor(
     private readonly stArrayMapper: StateTransitionBatchArrayMapper
   ) {}
 
-  public mapIn(
-    input: [
-      PrismaBlock,
-      [
-        Omit<
-          DBStateTransitionBatch,
-          "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-        >,
-        Omit<DBStateTransition, "batchId" | "id">[],
-      ][],
-    ]
-  ): Block {
-    const block = input[0];
-    const stBatch = input[1];
+  public mapIn(input: PrismaBlock): Omit<Block, "beforeBlockStateTransitions"> {
     return {
       transactions: [],
 
       networkState: {
         before: new NetworkState(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          NetworkState.fromJSON(block.beforeNetworkState as any)
+          NetworkState.fromJSON(input.beforeNetworkState as any)
         ),
         during: new NetworkState(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          NetworkState.fromJSON(block.duringNetworkState as any)
+          NetworkState.fromJSON(input.duringNetworkState as any)
         ),
       },
 
-      hash: Field(block.hash),
-      height: Field(block.height),
-      fromEternalTransactionsHash: Field(block.fromEternalTransactionsHash),
-      toEternalTransactionsHash: Field(block.toEternalTransactionsHash),
-      fromBlockHashRoot: Field(block.fromBlockHashRoot),
-      fromMessagesHash: Field(block.fromMessagesHash),
-      toMessagesHash: Field(block.toMessagesHash),
-      fromStateRoot: Field(block.fromStateRoot),
+      hash: Field(input.hash),
+      height: Field(input.height),
+      fromEternalTransactionsHash: Field(input.fromEternalTransactionsHash),
+      toEternalTransactionsHash: Field(input.toEternalTransactionsHash),
+      fromBlockHashRoot: Field(input.fromBlockHashRoot),
+      fromMessagesHash: Field(input.fromMessagesHash),
+      toMessagesHash: Field(input.toMessagesHash),
+      fromStateRoot: Field(input.fromStateRoot),
 
-      transactionsHash: Field(block.transactionsHash),
+      transactionsHash: Field(input.transactionsHash),
       previousBlockHash:
-        block.parentHash !== null ? Field(block.parentHash) : undefined,
-
-      beforeBlockStateTransitions:
-        this.stArrayMapper.mapIn(stBatch)[0].stateTransitions,
+        input.parentHash !== null ? Field(input.parentHash) : undefined,
     };
   }
 
   public mapOut(
-    input: Block
-  ): [
-    PrismaBlock,
-    [
-      Omit<
-        DBStateTransitionBatch,
-        "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-      >,
-      Omit<DBStateTransition, "batchId" | "id">[],
-    ][],
-  ] {
-    const block = {
+    input: Omit<Block, "beforeBlockStateTransitions">
+  ): PrismaBlock {
+    return {
       height: Number(input.height.toBigInt()),
       beforeNetworkState: NetworkState.toJSON(input.networkState.before),
       duringNetworkState: NetworkState.toJSON(input.networkState.during),
@@ -107,9 +66,5 @@ export class BlockMapper
       parentHash: input.previousBlockHash?.toString() ?? null,
       batchHeight: null,
     };
-    const stBatches = this.stArrayMapper.mapOut([
-      { stateTransitions: input.beforeBlockStateTransitions, applied: true },
-    ]);
-    return [block, stBatches];
   }
 }

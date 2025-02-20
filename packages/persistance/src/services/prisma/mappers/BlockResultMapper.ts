@@ -1,10 +1,6 @@
 import { singleton } from "tsyringe";
 import { BlockResult } from "@proto-kit/sequencer";
-import {
-  BlockResult as DBBlockResult,
-  StateTransition as DBStateTransition,
-  StateTransitionBatch as DBStateTransitionBatch,
-} from "@prisma/client";
+import { BlockResult as DBBlockResult } from "@prisma/client";
 import { BlockHashMerkleTreeWitness, NetworkState } from "@proto-kit/protocol";
 
 import { ObjectMapper } from "../../../ObjectMapper";
@@ -15,17 +11,8 @@ import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 export class BlockResultMapper
   implements
     ObjectMapper<
-      BlockResult,
-      [
-        DBBlockResult,
-        [
-          Omit<
-            DBStateTransitionBatch,
-            "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-          >,
-          Omit<DBStateTransition, "batchId" | "id">[],
-        ][],
-      ]
+      Omit<BlockResult, "afterBlockStateTransitions">,
+      DBBlockResult
     >
 {
   public constructor(
@@ -33,54 +20,32 @@ export class BlockResultMapper
   ) {}
 
   public mapIn(
-    input: [
-      DBBlockResult,
-      [
-        Omit<
-          DBStateTransitionBatch,
-          "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-        >,
-        Omit<DBStateTransition, "batchId" | "id">[],
-      ][],
-    ]
-  ): BlockResult {
-    const dbBlockResult = input[0];
-    const stBatch = input[1];
+    input: DBBlockResult
+  ): Omit<BlockResult, "afterBlockStateTransitions"> {
     return {
       afterNetworkState: new NetworkState(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        NetworkState.fromJSON(dbBlockResult.afterNetworkState as any)
+        NetworkState.fromJSON(input.afterNetworkState as any)
       ),
 
-      stateRoot: BigInt(dbBlockResult.stateRoot),
-      blockHashRoot: BigInt(dbBlockResult.blockHashRoot),
+      stateRoot: BigInt(input.stateRoot),
+      blockHashRoot: BigInt(input.blockHashRoot),
       blockHashWitness: new BlockHashMerkleTreeWitness(
         BlockHashMerkleTreeWitness.fromJSON(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          dbBlockResult.blockHashWitness as any
+          input.blockHashWitness as any
         )
       ),
-      afterBlockStateTransitions:
-        this.stArrayMapper.mapIn(stBatch)[0].stateTransitions,
-      blockHash: BigInt(dbBlockResult.blockHash),
+      blockHash: BigInt(input.blockHash),
 
-      witnessedRoots: [BigInt(dbBlockResult.witnessedRoots[0])],
+      witnessedRoots: [BigInt(input.witnessedRoots[0])],
     };
   }
 
   public mapOut(
-    input: BlockResult
-  ): [
-    DBBlockResult,
-    [
-      Omit<
-        DBStateTransitionBatch,
-        "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-      >,
-      Omit<DBStateTransition, "batchId" | "id">[],
-    ][],
-  ] {
-    const dbBlockResult = {
+    input: Omit<BlockResult, "afterBlockStateTransitions">
+  ): DBBlockResult {
+    return {
       stateRoot: input.stateRoot.toString(),
       blockHash: input.blockHash.toString(),
       blockHashRoot: input.blockHashRoot.toString(),
@@ -92,9 +57,5 @@ export class BlockResultMapper
 
       witnessedRoots: [input.witnessedRoots[0].toString()],
     };
-    const stBatches = this.stArrayMapper.mapOut([
-      { stateTransitions: input.afterBlockStateTransitions, applied: true },
-    ]);
-    return [dbBlockResult, stBatches];
   }
 }
