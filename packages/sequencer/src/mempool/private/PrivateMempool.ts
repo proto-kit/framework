@@ -28,7 +28,7 @@ import {
 } from "../../sequencer/executor/Sequencer";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { distinctByPredicate } from "../../helpers/utils";
-import { StateServiceCreator } from "../../state/StateServiceCreator";
+import { StateServiceCreator } from "../../state/masking/StateServiceCreator";
 
 type MempoolTransactionPaths = {
   transaction: PendingTransaction;
@@ -104,7 +104,7 @@ export class PrivateMempool
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
 
-    const stateService = await this.stateServiceCreator.getMask("latest");
+    const stateService = await this.stateServiceCreator.getMask("base");
     const baseCachedStateService = new CachedStateService(stateService);
 
     const networkState =

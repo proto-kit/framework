@@ -5,7 +5,7 @@ import { ArgumentTypes } from "@proto-kit/common";
 
 import { ManualBlockTrigger, PrivateMempool } from "../../../src";
 import { createTransaction } from "../utils";
-import { StateServiceCreator } from "../../../src/state/StateServiceCreator";
+import { StateServiceCreator } from "../../../src/state/masking/StateServiceCreator";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -45,7 +45,7 @@ export class BlockTestService {
   }
 
   public async getState(path: Field) {
-    const service = await this.stateServiceCreator.getMask("latest");
+    const service = await this.stateServiceCreator.getMask("base");
     return await service.get(path);
   }
 

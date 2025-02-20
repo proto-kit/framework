@@ -23,7 +23,8 @@ import {
 } from "../../../storage/model/Block";
 import { Database } from "../../../storage/Database";
 import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
-import { StateServiceCreator } from "../../../state/StateServiceCreator";
+import { TreeStoreCreator } from "../../../state/masking/TreeStoreCreator";
+import { StateServiceCreator } from "../../../state/masking/StateServiceCreator";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -42,8 +43,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly messageService: IncomingMessagesService,
     @inject("StateServiceCreator")
     private readonly stateServiceCreator: StateServiceCreator,
-    @inject("UnprovenMerkleStore")
-    private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
+    @inject("TreeStoreCreator")
+    private readonly treeStoreCreator: TreeStoreCreator,
+    // @inject("UnprovenMerkleStore")
+    // private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
     @inject("BlockQueue")
     private readonly blockQueue: BlockQueue,
     @inject("BlockTreeStore")
@@ -106,14 +109,20 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   }
 
   public async generateMetadata(block: Block): Promise<BlockResult> {
-    const stateServiceMask = `block-${block.height.toBigInt()}`;
-    const asyncStateService =
-      await this.stateServiceCreator.getMask(stateServiceMask);
+    const height = block.height.toBigInt();
+    const maskName = `block-${height}`;
+    const asyncStateService = await this.stateServiceCreator.getMask(maskName);
+
+    const asyncTreeStore = await this.treeStoreCreator.createMask(
+      maskName,
+      `block-${height - 1n}`,
+      "base"
+    );
 
     const { result, blockHashTreeStore, treeStore, stateService } =
       await this.resultService.generateMetadataForNextBlock(
         block,
-        this.unprovenMerkleStore,
+        asyncTreeStore,
         this.blockTreeStore,
         asyncStateService
       );
@@ -125,7 +134,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
       await this.blockQueue.pushResult(result);
 
-      await this.stateServiceCreator.mergeIntoParent(stateServiceMask);
+      await this.stateServiceCreator.mergeIntoParent(maskName);
     });
 
     return result;
