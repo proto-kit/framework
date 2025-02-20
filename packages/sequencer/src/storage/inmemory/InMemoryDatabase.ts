@@ -7,23 +7,21 @@ import {
 import { StorageDependencyMinimumDependencies } from "../StorageDependencyFactory";
 import { Database } from "../Database";
 import { closeable } from "../../sequencer/builder/Closeable";
-import { InMemoryStateServiceCreator } from "../../state/StateServiceCreator";
 
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
-import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 import { InMemoryMessageStorage } from "./InMemoryMessageStorage";
 import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
 import { InMemoryTransactionStorage } from "./InMemoryTransactionStorage";
+import { InMemoryStateServiceCreator } from "./masking/InMemoryStateServiceCreator";
+import { InMemoryTreeStoreCreator } from "./masking/InMemoryTreeStoreCreator";
+import { InMemoryBaseMerkleTreeStore } from "./masking/InMemoryMerkleTreeStoreMask";
 
 @sequencerModule()
 @closeable()
 export class InMemoryDatabase extends SequencerModule implements Database {
   public dependencies(): StorageDependencyMinimumDependencies {
     return {
-      asyncMerkleStore: {
-        useClass: InMemoryAsyncMerkleTreeStore,
-      },
       batchStorage: {
         useClass: InMemoryBatchStorage,
       },
@@ -36,11 +34,11 @@ export class InMemoryDatabase extends SequencerModule implements Database {
       stateServiceCreator: {
         useClass: InMemoryStateServiceCreator,
       },
-      unprovenMerkleStore: {
-        useClass: InMemoryAsyncMerkleTreeStore,
+      treeStoreCreator: {
+        useClass: InMemoryTreeStoreCreator,
       },
       blockTreeStore: {
-        useClass: InMemoryAsyncMerkleTreeStore,
+        useClass: InMemoryBaseMerkleTreeStore,
       },
       messageStorage: {
         useClass: InMemoryMessageStorage,
