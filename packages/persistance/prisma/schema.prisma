@@ -89,8 +89,6 @@ model Block {
   toMessagesHash              String
   fromStateRoot               String
 
-  beforeBlockStateTransitions Json @db.Json
-
   parentHash String? @unique
   parent     Block?  @relation("Parent", fields: [parentHash], references: [hash])
   successor  Block?  @relation("Parent")
@@ -117,12 +115,11 @@ model Batch {
 model BlockResult {
   blockHash String @id @unique
 
-  stateRoot                  String
-  blockHashRoot              String
-  witnessedRoots             String[]
-  afterNetworkState          Json     @db.Json
-  afterBlockStateTransitions Json     @db.Json
-  blockHashWitness           Json     @db.Json
+  stateRoot         String
+  blockHashRoot     String
+  witnessedRoots    String[]
+  afterNetworkState Json     @db.Json
+  blockHashWitness  Json     @db.Json
 
   block                Block?                 @relation(fields: [blockHash], references: [hash])
   StateTransitionBatch StateTransitionBatch[]
