@@ -43,8 +43,8 @@ function collectStateDiff(
 }
 
 function createCombinedStateDiff(
-  transactions: TransactionExecutionResult[],
-  blockHookSTs: UntypedStateTransition[]
+  blockHookSTs: UntypedStateTransition[],
+  transactions: TransactionExecutionResult[]
 ) {
   // Flatten diff list into a single diff by applying them over each other
   return transactions
@@ -53,7 +53,7 @@ function createCombinedStateDiff(
         .filter(({ applied }) => applied)
         .flatMap(({ stateTransitions }) => stateTransitions);
 
-      transitions.push(...blockHookSTs);
+      transitions.splice(0, 0, ...blockHookSTs);
 
       return collectStateDiff(transitions);
     })
@@ -181,8 +181,8 @@ export class BlockResultService {
     stateService: CachedStateService;
   }> {
     const combinedDiff = createCombinedStateDiff(
-      block.transactions,
-      block.beforeBlockStateTransitions
+      block.beforeBlockStateTransitions,
+      block.transactions
     );
 
     const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
