@@ -198,9 +198,7 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
         ...block,
         transactions,
       },
-      result: {
-        ...result,
-      },
+      result,
     };
   }
 

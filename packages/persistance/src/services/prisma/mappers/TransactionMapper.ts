@@ -81,7 +81,6 @@ export class TransactionExecutionResultMapper
       events: this.eventArrayMapper.mapOut(input.events),
       txHash: tx.hash,
     };
-
     return [executionResult, tx];
   }
 }
