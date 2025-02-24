@@ -24,11 +24,33 @@ export class IndexBlockTaskParametersSerializer {
 
   public toJSON(parameters: IndexBlockTaskParameters): string {
     return JSON.stringify({
-      block: this.blockMapper.mapOut(parameters.block),
-      transactions: parameters.block.transactions.map((tx) =>
-        this.transactionResultMapper.mapOut(tx)
-      ),
-      result: this.blockResultMapper.mapOut(parameters.result),
+      block: {
+        ...this.blockMapper.mapOut(parameters.block),
+        beforeBlockStateTransitions:
+          parameters.block.beforeBlockStateTransitions.map((st) =>
+            this.stateTransitionMapper.mapOut(st)
+          ),
+      },
+      transactions: parameters.block.transactions.map((tx) => {
+        const txMap = this.transactionResultMapper.mapOut(tx);
+        const stBatches = this.stateTransitionBatchMapper.mapOut(
+          tx.stateTransitions
+        );
+        return {
+          ...txMap,
+          stateTransitionBatch: stBatches.map(([batch, sts]) => ({
+            applied: batch.applied,
+            stateTransitions: sts,
+          })),
+        };
+      }),
+      result: {
+        ...this.blockResultMapper.mapOut(parameters.result),
+        afterBlockStateTransitions:
+          parameters.result.afterBlockStateTransitions.map((st) =>
+            this.stateTransitionMapper.mapOut(st)
+          ),
+      },
     });
   }
 
