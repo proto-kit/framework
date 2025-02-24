@@ -53,23 +53,23 @@ export class PrismaBlockStorage
         transactions: {
           include: {
             tx: true,
-            StateTransitionBatch: {
+            stateTransitionBatch: {
               include: {
-                StateTransition: true,
+                stateTransition: true,
               },
             },
           },
         },
-        StateTransitionBatch: {
+        stateTransitionBatch: {
           include: {
-            StateTransition: true,
+            stateTransition: true,
           },
         },
         result: {
           include: {
-            StateTransitionBatch: {
+            stateTransitionBatch: {
               include: {
-                StateTransition: true,
+                stateTransition: true,
               },
             },
           },
@@ -85,7 +85,7 @@ export class PrismaBlockStorage
           txresult,
           txresult.tx,
         ]);
-        const stBatch = txresult.StateTransitionBatch.map<
+        const stBatch = txresult.stateTransitionBatch.map<
           [
             Omit<
               DBStateTransitionBatch,
@@ -93,7 +93,7 @@ export class PrismaBlockStorage
             >,
             Omit<DBStateTransition, "batchId" | "id">[],
           ]
-        >((batch) => [{ applied: batch.applied }, batch.StateTransition]);
+        >((batch) => [{ applied: batch.applied }, batch.stateTransition]);
         return {
           ...txExecResult,
           stateTransitions: this.stateTransitionBatchMapper.mapIn(stBatch),
@@ -106,7 +106,7 @@ export class PrismaBlockStorage
         ...this.blockMapper.mapIn(dbResult),
         beforeBlockStateTransitions:
           // Each block should just have one batch of STs associated with it
-          dbResult.StateTransitionBatch[0].StateTransition.map((st) =>
+          dbResult.stateTransitionBatch[0].stateTransition.map((st) =>
             this.stateTransitionMapper.mapIn(st)
           ),
         transactions,
@@ -116,7 +116,7 @@ export class PrismaBlockStorage
             ...this.blockResultMapper.mapIn(dbResult.result),
             afterBlockStateTransitions:
               // Each block should just have one batch of STs assoicated with it
-              dbResult.StateTransitionBatch[0].StateTransition.map((st) =>
+              dbResult.stateTransitionBatch[0].stateTransition.map((st) =>
                 this.stateTransitionMapper.mapIn(st)
               ),
           }
@@ -219,7 +219,7 @@ export class PrismaBlockStorage
       data: {
         afterNetworkState: encoded.afterNetworkState as Prisma.InputJsonValue,
         blockHashWitness: encoded.blockHashWitness as Prisma.InputJsonValue,
-        StateTransitionBatch: {
+        stateTransitionBatch: {
           create: batches.map(([stBatch, sts]) => {
             return {
               ...stBatch,
@@ -291,23 +291,23 @@ export class PrismaBlockStorage
         transactions: {
           include: {
             tx: true,
-            StateTransitionBatch: {
+            stateTransitionBatch: {
               include: {
-                StateTransition: true,
+                stateTransition: true,
               },
             },
           },
         },
-        StateTransitionBatch: {
+        stateTransitionBatch: {
           include: {
-            StateTransition: true,
+            stateTransition: true,
           },
         },
         result: {
           include: {
-            StateTransitionBatch: {
+            stateTransitionBatch: {
               include: {
-                StateTransition: true,
+                stateTransition: true,
               },
             },
           },
@@ -325,7 +325,7 @@ export class PrismaBlockStorage
             txresult,
             txresult.tx,
           ]);
-          const stBatch = txresult.StateTransitionBatch.map<
+          const stBatch = txresult.stateTransitionBatch.map<
             [
               Omit<
                 DBStateTransitionBatch,
@@ -333,7 +333,7 @@ export class PrismaBlockStorage
               >,
               Omit<DBStateTransition, "batchId" | "id">[],
             ]
-          >((batch) => [{ applied: batch.applied }, batch.StateTransition]);
+          >((batch) => [{ applied: batch.applied }, batch.stateTransition]);
           return {
             ...txExecResult,
             stateTransitions: this.stateTransitionBatchMapper.mapIn(stBatch),
@@ -355,14 +355,14 @@ export class PrismaBlockStorage
         block: {
           ...decodedBlock,
           beforeBlockStateTransitions:
-            block.StateTransitionBatch[0].StateTransition.map((st) =>
+            block.stateTransitionBatch[0].stateTransition.map((st) =>
               this.stateTransitionMapper.mapIn(st)
             ),
         },
         result: {
           ...this.blockResultMapper.mapIn(result),
           afterBlockStateTransitions:
-            result.StateTransitionBatch[0].StateTransition.map((st) =>
+            result.stateTransitionBatch[0].stateTransition.map((st) =>
               this.stateTransitionMapper.mapIn(st)
             ),
         },
