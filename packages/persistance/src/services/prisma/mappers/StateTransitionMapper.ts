@@ -90,13 +90,7 @@ export class StateTransitionBatchArrayMapper
   }
 
   public mapIn(
-    input: [
-      Omit<
-        DBStateTransitionBatch,
-        "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-      >,
-      Omit<DBStateTransition, "batchId" | "id">[],
-    ][]
+    input: [STBatchArrayMapOut1, STBatchArrayMapOut2][]
   ): StateTransitionBatch[] {
     return input.map((x) => ({
       applied: x[0].applied,

@@ -28,6 +28,8 @@ import { BlockMapper } from "./mappers/BlockMapper";
 import {
   StateTransitionBatchArrayMapper,
   StateTransitionMapper,
+  STBatchArrayMapOut1,
+  STBatchArrayMapOut2,
 } from "./mappers/StateTransitionMapper";
 
 @injectable()
@@ -86,13 +88,7 @@ export class PrismaBlockStorage
           txresult.tx,
         ]);
         const stBatch = txresult.stateTransitionBatch.map<
-          [
-            Omit<
-              DBStateTransitionBatch,
-              "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-            >,
-            Omit<DBStateTransition, "batchId" | "id">[],
-          ]
+          [STBatchArrayMapOut1, STBatchArrayMapOut2]
         >((batch) => [{ applied: batch.applied }, batch.stateTransition]);
         return {
           ...txExecResult,

@@ -13,6 +13,8 @@ import {
   TransactionExecutionResultMapper,
   StateTransitionMapper,
   StateTransitionBatchArrayMapper,
+  STBatchArrayMapOut1,
+  STBatchArrayMapOut2,
 } from "@proto-kit/persistance";
 import { log } from "@proto-kit/common";
 import { injectable } from "tsyringe";
@@ -174,13 +176,7 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
       (tx) => {
         const txMapped = this.transactionResultMapper.mapIn([tx, tx.tx]);
         const stBatch = tx.stateTransitionBatch.map<
-          [
-            Omit<
-              PrismaStateTransitionBatch,
-              "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-            >,
-            Omit<PrismaStateTransition, "batchId" | "id">[],
-          ]
+          [STBatchArrayMapOut1, STBatchArrayMapOut2]
         >((batch) => [{ applied: batch.applied }, batch.stateTransitions]);
         return {
           ...txMapped,
