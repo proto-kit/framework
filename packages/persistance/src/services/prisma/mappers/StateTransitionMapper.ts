@@ -11,6 +11,12 @@ import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
+export type STBatchArrayMapOut1 = Omit<
+  DBStateTransitionBatch,
+  "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+>;
+export type STBatchArrayMapOut2 = Omit<DBStateTransition, "batchId" | "id">[];
+
 @singleton()
 export class StateTransitionMapper
   implements
@@ -72,13 +78,7 @@ export class StateTransitionBatchArrayMapper
 
   public mapOut(
     input: StateTransitionBatch[]
-  ): [
-    Omit<
-      DBStateTransitionBatch,
-      "txExecutionResultId" | "id" | "blockId" | "blockResultId"
-    >,
-    Omit<DBStateTransition, "batchId" | "id">[],
-  ][] {
+  ): [STBatchArrayMapOut1, STBatchArrayMapOut2][] {
     return input.map((stBatch) => [
       {
         applied: stBatch.applied,
