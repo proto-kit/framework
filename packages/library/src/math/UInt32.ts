@@ -19,7 +19,7 @@ export class UInt32 extends UInt<32> {
   };
 
   public static check(x: { value: Field }) {
-    UInt.assertionFunction(Gadgets.isDefinitelyInRangeN(32, x.value));
+    Gadgets.isDefinitelyInRangeN(32, x.value).assertTrue();
   }
 
   public static from(x: UInt32 | bigint | number | string) {
