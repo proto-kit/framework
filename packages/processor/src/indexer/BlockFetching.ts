@@ -27,9 +27,13 @@ export interface BlockFetchingConfig {
 export interface BlockResponse {
   data: {
     findFirstBlock: PrismaBlock & {
-      beforeBlockStateTransitions: PrismaStateTransition[];
+      stateTransitionBatch: (PrismaStateTransitionBatch & {
+        stateTransitions: PrismaStateTransition[];
+      })[];
       result: PrismaBlockResult & {
-        afterBlockStateTransitions: PrismaStateTransition[];
+        stateTransitionBatch: (PrismaStateTransitionBatch & {
+          stateTransitions: PrismaStateTransition[];
+        })[];
       };
     } & {
       transactions: (PrismaTransactionExecutionResult & {
@@ -152,7 +156,7 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
     const block = {
       ...this.blockMapper.mapIn(parsedResponse?.data.findFirstBlock),
       beforeBlockStateTransitions:
-        parsedResponse.data.findFirstBlock.beforeBlockStateTransitions.map(
+        parsedResponse.data.findFirstBlock.stateTransitionBatch[0].stateTransitions.map(
           (st) => this.stateTransitionMapper.mapIn(st)
         ),
     };
@@ -161,7 +165,7 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
         parsedResponse?.data.findFirstBlock.result
       ),
       afterBlockStateTransitions:
-        parsedResponse.data.findFirstBlock.result.afterBlockStateTransitions.map(
+        parsedResponse.data.findFirstBlock.result.stateTransitionBatch[0].stateTransitions.map(
           (st) => this.stateTransitionMapper.mapIn(st)
         ),
     };
