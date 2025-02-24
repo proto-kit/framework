@@ -75,9 +75,9 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
             fromMessagesHash
             toMessagesHash
             transactionsHash
-            StateTransitionBatch {
+            stateTransitionBatch {
               applied,
-              StateTransition {
+              stateTransition {
                 path,
                 from,    
                 to,      
@@ -93,8 +93,8 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
               blockHashWitness,
               blockStateTransitions,
               blockHash,
-              StateTransitionBatch {
-                StateTransition {
+              stateTransitionBatch {
+                stateTransition {
                   path,
                   from,    
                   to,      
@@ -107,8 +107,8 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
               status
               statusMessage
               events
-              StateTransitionBatch {
-                StateTransition {
+              stateTransitionBatch {
+                stateTransition {
                   path,
                   from,    
                   to,      
