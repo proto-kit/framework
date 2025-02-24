@@ -9,10 +9,8 @@ import {
 
 export class InMemoryTreeStoreCreator
   extends MaskGraph<
-    AsyncMerkleTreeStore & {
-      createMask: (name: string) => Promise<InMemoryMerkleTreeStoreMask>;
-      name: string;
-    },
+    AsyncMerkleTreeStore,
+    InMemoryBaseMerkleTreeStore,
     InMemoryMerkleTreeStoreMask
   >
   implements TreeStoreCreator

@@ -13,27 +13,20 @@ type Node<T, Child, Parent> = {
   parent: Parent;
 };
 
-// export type Mask = {
-//   createMask(name: string): Promise<Mask>;
-//   name: string;
-//   mergeIntoParent(): Promise<void>;
-//   updateParent(parent: Mask): void;
-// };
-//
-// export type MaskBase = {
-//   createMask(name: string): Promise<Mask>;
-//   name: string;
-// };
+type BaseMaskType<Interface, Mask> = Interface & {
+  createMask(name: string): Promise<Mask>;
+  name: string;
+};
+
+type MaskType<Interface, Mask> = BaseMaskType<Interface, Mask> & {
+  mergeIntoParent(): Promise<void>;
+  updateParent(parent: Interface): void;
+};
 
 export class MaskGraph<
-  Base extends {
-    createMask(name: string): Promise<Mask>;
-    name: string;
-  },
-  Mask extends Base & {
-    mergeIntoParent(): Promise<void>;
-    updateParent(parent: Mask | Base): void;
-  },
+  Interface,
+  Base extends BaseMaskType<Interface, Mask>,
+  Mask extends MaskType<Interface, Mask>,
 > {
   public constructor(base: Base) {
     this.root = {
@@ -64,7 +57,7 @@ export class MaskGraph<
     return this.findNode(name)?.mask;
   }
 
-  public async getMask(name: string) {
+  public getMask(name: string) {
     const candidate = this.findService(name);
 
     assertMaskFound(candidate, name);
@@ -76,7 +69,7 @@ export class MaskGraph<
     name: string,
     parentName: string,
     fallback?: string
-  ): Promise<Base> {
+  ): Promise<Interface> {
     const candidate = this.findService(name);
     if (candidate !== undefined) {
       return candidate;

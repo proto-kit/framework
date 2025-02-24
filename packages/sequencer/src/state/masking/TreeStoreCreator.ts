@@ -6,7 +6,7 @@ export interface TreeStoreCreator {
     parent: string,
     fallback?: string
   ): Promise<AsyncMerkleTreeStore>;
-  getMask(name: string): Promise<AsyncMerkleTreeStore>;
+  getMask(name: string): AsyncMerkleTreeStore;
   mergeIntoParent(name: string): Promise<void>;
   drop(name: string): Promise<void>;
 }
