@@ -3,7 +3,7 @@ import { Field, PrivateKey } from "o1js";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import { ArgumentTypes } from "@proto-kit/common";
 
-import { ManualBlockTrigger, PrivateMempool } from "../../../src";
+import { ManualBlockTrigger, MaskName, PrivateMempool } from "../../../src";
 import { createTransaction } from "../utils";
 import { StateServiceCreator } from "../../../src/state/masking/StateServiceCreator";
 
@@ -45,7 +45,7 @@ export class BlockTestService {
   }
 
   public async getState(path: Field) {
-    const service = await this.stateServiceCreator.getMask("base");
+    const service = await this.stateServiceCreator.getMask(MaskName.base());
     return await service.get(path);
   }
 

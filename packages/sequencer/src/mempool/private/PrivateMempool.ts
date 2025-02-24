@@ -29,6 +29,7 @@ import {
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { distinctByPredicate } from "../../helpers/utils";
 import { StateServiceCreator } from "../../state/masking/StateServiceCreator";
+import { MaskName } from "../../state/masking/MaskName";
 
 type MempoolTransactionPaths = {
   transaction: PendingTransaction;
@@ -104,7 +105,9 @@ export class PrivateMempool
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
 
-    const stateService = await this.stateServiceCreator.getMask("base");
+    const stateService = await this.stateServiceCreator.getMask(
+      MaskName.base()
+    );
     const baseCachedStateService = new CachedStateService(stateService);
 
     const networkState =

@@ -3,8 +3,10 @@ import { Length } from "class-validator";
 import { inject } from "tsyringe";
 import { RollupMerkleTree, RollupMerkleTreeWitness } from "@proto-kit/common";
 import {
-  AsyncMerkleTreeStore,
+  BlockStorage,
   CachedMerkleTreeStore,
+  MaskName,
+  TreeStoreCreator,
 } from "@proto-kit/sequencer";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";
@@ -34,7 +36,9 @@ export class MerkleWitnessDTO {
 @graphqlModule()
 export class MerkleWitnessResolver extends GraphqlModule<object> {
   public constructor(
-    @inject("AsyncMerkleStore") private readonly treeStore: AsyncMerkleTreeStore
+    @inject("TreeStoreCreator")
+    private readonly treeStoreCreator: TreeStoreCreator,
+    @inject("BlockStorage") private readonly blockStorage: BlockStorage
   ) {
     super();
   }
@@ -44,7 +48,14 @@ export class MerkleWitnessResolver extends GraphqlModule<object> {
       "Allows retrieval of merkle witnesses corresponding to a specific path in the appchain's state tree. These proves are generally retrieved from the current 'proven' state",
   })
   public async witness(@Arg("path") path: string) {
-    const syncStore = new CachedMerkleTreeStore(this.treeStore);
+    const latestBlock = await this.blockStorage.getLatestBlock();
+    const maskName =
+      latestBlock !== undefined
+        ? MaskName.block(latestBlock.block.height)
+        : MaskName.base();
+    const treeStore = await this.treeStoreCreator.getMask(maskName);
+
+    const syncStore = new CachedMerkleTreeStore(treeStore);
     await syncStore.preloadKey(BigInt(path));
 
     const tree = new RollupMerkleTree(syncStore);

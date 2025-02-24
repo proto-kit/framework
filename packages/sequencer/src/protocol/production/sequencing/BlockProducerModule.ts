@@ -25,6 +25,7 @@ import { Database } from "../../../storage/Database";
 import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
 import { TreeStoreCreator } from "../../../state/masking/TreeStoreCreator";
 import { StateServiceCreator } from "../../../state/masking/StateServiceCreator";
+import { MaskName } from "../../../state/masking/MaskName";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -110,13 +111,13 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public async generateMetadata(block: Block): Promise<BlockResult> {
     const height = block.height.toBigInt();
-    const maskName = `block-${height}`;
+    const maskName = MaskName.block(height);
     const asyncStateService = await this.stateServiceCreator.getMask(maskName);
 
     const asyncTreeStore = await this.treeStoreCreator.createMask(
       maskName,
-      `block-${height - 1n}`,
-      "base"
+      MaskName.block(height - 1n),
+      MaskName.base()
     );
 
     const { result, blockHashTreeStore, treeStore, stateService } =
@@ -216,9 +217,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     const isFirstBlock = previousBlock.hash.equals(0n).toBoolean();
     const height = isFirstBlock ? 0n : previousBlock.height.toBigInt() + 1n;
 
-    // const parent = isFirstBlock ? "base" : `block-${height - 1n}`;
-
-    return await this.stateServiceCreator.createMask(`block-${height}`, "base");
+    return await this.stateServiceCreator.createMask(
+      MaskName.block(height),
+      MaskName.base()
+    );
   }
 
   private async produceBlock(): Promise<Block | undefined> {
