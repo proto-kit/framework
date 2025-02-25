@@ -4,6 +4,7 @@ import {
   MaskGraph,
   TreeStoreCreator,
 } from "@proto-kit/sequencer";
+
 import { RedisMerkleTreeStore } from "../services/redis/RedisMerkleTreeStore";
 
 export class RedisTreeStoreCreator
