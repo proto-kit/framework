@@ -8,7 +8,6 @@ import { Bool, Field, PrivateKey, UInt64 } from "o1js";
 import { TypedClass, expectDefined } from "@proto-kit/common";
 
 import {
-  AsyncStateService,
   BatchStorage,
   HistoricalBatchStorage,
   HistoricalBlockStorage,

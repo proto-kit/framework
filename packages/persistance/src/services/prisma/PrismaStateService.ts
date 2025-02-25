@@ -129,6 +129,7 @@ export class PrismaStateService implements AsyncStateService {
 
     const records: {
       path: Prisma.Decimal;
+      // TODO This could potentially be non-null, but should be tested
       values: Prisma.Decimal[] | null;
     }[] = await this.connection.prismaClient.$queryRaw(
       readState(maskId, paths)
@@ -136,7 +137,6 @@ export class PrismaStateService implements AsyncStateService {
 
     return records.map((record) => ({
       key: Field(record.path.toFixed()),
-      // TODO Figure out why that is nullable
       value: record.values?.map((x) => Field(x.toFixed())) ?? [],
     }));
   }

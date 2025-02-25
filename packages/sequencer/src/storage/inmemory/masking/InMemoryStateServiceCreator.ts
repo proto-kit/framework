@@ -1,8 +1,8 @@
 import { StateServiceCreator } from "../../../state/masking/StateServiceCreator";
 import { MaskGraph } from "../../../state/masking/MaskGraph";
+import { AsyncStateService } from "../../../state/async/AsyncStateService";
 
 import { InMemoryStateServiceMask } from "./InMemoryStateServiceMask";
-import { AsyncStateService } from "../../../state/async/AsyncStateService";
 
 export class InMemoryStateServiceCreator
   extends MaskGraph<

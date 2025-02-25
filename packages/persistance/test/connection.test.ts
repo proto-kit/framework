@@ -22,7 +22,7 @@ describe.skip("prisma", () => {
       password: "password",
     };
     await db.start();
-    const store = new RedisMerkleTreeStore(db);
+    const store = new RedisMerkleTreeStore(db, "base");
 
     const cached = new CachedMerkleTreeStore(store);
     const tree = new RollupMerkleTree(cached);
@@ -38,7 +38,7 @@ describe.skip("prisma", () => {
 
     console.log(`Root ${tree.getRoot().toBigInt()}`);
 
-    const store2 = new RedisMerkleTreeStore(db);
+    const store2 = new RedisMerkleTreeStore(db, "base");
 
     const cached2 = new CachedMerkleTreeStore(store2);
     const tree2 = new RollupMerkleTree(cached2);

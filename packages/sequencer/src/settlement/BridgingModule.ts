@@ -41,16 +41,15 @@ import {
   sequencerModule,
 } from "../sequencer/builder/SequencerModule";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
-import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
+import { TreeStoreCreator } from "../state/masking/TreeStoreCreator";
+import { MaskName } from "../state/masking/MaskName";
 
 import type { OutgoingMessageAdapter } from "./messages/WithdrawalQueue";
 import type { SettlementModule } from "./SettlementModule";
 import { SettlementUtils } from "./utils/SettlementUtils";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
-import { TreeStoreCreator } from "../state/masking/TreeStoreCreator";
-import { MaskName } from "../state/masking/MaskName";
 
 /**
  * Sequencer module that facilitates all transaction creation and monitoring for
@@ -359,9 +358,7 @@ export class BridgingModule extends SequencerModule {
 
     const bridgeContract = this.createBridgeContract(bridgeAddress, tokenId);
 
-    const merkleTreeStore = await this.treeStoreCreator.getMask(
-      MaskName.base()
-    );
+    const merkleTreeStore = this.treeStoreCreator.getMask(MaskName.base());
     const cachedStore = new CachedMerkleTreeStore(merkleTreeStore);
     const tree = new RollupMerkleTree(cachedStore);
 
