@@ -162,7 +162,20 @@ export class PrismaBlockStorage
           encodedBlock.beforeNetworkState as Prisma.InputJsonObject,
         duringNetworkState:
           encodedBlock.duringNetworkState as Prisma.InputJsonObject,
-
+        stateTransitionBatch: {
+          create: [
+            {
+              applied: true,
+              stateTransition: {
+                createMany: {
+                  data: block.beforeBlockStateTransitions.map((st) =>
+                    this.stateTransitionMapper.mapOut(st)
+                  ),
+                },
+              },
+            },
+          ],
+        },
         transactions: {
           createMany: {
             data: transactions.map((tx) => {
