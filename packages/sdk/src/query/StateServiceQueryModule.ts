@@ -46,7 +46,7 @@ export class StateServiceQueryModule
       this.sequencer.dependencyContainer.resolve<StateServiceCreator>(
         "StateServiceCreator"
       );
-    return await stateServiceCreator.getMask(MaskName.base());
+    return stateServiceCreator.getMask(MaskName.base());
   }
 
   public async treeStore(): Promise<AsyncMerkleTreeStore> {
@@ -54,7 +54,7 @@ export class StateServiceQueryModule
       this.sequencer.dependencyContainer.resolve<TreeStoreCreator>(
         "TreeStoreCreator"
       );
-    return await treeStoreCreator.getMask(await this.getCurrentTreeMask());
+    return treeStoreCreator.getMask(await this.getCurrentTreeMask());
   }
 
   public async get(key: Field) {

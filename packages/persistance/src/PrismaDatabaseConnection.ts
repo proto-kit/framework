@@ -6,7 +6,6 @@ import {
 } from "@proto-kit/sequencer";
 import { DependencyFactory, OmitKeys } from "@proto-kit/common";
 
-import { PrismaStateService } from "./services/prisma/PrismaStateService";
 import { PrismaBatchStore } from "./services/prisma/PrismaBatchStore";
 import { PrismaBlockStorage } from "./services/prisma/PrismaBlockStorage";
 import { PrismaSettlementStorage } from "./services/prisma/PrismaSettlementStorage";
