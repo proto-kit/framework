@@ -59,7 +59,7 @@ model StateTransitionBatch {
   transactionExecutionResult TransactionExecutionResult? @relation(fields: [txExecutionResultId], references: [txHash])
   block                      Block?                      @relation(fields: [blockId], references: [hash])
   blockResult                BlockResult?                @relation(fields: [blockResultId], references: [blockHash])
-  stateTransition            StateTransition[]
+  stateTransitions           StateTransition[]
 }
 
 model TransactionExecutionResult {

@@ -57,21 +57,21 @@ export class PrismaBlockStorage
             tx: true,
             stateTransitionBatch: {
               include: {
-                stateTransition: true,
+                stateTransitions: true,
               },
             },
           },
         },
         stateTransitionBatch: {
           include: {
-            stateTransition: true,
+            stateTransitions: true,
           },
         },
         result: {
           include: {
             stateTransitionBatch: {
               include: {
-                stateTransition: true,
+                stateTransitions: true,
               },
             },
           },
@@ -89,7 +89,7 @@ export class PrismaBlockStorage
         ]);
         const stBatch = txresult.stateTransitionBatch.map<
           [STBatchArrayMapOut1, STBatchArrayMapOut2]
-        >((batch) => [{ applied: batch.applied }, batch.stateTransition]);
+        >((batch) => [{ applied: batch.applied }, batch.stateTransitions]);
         return {
           ...txExecResult,
           stateTransitions: this.stateTransitionBatchMapper.mapIn(stBatch),
@@ -102,7 +102,7 @@ export class PrismaBlockStorage
         ...this.blockMapper.mapIn(dbResult),
         beforeBlockStateTransitions:
           // Each block should just have one batch of STs associated with it
-          dbResult.stateTransitionBatch[0].stateTransition.map((st) =>
+          dbResult.stateTransitionBatch[0].stateTransitions.map((st) =>
             this.stateTransitionMapper.mapIn(st)
           ),
         transactions,
@@ -112,7 +112,7 @@ export class PrismaBlockStorage
             ...this.blockResultMapper.mapIn(dbResult.result),
             afterBlockStateTransitions:
               // Each block should just have one batch of STs assoicated with it
-              dbResult.stateTransitionBatch[0].stateTransition.map((st) =>
+              dbResult.stateTransitionBatch[0].stateTransitions.map((st) =>
                 this.stateTransitionMapper.mapIn(st)
               ),
           }
@@ -166,7 +166,7 @@ export class PrismaBlockStorage
           create: [
             {
               applied: true,
-              stateTransition: {
+              stateTransitions: {
                 createMany: {
                   data: block.beforeBlockStateTransitions.map((st) =>
                     this.stateTransitionMapper.mapOut(st)
@@ -302,21 +302,21 @@ export class PrismaBlockStorage
             tx: true,
             stateTransitionBatch: {
               include: {
-                stateTransition: true,
+                stateTransitions: true,
               },
             },
           },
         },
         stateTransitionBatch: {
           include: {
-            stateTransition: true,
+            stateTransitions: true,
           },
         },
         result: {
           include: {
             stateTransitionBatch: {
               include: {
-                stateTransition: true,
+                stateTransitions: true,
               },
             },
           },
@@ -342,7 +342,7 @@ export class PrismaBlockStorage
               >,
               Omit<DBStateTransition, "batchId" | "id">[],
             ]
-          >((batch) => [{ applied: batch.applied }, batch.stateTransition]);
+          >((batch) => [{ applied: batch.applied }, batch.stateTransitions]);
           return {
             ...txExecResult,
             stateTransitions: this.stateTransitionBatchMapper.mapIn(stBatch),
@@ -364,14 +364,14 @@ export class PrismaBlockStorage
         block: {
           ...decodedBlock,
           beforeBlockStateTransitions:
-            block.stateTransitionBatch[0].stateTransition.map((st) =>
+            block.stateTransitionBatch[0].stateTransitions.map((st) =>
               this.stateTransitionMapper.mapIn(st)
             ),
         },
         result: {
           ...this.blockResultMapper.mapIn(result),
           afterBlockStateTransitions:
-            result.stateTransitionBatch[0].stateTransition.map((st) =>
+            result.stateTransitionBatch[0].stateTransitions.map((st) =>
               this.stateTransitionMapper.mapIn(st)
             ),
         },
