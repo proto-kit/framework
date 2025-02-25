@@ -205,17 +205,19 @@ export class PrismaBlockStorage
       }));
     });
 
-    await prismaClient.stateTransitionBatch.createMany({
-      data: stateTransitionBatches.map((batch) => ({
-        ...batch,
-        stateTransition: {
-          create: {
-            data: batch.stateTransitions,
-          },
-        },
-      })),
-      skipDuplicates: false,
-    });
+    await Promise.all(
+      stateTransitionBatches.map(
+        async (batch) =>
+          await prismaClient.stateTransitionBatch.create({
+            data: {
+              ...batch,
+              stateTransitions: {
+                create: batch.stateTransitions,
+              },
+            },
+          })
+      )
+    );
   }
 
   public async pushResult(result: BlockResult): Promise<void> {
