@@ -208,7 +208,7 @@ export class PrismaBlockStorage
     await prismaClient.stateTransitionBatch.createMany({
       data: stateTransitionBatches.map((batch) => ({
         ...batch,
-        stateTransitions: {
+        stateTransition: {
           create: {
             data: batch.stateTransitions,
           },
