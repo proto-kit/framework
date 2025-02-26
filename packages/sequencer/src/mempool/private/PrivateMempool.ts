@@ -105,9 +105,7 @@ export class PrivateMempool
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
 
-    const stateService = await this.stateServiceCreator.getMask(
-      MaskName.base()
-    );
+    const stateService = this.stateServiceCreator.getMask(MaskName.base());
     const baseCachedStateService = new CachedStateService(stateService);
 
     const networkState =

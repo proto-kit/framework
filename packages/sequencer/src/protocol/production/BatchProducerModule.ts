@@ -17,6 +17,7 @@ import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore"
 import { BlockWithResult } from "../../storage/model/Block";
 import type { Database } from "../../storage/Database";
 import { TreeStoreCreator } from "../../state/masking/TreeStoreCreator";
+import { MaskName } from "../../state/masking/MaskName";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -198,7 +199,10 @@ export class BatchProducerModule extends SequencerModule {
       throw errors.blockWithoutTxs();
     }
 
-    const mask = await this.treeStoreCreator.createMask("batch", "base");
+    const mask = await this.treeStoreCreator.createMask(
+      "batch",
+      MaskName.base()
+    );
     const merkleTreeStore = new CachedMerkleTreeStore(mask);
 
     const trace = await this.batchTraceService.traceBatch(

@@ -112,7 +112,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   public async generateMetadata(block: Block): Promise<BlockResult> {
     const height = block.height.toBigInt();
     const maskName = MaskName.block(height);
-    const asyncStateService = await this.stateServiceCreator.getMask(maskName);
+    const asyncStateService = this.stateServiceCreator.getMask(maskName);
 
     const asyncTreeStore = await this.treeStoreCreator.createMask(
       maskName,

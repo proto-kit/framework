@@ -53,7 +53,7 @@ export class MerkleWitnessResolver extends GraphqlModule<object> {
       latestBlock !== undefined
         ? MaskName.block(latestBlock.block.height)
         : MaskName.base();
-    const treeStore = await this.treeStoreCreator.getMask(maskName);
+    const treeStore = this.treeStoreCreator.getMask(maskName);
 
     const syncStore = new CachedMerkleTreeStore(treeStore);
     await syncStore.preloadKey(BigInt(path));
