@@ -30,19 +30,19 @@ export class StateTransitionMapper
   ): Omit<DBStateTransition, "batchId" | "id"> {
     return {
       path: input.path.toString(),
-      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-      from: input.from.isSome
+      from: input.from.isSome.toBoolean()
         ? input.from.value.map((x: Field) => x.toString())
         : [],
-      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-      to: input.to.isSome ? input.to.value.map((x: Field) => x.toString()) : [],
+      to: input.to.isSome.toBoolean()
+        ? input.to.value.map((x: Field) => x.toString())
+        : [],
     };
   }
 
   public mapIn(
     input: Omit<DBStateTransition, "batchId" | "id">
   ): UntypedStateTransition {
-    return UntypedStateTransition.fromJSON({
+    const ut = UntypedStateTransition.fromJSON({
       path: input.path,
       from: {
         isSome: input.from.length !== 0,
@@ -55,6 +55,8 @@ export class StateTransitionMapper
         isForcedSome: false,
       },
     });
+    ut.fromValue.forceSome();
+    return ut;
   }
 }
 

@@ -205,17 +205,16 @@ export class PrismaBlockStorage
       }));
     });
 
-    await Promise.all(
-      stateTransitionBatches.map(
-        async (batch) =>
-          await prismaClient.stateTransitionBatch.create({
-            data: {
-              ...batch,
-              stateTransitions: {
-                create: batch.stateTransitions,
-              },
+    await prismaClient.$transaction(
+      stateTransitionBatches.map((batch) =>
+        prismaClient.stateTransitionBatch.create({
+          data: {
+            ...batch,
+            stateTransitions: {
+              create: batch.stateTransitions,
             },
-          })
+          },
+        })
       )
     );
   }
