@@ -22,4 +22,24 @@ describe("StMapper", () => {
     const result = stMapper.mapIn(stMapper.mapOut(untypedTransition)).toJSON();
     expect(result).toEqual(input);
   });
+  it.each([
+    {
+      path: "1234",
+      from: ["12345"],
+      fromIsSome: false,
+      to: ["6789"],
+      toIsSome: true,
+    },
+    {
+      path: "5678",
+      from: [],
+      fromIsSome: false,
+      to: [],
+      toIsSome: false,
+    },
+  ])("MapIn to MapOut", (input) => {
+    const stMapper = new StateTransitionMapper();
+    const result = stMapper.mapOut(stMapper.mapIn(input));
+    expect(result).toEqual(input);
+  });
 });
