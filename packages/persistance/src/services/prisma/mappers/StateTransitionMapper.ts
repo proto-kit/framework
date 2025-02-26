@@ -7,7 +7,6 @@ import {
   StateTransitionBatch as DBStateTransitionBatch,
   StateTransition as DBStateTransition,
 } from "@prisma/client";
-import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
@@ -28,14 +27,13 @@ export class StateTransitionMapper
   public mapOut(
     input: UntypedStateTransition
   ): Omit<DBStateTransition, "batchId" | "id"> {
+    const json = input.toJSON();
     return {
-      path: input.path.toString(),
-      from: input.from.isSome.toBoolean()
-        ? input.from.value.map((x: Field) => x.toString())
-        : [],
-      to: input.to.isSome.toBoolean()
-        ? input.to.value.map((x: Field) => x.toString())
-        : [],
+      path: json.path.toString(),
+      from: json.from.value,
+      fromIsSome: json.from.isSome,
+      to: json.to.value,
+      toIsSome: json.to.isSome,
     };
   }
 
@@ -45,12 +43,12 @@ export class StateTransitionMapper
     const ut = UntypedStateTransition.fromJSON({
       path: input.path,
       from: {
-        isSome: input.from.length !== 0,
+        isSome: input.fromIsSome,
         value: input.from,
         isForcedSome: false,
       },
       to: {
-        isSome: input.to.length !== 0,
+        isSome: input.toIsSome,
         value: input.to,
         isForcedSome: false,
       },

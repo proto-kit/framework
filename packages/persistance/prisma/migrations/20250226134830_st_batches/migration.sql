@@ -21,7 +21,9 @@ CREATE TABLE "StateTransition" (
     "batchId" INTEGER NOT NULL,
     "path" TEXT NOT NULL,
     "from" TEXT[],
+    "fromIsSome" BOOLEAN NOT NULL,
     "to" TEXT[],
+    "toIsSome" BOOLEAN NOT NULL,
 
     CONSTRAINT "StateTransition_pkey" PRIMARY KEY ("id")
 );

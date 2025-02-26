@@ -40,11 +40,13 @@ model Transaction {
 }
 
 model StateTransition {
-  id      Int      @id @default(autoincrement())
-  batchId Int
-  path    String
-  from    String[]
-  to      String[]
+  id         Int      @id @default(autoincrement())
+  batchId    Int
+  path       String
+  from       String[]
+  fromIsSome Boolean
+  to         String[]
+  toIsSome   Boolean
 
   batch StateTransitionBatch @relation(fields: [batchId], references: [id])
 }
