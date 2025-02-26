@@ -6,11 +6,11 @@ import { StateTransitionMapper } from "../src";
 
 describe("StMapper", () => {
   it.each([
-    // {
-    //   path: "1234",
-    //   from: { isSome: true, value: ["12345"], isForcedSome: false },
-    //   to: { isSome: true, value: ["6789"], isForcedSome: false },
-    // },
+    {
+      path: "1234",
+      from: { isSome: true, value: ["12345"], isForcedSome: false },
+      to: { isSome: true, value: ["6789"], isForcedSome: false },
+    },
     {
       path: "5678",
       from: { isSome: false, value: [], isForcedSome: false },
