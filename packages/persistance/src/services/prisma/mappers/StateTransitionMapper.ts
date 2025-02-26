@@ -29,7 +29,7 @@ export class StateTransitionMapper
   ): Omit<DBStateTransition, "batchId" | "id"> {
     const json = input.toJSON();
     return {
-      path: json.path.toString(),
+      path: json.path,
       from: json.from.value,
       fromIsSome: json.from.isSome,
       to: json.to.value,
