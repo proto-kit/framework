@@ -40,7 +40,7 @@ export class StateTransitionMapper
   public mapIn(
     input: Omit<DBStateTransition, "batchId" | "id">
   ): UntypedStateTransition {
-    const ut = UntypedStateTransition.fromJSON({
+    return UntypedStateTransition.fromJSON({
       path: input.path,
       from: {
         isSome: input.fromIsSome,
@@ -53,8 +53,6 @@ export class StateTransitionMapper
         isForcedSome: false,
       },
     });
-    ut.fromValue.forceSome();
-    return ut;
   }
 }
 
