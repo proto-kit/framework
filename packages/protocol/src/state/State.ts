@@ -135,11 +135,13 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     this.hasPathOrFail();
 
-    const stateTransition = StateTransition.from(this.path, option);
+    if (!Provable.inCheckedComputation().valueOf()) {
+      const stateTransition = StateTransition.from(this.path, option);
 
-    container
-      .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
+      container
+        .resolve(RuntimeMethodExecutionContext)
+        .addStateTransition(stateTransition);
+    }
 
     return option;
   }
@@ -167,6 +169,10 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       fromOption,
       toOption
     );
+
+    if (Provable.inCheckedComputation().valueOf()) {
+      throw new Error("Cannot set state inside of provable block.");
+    }
 
     container
       .resolve(RuntimeMethodExecutionContext)
