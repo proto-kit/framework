@@ -82,6 +82,14 @@ export interface BlockWithMaybeResult {
   result?: BlockResult;
 }
 
+export function assertBlockHasResult(
+  block: BlockWithMaybeResult
+): asserts block is BlockWithResult {
+  if (block.result === undefined) {
+    throw new Error("Given block has no result attached");
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BlockWithResult = {
   // toBlockProverState: ({ block, result }: BlockWithResult) => ({

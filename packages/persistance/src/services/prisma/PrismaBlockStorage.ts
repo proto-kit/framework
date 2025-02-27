@@ -197,7 +197,7 @@ export class PrismaBlockStorage
     return result;
   }
 
-  public async getNewBlocks(): Promise<BlockWithResult[]> {
+  public async getPendingBlocks(): Promise<BlockWithMaybeResult[]> {
     const blocks = await this.connection.prismaClient.block.findMany({
       where: {
         batch: null,
@@ -226,15 +226,10 @@ export class PrismaBlockStorage
 
       const { result } = block;
 
-      if (result === null) {
-        throw new Error(
-          `No BlockResult has been set for block ${block.hash} yet`
-        );
-      }
-
       return {
         block: decodedBlock,
-        result: this.blockResultMapper.mapIn(result),
+        result:
+          result !== null ? this.blockResultMapper.mapIn(result) : undefined,
       };
     });
   }

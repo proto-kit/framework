@@ -42,7 +42,7 @@ export function collectStateDiff(
   );
 }
 
-export function createCombinedStateDiff(
+function createCombinedStateDiff(
   blockHookSTs: UntypedStateTransition[],
   transactions: TransactionExecutionResult[]
 ) {

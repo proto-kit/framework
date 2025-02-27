@@ -4,6 +4,7 @@ import {
   StorageDependencyMinimumDependencies,
   Database,
   closeable,
+  Sequencer,
 } from "@proto-kit/sequencer";
 import { ChildContainerProvider } from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
@@ -20,6 +21,7 @@ import {
   RedisConnectionModule,
   RedisTransaction,
 } from "./RedisConnection";
+import { inject } from "tsyringe";
 
 export interface PrismaRedisCombinedConfig {
   prisma: PrismaDatabaseConfig;
@@ -36,10 +38,10 @@ export class PrismaRedisDatabase
 
   public redis: RedisConnectionModule;
 
-  public constructor() {
+  public constructor(@inject("Sequencer") sequencer: Sequencer<any>) {
     super();
     this.prisma = new PrismaDatabaseConnection();
-    this.redis = new RedisConnectionModule();
+    this.redis = new RedisConnectionModule(sequencer);
   }
 
   public get prismaClient(): PrismaClient {

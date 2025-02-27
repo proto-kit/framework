@@ -64,7 +64,7 @@ export class InMemoryBlockStorage
     return result;
   }
 
-  public async getNewBlocks(): Promise<BlockWithResult[]> {
+  public async getPendingBlocks(): Promise<BlockWithMaybeResult[]> {
     const latestBatch = await this.batchStorage.getLatestBatch();
 
     let cursor = 0;
@@ -89,7 +89,7 @@ export class InMemoryBlockStorage
 
     return slice.map((block, index) => ({
       block,
-      result: results[index + 1]!,
+      result: results.at(index + 1),
     }));
   }
 
