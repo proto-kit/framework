@@ -45,10 +45,15 @@ describe("cached merkle store", () => {
 
   it("should preload through multiple levels", async () => {
     const cache2 = new CachedMerkleTreeStore(cache1);
+    const cache3 = new CachedMerkleTreeStore(cache2);
 
-    await cache2.preloadKey(5n);
+    await expect(
+      cache3.getNodesAsync([{ key: 5n, level: 0 }])
+    ).resolves.toStrictEqual([10n]);
 
-    expect(cache2.getNode(5n, 0)).toStrictEqual(10n);
+    await cache3.preloadKey(5n);
+
+    expect(cache3.getNode(5n, 0)).toStrictEqual(10n);
   });
 
   it("should cache correctly", async () => {

@@ -5,6 +5,10 @@ import {
   Sequencer,
   SequencerModulesRecord,
   AsyncMerkleTreeStore,
+  BlockStorage,
+  TreeStoreCreator,
+  StateServiceCreator,
+  MaskName,
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
@@ -23,24 +27,46 @@ export class StateServiceQueryModule
     super();
   }
 
-  public get asyncStateService(): AsyncStateService {
-    return this.sequencer.dependencyContainer.resolve<AsyncStateService>(
-      "UnprovenStateService"
+  private async getCurrentTreeMask() {
+    const block = await this.blockStorage().getLatestBlock();
+    if (block !== undefined) {
+      return MaskName.block(block.block.height);
+    }
+    return MaskName.base();
+  }
+
+  public blockStorage() {
+    return this.sequencer.dependencyContainer.resolve<BlockStorage>(
+      "BlockStorage"
     );
   }
 
-  public get treeStore(): AsyncMerkleTreeStore {
-    return this.sequencer.dependencyContainer.resolve("AsyncMerkleStore");
+  public async asyncStateService(): Promise<AsyncStateService> {
+    const stateServiceCreator =
+      this.sequencer.dependencyContainer.resolve<StateServiceCreator>(
+        "StateServiceCreator"
+      );
+    return stateServiceCreator.getMask(MaskName.base());
   }
 
-  public get(key: Field) {
-    return this.asyncStateService.get(key);
+  public async treeStore(): Promise<AsyncMerkleTreeStore> {
+    const treeStoreCreator =
+      this.sequencer.dependencyContainer.resolve<TreeStoreCreator>(
+        "TreeStoreCreator"
+      );
+    return treeStoreCreator.getMask(await this.getCurrentTreeMask());
+  }
+
+  public async get(key: Field) {
+    const stateService = await this.asyncStateService();
+    return await stateService.get(key);
   }
 
   public async merkleWitness(
     path: Field
   ): Promise<RollupMerkleTreeWitness | undefined> {
-    const syncStore = new CachedMerkleTreeStore(this.treeStore);
+    const treeStore = await this.treeStore();
+    const syncStore = new CachedMerkleTreeStore(treeStore);
     await syncStore.preloadKey(path.toBigInt());
 
     const tree = new RollupMerkleTree(syncStore);

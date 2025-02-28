@@ -12,7 +12,11 @@ import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-import { Block, BlockWithResult } from "../../../storage/model/Block";
+import {
+  assertBlockHasResult,
+  Block,
+  BlockWithResult,
+} from "../../../storage/model/Block";
 
 /**
  * A BlockTrigger is the primary method to start the production of a block and
@@ -49,9 +53,17 @@ export class BlockTriggerBase<
   }
 
   protected async produceBatch(): Promise<SettleableBatch | undefined> {
-    const blocks = await this.blockQueue.getNewBlocks();
+    const blocks = await this.blockQueue.getPendingBlocks();
+
+    // Make sure all blocks have results
+    const completedBlocks = blocks.map((block) => {
+      assertBlockHasResult(block);
+      return block;
+    });
+
     if (blocks.length > 0) {
-      const batch = await this.batchProducerModule?.createBatch(blocks);
+      const batch =
+        await this.batchProducerModule?.createBatch(completedBlocks);
       if (batch !== undefined) {
         this.events.emit("batch-produced", batch);
       }

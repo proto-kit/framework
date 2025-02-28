@@ -15,8 +15,17 @@ export class CachedStateService
 {
   private writes: StateEntry[] = [];
 
-  public constructor(private readonly parent: AsyncStateService | undefined) {
+  public constructor(private parent: AsyncStateService | undefined) {
     super();
+  }
+
+  public updateParent(parent: AsyncStateService) {
+    this.parent = parent;
+  }
+
+  public async drop(): Promise<void> {
+    this.writes = [];
+    this.values = {};
   }
 
   /**
@@ -43,6 +52,7 @@ export class CachedStateService
     await mapSequential(this.writes, async ({ key, value }) => {
       await this.set(key, value);
     });
+    this.writes = [];
   }
 
   public async openTransaction(): Promise<void> {

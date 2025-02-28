@@ -32,6 +32,7 @@ import {
   BlockProducerModule,
   VanillaTaskWorkerModules,
   SequencerStartupModule,
+  DatabasePruneModule,
 } from "@proto-kit/sequencer";
 import { Bool, PrivateKey, PublicKey, Struct } from "o1js";
 
@@ -104,6 +105,7 @@ export function createPrismaAppchain(
     Sequencer: Sequencer.from({
       modules: {
         Database: PrismaRedisDatabase,
+        DatabasePruneModule,
 
         Mempool: PrivateMempool,
         LocalTaskWorkerModule: LocalTaskWorkerModule.from(
@@ -143,6 +145,9 @@ export function createPrismaAppchain(
         },
         redis: redisConnection,
       },
+      DatabasePruneModule: {
+        pruneOnStartup: false,
+      },
       BlockTrigger: {},
       Mempool: {},
       BatchProducerModule: {},
@@ -165,7 +170,7 @@ export function createPrismaAppchain(
   return appChain;
 }
 
-export async function prepareBlock(
+export async function injectTransaction(
   appChain: ReturnType<typeof createPrismaAppchain>,
   sender: PublicKey,
   nonce: number

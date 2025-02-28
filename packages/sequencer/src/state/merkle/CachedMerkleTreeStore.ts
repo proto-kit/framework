@@ -29,8 +29,12 @@ export class CachedMerkleTreeStore
     noop();
   }
 
-  public constructor(private readonly parent: AsyncMerkleTreeStore) {
+  public constructor(public parent: AsyncMerkleTreeStore) {
     super();
+  }
+
+  public updateParent(parent: AsyncMerkleTreeStore) {
+    this.parent = parent;
   }
 
   public getNode(key: bigint, level: number): bigint | undefined {

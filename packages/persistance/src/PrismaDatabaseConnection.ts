@@ -6,12 +6,12 @@ import {
 } from "@proto-kit/sequencer";
 import { DependencyFactory, OmitKeys } from "@proto-kit/common";
 
-import { PrismaStateService } from "./services/prisma/PrismaStateService";
 import { PrismaBatchStore } from "./services/prisma/PrismaBatchStore";
 import { PrismaBlockStorage } from "./services/prisma/PrismaBlockStorage";
 import { PrismaSettlementStorage } from "./services/prisma/PrismaSettlementStorage";
 import { PrismaMessageStorage } from "./services/prisma/PrismaMessageStorage";
 import { PrismaTransactionStorage } from "./services/prisma/PrismaTransactionStorage";
+import { PrismaStateServiceCreator } from "./creators/PrismaStateServiceCreator";
 
 export interface PrismaDatabaseConfig {
   // Either object-based config or connection string
@@ -49,12 +49,9 @@ export class PrismaDatabaseConnection
 
   public dependencies(): OmitKeys<
     StorageDependencyMinimumDependencies,
-    "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
+    "blockTreeStore" | "treeStoreCreator"
   > {
     return {
-      asyncStateService: {
-        useFactory: () => new PrismaStateService(this, "batch"),
-      },
       batchStorage: {
         useClass: PrismaBatchStore,
       },
@@ -64,9 +61,6 @@ export class PrismaDatabaseConnection
       blockStorage: {
         useClass: PrismaBlockStorage,
       },
-      unprovenStateService: {
-        useFactory: () => new PrismaStateService(this, "block"),
-      },
       settlementStorage: {
         useClass: PrismaSettlementStorage,
       },
@@ -75,6 +69,9 @@ export class PrismaDatabaseConnection
       },
       transactionStorage: {
         useClass: PrismaTransactionStorage,
+      },
+      stateServiceCreator: {
+        useClass: PrismaStateServiceCreator,
       },
     };
   }
@@ -90,6 +87,7 @@ export class PrismaDatabaseConnection
       "Settlement",
       "IncomingMessageBatch",
       "IncomingMessageBatchTransaction",
+      "Mask",
     ];
 
     await this.prismaClient.$transaction(

@@ -22,7 +22,7 @@
   "dependencies": {
     "@envelop/extended-validation": "^4.1.0",
     "@inkjs/ui": "^1.0.0",
-    "@prisma/client": "^5.18.0",
+    "@prisma/client": "^5.22.0",
     "@types/yargs": "^17.0.29",
     "figlet": "^1.7.0",
     "ink": "^4.4.1",

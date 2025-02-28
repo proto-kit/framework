@@ -1,12 +1,15 @@
 import { createClient, RedisClientType } from "redis";
 import {
+  Sequencer,
   SequencerModule,
   StorageDependencyMinimumDependencies,
 } from "@proto-kit/sequencer";
-import { DependencyFactory } from "@proto-kit/common";
+import { DependencyFactory, log } from "@proto-kit/common";
 import isArray from "lodash/isArray";
 
 import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
+import { RedisTreeStoreCreator } from "./creators/RedisTreeStoreCreator";
+import { TreeMaskRecovery } from "./TreeMaskRecovery";
 
 export interface RedisConnectionConfig {
   host: string;
@@ -26,6 +29,10 @@ export class RedisConnectionModule
   extends SequencerModule<RedisConnectionConfig>
   implements DependencyFactory, RedisConnection
 {
+  public constructor(private readonly sequencer: Sequencer<any>) {
+    super();
+  }
+
   private client?: RedisClientType;
 
   public get redisClient(): RedisClientType {
@@ -39,17 +46,14 @@ export class RedisConnectionModule
 
   public dependencies(): Pick<
     StorageDependencyMinimumDependencies,
-    "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
+    "blockTreeStore" | "treeStoreCreator"
   > {
     return {
-      asyncMerkleStore: {
-        useFactory: () => new RedisMerkleTreeStore(this),
-      },
-      unprovenMerkleStore: {
-        useFactory: () => new RedisMerkleTreeStore(this, "unproven"),
-      },
       blockTreeStore: {
         useFactory: () => new RedisMerkleTreeStore(this, "blockHash"),
+      },
+      treeStoreCreator: {
+        useClass: RedisTreeStoreCreator,
       },
     };
   }
@@ -81,8 +85,19 @@ export class RedisConnectionModule
     }
   }
 
+  private async recoverMemoryMasks() {
+    log.info("Starting recovery of tree masks");
+
+    const recovery =
+      this.sequencer.dependencyContainer.resolve(TreeMaskRecovery);
+
+    await recovery.recreateMasks();
+  }
+
   public async start(): Promise<void> {
     await this.init();
+
+    await this.recoverMemoryMasks();
   }
 
   public async close() {

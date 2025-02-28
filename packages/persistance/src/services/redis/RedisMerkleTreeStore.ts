@@ -1,5 +1,6 @@
 import {
   AsyncMerkleTreeStore,
+  InMemoryMerkleTreeStoreMask,
   MerkleTreeNode,
   MerkleTreeNodeQuery,
 } from "@proto-kit/sequencer";
@@ -10,9 +11,11 @@ import type { RedisConnection } from "../../RedisConnection";
 export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   private cache: MerkleTreeNode[] = [];
 
+  public readonly name = "base";
+
   public constructor(
     private readonly connection: RedisConnection,
-    private readonly mask: string = "base"
+    private readonly mask: string
   ) {}
 
   private getKey(node: MerkleTreeNodeQuery): string {
@@ -79,5 +82,9 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     //   return foundIndex === reversedIndex;
     // });
     // console.log(`Reduced ${concat.length} to ${this.cache.length} items to write`)
+  }
+
+  public async createMask(name: string) {
+    return new InMemoryMerkleTreeStoreMask(this, name);
   }
 }

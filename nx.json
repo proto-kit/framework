@@ -17,6 +17,7 @@
     "prisma:generate": {
       "inputs": [
         "{projectRoot}/package.json",
+        "{projectRoot}/prisma/*",
         "{projectRoot}/prisma/**/*"
       ]
     },

@@ -531,7 +531,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       witnessedRootsHash,
       stateTransitionProof.publicOutput.witnessedRootsHash,
       apply,
-      "Root accumulator Commitment is not the same that have been executed by the ST proof"
+      "Root accumulator Commitment is not the same as has been executed by the ST proof"
     );
 
     // update root only if we didn't defer

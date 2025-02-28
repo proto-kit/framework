@@ -24,7 +24,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "@inkjs/ui": "^1.0.0",
-    "@prisma/client": "^5.19.1",
+    "@prisma/client": "^5.22.0",
     "@types/yargs": "^17.0.29",
     "figlet": "^1.7.0",
     "ink": "^4.4.1",

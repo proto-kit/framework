@@ -8,7 +8,7 @@ import type {
 export interface BlockQueue {
   pushBlock: (block: Block) => Promise<void>;
   pushResult: (result: BlockResult) => Promise<void>;
-  getNewBlocks: () => Promise<BlockWithResult[]>;
+  getPendingBlocks: () => Promise<BlockWithMaybeResult[]>;
   getLatestBlockAndResult: () => Promise<BlockWithMaybeResult | undefined>;
 }
 
