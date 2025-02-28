@@ -2,7 +2,7 @@ import "reflect-metadata";
 
 import { UInt64 } from "@proto-kit/library";
 import { runtimeMethod, runtimeModule, RuntimeModule } from "@proto-kit/module";
-import { PrivateKey, Provable } from "o1js";
+import { Field, PrivateKey, Provable } from "o1js";
 import { State, state } from "@proto-kit/protocol";
 
 import { TestingAppChain } from "../src";
@@ -13,8 +13,9 @@ class StateTester extends RuntimeModule<unknown> {
 
   @runtimeMethod()
   public async setFail() {
-    Provable.asProver(async () => {
+    await Provable.witnessAsync(Field, async () => {
       await this.state1.set(UInt64.from(10));
+      return Field(0);
     });
   }
 

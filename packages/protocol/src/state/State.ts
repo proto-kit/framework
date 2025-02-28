@@ -1,6 +1,6 @@
 import { Mixin } from "ts-mixer";
 import { Bool, Field, Provable, type FlexibleProvablePure, Struct } from "o1js";
-import { container } from "tsyringe";
+import { container, singleton } from "tsyringe";
 import { dummyValue } from "@proto-kit/common";
 
 import { Path } from "../model/Path";
@@ -35,6 +35,22 @@ export class WithStateServiceProvider {
     }
   }
 }
+
+@singleton()
+export class IsInWitnessBlockContext {
+  public isInWitnessBlock: number = 0;
+}
+
+// TODO Same for Provable.witness() & Provable.witnessFields()
+
+const originalWitnessAsync = Provable.witnessAsync;
+Provable.witnessAsync = async (e, f) => {
+  const context = container.resolve(IsInWitnessBlockContext);
+  context.isInWitnessBlock += 1;
+  const ret = await originalWitnessAsync(e, f);
+  context.isInWitnessBlock -= 1;
+  return ret;
+};
 
 /**
  * Utilities for runtime module state, such as get/set
@@ -135,7 +151,9 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     this.hasPathOrFail();
 
-    if (!(Provable.inProver() || !Provable.inCheckedComputation())) {
+    const { isInWitnessBlock } = container.resolve(IsInWitnessBlockContext);
+
+    if (isInWitnessBlock === 0) {
       const stateTransition = StateTransition.from(this.path, option);
 
       container
@@ -170,7 +188,9 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       toOption
     );
 
-    if (Provable.inProver() && !Provable.inCheckedComputation()) {
+    const { isInWitnessBlock } = container.resolve(IsInWitnessBlockContext);
+
+    if (isInWitnessBlock > 0) {
       throw new Error("Cannot set state inside of provable block.");
     }
 
