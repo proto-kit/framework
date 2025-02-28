@@ -41,16 +41,38 @@ export class IsInWitnessBlockContext {
   public isInWitnessBlock: number = 0;
 }
 
-// TODO Same for Provable.witness() & Provable.witnessFields()
+const rewriteAsyncWitnessFunction = (
+  originalFuncDef: (arg0: any, arg1: any) => any
+) => {
+  return async (e: any, f: any) => {
+    const context = container.resolve(IsInWitnessBlockContext);
+    context.isInWitnessBlock += 1;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const ret = await originalFuncDef(e, f);
+    context.isInWitnessBlock -= 1;
+    return ret;
+  };
+};
+
+const rewriteWitnessFunction = (originalFuncDef: any) => {
+  return (e: any, f: any) => {
+    const context = container.resolve(IsInWitnessBlockContext);
+    context.isInWitnessBlock += 1;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const ret = originalFuncDef(e, f);
+    context.isInWitnessBlock -= 1;
+    return ret;
+  };
+};
 
 const originalWitnessAsync = Provable.witnessAsync;
-Provable.witnessAsync = async (e, f) => {
-  const context = container.resolve(IsInWitnessBlockContext);
-  context.isInWitnessBlock += 1;
-  const ret = await originalWitnessAsync(e, f);
-  context.isInWitnessBlock -= 1;
-  return ret;
-};
+Provable.witnessAsync = rewriteAsyncWitnessFunction(originalWitnessAsync);
+
+const originalWitness = Provable.witness;
+Provable.witness = rewriteWitnessFunction(originalWitness);
+
+const originalWitnessFields = Provable.witnessFields;
+Provable.witnessFields = rewriteWitnessFunction(originalWitnessFields);
 
 /**
  * Utilities for runtime module state, such as get/set
