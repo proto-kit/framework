@@ -5,7 +5,7 @@ import {
   NetworkState,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
-import { log, mapSequential, noop } from "@proto-kit/common";
+import { log, mapSequential, noop, RollupMerkleTree } from "@proto-kit/common";
 
 import {
   sequencerModule,
@@ -17,7 +17,6 @@ import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore"
 import { BlockWithResult } from "../../storage/model/Block";
 import type { Database } from "../../storage/Database";
 import { TreeStoreCreator } from "../../state/masking/TreeStoreCreator";
-import { MaskName } from "../../state/masking/MaskName";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -135,7 +134,6 @@ export class BatchProducerModule extends SequencerModule {
         await this.batchStorage.pushBatch(batchWithStateDiff.batch);
 
         await this.mergeBatchIntoStorage(blocks);
-        // await batchWithStateDiff.changes.mergeIntoParent();
       });
 
       // TODO Add transition from unproven to proven state for stateservice
@@ -173,6 +171,23 @@ export class BatchProducerModule extends SequencerModule {
     };
   }
 
+  private async checkTreeConsistency(
+    merkleTreeStore: CachedMerkleTreeStore,
+    publicOutput: BlockProverPublicOutput
+  ) {
+    // Preload root
+    const [fetchedRoot] = await merkleTreeStore.getNodesAsync([
+      { key: 0n, level: 255 },
+    ]);
+    const root = fetchedRoot ?? RollupMerkleTree.EMPTY_ROOT;
+
+    if (root !== publicOutput.stateRoot.toBigInt()) {
+      throw new Error(
+        `Mismatch in output state roots: ${root} != ${publicOutput.stateRoot.toBigInt()}`
+      );
+    }
+  }
+
   /**
    * Computes a batch based on an array of sequenced blocks.
    * This process is also known as tracing, as we "trace" every computational step
@@ -199,10 +214,7 @@ export class BatchProducerModule extends SequencerModule {
       throw errors.blockWithoutTxs();
     }
 
-    const mask = await this.treeStoreCreator.createMask(
-      "batch",
-      MaskName.base()
-    );
+    const mask = this.treeStoreCreator.getMask("base");
     const merkleTreeStore = new CachedMerkleTreeStore(mask);
 
     const trace = await this.batchTraceService.traceBatch(
@@ -210,9 +222,9 @@ export class BatchProducerModule extends SequencerModule {
       merkleTreeStore
     );
 
-    await this.treeStoreCreator.drop("batch");
-
     const proof = await this.batchFlow.executeBatch(trace, blockId);
+
+    await this.checkTreeConsistency(merkleTreeStore, proof.publicOutput);
 
     const fromNetworkState = blocks[0].block.networkState.before;
     const toNetworkState = blocks.at(-1)!.result.afterNetworkState;

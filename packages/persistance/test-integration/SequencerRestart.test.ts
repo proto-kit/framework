@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { afterAll, beforeAll, expect } from "@jest/globals";
-import { expectDefined, log } from "@proto-kit/common";
+import { expectDefined, log, sleep } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
 import { container } from "tsyringe";
 
 import {
   createPrismaAppchain,
   IntegrationTestDBConfig,
-  prepareBlock,
+  injectTransaction,
 } from "./utils";
 
 describe("sequencer restart", () => {
@@ -16,19 +16,22 @@ describe("sequencer restart", () => {
   const sender = PrivateKey.random();
   let senderNonce = 0;
 
-  const clearDB = async () => {
-    const db = appChain.sequencer.resolve("Database");
-    await db.prisma.pruneDatabase();
-    await db.redis.pruneDatabase();
-  };
+  const setup = async (pruneOnStartup: boolean) => {
+    if (pruneOnStartup) {
+      senderNonce = 0;
+    }
 
-  const setup = async () => {
     const { prismaConfig, redisConfig } = IntegrationTestDBConfig;
     appChain = createPrismaAppchain(prismaConfig, redisConfig);
 
     appChain.configurePartial({
       Signer: {
         signer: sender,
+      },
+      Sequencer: {
+        DatabasePruneModule: {
+          pruneOnStartup: pruneOnStartup,
+        },
       },
     });
 
@@ -43,12 +46,12 @@ describe("sequencer restart", () => {
     const blockTrigger = appChain.sequencer.resolve("BlockTrigger");
 
     for (let block = 0; block < num; block++) {
-      await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
+      await injectTransaction(appChain, sender.toPublicKey(), senderNonce);
       senderNonce++;
 
       const producedBlock = await blockTrigger.produceBlock();
       if ((producedBlock?.transactions.length ?? 0) === 0) {
-        throw new Error(`Block not produced correctly: ${block}`);
+        throw new Error(`Block at height ${block} not produced correctly`);
       }
       if (type === "batch") {
         await blockTrigger.produceBatch();
@@ -58,14 +61,13 @@ describe("sequencer restart", () => {
 
   describe("resume at latest block", () => {
     beforeAll(async () => {
-      await setup();
-      await clearDB();
+      await setup(true);
 
       await produce(2, "batch");
 
       await teardown();
 
-      await setup();
+      await setup(false);
     }, 40000);
 
     afterAll(async () => {
@@ -85,7 +87,7 @@ describe("sequencer restart", () => {
 
     it("should be able to produce a block on top", async () => {
       const blockTrigger = appChain.sequencer.resolve("BlockTrigger");
-      await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
+      await injectTransaction(appChain, sender.toPublicKey(), senderNonce);
       senderNonce++;
 
       const [block, batch] = await blockTrigger.produceBlockAndBatch();
@@ -100,16 +102,17 @@ describe("sequencer restart", () => {
 
   describe("reconstruct untraced block masks", () => {
     beforeEach(async () => {
-      log.setLevel("DEBUG");
+      log.setLevel("TRACE");
 
-      await setup();
-      await clearDB();
+      await setup(true);
+
+      await sleep(1000);
 
       await produce(2, "block");
 
       await teardown();
 
-      await setup();
+      await setup(false);
 
       console.log("beforeEach");
     }, 40000);
@@ -120,7 +123,7 @@ describe("sequencer restart", () => {
 
     it("should be able to produce a block on top", async () => {
       const blockTrigger = appChain.sequencer.resolve("BlockTrigger");
-      await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
+      await injectTransaction(appChain, sender.toPublicKey(), senderNonce);
       senderNonce++;
 
       const block = await blockTrigger.produceBlock();

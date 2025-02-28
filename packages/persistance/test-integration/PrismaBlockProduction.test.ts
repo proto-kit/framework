@@ -17,7 +17,7 @@ import {
 import {
   createPrismaAppchain,
   IntegrationTestDBConfig,
-  prepareBlock,
+  injectTransaction,
 } from "./utils";
 
 describe("prisma integration", () => {
@@ -56,7 +56,7 @@ describe("prisma integration", () => {
     beforeAll(async () => {
       await setup();
 
-      await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
+      await injectTransaction(appChain, sender.toPublicKey(), senderNonce);
       senderNonce++;
 
       [block, batch] = await appChain.sequencer
@@ -179,7 +179,7 @@ describe("prisma integration", () => {
             signer: sender2,
           },
         });
-        await prepareBlock(appChain, sender2.toPublicKey(), 0);
+        await injectTransaction(appChain, sender2.toPublicKey(), 0);
       });
 
       it("should produce the block", async () => {
@@ -210,7 +210,7 @@ describe("prisma integration", () => {
     beforeAll(async () => {
       await setup();
 
-      transaction = await prepareBlock(
+      transaction = await injectTransaction(
         appChain,
         sender.toPublicKey(),
         senderNonce
