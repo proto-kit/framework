@@ -55,21 +55,18 @@ describe("StateTransition", () => {
         await stateTester.setPass();
       }
     );
-
     await tx1.sign();
     await tx1.send();
-
     await appChain.produceBlock();
+
     const tx2 = await appChain.transaction(
       senderKey.toPublicKey(),
       async () => {
         await stateTester.setFail();
       }
     );
-
     await tx2.sign();
     await tx2.send();
-
     await expect(() => appChain.produceBlock()).rejects.toThrow(
       new Error("Cannot set state inside of provable block.")
     );
