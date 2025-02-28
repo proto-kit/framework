@@ -135,7 +135,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     this.hasPathOrFail();
 
-    if (Provable.inProver()) {
+    if (!(Provable.inProver() || !Provable.inCheckedComputation())) {
       const stateTransition = StateTransition.from(this.path, option);
 
       container
@@ -170,7 +170,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       toOption
     );
 
-    if (Provable.inProver()) {
+    if (Provable.inProver() && !Provable.inCheckedComputation()) {
       throw new Error("Cannot set state inside of provable block.");
     }
 
