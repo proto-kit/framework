@@ -50,10 +50,10 @@ export class RedisConnectionModule
   > {
     return {
       blockTreeStore: {
-        useFactory: () => new RedisMerkleTreeStore(this, "blockHash"),
+        useFactory: () => new RedisMerkleTreeStore(this, "blockHash", "base"),
       },
       treeStoreCreator: {
-        useClass: RedisTreeStoreCreator,
+        useFactory: () => new RedisTreeStoreCreator(this, "state-tree"),
       },
     };
   }

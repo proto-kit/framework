@@ -5,20 +5,24 @@ import { InMemoryAsyncMerkleTreeStore } from "../InMemoryAsyncMerkleTreeStore";
 export class InMemoryMerkleTreeStoreMask extends CachedMerkleTreeStore {
   public constructor(
     parent: AsyncMerkleTreeStore,
-    public readonly name: string
+    public readonly maskName: string
   ) {
     super(parent);
   }
 
-  public async createMask(name: string): Promise<InMemoryMerkleTreeStoreMask> {
-    return new InMemoryMerkleTreeStoreMask(this, name);
+  public async createMask(
+    maskName: string
+  ): Promise<InMemoryMerkleTreeStoreMask> {
+    return new InMemoryMerkleTreeStoreMask(this, maskName);
   }
 }
 
 export class InMemoryBaseMerkleTreeStore extends InMemoryAsyncMerkleTreeStore {
-  public name = "base";
+  public maskName = "base";
 
-  public async createMask(name: string): Promise<InMemoryMerkleTreeStoreMask> {
-    return new InMemoryMerkleTreeStoreMask(this, name);
+  public async createMask(
+    maskName: string
+  ): Promise<InMemoryMerkleTreeStoreMask> {
+    return new InMemoryMerkleTreeStoreMask(this, maskName);
   }
 }

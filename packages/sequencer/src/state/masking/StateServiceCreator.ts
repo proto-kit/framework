@@ -6,5 +6,3 @@ export interface StateServiceCreator {
   mergeIntoParent(name: string): Promise<void>;
   drop(name: string): Promise<void>;
 }
-
-// TODO Add Prefix

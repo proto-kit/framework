@@ -11,15 +11,14 @@ import type { RedisConnection } from "../../RedisConnection";
 export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
   private cache: MerkleTreeNode[] = [];
 
-  public readonly name = "base";
-
   public constructor(
     private readonly connection: RedisConnection,
-    private readonly mask: string
+    private readonly prefix: string,
+    public readonly maskName: string
   ) {}
 
   private getKey(node: MerkleTreeNodeQuery): string {
-    return `${this.mask}:${node.level}:${node.key.toString()}`;
+    return `${this.maskName}:${node.level}:${node.key.toString()}`;
   }
 
   public async openTransaction(): Promise<void> {
@@ -84,7 +83,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     // console.log(`Reduced ${concat.length} to ${this.cache.length} items to write`)
   }
 
-  public async createMask(name: string) {
-    return new InMemoryMerkleTreeStoreMask(this, name);
+  public async createMask(maskName: string) {
+    return new InMemoryMerkleTreeStoreMask(this, maskName);
   }
 }

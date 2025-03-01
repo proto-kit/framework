@@ -15,7 +15,7 @@ type Node<T, Child, Parent> = {
 
 type BaseMaskType<Interface, Mask> = Interface & {
   createMask(name: string): Promise<Mask>;
-  name: string;
+  maskName: string;
 };
 
 type MaskType<Interface, Mask> = BaseMaskType<Interface, Mask> & {
@@ -104,9 +104,9 @@ export class MaskGraph<
 
     children.forEach((child) => {
       child.updateParent(parent!);
-      this.findNode(child.name)!.parent = parent;
+      this.findNode(child.maskName)!.parent = parent;
     });
-    const parentNode = this.findNode(parent!.name)!;
+    const parentNode = this.findNode(parent!.maskName)!;
     parentNode.children = parentNode.children.filter((c) => c !== node.mask);
     parentNode.children.push(...children);
 
