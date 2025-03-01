@@ -7,7 +7,7 @@ import {
   Unconstrained,
 } from "o1js";
 
-import { NonMethods } from "./utils";
+import { NonMethods } from "../utils/utils";
 
 export type ProvableHashListData<Value> = {
   preimage: Field;

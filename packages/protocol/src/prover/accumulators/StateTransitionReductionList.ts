@@ -5,7 +5,7 @@ import {
   ProvableStateTransition,
   StateTransition,
 } from "../../model/StateTransition";
-import { ProvableReductionHashList } from "../../utils/ProvableReductionHashList";
+import { ProvableReductionHashList } from "../../accumulators/ProvableReductionHashList";
 
 export class StateTransitionReductionList extends ProvableReductionHashList<ProvableStateTransition> {
   public push(value: ProvableStateTransition) {

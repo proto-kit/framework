@@ -15,7 +15,7 @@ import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../../model/network/NetworkState";
 import { TransactionHashList } from "../accumulators/TransactionHashList";
-import { MinaActionsHashList } from "../../utils/MinaPrefixedProvableHashList";
+import { MinaActionsHashList } from "../../accumulators/MinaPrefixedProvableHashList";
 import { AppliedBatchHashList } from "../accumulators/AppliedBatchHashList";
 import {
   WitnessedRootHashList,

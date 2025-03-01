@@ -1,6 +1,6 @@
 import { Bool, Field } from "o1js";
 
-import { DefaultProvableHashList } from "../../utils/ProvableHashList";
+import { DefaultProvableHashList } from "../../accumulators/ProvableHashList";
 import { NonMethods } from "../../utils/utils";
 import { AppliedStateTransitionBatch } from "../../model/AppliedStateTransitionBatch";
 

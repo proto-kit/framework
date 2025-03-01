@@ -53,7 +53,7 @@ import {
 } from "../../protocol/ProvableBlockHook";
 import { NetworkState } from "../../model/network/NetworkState";
 import { SignedTransaction } from "../../model/transaction/SignedTransaction";
-import { MinaActions } from "../../utils/MinaPrefixedProvableHashList";
+import { MinaActions } from "../../accumulators/MinaPrefixedProvableHashList";
 import { StateTransitionReductionList } from "../accumulators/StateTransitionReductionList";
 import { assertEqualsIf } from "../../utils/utils";
 import { WitnessedRootWitness } from "../accumulators/WitnessedRootHashList";

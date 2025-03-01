@@ -20,7 +20,7 @@ import {
 } from "../../model/StateTransitionProvableBatch";
 import { StateTransitionProverType } from "../../protocol/Protocol";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
-import { DefaultProvableHashList } from "../../utils/ProvableHashList";
+import { DefaultProvableHashList } from "../../accumulators/ProvableHashList";
 import { WitnessedRootHashList } from "../accumulators/WitnessedRootHashList";
 import { AppliedBatchHashList } from "../accumulators/AppliedBatchHashList";
 import { AppliedStateTransitionBatchState } from "../../model/AppliedStateTransitionBatch";

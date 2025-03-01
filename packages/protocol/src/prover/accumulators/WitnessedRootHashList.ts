@@ -1,6 +1,6 @@
 import { Bool, Field, Struct } from "o1js";
 
-import { DefaultProvableHashList } from "../../utils/ProvableHashList";
+import { DefaultProvableHashList } from "../../accumulators/ProvableHashList";
 
 /**
  * Link between a certain applied batch stack and a given root hash that the

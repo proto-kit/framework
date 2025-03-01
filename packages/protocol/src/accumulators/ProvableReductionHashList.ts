@@ -1,6 +1,6 @@
 import { Bool, Field, Poseidon, Provable, ProvablePure } from "o1js";
 
-import { NonMethods } from "./utils";
+import { NonMethods } from "../utils/utils";
 
 export class ProvableReductionHashList<Value> {
   public constructor(

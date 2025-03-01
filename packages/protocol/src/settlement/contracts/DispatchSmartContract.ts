@@ -21,7 +21,7 @@ import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import {
   MinaActions,
   MinaEvents,
-} from "../../utils/MinaPrefixedProvableHashList";
+} from "../../accumulators/MinaPrefixedProvableHashList";
 import { Deposit } from "../messages/Deposit";
 
 import type { SettlementContractType } from "./SettlementSmartContract";

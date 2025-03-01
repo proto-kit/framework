@@ -1,7 +1,7 @@
 import { Field, ProvablePure, Poseidon } from "o1js";
 
 import { ProvableHashList } from "./ProvableHashList.js";
-import { stringToField } from "./utils";
+import { stringToField } from "../utils/utils";
 
 export class PrefixedProvableHashList<Value> extends ProvableHashList<Value> {
   private readonly prefix: Field;
