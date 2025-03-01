@@ -145,7 +145,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       expectDefined(generatedBlock);
 
-      const blocks = await sequencer.resolve("BlockQueue").getNewBlocks();
+      const blocks = await sequencer.resolve("BlockQueue").getPendingBlocks();
 
       expect(blocks).toHaveLength(1);
 
@@ -187,7 +187,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       expectDefined(generatedBatch);
 
-      const blocks = await sequencer.resolve("BlockQueue").getNewBlocks();
+      const blocks = await sequencer.resolve("BlockQueue").getPendingBlocks();
       expect(blocks).toHaveLength(0);
 
       const batchStorage = sequencer.resolve(
