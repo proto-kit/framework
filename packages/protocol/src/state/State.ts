@@ -41,7 +41,7 @@ export class IsInWitnessBlockContext {
   public isInWitnessBlock: number = 0;
 }
 
-const rewriteAsyncWitnessFunction = (
+const newAsyncWitnessFunction = (
   originalFuncDef: (arg0: any, arg1: any) => any
 ) => {
   return async (e: any, f: any) => {
@@ -54,7 +54,7 @@ const rewriteAsyncWitnessFunction = (
   };
 };
 
-const rewriteWitnessFunction = (originalFuncDef: any) => {
+const newWitnessFunction = (originalFuncDef: any) => {
   return (e: any, f: any) => {
     const context = container.resolve(IsInWitnessBlockContext);
     context.isInWitnessBlock += 1;
@@ -66,13 +66,13 @@ const rewriteWitnessFunction = (originalFuncDef: any) => {
 };
 
 const originalWitnessAsync = Provable.witnessAsync;
-Provable.witnessAsync = rewriteAsyncWitnessFunction(originalWitnessAsync);
+Provable.witnessAsync = newAsyncWitnessFunction(originalWitnessAsync);
 
 const originalWitness = Provable.witness;
-Provable.witness = rewriteWitnessFunction(originalWitness);
+Provable.witness = newWitnessFunction(originalWitness);
 
 const originalWitnessFields = Provable.witnessFields;
-Provable.witnessFields = rewriteWitnessFunction(originalWitnessFields);
+Provable.witnessFields = newWitnessFunction(originalWitnessFields);
 
 /**
  * Utilities for runtime module state, such as get/set
