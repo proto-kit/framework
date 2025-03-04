@@ -90,6 +90,8 @@ export class PrismaDatabaseConnection
       "Settlement",
       "IncomingMessageBatch",
       "IncomingMessageBatchTransaction",
+      "StateTransition",
+      "StateTransitionBatch",
     ];
 
     await this.prismaClient.$transaction(
