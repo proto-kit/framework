@@ -3,7 +3,12 @@ import "reflect-metadata";
 import { UInt64 } from "@proto-kit/library";
 import { runtimeMethod, runtimeModule, RuntimeModule } from "@proto-kit/module";
 import { Field, PrivateKey, Provable } from "o1js";
-import { State, state } from "@proto-kit/protocol";
+import {
+  RuntimeMethodExecutionContext,
+  State,
+  state,
+} from "@proto-kit/protocol";
+import { container } from "tsyringe";
 
 import { TestingAppChain } from "../src";
 
@@ -63,6 +68,7 @@ describe("StateTransition", () => {
 
   it("should emit no sts for get", async () => {
     const stateTester = appChain.runtime.resolve("StateTester");
+    const context = container.resolve(RuntimeMethodExecutionContext);
 
     // We set the state so when we fetch it it won't error.
     const tx0 = await appChain.transaction(
@@ -83,10 +89,9 @@ describe("StateTransition", () => {
     );
     await tx1.sign();
     await tx1.send();
-    const block1 = await appChain.produceBlock();
-    const block1Transactions = block1!.transactions[0].stateTransitions;
+    const STs = context.current().result.stateTransitions;
 
-    expect(block1Transactions.length).not.toBe(0);
+    expect(STs.length).not.toBe(0);
 
     const tx2 = await appChain.transaction(
       senderKey.toPublicKey(),
@@ -96,9 +101,8 @@ describe("StateTransition", () => {
     );
     await tx2.sign();
     await tx2.send();
-    const block2 = await appChain.produceBlock();
-    const block2Transaction = block2!.transactions[0].stateTransitions;
-    expect(block2Transaction.length).toBe(0);
+    const STs2 = context.current().result.stateTransitions;
+    expect(STs2.length).toBe(0);
   });
 
   it("should fail outside provable code for set", async () => {
