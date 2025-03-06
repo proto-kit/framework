@@ -1,4 +1,4 @@
-import { EventEmitter, log, noop } from "@proto-kit/common";
+import { EventEmitter, log, noop, ParentContainer } from "@proto-kit/common";
 import { container, inject } from "tsyringe";
 import {
   AccountStateHook,
@@ -22,10 +22,6 @@ import {
 import { TransactionStorage } from "../../storage/repositories/TransactionStorage";
 import { TransactionValidator } from "../verification/TransactionValidator";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-} from "../../sequencer/executor/Sequencer";
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { distinctByPredicate } from "../../helpers/utils";
@@ -52,8 +48,8 @@ export class PrivateMempool
     private readonly transactionStorage: TransactionStorage,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    @inject("Sequencer")
-    private readonly sequencer: Sequencer<SequencerModulesRecord>,
+    @inject("ParentContainer")
+    private readonly parentContainer: ParentContainer,
     @inject("UnprovenStateService")
     private readonly stateService: AsyncStateService
   ) {
@@ -91,7 +87,7 @@ export class PrivateMempool
   }
 
   private get unprovenQueue(): BlockStorage {
-    return this.sequencer.dependencyContainer.resolve<BlockStorage>(
+    return this.parentContainer.dependencyContainer.resolve<BlockStorage>(
       "BlockStorage"
     );
   }
