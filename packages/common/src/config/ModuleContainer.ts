@@ -247,11 +247,6 @@ export class ModuleContainer<
    * @param modules
    */
   protected registerModules(modules: Modules) {
-    // this.container.register("ParentContainer",
-    //   this.container.,
-    //   {
-    //   lifecycle: Lifecycle.ContainerScoped,
-    // });
     Object.keys(modules).forEach((moduleName) => {
       if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
         this.assertIsValidModuleName(moduleName);
@@ -488,5 +483,8 @@ export class ModuleContainer<
 
     // register all provided modules when the container is created
     this.registerModules(this.definition.modules);
+    this.container.register("ParentContainer", ModuleContainer, {
+      lifecycle: Lifecycle.ContainerScoped,
+    });
   }
 }
