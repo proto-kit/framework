@@ -138,13 +138,18 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
 > &
   Modules;
 
+export interface ParentContainer {
+  dependencyContainer(): DependencyContainer;
+}
+
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
  */
-export class ModuleContainer<
-  Modules extends ModulesRecord,
-> extends ConfigurableModule<ModulesConfig<Modules>> {
+export class ModuleContainer<Modules extends ModulesRecord>
+  extends ConfigurableModule<ModulesConfig<Modules>>
+  implements ParentContainer
+{
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -483,8 +488,10 @@ export class ModuleContainer<
 
     // register all provided modules when the container is created
     this.registerModules(this.definition.modules);
-    this.container.register("ParentContainer", ModuleContainer, {
-      lifecycle: Lifecycle.ContainerScoped,
-    });
+    this.container.register("ParentContainer", { useValue: this });
+  }
+
+  public dependencyContainer(): DependencyContainer {
+    return this.container;
   }
 }
