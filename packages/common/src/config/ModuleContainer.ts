@@ -139,7 +139,7 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
   Modules;
 
 export interface ParentContainer {
-  dependencyContainer(): DependencyContainer;
+  get dependencyContainer(): DependencyContainer;
 }
 
 /**
@@ -491,7 +491,7 @@ export class ModuleContainer<Modules extends ModulesRecord>
     this.container.register("ParentContainer", { useValue: this });
   }
 
-  public dependencyContainer(): DependencyContainer {
+  public get dependencyContainer(): DependencyContainer {
     return this.container;
   }
 }
