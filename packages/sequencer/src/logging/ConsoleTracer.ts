@@ -5,6 +5,7 @@ import { Tracer } from "./Tracer";
 
 @injectable()
 export class ConsoleTracer implements Tracer {
+  // Need some change here to aggregate the same calls.
   public async trace<T>(
     name: string,
     f: () => Promise<T>,
