@@ -32,12 +32,8 @@ export class ConsoleTracer implements Tracer {
           return result + curr.duration;
         }, 0);
         const numberOfCalls = store.store[methodName].length;
-        const message = `Routine ${name}: executed ${numberOfCalls} times, average ${sumTime / numberOfCalls}ms`;
-        if (metadata !== undefined) {
-          log.debug(message, metadata);
-        } else {
-          log.debug(message);
-        }
+        const message = `Routine ${methodName}: executed ${numberOfCalls} times, average ${sumTime / numberOfCalls}ms`;
+        log.debug(message);
         delete store.store[methodName];
       }
     });
