@@ -23,6 +23,10 @@ export class ConsoleTracer implements Tracer {
     const store = container.resolve(TraceRecordHolder);
     const methodsAlreadyLogged = Object.keys(store.store);
 
+    // We checked the record to see if any methods have exceeded the configured interval.
+    // If so we print them and then delete from the record.
+    // We look at the first element in the array only (i.e. the first invocation of the function)
+    // as this should be enough.
     methodsAlreadyLogged.forEach((methodName) => {
       if (
         Date.now() - store.store[methodName][0].startTime >
