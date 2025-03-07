@@ -1,7 +1,17 @@
-import { injectable } from "tsyringe";
+import { injectable, singleton } from "tsyringe";
 import { log } from "@proto-kit/common";
 
 import { Tracer } from "./Tracer";
+
+type StoreType = {
+  methodName: string;
+  invocations: { startTime: number; duration: number }[];
+};
+
+@singleton()
+export class TraceRecordHolder {
+  public store?: StoreType;
+}
 
 @injectable()
 export class ConsoleTracer implements Tracer {
