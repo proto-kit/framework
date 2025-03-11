@@ -175,6 +175,21 @@ export class PrivateMempool
       executionContext.setup(contextInputs);
 
       const signedTransaction = tx.toProtocolTransaction();
+
+      // eslint-disable-next-line no-await-in-loop
+      const removeTxWhen = await this.accountStateHook.removeTransactionWhen({
+        networkState: networkState,
+        transaction: signedTransaction.transaction,
+        signature: signedTransaction.signature,
+        prover: proverState,
+      });
+      if (removeTxWhen) {
+        log.trace(
+          `Deleting tx ${tx.hash().toString()}  from mempool because removeTransactionWhen condition is satisfied`
+        );
+        // eslint-disable-next-line no-continue
+        continue;
+      }
       // eslint-disable-next-line no-await-in-loop
       await this.accountStateHook.beforeTransaction({
         networkState: networkState,
