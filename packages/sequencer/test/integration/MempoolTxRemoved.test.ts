@@ -56,7 +56,20 @@ describe("block production", () => {
       })
     );
 
+    const txs = await mempool.getTxs();
+    expect(txs.length).toBe(2);
+
     await appChain.produceBlock();
+
+    await mempool.add(
+      createTransaction({
+        runtime,
+        method: ["Balance", "setBalanceIf"],
+        privateKey: senderKey,
+        args: [senderKey.toPublicKey(), UInt64.from(100), Bool(true)],
+        nonce: 2,
+      })
+    );
 
     await mempool.add(
       createTransaction({
@@ -68,7 +81,7 @@ describe("block production", () => {
       })
     );
 
-    const txs = await mempool.getTxs();
-    expect(txs.length).toBe(0);
+    const txs2 = await mempool.getTxs();
+    expect(txs2.length).toBe(1);
   }, 60_000);
 });
