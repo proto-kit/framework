@@ -2,13 +2,15 @@ import {
   AsyncStateService,
   CachedMerkleTreeStore,
   QueryTransportModule,
-  Sequencer,
-  SequencerModulesRecord,
   AsyncMerkleTreeStore,
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
-import { RollupMerkleTree, RollupMerkleTreeWitness } from "@proto-kit/common";
+import {
+  ParentContainer,
+  RollupMerkleTree,
+  RollupMerkleTreeWitness,
+} from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -17,9 +19,7 @@ export class StateServiceQueryModule
   extends AppChainModule
   implements QueryTransportModule
 {
-  public constructor(
-    @inject("Sequencer") public sequencer: Sequencer<SequencerModulesRecord>
-  ) {
+  public constructor(@inject("Sequencer") public sequencer: ParentContainer) {
     super();
   }
 

@@ -1,4 +1,8 @@
-import { AreProofsEnabled, DependencyFactory } from "@proto-kit/common";
+import {
+  AreProofsEnabled,
+  DependencyFactory,
+  ParentContainer,
+} from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
 import { inject } from "tsyringe";
@@ -10,10 +14,6 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { WithdrawalQueue } from "../../settlement/messages/WithdrawalQueue";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-} from "../../sequencer/executor/Sequencer";
 
 import { BaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
@@ -56,8 +56,8 @@ export class MinaBaseLayer
   public constructor(
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
-    @inject("Sequencer")
-    private readonly sequencer: Sequencer<SequencerModulesRecord>
+    @inject("ParentContainer")
+    private readonly parentContainer: ParentContainer
   ) {
     super();
   }
@@ -92,7 +92,7 @@ export class MinaBaseLayer
     if (this.config.network.type === "remote") {
       throw new Error("NetworkUtils not available for remote networks");
     }
-    return this.sequencer.dependencyContainer.resolve("NetworkUtils");
+    return this.parentContainer.dependencyContainer.resolve("NetworkUtils");
   }
 
   public isLocalBlockChain(): boolean {
