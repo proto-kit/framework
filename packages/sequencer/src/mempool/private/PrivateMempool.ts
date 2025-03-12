@@ -184,6 +184,8 @@ export class PrivateMempool
         prover: proverState,
       });
       if (removeTxWhen) {
+        // eslint-disable-next-line no-await-in-loop
+        await this.transactionStorage.removeTx(tx.hash());
         log.trace(
           `Deleting tx ${tx.hash().toString()}  from mempool because removeTransactionWhen condition is satisfied`
         );

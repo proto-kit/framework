@@ -1,9 +1,13 @@
+import { Field } from "o1js";
+
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 
 export interface TransactionStorage {
   pushUserTransaction: (tx: PendingTransaction) => Promise<boolean>;
 
   getPendingUserTransactions: () => Promise<PendingTransaction[]>;
+
+  removeTx: (txHash: Field) => Promise<void>;
 
   /**
    * Finds a transaction by its hash.

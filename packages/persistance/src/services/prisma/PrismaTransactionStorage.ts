@@ -1,5 +1,6 @@
 import { inject, injectable } from "tsyringe";
 import { PendingTransaction, TransactionStorage } from "@proto-kit/sequencer";
+import { Field } from "o1js";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
@@ -26,6 +27,16 @@ export class PrismaTransactionStorage implements TransactionStorage {
       },
     });
     return txs.map((tx) => this.transactionMapper.mapIn(tx));
+  }
+
+  public async removeTx(txHash: Field) {
+    const { prismaClient } = this.connection;
+
+    await prismaClient.transaction.deleteMany({
+      where: {
+        hash: txHash.toString(),
+      },
+    });
   }
 
   public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {

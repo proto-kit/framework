@@ -22,6 +22,10 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     @inject("BatchStorage") private readonly batchStorage: InMemoryBatchStorage
   ) {}
 
+  public async removeTx(txHash: Field) {
+    this.queue = this.queue.filter((tx) => tx.hash() !== txHash);
+  }
+
   public async getPendingUserTransactions(): Promise<PendingTransaction[]> {
     const nextHeight = await this.blockStorage.getCurrentBlockHeight();
     for (
