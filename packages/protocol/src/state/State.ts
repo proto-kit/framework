@@ -38,41 +38,55 @@ export class WithStateServiceProvider {
 
 @singleton()
 export class IsInWitnessBlockContext {
-  public isInWitnessBlock: number = 0;
-}
+  public witnessBlockDepth: number = 0;
 
-const newAsyncWitnessFunction = (
-  originalFuncDef: (arg0: any, arg1: any) => any
+  public get isInWitnessBlock() {
+    return this.witnessBlockDepth > 0;
+  }
+}
+const asyncProxyWitnessFunction = (
+  originalFuncDef: typeof Provable.witnessAsync
 ) => {
-  return async (e: any, f: any) => {
+  return async ([e, f]: Parameters<typeof Provable.witnessAsync>) => {
     const context = container.resolve(IsInWitnessBlockContext);
-    context.isInWitnessBlock += 1;
+    context.witnessBlockDepth += 1;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const ret = await originalFuncDef(e, f);
-    context.isInWitnessBlock -= 1;
+    context.witnessBlockDepth -= 1;
     return ret;
   };
 };
 
-const newWitnessFunction = (originalFuncDef: any) => {
-  return (e: any, f: any) => {
+const proxyWitnessFunction = (originalFuncDef: typeof Provable.witness) => {
+  return ([e, f]: Parameters<typeof Provable.witness>) => {
     const context = container.resolve(IsInWitnessBlockContext);
-    context.isInWitnessBlock += 1;
+    context.witnessBlockDepth += 1;
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const ret = originalFuncDef(e, f);
-    context.isInWitnessBlock -= 1;
+    context.witnessBlockDepth -= 1;
     return ret;
   };
 };
 
-const originalWitnessAsync = Provable.witnessAsync;
-Provable.witnessAsync = newAsyncWitnessFunction(originalWitnessAsync);
+const proxyWitnessFieldsFunction = (
+  originalFuncDef: typeof Provable.witnessFields
+) => {
+  return ([e, f]: Parameters<typeof Provable.witnessFields>) => {
+    const context = container.resolve(IsInWitnessBlockContext);
+    context.witnessBlockDepth += 1;
 
-const originalWitness = Provable.witness;
-Provable.witness = newWitnessFunction(originalWitness);
+    const ret = originalFuncDef(e, f);
+    context.witnessBlockDepth -= 1;
+    return ret;
+  };
+};
 
-const originalWitnessFields = Provable.witnessFields;
-Provable.witnessFields = newWitnessFunction(originalWitnessFields);
+Provable.witnessAsync = asyncProxyWitnessFunction(Provable.witnessAsync);
+
+Provable.witness = proxyWitnessFunction(Provable.witness);
+
+Provable.witnessFields = proxyWitnessFieldsFunction(Provable.witnessFields);
 
 /**
  * Utilities for runtime module state, such as get/set
@@ -175,7 +189,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     const { isInWitnessBlock } = container.resolve(IsInWitnessBlockContext);
 
-    if (isInWitnessBlock === 0) {
+    if (!isInWitnessBlock) {
       const stateTransition = StateTransition.from(this.path, option);
 
       container
@@ -212,7 +226,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     const { isInWitnessBlock } = container.resolve(IsInWitnessBlockContext);
 
-    if (isInWitnessBlock > 0) {
+    if (isInWitnessBlock) {
       throw new Error("Cannot set state inside of provable block.");
     }
 
