@@ -69,13 +69,12 @@ const proxyWitnessFunction = (originalFuncDef: typeof Provable.witness) => {
   };
 };
 
-const proxyWitnessFieldsFunction = (
-  originalFuncDef: typeof Provable.witnessFields
-) => {
+const proxyWitnessFieldsFunction = (originalFuncDef: any) => {
   return (...args: Parameters<typeof Provable.witnessFields>) => {
     const context = container.resolve(IsInWitnessBlockContext);
     context.witnessBlockDepth += 1;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const ret = originalFuncDef(...args);
     context.witnessBlockDepth -= 1;
     return ret;
