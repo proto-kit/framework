@@ -47,23 +47,23 @@ export class IsInWitnessBlockContext {
 const asyncProxyWitnessFunction = (
   originalFuncDef: typeof Provable.witnessAsync
 ) => {
-  return async ([e, f]: Parameters<typeof Provable.witnessAsync>) => {
+  return async (...args: Parameters<typeof Provable.witnessAsync>) => {
     const context = container.resolve(IsInWitnessBlockContext);
     context.witnessBlockDepth += 1;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const ret = await originalFuncDef(e, f);
+    const ret = await originalFuncDef(...args);
     context.witnessBlockDepth -= 1;
     return ret;
   };
 };
 
 const proxyWitnessFunction = (originalFuncDef: typeof Provable.witness) => {
-  return ([e, f]: Parameters<typeof Provable.witness>) => {
+  return (...args: Parameters<typeof Provable.witness>) => {
     const context = container.resolve(IsInWitnessBlockContext);
     context.witnessBlockDepth += 1;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const ret = originalFuncDef(e, f);
+    const ret = originalFuncDef(...args);
     context.witnessBlockDepth -= 1;
     return ret;
   };
@@ -72,11 +72,11 @@ const proxyWitnessFunction = (originalFuncDef: typeof Provable.witness) => {
 const proxyWitnessFieldsFunction = (
   originalFuncDef: typeof Provable.witnessFields
 ) => {
-  return ([e, f]: Parameters<typeof Provable.witnessFields>) => {
+  return (...args: Parameters<typeof Provable.witnessFields>) => {
     const context = container.resolve(IsInWitnessBlockContext);
     context.witnessBlockDepth += 1;
 
-    const ret = originalFuncDef(e, f);
+    const ret = originalFuncDef(...args);
     context.witnessBlockDepth -= 1;
     return ret;
   };
