@@ -32,7 +32,7 @@ export class PrismaTransactionStorage implements TransactionStorage {
   public async removeTx(txHash: Field) {
     const { prismaClient } = this.connection;
 
-    await prismaClient.transaction.deleteMany({
+    await prismaClient.transaction.delete({
       where: {
         hash: txHash.toString(),
       },
