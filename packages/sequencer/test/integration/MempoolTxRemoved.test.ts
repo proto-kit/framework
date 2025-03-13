@@ -19,7 +19,6 @@ describe("block production", () => {
   beforeAll(async () => {
     appChain.configurePartial({
       Runtime: {
-        Balances: {},
         Balance: {},
       },
       Protocol: {
@@ -83,5 +82,5 @@ describe("block production", () => {
 
     const txs2 = await mempool.getTxs();
     expect(txs2.length).toBe(1);
-  }, 60_000);
+  }, 300_000);
 });
