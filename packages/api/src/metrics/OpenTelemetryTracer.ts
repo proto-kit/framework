@@ -1,7 +1,21 @@
 import opentelemetry, { SpanStatusCode } from "@opentelemetry/api";
 import { Tracer } from "@proto-kit/sequencer";
+import { inject, injectable } from "tsyringe";
+import { noop } from "@proto-kit/common";
 
+import type { OpenTelemetryServer } from "./OpenTelemetryServer";
+
+@injectable()
 export class OpenTelemetryTracer implements Tracer {
+  public constructor(
+    // We need to import this here, so that the OpenTelemetryServer will be resolved
+    // before this module, and therefore will be already started when this module is
+    // eventually consumed and used
+    @inject("OpenTelemetryServer") openTelemetryServer: OpenTelemetryServer
+  ) {
+    noop();
+  }
+
   private tracer: ReturnType<typeof opentelemetry.trace.getTracer> | undefined =
     undefined;
 

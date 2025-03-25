@@ -9,6 +9,7 @@ import {
 import { ChildContainerProvider } from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
 import { RedisClientType } from "redis";
+import { inject } from "tsyringe";
 
 import {
   PrismaConnection,
@@ -21,7 +22,6 @@ import {
   RedisConnectionModule,
   RedisTransaction,
 } from "./RedisConnection";
-import { inject } from "tsyringe";
 
 export interface PrismaRedisCombinedConfig {
   prisma: PrismaDatabaseConfig;
