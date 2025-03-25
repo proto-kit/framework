@@ -170,12 +170,12 @@ export class BatchProducerModule extends SequencerModule {
    *
    *
    * @param blocks
-   * @param blockId
+   * @param batchId
    * @private
    */
   private async computeBatch(
     blocks: BlockWithResult[],
-    blockId: number
+    batchId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
     changes: CachedMerkleTreeStore;
@@ -190,10 +190,11 @@ export class BatchProducerModule extends SequencerModule {
 
     const trace = await this.batchTraceService.traceBatch(
       blocks.map((block) => block),
-      merkleTreeStore
+      merkleTreeStore,
+      batchId
     );
 
-    const proof = await this.batchFlow.executeBatch(trace, blockId);
+    const proof = await this.batchFlow.executeBatch(trace, batchId);
 
     const fromNetworkState = blocks[0].block.networkState.before;
     const toNetworkState = blocks.at(-1)!.result.afterNetworkState;

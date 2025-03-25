@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { describe } from "@jest/globals";
 import { Field } from "o1js";
-import { CachedMerkleTreeStore } from "@proto-kit/sequencer";
+import { CachedMerkleTreeStore, ConsoleTracer } from "@proto-kit/sequencer";
 import { expectDefined, RollupMerkleTree } from "@proto-kit/common";
 
 import {
@@ -14,15 +14,17 @@ import {
 // TODO Pull apart and test properly
 // Needs redis instance
 describe.skip("prisma", () => {
+  const tracer = new ConsoleTracer();
+
   it("merkle store", async () => {
-    const db = new RedisConnectionModule();
+    const db = new RedisConnectionModule(tracer);
     db.config = {
       host: "localhost",
       port: 6379,
       password: "password",
     };
     await db.start();
-    const store = new RedisMerkleTreeStore(db);
+    const store = new RedisMerkleTreeStore(db, tracer);
 
     const cached = new CachedMerkleTreeStore(store);
     const tree = new RollupMerkleTree(cached);
@@ -38,7 +40,7 @@ describe.skip("prisma", () => {
 
     console.log(`Root ${tree.getRoot().toBigInt()}`);
 
-    const store2 = new RedisMerkleTreeStore(db);
+    const store2 = new RedisMerkleTreeStore(db, tracer);
 
     const cached2 = new CachedMerkleTreeStore(store2);
     const tree2 = new RollupMerkleTree(cached2);
@@ -57,10 +59,10 @@ describe.skip("prisma", () => {
   });
 
   it("fill and get", async () => {
-    const db = new PrismaDatabaseConnection();
+    const db = new PrismaDatabaseConnection(tracer);
     db.config = {};
     await db.start();
-    const service = new PrismaStateService(db, "testMask");
+    const service = new PrismaStateService(db, tracer, "testMask");
 
     await service.openTransaction();
     service.writeStates([

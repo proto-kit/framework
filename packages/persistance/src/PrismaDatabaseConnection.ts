@@ -3,6 +3,7 @@ import {
   sequencerModule,
   SequencerModule,
   StorageDependencyMinimumDependencies,
+  Tracer,
 } from "@proto-kit/sequencer";
 import { DependencyFactory, OmitKeys } from "@proto-kit/common";
 
@@ -38,6 +39,10 @@ export class PrismaDatabaseConnection
   extends SequencerModule<PrismaDatabaseConfig>
   implements DependencyFactory, PrismaConnection
 {
+  public constructor(private readonly tracer: Tracer) {
+    super();
+  }
+
   private initializedClient: PrismaClient | undefined = undefined;
 
   public get prismaClient(): PrismaClient {
@@ -53,7 +58,7 @@ export class PrismaDatabaseConnection
   > {
     return {
       asyncStateService: {
-        useFactory: () => new PrismaStateService(this, "batch"),
+        useFactory: () => new PrismaStateService(this, this.tracer, "batch"),
       },
       batchStorage: {
         useClass: PrismaBatchStore,
@@ -65,7 +70,7 @@ export class PrismaDatabaseConnection
         useClass: PrismaBlockStorage,
       },
       unprovenStateService: {
-        useFactory: () => new PrismaStateService(this, "block"),
+        useFactory: () => new PrismaStateService(this, this.tracer, "block"),
       },
       settlementStorage: {
         useClass: PrismaSettlementStorage,
