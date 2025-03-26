@@ -1,7 +1,70 @@
 import { beforeEach } from "@jest/globals";
 import { Field } from "o1js";
 
-import { createMerkleTree, InMemoryMerkleTreeStorage, log } from "../../src";
+import {
+  createMerkleTree,
+  InMemoryMerkleTreeStorage,
+  log,
+  RollupMerkleTree,
+  range,
+} from "../../src";
+
+describe("batch setLeaf", () => {
+  function generateBatch(size: number) {
+    return range(0, size).map(() => ({
+      index: Field.random().toBigInt(),
+      leaf: Field.random(),
+    }));
+  }
+
+  function captureTime<R>(f: () => R): [number, R] {
+    const start = Date.now();
+    const ret = f();
+    return [Date.now() - start, ret];
+  }
+
+  it("correctness", () => {
+    const Tree = createMerkleTree(256);
+    const tree1 = new Tree(new InMemoryMerkleTreeStorage());
+    const tree2 = new Tree(new InMemoryMerkleTreeStorage());
+
+    tree1.setLeaf(1n, Field(5));
+    tree1.setLeaf(Field.ORDER - 1n, Field(7));
+
+    tree2.setLeafBatch([
+      { index: 1n, leaf: Field(5) },
+      { index: Field.ORDER - 1n, leaf: Field(7) },
+    ]);
+
+    expect(tree1.getRoot().toString()).toStrictEqual(
+      tree2.getRoot().toString()
+    );
+  });
+
+  it.each([10, 100])("test speedup", (batchSize) => {
+    const tree1 = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
+    const tree2 = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
+
+    const batch = generateBatch(batchSize);
+
+    const slice = batch.slice();
+    const [time1, numHashes] = captureTime(() => tree1.setLeafBatch(slice));
+    const [time2] = captureTime(() =>
+      batch.forEach(({ index, leaf }) => tree2.setLeaf(index, leaf))
+    );
+
+    console.log(`Speedup for batch size ${batchSize}`);
+    console.log(time1);
+    console.log(time2);
+
+    console.log(`numHashes1 ${numHashes}`);
+    console.log(`numHashes2 ${255 * batchSize}`);
+
+    expect(tree1.getRoot().toString()).toStrictEqual(
+      tree2.getRoot().toString()
+    );
+  });
+});
 
 describe.each([4, 16, 256])("cachedMerkleTree - %s", (height) => {
   class RollupMerkleTree extends createMerkleTree(height) {}
