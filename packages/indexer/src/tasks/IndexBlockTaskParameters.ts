@@ -5,8 +5,8 @@ import {
   StateTransitionBatchArrayMapper,
   StateTransitionMapper,
   TransactionExecutionResultMapper,
-  STBatchArrayMapOut1,
-  STBatchArrayMapOut2,
+  STBatchOutput,
+  STArrayOutput,
 } from "@proto-kit/persistance";
 import { injectable } from "tsyringe";
 
@@ -63,8 +63,8 @@ export class IndexBlockTaskParametersSerializer {
         >[];
       };
       transactions: (ReturnType<TransactionExecutionResultMapper["mapOut"]> & {
-        stateTransitionBatch: (STBatchArrayMapOut1 & {
-          stateTransitions: STBatchArrayMapOut2;
+        stateTransitionBatch: (STBatchOutput & {
+          stateTransitions: STArrayOutput;
         })[];
       })[];
       result: ReturnType<BlockResultMapper["mapOut"]> & {
@@ -77,7 +77,7 @@ export class IndexBlockTaskParametersSerializer {
     const transactions = parsed.transactions.map((tx) => {
       const txMapped = this.transactionResultMapper.mapIn(tx);
       const stBatch = tx.stateTransitionBatch.map<
-        [STBatchArrayMapOut1, STBatchArrayMapOut2]
+        [STBatchOutput, STArrayOutput]
       >((batch) => [{ applied: batch.applied }, batch.stateTransitions]);
       return {
         ...txMapped,

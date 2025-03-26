@@ -10,11 +10,11 @@ import {
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
-export type STBatchArrayMapOut1 = Omit<
+export type STBatchOutput = Omit<
   DBStateTransitionBatch,
   "txExecutionResultId" | "id" | "blockId" | "blockResultId"
 >;
-export type STBatchArrayMapOut2 = Omit<DBStateTransition, "batchId" | "id">[];
+export type STArrayOutput = Omit<DBStateTransition, "batchId" | "id">[];
 
 @singleton()
 export class StateTransitionMapper
@@ -76,7 +76,7 @@ export class StateTransitionBatchArrayMapper
 
   public mapOut(
     input: StateTransitionBatch[]
-  ): [STBatchArrayMapOut1, STBatchArrayMapOut2][] {
+  ): [STBatchOutput, STArrayOutput][] {
     return input.map((stBatch) => [
       {
         applied: stBatch.applied,
@@ -88,7 +88,7 @@ export class StateTransitionBatchArrayMapper
   }
 
   public mapIn(
-    input: [STBatchArrayMapOut1, STBatchArrayMapOut2][]
+    input: [STBatchOutput, STArrayOutput][]
   ): StateTransitionBatch[] {
     return input.map((x) => ({
       applied: x[0].applied,

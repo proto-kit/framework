@@ -22,6 +22,7 @@ describe("StMapper", () => {
     const result = stMapper.mapIn(stMapper.mapOut(untypedTransition)).toJSON();
     expect(result).toEqual(input);
   });
+
   it.each([
     {
       path: "1234",
