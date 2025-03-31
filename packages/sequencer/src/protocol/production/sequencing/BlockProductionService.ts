@@ -25,6 +25,8 @@ import { CachedStateService } from "../../../state/state/CachedStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import { Tracer } from "../../../logging/Tracer";
+import { trace } from "../../../logging/trace";
 
 import {
   BlockTrackers,
@@ -40,6 +42,8 @@ export class BlockProductionService {
   public constructor(
     @inject("Protocol")
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
+    @inject("Tracer")
+    public readonly tracer: Tracer,
     private readonly transactionExecutionService: TransactionExecutionService,
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider
@@ -48,6 +52,7 @@ export class BlockProductionService {
       protocol.dependencyContainer.resolveAll("ProvableBlockHook");
   }
 
+  @trace("block.hook.before")
   public async executeBeforeBlockHook(
     args: BeforeBlockHookArguments,
     inputNetworkState: NetworkState,

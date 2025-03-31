@@ -303,7 +303,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
 
-    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    this.useDependencyFactory(MethodIdFactory);
   }
 
   public get areProofsEnabled(): AreProofsEnabled | undefined {

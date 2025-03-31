@@ -29,14 +29,18 @@ import {
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { distinctByPredicate } from "../../helpers/utils";
+import { Tracer } from "../../logging/Tracer";
+import { trace } from "../../logging/trace";
 
 type MempoolTransactionPaths = {
   transaction: PendingTransaction;
   paths: Field[];
 };
+
 interface PrivateMempoolConfig {
   validationEnabled?: boolean;
 }
+
 @sequencerModule()
 export class PrivateMempool
   extends SequencerModule<PrivateMempoolConfig>
@@ -55,11 +59,17 @@ export class PrivateMempool
     @inject("Sequencer")
     private readonly sequencer: Sequencer<SequencerModulesRecord>,
     @inject("UnprovenStateService")
-    private readonly stateService: AsyncStateService
+    private readonly stateService: AsyncStateService,
+    @inject("Tracer") public readonly tracer: Tracer
   ) {
     super();
     this.accountStateHook =
       this.protocol.dependencyContainer.resolve("AccountState");
+  }
+
+  public async length(): Promise<number> {
+    const txs = await this.transactionStorage.getPendingUserTransactions();
+    return txs.length;
   }
 
   public async add(tx: PendingTransaction): Promise<boolean> {
@@ -101,6 +111,7 @@ export class PrivateMempool
     return result?.result.afterNetworkState;
   }
 
+  @trace("mempool.get_txs")
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
 
@@ -108,6 +119,7 @@ export class PrivateMempool
 
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();
+
     const validationEnabled = this.config.validationEnabled ?? true;
     const sortedTxs = validationEnabled
       ? await this.checkTxValid(
@@ -118,6 +130,7 @@ export class PrivateMempool
           limit
         )
       : txs;
+
     this.protocol.stateServiceProvider.popCurrentStateService();
     return sortedTxs;
   }
@@ -128,6 +141,7 @@ export class PrivateMempool
   // paths are shared between the just succeeded tx and any of the skipped txs. This is
   // because a failed tx may succeed now if the failure was to do with a nonce issue, say.
   // TODO Refactor
+  @trace("mempool.validate_txs")
   // eslint-disable-next-line sonarjs/cognitive-complexity
   private async checkTxValid(
     transactions: PendingTransaction[],

@@ -54,9 +54,10 @@ import {
   SignedSettlementPermissions,
   ProvenSettlementPermissions,
   VanillaTaskWorkerModules,
+  Sequencer,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
-import { testingSequencerFromModules } from "../TestingSequencer";
+import { testingSequencerModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
 import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 import { BridgingModule } from "../../src/settlement/BridgingModule";
@@ -119,16 +120,18 @@ export const settlementTestFn = (
     SettlementUtils.prototype["isSignedSettlement"] = () =>
       settlementType === "signed";
 
-    const sequencer = testingSequencerFromModules(
-      {
-        BaseLayer: MinaBaseLayer,
-        SettlementModule: SettlementModule,
-        OutgoingMessageQueue: WithdrawalQueue,
-      },
-      {
-        SettlementProvingTask,
-      }
-    );
+    const sequencer = Sequencer.from({
+      modules: testingSequencerModules(
+        {
+          BaseLayer: MinaBaseLayer,
+          SettlementModule: SettlementModule,
+          OutgoingMessageQueue: WithdrawalQueue,
+        },
+        {
+          SettlementProvingTask,
+        }
+      ),
+    });
 
     const appchain = AppChain.from({
       Runtime: runtime,

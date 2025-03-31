@@ -6,11 +6,13 @@ import {
   WitnessedRootHashList,
 } from "@proto-kit/protocol";
 import { Field } from "o1js";
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
 import { BlockWithResult } from "../../../storage/model/Block";
+import { trace } from "../../../logging/trace";
+import { Tracer } from "../../../logging/Tracer";
 
 import {
   BlockTrace,
@@ -30,7 +32,9 @@ export type BatchTrace = {
 export class BatchTracingService {
   public constructor(
     private readonly blockTracingService: BlockTracingService,
-    private readonly stateTransitionTracingService: StateTransitionTracingService
+    private readonly stateTransitionTracingService: StateTransitionTracingService,
+    @inject("Tracer")
+    public readonly tracer: Tracer
   ) {}
 
   private createBatchState(block: BlockWithResult): BatchTracingState {
@@ -46,6 +50,7 @@ export class BatchTracingService {
     };
   }
 
+  @trace("batch.trace.blocks")
   public async traceBlocks(blocks: BlockWithResult[]) {
     const batchState = this.createBatchState(blocks[0]);
 
@@ -58,12 +63,13 @@ export class BatchTracingService {
           ...state,
           transactionList: new TransactionHashList(),
         };
-        const [newState, trace] = await this.blockTracingService.traceBlock(
-          blockProverState,
-          block,
-          index === numBlocks - 1
-        );
-        return [newState, trace];
+        const [newState, blockTrace] =
+          await this.blockTracingService.traceBlock(
+            blockProverState,
+            block,
+            index === numBlocks - 1
+          );
+        return [newState, blockTrace];
       },
       batchState
     );
@@ -71,11 +77,15 @@ export class BatchTracingService {
     return blockTraces;
   }
 
+  @trace("batch.trace.transitions")
   public async traceStateTransitions(
     blocks: BlockWithResult[],
     merkleTreeStore: CachedMerkleTreeStore
   ) {
-    const batches = this.stateTransitionTracingService.extractSTBatches(blocks);
+    const batches = await this.tracer.trace(
+      "batch.trace.transitions.encoding",
+      async () => this.stateTransitionTracingService.extractSTBatches(blocks)
+    );
 
     return await this.stateTransitionTracingService.createMerkleTrace(
       merkleTreeStore,
@@ -83,9 +93,12 @@ export class BatchTracingService {
     );
   }
 
+  @trace("batch.trace", ([, , batchId]) => ({ batchId }))
   public async traceBatch(
     blocks: BlockWithResult[],
-    merkleTreeStore: CachedMerkleTreeStore
+    merkleTreeStore: CachedMerkleTreeStore,
+    // Only for trace metadata
+    batchId: number
   ): Promise<BatchTrace> {
     if (blocks.length === 0) {
       return { blocks: [], stateTransitionTrace: [] };

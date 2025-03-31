@@ -246,8 +246,6 @@ describe("flow", () => {
         const resolveReduction = async () => {
           let reductions = flow.state.reductionQueue;
 
-          console.log("Length:", reductions.length);
-
           if (reductions.length === 1 && flow.tasksInProgress === 0) {
             resolve(reductions[0]);
           }
@@ -276,7 +274,7 @@ describe("flow", () => {
           const [first, second] = flow.state.pairings[index];
 
           if (first !== undefined && second !== undefined) {
-            console.log(`Found pairing ${index}`);
+            log.trace(`Found pairing ${index}`);
 
             await flow.pushTask(
               mulTask,
@@ -314,7 +312,7 @@ describe("flow", () => {
         });
       });
 
-      console.log(computedResult);
+      log.trace(computedResult);
 
       expect(computedResult).toStrictEqual(result);
     },

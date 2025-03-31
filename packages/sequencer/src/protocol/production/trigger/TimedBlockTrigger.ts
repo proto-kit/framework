@@ -9,7 +9,7 @@ import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 
-import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { BlockEvents, BlockTriggerBase } from "./BlockTrigger";
 
 export interface TimedBlockTriggerConfig {
   /**
@@ -33,7 +33,7 @@ export interface TimedBlockTriggerEvent extends BlockEvents {
 @closeable()
 export class TimedBlockTrigger
   extends BlockTriggerBase<TimedBlockTriggerConfig, TimedBlockTriggerEvent>
-  implements BlockTrigger, Closeable
+  implements Closeable
 {
   // There is no real type for interval ids somehow, so any it is
 
@@ -118,6 +118,7 @@ export class TimedBlockTrigger
   }
 
   private async produceUnprovenBlock() {
+    // TODO Optimize towards mempool.length()
     const mempoolTxs = await this.mempool.getTxs();
     // Produce a block if either produceEmptyBlocks is true or we have more
     // than 1 tx in mempool

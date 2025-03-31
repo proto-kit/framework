@@ -25,6 +25,8 @@ import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import type { StateRecord } from "../BatchProducerModule";
+import { trace } from "../../../logging/trace";
+import { Tracer } from "../../../logging/Tracer";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
 
@@ -72,12 +74,15 @@ export class BlockResultService {
     @inject("Protocol")
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
     @inject("StateServiceProvider")
-    private readonly stateServiceProvider: StateServiceProvider
+    private readonly stateServiceProvider: StateServiceProvider,
+    @inject("Tracer")
+    public readonly tracer: Tracer
   ) {
     this.blockHooks =
       protocol.dependencyContainer.resolveAll("ProvableBlockHook");
   }
 
+  @trace("block.hook.after")
   public async executeAfterBlockHook(
     args: AfterBlockHookArguments,
     inputNetworkState: NetworkState,
@@ -169,6 +174,9 @@ export class BlockResultService {
     return tree;
   }
 
+  @trace("block.result.generate", ([block]) => ({
+    height: block.height.toString(),
+  }))
   public async generateMetadataForNextBlock(
     block: Block,
     merkleTreeStore: AsyncMerkleTreeStore,

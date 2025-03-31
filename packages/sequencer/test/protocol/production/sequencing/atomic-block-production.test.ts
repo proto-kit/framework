@@ -10,12 +10,13 @@ import { expectDefined } from "@proto-kit/common";
 import {
   BlockQueue,
   ManualBlockTrigger,
+  Sequencer,
   VanillaTaskWorkerModules,
 } from "../../../../src";
 import { ProtocolStateTestHook } from "../../../integration/mocks/ProtocolStateTestHook";
 import {
   DefaultTestingSequencerModules,
-  testingSequencerFromModules,
+  testingSequencerModules,
 } from "../../../TestingSequencer";
 import { Balance } from "../../../integration/mocks/Balance";
 import { BlockResultService } from "../../../../src/protocol/production/sequencing/BlockResultService";
@@ -36,7 +37,9 @@ describe("atomic block production", () => {
       },
     });
 
-    const sequencerClass = testingSequencerFromModules({});
+    const sequencerClass = Sequencer.from({
+      modules: testingSequencerModules({}),
+    });
 
     const protocolClass = Protocol.from({
       modules: VanillaProtocolModules.mandatoryModules({
@@ -62,7 +65,6 @@ describe("atomic block production", () => {
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
-        ProtocolStartupModule: {},
         SequencerStartupModule: {},
       },
       Runtime: {

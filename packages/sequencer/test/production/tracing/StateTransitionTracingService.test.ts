@@ -19,6 +19,7 @@ import {
   StateTransitionTracingService,
   TracingStateTransitionBatch,
   StateTransitionProofParameters,
+  ConsoleTracer,
 } from "../../../src";
 
 function createST(obj: {
@@ -114,7 +115,7 @@ async function applyBatchesToTree(
 //   return sequencer;
 // }
 
-const service = new StateTransitionTracingService();
+const service = new StateTransitionTracingService(new ConsoleTracer());
 
 describe("StateTransitionTracingService", () => {
   const cases: {
