@@ -132,7 +132,7 @@ export class PrismaStateService implements AsyncStateService {
 
   public async createMask(name: string): Promise<AsyncStateService> {
     const maskId = await this.getMaskId();
-    return new PrismaStateService(this.connection, name, maskId);
+    return new PrismaStateService(this.connection, this.tracer, name, maskId);
   }
 
   public async mergeIntoParent(): Promise<void> {
