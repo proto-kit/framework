@@ -2,6 +2,7 @@ import {
   AsyncMerkleTreeStore,
   InMemoryMerkleTreeStoreMask,
   MaskGraph,
+  Tracer,
   TreeStoreCreator,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
@@ -18,7 +19,10 @@ export class RedisTreeStoreCreator
   >
   implements TreeStoreCreator
 {
-  public constructor(@inject("Database") connection: RedisConnection) {
-    super(new RedisMerkleTreeStore(connection, "base"));
+  public constructor(
+    @inject("Database") connection: RedisConnection,
+    @inject("Tracer") tracer: Tracer
+  ) {
+    super(new RedisMerkleTreeStore(connection, tracer, "base"));
   }
 }

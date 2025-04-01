@@ -167,7 +167,12 @@ export class PrismaStateService implements AsyncStateService {
     // We only call this to make sure this mask actually exists, therefore that the
     // relation can be satisfied
     await this.getMaskId();
-    return new PrismaStateService(this.connection, this.tracer, name, this.mask);
+    return new PrismaStateService(
+      this.connection,
+      this.tracer,
+      name,
+      this.mask
+    );
   }
 
   public async mergeIntoParent(): Promise<void> {
