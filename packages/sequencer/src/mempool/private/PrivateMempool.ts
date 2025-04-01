@@ -27,10 +27,11 @@ import {
   SequencerModulesRecord,
 } from "../../sequencer/executor/Sequencer";
 import { CachedStateService } from "../../state/state/CachedStateService";
-import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { distinctByPredicate } from "../../helpers/utils";
 import { Tracer } from "../../logging/Tracer";
 import { trace } from "../../logging/trace";
+import { StateServiceCreator } from "../../state/masking/StateServiceCreator";
+import { MaskName } from "../../state/masking/MaskName";
 
 type MempoolTransactionPaths = {
   transaction: PendingTransaction;
@@ -58,8 +59,8 @@ export class PrivateMempool
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     @inject("Sequencer")
     private readonly sequencer: Sequencer<SequencerModulesRecord>,
-    @inject("UnprovenStateService")
-    private readonly stateService: AsyncStateService,
+    @inject("StateServiceCreator")
+    private readonly stateServiceCreator: StateServiceCreator,
     @inject("Tracer") public readonly tracer: Tracer
   ) {
     super();
@@ -115,7 +116,8 @@ export class PrivateMempool
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
 
-    const baseCachedStateService = new CachedStateService(this.stateService);
+    const stateService = this.stateServiceCreator.getMask(MaskName.base());
+    const baseCachedStateService = new CachedStateService(stateService);
 
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();

@@ -8,6 +8,7 @@ import { DependencyFactory } from "@proto-kit/common";
 import isArray from "lodash/isArray";
 
 import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
+import { RedisTreeStoreCreator } from "./creators/RedisTreeStoreCreator";
 
 export interface RedisConnectionConfig {
   host: string;
@@ -44,19 +45,15 @@ export class RedisConnectionModule
 
   public dependencies(): Pick<
     StorageDependencyMinimumDependencies,
-    "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
+    "blockTreeStore" | "treeStoreCreator"
   > {
     return {
-      asyncMerkleStore: {
-        useFactory: () => new RedisMerkleTreeStore(this, this.tracer),
-      },
-      unprovenMerkleStore: {
-        useFactory: () =>
-          new RedisMerkleTreeStore(this, this.tracer, "unproven"),
-      },
       blockTreeStore: {
         useFactory: () =>
           new RedisMerkleTreeStore(this, this.tracer, "blockHash"),
+      },
+      treeStoreCreator: {
+        useClass: RedisTreeStoreCreator,
       },
     };
   }

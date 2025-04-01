@@ -30,7 +30,7 @@ import { Tracer } from "../../../logging/Tracer";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
 
-function collectStateDiff(
+export function collectStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {
   return stateTransitions.reduce<Record<string, Field[] | undefined>>(
@@ -44,9 +44,9 @@ function collectStateDiff(
   );
 }
 
-function createCombinedStateDiff(
-  transactions: TransactionExecutionResult[],
-  blockHookSTs: UntypedStateTransition[]
+export function createCombinedStateDiff(
+  blockHookSTs: UntypedStateTransition[],
+  transactions: TransactionExecutionResult[]
 ) {
   // Flatten diff list into a single diff by applying them over each other
   return transactions
@@ -55,7 +55,7 @@ function createCombinedStateDiff(
         .filter(({ applied }) => applied)
         .flatMap(({ stateTransitions }) => stateTransitions);
 
-      transitions.push(...blockHookSTs);
+      transitions.splice(0, 0, ...blockHookSTs);
 
       return collectStateDiff(transitions);
     })
@@ -63,6 +63,28 @@ function createCombinedStateDiff(
       // accumulator properties will be overwritten by diff's values
       return Object.assign(accumulator, diff);
     }, {});
+}
+
+export async function applyStateDiff(
+  store: CachedMerkleTreeStore,
+  stateDiff: StateRecord
+): Promise<RollupMerkleTree> {
+  await store.preloadKeys(Object.keys(stateDiff).map(BigInt));
+
+  // In case the diff is empty, we preload key 0 in order to
+  // retrieve the root, which we need later
+  if (Object.keys(stateDiff).length === 0) {
+    await store.preloadKey(0n);
+  }
+
+  const tree = new RollupMerkleTree(store);
+
+  Object.entries(stateDiff).forEach(([key, state]) => {
+    const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
+    tree.setLeaf(BigInt(key), treeValue);
+  });
+
+  return tree;
 }
 
 @injectable()
@@ -152,28 +174,6 @@ export class BlockResultService {
     };
   }
 
-  public async applyStateDiff(
-    store: CachedMerkleTreeStore,
-    stateDiff: StateRecord
-  ): Promise<RollupMerkleTree> {
-    await store.preloadKeys(Object.keys(stateDiff).map(BigInt));
-
-    // In case the diff is empty, we preload key 0 in order to
-    // retrieve the root, which we need later
-    if (Object.keys(stateDiff).length === 0) {
-      await store.preloadKey(0n);
-    }
-
-    const tree = new RollupMerkleTree(store);
-
-    Object.entries(stateDiff).forEach(([key, state]) => {
-      const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
-      tree.setLeaf(BigInt(key), treeValue);
-    });
-
-    return tree;
-  }
-
   @trace("block.result.generate", ([block]) => ({
     height: block.height.toString(),
   }))
@@ -189,13 +189,13 @@ export class BlockResultService {
     stateService: CachedStateService;
   }> {
     const combinedDiff = createCombinedStateDiff(
-      block.transactions,
-      block.beforeBlockStateTransitions
+      block.beforeBlockStateTransitions,
+      block.transactions
     );
 
     const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
 
-    const tree = await this.applyStateDiff(inMemoryStore, combinedDiff);
+    const tree = await applyStateDiff(inMemoryStore, combinedDiff);
 
     const witnessedStateRoot = tree.getRoot();
 
@@ -218,7 +218,7 @@ export class BlockResultService {
     );
 
     // Apply afterBlock STs to the tree
-    const tree2 = await this.applyStateDiff(
+    const tree2 = await applyStateDiff(
       inMemoryStore,
       collectStateDiff(
         stateTransitions.map((stateTransition) =>

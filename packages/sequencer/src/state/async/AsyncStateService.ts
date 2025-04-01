@@ -21,8 +21,6 @@ export interface AsyncStateService {
 
   get(key: Field): Promise<Field[] | undefined>;
 
-  createMask(name: string): Promise<AsyncStateService>;
-
   mergeIntoParent(): Promise<void>;
 
   drop(): Promise<void>;

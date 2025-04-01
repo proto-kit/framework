@@ -8,7 +8,6 @@ import { Bool, Field, PrivateKey, UInt64 } from "o1js";
 import { TypedClass, expectDefined } from "@proto-kit/common";
 
 import {
-  AsyncStateService,
   BatchStorage,
   HistoricalBatchStorage,
   HistoricalBlockStorage,
@@ -20,6 +19,8 @@ import {
   StorageDependencyFactory,
   BlockStorage,
   VanillaTaskWorkerModules,
+  StateServiceCreator,
+  MaskName,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -63,8 +64,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
     >;
     let runtime: Runtime<{ Balance: typeof Balance }>;
 
-    let unprovenState: AsyncStateService;
-    let provenState: AsyncStateService;
+    let stateMasks: StateServiceCreator;
 
     // let unprovenTreeStore: AsyncMerkleTreeStore;
     // let provenTreeStore: AsyncMerkleTreeStore;
@@ -127,8 +127,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       runtime = appChain.runtime;
       sequencer = appChain.sequencer;
 
-      unprovenState = sequencer.resolve("UnprovenStateService");
-      provenState = sequencer.resolve("AsyncStateService");
+      stateMasks = sequencer.resolve("StateServiceCreator");
     });
 
     it("test unproven block prod", async () => {
@@ -176,14 +175,11 @@ describe.each([["InMemory", InMemoryDatabase]])(
         )
       );
 
-      const state = await unprovenState.getMany(
-        Object.keys(stateDiff).map(Field)
-      );
+      const mask = await stateMasks.getMask(MaskName.base());
+      const state = await mask.getMany(Object.keys(stateDiff).map(Field));
 
       expect(checkStateDiffEquality(stateDiff, state)).toBe(true);
       expect(state.length).toBeGreaterThanOrEqual(1);
-
-      await expect(provenState.get(state[0].key)).resolves.toBeUndefined();
     });
 
     it("test proven block prod", async () => {

@@ -5,7 +5,7 @@ import {
   NetworkState,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
-import { log, noop } from "@proto-kit/common";
+import { log, mapSequential, noop } from "@proto-kit/common";
 
 import {
   sequencerModule,
@@ -14,9 +14,10 @@ import {
 import { BatchStorage } from "../../storage/repositories/BatchStorage";
 import { SettleableBatch } from "../../storage/model/Batch";
 import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
-import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockWithResult } from "../../storage/model/Block";
 import type { Database } from "../../storage/Database";
+import { TreeStoreCreator } from "../../state/masking/TreeStoreCreator";
+import { MaskName } from "../../state/masking/MaskName";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -47,8 +48,8 @@ export class BatchProducerModule extends SequencerModule {
   private productionInProgress = false;
 
   public constructor(
-    @inject("AsyncMerkleStore")
-    private readonly merkleStore: AsyncMerkleTreeStore,
+    @inject("TreeStoreCreator")
+    private readonly treeStoreCreator: TreeStoreCreator,
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("Database")
     private readonly database: Database,
@@ -101,6 +102,16 @@ export class BatchProducerModule extends SequencerModule {
     return undefined;
   }
 
+  private async mergeBatchIntoStorage(blocks: BlockWithResult[]) {
+    // Reverse, so that we merge from latest block to oldest. This way,
+    // nodes that have been written in multiple masks are only written to
+    // the base once, therefore implicitly deduped
+    await mapSequential(blocks.slice().reverse(), async (block) => {
+      const mask = `block-${block.block.height.toBigInt()}`;
+      await this.treeStoreCreator.mergeIntoParent(mask);
+    });
+  }
+
   private async tryProduceBatch(
     blocks: BlockWithResult[]
   ): Promise<SettleableBatch | undefined> {
@@ -122,7 +133,9 @@ export class BatchProducerModule extends SequencerModule {
       // Apply state changes to current MerkleTreeStore
       await this.database.executeInTransaction(async () => {
         await this.batchStorage.pushBatch(batchWithStateDiff.batch);
-        await batchWithStateDiff.changes.mergeIntoParent();
+
+        await this.mergeBatchIntoStorage(blocks);
+        // await batchWithStateDiff.changes.mergeIntoParent();
       });
 
       // TODO Add transition from unproven to proven state for stateservice
@@ -186,13 +199,19 @@ export class BatchProducerModule extends SequencerModule {
       throw errors.blockWithoutTxs();
     }
 
-    const merkleTreeStore = new CachedMerkleTreeStore(this.merkleStore);
+    const mask = await this.treeStoreCreator.createMask(
+      "batch",
+      MaskName.base()
+    );
+    const merkleTreeStore = new CachedMerkleTreeStore(mask);
 
     const trace = await this.batchTraceService.traceBatch(
       blocks.map((block) => block),
       merkleTreeStore,
       batchId
     );
+
+    await this.treeStoreCreator.drop("batch");
 
     const proof = await this.batchFlow.executeBatch(trace, batchId);
 

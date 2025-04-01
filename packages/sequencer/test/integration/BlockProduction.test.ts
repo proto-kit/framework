@@ -234,7 +234,7 @@ describe("block production", () => {
     );
     // TODO
     // const newState = await test.getState(balancesPath, "batch");
-    const newUnprovenState = await test.getState(balancesPath, "block");
+    const newUnprovenState = await test.getState(balancesPath);
 
     // expect(newState).toBeDefined();
     expect(newUnprovenState).toBeDefined();
@@ -250,7 +250,7 @@ describe("block production", () => {
       accountModule.accountState.keyType,
       publicKey
     );
-    const newAccountState = await test.getState(accountStatePath, "block");
+    const newAccountState = await test.getState(accountStatePath);
 
     expect(newAccountState).toBeDefined();
     expect(AccountState.fromFields(newAccountState!).nonce.toBigInt()).toBe(1n);
@@ -275,14 +275,14 @@ describe("block production", () => {
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
 
-    const state2 = await test.getState(balancesPath, "block");
+    const state2 = await test.getState(balancesPath);
 
     expect(state2).toBeDefined();
     expect(UInt64.fromFields(state2!)).toStrictEqual(UInt64.from(200));
   }, 60_000);
 
   it("should reject tx and not apply the state", async () => {
-    expect.assertions(5);
+    expect.assertions(4);
 
     const privateKey = PrivateKey.random();
 
@@ -304,12 +304,10 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       PublicKey.empty()
     );
-    const unprovenState = await test.getState(balancesPath, "block");
-    const newState = await test.getState(balancesPath, "batch");
+    const unprovenState = await test.getState(balancesPath);
 
     // Assert that state is not set
     expect(unprovenState).toBeUndefined();
-    expect(newState).toBeUndefined();
   }, 30_000);
 
   it("should produce txs in non-consecutive blocks", async () => {
@@ -443,7 +441,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       publicKey
     );
-    const newState = await test.getState(balancesPath, "block");
+    const newState = await test.getState(balancesPath);
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
@@ -487,7 +485,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       pk1.toPublicKey()
     );
-    const newState1 = await test.getState(balancesPath1, "block");
+    const newState1 = await test.getState(balancesPath1);
 
     expect(newState1).toBeUndefined();
 
@@ -496,7 +494,7 @@ describe("block production", () => {
       balanceModule.balances.keyType,
       pk2.toPublicKey()
     );
-    const newState2 = await test.getState(balancesPath2, "block");
+    const newState2 = await test.getState(balancesPath2);
 
     expect(newState2).toBeDefined();
     expect(UInt64.fromFields(newState2!)).toStrictEqual(UInt64.from(100));
@@ -603,7 +601,7 @@ describe("block production", () => {
       "totalSupply",
       PROTOKIT_PREFIXES.STATE_RUNTIME
     );
-    const newState = await test.getState(supplyPath, "block");
+    const newState = await test.getState(supplyPath);
 
     expect(newState).toBeDefined();
     expect(UInt64.fromFields(newState!)).toStrictEqual(
@@ -619,7 +617,7 @@ describe("block production", () => {
       pk2
     );
 
-    const newBalance = await test.getState(balancesPath, "block");
+    const newBalance = await test.getState(balancesPath);
 
     expect(newBalance).toBeDefined();
     expect(UInt64.fromFields(newBalance!)).toStrictEqual(UInt64.from(200));

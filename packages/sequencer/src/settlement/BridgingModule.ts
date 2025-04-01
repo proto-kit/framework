@@ -41,9 +41,10 @@ import {
   sequencerModule,
 } from "../sequencer/builder/SequencerModule";
 import { CachedMerkleTreeStore } from "../state/merkle/CachedMerkleTreeStore";
-import { AsyncMerkleTreeStore } from "../state/async/AsyncMerkleTreeStore";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
+import { TreeStoreCreator } from "../state/masking/TreeStoreCreator";
+import { MaskName } from "../state/masking/MaskName";
 
 import type { OutgoingMessageAdapter } from "./messages/WithdrawalQueue";
 import type { SettlementModule } from "./SettlementModule";
@@ -75,8 +76,8 @@ export class BridgingModule extends SequencerModule {
     private readonly settlementModule: SettlementModule,
     @inject("OutgoingMessageQueue")
     private readonly outgoingMessageQueue: OutgoingMessageAdapter,
-    @inject("AsyncMerkleStore")
-    private readonly merkleTreeStore: AsyncMerkleTreeStore,
+    @inject("TreeStoreCreator")
+    private readonly treeStoreCreator: TreeStoreCreator,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
     @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
@@ -357,7 +358,8 @@ export class BridgingModule extends SequencerModule {
 
     const bridgeContract = this.createBridgeContract(bridgeAddress, tokenId);
 
-    const cachedStore = new CachedMerkleTreeStore(this.merkleTreeStore);
+    const merkleTreeStore = this.treeStoreCreator.getMask(MaskName.base());
+    const cachedStore = new CachedMerkleTreeStore(merkleTreeStore);
     const tree = new RollupMerkleTree(cachedStore);
 
     const [withdrawalModule, withdrawalStateName] =

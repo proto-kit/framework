@@ -15,15 +15,12 @@ export class CachedStateService
 {
   private writes: StateEntry[] = [];
 
-  public constructor(
-    private readonly parent: AsyncStateService | undefined,
-    public readonly name?: string
-  ) {
+  public constructor(private parent: AsyncStateService | undefined) {
     super();
   }
 
-  public async createMask(name: string): Promise<AsyncStateService> {
-    return new CachedStateService(this, name);
+  public updateParent(parent: AsyncStateService) {
+    this.parent = parent;
   }
 
   public async drop(): Promise<void> {
