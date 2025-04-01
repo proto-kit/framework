@@ -17,7 +17,7 @@ import {
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
-  testingSequencerFromModules,
+  testingSequencerModules,
 } from "../TestingSequencer";
 
 import { Balance } from "./mocks/Balance";
@@ -86,7 +86,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
         },
       });
 
-      const sequencerClass = testingSequencerFromModules({});
+      const sequencerClass = Sequencer.from({
+        modules: testingSequencerModules({}),
+      });
 
       const protocolClass = Protocol.from({
         modules: VanillaProtocolModules.mandatoryModules({}),

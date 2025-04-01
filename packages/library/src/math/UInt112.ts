@@ -19,7 +19,7 @@ export class UInt112 extends UInt<112> {
   };
 
   public static check(x: { value: Field }) {
-    UInt.assertionFunction(Gadgets.isDefinitelyInRangeN(112, x.value));
+    Gadgets.isDefinitelyInRangeN(112, x.value).assertTrue();
   }
 
   public static from(x: UInt112 | bigint | number | string): UInt112 {

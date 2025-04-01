@@ -3,6 +3,8 @@ import {
   InMemoryMerkleTreeStoreMask,
   MerkleTreeNode,
   MerkleTreeNodeQuery,
+  trace,
+  Tracer,
 } from "@proto-kit/sequencer";
 import { log, noop } from "@proto-kit/common";
 
@@ -15,6 +17,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
 
   public constructor(
     private readonly connection: RedisConnection,
+    public readonly tracer: Tracer,
     private readonly mask: string
   ) {}
 
@@ -26,6 +29,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     noop();
   }
 
+  @trace("db.tree.commit")
   public async commit(): Promise<void> {
     const start = Date.now();
     const array: [string, string][] = this.cache.map(
@@ -48,6 +52,7 @@ export class RedisMerkleTreeStore implements AsyncMerkleTreeStore {
     this.cache = [];
   }
 
+  @trace("db.tree.read")
   public async getNodesAsync(
     nodes: MerkleTreeNodeQuery[]
   ): Promise<(bigint | undefined)[]> {

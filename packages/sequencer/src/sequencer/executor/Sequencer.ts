@@ -75,7 +75,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // ensure that we start modules based on the order they were resolved.
     // We iterate through the methods three times:
 
-    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    this.useDependencyFactory(MethodIdFactory);
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(

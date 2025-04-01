@@ -24,7 +24,7 @@ import {
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
-  testingSequencerFromModules,
+  testingSequencerModules,
 } from "../TestingSequencer";
 
 import { collectStateDiff, createTransaction } from "./utils";
@@ -74,8 +74,10 @@ describe.each([["InMemory", InMemoryDatabase]])(
     let pkNonce = 0;
 
     beforeAll(async () => {
-      const sequencerClass = testingSequencerFromModules({
-        Database,
+      const sequencerClass = Sequencer.from({
+        modules: testingSequencerModules({
+          Database,
+        }),
       });
 
       const runtimeClass = Runtime.from({

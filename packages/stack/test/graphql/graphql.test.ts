@@ -22,7 +22,7 @@ import {
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 
-import { startServer, TestBalances } from "../../src/scripts/graphql/server";
+import { startGraphqlServer, TestBalances } from "./graphql-server";
 
 const pk = PrivateKey.random();
 
@@ -93,12 +93,12 @@ function prepareClient() {
 
 describe("graphql client test", () => {
   let appChain: ReturnType<typeof prepareClient>;
-  let server: Awaited<ReturnType<typeof startServer>>;
+  let server: Awaited<ReturnType<typeof startGraphqlServer>>;
   let trigger: ManualBlockTrigger;
   const tokenId = TokenId.from(0);
 
   beforeAll(async () => {
-    server = await startServer();
+    server = await startGraphqlServer();
 
     await sleep(2000);
 

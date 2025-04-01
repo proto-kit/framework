@@ -18,7 +18,7 @@ export class UInt224 extends UInt<224> {
   };
 
   public static check(x: { value: Field }) {
-    UInt.assertionFunction(Gadgets.isDefinitelyInRangeN(224, x.value));
+    Gadgets.isDefinitelyInRangeN(224, x.value).assertTrue();
   }
 
   public static from(x: UInt<224> | bigint | number | string): UInt224 {

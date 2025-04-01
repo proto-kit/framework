@@ -1,6 +1,6 @@
 import { Bool, Field } from "o1js";
 import { mapSequential, RollupMerkleTree } from "@proto-kit/common";
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import {
   AppliedBatchHashList,
   AppliedStateTransitionBatchState,
@@ -18,6 +18,8 @@ import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
 import { SyncCachedMerkleTreeStore } from "../../../state/merkle/SyncCachedMerkleTreeStore";
+import { trace } from "../../../logging/trace";
+import { Tracer } from "../../../logging/Tracer";
 
 export interface TracingStateTransitionBatch {
   stateTransitions: UntypedStateTransition[];
@@ -27,6 +29,8 @@ export interface TracingStateTransitionBatch {
 
 @injectable()
 export class StateTransitionTracingService {
+  public constructor(@inject("Tracer") public readonly tracer: Tracer) {}
+
   private allKeys(stateTransitions: { path: Field }[]): Field[] {
     // We have to do the distinct with strings because
     // array.indexOf() doesn't work with fields
@@ -61,6 +65,7 @@ export class StateTransitionTracingService {
     }, []);
   }
 
+  @trace("batch.trace.transitions.merkle_trace")
   public async createMerkleTrace(
     merkleStore: CachedMerkleTreeStore,
     stateTransitions: TracingStateTransitionBatch[]

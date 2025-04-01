@@ -1,4 +1,10 @@
-import { AsyncStateService, MaskName, StateEntry } from "@proto-kit/sequencer";
+import {
+  AsyncStateService,
+  StateEntry,
+  Tracer,
+  trace,
+  MaskName,
+} from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { Prisma } from "@prisma/client";
 import { noop } from "@proto-kit/common";
@@ -24,12 +30,14 @@ export class PrismaStateService implements AsyncStateService {
 
   /**
    * @param connection
+   * @param tracer
    * @param mask A indicator to which masking level the values belong.
    * This name has to be unique
    * @param parentName
    */
   public constructor(
     private readonly connection: PrismaConnection,
+    public readonly tracer: Tracer,
     private readonly mask: string,
     private readonly parentName?: string
   ) {}
@@ -95,6 +103,7 @@ export class PrismaStateService implements AsyncStateService {
     };
   }
 
+  @trace("db.state.commit")
   public async commit(): Promise<void> {
     const { prismaClient } = this.connection;
 
@@ -158,7 +167,7 @@ export class PrismaStateService implements AsyncStateService {
     // We only call this to make sure this mask actually exists, therefore that the
     // relation can be satisfied
     await this.getMaskId();
-    return new PrismaStateService(this.connection, name, this.mask);
+    return new PrismaStateService(this.connection, this.tracer, name, this.mask);
   }
 
   public async mergeIntoParent(): Promise<void> {

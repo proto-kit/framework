@@ -33,7 +33,7 @@ import {
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
-  testingSequencerFromModules,
+  testingSequencerModules,
 } from "../TestingSequencer";
 
 import { Balance } from "./mocks/Balance";
@@ -111,7 +111,9 @@ describe("block production", () => {
       },
     });
 
-    const sequencerClass = testingSequencerFromModules({});
+    const sequencerClass = Sequencer.from({
+      modules: testingSequencerModules({}),
+    });
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
