@@ -12,6 +12,8 @@ import { log } from "@proto-kit/common";
 import {
   Prisma,
   TransactionExecutionResult as DBTransactionExecutionResult,
+  StateTransition as DBStateTransition,
+  StateTransitionBatch as DBStateTransitionBatch,
 } from "@prisma/client";
 import { inject, injectable } from "tsyringe";
 
@@ -23,6 +25,12 @@ import {
 } from "./mappers/TransactionMapper";
 import { BlockResultMapper } from "./mappers/BlockResultMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
+import {
+  StateTransitionBatchArrayMapper,
+  StateTransitionMapper,
+  STBatchOutput,
+  STArrayOutput,
+} from "./mappers/StateTransitionMapper";
 
 @injectable()
 export class PrismaBlockStorage
@@ -33,7 +41,9 @@ export class PrismaBlockStorage
     private readonly transactionResultMapper: TransactionExecutionResultMapper,
     private readonly transactionMapper: TransactionMapper,
     private readonly blockResultMapper: BlockResultMapper,
-    private readonly blockMapper: BlockMapper
+    private readonly blockMapper: BlockMapper,
+    private readonly stateTransitionBatchMapper: StateTransitionBatchArrayMapper,
+    private readonly stateTransitionMapper: StateTransitionMapper
   ) {}
 
   private async getBlockByQuery(
@@ -45,25 +55,67 @@ export class PrismaBlockStorage
         transactions: {
           include: {
             tx: true,
+            stateTransitionBatch: {
+              include: {
+                stateTransitions: true,
+              },
+            },
           },
         },
-        result: true,
+        stateTransitionBatch: {
+          include: {
+            stateTransitions: true,
+          },
+        },
+        result: {
+          include: {
+            stateTransitionBatch: {
+              include: {
+                stateTransitions: true,
+              },
+            },
+          },
+        },
       },
     });
     if (dbResult === null) {
       return undefined;
     }
     const transactions = dbResult.transactions.map<TransactionExecutionResult>(
-      (txresult) => this.transactionResultMapper.mapIn([txresult, txresult.tx])
+      (txresult) => {
+        const txExecResult = this.transactionResultMapper.mapIn([
+          txresult,
+          txresult.tx,
+        ]);
+        const stBatch = txresult.stateTransitionBatch.map<
+          [STBatchOutput, STArrayOutput]
+        >((batch) => [{ applied: batch.applied }, batch.stateTransitions]);
+        return {
+          ...txExecResult,
+          stateTransitions: this.stateTransitionBatchMapper.mapIn(stBatch),
+        };
+      }
     );
 
     return {
       block: {
         ...this.blockMapper.mapIn(dbResult),
+        beforeBlockStateTransitions:
+          // Each block should just have one batch of STs associated with it
+          dbResult.stateTransitionBatch[0].stateTransitions.map((st) =>
+            this.stateTransitionMapper.mapIn(st)
+          ),
         transactions,
       },
       result: dbResult.result
-        ? this.blockResultMapper.mapIn(dbResult.result)
+        ? {
+            ...this.blockResultMapper.mapIn(dbResult.result),
+            afterBlockStateTransitions:
+              // Each block should just have one batch of STs assoicated with it
+              dbResult.stateTransitionBatch[0].stateTransitions.map((st) =>
+                this.stateTransitionMapper.mapIn(st)
+              ),
+          }
         : undefined,
     };
   }
@@ -106,13 +158,24 @@ export class PrismaBlockStorage
     await prismaClient.block.create({
       data: {
         ...encodedBlock,
-        beforeBlockStateTransitions:
-          encodedBlock.beforeBlockStateTransitions as Prisma.InputJsonArray,
         beforeNetworkState:
           encodedBlock.beforeNetworkState as Prisma.InputJsonObject,
         duringNetworkState:
           encodedBlock.duringNetworkState as Prisma.InputJsonObject,
-
+        stateTransitionBatch: {
+          create: [
+            {
+              applied: true,
+              stateTransitions: {
+                createMany: {
+                  data: block.beforeBlockStateTransitions.map((st) =>
+                    this.stateTransitionMapper.mapOut(st)
+                  ),
+                },
+              },
+            },
+          ],
+        },
         transactions: {
           createMany: {
             data: transactions.map((tx) => {
@@ -120,30 +183,62 @@ export class PrismaBlockStorage
                 status: tx.status,
                 statusMessage: tx.statusMessage,
                 txHash: tx.txHash,
-
-                stateTransitions: tx.stateTransitions as Prisma.InputJsonArray,
                 events: tx.events as Prisma.InputJsonArray,
               };
             }),
             skipDuplicates: true,
           },
         },
-
         batchHeight: undefined,
       },
     });
+
+    const stateTransitionBatches = block.transactions.flatMap((tx) => {
+      const batches = this.stateTransitionBatchMapper.mapOut(
+        tx.stateTransitions
+      );
+      const resultMapper = this.transactionResultMapper.mapOut(tx)[0];
+      return batches.map((batch, index) => ({
+        ...batch[0],
+        txExecutionResultId: resultMapper.txHash,
+        stateTransitions: batch[1],
+      }));
+    });
+
+    await prismaClient.$transaction(
+      stateTransitionBatches.map((batch) =>
+        prismaClient.stateTransitionBatch.create({
+          data: {
+            ...batch,
+            stateTransitions: {
+              create: batch.stateTransitions,
+            },
+          },
+        })
+      )
+    );
   }
 
   public async pushResult(result: BlockResult): Promise<void> {
     const encoded = this.blockResultMapper.mapOut(result);
+    const batches = this.stateTransitionBatchMapper.mapOut([
+      { stateTransitions: result.afterBlockStateTransitions, applied: true },
+    ]);
 
     await this.connection.prismaClient.blockResult.create({
       data: {
         afterNetworkState: encoded.afterNetworkState as Prisma.InputJsonValue,
         blockHashWitness: encoded.blockHashWitness as Prisma.InputJsonValue,
-        afterBlockStateTransitions:
-          encoded.afterBlockStateTransitions as Prisma.InputJsonValue,
-
+        stateTransitionBatch: {
+          create: batches.map(([stBatch, sts]) => {
+            return {
+              ...stBatch,
+              stateTransitions: {
+                create: sts,
+              },
+            };
+          }),
+        },
         stateRoot: encoded.stateRoot,
         blockHash: encoded.blockHash,
         blockHashRoot: encoded.blockHashRoot,
@@ -206,9 +301,27 @@ export class PrismaBlockStorage
         transactions: {
           include: {
             tx: true,
+            stateTransitionBatch: {
+              include: {
+                stateTransitions: true,
+              },
+            },
           },
         },
-        result: true,
+        stateTransitionBatch: {
+          include: {
+            stateTransitions: true,
+          },
+        },
+        result: {
+          include: {
+            stateTransitionBatch: {
+              include: {
+                stateTransitions: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         height: Prisma.SortOrder.asc,
@@ -218,7 +331,23 @@ export class PrismaBlockStorage
     return blocks.map((block, index) => {
       const transactions = block.transactions.map<TransactionExecutionResult>(
         (txresult) => {
-          return this.transactionResultMapper.mapIn([txresult, txresult.tx]);
+          const txExecResult = this.transactionResultMapper.mapIn([
+            txresult,
+            txresult.tx,
+          ]);
+          const stBatch = txresult.stateTransitionBatch.map<
+            [
+              Omit<
+                DBStateTransitionBatch,
+                "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+              >,
+              Omit<DBStateTransition, "batchId" | "id">[],
+            ]
+          >((batch) => [{ applied: batch.applied }, batch.stateTransitions]);
+          return {
+            ...txExecResult,
+            stateTransitions: this.stateTransitionBatchMapper.mapIn(stBatch),
+          };
         }
       );
       const decodedBlock = this.blockMapper.mapIn(block);
@@ -233,8 +362,20 @@ export class PrismaBlockStorage
       }
 
       return {
-        block: decodedBlock,
-        result: this.blockResultMapper.mapIn(result),
+        block: {
+          ...decodedBlock,
+          beforeBlockStateTransitions:
+            block.stateTransitionBatch[0].stateTransitions.map((st) =>
+              this.stateTransitionMapper.mapIn(st)
+            ),
+        },
+        result: {
+          ...this.blockResultMapper.mapIn(result),
+          afterBlockStateTransitions:
+            result.stateTransitionBatch[0].stateTransitions.map((st) =>
+              this.stateTransitionMapper.mapIn(st)
+            ),
+        },
       };
     });
   }

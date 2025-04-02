@@ -39,18 +39,42 @@ model Transaction {
   IncomingMessageBatchTransaction IncomingMessageBatchTransaction[]
 }
 
+model StateTransition {
+  id         Int      @id @default(autoincrement())
+  batchId    Int
+  path       String
+  from       String[]
+  fromIsSome Boolean
+  to         String[]
+  toIsSome   Boolean
+
+  batch StateTransitionBatch @relation(fields: [batchId], references: [id])
+}
+
+model StateTransitionBatch {
+  id                  Int     @id @default(autoincrement())
+  txExecutionResultId String?
+  blockId             String?
+  blockResultId       String?
+  applied             Boolean
+
+  transactionExecutionResult TransactionExecutionResult? @relation(fields: [txExecutionResultId], references: [txHash])
+  block                      Block?                      @relation(fields: [blockId], references: [hash])
+  blockResult                BlockResult?                @relation(fields: [blockResultId], references: [blockHash])
+  stateTransitions           StateTransition[]
+}
+
 model TransactionExecutionResult {
-  // TODO Make StateTransitionBatch and StateTransition Table
-  stateTransitions Json    @db.Json
-  status           Boolean
-  statusMessage    String?
-  events           Json    @db.Json
+  status        Boolean
+  statusMessage String?
+  events        Json    @db.Json
 
   tx     Transaction @relation(fields: [txHash], references: [hash])
   txHash String      @id
 
-  block     Block  @relation(fields: [blockHash], references: [hash])
-  blockHash String
+  block                Block                  @relation(fields: [blockHash], references: [hash])
+  blockHash            String
+  stateTransitionBatch StateTransitionBatch[]
 }
 
 model Block {
@@ -67,8 +91,6 @@ model Block {
   toMessagesHash              String
   fromStateRoot               String
 
-  beforeBlockStateTransitions Json @db.Json
-
   parentHash String? @unique
   parent     Block?  @relation("Parent", fields: [parentHash], references: [hash])
   successor  Block?  @relation("Parent")
@@ -76,8 +98,9 @@ model Block {
   transactions TransactionExecutionResult[]
   result       BlockResult?
 
-  batch       Batch? @relation(fields: [batchHeight], references: [height])
-  batchHeight Int?
+  batch                Batch?                 @relation(fields: [batchHeight], references: [height])
+  batchHeight          Int?
+  stateTransitionBatch StateTransitionBatch[]
 }
 
 model Batch {
@@ -94,14 +117,14 @@ model Batch {
 model BlockResult {
   blockHash String @id @unique
 
-  stateRoot                  String
-  blockHashRoot              String
-  witnessedRoots             String[]
-  afterNetworkState          Json     @db.Json
-  afterBlockStateTransitions Json     @db.Json
-  blockHashWitness           Json     @db.Json
+  stateRoot         String
+  blockHashRoot     String
+  witnessedRoots    String[]
+  afterNetworkState Json     @db.Json
+  blockHashWitness  Json     @db.Json
 
-  block Block? @relation(fields: [blockHash], references: [hash])
+  block                Block?                 @relation(fields: [blockHash], references: [hash])
+  stateTransitionBatch StateTransitionBatch[]
 }
 
 model Settlement {

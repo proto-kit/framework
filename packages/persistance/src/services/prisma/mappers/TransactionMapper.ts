@@ -11,8 +11,8 @@ import { Bool } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
-import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 import { EventArrayMapper } from "./EventMapper";
+import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 
 @singleton()
 @injectable()
@@ -49,39 +49,35 @@ export class TransactionMapper
 export class TransactionExecutionResultMapper
   implements
     ObjectMapper<
-      TransactionExecutionResult,
+      Omit<TransactionExecutionResult, "stateTransitions">,
       [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction]
     >
 {
   public constructor(
     private readonly transactionMapper: TransactionMapper,
-    private readonly stBatchMapper: StateTransitionBatchArrayMapper,
-    private readonly eventArrayMapper: EventArrayMapper
+    private readonly eventArrayMapper: EventArrayMapper,
+    private readonly stBatchArrayMapper: StateTransitionBatchArrayMapper
   ) {}
 
   public mapIn(
     input: [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction]
-  ): TransactionExecutionResult {
+  ): Omit<TransactionExecutionResult, "stateTransitions"> {
     const executionResult = input[0];
     return {
       tx: this.transactionMapper.mapIn(input[1]),
       status: Bool(executionResult.status),
       statusMessage: executionResult.statusMessage ?? undefined,
-      stateTransitions: this.stBatchMapper.mapIn(
-        executionResult.stateTransitions
-      ),
       events: this.eventArrayMapper.mapIn(executionResult.events),
     };
   }
 
   mapOut(
-    input: TransactionExecutionResult
+    input: Omit<TransactionExecutionResult, "stateTransitions">
   ): [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction] {
     const tx = this.transactionMapper.mapOut(input.tx);
     const executionResult = {
       status: input.status.toBoolean(),
       statusMessage: input.statusMessage ?? null,
-      stateTransitions: this.stBatchMapper.mapOut(input.stateTransitions),
       events: this.eventArrayMapper.mapOut(input.events),
       txHash: tx.hash,
     };

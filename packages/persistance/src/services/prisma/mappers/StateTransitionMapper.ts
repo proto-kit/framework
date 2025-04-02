@@ -3,78 +3,96 @@ import {
   StateTransitionBatch,
   UntypedStateTransition,
 } from "@proto-kit/sequencer";
-import { Prisma } from "@prisma/client";
+import {
+  StateTransitionBatch as DBStateTransitionBatch,
+  StateTransition as DBStateTransition,
+} from "@prisma/client";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
+export type STBatchOutput = Omit<
+  DBStateTransitionBatch,
+  "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+>;
+export type STArrayOutput = Omit<DBStateTransition, "batchId" | "id">[];
+
 @singleton()
 export class StateTransitionMapper
-  implements ObjectMapper<UntypedStateTransition, Prisma.JsonObject>
-{
-  public mapIn(input: Prisma.JsonObject): UntypedStateTransition {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    return UntypedStateTransition.fromJSON(input as any);
-  }
-
-  public mapOut(input: UntypedStateTransition): Prisma.JsonObject {
-    return input.toJSON();
-  }
-}
-
-@singleton()
-export class StateTransitionArrayMapper
   implements
-    ObjectMapper<UntypedStateTransition[], Prisma.JsonValue | undefined>
+    ObjectMapper<
+      UntypedStateTransition,
+      Omit<DBStateTransition, "batchId" | "id">
+    >
 {
-  public constructor(private readonly stMapper: StateTransitionMapper) {}
-
-  public mapIn(input: Prisma.JsonValue | undefined): UntypedStateTransition[] {
-    if (input === undefined) return [];
-
-    if (Array.isArray(input)) {
-      return (input as Prisma.JsonArray).map((stJson) =>
-        this.stMapper.mapIn(stJson as Prisma.JsonObject)
-      );
-    }
-    return [];
+  public mapOut(
+    input: UntypedStateTransition
+  ): Omit<DBStateTransition, "batchId" | "id"> {
+    const json = input.toJSON();
+    return {
+      path: json.path,
+      from: json.from.value,
+      fromIsSome: json.from.isSome,
+      to: json.to.value,
+      toIsSome: json.to.isSome,
+    };
   }
 
-  public mapOut(input: UntypedStateTransition[]): Prisma.JsonValue {
-    return input.map((st) => this.stMapper.mapOut(st)) as Prisma.JsonArray;
+  public mapIn(
+    input: Omit<DBStateTransition, "batchId" | "id">
+  ): UntypedStateTransition {
+    return UntypedStateTransition.fromJSON({
+      path: input.path,
+      from: {
+        isSome: input.fromIsSome,
+        value: input.from,
+        isForcedSome: false,
+      },
+      to: {
+        isSome: input.toIsSome,
+        value: input.to,
+        isForcedSome: false,
+      },
+    });
   }
 }
 
 @singleton()
 export class StateTransitionBatchArrayMapper
-  implements ObjectMapper<StateTransitionBatch[], Prisma.JsonValue>
+  implements
+    ObjectMapper<
+      StateTransitionBatch[],
+      [
+        Omit<
+          DBStateTransitionBatch,
+          "txExecutionResultId" | "id" | "blockId" | "blockResultId"
+        >,
+        Omit<DBStateTransition, "batchId" | "id">[],
+      ][]
+    >
 {
   public constructor(
-    private readonly stArrayMapper: StateTransitionArrayMapper
+    private readonly stateTransitionMapper: StateTransitionMapper
   ) {}
 
-  public mapOut(input: StateTransitionBatch[]): Prisma.JsonValue {
-    return input.map((st) => ({
-      stateTransitions: this.stArrayMapper.mapOut(
-        st.stateTransitions
-      ) as Prisma.JsonArray,
-      applied: st.applied,
-    }));
+  public mapOut(
+    input: StateTransitionBatch[]
+  ): [STBatchOutput, STArrayOutput][] {
+    return input.map((stBatch) => [
+      {
+        applied: stBatch.applied,
+      },
+      stBatch.stateTransitions.map((st) =>
+        this.stateTransitionMapper.mapOut(st)
+      ),
+    ]);
   }
 
-  public mapIn(input: Prisma.JsonValue): StateTransitionBatch[] {
-    if (input === undefined) return [];
-
-    if (Array.isArray(input)) {
-      return (input as Prisma.JsonArray).map((stJson) => {
-        const batchJsonObject = stJson as Prisma.JsonObject;
-        return {
-          stateTransitions: this.stArrayMapper.mapIn(
-            batchJsonObject.stateTransitions
-          ),
-          applied: batchJsonObject.applied as boolean,
-        };
-      });
-    }
-    return [];
+  public mapIn(
+    input: [STBatchOutput, STArrayOutput][]
+  ): StateTransitionBatch[] {
+    return input.map((x) => ({
+      applied: x[0].applied,
+      stateTransitions: x[1].map((st) => this.stateTransitionMapper.mapIn(st)),
+    }));
   }
 }

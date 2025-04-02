@@ -5,17 +5,23 @@ import { BlockHashMerkleTreeWitness, NetworkState } from "@proto-kit/protocol";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
-import { StateTransitionArrayMapper } from "./StateTransitionMapper";
+import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 
 @singleton()
 export class BlockResultMapper
-  implements ObjectMapper<BlockResult, DBBlockResult>
+  implements
+    ObjectMapper<
+      Omit<BlockResult, "afterBlockStateTransitions">,
+      DBBlockResult
+    >
 {
   public constructor(
-    private readonly stArrayMapper: StateTransitionArrayMapper
+    private readonly stArrayMapper: StateTransitionBatchArrayMapper
   ) {}
 
-  public mapIn(input: DBBlockResult): BlockResult {
+  public mapIn(
+    input: DBBlockResult
+  ): Omit<BlockResult, "afterBlockStateTransitions"> {
     return {
       afterNetworkState: new NetworkState(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -25,11 +31,10 @@ export class BlockResultMapper
       stateRoot: BigInt(input.stateRoot),
       blockHashRoot: BigInt(input.blockHashRoot),
       blockHashWitness: new BlockHashMerkleTreeWitness(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        BlockHashMerkleTreeWitness.fromJSON(input.blockHashWitness as any)
-      ),
-      afterBlockStateTransitions: this.stArrayMapper.mapIn(
-        input.afterBlockStateTransitions
+        BlockHashMerkleTreeWitness.fromJSON(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          input.blockHashWitness as any
+        )
       ),
       blockHash: BigInt(input.blockHash),
 
@@ -37,7 +42,9 @@ export class BlockResultMapper
     };
   }
 
-  public mapOut(input: BlockResult): DBBlockResult {
+  public mapOut(
+    input: Omit<BlockResult, "afterBlockStateTransitions">
+  ): DBBlockResult {
     return {
       stateRoot: input.stateRoot.toString(),
       blockHash: input.blockHash.toString(),
@@ -45,9 +52,6 @@ export class BlockResultMapper
 
       blockHashWitness: BlockHashMerkleTreeWitness.toJSON(
         input.blockHashWitness
-      ),
-      afterBlockStateTransitions: this.stArrayMapper.mapOut(
-        input.afterBlockStateTransitions
       ),
       afterNetworkState: NetworkState.toJSON(input.afterNetworkState),
 

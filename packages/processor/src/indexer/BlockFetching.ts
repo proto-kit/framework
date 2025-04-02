@@ -4,11 +4,17 @@ import {
   BlockResult as PrismaBlockResult,
   Transaction as PrismaTransaction,
   TransactionExecutionResult as PrismaTransactionExecutionResult,
+  StateTransition as PrismaStateTransition,
+  StateTransitionBatch as PrismaStateTransitionBatch,
 } from "@prisma/client";
 import {
   BlockMapper,
   BlockResultMapper,
   TransactionExecutionResultMapper,
+  StateTransitionMapper,
+  StateTransitionBatchArrayMapper,
+  STBatchOutput,
+  STArrayOutput,
 } from "@proto-kit/persistance";
 import { log } from "@proto-kit/common";
 import { injectable } from "tsyringe";
@@ -23,10 +29,20 @@ export interface BlockFetchingConfig {
 export interface BlockResponse {
   data: {
     findFirstBlock: PrismaBlock & {
-      result: PrismaBlockResult;
+      stateTransitionBatch: (PrismaStateTransitionBatch & {
+        stateTransitions: PrismaStateTransition[];
+      })[];
+      result: PrismaBlockResult & {
+        stateTransitionBatch: (PrismaStateTransitionBatch & {
+          stateTransitions: PrismaStateTransition[];
+        })[];
+      };
     } & {
       transactions: (PrismaTransactionExecutionResult & {
         tx: PrismaTransaction;
+        stateTransitionBatch: (PrismaStateTransitionBatch & {
+          stateTransitions: PrismaStateTransition[];
+        })[];
       })[];
     };
   };
@@ -37,7 +53,9 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
   public constructor(
     public blockMapper: BlockMapper,
     public blockResultMapper: BlockResultMapper,
-    public transactionResultMapper: TransactionExecutionResultMapper
+    public transactionResultMapper: TransactionExecutionResultMapper,
+    private readonly stateTransitionBatchMapper: StateTransitionBatchArrayMapper,
+    private readonly stateTransitionMapper: StateTransitionMapper
   ) {
     super();
   }
@@ -63,6 +81,14 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
             fromMessagesHash
             toMessagesHash
             transactionsHash
+            stateTransitionBatch {
+              applied,
+              stateTransition {
+                path,
+                from,    
+                to,      
+              }
+            }
             parent {
               hash
             }
@@ -73,6 +99,13 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
               blockHashWitness,
               blockStateTransitions,
               blockHash,
+              stateTransitionBatch {
+                stateTransition {
+                  path,
+                  from,    
+                  to,      
+                }
+              }
             }
             transactions {
               stateTransitions
@@ -80,6 +113,13 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
               status
               statusMessage
               events
+              stateTransitionBatch {
+                stateTransition {
+                  path,
+                  from,    
+                  to,      
+                }
+              }
               tx {
                 hash
                 methodId
@@ -115,13 +155,33 @@ export class BlockFetching extends ProcessorModule<BlockFetchingConfig> {
       return undefined;
     }
 
-    const block = this.blockMapper.mapIn(parsedResponse?.data.findFirstBlock);
-    const result = this.blockResultMapper.mapIn(
-      parsedResponse?.data.findFirstBlock.result
-    );
+    const block = {
+      ...this.blockMapper.mapIn(parsedResponse?.data.findFirstBlock),
+      beforeBlockStateTransitions:
+        parsedResponse.data.findFirstBlock.stateTransitionBatch[0].stateTransitions.map(
+          (st) => this.stateTransitionMapper.mapIn(st)
+        ),
+    };
+    const result = {
+      ...this.blockResultMapper.mapIn(
+        parsedResponse?.data.findFirstBlock.result
+      ),
+      afterBlockStateTransitions:
+        parsedResponse.data.findFirstBlock.result.stateTransitionBatch[0].stateTransitions.map(
+          (st) => this.stateTransitionMapper.mapIn(st)
+        ),
+    };
+
     const transactions = parsedResponse?.data.findFirstBlock.transactions.map(
       (tx) => {
-        return this.transactionResultMapper.mapIn([tx, tx.tx]);
+        const txMapped = this.transactionResultMapper.mapIn([tx, tx.tx]);
+        const stBatch = tx.stateTransitionBatch.map<
+          [STBatchOutput, STArrayOutput]
+        >((batch) => [{ applied: batch.applied }, batch.stateTransitions]);
+        return {
+          ...txMapped,
+          stateTransitions: this.stateTransitionBatchMapper.mapIn(stBatch),
+        };
       }
     );
 
