@@ -92,7 +92,7 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     needs: test
-    if: github.base_ref == 'refs/heads/develop'
+    if: ${{contains(github.base_ref, 'develop')}}
 
     env:
       POSTGRES_URL: localhost
