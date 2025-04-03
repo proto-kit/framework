@@ -98,37 +98,24 @@ describe("block production", () => {
 
   beforeEach(async () => {
     const runtimeClass = Runtime.from({
-      modules: {
-        Balance,
-        NoopRuntime,
-        EventMaker,
-      },
-
-      config: {
-        Balance: {},
-        NoopRuntime: {},
-        EventMaker: {},
-      },
+      Balance,
+      NoopRuntime,
+      EventMaker,
     });
 
-    const sequencerClass = Sequencer.from({
-      modules: testingSequencerModules({}),
-    });
+    const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
-    const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({
+    const protocolClass = Protocol.from(
+      VanillaProtocolModules.mandatoryModules({
         ProtocolStateTestHook,
-      }),
-      // modules: VanillaProtocolModules.with({}),
-    });
+      })
+    );
 
     const app = AppChain.from({
-      modules: {
-        Runtime: runtimeClass,
-        Sequencer: sequencerClass,
-        Protocol: protocolClass,
-      },
+      Runtime: runtimeClass,
+      Sequencer: sequencerClass,
+      Protocol: protocolClass,
     });
 
     app.configure({

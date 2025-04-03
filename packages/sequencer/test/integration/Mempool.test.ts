@@ -68,29 +68,19 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
     function createAppChain() {
       const runtimeClass = Runtime.from({
-        modules: {
-          Balance,
-        },
-
-        config: {
-          Balance: {},
-        },
+        Balance,
       });
 
-      const sequencerClass = Sequencer.from({
-        modules: testingSequencerModules({}),
-      });
+      const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-      const protocolClass = Protocol.from({
-        modules: VanillaProtocolModules.mandatoryModules({}),
-      });
+      const protocolClass = Protocol.from(
+        VanillaProtocolModules.mandatoryModules({})
+      );
 
       return AppChain.from({
-        modules: {
-          Sequencer: sequencerClass,
-          Runtime: runtimeClass,
-          Protocol: protocolClass,
-        },
+        Sequencer: sequencerClass,
+        Runtime: runtimeClass,
+        Protocol: protocolClass,
       });
     }
 

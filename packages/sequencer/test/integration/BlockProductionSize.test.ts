@@ -44,34 +44,23 @@ describe("block limit", () => {
   log.setLevel(log.levels.INFO);
 
   const runtimeClass = Runtime.from({
-    modules: {
-      Balance,
-      NoopRuntime,
-    },
-
-    config: {
-      Balance: {},
-      NoopRuntime: {},
-    },
+    Balance,
+    NoopRuntime,
   });
 
   async function setUpAppChain(maxBlockSize: number | undefined) {
-    const sequencerClass = Sequencer.from({
-      modules: testingSequencerModules({}),
-    });
+    const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-    const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({
+    const protocolClass = Protocol.from(
+      VanillaProtocolModules.mandatoryModules({
         ProtocolStateTestHook,
-      }),
-    });
+      })
+    );
 
     const app = AppChain.from({
-      modules: {
-        Runtime: runtimeClass,
-        Sequencer: sequencerClass,
-        Protocol: protocolClass,
-      },
+      Runtime: runtimeClass,
+      Sequencer: sequencerClass,
+      Protocol: protocolClass,
     });
     log.setLevel("TRACE");
 

@@ -8,20 +8,14 @@ import { ProvenBalance } from "../../test/integration/mocks/ProvenBalance";
 import { ProtocolStateTestHook } from "../../test/integration/mocks/ProtocolStateTestHook";
 
 export const runtimeClass = Runtime.from({
-  modules: {
-    Balance: ProvenBalance,
-  },
-
-  config: {
-    Balance: {},
-  },
+  Balance: ProvenBalance,
 });
 
-export const protocolClass = Protocol.from({
-  modules: VanillaProtocolModules.mandatoryModules({
+export const protocolClass = Protocol.from(
+  VanillaProtocolModules.mandatoryModules({
     ProtocolStateTestHook,
-  }),
-});
+  })
+);
 
 export const runtimeProtocolConfig: ModulesConfig<{
   Runtime: typeof runtimeClass;

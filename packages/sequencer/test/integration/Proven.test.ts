@@ -46,17 +46,11 @@ describe.skip("Proven", () => {
 
   function createAppChain() {
     const runtimeClass = Runtime.from({
-      modules: {
-        Balances: ProvenBalance,
-      },
-
-      config: {
-        Balances: {},
-      },
+      Balances: ProvenBalance,
     });
 
-    const sequencerClass = Sequencer.from({
-      modules: testingSequencerModules(
+    const sequencerClass = Sequencer.from(
+      testingSequencerModules(
         {
           BaseLayer: MinaBaseLayer,
           SettlementModule,
@@ -65,30 +59,26 @@ describe.skip("Proven", () => {
         {
           SettlementProvingTask,
         }
-      ),
-    });
+      )
+    );
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
-      modules: {
-        ...VanillaProtocolModules.mandatoryModules({
-          ProtocolStateTestHook,
-          // ProtocolStateTestHook2,
-        }),
-        SettlementContractModule: SettlementContractModule.with({
-          // FungibleToken: FungibleTokenContractModule,
-          // FungibleTokenAdmin: FungibleTokenAdminContractModule,
-        }),
-      },
+      ...VanillaProtocolModules.mandatoryModules({
+        ProtocolStateTestHook,
+        // ProtocolStateTestHook2,
+      }),
+      SettlementContractModule: SettlementContractModule.with({
+        // FungibleToken: FungibleTokenContractModule,
+        // FungibleTokenAdmin: FungibleTokenAdminContractModule,
+      }),
       // modules: VanillaProtocolModules.with({}),
     });
 
     return AppChain.from({
-      modules: {
-        Runtime: runtimeClass,
-        Sequencer: sequencerClass,
-        Protocol: protocolClass,
-      },
+      Runtime: runtimeClass,
+      Sequencer: sequencerClass,
+      Protocol: protocolClass,
     });
   }
 

@@ -28,27 +28,21 @@ const pk = PrivateKey.random();
 
 function prepareClient() {
   const appChain = ClientAppChain.from({
-    modules: {
-      Runtime: Runtime.from({
-        modules: VanillaRuntimeModules.with({
-          Balances: TestBalances,
-        }),
-      }),
+    Runtime: Runtime.from(
+      VanillaRuntimeModules.with({
+        Balances: TestBalances,
+      })
+    ),
 
-      Protocol: Protocol.from({
-        modules: VanillaProtocolModules.with({}),
-      }),
+    Protocol: Protocol.from(VanillaProtocolModules.with({})),
 
-      Sequencer: Sequencer.from({
-        modules: {},
-      }),
+    Sequencer: Sequencer.from({}),
 
-      Signer: InMemorySigner,
-      TransactionSender: GraphqlTransactionSender,
-      QueryTransportModule: GraphqlQueryTransportModule,
-      NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
-      GraphqlClient,
-    },
+    Signer: InMemorySigner,
+    TransactionSender: GraphqlTransactionSender,
+    QueryTransportModule: GraphqlQueryTransportModule,
+    NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
+    GraphqlClient,
   });
 
   appChain.configurePartial({

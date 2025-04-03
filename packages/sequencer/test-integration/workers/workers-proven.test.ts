@@ -55,24 +55,21 @@ describe("worker-proven", () => {
         log.setLevel(log.levels.DEBUG);
 
         const sequencerClass = Sequencer.from({
-          modules: {
-            Database: InMemoryDatabase,
-            Mempool: PrivateMempool,
-            BaseLayer: NoopBaseLayer,
-            BatchProducerModule,
-            BlockProducerModule,
-            BlockTrigger: ManualBlockTrigger,
-            TaskQueue: BullQueue,
-            FeeStrategy: ConstantFeeStrategy,
-            SequencerStartupModule,
-          },
+          Database: InMemoryDatabase,
+          Mempool: PrivateMempool,
+          BaseLayer: NoopBaseLayer,
+          BatchProducerModule,
+          BlockProducerModule,
+          BlockTrigger: ManualBlockTrigger,
+          TaskQueue: BullQueue,
+          FeeStrategy: ConstantFeeStrategy,
+          SequencerStartupModule,
         });
 
         const app = AppChain.from({
           Runtime: runtimeClass,
           Sequencer: sequencerClass,
           Protocol: protocolClass,
-          modules: {},
         });
 
         app.configure({

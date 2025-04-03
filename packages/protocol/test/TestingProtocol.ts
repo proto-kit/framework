@@ -15,13 +15,11 @@ import {
 
 export function createAndInitTestingProtocol() {
   const ProtocolClass = Protocol.from({
-    modules: {
-      StateTransitionProver: StateTransitionProver,
-      BlockProver: BlockProver,
-      AccountState: AccountStateHook,
-      BlockHeight: BlockHeightHook,
-      LastStateRoot: LastStateRootBlockHook,
-    },
+    StateTransitionProver: StateTransitionProver,
+    BlockProver: BlockProver,
+    AccountState: AccountStateHook,
+    BlockHeight: BlockHeightHook,
+    LastStateRoot: LastStateRootBlockHook,
   });
   const protocol = new ProtocolClass();
 
@@ -36,16 +34,17 @@ export function createAndInitTestingProtocol() {
   const appChain = container.createChildContainer();
 
   appChain.register("Runtime", {
-    useClass: Runtime.from({
-      modules: {
+    useFactory: () => {
+      const runtime = new (Runtime.from({
         Balance,
         NoopRuntime,
-      },
-      config: {
+      }))();
+      runtime.configure({
         Balance: {},
         NoopRuntime: {},
-      },
-    }),
+      });
+      return runtime;
+    },
   });
   protocol.create(() => appChain.createChildContainer());
 
