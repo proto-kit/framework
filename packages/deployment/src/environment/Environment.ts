@@ -1,11 +1,7 @@
-import { log, assertValidTextLogLevel } from "@proto-kit/common";
+import { log, assertValidTextLogLevel, Startable } from "@proto-kit/common";
 import { AppChain } from "@proto-kit/sdk";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-
-export interface Startable {
-  start(): Promise<void>;
-}
 
 export type StartableEnvironment<T> = Record<string, T>;
 

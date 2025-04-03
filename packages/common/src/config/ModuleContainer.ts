@@ -339,13 +339,20 @@ export class ModuleContainer<
 
   public resolveOrFail<ModuleType>(
     moduleName: string,
-    moduleType: TypedClass<ModuleType>
+    moduleType?: TypedClass<ModuleType>
   ) {
-    const instance = this.container.resolve<ModuleType>(moduleName);
-    const isValidModuleInstance = instance instanceof moduleType;
+    if (!this.container.isRegistered(moduleName)) {
+      throw new Error(`Dependency with token ${moduleName} not registered`);
+    }
 
-    if (!isValidModuleInstance) {
-      throw errors.validModuleInstance(moduleName, moduleType.name);
+    const instance = this.container.resolve<ModuleType>(moduleName);
+
+    if (moduleType !== undefined) {
+      const isValidModuleInstance = instance instanceof moduleType;
+
+      if (!isValidModuleInstance) {
+        throw errors.validModuleInstance(moduleName, moduleType.name);
+      }
     }
 
     return instance;

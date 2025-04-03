@@ -5,6 +5,7 @@ import {
   ModuleContainer,
   ModulesConfig,
   ModulesRecord,
+  Startable,
   StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
@@ -67,7 +68,7 @@ export class Protocol<
     Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord,
   >
   extends ModuleContainer<Modules>
-  implements ProtocolEnvironment
+  implements ProtocolEnvironment, Startable
 {
   public static from<
     Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord,
