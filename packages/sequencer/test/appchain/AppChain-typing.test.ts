@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { Runtime } from "@proto-kit/module";
 import { Balances, VanillaProtocolModules } from "@proto-kit/library";
 import { Protocol, StateTransitionProverType } from "@proto-kit/protocol";
