@@ -20,13 +20,16 @@ export function assert(condition: Bool, message?: string | (() => string)) {
 
   Provable.asProver(() => {
     if (!condition.toBoolean()) {
-      if (!executionContext.current().isSimulated) {
-        log.debug("Assertion failed: ", message);
-      }
       const messageString =
         message !== undefined && typeof message === "function"
           ? message()
           : message;
+
+      // If no isSimulated was set, we treat it as not simulated,
+      // therefore printing the log
+      if (!(executionContext.current().isSimulated ?? false)) {
+        log.debug("Assertion failed: ", messageString);
+      }
       executionContext.setStatusMessage(messageString, new Error().stack);
     }
   });

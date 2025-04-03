@@ -2,9 +2,11 @@ import { EventEmitter, log, noop } from "@proto-kit/common";
 import { container, inject } from "tsyringe";
 import {
   AccountStateHook,
+  BlockHashMerkleTree,
   MandatoryProtocolModulesRecord,
   NetworkState,
   Protocol,
+  ProvableHookBlockState,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
   StateServiceProvider,
@@ -27,13 +29,23 @@ import {
 import { CachedStateService } from "../../state/state/CachedStateService";
 import { AsyncStateService } from "../../state/async/AsyncStateService";
 import { distinctByPredicate } from "../../helpers/utils";
+import { Tracer } from "../../logging/Tracer";
+import { trace } from "../../logging/trace";
 
 type MempoolTransactionPaths = {
   transaction: PendingTransaction;
   paths: Field[];
 };
+
+interface PrivateMempoolConfig {
+  validationEnabled?: boolean;
+}
+
 @sequencerModule()
-export class PrivateMempool extends SequencerModule implements Mempool {
+export class PrivateMempool
+  extends SequencerModule<PrivateMempoolConfig>
+  implements Mempool
+{
   public readonly events = new EventEmitter<MempoolEvents>();
 
   private readonly accountStateHook: AccountStateHook;
@@ -47,11 +59,17 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     @inject("Sequencer")
     private readonly sequencer: Sequencer<SequencerModulesRecord>,
     @inject("UnprovenStateService")
-    private readonly stateService: AsyncStateService
+    private readonly stateService: AsyncStateService,
+    @inject("Tracer") public readonly tracer: Tracer
   ) {
     super();
     this.accountStateHook =
       this.protocol.dependencyContainer.resolve("AccountState");
+  }
+
+  public async length(): Promise<number> {
+    const txs = await this.transactionStorage.getPendingUserTransactions();
+    return txs.length;
   }
 
   public async add(tx: PendingTransaction): Promise<boolean> {
@@ -93,29 +111,28 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     return result?.result.afterNetworkState;
   }
 
-  public async getTxs(): Promise<PendingTransaction[]> {
+  @trace("mempool.get_txs")
+  public async getTxs(limit?: number): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
-    const executionContext = container.resolve<RuntimeMethodExecutionContext>(
-      RuntimeMethodExecutionContext
-    );
+
     const baseCachedStateService = new CachedStateService(this.stateService);
 
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-    const sortedTxs = await this.checkTxValid(
-      txs,
-      baseCachedStateService,
-      this.protocol.stateServiceProvider,
-      networkState,
-      executionContext
-    );
+    const validationEnabled = this.config.validationEnabled ?? true;
+    const sortedTxs = validationEnabled
+      ? await this.checkTxValid(
+          txs,
+          baseCachedStateService,
+          this.protocol.stateServiceProvider,
+          networkState,
+          limit
+        )
+      : txs;
+
     this.protocol.stateServiceProvider.popCurrentStateService();
     return sortedTxs;
-  }
-
-  public async start(): Promise<void> {
-    noop();
   }
 
   // We iterate through the transactions. For each tx we run the account state hook.
@@ -123,18 +140,45 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   // in the skipped txs list and when later txs succeed we check to see if any state transition
   // paths are shared between the just succeeded tx and any of the skipped txs. This is
   // because a failed tx may succeed now if the failure was to do with a nonce issue, say.
+  // TODO Refactor
+  @trace("mempool.validate_txs")
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   private async checkTxValid(
     transactions: PendingTransaction[],
     baseService: CachedStateService,
     stateServiceProvider: StateServiceProvider,
     networkState: NetworkState,
-    executionContext: RuntimeMethodExecutionContext
-  ): Promise<PendingTransaction[]> {
-    const skippedTransactions: Record<string, MempoolTransactionPaths> = {};
+    limit?: number
+  ) {
+    const executionContext = container.resolve<RuntimeMethodExecutionContext>(
+      RuntimeMethodExecutionContext
+    );
+    executionContext.clear();
+
+    // Initialize starting state
     const sortedTransactions: PendingTransaction[] = [];
+    const skippedTransactions: Record<string, MempoolTransactionPaths> = {};
+
     let queue: PendingTransaction[] = [...transactions];
 
-    while (queue.length > 0) {
+    const previousBlock = await this.unprovenQueue.getLatestBlock();
+
+    // TODO This is not sound currently as the prover state changes all the time
+    //  in the actual blockprover. We need to properly simulate that
+    const proverState: ProvableHookBlockState = {
+      blockHashRoot: Field(
+        previousBlock?.result.blockHashRoot ?? BlockHashMerkleTree.EMPTY_ROOT
+      ),
+      eternalTransactionsHash:
+        previousBlock?.block.toEternalTransactionsHash ?? Field(0),
+      transactionsHash: previousBlock?.block.transactionsHash ?? Field(0),
+      incomingMessagesHash: previousBlock?.block.toMessagesHash ?? Field(0),
+    };
+
+    while (
+      queue.length > 0 &&
+      sortedTransactions.length < (limit ?? Number.MAX_VALUE)
+    ) {
       const [tx] = queue.splice(0, 1);
       const txStateService = new CachedStateService(baseService);
       stateServiceProvider.setCurrentStateService(txStateService);
@@ -142,15 +186,15 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         networkState: networkState,
         transaction: tx.toProtocolTransaction().transaction,
       };
-      executionContext.clear();
       executionContext.setup(contextInputs);
 
       const signedTransaction = tx.toProtocolTransaction();
       // eslint-disable-next-line no-await-in-loop
-      await this.accountStateHook.onTransaction({
+      await this.accountStateHook.beforeTransaction({
         networkState: networkState,
         transaction: signedTransaction.transaction,
         signature: signedTransaction.signature,
+        prover: proverState,
       });
       const { status, statusMessage, stateTransitions } =
         executionContext.current().result;
@@ -188,7 +232,13 @@ export class PrivateMempool extends SequencerModule implements Mempool {
         }
         stateServiceProvider.popCurrentStateService();
       }
+
+      executionContext.clear();
     }
     return sortedTransactions;
+  }
+
+  public async start(): Promise<void> {
+    noop();
   }
 }

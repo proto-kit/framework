@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test",
-    "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
+    "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
     "test:watch": "npm run test:file -- ./test/** --watch"
   },
@@ -28,7 +28,7 @@
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "bullmq": "^3.15.8",
-    "o1js": "^1.1.0",
+    "o1js": "^1.6.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

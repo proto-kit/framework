@@ -17,5 +17,5 @@ export interface Mempool<Events extends MempoolEvents = MempoolEvents>
   /**
    * Retrieve all transactions that are currently in the mempool
    */
-  getTxs: () => Promise<PendingTransaction[]>;
+  getTxs: (limit?: number) => Promise<PendingTransaction[]>;
 }

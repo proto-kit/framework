@@ -11,7 +11,6 @@ import {
 import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
 import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
-import { GraphqlServer } from "@proto-kit/api";
 import {
   AppChain,
   InMemorySigner,
@@ -21,8 +20,9 @@ import {
   GraphqlNetworkStateTransportModule,
 } from "@proto-kit/sdk";
 import { beforeAll } from "@jest/globals";
+import { container } from "tsyringe";
 
-import { startServer, TestBalances } from "../../src/scripts/graphql/server";
+import { startGraphqlServer, TestBalances } from "./graphql-server";
 
 const pk = PrivateKey.random();
 
@@ -93,18 +93,18 @@ function prepareClient() {
 
 describe("graphql client test", () => {
   let appChain: ReturnType<typeof prepareClient>;
-  let server: Awaited<ReturnType<typeof startServer>>;
+  let server: Awaited<ReturnType<typeof startGraphqlServer>>;
   let trigger: ManualBlockTrigger;
   const tokenId = TokenId.from(0);
 
   beforeAll(async () => {
-    server = await startServer();
+    server = await startGraphqlServer();
 
     await sleep(2000);
 
     appChain = prepareClient();
 
-    await appChain.start();
+    await appChain.start(false, container.createChildContainer());
 
     trigger = server.sequencer.resolveOrFail(
       "BlockTrigger",
@@ -114,7 +114,7 @@ describe("graphql client test", () => {
   }, 20_000);
 
   afterAll(async () => {
-    server.sequencer.resolveOrFail("GraphqlServer", GraphqlServer).close();
+    await server.sequencer.close();
   }, 20_000);
 
   it("should retrieve state", async () => {

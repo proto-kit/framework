@@ -1,4 +1,5 @@
 import { Field, type FlexibleProvablePure, Poseidon } from "o1js";
+import { hashWithPrefix } from "@proto-kit/common";
 
 import { stringToField } from "../utils/utils";
 
@@ -21,10 +22,15 @@ export class Path {
    *
    * @param className
    * @param propertyKey
+   * @param prefix
    * @returns Field representation of class name + property name
    */
-  public static fromProperty(className: string, propertyKey: string): Field {
-    return Poseidon.hash([
+  public static fromProperty(
+    className: string,
+    propertyKey: string,
+    prefix: string
+  ): Field {
+    return hashWithPrefix(prefix, [
       Path.toField(className),
       Path.toField(propertyKey),
       Field(0),

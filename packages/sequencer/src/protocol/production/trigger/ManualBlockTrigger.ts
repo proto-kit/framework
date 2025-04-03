@@ -8,8 +8,6 @@ import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-import { BatchStorage } from "../../../storage/repositories/BatchStorage";
-import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
@@ -26,20 +24,14 @@ export class ManualBlockTrigger
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
     @inject("BlockQueue")
-    blockQueue: BlockQueue,
-    @inject("BatchStorage")
-    batchStorage: BatchStorage,
-    @injectOptional("SettlementStorage")
-    settlementStorage: SettlementStorage | undefined
+    blockQueue: BlockQueue
   ) {
     super(
       blockProducerModule,
       batchProducerModule,
       settlementModule,
 
-      blockQueue,
-      batchStorage,
-      settlementStorage
+      blockQueue
     );
   }
 
@@ -62,15 +54,11 @@ export class ManualBlockTrigger
     return await super.settle(batch);
   }
 
-  public async produceBlock(
-    enqueueInSettlementQueue: boolean = true
-  ): Promise<Block | undefined> {
-    return await super.produceBlock(enqueueInSettlementQueue);
+  public async produceBlock(): Promise<Block | undefined> {
+    return await super.produceBlock();
   }
 
-  public async produceBlockWithResult(
-    enqueueInSettlementQueue: boolean = true
-  ): Promise<BlockWithResult | undefined> {
-    return await super.produceBlockWithResult(enqueueInSettlementQueue);
+  public async produceBlockWithResult(): Promise<BlockWithResult | undefined> {
+    return await super.produceBlockWithResult();
   }
 }

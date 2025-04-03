@@ -4,6 +4,9 @@ import {
   provableMethod,
   RollupMerkleTreeWitness,
   ZkProgrammable,
+  CompilableModule,
+  type ArtifactRecord,
+  type CompileRegistry,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
@@ -11,15 +14,16 @@ import { injectable } from "tsyringe";
 import { constants } from "../../Constants";
 import { ProvableStateTransition } from "../../model/StateTransition";
 import {
-  ProvableStateTransitionType,
+  MerkleWitnessBatch,
   StateTransitionProvableBatch,
+  StateTransitionType,
 } from "../../model/StateTransitionProvableBatch";
 import { StateTransitionProverType } from "../../protocol/Protocol";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
-import {
-  DefaultProvableHashList,
-  ProvableHashList,
-} from "../../utils/ProvableHashList";
+import { DefaultProvableHashList } from "../../utils/ProvableHashList";
+import { WitnessedRootHashList } from "../accumulators/WitnessedRootHashList";
+import { AppliedBatchHashList } from "../accumulators/AppliedBatchHashList";
+import { AppliedStateTransitionBatchState } from "../../model/AppliedStateTransitionBatch";
 
 import {
   StateTransitionProof,
@@ -27,27 +31,20 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "./StateTransitionProvable";
-import { StateTransitionWitnessProvider } from "./StateTransitionWitnessProvider";
-import { StateTransitionWitnessProviderReference } from "./StateTransitionWitnessProviderReference";
 
 const errors = {
   propertyNotMatching: (property: string, step: string) =>
     `${property} not matching ${step}`,
 
-  merkleWitnessNotCorrect: (index: number, type: string) =>
-    `MerkleWitness not valid for StateTransition (${index}, type ${type})`,
-
-  noWitnessProviderSet: () =>
-    new Error(
-      "WitnessProvider not set, set it before you use StateTransitionProvider"
-    ),
+  merkleWitnessNotCorrect: (index: number) =>
+    `MerkleWitness not valid for StateTransition (${index})`,
 };
 
 interface StateTransitionProverExecutionState {
-  stateRoot: Field;
-  protocolStateRoot: Field;
-  stateTransitionList: ProvableHashList<ProvableStateTransition>;
-  protocolTransitionList: ProvableHashList<ProvableStateTransition>;
+  currentBatch: AppliedStateTransitionBatchState;
+  batchList: AppliedBatchHashList;
+  finalizedRoot: Field;
+  witnessedRoots: WitnessedRootHashList;
 }
 
 const StateTransitionSelfProofClass = SelfProof<
@@ -64,14 +61,16 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   StateTransitionProverPublicOutput
 > {
   public constructor(
-    private readonly stateTransitionProver: StateTransitionProver,
-    public readonly witnessProviderReference: StateTransitionWitnessProviderReference
+    private readonly stateTransitionProver: Pick<
+      StateTransitionProver,
+      "areProofsEnabled"
+    >
   ) {
     super();
   }
 
-  public get appChain(): AreProofsEnabled | undefined {
-    return this.stateTransitionProver.appChain;
+  public get areProofsEnabled(): AreProofsEnabled | undefined {
+    return this.stateTransitionProver.areProofsEnabled;
   }
 
   public zkProgramFactory(): PlainZkProgram<
@@ -87,13 +86,24 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
       methods: {
         proveBatch: {
-          privateInputs: [StateTransitionProvableBatch],
+          privateInputs: [
+            StateTransitionProvableBatch,
+            MerkleWitnessBatch,
+            AppliedStateTransitionBatchState,
+          ],
 
           async method(
             publicInput: StateTransitionProverPublicInput,
-            batch: StateTransitionProvableBatch
+            batch: StateTransitionProvableBatch,
+            witnesses: MerkleWitnessBatch,
+            currentAppliedBatch: AppliedStateTransitionBatchState
           ) {
-            return await instance.runBatch(publicInput, batch);
+            return await instance.proveBatch(
+              publicInput,
+              batch,
+              witnesses,
+              currentAppliedBatch
+            );
           },
         },
 
@@ -123,6 +133,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
     return [
       {
+        name: program.name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -132,48 +143,99 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     ];
   }
 
-  private get witnessProvider(): StateTransitionWitnessProvider {
-    const provider = this.witnessProviderReference.getWitnessProvider();
-    if (provider === undefined) {
-      throw errors.noWitnessProviderSet();
-    }
-    return provider;
-  }
-
   /**
    * Applies the state transitions to the current stateRoot
    * and returns the new prover state
    */
   public applyTransitions(
-    stateRoot: Field,
-    protocolStateRoot: Field,
-    stateTransitionCommitmentFrom: Field,
-    protocolTransitionCommitmentFrom: Field,
-    transitionBatch: StateTransitionProvableBatch
-  ): StateTransitionProverExecutionState {
-    const state: StateTransitionProverExecutionState = {
-      stateRoot,
-      protocolStateRoot,
+    state: StateTransitionProverExecutionState,
+    batch: StateTransitionProvableBatch,
+    witnesses: MerkleWitnessBatch
+  ) {
+    const transitions = batch.batch;
 
-      stateTransitionList: new DefaultProvableHashList(
-        ProvableStateTransition,
-        stateTransitionCommitmentFrom
-      ),
-
-      protocolTransitionList: new DefaultProvableHashList(
-        ProvableStateTransition,
-        protocolTransitionCommitmentFrom
-      ),
-    };
-
-    const transitions = transitionBatch.batch;
-    const types = transitionBatch.transitionTypes;
     for (
       let index = 0;
       index < constants.stateTransitionProverBatchSize;
       index++
     ) {
-      this.applyTransition(state, transitions[index], types[index], index);
+      const updatedBatchState = this.applyTransition(
+        state.currentBatch,
+        transitions[index].stateTransition,
+        witnesses.witnesses[index],
+        index
+      );
+
+      // If the current batch is finished, we push it to the list
+      // and initialize the next
+      const { type, witnessRoot } = transitions[index];
+      const closing = type.isClosing();
+      const closingAndApply = type.type.equals(
+        StateTransitionType.closeAndApply
+      );
+
+      // Create the newBatch
+      // The root is based on if the previous batch will be applied or not
+      const base = Provable.if(
+        closingAndApply,
+        updatedBatchState.root,
+        state.finalizedRoot
+      );
+      const newBatchState = new AppliedStateTransitionBatchState({
+        batchHash: Field(0),
+        root: base,
+      });
+
+      const updatedBatch = {
+        applied: closingAndApply,
+        batchHash: updatedBatchState.batchHash,
+      };
+      state.batchList.pushIf(updatedBatch, closing);
+      state.finalizedRoot = Provable.if(
+        closingAndApply,
+        updatedBatchState.root,
+        state.finalizedRoot
+      );
+
+      // Add computed root to the witnessed root list if needed
+      witnessRoot
+        .implies(closing)
+        .assertTrue("Can only witness roots at closing batches");
+      state.witnessedRoots.pushIf(
+        {
+          root: state.finalizedRoot,
+          appliedBatchListState: state.batchList.commitment,
+        },
+        witnessRoot
+      );
+
+      const isDummy = ProvableStateTransition.isDummy(
+        transitions[index].stateTransition
+      );
+
+      // Dummy STs cannot change any state, as to prevent any
+      // dummy-in-the-middle attacks. This is given if the type is nothing.
+      isDummy
+        .implies(type.isNothing())
+        .assertTrue("Dummies have to be of type 'nothing'");
+
+      isDummy
+        .implies(state.currentBatch.batchHash.equals(0))
+        .assertTrue("Dummies can only be placed on closed batchLists");
+
+      // Dummies don't close the batch, but we still want to ignore any
+      // updated batch, since we need to result to stay.
+      // This will break the pipeline if there is a dummy in the middle,
+      // but will only end up to invalid proofs (i.e. mismatched batches)
+
+      state.currentBatch = new AppliedStateTransitionBatchState(
+        Provable.if(
+          closing.or(isDummy),
+          AppliedStateTransitionBatchState,
+          newBatchState,
+          updatedBatchState
+        )
+      );
     }
 
     return state;
@@ -184,79 +246,91 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
    * and mutates it in place
    */
   public applyTransition(
-    state: StateTransitionProverExecutionState,
+    currentBatch: AppliedStateTransitionBatchState,
     transition: ProvableStateTransition,
-    type: ProvableStateTransitionType,
+    witness: RollupMerkleTreeWitness,
     index = 0
   ) {
-    const witness = Provable.witness(RollupMerkleTreeWitness, () =>
-      this.witnessProvider.getWitness(transition.path)
+    const impliedRoot = this.applyTransitionToRoot(
+      transition,
+      currentBatch.root,
+      witness,
+      index
     );
 
-    const membershipValid = witness.checkMembership(
-      state.stateRoot,
+    // Append ST to the current batch's ST-list
+    const stList = new DefaultProvableHashList(
+      ProvableStateTransition,
+      currentBatch.batchHash
+    );
+    stList.push(transition);
+
+    // Update batch
+    return new AppliedStateTransitionBatchState({
+      batchHash: stList.commitment,
+      root: impliedRoot,
+    });
+  }
+
+  private applyTransitionToRoot(
+    transition: ProvableStateTransition,
+    root: Field,
+    merkleWitness: RollupMerkleTreeWitness,
+    index: number
+  ): Field {
+    const membershipValid = merkleWitness.checkMembership(
+      root,
       transition.path,
       transition.from.value
     );
 
     membershipValid
       .or(transition.from.isSome.not())
-      .assertTrue(
-        errors.merkleWitnessNotCorrect(
-          index,
-          type.isNormal().toBoolean() ? "normal" : "protocol"
-        )
-      );
+      .assertTrue(errors.merkleWitnessNotCorrect(index));
 
-    const newRoot = witness.calculateRoot(transition.to.value);
+    const newRoot = merkleWitness.calculateRoot(transition.to.value);
 
-    state.stateRoot = Provable.if(
-      transition.to.isSome,
-      newRoot,
-      state.stateRoot
-    );
-
-    // Only update protocol state root if ST is also of type protocol
-    // Since protocol STs are all at the start of the batch, this works
-    state.protocolStateRoot = Provable.if(
-      transition.to.isSome.and(type.isProtocol()),
-      newRoot,
-      state.protocolStateRoot
-    );
-
-    const isNotDummy = transition.path.equals(Field(0)).not();
-
-    state.stateTransitionList.pushIf(
-      transition,
-      isNotDummy.and(type.isNormal())
-    );
-    state.protocolTransitionList.pushIf(
-      transition,
-      isNotDummy.and(type.isProtocol())
-    );
+    return Provable.if(transition.to.isSome, newRoot, root);
   }
 
   /**
    * Applies a whole batch of StateTransitions at once
    */
   @provableMethod()
-  public async runBatch(
+  public async proveBatch(
     publicInput: StateTransitionProverPublicInput,
-    batch: StateTransitionProvableBatch
+    batch: StateTransitionProvableBatch,
+    witnesses: MerkleWitnessBatch,
+    currentAppliedBatch: AppliedStateTransitionBatchState
   ): Promise<StateTransitionProverPublicOutput> {
-    const result = this.applyTransitions(
-      publicInput.stateRoot,
-      publicInput.protocolStateRoot,
-      publicInput.stateTransitionsHash,
-      publicInput.protocolTransitionsHash,
-      batch
-    );
+    currentAppliedBatch
+      .hashOrZero()
+      .assertEquals(
+        publicInput.currentBatchStateHash,
+        "Provided startingAppliedBatch not matching PI hash"
+      );
+
+    // Assert that either the currentAppliedBatch is somewhere intermediary
+    // or the root is the current "finalized" root
+    currentAppliedBatch.root
+      .equals(publicInput.root)
+      .or(publicInput.currentBatchStateHash.equals(0).not())
+      .assertTrue();
+
+    const state: StateTransitionProverExecutionState = {
+      batchList: new AppliedBatchHashList(publicInput.batchesHash),
+      currentBatch: currentAppliedBatch,
+      finalizedRoot: publicInput.root,
+      witnessedRoots: new WitnessedRootHashList(publicInput.witnessedRootsHash),
+    };
+
+    const result = this.applyTransitions(state, batch, witnesses);
 
     return new StateTransitionProverPublicOutput({
-      stateRoot: result.stateRoot,
-      stateTransitionsHash: result.stateTransitionList.commitment,
-      protocolTransitionsHash: result.protocolTransitionList.commitment,
-      protocolStateRoot: result.protocolStateRoot,
+      batchesHash: result.batchList.commitment,
+      currentBatchStateHash: result.currentBatch.hashOrZero(),
+      root: result.finalizedRoot,
+      witnessedRootsHash: result.witnessedRoots.commitment,
     });
   }
 
@@ -269,69 +343,66 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     proof1.verify();
     proof2.verify();
 
-    // Check state
-    publicInput.stateRoot.assertEquals(
-      proof1.publicInput.stateRoot,
-      errors.propertyNotMatching("stateRoot", "publicInput.from -> proof1.from")
-    );
-    proof1.publicOutput.stateRoot.assertEquals(
-      proof2.publicInput.stateRoot,
-      errors.propertyNotMatching("stateRoot", "proof1.to -> proof2.from")
-    );
-
-    // Check ST list
-    publicInput.stateTransitionsHash.assertEquals(
-      proof1.publicInput.stateTransitionsHash,
+    // Check current batch hash
+    publicInput.currentBatchStateHash.assertEquals(
+      proof1.publicInput.currentBatchStateHash,
       errors.propertyNotMatching(
-        "stateTransitionsHash",
+        "currentBatchStateHash",
         "publicInput.from -> proof1.from"
       )
     );
-    proof1.publicOutput.stateTransitionsHash.assertEquals(
-      proof2.publicInput.stateTransitionsHash,
+    proof1.publicOutput.currentBatchStateHash.assertEquals(
+      proof2.publicInput.currentBatchStateHash,
       errors.propertyNotMatching(
-        "stateTransitionsHash",
+        "currentBatchStateHash",
         "proof1.to -> proof2.from"
       )
     );
 
-    // Check Protocol ST list
-    publicInput.protocolTransitionsHash.assertEquals(
-      proof1.publicInput.protocolTransitionsHash,
+    // Check batches hash
+    publicInput.batchesHash.assertEquals(
+      proof1.publicInput.batchesHash,
       errors.propertyNotMatching(
-        "protocolTransitionsHash",
+        "batchesHash",
         "publicInput.from -> proof1.from"
       )
     );
-    proof1.publicOutput.protocolTransitionsHash.assertEquals(
-      proof2.publicInput.protocolTransitionsHash,
-      errors.propertyNotMatching(
-        "protocolTransitionsHash",
-        "proof1.to -> proof2.from"
-      )
+    proof1.publicOutput.batchesHash.assertEquals(
+      proof2.publicInput.batchesHash,
+      errors.propertyNotMatching("batchesHash", "proof1.to -> proof2.from")
     );
 
-    // Check protocol state root
-    publicInput.protocolStateRoot.assertEquals(
-      proof1.publicInput.protocolStateRoot,
+    // Check root
+    publicInput.root.assertEquals(
+      proof1.publicInput.root,
+      errors.propertyNotMatching("root", "publicInput.from -> proof1.from")
+    );
+    proof1.publicOutput.root.assertEquals(
+      proof2.publicInput.root,
+      errors.propertyNotMatching("root", "proof1.to -> proof2.from")
+    );
+
+    // Check root accumulator
+    publicInput.witnessedRootsHash.assertEquals(
+      proof1.publicInput.witnessedRootsHash,
       errors.propertyNotMatching(
-        "protocolStateRoot",
+        "witnessedRootsHash",
         "publicInput.from -> proof1.from"
       )
     );
-    proof1.publicOutput.protocolStateRoot.assertEquals(
-      proof2.publicInput.protocolStateRoot,
+    proof1.publicOutput.witnessedRootsHash.assertEquals(
+      proof2.publicInput.witnessedRootsHash,
       errors.propertyNotMatching(
-        "protocolStateRoot",
+        "witnessedRootsHash",
         "proof1.to -> proof2.from"
       )
     );
 
     return new StateTransitionProverPublicInput({
-      stateRoot: proof2.publicOutput.stateRoot,
-      stateTransitionsHash: proof2.publicOutput.stateTransitionsHash,
-      protocolTransitionsHash: proof2.publicOutput.protocolTransitionsHash,
-      protocolStateRoot: proof2.publicOutput.protocolStateRoot,
+      currentBatchStateHash: proof2.publicOutput.currentBatchStateHash,
+      batchesHash: proof2.publicOutput.batchesHash,
+      root: proof2.publicOutput.root,
+      witnessedRootsHash: proof2.publicOutput.witnessedRootsHash,
     });
   }
 }
@@ -339,26 +410,36 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 @injectable()
 export class StateTransitionProver
   extends ProtocolModule
-  implements StateTransitionProvable, StateTransitionProverType
+  implements
+    StateTransitionProvable,
+    StateTransitionProverType,
+    CompilableModule
 {
   public zkProgrammable: StateTransitionProverProgrammable;
 
-  public constructor(
-    // Injected
-    public readonly witnessProviderReference: StateTransitionWitnessProviderReference
-  ) {
+  public constructor() {
     super();
-    this.zkProgrammable = new StateTransitionProverProgrammable(
-      this,
-      witnessProviderReference
-    );
+    this.zkProgrammable = new StateTransitionProverProgrammable(this);
   }
 
-  public runBatch(
+  public async compile(
+    registry: CompileRegistry
+  ): Promise<void | ArtifactRecord> {
+    return await this.zkProgrammable.compile(registry);
+  }
+
+  public proveBatch(
     publicInput: StateTransitionProverPublicInput,
-    batch: StateTransitionProvableBatch
+    batch: StateTransitionProvableBatch,
+    witnesses: MerkleWitnessBatch,
+    startingAppliedBatch: AppliedStateTransitionBatchState
   ): Promise<StateTransitionProverPublicOutput> {
-    return this.zkProgrammable.runBatch(publicInput, batch);
+    return this.zkProgrammable.proveBatch(
+      publicInput,
+      batch,
+      witnesses,
+      startingAppliedBatch
+    );
   }
 
   public merge(

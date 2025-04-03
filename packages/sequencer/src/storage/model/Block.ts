@@ -10,30 +10,45 @@ import { RollupMerkleTree } from "@proto-kit/common";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { UntypedStateTransition } from "../../protocol/production/helpers/UntypedStateTransition";
 
+export interface StateTransitionBatch {
+  stateTransitions: UntypedStateTransition[];
+  applied: boolean;
+}
+
 export interface TransactionExecutionResult {
   tx: PendingTransaction;
-  stateTransitions: UntypedStateTransition[];
-  protocolTransitions: UntypedStateTransition[];
+  stateTransitions: StateTransitionBatch[];
   status: Bool;
   statusMessage?: string;
-  events: { eventName: string; data: Field[] }[];
+  events: {
+    eventName: string;
+    data: Field[];
+    source: "afterTxHook" | "beforeTxHook" | "runtime";
+  }[];
 }
+
+// TODO Why is Block using Fields, but BlockResult bigints? Align that towards the best option
 
 export interface Block {
   hash: Field;
+  previousBlockHash: Field | undefined;
   height: Field;
   networkState: {
     before: NetworkState;
     during: NetworkState;
   };
+
   transactions: TransactionExecutionResult[];
   transactionsHash: Field;
-  toEternalTransactionsHash: Field;
+
   fromEternalTransactionsHash: Field;
   fromBlockHashRoot: Field;
   fromMessagesHash: Field;
+  fromStateRoot: Field;
+  toEternalTransactionsHash: Field;
   toMessagesHash: Field;
-  previousBlockHash: Field | undefined;
+
+  beforeBlockStateTransitions: UntypedStateTransition[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -49,10 +64,11 @@ export const Block = {
 
 export interface BlockResult {
   blockHash: bigint;
+  witnessedRoots: [bigint];
   stateRoot: bigint;
   blockHashRoot: bigint;
   afterNetworkState: NetworkState;
-  blockStateTransitions: UntypedStateTransition[];
+  afterBlockStateTransitions: UntypedStateTransition[];
   blockHashWitness: BlockHashMerkleTreeWitness;
 }
 
@@ -61,8 +77,18 @@ export interface BlockWithResult {
   result: BlockResult;
 }
 
+export interface BlockWithMaybeResult {
+  block: Block;
+  result?: BlockResult;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const BlockWithResult = {
+  // toBlockProverState: ({ block, result }: BlockWithResult) => ({
+  //   stateRoot: result.stateRoot,
+  //
+  // } satisfies BlockProverStateCommitments),
+
   createEmpty: () =>
     ({
       block: {
@@ -79,7 +105,9 @@ export const BlockWithResult = {
         },
         fromBlockHashRoot: Field(BlockHashMerkleTree.EMPTY_ROOT),
         fromMessagesHash: Field(0),
+        fromStateRoot: Field(RollupMerkleTree.EMPTY_ROOT),
         toMessagesHash: ACTIONS_EMPTY_HASH,
+        beforeBlockStateTransitions: [],
 
         previousBlockHash: undefined,
       },
@@ -87,9 +115,10 @@ export const BlockWithResult = {
         afterNetworkState: NetworkState.empty(),
         stateRoot: RollupMerkleTree.EMPTY_ROOT,
         blockHashRoot: BlockHashMerkleTree.EMPTY_ROOT,
-        blockStateTransitions: [],
+        afterBlockStateTransitions: [],
         blockHashWitness: BlockHashMerkleTree.WITNESS.dummy(),
         blockHash: 0n,
+        witnessedRoots: [RollupMerkleTree.EMPTY_ROOT],
       },
     }) satisfies BlockWithResult,
 };

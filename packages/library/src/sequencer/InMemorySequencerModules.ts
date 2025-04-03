@@ -10,6 +10,8 @@ import {
   BlockProducerModule,
   VanillaTaskWorkerModules,
   TaskWorkerModulesWithoutSettlement,
+  SequencerStartupModule,
+  ConstantFeeStrategy,
 } from "@proto-kit/sequencer";
 import { TypedClass } from "@proto-kit/common";
 
@@ -38,12 +40,14 @@ export class InMemorySequencerModules {
       LocalTaskWorkerModule: LocalTaskWorkerModule.from({
         ...VanillaTaskWorkerModules.withoutSettlement(),
       }),
+      FeeStrategy: ConstantFeeStrategy,
       BaseLayer: NoopBaseLayer,
       BatchProducerModule,
       BlockProducerModule,
       BlockTrigger: ManualBlockTrigger,
       TaskQueue: LocalTaskQueue,
       // SettlementModule: SettlementModule,
+      SequencerStartupModule: SequencerStartupModule,
       ...additionalModules,
     } satisfies InMemorySequencerModulesRecord;
   }

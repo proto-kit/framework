@@ -1,6 +1,5 @@
 import { inject } from "tsyringe";
-import { log, noop } from "@proto-kit/common";
-import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
+import { injectOptional, log } from "@proto-kit/common";
 import {
   MethodIdResolver,
   MethodParameterEncoder,
@@ -18,14 +17,22 @@ import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
-import { Block, BlockWithResult } from "../../../storage/model/Block";
-import { CachedStateService } from "../../../state/state/CachedStateService";
-import { MessageStorage } from "../../../storage/repositories/MessageStorage";
+import {
+  Block,
+  BlockResult,
+  BlockWithResult,
+} from "../../../storage/model/Block";
+import { Database } from "../../../storage/Database";
+import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
+import { Tracer } from "../../../logging/Tracer";
+import { trace } from "../../../logging/trace";
 
-import { TransactionExecutionService } from "./TransactionExecutionService";
+import { BlockProductionService } from "./BlockProductionService";
+import { BlockResultService } from "./BlockResultService";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
+  maximumBlockSize?: number;
 }
 
 @sequencerModule()
@@ -34,7 +41,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @inject("MessageStorage") private readonly messageStorage: MessageStorage,
+    @injectOptional("IncomingMessagesService")
+    private readonly messageService: IncomingMessagesService | undefined,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenMerkleStore")
@@ -43,16 +51,23 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly blockQueue: BlockQueue,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
-    private readonly executionService: TransactionExecutionService,
+    private readonly productionService: BlockProductionService,
+    private readonly resultService: BlockResultService,
     @inject("MethodIdResolver")
     private readonly methodIdResolver: MethodIdResolver,
-    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
+    @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
+    @inject("Database") private readonly database: Database,
+    @inject("Tracer") public readonly tracer: Tracer
   ) {
     super();
   }
 
   private allowEmptyBlock() {
     return this.config.allowEmptyBlock ?? true;
+  }
+
+  private maximumBlockSize() {
+    return this.config.maximumBlockSize ?? 20;
   }
 
   private prettyPrintBlockContents(block: Block) {
@@ -94,7 +109,37 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     }
   }
 
-  public async tryProduceBlock(): Promise<BlockWithResult | undefined> {
+  @trace("block.result", ([block]) => ({ height: block.height.toString() }))
+  public async generateMetadata(block: Block): Promise<BlockResult> {
+    const traceMetadata = {
+      height: block.height.toString(),
+    };
+
+    const { result, blockHashTreeStore, treeStore, stateService } =
+      await this.resultService.generateMetadataForNextBlock(
+        block,
+        this.unprovenMerkleStore,
+        this.blockTreeStore,
+        this.unprovenStateService
+      );
+
+    await this.tracer.trace(
+      "block.result.commit",
+      async () =>
+        await this.database.executeInTransaction(async () => {
+          await blockHashTreeStore.mergeIntoParent();
+          await treeStore.mergeIntoParent();
+          await stateService.mergeIntoParent();
+
+          await this.blockQueue.pushResult(result);
+        }),
+      traceMetadata
+    );
+
+    return result;
+  }
+
+  public async tryProduceBlock(): Promise<Block | undefined> {
     if (!this.productionInProgress) {
       try {
         const block = await this.produceBlock();
@@ -113,20 +158,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         );
         this.prettyPrintBlockContents(block);
 
-        // Generate metadata for next block
-
-        // TODO: make async of production in the future
-        const result = await this.executionService.generateMetadataForNextBlock(
-          block,
-          this.unprovenMerkleStore,
-          this.blockTreeStore,
-          true
-        );
-
-        return {
-          block,
-          result,
-        };
+        return block;
       } catch (error: unknown) {
         if (error instanceof Error) {
           throw error;
@@ -140,25 +172,40 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return undefined;
   }
 
+  // TODO Move to different service, to remove dependency on mempool and messagequeue
+  //  Idea: Create a service that aggregates a bunch of different sources
+  @trace("block.collect_inputs")
   private async collectProductionData(): Promise<{
     txs: PendingTransaction[];
     metadata: BlockWithResult;
   }> {
-    const txs = await this.mempool.getTxs();
+    const txs = await this.mempool.getTxs(this.maximumBlockSize());
 
-    const parentBlock = await this.blockQueue.getLatestBlock();
+    const parentBlock = await this.blockQueue.getLatestBlockAndResult();
+
+    let metadata: BlockWithResult;
 
     if (parentBlock === undefined) {
       log.debug(
         "No block metadata given, assuming first block, generating genesis metadata"
       );
+      metadata = BlockWithResult.createEmpty();
+    } else if (parentBlock.result === undefined) {
+      throw new Error(
+        `Metadata for block at height ${parentBlock.block.height.toString()} not available`
+      );
+    } else {
+      metadata = {
+        block: parentBlock.block,
+        // By reconstructing this object, typescript correctly infers the result to be defined
+        result: parentBlock.result,
+      };
     }
 
-    const messages = await this.messageStorage.getMessages(
-      parentBlock?.block.toMessagesHash.toString() ??
-        ACTIONS_EMPTY_HASH.toString()
-    );
-    const metadata = parentBlock ?? BlockWithResult.createEmpty();
+    let messages: PendingTransaction[] = [];
+    if (this.messageService !== undefined) {
+      messages = await this.messageService.getPendingMessages();
+    }
 
     log.debug(
       `Block collected, ${txs.length} txs, ${messages.length} messages`
@@ -170,6 +217,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     };
   }
 
+  @trace("block")
   private async produceBlock(): Promise<Block | undefined> {
     this.productionInProgress = true;
 
@@ -180,25 +228,51 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       return undefined;
     }
 
-    const cachedStateService = new CachedStateService(
-      this.unprovenStateService
-    );
-
-    const block = await this.executionService.createBlock(
-      cachedStateService,
+    const blockResult = await this.productionService.createBlock(
+      this.unprovenStateService,
       txs,
       metadata,
       this.allowEmptyBlock()
     );
 
-    await cachedStateService.mergeIntoParent();
+    if (blockResult !== undefined) {
+      const { block, stateChanges } = blockResult;
+
+      await this.tracer.trace(
+        "block.commit",
+        async () =>
+          // Push changes to the database atomically
+          await this.database.executeInTransaction(async () => {
+            await stateChanges.mergeIntoParent();
+            await this.blockQueue.pushBlock(block);
+          }),
+        {
+          height: block.height.toString(),
+        }
+      );
+    }
 
     this.productionInProgress = false;
 
-    return block;
+    return blockResult?.block;
+  }
+
+  public async blockResultCompleteCheck() {
+    // Check if metadata height is behind block production.
+    // This can happen when the sequencer crashes after a block has been produced
+    // but before the metadata generation has finished
+    const latestBlock = await this.blockQueue.getLatestBlockAndResult();
+    // eslint-disable-next-line sonarjs/no-collapsible-if
+    if (latestBlock !== undefined) {
+      if (latestBlock.result === undefined) {
+        await this.generateMetadata(latestBlock.block);
+      }
+      // Here, the metadata has been computed already
+    }
+    // If we reach here, its a genesis startup, no blocks exist yet
   }
 
   public async start() {
-    noop();
+    await this.blockResultCompleteCheck();
   }
 }

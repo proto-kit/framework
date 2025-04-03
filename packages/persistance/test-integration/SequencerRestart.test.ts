@@ -32,7 +32,7 @@ describe("sequencer restart", () => {
       },
     });
 
-    await appChain.start(container.createChildContainer());
+    await appChain.start(false, container.createChildContainer());
   };
 
   const teardown = async () => {
@@ -78,8 +78,6 @@ describe("sequencer restart", () => {
   });
 
   it("should be able to produce a block on top", async () => {
-    console.log("2");
-
     const blockTrigger = appChain.sequencer.resolve("BlockTrigger");
     await prepareBlock(appChain, sender.toPublicKey(), senderNonce);
     senderNonce++;

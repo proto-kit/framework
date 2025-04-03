@@ -5,25 +5,26 @@ import {
   BlockProverPublicOutput,
   NetworkState,
   Protocol,
-  ReturnType,
   StateTransitionProof,
   StateTransitionProvable,
   BlockHashMerkleTreeWitness,
   MandatoryProtocolModulesRecord,
+  WitnessedRootWitness,
 } from "@proto-kit/protocol";
-import { Proof } from "o1js";
-import { ProvableMethodExecutionContext } from "@proto-kit/common";
+import { Bool, Proof } from "o1js";
+import {
+  ProvableMethodExecutionContext,
+  CompileRegistry,
+} from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
-import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
-import { TaskStateRecord } from "../TransactionTraceService";
+import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
-import { JSONEncodableState } from "./RuntimeTaskParameters";
-import { CompileRegistry } from "./CompileRegistry";
-import { DecodedStateSerializer } from "./BlockProvingTask";
+import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
+import { executeWithPrefilledStateService } from "./TransactionProvingTask";
 
 type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
@@ -31,7 +32,10 @@ export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
   networkState: NetworkState;
   blockWitness: BlockHashMerkleTreeWitness;
-  startingState: TaskStateRecord;
+  deferSTProof: Bool;
+  afterBlockRootWitness: WitnessedRootWitness;
+  startingStateBeforeHook: TaskStateRecord;
+  startingStateAfterHook: TaskStateRecord;
 }
 
 export type NewBlockProvingParameters = PairingDerivedInput<
@@ -72,69 +76,10 @@ export class NewBlockTask
       this.blockProver.zkProgrammable.zkProgram[0].Proof
     );
 
-    interface JsonType {
-      input1: string;
-      input2: string;
-      params: {
-        publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
-        networkState: ReturnType<typeof NetworkState.toJSON>;
-        blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
-        startingState: JSONEncodableState;
-      };
-    }
-
-    return {
-      toJSON: (input: NewBlockProvingParameters) =>
-        JSON.stringify({
-          input1: stProofSerializer.toJSON(input.input1),
-          input2: blockProofSerializer.toJSON(input.input2),
-
-          params: {
-            publicInput: BlockProverPublicInput.toJSON(
-              input.params.publicInput
-            ),
-
-            networkState: NetworkState.toJSON(input.params.networkState),
-
-            blockWitness: BlockHashMerkleTreeWitness.toJSON(
-              input.params.blockWitness
-            ),
-
-            startingState: DecodedStateSerializer.toJSON(
-              input.params.startingState
-            ),
-          },
-        } satisfies JsonType),
-
-      fromJSON: async (json: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const jsonObject: JsonType = JSON.parse(json);
-        return {
-          input1: await stProofSerializer.fromJSON(jsonObject.input1),
-          input2: await blockProofSerializer.fromJSON(jsonObject.input2),
-
-          params: {
-            publicInput: BlockProverPublicInput.fromJSON(
-              jsonObject.params.publicInput
-            ),
-
-            networkState: new NetworkState(
-              NetworkState.fromJSON(jsonObject.params.networkState)
-            ),
-
-            blockWitness: new BlockHashMerkleTreeWitness(
-              BlockHashMerkleTreeWitness.fromJSON(
-                jsonObject.params.blockWitness
-              )
-            ),
-
-            startingState: DecodedStateSerializer.fromJSON(
-              jsonObject.params.startingState
-            ),
-          },
-        };
-      },
-    };
+    return new NewBlockProvingParametersSerializer(
+      stProofSerializer,
+      blockProofSerializer
+    );
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
@@ -143,39 +88,37 @@ export class NewBlockTask
     );
   }
 
-  private async executeWithPrefilledStateService<Return>(
-    startingState: TaskStateRecord,
-    callback: () => Promise<Return>
-  ): Promise<Return> {
-    const prefilledStateService = new PreFilledStateService(startingState);
-    this.protocol.stateServiceProvider.setCurrentStateService(
-      prefilledStateService
-    );
-
-    const returnValue = await callback();
-
-    this.protocol.stateServiceProvider.popCurrentStateService();
-
-    return returnValue;
-  }
-
   public async compute(input: NewBlockProvingParameters): Promise<BlockProof> {
     const { input1, input2, params: parameters } = input;
-    const { networkState, blockWitness, startingState, publicInput } =
-      parameters;
+    const {
+      networkState,
+      blockWitness,
+      startingStateBeforeHook,
+      startingStateAfterHook,
+      publicInput,
+      deferSTProof,
+      afterBlockRootWitness,
+    } = parameters;
 
-    await this.executeWithPrefilledStateService(startingState, async () => {
-      await this.blockProver.proveBlock(
-        publicInput,
-        networkState,
-        blockWitness,
-        input1,
-        input2
-      );
-    });
+    await this.blockProver.proveBlock(
+      publicInput,
+      networkState,
+      blockWitness,
+      input1,
+      deferSTProof,
+      afterBlockRootWitness,
+      input2
+    );
 
-    return await this.executeWithPrefilledStateService(
-      startingState,
+    await executeWithPrefilledStateService(
+      this.protocol.stateServiceProvider,
+      [startingStateBeforeHook, startingStateAfterHook],
+      async () => {}
+    );
+
+    return await executeWithPrefilledStateService(
+      this.protocol.stateServiceProvider,
+      [startingStateBeforeHook, startingStateAfterHook],
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );
@@ -183,9 +126,6 @@ export class NewBlockTask
 
   public async prepare(): Promise<void> {
     // Compile
-    await this.compileRegistry.compile(
-      "BlockProver",
-      this.blockProver.zkProgrammable.zkProgram[0]
-    );
+    await this.blockProver.compile(this.compileRegistry);
   }
 }

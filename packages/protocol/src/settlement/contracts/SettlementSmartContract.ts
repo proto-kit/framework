@@ -3,40 +3,36 @@ import {
   RollupMerkleTree,
   TypedClass,
   mapSequential,
+  ChildVerificationKeyService,
 } from "@proto-kit/common";
 import {
   AccountUpdate,
   Bool,
   Field,
   method,
-  Mina,
-  Poseidon,
-  Proof,
-  Provable,
   PublicKey,
   Signature,
   SmartContract,
   State,
   state,
-  TokenId,
   UInt32,
-  UInt64,
-  TokenContract,
   AccountUpdateForest,
+  TokenContractV2,
+  PrivateKey,
+  VerificationKey,
+  Permissions,
+  Struct,
+  Provable,
+  TokenId,
+  DynamicProof,
 } from "o1js";
 
 import { NetworkState } from "../../model/network/NetworkState";
-import { Path } from "../../model/Path";
 import { BlockHashMerkleTree } from "../../prover/block/accummulators/BlockHashMerkleTree";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
 } from "../../prover/block/BlockProvable";
-import {
-  OUTGOING_MESSAGE_BATCH_SIZE,
-  OutgoingMessageArgumentBatch,
-} from "../messages/OutgoingMessageArgument";
-import { Withdrawal } from "../messages/Withdrawal";
 import {
   ProvableSettlementHook,
   SettlementHookInputs,
@@ -44,10 +40,13 @@ import {
 } from "../modularity/ProvableSettlementHook";
 
 import { DispatchContractType } from "./DispatchSmartContract";
+import { BridgeContractType } from "./BridgeContract";
+import { TokenBridgeDeploymentAuth } from "./authorizations/TokenBridgeDeploymentAuth";
+import { UpdateMessagesHashAuth } from "./authorizations/UpdateMessagesHashAuth";
 
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 
-export class LazyBlockProof extends Proof<
+export class DynamicBlockProof extends DynamicProof<
   BlockProverPublicInput,
   BlockProverPublicOutput
 > {
@@ -55,18 +54,26 @@ export class LazyBlockProof extends Proof<
 
   public static publicOutputType = BlockProverPublicOutput;
 
-  public static tag: () => { name: string } = () => {
-    throw new Error("Tag not initialized yet");
-  };
+  public static maxProofsVerified = 2 as const;
 }
 
+export class TokenMapping extends Struct({
+  tokenId: Field,
+  publicKey: PublicKey,
+}) {}
+
 export interface SettlementContractType {
+  authorizationField: State<Field>;
+
   initialize: (
     sequencer: PublicKey,
-    dispatchContract: PublicKey
+    dispatchContract: PublicKey,
+    bridgeContract: PublicKey,
+    contractKey: PrivateKey
   ) => Promise<void>;
+  assertStateRoot: (root: Field) => AccountUpdate;
   settle: (
-    blockProof: LazyBlockProof,
+    blockProof: DynamicBlockProof,
     signature: Signature,
     dispatchContractAddress: PublicKey,
     publicKey: PublicKey,
@@ -74,45 +81,174 @@ export interface SettlementContractType {
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
   ) => Promise<void>;
-  rollupOutgoingMessages: (
-    batch: OutgoingMessageArgumentBatch
+  addTokenBridge: (
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContract: PublicKey
   ) => Promise<void>;
-  redeem: (additionUpdate: AccountUpdate) => Promise<void>;
 }
 
 // Some random prefix for the sequencer signature
 export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
-export class SettlementSmartContract
-  extends TokenContract
-  implements SettlementContractType
-{
+// @singleton()
+// export class SettlementSmartContractStaticArgs {
+//   public args?: {
+//     DispatchContract: TypedClass<DispatchContractType & SmartContract>;
+//     hooks: ProvableSettlementHook<unknown>[];
+//     escapeHatchSlotsInterval: number;
+//     BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
+//     // Lazily initialized
+//     BridgeContractVerificationKey: VerificationKey | undefined;
+//     BridgeContractPermissions: Permissions | undefined;
+//     signedSettlements: boolean | undefined;
+//   };
+// }
+
+export abstract class SettlementSmartContractBase extends TokenContractV2 {
   // This pattern of injecting args into a smartcontract is currently the only
   // viable solution that works given the inheritance issues of o1js
+  // public static args = container.resolve(SettlementSmartContractStaticArgs);
   public static args: {
     DispatchContract: TypedClass<DispatchContractType & SmartContract>;
     hooks: ProvableSettlementHook<unknown>[];
-    withdrawalStatePath: [string, string];
     escapeHatchSlotsInterval: number;
+    BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
+    // Lazily initialized
+    BridgeContractVerificationKey: VerificationKey | undefined;
+    BridgeContractPermissions: Permissions | undefined;
+    signedSettlements: boolean | undefined;
+    ChildVerificationKeyService: ChildVerificationKeyService;
   };
 
-  @state(Field) public sequencerKey = State<Field>();
-  @state(UInt32) public lastSettlementL1BlockHeight = State<UInt32>();
+  events = {
+    "token-bridge-deployed": TokenMapping,
+  };
 
-  @state(Field) public stateRoot = State<Field>();
-  @state(Field) public networkStateHash = State<Field>();
-  @state(Field) public blockHashRoot = State<Field>();
+  abstract sequencerKey: State<Field>;
+  abstract lastSettlementL1BlockHeight: State<UInt32>;
+  abstract stateRoot: State<Field>;
+  abstract networkStateHash: State<Field>;
+  abstract blockHashRoot: State<Field>;
+  abstract dispatchContractAddressX: State<Field>;
 
-  @state(Field) public dispatchContractAddressX = State<Field>();
+  abstract authorizationField: State<Field>;
 
-  @state(Field) public outgoingMessageCursor = State<Field>();
+  // Not @state
+  // abstract offchainStateCommitmentsHash: State<Field>;
 
-  @method async approveBase(forest: AccountUpdateForest) {
-    this.checkZeroBalanceChange(forest);
+  public assertStateRoot(root: Field): AccountUpdate {
+    this.stateRoot.requireEquals(root);
+    return this.self;
   }
 
-  @method
-  public async initialize(sequencer: PublicKey, dispatchContract: PublicKey) {
+  // TODO Like these properties, I am too lazy to properly infer the types here
+  private assertLazyConfigsInitialized() {
+    const uninitializedProperties: string[] = [];
+    const { args } = SettlementSmartContractBase;
+    if (args.BridgeContractPermissions === undefined) {
+      uninitializedProperties.push("BridgeContractPermissions");
+    }
+    if (args.signedSettlements === undefined) {
+      uninitializedProperties.push("signedSettlements");
+    }
+    if (uninitializedProperties.length > 0) {
+      throw new Error(
+        `Lazy configs of SettlementSmartContract haven't been initialized ${uninitializedProperties.reduce(
+          (a, b) => `${a},${b}`
+        )}`
+      );
+    }
+  }
+
+  protected async deployTokenBridge(
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContractAddress: PublicKey,
+    dispatchContractPreconditionEnforced = false
+  ) {
+    Provable.asProver(() => {
+      this.assertLazyConfigsInitialized();
+    });
+
+    const { args } = SettlementSmartContractBase;
+    const BridgeContractClass = args.BridgeContract;
+    const bridgeContract = new BridgeContractClass(address, tokenId);
+
+    const {
+      BridgeContractVerificationKey,
+      signedSettlements,
+      BridgeContractPermissions,
+    } = args;
+
+    if (
+      signedSettlements === undefined ||
+      BridgeContractPermissions === undefined
+    ) {
+      throw new Error(
+        "Static arguments for SettlementSmartContract not initialized"
+      );
+    }
+
+    if (
+      BridgeContractVerificationKey !== undefined &&
+      !BridgeContractVerificationKey.hash.isConstant()
+    ) {
+      throw new Error("Bridge contract verification key has to be constants");
+    }
+
+    // This function is not a zkapps method, therefore it will be part of this methods execution
+    // The returning account update (owner.self) is therefore part of this circuit and is assertable
+    const deploymentAccountUpdate = await bridgeContract.deployProvable(
+      args.BridgeContractVerificationKey,
+      args.signedSettlements!,
+      args.BridgeContractPermissions!,
+      this.address
+    );
+
+    this.approve(deploymentAccountUpdate);
+
+    this.self.body.mayUseToken = {
+      // Only set this if we deploy a custom token
+      parentsOwnToken: tokenId.equals(TokenId.default).not(),
+      inheritFromParent: Bool(false),
+    };
+
+    this.emitEvent(
+      "token-bridge-deployed",
+      new TokenMapping({
+        tokenId: tokenId,
+        publicKey: address,
+      })
+    );
+
+    // We can't set a precondition twice, for the $mina bridge deployment that
+    // would be the case, so we disable it in this case
+    if (!dispatchContractPreconditionEnforced) {
+      this.dispatchContractAddressX.requireEquals(dispatchContractAddress.x);
+    }
+
+    // Set authorization for the auth callback, that we need
+    this.authorizationField.set(
+      new TokenBridgeDeploymentAuth({
+        target: dispatchContractAddress,
+        tokenId,
+        address,
+      }).hash()
+    );
+    const dispatchContract =
+      new SettlementSmartContractBase.args.DispatchContract(
+        dispatchContractAddress
+      );
+    await dispatchContract.enableTokenDeposits(tokenId, address, this.address);
+  }
+
+  protected async initializeBase(
+    sequencer: PublicKey,
+    dispatchContract: PublicKey,
+    bridgeContract: PublicKey,
+    contractKey: PrivateKey
+  ) {
     this.sequencerKey.getAndRequireEquals().assertEquals(Field(0));
     this.stateRoot.getAndRequireEquals().assertEquals(Field(0));
     this.blockHashRoot.getAndRequireEquals().assertEquals(Field(0));
@@ -125,14 +261,23 @@ export class SettlementSmartContract
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);
 
-    const { DispatchContract } = SettlementSmartContract.args;
+    const { DispatchContract } = SettlementSmartContractBase.args;
     const contractInstance = new DispatchContract(dispatchContract);
     await contractInstance.initialize(this.address);
+
+    // Deploy bridge contract for $Mina
+    await this.deployTokenBridge(
+      this.tokenId,
+      bridgeContract,
+      dispatchContract,
+      true
+    );
+
+    contractKey.toPublicKey().assertEquals(this.address);
   }
 
-  @method
-  public async settle(
-    blockProof: LazyBlockProof,
+  protected async settleBase(
+    blockProof: DynamicBlockProof,
     signature: Signature,
     dispatchContractAddress: PublicKey,
     publicKey: PublicKey,
@@ -140,8 +285,17 @@ export class SettlementSmartContract
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
   ) {
+    // Brought in as a constant
+    const blockProofVk =
+      SettlementSmartContractBase.args.ChildVerificationKeyService.getVerificationKey(
+        "BlockProver"
+      );
+    if (!blockProofVk.hash.isConstant()) {
+      throw new Error("Sanity check - vk hash has to be constant");
+    }
+
     // Verify the blockproof
-    blockProof.verify();
+    blockProof.verify(blockProofVk);
 
     // Get and assert on-chain values
     const stateRoot = this.stateRoot.getAndRequireEquals();
@@ -159,7 +313,7 @@ export class SettlementSmartContract
     );
 
     const { DispatchContract, escapeHatchSlotsInterval, hooks } =
-      SettlementSmartContract.args;
+      SettlementSmartContractBase.args;
 
     // Get dispatch contract values
     // These values are witnesses but will be checked later on the AU
@@ -208,6 +362,10 @@ export class SettlementSmartContract
       Bool(true),
       "Supplied proof is not a closed BlockProof"
     );
+    blockProof.publicOutput.pendingSTBatchesHash.assertEquals(
+      Field(0),
+      "Supplied proof is has outstanding STs to be proven"
+    );
 
     // Execute onSettlementHooks for additional checks
     const stateRecord: SettlementStateRecord = {
@@ -253,6 +411,15 @@ export class SettlementSmartContract
       "Promised messages not honored"
     );
 
+    // Set authorization for the dispatchContract to verify the messages hash update
+    this.authorizationField.set(
+      new UpdateMessagesHashAuth({
+        target: dispatchContract.address,
+        executedMessagesHash: promisedMessagesHash,
+        newPromisedMessagesHash,
+      }).hash()
+    );
+
     // Call DispatchContract
     // This call checks that the promisedMessagesHash, which is already proven
     // to be the blockProofs publicoutput, is actually the current on-chain
@@ -265,79 +432,70 @@ export class SettlementSmartContract
 
     this.lastSettlementL1BlockHeight.set(minBlockHeightIncluded);
   }
+}
 
-  @method
-  public async rollupOutgoingMessages(batch: OutgoingMessageArgumentBatch) {
-    let counter = this.outgoingMessageCursor.getAndRequireEquals();
-    const stateRoot = this.stateRoot.getAndRequireEquals();
+export class SettlementSmartContract
+  extends SettlementSmartContractBase
+  implements SettlementContractType
+{
+  @state(Field) public sequencerKey = State<Field>();
+  @state(UInt32) public lastSettlementL1BlockHeight = State<UInt32>();
 
-    const [withdrawalModule, withdrawalStateName] =
-      SettlementSmartContract.args.withdrawalStatePath;
-    const mapPath = Path.fromProperty(withdrawalModule, withdrawalStateName);
+  @state(Field) public stateRoot = State<Field>();
+  @state(Field) public networkStateHash = State<Field>();
+  @state(Field) public blockHashRoot = State<Field>();
 
-    let accountCreationFeePaid = Field(0);
+  @state(Field) public dispatchContractAddressX = State<Field>();
 
-    for (let i = 0; i < OUTGOING_MESSAGE_BATCH_SIZE; i++) {
-      const args = batch.arguments[i];
+  @state(Field) public authorizationField = State<Field>();
 
-      // Check witness
-      const path = Path.fromKey(mapPath, Field, counter);
-
-      args.witness
-        .checkMembership(
-          stateRoot,
-          path,
-          Poseidon.hash(Withdrawal.toFields(args.value))
-        )
-        .assertTrue("Provided Withdrawal witness not valid");
-
-      // Process message
-      const { address, amount } = args.value;
-      const isDummy = address.equals(this.address);
-
-      const tokenAu = this.internal.mint({ address, amount });
-      const isNewAccount = tokenAu.account.isNew.getAndRequireEquals();
-      tokenAu.body.balanceChange.magnitude =
-        tokenAu.body.balanceChange.magnitude.sub(
-          Provable.if(
-            isNewAccount,
-            Mina.getNetworkConstants().accountCreationFee.toConstant(),
-            UInt64.zero
-          )
-        );
-
-      accountCreationFeePaid = accountCreationFeePaid.add(
-        Provable.if(isNewAccount, Field(1e9), Field(0))
-      );
-
-      counter = counter.add(Provable.if(isDummy, Field(0), Field(1)));
-    }
-
-    this.balance.subInPlace(UInt64.Unsafe.fromField(accountCreationFeePaid));
-
-    this.outgoingMessageCursor.set(counter);
+  @method async approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
   }
 
   @method
-  public async redeem(additionUpdate: AccountUpdate) {
-    additionUpdate.body.tokenId.assertEquals(
-      TokenId.default,
-      "Tokenid not default token"
+  public async initialize(
+    sequencer: PublicKey,
+    dispatchContract: PublicKey,
+    bridgeContract: PublicKey,
+    contractKey: PrivateKey
+  ) {
+    await this.initializeBase(
+      sequencer,
+      dispatchContract,
+      bridgeContract,
+      contractKey
     );
-    additionUpdate.body.balanceChange.sgn
-      .isPositive()
-      .assertTrue("Sign not correct");
-    const amount = additionUpdate.body.balanceChange.magnitude;
+  }
 
-    // Burn tokens
-    this.internal.burn({
-      address: additionUpdate.publicKey,
-      amount,
-    });
+  @method
+  public async addTokenBridge(
+    tokenId: Field,
+    address: PublicKey,
+    dispatchContract: PublicKey
+  ) {
+    await this.deployTokenBridge(tokenId, address, dispatchContract);
+  }
 
-    // Send mina
-    this.approve(additionUpdate);
-    this.balance.subInPlace(amount);
+  @method
+  public async settle(
+    blockProof: DynamicBlockProof,
+    signature: Signature,
+    dispatchContractAddress: PublicKey,
+    publicKey: PublicKey,
+    inputNetworkState: NetworkState,
+    outputNetworkState: NetworkState,
+    newPromisedMessagesHash: Field
+  ) {
+    return await this.settleBase(
+      blockProof,
+      signature,
+      dispatchContractAddress,
+      publicKey,
+      inputNetworkState,
+      outputNetworkState,
+      newPromisedMessagesHash
+    );
   }
 }
 

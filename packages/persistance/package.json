@@ -5,12 +5,12 @@
   "type": "module",
   "version": "0.1.1-develop.833+397881ed",
   "scripts": {
-    "build": "npm run prisma-generate && tsc -p tsconfig.json",
-    "prisma-generate": "npx prisma generate",
-    "prisma-migrate": "npx prisma migrate deploy",
+    "build": "npm run prisma:generate && tsc -p tsconfig.json",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate deploy",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test ./test-integration",
-    "test:file": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ../../node_modules/jest/bin/jest.js",
+    "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
     "test:integration": "npm run test:file -- ./test-integration/** --runInBand",
     "test:watch": "npm run test:file -- ./test/** --watch"
@@ -31,7 +31,7 @@
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
-    "o1js": "^1.1.0",
+    "o1js": "^1.6.0",
     "tsyringe": "^4.7.0"
   },
   "devDependencies": {

@@ -8,12 +8,11 @@ import {
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
-  Sequencer,
   SequencerModulesRecord,
   TaskWorkerModulesRecord,
   BlockProducerModule,
   VanillaTaskWorkerModules,
-  ProtocolStartupModule,
+  SequencerStartupModule,
 } from "../src";
 import { ConstantFeeStrategy } from "../src/protocol/baselayer/fees/ConstantFeeStrategy";
 
@@ -27,40 +26,39 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   BlockTrigger: typeof ManualBlockTrigger;
   TaskQueue: typeof LocalTaskQueue;
   FeeStrategy: typeof ConstantFeeStrategy;
-  ProtocolStartupModule: typeof ProtocolStartupModule;
+  SequencerStartupModule: typeof SequencerStartupModule;
 }
 
-export function testingSequencerFromModules<
+export function testingSequencerModules<
   AdditionalModules extends SequencerModulesRecord,
   AdditionalTaskWorkerModules extends TaskWorkerModulesRecord,
 >(
   modules: AdditionalModules,
   additionalTaskWorkerModules?: AdditionalTaskWorkerModules
-): TypedClass<Sequencer<DefaultTestingSequencerModules & AdditionalModules>> {
+) {
   const taskWorkerModule = LocalTaskWorkerModule.from({
     ...VanillaTaskWorkerModules.withoutSettlement(),
     ...additionalTaskWorkerModules,
   });
 
-  const defaultModules: DefaultTestingSequencerModules = {
+  const defaultModules = {
     Database: InMemoryDatabase,
     Mempool: PrivateMempool,
     BaseLayer: NoopBaseLayer,
-    // LocalTaskWorkerModule: taskWorkerModule,
+    LocalTaskWorkerModule: taskWorkerModule,
     BatchProducerModule,
     BlockProducerModule,
     BlockTrigger: ManualBlockTrigger,
     TaskQueue: LocalTaskQueue,
     FeeStrategy: ConstantFeeStrategy,
-  } as DefaultTestingSequencerModules;
+    SequencerStartupModule,
+  } satisfies DefaultTestingSequencerModules;
 
-  return Sequencer.from({
-    modules: {
-      ...defaultModules,
-      ...modules,
-      // We need to make sure that the taskworkermodule is initialized last
-      LocalTaskWorkerModule: taskWorkerModule,
-      ProtocolStartupModule: ProtocolStartupModule,
-    },
-  });
+  return {
+    ...defaultModules,
+    ...modules,
+    // We need to make sure that the taskworkermodule is initialized last
+    LocalTaskWorkerModule: defaultModules.LocalTaskWorkerModule,
+    SequencerStartupModule: defaultModules.SequencerStartupModule,
+  } satisfies SequencerModulesRecord;
 }

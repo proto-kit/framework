@@ -4,7 +4,7 @@ import { Bool, Field, Poseidon } from "o1js";
 import {
   StateTransitionReductionList,
   reduceStateTransitions,
-} from "../../src/utils/StateTransitionReductionList";
+} from "../../src/prover/accumulators/StateTransitionReductionList";
 import {
   DefaultProvableHashList,
   ProvableStateTransition,

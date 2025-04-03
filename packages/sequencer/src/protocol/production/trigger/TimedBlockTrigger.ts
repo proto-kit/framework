@@ -2,16 +2,14 @@ import { inject, injectable } from "tsyringe";
 import { injectOptional, log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
-import { Closeable } from "../../../worker/queue/TaskQueue";
+import { closeable, Closeable } from "../../../sequencer/builder/Closeable";
 import { BatchProducerModule } from "../BatchProducerModule";
 import { Mempool } from "../../../mempool/Mempool";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
-import { BatchStorage } from "../../../storage/repositories/BatchStorage";
 
-import { BlockEvents, BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
+import { BlockEvents, BlockTriggerBase } from "./BlockTrigger";
 
 export interface TimedBlockTriggerConfig {
   /**
@@ -32,9 +30,10 @@ export interface TimedBlockTriggerEvent extends BlockEvents {
 }
 
 @injectable()
+@closeable()
 export class TimedBlockTrigger
   extends BlockTriggerBase<TimedBlockTriggerConfig, TimedBlockTriggerEvent>
-  implements BlockTrigger, Closeable
+  implements Closeable
 {
   // There is no real type for interval ids somehow, so any it is
 
@@ -49,10 +48,6 @@ export class TimedBlockTrigger
     settlementModule: SettlementModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue,
-    @inject("BatchStorage")
-    batchStorage: BatchStorage,
-    @injectOptional("SettlementStorage")
-    settlementStorage: SettlementStorage | undefined,
     @inject("Mempool")
     private readonly mempool: Mempool
   ) {
@@ -60,9 +55,7 @@ export class TimedBlockTrigger
       blockProducerModule,
       batchProducerModule,
       settlementModule,
-      blockQueue,
-      batchStorage,
-      settlementStorage
+      blockQueue
     );
   }
 
@@ -125,11 +118,12 @@ export class TimedBlockTrigger
   }
 
   private async produceUnprovenBlock() {
+    // TODO Optimize towards mempool.length()
     const mempoolTxs = await this.mempool.getTxs();
     // Produce a block if either produceEmptyBlocks is true or we have more
     // than 1 tx in mempool
     if (mempoolTxs.length > 0 || (this.config.produceEmptyBlocks ?? true)) {
-      await this.produceBlock(true);
+      await this.produceBlock();
     }
   }
 

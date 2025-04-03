@@ -9,5 +9,24 @@ export interface MessageStorage {
     toMessagesHash: string,
     messages: PendingTransaction[]
   ) => Promise<void>;
-  getMessages: (fromMessagesHash: string) => Promise<PendingTransaction[]>;
+
+  getNextMessagesBatch: (fromMessagesHash: string) => Promise<
+    | {
+        fromMessagesHash: string;
+        toMessagesHash: string;
+        messages: PendingTransaction[];
+      }
+    | undefined
+  >;
+
+  getMessageBatches: (
+    fromMessagesHash: string,
+    toMessagesHash: string
+  ) => Promise<
+    {
+      fromMessagesHash: string;
+      toMessagesHash: string;
+      messages: PendingTransaction[];
+    }[]
+  >;
 }

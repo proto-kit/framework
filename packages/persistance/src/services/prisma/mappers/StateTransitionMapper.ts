@@ -1,5 +1,8 @@
 import { singleton } from "tsyringe";
-import { UntypedStateTransition } from "@proto-kit/sequencer";
+import {
+  StateTransitionBatch,
+  UntypedStateTransition,
+} from "@proto-kit/sequencer";
 import { Prisma } from "@prisma/client";
 
 import { ObjectMapper } from "../../../ObjectMapper";
@@ -38,5 +41,40 @@ export class StateTransitionArrayMapper
 
   public mapOut(input: UntypedStateTransition[]): Prisma.JsonValue {
     return input.map((st) => this.stMapper.mapOut(st)) as Prisma.JsonArray;
+  }
+}
+
+@singleton()
+export class StateTransitionBatchArrayMapper
+  implements ObjectMapper<StateTransitionBatch[], Prisma.JsonValue>
+{
+  public constructor(
+    private readonly stArrayMapper: StateTransitionArrayMapper
+  ) {}
+
+  public mapOut(input: StateTransitionBatch[]): Prisma.JsonValue {
+    return input.map((st) => ({
+      stateTransitions: this.stArrayMapper.mapOut(
+        st.stateTransitions
+      ) as Prisma.JsonArray,
+      applied: st.applied,
+    }));
+  }
+
+  public mapIn(input: Prisma.JsonValue): StateTransitionBatch[] {
+    if (input === undefined) return [];
+
+    if (Array.isArray(input)) {
+      return (input as Prisma.JsonArray).map((stJson) => {
+        const batchJsonObject = stJson as Prisma.JsonObject;
+        return {
+          stateTransitions: this.stArrayMapper.mapIn(
+            batchJsonObject.stateTransitions
+          ),
+          applied: batchJsonObject.applied as boolean,
+        };
+      });
+    }
+    return [];
   }
 }

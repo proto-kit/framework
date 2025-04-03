@@ -81,7 +81,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     });
 
     container.resolve(RuntimeMethodExecutionContext).clear();
-
+    let methodCounter = 0;
     const [values, indexes] =
       await this.runtime.zkProgrammable.zkProgram.reduce<
         Promise<[FeeTreeValues, FeeIndexes]>
@@ -93,7 +93,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
             [FeeTreeValues, FeeIndexes]
           >(
             // eslint-disable-next-line @typescript-eslint/no-shadow
-            ([values, indexes], combinedMethodName, index) => {
+            ([values, indexes], combinedMethodName) => {
               const { rows } = analyzedMethods[combinedMethodName];
               // const rows = 1000;
               const [moduleName, methodName] = combinedMethodName.split(".");
@@ -128,7 +128,8 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
                 },
                 {
                   ...indexes,
-                  [methodId.toString()]: BigInt(index),
+                  // eslint-disable-next-line no-plusplus
+                  [methodId.toString()]: BigInt(methodCounter++),
                 },
               ];
             },

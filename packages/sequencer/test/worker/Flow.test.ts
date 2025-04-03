@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 import { afterEach, beforeEach } from "@jest/globals";
-import { noop } from "@proto-kit/common";
+import { log, noop } from "@proto-kit/common";
 import { container } from "tsyringe";
 
 import {
@@ -198,6 +198,8 @@ describe("flow", () => {
     async (inputs: [string, string][]) => {
       expect.assertions(1);
 
+      log.setLevel("TRACE");
+
       const result = inputs
         .map<[number, bigint]>((input) => [
           Number.parseInt(input[0], 10) * 2,
@@ -244,8 +246,6 @@ describe("flow", () => {
         const resolveReduction = async () => {
           let reductions = flow.state.reductionQueue;
 
-          console.log(reductions.length);
-
           if (reductions.length === 1 && flow.tasksInProgress === 0) {
             resolve(reductions[0]);
           }
@@ -274,7 +274,7 @@ describe("flow", () => {
           const [first, second] = flow.state.pairings[index];
 
           if (first !== undefined && second !== undefined) {
-            console.log(`Found pairing ${index}`);
+            log.trace(`Found pairing ${index}`);
 
             await flow.pushTask(
               mulTask,
@@ -312,7 +312,7 @@ describe("flow", () => {
         });
       });
 
-      console.log(computedResult);
+      log.trace(computedResult);
 
       expect(computedResult).toStrictEqual(result);
     },

@@ -5,6 +5,7 @@ import {
   EventsRecord,
   EventListenable,
   log,
+  ReplayingSingleUseEventEmitter,
 } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
@@ -18,43 +19,14 @@ import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
 
 type SenderKey = string;
 
-interface TxEvents extends EventsRecord {
+export interface TxEvents extends EventsRecord {
   sent: [{ hash: string }];
   included: [{ hash: string }];
   rejected: [any];
 }
 
-class OnceReplayingEventEmitter<
-  Events extends EventsRecord,
-> extends EventEmitter<Events> {
-  public emitted: Partial<Events> = {};
-
-  public emit<Key extends keyof Events>(
-    event: Key,
-    ...parameters: Events[Key]
-  ) {
-    super.emit(event, ...parameters);
-    this.emitted[event] = parameters;
-    this.listeners[event] = [];
-  }
-
-  public onAll(listener: (event: keyof Events, args: unknown[]) => void) {
-    Object.entries(this.emitted).forEach(([key, params]) => {
-      if (params !== undefined) listener(key, params);
-    });
-    super.onAll(listener);
-  }
-
-  public on<Key extends keyof Events>(
-    event: Key,
-    listener: (...args: Events[Key]) => void
-  ) {
-    if (this.emitted[event] !== undefined) {
-      listener(...this.emitted[event]!);
-    }
-    super.on(event, listener);
-  }
-}
+export type TxSendResult<Input extends "sent" | "included" | "none"> =
+  Input extends "none" ? void : { hash: string };
 
 @injectable()
 export class MinaTransactionSender {
@@ -131,7 +103,7 @@ export class MinaTransactionSender {
     // eslint-disable-next-line no-plusplus
     const id = this.txIdCursor++;
     this.cache.push({ tx, id });
-    const eventEmitter = new OnceReplayingEventEmitter<TxEvents>();
+    const eventEmitter = new ReplayingSingleUseEventEmitter<TxEvents>();
     this.txStatusEmitters[id] = eventEmitter;
 
     let removedLastIteration = 0;
@@ -144,11 +116,17 @@ export class MinaTransactionSender {
     return eventEmitter;
   }
 
-  public async proveAndSendTransaction(
+  public async proveAndSendTransaction<
+    Wait extends "sent" | "included" | "none",
+  >(
     transaction: Transaction<false, true>,
-    waitOnStatus: "sent" | "included" | "none" = "none"
-  ) {
+    waitOnStatus: Wait
+  ): Promise<TxSendResult<Wait>> {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
+
+    log.debug(
+      `Proving tx from sender ${publicKey.toBase58()} nonce ${nonce.toString()}`
+    );
 
     // Add Transaction to sender's queue
     (this.txQueue[publicKey.toBase58()] ??= []).push(Number(nonce.toString()));
@@ -161,6 +139,8 @@ export class MinaTransactionSender {
     const accounts = await this.simulator.getAccounts(transaction);
 
     await this.simulator.applyTransaction(transaction);
+
+    log.debug("Applied transaction to local simulated ledger");
 
     const { network } = this.baseLayer.config;
     const graphql = network.type === "local" ? undefined : network.graphql;
@@ -184,18 +164,32 @@ export class MinaTransactionSender {
     );
 
     const result = await resultPromise;
+
+    log.debug("Tx proving complete, queueing for sending");
+
+    log.trace(result.transaction.toPretty());
+
     const txStatus = await this.sendOrQueue(result.transaction);
 
     if (waitOnStatus !== "none") {
-      await new Promise<void>((resolve, reject) => {
-        txStatus.on(waitOnStatus, () => {
-          resolve();
-        });
-        txStatus.on("rejected", (error) => {
-          reject(error);
-        });
-      });
+      const waitInstruction: "sent" | "included" = waitOnStatus;
+      const hash = await new Promise<TxSendResult<"sent" | "included">>(
+        (resolve, reject) => {
+          txStatus.on(waitInstruction, (txSendResult) => {
+            log.info(`Tx ${txSendResult.hash} included`);
+            resolve(txSendResult);
+          });
+          txStatus.on("rejected", (error) => {
+            reject(error);
+          });
+        }
+      );
+
+      // Yeah that's not super clean, but couldn't figure out a better way tbh
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return hash as TxSendResult<Wait>;
     }
-    return txStatus;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return undefined as TxSendResult<Wait>;
   }
 }

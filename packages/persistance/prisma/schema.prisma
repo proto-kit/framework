@@ -40,11 +40,11 @@ model Transaction {
 }
 
 model TransactionExecutionResult {
-  stateTransitions Json @db.Json
-  protocolTransitions Json @db.Json
-  status Boolean
-  statusMessage String?
-  events Json @db.Json
+  // TODO Make StateTransitionBatch and StateTransition Table
+  stateTransitions Json    @db.Json
+  status           Boolean
+  statusMessage    String?
+  events           Json    @db.Json
 
   tx     Transaction @relation(fields: [txHash], references: [hash])
   txHash String      @id
@@ -65,6 +65,9 @@ model Block {
   fromBlockHashRoot           String
   fromMessagesHash            String
   toMessagesHash              String
+  fromStateRoot               String
+
+  beforeBlockStateTransitions Json @db.Json
 
   parentHash String? @unique
   parent     Block?  @relation("Parent", fields: [parentHash], references: [hash])
@@ -91,11 +94,12 @@ model Batch {
 model BlockResult {
   blockHash String @id @unique
 
-  stateRoot             String
-  blockHashRoot         String
-  afterNetworkState     Json   @db.Json
-  blockStateTransitions Json   @db.Json
-  blockHashWitness      Json   @db.Json
+  stateRoot                  String
+  blockHashRoot              String
+  witnessedRoots             String[]
+  afterNetworkState          Json     @db.Json
+  afterBlockStateTransitions Json     @db.Json
+  blockHashWitness           Json     @db.Json
 
   block Block? @relation(fields: [blockHash], references: [hash])
 }

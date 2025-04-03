@@ -21,7 +21,7 @@ export class ComputedBlockModel {
       blockHashes.map(
         (blockHash) => blocks.find((block) => block?.hash === blockHash)!
       ),
-      proof.proof === MOCK_PROOF ? "mock-proof" : JSON.stringify(proof)
+      proof.proof === MOCK_PROOF ? MOCK_PROOF : JSON.stringify(proof)
     );
   }
 

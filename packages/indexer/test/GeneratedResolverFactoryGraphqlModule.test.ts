@@ -139,7 +139,7 @@ describe("GeneratedResolverFactoryGraphqlModule", () => {
     }
   });
 
-  afterAll(() => {
-    indexer.resolve("GraphqlServer").close();
+  afterAll(async () => {
+    await indexer.resolve("GraphqlServer").close();
   });
 });
