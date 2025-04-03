@@ -84,64 +84,47 @@ export async function startGraphqlServer() {
   log.setLevel("DEBUG");
 
   const appChain = ClientAppChain.from({
-    modules: {
-      Runtime: Runtime.from({
-        modules: VanillaRuntimeModules.with({
-          Balances: TestBalances,
-        }),
+    Runtime: Runtime.from(
+      VanillaRuntimeModules.with({
+        Balances: TestBalances,
+      })
+    ),
+
+    Protocol: Protocol.from(VanillaProtocolModules.with({})),
+
+    Sequencer: Sequencer.from({
+      Database: InMemoryDatabase,
+      // Database: PrismaRedisDatabase,
+
+      Mempool: PrivateMempool,
+      GraphqlServer,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.withoutSettlement()
+      ),
+
+      BaseLayer: NoopBaseLayer,
+      BatchProducerModule,
+      BlockProducerModule,
+      BlockTrigger: ManualBlockTrigger,
+      TaskQueue: LocalTaskQueue,
+      // SettlementModule: SettlementModule,
+
+      Graphql: GraphqlSequencerModule.from({
+        MempoolResolver,
+        QueryGraphqlModule,
+        BatchStorageResolver,
+        BlockResolver,
+        NodeStatusResolver,
+        MerkleWitnessResolver,
       }),
 
-      Protocol: Protocol.from({
-        modules: VanillaProtocolModules.with({}),
-      }),
+      SequencerStartupModule,
+    }),
 
-      Sequencer: Sequencer.from({
-        modules: {
-          Database: InMemoryDatabase,
-          // Database: PrismaRedisDatabase,
-
-          Mempool: PrivateMempool,
-          GraphqlServer,
-          LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-            VanillaTaskWorkerModules.withoutSettlement()
-          ),
-
-          BaseLayer: NoopBaseLayer,
-          BatchProducerModule,
-          BlockProducerModule,
-          BlockTrigger: ManualBlockTrigger,
-          TaskQueue: LocalTaskQueue,
-          // SettlementModule: SettlementModule,
-
-          Graphql: GraphqlSequencerModule.from({
-            modules: {
-              MempoolResolver,
-              QueryGraphqlModule,
-              BatchStorageResolver,
-              BlockResolver,
-              NodeStatusResolver,
-              MerkleWitnessResolver,
-            },
-
-            config: {
-              MempoolResolver: {},
-              QueryGraphqlModule: {},
-              BatchStorageResolver: {},
-              NodeStatusResolver: {},
-              MerkleWitnessResolver: {},
-              BlockResolver: {},
-            },
-          }),
-
-          SequencerStartupModule,
-        },
-      }),
-
-      Signer: InMemorySigner,
-      TransactionSender: InMemoryTransactionSender,
-      QueryTransportModule: StateServiceQueryModule,
-      NetworkStateTransportModule: BlockStorageNetworkStateModule,
-    },
+    Signer: InMemorySigner,
+    TransactionSender: InMemoryTransactionSender,
+    QueryTransportModule: StateServiceQueryModule,
+    NetworkStateTransportModule: BlockStorageNetworkStateModule,
   });
 
   appChain.configure({

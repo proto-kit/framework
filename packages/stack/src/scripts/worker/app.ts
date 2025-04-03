@@ -8,15 +8,13 @@ import { ModulesConfig, ModuleContainer, TypedClass } from "@proto-kit/common";
 
 import { TestBalances } from "../graphql/server";
 
-const runtime = Runtime.from({
-  modules: VanillaRuntimeModules.with({
+const runtime = Runtime.from(
+  VanillaRuntimeModules.with({
     Balance2: TestBalances,
-  }),
-});
+  })
+);
 
-const protocol = Protocol.from({
-  modules: VanillaProtocolModules.mandatoryModules({}),
-});
+const protocol = Protocol.from(VanillaProtocolModules.mandatoryModules({}));
 
 type ExtractConfigType<T> =
   T extends TypedClass<ModuleContainer<infer Config>>

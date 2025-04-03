@@ -5,13 +5,9 @@ import { BullQueue } from "@proto-kit/deployment";
 import { app } from "./app";
 
 export const worker = AppChain.from({
-  modules: {
-    Runtime: app.Runtime,
-    Protocol: app.Protocol,
-    Sequencer: Sequencer.from({
-      modules: SimpleSequencerModules.worker(BullQueue, {}),
-    }),
-  },
+  Runtime: app.Runtime,
+  Protocol: app.Protocol,
+  Sequencer: Sequencer.from(SimpleSequencerModules.worker(BullQueue, {})),
 });
 
 worker.configurePartial({

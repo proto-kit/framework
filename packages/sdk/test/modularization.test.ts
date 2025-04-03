@@ -46,23 +46,19 @@ class TestSequencerModule extends SequencerModule<object> {
 describe("modularization", () => {
   it("should initialize all modules correctly", async () => {
     const appChain = AppChain.from({
-      modules: {
-        Runtime: Runtime.from({
-          modules: VanillaRuntimeModules.with({
-            TestRuntimeModule,
-          }),
-        }),
-        Protocol: Protocol.from({
-          modules: VanillaProtocolModules.with({
-            TestProtocolModule,
-          }),
-        }),
-        Sequencer: Sequencer.from({
-          modules: {
-            TestSequencerModule,
-          },
-        }),
-      },
+      Runtime: Runtime.from(
+        VanillaRuntimeModules.with({
+          TestRuntimeModule,
+        })
+      ),
+      Protocol: Protocol.from(
+        VanillaProtocolModules.with({
+          TestProtocolModule,
+        })
+      ),
+      Sequencer: Sequencer.from({
+        TestSequencerModule,
+      }),
     });
 
     appChain.configurePartial({

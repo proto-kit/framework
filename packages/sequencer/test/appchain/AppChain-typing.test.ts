@@ -11,21 +11,13 @@ function foo() {
   // We want this code to only typecheck, not execute
 
   const app = AppChain.from({
-    modules: {
-      Runtime: Runtime.from({
-        modules: {
-          Balances,
-        },
-      }),
-      Protocol: Protocol.from({
-        modules: VanillaProtocolModules.with({}),
-      }),
-      Sequencer: Sequencer.from({
-        modules: {
-          Database: InMemoryDatabase,
-        },
-      }),
-    },
+    Runtime: Runtime.from({
+      Balances,
+    }),
+    Protocol: Protocol.from(VanillaProtocolModules.with({})),
+    Sequencer: Sequencer.from({
+      Database: InMemoryDatabase,
+    }),
   });
 
   const case1 = app.protocol.resolve(

@@ -21,25 +21,21 @@ import {
 import { app } from "./app";
 
 export const sequencer = AppChain.from({
-  modules: {
-    Runtime: app.Runtime,
-    Protocol: app.Protocol,
-    Sequencer: Sequencer.from({
-      modules: SimpleSequencerModules.with({
-        TaskQueue: BullQueue,
-        Database: InMemoryDatabase,
-        BaseLayer: MinaBaseLayer,
-        BlockTrigger: TimedBlockTrigger,
-        DatabasePruneModule: DatabasePruneModule,
-        GraphqlServer: GraphqlServer,
-        Graphql: GraphqlSequencerModule.from({
-          modules: VanillaGraphqlModules.with({}),
-        }),
-      }),
-    }),
-    QueryTransportModule: StateServiceQueryModule,
-    NetworkStateTransportModule: BlockStorageNetworkStateModule,
-  },
+  Runtime: app.Runtime,
+  Protocol: app.Protocol,
+  Sequencer: Sequencer.from(
+    SimpleSequencerModules.with({
+      TaskQueue: BullQueue,
+      Database: InMemoryDatabase,
+      BaseLayer: MinaBaseLayer,
+      BlockTrigger: TimedBlockTrigger,
+      DatabasePruneModule: DatabasePruneModule,
+      GraphqlServer: GraphqlServer,
+      Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
+    })
+  ),
+  QueryTransportModule: StateServiceQueryModule,
+  NetworkStateTransportModule: BlockStorageNetworkStateModule,
 });
 
 sequencer.configure({

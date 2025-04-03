@@ -9,14 +9,12 @@ import { Protocol } from "@proto-kit/protocol";
 import { TestBalances } from "../graphql/server";
 
 const client = ClientAppChain.fromRemoteEndpoint(
-  Runtime.from({
-    modules: VanillaRuntimeModules.with({
+  Runtime.from(
+    VanillaRuntimeModules.with({
       Balance2: TestBalances,
-    }),
-  }),
-  Protocol.from({
-    modules: VanillaProtocolModules.mandatoryModules({}),
-  }),
+    })
+  ),
+  Protocol.from(VanillaProtocolModules.mandatoryModules({})),
   InMemorySigner
 );
 

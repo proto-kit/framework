@@ -25,31 +25,21 @@ describe("atomic block production", () => {
 
   function createAppChain() {
     const runtimeClass = Runtime.from({
-      modules: {
-        Balance,
-      },
-
-      config: {
-        Balance: {},
-      },
+      Balance,
     });
 
-    const sequencerClass = Sequencer.from({
-      modules: testingSequencerModules({}),
-    });
+    const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-    const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({
+    const protocolClass = Protocol.from(
+      VanillaProtocolModules.mandatoryModules({
         ProtocolStateTestHook,
-      }),
-    });
+      })
+    );
 
     return AppChain.from({
-      modules: {
-        Runtime: runtimeClass,
-        Sequencer: sequencerClass,
-        Protocol: protocolClass,
-      },
+      Runtime: runtimeClass,
+      Sequencer: sequencerClass,
+      Protocol: protocolClass,
     });
   }
 

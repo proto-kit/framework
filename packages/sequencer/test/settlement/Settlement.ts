@@ -110,18 +110,16 @@ export const settlementTestFn = (
 
   function setupAppChain() {
     const runtime = Runtime.from({
-      modules: {
-        Balances,
-        Withdrawals,
-      },
+      Balances,
+      Withdrawals,
     });
 
     // eslint-disable-next-line @typescript-eslint/dot-notation
     SettlementUtils.prototype["isSignedSettlement"] = () =>
       settlementType === "signed";
 
-    const sequencer = Sequencer.from({
-      modules: testingSequencerModules(
+    const sequencer = Sequencer.from(
+      testingSequencerModules(
         {
           BaseLayer: MinaBaseLayer,
           SettlementModule: SettlementModule,
@@ -130,29 +128,25 @@ export const settlementTestFn = (
         {
           SettlementProvingTask,
         }
-      ),
-    });
+      )
+    );
 
     const appchain = ClientAppChain.from({
-      modules: {
-        Runtime: runtime,
-        Sequencer: sequencer,
+      Runtime: runtime,
+      Sequencer: sequencer,
 
-        Protocol: Protocol.from({
-          modules: {
-            ...VanillaProtocolModules.mandatoryModules({}),
-            SettlementContractModule: SettlementContractModule.with({
-              FungibleToken: FungibleTokenContractModule,
-              FungibleTokenAdmin: FungibleTokenAdminContractModule,
-            }),
-          },
+      Protocol: Protocol.from({
+        ...VanillaProtocolModules.mandatoryModules({}),
+        SettlementContractModule: SettlementContractModule.with({
+          FungibleToken: FungibleTokenContractModule,
+          FungibleTokenAdmin: FungibleTokenAdminContractModule,
         }),
+      }),
 
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
-        QueryTransportModule: StateServiceQueryModule,
-        NetworkStateTransportModule: BlockStorageNetworkStateModule,
-      },
+      Signer: InMemorySigner,
+      TransactionSender: InMemoryTransactionSender,
+      QueryTransportModule: StateServiceQueryModule,
+      NetworkStateTransportModule: BlockStorageNetworkStateModule,
     });
 
     appchain.configure({
