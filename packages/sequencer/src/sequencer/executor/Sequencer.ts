@@ -103,10 +103,8 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // the orderedModules list to understand the sequencing.
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
-      const sequencerModule = this.resolve(moduleName);
-      log.info(
-        `Resolving sequencer module ${moduleName} (${sequencerModule.constructor.name})`
-      );
+      log.info(`Resolving sequencer module ${moduleName}`);
+      this.resolve(moduleName);
     }
 
     // Iteration #3: We now iterate though the orderedModules list
