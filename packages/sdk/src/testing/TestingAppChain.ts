@@ -1,49 +1,25 @@
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
-import {
-  MandatoryProtocolModulesRecord,
-  Protocol,
-  ProtocolModulesRecord,
-} from "@proto-kit/protocol";
+import { Protocol } from "@proto-kit/protocol";
 import {
   VanillaRuntimeModules,
   VanillaProtocolModules,
   InMemorySequencerModules,
-  VanillaRuntimeModulesRecord,
   MinimalBalances,
 } from "@proto-kit/library";
+import { TypedClass } from "@proto-kit/common";
 import {
-  PrivateMempool,
-  Sequencer,
-  LocalTaskWorkerModule,
-  NoopBaseLayer,
-  BatchProducerModule,
   ManualBlockTrigger,
-  LocalTaskQueue,
-  BlockProducerModule,
-  InMemoryDatabase,
-  SequencerModulesRecord,
+  MinimalAppChainDefinition,
+  Sequencer,
   VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
-import { TypedClass } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
 
-import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
+import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
-
-import { AppChain, AppChainModulesRecord } from "./AppChain";
-
-export type TestingSequencerModulesRecord = {
-  Database: typeof InMemoryDatabase;
-  Mempool: typeof PrivateMempool;
-  LocalTaskWorkerModule: typeof LocalTaskWorkerModule;
-  BaseLayer: typeof NoopBaseLayer;
-  BatchProducerModule: typeof BatchProducerModule;
-  BlockProducerModule: typeof BlockProducerModule;
-  BlockTrigger: typeof ManualBlockTrigger;
-  TaskQueue: typeof LocalTaskQueue;
-};
+import { ClientAppChain } from "../client/ClientAppChain";
 
 // ensures we can override vanilla runtime modules type safely
 // Partial<VanillaRuntimeModulesRecord> did not work (idk why)
@@ -56,32 +32,23 @@ export type PartialVanillaRuntimeModulesRecord = {
 export const randomFeeRecipient = PrivateKey.random().toPublicKey().toBase58();
 
 export class TestingAppChain<
-  RuntimeModules extends RuntimeModulesRecord & VanillaRuntimeModulesRecord,
-  ProtocolModules extends ProtocolModulesRecord &
-    MandatoryProtocolModulesRecord,
-  SequencerModules extends SequencerModulesRecord,
-  AppChainModules extends AppChainModulesRecord,
-> extends AppChain<
-  RuntimeModules,
-  ProtocolModules,
-  SequencerModules,
-  AppChainModules
-> {
+  AppChainModules extends MinimalAppChainDefinition,
+> extends ClientAppChain<AppChainModules> {
   public static fromRuntime<
     RuntimeModules extends RuntimeModulesRecord &
       PartialVanillaRuntimeModulesRecord,
   >(runtimeModules: RuntimeModules) {
     const appChain = new TestingAppChain({
-      Runtime: Runtime.from({
-        modules: VanillaRuntimeModules.with(runtimeModules),
-      }),
-      Protocol: Protocol.from({
-        modules: VanillaProtocolModules.with({}),
-      }),
-      Sequencer: Sequencer.from({
-        modules: InMemorySequencerModules.with({}),
-      }),
       modules: {
+        Runtime: Runtime.from({
+          modules: VanillaRuntimeModules.with(runtimeModules),
+        }),
+        Protocol: Protocol.from({
+          modules: VanillaProtocolModules.with({}),
+        }),
+        Sequencer: Sequencer.from({
+          modules: InMemorySequencerModules.with({}),
+        }),
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,
@@ -118,12 +85,6 @@ export class TestingAppChain<
         },
         FeeStrategy: {},
       },
-      Signer: {
-        signer: PrivateKey.random(),
-      },
-      TransactionSender: {},
-      QueryTransportModule: {},
-      NetworkStateTransportModule: {},
     });
 
     return appChain;
