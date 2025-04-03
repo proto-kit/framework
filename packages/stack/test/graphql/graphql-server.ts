@@ -1,5 +1,5 @@
 import {
-  AppChain,
+  ClientAppChain,
   BlockStorageNetworkStateModule,
   InMemorySigner,
   InMemoryTransactionSender,
@@ -83,60 +83,60 @@ export class TestBalances extends Balances {
 export async function startGraphqlServer() {
   log.setLevel("DEBUG");
 
-  const appChain = AppChain.from({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
-        Balances: TestBalances,
-      }),
-    }),
-
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
-
-    Sequencer: Sequencer.from({
-      modules: {
-        Database: InMemoryDatabase,
-        // Database: PrismaRedisDatabase,
-
-        Mempool: PrivateMempool,
-        GraphqlServer,
-        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.withoutSettlement()
-        ),
-
-        BaseLayer: NoopBaseLayer,
-        BatchProducerModule,
-        BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-        // SettlementModule: SettlementModule,
-
-        Graphql: GraphqlSequencerModule.from({
-          modules: {
-            MempoolResolver,
-            QueryGraphqlModule,
-            BatchStorageResolver,
-            BlockResolver,
-            NodeStatusResolver,
-            MerkleWitnessResolver,
-          },
-
-          config: {
-            MempoolResolver: {},
-            QueryGraphqlModule: {},
-            BatchStorageResolver: {},
-            NodeStatusResolver: {},
-            MerkleWitnessResolver: {},
-            BlockResolver: {},
-          },
-        }),
-
-        SequencerStartupModule,
-      },
-    }),
-
+  const appChain = ClientAppChain.from({
     modules: {
+      Runtime: Runtime.from({
+        modules: VanillaRuntimeModules.with({
+          Balances: TestBalances,
+        }),
+      }),
+
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.with({}),
+      }),
+
+      Sequencer: Sequencer.from({
+        modules: {
+          Database: InMemoryDatabase,
+          // Database: PrismaRedisDatabase,
+
+          Mempool: PrivateMempool,
+          GraphqlServer,
+          LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+            VanillaTaskWorkerModules.withoutSettlement()
+          ),
+
+          BaseLayer: NoopBaseLayer,
+          BatchProducerModule,
+          BlockProducerModule,
+          BlockTrigger: ManualBlockTrigger,
+          TaskQueue: LocalTaskQueue,
+          // SettlementModule: SettlementModule,
+
+          Graphql: GraphqlSequencerModule.from({
+            modules: {
+              MempoolResolver,
+              QueryGraphqlModule,
+              BatchStorageResolver,
+              BlockResolver,
+              NodeStatusResolver,
+              MerkleWitnessResolver,
+            },
+
+            config: {
+              MempoolResolver: {},
+              QueryGraphqlModule: {},
+              BatchStorageResolver: {},
+              NodeStatusResolver: {},
+              MerkleWitnessResolver: {},
+              BlockResolver: {},
+            },
+          }),
+
+          SequencerStartupModule,
+        },
+      }),
+
       Signer: InMemorySigner,
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,

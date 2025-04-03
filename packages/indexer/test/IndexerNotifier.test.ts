@@ -49,21 +49,21 @@ class TestBalances extends Balances {
 
 function createAppChain() {
   const appChain = new TestingAppChain({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
-        Balances: TestBalances,
-      }),
-    }),
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
-    Sequencer: Sequencer.from({
-      modules: InMemorySequencerModules.with({
-        IndexerNotifier: IndexerNotifier,
-      }),
-    }),
-
     modules: {
+      Runtime: Runtime.from({
+        modules: VanillaRuntimeModules.with({
+          Balances: TestBalances,
+        }),
+      }),
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.with({}),
+      }),
+      Sequencer: Sequencer.from({
+        modules: InMemorySequencerModules.with({
+          IndexerNotifier: IndexerNotifier,
+        }),
+      }),
+
       Signer: InMemorySigner,
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,

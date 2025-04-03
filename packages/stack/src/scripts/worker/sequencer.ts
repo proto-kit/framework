@@ -1,5 +1,4 @@
 import {
-  AppChain,
   StateServiceQueryModule,
   BlockStorageNetworkStateModule,
 } from "@proto-kit/sdk";
@@ -11,6 +10,7 @@ import {
   MinaBaseLayer,
   TimedBlockTrigger,
   DatabasePruneModule,
+  AppChain,
 } from "@proto-kit/sequencer";
 import {
   VanillaGraphqlModules,
@@ -21,22 +21,22 @@ import {
 import { app } from "./app";
 
 export const sequencer = AppChain.from({
-  Runtime: app.Runtime,
-  Protocol: app.Protocol,
-  Sequencer: Sequencer.from({
-    modules: SimpleSequencerModules.with({
-      TaskQueue: BullQueue,
-      Database: InMemoryDatabase,
-      BaseLayer: MinaBaseLayer,
-      BlockTrigger: TimedBlockTrigger,
-      DatabasePruneModule: DatabasePruneModule,
-      GraphqlServer: GraphqlServer,
-      Graphql: GraphqlSequencerModule.from({
-        modules: VanillaGraphqlModules.with({}),
+  modules: {
+    Runtime: app.Runtime,
+    Protocol: app.Protocol,
+    Sequencer: Sequencer.from({
+      modules: SimpleSequencerModules.with({
+        TaskQueue: BullQueue,
+        Database: InMemoryDatabase,
+        BaseLayer: MinaBaseLayer,
+        BlockTrigger: TimedBlockTrigger,
+        DatabasePruneModule: DatabasePruneModule,
+        GraphqlServer: GraphqlServer,
+        Graphql: GraphqlSequencerModule.from({
+          modules: VanillaGraphqlModules.with({}),
+        }),
       }),
     }),
-  }),
-  modules: {
     QueryTransportModule: StateServiceQueryModule,
     NetworkStateTransportModule: BlockStorageNetworkStateModule,
   },

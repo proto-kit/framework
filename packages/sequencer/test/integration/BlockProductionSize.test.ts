@@ -2,7 +2,6 @@ import { log } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
-import { AppChain } from "@proto-kit/sdk";
 import { Bool, PrivateKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -12,6 +11,7 @@ import {
   PrivateMempool,
   Sequencer,
   VanillaTaskWorkerModules,
+  AppChain,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -67,10 +67,11 @@ describe("block limit", () => {
     });
 
     const app = AppChain.from({
-      Runtime: runtimeClass,
-      Sequencer: sequencerClass,
-      Protocol: protocolClass,
-      modules: {},
+      modules: {
+        Runtime: runtimeClass,
+        Sequencer: sequencerClass,
+        Protocol: protocolClass,
+      },
     });
     log.setLevel("TRACE");
 

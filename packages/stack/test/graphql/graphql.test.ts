@@ -12,7 +12,7 @@ import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
 import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
 import {
-  AppChain,
+  ClientAppChain,
   InMemorySigner,
   GraphqlTransactionSender,
   GraphqlQueryTransportModule,
@@ -27,22 +27,22 @@ import { startGraphqlServer, TestBalances } from "./graphql-server";
 const pk = PrivateKey.random();
 
 function prepareClient() {
-  const appChain = AppChain.from({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
-        Balances: TestBalances,
-      }),
-    }),
-
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
-
-    Sequencer: Sequencer.from({
-      modules: {},
-    }),
-
+  const appChain = ClientAppChain.from({
     modules: {
+      Runtime: Runtime.from({
+        modules: VanillaRuntimeModules.with({
+          Balances: TestBalances,
+        }),
+      }),
+
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.with({}),
+      }),
+
+      Sequencer: Sequencer.from({
+        modules: {},
+      }),
+
       Signer: InMemorySigner,
       TransactionSender: GraphqlTransactionSender,
       QueryTransportModule: GraphqlQueryTransportModule,

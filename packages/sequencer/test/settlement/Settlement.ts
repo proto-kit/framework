@@ -18,7 +18,7 @@ import {
   TokenBridgeTree,
 } from "@proto-kit/protocol";
 import {
-  AppChain,
+  ClientAppChain,
   BlockStorageNetworkStateModule,
   InMemorySigner,
   InMemoryTransactionSender,
@@ -133,21 +133,21 @@ export const settlementTestFn = (
       ),
     });
 
-    const appchain = AppChain.from({
-      Runtime: runtime,
-      Sequencer: sequencer,
-
-      Protocol: Protocol.from({
-        modules: {
-          ...VanillaProtocolModules.mandatoryModules({}),
-          SettlementContractModule: SettlementContractModule.with({
-            FungibleToken: FungibleTokenContractModule,
-            FungibleTokenAdmin: FungibleTokenAdminContractModule,
-          }),
-        },
-      }),
-
+    const appchain = ClientAppChain.from({
       modules: {
+        Runtime: runtime,
+        Sequencer: sequencer,
+
+        Protocol: Protocol.from({
+          modules: {
+            ...VanillaProtocolModules.mandatoryModules({}),
+            SettlementContractModule: SettlementContractModule.with({
+              FungibleToken: FungibleTokenContractModule,
+              FungibleTokenAdmin: FungibleTokenAdminContractModule,
+            }),
+          },
+        }),
+
         Signer: InMemorySigner,
         TransactionSender: InMemoryTransactionSender,
         QueryTransportModule: StateServiceQueryModule,

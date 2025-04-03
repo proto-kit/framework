@@ -14,9 +14,9 @@ import {
 import { Protocol } from "@proto-kit/protocol";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
-  AppChain,
   AppChainTransaction,
   BlockStorageNetworkStateModule,
+  ClientAppChain,
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
@@ -92,32 +92,32 @@ export function createPrismaAppchain(
   prismaConnection: PrismaDatabaseConfig["connection"],
   redisConnection: RedisConnectionConfig
 ) {
-  const appChain = AppChain.from({
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({}),
-    }),
-    Runtime: Runtime.from({
-      modules: {
-        Balances: MintableBalances,
-      },
-    }),
-    Sequencer: Sequencer.from({
-      modules: {
-        Database: PrismaRedisDatabase,
-
-        Mempool: PrivateMempool,
-        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.withoutSettlement()
-        ),
-        BaseLayer: NoopBaseLayer,
-        BatchProducerModule,
-        BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-        SequencerStartupModule,
-      },
-    }),
+  const appChain = ClientAppChain.from({
     modules: {
+      Protocol: Protocol.from({
+        modules: VanillaProtocolModules.mandatoryModules({}),
+      }),
+      Runtime: Runtime.from({
+        modules: {
+          Balances: MintableBalances,
+        },
+      }),
+      Sequencer: Sequencer.from({
+        modules: {
+          Database: PrismaRedisDatabase,
+
+          Mempool: PrivateMempool,
+          LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+            VanillaTaskWorkerModules.withoutSettlement()
+          ),
+          BaseLayer: NoopBaseLayer,
+          BatchProducerModule,
+          BlockProducerModule,
+          BlockTrigger: ManualBlockTrigger,
+          TaskQueue: LocalTaskQueue,
+          SequencerStartupModule,
+        },
+      }),
       Signer: InMemorySigner,
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,

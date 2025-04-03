@@ -1,4 +1,3 @@
-import { InMemoryAreProofsEnabled } from "@proto-kit/sdk";
 import { Bool, Field } from "o1js";
 import {
   InMemoryMerkleTreeStorage,
@@ -6,6 +5,7 @@ import {
   RollupMerkleTree,
   RollupMerkleTreeWitness,
 } from "@proto-kit/common";
+import { InMemoryAreProofsEnabled } from "@proto-kit/sequencer";
 
 import {
   AppliedStateTransitionBatchState,

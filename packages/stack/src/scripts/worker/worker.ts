@@ -1,17 +1,17 @@
-import { AppChain } from "@proto-kit/sdk";
-import { Sequencer } from "@proto-kit/sequencer";
+import { Sequencer, AppChain } from "@proto-kit/sequencer";
 import { SimpleSequencerModules } from "@proto-kit/library";
 import { BullQueue } from "@proto-kit/deployment";
 
 import { app } from "./app";
 
 export const worker = AppChain.from({
-  Runtime: app.Runtime,
-  Protocol: app.Protocol,
-  Sequencer: Sequencer.from({
-    modules: SimpleSequencerModules.worker(BullQueue, {}),
-  }),
-  modules: {},
+  modules: {
+    Runtime: app.Runtime,
+    Protocol: app.Protocol,
+    Sequencer: Sequencer.from({
+      modules: SimpleSequencerModules.worker(BullQueue, {}),
+    }),
+  },
 });
 
 worker.configurePartial({

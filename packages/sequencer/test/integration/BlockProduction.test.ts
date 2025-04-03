@@ -20,12 +20,12 @@ import {
   Protocol,
   PROTOKIT_PREFIXES,
 } from "@proto-kit/protocol";
-import { AppChain } from "@proto-kit/sdk";
 import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
 import {
+  AppChain,
   BatchStorage,
   HistoricalBatchStorage,
   Sequencer,
@@ -92,7 +92,7 @@ describe("block production", () => {
   // let protocol: Protocol<VanillaProtocolModulesRecord>;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let appChain: AppChain<any, any, any, any>;
+  let appChain: AppChain<any>;
 
   let test: BlockTestService;
 
@@ -124,10 +124,11 @@ describe("block production", () => {
     });
 
     const app = AppChain.from({
-      Runtime: runtimeClass,
-      Sequencer: sequencerClass,
-      Protocol: protocolClass,
-      modules: {},
+      modules: {
+        Runtime: runtimeClass,
+        Sequencer: sequencerClass,
+        Protocol: protocolClass,
+      },
     });
 
     app.configure({
