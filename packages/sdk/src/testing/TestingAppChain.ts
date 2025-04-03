@@ -88,6 +88,9 @@ export class TestingAppChain<
       Signer: {
         signer: PrivateKey.random(),
       },
+      TransactionSender: {},
+      QueryTransportModule: {},
+      NetworkStateTransportModule: {},
     });
 
     return appChain;
