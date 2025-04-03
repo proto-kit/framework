@@ -5,12 +5,11 @@ import {
   Sequencer,
   SequencerModulesRecord,
   AsyncMerkleTreeStore,
+  AppChainModule,
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import { RollupMerkleTree, RollupMerkleTreeWitness } from "@proto-kit/common";
-
-import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
 export class StateServiceQueryModule

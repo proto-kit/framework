@@ -8,10 +8,9 @@ import {
   SequencerModulesRecord,
   BlockQueue,
   BatchStorage,
+  AppChainModule,
 } from "@proto-kit/sequencer";
 import { NetworkState } from "@proto-kit/protocol";
-
-import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
 export class BlockStorageNetworkStateModule

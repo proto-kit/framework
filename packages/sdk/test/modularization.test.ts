@@ -6,10 +6,8 @@ import {
   VanillaProtocolModules,
   VanillaRuntimeModules,
 } from "@proto-kit/library";
-import { Sequencer, SequencerModule } from "@proto-kit/sequencer";
+import { Sequencer, SequencerModule, AppChain } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
-
-import { AppChain } from "../src";
 
 class TestRuntimeModule extends RuntimeModule<object> {
   public initialized = false;
@@ -48,22 +46,23 @@ class TestSequencerModule extends SequencerModule<object> {
 describe("modularization", () => {
   it("should initialize all modules correctly", async () => {
     const appChain = AppChain.from({
-      Runtime: Runtime.from({
-        modules: VanillaRuntimeModules.with({
-          TestRuntimeModule,
+      modules: {
+        Runtime: Runtime.from({
+          modules: VanillaRuntimeModules.with({
+            TestRuntimeModule,
+          }),
         }),
-      }),
-      Protocol: Protocol.from({
-        modules: VanillaProtocolModules.with({
-          TestProtocolModule,
+        Protocol: Protocol.from({
+          modules: VanillaProtocolModules.with({
+            TestProtocolModule,
+          }),
         }),
-      }),
-      Sequencer: Sequencer.from({
-        modules: {
-          TestSequencerModule,
-        },
-      }),
-      modules: {},
+        Sequencer: Sequencer.from({
+          modules: {
+            TestSequencerModule,
+          },
+        }),
+      },
     });
 
     appChain.configurePartial({

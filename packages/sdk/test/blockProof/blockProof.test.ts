@@ -17,7 +17,7 @@ import { ManualBlockTrigger } from "@proto-kit/sequencer";
 import { InMemoryStateService } from "@proto-kit/module";
 import { BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
 
-import { TestingAppChain } from "../../src/appChain/TestingAppChain";
+import { TestingAppChain } from "../../src/testing/TestingAppChain";
 
 import { TestBalances } from "./TestBalances";
 

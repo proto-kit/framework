@@ -3,10 +3,9 @@ import {
   Sequencer,
   SequencerModulesRecord,
   PendingTransaction,
+  AppChainModule,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
-
-import { AppChainModule } from "../appChain/AppChainModule";
 
 export interface TransactionSender extends AppChainModule<unknown> {
   send: (transaction: PendingTransaction) => Promise<void>;

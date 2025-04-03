@@ -1,9 +1,10 @@
 import { inject, injectable } from "tsyringe";
-import { NetworkStateTransportModule } from "@proto-kit/sequencer";
+import {
+  NetworkStateTransportModule,
+  AppChainModule,
+} from "@proto-kit/sequencer";
 import { NetworkState } from "@proto-kit/protocol";
 import { gql } from "@urql/core";
-
-import { AppChainModule } from "../appChain/AppChainModule";
 
 import { GraphqlClient } from "./GraphqlClient";
 
