@@ -85,6 +85,9 @@ export class TestingAppChain<
         },
         FeeStrategy: {},
       },
+      Signer: {
+        signer: PrivateKey.random(),
+      },
     });
 
     return appChain;
