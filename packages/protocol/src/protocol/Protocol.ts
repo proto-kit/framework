@@ -74,8 +74,13 @@ export class Protocol<
     };
   }
 
+  // No idea why we have to do this, but if we don't re-define it here,
+  // js can't access it from the superclass somehow
+  public definition: Modules;
+
   public constructor(definition: Modules) {
     super(definition);
+    this.definition = definition;
   }
 
   public get stateService(): SimpleAsyncStateService {

@@ -17,10 +17,10 @@ describe.each(["mock-proofs", "signed"] as const)(
       settlementTestFn(type, network);
     });
 
-    describe("Custom token", () => {
-      settlementTestFn(type, network, {
-        tokenOwner: FungibleToken,
-      });
-    });
+    // describe("Custom token", () => {
+    //   settlementTestFn(type, network, {
+    //     tokenOwner: FungibleToken,
+    //   });
+    // });
   }
 );

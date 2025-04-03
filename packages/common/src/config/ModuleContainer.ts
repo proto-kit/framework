@@ -144,14 +144,8 @@ export class ModuleContainer<
 
   private eventEmitterProxy: EventEmitterProxy<Modules> | undefined = undefined;
 
-  public constructor(private internalDefinition: Modules) {
+  public constructor(public definition: Modules) {
     super();
-  }
-
-  // This getter is important, because this class will be inherited from, and
-  // there somehow direct access to public properties doesn't work as intended.
-  public get definition() {
-    return this.internalDefinition;
   }
 
   /**

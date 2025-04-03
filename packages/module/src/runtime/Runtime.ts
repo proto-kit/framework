@@ -281,6 +281,10 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof ZkProgram>;
 
+  // No idea why we have to do this, but if we don't re-define it here,
+  // js can't access it from the superclass somehow
+  public definition: Modules;
+
   public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
 
   /**
@@ -290,6 +294,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    */
   public constructor(definition: Modules) {
     super(definition);
+    this.definition = definition;
     this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
   }
 
@@ -372,7 +377,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    * @returns A list of names of all the registered module names
    */
   public get runtimeModuleNames() {
-    return Object.keys(super.definition);
+    return this.moduleNames;
   }
 
   public async compile(registry: CompileRegistry) {
