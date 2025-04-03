@@ -1,9 +1,4 @@
-import {
-  ModuleContainer,
-  ModuleContainerDefinition,
-  ModulesRecord,
-  TypedClass,
-} from "@proto-kit/common";
+import { ModuleContainer, ModulesRecord, TypedClass } from "@proto-kit/common";
 import { container } from "tsyringe";
 
 import { IndexerModule } from "./IndexerModule";
@@ -16,7 +11,7 @@ export class Indexer<
   Modules extends IndexerModulesRecord,
 > extends ModuleContainer<Modules> {
   public static from<Modules extends IndexerModulesRecord>(
-    definition: ModuleContainerDefinition<Modules>
+    definition: Modules
   ): Indexer<Modules> {
     return new Indexer(definition);
   }

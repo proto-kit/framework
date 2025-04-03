@@ -1,8 +1,4 @@
-import {
-  ModuleContainer,
-  ModuleContainerDefinition,
-  TypedClass,
-} from "@proto-kit/common";
+import { ModuleContainer, TypedClass } from "@proto-kit/common";
 import {
   InMemoryStateService,
   MethodIdResolver,
@@ -56,7 +52,7 @@ export class ClientAppChain<
   AppChainModules extends MinimalAppChainDefinition,
 > extends AppChain<AppChainModules> {
   public static from<Modules extends MinimalAppChainDefinition>(
-    definition: ModuleContainerDefinition<Modules>
+    definition: Modules
   ) {
     return new ClientAppChain(definition);
   }
@@ -72,19 +68,15 @@ export class ClientAppChain<
     signer: TypedClass<SignerType>
   ) {
     const appChain = new ClientAppChain({
-      modules: {
-        Runtime: runtime,
-        Protocol: protocol,
-        Sequencer: Sequencer.from({
-          modules: {},
-        }),
+      Runtime: runtime,
+      Protocol: protocol,
+      Sequencer: Sequencer.from({}),
 
-        GraphqlClient,
-        Signer: signer,
-        TransactionSender: GraphqlTransactionSender,
-        QueryTransportModule: GraphqlQueryTransportModule,
-        NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
-      },
+      GraphqlClient,
+      Signer: signer,
+      TransactionSender: GraphqlTransactionSender,
+      QueryTransportModule: GraphqlQueryTransportModule,
+      NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
     });
 
     appChain.configurePartial({

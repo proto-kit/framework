@@ -93,36 +93,28 @@ export function createPrismaAppchain(
   redisConnection: RedisConnectionConfig
 ) {
   const appChain = ClientAppChain.from({
-    modules: {
-      Protocol: Protocol.from({
-        modules: VanillaProtocolModules.mandatoryModules({}),
-      }),
-      Runtime: Runtime.from({
-        modules: {
-          Balances: MintableBalances,
-        },
-      }),
-      Sequencer: Sequencer.from({
-        modules: {
-          Database: PrismaRedisDatabase,
+    Protocol: Protocol.from(VanillaProtocolModules.mandatoryModules({})),
+    Runtime: Runtime.from({
+      Balances: MintableBalances,
+    }),
+    Sequencer: Sequencer.from({
+      Database: PrismaRedisDatabase,
 
-          Mempool: PrivateMempool,
-          LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-            VanillaTaskWorkerModules.withoutSettlement()
-          ),
-          BaseLayer: NoopBaseLayer,
-          BatchProducerModule,
-          BlockProducerModule,
-          BlockTrigger: ManualBlockTrigger,
-          TaskQueue: LocalTaskQueue,
-          SequencerStartupModule,
-        },
-      }),
-      Signer: InMemorySigner,
-      TransactionSender: InMemoryTransactionSender,
-      QueryTransportModule: StateServiceQueryModule,
-      NetworkStateTransportModule: BlockStorageNetworkStateModule,
-    },
+      Mempool: PrivateMempool,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.withoutSettlement()
+      ),
+      BaseLayer: NoopBaseLayer,
+      BatchProducerModule,
+      BlockProducerModule,
+      BlockTrigger: ManualBlockTrigger,
+      TaskQueue: LocalTaskQueue,
+      SequencerStartupModule,
+    }),
+    Signer: InMemorySigner,
+    TransactionSender: InMemoryTransactionSender,
+    QueryTransportModule: StateServiceQueryModule,
+    NetworkStateTransportModule: BlockStorageNetworkStateModule,
   });
 
   appChain.configurePartial({

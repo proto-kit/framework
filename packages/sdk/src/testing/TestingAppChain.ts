@@ -39,21 +39,14 @@ export class TestingAppChain<
       PartialVanillaRuntimeModulesRecord,
   >(runtimeModules: RuntimeModules) {
     const appChain = new TestingAppChain({
-      modules: {
-        Runtime: Runtime.from({
-          modules: VanillaRuntimeModules.with(runtimeModules),
-        }),
-        Protocol: Protocol.from({
-          modules: VanillaProtocolModules.with({}),
-        }),
-        Sequencer: Sequencer.from({
-          modules: InMemorySequencerModules.with({}),
-        }),
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
-        QueryTransportModule: StateServiceQueryModule,
-        NetworkStateTransportModule: BlockStorageNetworkStateModule,
-      },
+      Runtime: Runtime.from(VanillaRuntimeModules.with(runtimeModules)),
+      Protocol: Protocol.from(VanillaProtocolModules.with({})),
+      Sequencer: Sequencer.from(InMemorySequencerModules.with({})),
+
+      Signer: InMemorySigner,
+      TransactionSender: InMemoryTransactionSender,
+      QueryTransportModule: StateServiceQueryModule,
+      NetworkStateTransportModule: BlockStorageNetworkStateModule,
     });
 
     appChain.configurePartial({

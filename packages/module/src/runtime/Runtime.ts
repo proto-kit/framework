@@ -103,10 +103,7 @@ export class RuntimeZkProgrammable<
 
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
-        runtime.isValidModuleName(
-          runtime.definition.modules,
-          runtimeModuleName
-        );
+        runtime.isValidModuleName(runtime.definition, runtimeModuleName);
 
         /**
          * Couldnt find a better way to circumvent the type assertion
@@ -272,7 +269,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   implements RuntimeEnvironment, CompilableModule
 {
   public static from<Modules extends RuntimeModulesRecord>(
-    definition: RuntimeDefinition<Modules>
+    definition: Modules
   ): TypedClass<Runtime<Modules>> {
     return class RuntimeScoped extends Runtime<Modules> {
       public constructor() {
@@ -284,8 +281,6 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof ZkProgram>;
 
-  public definition: RuntimeDefinition<Modules>;
-
   public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
 
   /**
@@ -293,9 +288,8 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    *
    * @param modules - Configuration object for the constructed Runtime
    */
-  public constructor(definition: RuntimeDefinition<Modules>) {
+  public constructor(definition: Modules) {
     super(definition);
-    this.definition = definition;
     this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
   }
 

@@ -109,18 +109,6 @@ export type RecursivePartial<T> = {
   [Key in keyof T]?: Partial<T[Key]>;
 };
 
-/**
- * Parameters required when creating a module container instance
- */
-export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
-  modules: Modules;
-  // config is optional, as it may be provided by the parent/wrapper class
-  /**
-   * @deprecated
-   */
-  config?: ModulesConfig<Modules>;
-}
-
 // Removes all keys with a "never" value from an object
 export type FilterNeverValues<Type extends Record<string, unknown>> = {
   [Key in keyof Type as Type[Key] extends never ? never : Key]: Type[Key];
@@ -156,7 +144,7 @@ export class ModuleContainer<
 
   private eventEmitterProxy: EventEmitterProxy<Modules> | undefined = undefined;
 
-  public constructor(public definition: ModuleContainerDefinition<Modules>) {
+  public constructor(public definition: Modules) {
     super();
   }
 
@@ -164,7 +152,7 @@ export class ModuleContainer<
    * @returns list of module names
    */
   public get moduleNames() {
-    return Object.keys(this.definition.modules);
+    return Object.keys(this.definition);
   }
 
   /**
@@ -209,7 +197,7 @@ export class ModuleContainer<
   public assertIsValidModuleName(
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    if (!this.isValidModuleName(this.definition.modules, moduleName)) {
+    if (!this.isValidModuleName(this.definition, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }
   }
@@ -498,6 +486,6 @@ export class ModuleContainer<
     });
 
     // register all provided modules when the container is created
-    this.registerModules(this.definition.modules);
+    this.registerModules(this.definition);
   }
 }

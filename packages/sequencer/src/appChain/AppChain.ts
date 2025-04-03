@@ -2,7 +2,6 @@ import {
   AreProofsEnabled,
   log,
   ModuleContainer,
-  ModuleContainerDefinition,
   ModulesRecord,
   TypedClass,
 } from "@proto-kit/common";
@@ -36,12 +35,12 @@ export class AppChain<
 > extends ModuleContainer<Modules> {
   // alternative AppChain constructor
   public static from<Modules extends MinimalAppChainDefinition>(
-    definition: ModuleContainerDefinition<Modules>
+    definition: Modules
   ) {
     return new AppChain(definition);
   }
 
-  public constructor(definition: ModuleContainerDefinition<Modules>) {
+  public constructor(definition: Modules) {
     super(definition);
   }
 
