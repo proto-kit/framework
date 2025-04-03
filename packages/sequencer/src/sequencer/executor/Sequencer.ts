@@ -77,7 +77,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     this.useDependencyFactory(MethodIdFactory);
 
     // Log startup info
-    const moduleClassNames = Object.values(this.definition.modules).map(
+    const moduleClassNames = Object.values(this.definition).map(
       (clazz) => clazz.name
     );
     log.info("Starting sequencer...");

@@ -372,7 +372,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    * @returns A list of names of all the registered module names
    */
   public get runtimeModuleNames() {
-    return Object.keys(this.definition.modules);
+    return Object.keys(super.definition);
   }
 
   public async compile(registry: CompileRegistry) {

@@ -163,6 +163,7 @@ describe("block production", () => {
   });
 
   it("should produce a dummy block proof", async () => {
+    log.setLevel("TRACE");
     expect.assertions(26);
 
     const privateKey = PrivateKey.random();
