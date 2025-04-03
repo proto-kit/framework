@@ -138,6 +138,8 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
 > &
   Modules;
 
+// Remove this commit
+
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
