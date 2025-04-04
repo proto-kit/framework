@@ -1,4 +1,4 @@
-import { MerkleTreeStore } from "./MerkleTreeStore";
+import { MerkleTreeStore } from "../sparse/MerkleTreeStore";
 
 export interface LinkedLeafStore {
   setLeaf: (index: bigint, value: LinkedLeaf) => void;

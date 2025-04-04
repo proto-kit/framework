@@ -1,7 +1,7 @@
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
 
-import { range } from "../utils";
-import { TypedClass } from "../types";
+import { range } from "../../utils";
+import { TypedClass } from "../../types";
 
 import { MerkleTreeStore } from "./MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";

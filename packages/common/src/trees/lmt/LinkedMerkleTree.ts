@@ -1,15 +1,15 @@
 // eslint-disable-next-line max-classes-per-file
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
 
-import { TypedClass } from "../types";
-import { range } from "../utils";
+import { TypedClass } from "../../types";
+import { range } from "../../utils";
 
 import { LinkedMerkleTreeStore } from "./LinkedMerkleTreeStore";
 import {
   AbstractMerkleWitness,
   createMerkleTree,
   maybeSwap,
-} from "./RollupMerkleTree";
+} from "../sparse/RollupMerkleTree";
 import { InMemoryLinkedMerkleLeafStore } from "./InMemoryLinkedMerkleLeafStore";
 
 const RollupMerkleTreeWitness = createMerkleTree(40).WITNESS;
