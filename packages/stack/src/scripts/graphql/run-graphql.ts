@@ -1,3 +1,4 @@
+#!/usr/bin/env ts-node
 import "reflect-metadata";
 
 import { sleep } from "@proto-kit/common";
@@ -11,3 +12,5 @@ export class SequencerStartable implements Startable {
     await sleep(100000000);
   }
 }
+
+await startServer();

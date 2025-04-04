@@ -207,7 +207,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
     public static dummy() {
       return new RollupMerkleWitness({
-        isLeft: Array<Bool>(this.height - 1).fill(Bool(false)),
+        isLeft: Array<Bool>(this.height - 1).fill(Bool(true)),
         path: Array<Field>(this.height - 1).fill(Field(0)),
       });
     }
@@ -228,6 +228,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
     public static WITNESS = RollupMerkleWitness;
 
     // private in interface
+    // TODO Cache this in some static variable so that we don't recompute it every time
     readonly zeroes: bigint[];
 
     readonly store: MerkleTreeStore;

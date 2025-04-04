@@ -2,58 +2,50 @@ import {
   Protocol,
   SettlementContractModule,
   BATCH_SIGNATURE_PREFIX,
-  Path,
-  OutgoingMessageArgument,
-  OutgoingMessageArgumentBatch,
-  OUTGOING_MESSAGE_BATCH_SIZE,
   DispatchSmartContract,
   SettlementSmartContract,
-  SettlementContractConfig,
   MandatorySettlementModulesRecord,
   MandatoryProtocolModulesRecord,
-  BlockProverPublicOutput,
+  SettlementSmartContractBase,
+  DynamicBlockProof,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
-  Field,
   Mina,
   PrivateKey,
   PublicKey,
   Signature,
+  TokenContractV2,
   Transaction,
-  fetchAccount,
 } from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
   EventEmittingComponent,
   log,
-  noop,
   AreProofsEnabled,
-  LinkedMerkleTree,
+  DependencyFactory,
 } from "@proto-kit/common";
-import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import truncate from "lodash/truncate";
 
 import {
   SequencerModule,
   sequencerModule,
 } from "../sequencer/builder/SequencerModule";
-import { FlowCreator } from "../worker/flow/Flow";
-import { SettlementStorage } from "../storage/repositories/SettlementStorage";
-import { MessageStorage } from "../storage/repositories/MessageStorage";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { Batch, SettleableBatch } from "../storage/model/Batch";
-import { BlockProofSerializer } from "../protocol/production/helpers/BlockProofSerializer";
+import { BlockProofSerializer } from "../protocol/production/tasks/serializers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
-import { AsyncLinkedMerkleTreeStore } from "../state/async/AsyncLinkedMerkleTreeStore";
-import { CachedLinkedMerkleTreeStore } from "../state/merkle/CachedLinkedMerkleTreeStore";
+import { SettlementStartupModule } from "../sequencer/SettlementStartupModule";
+import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 
-import { IncomingMessageAdapter } from "./messages/IncomingMessageAdapter";
-import type { OutgoingMessageQueue } from "./messages/WithdrawalQueue";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
 import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermissions";
 import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
+import { SettlementUtils } from "./utils/SettlementUtils";
+import { BridgingModule } from "./BridgingModule";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
@@ -67,14 +59,12 @@ export type SettlementModuleEvents = {
 @sequencerModule()
 export class SettlementModule
   extends SequencerModule<SettlementModuleConfig>
-  implements EventEmittingComponent<SettlementModuleEvents>
+  implements EventEmittingComponent<SettlementModuleEvents>, DependencyFactory
 {
   protected contracts?: {
     settlement: SettlementSmartContract;
     dispatch: DispatchSmartContract;
   };
-
-  protected settlementModuleConfig?: SettlementContractConfig;
 
   public addresses?: {
     settlement: PublicKey;
@@ -84,37 +74,37 @@ export class SettlementModule
   public keys?: {
     settlement: PrivateKey;
     dispatch: PrivateKey;
+    minaBridge: PrivateKey;
   };
+
+  public utils: SettlementUtils;
 
   public events = new EventEmitter<SettlementModuleEvents>();
 
   public constructor(
-    @inject("BaseLayer")
-    private readonly baseLayer: MinaBaseLayer,
+    @inject("BaseLayer") baseLayer: MinaBaseLayer,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    @inject("Runtime")
-    private readonly runtime: Runtime<RuntimeModulesRecord>,
-    private readonly flowCreator: FlowCreator,
-    @inject("IncomingMessageAdapter")
-    private readonly incomingMessagesAdapter: IncomingMessageAdapter,
-    @inject("MessageStorage")
-    private readonly messageStorage: MessageStorage,
     @inject("SettlementStorage")
     private readonly settlementStorage: SettlementStorage,
-    @inject("OutgoingMessageQueue")
-    private readonly outgoingMessageQueue: OutgoingMessageQueue,
-    @inject("AsyncMerkleStore")
-    private readonly merkleTreeStore: AsyncLinkedMerkleTreeStore,
     private readonly blockProofSerializer: BlockProofSerializer,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender,
-    @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled,
+    @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("FeeStrategy")
-    private readonly feeStrategy: FeeStrategy
+    private readonly feeStrategy: FeeStrategy,
+    private readonly settlementStartupModule: SettlementStartupModule
   ) {
     super();
+    this.utils = new SettlementUtils(areProofsEnabled, baseLayer);
+  }
+
+  public dependencies() {
+    return {
+      BridgingModule: {
+        useClass: BridgingModule,
+      },
+    };
   }
 
   protected settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
@@ -123,18 +113,11 @@ export class SettlementModule
     );
   }
 
-  public getSettlementModuleConfig(): SettlementContractConfig {
-    if (this.settlementModuleConfig === undefined) {
-      const settlementContractModule = this.settlementContractModule();
-
-      this.settlementModuleConfig =
-        settlementContractModule.resolve("SettlementContract").config;
-
-      if (this.settlementModuleConfig === undefined) {
-        throw new Error("Failed to fetch config from SettlementContract");
-      }
+  private getContractKeys(): PrivateKey[] {
+    if (this.keys === undefined) {
+      throw new Error("Contracts not initialized yet");
     }
-    return this.settlementModuleConfig;
+    return [this.keys.dispatch, this.keys.settlement];
   }
 
   public getContracts() {
@@ -159,127 +142,19 @@ export class SettlementModule
     return this.contracts;
   }
 
-  protected isSignedSettlement(): boolean {
-    return !this.areProofsEnabled.areProofsEnabled;
-  }
-
   public signTransaction(
     tx: Transaction<false, false>,
     pks: PrivateKey[]
   ): Transaction<false, true> {
-    this.requireSignatureIfNecessary(tx);
-    const contractKeys = this.isSignedSettlement()
-      ? Object.values(this.keys ?? {})
-      : [];
-    return tx.sign([...pks, ...contractKeys]);
+    return this.utils.signTransaction(tx, pks, this.getContractKeys());
   }
-
-  private requireSignatureIfNecessary(tx: Transaction<false, false>) {
-    const { addresses } = this;
-    if (this.isSignedSettlement() && addresses !== undefined) {
-      tx.transaction.accountUpdates.forEach((au) => {
-        if (
-          au.publicKey
-            .equals(addresses.settlement)
-            .or(au.publicKey.equals(addresses.dispatch))
-            .toBoolean()
-        ) {
-          au.requireSignature();
-        }
-      });
-    }
-  }
-
-  /* eslint-disable no-await-in-loop */
-  public async sendRollupTransactions(options: { nonce: number }): Promise<
-    {
-      tx: Transaction<false, true>;
-    }[]
-  > {
-    const length = this.outgoingMessageQueue.length();
-    const { feepayer } = this.config;
-    let { nonce } = options;
-
-    const txs: {
-      tx: Transaction<false, true>;
-    }[] = [];
-
-    const { settlement } = this.getContracts();
-
-    const cachedStore = await CachedLinkedMerkleTreeStore.new(
-      this.merkleTreeStore
-    );
-    const tree = new LinkedMerkleTree(cachedStore);
-
-    const [withdrawalModule, withdrawalStateName] =
-      this.getSettlementModuleConfig().withdrawalStatePath.split(".");
-    const basePath = Path.fromProperty(withdrawalModule, withdrawalStateName);
-
-    for (let i = 0; i < length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
-      const batch = this.outgoingMessageQueue.peek(OUTGOING_MESSAGE_BATCH_SIZE);
-
-      const keys = batch.map((x) =>
-        Path.fromKey(basePath, Field, Field(x.index))
-      );
-      // Preload keys
-      await cachedStore.preloadKeys(keys.map((key) => key.toBigInt()));
-
-      const transactionParamaters = batch.map((message, index) => {
-        const witness = tree.getWitness(keys[index].toBigInt());
-        return new OutgoingMessageArgument({
-          witness,
-          value: message.value,
-        });
-      });
-
-      const tx = await Mina.transaction(
-        {
-          sender: feepayer.toPublicKey(),
-          // eslint-disable-next-line no-plusplus
-          nonce: nonce++,
-          fee: this.feeStrategy.getFee(),
-          memo: "roll up actions",
-        },
-        async () => {
-          await settlement.rollupOutgoingMessages(
-            OutgoingMessageArgumentBatch.fromMessages(transactionParamaters)
-          );
-        }
-      );
-
-      const signedTx = this.signTransaction(tx, [feepayer]);
-
-      await this.transactionSender.proveAndSendTransaction(
-        signedTx,
-        "included"
-      );
-
-      this.outgoingMessageQueue.pop(OUTGOING_MESSAGE_BATCH_SIZE);
-
-      txs.push({
-        tx: signedTx,
-      });
-    }
-
-    return txs;
-  }
-  /* eslint-enable no-await-in-loop */
 
   private async fetchContractAccounts() {
     const contracts = this.getContracts();
-    if (
-      contracts !== undefined &&
-      this.baseLayer.config.network.type !== "local"
-    ) {
-      await fetchAccount({
-        publicKey: contracts.settlement.address,
-        tokenId: contracts.settlement.tokenId,
-      });
-      await fetchAccount({
-        publicKey: contracts.dispatch.address,
-        tokenId: contracts.dispatch.tokenId,
-      });
-    }
+    await this.utils.fetchContractAccounts(
+      contracts.settlement,
+      contracts.dispatch
+    );
   }
 
   public async settleBatch(
@@ -289,41 +164,25 @@ export class SettlementModule
     } = {}
   ): Promise<Settlement> {
     await this.fetchContractAccounts();
-    const { settlement, dispatch } = this.getContracts();
+    const { settlement: settlementContract, dispatch } = this.getContracts();
     const { feepayer } = this.config;
 
     log.debug("Preparing settlement");
 
     const lastSettlementL1BlockHeight =
-      settlement.lastSettlementL1BlockHeight.get().value;
+      settlementContract.lastSettlementL1BlockHeight.get().value;
     const signature = Signature.create(feepayer, [
       BATCH_SIGNATURE_PREFIX,
       lastSettlementL1BlockHeight,
     ]);
 
-    const fromSequenceStateHash = BlockProverPublicOutput.fromFields(
-      batch.proof.publicOutput.map((x) => Field(x))
-    ).incomingMessagesHash;
     const latestSequenceStateHash = dispatch.account.actionState.get();
-
-    // Fetch actions and store them into the messageStorage
-    const actions = await this.incomingMessagesAdapter.getPendingMessages(
-      dispatch.address,
-      {
-        fromActionHash: fromSequenceStateHash.toString(),
-        toActionHash: latestSequenceStateHash.toString(),
-        fromL1BlockHeight: Number(lastSettlementL1BlockHeight.toString()),
-      }
-    );
-    await this.messageStorage.pushMessages(
-      actions.from,
-      actions.to,
-      actions.messages
-    );
 
     const blockProof = await this.blockProofSerializer
       .getBlockProofSerializer()
       .fromJSONProof(batch.proof);
+
+    const dynamicBlockProof = DynamicBlockProof.fromProof(blockProof);
 
     const tx = await Mina.transaction(
       {
@@ -333,8 +192,8 @@ export class SettlementModule
         memo: "Protokit settle",
       },
       async () => {
-        await settlement.settle(
-          blockProof,
+        await settlementContract.settle(
+          dynamicBlockProof,
           signature,
           dispatch.address,
           feepayer.toPublicKey(),
@@ -345,24 +204,33 @@ export class SettlementModule
       }
     );
 
-    this.signTransaction(tx, [feepayer]);
+    this.utils.signTransaction(tx, [feepayer], this.getContractKeys());
 
-    await this.transactionSender.proveAndSendTransaction(tx, "included");
+    const { hash: transactionHash } =
+      await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     log.info("Settlement transaction send queued");
 
-    this.events.emit("settlement-submitted", batch);
-
-    return {
+    const settlement = {
       batches: [batch.height],
       promisedMessagesHash: latestSequenceStateHash.toString(),
+      transactionHash,
     };
+
+    await this.settlementStorage.pushSettlement(settlement);
+
+    this.events.emit("settlement-submitted", batch);
+
+    return settlement;
   }
 
   public async deploy(
     settlementKey: PrivateKey,
     dispatchKey: PrivateKey,
-    options: { nonce?: number } = {}
+    minaBridgeKey: PrivateKey,
+    options: {
+      nonce?: number;
+    } = {}
   ) {
     const feepayerKey = this.config.feepayer;
     const feepayer = feepayerKey.toPublicKey();
@@ -377,7 +245,10 @@ export class SettlementModule
       dispatch: dispatchKey.toPublicKey(),
     });
 
-    const permissions = this.isSignedSettlement()
+    const verificationsKeys =
+      await this.settlementStartupModule.retrieveVerificationKeys();
+
+    const permissions = this.utils.isSignedSettlement()
       ? new SignedSettlementPermissions()
       : new ProvenSettlementPermissions();
 
@@ -391,13 +262,14 @@ export class SettlementModule
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
         await settlement.deploy({
-          // TODO Create compilation task that generates those artifacts if proofs enabled
-          verificationKey: undefined,
+          verificationKey:
+            verificationsKeys.SettlementSmartContract.verificationKey,
         });
         settlement.account.permissions.set(permissions.settlementContract());
 
         await dispatch.deploy({
-          verificationKey: undefined,
+          verificationKey:
+            verificationsKeys.DispatchSmartContract.verificationKey,
         });
         dispatch.account.permissions.set(permissions.dispatchContract());
       }
@@ -415,7 +287,10 @@ export class SettlementModule
     this.keys = {
       settlement: settlementKey,
       dispatch: dispatchKey,
+      minaBridge: minaBridgeKey,
     };
+
+    await this.utils.fetchContractAccounts(settlement, dispatch);
 
     const initTx = await Mina.transaction(
       {
@@ -425,14 +300,23 @@ export class SettlementModule
         memo: "Protokit settlement init",
       },
       async () => {
+        AccountUpdate.fundNewAccount(feepayer, 1);
         await settlement.initialize(
           feepayerKey.toPublicKey(),
-          dispatchKey.toPublicKey()
+          dispatchKey.toPublicKey(),
+          minaBridgeKey.toPublicKey(),
+          settlementKey
         );
       }
     );
 
-    const initTxSigned = this.signTransaction(initTx, [feepayerKey]);
+    const initTxSigned = this.utils.signTransaction(
+      initTx,
+      // Specify the mina bridge key here explicitly, since initialize() will issue
+      // a account update to that address and by default new accounts have a signature permission
+      [feepayerKey, minaBridgeKey],
+      [...this.getContractKeys(), minaBridgeKey]
+    );
 
     await this.transactionSender.proveAndSendTransaction(
       initTxSigned,
@@ -440,7 +324,61 @@ export class SettlementModule
     );
   }
 
+  public async deployTokenBridge(
+    owner: TokenContractV2,
+    ownerKey: PrivateKey,
+    contractKey: PrivateKey,
+    options: {
+      nonce?: number;
+    }
+  ) {
+    const feepayerKey = this.config.feepayer;
+    const feepayer = feepayerKey.toPublicKey();
+    const nonce = options?.nonce ?? 0;
+
+    const tokenId = owner.deriveTokenId();
+    const { settlement, dispatch } = this.getContracts();
+
+    const tx = await Mina.transaction(
+      {
+        sender: feepayer,
+        nonce: nonce,
+        memo: `Deploy token bridge for ${truncate(tokenId.toString(), { length: 6 })}`,
+        fee: this.feeStrategy.getFee(),
+      },
+      async () => {
+        AccountUpdate.fundNewAccount(feepayer, 1);
+        await settlement.addTokenBridge(
+          tokenId,
+          contractKey.toPublicKey(),
+          dispatch.address
+        );
+        await owner.approveAccountUpdate(settlement.self);
+      }
+    );
+
+    const txSigned = this.utils.signTransaction(
+      tx,
+      // Specify the mina bridge key here explicitly, since deploy() will issue
+      // a account update to that address and by default new accounts have a signature permission
+      [feepayerKey, contractKey],
+      [...this.getContractKeys(), ownerKey]
+    );
+
+    await this.transactionSender.proveAndSendTransaction(txSigned, "included");
+  }
+
   public async start(): Promise<void> {
-    noop();
+    const contractArgs = SettlementSmartContractBase.args;
+
+    SettlementSmartContractBase.args = {
+      ...contractArgs,
+      signedSettlements: this.utils.isSignedSettlement(),
+      // TODO Add distinction between mina and custom tokens
+      BridgeContractPermissions: (this.utils.isSignedSettlement()
+        ? new SignedSettlementPermissions()
+        : new ProvenSettlementPermissions()
+      ).bridgeContractMina(),
+    };
   }
 }

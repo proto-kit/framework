@@ -1,4 +1,9 @@
-import { AsyncStateService, StateEntry } from "@proto-kit/sequencer";
+import {
+  AsyncStateService,
+  StateEntry,
+  Tracer,
+  trace,
+} from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { Prisma } from "@prisma/client";
 import { noop } from "@proto-kit/common";
@@ -19,12 +24,15 @@ export class PrismaStateService implements AsyncStateService {
   /**
    * @param connection
    * @param mask A indicator to which masking level the values belong
+   * @param tracer
    */
   public constructor(
     private readonly connection: PrismaConnection,
+    public readonly tracer: Tracer,
     private readonly mask: string
   ) {}
 
+  @trace("db.state.commit")
   public async commit(): Promise<void> {
     const { prismaClient } = this.connection;
 
@@ -36,19 +44,17 @@ export class PrismaStateService implements AsyncStateService {
         mask: this.mask,
       }));
 
-    await prismaClient.$transaction([
-      prismaClient.state.deleteMany({
-        where: {
-          path: {
-            in: this.cache.map((x) => new Decimal(x.key.toString())),
-          },
-          mask: this.mask,
+    await prismaClient.state.deleteMany({
+      where: {
+        path: {
+          in: this.cache.map((x) => new Decimal(x.key.toString())),
         },
-      }),
-      prismaClient.state.createMany({
-        data,
-      }),
-    ]);
+        mask: this.mask,
+      },
+    });
+    await prismaClient.state.createMany({
+      data,
+    });
 
     this.cache = [];
   }

@@ -27,7 +27,7 @@ export abstract class SequencerModule<
 }
 
 /**
- * Marks the decorated class as a runtime module, while also
+ * Marks the decorated class as a sequencer module, while also
  * making it injectable with our dependency injection solution.
  */
 export function sequencerModule() {

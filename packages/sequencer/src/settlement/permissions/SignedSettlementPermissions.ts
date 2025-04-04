@@ -24,4 +24,12 @@ export class SignedSettlementPermissions
   public settlementContract(): Permissions {
     return this.onlySignature();
   }
+
+  public bridgeContractMina(): Permissions {
+    return this.onlySignature();
+  }
+
+  public bridgeContractToken(): Permissions {
+    return this.onlySignature();
+  }
 }

@@ -11,3 +11,4 @@ export * from "./graphql/services/NodeStatusService";
 export * from "./graphql/modules/MerkleWitnessResolver";
 export * from "./graphql/modules/LinkedMerkleWitnessResolver";
 export * from "./graphql/VanillaGraphqlModules";
+export * from "./metrics/OpenTelemetryServer";

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */
 import { ZkProgram } from "o1js";
-import { DependencyContainer, injectable } from "tsyringe";
+import { container, DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
   ModuleContainer,
@@ -11,11 +11,16 @@ import {
   PlainZkProgram,
   AreProofsEnabled,
   ChildContainerProvider,
+  CompilableModule,
+  CompileRegistry,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
   StateServiceProvider,
   SimpleAsyncStateService,
+  RuntimeMethodExecutionContext,
+  RuntimeTransaction,
+  NetworkState,
 } from "@proto-kit/protocol";
 
 import {
@@ -76,8 +81,8 @@ export class RuntimeZkProgrammable<
     super();
   }
 
-  public get appChain() {
-    return this.runtime.appChain;
+  public get areProofsEnabled() {
+    return this.runtime.areProofsEnabled;
   }
 
   public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
@@ -227,9 +232,10 @@ export class RuntimeZkProgrammable<
       return buckets;
     };
 
-    return splitRuntimeMethods().map((bucket) => {
+    return splitRuntimeMethods().map((bucket, index) => {
+      const name = `RuntimeProgram-${index}`;
       const program = ZkProgram({
-        name: "RuntimeProgram",
+        name,
         publicOutput: MethodPublicOutput,
         methods: bucket,
       });
@@ -245,6 +251,7 @@ export class RuntimeZkProgrammable<
       );
 
       return {
+        name,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
@@ -262,7 +269,7 @@ export class RuntimeZkProgrammable<
 @injectable()
 export class Runtime<Modules extends RuntimeModulesRecord>
   extends ModuleContainer<Modules>
-  implements RuntimeEnvironment
+  implements RuntimeEnvironment, CompilableModule
 {
   public static from<Modules extends RuntimeModulesRecord>(
     definition: RuntimeDefinition<Modules>
@@ -296,17 +303,15 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
 
-    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    this.useDependencyFactory(MethodIdFactory);
   }
 
-  public get appChain(): AreProofsEnabled | undefined {
+  public get areProofsEnabled(): AreProofsEnabled | undefined {
     return this.container.resolve<AreProofsEnabled>("AreProofsEnabled");
   }
 
   public get stateServiceProvider(): StateServiceProvider {
-    return this.dependencyContainer.resolve<StateServiceProvider>(
-      "StateServiceProvider"
-    );
+    return this.container.resolve<StateServiceProvider>("StateServiceProvider");
   }
 
   public get stateService(): SimpleAsyncStateService {
@@ -364,7 +369,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
     containedModule.name = moduleName;
-    containedModule.runtime = this;
+    containedModule.parent = this;
 
     super.decorateModule(moduleName, containedModule);
   }
@@ -374,6 +379,15 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    */
   public get runtimeModuleNames() {
     return Object.keys(this.definition.modules);
+  }
+
+  public async compile(registry: CompileRegistry) {
+    const context = container.resolve(RuntimeMethodExecutionContext);
+    context.setup({
+      transaction: RuntimeTransaction.dummyTransaction(),
+      networkState: NetworkState.empty(),
+    });
+    return await this.zkProgrammable.compile(registry);
   }
 }
 /* eslint-enable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */

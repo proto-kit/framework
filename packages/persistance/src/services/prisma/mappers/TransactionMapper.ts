@@ -11,7 +11,7 @@ import { Bool } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
-import { StateTransitionArrayMapper } from "./StateTransitionMapper";
+import { StateTransitionBatchArrayMapper } from "./StateTransitionMapper";
 import { EventArrayMapper } from "./EventMapper";
 
 @singleton()
@@ -55,7 +55,7 @@ export class TransactionExecutionResultMapper
 {
   public constructor(
     private readonly transactionMapper: TransactionMapper,
-    private readonly stArrayMapper: StateTransitionArrayMapper,
+    private readonly stBatchMapper: StateTransitionBatchArrayMapper,
     private readonly eventArrayMapper: EventArrayMapper
   ) {}
 
@@ -67,11 +67,8 @@ export class TransactionExecutionResultMapper
       tx: this.transactionMapper.mapIn(input[1]),
       status: Bool(executionResult.status),
       statusMessage: executionResult.statusMessage ?? undefined,
-      stateTransitions: this.stArrayMapper.mapIn(
+      stateTransitions: this.stBatchMapper.mapIn(
         executionResult.stateTransitions
-      ),
-      protocolTransitions: this.stArrayMapper.mapIn(
-        executionResult.protocolTransitions
       ),
       events: this.eventArrayMapper.mapIn(executionResult.events),
     };
@@ -84,8 +81,7 @@ export class TransactionExecutionResultMapper
     const executionResult = {
       status: input.status.toBoolean(),
       statusMessage: input.statusMessage ?? null,
-      stateTransitions: this.stArrayMapper.mapOut(input.stateTransitions),
-      protocolTransitions: this.stArrayMapper.mapOut(input.protocolTransitions),
+      stateTransitions: this.stBatchMapper.mapOut(input.stateTransitions),
       events: this.eventArrayMapper.mapOut(input.events),
       txHash: tx.hash,
     };

@@ -1,4 +1,5 @@
 import { TaskPayload } from "../flow/Task";
+import { Closeable } from "../../sequencer/builder/Closeable";
 
 /**
  * Definition of a connection-object that can generate queues and workers
@@ -13,11 +14,6 @@ export interface TaskQueue {
     options?: { concurrency?: number }
   ) => Closeable;
 }
-
-export interface Closeable {
-  close: () => Promise<void>;
-}
-
 /**
  * Object that abstracts a concrete connection to a queue instance.
  */
@@ -37,5 +33,7 @@ export interface InstantiatedQueue extends Closeable {
    */
   onCompleted: (
     listener: (payload: TaskPayload) => Promise<void>
-  ) => Promise<void>;
+  ) => Promise<number>;
+
+  offCompleted: (listenerId: number) => void;
 }

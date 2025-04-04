@@ -2,10 +2,12 @@ import { createClient, RedisClientType } from "redis";
 import {
   SequencerModule,
   StorageDependencyMinimumDependencies,
+  Tracer,
 } from "@proto-kit/sequencer";
 import { DependencyFactory } from "@proto-kit/common";
+import isArray from "lodash/isArray";
 
-import { RedisLinkedMerkleTreeStore } from "./services/redis/RedisLinkedMerkleTreeStore";
+import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
 
 export interface RedisConnectionConfig {
   host: string;
@@ -14,14 +16,21 @@ export interface RedisConnectionConfig {
   username?: string;
 }
 
+export type RedisTransaction = ReturnType<RedisClientType["multi"]>;
+
 export interface RedisConnection {
   get redisClient(): RedisClientType;
+  get currentMulti(): RedisTransaction;
 }
 
 export class RedisConnectionModule
   extends SequencerModule<RedisConnectionConfig>
   implements DependencyFactory, RedisConnection
 {
+  public constructor(private readonly tracer: Tracer) {
+    super();
+  }
+
   private client?: RedisClientType;
 
   public get redisClient(): RedisClientType {
@@ -39,13 +48,15 @@ export class RedisConnectionModule
   > {
     return {
       asyncMerkleStore: {
-        useFactory: () => new RedisLinkedMerkleTreeStore(this),
+        useFactory: () => new RedisMerkleTreeStore(this, this.tracer),
       },
       unprovenMerkleStore: {
-        useFactory: () => new RedisLinkedMerkleTreeStore(this, "unproven"),
+        useFactory: () =>
+          new RedisMerkleTreeStore(this, this.tracer, "unproven"),
       },
       blockTreeStore: {
-        useFactory: () => new RedisLinkedMerkleTreeStore(this, "blockHash"),
+        useFactory: () =>
+          new RedisMerkleTreeStore(this, this.tracer, "blockHash"),
       },
     };
   }
@@ -63,9 +74,15 @@ export class RedisConnectionModule
     });
     try {
       await this.redisClient.connect();
-    } catch (error: unknown) {
+    } catch (error: any) {
       if (error instanceof Error) {
         throw new Error(`Connection to Redis failed: ${error.message}`);
+      }
+      if (error.errors !== undefined && isArray(error.errors)) {
+        const errors = (error.errors as Error[])
+          .map((err) => err.message)
+          .reduce((a, b) => `${a}\n${b}`);
+        throw new Error(`Connection to Redis failed: \n${errors}`);
       }
       throw error;
     }
@@ -81,5 +98,21 @@ export class RedisConnectionModule
 
   public async pruneDatabase() {
     await this.redisClient.flushDb();
+  }
+
+  private multi?: RedisTransaction;
+
+  public get currentMulti() {
+    if (this.multi === undefined) {
+      throw new Error("Redis multi was access outside of a transaction");
+    }
+    return this.multi;
+  }
+
+  public async executeInTransaction(f: () => Promise<void>) {
+    this.multi = this.redisClient.multi();
+    await f();
+    await this.multi.exec();
+    this.multi = undefined;
   }
 }

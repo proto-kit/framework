@@ -18,7 +18,7 @@ export class UInt64 extends UInt<64> {
   };
 
   public static check(x: { value: Field }) {
-    UInt.assertionFunction(Gadgets.isDefinitelyInRangeN(64, x.value));
+    Gadgets.isDefinitelyInRangeN(64, x.value).assertTrue();
   }
 
   public static from(x: UInt64 | bigint | number | string) {

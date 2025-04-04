@@ -11,10 +11,10 @@ import { ProtocolEnvironment } from "./ProtocolEnvironment";
 export abstract class ProtocolModule<
   Config = NoConfig,
 > extends ConfigurableModule<Config> {
-  public protocol?: ProtocolEnvironment;
+  public parent?: ProtocolEnvironment;
 
-  public get appChain(): AreProofsEnabled | undefined {
-    return this.protocol?.getAreProofsEnabled();
+  public get areProofsEnabled(): AreProofsEnabled | undefined {
+    return this.parent?.getAreProofsEnabled();
   }
 
   public create(childContainerProvider: ChildContainerProvider): void {

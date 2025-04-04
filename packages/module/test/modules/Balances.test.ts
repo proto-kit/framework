@@ -9,6 +9,7 @@ import {
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
   NetworkState,
+  PROTOKIT_PREFIXES,
 } from "@proto-kit/protocol";
 
 import { Runtime } from "../../src";
@@ -68,7 +69,7 @@ describe("balances", () => {
     it("should compile and prove a method execution", async () => {
       expect.assertions(3);
 
-      runtime.zkProgrammable.appChain?.setProofsEnabled(true);
+      runtime.zkProgrammable.areProofsEnabled?.setProofsEnabled(true);
 
       const executionContext = container.resolve(RuntimeMethodExecutionContext);
       executionContext.setup({
@@ -90,7 +91,7 @@ describe("balances", () => {
 
       const verified = await runtime.zkProgrammable.zkProgram[0].verify(proof);
 
-      runtime.zkProgrammable.appChain?.setProofsEnabled(false);
+      runtime.zkProgrammable.areProofsEnabled?.setProofsEnabled(false);
 
       expect(verified).toBe(true);
 
@@ -132,7 +133,11 @@ describe("balances", () => {
       it("should have a state transition for the correct path", () => {
         expect.assertions(1);
 
-        const path = Path.fromProperty("Balances", "totalSupply");
+        const path = Path.fromProperty(
+          "Balances",
+          "totalSupply",
+          PROTOKIT_PREFIXES.STATE_RUNTIME
+        );
 
         expect(stateTransitions[0].path.toString()).toStrictEqual(
           path.toString()
@@ -192,7 +197,11 @@ describe("balances", () => {
       it("should have a state transition for the correct path", () => {
         expect.assertions(1);
 
-        const path = Path.fromProperty("Balances", "totalSupply");
+        const path = Path.fromProperty(
+          "Balances",
+          "totalSupply",
+          PROTOKIT_PREFIXES.STATE_RUNTIME
+        );
 
         expect(stateTransitions[0].path.toString()).toStrictEqual(
           path.toString()
@@ -247,7 +256,11 @@ describe("balances", () => {
       it("should have a state transition for the correct path", () => {
         expect.assertions(1);
 
-        const path = Path.fromProperty("Balances", "totalSupply");
+        const path = Path.fromProperty(
+          "Balances",
+          "totalSupply",
+          PROTOKIT_PREFIXES.STATE_RUNTIME
+        );
 
         expect(stateTransitions[0].path.toString()).toStrictEqual(
           path.toString()
@@ -313,7 +326,11 @@ describe("balances", () => {
         expect.assertions(1);
 
         const path = Path.fromKey<PublicKey>(
-          Path.fromProperty("Balances", "balances"),
+          Path.fromProperty(
+            "Balances",
+            "balances",
+            PROTOKIT_PREFIXES.STATE_RUNTIME
+          ),
           PublicKey,
           address
         );

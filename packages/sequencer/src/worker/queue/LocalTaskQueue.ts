@@ -1,9 +1,12 @@
-import { log, noop } from "@proto-kit/common";
+import { log, mapSequential, noop } from "@proto-kit/common";
 
-import { SequencerModule } from "../../sequencer/builder/SequencerModule";
+import { sequencerModule } from "../../sequencer/builder/SequencerModule";
 import { TaskPayload } from "../flow/Task";
+import { Closeable } from "../../sequencer/builder/Closeable";
 
-import { Closeable, InstantiatedQueue, TaskQueue } from "./TaskQueue";
+import { InstantiatedQueue, TaskQueue } from "./TaskQueue";
+import { ListenerList } from "./ListenerList";
+import { AbstractTaskQueue } from "./AbstractTaskQueue";
 
 async function sleep(ms: number) {
   await new Promise((resolve) => {
@@ -20,11 +23,59 @@ export interface LocalTaskQueueConfig {
   simulatedDuration?: number;
 }
 
+class InMemoryInstantiatedQueue implements InstantiatedQueue {
+  public constructor(
+    public readonly name: string,
+    public taskQueue: LocalTaskQueue
+  ) {}
+
+  private id = 0;
+
+  private instantiated = false;
+
+  private listeners = new ListenerList<TaskPayload>();
+
+  async addTask(
+    payload: TaskPayload,
+    taskId?: string
+  ): Promise<{ taskId: string }> {
+    this.id += 1;
+    const nextId = taskId ?? String(this.id).toString();
+    this.taskQueue.queuedTasks[this.name].push({ payload, taskId: nextId });
+
+    void this.taskQueue.workNextTasks();
+
+    return { taskId: nextId };
+  }
+
+  async onCompleted(
+    listener: (payload: TaskPayload) => Promise<void>
+  ): Promise<number> {
+    if (!this.instantiated) {
+      (this.taskQueue.listeners[this.name] ??= []).push(async (result) => {
+        await this.listeners.executeListeners(result);
+      });
+
+      this.instantiated = false;
+    }
+    return this.listeners.pushListener(listener);
+  }
+
+  async offCompleted(listenerId: number) {
+    this.listeners.removeListener(listenerId);
+  }
+
+  async close() {
+    noop();
+  }
+}
+
+@sequencerModule()
 export class LocalTaskQueue
-  extends SequencerModule<LocalTaskQueueConfig>
+  extends AbstractTaskQueue<LocalTaskQueueConfig>
   implements TaskQueue
 {
-  public queues: {
+  public queuedTasks: {
     [key: string]: { payload: TaskPayload; taskId: string }[];
   } = {};
 
@@ -42,32 +93,57 @@ export class LocalTaskQueue
     [key: string]: QueueListener[] | undefined;
   } = {};
 
-  public workNextTasks() {
-    Object.entries(this.queues).forEach(([queueName, tasks]) => {
-      if (tasks.length > 0 && this.workers[queueName]) {
-        tasks.forEach((task) => {
-          // Execute task in worker
+  private taskInProgress = false;
 
-          void this.workers[queueName]
-            ?.handler(task.payload)
-            .then((payload) => {
-              if (payload === "closed") {
-                return;
+  public async workNextTasks() {
+    if (this.taskInProgress) {
+      return;
+    }
+    this.taskInProgress = true;
+
+    // Collect all tasks
+    const tasksToExecute = Object.entries(this.queuedTasks).flatMap(
+      ([queueName, tasks]) => {
+        if (tasks.length > 0 && this.workers[queueName]) {
+          const functions = tasks.map((task) => async () => {
+            // Execute task in worker
+
+            log.trace(`Working ${task.payload.name} with id ${task.taskId}`);
+
+            const payload = await this.workers[queueName]?.handler(
+              task.payload
+            );
+
+            if (payload === "closed" || payload === undefined) {
+              return;
+            }
+            log.trace("LocalTaskQueue got", JSON.stringify(payload));
+
+            // Notify listeners about result
+            const listenerPromises = this.listeners[queueName]?.map(
+              async (listener) => {
+                await listener(payload);
               }
-              log.trace("LocalTaskQueue got", JSON.stringify(payload));
-              // Notify listeners about result
-              const listenerPromises = this.listeners[queueName]?.map(
-                async (listener) => {
-                  await listener(payload);
-                }
-              );
-              void Promise.all(listenerPromises || []);
-            });
-        });
-      }
+            );
+            await Promise.all(listenerPromises || []);
+          });
+          this.queuedTasks[queueName] = [];
+          return functions;
+        }
 
-      this.queues[queueName] = [];
-    });
+        return [];
+      }
+    );
+
+    // Execute all tasks
+    await mapSequential(tasksToExecute, async (task) => await task());
+
+    this.taskInProgress = false;
+
+    // In case new tasks came up in the meantime, execute them as well
+    if (tasksToExecute.length > 0) {
+      await this.workNextTasks();
+    }
   }
 
   public createWorker(
@@ -105,42 +181,16 @@ export class LocalTaskQueue
     };
 
     this.workers[queueName] = worker;
-    this.workNextTasks();
+    void this.workNextTasks();
 
     return worker;
   }
 
   public async getQueue(queueName: string): Promise<InstantiatedQueue> {
-    this.queues[queueName] = [];
-
-    let id = 0;
-
-    return {
-      name: queueName,
-
-      addTask: async (
-        payload: TaskPayload,
-        taskId?: string
-      ): Promise<{ taskId: string }> => {
-        id += 1;
-        const nextId = taskId ?? String(id).toString();
-        this.queues[queueName].push({ payload, taskId: nextId });
-
-        this.workNextTasks();
-
-        return { taskId: nextId };
-      },
-
-      onCompleted: async (
-        listener: (payload: TaskPayload) => Promise<void>
-      ): Promise<void> => {
-        (this.listeners[queueName] ??= []).push(listener);
-      },
-
-      close: async () => {
-        noop();
-      },
-    };
+    return this.createOrGetQueue(queueName, (name) => {
+      this.queuedTasks[name] = [];
+      return new InMemoryInstantiatedQueue(name, this);
+    });
   }
 
   public async start(): Promise<void> {

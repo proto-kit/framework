@@ -6,11 +6,12 @@ import {
 } from "@proto-kit/module";
 import { inject, injectable } from "tsyringe";
 import {
+  BeforeTransactionHookArguments,
   ProvableTransactionHook,
-  BlockProverExecutionData,
   PublicKeyOption,
 } from "@proto-kit/protocol";
 import { Field, Provable, PublicKey } from "o1js";
+import { noop } from "@proto-kit/common";
 
 import { UInt64 } from "../math/UInt64";
 import { Balance, TokenId } from "../runtime/Balances";
@@ -51,7 +52,8 @@ const errors = {
 export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHookConfig> {
   public constructor(
     // dependency on runtime, since balances are part of runtime logic
-    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
+    @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>,
+    @inject("Balances") public balances: Balances
   ) {
     super();
   }
@@ -91,10 +93,6 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     super.config = value;
   }
 
-  public get balances() {
-    return this.runtime.dependencyContainer.resolve<Balances>("Balances");
-  }
-
   public get feeAnalyzer() {
     if (this.persistedFeeAnalyzer === undefined) {
       throw new Error("TransactionFeeHook.start not called by protocol");
@@ -125,8 +123,8 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
    *
    * @param executionData
    */
-  public async onTransaction(
-    executionData: BlockProverExecutionData
+  public async beforeTransaction(
+    executionData: BeforeTransactionHookArguments
   ): Promise<void> {
     const feeConfig = Provable.witness(MethodFeeConfigData, () =>
       this.feeAnalyzer.getFeeConfig(
@@ -156,5 +154,9 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       executionData.transaction.sender,
       UInt64.Unsafe.fromField(fee.value)
     );
+  }
+
+  public async afterTransaction(): Promise<void> {
+    noop();
   }
 }

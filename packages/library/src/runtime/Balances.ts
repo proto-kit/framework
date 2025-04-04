@@ -1,11 +1,6 @@
 import { EventsRecord, NoConfig } from "@proto-kit/common";
-import {
-  RuntimeModule,
-  runtimeMethod,
-  state,
-  runtimeModule,
-} from "@proto-kit/module";
-import { StateMap, assert } from "@proto-kit/protocol";
+import { RuntimeModule, runtimeMethod, runtimeModule } from "@proto-kit/module";
+import { StateMap, assert, state } from "@proto-kit/protocol";
 import { Field, PublicKey, Struct, Provable } from "o1js";
 
 import { UInt64 } from "../math/UInt64";

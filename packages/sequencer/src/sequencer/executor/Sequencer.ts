@@ -18,6 +18,7 @@ import {
 import { DependencyContainer, injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
+import { Closeable } from "../builder/Closeable";
 
 import { Sequenceable } from "./Sequenceable";
 
@@ -66,7 +67,15 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    * modules to start each
    */
   public async start() {
-    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    // The sequencer uses tsyringe to resolve modules (and their dependencies)
+    // and then starts them. However, this can be problematic as although tsyringe may resolve
+    // dependencies, it doesn't actually start them. For example, a database may be created,
+    // but the connection strings, etc, won't be constructed until it's started, and this may
+    // cause an error if a module that relies on it is started first. The way to fix this is
+    // ensure that we start modules based on the order they were resolved.
+    // We iterate through the methods three times:
+
+    this.useDependencyFactory(MethodIdFactory);
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(
@@ -75,8 +84,34 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     log.info("Starting sequencer...");
     log.info("Modules:", moduleClassNames);
 
+    // Iteration #1: We invoke the afterResolution feature for the container
+    // to ensure every time a module is resolved it gets recorded.
+    const orderedModules: Extract<keyof Modules, string>[] = [];
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
+      this.container.afterResolution(
+        moduleName,
+        () => {
+          orderedModules.push(moduleName);
+        },
+        {
+          frequency: "Once",
+        }
+      );
+    }
+    // Iteration #2: We resolve each module and thus populate
+    // the orderedModules list to understand the sequencing.
+    // eslint-disable-next-line guard-for-in
+    for (const moduleName in this.definition.modules) {
+      const sequencerModule = this.resolve(moduleName);
+      log.info(
+        `Resolving sequencer module ${moduleName} (${sequencerModule.constructor.name})`
+      );
+    }
+
+    // Iteration #3: We now iterate though the orderedModules list
+    // and start the modules in the order they were resolved.
+    for (const moduleName of orderedModules) {
       const sequencerModule = this.resolve(moduleName);
 
       log.info(
@@ -85,5 +120,21 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       // eslint-disable-next-line no-await-in-loop
       await sequencerModule.start();
     }
+
+    // TODO This currently also warns for client appchains
+    if (!moduleClassNames.includes("SequencerStartupModule")) {
+      log.warn("SequencerStartupModule is not defined.");
+    }
+  }
+
+  public async close() {
+    log.info("Closing sequencer...");
+    const closeables = this.container.resolveAll<Closeable>("Closeable");
+    await Promise.all(
+      closeables.map(async (closeable) => {
+        await closeable.close();
+      })
+    );
+    log.info("Sequencer closed");
   }
 }

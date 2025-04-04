@@ -6,13 +6,8 @@ import {
   StateServiceQueryModule,
 } from "@proto-kit/sdk";
 import { PrivateKey, PublicKey } from "o1js";
-import {
-  Runtime,
-  runtimeMethod,
-  runtimeModule,
-  state,
-} from "@proto-kit/module";
-import { Protocol, State } from "@proto-kit/protocol";
+import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
+import { Protocol, State, state } from "@proto-kit/protocol";
 import {
   Balance,
   Balances,
@@ -22,18 +17,19 @@ import {
   VanillaRuntimeModules,
   UInt64,
 } from "@proto-kit/library";
-import { log } from "@proto-kit/common";
+import { log, mapSequential, range } from "@proto-kit/common";
 import {
   BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
-  ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
   BlockProducerModule,
   VanillaTaskWorkerModules,
+  SequencerStartupModule,
+  TimedBlockTrigger,
 } from "@proto-kit/sequencer";
 import {
   BatchStorageResolver,
@@ -44,6 +40,7 @@ import {
   NodeStatusResolver,
   QueryGraphqlModule,
   BlockResolver,
+  OpenTelemetryServer,
 } from "@proto-kit/api";
 import { container } from "tsyringe";
 
@@ -102,16 +99,19 @@ export async function startServer() {
       modules: {
         Database: InMemoryDatabase,
         // Database: PrismaRedisDatabase,
+        OpenTelemetryServer,
 
         Mempool: PrivateMempool,
         GraphqlServer,
         LocalTaskWorkerModule: LocalTaskWorkerModule.from(
           VanillaTaskWorkerModules.withoutSettlement()
         ),
+
         BaseLayer: NoopBaseLayer,
         BatchProducerModule,
         BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
+        // BlockTrigger: ManualBlockTrigger,
+        BlockTrigger: TimedBlockTrigger,
         TaskQueue: LocalTaskQueue,
         // SettlementModule: SettlementModule,
 
@@ -134,6 +134,8 @@ export async function startServer() {
             BlockResolver: {},
           },
         }),
+
+        SequencerStartupModule,
       },
     }),
 
@@ -171,6 +173,8 @@ export async function startServer() {
         host: "0.0.0.0",
         graphiql: true,
       },
+      SequencerStartupModule: {},
+
       // SettlementModule: {
       //   address: PrivateKey.random().toPublicKey(),
       //   feepayer: PrivateKey.random(),
@@ -183,6 +187,18 @@ export async function startServer() {
         NodeStatusResolver: {},
         BlockResolver: {},
         MerkleWitnessResolver: {},
+      },
+
+      OpenTelemetryServer: {
+        tracing: {
+          enabled: true,
+          otlp: {
+            url: "http://localhost:4318",
+          },
+        },
+        metrics: {
+          enabled: true,
+        },
       },
 
       Database: {
@@ -206,17 +222,7 @@ export async function startServer() {
 
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: {
-        StateTransitionTask: {},
-        // SettlementProvingTask: {},
-        BlockBuildingTask: {},
-        BlockProvingTask: {},
-        BlockReductionTask: {},
-        RuntimeProvingTask: {},
-        StateTransitionReductionTask: {},
-        CircuitCompilerTask: {},
-        WorkerRegistrationTask: {},
-      },
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       TaskQueue: {},
 
@@ -224,7 +230,10 @@ export async function startServer() {
         allowEmptyBlock: true,
       },
 
-      BlockTrigger: {},
+      BlockTrigger: {
+        blockInterval: 10000,
+        settlementInterval: 20000,
+      },
     },
 
     TransactionSender: {},
@@ -236,7 +245,7 @@ export async function startServer() {
     },
   });
 
-  await appChain.start(container.createChildContainer());
+  await appChain.start(false, container.createChildContainer());
   // const pk = PublicKey.fromBase58(
   //   "B62qmETai5Y8vvrmWSU8F4NX7pTyPqYLMhc1pgX3wD8dGc2wbCWUcqP"
   // );
@@ -252,30 +261,31 @@ export async function startServer() {
   const as = await appChain.query.protocol.AccountState.accountState.get(
     priv.toPublicKey()
   );
-  const nonce = Number(as?.nonce.toString() ?? "0");
+  let nonce = Number(as?.nonce.toString() ?? "0");
 
-  const tx = await appChain.transaction(
-    priv.toPublicKey(),
-    async () => {
-      await balances.addBalance(tokenId, priv.toPublicKey(), UInt64.from(1000));
-    },
-    {
-      nonce,
-    }
-  );
-  appChain.resolve("Signer").config.signer = priv;
-  await tx.sign();
-  await tx.send();
+  setInterval(async () => {
+    const random = Math.floor(Math.random() * 5);
+    await mapSequential(range(0, random), async () => {
+      const tx = await appChain.transaction(
+        priv.toPublicKey(),
+        async () => {
+          await balances.addBalance(
+            tokenId,
+            priv.toPublicKey(),
+            UInt64.from(1000)
+          );
+        },
+        {
+          nonce,
+        }
+      );
+      appChain.resolve("Signer").config.signer = priv;
+      await tx.sign();
+      await tx.send();
 
-  const tx2 = await appChain.transaction(
-    priv.toPublicKey(),
-    async () => {
-      await balances.addBalance(tokenId, priv.toPublicKey(), UInt64.from(1000));
-    },
-    { nonce: nonce + 1 }
-  );
-  await tx2.sign();
-  await tx2.send();
+      nonce += 1;
+    });
+  }, 10000);
 
   return appChain;
 }
