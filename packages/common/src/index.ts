@@ -21,6 +21,8 @@ export * from "./trees/lmt/LinkedMerkleTree";
 export * from "./trees/lmt/InMemoryLinkedLeafStore";
 export * from "./trees/lmt/InMemoryLinkedMerkleLeafStore";
 export * from "./trees/lmt/LinkedMerkleTreeCircuitOps";
+export * from "./trees/lmt/AbstractLinkedMerkleTree";
+export * from "./trees/lmt/LinkedMerkleTreeTypes";
 export * from "./events/EventEmitterProxy";
 export * from "./events/ReplayingSingleUseEventEmitter";
 export * from "./trees/sparse/MockAsyncMerkleStore";

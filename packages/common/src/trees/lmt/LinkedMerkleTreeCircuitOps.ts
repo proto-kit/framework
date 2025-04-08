@@ -1,10 +1,10 @@
 import { Bool, Field, Provable, Struct } from "o1js";
 
+import { LinkedMerkleTreeWitness } from "./LinkedMerkleTree";
 import {
   LinkedLeafStruct,
   LinkedMerkleTreeGlobalState,
-  LinkedMerkleTreeWitness,
-} from "./LinkedMerkleTree";
+} from "./LinkedMerkleTreeTypes";
 
 /* eslint-disable no-inner-declarations */
 // TODO
@@ -160,6 +160,7 @@ export namespace LinkedMerkleTreeCircuitOps {
     newPreviousLeaf: LinkedLeafStruct,
     newCurrentLeaf: LinkedLeafStruct,
     isUpdate: Bool,
+    isDummyAndUpdate: Bool,
     root: Field
   ) {
     const { leafPrevious, leafCurrent } = witness;
@@ -184,7 +185,9 @@ export namespace LinkedMerkleTreeCircuitOps {
     );
     leafCurrent.merkleWitness
       .calculateRoot(leafCurrentLeaf)
-      .assertEquals(intermediateRoot);
+      .equals(intermediateRoot)
+      .or(isDummyAndUpdate)
+      .assertTrue("Current leaf witness invalid");
 
     return leafCurrent.merkleWitness.calculateRoot(newCurrentLeaf.hash());
   }
@@ -198,6 +201,7 @@ export namespace LinkedMerkleTreeCircuitOps {
     const { leafPrevious, leafCurrent } = witness;
 
     const isUpdate = leafPrevious.leaf.isDummy();
+    const isDummy = leafCurrent.leaf.isDummy().and(isUpdate);
 
     // For read-only and update
     const updateState = update(state, witness, treeWrite);
@@ -207,22 +211,29 @@ export namespace LinkedMerkleTreeCircuitOps {
 
     const instruction = chooseInstruction(isUpdate, updateState, insertState);
 
-    instruction.allChecksMet.assertTrue(
-      `Not all witness checks have been met: ${index}`
-    );
+    instruction.allChecksMet
+      .or(isDummy)
+      .assertTrue(`Not all witness checks have been met: ${index}`);
 
     const newRoot = computeRoot(
       witness,
       instruction.newPreviousLeaf,
       instruction.newCurrentLeaf,
       isUpdate,
+      isDummy,
       state.root
     );
 
-    return {
+    const updatedState = {
       root: newRoot,
       lastOccupiedIndex: instruction.update.lastOccupiedIndex,
     };
+    return Provable.if(
+      isDummy,
+      LinkedMerkleTreeGlobalState,
+      state,
+      updatedState
+    );
   }
 }
 

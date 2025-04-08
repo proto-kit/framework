@@ -110,6 +110,32 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
     );
   });
 
+  it("should noop when used with a dummy witness", () => {
+    tree.setLeaf(5n, 1000n);
+    tree.setLeaf(10n, 1500n);
+
+    const root = tree.getGlobalState();
+
+    const globalState = LinkedMerkleTreeCircuitOps.applyTreeWrite(
+      root,
+      tree.dummyWitness(),
+      {
+        path: Field(0),
+        from: Field(0),
+        to: Field(0),
+      },
+      0
+    );
+
+    expect(globalState.root.toString()).toStrictEqual(root.root.toString());
+    expect(globalState.root.toString()).toStrictEqual(
+      tree.getRoot().toString()
+    );
+    expect(globalState.lastOccupiedIndex.toString()).toStrictEqual(
+      root.lastOccupiedIndex.toString()
+    );
+  });
+
   it("Circuit size", async () => {
     const root = tree.getGlobalState();
 
