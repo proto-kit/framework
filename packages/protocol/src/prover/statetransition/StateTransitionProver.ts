@@ -7,6 +7,10 @@ import {
   CompilableModule,
   type ArtifactRecord,
   type CompileRegistry,
+  TreeWrite,
+  LinkedMerkleTreeCircuitOps,
+  LinkedMerkleTreeGlobalState,
+  LinkedMerkleTreeWitness,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
@@ -43,7 +47,7 @@ const errors = {
 interface StateTransitionProverExecutionState {
   currentBatch: AppliedStateTransitionBatchState;
   batchList: AppliedBatchHashList;
-  finalizedRoot: Field;
+  finalizedRoot: LinkedMerkleTreeGlobalState;
   witnessedRoots: WitnessedRootHashList;
 }
 
@@ -143,6 +147,27 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     ];
   }
 
+  private transitionToTreeWrite(
+    st: ProvableStateTransition,
+    witness: LinkedMerkleTreeWitness
+  ): TreeWrite {
+    // If from isSome isn't set, the user "ignored the previous value", i.e. we
+    // can assume the value in the witness is correct
+    const from = Provable.if(
+      st.from.isSome,
+      st.from.value,
+      witness.leafCurrent.leaf.value
+    );
+
+    // If the user doesn't want to write, we just carry over the from-value
+    const to = Provable.if(st.to.isSome, st.to.value, from);
+    return {
+      path: st.path,
+      from,
+      to,
+    };
+  }
+
   /**
    * Applies the state transitions to the current stateRoot
    * and returns the new prover state
@@ -178,6 +203,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       // The root is based on if the previous batch will be applied or not
       const base = Provable.if(
         closingAndApply,
+        LinkedMerkleTreeGlobalState,
         updatedBatchState.root,
         state.finalizedRoot
       );
@@ -193,6 +219,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       state.batchList.pushIf(updatedBatch, closing);
       state.finalizedRoot = Provable.if(
         closingAndApply,
+        LinkedMerkleTreeGlobalState,
         updatedBatchState.root,
         state.finalizedRoot
       );
@@ -248,7 +275,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   public applyTransition(
     currentBatch: AppliedStateTransitionBatchState,
     transition: ProvableStateTransition,
-    witness: RollupMerkleTreeWitness,
+    witness: LinkedMerkleTreeWitness,
     index = 0
   ) {
     const impliedRoot = this.applyTransitionToRoot(
@@ -274,23 +301,18 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
   private applyTransitionToRoot(
     transition: ProvableStateTransition,
-    root: Field,
-    merkleWitness: RollupMerkleTreeWitness,
+    treeState: LinkedMerkleTreeGlobalState,
+    merkleWitness: LinkedMerkleTreeWitness,
     index: number
-  ): Field {
-    const membershipValid = merkleWitness.checkMembership(
-      root,
-      transition.path,
-      transition.from.value
+  ): LinkedMerkleTreeGlobalState {
+    const treeWrite = this.transitionToTreeWrite(transition, merkleWitness);
+
+    return LinkedMerkleTreeCircuitOps.applyTreeWrite(
+      treeState,
+      merkleWitness,
+      treeWrite,
+      index
     );
-
-    membershipValid
-      .or(transition.from.isSome.not())
-      .assertTrue(errors.merkleWitnessNotCorrect(index));
-
-    const newRoot = merkleWitness.calculateRoot(transition.to.value);
-
-    return Provable.if(transition.to.isSome, newRoot, root);
   }
 
   /**
@@ -312,8 +334,10 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 
     // Assert that either the currentAppliedBatch is somewhere intermediary
     // or the root is the current "finalized" root
-    currentAppliedBatch.root
-      .equals(publicInput.root)
+    LinkedMerkleTreeGlobalState.equals(
+      currentAppliedBatch.root,
+      publicInput.root
+    )
       .or(publicInput.currentBatchStateHash.equals(0).not())
       .assertTrue();
 
@@ -373,11 +397,14 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
     );
 
     // Check root
-    publicInput.root.assertEquals(
+    LinkedMerkleTreeGlobalState.assertEquals(
+      publicInput.root,
       proof1.publicInput.root,
       errors.propertyNotMatching("root", "publicInput.from -> proof1.from")
     );
-    proof1.publicOutput.root.assertEquals(
+
+    LinkedMerkleTreeGlobalState.assertEquals(
+      proof1.publicOutput.root,
       proof2.publicInput.root,
       errors.propertyNotMatching("root", "proof1.to -> proof2.from")
     );

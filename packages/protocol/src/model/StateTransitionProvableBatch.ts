@@ -1,5 +1,9 @@
 import { Bool, Field, Provable, Struct } from "o1js";
-import { batch, RollupMerkleTreeWitness } from "@proto-kit/common";
+import {
+  batch,
+  LinkedMerkleTreeWitness,
+  RollupMerkleTreeWitness,
+} from "@proto-kit/common";
 
 import { constants } from "../Constants";
 
@@ -53,7 +57,7 @@ export class ProvableStateTransitionType extends Struct({
 
 export class MerkleWitnessBatch extends Struct({
   witnesses: Provable.Array(
-    RollupMerkleTreeWitness,
+    LinkedMerkleTreeWitness,
     constants.stateTransitionProverBatchSize
   ),
 }) {}

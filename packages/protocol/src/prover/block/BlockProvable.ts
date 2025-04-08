@@ -8,7 +8,11 @@ import {
   Struct,
   Void,
 } from "o1js";
-import { WithZkProgrammable, CompilableModule } from "@proto-kit/common";
+import {
+  WithZkProgrammable,
+  CompilableModule,
+  LinkedMerkleTreeGlobalState,
+} from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
@@ -30,7 +34,7 @@ export interface BlockProverState {
   /**
    * The current state root of the block prover
    */
-  stateRoot: Field;
+  stateRoot: LinkedMerkleTreeGlobalState;
 
   /**
    * The current commitment of the transaction-list which
@@ -69,7 +73,7 @@ export interface BlockProverState {
 // TODO Sort and organize public inputs and outputs
 export class BlockProverStateCommitments extends Struct({
   transactionsHash: Field,
-  stateRoot: Field,
+  stateRoot: LinkedMerkleTreeGlobalState,
   // Commitment to the list of unprocessed (pending) batches of STs that need to be proven
   pendingSTBatchesHash: Field,
   witnessedRootsHash: Field,
@@ -128,7 +132,7 @@ export class BlockProverPublicInput extends BlockProverStateCommitments {}
 
 export class BlockProverPublicOutput extends Struct({
   transactionsHash: Field,
-  stateRoot: Field,
+  stateRoot: LinkedMerkleTreeGlobalState,
   pendingSTBatchesHash: Field,
   witnessedRootsHash: Field,
   networkStateHash: Field,

@@ -1,5 +1,9 @@
 import { Field, Proof, Struct } from "o1js";
-import { WithZkProgrammable, CompilableModule } from "@proto-kit/common";
+import {
+  WithZkProgrammable,
+  CompilableModule,
+  LinkedMerkleTreeGlobalState,
+} from "@proto-kit/common";
 
 import {
   MerkleWitnessBatch,
@@ -10,14 +14,14 @@ import { AppliedStateTransitionBatchState } from "../../model/AppliedStateTransi
 export class StateTransitionProverPublicInput extends Struct({
   batchesHash: Field,
   currentBatchStateHash: Field,
-  root: Field,
+  root: LinkedMerkleTreeGlobalState,
   witnessedRootsHash: Field,
 }) {}
 
 export class StateTransitionProverPublicOutput extends Struct({
   batchesHash: Field,
   currentBatchStateHash: Field,
-  root: Field,
+  root: LinkedMerkleTreeGlobalState,
   witnessedRootsHash: Field,
 }) {}
 

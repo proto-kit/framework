@@ -13,6 +13,7 @@ import {
   CompilableModule,
   CompileArtifact,
   CompileRegistry,
+  LinkedMerkleTreeGlobalState,
   log,
   MAX_FIELD,
   PlainZkProgram,
@@ -476,11 +477,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
   public includeSTProof(
     stateTransitionProof: StateTransitionProof,
     apply: Bool,
-    stateRoot: Field,
+    stateRoot: LinkedMerkleTreeGlobalState,
     pendingSTBatchesHash: Field,
     witnessedRootsHash: Field
   ): {
-    stateRoot: Field;
+    stateRoot: LinkedMerkleTreeGlobalState;
     pendingSTBatchesHash: Field;
     witnessedRootsHash: Field;
   } {
@@ -504,13 +505,21 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "Batcheshash doesn't start at 0"
     );
 
-    // Assert from state roots
+    // Assert from state roots tree root
     assertEqualsIf(
-      stateRoot,
-      stateTransitionProof.publicInput.root,
+      stateRoot.root,
+      stateTransitionProof.publicInput.root.root,
       apply,
       errors.propertyNotMatching("from state root")
     );
+    // Assert from state roots last occupied index
+    assertEqualsIf(
+      stateRoot.lastOccupiedIndex,
+      stateTransitionProof.publicInput.root.lastOccupiedIndex,
+      apply,
+      errors.propertyNotMatching("from state root")
+    );
+
     // Assert the stBatchesHash executed is the same
     assertEqualsIf(
       pendingSTBatchesHash,
@@ -537,6 +546,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // update root only if we didn't defer
     const newRoot = Provable.if(
       apply,
+      LinkedMerkleTreeGlobalState,
       stateTransitionProof.publicOutput.root,
       stateRoot
     );
@@ -621,7 +631,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
       .assertTrue(
         "TransactionProof networkstate hash not matching beforeBlock hook result"
       );
-    transactionProof.publicInput.stateRoot.assertEquals(
+    LinkedMerkleTreeGlobalState.assertEquals(
+      transactionProof.publicInput.stateRoot,
       transactionProof.publicOutput.stateRoot,
       "TransactionProofs can't change the state root"
     );
@@ -654,7 +665,12 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Witness root
     const isEmpty = state.pendingSTBatches.commitment.equals(0);
     isEmpty
-      .implies(state.stateRoot.equals(afterBlockRootWitness.witnessedRoot))
+      .implies(
+        LinkedMerkleTreeGlobalState.equals(
+          state.stateRoot,
+          afterBlockRootWitness.witnessedRoot
+        )
+      )
       .assertTrue();
 
     state.witnessedRoots.witnessRoot(
@@ -748,11 +764,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
     proof2.verify();
 
     // Check state
-    publicInput.stateRoot.assertEquals(
+    LinkedMerkleTreeGlobalState.assertEquals(
+      publicInput.stateRoot,
       proof1.publicInput.stateRoot,
       errors.stateRootNotMatching("publicInput.from -> proof1.from")
     );
-    proof1.publicOutput.stateRoot.assertEquals(
+    LinkedMerkleTreeGlobalState.assertEquals(
+      proof1.publicOutput.stateRoot,
       proof2.publicInput.stateRoot,
       errors.stateRootNotMatching("proof1.to -> proof2.from")
     );

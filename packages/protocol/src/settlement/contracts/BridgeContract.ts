@@ -15,7 +15,13 @@ import {
   TokenId,
   VerificationKey,
 } from "o1js";
-import { noop, range, TypedClass } from "@proto-kit/common";
+import {
+  LinkedLeafStruct,
+  LinkedMerkleTreeGlobalState,
+  noop,
+  range,
+  TypedClass,
+} from "@proto-kit/common";
 
 import {
   OUTGOING_MESSAGE_BATCH_SIZE,
@@ -43,7 +49,7 @@ export type BridgeContractType = {
     settlementContractAddress: PublicKey
   ) => Promise<AccountUpdate>;
 
-  updateStateRoot: (root: Field) => Promise<void>;
+  updateStateRoot: (root: LinkedMerkleTreeGlobalState) => Promise<void>;
 };
 
 // Equal to WithdrawalKey
@@ -112,8 +118,10 @@ export abstract class BridgeContractBase extends TokenContractV2 {
     noop();
   }
 
-  public async updateStateRootBase(root: Field) {
-    this.stateRoot.set(root);
+  public async updateStateRootBase(root: LinkedMerkleTreeGlobalState) {
+    // It's fine for us to only store the actual root since we only have to
+    // witness values, not update/insert
+    this.stateRoot.set(root.root);
 
     const settlementContractAddress =
       this.settlementContractAddress.getAndRequireEquals();
@@ -224,7 +232,7 @@ export class BridgeContract
   @state(Field) public outgoingMessageCursor = State<Field>();
 
   @method
-  public async updateStateRoot(root: Field) {
+  public async updateStateRoot(root: LinkedMerkleTreeGlobalState) {
     return await this.updateStateRootBase(root);
   }
 

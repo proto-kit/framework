@@ -1,4 +1,5 @@
 import { Bool, Field, Struct } from "o1js";
+import { LinkedMerkleTreeGlobalState } from "@proto-kit/common";
 
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 
@@ -8,11 +9,11 @@ import { DefaultProvableHashList } from "../../utils/ProvableHashList";
  */
 export class WitnessedRoot extends Struct({
   appliedBatchListState: Field,
-  root: Field,
+  root: LinkedMerkleTreeGlobalState,
 }) {}
 
 export class WitnessedRootWitness extends Struct({
-  witnessedRoot: Field,
+  witnessedRoot: LinkedMerkleTreeGlobalState,
   preimage: Field,
 }) {}
 

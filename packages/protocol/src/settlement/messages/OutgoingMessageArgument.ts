@@ -1,8 +1,9 @@
 import { Bool, Provable, Struct } from "o1js";
 import {
-  InMemoryLinkedMerkleLeafStore,
-  LinkedLeafAndMerkleWitness,
+  InMemoryLinkedLeafStore,
+  InMemoryMerkleTreeStorage,
   LinkedMerkleTree,
+  LinkedMerkleTreeReadWitness,
 } from "@proto-kit/common";
 
 import { Withdrawal } from "./Withdrawal";
@@ -10,14 +11,15 @@ import { Withdrawal } from "./Withdrawal";
 export const OUTGOING_MESSAGE_BATCH_SIZE = 1;
 
 export class OutgoingMessageArgument extends Struct({
-  witness: LinkedLeafAndMerkleWitness,
+  witness: LinkedMerkleTreeReadWitness,
   value: Withdrawal,
 }) {
   public static dummy(): OutgoingMessageArgument {
     return new OutgoingMessageArgument({
       witness: new LinkedMerkleTree(
-        new InMemoryLinkedMerkleLeafStore()
-      ).dummy(),
+        new InMemoryMerkleTreeStorage(),
+        new InMemoryLinkedLeafStore()
+      ).dummyReadWitness(),
       value: Withdrawal.dummy(),
     });
   }

@@ -4,6 +4,7 @@ import {
   TypedClass,
   mapSequential,
   ChildVerificationKeyService,
+  LinkedMerkleTreeGlobalState,
 } from "@proto-kit/common";
 import {
   AccountUpdate,
@@ -71,7 +72,7 @@ export interface SettlementContractType {
     bridgeContract: PublicKey,
     contractKey: PrivateKey
   ) => Promise<void>;
-  assertStateRoot: (root: Field) => AccountUpdate;
+  assertStateRoot: (root: LinkedMerkleTreeGlobalState) => AccountUpdate;
   settle: (
     blockProof: DynamicBlockProof,
     signature: Signature,
@@ -127,7 +128,7 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
 
   abstract sequencerKey: State<Field>;
   abstract lastSettlementL1BlockHeight: State<UInt32>;
-  abstract stateRoot: State<Field>;
+  abstract stateRoot: State<LinkedMerkleTreeGlobalState>;
   abstract networkStateHash: State<Field>;
   abstract blockHashRoot: State<Field>;
   abstract dispatchContractAddressX: State<Field>;
@@ -137,7 +138,7 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
   // Not @state
   // abstract offchainStateCommitmentsHash: State<Field>;
 
-  public assertStateRoot(root: Field): AccountUpdate {
+  public assertStateRoot(root: LinkedMerkleTreeGlobalState): AccountUpdate {
     this.stateRoot.requireEquals(root);
     return this.self;
   }
@@ -250,13 +251,19 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     contractKey: PrivateKey
   ) {
     this.sequencerKey.getAndRequireEquals().assertEquals(Field(0));
-    this.stateRoot.getAndRequireEquals().assertEquals(Field(0));
+    LinkedMerkleTreeGlobalState.assertEquals(
+      this.stateRoot.getAndRequireEquals(),
+      { root: Field(0), lastOccupiedIndex: Field(0) }
+    );
     this.blockHashRoot.getAndRequireEquals().assertEquals(Field(0));
     this.networkStateHash.getAndRequireEquals().assertEquals(Field(0));
     this.dispatchContractAddressX.getAndRequireEquals().assertEquals(Field(0));
 
     this.sequencerKey.set(sequencer.x);
-    this.stateRoot.set(Field(RollupMerkleTree.EMPTY_ROOT));
+    this.stateRoot.set({
+      root: Field(RollupMerkleTree.EMPTY_ROOT),
+      lastOccupiedIndex: Field(0),
+    });
     this.blockHashRoot.set(Field(BlockHashMerkleTree.EMPTY_ROOT));
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);
@@ -388,7 +395,8 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     });
 
     // Apply blockProof
-    stateRoot.assertEquals(
+    LinkedMerkleTreeGlobalState.assertEquals(
+      stateRoot,
       blockProof.publicInput.stateRoot,
       "Input state root not matching"
     );
@@ -441,7 +449,8 @@ export class SettlementSmartContract
   @state(Field) public sequencerKey = State<Field>();
   @state(UInt32) public lastSettlementL1BlockHeight = State<UInt32>();
 
-  @state(Field) public stateRoot = State<Field>();
+  @state(LinkedMerkleTreeGlobalState) public stateRoot =
+    State<LinkedMerkleTreeGlobalState>();
   @state(Field) public networkStateHash = State<Field>();
   @state(Field) public blockHashRoot = State<Field>();
 
