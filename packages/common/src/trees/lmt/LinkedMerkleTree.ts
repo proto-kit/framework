@@ -4,48 +4,71 @@ import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
 import { TypedClass } from "../../types";
 import { range } from "../../utils";
 
-import { LinkedMerkleTreeStore } from "./LinkedMerkleTreeStore";
+import {
+  LinkedLeaf,
+  LinkedLeafStore,
+  LinkedMerkleTreeStore,
+} from "./LinkedMerkleTreeStore";
 import {
   AbstractMerkleWitness,
   createMerkleTree,
   maybeSwap,
+  RollupMerkleTree,
 } from "../sparse/RollupMerkleTree";
 import { InMemoryLinkedMerkleLeafStore } from "./InMemoryLinkedMerkleLeafStore";
+import { MerkleTreeStore } from "../sparse/MerkleTreeStore";
+import { InMemoryMerkleTreeStorage } from "../sparse/InMemoryMerkleTreeStorage";
+import { InMemoryLinkedLeafStore } from "./InMemoryLinkedLeafStore";
 
 const RollupMerkleTreeWitness = createMerkleTree(40).WITNESS;
+
 export class LinkedLeafStruct extends Struct({
   value: Field,
   path: Field,
   nextPath: Field,
 }) {
+  public isDummy() {
+    return this.path.equals(0).and(this.nextPath.equals(0));
+  }
+
   public hash(): Field {
-    return Poseidon.hash(LinkedLeafStruct.toFields(this));
+    const hash = Poseidon.hash(LinkedLeafStruct.toFields(this));
+    return Provable.if(this.isDummy(), Field(0), hash);
+  }
+
+  public static dummy(): LinkedLeafStruct {
+    return new LinkedLeafStruct({
+      value: Field(0),
+      path: Field(0),
+      nextPath: Field(0),
+    });
   }
 }
 
+// TODO Improve that
 // We use the RollupMerkleTreeWitness here, although we will actually implement
 // the RollupMerkleTreeWitnessV2 defined below when instantiating the class.
-export class LinkedLeafAndMerkleWitness extends Struct({
+class LinkedLeafAndMerkleWitnessTemplate extends Struct({
   leaf: LinkedLeafStruct,
   merkleWitness: RollupMerkleTreeWitness,
 }) {}
 
 class LinkedStructTemplate extends Struct({
-  leafPrevious: LinkedLeafAndMerkleWitness,
-  leafCurrent: LinkedLeafAndMerkleWitness,
+  leafPrevious: LinkedLeafAndMerkleWitnessTemplate,
+  leafCurrent: LinkedLeafAndMerkleWitnessTemplate,
+}) {}
+
+export class LinkedMerkleTreeGlobalState extends Struct({
+  root: Field,
+  lastOccupiedIndex: Field,
 }) {}
 
 export interface AbstractLinkedMerkleWitness extends LinkedStructTemplate {}
 
 export interface AbstractLinkedMerkleTree {
-  store: LinkedMerkleTreeStore;
-  /**
-   * Returns a node which lives at a given index and level.
-   * @param level Level of the node.
-   * @param index Index of the node.
-   * @returns The data of the node.
-   */
-  getNode(level: number, index: bigint): Field;
+  leafStore: LinkedLeafStore;
+
+  tree: RollupMerkleTree;
 
   /**
    * Returns the root of the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree).
@@ -53,12 +76,14 @@ export interface AbstractLinkedMerkleTree {
    */
   getRoot(): Field;
 
+  getGlobalState(): LinkedMerkleTreeGlobalState;
+
   /**
    * Sets the value of a leaf node at a given index to a given value.
    * @param path of the leaf node.
    * @param value New value.
    */
-  setLeaf(path: bigint, value?: bigint): LinkedMerkleTreeWitness;
+  setLeaf(path: bigint, value?: bigint): LinkedStructTemplate;
 
   /**
    * Returns a leaf which lives at a given path.
@@ -75,18 +100,25 @@ export interface AbstractLinkedMerkleTree {
    * @param path Position of the leaf node.
    * @returns The witness that belongs to the leaf.
    */
-  getWitness(path: bigint): LinkedLeafAndMerkleWitness;
+  getReadWitness(path: bigint): LinkedLeafAndMerkleWitnessTemplate;
 
-  dummyWitness(): LinkedMerkleTreeWitness;
+  dummyWitness(): LinkedStructTemplate;
 
-  dummy(): LinkedLeafAndMerkleWitness;
+  dummyReadWitness(): LinkedLeafAndMerkleWitnessTemplate;
 }
 
 export interface AbstractLinkedMerkleTreeClass {
-  new (store: LinkedMerkleTreeStore): AbstractLinkedMerkleTree;
+  new (
+    store: MerkleTreeStore,
+    leafStore: LinkedLeafStore
+  ): AbstractLinkedMerkleTree;
 
   WITNESS: TypedClass<AbstractLinkedMerkleWitness> &
-    typeof LinkedStructTemplate;
+    typeof LinkedStructTemplate & {
+      fromReadWitness(
+        readWitness: LinkedLeafAndMerkleWitnessTemplate
+      ): AbstractLinkedMerkleWitness;
+    };
 
   HEIGHT: number;
 
@@ -96,150 +128,62 @@ export interface AbstractLinkedMerkleTreeClass {
 export function createLinkedMerkleTree(
   height: number
 ): AbstractLinkedMerkleTreeClass {
-  class LinkedMerkleWitness
-    extends LinkedStructTemplate
-    implements AbstractLinkedMerkleWitness {}
-  /**
-   * The {@link RollupMerkleWitness} class defines a circuit-compatible base class
-   * for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
-   */
-  // We define the RollupMerkleWitness again here as we want it to have the same height
-  // as the tree. If we re-used the Witness from the RollupMerkleTree.ts we wouldn't have
-  // control, whilst having the overhead of creating the RollupTree, since the witness is
-  // defined from the tree (for the height reason already described).
-  class RollupMerkleWitnessV2
+  class LinkedLeafAndMerkleWitness extends Struct({
+    leaf: LinkedLeafStruct,
+    merkleWitness: RollupMerkleTreeWitness,
+  }) {}
+
+  class LinkedTreeOpWitness
     extends Struct({
-      path: Provable.Array(Field, height - 1),
-      isLeft: Provable.Array(Bool, height - 1),
+      leafPrevious: LinkedLeafAndMerkleWitnessTemplate,
+      leafCurrent: LinkedLeafAndMerkleWitnessTemplate,
     })
-    implements AbstractMerkleWitness
+    implements AbstractLinkedMerkleWitness
   {
-    public static height = height;
-
-    public height(): number {
-      return RollupMerkleWitnessV2.height;
-    }
-
-    /**
-     * Calculates a root depending on the leaf value.
-     * @param leaf Value of the leaf node that belongs to this Witness.
-     * @returns The calculated root.
-     */
-    public calculateRoot(leaf: Field): Field {
-      let hash = leaf;
-      const n = this.height();
-
-      for (let index = 1; index < n; ++index) {
-        const isLeft = this.isLeft[index - 1];
-
-        const [left, right] = maybeSwap(isLeft, hash, this.path[index - 1]);
-        hash = Poseidon.hash([left, right]);
-      }
-
-      return hash;
-    }
-
-    /**
-     * Calculates the index of the leaf node that belongs to this Witness.
-     * @returns Index of the leaf.
-     */
-    public calculateIndex(): Field {
-      let powerOfTwo = Field(1);
-      let index = Field(0);
-      const n = this.height();
-
-      for (let i = 1; i < n; ++i) {
-        index = Provable.if(this.isLeft[i - 1], index, index.add(powerOfTwo));
-        powerOfTwo = powerOfTwo.mul(2);
-      }
-
-      return index;
-    }
-
-    public checkMembership(root: Field, key: Field, value: Field): Bool {
-      const calculatedRoot = this.calculateRoot(value);
-      const calculatedKey = this.calculateIndex();
-      // We don't have to range-check the key, because if it would be greater
-      // than leafCount, it would not match the computedKey
-      key.assertEquals(calculatedKey, "Keys of MerkleWitness does not match");
-      return root.equals(calculatedRoot);
-    }
-
-    public checkMembershipSimple(root: Field, value: Field): Bool {
-      const calculatedRoot = this.calculateRoot(value);
-      return root.equals(calculatedRoot);
-    }
-
-    public checkMembershipGetRoots(
-      root: Field,
-      key: Field,
-      value: Field
-    ): [Bool, Field, Field] {
-      const calculatedRoot = this.calculateRoot(value);
-      const calculatedKey = this.calculateIndex();
-      key.assertEquals(calculatedKey, "Keys of MerkleWitness does not match");
-      return [root.equals(calculatedRoot), root, calculatedRoot];
-    }
-
-    public toShortenedEntries() {
-      return range(0, 5)
-        .concat(range(this.height() - 4, this.height()))
-        .map((index) =>
-          [
-            this.path[index].toString(),
-            this.isLeft[index].toString(),
-          ].toString()
-        );
-    }
-
-    public static dummy() {
-      return new RollupMerkleWitnessV2({
-        isLeft: Array<Bool>(this.height - 1).fill(Bool(false)),
-        path: Array<Field>(this.height - 1).fill(Field(0)),
+    public static fromReadWitness(
+      readWitness: LinkedLeafAndMerkleWitnessTemplate
+    ) {
+      return new LinkedStructTemplate({
+        leafPrevious: new LinkedLeafAndMerkleWitness({
+          merkleWitness: RollupMerkleTreeWitness.dummy(),
+          leaf: LinkedLeafStruct.dummy(),
+        }),
+        leafCurrent: readWitness,
       });
     }
   }
+
+  const SparseTreeClass = createMerkleTree(height);
+
   return class AbstractLinkedRollupMerkleTree
     implements AbstractLinkedMerkleTree
   {
     public static HEIGHT = height;
 
     public static EMPTY_ROOT = new AbstractLinkedRollupMerkleTree(
-      new InMemoryLinkedMerkleLeafStore()
+      new InMemoryMerkleTreeStorage(),
+      new InMemoryLinkedLeafStore()
     )
       .getRoot()
       .toBigInt();
 
-    public static WITNESS = LinkedMerkleWitness;
+    public static WITNESS = LinkedTreeOpWitness;
 
-    readonly zeroes: bigint[];
+    readonly tree: RollupMerkleTree;
 
-    readonly store: LinkedMerkleTreeStore;
+    readonly leafStore: LinkedLeafStore;
 
-    public constructor(store: LinkedMerkleTreeStore) {
-      this.store = store;
-      this.zeroes = [0n];
-      for (
-        let index = 1;
-        index < AbstractLinkedRollupMerkleTree.HEIGHT;
-        index += 1
-      ) {
-        const previousLevel = Field(this.zeroes[index - 1]);
-        this.zeroes.push(
-          Poseidon.hash([previousLevel, previousLevel]).toBigInt()
-        );
-      }
+    public constructor(store: MerkleTreeStore, leafStore: LinkedLeafStore) {
+      this.leafStore = leafStore;
+
+      this.tree = new SparseTreeClass(store);
+
       // We only do the leaf initialisation when the store
       // has no values. Otherwise, we leave the store
       // as is to not overwrite any data.
-      if (this.store.getMaximumIndex() === undefined) {
+      if (this.leafStore.getMaximumIndex() === undefined) {
         this.setLeafInitialisation();
       }
-    }
-
-    public getNode(level: number, index: bigint): Field {
-      const node = this.store.getNode(index, level);
-      return Field(node ?? this.zeroes[level]);
     }
 
     /**
@@ -249,7 +193,7 @@ export function createLinkedMerkleTree(
      * @returns The data of the node.
      */
     public getLeaf(path: bigint): LinkedLeafStruct | undefined {
-      const storedLeaf = this.store.getLeaf(path);
+      const storedLeaf = this.leafStore.getLeaf(path);
       if (storedLeaf === undefined) {
         return undefined;
       }
@@ -265,35 +209,23 @@ export function createLinkedMerkleTree(
      * @returns The root of the Merkle Tree.
      */
     public getRoot(): Field {
-      return this.getNode(
-        AbstractLinkedRollupMerkleTree.HEIGHT - 1,
-        0n
-      ).toConstant();
+      return this.tree.getRoot().toConstant();
     }
 
-    private setNode(level: number, index: bigint, value: Field) {
-      this.store.setNode(index, level, value.toBigInt());
+    private setMerkleLeaf(index: bigint, leaf: LinkedLeaf) {
+      this.leafStore.setLeaf(index, leaf);
+
+      const leafHash = new LinkedLeafStruct(
+        LinkedLeafStruct.fromValue(leaf)
+      ).hash();
+      this.tree.setLeaf(index, leafHash);
     }
 
-    /**
-     * Sets the value of a leaf node at a given index to a given value
-     * and carry the change through to the tree.
-     * @param index Position of the leaf node.
-     * @param leaf New value.
-     */
-    private setMerkleLeaf(index: bigint, leaf: LinkedLeafStruct) {
-      this.setNode(0, index, leaf.hash());
-      let tempIndex = index;
-      for (
-        let level = 1;
-        level < AbstractLinkedRollupMerkleTree.HEIGHT;
-        level += 1
-      ) {
-        tempIndex /= 2n;
-        const leftPrev = this.getNode(level - 1, tempIndex * 2n);
-        const rightPrev = this.getNode(level - 1, tempIndex * 2n + 1n);
-        this.setNode(level, tempIndex, Poseidon.hash([leftPrev, rightPrev]));
-      }
+    public getGlobalState(): LinkedMerkleTreeGlobalState {
+      return {
+        root: this.getRoot(),
+        lastOccupiedIndex: Field(this.leafStore.getMaximumIndex() ?? 0n),
+      };
     }
 
     /**
@@ -301,70 +233,81 @@ export function createLinkedMerkleTree(
      * @param path Position of the leaf node.
      * @param value New value.
      */
-    public setLeaf(path: bigint, value?: bigint): LinkedMerkleWitness {
-      if (value === undefined) {
-        return new LinkedMerkleWitness({
-          leafPrevious: this.dummy(),
-          leafCurrent: this.getWitness(path),
-        });
-      }
-      const storedLeaf = this.store.getLeaf(path);
-      const prevLeaf = this.store.getLeafLessOrEqual(path);
-      if (prevLeaf === undefined) {
-        throw Error("Prev leaf shouldn't be undefined");
-      }
-      let witnessPrevious;
-      let index: bigint;
+    public setLeaf(path: bigint, value: bigint): LinkedTreeOpWitness {
+      const storedLeaf = this.leafStore.getLeaf(path);
+      // const prevLeaf = this.store.getLeafLessOrEqual(path);
+      //
+      // if (prevLeaf === undefined) {
+      //   throw Error("Prev leaf shouldn't be undefined");
+      // }
+
       if (storedLeaf === undefined) {
+        // Insert case
         // The above means the path doesn't already exist, and we are inserting, not updating.
         // This requires us to update the node with the previous path, as well.
-        const tempIndex = this.store.getMaximumIndex();
+        const tempIndex = this.leafStore.getMaximumIndex();
         if (tempIndex === undefined) {
           throw Error("Store Max Index not defined");
         }
         if (tempIndex + 1n >= 2 ** height) {
           throw new Error("Index greater than maximum leaf number");
         }
-        witnessPrevious = this.getWitness(prevLeaf.leaf.path);
-        const newPrevLeaf = {
-          value: prevLeaf.leaf.value,
-          path: prevLeaf.leaf.path,
-          nextPath: path,
-        };
-        this.store.setLeaf(prevLeaf.index, newPrevLeaf);
-        this.setMerkleLeaf(
-          prevLeaf.index,
-          new LinkedLeafStruct({
-            value: Field(newPrevLeaf.value),
-            path: Field(newPrevLeaf.path),
-            nextPath: Field(newPrevLeaf.nextPath),
-          })
+        const nextFreeIndex = tempIndex + 1n;
+
+        const previousLeaf = this.leafStore.getLeafLessOrEqual(path);
+
+        if (previousLeaf === undefined) {
+          throw Error("Prev leaf shouldn't be undefined");
+        }
+
+        const previousLeafMerkleWitness = this.tree.getWitness(
+          previousLeaf.index
         );
 
-        index = tempIndex + 1n;
+        const newPrevLeaf = {
+          ...previousLeaf.leaf,
+          nextPath: path,
+        };
+        this.setMerkleLeaf(previousLeaf.index, newPrevLeaf);
+
+        const currentMerkleWitness = this.tree.getWitness(nextFreeIndex);
+
+        const newLeaf = {
+          path,
+          value,
+          nextPath: previousLeaf.leaf.nextPath,
+        };
+        this.setMerkleLeaf(nextFreeIndex, newLeaf);
+
+        return new LinkedTreeOpWitness({
+          leafPrevious: {
+            leaf: new LinkedLeafStruct(
+              LinkedLeafStruct.fromValue(previousLeaf.leaf)
+            ),
+            merkleWitness: previousLeafMerkleWitness,
+          },
+          leafCurrent: {
+            leaf: LinkedLeafStruct.dummy(),
+            merkleWitness: currentMerkleWitness,
+          },
+        });
       } else {
-        witnessPrevious = this.dummy();
-        index = storedLeaf.index;
+        // Update case
+        const witnessPrevious = this.dummyReadWitness();
+
+        // TODO This makes an unnecessary leafstore lookup currently, reuse storedLeaf instead
+        const current = this.getReadWitness(storedLeaf.leaf.path);
+
+        this.setMerkleLeaf(storedLeaf.index, {
+          ...storedLeaf.leaf,
+          value: value,
+        });
+
+        return new LinkedTreeOpWitness({
+          leafPrevious: witnessPrevious,
+          leafCurrent: current,
+        });
       }
-      const newLeaf = {
-        value: value,
-        path: path,
-        nextPath: prevLeaf.leaf.nextPath,
-      };
-      const witnessNext = this.getWitness(newLeaf.path);
-      this.store.setLeaf(index, newLeaf);
-      this.setMerkleLeaf(
-        index,
-        new LinkedLeafStruct({
-          value: Field(newLeaf.value),
-          path: Field(newLeaf.path),
-          nextPath: Field(newLeaf.nextPath),
-        })
-      );
-      return new LinkedMerkleWitness({
-        leafPrevious: witnessPrevious,
-        leafCurrent: witnessNext,
-      });
     }
 
     /**
@@ -374,21 +317,18 @@ export function createLinkedMerkleTree(
     private setLeafInitialisation() {
       // This is the maximum value of the hash
       const MAX_FIELD_VALUE: bigint = Field.ORDER - 1n;
-      this.store.setLeaf(0n, {
+      this.leafStore.setLeaf(0n, {
         value: 0n,
         path: 0n,
         nextPath: MAX_FIELD_VALUE,
       });
       // We now set the leafs in the merkle tree to cascade the values up
       // the tree.
-      this.setMerkleLeaf(
-        0n,
-        new LinkedLeafStruct({
-          value: Field(0n),
-          path: Field(0n),
-          nextPath: Field(MAX_FIELD_VALUE),
-        })
-      );
+      this.setMerkleLeaf(0n, {
+        value: 0n,
+        path: 0n,
+        nextPath: MAX_FIELD_VALUE,
+      });
     }
 
     /**
@@ -398,77 +338,44 @@ export function createLinkedMerkleTree(
      * @param path of the leaf node.
      * @returns The witness that belongs to the leaf.
      */
-    public getWitness(path: bigint): LinkedLeafAndMerkleWitness {
-      const storedLeaf = this.store.getLeaf(path);
+    public getReadWitness(path: bigint): LinkedLeafAndMerkleWitness {
+      const storedLeaf = this.leafStore.getLeaf(path);
       let leaf;
       let currentIndex: bigint;
 
       if (storedLeaf === undefined) {
-        const storeIndex = this.store.getMaximumIndex();
+        const storeIndex = this.leafStore.getMaximumIndex();
         if (storeIndex === undefined) {
-          throw new Error("Store Undefined");
+          throw new Error("Store undefined");
         }
         currentIndex = storeIndex + 1n;
-        leaf = new LinkedLeafStruct({
-          value: Field(0),
-          path: Field(0),
-          nextPath: Field(0),
-        });
+        leaf = LinkedLeafStruct.dummy();
       } else {
-        leaf = new LinkedLeafStruct({
-          value: Field(storedLeaf.leaf.value),
-          path: Field(storedLeaf.leaf.path),
-          nextPath: Field(storedLeaf.leaf.nextPath),
-        });
+        leaf = new LinkedLeafStruct(
+          LinkedLeafStruct.fromValue(storedLeaf.leaf)
+        );
         currentIndex = storedLeaf.index;
       }
 
-      const pathArray = [];
-      const isLefts = [];
+      const merkleWitness = this.tree.getWitness(currentIndex);
 
-      for (
-        let level = 0;
-        level < AbstractLinkedRollupMerkleTree.HEIGHT - 1;
-        level += 1
-      ) {
-        const isLeft = currentIndex % 2n === 0n;
-        const sibling = this.getNode(
-          level,
-          isLeft ? currentIndex + 1n : currentIndex - 1n
-        );
-        isLefts.push(Bool(isLeft));
-        pathArray.push(sibling);
-        currentIndex /= 2n;
-      }
       return new LinkedLeafAndMerkleWitness({
-        merkleWitness: new RollupMerkleWitnessV2({
-          path: pathArray,
-          isLeft: isLefts,
-        }),
-        leaf: leaf,
+        merkleWitness,
+        leaf,
       });
     }
 
-    public dummy(): LinkedLeafAndMerkleWitness {
+    public dummyReadWitness(): LinkedLeafAndMerkleWitness {
       return new LinkedLeafAndMerkleWitness({
-        merkleWitness: new RollupMerkleTreeWitness({
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          path: Array(40).fill(Field(0)) as Field[],
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          isLeft: Array(40).fill(new Bool(true)) as Bool[],
-        }),
-        leaf: new LinkedLeafStruct({
-          value: Field(0),
-          path: Field(0),
-          nextPath: Field(0),
-        }),
+        merkleWitness: RollupMerkleTreeWitness.dummy(),
+        leaf: LinkedLeafStruct.dummy(),
       });
     }
 
     public dummyWitness() {
-      return new LinkedMerkleWitness({
-        leafPrevious: this.dummy(),
-        leafCurrent: this.dummy(),
+      return new LinkedTreeOpWitness({
+        leafPrevious: this.dummyReadWitness(),
+        leafCurrent: this.dummyReadWitness(),
       });
     }
   };

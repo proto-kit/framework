@@ -18,7 +18,7 @@ describe.each([4, 16, 254])("cachedMerkleTree - %s", (height) => {
     log.setLevel("INFO");
 
     store = new InMemoryLinkedMerkleLeafStore();
-    tree = new LinkedMerkleTree(store);
+    tree = new LinkedMerkleTree(store, store);
   });
 
   it("should have the same root when empty", () => {
@@ -40,23 +40,16 @@ describe.each([4, 16, 254])("cachedMerkleTree - %s", (height) => {
   });
 
   it("should provide correct witnesses", () => {
-    expect.assertions(1);
+    expect.assertions(2);
 
     tree.setLeaf(1n, 1n);
     tree.setLeaf(5n, 5n);
 
-    const witness = tree.getWitness(5n);
+    const witness = tree.getReadWitness(5n);
 
+    expect(witness.leaf.value.toString()).toStrictEqual("5");
     expect(
-      witness.merkleWitness
-        .calculateRoot(
-          Poseidon.hash([
-            witness.leaf.value,
-            witness.leaf.path,
-            witness.leaf.nextPath,
-          ])
-        )
-        .toBigInt()
+      witness.merkleWitness.calculateRoot(witness.leaf.hash()).toBigInt()
     ).toStrictEqual(tree.getRoot().toBigInt());
   });
 
@@ -66,7 +59,7 @@ describe.each([4, 16, 254])("cachedMerkleTree - %s", (height) => {
     tree.setLeaf(1n, 1n);
     tree.setLeaf(5n, 5n);
 
-    const witness = tree.getWitness(5n);
+    const witness = tree.getReadWitness(5n);
 
     expect(
       witness.merkleWitness.calculateRoot(Field(6)).toBigInt()
@@ -79,7 +72,7 @@ describe.each([4, 16, 254])("cachedMerkleTree - %s", (height) => {
     tree.setLeaf(1n, 1n);
     tree.setLeaf(5n, 5n);
 
-    const witness = tree.getWitness(5n);
+    const witness = tree.getReadWitness(5n);
 
     tree.setLeaf(5n, 10n);
 
@@ -113,7 +106,7 @@ describe("Error check", () => {
     log.setLevel("INFO");
 
     store = new InMemoryLinkedMerkleLeafStore();
-    tree = new LinkedMerkleTree(store);
+    tree = new LinkedMerkleTree(store, store);
     expect(() => {
       for (let i = 0; i < 2n ** BigInt(4) + 1n; i++) {
         tree.setLeaf(BigInt(i), 2n);
