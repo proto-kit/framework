@@ -1,23 +1,17 @@
-import {
-  InMemoryLinkedLeafStore,
-  InMemoryMerkleTreeStorage,
-  LinkedLeaf,
-  LinkedMerkleTreeStore,
-  noop,
-} from "@proto-kit/common";
+import { InMemoryLinkedLeafStore, LinkedLeaf, noop } from "@proto-kit/common";
 
-import { AsyncLinkedMerkleTreeStore } from "../../state/async/AsyncLinkedMerkleTreeStore";
-import {
-  MerkleTreeNode,
-  MerkleTreeNodeQuery,
-} from "../../state/async/AsyncMerkleTreeStore";
+import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
 
-export class InMemoryAsyncLinkedMerkleTreeStore
-  implements AsyncLinkedMerkleTreeStore, LinkedMerkleTreeStore
-{
+import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
+
+export class InMemoryAsyncLinkedLeafStore implements AsyncLinkedLeafStore {
   private readonly leafStore = new InMemoryLinkedLeafStore();
 
-  private readonly nodeStore = new InMemoryMerkleTreeStorage();
+  private readonly nodeStore = new InMemoryAsyncMerkleTreeStore();
+
+  public get treeStore() {
+    return this.nodeStore;
+  }
 
   public async openTransaction(): Promise<void> {
     noop();
@@ -27,23 +21,11 @@ export class InMemoryAsyncLinkedMerkleTreeStore
     noop();
   }
 
-  public writeNodes(nodes: MerkleTreeNode[]): void {
-    nodes.forEach(({ key, level, value }) =>
-      this.nodeStore.setNode(key, level, value)
-    );
-  }
-
   // This is using the index/key
   public writeLeaves(leaves: { leaf: LinkedLeaf; index: bigint }[]) {
     leaves.forEach(({ leaf, index }) => {
       this.leafStore.setLeaf(index, leaf);
     });
-  }
-
-  public async getNodesAsync(
-    nodes: MerkleTreeNodeQuery[]
-  ): Promise<(bigint | undefined)[]> {
-    return nodes.map(({ key, level }) => this.nodeStore.getNode(key, level));
   }
 
   public async getLeavesAsync(paths: bigint[]) {
@@ -78,13 +60,5 @@ export class InMemoryAsyncLinkedMerkleTreeStore
 
   public getMaximumIndex() {
     return this.leafStore.getMaximumIndex();
-  }
-
-  public setNode(key: bigint, level: number, value: bigint) {
-    this.nodeStore.setNode(key, level, value);
-  }
-
-  public getNode(key: bigint, level: number) {
-    return this.nodeStore.getNode(key, level);
   }
 }
