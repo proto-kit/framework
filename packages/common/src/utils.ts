@@ -280,3 +280,9 @@ class ReferenceObject<T> {
 export function createReference<T>(initial: T): Reference<T> {
   return new ReferenceObject(initial);
 }
+
+export namespace BigIntMath {
+  export function max(...args: bigint[]) {
+    return args.reduce((m, e) => (e > m ? e : m));
+  }
+}

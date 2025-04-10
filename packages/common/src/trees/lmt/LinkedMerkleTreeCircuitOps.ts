@@ -1,10 +1,7 @@
 import { Bool, Field, Provable, Struct } from "o1js";
 
 import { LinkedMerkleTreeWitness } from "./LinkedMerkleTree";
-import {
-  LinkedLeafStruct,
-  LinkedMerkleTreeGlobalState,
-} from "./LinkedMerkleTreeTypes";
+import { LinkedLeafStruct } from "./LinkedMerkleTreeTypes";
 
 /* eslint-disable no-inner-declarations */
 // TODO
@@ -38,12 +35,6 @@ export type TreeWrite = {
 };
 
 export namespace LinkedMerkleTreeCircuitOps {
-  export class LinkedMerkleTreeGlobalStateWithoutRoot
-    extends Struct({
-      lastOccupiedIndex: Field,
-    })
-    implements Omit<LinkedMerkleTreeGlobalState, "root"> {}
-
   function boolAllTrue(...args: Bool[]): Bool {
     return args.reduce((a, b, i) => {
       // if (!b.toBoolean()) {
@@ -57,7 +48,6 @@ export namespace LinkedMerkleTreeCircuitOps {
     newPreviousLeaf: LinkedLeafStruct,
     newCurrentLeaf: LinkedLeafStruct,
     allChecksMet: Bool,
-    update: LinkedMerkleTreeGlobalStateWithoutRoot,
   }) {}
 
   function chooseInstruction(
@@ -85,7 +75,6 @@ export namespace LinkedMerkleTreeCircuitOps {
    * current := { current.path, current.nextPath, value: st.to.value }
    */
   function update(
-    state: LinkedMerkleTreeGlobalState,
     { leafCurrent, leafPrevious }: LinkedMerkleTreeWitness,
     { to, from, path }: TreeWrite
   ): ComputeRootInstruction {
@@ -101,9 +90,6 @@ export namespace LinkedMerkleTreeCircuitOps {
         value: to,
       }),
       allChecksMet,
-      update: {
-        lastOccupiedIndex: state.lastOccupiedIndex,
-      },
     };
   }
 
@@ -121,21 +107,17 @@ export namespace LinkedMerkleTreeCircuitOps {
    * current := current.leaf
    */
   function insert(
-    state: LinkedMerkleTreeGlobalState,
     witness: LinkedMerkleTreeWitness,
     { path, to }: TreeWrite
   ): ComputeRootInstruction {
     const { leafPrevious: previous, leafCurrent: current } = witness;
-
-    const nextFreeIndex = state.lastOccupiedIndex.add(1);
 
     const allChecksMet = boolAllTrue(
       // Already covered in general checks
       // path.equals(current.leaf.path),
       current.leaf.isDummy(),
       previous.leaf.nextPath.greaterThan(path),
-      previous.leaf.path.lessThan(path),
-      current.merkleWitness.calculateIndex().equals(nextFreeIndex)
+      previous.leaf.path.lessThan(path)
     );
 
     return {
@@ -149,9 +131,6 @@ export namespace LinkedMerkleTreeCircuitOps {
         nextPath: previous.leaf.nextPath,
       }),
       allChecksMet,
-      update: {
-        lastOccupiedIndex: nextFreeIndex,
-      },
     };
   }
 
@@ -175,7 +154,7 @@ export namespace LinkedMerkleTreeCircuitOps {
       newPreviousLeaf.hash()
     );
 
-    let intermediateRoot = Provable.if(isUpdate, root, root1);
+    const intermediateRoot = Provable.if(isUpdate, root, root1);
 
     // TODO Make this Provable.if more efficient
     const leafCurrentLeaf = Provable.if(
@@ -193,21 +172,21 @@ export namespace LinkedMerkleTreeCircuitOps {
   }
 
   export function applyTreeWrite(
-    state: LinkedMerkleTreeGlobalState,
+    root: Field,
     witness: LinkedMerkleTreeWitness,
     treeWrite: TreeWrite,
     index: number
-  ): LinkedMerkleTreeGlobalState {
+  ): Field {
     const { leafPrevious, leafCurrent } = witness;
 
     const isUpdate = leafPrevious.leaf.isDummy();
     const isDummy = leafCurrent.leaf.isDummy().and(isUpdate);
 
     // For read-only and update
-    const updateState = update(state, witness, treeWrite);
+    const updateState = update(witness, treeWrite);
 
     // For insert
-    const insertState = insert(state, witness, treeWrite);
+    const insertState = insert(witness, treeWrite);
 
     const instruction = chooseInstruction(isUpdate, updateState, insertState);
 
@@ -221,19 +200,10 @@ export namespace LinkedMerkleTreeCircuitOps {
       instruction.newCurrentLeaf,
       isUpdate,
       isDummy,
-      state.root
+      root
     );
 
-    const updatedState = {
-      root: newRoot,
-      lastOccupiedIndex: instruction.update.lastOccupiedIndex,
-    };
-    return Provable.if(
-      isDummy,
-      LinkedMerkleTreeGlobalState,
-      state,
-      updatedState
-    );
+    return Provable.if(isDummy, root, newRoot);
   }
 }
 

@@ -4,11 +4,8 @@ import { createMerkleTree, RollupMerkleTree } from "../sparse/RollupMerkleTree";
 import { TypedClass } from "../../types";
 import { MerkleTreeStore } from "../sparse/MerkleTreeStore";
 
-import { LinkedLeafStore } from "./LinkedMerkleTreeStore";
-import {
-  LinkedLeafStruct,
-  LinkedMerkleTreeGlobalState,
-} from "./LinkedMerkleTreeTypes";
+import { LinkedLeafStore } from "./LinkedLinkedStore";
+import { LinkedLeafStruct } from "./LinkedMerkleTreeTypes";
 
 class RollupMerkleTreeWitness extends createMerkleTree(40).WITNESS {}
 
@@ -50,8 +47,6 @@ export interface AbstractLinkedMerkleTree {
    * @returns The root of the Merkle Tree.
    */
   getRoot(): Field;
-
-  getGlobalState(): LinkedMerkleTreeGlobalState;
 
   /**
    * Sets the value of a leaf node at a given index to a given value.
@@ -101,5 +96,5 @@ export interface AbstractLinkedMerkleTreeClass {
 
   HEIGHT: number;
 
-  EMPTY_ROOT: bigint;
+  EMPTY_ROOT: Field;
 }

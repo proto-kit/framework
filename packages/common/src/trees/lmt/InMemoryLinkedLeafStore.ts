@@ -1,9 +1,11 @@
-import { LinkedLeafStore, LinkedLeaf } from "./LinkedMerkleTreeStore";
+import { LinkedLeafStore, LinkedLeaf } from "./LinkedLinkedStore";
 
 export class InMemoryLinkedLeafStore implements LinkedLeafStore {
   public leaves: {
     [key: string]: { leaf: LinkedLeaf; index: bigint };
   } = {};
+
+  // public treeStore = new InMemoryMerkleTreeStorage();
 
   public maximumIndex?: bigint;
 
@@ -15,9 +17,11 @@ export class InMemoryLinkedLeafStore implements LinkedLeafStore {
 
   public setLeaf(index: bigint, value: LinkedLeaf): void {
     const leaf = this.getLeaf(value.path);
+
     if (leaf !== undefined && leaf?.index !== index) {
       throw new Error("Cannot change index of existing leaf");
     }
+
     this.leaves[value.path.toString()] = { leaf: value, index: index };
     if (this.maximumIndex === undefined || index > this.maximumIndex) {
       this.maximumIndex = index;

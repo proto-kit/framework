@@ -5,11 +5,8 @@ import { MerkleTreeStore } from "../sparse/MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "../sparse/InMemoryMerkleTreeStorage";
 
 import { InMemoryLinkedLeafStore } from "./InMemoryLinkedLeafStore";
-import { LinkedLeaf, LinkedLeafStore } from "./LinkedMerkleTreeStore";
-import {
-  LinkedLeafStruct,
-  LinkedMerkleTreeGlobalState,
-} from "./LinkedMerkleTreeTypes";
+import { LinkedLeaf, LinkedLeafStore } from "./LinkedLinkedStore";
+import { LinkedLeafStruct } from "./LinkedMerkleTreeTypes";
 import {
   AbstractLinkedMerkleTree,
   AbstractLinkedMerkleTreeClass,
@@ -60,9 +57,7 @@ export function createLinkedMerkleTree(
     public static EMPTY_ROOT = new AbstractLinkedRollupMerkleTree(
       new InMemoryMerkleTreeStorage(),
       new InMemoryLinkedLeafStore()
-    )
-      .getRoot()
-      .toBigInt();
+    ).getRoot();
 
     public static READ_WITNESS = LinkedLeafAndMerkleWitness;
 
@@ -118,13 +113,6 @@ export function createLinkedMerkleTree(
         LinkedLeafStruct.fromValue(leaf)
       ).hash();
       this.tree.setLeaf(index, leafHash);
-    }
-
-    public getGlobalState(): LinkedMerkleTreeGlobalState {
-      return new LinkedMerkleTreeGlobalState({
-        root: this.getRoot(),
-        lastOccupiedIndex: Field(this.leafStore.getMaximumIndex() ?? 0n),
-      });
     }
 
     /**
