@@ -1,5 +1,5 @@
 import { Field } from "o1js";
-import { LinkedMerkleTreeGlobalState, NoConfig } from "@proto-kit/common";
+import { NoConfig } from "@proto-kit/common";
 
 import { NetworkState } from "../model/network/NetworkState";
 import { MethodPublicOutput } from "../model/MethodPublicOutput";
@@ -16,7 +16,7 @@ import {
 export interface BeforeBlockHookArguments extends ProvableHookBlockState {}
 
 export interface AfterBlockHookArguments extends BeforeBlockHookArguments {
-  stateRoot: LinkedMerkleTreeGlobalState;
+  stateRoot: Field;
 }
 
 export function toBeforeTransactionHookArgument(

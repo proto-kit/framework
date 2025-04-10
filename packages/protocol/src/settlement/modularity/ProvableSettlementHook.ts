@@ -1,5 +1,5 @@
 import { Field, PublicKey, UInt32 } from "o1js";
-import { InferProofBase, LinkedMerkleTreeGlobalState } from "@proto-kit/common";
+import { InferProofBase } from "@proto-kit/common";
 
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { NetworkState } from "../../model/network/NetworkState";
@@ -12,7 +12,7 @@ export type SettlementStateRecord = {
   sequencerKey: PublicKey;
   lastSettlementL1BlockHeight: UInt32;
 
-  stateRoot: LinkedMerkleTreeGlobalState;
+  stateRoot: Field;
   networkStateHash: Field;
   blockHashRoot: Field;
 };

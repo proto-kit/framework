@@ -14,7 +14,7 @@ export class LastStateRootBlockHook extends ProvableBlockHook<
     return new NetworkState({
       block: networkState.block,
       previous: {
-        rootHash: stateRoot.root,
+        rootHash: stateRoot,
       },
     });
   }

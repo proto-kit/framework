@@ -1,5 +1,4 @@
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
-import { LinkedMerkleTreeGlobalState } from "@proto-kit/common";
 
 export class AppliedStateTransitionBatch extends Struct({
   batchHash: Field,
@@ -8,7 +7,7 @@ export class AppliedStateTransitionBatch extends Struct({
 
 export class AppliedStateTransitionBatchState extends Struct({
   batchHash: Field,
-  root: LinkedMerkleTreeGlobalState,
+  root: Field,
 }) {
   public hashOrZero(): Field {
     const hash = Poseidon.hash(AppliedStateTransitionBatchState.toFields(this));
