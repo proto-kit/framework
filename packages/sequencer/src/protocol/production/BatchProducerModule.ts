@@ -21,12 +21,14 @@ import type { Database } from "../../storage/Database";
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
 import { BatchFlow } from "./flow/BatchFlow";
+import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
+import { CachedLinkedLeafStore } from "../../state/lmt/CachedLinkedLeafStore";
 
 export type StateRecord = Record<string, Field[] | undefined>;
 
 interface BatchMetadata {
   batch: SettleableBatch;
-  changes: CachedMerkleTreeStore;
+  changes: CachedLinkedLeafStore;
 }
 
 const errors = {
@@ -47,8 +49,8 @@ export class BatchProducerModule extends SequencerModule {
   private productionInProgress = false;
 
   public constructor(
-    @inject("AsyncMerkleStore")
-    private readonly merkleStore: AsyncMerkleTreeStore,
+    @inject("AsyncLinkedLeafStore")
+    private readonly merkleStore: AsyncLinkedLeafStore,
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("Database")
     private readonly database: Database,
@@ -178,7 +180,7 @@ export class BatchProducerModule extends SequencerModule {
     batchId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-    changes: CachedMerkleTreeStore;
+    changes: CachedLinkedLeafStore;
     fromNetworkState: NetworkState;
     toNetworkState: NetworkState;
   }> {
@@ -186,7 +188,7 @@ export class BatchProducerModule extends SequencerModule {
       throw errors.blockWithoutTxs();
     }
 
-    const merkleTreeStore = new CachedMerkleTreeStore(this.merkleStore);
+    const merkleTreeStore = await CachedLinkedLeafStore.new(this.merkleStore);
 
     const trace = await this.batchTraceService.traceBatch(
       blocks.map((block) => block),

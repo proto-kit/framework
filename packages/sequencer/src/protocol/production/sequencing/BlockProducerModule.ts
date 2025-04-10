@@ -29,6 +29,7 @@ import { trace } from "../../../logging/trace";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
+import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;
@@ -45,8 +46,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly messageService: IncomingMessagesService | undefined,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,
-    @inject("UnprovenMerkleStore")
-    private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
+    @inject("UnprovenLinkedLeafStore")
+    private readonly unprovenLinkedLeafStore: AsyncLinkedLeafStore,
     @inject("BlockQueue")
     private readonly blockQueue: BlockQueue,
     @inject("BlockTreeStore")
@@ -118,7 +119,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     const { result, blockHashTreeStore, treeStore, stateService } =
       await this.resultService.generateMetadataForNextBlock(
         block,
-        this.unprovenMerkleStore,
+        this.unprovenLinkedLeafStore,
         this.blockTreeStore,
         this.unprovenStateService
       );

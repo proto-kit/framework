@@ -5,14 +5,13 @@ import {
   TransactionHashList,
   WitnessedRootHashList,
 } from "@proto-kit/protocol";
-import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 
-import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
 import { BlockWithResult } from "../../../storage/model/Block";
 import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
+import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
 
 import {
   BlockTrace,
@@ -41,7 +40,7 @@ export class BatchTracingService {
     return {
       pendingSTBatches: new AppliedBatchHashList(),
       witnessedRoots: new WitnessedRootHashList(),
-      stateRoot: Field(block.block.fromStateRoot),
+      stateRoot: block.block.fromStateRoot,
       eternalTransactionsList: new TransactionHashList(
         block.block.fromEternalTransactionsHash
       ),
@@ -80,7 +79,7 @@ export class BatchTracingService {
   @trace("batch.trace.transitions")
   public async traceStateTransitions(
     blocks: BlockWithResult[],
-    merkleTreeStore: CachedMerkleTreeStore
+    merkleTreeStore: CachedLinkedLeafStore
   ) {
     const batches = await this.tracer.trace(
       "batch.trace.transitions.encoding",
@@ -96,7 +95,7 @@ export class BatchTracingService {
   @trace("batch.trace", ([, , batchId]) => ({ batchId }))
   public async traceBatch(
     blocks: BlockWithResult[],
-    merkleTreeStore: CachedMerkleTreeStore,
+    merkleTreeStore: CachedLinkedLeafStore,
     // Only for trace metadata
     batchId: number
   ): Promise<BatchTrace> {

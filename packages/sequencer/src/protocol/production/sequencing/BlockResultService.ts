@@ -1,5 +1,5 @@
 import { Bool, Field, Poseidon } from "o1js";
-import { RollupMerkleTree } from "@proto-kit/common";
+import { LinkedMerkleTree } from "@proto-kit/common";
 import {
   AfterBlockHookArguments,
   BlockHashMerkleTree,
@@ -27,6 +27,8 @@ import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import type { StateRecord } from "../BatchProducerModule";
 import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
+import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
+import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
 
@@ -153,9 +155,9 @@ export class BlockResultService {
   }
 
   public async applyStateDiff(
-    store: CachedMerkleTreeStore,
+    store: CachedLinkedLeafStore,
     stateDiff: StateRecord
-  ): Promise<RollupMerkleTree> {
+  ): Promise<LinkedMerkleTree> {
     await store.preloadKeys(Object.keys(stateDiff).map(BigInt));
 
     // In case the diff is empty, we preload key 0 in order to
@@ -164,11 +166,11 @@ export class BlockResultService {
       await store.preloadKey(0n);
     }
 
-    const tree = new RollupMerkleTree(store);
+    const tree = new LinkedMerkleTree(store.treeStore, store);
 
     Object.entries(stateDiff).forEach(([key, state]) => {
       const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
-      tree.setLeaf(BigInt(key), treeValue);
+      tree.setLeaf(BigInt(key), treeValue.toBigInt());
     });
 
     return tree;
@@ -179,12 +181,12 @@ export class BlockResultService {
   }))
   public async generateMetadataForNextBlock(
     block: Block,
-    merkleTreeStore: AsyncMerkleTreeStore,
+    merkleTreeStore: AsyncLinkedLeafStore,
     blockHashTreeStore: AsyncMerkleTreeStore,
     stateService: AsyncStateService
   ): Promise<{
     result: BlockResult;
-    treeStore: CachedMerkleTreeStore;
+    treeStore: CachedLinkedLeafStore;
     blockHashTreeStore: CachedMerkleTreeStore;
     stateService: CachedStateService;
   }> {
@@ -193,7 +195,7 @@ export class BlockResultService {
       block.beforeBlockStateTransitions
     );
 
-    const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
+    const inMemoryStore = await CachedLinkedLeafStore.new(merkleTreeStore);
 
     const tree = await this.applyStateDiff(inMemoryStore, combinedDiff);
 
