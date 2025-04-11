@@ -3,15 +3,20 @@ import {
   LinkedLeaf,
   mapSequential,
   LinkedLeafStore,
+  assertDefined,
+  StoredLeaf,
+  filterNonUndefined,
 } from "@proto-kit/common";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import zip from "lodash/zip";
+import groupBy from "lodash/groupBy";
 
 import { AsyncLinkedLeafStore } from "../async/AsyncLinkedLeafStore";
-
 import { CachedMerkleTreeStore } from "../merkle/CachedMerkleTreeStore";
 
 export class CachedLinkedLeafStore implements LinkedLeafStore {
   private writeCache: {
-    [key: string]: { leaf: LinkedLeaf; index: bigint };
+    [key: string]: StoredLeaf;
   } = {};
 
   private readonly leafStore = new InMemoryLinkedLeafStore();
@@ -43,9 +48,7 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
   // If the leaf is not in the in-memory store it goes to the parent (i.e.
   // what's put in the constructor).
   public async getLeavesAsync(paths: bigint[]) {
-    const results = Array<{ leaf: LinkedLeaf; index: bigint } | undefined>(
-      paths.length
-    ).fill(undefined);
+    const results = Array<StoredLeaf | undefined>(paths.length).fill(undefined);
 
     const toFetch: bigint[] = [];
 
@@ -76,7 +79,7 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
   }
 
   // This is just used in the mergeIntoParent
-  public writeLeaves(leaves: { leaf: LinkedLeaf; index: bigint }[]) {
+  public writeLeaves(leaves: StoredLeaf[]) {
     leaves.forEach(({ leaf, index }) => {
       this.setLeaf(index, leaf);
     });
@@ -84,7 +87,7 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
 
   // This gets the leaves from the cache.
   // Only used in mergeIntoParent
-  public getWrittenLeaves(): { leaf: LinkedLeaf; index: bigint }[] {
+  public getWrittenLeaves(): StoredLeaf[] {
     return Object.values(this.writeCache);
   }
 
@@ -107,66 +110,122 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
     }
   }
 
+  async retrieveBatched<Input, Element>(
+    inputs: Input[],
+    cache: (input: Input) => Element | undefined,
+    parent: (inputs: Input[]) => Promise<(Element | undefined)[]>
+  ) {
+    // The reason I built it using this weird closure-centric algorithm is that doing it
+    // purely functional would require a lot more array operations than this
+    const results: (Element | undefined)[] = Array.from({
+      length: inputs.length,
+    });
+
+    const toFetchRemotely = inputs
+      .map((input, i) => {
+        const localResult = cache(input);
+        if (localResult !== undefined) {
+          results[i] = localResult;
+          return undefined;
+        } else {
+          return { path: input, index: i };
+        }
+      })
+      .filter(filterNonUndefined);
+
+    let remoteResults: (Element | undefined)[] = [];
+    if (toFetchRemotely.length > 0) {
+      remoteResults = await parent(toFetchRemotely.map((value) => value.path));
+    }
+
+    zip(toFetchRemotely, remoteResults).forEach(([query, result]) => {
+      assertDefined(query);
+
+      results[query.index] = result;
+    });
+
+    return results;
+  }
+
   // Takes a list of paths and for each key collects the relevant nodes from the
   // parent tree and sets the leaf and node in the cached tree (and in-memory tree).
-  public async preloadKeyInternal(
-    path: bigint
-  ): Promise<{ requiredTreeIndizes: bigint[] }> {
-    const leaf = (await this.getLeavesAsync([path]))[0];
+  public async preloadKeysInternal(paths: bigint[]): Promise<void> {
+    const leaves = await this.getLeavesAsync(paths);
 
-    if (leaf !== undefined) {
-      // Update case, this leaf is the only one we need
-      this.leafStore.setLeaf(leaf.index, leaf.leaf);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const zipped = zip(paths, leaves) as [bigint, StoredLeaf | undefined][];
+    const groupedOps = groupBy(zipped, ([, leaf]) =>
+      leaf !== undefined ? "update" : "insert"
+    );
 
-      return { requiredTreeIndizes: [leaf.index] };
-    } else {
+    let treeIndizesToFetch: bigint[] = [];
+
+    if (groupedOps.update !== undefined) {
+      // Preload updates
+      const treeUpdates = groupedOps.update.map(([path, leaf]) => {
+        assertDefined(leaf);
+
+        // Update case, this leaf is the only one we need
+        this.leafStore.setLeaf(leaf.index, leaf.leaf);
+
+        return leaf.index;
+      });
+      treeIndizesToFetch.push(...treeUpdates);
+    }
+
+    if (groupedOps.insert !== undefined) {
       // Insert case, this leaf doesn't yet exist - we need to fetch the previous one
-
       // Calling getLeafLessOrEqual assures that it is actually the leaf we want
       // (i.e. pointing over our path)
-      // TODO Rename getLeafLessOrEqual
-      const previousLeaf =
-        this.leafStore.getLeafLessOrEqual(path) ??
-        (await this.parent.getLeafLessOrEqualAsync(path));
+      const previousLeaves = await this.retrieveBatched(
+        groupedOps.insert.map(([path]) => path),
+        this.leafStore.getLeafLessOrEqual.bind(this.leafStore),
+        this.parent.getLeavesLessOrEqualAsync.bind(this.parent)
+      );
 
-      if (previousLeaf === undefined) {
-        // throw Error("Previous Leaf should never be empty");
+      // This is a check that all previous leaves have been found, with the
+      // one exception being when the tree is empty (see below)
+      const anyUndefined =
+        previousLeaves.findIndex((x) => x === undefined) > -1;
+      if (anyUndefined) {
         // This only happens when the store is empty, because in this case, the tree
         // initializes the 0-leaf, but this only happens after preloading.
         const [zeroLeaf] = await this.parent.getLeavesAsync([0n]);
         if (zeroLeaf !== undefined) {
           throw Error("Previous Leaf should never be empty");
         }
-        return {
-          requiredTreeIndizes: [],
-        };
       }
 
-      this.leafStore.setLeaf(previousLeaf.index, previousLeaf.leaf);
+      const definedPreviousLeaves = previousLeaves.filter(filterNonUndefined);
 
-      const maximumIndex = this.leafStore.getMaximumIndex();
+      definedPreviousLeaves.forEach(({ index, leaf }) =>
+        this.leafStore.setLeaf(index, leaf)
+      );
+      treeIndizesToFetch.push(
+        ...definedPreviousLeaves.map(({ index }) => index)
+      );
 
-      if (maximumIndex === undefined) {
-        throw Error("Maximum index should be defined in parent.");
-      }
-
-      return { requiredTreeIndizes: [previousLeaf.index, maximumIndex + 1n] };
+      // Additionally preload the next empty tree index.
+      // This is enough, because we know that all subsequent empty tree indizes
+      // (in case there are multiple inserts) will be bigger than that index.
+      // In that case, everything will be either contained in the siblings of this index
+      // or be zero. So in either case, we don't have to preload more than we do here.
+      const maximumIndex = this.leafStore.getMaximumIndex() ?? -1n;
+      // if (maximumIndex === undefined) {
+      //   throw Error("Maximum index should be defined in parent.");
+      // }
+      treeIndizesToFetch.push(maximumIndex + 1n);
     }
+
+    await this.treeCache.preloadKeys(treeIndizesToFetch);
   }
 
   public async preloadKey(path: bigint) {
-    const { requiredTreeIndizes } = await this.preloadKeyInternal(path);
-    await this.treeCache.preloadKeys(requiredTreeIndizes);
+    await this.preloadKeysInternal([path]);
   }
 
   public async preloadKeys(paths: bigint[]): Promise<void> {
-    const results = await mapSequential(paths, (x) =>
-      this.preloadKeyInternal(x)
-    );
-    const treeIndizes = results.flatMap(
-      ({ requiredTreeIndizes }) => requiredTreeIndizes
-    );
-    await this.treeCache.preloadKeys(treeIndizes);
+    await this.preloadKeysInternal(paths);
   }
 
   // This merges the cache into the parent tree and resets the cache, but not the

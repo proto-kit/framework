@@ -286,3 +286,12 @@ export namespace BigIntMath {
     return args.reduce((m, e) => (e > m ? e : m));
   }
 }
+
+export function assertDefined<T>(
+  t: T | undefined,
+  msg?: string
+): asserts t is T {
+  if (t === undefined) {
+    throw new Error(msg ?? "Value is undefined");
+  }
+}

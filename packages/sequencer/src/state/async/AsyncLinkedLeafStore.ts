@@ -15,5 +15,7 @@ export interface AsyncLinkedLeafStore {
 
   getMaximumIndexAsync: () => Promise<bigint | undefined>;
 
-  getLeafLessOrEqualAsync: (path: bigint) => Promise<StoredLeaf | undefined>;
+  getLeavesLessOrEqualAsync: (
+    path: bigint[]
+  ) => Promise<(StoredLeaf | undefined)[]>;
 }

@@ -1,9 +1,4 @@
-import {
-  initialLinkedLeaf,
-  InMemoryLinkedLeafStore,
-  LinkedLeaf,
-  noop,
-} from "@proto-kit/common";
+import { InMemoryLinkedLeafStore, LinkedLeaf, noop } from "@proto-kit/common";
 
 import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
 
@@ -53,8 +48,8 @@ export class InMemoryAsyncLinkedLeafStore implements AsyncLinkedLeafStore {
     return this.leafStore.getMaximumIndex();
   }
 
-  public async getLeafLessOrEqualAsync(path: bigint) {
-    return this.leafStore.getLeafLessOrEqual(path);
+  public async getLeavesLessOrEqualAsync(paths: bigint[]) {
+    return paths.map((path) => this.leafStore.getLeafLessOrEqual(path));
   }
 
   public setLeaf(index: bigint, value: LinkedLeaf) {
