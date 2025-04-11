@@ -2,11 +2,11 @@ import { QueryTransportModule } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
-import { LinkedLeafAndMerkleWitness } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
 import { GraphqlClient } from "./GraphqlClient";
+import { LinkedMerkleTreeReadWitness } from "@proto-kit/common";
 
 function assertStringArray(array: any): asserts array is string[] {
   if (
@@ -64,7 +64,7 @@ export class GraphqlQueryTransportModule
 
   public async merkleWitness(
     key: Field
-  ): Promise<LinkedLeafAndMerkleWitness | undefined> {
+  ): Promise<LinkedMerkleTreeReadWitness | undefined> {
     const query = gql`
       query Witness($path: String!) {
         witness(path: $path) {
@@ -104,8 +104,8 @@ export class GraphqlQueryTransportModule
       assertStringArray(witnessJson.merkleWitness.siblings);
       assertBooleanArray(witnessJson.merkleWitness.isLefts);
 
-      return new LinkedLeafAndMerkleWitness(
-        LinkedLeafAndMerkleWitness.fromJSON({
+      return new LinkedMerkleTreeReadWitness(
+        LinkedMerkleTreeReadWitness.fromJSON({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           leaf: witnessJson.leaf,
           merkleWitness: {

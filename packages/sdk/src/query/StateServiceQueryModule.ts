@@ -3,15 +3,15 @@ import {
   QueryTransportModule,
   Sequencer,
   SequencerModulesRecord,
+  CachedLinkedLeafStore,
+  AsyncLinkedLeafStore,
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
-  LinkedLeafAndMerkleWitness,
+  LinkedMerkleTreeReadWitness,
   LinkedMerkleTree,
 } from "@proto-kit/common";
-import { CachedLinkedMerkleTreeStore } from "@proto-kit/sequencer/dist/state/merkle/CachedLinkedMerkleTreeStore";
-import { AsyncLinkedMerkleTreeStore } from "@proto-kit/sequencer/dist/state/async/AsyncLinkedMerkleTreeStore";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -32,7 +32,7 @@ export class StateServiceQueryModule
     );
   }
 
-  public get treeStore(): AsyncLinkedMerkleTreeStore {
+  public get treeStore(): AsyncLinkedLeafStore {
     return this.sequencer.dependencyContainer.resolve("AsyncLinkedMerkleStore");
   }
 
@@ -42,12 +42,12 @@ export class StateServiceQueryModule
 
   public async merkleWitness(
     path: Field
-  ): Promise<LinkedLeafAndMerkleWitness | undefined> {
-    const syncStore = await CachedLinkedMerkleTreeStore.new(this.treeStore);
+  ): Promise<LinkedMerkleTreeReadWitness | undefined> {
+    const syncStore = await CachedLinkedLeafStore.new(this.treeStore);
     await syncStore.preloadKey(path.toBigInt());
 
-    const tree = new LinkedMerkleTree(syncStore);
+    const tree = new LinkedMerkleTree(syncStore.treeStore, syncStore);
 
-    return tree.getWitness(path.toBigInt());
+    return tree.getReadWitness(path.toBigInt());
   }
 }
