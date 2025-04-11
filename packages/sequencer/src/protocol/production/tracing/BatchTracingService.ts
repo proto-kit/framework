@@ -1,4 +1,4 @@
-import { yieldSequential } from "@proto-kit/common";
+import { log, yieldSequential } from "@proto-kit/common";
 import {
   AppliedBatchHashList,
   MinaActionsHashList,
@@ -51,6 +51,8 @@ export class BatchTracingService {
 
   @trace("batch.trace.blocks")
   public async traceBlocks(blocks: BlockWithResult[]) {
+    log.debug(`Tracing ${blocks.length} blocks...`);
+
     const batchState = this.createBatchState(blocks[0]);
 
     // Trace blocks

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { afterAll, beforeAll, describe, expect } from "@jest/globals";
-import { expectDefined } from "@proto-kit/common";
+import { expectDefined, log } from "@proto-kit/common";
 import { BalancesKey, TokenId } from "@proto-kit/library";
 import { NetworkState } from "@proto-kit/protocol";
 import { AppChainTransaction } from "@proto-kit/sdk";
@@ -26,6 +26,8 @@ describe("prisma integration", () => {
   const sender = PrivateKey.random();
   let senderNonce = 0;
 
+  log.setLevel("TRACE");
+
   const setup = async () => {
     const { prismaConfig, redisConfig } = IntegrationTestDBConfig;
     appChain = createPrismaAppchain(prismaConfig, redisConfig);
@@ -39,8 +41,8 @@ describe("prisma integration", () => {
     await appChain.start(false, container.createChildContainer());
 
     const db = appChain.sequencer.resolve("Database");
-    await db.prisma.pruneDatabase();
-    await db.redis.pruneDatabase();
+    // await db.prisma.pruneDatabase();
+    // await db.redis.pruneDatabase();
 
     senderNonce = 0;
   };

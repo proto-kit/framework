@@ -109,6 +109,9 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
     this.assertCacheEmpty();
 
     const result = await this.connection.prismaClient.linkedLeaf.aggregate({
+      where: {
+        mask: this.mask,
+      },
       _max: {
         index: true,
       },
@@ -138,7 +141,7 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
       SELECT * FROM "LinkedLeaf" l
         RIGHT JOIN (SELECT unnest(ARRAY[${pathsDecimals}]) as newpath) f 
         ON l.path < f.newpath AND l."nextPath" > f.newpath
-        WHERE l.mask = '1'
+        WHERE l.mask = ${this.mask}
     `;
 
     const map: Record<string, LinkedLeafQueryResult> = Object.fromEntries(
