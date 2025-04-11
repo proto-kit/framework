@@ -15,4 +15,4 @@ export * from "./services/prisma/mappers/StateTransitionMapper";
 export * from "./services/prisma/mappers/TransactionMapper";
 export * from "./services/prisma/mappers/BlockResultMapper";
 export * from "./services/redis/RedisMerkleTreeStore";
-export * from "./services/redis/RedisLinkedMerkleTreeStore";
+export * from "./services/prisma/PrismaLinkedLeafStore";

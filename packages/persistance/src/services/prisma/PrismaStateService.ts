@@ -13,7 +13,7 @@ import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 // We need to create a correctly configured Decimal constructor
 // with our parameters
-const Decimal = Prisma.Decimal.clone({
+export const Decimal = Prisma.Decimal.clone({
   precision: 78,
 });
 

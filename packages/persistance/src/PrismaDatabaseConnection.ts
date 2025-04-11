@@ -54,7 +54,7 @@ export class PrismaDatabaseConnection
 
   public dependencies(): OmitKeys<
     StorageDependencyMinimumDependencies,
-    "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
+    "blockTreeStore" | "asyncLinkedLeafStore" | "unprovenLinkedLeafStore"
   > {
     return {
       asyncStateService: {
@@ -95,6 +95,7 @@ export class PrismaDatabaseConnection
       "Settlement",
       "IncomingMessageBatch",
       "IncomingMessageBatchTransaction",
+      "LinkedLeaf",
     ];
 
     await this.prismaClient.$transaction(
@@ -133,6 +134,7 @@ export class PrismaDatabaseConnection
             url,
           },
         },
+        log: ["query", "info", "warn", "error"],
       });
     } else {
       this.initializedClient = new PrismaClient();
