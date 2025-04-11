@@ -1,7 +1,5 @@
 import { Bool, Provable, Struct } from "o1js";
 import {
-  InMemoryLinkedLeafStore,
-  InMemoryMerkleTreeStorage,
   LinkedMerkleTree,
   LinkedMerkleTreeReadWitness,
 } from "@proto-kit/common";
@@ -16,10 +14,7 @@ export class OutgoingMessageArgument extends Struct({
 }) {
   public static dummy(): OutgoingMessageArgument {
     return new OutgoingMessageArgument({
-      witness: new LinkedMerkleTree(
-        new InMemoryMerkleTreeStorage(),
-        new InMemoryLinkedLeafStore()
-      ).dummyReadWitness(),
+      witness: LinkedMerkleTree.dummyReadWitness(),
       value: Withdrawal.dummy(),
     });
   }

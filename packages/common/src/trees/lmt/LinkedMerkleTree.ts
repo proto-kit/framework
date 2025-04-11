@@ -22,14 +22,17 @@ export function createLinkedMerkleTree(
     merkleWitness: SparseTreeClass.WITNESS,
   }) {
     public checkMembership(root: Field, path: Field, value: Field) {
-      return this.merkleWitness.checkMembership(
-        root,
-        path,
-        new LinkedLeafStruct({
-          ...this.leaf,
-          value,
-        }).hash()
-      );
+      const pathEquals = path.equals(this.leaf.path);
+
+      return this.merkleWitness
+        .calculateRoot(
+          new LinkedLeafStruct({
+            ...this.leaf,
+            value,
+          }).hash()
+        )
+        .equals(root)
+        .and(pathEquals);
     }
   }
 
@@ -175,7 +178,8 @@ export function createLinkedMerkleTree(
         });
       } else {
         // Update case
-        const witnessPrevious = this.dummyReadWitness();
+        const witnessPrevious =
+          AbstractLinkedRollupMerkleTree.dummyReadWitness();
 
         // TODO This makes an unnecessary leafstore lookup currently, reuse storedLeaf instead
         const current = this.getReadWitness(storedLeaf.leaf.path);
@@ -247,17 +251,17 @@ export function createLinkedMerkleTree(
       });
     }
 
-    public dummyReadWitness(): LinkedLeafAndMerkleWitness {
+    public static dummyReadWitness(): LinkedLeafAndMerkleWitness {
       return new LinkedLeafAndMerkleWitness({
         merkleWitness: SparseTreeClass.WITNESS.dummy(),
         leaf: LinkedLeafStruct.dummy(),
       });
     }
 
-    public dummyWitness() {
+    public static dummyWitness() {
       return new LinkedOperationWitness({
-        leafPrevious: this.dummyReadWitness(),
-        leafCurrent: this.dummyReadWitness(),
+        leafPrevious: AbstractLinkedRollupMerkleTree.dummyReadWitness(),
+        leafCurrent: AbstractLinkedRollupMerkleTree.dummyReadWitness(),
       });
     }
   };

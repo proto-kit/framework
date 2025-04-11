@@ -102,7 +102,7 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
 
     const globalState = LinkedMerkleTreeCircuitOps.applyTreeWrite(
       root,
-      tree.dummyWitness(),
+      LinkedMerkleTree.dummyWitness(),
       {
         path: Field(0),
         from: Field(0),

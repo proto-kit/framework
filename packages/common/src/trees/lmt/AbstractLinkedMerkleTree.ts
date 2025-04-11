@@ -71,10 +71,6 @@ export interface AbstractLinkedMerkleTree {
    * @returns The witness that belongs to the leaf.
    */
   getReadWitness(path: bigint): LinkedMerkleWitnessValue;
-
-  dummyWitness(): LinkedOperationWitnessValue;
-
-  dummyReadWitness(): LinkedMerkleWitnessValue;
 }
 
 export interface AbstractLinkedMerkleTreeClass {
@@ -97,4 +93,8 @@ export interface AbstractLinkedMerkleTreeClass {
   HEIGHT: number;
 
   EMPTY_ROOT: Field;
+
+  dummyWitness(): LinkedOperationWitnessValue;
+
+  dummyReadWitness(): LinkedMerkleWitnessValue;
 }
