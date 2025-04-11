@@ -5,8 +5,6 @@ export class InMemoryLinkedLeafStore implements LinkedLeafStore {
     [key: string]: { leaf: LinkedLeaf; index: bigint };
   } = {};
 
-  // public treeStore = new InMemoryMerkleTreeStorage();
-
   public maximumIndex?: bigint;
 
   public getLeaf(
@@ -23,7 +21,7 @@ export class InMemoryLinkedLeafStore implements LinkedLeafStore {
     }
 
     this.leaves[value.path.toString()] = { leaf: value, index: index };
-    if (this.maximumIndex === undefined || index > this.maximumIndex) {
+    if (index > (this.maximumIndex ?? -1)) {
       this.maximumIndex = index;
     }
   }

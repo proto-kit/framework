@@ -6,27 +6,28 @@ import {
 import { beforeEach, expect } from "@jest/globals";
 import { Field, Poseidon } from "o1js";
 
-import { CachedLinkedMerkleTreeStore } from "../../src/state/merkle/CachedLinkedMerkleTreeStore";
-import { InMemoryAsyncLinkedMerkleTreeStore } from "../../src/storage/inmemory/InMemoryAsyncLinkedMerkleTreeStore";
-import { SyncCachedLinkedMerkleTreeStore } from "../../src/state/merkle/SyncCachedLinkedMerkleTreeStore";
+import { CachedLinkedLeafStore } from "../../src/state/lmt/CachedLinkedLeafStore";
+import { InMemoryAsyncLinkedLeafStore } from "../../src/storage/inmemory/InMemoryAsyncLinkedLeafStore";
+import { SyncCachedLinkedLeafStore } from "../../src/state/merkle/SyncCachedLinkedLeafStore";
 
 describe("cached linked merkle store", () => {
-  let mainStore: InMemoryAsyncLinkedMerkleTreeStore;
+  let mainStore: InMemoryAsyncLinkedLeafStore;
 
-  let cache1: CachedLinkedMerkleTreeStore;
+  let cache1: CachedLinkedLeafStore;
   let tree1: LinkedMerkleTree;
 
   beforeEach(async () => {
-    mainStore = new InMemoryAsyncLinkedMerkleTreeStore();
+    mainStore = new InMemoryAsyncLinkedLeafStore();
 
-    const cachedStore = await CachedLinkedMerkleTreeStore.new(mainStore);
+    const cachedStore = await CachedLinkedLeafStore.new(mainStore);
 
-    const tmpTree = new LinkedMerkleTree(cachedStore);
+    const tmpTree = new LinkedMerkleTree(cachedStore.treeStore, cachedStore);
     tmpTree.setLeaf(5n, 10n);
+
     await cachedStore.mergeIntoParent();
 
-    cache1 = await CachedLinkedMerkleTreeStore.new(mainStore);
-    tree1 = new LinkedMerkleTree(cache1);
+    cache1 = await CachedLinkedLeafStore.new(mainStore);
+    tree1 = new LinkedMerkleTree(cache1.treeStore, cache1);
   });
 
   it("should cache multiple keys correctly", async () => {
@@ -35,8 +36,8 @@ describe("cached linked merkle store", () => {
     tree1.setLeaf(16n, 16n);
     tree1.setLeaf(46n, 46n);
 
-    const cache2 = new SyncCachedLinkedMerkleTreeStore(cache1);
-    const tree2 = new LinkedMerkleTree(cache2);
+    const cache2 = new SyncCachedLinkedLeafStore(cache1);
+    const tree2 = new LinkedMerkleTree(cache2.treeStore, cache2);
 
     const leaf1 = tree1.getLeaf(16n);
     const leaf2 = tree1.getLeaf(46n);
@@ -53,10 +54,10 @@ describe("cached linked merkle store", () => {
     expect(storedLeaf1.index).toStrictEqual(2n);
     expect(storedLeaf2.index).toStrictEqual(3n);
 
-    expect(tree2.getNode(0, storedLeaf1.index).toBigInt()).toBe(
+    expect(tree2.tree.getNode(0, storedLeaf1.index).toBigInt()).toBe(
       leaf1.hash().toBigInt()
     );
-    expect(tree2.getNode(0, storedLeaf2.index).toBigInt()).toBe(
+    expect(tree2.tree.getNode(0, storedLeaf2.index).toBigInt()).toBe(
       leaf2.hash().toBigInt()
     );
 
@@ -74,7 +75,7 @@ describe("cached linked merkle store", () => {
     await cache1.preloadKeys([10n]);
 
     expectDefined(cache1.getLeaf(5n));
-    expectDefined(cache1.getNode(1n, 0));
+    expectDefined(cache1.treeStore.getNode(1n, 0));
 
     tree1.setLeaf(10n, 10n);
     await cache1.mergeIntoParent();
@@ -97,10 +98,10 @@ describe("cached linked merkle store", () => {
     expect(storedLeaf10.index).toStrictEqual(2n);
 
     // Check leaves were hashed properly when added to nodes/merkle-tree
-    expect(cache1.getNode(storedLeaf10.index, 0)).toStrictEqual(
+    expect(cache1.treeStore.getNode(storedLeaf10.index, 0)).toStrictEqual(
       leaf10.hash().toBigInt()
     );
-    expect(cache1.getNode(storedLeaf5.index, 0)).toStrictEqual(
+    expect(cache1.treeStore.getNode(storedLeaf5.index, 0)).toStrictEqual(
       leaf5.hash().toBigInt()
     );
   });
@@ -114,10 +115,10 @@ describe("cached linked merkle store", () => {
     tree1.setLeaf(13n, 13n);
     await cache1.mergeIntoParent();
 
-    const cache2 = new SyncCachedLinkedMerkleTreeStore(cache1);
+    const cache2 = new SyncCachedLinkedLeafStore(cache1);
     await cache2.preloadKeys([14n]);
 
-    const tree2 = new LinkedMerkleTree(cache2);
+    const tree2 = new LinkedMerkleTree(cache2.treeStore, cache2);
     tree2.setLeaf(14n, 14n);
 
     const leaf = tree1.getLeaf(5n);
@@ -148,10 +149,10 @@ describe("cached linked merkle store", () => {
     expect(storedLeaf14.index).toStrictEqual(6n);
 
     // Check leaves were hashed properly when added to nodes/merkle-tree
-    expect(cache1.getNode(storedLeaf5.index, 0)).toStrictEqual(
+    expect(cache1.treeStore.getNode(storedLeaf5.index, 0)).toStrictEqual(
       leaf.hash().toBigInt()
     );
-    expect(cache2.getNode(storedLeaf14.index, 0)).toStrictEqual(
+    expect(cache2.treeStore.getNode(storedLeaf14.index, 0)).toStrictEqual(
       leaf2.hash().toBigInt()
     );
   });
@@ -166,9 +167,9 @@ describe("cached linked merkle store", () => {
     tree1.setLeaf(400n, 400n);
     tree1.setLeaf(500n, 500n);
 
-    const cache2 = new SyncCachedLinkedMerkleTreeStore(cache1);
+    const cache2 = new SyncCachedLinkedLeafStore(cache1);
     await cache2.preloadKeys([14n]);
-    const tree2 = new LinkedMerkleTree(cache2);
+    const tree2 = new LinkedMerkleTree(cache2.treeStore, cache2);
     tree2.setLeaf(14n, 14n);
 
     const leaf = tree1.getLeaf(5n);
@@ -204,10 +205,10 @@ describe("cached linked merkle store", () => {
     expect(storedLeaf500.index).toStrictEqual(7n);
     expect(storedLeaf14.index).toStrictEqual(8n);
 
-    expect(cache1.getNode(storedLeaf5.index, 0)).toStrictEqual(
+    expect(cache1.treeStore.getNode(storedLeaf5.index, 0)).toStrictEqual(
       leaf.hash().toBigInt()
     );
-    expect(cache2.getNode(storedLeaf14.index, 0)).toStrictEqual(
+    expect(cache2.treeStore.getNode(storedLeaf14.index, 0)).toStrictEqual(
       leaf2.hash().toBigInt()
     );
     expect(tree1.getRoot()).not.toEqual(tree2.getRoot());
@@ -218,14 +219,14 @@ describe("cached linked merkle store", () => {
   it("mimic transaction execution service", async () => {
     expect.assertions(18);
 
-    const treeCache1 = new LinkedMerkleTree(cache1);
+    const treeCache1 = new LinkedMerkleTree(cache1.treeStore, cache1);
     await cache1.preloadKeys([10n, 20n]);
     treeCache1.setLeaf(10n, 10n);
     treeCache1.setLeaf(20n, 20n);
     await cache1.mergeIntoParent();
 
-    const cache2 = new SyncCachedLinkedMerkleTreeStore(cache1);
-    const treeCache2 = new LinkedMerkleTree(cache2);
+    const cache2 = new SyncCachedLinkedLeafStore(cache1);
+    const treeCache2 = new LinkedMerkleTree(cache2.treeStore, cache2);
     await cache2.preloadKeys([7n]);
     treeCache2.setLeaf(7n, 7n);
     cache2.mergeIntoParent();
@@ -270,25 +271,25 @@ describe("cached linked merkle store", () => {
 
     expectDefined(storedLeaf5);
     await expect(
-      cache1.getNodesAsync([{ key: storedLeaf5.index, level: 0 }])
+      cache1.treeStore.getNodesAsync([{ key: storedLeaf5.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([Field(10), Field(5), Field(7)]).toBigInt(),
     ]);
     expectDefined(storedLeaf7);
     await expect(
-      cache1.getNodesAsync([{ key: storedLeaf7.index, level: 0 }])
+      cache1.treeStore.getNodesAsync([{ key: storedLeaf7.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([Field(7), Field(7), Field(10)]).toBigInt(),
     ]);
     expectDefined(storedLeaf10);
     await expect(
-      cache1.getNodesAsync([{ key: storedLeaf10.index, level: 0 }])
+      cache1.treeStore.getNodesAsync([{ key: storedLeaf10.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([Field(10), Field(10), Field(20)]).toBigInt(),
     ]);
     expectDefined(storedLeaf20);
     await expect(
-      cache1.getNodesAsync([{ key: storedLeaf20.index, level: 0 }])
+      cache1.treeStore.getNodesAsync([{ key: storedLeaf20.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([Field(20), Field(20), Field(Field.ORDER - 1n)]).toBigInt(),
     ]);
@@ -297,8 +298,8 @@ describe("cached linked merkle store", () => {
   it("should cache correctly", async () => {
     expect.assertions(15);
 
-    const cache2 = new SyncCachedLinkedMerkleTreeStore(cache1);
-    const tree2 = new LinkedMerkleTree(cache2);
+    const cache2 = new SyncCachedLinkedLeafStore(cache1);
+    const tree2 = new LinkedMerkleTree(cache2.treeStore, cache2);
 
     await cache2.preloadKeys([5n]);
     const leaf1 = tree2.getLeaf(5n);
@@ -306,7 +307,7 @@ describe("cached linked merkle store", () => {
     expectDefined(leaf1);
     expectDefined(storedLeaf1);
     await expect(
-      mainStore.getNodesAsync([{ key: storedLeaf1.index, level: 0 }])
+      mainStore.treeStore.getNodesAsync([{ key: storedLeaf1.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([leaf1.value, leaf1.path, leaf1.nextPath]).toBigInt(),
     ]);
@@ -317,11 +318,11 @@ describe("cached linked merkle store", () => {
     const storedLeaf2 = cache2.getLeaf(10n);
     expectDefined(leaf2);
     expectDefined(storedLeaf2);
-    expect(tree2.getNode(0, storedLeaf2.index).toBigInt()).toBe(
+    expect(tree2.tree.getNode(0, storedLeaf2.index).toBigInt()).toBe(
       Poseidon.hash([leaf2.value, leaf2.path, leaf2.nextPath]).toBigInt()
     );
 
-    const witness = tree2.getWitness(5n);
+    const witness = tree2.getReadWitness(5n);
 
     // We check tree1 and tree2 have same hash roots.
     // The witness is from tree2, which comes from cache2,
@@ -344,7 +345,7 @@ describe("cached linked merkle store", () => {
         .toString()
     ).not.toBe(tree1.getRoot().toString());
 
-    const witness2 = tree1.getWitness(10n);
+    const witness2 = tree1.getReadWitness(10n);
 
     expect(
       witness2.merkleWitness
@@ -373,29 +374,31 @@ describe("cached linked merkle store", () => {
     expectDefined(leaf15);
     expectDefined(storedLeaf15);
     expect(tree1.getRoot().toString()).toBe(tree2.getRoot().toString());
-    expect(tree1.getNode(0, storedLeaf15.index).toString()).toBe(
+    expect(tree1.tree.getNode(0, storedLeaf15.index).toString()).toBe(
       Poseidon.hash([leaf15.value, leaf15.path, leaf15.nextPath]).toString()
     );
 
     // Now the mainstore has the new 15n root.
     await cache1.mergeIntoParent();
 
-    const cachedStore = await CachedLinkedMerkleTreeStore.new(mainStore);
+    const cachedStore = await CachedLinkedLeafStore.new(mainStore);
     await cachedStore.preloadKey(15n);
 
-    expect(new LinkedMerkleTree(cachedStore).getRoot().toString()).toBe(
-      tree2.getRoot().toString()
-    );
+    expect(
+      new LinkedMerkleTree(cachedStore.treeStore, cachedStore)
+        .getRoot()
+        .toString()
+    ).toBe(tree2.getRoot().toString());
   });
 
   it("mimic transaction execution service further", async () => {
     expect.assertions(16);
 
-    const mStore = new InMemoryAsyncLinkedMerkleTreeStore();
-    const mCache = await CachedLinkedMerkleTreeStore.new(mStore);
-    const mCache2 = new SyncCachedLinkedMerkleTreeStore(mCache);
-    const treeCache1 = new LinkedMerkleTree(mCache);
-    const treeCache2 = new LinkedMerkleTree(mCache2);
+    const mStore = new InMemoryAsyncLinkedLeafStore();
+    const mCache = await CachedLinkedLeafStore.new(mStore);
+    const mCache2 = new SyncCachedLinkedLeafStore(mCache);
+    const treeCache1 = new LinkedMerkleTree(mCache.treeStore, mCache);
+    const treeCache2 = new LinkedMerkleTree(mCache2.treeStore, mCache2);
 
     await mCache.preloadKeys([5n]);
     treeCache1.setLeaf(10n, 10n);
@@ -439,25 +442,25 @@ describe("cached linked merkle store", () => {
 
     expectDefined(storedLeaf0);
     await expect(
-      mCache.getNodesAsync([{ key: storedLeaf0.index, level: 0 }])
+      mCache.treeStore.getNodesAsync([{ key: storedLeaf0.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([Field(0), Field(0), Field(7)]).toBigInt(),
     ]);
     expectDefined(storedLeaf7);
     await expect(
-      mCache.getNodesAsync([{ key: storedLeaf7.index, level: 0 }])
+      mCache.treeStore.getNodesAsync([{ key: storedLeaf7.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([Field(7), Field(7), Field(10)]).toBigInt(),
     ]);
     expectDefined(storedLeaf10);
     await expect(
-      mCache.getNodesAsync([{ key: storedLeaf10.index, level: 0 }])
+      mCache.treeStore.getNodesAsync([{ key: storedLeaf10.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([Field(10), Field(10), Field(20)]).toBigInt(),
     ]);
     expectDefined(storedLeaf20);
     await expect(
-      mCache.getNodesAsync([{ key: storedLeaf20.index, level: 0 }])
+      mCache.treeStore.getNodesAsync([{ key: storedLeaf20.index, level: 0 }])
     ).resolves.toStrictEqual([
       Poseidon.hash([Field(20), Field(20), Field(Field.ORDER - 1n)]).toBigInt(),
     ]);

@@ -18,6 +18,7 @@ export class SyncCachedLinkedLeafStore implements LinkedLeafStore {
 
   public constructor(private readonly parent: CachedLinkedLeafStore) {
     this.treeCache = new SyncCachedMerkleTreeStore(parent.treeStore);
+    this.leafStore.maximumIndex = parent.getMaximumIndex();
   }
 
   public get treeStore() {

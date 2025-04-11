@@ -1,4 +1,4 @@
-import { TypedClass, LinkedLeafAndMerkleWitness } from "@proto-kit/common";
+import { LinkedMerkleTreeReadWitness, TypedClass } from "@proto-kit/common";
 import {
   Runtime,
   RuntimeModule,
@@ -24,13 +24,13 @@ export type PickByType<Type, Value> = {
 export interface QueryGetterState<Value> {
   get: () => Promise<Value | undefined>;
   path: () => string;
-  merkleWitness: () => Promise<LinkedLeafAndMerkleWitness | undefined>;
+  merkleWitness: () => Promise<LinkedMerkleTreeReadWitness | undefined>;
 }
 
 export interface QueryGetterStateMap<Key, Value> {
   get: (key: Key) => Promise<Value | undefined>;
   path: (key: Key) => string;
-  merkleWitness: (key: Key) => Promise<LinkedLeafAndMerkleWitness | undefined>;
+  merkleWitness: (key: Key) => Promise<LinkedMerkleTreeReadWitness | undefined>;
 }
 
 export type PickStateProperties<Type> = PickByType<Type, State<any>>;

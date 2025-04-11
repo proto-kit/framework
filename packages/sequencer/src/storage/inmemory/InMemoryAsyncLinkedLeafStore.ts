@@ -1,4 +1,9 @@
-import { InMemoryLinkedLeafStore, LinkedLeaf, noop } from "@proto-kit/common";
+import {
+  initialLinkedLeaf,
+  InMemoryLinkedLeafStore,
+  LinkedLeaf,
+  noop,
+} from "@proto-kit/common";
 
 import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
 
@@ -8,6 +13,12 @@ export class InMemoryAsyncLinkedLeafStore implements AsyncLinkedLeafStore {
   private readonly leafStore = new InMemoryLinkedLeafStore();
 
   private readonly nodeStore = new InMemoryAsyncMerkleTreeStore();
+
+  // public constructor() {
+  //   const initialLeaf = initialLinkedLeaf();
+  //   this.leafStore.setLeaf(0n, initialLeaf);
+  //   this.nodeStore.writeNodes([{  }]);
+  // }
 
   public get treeStore() {
     return this.nodeStore;

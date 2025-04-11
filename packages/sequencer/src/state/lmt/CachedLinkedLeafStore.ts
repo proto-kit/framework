@@ -31,6 +31,7 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
   ): Promise<CachedLinkedLeafStore> {
     const cachedInstance = new CachedLinkedLeafStore(parent);
     await cachedInstance.preloadMaximumIndex();
+    await cachedInstance.preloadZeroNode();
     return cachedInstance;
   }
 
@@ -92,7 +93,15 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
     this.writeCache = {};
   }
 
-  protected async preloadMaximumIndex() {
+  protected async preloadZeroNode() {
+    if (this.leafStore.getLeaf(0n) === undefined) {
+      await this.preloadKey(0n);
+    }
+  }
+
+  private async preloadMaximumIndex() {
+    // Preload maximumIndex before all others, to have a accurate index loaded already
+    // before setting a ny other leaves
     if (this.leafStore.getMaximumIndex() === undefined) {
       this.leafStore.maximumIndex = await this.parent.getMaximumIndexAsync();
     }
@@ -102,14 +111,14 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
   // parent tree and sets the leaf and node in the cached tree (and in-memory tree).
   public async preloadKeyInternal(
     path: bigint
-  ): Promise<{ requiredTreePaths: bigint[] }> {
+  ): Promise<{ requiredTreeIndizes: bigint[] }> {
     const leaf = (await this.getLeavesAsync([path]))[0];
 
     if (leaf !== undefined) {
       // Update case, this leaf is the only one we need
       this.leafStore.setLeaf(leaf.index, leaf.leaf);
 
-      return { requiredTreePaths: [leaf.index] };
+      return { requiredTreeIndizes: [leaf.index] };
     } else {
       // Insert case, this leaf doesn't yet exist - we need to fetch the previous one
 
@@ -121,50 +130,56 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
         (await this.parent.getLeafLessOrEqualAsync(path));
 
       if (previousLeaf === undefined) {
-        throw Error("Previous Leaf should never be empty");
+        // throw Error("Previous Leaf should never be empty");
+        // This only happens when the store is empty, because in this case, the tree
+        // initializes the 0-leaf, but this only happens after preloading.
+        const [zeroLeaf] = await this.parent.getLeavesAsync([0n]);
+        if (zeroLeaf !== undefined) {
+          throw Error("Previous Leaf should never be empty");
+        }
+        return {
+          requiredTreeIndizes: [],
+        };
       }
 
       this.leafStore.setLeaf(previousLeaf.index, previousLeaf.leaf);
 
-      // Since we set a leaf right before this call, getMaximumIndex will always return a value
-      // Also note that this maximumIndex is already the "to be occupied" index of the new
-      // inserted leaf, not the "last occupied one" as normally the case
       const maximumIndex = this.leafStore.getMaximumIndex();
 
       if (maximumIndex === undefined) {
         throw Error("Maximum index should be defined in parent.");
       }
 
-      return { requiredTreePaths: [previousLeaf.index, maximumIndex] };
+      return { requiredTreeIndizes: [previousLeaf.index, maximumIndex + 1n] };
     }
   }
 
   public async preloadKey(path: bigint) {
-    const { requiredTreePaths } = await this.preloadKeyInternal(path);
-    await this.treeCache.preloadKeys(requiredTreePaths);
+    const { requiredTreeIndizes } = await this.preloadKeyInternal(path);
+    await this.treeCache.preloadKeys(requiredTreeIndizes);
   }
 
   public async preloadKeys(paths: bigint[]): Promise<void> {
     const results = await mapSequential(paths, (x) =>
       this.preloadKeyInternal(x)
     );
-    const treePaths = results.flatMap(
-      ({ requiredTreePaths }) => requiredTreePaths
+    const treeIndizes = results.flatMap(
+      ({ requiredTreeIndizes }) => requiredTreeIndizes
     );
-    await this.treeCache.preloadKeys(treePaths);
+    await this.treeCache.preloadKeys(treeIndizes);
   }
 
   // This merges the cache into the parent tree and resets the cache, but not the
   //  in-memory merkle tree.
   public async mergeIntoParent(): Promise<void> {
+    const leaves = this.getWrittenLeaves();
     // In case no state got set we can skip this step
-    if (Object.keys(this.writeCache.leaves).length === 0) {
+    if (leaves.length === 0) {
       return;
     }
 
     await this.parent.openTransaction();
 
-    const leaves = this.getWrittenLeaves();
     this.parent.writeLeaves(Object.values(leaves));
 
     await this.parent.commit();

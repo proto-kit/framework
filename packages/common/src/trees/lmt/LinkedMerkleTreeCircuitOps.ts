@@ -139,7 +139,7 @@ export namespace LinkedMerkleTreeCircuitOps {
     newPreviousLeaf: LinkedLeafStruct,
     newCurrentLeaf: LinkedLeafStruct,
     isUpdate: Bool,
-    isDummyAndUpdate: Bool,
+    isDummy: Bool,
     root: Field
   ) {
     const { leafPrevious, leafCurrent } = witness;
@@ -165,7 +165,7 @@ export namespace LinkedMerkleTreeCircuitOps {
     leafCurrent.merkleWitness
       .calculateRoot(leafCurrentLeaf)
       .equals(intermediateRoot)
-      .or(isDummyAndUpdate)
+      .or(isDummy)
       .assertTrue("Current leaf witness invalid");
 
     return leafCurrent.merkleWitness.calculateRoot(newCurrentLeaf.hash());

@@ -75,7 +75,7 @@ export function createLinkedMerkleTree(
       // We only do the leaf initialisation when the store
       // has no values. Otherwise, we leave the store
       // as is to not overwrite any data.
-      if (this.leafStore.getMaximumIndex() === undefined) {
+      if (this.leafStore.getLeaf(0n) === undefined) {
         this.setLeafInitialisation();
       }
     }
@@ -122,11 +122,6 @@ export function createLinkedMerkleTree(
      */
     public setLeaf(path: bigint, value: bigint): LinkedOperationWitness {
       const storedLeaf = this.leafStore.getLeaf(path);
-      // const prevLeaf = this.store.getLeafLessOrEqual(path);
-      //
-      // if (prevLeaf === undefined) {
-      //   throw Error("Prev leaf shouldn't be undefined");
-      // }
 
       if (storedLeaf === undefined) {
         // Insert case

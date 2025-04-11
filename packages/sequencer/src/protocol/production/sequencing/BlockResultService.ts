@@ -32,7 +32,8 @@ import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore"
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
 
-function collectStateDiff(
+// This is ordered, because javascript maintains the order based on time of first insertion
+function collectOrderedStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {
   return stateTransitions.reduce<Record<string, Field[] | undefined>>(
@@ -46,7 +47,7 @@ function collectStateDiff(
   );
 }
 
-function createCombinedStateDiff(
+function createCombinedOrderedStateDiff(
   transactions: TransactionExecutionResult[],
   blockHookSTs: UntypedStateTransition[]
 ) {
@@ -59,7 +60,7 @@ function createCombinedStateDiff(
 
       transitions.push(...blockHookSTs);
 
-      return collectStateDiff(transitions);
+      return collectOrderedStateDiff(transitions);
     })
     .reduce<StateRecord>((accumulator, diff) => {
       // accumulator properties will be overwritten by diff's values
@@ -190,7 +191,7 @@ export class BlockResultService {
     blockHashTreeStore: CachedMerkleTreeStore;
     stateService: CachedStateService;
   }> {
-    const combinedDiff = createCombinedStateDiff(
+    const combinedDiff = createCombinedOrderedStateDiff(
       block.transactions,
       block.beforeBlockStateTransitions
     );
@@ -222,7 +223,7 @@ export class BlockResultService {
     // Apply afterBlock STs to the tree
     const tree2 = await this.applyStateDiff(
       inMemoryStore,
-      collectStateDiff(
+      collectOrderedStateDiff(
         stateTransitions.map((stateTransition) =>
           UntypedStateTransition.fromStateTransition(stateTransition)
         )
