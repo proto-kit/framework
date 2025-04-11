@@ -4,29 +4,7 @@ import { LinkedMerkleTreeWitness } from "./LinkedMerkleTree";
 import { LinkedLeafStruct } from "./LinkedMerkleTreeTypes";
 
 /* eslint-disable no-inner-declarations */
-// TODO
-export class MonadBool extends Struct({
-  b: Bool,
-  metadata: String,
-}) {
-  and(bool2: Bool, msg: string): MonadBool {
-    const result = this.b.and(bool2);
-    let metadata: string = this.metadata;
-    Provable.asProver(() => {
-      if (!bool2.toBoolean()) {
-        metadata = metadata + (metadata.length > 0 ? "\n" : "") + msg;
-      }
-    });
-    return new MonadBool({
-      b: result,
-      metadata,
-    });
-  }
-
-  static from(b: Bool) {
-    return new MonadBool({ b, metadata: "" });
-  }
-}
+// TODO Add a struct that captures the errors monad-style
 
 export type TreeWrite = {
   path: Field;

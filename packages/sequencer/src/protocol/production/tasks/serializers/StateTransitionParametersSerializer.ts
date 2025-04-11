@@ -3,10 +3,7 @@ import {
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
 } from "@proto-kit/protocol";
-import {
-  LinkedMerkleTreeWitness,
-  RollupMerkleTreeWitness,
-} from "@proto-kit/common";
+import { LinkedMerkleTreeWitness } from "@proto-kit/common";
 
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import type { StateTransitionProofParameters } from "../StateTransitionTask";

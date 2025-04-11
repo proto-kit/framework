@@ -3,10 +3,10 @@ import {
   InMemoryLinkedLeafStore,
   LinkedLeafStore,
   StoredLeaf,
-  BigIntMath,
 } from "@proto-kit/common";
 
 import { CachedLinkedLeafStore } from "../lmt/CachedLinkedLeafStore";
+
 import { SyncCachedMerkleTreeStore } from "./SyncCachedMerkleTreeStore";
 
 // This is mainly used for supporting the rollbacks we need to do in case a runtimemethod fails

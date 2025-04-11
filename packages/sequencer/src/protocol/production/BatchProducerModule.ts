@@ -13,16 +13,14 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { BatchStorage } from "../../storage/repositories/BatchStorage";
 import { SettleableBatch } from "../../storage/model/Batch";
-import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
-import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockWithResult } from "../../storage/model/Block";
 import type { Database } from "../../storage/Database";
+import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
+import { CachedLinkedLeafStore } from "../../state/lmt/CachedLinkedLeafStore";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
 import { BatchFlow } from "./flow/BatchFlow";
-import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
-import { CachedLinkedLeafStore } from "../../state/lmt/CachedLinkedLeafStore";
 
 export type StateRecord = Record<string, Field[] | undefined>;
 

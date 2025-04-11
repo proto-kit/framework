@@ -1,13 +1,12 @@
+import { Field, Provable } from "o1js";
+
 import {
   InMemoryLinkedLeafStore,
   InMemoryMerkleTreeStorage,
-  LinkedLeafStruct,
   LinkedMerkleTree,
   LinkedMerkleTreeCircuitOps,
-  LinkedMerkleTreeGlobalState,
   LinkedMerkleTreeWitness,
 } from "../../src";
-import { Field, Provable } from "o1js";
 
 describe("LinkedMerkleTree - Circuit Ops", () => {
   function setupTree() {
@@ -24,7 +23,7 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
 
   it("should correctly verify insert witness", () => {
     try {
-      const root = tree.getGlobalState();
+      const root = tree.getRoot();
       const insertWitness = tree.setLeaf(5n, 1000n);
 
       const globalState = LinkedMerkleTreeCircuitOps.applyTreeWrite(
@@ -38,12 +37,7 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
         0
       );
 
-      expect(globalState.root.toString()).toStrictEqual(
-        tree.getRoot().toString()
-      );
-      expect(globalState.lastOccupiedIndex.toString()).toStrictEqual(
-        root.lastOccupiedIndex.add(1).toString()
-      );
+      expect(globalState.toString()).toStrictEqual(tree.getRoot().toString());
     } catch (e) {
       console.error(e);
       throw e;
@@ -55,7 +49,7 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
       tree.setLeaf(5n, 1000n);
       tree.setLeaf(10n, 1500n);
 
-      const root = tree.getGlobalState();
+      const root = tree.getRoot();
 
       const updateWitness = tree.setLeaf(10n, 500n);
 
@@ -70,12 +64,7 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
         0
       );
 
-      expect(globalState.root.toString()).toStrictEqual(
-        tree.getRoot().toString()
-      );
-      expect(globalState.lastOccupiedIndex.toString()).toStrictEqual(
-        root.lastOccupiedIndex.toString()
-      );
+      expect(globalState.toString()).toStrictEqual(tree.getRoot().toString());
     } catch (e) {
       console.error(e);
       throw e;
@@ -86,7 +75,7 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
     tree.setLeaf(5n, 1000n);
     tree.setLeaf(10n, 1500n);
 
-    const root = tree.getGlobalState();
+    const root = tree.getRoot();
 
     const updateWitness = tree.getReadWitness(10n);
 
@@ -101,20 +90,15 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
       0
     );
 
-    expect(globalState.root.toString()).toStrictEqual(root.root.toString());
-    expect(globalState.root.toString()).toStrictEqual(
-      tree.getRoot().toString()
-    );
-    expect(globalState.lastOccupiedIndex.toString()).toStrictEqual(
-      root.lastOccupiedIndex.toString()
-    );
+    expect(globalState.toString()).toStrictEqual(root.toString());
+    expect(globalState.toString()).toStrictEqual(tree.getRoot().toString());
   });
 
   it("should noop when used with a dummy witness", () => {
     tree.setLeaf(5n, 1000n);
     tree.setLeaf(10n, 1500n);
 
-    const root = tree.getGlobalState();
+    const root = tree.getRoot();
 
     const globalState = LinkedMerkleTreeCircuitOps.applyTreeWrite(
       root,
@@ -127,25 +111,17 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
       0
     );
 
-    expect(globalState.root.toString()).toStrictEqual(root.root.toString());
-    expect(globalState.root.toString()).toStrictEqual(
-      tree.getRoot().toString()
-    );
-    expect(globalState.lastOccupiedIndex.toString()).toStrictEqual(
-      root.lastOccupiedIndex.toString()
-    );
+    expect(globalState.toString()).toStrictEqual(root.toString());
+    expect(globalState.toString()).toStrictEqual(tree.getRoot().toString());
   });
 
   it("Circuit size", async () => {
-    const root = tree.getGlobalState();
+    const root = tree.getRoot();
 
     const updateWitness = tree.setLeaf(10n, 500n);
 
     const cs = await Provable.constraintSystem(() => {
-      const rootWitness = Provable.witness(
-        LinkedMerkleTreeGlobalState,
-        () => root
-      );
+      const rootWitness = Provable.witness(Field, () => root);
       const updateWitnessWitness = Provable.witness(
         LinkedMerkleTreeWitness,
         () => updateWitness
@@ -156,7 +132,7 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
         to: Provable.witness(Field, () => 1),
       };
 
-      const globalState = LinkedMerkleTreeCircuitOps.applyTreeWrite(
+      LinkedMerkleTreeCircuitOps.applyTreeWrite(
         rootWitness,
         updateWitnessWitness,
         treeWrite,
@@ -166,6 +142,6 @@ describe("LinkedMerkleTree - Circuit Ops", () => {
 
     console.log(cs.rows);
 
-    // expect(cs.rows).toBeLessThan(2500);
+    expect(cs.rows).toBeLessThan(2500);
   });
 });

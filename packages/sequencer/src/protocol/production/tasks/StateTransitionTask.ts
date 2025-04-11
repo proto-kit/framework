@@ -15,7 +15,6 @@ import {
   log,
   ProvableMethodExecutionContext,
   CompileRegistry,
-  RollupMerkleTreeWitness,
   LinkedMerkleTreeWitness,
 } from "@proto-kit/common";
 

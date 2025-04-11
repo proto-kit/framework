@@ -1,9 +1,5 @@
 import { Bool, Field, Provable, Struct } from "o1js";
-import {
-  batch,
-  LinkedMerkleTreeWitness,
-  RollupMerkleTreeWitness,
-} from "@proto-kit/common";
+import { batch, LinkedMerkleTreeWitness } from "@proto-kit/common";
 
 import { constants } from "../Constants";
 

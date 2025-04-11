@@ -1,7 +1,6 @@
 import {
   InMemoryLinkedLeafStore,
   LinkedLeaf,
-  mapSequential,
   LinkedLeafStore,
   assertDefined,
   StoredLeaf,
@@ -9,6 +8,7 @@ import {
 } from "@proto-kit/common";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import zip from "lodash/zip";
+// eslint-disable-next-line import/no-extraneous-dependencies
 import groupBy from "lodash/groupBy";
 
 import { AsyncLinkedLeafStore } from "../async/AsyncLinkedLeafStore";
@@ -158,7 +158,7 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
       leaf !== undefined ? "update" : "insert"
     );
 
-    let treeIndizesToFetch: bigint[] = [];
+    const treeIndizesToFetch: bigint[] = [];
 
     if (groupedOps.update !== undefined) {
       // Preload updates
@@ -211,9 +211,6 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
       // In that case, everything will be either contained in the siblings of this index
       // or be zero. So in either case, we don't have to preload more than we do here.
       const maximumIndex = this.leafStore.getMaximumIndex() ?? -1n;
-      // if (maximumIndex === undefined) {
-      //   throw Error("Maximum index should be defined in parent.");
-      // }
       treeIndizesToFetch.push(maximumIndex + 1n);
     }
 

@@ -2,11 +2,11 @@ import { QueryTransportModule } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
+import { LinkedMerkleTreeReadWitness } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
 import { GraphqlClient } from "./GraphqlClient";
-import { LinkedMerkleTreeReadWitness } from "@proto-kit/common";
 
 function assertStringArray(array: any): asserts array is string[] {
   if (

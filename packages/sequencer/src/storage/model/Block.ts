@@ -5,7 +5,7 @@ import {
   BlockHashMerkleTreeWitness,
   NetworkState,
 } from "@proto-kit/protocol";
-import { LinkedMerkleTree, RollupMerkleTree } from "@proto-kit/common";
+import { LinkedMerkleTree } from "@proto-kit/common";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { UntypedStateTransition } from "../../protocol/production/helpers/UntypedStateTransition";

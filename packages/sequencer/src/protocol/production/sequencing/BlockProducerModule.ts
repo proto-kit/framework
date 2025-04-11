@@ -26,10 +26,10 @@ import { Database } from "../../../storage/Database";
 import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
+import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
-import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 
 export interface BlockConfig {
   allowEmptyBlock?: boolean;

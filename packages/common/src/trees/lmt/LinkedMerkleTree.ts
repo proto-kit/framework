@@ -173,7 +173,6 @@ export function createLinkedMerkleTree(
             merkleWitness: currentMerkleWitness,
           }),
         });
-        // eslint-disable-next-line no-else-return
       } else {
         // Update case
         const witnessPrevious = this.dummyReadWitness();

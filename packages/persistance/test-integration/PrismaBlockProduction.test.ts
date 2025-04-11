@@ -40,10 +40,6 @@ describe("prisma integration", () => {
 
     await appChain.start(false, container.createChildContainer());
 
-    const db = appChain.sequencer.resolve("Database");
-    // await db.prisma.pruneDatabase();
-    // await db.redis.pruneDatabase();
-
     senderNonce = 0;
   };
 

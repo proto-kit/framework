@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import {
   sequencerModule,
   SequencerModule,
@@ -28,6 +28,7 @@ export interface PrismaDatabaseConfig {
         };
       }
     | string;
+  log?: (Prisma.LogLevel | Prisma.LogDefinition)[];
 }
 
 export interface PrismaConnection {
@@ -134,7 +135,7 @@ export class PrismaDatabaseConnection
             url,
           },
         },
-        log: ["query", "info", "warn", "error"],
+        log: this.config.log,
       });
     } else {
       this.initializedClient = new PrismaClient();

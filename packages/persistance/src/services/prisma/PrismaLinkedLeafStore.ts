@@ -1,25 +1,19 @@
-import {
-  LinkedLeaf,
-  log,
-  mapSequential,
-  noop,
-  StoredLeaf,
-} from "@proto-kit/common";
-import { AsyncLinkedLeafStore } from "@proto-kit/sequencer/dist/state/async/AsyncLinkedLeafStore";
+import { noop, StoredLeaf } from "@proto-kit/common";
+import { AsyncLinkedLeafStore, Tracer } from "@proto-kit/sequencer";
+import { injectable } from "tsyringe";
+import { Prisma } from "@prisma/client";
 
 import { PrismaConnection } from "../../PrismaDatabaseConnection";
-import { Decimal } from "./PrismaStateService";
-import { inject, injectable } from "tsyringe";
-import { Tracer } from "@proto-kit/sequencer";
 import { RedisMerkleTreeStore } from "../redis/RedisMerkleTreeStore";
 import { RedisConnection } from "../../RedisConnection";
-import { Prisma } from "@prisma/client";
+
+import { Decimal } from "./PrismaStateService";
 
 @injectable()
 export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
   private cache: StoredLeaf[] = [];
 
-  private redisMerkleStore: RedisMerkleTreeStore;
+  private readonly redisMerkleStore: RedisMerkleTreeStore;
 
   public constructor(
     private readonly connection: PrismaConnection,

@@ -1,6 +1,5 @@
 import {
   prefixToField,
-  RollupMerkleTree,
   TypedClass,
   mapSequential,
   ChildVerificationKeyService,
