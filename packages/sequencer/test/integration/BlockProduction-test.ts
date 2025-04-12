@@ -25,6 +25,7 @@ import { AppChain } from "@proto-kit/sdk";
 import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
+import { afterEach } from "@jest/globals";
 
 import {
   BatchStorage,
@@ -39,14 +40,12 @@ import {
   DefaultTestingSequencerModules,
   testingSequencerModules,
 } from "../TestingSequencer";
+import { LinkedMerkleTreeIntegrity } from "../LinkedMerkleTreeIntegrity";
 
 import { Balance } from "./mocks/Balance";
 import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
 import { NoopRuntime } from "./mocks/NoopRuntime";
 import { BlockTestService } from "./services/BlockTestService";
-import { infer } from "ts-pattern/dist/patterns";
-import { afterEach } from "@jest/globals";
-import { LinkedMerkleTreeIntegrity } from "../LinkedMerkleTreeIntegrity";
 
 export class PrimaryTestEvent extends Struct({
   message: Bool,
