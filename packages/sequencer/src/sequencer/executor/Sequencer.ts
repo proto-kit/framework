@@ -121,8 +121,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       await sequencerModule.start();
     }
 
-    // TODO This currently also warns for client appchains
-    if (!moduleClassNames.includes("SequencerStartupModule")) {
+    if (
+      !moduleClassNames.includes("SequencerStartupModule") &&
+      moduleClassNames.includes("BatchProducerModule")
+    ) {
       log.warn("SequencerStartupModule is not defined.");
     }
   }

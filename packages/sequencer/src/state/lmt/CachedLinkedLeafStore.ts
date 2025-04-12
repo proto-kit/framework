@@ -48,29 +48,11 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
   // If the leaf is not in the in-memory store it goes to the parent (i.e.
   // what's put in the constructor).
   public async getLeavesAsync(paths: bigint[]) {
-    const results = Array<StoredLeaf | undefined>(paths.length).fill(undefined);
-
-    const toFetch: bigint[] = [];
-
-    paths.forEach((path, index) => {
-      const localResult = this.getLeaf(path);
-      if (localResult !== undefined) {
-        results[index] = localResult;
-      } else {
-        toFetch.push(path);
-      }
-    });
-
-    // Reverse here, so that we can use pop() later
-    const fetchResult = (await this.parent.getLeavesAsync(toFetch)).reverse();
-
-    results.forEach((result, index) => {
-      if (result === undefined) {
-        results[index] = fetchResult.pop();
-      }
-    });
-
-    return results;
+    return await this.retrieveBatched(
+      paths,
+      (path) => this.getLeaf(path),
+      (remotePaths) => this.parent.getLeavesAsync(remotePaths)
+    );
   }
 
   public setLeaf(index: bigint, leaf: LinkedLeaf) {
@@ -166,7 +148,7 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
         assertDefined(leaf);
 
         // Update case, this leaf is the only one we need
-        this.leafStore.setLeaf(leaf.index, leaf.leaf);
+        this.setLeaf(leaf.index, leaf.leaf);
 
         return leaf.index;
       });
@@ -187,19 +169,22 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
       // one exception being when the tree is empty (see below)
       const anyUndefined =
         previousLeaves.findIndex((x) => x === undefined) > -1;
+      // eslint-disable-next-line sonarjs/no-collapsible-if
       if (anyUndefined) {
         // This only happens when the store is empty, because in this case, the tree
         // initializes the 0-leaf, but this only happens after preloading.
-        const [zeroLeaf] = await this.parent.getLeavesAsync([0n]);
-        if (zeroLeaf !== undefined) {
-          throw Error("Previous Leaf should never be empty");
+        if (this.leafStore.getLeaf(0n) === undefined) {
+          const [zeroLeaf] = await this.parent.getLeavesAsync([0n]);
+          if (zeroLeaf !== undefined) {
+            throw Error("Previous Leaf should never be empty");
+          }
         }
       }
 
       const definedPreviousLeaves = previousLeaves.filter(filterNonUndefined);
 
       definedPreviousLeaves.forEach(({ index, leaf }) =>
-        this.leafStore.setLeaf(index, leaf)
+        this.setLeaf(index, leaf)
       );
       treeIndizesToFetch.push(
         ...definedPreviousLeaves.map(({ index }) => index)

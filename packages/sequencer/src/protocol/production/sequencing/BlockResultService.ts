@@ -159,11 +159,12 @@ export class BlockResultService {
     store: CachedLinkedLeafStore,
     stateDiff: StateRecord
   ): Promise<LinkedMerkleTree> {
-    await store.preloadKeys(Object.keys(stateDiff).map(BigInt));
+    const stateKeys = Object.keys(stateDiff);
+    await store.preloadKeys(stateKeys.map(BigInt));
 
     // In case the diff is empty, we preload key 0 in order to
     // retrieve the root, which we need later
-    if (Object.keys(stateDiff).length === 0) {
+    if (stateKeys.length === 0) {
       await store.preloadKey(0n);
     }
 

@@ -77,26 +77,36 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
   public async getLeavesAsync(paths: bigint[]) {
     this.assertCacheEmpty();
 
-    const pathsDecimal = paths.map((path) => new Decimal(path.toString(10)));
-    const records = await this.connection.prismaClient.linkedLeaf.findMany({
-      where: {
-        path: {
-          in: pathsDecimal,
+    if (paths.length > 0) {
+      const pathsDecimal = paths.map((path) => new Decimal(path.toString(10)));
+      const records = await this.connection.prismaClient.linkedLeaf.findMany({
+        where: {
+          path: {
+            in: pathsDecimal,
+          },
+          mask: this.mask,
         },
-        mask: this.mask,
-      },
-    });
+      });
 
-    return records.map<StoredLeaf>((record) => {
-      return {
-        index: BigInt(record.index.toFixed()),
-        leaf: {
-          path: BigInt(record.path.toFixed()),
-          value: BigInt(record.value.toFixed()),
-          nextPath: BigInt(record.nextPath.toFixed()),
-        },
-      };
-    });
+      const stack = records
+        .map<StoredLeaf>((record) => {
+          return {
+            index: BigInt(record.index.toFixed()),
+            leaf: {
+              path: BigInt(record.path.toFixed()),
+              value: BigInt(record.value.toFixed()),
+              nextPath: BigInt(record.nextPath.toFixed()),
+            },
+          };
+        })
+        .reverse();
+
+      // TODO this runs in O(n^2), find a better matching algorithm for this (ordering?)
+      return paths.map((path) => {
+        return stack.find((candidate) => candidate.leaf.path === path);
+      });
+    }
+    return [];
   }
 
   public async getMaximumIndexAsync() {
@@ -133,13 +143,15 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
       } & LinkedLeafQueryResult)[]
     >`
       SELECT * FROM "LinkedLeaf" l
-        RIGHT JOIN (SELECT unnest(ARRAY[${pathsDecimals}]) as newpath) f 
-        ON l.path < f.newpath AND l."nextPath" > f.newpath
+        RIGHT JOIN (SELECT unnest(ARRAY[${pathsDecimals}]) as query_path) f 
+        ON l.path < f.query_path AND l."nextPath" > f.query_path
         WHERE l.mask = ${this.mask}
     `;
 
     const map: Record<string, LinkedLeafQueryResult> = Object.fromEntries(
-      result.map((obj) => [obj.query_path.toFixed(), obj])
+      result.map((obj) => {
+        return [obj.query_path.toFixed(), obj];
+      })
     );
 
     return paths.map((path) => {
@@ -148,7 +160,7 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
         return {
           index: BigInt(record.index.toFixed()),
           leaf: {
-            path: BigInt(record.index.toFixed()),
+            path: BigInt(record.path.toFixed()),
             value: BigInt(record.value.toFixed()),
             nextPath: BigInt(record.nextPath.toFixed()),
           },

@@ -7,10 +7,12 @@ import { AppChainTransaction } from "@proto-kit/sdk";
 import { Block, Batch } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
 import { container } from "tsyringe";
+import { testBlockProduction } from "@proto-kit/sequencer/test/integration/BlockProduction-test";
 
 import {
   PrismaBatchStore,
   PrismaBlockStorage,
+  PrismaRedisDatabase,
   PrismaTransactionStorage,
 } from "../src";
 
@@ -19,6 +21,17 @@ import {
   IntegrationTestDBConfig,
   prepareBlock,
 } from "./utils";
+
+describe("Prisma block production", () => {
+  const { prismaConfig, redisConfig } = IntegrationTestDBConfig;
+  testBlockProduction(PrismaRedisDatabase, {
+    prisma: {
+      connection: prismaConfig,
+      log: [{ level: "query", emit: "event" }],
+    },
+    redis: redisConfig,
+  });
+});
 
 describe("prisma integration", () => {
   let appChain: ReturnType<typeof createPrismaAppchain>;

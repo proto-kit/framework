@@ -36,7 +36,7 @@ export class InMemoryLinkedLeafStore implements LinkedLeafStore {
   ): { leaf: LinkedLeaf; index: bigint } | undefined {
     return Object.values(this.leaves).find(
       (storedLeaf) =>
-        storedLeaf.leaf.nextPath > path && storedLeaf.leaf.path <= path
+        storedLeaf.leaf.nextPath > path && storedLeaf.leaf.path < path
     );
   }
 }
