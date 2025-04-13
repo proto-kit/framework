@@ -2,10 +2,10 @@ import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
 
 import { range } from "../../utils";
 import { TypedClass } from "../../types";
+import uniqBy from "lodash/uniqBy";
 
 import { MerkleTreeStore } from "./MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
-
 export class StructTemplate extends Struct({
   path: Provable.Array(Field, 0),
   isLeft: Provable.Array(Bool, 0),
@@ -67,7 +67,7 @@ export interface AbstractMerkleTree {
    */
   setLeaf(index: bigint, leaf: Field): void;
 
-  setLeafBatch(updates: { index: bigint; leaf: Field }[]): void;
+  setLeaves(updates: { index: bigint; leaf: Field }[]): void;
 
   /**
    * Returns the witness (also known as
@@ -296,17 +296,26 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       }
     }
 
-    public setLeafBatch(updates: { index: bigint; leaf: Field }[]): number {
+    public setLeaves(updates: { index: bigint; leaf: Field }[]) {
       updates.forEach(({ index }) => this.assertIndexRange(index));
 
       type Change = { level: number; index: bigint; value: Field };
       const changes: Change[] = [];
 
-      let numberOfHashes = 0;
+      let levelChanges = uniqBy(updates.reverse(), "index")
+        // we can assume no index is in this list twice, so we don't care about the 0 case
+        // This is in reverse order, so its a queue
+        .sort((a, b) => (a.index < b.index ? 1 : -1));
 
-      // we can assume no index is in this list twice, so we don't care about the 0 case
-      // This is in reverse order, so its a queue
-      let levelChanges = updates.sort((a, b) => (a.index < b.index ? 1 : -1));
+      changes.push(
+        ...levelChanges
+          .map(({ leaf, index }) => ({
+            level: 0,
+            index,
+            value: leaf,
+          }))
+          .reverse()
+      );
 
       for (let level = 1; level < AbstractRollupMerkleTree.HEIGHT; level += 1) {
         const nextLevelChanges: typeof levelChanges = [];
@@ -316,7 +325,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
           let newNode;
           if (node.index % 2n === 0n) {
             let sibling;
-            const potentialSibling = levelChanges.at(0);
+            const potentialSibling = levelChanges.at(-1);
             if (
               potentialSibling !== undefined &&
               potentialSibling.index === node.index + 1n
@@ -331,7 +340,6 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
             const sibling = Field(this.getNode(level - 1, node.index + 1n));
             newNode = Poseidon.hash([sibling, node.leaf]);
           }
-          numberOfHashes++;
 
           const nextLevelIndex = node.index / 2n;
           changes.push({ level, index: nextLevelIndex, value: newNode });
@@ -341,11 +349,9 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
         levelChanges = nextLevelChanges.reverse();
       }
 
-      changes.forEach(({ level, index, value }) =>
-        this.setNode(level, index, value)
-      );
-
-      return numberOfHashes;
+      changes.forEach(({ level, index, value }) => {
+        this.setNode(level, index, value);
+      });
     }
 
     /**

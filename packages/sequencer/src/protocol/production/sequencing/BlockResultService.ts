@@ -170,10 +170,15 @@ export class BlockResultService {
 
     const tree = new LinkedMerkleTree(store.treeStore, store);
 
-    Object.entries(stateDiff).forEach(([key, state]) => {
+    const writes = Object.entries(stateDiff).map(([key, state]) => {
       const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
-      tree.setLeaf(BigInt(key), treeValue.toBigInt());
+      return { path: BigInt(key), value: treeValue.toBigInt() };
     });
+    tree.setLeaves(writes);
+    // Object.entries(stateDiff).forEach(([key, state]) => {
+    //   const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
+    //   tree.setLeaf(BigInt(key), treeValue.toBigInt());
+    // });
 
     return tree;
   }

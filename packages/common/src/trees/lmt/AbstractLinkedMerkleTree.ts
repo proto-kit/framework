@@ -55,6 +55,8 @@ export interface AbstractLinkedMerkleTree {
    */
   setLeaf(path: bigint, value?: bigint): LinkedOperationWitnessValue;
 
+  setLeaves(batch: { path: bigint; value: bigint }[]): void;
+
   /**
    * Returns a leaf which lives at a given path.
    * Errors otherwise.

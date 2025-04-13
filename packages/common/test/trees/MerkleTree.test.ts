@@ -10,11 +10,24 @@ import {
 } from "../../src";
 
 describe("batch setLeaf", () => {
-  function generateBatch(size: number) {
+  function generateBatch(
+    size: number,
+    height: number,
+    generator = () => Field.random().toBigInt()
+  ) {
+    const max = 2n ** BigInt(height - 1);
     return range(0, size).map(() => ({
-      index: Field.random().toBigInt(),
+      index: generator() % max,
       leaf: Field.random(),
     }));
+  }
+
+  function generateBatchAdjacent(size: number, height: number) {
+    let start = 0n;
+    return generateBatch(size, height, () => {
+      start += 1n;
+      return start - 1n;
+    });
   }
 
   function captureTime<R>(f: () => R): [number, R] {
@@ -22,43 +35,60 @@ describe("batch setLeaf", () => {
     const ret = f();
     return [Date.now() - start, ret];
   }
+  const height = 10;
+  const max_index = 2n ** BigInt(height - 1) - 1n;
 
-  it("correctness", () => {
-    const Tree = createMerkleTree(256);
+  it.each([
+    [
+      { index: 1n, leaf: Field(5) },
+      { index: max_index, leaf: Field(7) },
+    ],
+    [
+      { index: max_index, leaf: Field(7) },
+      { index: max_index - 1n, leaf: Field(7) },
+      { index: 50n, leaf: Field(7) },
+      { index: 1n, leaf: Field(5) },
+    ],
+    generateBatch(5, height),
+    generateBatch(10, height),
+    generateBatch(50, height),
+    generateBatch(300, height),
+  ])("correctness", (...writes) => {
+    const Tree = createMerkleTree(height);
     const tree1 = new Tree(new InMemoryMerkleTreeStorage());
     const tree2 = new Tree(new InMemoryMerkleTreeStorage());
 
-    tree1.setLeaf(1n, Field(5));
-    tree1.setLeaf(Field.ORDER - 1n, Field(7));
+    writes.forEach(({ index, leaf }) => {
+      tree1.setLeaf(index, leaf);
+    });
 
-    tree2.setLeafBatch([
-      { index: 1n, leaf: Field(5) },
-      { index: Field.ORDER - 1n, leaf: Field(7) },
-    ]);
+    tree2.setLeaves(writes);
 
     expect(tree1.getRoot().toString()).toStrictEqual(
       tree2.getRoot().toString()
     );
   });
 
-  it.each([10, 100])("test speedup", (batchSize) => {
+  it.each([
+    ["random", 10, generateBatch],
+    ["random", 100, generateBatch],
+    ["adjacent", 100, generateBatchAdjacent],
+    ["adjacent", 10, generateBatchAdjacent],
+  ])("test speedup: %s (%i leaves)", (label, batchSize, generateFunction) => {
     const tree1 = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
     const tree2 = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
 
-    const batch = generateBatch(batchSize);
+    const batch = generateFunction(batchSize, RollupMerkleTree.HEIGHT);
 
     const slice = batch.slice();
-    const [time1, numHashes] = captureTime(() => tree1.setLeafBatch(slice));
+    const [time1] = captureTime(() => tree1.setLeaves(slice));
     const [time2] = captureTime(() =>
       batch.forEach(({ index, leaf }) => tree2.setLeaf(index, leaf))
     );
 
-    console.log(`Speedup for batch size ${batchSize}`);
+    console.log(`Speedup for batch size ${batchSize}, mode ${label}`);
     console.log(time1);
     console.log(time2);
-
-    console.log(`numHashes1 ${numHashes}`);
-    console.log(`numHashes2 ${255 * batchSize}`);
 
     expect(tree1.getRoot().toString()).toStrictEqual(
       tree2.getRoot().toString()
