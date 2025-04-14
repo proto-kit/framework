@@ -1,4 +1,4 @@
-import { LinkedLeafStore, LinkedLeaf } from "./LinkedLinkedStore";
+import { LinkedLeafStore, LinkedLeaf } from "./LinkedLeafStore";
 
 export class InMemoryLinkedLeafStore implements LinkedLeafStore {
   public leaves: {
@@ -31,7 +31,7 @@ export class InMemoryLinkedLeafStore implements LinkedLeafStore {
   }
 
   // This gets the leaf with the closest path.
-  public getLeafLessOrEqual(
+  public getPreviousLeaf(
     path: bigint
   ): { leaf: LinkedLeaf; index: bigint } | undefined {
     return Object.values(this.leaves).find(

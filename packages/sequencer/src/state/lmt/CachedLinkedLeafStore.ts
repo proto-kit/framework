@@ -161,8 +161,8 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
       // (i.e. pointing over our path)
       const previousLeaves = await this.retrieveBatched(
         groupedOps.insert.map(([path]) => path),
-        this.leafStore.getLeafLessOrEqual.bind(this.leafStore),
-        this.parent.getLeavesLessOrEqualAsync.bind(this.parent)
+        this.leafStore.getPreviousLeaf.bind(this.leafStore),
+        this.parent.getPreviousLeavesAsync.bind(this.parent)
       );
 
       // This is a check that all previous leaves have been found, with the
@@ -230,8 +230,8 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
     this.resetWrittenLeaves();
   }
 
-  public getLeafLessOrEqual(path: bigint) {
-    return this.leafStore.getLeafLessOrEqual(path);
+  public getPreviousLeaf(path: bigint) {
+    return this.leafStore.getPreviousLeaf(path);
   }
 
   public getMaximumIndex() {

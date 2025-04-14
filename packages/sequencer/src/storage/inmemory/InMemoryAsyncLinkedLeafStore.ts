@@ -48,8 +48,8 @@ export class InMemoryAsyncLinkedLeafStore implements AsyncLinkedLeafStore {
     return this.leafStore.getMaximumIndex();
   }
 
-  public async getLeavesLessOrEqualAsync(paths: bigint[]) {
-    return paths.map((path) => this.leafStore.getLeafLessOrEqual(path));
+  public async getPreviousLeavesAsync(paths: bigint[]) {
+    return paths.map((path) => this.leafStore.getPreviousLeaf(path));
   }
 
   public setLeaf(index: bigint, value: LinkedLeaf) {
@@ -60,8 +60,8 @@ export class InMemoryAsyncLinkedLeafStore implements AsyncLinkedLeafStore {
     return this.leafStore.getLeaf(path);
   }
 
-  public getLeafLessOrEqual(path: bigint) {
-    return this.leafStore.getLeafLessOrEqual(path);
+  public getPreviousLeaf(path: bigint) {
+    return this.leafStore.getPreviousLeaf(path);
   }
 
   public getMaximumIndex() {

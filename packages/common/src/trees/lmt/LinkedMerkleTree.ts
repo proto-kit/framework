@@ -5,7 +5,7 @@ import { MerkleTreeStore } from "../sparse/MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "../sparse/InMemoryMerkleTreeStorage";
 
 import { InMemoryLinkedLeafStore } from "./InMemoryLinkedLeafStore";
-import { LinkedLeaf, LinkedLeafStore } from "./LinkedLinkedStore";
+import { LinkedLeaf, LinkedLeafStore } from "./LinkedLeafStore";
 import { LinkedLeafStruct } from "./LinkedMerkleTreeTypes";
 import {
   AbstractLinkedMerkleTree,
@@ -139,7 +139,7 @@ export function createLinkedMerkleTree(
         }
         const nextFreeIndex = tempIndex + 1n;
 
-        const previousLeaf = this.leafStore.getLeafLessOrEqual(path);
+        const previousLeaf = this.leafStore.getPreviousLeaf(path);
 
         if (previousLeaf === undefined) {
           throw Error(`Prev leaf shouldn't be undefined (path ${path})`);

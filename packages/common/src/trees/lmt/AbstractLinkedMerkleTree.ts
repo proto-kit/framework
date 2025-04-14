@@ -4,7 +4,7 @@ import { createMerkleTree, RollupMerkleTree } from "../sparse/RollupMerkleTree";
 import { TypedClass } from "../../types";
 import { MerkleTreeStore } from "../sparse/MerkleTreeStore";
 
-import { LinkedLeafStore } from "./LinkedLinkedStore";
+import { LinkedLeafStore } from "./LinkedLeafStore";
 import { LinkedLeafStruct } from "./LinkedMerkleTreeTypes";
 
 class RollupMerkleTreeWitness extends createMerkleTree(40).WITNESS {}

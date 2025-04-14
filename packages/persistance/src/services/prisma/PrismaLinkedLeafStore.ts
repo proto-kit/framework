@@ -126,7 +126,7 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
       : undefined;
   }
 
-  public async getLeavesLessOrEqualAsync(paths: bigint[]) {
+  public async getPreviousLeavesAsync(paths: bigint[]) {
     this.assertCacheEmpty();
 
     const pathsDecimals = paths.map((path) => new Decimal(path.toString(10)));

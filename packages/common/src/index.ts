@@ -16,7 +16,7 @@ export * from "./events/EventEmitter";
 export * from "./trees/sparse/MerkleTreeStore";
 export * from "./trees/sparse/InMemoryMerkleTreeStorage";
 export * from "./trees/sparse/RollupMerkleTree";
-export * from "./trees/lmt/LinkedLinkedStore";
+export * from "./trees/lmt/LinkedLeafStore";
 export * from "./trees/lmt/LinkedMerkleTree";
 export * from "./trees/lmt/InMemoryLinkedLeafStore";
 export * from "./trees/lmt/LinkedMerkleTreeCircuitOps";

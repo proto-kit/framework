@@ -39,10 +39,9 @@ export class SyncCachedLinkedLeafStore implements LinkedLeafStore {
     );
   }
 
-  public getLeafLessOrEqual(path: bigint): StoredLeaf | undefined {
+  public getPreviousLeaf(path: bigint): StoredLeaf | undefined {
     return (
-      this.leafStore.getLeafLessOrEqual(path) ??
-      this.parent.getLeafLessOrEqual(path)
+      this.leafStore.getPreviousLeaf(path) ?? this.parent.getPreviousLeaf(path)
     );
   }
 
