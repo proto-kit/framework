@@ -23,6 +23,7 @@ import { afterEach } from "@jest/globals";
 
 import {
   BlockProducerModule,
+  ConsoleTracer,
   DatabasePruneModule,
   ManualBlockTrigger,
   Sequencer,
@@ -124,10 +125,11 @@ export async function createAppChain() {
 
 const timeout = 600000;
 
-describe.skip("tps", () => {
+describe("tps", () => {
   let appChain: Awaited<ReturnType<typeof createAppChain>>;
   let privateKeys: PrivateKey[] = [];
   let balances: Balances;
+  let tracer: ConsoleTracer;
 
   async function mint(signer: PrivateKey, amount: number, nonce: number = 0) {
     appChain.resolve("Signer").config.signer = signer;
@@ -171,8 +173,10 @@ describe.skip("tps", () => {
 
       balances = appChain.runtime.resolve("Balances");
 
+      tracer = appChain.sequencer.resolve("Tracer") as ConsoleTracer;
+      tracer.enableManualOutputs();
+
       await fundKeys(200);
-      // log.enableTiming();
     } catch (e) {
       console.error(e);
       throw e;
@@ -232,6 +236,8 @@ describe.skip("tps", () => {
       const produceBlockDuration = await duration(async () => {
         return await appChain.sequencer.resolve("BlockTrigger").produceBlock();
       });
+
+      tracer.printSummary();
 
       console.log("txs", produceBlockDuration.result?.transactions.length);
 
