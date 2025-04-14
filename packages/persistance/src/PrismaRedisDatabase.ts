@@ -9,6 +9,7 @@ import {
 import { ChildContainerProvider } from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
 import { RedisClientType } from "redis";
+import { inject } from "tsyringe";
 
 import {
   PrismaConnection,
@@ -21,7 +22,7 @@ import {
   RedisConnectionModule,
   RedisTransaction,
 } from "./RedisConnection";
-import { inject } from "tsyringe";
+import { PrismaLinkedLeafStore } from "./services/prisma/PrismaLinkedLeafStore";
 
 export interface PrismaRedisCombinedConfig {
   prisma: PrismaDatabaseConfig;
@@ -38,7 +39,7 @@ export class PrismaRedisDatabase
 
   public redis: RedisConnectionModule;
 
-  public constructor(@inject("Tracer") tracer: Tracer) {
+  public constructor(@inject("Tracer") private readonly tracer: Tracer) {
     super();
     this.prisma = new PrismaDatabaseConnection(tracer);
     this.redis = new RedisConnectionModule(tracer);
@@ -66,6 +67,28 @@ export class PrismaRedisDatabase
     return {
       ...this.prisma.dependencies(),
       ...this.redis.dependencies(),
+
+      asyncLinkedLeafStore: {
+        useFactory: () => {
+          return new PrismaLinkedLeafStore(
+            this.prisma,
+            this.redis,
+            this.tracer,
+            "batch"
+          );
+        },
+      },
+
+      unprovenLinkedLeafStore: {
+        useFactory: () => {
+          return new PrismaLinkedLeafStore(
+            this.prisma,
+            this.redis,
+            this.tracer,
+            "block"
+          );
+        },
+      },
     };
   }
 

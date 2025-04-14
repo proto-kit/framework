@@ -1,4 +1,8 @@
-import { AreProofsEnabled, DependencyFactory } from "@proto-kit/common";
+import {
+  AreProofsEnabled,
+  DependencyFactory,
+  DependencyRecord,
+} from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
 import { inject } from "tsyringe";
@@ -14,6 +18,7 @@ import {
   Sequencer,
   SequencerModulesRecord,
 } from "../../sequencer/executor/Sequencer";
+import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
 
 import { BaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
@@ -60,6 +65,14 @@ export class MinaBaseLayer
     private readonly sequencer: Sequencer<SequencerModulesRecord>
   ) {
     super();
+  }
+
+  public static dependencies() {
+    return {
+      IncomingMessagesService: {
+        useClass: IncomingMessagesService,
+      },
+    } satisfies DependencyRecord;
   }
 
   public dependencies() {

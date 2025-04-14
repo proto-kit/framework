@@ -75,7 +75,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // ensure that we start modules based on the order they were resolved.
     // We iterate through the methods three times:
 
-    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    this.useDependencyFactory(MethodIdFactory);
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(
@@ -121,8 +121,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       await sequencerModule.start();
     }
 
-    // TODO This currently also warns for client appchains
-    if (!moduleClassNames.includes("SequencerStartupModule")) {
+    if (
+      !moduleClassNames.includes("SequencerStartupModule") &&
+      moduleClassNames.includes("BatchProducerModule")
+    ) {
       log.warn("SequencerStartupModule is not defined.");
     }
   }

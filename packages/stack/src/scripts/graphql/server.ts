@@ -36,7 +36,7 @@ import {
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
-  MerkleWitnessResolver,
+  LinkedMerkleWitnessResolver as MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
   BlockResolver,

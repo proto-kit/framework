@@ -46,7 +46,6 @@ import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermi
 import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
 import { SettlementUtils } from "./utils/SettlementUtils";
 import { BridgingModule } from "./BridgingModule";
-import { IncomingMessagesService } from "./messages/IncomingMessagesService";
 
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
@@ -104,9 +103,6 @@ export class SettlementModule
     return {
       BridgingModule: {
         useClass: BridgingModule,
-      },
-      IncomingMessagesService: {
-        useClass: IncomingMessagesService,
       },
     };
   }

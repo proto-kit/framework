@@ -37,8 +37,15 @@ type MempoolTransactionPaths = {
   paths: Field[];
 };
 
+interface PrivateMempoolConfig {
+  validationEnabled?: boolean;
+}
+
 @sequencerModule()
-export class PrivateMempool extends SequencerModule implements Mempool {
+export class PrivateMempool
+  extends SequencerModule<PrivateMempoolConfig>
+  implements Mempool
+{
   public readonly events = new EventEmitter<MempoolEvents>();
 
   private readonly accountStateHook: AccountStateHook;
@@ -113,13 +120,16 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-    const sortedTxs = await this.checkTxValid(
-      txs,
-      baseCachedStateService,
-      this.protocol.stateServiceProvider,
-      networkState,
-      limit
-    );
+    const validationEnabled = this.config.validationEnabled ?? true;
+    const sortedTxs = validationEnabled
+      ? await this.checkTxValid(
+          txs,
+          baseCachedStateService,
+          this.protocol.stateServiceProvider,
+          networkState,
+          limit
+        )
+      : txs;
 
     this.protocol.stateServiceProvider.popCurrentStateService();
     return sortedTxs;

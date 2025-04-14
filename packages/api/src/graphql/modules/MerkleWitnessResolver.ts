@@ -1,10 +1,15 @@
 import { Arg, Field, ObjectType, Query } from "type-graphql";
 import { Length } from "class-validator";
 import { inject } from "tsyringe";
-import { RollupMerkleTree, RollupMerkleTreeWitness } from "@proto-kit/common";
 import {
-  AsyncMerkleTreeStore,
-  CachedMerkleTreeStore,
+  LinkedLeafStruct,
+  LinkedMerkleTree,
+  LinkedMerkleTreeReadWitness,
+  RollupMerkleTreeWitness,
+} from "@proto-kit/common";
+import {
+  AsyncLinkedLeafStore,
+  CachedLinkedLeafStore,
 } from "@proto-kit/sequencer";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";
@@ -31,26 +36,79 @@ export class MerkleWitnessDTO {
   public isLefts: boolean[];
 }
 
+@ObjectType()
+export class LinkedLeafDTO {
+  public static fromServiceLayerObject({
+    path,
+    value,
+    nextPath,
+  }: LinkedLeafStruct) {
+    return new LinkedLeafDTO(
+      path.toString(),
+      value.toString(),
+      nextPath.toString()
+    );
+  }
+
+  constructor(path: string, value: string, nextPath: string) {
+    this.path = path;
+    this.value = value;
+    this.nextPath = nextPath;
+  }
+
+  @Field(() => String)
+  public path: string;
+
+  @Field(() => String)
+  public value: string;
+
+  @Field(() => String)
+  public nextPath: string;
+}
+
+@ObjectType()
+export class LinkedTreeWitnessDTO {
+  public static fromServiceLayerObject(witness: LinkedMerkleTreeReadWitness) {
+    const merkleWitness = MerkleWitnessDTO.fromServiceLayerObject(
+      witness.merkleWitness
+    );
+    const linkedLeaf = LinkedLeafDTO.fromServiceLayerObject(witness.leaf);
+    return new LinkedTreeWitnessDTO(merkleWitness, linkedLeaf);
+  }
+
+  public constructor(merkleWitness: MerkleWitnessDTO, leaf: LinkedLeafDTO) {
+    this.merkleWitness = merkleWitness;
+    this.leaf = leaf;
+  }
+
+  @Field(() => MerkleWitnessDTO)
+  public merkleWitness: MerkleWitnessDTO;
+
+  @Field(() => LinkedLeafDTO)
+  public leaf: LinkedLeafDTO;
+}
+
 @graphqlModule()
 export class MerkleWitnessResolver extends GraphqlModule<object> {
   public constructor(
-    @inject("AsyncMerkleStore") private readonly treeStore: AsyncMerkleTreeStore
+    @inject("AsyncLinkedLeafStore")
+    private readonly treeStore: AsyncLinkedLeafStore
   ) {
     super();
   }
 
-  @Query(() => MerkleWitnessDTO, {
+  @Query(() => LinkedTreeWitnessDTO, {
     description:
       "Allows retrieval of merkle witnesses corresponding to a specific path in the appchain's state tree. These proves are generally retrieved from the current 'proven' state",
   })
   public async witness(@Arg("path") path: string) {
-    const syncStore = new CachedMerkleTreeStore(this.treeStore);
+    const syncStore = await CachedLinkedLeafStore.new(this.treeStore);
     await syncStore.preloadKey(BigInt(path));
 
-    const tree = new RollupMerkleTree(syncStore);
+    const tree = new LinkedMerkleTree(syncStore.treeStore, syncStore);
 
-    const witness = tree.getWitness(BigInt(path));
+    const witness = tree.getReadWitness(BigInt(path));
 
-    return MerkleWitnessDTO.fromServiceLayerObject(witness);
+    return LinkedTreeWitnessDTO.fromServiceLayerObject(witness);
   }
 }

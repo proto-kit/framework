@@ -113,8 +113,13 @@ async function decodeTransaction(
 }
 
 function extractEvents(
-  runtimeResult: RuntimeContextReducedExecutionResult
-): { eventName: string; data: Field[] }[] {
+  runtimeResult: RuntimeContextReducedExecutionResult,
+  source: "afterTxHook" | "beforeTxHook" | "runtime"
+): {
+  eventName: string;
+  data: Field[];
+  source: "afterTxHook" | "beforeTxHook" | "runtime";
+}[] {
   return runtimeResult.events.reduce(
     (acc, event) => {
       if (event.condition.toBoolean()) {
@@ -122,13 +127,18 @@ function extractEvents(
           eventName: event.eventName,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           data: event.eventType.toFields(event.event),
+          source: source,
         };
         acc.push(obj);
       }
       return acc;
     },
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    [] as { eventName: string; data: Field[] }[]
+    [] as {
+      eventName: string;
+      data: Field[];
+      source: "afterTxHook" | "beforeTxHook" | "runtime";
+    }[]
   );
 }
 
@@ -163,7 +173,7 @@ export async function executeWithExecutionContext<MethodResult>(
   };
 }
 
-function traceSTs(msg: string, stateTransitions: StateTransition<any>[]) {
+function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
   log.trace(
     msg,
     JSON.stringify(
@@ -255,7 +265,7 @@ export class TransactionExecutionService {
       throw error;
     }
 
-    traceSTs(`${hookName} STs:`, result.stateTransitions);
+    traceLogSTs(`${hookName} STs:`, result.stateTransitions);
 
     return result;
   }
@@ -323,6 +333,7 @@ export class TransactionExecutionService {
       async (hook, hookArgs) => await hook.beforeTransaction(hookArgs),
       "beforeTx"
     );
+    const beforeHookEvents = extractEvents(beforeTxHookResult, "beforeTxHook");
 
     await recordingStateService.applyStateTransitions(
       beforeTxHookResult.stateTransitions
@@ -333,7 +344,7 @@ export class TransactionExecutionService {
       args,
       runtimeContextInputs
     );
-    traceSTs("STs:", runtimeResult.stateTransitions);
+    traceLogSTs("STs:", runtimeResult.stateTransitions);
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
@@ -372,6 +383,7 @@ export class TransactionExecutionService {
       async (hook, hookArgs) => await hook.afterTransaction(hookArgs),
       "afterTx"
     );
+    const afterHookEvents = extractEvents(afterTxHookResult, "afterTxHook");
     await recordingStateService.applyStateTransitions(
       afterTxHookResult.stateTransitions
     );
@@ -385,7 +397,7 @@ export class TransactionExecutionService {
     appChain.setProofsEnabled(previousProofsEnabled);
 
     // Extract sequencing results
-    const events = extractEvents(runtimeResult);
+    const runtimeResultEvents = extractEvents(runtimeResult, "runtime");
     const stateTransitions = this.buildSTBatches(
       [
         beforeTxHookResult.stateTransitions,
@@ -403,7 +415,7 @@ export class TransactionExecutionService {
         statusMessage: runtimeResult.statusMessage,
 
         stateTransitions,
-        events,
+        events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
       },
     ];
   }

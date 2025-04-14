@@ -91,7 +91,8 @@
     "sonarjs/no-duplicate-string": "off",
     // Handled by prettier
     "@typescript-eslint/indent": ["off"],
-    "@typescript-eslint/no-floating-promises": "error"
+    "@typescript-eslint/no-floating-promises": "error",
+    "no-else-return": "off"
   },
 
   "overrides": [

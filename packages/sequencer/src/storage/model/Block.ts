@@ -5,7 +5,7 @@ import {
   BlockHashMerkleTreeWitness,
   NetworkState,
 } from "@proto-kit/protocol";
-import { RollupMerkleTree } from "@proto-kit/common";
+import { LinkedMerkleTree } from "@proto-kit/common";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { UntypedStateTransition } from "../../protocol/production/helpers/UntypedStateTransition";
@@ -20,7 +20,11 @@ export interface TransactionExecutionResult {
   stateTransitions: StateTransitionBatch[];
   status: Bool;
   statusMessage?: string;
-  events: { eventName: string; data: Field[] }[];
+  events: {
+    eventName: string;
+    data: Field[];
+    source: "afterTxHook" | "beforeTxHook" | "runtime";
+  }[];
 }
 
 // TODO Why is Block using Fields, but BlockResult bigints? Align that towards the best option
@@ -101,7 +105,7 @@ export const BlockWithResult = {
         },
         fromBlockHashRoot: Field(BlockHashMerkleTree.EMPTY_ROOT),
         fromMessagesHash: Field(0),
-        fromStateRoot: Field(RollupMerkleTree.EMPTY_ROOT),
+        fromStateRoot: LinkedMerkleTree.EMPTY_ROOT,
         toMessagesHash: ACTIONS_EMPTY_HASH,
         beforeBlockStateTransitions: [],
 
@@ -109,12 +113,12 @@ export const BlockWithResult = {
       },
       result: {
         afterNetworkState: NetworkState.empty(),
-        stateRoot: RollupMerkleTree.EMPTY_ROOT,
+        stateRoot: LinkedMerkleTree.EMPTY_ROOT.toBigInt(),
         blockHashRoot: BlockHashMerkleTree.EMPTY_ROOT,
         afterBlockStateTransitions: [],
         blockHashWitness: BlockHashMerkleTree.WITNESS.dummy(),
         blockHash: 0n,
-        witnessedRoots: [RollupMerkleTree.EMPTY_ROOT],
+        witnessedRoots: [LinkedMerkleTree.EMPTY_ROOT.toBigInt()],
       },
     }) satisfies BlockWithResult,
 };

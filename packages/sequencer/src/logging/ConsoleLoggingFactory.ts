@@ -1,11 +1,9 @@
-import { injectable } from "tsyringe";
-import { DependencyFactory, DependencyRecord } from "@proto-kit/common";
+import { DependencyRecord } from "@proto-kit/common";
 
 import { ConsoleTracer } from "./ConsoleTracer";
 
-@injectable()
-export class ConsoleLoggingFactory implements DependencyFactory {
-  public dependencies() {
+export class ConsoleLoggingFactory {
+  public static dependencies() {
     return {
       Tracer: {
         useClass: ConsoleTracer,
