@@ -243,18 +243,20 @@ export function createLinkedMerkleTree(
     }
 
     public setLeaves(batch: { path: bigint; value: bigint }[]) {
-      const witnesses = batch.map(({ path, value }) =>
-        this.setLeafInternal(path, value)
-      );
+      if (batch.length > 0) {
+        const witnesses = batch.map(({ path, value }) =>
+          this.setLeafInternal(path, value)
+        );
 
-      // tree.setLeafBatch internally takes care of making the writes unique to optimize
-      this.tree.setLeaves(
-        witnesses.flatMap(({ leafPrevious, leafCurrent }) =>
-          (leafPrevious === "dummy" ? [] : [leafPrevious.write]).concat(
-            leafCurrent.write
+        // tree.setLeafBatch internally takes care of making the writes unique to optimize
+        this.tree.setLeaves(
+          witnesses.flatMap(({ leafPrevious, leafCurrent }) =>
+            (leafPrevious === "dummy" ? [] : [leafPrevious.write]).concat(
+              leafCurrent.write
+            )
           )
-        )
-      );
+        );
+      }
     }
 
     /**

@@ -36,16 +36,16 @@ describe("batch setLeaf", () => {
     return [Date.now() - start, ret];
   }
   const height = 10;
-  const max_index = 2n ** BigInt(height - 1) - 1n;
+  const maxIndex = 2n ** BigInt(height - 1) - 1n;
 
   it.each([
     [
       { index: 1n, leaf: Field(5) },
-      { index: max_index, leaf: Field(7) },
+      { index: maxIndex, leaf: Field(7) },
     ],
     [
-      { index: max_index, leaf: Field(7) },
-      { index: max_index - 1n, leaf: Field(7) },
+      { index: maxIndex, leaf: Field(7) },
+      { index: maxIndex - 1n, leaf: Field(7) },
       { index: 50n, leaf: Field(7) },
       { index: 1n, leaf: Field(5) },
     ],
@@ -67,6 +67,31 @@ describe("batch setLeaf", () => {
     expect(tree1.getRoot().toString()).toStrictEqual(
       tree2.getRoot().toString()
     );
+  });
+
+  it.each([
+    // This tests the correct retrieval of previously-set siblings (vs. above
+    // where always fetch zero-siblings)
+    [[{ index: 1n, leaf: Field(5) }], [{ index: 4n, leaf: Field(1) }]],
+    [[{ index: 4n, leaf: Field(5) }], [{ index: 1n, leaf: Field(1) }]],
+  ])("correctness - batches", (...writes) => {
+    expect.assertions(writes.length);
+
+    const Tree = createMerkleTree(height);
+    const tree1 = new Tree(new InMemoryMerkleTreeStorage());
+    const tree2 = new Tree(new InMemoryMerkleTreeStorage());
+
+    writes.forEach((writes2) => {
+      writes2.forEach(({ index, leaf }) => {
+        tree1.setLeaf(index, leaf);
+      });
+
+      tree2.setLeaves(writes2);
+
+      expect(tree1.getRoot().toString()).toStrictEqual(
+        tree2.getRoot().toString()
+      );
+    });
   });
 
   it.each([
@@ -97,26 +122,24 @@ describe("batch setLeaf", () => {
 });
 
 describe.each([4, 16, 256])("cachedMerkleTree - %s", (height) => {
-  class RollupMerkleTree extends createMerkleTree(height) {}
+  class MerkleTree extends createMerkleTree(height) {}
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  class RollupMerkleTreeWitness extends RollupMerkleTree.WITNESS {}
+  class MerkleTreeWitness extends MerkleTree.WITNESS {}
 
   let store: InMemoryMerkleTreeStorage;
-  let tree: RollupMerkleTree;
+  let tree: MerkleTree;
 
   beforeEach(() => {
     log.setLevel("INFO");
 
     store = new InMemoryMerkleTreeStorage();
-    tree = new RollupMerkleTree(store);
+    tree = new MerkleTree(store);
   });
 
   it("should have the same root when empty", () => {
     expect.assertions(1);
 
-    expect(tree.getRoot().toBigInt()).toStrictEqual(
-      RollupMerkleTree.EMPTY_ROOT
-    );
+    expect(tree.getRoot().toBigInt()).toStrictEqual(MerkleTree.EMPTY_ROOT);
   });
 
   it("should have a different root when not empty", () => {
@@ -124,9 +147,7 @@ describe.each([4, 16, 256])("cachedMerkleTree - %s", (height) => {
 
     tree.setLeaf(1n, Field(1));
 
-    expect(tree.getRoot().toBigInt()).not.toStrictEqual(
-      RollupMerkleTree.EMPTY_ROOT
-    );
+    expect(tree.getRoot().toBigInt()).not.toStrictEqual(MerkleTree.EMPTY_ROOT);
   });
 
   it("should have the same root after adding and removing item", () => {

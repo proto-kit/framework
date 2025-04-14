@@ -1,11 +1,12 @@
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
+import uniqBy from "lodash/uniqBy";
 
 import { range } from "../../utils";
 import { TypedClass } from "../../types";
-import uniqBy from "lodash/uniqBy";
 
 import { MerkleTreeStore } from "./MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
+
 export class StructTemplate extends Struct({
   path: Provable.Array(Field, 0),
   isLeft: Provable.Array(Bool, 0),
@@ -302,6 +303,9 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       type Change = { level: number; index: bigint; value: Field };
       const changes: Change[] = [];
 
+      // We have to reverse here, because uniqBy only takes the first occurrence of every entry,
+      // but we need the last one (since that semantically overwrites the previous one,
+      // so we can ignore it)
       let levelChanges = uniqBy(updates.reverse(), "index")
         // we can assume no index is in this list twice, so we don't care about the 0 case
         // This is in reverse order, so its a queue
@@ -337,7 +341,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
             }
             newNode = Poseidon.hash([node.leaf, sibling]);
           } else {
-            const sibling = Field(this.getNode(level - 1, node.index + 1n));
+            const sibling = Field(this.getNode(level - 1, node.index - 1n));
             newNode = Poseidon.hash([sibling, node.leaf]);
           }
 
