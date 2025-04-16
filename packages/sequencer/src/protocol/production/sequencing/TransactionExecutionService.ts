@@ -291,6 +291,57 @@ export class TransactionExecutionService {
     );
   }
 
+  public addTransactionToBlockProverState(
+    state: BlockTrackers,
+    tx: PendingTransaction
+  ): BlockTrackers {
+    const signedTransaction = tx.toProtocolTransaction();
+    // Add tx to commitments
+    return this.blockProver.addTransactionToBundle(
+      state,
+      Bool(tx.isMessage),
+      signedTransaction.transaction
+    );
+  }
+
+  public async createExecutionTraces(
+    asyncStateService: CachedStateService,
+    transactions: PendingTransaction[],
+    networkState: NetworkState,
+    state: BlockTrackers
+  ): Promise<[BlockTrackers, TransactionExecutionResult[]]> {
+    let blockState = state;
+    const executionResults: TransactionExecutionResult[] = [];
+
+    for (const tx of transactions) {
+      try {
+        const newState = this.addTransactionToBlockProverState(state, tx);
+
+        // Create execution trace
+        const executionTrace =
+          // eslint-disable-next-line no-await-in-loop
+          await this.createExecutionTrace(
+            asyncStateService,
+            tx,
+            networkState,
+            blockState,
+            newState
+          );
+
+        blockState = newState;
+
+        // Push result to results and transaction onto bundle-hash
+        executionResults.push(executionTrace);
+      } catch (error) {
+        if (error instanceof Error) {
+          log.error("Error in inclusion of tx, skipping", error);
+        }
+      }
+    }
+
+    return [blockState, executionResults];
+  }
+
   @trace("block.transaction", ([, tx, networkState]) => ({
     height: networkState.block.height.toString(),
     methodId: tx.methodId.toString(),
@@ -300,8 +351,9 @@ export class TransactionExecutionService {
     asyncStateService: CachedStateService,
     tx: PendingTransaction,
     networkState: NetworkState,
-    state: BlockTrackers
-  ): Promise<[BlockTrackers, TransactionExecutionResult]> {
+    state: BlockTrackers,
+    newState: BlockTrackers
+  ): Promise<TransactionExecutionResult> {
     // TODO Use RecordingStateService -> async asProver needed
     const recordingStateService = new CachedStateService(asyncStateService);
 
@@ -328,10 +380,16 @@ export class TransactionExecutionService {
       networkState,
       state
     );
-    const beforeTxHookResult = await this.executeProtocolHooks(
-      beforeTxArguments,
-      async (hook, hookArgs) => await hook.beforeTransaction(hookArgs),
-      "beforeTx"
+    const beforeTxHookResult = await this.tracer.trace(
+      "block.transaction.before.execute",
+      () =>
+        this.executeProtocolHooks(
+          beforeTxArguments,
+          async (hook, hookArgs) => {
+            await hook.beforeTransaction(hookArgs);
+          },
+          "beforeTx"
+        )
     );
     const beforeHookEvents = extractEvents(beforeTxHookResult, "beforeTxHook");
 
@@ -339,10 +397,9 @@ export class TransactionExecutionService {
       beforeTxHookResult.stateTransitions
     );
 
-    const runtimeResult = await this.executeRuntimeMethod(
-      method,
-      args,
-      runtimeContextInputs
+    const runtimeResult = await this.tracer.trace(
+      "block.transaction.execute",
+      () => this.executeRuntimeMethod(method, args, runtimeContextInputs)
     );
     traceLogSTs("STs:", runtimeResult.stateTransitions);
 
@@ -353,13 +410,6 @@ export class TransactionExecutionService {
         runtimeResult.stateTransitions
       );
     }
-
-    // Add runtime to commitments
-    const newState = this.blockProver.addTransactionToBundle(
-      state,
-      Bool(tx.isMessage),
-      signedTransaction.transaction
-    );
 
     // Execute afterTransaction hook
     const afterTxArguments = toAfterTransactionHookArgument(
@@ -378,10 +428,14 @@ export class TransactionExecutionService {
       })
     );
 
-    const afterTxHookResult = await this.executeProtocolHooks(
-      afterTxArguments,
-      async (hook, hookArgs) => await hook.afterTransaction(hookArgs),
-      "afterTx"
+    const afterTxHookResult = await this.tracer.trace(
+      "block.transaction.after.execute",
+      () =>
+        this.executeProtocolHooks(
+          afterTxArguments,
+          async (hook, hookArgs) => await hook.afterTransaction(hookArgs),
+          "afterTx"
+        )
     );
     const afterHookEvents = extractEvents(afterTxHookResult, "afterTxHook");
     await recordingStateService.applyStateTransitions(
@@ -407,16 +461,13 @@ export class TransactionExecutionService {
       runtimeResult.status
     );
 
-    return [
-      state,
-      {
-        tx,
-        status: runtimeResult.status,
-        statusMessage: runtimeResult.statusMessage,
+    return {
+      tx,
+      status: runtimeResult.status,
+      statusMessage: runtimeResult.statusMessage,
 
-        stateTransitions,
-        events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
-      },
-    ];
+      stateTransitions,
+      events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
+    };
   }
 }
