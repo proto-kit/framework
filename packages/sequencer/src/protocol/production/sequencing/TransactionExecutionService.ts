@@ -21,6 +21,8 @@ import {
   MethodPublicOutput,
   toBeforeTransactionHookArgument,
   toAfterTransactionHookArgument,
+  ProvableStateTransition,
+  DefaultProvableHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { AreProofsEnabled, log, mapSequential } from "@proto-kit/common";
@@ -30,7 +32,6 @@ import {
   RuntimeModule,
   RuntimeModulesRecord,
   toEventsHash,
-  toStateTransitionsHash,
 } from "@proto-kit/module";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import zip from "lodash/zip";
@@ -140,6 +141,18 @@ function extractEvents(
       source: "afterTxHook" | "beforeTxHook" | "runtime";
     }[]
   );
+}
+
+// TODO Also use this in tracing as a replacement of toStateTransitionHash
+export function toStateTransitionHashNonProvable(
+  stateTransitions: StateTransition<unknown>[]
+) {
+  const reduced = reduceStateTransitions(stateTransitions);
+  const list = new DefaultProvableHashList(ProvableStateTransition);
+
+  reduced.map((st) => st.toProvable()).forEach((st) => list.push(st));
+
+  return list.commitment;
 }
 
 export async function executeWithExecutionContext<MethodResult>(
@@ -313,6 +326,8 @@ export class TransactionExecutionService {
     let blockState = state;
     const executionResults: TransactionExecutionResult[] = [];
 
+    const networkStateHash = networkState.hash();
+
     for (const tx of transactions) {
       try {
         const newState = this.addTransactionToBlockProverState(state, tx);
@@ -323,7 +338,7 @@ export class TransactionExecutionService {
           await this.createExecutionTrace(
             asyncStateService,
             tx,
-            networkState,
+            { networkState, hash: networkStateHash },
             blockState,
             newState
           );
@@ -342,7 +357,7 @@ export class TransactionExecutionService {
     return [blockState, executionResults];
   }
 
-  @trace("block.transaction", ([, tx, networkState]) => ({
+  @trace("block.transaction", ([, tx, { networkState }]) => ({
     height: networkState.block.height.toString(),
     methodId: tx.methodId.toString(),
     isMessage: tx.isMessage,
@@ -350,7 +365,10 @@ export class TransactionExecutionService {
   public async createExecutionTrace(
     asyncStateService: CachedStateService,
     tx: PendingTransaction,
-    networkState: NetworkState,
+    {
+      networkState,
+      hash: networkStateHash,
+    }: { networkState: NetworkState; hash: Field },
     state: BlockTrackers,
     newState: BlockTrackers
   ): Promise<TransactionExecutionResult> {
@@ -411,6 +429,11 @@ export class TransactionExecutionService {
       );
     }
 
+    const eventsHash = toEventsHash(runtimeResult.events);
+    const stateTransitionsHash = toStateTransitionHashNonProvable(
+      runtimeResult.stateTransitions
+    );
+
     // Execute afterTransaction hook
     const afterTxArguments = toAfterTransactionHookArgument(
       signedTransaction,
@@ -418,13 +441,11 @@ export class TransactionExecutionService {
       newState,
       new MethodPublicOutput({
         status: runtimeResult.status,
-        networkStateHash: networkState.hash(),
+        networkStateHash: networkStateHash,
         isMessage: Bool(tx.isMessage),
         transactionHash: tx.hash(),
-        eventsHash: toEventsHash(runtimeResult.events),
-        stateTransitionsHash: toStateTransitionsHash(
-          runtimeResult.stateTransitions
-        ),
+        eventsHash,
+        stateTransitionsHash,
       })
     );
 
