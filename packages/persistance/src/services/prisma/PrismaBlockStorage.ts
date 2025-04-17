@@ -7,6 +7,8 @@ import {
   BlockStorage,
   BlockWithResult,
   BlockWithMaybeResult,
+  Tracer,
+  trace,
 } from "@proto-kit/sequencer";
 import { log } from "@proto-kit/common";
 import {
@@ -33,7 +35,8 @@ export class PrismaBlockStorage
     private readonly transactionResultMapper: TransactionExecutionResultMapper,
     private readonly transactionMapper: TransactionMapper,
     private readonly blockResultMapper: BlockResultMapper,
-    private readonly blockMapper: BlockMapper
+    private readonly blockMapper: BlockMapper,
+    @inject("Tracer") public readonly tracer: Tracer
   ) {}
 
   private async getBlockByQuery(
@@ -76,6 +79,7 @@ export class PrismaBlockStorage
     return (await this.getBlockByQuery({ hash }))?.block;
   }
 
+  @trace("db.block.push", ([{ height }]) => ({ height: height.toString() }))
   public async pushBlock(block: Block): Promise<void> {
     log.trace(
       "Pushing block to DB. Txs:",
@@ -96,12 +100,15 @@ export class PrismaBlockStorage
 
     const { prismaClient } = this.connection;
 
-    await prismaClient.transaction.createMany({
-      data: block.transactions.map((txr) =>
-        this.transactionMapper.mapOut(txr.tx)
-      ),
-      skipDuplicates: true,
-    });
+    // Note: We can assume all transactions are already in the DB here, because the
+    // mempool shares the same table as this one. But that could change in the future,
+    // then transaction have to be inserted-if-missing
+    // await prismaClient.transaction.createMany({
+    //   data: block.transactions.map((txr) =>
+    //     this.transactionMapper.mapOut(txr.tx)
+    //   ),
+    //   skipDuplicates: true,
+    // });
 
     await prismaClient.block.create({
       data: {
