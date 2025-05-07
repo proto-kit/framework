@@ -69,9 +69,6 @@ export class PrismaDatabaseConnection
       blockStorage: {
         useClass: PrismaBlockStorage,
       },
-      unprovenStateService: {
-        useFactory: () => new PrismaStateService(this, this.tracer, "block"),
-      },
       settlementStorage: {
         useClass: PrismaSettlementStorage,
       },
@@ -80,6 +77,9 @@ export class PrismaDatabaseConnection
       },
       transactionStorage: {
         useClass: PrismaTransactionStorage,
+      },
+      unprovenStateService: {
+        useFactory: () => new PrismaStateService(this, this.tracer, "block"),
       },
     };
   }
@@ -95,6 +95,7 @@ export class PrismaDatabaseConnection
       "Settlement",
       "IncomingMessageBatch",
       "IncomingMessageBatchTransaction",
+      "Mask",
     ];
 
     await this.prismaClient.$transaction(

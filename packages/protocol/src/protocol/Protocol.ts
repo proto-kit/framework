@@ -13,7 +13,7 @@ import { DependencyContainer, Lifecycle } from "tsyringe";
 import { BlockProvable } from "../prover/block/BlockProvable";
 import { StateTransitionProvable } from "../prover/statetransition/StateTransitionProvable";
 import { StateServiceProvider } from "../state/StateServiceProvider";
-import { SimpleAsyncStateService } from "../state/StateService";
+import { SimpleAsyncStateService } from "../state/SimpleAsyncStateService";
 import { NoopBlockHook } from "../hooks/NoopBlockHook";
 import { BlockHeightHook } from "../hooks/BlockHeightHook";
 import { LastStateRootBlockHook } from "../hooks/LastStateRootBlockHook";

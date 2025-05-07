@@ -11,13 +11,19 @@ export interface StateEntry {
  * CachedStateService to preload keys for In-Circuit usage.
  */
 export interface AsyncStateService {
-  openTransaction: () => Promise<void>;
+  openTransaction(): Promise<void>;
 
-  commit: () => Promise<void>;
+  commit(): Promise<void>;
 
-  writeStates: (entries: StateEntry[]) => void;
+  writeStates(entries: StateEntry[]): void;
 
-  getMany: (keys: Field[]) => Promise<StateEntry[]>;
+  getMany(keys: Field[]): Promise<StateEntry[]>;
 
-  get: (key: Field) => Promise<Field[] | undefined>;
+  get(key: Field): Promise<Field[] | undefined>;
+
+  createMask(name: string): Promise<AsyncStateService>;
+
+  mergeIntoParent(): Promise<void>;
+
+  drop(): Promise<void>;
 }

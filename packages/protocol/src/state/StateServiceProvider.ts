@@ -1,7 +1,7 @@
 import { injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
 
-import { SimpleAsyncStateService } from "./StateService";
+import { SimpleAsyncStateService } from "./SimpleAsyncStateService";
 
 const errors = {
   stateServiceNotSet: () =>
