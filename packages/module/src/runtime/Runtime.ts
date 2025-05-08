@@ -31,6 +31,7 @@ import {
   runtimeMethodTypeMetadataKey,
   toWrappedMethod,
   AsyncWrappedMethod,
+  RuntimeMethodInvocationType,
 } from "../method/runtimeMethod";
 import { MethodIdFactory } from "../factories/MethodIdFactory";
 
@@ -339,11 +340,12 @@ export class Runtime<Modules extends RuntimeModulesRecord>
               methodName
             );
             const method = modulePrototype[methodName];
-            const invocationType = Reflect.getMetadata(
-              runtimeMethodTypeMetadataKey,
-              runtimeModule,
-              methodName
-            );
+            const invocationType: RuntimeMethodInvocationType =
+              Reflect.getMetadata(
+                runtimeMethodTypeMetadataKey,
+                runtimeModule,
+                methodName
+              );
 
             const wrappedMethod: AsyncWrappedMethod = Reflect.apply(
               toWrappedMethod,

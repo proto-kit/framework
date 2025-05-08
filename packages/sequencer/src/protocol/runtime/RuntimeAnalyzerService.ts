@@ -13,11 +13,13 @@ import {
 } from "o1js/dist/node/lib/proof-system/zkprogram";
 import { Void } from "o1js";
 
-type RuntimeMethodMetadata = {
+export type RuntimeMethodMetadata = {
   rows: number;
   dynamicKeyAccess: boolean;
   invocationType: RuntimeMethodInvocationType;
 };
+
+export type RuntimeInfo = Record<string, RuntimeMethodMetadata>;
 
 @injectable()
 export class RuntimeAnalyzerService {
@@ -29,9 +31,7 @@ export class RuntimeAnalyzerService {
     | Record<string, RuntimeMethodMetadata>
     | undefined = undefined;
 
-  private async computeRuntimeInfo(): Promise<
-    Record<string, RuntimeMethodMetadata>
-  > {
+  private async computeRuntimeInfo(): Promise<RuntimeInfo> {
     const context = container.resolve<RuntimeMethodExecutionContext>(
       RuntimeMethodExecutionContext
     );
@@ -56,6 +56,8 @@ export class RuntimeAnalyzerService {
           "",
           combinedMethodName,
           privateInputs,
+          // eslint-disable-next-line max-len
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument
           undefined as any
         );
 
@@ -79,9 +81,7 @@ export class RuntimeAnalyzerService {
     return Object.fromEntries(infos);
   }
 
-  public async getRuntimeInfo(): Promise<
-    Record<string, RuntimeMethodMetadata>
-  > {
+  public async getRuntimeInfo(): Promise<RuntimeInfo> {
     if (this.computedRuntimeInfo === undefined) {
       this.computedRuntimeInfo = await this.computeRuntimeInfo();
     }

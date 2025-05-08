@@ -18,11 +18,11 @@ import {
 } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
-import { sequencerModule, SequencerModule } from "../builder/SequencerModule";
-import { closeable, Closeable } from "../builder/Closeable";
+import { SequencerModule } from "../builder/SequencerModule";
+import { Closeable } from "../builder/Closeable";
+import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
 
 import { Sequenceable } from "./Sequenceable";
-import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>

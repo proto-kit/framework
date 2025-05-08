@@ -85,7 +85,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
 
     container.resolve(RuntimeMethodExecutionContext).clear();
 
-    const runtimeInfo = this.runtimeAnalyzerService.getRuntimeInfo();
+    const runtimeInfo = await this.runtimeAnalyzerService.getRuntimeInfo();
 
     const values = Object.entries(runtimeInfo).map(
       ([combinedMethodName, { rows }]) => {
@@ -126,19 +126,19 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
         perWeightUnitFee: UInt64.from(value.perWeightUnitFee),
       });
       tree.setLeaf(BigInt(index), feeConfig.hash());
-      return [value.methodId, index] as const;
+      return [value.methodId.toString(), BigInt(index)] as const;
     });
 
     this.persistedFeeTree = {
       tree,
       values: recordByKey(values, (v) => v.methodId.toString()),
-      indexes: Object.fromEntries(indexes),
+      indexes: Object.fromEntries<bigint>(indexes),
     };
   }
 
   public getFeeTree() {
     if (this.persistedFeeTree === undefined) {
-      throw new Error("Fee Tree not intialized");
+      throw new Error("Fee Tree not initialized");
     }
 
     return this.persistedFeeTree;

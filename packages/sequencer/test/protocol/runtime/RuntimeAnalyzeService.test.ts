@@ -1,13 +1,13 @@
 import "reflect-metadata";
-
-import { RuntimeAnalyzerService } from "../../../src";
 import {
   createTestingRuntime,
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
-import { Balance } from "../../integration/mocks/Balance";
 import { expectDefined } from "@proto-kit/common";
+
+import { RuntimeAnalyzerService } from "../../../src";
+import { Balance } from "../../integration/mocks/Balance";
 
 describe("RuntimeAnalyzerService", () => {
   let service: RuntimeAnalyzerService | undefined = undefined;

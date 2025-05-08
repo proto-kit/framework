@@ -29,8 +29,7 @@ import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
-
-import { executeWithExecutionContext } from "./TransactionExecutionService";
+import { TransactionUtils } from "../utils/transaction-utils";
 
 // This is ordered, because javascript maintains the order based on time of first insertion
 function collectOrderedStateDiff(
@@ -100,7 +99,7 @@ export class BlockResultService {
       transaction: RuntimeTransaction.dummyTransaction(),
     };
 
-    const executionResult = await executeWithExecutionContext(
+    const executionResult = await TransactionUtils.executeWithExecutionContext(
       async () =>
         await this.blockHooks.reduce<Promise<NetworkState>>(
           async (networkState, hook) =>

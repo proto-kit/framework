@@ -8,7 +8,6 @@ import {
   ProvableTransactionHook,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
-  RuntimeProvableMethodExecutionResult,
   StateServiceProvider,
   MandatoryProtocolModulesRecord,
   reduceStateTransitions,
@@ -27,7 +26,6 @@ import {
 import { Bool, Field } from "o1js";
 import { AreProofsEnabled, log, mapSequential } from "@proto-kit/common";
 import {
-  MethodParameterEncoder,
   Runtime,
   RuntimeModule,
   RuntimeModulesRecord,
@@ -45,18 +43,12 @@ import {
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
+import { distinct } from "../../../helpers/utils";
+import { TransactionUtils } from "../utils/transaction-utils";
 
-const errors = {
-  methodIdNotFound: (methodId: string) =>
-    new Error(`Can't find runtime method with id ${methodId}`),
-};
+import { PreprocessedTransaction } from "./preprocessing/TransactionPreprocessor";
 
-export type SomeRuntimeMethod = (...args: unknown[]) => Promise<unknown>;
-
-export type RuntimeContextReducedExecutionResult = Pick<
-  RuntimeProvableMethodExecutionResult,
-  "stateTransitions" | "status" | "statusMessage" | "stackTrace" | "events"
->;
+import SomeRuntimeMethod = TransactionUtils.SomeRuntimeMethod;
 
 export type BlockTrackers = Pick<
   BlockProverState,
@@ -79,70 +71,6 @@ function getAreProofsEnabledFromModule(
   return areProofsEnabled;
 }
 
-async function decodeTransaction(
-  tx: PendingTransaction,
-  runtime: Runtime<RuntimeModulesRecord>
-): Promise<{
-  method: SomeRuntimeMethod;
-  args: unknown[];
-  module: RuntimeModule<unknown>;
-}> {
-  const methodDescriptors = runtime.methodIdResolver.getMethodNameFromId(
-    tx.methodId.toBigInt()
-  );
-
-  const method = runtime.getMethodById(tx.methodId.toBigInt());
-
-  if (methodDescriptors === undefined || method === undefined) {
-    throw errors.methodIdNotFound(tx.methodId.toString());
-  }
-
-  const [moduleName, methodName] = methodDescriptors;
-  const module: RuntimeModule<unknown> = runtime.resolve(moduleName);
-
-  const parameterDecoder = MethodParameterEncoder.fromMethod(
-    module,
-    methodName
-  );
-  const args = await parameterDecoder.decode(tx.argsFields, tx.auxiliaryData);
-
-  return {
-    method,
-    args,
-    module,
-  };
-}
-
-function extractEvents(
-  runtimeResult: RuntimeContextReducedExecutionResult,
-  source: "afterTxHook" | "beforeTxHook" | "runtime"
-): {
-  eventName: string;
-  data: Field[];
-  source: "afterTxHook" | "beforeTxHook" | "runtime";
-}[] {
-  return runtimeResult.events.reduce(
-    (acc, event) => {
-      if (event.condition.toBoolean()) {
-        const obj = {
-          eventName: event.eventName,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          data: event.eventType.toFields(event.event),
-          source: source,
-        };
-        acc.push(obj);
-      }
-      return acc;
-    },
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    [] as {
-      eventName: string;
-      data: Field[];
-      source: "afterTxHook" | "beforeTxHook" | "runtime";
-    }[]
-  );
-}
-
 // TODO Also use this in tracing as a replacement of toStateTransitionHash
 export function toStateTransitionHashNonProvable(
   stateTransitions: StateTransition<unknown>[]
@@ -153,37 +81,6 @@ export function toStateTransitionHashNonProvable(
   reduced.map((st) => st.toProvable()).forEach((st) => list.push(st));
 
   return list.commitment;
-}
-
-export async function executeWithExecutionContext<MethodResult>(
-  method: () => Promise<MethodResult>,
-  contextInputs: RuntimeMethodExecutionData,
-  runSimulated = false
-): Promise<
-  RuntimeContextReducedExecutionResult & { methodResult: MethodResult }
-> {
-  // Set up context
-  const executionContext = container.resolve(RuntimeMethodExecutionContext);
-
-  executionContext.clear();
-  executionContext.setup(contextInputs);
-  executionContext.setSimulated(runSimulated);
-
-  // Execute method
-  const methodResult = await method();
-
-  const { stateTransitions, status, statusMessage, events } =
-    executionContext.current().result;
-
-  const reducedSTs = reduceStateTransitions(stateTransitions);
-
-  return {
-    stateTransitions: reducedSTs,
-    status,
-    statusMessage,
-    events,
-    methodResult,
-  };
 }
 
 function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
@@ -226,7 +123,7 @@ export class TransactionExecutionService {
     args: unknown[],
     contextInputs: RuntimeMethodExecutionData
   ) {
-    return await executeWithExecutionContext(async () => {
+    return await TransactionUtils.executeWithExecutionContext(async () => {
       await method(...args);
     }, contextInputs);
   }
@@ -252,7 +149,7 @@ export class TransactionExecutionService {
     hookName: string,
     runSimulated = false
   ) {
-    const result = await executeWithExecutionContext(
+    const result = await TransactionUtils.executeWithExecutionContext(
       async () =>
         await this.wrapHooksForContext(async () => {
           await mapSequential(
@@ -317,18 +214,32 @@ export class TransactionExecutionService {
     );
   }
 
+  @trace("block.preprocess.preload-state")
+  public async preloadKnownStatePaths(
+    transactions: PreprocessedTransaction[],
+    asyncStateService: CachedStateService
+  ) {
+    const paths = transactions
+      .flatMap(({ accessedStatePaths }) => accessedStatePaths)
+      .filter(distinct);
+
+    await asyncStateService.preloadKeys(paths.map(Field));
+  }
+
   public async createExecutionTraces(
     asyncStateService: CachedStateService,
-    transactions: PendingTransaction[],
+    transactions: PreprocessedTransaction[],
     networkState: NetworkState,
     state: BlockTrackers
   ): Promise<[BlockTrackers, TransactionExecutionResult[]]> {
+    await this.preloadKnownStatePaths(transactions, asyncStateService);
+
     let blockState = state;
     const executionResults: TransactionExecutionResult[] = [];
 
     const networkStateHash = networkState.hash();
 
-    for (const tx of transactions) {
+    for (const { tx } of transactions) {
       try {
         const newState = this.addTransactionToBlockProverState(state, tx);
 
@@ -375,7 +286,10 @@ export class TransactionExecutionService {
     // TODO Use RecordingStateService -> async asProver needed
     const recordingStateService = new CachedStateService(asyncStateService);
 
-    const { method, args, module } = await decodeTransaction(tx, this.runtime);
+    const { method, args, module } = await TransactionUtils.decodeTransaction(
+      tx,
+      this.runtime
+    );
 
     // Disable proof generation for sequencing the runtime
     // TODO Is that even needed?
@@ -409,7 +323,10 @@ export class TransactionExecutionService {
           "beforeTx"
         )
     );
-    const beforeHookEvents = extractEvents(beforeTxHookResult, "beforeTxHook");
+    const beforeHookEvents = TransactionUtils.extractEvents(
+      beforeTxHookResult,
+      "beforeTxHook"
+    );
 
     await recordingStateService.applyStateTransitions(
       beforeTxHookResult.stateTransitions
@@ -458,7 +375,10 @@ export class TransactionExecutionService {
           "afterTx"
         )
     );
-    const afterHookEvents = extractEvents(afterTxHookResult, "afterTxHook");
+    const afterHookEvents = TransactionUtils.extractEvents(
+      afterTxHookResult,
+      "afterTxHook"
+    );
     await recordingStateService.applyStateTransitions(
       afterTxHookResult.stateTransitions
     );
@@ -472,7 +392,10 @@ export class TransactionExecutionService {
     appChain.setProofsEnabled(previousProofsEnabled);
 
     // Extract sequencing results
-    const runtimeResultEvents = extractEvents(runtimeResult, "runtime");
+    const runtimeResultEvents = TransactionUtils.extractEvents(
+      runtimeResult,
+      "runtime"
+    );
     const stateTransitions = this.buildSTBatches(
       [
         beforeTxHookResult.stateTransitions,

@@ -127,7 +127,7 @@ export async function createAppChain() {
 
 const timeout = 600000;
 
-describe.skip("tps", () => {
+describe("tps", () => {
   let appChain: Awaited<ReturnType<typeof createAppChain>>;
   let privateKeys: PrivateKey[] = [];
   let balances: Balances;

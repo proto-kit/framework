@@ -57,7 +57,9 @@ export class CachedStateService
     if (this.parent !== undefined) {
       // Only preload it if it hasn't been preloaded previously
       // TODO Not safe for deletes
-      const keysToBeLoaded = keys.filter((key) => this.get(key) === undefined);
+      const keysToBeLoaded = keys.filter(
+        (key) => this.getNullAware(key) === undefined
+      );
       const loaded = await this.parent.getMany(keysToBeLoaded);
 
       log.trace(
@@ -75,29 +77,33 @@ export class CachedStateService
   public async getMany(keys: Field[]): Promise<StateEntry[]> {
     const remoteKeys: Field[] = [];
 
-    const local: StateEntry[] = [];
+    let stateEntries: StateEntry[] = [];
 
     keys.forEach((key) => {
       const localValue = this.getNullAware(key);
       if (localValue !== undefined) {
-        local.push({ key, value: localValue ?? undefined });
+        stateEntries.push({ key, value: localValue ?? undefined });
       } else {
         remoteKeys.push(key);
       }
     });
 
-    const remote = await this.parent?.getMany(remoteKeys);
+    if (remoteKeys.length > 0) {
+      const remote = await this.parent?.getMany(remoteKeys);
 
-    if (remote !== undefined) {
-      // Update the remotely fetched keys into local cache
-      await mapSequential(remote, async ({ key, value }) => {
-        if (this.getNullAware(key) === undefined) {
-          await this.set(key, value);
-        }
-      });
+      if (remote !== undefined) {
+        // Update the remotely fetched keys into local cache
+        await mapSequential(remote, async ({ key, value }) => {
+          if (this.getNullAware(key) === undefined) {
+            await this.set(key, value);
+          }
+        });
+
+        stateEntries = stateEntries.concat(...remote);
+      }
     }
 
-    return local.concat(remote ?? []);
+    return stateEntries;
   }
 
   public async get(key: Field): Promise<Field[] | undefined> {
