@@ -295,3 +295,21 @@ export function assertDefined<T>(
     throw new Error(msg ?? "Value is undefined");
   }
 }
+
+export function compareStrings(a: string, b: string): number {
+  // eslint-disable-next-line no-nested-ternary
+  return a === b ? 0 : a > b ? 1 : -1;
+}
+
+export function recordByKey<Object>(
+  array: Object[],
+  keyMapper: (obj: Object) => string
+): Record<string, Object> {
+  return Object.fromEntries(
+    array.map((obj) => {
+      const key = keyMapper(obj);
+      const copy = { ...obj };
+      return [key, copy];
+    })
+  );
+}

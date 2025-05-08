@@ -28,7 +28,7 @@ import {
 } from "../src";
 
 import { Balances } from "./modules/Balances";
-import { createTestingRuntime } from "./TestingRuntime";
+import { createTestingRuntime } from "../src/testing/TestingRuntime";
 
 export class PrimaryTestEvent extends Struct({
   message: Bool,

@@ -7,7 +7,7 @@ import { container } from "tsyringe";
 import { Runtime } from "../../src/runtime/Runtime";
 import { MethodIdResolver } from "../../src/runtime/MethodIdResolver";
 import { runtimeMethod, RuntimeModule, runtimeModule } from "../../src";
-import { createTestingRuntime } from "../TestingRuntime";
+import { createTestingRuntime } from "../../src/testing/TestingRuntime";
 
 import { Balances } from "./Balances";
 

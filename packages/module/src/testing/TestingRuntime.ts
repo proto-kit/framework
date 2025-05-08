@@ -2,7 +2,8 @@ import { ModulesConfig } from "@proto-kit/common";
 import { StateServiceProvider } from "@proto-kit/protocol";
 import { container } from "tsyringe";
 
-import { InMemoryStateService, Runtime, RuntimeModulesRecord } from "../src";
+import { Runtime, RuntimeModulesRecord } from "../runtime/Runtime";
+import { InMemoryStateService } from "../state/InMemoryStateService";
 
 export function createTestingRuntime<Modules extends RuntimeModulesRecord>(
   modules: Modules,

@@ -2,6 +2,7 @@ import {
   ConfigurableModule,
   createMerkleTree,
   InMemoryMerkleTreeStorage,
+  recordByKey,
 } from "@proto-kit/common";
 import { Runtime, RuntimeModulesRecord } from "@proto-kit/module";
 import { container, inject } from "tsyringe";
@@ -10,6 +11,7 @@ import {
   RuntimeTransaction,
   NetworkState,
 } from "@proto-kit/protocol";
+import { RuntimeAnalyzerService } from "@proto-kit/sequencer";
 import { Field, Poseidon, Struct } from "o1js";
 
 import { UInt64 } from "../math/UInt64";
@@ -65,6 +67,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
   };
 
   public constructor(
+    public runtimeAnalyzerService: RuntimeAnalyzerService,
     @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>
   ) {
     super();
@@ -81,71 +84,41 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     });
 
     container.resolve(RuntimeMethodExecutionContext).clear();
-    let methodCounter = 0;
-    const [values, indexes] =
-      await this.runtime.zkProgrammable.zkProgram.reduce<
-        Promise<[FeeTreeValues, FeeIndexes]>
-      >(
-        async (accum, program) => {
-          const [valuesProg, indexesProg] = await accum;
-          const analyzedMethods = await program.analyzeMethods();
-          const [valuesMeth, indexesMeth] = Object.keys(program.methods).reduce<
-            [FeeTreeValues, FeeIndexes]
-          >(
-            // eslint-disable-next-line @typescript-eslint/no-shadow
-            ([values, indexes], combinedMethodName) => {
-              const { rows } = analyzedMethods[combinedMethodName];
-              // const rows = 1000;
-              const [moduleName, methodName] = combinedMethodName.split(".");
-              const methodId = this.runtime.methodIdResolver.getMethodId(
-                moduleName,
-                methodName
-              );
 
-              /**
-               * Determine the fee config for the given method id, and merge it with
-               * the default fee config.
-               */
-              return [
-                {
-                  ...values,
+    const runtimeInfo = this.runtimeAnalyzerService.getRuntimeInfo();
 
-                  [methodId.toString()]: {
-                    methodId,
+    const values = Object.entries(runtimeInfo).map(
+      ([combinedMethodName, { rows }]) => {
+        // const rows = 1000;
+        const [moduleName, methodName] = combinedMethodName.split(".");
+        const methodId = this.runtime.methodIdResolver.getMethodId(
+          moduleName,
+          methodName
+        );
 
-                    baseFee:
-                      this.config.methods[combinedMethodName]?.baseFee ??
-                      this.config.baseFee,
+        /**
+         * Determine the fee config for the given method id, and merge it with
+         * the default fee config.
+         */
+        return {
+          methodId,
 
-                    perWeightUnitFee:
-                      this.config.methods[combinedMethodName]
-                        ?.perWeightUnitFee ?? this.config.perWeightUnitFee,
+          baseFee:
+            this.config.methods[combinedMethodName]?.baseFee ??
+            this.config.baseFee,
 
-                    weight:
-                      this.config.methods[combinedMethodName]?.weight ??
-                      BigInt(rows),
-                  },
-                },
-                {
-                  ...indexes,
-                  // eslint-disable-next-line no-plusplus
-                  [methodId.toString()]: BigInt(methodCounter++),
-                },
-              ];
-            },
-            [{}, {}]
-          );
-          return [
-            { ...valuesProg, ...valuesMeth },
-            { ...indexesProg, ...indexesMeth },
-          ];
-        },
-        Promise.resolve([{}, {}])
-      );
+          perWeightUnitFee:
+            this.config.methods[combinedMethodName]?.perWeightUnitFee ??
+            this.config.perWeightUnitFee,
 
+          weight:
+            this.config.methods[combinedMethodName]?.weight ?? BigInt(rows),
+        };
+      }
+    );
     const tree = new FeeTree(new InMemoryMerkleTreeStorage());
 
-    Object.values(values).forEach((value, index) => {
+    const indexes = values.map((value, index) => {
       const feeConfig = new MethodFeeConfigData({
         methodId: Field(value.methodId),
         baseFee: UInt64.from(value.baseFee),
@@ -153,9 +126,14 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
         perWeightUnitFee: UInt64.from(value.perWeightUnitFee),
       });
       tree.setLeaf(BigInt(index), feeConfig.hash());
+      return [value.methodId, index] as const;
     });
 
-    this.persistedFeeTree = { tree, values, indexes };
+    this.persistedFeeTree = {
+      tree,
+      values: recordByKey(values, (v) => v.methodId.toString()),
+      indexes: Object.fromEntries(indexes),
+    };
   }
 
   public getFeeTree() {

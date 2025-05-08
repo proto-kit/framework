@@ -10,7 +10,7 @@ import {
 import { expectDefined } from "@proto-kit/common";
 
 import { Runtime } from "../../src";
-import { createTestingRuntime } from "../TestingRuntime";
+import { createTestingRuntime } from "../../src/testing/TestingRuntime";
 
 import { Admin } from "./Admin";
 import { Balances } from "./Balances";

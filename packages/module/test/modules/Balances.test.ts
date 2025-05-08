@@ -13,7 +13,7 @@ import {
 } from "@proto-kit/protocol";
 
 import { Runtime } from "../../src";
-import { createTestingRuntime } from "../TestingRuntime";
+import { createTestingRuntime } from "../../src/testing/TestingRuntime";
 
 import { Balances } from "./Balances.js";
 import { Admin } from "./Admin.js";
