@@ -111,4 +111,10 @@ export class Balance extends RuntimeModule<object> {
       await this.totalSupply.set(supply.add(UInt64.from(100)));
     });
   }
+
+  @runtimeMethod()
+  public async dynamicKeyTest(address: PublicKey) {
+    // Not actually dynamic but enough for the unit tests
+    await this.balances.set(address, UInt64.one, { dynamic: true });
+  }
 }

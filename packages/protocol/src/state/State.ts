@@ -8,7 +8,10 @@ import { Option } from "../model/Option";
 import { StateTransition } from "../model/StateTransition";
 
 import { StateServiceProvider } from "./StateServiceProvider";
-import { RuntimeMethodExecutionContext } from "./context/RuntimeMethodExecutionContext";
+import {
+  RuntimeMethodExecutionContext,
+  StateAccessType,
+} from "./context/RuntimeMethodExecutionContext";
 
 export class WithPath {
   public path?: Field;
@@ -50,7 +53,10 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
     return new State<Value>(valueType);
   }
 
-  public constructor(public valueType: FlexibleProvablePure<Value>) {
+  public constructor(
+    public valueType: FlexibleProvablePure<Value>,
+    public accessType: StateAccessType = "static"
+  ) {
     super();
   }
 
@@ -139,7 +145,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     container
       .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
+      .addStateTransition(stateTransition, this.accessType);
 
     return option;
   }
@@ -170,6 +176,6 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     container
       .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
+      .addStateTransition(stateTransition, this.accessType);
   }
 }

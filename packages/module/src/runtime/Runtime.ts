@@ -13,6 +13,8 @@ import {
   ChildContainerProvider,
   CompilableModule,
   CompileRegistry,
+  filterNonUndefined,
+  compareStrings,
 } from "@proto-kit/common";
 import {
   MethodPublicOutput,
@@ -29,6 +31,7 @@ import {
   runtimeMethodTypeMetadataKey,
   toWrappedMethod,
   AsyncWrappedMethod,
+  RuntimeMethodInvocationType,
 } from "../method/runtimeMethod";
 import { MethodIdFactory } from "../factories/MethodIdFactory";
 
@@ -86,99 +89,16 @@ export class RuntimeZkProgrammable<
   }
 
   public zkProgramFactory(): PlainZkProgram<undefined, MethodPublicOutput>[] {
-    type Methods = Record<
-      string,
-      {
-        privateInputs: any;
-        method: AsyncWrappedMethod;
-      }
-    >;
     // We need to use explicit type annotations here,
     // therefore we can't use destructuring
 
-    // eslint-disable-next-line prefer-destructuring
-    const runtime: Runtime<Modules> = this.runtime;
-
     const MAXIMUM_METHODS_PER_ZK_PROGRAM = 8;
 
-    const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
-      (allMethods, runtimeModuleName) => {
-        runtime.isValidModuleName(
-          runtime.definition.modules,
-          runtimeModuleName
-        );
+    const runtimeMethods = this.runtime.collectMethods();
 
-        /**
-         * Couldnt find a better way to circumvent the type assertion
-         * regarding resolving only known modules. We assert in the line above
-         * but we cast it to any anyways to satisfy the proof system.
-         */
-
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const runtimeModule = runtime.resolve(runtimeModuleName as any);
-
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
-          string,
-          // Technically not all methods have to be async, but for this context it's ok
-          (...args: unknown[]) => Promise<unknown>
-        >;
-
-        const modulePrototypeMethods = getAllPropertyNames(runtimeModule).map(
-          (method) => method.toString()
-        );
-
-        const moduleMethods = modulePrototypeMethods.reduce<Methods>(
-          (allModuleMethods, methodName) => {
-            if (isRuntimeMethod(runtimeModule, methodName)) {
-              const combinedMethodName = combineMethodName(
-                runtimeModuleName,
-                methodName
-              );
-              const method = modulePrototype[methodName];
-              const invocationType = Reflect.getMetadata(
-                runtimeMethodTypeMetadataKey,
-                runtimeModule,
-                methodName
-              );
-
-              const wrappedMethod: AsyncWrappedMethod = Reflect.apply(
-                toWrappedMethod,
-                runtimeModule,
-                [methodName, method, { invocationType }]
-              );
-
-              const privateInputs = Reflect.getMetadata(
-                "design:paramtypes",
-                runtimeModule,
-                methodName
-              );
-
-              return {
-                ...allModuleMethods,
-
-                [combinedMethodName]: {
-                  privateInputs,
-                  method: wrappedMethod,
-                },
-              };
-            }
-
-            return allModuleMethods;
-          },
-          {}
-        );
-
-        return {
-          ...allMethods,
-          ...moduleMethods,
-        };
-      },
-      {}
-    );
-
-    const sortedRuntimeMethods = Object.fromEntries(
-      Object.entries(runtimeMethods).sort()
+    const sortedRuntimeMethods = runtimeMethods.sort(
+      ({ combinedMethodName: name1 }, { combinedMethodName: name2 }) =>
+        compareStrings(name1, name2)
     );
 
     const splitRuntimeMethods = () => {
@@ -191,9 +111,15 @@ export class RuntimeZkProgrammable<
           }
         >
       > = [];
-      Object.entries(sortedRuntimeMethods).forEach(
-        async ([methodName, method]) => {
+      sortedRuntimeMethods.forEach(
+        async ({ combinedMethodName: methodName, method, privateInputs }) => {
           let methodAdded = false;
+
+          const methodDefinition = {
+            privateInputs,
+            method,
+          };
+
           for (const bucket of buckets) {
             if (buckets.length === 0) {
               const record: Record<
@@ -203,7 +129,7 @@ export class RuntimeZkProgrammable<
                   method: AsyncWrappedMethod;
                 }
               > = {};
-              record[methodName] = method;
+              record[methodName] = methodDefinition;
               buckets.push(record);
               methodAdded = true;
               break;
@@ -211,11 +137,12 @@ export class RuntimeZkProgrammable<
               Object.keys(bucket).length <=
               MAXIMUM_METHODS_PER_ZK_PROGRAM - 1
             ) {
-              bucket[methodName] = method;
+              bucket[methodName] = methodDefinition;
               methodAdded = true;
               break;
             }
           }
+
           if (!methodAdded) {
             const record: Record<
               string,
@@ -224,7 +151,7 @@ export class RuntimeZkProgrammable<
                 method: AsyncWrappedMethod;
               }
             > = {};
-            record[methodName] = method;
+            record[methodName] = methodDefinition;
             buckets.push(record);
           }
         }
@@ -379,6 +306,71 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    */
   public get runtimeModuleNames() {
     return Object.keys(this.definition.modules);
+  }
+
+  public collectMethods() {
+    return this.runtimeModuleNames.flatMap((runtimeModuleName) => {
+      this.isValidModuleName(this.definition.modules, runtimeModuleName);
+
+      /**
+       * Couldnt find a better way to circumvent the type assertion
+       * regarding resolving only known modules. We assert in the line above
+       * but we cast it to any anyways to satisfy the proof system.
+       */
+
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const runtimeModule = this.resolve(runtimeModuleName as any);
+
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const modulePrototype = Object.getPrototypeOf(runtimeModule) as Record<
+        string,
+        // Technically not all methods have to be async, but for this context it's ok
+        (...args: unknown[]) => Promise<unknown>
+      >;
+
+      const modulePrototypeMethods = getAllPropertyNames(runtimeModule).map(
+        (method) => method.toString()
+      );
+
+      return modulePrototypeMethods
+        .map((methodName) => {
+          if (isRuntimeMethod(runtimeModule, methodName)) {
+            const combinedMethodName = combineMethodName(
+              runtimeModuleName,
+              methodName
+            );
+            const method = modulePrototype[methodName];
+            const invocationType: RuntimeMethodInvocationType =
+              Reflect.getMetadata(
+                runtimeMethodTypeMetadataKey,
+                runtimeModule,
+                methodName
+              );
+
+            const wrappedMethod: AsyncWrappedMethod = Reflect.apply(
+              toWrappedMethod,
+              runtimeModule,
+              [methodName, method, { invocationType }]
+            );
+
+            const privateInputs: any[] | undefined = Reflect.getMetadata(
+              "design:paramtypes",
+              runtimeModule,
+              methodName
+            );
+
+            return {
+              combinedMethodName,
+              privateInputs: privateInputs ?? [],
+              method: wrappedMethod,
+              invocationType,
+            };
+          } else {
+            return undefined;
+          }
+        })
+        .filter(filterNonUndefined);
+    }, {});
   }
 
   public async compile(registry: CompileRegistry) {

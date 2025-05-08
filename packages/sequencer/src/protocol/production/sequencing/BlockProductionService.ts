@@ -16,23 +16,20 @@ import {
 import { Field } from "o1js";
 import { log } from "@proto-kit/common";
 
-import {
-  Block,
-  BlockWithResult,
-  TransactionExecutionResult,
-} from "../../../storage/model/Block";
+import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
+import { TransactionUtils } from "../utils/transaction-utils";
 
 import {
   BlockTrackers,
-  executeWithExecutionContext,
   TransactionExecutionService,
 } from "./TransactionExecutionService";
+import { TransactionPreprocessor } from "./preprocessing/TransactionPreprocessor";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -46,7 +43,8 @@ export class BlockProductionService {
     public readonly tracer: Tracer,
     private readonly transactionExecutionService: TransactionExecutionService,
     @inject("StateServiceProvider")
-    private readonly stateServiceProvider: StateServiceProvider
+    private readonly stateServiceProvider: StateServiceProvider,
+    private readonly transactionPreprocessor: TransactionPreprocessor
   ) {
     this.blockHooks =
       protocol.dependencyContainer.resolveAll("ProvableBlockHook");
@@ -66,7 +64,7 @@ export class BlockProductionService {
       transaction: RuntimeTransaction.dummyTransaction(),
     };
 
-    const executionResult = await executeWithExecutionContext(
+    const executionResult = await TransactionUtils.executeWithExecutionContext(
       async () =>
         await this.blockHooks.reduce<Promise<NetworkState>>(
           async (networkState, hook) =>
@@ -100,6 +98,9 @@ export class BlockProductionService {
       }
     | undefined
   > {
+    const preprocessedTransactions =
+      await this.transactionPreprocessor.batchPreprocess(transactions);
+
     const stateService = new CachedStateService(asyncStateService);
 
     const lastResult = lastBlockWithResult.result;
@@ -135,7 +136,7 @@ export class BlockProductionService {
     const [newBlockState, executionResults] =
       await this.transactionExecutionService.createExecutionTraces(
         stateService,
-        transactions,
+        preprocessedTransactions,
         networkState,
         blockState
       );

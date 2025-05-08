@@ -43,10 +43,14 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    * Obtains a value for the provided key in the current state map.
    *
    * @param key - Key to obtain the state for
+   * // TODO dynamic
    * @returns Value for the provided key.
    */
-  public async get(key: KeyType): Promise<Option<ValueType>> {
-    const state = State.from(this.valueType);
+  public async get(
+    key: KeyType,
+    { dynamic }: { dynamic: boolean } = { dynamic: false }
+  ): Promise<Option<ValueType>> {
+    const state = new State(this.valueType, dynamic ? "dynamic" : "static");
     this.hasPathOrFail();
     this.hasStateServiceOrFail();
 
@@ -60,9 +64,14 @@ export class StateMap<KeyType, ValueType> extends Mixin(
    *
    * @param key - Key to store the value under
    * @param value - Value to be stored under the given key
+   * TODO options
    */
-  public async set(key: KeyType, value: ValueType): Promise<void> {
-    const state = State.from(this.valueType);
+  public async set(
+    key: KeyType,
+    value: ValueType,
+    { dynamic }: { dynamic: boolean } = { dynamic: false }
+  ): Promise<void> {
+    const state = new State(this.valueType, dynamic ? "dynamic" : "static");
     this.hasPathOrFail();
     this.hasStateServiceOrFail();
 

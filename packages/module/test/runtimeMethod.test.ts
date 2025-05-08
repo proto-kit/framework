@@ -25,10 +25,10 @@ import {
   runtimeMethod,
   toEventsHash,
   RuntimeEvents,
+  createTestingRuntime,
 } from "../src";
 
 import { Balances } from "./modules/Balances";
-import { createTestingRuntime } from "./TestingRuntime";
 
 export class PrimaryTestEvent extends Struct({
   message: Bool,

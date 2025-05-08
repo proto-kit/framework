@@ -16,6 +16,8 @@ const errors = {
     ),
 };
 
+export type StateAccessType = "static" | "dynamic";
+
 export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutionResult {
   public stateTransitions: StateTransition<any>[] = [];
 
@@ -24,6 +26,8 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
   public statusMessage?: string;
 
   public stackTrace?: string;
+
+  public accessTypes: StateAccessType[] = [];
 
   public events: {
     eventType: FlexibleProvablePure<any>;
@@ -80,9 +84,13 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
    * Adds an in-method generated state transition to the current context
    * @param stateTransition - State transition to add to the context
    */
-  public addStateTransition<Value>(stateTransition: StateTransition<Value>) {
+  public addStateTransition<Value>(
+    stateTransition: StateTransition<Value>,
+    accessType: StateAccessType
+  ) {
     this.assertSetupCalled();
     this.result.stateTransitions.push(stateTransition);
+    this.result.accessTypes.push(accessType);
   }
 
   public addEvent(

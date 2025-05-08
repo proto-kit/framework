@@ -12,6 +12,7 @@ import {
 } from "@proto-kit/protocol";
 import { Field, Provable, PublicKey } from "o1js";
 import { noop } from "@proto-kit/common";
+import { RuntimeAnalyzerService } from "@proto-kit/sequencer";
 
 import { UInt64 } from "../math/UInt64";
 import { Balance, TokenId } from "../runtime/Balances";
@@ -53,7 +54,9 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   public constructor(
     // dependency on runtime, since balances are part of runtime logic
     @inject("Runtime") public runtime: Runtime<RuntimeModulesRecord>,
-    @inject("Balances") public balances: Balances
+    @inject("Balances") public balances: Balances,
+    // TODO Check that the container is the right one here
+    public runtimeAnalyzerService: RuntimeAnalyzerService
   ) {
     super();
   }
@@ -79,7 +82,10 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   }
 
   public async start() {
-    this.persistedFeeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
+    this.persistedFeeAnalyzer = new RuntimeFeeAnalyzerService(
+      this.runtimeAnalyzerService,
+      this.runtime
+    );
     this.verifyConfig();
     this.persistedFeeAnalyzer.config = this.config;
     await this.persistedFeeAnalyzer.initializeFeeTree();
