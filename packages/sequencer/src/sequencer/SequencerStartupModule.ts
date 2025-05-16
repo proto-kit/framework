@@ -73,7 +73,10 @@ export class SequencerStartupModule
     return root;
   }
 
-  private async compileProtocolAndBridge(flow: Flow<{}>) {
+  private async compileProtocolAndBridge(
+    flow: Flow<{}>,
+    runtimeVkTreeRoot: bigint
+  ) {
     // Can happen in parallel
     type ParallelResult = {
       protocol?: ArtifactRecord;
@@ -94,7 +97,7 @@ export class SequencerStartupModule
         {
           existingArtifacts: {},
           targets: ["protocol"],
-          runtimeVKRoot: undefined,
+          runtimeVKRoot: runtimeVkTreeRoot.toString(),
         },
         async (protocolResult) => {
           results.protocol = protocolResult;
@@ -130,7 +133,10 @@ export class SequencerStartupModule
 
     const root = await this.compileRuntime(flow);
 
-    const protocolBridgeArtifacts = await this.compileProtocolAndBridge(flow);
+    const protocolBridgeArtifacts = await this.compileProtocolAndBridge(
+      flow,
+      root
+    );
 
     log.info("Protocol circuits compiled");
 
