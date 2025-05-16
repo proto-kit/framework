@@ -106,7 +106,7 @@ export class TransactionObject {
   }
 }
 
-enum InclusionStatus {
+export enum InclusionStatus {
   UNKNOWN = "unknown",
   PENDING = "pending",
   INCLUDED = "included",
