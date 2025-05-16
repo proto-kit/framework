@@ -504,13 +504,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "Batcheshash doesn't start at 0"
     );
 
-    // Assert from state roots
+    // Assert from state root
     assertEqualsIf(
       stateRoot,
       stateTransitionProof.publicInput.root,
       apply,
       errors.propertyNotMatching("from state root")
     );
+
     // Assert the stBatchesHash executed is the same
     assertEqualsIf(
       pendingSTBatchesHash,

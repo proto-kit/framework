@@ -1,17 +1,20 @@
 import { Bool, Provable, Struct } from "o1js";
-import { RollupMerkleTreeWitness } from "@proto-kit/common";
+import {
+  LinkedMerkleTree,
+  LinkedMerkleTreeReadWitness,
+} from "@proto-kit/common";
 
 import { Withdrawal } from "./Withdrawal";
 
 export const OUTGOING_MESSAGE_BATCH_SIZE = 1;
 
 export class OutgoingMessageArgument extends Struct({
-  witness: RollupMerkleTreeWitness,
+  witness: LinkedMerkleTreeReadWitness,
   value: Withdrawal,
 }) {
   public static dummy(): OutgoingMessageArgument {
     return new OutgoingMessageArgument({
-      witness: RollupMerkleTreeWitness.dummy(),
+      witness: LinkedMerkleTree.dummyReadWitness(),
       value: Withdrawal.dummy(),
     });
   }

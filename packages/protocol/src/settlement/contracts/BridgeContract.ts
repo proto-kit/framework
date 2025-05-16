@@ -113,6 +113,8 @@ export abstract class BridgeContractBase extends TokenContractV2 {
   }
 
   public async updateStateRootBase(root: Field) {
+    // It's fine for us to only store the actual root since we only have to
+    // witness values, not update/insert
     this.stateRoot.set(root);
 
     const settlementContractAddress =

@@ -2,7 +2,7 @@ import {
   expectDefined,
   mapSequential,
   TypedClass,
-  RollupMerkleTree,
+  LinkedMerkleTree,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
@@ -54,9 +54,10 @@ import {
   SignedSettlementPermissions,
   ProvenSettlementPermissions,
   VanillaTaskWorkerModules,
+  Sequencer,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
-import { testingSequencerFromModules } from "../TestingSequencer";
+import { testingSequencerModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
 import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 import { BridgingModule } from "../../src/settlement/BridgingModule";
@@ -119,16 +120,18 @@ export const settlementTestFn = (
     SettlementUtils.prototype["isSignedSettlement"] = () =>
       settlementType === "signed";
 
-    const sequencer = testingSequencerFromModules(
-      {
-        BaseLayer: MinaBaseLayer,
-        SettlementModule: SettlementModule,
-        OutgoingMessageQueue: WithdrawalQueue,
-      },
-      {
-        SettlementProvingTask,
-      }
-    );
+    const sequencer = Sequencer.from({
+      modules: testingSequencerModules(
+        {
+          BaseLayer: MinaBaseLayer,
+          SettlementModule: SettlementModule,
+          OutgoingMessageQueue: WithdrawalQueue,
+        },
+        {
+          SettlementProvingTask,
+        }
+      ),
+    });
 
     const appchain = AppChain.from({
       Runtime: runtime,
@@ -484,8 +487,8 @@ export const settlementTestFn = (
         const input = BlockProverPublicInput.fromFields(
           batch!.proof.publicInput.map((x) => Field(x))
         );
-        expect(input.stateRoot.toBigInt()).toStrictEqual(
-          RollupMerkleTree.EMPTY_ROOT
+        expect(input.stateRoot.toString()).toStrictEqual(
+          LinkedMerkleTree.EMPTY_ROOT.toString()
         );
 
         const lastBlock = await blockQueue.getLatestBlockAndResult();
@@ -500,14 +503,14 @@ export const settlementTestFn = (
         const { settlement } = settlementModule.getContracts();
         expectDefined(lastBlock);
         expectDefined(lastBlock.result);
-        expect(settlement.networkStateHash.get().toBigInt()).toStrictEqual(
-          lastBlock!.result.afterNetworkState.hash().toBigInt()
+        expect(settlement.networkStateHash.get().toString()).toStrictEqual(
+          lastBlock!.result.afterNetworkState.hash().toString()
         );
-        expect(settlement.stateRoot.get().toBigInt()).toStrictEqual(
-          lastBlock!.result.stateRoot
+        expect(settlement.stateRoot.get().toString()).toStrictEqual(
+          lastBlock!.result.stateRoot.toString()
         );
-        expect(settlement.blockHashRoot.get().toBigInt()).toStrictEqual(
-          lastBlock!.result.blockHashRoot
+        expect(settlement.blockHashRoot.get().toString()).toStrictEqual(
+          lastBlock!.result.blockHashRoot.toString()
         );
       } catch (e) {
         console.error(e);
@@ -588,7 +591,7 @@ export const settlementTestFn = (
           .sub(contractBalanceBefore);
 
         expect(actions).toHaveLength(1);
-        expect(balanceDiff.toBigInt()).toBe(depositAmount);
+        expect(balanceDiff.toString()).toBe(depositAmount.toString());
 
         const [, batch] = await createBatch(false);
 
@@ -629,7 +632,9 @@ export const settlementTestFn = (
         const l2balanceDiff = balance.sub(
           userL2BalanceBefore ?? UInt64.from(0)
         );
-        expect(l2balanceDiff.toBigInt()).toStrictEqual(depositAmount);
+        expect(l2balanceDiff.toString()).toStrictEqual(
+          depositAmount.toString()
+        );
       } catch (e) {
         console.error(e);
         throw e;
@@ -693,7 +698,9 @@ export const settlementTestFn = (
         bridgingContract.deriveTokenId()
       );
 
-      expect(account.balance.toBigInt()).toStrictEqual(BigInt(withdrawAmount));
+      expect(account.balance.toString()).toStrictEqual(
+        withdrawAmount.toString()
+      );
     },
     timeout * 2
   );
@@ -767,8 +774,8 @@ export const settlementTestFn = (
       // tx fee
       const minaFees = BigInt(fee);
 
-      expect(balanceAfter - balanceBefore).toBe(
-        amount - (tokenConfig === undefined ? minaFees : 0n)
+      expect((balanceAfter - balanceBefore).toString()).toBe(
+        (amount - (tokenConfig === undefined ? minaFees : 0n)).toString()
       );
     },
     timeout

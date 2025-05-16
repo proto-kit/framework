@@ -1,4 +1,9 @@
-import { AsyncStateService, StateEntry } from "@proto-kit/sequencer";
+import {
+  AsyncStateService,
+  StateEntry,
+  Tracer,
+  trace,
+} from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { Prisma } from "@prisma/client";
 import { noop } from "@proto-kit/common";
@@ -8,7 +13,7 @@ import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 // We need to create a correctly configured Decimal constructor
 // with our parameters
-const Decimal = Prisma.Decimal.clone({
+export const Decimal = Prisma.Decimal.clone({
   precision: 78,
 });
 
@@ -19,38 +24,44 @@ export class PrismaStateService implements AsyncStateService {
   /**
    * @param connection
    * @param mask A indicator to which masking level the values belong
+   * @param tracer
    */
   public constructor(
     private readonly connection: PrismaConnection,
+    public readonly tracer: Tracer,
     private readonly mask: string
   ) {}
 
+  @trace("db.state.commit")
   public async commit(): Promise<void> {
     const { prismaClient } = this.connection;
 
-    const data = this.cache
-      .filter((entry) => entry.value !== undefined)
-      .map((entry) => ({
-        path: new Decimal(entry.key.toString()),
-        values: entry.value!.map((field) => new Decimal(field.toString())),
-        mask: this.mask,
-      }));
+    if (this.cache.length > 0) {
+      const data = this.cache
+        .filter((entry) => entry.value !== undefined)
+        .map((entry) => ({
+          path: new Decimal(entry.key.toString()),
+          values: entry.value!.map((field) => new Decimal(field.toString())),
+          mask: this.mask,
+        }));
 
-    await prismaClient.state.deleteMany({
-      where: {
-        path: {
-          in: this.cache.map((x) => new Decimal(x.key.toString())),
+      await prismaClient.state.deleteMany({
+        where: {
+          path: {
+            in: this.cache.map((x) => new Decimal(x.key.toString())),
+          },
+          mask: this.mask,
         },
-        mask: this.mask,
-      },
-    });
-    await prismaClient.state.createMany({
-      data,
-    });
+      });
+      await prismaClient.state.createMany({
+        data,
+      });
+    }
 
     this.cache = [];
   }
 
+  @trace("db.state.getMany")
   public async getMany(keys: Field[]): Promise<StateEntry[]> {
     const records = await this.connection.prismaClient.state.findMany({
       where: {

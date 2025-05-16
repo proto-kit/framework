@@ -4,6 +4,7 @@ import {
   TypedClass,
   ModuleContainerDefinition,
   log,
+  ChildContainerProvider,
 } from "@proto-kit/common";
 import {
   Runtime,
@@ -17,10 +18,11 @@ import {
 } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
-import { SequencerModule } from "../builder/SequencerModule";
-import { Closeable } from "../builder/Closeable";
+import { sequencerModule, SequencerModule } from "../builder/SequencerModule";
+import { closeable, Closeable } from "../builder/Closeable";
 
 import { Sequenceable } from "./Sequenceable";
+import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -62,6 +64,11 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     return this.container;
   }
 
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+    this.useDependencyFactory(ConsoleTracingFactory);
+  }
+
   /**
    * Starts the sequencer by iterating over all provided
    * modules to start each
@@ -75,7 +82,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // ensure that we start modules based on the order they were resolved.
     // We iterate through the methods three times:
 
-    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    this.useDependencyFactory(MethodIdFactory);
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(
@@ -121,8 +128,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
       await sequencerModule.start();
     }
 
-    // TODO This currently also warns for client appchains
-    if (!moduleClassNames.includes("SequencerStartupModule")) {
+    if (
+      !moduleClassNames.includes("SequencerStartupModule") &&
+      moduleClassNames.includes("BatchProducerModule")
+    ) {
       log.warn("SequencerStartupModule is not defined.");
     }
   }

@@ -32,11 +32,12 @@
     "@types/node": "^20.2.5"
   },
   "dependencies": {
+    "ascii-table3": "^0.9.0",
     "compute-gcd": "^1.2.1",
     "lodash-es": "^4.17.21",
+    "mina-fungible-token": "^1.0.0",
     "reflect-metadata": "^0.1.13",
-    "ts-pattern": "^4.3.0",
-    "mina-fungible-token": "^1.0.0"
+    "ts-pattern": "^4.3.0"
   },
   "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
 }
