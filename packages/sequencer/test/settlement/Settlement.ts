@@ -540,14 +540,8 @@ export const settlementTestFn = (
             BalancesKey.from(bridgedTokenId, userKey.toPublicKey())
           );
 
-        await sleep(10000);
-
-        const tree = await TokenBridgeTree.buildTreeFromEvents(dispatch);
-        const index = tree.getIndex(bridgedTokenId);
-        const attestation = new TokenBridgeAttestation({
-          index: Field(index),
-          witness: tree.getWitness(index),
-        });
+        const attestation =
+          await bridgingModule.getDepositContractAttestation(bridgedTokenId);
 
         const tx = await Mina.transaction(
           {

@@ -14,6 +14,8 @@ import {
   TokenMapping,
   PROTOKIT_PREFIXES,
   Withdrawal,
+  TokenBridgeTree,
+  TokenBridgeAttestation,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -52,6 +54,7 @@ import {
   OutgoingMessageCollector,
   WithdrawalEvent,
 } from "./messages/outgoing/OutgoingMessageCollector";
+import { ArchiveNode } from "./utils/ArchiveNode";
 
 export type SettlementTokenConfig = Record<
   string,
@@ -95,7 +98,7 @@ export class BridgingModule {
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
     @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
-    @inject("BaseLayer") baseLayer: MinaBaseLayer,
+    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender
   ) {
@@ -157,6 +160,19 @@ export class BridgingModule {
 
     await this.updateBridgeAddresses();
     return this.seenBridgeDeployments.deployments[tokenId.toString()];
+  }
+
+  public async getDepositContractAttestation(tokenId: Field) {
+    await ArchiveNode.waitOnSync(this.baseLayer.config);
+
+    const { dispatch } = this.settlementModule.getContracts();
+
+    const tree = await TokenBridgeTree.buildTreeFromEvents(dispatch);
+    const index = tree.getIndex(tokenId);
+    return new TokenBridgeAttestation({
+      index: Field(index),
+      witness: tree.getWitness(index),
+    });
   }
 
   private async fetchFeepayerNonce() {
