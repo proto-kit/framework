@@ -133,14 +133,16 @@ export class Sequencer<Modules extends SequencerModulesRecord>
 
     // Start modules made startable via @startable()
     // TODO This doesn't dynamically resolve-and-start in-order like normal sequencer modules
-    const additionalStartables =
-      this.container.resolveAll<StartableModule>("Startable");
-    await mapSequential(additionalStartables, async (startable) => {
-      log.info(
-        `Starting injected startable module ${sequencerModule.constructor.name}`
-      );
-      await startable.start();
-    });
+    if (this.container.isRegistered("Startable", true)) {
+      const additionalStartables =
+        this.container.resolveAll<StartableModule>("Startable");
+      await mapSequential(additionalStartables, async (startable) => {
+        log.info(
+          `Starting injected startable module ${sequencerModule.constructor.name}`
+        );
+        await startable.start();
+      });
+    }
 
     if (
       !moduleClassNames.includes("SequencerStartupModule") &&
