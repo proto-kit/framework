@@ -45,6 +45,9 @@ export class TimedBlockTrigger
 
   private interval?: any;
 
+  // TODO Move that logic to somewhere proper
+  private settlementInProgress = false;
+
   public constructor(
     @injectOptional("BatchProducerModule")
     batchProducerModule: BatchProducerModule | undefined,
@@ -111,12 +114,15 @@ export class TimedBlockTrigger
         // otherwise treat as unproven-only
         if (
           settlementInterval !== undefined &&
-          totalTime % settlementInterval === 0
+          totalTime % settlementInterval === 0 &&
+          !this.settlementInProgress
         ) {
+          this.settlementInProgress = true;
           const batch = await this.produceBatch();
           if (batch !== undefined) {
             await this.settle(batch, this.config.settlementTokenConfig);
           }
+          this.settlementInProgress = false;
         }
       } catch (error) {
         log.error(error);
