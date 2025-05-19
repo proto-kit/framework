@@ -50,6 +50,15 @@ import { BridgingModule } from "./BridgingModule";
 export interface SettlementModuleConfig {
   feepayer: PrivateKey;
   address?: PublicKey;
+  addresses: {
+    settlement: PublicKey;
+    dispatch: PublicKey;
+  };
+  keys: {
+    settlement: PrivateKey;
+    dispatch: PrivateKey;
+    minaBridge: PrivateKey;
+  };
 }
 
 export type SettlementModuleEvents = {
@@ -115,18 +124,26 @@ export class SettlementModule
 
   private getContractKeys(): PrivateKey[] {
     if (this.keys === undefined) {
-      throw new Error("Contracts not initialized yet");
+      if (this.config.keys !== undefined) {
+        this.keys = this.config.keys;
+      } else {
+        throw new Error("Contracts not initialized yet");
+      }
     }
     return [this.keys.dispatch, this.keys.settlement];
   }
 
   public getContracts() {
     if (this.contracts === undefined) {
-      const { addresses, protocol } = this;
+      let { addresses } = this;
+      const { protocol } = this;
+
       if (addresses === undefined) {
-        throw new Error(
-          "Settlement Contract hasn't been deployed yet. Deploy it first, then restart"
-        );
+        if (this.config.addresses !== undefined) {
+          addresses = this.config.addresses;
+        } else {
+          throw new Error("Contracts not initialized yet");
+        }
       }
       const settlementContractModule = protocol.dependencyContainer.resolve<
         SettlementContractModule<MandatorySettlementModulesRecord>
