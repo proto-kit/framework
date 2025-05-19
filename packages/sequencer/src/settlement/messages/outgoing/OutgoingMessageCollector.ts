@@ -1,35 +1,34 @@
-import { inject, injectable } from "tsyringe";
+import { inject, injectable, injectAll } from "tsyringe";
 import { Withdrawal } from "@proto-kit/protocol";
 import { Field, Struct } from "o1js";
+import { filterNonUndefined } from "@proto-kit/common";
 
-import type { BlockTriggerBase } from "../../protocol/production/trigger/BlockTrigger";
-import { SettlementModule } from "../SettlementModule";
-import { SequencerModule } from "../../sequencer/builder/SequencerModule";
-import { Sequencer } from "../../sequencer/executor/Sequencer";
-import { Block } from "../../storage/model/Block";
-import { BridgingModule } from "../BridgingModule";
+import type { BlockTriggerBase } from "../../../protocol/production/trigger/BlockTrigger";
+import type { SettlementModule } from "../../SettlementModule";
+import { Sequencer } from "../../../sequencer/executor/Sequencer";
+import { Block } from "../../../storage/model/Block";
 import {
   BlockStorage,
   HistoricalBlockStorage,
-} from "../../storage/repositories/BlockStorage";
-import { SettlementStorage } from "../../storage/repositories/SettlementStorage";
-import { HistoricalBatchStorage } from "../../storage/repositories/BatchStorage";
+} from "../../../storage/repositories/BlockStorage";
+import { SettlementStorage } from "../../../storage/repositories/SettlementStorage";
+import { HistoricalBatchStorage } from "../../../storage/repositories/BatchStorage";
+import { Batch } from "../../../storage/model/Batch";
 
 export interface OutgoingMessage<Type> {
   index: number;
   value: Type;
 }
 
-// TODO Duplicate definition in Withdrawals.ts
-export class WithdrawalKey extends Struct({
-  index: Field,
-  tokenId: Field,
-}) {}
+export type OutgoingMessageKey = {
+  index: Field;
+  tokenId: Field;
+};
 
-export class WithdrawalEvent extends Struct({
-  key: WithdrawalKey,
-  value: Withdrawal,
-}) {}
+export type WithdrawalEvent<T> = {
+  key: OutgoingMessageKey;
+  value: T;
+};
 
 /**
  * This interface allows the SettlementModule to retrieve information about
@@ -39,20 +38,12 @@ export class WithdrawalEvent extends Struct({
  * In the future, this interface should be flexibly typed so that the
  * outgoing message type is not limited to Withdrawals
  */
-export interface OutgoingMessageAdapter {
-  fetchWithdrawals(
-    tokenId: Field,
-    offset: number
-  ): Promise<OutgoingMessage<Withdrawal>[]>;
+export interface OutgoingMessageAdapter<T> {
+  extractEvents(block: Block): WithdrawalEvent<T>[];
 }
 
 @injectable()
-export class WithdrawalQueue
-  extends SequencerModule
-  implements OutgoingMessageAdapter
-{
-  private outgoingWithdrawalEvents: string[] = [];
-
+export class OutgoingMessageCollector {
   public constructor(
     @inject("Sequencer")
     private readonly sequencer: Sequencer<{
@@ -64,19 +55,20 @@ export class WithdrawalQueue
     @inject("BatchStorage")
     private readonly batchStorage: HistoricalBatchStorage,
     @inject("SettlementStorage")
-    private readonly settlementStorage: SettlementStorage
-  ) {
-    super();
-  }
+    private readonly settlementStorage: SettlementStorage,
+    // TODO Enabled multiple adapters for multiple message types
+    //  Also make it generic
+    @inject("OutgoingMessageAdapter")
+    private readonly messageAdapter: OutgoingMessageAdapter<Withdrawal>
+  ) {}
 
-  private extractEventsFromBlock(block: Block) {
-    return block.transactions.flatMap((result) =>
-      result.events
-        .filter((event) =>
-          this.outgoingWithdrawalEvents.includes(event.eventName)
-        )
-        .map((event) => WithdrawalEvent.fromFields(event.data))
+  public async extractEventsFromBatch(batch: Batch) {
+    const blocks = await Promise.all(
+      batch.blockHashes.map((hash) => this.blockStorage.getBlock(hash))
     );
+    return blocks
+      .filter(filterNonUndefined)
+      .flatMap((block) => this.messageAdapter.extractEvents(block));
   }
 
   // TODO Not really efficient right now in regards to DB trips, can be
@@ -106,7 +98,7 @@ export class WithdrawalQueue
     const blockHistory = [block!];
 
     while (block !== undefined) {
-      const events = this.extractEventsFromBlock(block);
+      const events = this.messageAdapter.extractEvents(block);
       const found = events.find((withdrawalEvent) => {
         return withdrawalEvent.key.tokenId
           .equals(tokenId)
@@ -134,22 +126,11 @@ export class WithdrawalQueue
     const blocks = await this.findBlockWithEvent(tokenId, offset);
 
     const events = blocks
-      ?.flatMap((block) => this.extractEventsFromBlock(block))
+      ?.flatMap((block) => this.messageAdapter.extractEvents(block))
       ?.map((event) => ({
         index: parseInt(event.key.index.toString(), 10),
         value: event.value,
       }));
     return events ?? [];
-  }
-
-  public async start(): Promise<void> {
-    // Hacky workaround for this cyclic dependency
-    const bridgingModule = this.sequencer.resolveOrFail(
-      "BridgingModule",
-      BridgingModule
-    );
-
-    const { withdrawalEventName } = bridgingModule.getBridgingModuleConfig();
-    this.outgoingWithdrawalEvents = [withdrawalEventName];
   }
 }

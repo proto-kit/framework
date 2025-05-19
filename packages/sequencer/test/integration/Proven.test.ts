@@ -28,7 +28,6 @@ import {
   SettlementModule,
   SettlementProvingTask,
   VanillaTaskWorkerModules,
-  WithdrawalQueue,
 } from "../../src";
 import { SettlementStartupModule } from "../../src/sequencer/SettlementStartupModule";
 
@@ -62,7 +61,6 @@ describe.skip("Proven", () => {
           {
             BaseLayer: MinaBaseLayer,
             SettlementModule,
-            OutgoingMessageQueue: WithdrawalQueue,
           },
           {
             SettlementProvingTask,
@@ -112,7 +110,6 @@ describe.skip("Proven", () => {
             // TODO
             feepayer: PrivateKey.random(),
           },
-          OutgoingMessageQueue: {},
         },
         Runtime: {
           Balances: {},
