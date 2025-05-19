@@ -449,17 +449,6 @@ export class BridgingModule {
       PROTOKIT_PREFIXES.STATE_RUNTIME
     );
 
-    // TODO Not sure if we should re-fetch the account state here
-    // const outgoingMessageCursor = parseInt(
-    //   bridgeContract.outgoingMessageCursor.get().toString(),
-    //   10
-    // );
-    //
-    // const pendingWithdrawals = await this.outgoingMessageQueue.fetchWithdrawals(
-    //   tokenId,
-    //   outgoingMessageCursor
-    // );
-
     // Create withdrawal batches and send them as L1 transactions
     for (let i = 0; i < events.length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
       const batch = events.slice(i, i + OUTGOING_MESSAGE_BATCH_SIZE);
