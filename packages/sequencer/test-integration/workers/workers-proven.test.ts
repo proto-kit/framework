@@ -40,7 +40,7 @@ describe("worker-proven", () => {
 
     beforeAll(async () => {
       worker = new ChildProcessWorker();
-      worker.start(true);
+      worker.start(true, { PROOFS_ENABLED: `${proofsEnabled}` });
     });
 
     afterAll(async () => {

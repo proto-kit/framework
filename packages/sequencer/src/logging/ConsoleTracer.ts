@@ -39,6 +39,10 @@ export class ConsoleTracer implements Tracer {
     const { store } = this;
     const traceNames = Object.keys(store);
 
+    if (traceNames.length === 0) {
+      return;
+    }
+
     // We checked the record to see if any methods have exceeded the configured interval.
     // If so we print them and then delete from the record.
     // We look at the first element in the array only (i.e. the first invocation of the function)

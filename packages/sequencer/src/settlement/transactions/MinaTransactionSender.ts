@@ -1,4 +1,4 @@
-import { Mina, Transaction } from "o1js";
+import { Mina, PublicKey, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
   EventEmitter,
@@ -45,6 +45,11 @@ export class MinaTransactionSender {
     private readonly simulator: MinaTransactionSimulator,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
   ) {}
+
+  public async getNextNonce(sender: PublicKey): Promise<number> {
+    const account = await this.simulator.getAccount(sender);
+    return parseInt(account.nonce.toString(), 10);
+  }
 
   private async trySendCached({
     tx,

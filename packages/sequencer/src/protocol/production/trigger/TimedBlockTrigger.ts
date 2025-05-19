@@ -8,6 +8,10 @@ import { Mempool } from "../../../mempool/Mempool";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
+import {
+  BridgingModule,
+  SettlementTokenConfig,
+} from "../../../settlement/BridgingModule";
 
 import { BlockEvents, BlockTriggerBase } from "./BlockTrigger";
 
@@ -23,6 +27,8 @@ export interface TimedBlockTriggerConfig {
   settlementInterval?: number;
   blockInterval: number;
   produceEmptyBlocks?: boolean;
+
+  settlementTokenConfig: SettlementTokenConfig;
 }
 
 export interface TimedBlockTriggerEvent extends BlockEvents {
@@ -46,6 +52,8 @@ export class TimedBlockTrigger
     blockProducerModule: BlockProducerModule,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
+    @injectOptional("BridgingModule")
+    bridgingModule: BridgingModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue,
     @inject("Mempool")
@@ -55,6 +63,7 @@ export class TimedBlockTrigger
       blockProducerModule,
       batchProducerModule,
       settlementModule,
+      bridgingModule,
       blockQueue
     );
   }
@@ -106,7 +115,7 @@ export class TimedBlockTrigger
         ) {
           const batch = await this.produceBatch();
           if (batch !== undefined) {
-            await this.settle(batch);
+            await this.settle(batch, this.config.settlementTokenConfig);
           }
         }
       } catch (error) {

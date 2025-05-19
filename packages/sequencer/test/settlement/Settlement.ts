@@ -3,6 +3,7 @@ import {
   mapSequential,
   TypedClass,
   LinkedMerkleTree,
+  sleep,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
@@ -35,6 +36,7 @@ import {
   SmartContract,
   UInt8,
   Bool,
+  fetchLastBlock,
 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -47,7 +49,7 @@ import {
   BlockQueue,
   SettlementModule,
   MinaBaseLayer,
-  WithdrawalQueue,
+  WithdrawalMessageAdapter,
   SettlementProvingTask,
   MinaTransactionSender,
   MinaBaseLayerConfig,
@@ -125,7 +127,6 @@ export const settlementTestFn = (
         {
           BaseLayer: MinaBaseLayer,
           SettlementModule: SettlementModule,
-          OutgoingMessageQueue: WithdrawalQueue,
         },
         {
           SettlementProvingTask,
@@ -169,7 +170,6 @@ export const settlementTestFn = (
         Mempool: {},
         BatchProducerModule: {},
         LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
-        OutgoingMessageQueue: {},
         BaseLayer: baseLayerConfig,
         BlockProducerModule: {},
         FeeStrategy: {},
@@ -493,7 +493,7 @@ export const settlementTestFn = (
 
         const lastBlock = await blockQueue.getLatestBlockAndResult();
 
-        await trigger.settle(batch!);
+        await trigger.settle(batch!, {});
         nonceCounter++;
 
         // TODO Check Smartcontract tx layout (call to dispatch with good preconditions, etc)
@@ -539,6 +539,8 @@ export const settlementTestFn = (
           await appChain.query.runtime.Balances.balances.get(
             BalancesKey.from(bridgedTokenId, userKey.toPublicKey())
           );
+
+        await sleep(10000);
 
         const tree = await TokenBridgeTree.buildTreeFromEvents(dispatch);
         const index = tree.getIndex(bridgedTokenId);
@@ -597,7 +599,7 @@ export const settlementTestFn = (
 
         console.log("Settling");
 
-        await trigger.settle(batch!);
+        await trigger.settle(batch!, {});
         nonceCounter++;
 
         const [, batch2] = await createBatch(false);
@@ -620,7 +622,7 @@ export const settlementTestFn = (
 
         expect(batch2!.blockHashes).toHaveLength(1);
 
-        await trigger.settle(batch2!);
+        await trigger.settle(batch2!, {});
         nonceCounter++;
 
         const balance = await appChain.query.runtime.Balances.balances.get(
@@ -669,23 +671,28 @@ export const settlementTestFn = (
       ]);
       acc0L2Nonce += 2;
 
+      expectDefined(block);
+      expect(block.transactions[0].status.toBoolean()).toBe(true);
+      expectDefined(batch);
+
       console.log("Test networkstate");
-      console.log(NetworkState.toJSON(block!.networkState.during));
-      console.log(NetworkState.toJSON(batch!.toNetworkState));
+      console.log(NetworkState.toJSON(block.networkState.during));
+      console.log(NetworkState.toJSON(batch.toNetworkState));
 
-      await trigger.settle(batch!);
-      nonceCounter++;
-
-      const txs = await bridgingModule.sendRollupTransactions({
-        nonce: nonceCounter,
-        bridgingContractPrivateKey: tokenBridgeKey,
-        tokenOwnerPrivateKey: tokenOwnerKey.tokenOwner,
-        tokenOwner: tokenOwner,
+      const settlementResult = await trigger.settle(batch, {
+        [bridgedTokenId.toString()]: {
+          bridgingContractPrivateKey: tokenBridgeKey,
+          tokenOwnerPrivateKey: tokenOwnerKey.tokenOwner,
+          tokenOwner: tokenOwner,
+        },
       });
 
-      nonceCounter += 2;
+      expectDefined(settlementResult);
+      expectDefined(settlementResult.bridgeTransactions);
 
-      expect(txs).toHaveLength(1);
+      nonceCounter += settlementResult.bridgeTransactions.length;
+
+      expect(settlementResult.bridgeTransactions).toHaveLength(2);
 
       if (baseLayerConfig.network.type !== "local") {
         await fetchAccount({

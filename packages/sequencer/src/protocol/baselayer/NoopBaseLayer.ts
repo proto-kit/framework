@@ -8,12 +8,13 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import {
-  OutgoingMessage,
-  OutgoingMessageAdapter,
-} from "../../settlement/messages/WithdrawalQueue";
 
 import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
+import {
+  OutgoingMessageAdapter,
+  WithdrawalEvent,
+} from "../../settlement/messages/outgoing/OutgoingMessageCollector";
+import { Block } from "../../storage/model/Block";
 
 class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   async fetchPendingMessages(
@@ -35,11 +36,8 @@ class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   }
 }
 
-class NoopOutgoingMessageAdapter implements OutgoingMessageAdapter {
-  async fetchWithdrawals(
-    tokenId: Field,
-    offset: number
-  ): Promise<OutgoingMessage<Withdrawal>[]> {
+class NoopMessageAdapter implements OutgoingMessageAdapter<undefined> {
+  public extractEvents(block: Block): WithdrawalEvent<undefined>[] {
     return [];
   }
 }
@@ -56,11 +54,11 @@ export class NoopBaseLayer extends SequencerModule implements BaseLayer {
 
   public dependencies(): BaseLayerDependencyRecord {
     return {
+      OutgoingMessageAdapter: {
+        useClass: NoopMessageAdapter,
+      },
       IncomingMessageAdapter: {
         useClass: NoopIncomingMessageAdapter,
-      },
-      OutgoingMessageQueue: {
-        useClass: NoopOutgoingMessageAdapter,
       },
     };
   }

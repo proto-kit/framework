@@ -41,7 +41,7 @@ export class LinkedMerkleWitnessDTO {
 @graphqlModule()
 export class LinkedMerkleWitnessResolver extends GraphqlModule<object> {
   public constructor(
-    @inject("AsyncMerkleStore")
+    @inject("AsyncLinkedLeafStore")
     private readonly treeStore: AsyncLinkedLeafStore
   ) {
     super();
