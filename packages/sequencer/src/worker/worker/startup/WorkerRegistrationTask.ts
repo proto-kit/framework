@@ -26,12 +26,15 @@ import {
 } from "../../../protocol/production/tasks/serializers/ArtifactionRecordSerializer";
 
 import { CloseWorkerError } from "./CloseWorkerError";
+import { SignedSettlementPermissions } from "../../../settlement/permissions/SignedSettlementPermissions";
+import { ProvenSettlementPermissions } from "../../../settlement/permissions/ProvenSettlementPermissions";
 
 export type WorkerStartupPayload = {
   runtimeVerificationKeyRoot: bigint;
   // This has to be nullable, since
   bridgeContractVerificationKey?: VerificationKey;
   compiledArtifacts: ArtifactRecord;
+  isSignedSettlement?: boolean;
 };
 
 @injectable()
@@ -69,6 +72,19 @@ export class WorkerRegistrationTask
     if (input.bridgeContractVerificationKey !== undefined) {
       SettlementSmartContractBase.args.BridgeContractVerificationKey =
         input.bridgeContractVerificationKey;
+    }
+
+    if (input.isSignedSettlement !== undefined) {
+      const contractArgs = SettlementSmartContractBase.args;
+      SettlementSmartContractBase.args = {
+        ...contractArgs,
+        signedSettlements: input.isSignedSettlement,
+        // TODO Add distinction between mina and custom tokens
+        BridgeContractPermissions: (input.isSignedSettlement
+          ? new SignedSettlementPermissions()
+          : new ProvenSettlementPermissions()
+        ).bridgeContractMina(),
+      };
     }
 
     this.compileRegistry.addArtifactsRaw(input.compiledArtifacts);

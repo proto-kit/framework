@@ -58,7 +58,7 @@ describe("worker-proven", () => {
           modules: {
             Database: InMemoryDatabase,
             Mempool: PrivateMempool,
-            BaseLayer: NoopBaseLayer,
+            // BaseLayer: NoopBaseLayer,
             BatchProducerModule,
             BlockProducerModule,
             BlockTrigger: ManualBlockTrigger,
@@ -82,7 +82,7 @@ describe("worker-proven", () => {
             Mempool: {},
             BatchProducerModule: {},
             BlockProducerModule: {},
-            BaseLayer: {},
+            // BaseLayer: {},
             TaskQueue: BullConfig,
             FeeStrategy: {},
             SequencerStartupModule: {},
