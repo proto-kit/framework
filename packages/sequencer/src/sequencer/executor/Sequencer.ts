@@ -19,7 +19,7 @@ import {
 } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
-import { sequencerModule, SequencerModule } from "../builder/SequencerModule";
+import { SequencerModule } from "../builder/SequencerModule";
 import { Closeable } from "../builder/Closeable";
 import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
 import { StartableModule } from "../builder/StartableModule";
@@ -138,7 +138,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
         this.container.resolveAll<StartableModule>("Startable");
       await mapSequential(additionalStartables, async (startable) => {
         log.info(
-          `Starting injected startable module ${sequencerModule.constructor.name}`
+          `Starting injected startable module ${startable.constructor.name}`
         );
         await startable.start();
       });

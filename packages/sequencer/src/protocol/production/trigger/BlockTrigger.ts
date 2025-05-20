@@ -17,7 +17,6 @@ import {
   BridgingModule,
   SettlementTokenConfig,
 } from "../../../settlement/BridgingModule";
-import { set } from "husky";
 
 /**
  * A BlockTrigger is the primary method to start the production of a block and
@@ -110,6 +109,10 @@ export class BlockTriggerBase<
       [batch],
       config
       // TODO nonce override
+    );
+
+    log.info(
+      `Settlement complete (additional ${txs?.length ?? 0} outgoing message batches rolled up)`
     );
 
     return { settlement, bridgeTransactions: txs };

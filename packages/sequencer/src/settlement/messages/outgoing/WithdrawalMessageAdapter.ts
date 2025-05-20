@@ -1,7 +1,7 @@
 import { inject, injectable } from "tsyringe";
 import { Withdrawal } from "@proto-kit/protocol";
 import { Field, Struct } from "o1js";
-import { ModuleContainer } from "@proto-kit/common";
+import { log, ModuleContainer } from "@proto-kit/common";
 
 import { Block } from "../../../storage/model/Block";
 import { BridgingModule } from "../../BridgingModule";
@@ -42,6 +42,8 @@ export class WithdrawalMessageAdapter
 
     const { withdrawalEventName } = bridgingModule.getBridgingModuleConfig();
     this.outgoingWithdrawalEvents = [withdrawalEventName];
+
+    log.debug("Registered withdrawal events name", withdrawalEventName);
   }
 
   public outgoingWithdrawalEvents: string[] = [];

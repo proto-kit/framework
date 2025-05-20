@@ -8,12 +8,12 @@ import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
-
-import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 import {
   BridgingModule,
   SettlementTokenConfig,
 } from "../../../settlement/BridgingModule";
+
+import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
 @sequencerModule()
 export class ManualBlockTrigger

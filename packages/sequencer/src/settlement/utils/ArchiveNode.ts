@@ -1,6 +1,7 @@
 /* eslint-disable no-inner-declarations */
-import { MinaBaseLayerConfig } from "../../protocol/baselayer/MinaBaseLayer";
 import { sleep } from "@proto-kit/common";
+
+import type { MinaBaseLayerConfig } from "../../protocol/baselayer/MinaBaseLayer";
 
 export namespace ArchiveNode {
   const networkStateQuery = `query Height {
@@ -13,6 +14,16 @@ export namespace ArchiveNode {
   }
 }`;
 
+  type NetworkStateQueryResult = {
+    bestChain: {
+      protocolState: {
+        consensusState: {
+          blockHeight: string;
+        };
+      };
+    }[];
+  };
+
   const archiveNodeMaxBlockHeightQuery = `query Height {
   networkState {
     maxBlockHeight {
@@ -22,10 +33,19 @@ export namespace ArchiveNode {
   }
 }`;
 
-  async function makeGraphqlQuery(
+  type ArchiveNodeMaxBlockHeightQueryResponse = {
+    networkState: {
+      maxBlockHeight: {
+        pendingMaxBlockHeight: number;
+        canonicalMaxBlockHeight: number;
+      };
+    };
+  };
+
+  async function makeGraphqlQuery<Response>(
     query: string,
     endpoint: string
-  ): Promise<any> {
+  ): Promise<Response> {
     const result = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -38,7 +58,8 @@ export namespace ArchiveNode {
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json = await result.json();
-    return json.data;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return json.data as Response;
   }
 
   async function waitOnArchiveNodeCatchup(
@@ -47,11 +68,12 @@ export namespace ArchiveNode {
     { numAttempts, timeout }: { numAttempts: number; timeout: number }
   ): Promise<true> {
     for (let i = 0; i < numAttempts; i++) {
-      // eslint-disable-next-line no-await-in-loop
-      const archiveNodeResponse = await makeGraphqlQuery(
-        archiveNodeMaxBlockHeightQuery,
-        archiveNodeEndpoint
-      );
+      const archiveNodeResponse =
+        // eslint-disable-next-line no-await-in-loop
+        await makeGraphqlQuery<ArchiveNodeMaxBlockHeightQueryResponse>(
+          archiveNodeMaxBlockHeightQuery,
+          archiveNodeEndpoint
+        );
       const archiveNodeTip: number =
         archiveNodeResponse.networkState.maxBlockHeight.pendingMaxBlockHeight;
 
@@ -68,12 +90,12 @@ export namespace ArchiveNode {
 
   export async function waitOnSync({ network }: MinaBaseLayerConfig) {
     if (network.type === "lightnet" || network.type === "remote") {
-      const bestChain = await makeGraphqlQuery(
+      const result = await makeGraphqlQuery<NetworkStateQueryResult>(
         networkStateQuery,
         network.graphql
       );
       const tipString: string =
-        bestChain.bestChain[0].protocolState.consensusState.blockHeight;
+        result.bestChain[0].protocolState.consensusState.blockHeight;
       const tip = parseInt(tipString, 10);
 
       return await waitOnArchiveNodeCatchup(network.archive, tip, {

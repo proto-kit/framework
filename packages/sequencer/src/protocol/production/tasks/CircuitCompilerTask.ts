@@ -20,13 +20,13 @@ import {
 
 import { TaskSerializer } from "../../../worker/flow/Task";
 import { UnpreparingTask } from "../../../worker/flow/UnpreparingTask";
+import { SignedSettlementPermissions } from "../../../settlement/permissions/SignedSettlementPermissions";
+import { ProvenSettlementPermissions } from "../../../settlement/permissions/ProvenSettlementPermissions";
 
 import {
   ArtifactRecordSerializer,
   SerializedArtifactRecord,
 } from "./serializers/ArtifactionRecordSerializer";
-import { SignedSettlementPermissions } from "../../../settlement/permissions/SignedSettlementPermissions";
-import { ProvenSettlementPermissions } from "../../../settlement/permissions/ProvenSettlementPermissions";
 
 export type CompilerTaskParams = {
   existingArtifacts: ArtifactRecord;
@@ -146,6 +146,7 @@ export class CircuitCompilerTask extends UnpreparingTask<
         .resolve(RuntimeVerificationKeyRootService)
         .setRoot(BigInt(input.runtimeVKRoot));
     }
+
     if (input.isSignedSettlement !== undefined) {
       const contractArgs = SettlementSmartContractBase.args;
       SettlementSmartContractBase.args = {

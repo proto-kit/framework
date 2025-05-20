@@ -16,11 +16,7 @@ import {
 import { Field } from "o1js";
 import { log } from "@proto-kit/common";
 
-import {
-  Block,
-  BlockWithResult,
-  TransactionExecutionResult,
-} from "../../../storage/model/Block";
+import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
@@ -105,10 +101,6 @@ export class BlockProductionService {
     const lastResult = lastBlockWithResult.result;
     const lastBlock = lastBlockWithResult.block;
 
-    const incomingMessagesList = new MinaActionsHashList(
-      Field(lastBlock.toMessagesHash)
-    );
-
     const blockState: BlockTrackers = {
       blockHashRoot: Field(lastResult.blockHashRoot),
       eternalTransactionsList: new TransactionHashList(
@@ -161,7 +153,7 @@ export class BlockProductionService {
       fromBlockHashRoot: Field(lastResult.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       fromStateRoot: Field(lastResult.stateRoot),
-      toMessagesHash: incomingMessagesList.commitment,
+      toMessagesHash: newBlockState.incomingMessages.commitment,
       previousBlockHash,
 
       networkState: {

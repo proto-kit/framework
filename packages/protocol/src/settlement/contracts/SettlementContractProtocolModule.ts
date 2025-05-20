@@ -59,6 +59,7 @@ export class SettlementContractProtocolModule extends ContractModule<
 
     const { args } = SettlementSmartContractBase;
     SettlementSmartContractBase.args = {
+      ...args,
       DispatchContract: dispatchContract,
       hooks,
       escapeHatchSlotsInterval,
@@ -86,6 +87,8 @@ export class SettlementContractProtocolModule extends ContractModule<
     const bridgeArtifact = await this.bridgeContractModule.compile(registry);
 
     await this.blockProver.compile(registry);
+
+    this.contractFactory();
 
     // Init params
     SettlementSmartContractBase.args.BridgeContractVerificationKey =

@@ -1,4 +1,5 @@
 import {
+  Bool,
   fetchAccount,
   Field,
   PrivateKey,
@@ -43,19 +44,22 @@ export class SettlementUtils {
   public signTransaction(
     tx: Transaction<false, false>,
     pks: PrivateKey[],
-    contractKeys: PrivateKey[]
+    contractKeys: PrivateKey[],
+    preventNoncePreconditionFor: PublicKey[] = []
   ): Transaction<false, true> {
     const contractKeyArray = this.isSignedSettlement() ? contractKeys : [];
     this.requireSignatureIfNecessary(
       tx,
-      contractKeyArray.map((key) => key.toPublicKey())
+      contractKeyArray.map((key) => key.toPublicKey()),
+      preventNoncePreconditionFor
     );
     return tx.sign([...pks, ...contractKeyArray]);
   }
 
   private requireSignatureIfNecessary(
     tx: Transaction<false, false>,
-    addresses: PublicKey[]
+    addresses: PublicKey[],
+    preventNoncePreconditionFor: PublicKey[]
   ) {
     if (this.isSignedSettlement() && addresses !== undefined) {
       const nonces: Record<string, number> = {};
@@ -66,21 +70,37 @@ export class SettlementUtils {
             au.publicKey.equals(address).toBoolean()
           ) !== undefined
         ) {
-          au.requireSignature();
-
-          const key = `${au.publicKey.toBase58()}-${au.tokenId.toString()}`;
-          const nonce = Number(
-            au.body.preconditions.account.nonce.value.lower.toString()
-          );
-          if (nonces[key] === undefined) {
-            nonces[key] = nonce;
+          if (
+            preventNoncePreconditionFor.find((pk) =>
+              pk.equals(au.publicKey).toBoolean()
+            ) !== undefined
+          ) {
+            // au.body.incrementNonce = Bool(false);
+            // au.body.preconditions.account.nonce.isSome = Bool(false);
+            au.body.authorizationKind.isSigned = Bool(false);
+            au.body.authorizationKind.isProved = Bool(false);
+            au.body.authorizationKind.verificationKeyHash = Field(
+              "3392518251768960475377392625298437850623664973002200885669375116181514017494"
+            );
+            au.authorization = {};
+            au.lazyAuthorization = { kind: "lazy-none" };
           } else {
-            const next = nonces[key] + 1;
-            au.body.preconditions.account.nonce.value = {
-              lower: UInt32.from(next),
-              upper: UInt32.from(next),
-            };
-            nonces[key] = next;
+            au.requireSignature();
+
+            const key = `${au.publicKey.toBase58()}-${au.tokenId.toString()}`;
+            const nonce = Number(
+              au.body.preconditions.account.nonce.value.lower.toString()
+            );
+            if (nonces[key] === undefined) {
+              nonces[key] = nonce;
+            } else {
+              const next = nonces[key] + 1;
+              au.body.preconditions.account.nonce.value = {
+                lower: UInt32.from(next),
+                upper: UInt32.from(next),
+              };
+              nonces[key] = next;
+            }
           }
         }
       });

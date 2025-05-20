@@ -21,12 +21,12 @@ import {
   CompilerTaskParams,
 } from "../protocol/production/tasks/CircuitCompilerTask";
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
-
-import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
-import { Closeable, closeable } from "./builder/Closeable";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { SettlementUtils } from "../settlement/utils/SettlementUtils";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
+
+import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
+import { Closeable, closeable } from "./builder/Closeable";
 
 @sequencerModule()
 @closeable()

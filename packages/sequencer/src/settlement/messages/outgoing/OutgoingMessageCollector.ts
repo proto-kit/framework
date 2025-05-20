@@ -1,6 +1,6 @@
-import { inject, injectable, injectAll } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { Withdrawal } from "@proto-kit/protocol";
-import { Field, Struct } from "o1js";
+import { Field } from "o1js";
 import { filterNonUndefined } from "@proto-kit/common";
 
 import type { BlockTriggerBase } from "../../../protocol/production/trigger/BlockTrigger";

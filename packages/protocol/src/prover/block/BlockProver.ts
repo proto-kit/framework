@@ -357,7 +357,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     // Append tx to eternal transaction list
     // TODO Change that to the a sequence-state compatible transaction struct
-    state.eternalTransactionsList.pushIf(transactionHash, isMessage.not());
+    state.eternalTransactionsList.push(transactionHash);
 
     // Append tx to incomingMessagesHash
     const actionHash = MinaActions.actionHash(transaction.hashData());
