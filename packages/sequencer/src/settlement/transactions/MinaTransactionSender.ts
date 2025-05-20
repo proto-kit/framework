@@ -145,7 +145,7 @@ export class MinaTransactionSender {
 
     await this.simulator.applyTransaction(transaction);
 
-    log.debug("Applied transaction to local simulated ledger");
+    log.trace("Applied transaction to local simulated ledger");
 
     const { network } = this.baseLayer.config;
     const graphql = network.type === "local" ? undefined : network.graphql;
