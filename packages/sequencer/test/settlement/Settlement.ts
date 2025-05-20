@@ -3,7 +3,6 @@ import {
   mapSequential,
   TypedClass,
   LinkedMerkleTree,
-  sleep,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
@@ -15,8 +14,6 @@ import {
   ReturnType,
   SettlementContractModule,
   SettlementSmartContractBase,
-  TokenBridgeAttestation,
-  TokenBridgeTree,
 } from "@proto-kit/protocol";
 import {
   AppChain,
@@ -36,7 +33,6 @@ import {
   SmartContract,
   UInt8,
   Bool,
-  fetchLastBlock,
 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -49,7 +45,6 @@ import {
   BlockQueue,
   SettlementModule,
   MinaBaseLayer,
-  WithdrawalMessageAdapter,
   SettlementProvingTask,
   MinaTransactionSender,
   MinaBaseLayerConfig,
@@ -363,7 +358,7 @@ export const settlementTestFn = (
         );
         console.log(tx.toPretty());
 
-        settlementModule.utils.signTransaction(
+        settlementModule.signTransaction(
           tx,
           [sequencerKey, tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
           [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin]
@@ -397,7 +392,7 @@ export const settlementTestFn = (
           }
         );
         console.log(tx.toPretty());
-        settlementModule.utils.signTransaction(
+        settlementModule.signTransaction(
           tx,
           [sequencerKey, tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
           [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin]
@@ -571,11 +566,14 @@ export const settlementTestFn = (
           }
         );
 
-        settlementModule.utils.signTransaction(
+        settlementModule.signTransaction(
           tx,
           [userKey],
-          [tokenOwnerKey.tokenOwner, dispatchKey]
+          [tokenOwnerKey.tokenOwner],
+          [dispatch.address]
         );
+
+        console.log(tx.toPretty());
 
         await appChain.sequencer
           .resolveOrFail("TransactionSender", MinaTransactionSender)
@@ -751,7 +749,7 @@ export const settlementTestFn = (
         }
       );
 
-      const signed = settlementModule.utils.signTransaction(
+      const signed = settlementModule.signTransaction(
         tx,
         [userKey],
         [tokenBridgeKey, tokenOwnerKey.tokenOwner]
