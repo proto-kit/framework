@@ -1075,12 +1075,11 @@ export class BlockProver
   public async compile(
     registry: CompileRegistry
   ): Promise<Record<string, CompileArtifact> | undefined> {
-    await registry.forceProverExists(async () => {
+    return await registry.forceProverExists(async () => {
       await this.stateTransitionProver.compile(registry);
       await this.runtime.compile(registry);
+      return await this.zkProgrammable.compile(registry);
     });
-
-    return await this.zkProgrammable.compile(registry);
   }
 
   public proveTransaction(
