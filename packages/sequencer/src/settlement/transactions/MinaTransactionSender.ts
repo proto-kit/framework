@@ -1,4 +1,4 @@
-import { Mina, PublicKey, Transaction } from "o1js";
+import { fetchAccount, Mina, PublicKey, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
   EventEmitter,
@@ -6,6 +6,7 @@ import {
   EventListenable,
   log,
   ReplayingSingleUseEventEmitter,
+  filterNonUndefined,
 } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
@@ -141,8 +142,15 @@ export class MinaTransactionSender {
       {}
     );
 
-    const accounts = await this.simulator.getAccounts(transaction);
+    const accounts = await Promise.all(
+      transaction.transaction.accountUpdates.map(
+        async (au) =>
+          await fetchAccount({ publicKey: au.publicKey, tokenId: au.tokenId })
+      )
+    );
 
+    // Load accounts
+    await this.simulator.getAccounts(transaction);
     await this.simulator.applyTransaction(transaction);
 
     log.trace("Applied transaction to local simulated ledger");
@@ -158,7 +166,9 @@ export class MinaTransactionSender {
             transaction,
             chainState: {
               graphql,
-              accounts,
+              accounts: accounts
+                .map((r) => r.account)
+                .filter(filterNonUndefined),
             },
           },
           async (result) => {

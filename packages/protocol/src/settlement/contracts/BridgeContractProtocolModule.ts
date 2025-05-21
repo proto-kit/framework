@@ -37,7 +37,9 @@ export class BridgeContractProtocolModule extends ContractModule<
 
   public async compile(registry: CompileRegistry) {
     return {
-      BridgeContract: await registry.compile(BridgeContract),
+      BridgeContract: await registry.forceProverExists(
+        async () => await registry.compile(BridgeContract)
+      ),
     };
   }
 }
