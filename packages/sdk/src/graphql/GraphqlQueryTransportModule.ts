@@ -2,7 +2,7 @@ import { QueryTransportModule } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
-import { RollupMerkleTreeWitness } from "@proto-kit/common";
+import { LinkedMerkleTreeReadWitness } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -64,12 +64,19 @@ export class GraphqlQueryTransportModule
 
   public async merkleWitness(
     key: Field
-  ): Promise<RollupMerkleTreeWitness | undefined> {
+  ): Promise<LinkedMerkleTreeReadWitness | undefined> {
     const query = gql`
       query Witness($path: String!) {
         witness(path: $path) {
-          siblings
-          isLefts
+          leaf {
+            value
+            path
+            nextPath
+          }
+          merkleWitness {
+            siblings
+            isLefts
+          }
         }
       }
     `;
@@ -87,21 +94,26 @@ export class GraphqlQueryTransportModule
       }
 
       if (
-        witnessJson.siblings === undefined ||
-        witnessJson.isLefts === undefined
+        witnessJson.leaf === undefined ||
+        witnessJson.merkleWitness.siblings === undefined ||
+        witnessJson.merkleWitness.isLefts === undefined
       ) {
         throw new Error("Witness json object malformed");
       }
 
-      assertStringArray(witnessJson.siblings);
-      assertBooleanArray(witnessJson.isLefts);
+      assertStringArray(witnessJson.merkleWitness.siblings);
+      assertBooleanArray(witnessJson.merkleWitness.isLefts);
 
-      return new RollupMerkleTreeWitness(
-        RollupMerkleTreeWitness.fromJSON({
+      return new LinkedMerkleTreeReadWitness(
+        LinkedMerkleTreeReadWitness.fromJSON({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          path: witnessJson.siblings,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          isLeft: witnessJson.isLefts,
+          leaf: witnessJson.leaf,
+          merkleWitness: {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            path: witnessJson.merkleWitness.siblings,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            isLeft: witnessJson.merkleWitness.isLefts,
+          },
         })
       );
     }

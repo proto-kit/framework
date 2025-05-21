@@ -1,12 +1,12 @@
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
 
-import { range } from "../utils";
-import { TypedClass } from "../types";
+import { range } from "../../utils";
+import { TypedClass } from "../../types";
 
 import { MerkleTreeStore } from "./MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
 
-class StructTemplate extends Struct({
+export class StructTemplate extends Struct({
   path: Provable.Array(Field, 0),
   isLeft: Provable.Array(Bool, 0),
 }) {}
@@ -16,7 +16,7 @@ export interface AbstractMerkleWitness extends StructTemplate {
 
   /**
    * Calculates a root depending on the leaf value.
-   * @param leaf Value of the leaf node that belongs to this Witness.
+   * @param hash Value of the leaf node that belongs to this Witness.
    * @returns The calculated root.
    */
   calculateRoot(hash: Field): Field;
@@ -28,6 +28,8 @@ export interface AbstractMerkleWitness extends StructTemplate {
   calculateIndex(): Field;
 
   checkMembership(root: Field, key: Field, value: Field): Bool;
+
+  checkMembershipSimple(root: Field, value: Field): Bool;
 
   checkMembershipGetRoots(
     root: Field,
@@ -115,7 +117,7 @@ export interface AbstractMerkleTreeClass {
  */
 export function createMerkleTree(height: number): AbstractMerkleTreeClass {
   /**
-   * The {@link BaseMerkleWitness} class defines a circuit-compatible base class
+   * The {@link RollupMerkleWitness} class defines a circuit-compatible base class
    * for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
    */
   class RollupMerkleWitness
@@ -176,6 +178,11 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       return root.equals(calculatedRoot);
     }
 
+    public checkMembershipSimple(root: Field, value: Field): Bool {
+      const calculatedRoot = this.calculateRoot(value);
+      return root.equals(calculatedRoot);
+    }
+
     public checkMembershipGetRoots(
       root: Field,
       key: Field,
@@ -200,12 +207,11 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
     public static dummy() {
       return new RollupMerkleWitness({
-        isLeft: Array<Bool>(height - 1).fill(Bool(true)),
-        path: Array<Field>(height - 1).fill(Field(0)),
+        isLeft: Array<Bool>(this.height - 1).fill(Bool(true)),
+        path: Array<Field>(this.height - 1).fill(Field(0)),
       });
     }
   }
-
   return class AbstractRollupMerkleTree implements AbstractMerkleTree {
     public static HEIGHT = height;
 
@@ -349,7 +355,7 @@ export class RollupMerkleTreeWitness extends RollupMerkleTree.WITNESS {}
  * More efficient version of `maybeSwapBad` which
  * reuses an intermediate variable
  */
-function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
+export function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
   const m = b.toField().mul(x.sub(y)); // b*(x - y)
   const x1 = y.add(m); // y + b*(x - y)
   const y2 = x.sub(m); // x - b*(x - y) = x + b*(y - x)

@@ -1,8 +1,4 @@
-import {
-  InMemoryMerkleTreeStorage,
-  MerkleTreeStore,
-  RollupMerkleTree,
-} from "@proto-kit/common";
+import { InMemoryMerkleTreeStorage, MerkleTreeStore } from "@proto-kit/common";
 
 export class SyncCachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
   public constructor(private readonly parent: MerkleTreeStore) {
@@ -24,11 +20,13 @@ export class SyncCachedMerkleTreeStore extends InMemoryMerkleTreeStorage {
 
     const { nodes } = this;
 
-    Array.from({ length: RollupMerkleTree.HEIGHT }).forEach((ignored, level) =>
-      Object.entries(nodes[level]).forEach((entry) => {
-        this.parent.setNode(BigInt(entry[0]), level, entry[1]);
-      })
-    );
+    Object.keys(nodes)
+      .map((level) => parseInt(level, 10))
+      .forEach((level) =>
+        Object.entries(nodes[level]).forEach((entry) => {
+          this.parent.setNode(BigInt(entry[0]), level, entry[1]);
+        })
+      );
 
     this.nodes = {};
   }

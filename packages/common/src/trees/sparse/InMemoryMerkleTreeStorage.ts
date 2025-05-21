@@ -1,7 +1,7 @@
 import { MerkleTreeStore } from "./MerkleTreeStore";
 
 export class InMemoryMerkleTreeStorage implements MerkleTreeStore {
-  protected nodes: {
+  public nodes: {
     [key: number]: {
       [key: string]: bigint;
     };

@@ -10,19 +10,20 @@ import { Database } from "../Database";
 import { closeable } from "../../sequencer/builder/Closeable";
 
 import { InMemoryBlockStorage } from "./InMemoryBlockStorage";
-import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
+import { InMemoryAsyncLinkedLeafStore } from "./InMemoryAsyncLinkedLeafStore";
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 import { InMemoryMessageStorage } from "./InMemoryMessageStorage";
 import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
 import { InMemoryTransactionStorage } from "./InMemoryTransactionStorage";
+import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 
 @sequencerModule()
 @closeable()
 export class InMemoryDatabase extends SequencerModule implements Database {
   public dependencies(): StorageDependencyMinimumDependencies {
     return {
-      asyncMerkleStore: {
-        useClass: InMemoryAsyncMerkleTreeStore,
+      asyncLinkedLeafStore: {
+        useClass: InMemoryAsyncLinkedLeafStore,
       },
       asyncStateService: {
         useFactory: () => new CachedStateService(undefined),
@@ -39,8 +40,8 @@ export class InMemoryDatabase extends SequencerModule implements Database {
       unprovenStateService: {
         useFactory: () => new CachedStateService(undefined),
       },
-      unprovenMerkleStore: {
-        useClass: InMemoryAsyncMerkleTreeStore,
+      unprovenLinkedLeafStore: {
+        useClass: InMemoryAsyncLinkedLeafStore,
       },
       blockTreeStore: {
         useClass: InMemoryAsyncMerkleTreeStore,

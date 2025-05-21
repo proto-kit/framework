@@ -170,8 +170,8 @@ describe("graphql client test", () => {
 
     expect(witness).toBeDefined();
     // Check if this works, i.e. if it correctly parsed
-    expect(witness!.calculateRoot(Field(0)).toBigInt()).toBeGreaterThanOrEqual(
-      0n
-    );
+    expect(
+      witness!.merkleWitness.calculateRoot(Field(0)).toBigInt()
+    ).toBeGreaterThanOrEqual(0n);
   });
 });
