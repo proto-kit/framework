@@ -4,6 +4,7 @@ import {
   TypedClass,
   ModuleContainerDefinition,
   log,
+  ChildContainerProvider,
 } from "@proto-kit/common";
 import {
   Runtime,
@@ -17,10 +18,11 @@ import {
 } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
-import { SequencerModule } from "../builder/SequencerModule";
-import { Closeable } from "../builder/Closeable";
+import { sequencerModule, SequencerModule } from "../builder/SequencerModule";
+import { closeable, Closeable } from "../builder/Closeable";
 
 import { Sequenceable } from "./Sequenceable";
+import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -60,6 +62,11 @@ export class Sequencer<Modules extends SequencerModulesRecord>
 
   public get dependencyContainer(): DependencyContainer {
     return this.container;
+  }
+
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+    this.useDependencyFactory(ConsoleTracingFactory);
   }
 
   /**
