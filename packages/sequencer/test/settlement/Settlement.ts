@@ -333,7 +333,7 @@ export const settlementTestFn = (
             fee: feeStrategy.getFee(),
           },
           async () => {
-            AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 4);
+            AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 3);
 
             const admin = new FungibleTokenAdmin(
               tokenOwnerKey.admin.toPublicKey()
