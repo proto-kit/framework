@@ -12,6 +12,17 @@ import {
   AbstractLinkedMerkleTreeClass,
 } from "./AbstractLinkedMerkleTree";
 
+type LeafOperationInstruction = {
+  witness: bigint;
+  witnessLeaf: LinkedLeafStruct;
+  write: { index: bigint; leaf: Field };
+};
+
+type SetLeafMetadata = {
+  leafPrevious: LeafOperationInstruction | "dummy";
+  leafCurrent: LeafOperationInstruction;
+};
+
 export function createLinkedMerkleTree(
   height: number
 ): AbstractLinkedMerkleTreeClass {
@@ -109,21 +120,20 @@ export function createLinkedMerkleTree(
       return this.tree.getRoot().toConstant();
     }
 
-    private setMerkleLeaf(index: bigint, leaf: LinkedLeaf) {
+    private writeLeaf(index: bigint, leaf: LinkedLeaf) {
       this.leafStore.setLeaf(index, leaf);
 
       const leafHash = new LinkedLeafStruct(
         LinkedLeafStruct.fromValue(leaf)
       ).hash();
-      this.tree.setLeaf(index, leafHash);
+
+      return {
+        index,
+        leaf: leafHash,
+      };
     }
 
-    /**
-     * Sets the value of a node at a given index to a given value.
-     * @param path Position of the leaf node.
-     * @param value New value.
-     */
-    public setLeaf(path: bigint, value: bigint): LinkedOperationWitness {
+    private setLeafInternal(path: bigint, value: bigint): SetLeafMetadata {
       const storedLeaf = this.leafStore.getLeaf(path);
 
       if (storedLeaf === undefined) {
@@ -145,54 +155,107 @@ export function createLinkedMerkleTree(
           throw Error(`Prev leaf shouldn't be undefined (path ${path})`);
         }
 
-        const previousLeafMerkleWitness = this.tree.getWitness(
-          previousLeaf.index
-        );
-
         const newPrevLeaf = {
           ...previousLeaf.leaf,
           nextPath: path,
         };
-        this.setMerkleLeaf(previousLeaf.index, newPrevLeaf);
-
-        const currentMerkleWitness = this.tree.getWitness(nextFreeIndex);
+        const treeWrite1 = this.writeLeaf(previousLeaf.index, newPrevLeaf);
 
         const newLeaf = {
           path,
           value,
           nextPath: previousLeaf.leaf.nextPath,
         };
-        this.setMerkleLeaf(nextFreeIndex, newLeaf);
+        const treeWrite2 = this.writeLeaf(nextFreeIndex, newLeaf);
 
-        return new LinkedOperationWitness({
-          leafPrevious: new LinkedLeafAndMerkleWitness({
-            leaf: new LinkedLeafStruct(
+        return {
+          leafPrevious: {
+            witness: previousLeaf.index,
+            witnessLeaf: new LinkedLeafStruct(
               LinkedLeafStruct.fromValue(previousLeaf.leaf)
             ),
-            merkleWitness: previousLeafMerkleWitness,
-          }),
-          leafCurrent: new LinkedLeafAndMerkleWitness({
-            leaf: LinkedLeafStruct.dummy(),
-            merkleWitness: currentMerkleWitness,
-          }),
-        });
+            write: treeWrite1,
+          },
+          leafCurrent: {
+            witness: nextFreeIndex,
+            witnessLeaf: LinkedLeafStruct.dummy(),
+            write: treeWrite2,
+          },
+        };
       } else {
         // Update case
-        const witnessPrevious =
-          AbstractLinkedRollupMerkleTree.dummyReadWitness();
-
-        // TODO This makes an unnecessary leafstore lookup currently, reuse storedLeaf instead
-        const current = this.getReadWitness(storedLeaf.leaf.path);
-
-        this.setMerkleLeaf(storedLeaf.index, {
+        const updatedLeaf = {
           ...storedLeaf.leaf,
           value: value,
-        });
+        };
 
-        return new LinkedOperationWitness({
-          leafPrevious: witnessPrevious,
-          leafCurrent: current,
-        });
+        const treeWrite = this.writeLeaf(storedLeaf.index, updatedLeaf);
+
+        return {
+          leafPrevious: "dummy",
+          leafCurrent: {
+            witness: storedLeaf.index,
+            witnessLeaf: new LinkedLeafStruct(
+              LinkedLeafStruct.fromValue(storedLeaf.leaf)
+            ),
+            write: treeWrite,
+          },
+        };
+      }
+    }
+
+    private applyOperationInstruction(
+      instruction: LeafOperationInstruction | "dummy"
+    ): LinkedLeafAndMerkleWitness {
+      if (instruction === "dummy") {
+        return AbstractLinkedRollupMerkleTree.dummyReadWitness();
+      }
+
+      const merkleWitness = this.tree.getWitness(instruction.witness);
+
+      this.tree.setLeaf(instruction.write.index, instruction.write.leaf);
+
+      return new LinkedLeafAndMerkleWitness({
+        merkleWitness,
+        leaf: instruction.witnessLeaf,
+      });
+    }
+
+    /**
+     * Sets the value of a node at a given index to a given value.
+     * @param path Position of the leaf node.
+     * @param value New value.
+     */
+    public setLeaf(path: bigint, value: bigint): LinkedOperationWitness {
+      const {
+        leafPrevious: previousLeafInstruction,
+        leafCurrent: currentLeafInstruction,
+      } = this.setLeafInternal(path, value);
+
+      const leafPrevious = this.applyOperationInstruction(
+        previousLeafInstruction
+      );
+      const leafCurrent = this.applyOperationInstruction(
+        currentLeafInstruction
+      );
+
+      return { leafPrevious, leafCurrent };
+    }
+
+    public setLeaves(batch: { path: bigint; value: bigint }[]) {
+      if (batch.length > 0) {
+        const witnesses = batch.map(({ path, value }) =>
+          this.setLeafInternal(path, value)
+        );
+
+        // tree.setLeafBatch internally takes care of making the writes unique to optimize
+        this.tree.setLeaves(
+          witnesses.flatMap(({ leafPrevious, leafCurrent }) =>
+            (leafPrevious === "dummy" ? [] : [leafPrevious.write]).concat(
+              leafCurrent.write
+            )
+          )
+        );
       }
     }
 
@@ -203,18 +266,18 @@ export function createLinkedMerkleTree(
     private setLeafInitialisation() {
       // This is the maximum value of the hash
       const MAX_FIELD_VALUE: bigint = Field.ORDER - 1n;
-      this.leafStore.setLeaf(0n, {
+      const zeroLeaf = {
         value: 0n,
         path: 0n,
         nextPath: MAX_FIELD_VALUE,
-      });
+      };
+      this.leafStore.setLeaf(0n, zeroLeaf);
       // We now set the leafs in the merkle tree to cascade the values up
       // the tree.
-      this.setMerkleLeaf(0n, {
-        value: 0n,
-        path: 0n,
-        nextPath: MAX_FIELD_VALUE,
-      });
+      this.tree.setLeaf(
+        0n,
+        new LinkedLeafStruct(LinkedLeafStruct.fromValue(zeroLeaf)).hash()
+      );
     }
 
     /**

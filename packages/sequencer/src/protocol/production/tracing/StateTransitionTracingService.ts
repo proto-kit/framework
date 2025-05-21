@@ -142,10 +142,6 @@ export class StateTransitionTracingService {
         async (transitionInfo) => {
           const { stateTransition, type, witnessRoot } = transitionInfo;
 
-          // const merkleWitness = tree.getWitness(
-          //   stateTransition.path.toBigInt()
-          // );
-
           let witness: LinkedMerkleTreeWitness;
 
           if (stateTransition.to.isSome.toBoolean()) {

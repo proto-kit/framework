@@ -1,4 +1,5 @@
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
+import uniqBy from "lodash/uniqBy";
 
 import { range } from "../../utils";
 import { TypedClass } from "../../types";
@@ -66,6 +67,8 @@ export interface AbstractMerkleTree {
    * @param leaf New value.
    */
   setLeaf(index: bigint, leaf: Field): void;
+
+  setLeaves(updates: { index: bigint; leaf: Field }[]): void;
 
   /**
    * Returns the witness (also known as
@@ -292,6 +295,67 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
         this.setNode(level, currentIndex, Poseidon.hash([left, right]));
       }
+    }
+
+    public setLeaves(updates: { index: bigint; leaf: Field }[]) {
+      updates.forEach(({ index }) => this.assertIndexRange(index));
+
+      type Change = { level: number; index: bigint; value: Field };
+      const changes: Change[] = [];
+
+      // We have to reverse here, because uniqBy only takes the first occurrence of every entry,
+      // but we need the last one (since that semantically overwrites the previous one,
+      // so we can ignore it)
+      let levelChanges = uniqBy(updates.reverse(), "index")
+        // we can assume no index is in this list twice, so we don't care about the 0 case
+        // This is in reverse order, so its a queue
+        .sort((a, b) => (a.index < b.index ? 1 : -1));
+
+      changes.push(
+        ...levelChanges
+          .map(({ leaf, index }) => ({
+            level: 0,
+            index,
+            value: leaf,
+          }))
+          .reverse()
+      );
+
+      for (let level = 1; level < AbstractRollupMerkleTree.HEIGHT; level += 1) {
+        const nextLevelChanges: typeof levelChanges = [];
+        while (levelChanges.length > 0) {
+          const node = levelChanges.pop()!;
+
+          let newNode;
+          if (node.index % 2n === 0n) {
+            let sibling;
+            const potentialSibling = levelChanges.at(-1);
+            if (
+              potentialSibling !== undefined &&
+              potentialSibling.index === node.index + 1n
+            ) {
+              sibling = potentialSibling.leaf;
+              levelChanges.pop();
+            } else {
+              sibling = Field(this.getNode(level - 1, node.index + 1n));
+            }
+            newNode = Poseidon.hash([node.leaf, sibling]);
+          } else {
+            const sibling = Field(this.getNode(level - 1, node.index - 1n));
+            newNode = Poseidon.hash([sibling, node.leaf]);
+          }
+
+          const nextLevelIndex = node.index / 2n;
+          changes.push({ level, index: nextLevelIndex, value: newNode });
+          nextLevelChanges.push({ index: nextLevelIndex, leaf: newNode });
+        }
+
+        levelChanges = nextLevelChanges.reverse();
+      }
+
+      changes.forEach(({ level, index, value }) => {
+        this.setNode(level, index, value);
+      });
     }
 
     /**
