@@ -68,6 +68,25 @@ export class ConsoleTracer implements Tracer {
     this.clearTraces();
   }
 
+  activeManualTraceStack: [string, number][] = [];
+
+  public startTrace(name: string) {
+    const startTime = Date.now();
+
+    this.activeManualTraceStack.push([name, startTime]);
+  }
+
+  public endTrace() {
+    const [name, startTime] = this.activeManualTraceStack.pop()!;
+    const duration = Date.now() - startTime;
+
+    if (name in this.store) {
+      this.store[name].push({ duration });
+    } else {
+      this.store[name] = [{ duration }];
+    }
+  }
+
   public async trace<T>(
     name: string,
     f: () => Promise<T>,

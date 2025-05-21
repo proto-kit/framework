@@ -61,6 +61,7 @@ export class PrismaStateService implements AsyncStateService {
     this.cache = [];
   }
 
+  @trace("db.state.getMany")
   public async getMany(keys: Field[]): Promise<StateEntry[]> {
     const records = await this.connection.prismaClient.state.findMany({
       where: {

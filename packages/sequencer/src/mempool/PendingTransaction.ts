@@ -28,45 +28,57 @@ export type UnsignedTransactionBody = {
 };
 
 export class UnsignedTransaction implements UnsignedTransactionBody {
-  public methodId: Field;
+  public readonly methodId: Field;
 
-  public nonce: UInt64;
+  public readonly nonce: UInt64;
 
-  public sender: PublicKey;
+  public readonly sender: PublicKey;
 
-  public argsFields: Field[];
+  public readonly argsFields: Field[];
 
-  public auxiliaryData: string[];
+  public readonly auxiliaryData: string[];
 
-  public isMessage: boolean;
+  public readonly isMessage: boolean;
 
-  public constructor(data: {
-    methodId: Field;
-    nonce: UInt64;
-    sender: PublicKey;
-    argsFields: Field[];
-    auxiliaryData: string[];
-    isMessage: boolean;
-  }) {
+  public constructor(
+    data: {
+      methodId: Field;
+      nonce: UInt64;
+      sender: PublicKey;
+      argsFields: Field[];
+      auxiliaryData: string[];
+      isMessage: boolean;
+    },
+    memoizedHash?: Field
+  ) {
     this.methodId = data.methodId;
     this.nonce = data.nonce;
     this.sender = data.sender;
     this.argsFields = data.argsFields;
     this.auxiliaryData = data.auxiliaryData;
     this.isMessage = data.isMessage;
+
+    if (memoizedHash !== undefined) {
+      this.memoizedHash = memoizedHash;
+    }
   }
 
   public argsHash(): Field {
     return Poseidon.hash(this.argsFields);
   }
 
+  private memoizedHash?: Field = undefined;
+
   public hash(): Field {
-    return Poseidon.hash([
-      this.methodId,
-      ...this.sender.toFields(),
-      ...this.nonce.toFields(),
-      this.argsHash(),
-    ]);
+    if (this.memoizedHash === undefined) {
+      this.memoizedHash = Poseidon.hash([
+        this.methodId,
+        ...this.sender.toFields(),
+        ...this.nonce.toFields(),
+        this.argsHash(),
+      ]);
+    }
+    return this.memoizedHash;
   }
 
   public getSignatureData(): Field[] {
@@ -124,29 +136,35 @@ export class PendingTransaction extends UnsignedTransaction {
   public static fromJSON(
     object: PendingTransactionJSONType
   ): PendingTransaction {
-    return new PendingTransaction({
-      methodId: Field.fromJSON(object.methodId),
-      nonce: UInt64.from(object.nonce),
-      sender: PublicKey.fromBase58(object.sender),
-      argsFields: object.argsFields.map((x) => Field.fromJSON(x)),
-      signature: Signature.fromJSON(object.signature),
-      auxiliaryData: object.auxiliaryData.slice(),
-      isMessage: object.isMessage,
-    });
+    return new PendingTransaction(
+      {
+        methodId: Field.fromJSON(object.methodId),
+        nonce: UInt64.from(object.nonce),
+        sender: PublicKey.fromBase58(object.sender),
+        argsFields: object.argsFields.map((x) => Field.fromJSON(x)),
+        signature: Signature.fromJSON(object.signature),
+        auxiliaryData: object.auxiliaryData.slice(),
+        isMessage: object.isMessage,
+      },
+      Field(object.hash)
+    );
   }
 
   public signature: Signature;
 
-  public constructor(data: {
-    methodId: Field;
-    nonce: UInt64;
-    sender: PublicKey;
-    signature: Signature;
-    argsFields: Field[];
-    auxiliaryData: string[];
-    isMessage: boolean;
-  }) {
-    super(data);
+  public constructor(
+    data: {
+      methodId: Field;
+      nonce: UInt64;
+      sender: PublicKey;
+      signature: Signature;
+      argsFields: Field[];
+      auxiliaryData: string[];
+      isMessage: boolean;
+    },
+    memoizedHash?: Field
+  ) {
+    super(data, memoizedHash);
     this.signature = data.signature;
   }
 

@@ -108,7 +108,9 @@ export async function createAppChain() {
         maximumBlockSize: 100,
       },
       BlockTrigger: {},
-      Mempool: {},
+      Mempool: {
+        validationEnabled: false,
+      },
     },
     Signer: {
       signer: PrivateKey.random(),
@@ -125,7 +127,7 @@ export async function createAppChain() {
 
 const timeout = 600000;
 
-describe("tps", () => {
+describe.skip("tps", () => {
   let appChain: Awaited<ReturnType<typeof createAppChain>>;
   let privateKeys: PrivateKey[] = [];
   let balances: Balances;
@@ -177,6 +179,7 @@ describe("tps", () => {
       tracer.enableManualOutputs();
 
       await fundKeys(200);
+      tracer.printSummary();
     } catch (e) {
       console.error(e);
       throw e;

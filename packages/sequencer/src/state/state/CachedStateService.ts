@@ -88,6 +88,15 @@ export class CachedStateService
 
     const remote = await this.parent?.getMany(remoteKeys);
 
+    if (remote !== undefined) {
+      // Update the remotely fetched keys into local cache
+      await mapSequential(remote, async ({ key, value }) => {
+        if (this.getNullAware(key) === undefined) {
+          await this.set(key, value);
+        }
+      });
+    }
+
     return local.concat(remote ?? []);
   }
 
