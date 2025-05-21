@@ -352,7 +352,7 @@ export class SettlementModule
   ) {
     const feepayerKey = this.config.feepayer;
     const feepayer = feepayerKey.toPublicKey();
-    const nonce = options?.nonce ?? 0;
+    const nonce = options?.nonce ?? undefined;
 
     const tokenId = owner.deriveTokenId();
     const { settlement, dispatch } = this.getContracts();

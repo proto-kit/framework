@@ -333,7 +333,7 @@ export const settlementTestFn = (
             fee: feeStrategy.getFee(),
           },
           async () => {
-            AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 2);
+            AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 4);
 
             const admin = new FungibleTokenAdmin(
               tokenOwnerKey.admin.toPublicKey()
@@ -354,35 +354,6 @@ export const settlementTestFn = (
             tokenOwner!.self.account.permissions.set(
               permissions.bridgeContractToken()
             );
-          }
-        );
-        console.log(tx.toPretty());
-
-        settlementModule.signTransaction(
-          tx,
-          [sequencerKey, tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
-          [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin]
-        );
-
-        await appChain.sequencer
-          .resolveOrFail("TransactionSender", MinaTransactionSender)
-          .proveAndSendTransaction(tx, "included");
-      },
-      timeout
-    );
-
-    it(
-      "should initialize custom token",
-      async () => {
-        const tx = await Mina.transaction(
-          {
-            sender: sequencerKey.toPublicKey(),
-            memo: "Initialized custom token owner",
-            nonce: nonceCounter++,
-            fee: feeStrategy.getFee(),
-          },
-          async () => {
-            AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 1);
 
             await tokenOwner!.initialize(
               tokenOwnerKey.admin.toPublicKey(),
@@ -392,6 +363,7 @@ export const settlementTestFn = (
           }
         );
         console.log(tx.toPretty());
+
         settlementModule.signTransaction(
           tx,
           [sequencerKey, tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
@@ -495,6 +467,9 @@ export const settlementTestFn = (
 
         console.log("Block settled");
 
+        await settlementModule.utils.fetchContractAccounts({
+          address: settlementModule.getAddresses().settlement,
+        });
         const { settlement } = settlementModule.getContracts();
         expectDefined(lastBlock);
         expectDefined(lastBlock.result);
