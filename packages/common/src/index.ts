@@ -9,7 +9,6 @@ export * from "./zkProgrammable/ProvableMethodExecutionContext";
 export * from "./zkProgrammable/provableMethod";
 export * from "./utils";
 export * from "./dependencyFactory/DependencyFactory";
-export * from "./dependencyFactory/injectOptional";
 export * from "./log";
 export * from "./events/EventEmittingComponent";
 export * from "./events/EventEmitter";
