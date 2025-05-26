@@ -1,4 +1,4 @@
-import { inject } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import {
   BridgeContractConfig,
   BridgeContractType,
@@ -13,6 +13,9 @@ import {
   SettlementContractModule,
   TokenMapping,
   PROTOKIT_PREFIXES,
+  Withdrawal,
+  TokenBridgeTree,
+  TokenBridgeAttestation,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -31,35 +34,51 @@ import {
   filterNonUndefined,
   LinkedMerkleTree,
   log,
-  noop,
+  reduceSequential,
 } from "@proto-kit/common";
 import { match, Pattern } from "ts-pattern";
 import { FungibleToken } from "mina-fungible-token";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import groupBy from "lodash/groupBy";
 
-import {
-  SequencerModule,
-  sequencerModule,
-} from "../sequencer/builder/SequencerModule";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { AsyncLinkedLeafStore } from "../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../state/lmt/CachedLinkedLeafStore";
+import { SettleableBatch } from "../storage/model/Batch";
 
-import type { OutgoingMessageAdapter } from "./messages/WithdrawalQueue";
 import type { SettlementModule } from "./SettlementModule";
 import { SettlementUtils } from "./utils/SettlementUtils";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
+import {
+  OutgoingMessageCollector,
+  WithdrawalEvent,
+} from "./messages/outgoing/OutgoingMessageCollector";
+import { ArchiveNode } from "./utils/ArchiveNode";
+
+export type SettlementTokenConfig = Record<
+  string,
+  | {
+      bridgingContractPrivateKey?: PrivateKey;
+    }
+  | {
+      tokenOwner: FungibleToken;
+      bridgingContractPrivateKey?: PrivateKey;
+      tokenOwnerPrivateKey?: PrivateKey;
+    }
+>;
 
 /**
- * Sequencer module that facilitates all transaction creation and monitoring for
+ * Module that facilitates all transaction creation and monitoring for
  * bridging related operations.
  * Additionally, this keeps track of all deployed bridges and created the contracts
  * for those as needed
  */
-@sequencerModule()
-export class BridgingModule extends SequencerModule {
+@injectable()
+export class BridgingModule {
   private seenBridgeDeployments: {
     latestDeployment: number;
+    // tokenId => Bridge address
     deployments: Record<string, PublicKey>;
   } = {
     latestDeployment: -1,
@@ -73,18 +92,16 @@ export class BridgingModule extends SequencerModule {
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     @inject("SettlementModule")
     private readonly settlementModule: SettlementModule,
-    @inject("OutgoingMessageQueue")
-    private readonly outgoingMessageQueue: OutgoingMessageAdapter,
+    private readonly outgoingMessageCollector: OutgoingMessageCollector,
     @inject("AsyncLinkedLeafStore")
     private readonly linkedLeafStore: AsyncLinkedLeafStore,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
     @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
-    @inject("BaseLayer") baseLayer: MinaBaseLayer,
+    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender
   ) {
-    super();
     this.utils = new SettlementUtils(areProofsEnabled, baseLayer);
   }
 
@@ -145,7 +162,77 @@ export class BridgingModule extends SequencerModule {
     return this.seenBridgeDeployments.deployments[tokenId.toString()];
   }
 
+  public async getDepositContractAttestation(tokenId: Field) {
+    await ArchiveNode.waitOnSync(this.baseLayer.config);
+
+    const { dispatch } = this.settlementModule.getContracts();
+
+    const tree = await TokenBridgeTree.buildTreeFromEvents(dispatch);
+    const index = tree.getIndex(tokenId);
+    return new TokenBridgeAttestation({
+      index: Field(index),
+      witness: tree.getWitness(index),
+    });
+  }
+
+  private async fetchFeepayerNonce() {
+    const { feepayer } = this.settlementModule.config;
+    return await this.transactionSender.getNextNonce(feepayer.toPublicKey());
+  }
+
   public async sendRollupTransactions(
+    batches: SettleableBatch[],
+    tokenConfigs: SettlementTokenConfig,
+    initialNonceOverride?: number
+  ) {
+    /**
+     * get all messages since then
+     * group by tokenid
+     * for each tokenid
+     *  pull state root
+     *  send rollup txs
+     */
+
+    const initialNonce =
+      initialNonceOverride ?? (await this.fetchFeepayerNonce());
+
+    const allEvents = await Promise.all(
+      batches.map((batch) =>
+        this.outgoingMessageCollector.extractEventsFromBatch(batch)
+      )
+    );
+
+    const groupedEvents = groupBy(allEvents.flat(), (event) =>
+      event.key.tokenId.toString()
+    );
+
+    const { txs: allSentTxs } = await reduceSequential(
+      Object.entries(groupedEvents).filter(([, events]) => events.length > 0),
+      async ({ txs }, [tokenId, events]) => {
+        const config = tokenConfigs[tokenId];
+        if (config === undefined) {
+          log.debug(
+            `Config for tokenId ${tokenId} not found, skipping rollup of outgoing messages`
+          );
+          return { txs };
+        }
+
+        const newTxs = await this.sendRollupTransactionsForToken(events, {
+          nonce: initialNonce + txs.length,
+          ...config,
+        });
+        log.info(`Rolled up withdrawals for token ${tokenId}`);
+
+        return { txs: txs.concat(...newTxs) };
+      },
+      { txs: new Array<{ tx: Mina.Transaction<false, true> }>() }
+    );
+
+    return allSentTxs;
+  }
+
+  public async sendRollupTransactionsForToken(
+    events: WithdrawalEvent<Withdrawal>[],
     options:
       | {
           nonce: number;
@@ -181,6 +268,7 @@ export class BridgingModule extends SequencerModule {
               await tokenOwner.approveAccountUpdate(au);
             },
             tokenOwner.deriveTokenId(),
+            events,
             {
               nonce,
               contractKeys: [
@@ -202,6 +290,7 @@ export class BridgingModule extends SequencerModule {
           return this.sendRollupTransactionsBase(
             async () => {},
             TokenId.default,
+            events,
             {
               nonce,
               contractKeys:
@@ -258,7 +347,10 @@ export class BridgingModule extends SequencerModule {
     tokenWrapper: (au: AccountUpdate) => Promise<void>,
     tokenId: Field,
     options: { nonce: number; contractKeys: PrivateKey[] }
-  ): Promise<{ nonceUsed: boolean }> {
+  ): Promise<
+    | { nonceUsed: false }
+    | { nonceUsed: true; tx: Mina.Transaction<false, true> }
+  > {
     const settlementContract = this.settlementModule.getContracts().settlement;
     const bridge = await this.getBridgeContract(tokenId);
 
@@ -311,6 +403,7 @@ export class BridgingModule extends SequencerModule {
 
       return {
         nonceUsed: true,
+        tx: signedTx,
       };
     }
     // Roots match, no need to pull state root
@@ -321,6 +414,7 @@ export class BridgingModule extends SequencerModule {
   public async sendRollupTransactionsBase(
     tokenWrapper: (au: AccountUpdate) => Promise<void>,
     tokenId: Field,
+    events: WithdrawalEvent<Withdrawal>[],
     options: { nonce: number; contractKeys: PrivateKey[] }
   ): Promise<
     {
@@ -348,12 +442,15 @@ export class BridgingModule extends SequencerModule {
       );
     }
 
-    const { nonceUsed } = await this.pullStateRoot(
+    const pullStateRootTx = await this.pullStateRoot(
       tokenWrapper,
       tokenId,
       options
     );
-    if (nonceUsed) nonce += 1;
+    if (pullStateRootTx.nonceUsed) {
+      nonce += 1;
+      txs.push(pullStateRootTx);
+    }
 
     const bridgeContract = this.createBridgeContract(bridgeAddress, tokenId);
 
@@ -368,33 +465,12 @@ export class BridgingModule extends SequencerModule {
       PROTOKIT_PREFIXES.STATE_RUNTIME
     );
 
-    // TODO Not sure if we should re-fetch the account state here
-    const outgoingMessageCursor = parseInt(
-      bridgeContract.outgoingMessageCursor.get().toString(),
-      10
-    );
-
-    const pendingWithdrawals = await this.outgoingMessageQueue.fetchWithdrawals(
-      tokenId,
-      outgoingMessageCursor
-    );
-
     // Create withdrawal batches and send them as L1 transactions
-    for (
-      let i = 0;
-      i < pendingWithdrawals.length;
-      i += OUTGOING_MESSAGE_BATCH_SIZE
-    ) {
-      const batch = pendingWithdrawals.slice(
-        i,
-        i + OUTGOING_MESSAGE_BATCH_SIZE
-      );
+    for (let i = 0; i < events.length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
+      const batch = events.slice(i, i + OUTGOING_MESSAGE_BATCH_SIZE);
 
       const keys = batch.map((x) =>
-        Path.fromKey(basePath, OutgoingMessageKey, {
-          index: Field(x.index),
-          tokenId,
-        })
+        Path.fromKey(basePath, OutgoingMessageKey, x.key)
       );
       // Preload keys
       await cachedStore.preloadKeys(keys.map((key) => key.toBigInt()));
@@ -457,8 +533,4 @@ export class BridgingModule extends SequencerModule {
     return txs;
   }
   /* eslint-enable no-await-in-loop */
-
-  public async start() {
-    noop();
-  }
 }

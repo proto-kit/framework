@@ -1,4 +1,4 @@
-import { Mina, Transaction } from "o1js";
+import { fetchAccount, Mina, PublicKey, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
   EventEmitter,
@@ -6,6 +6,7 @@ import {
   EventListenable,
   log,
   ReplayingSingleUseEventEmitter,
+  filterNonUndefined,
 } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
@@ -45,6 +46,11 @@ export class MinaTransactionSender {
     private readonly simulator: MinaTransactionSimulator,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
   ) {}
+
+  public async getNextNonce(sender: PublicKey): Promise<number> {
+    const account = await this.simulator.getAccount(sender);
+    return parseInt(account.nonce.toString(), 10);
+  }
 
   private async trySendCached({
     tx,
@@ -136,11 +142,18 @@ export class MinaTransactionSender {
       {}
     );
 
-    const accounts = await this.simulator.getAccounts(transaction);
+    const accounts = await Promise.all(
+      transaction.transaction.accountUpdates.map(
+        async (au) =>
+          await fetchAccount({ publicKey: au.publicKey, tokenId: au.tokenId })
+      )
+    );
 
+    // Load accounts
+    await this.simulator.getAccounts(transaction);
     await this.simulator.applyTransaction(transaction);
 
-    log.debug("Applied transaction to local simulated ledger");
+    log.trace("Applied transaction to local simulated ledger");
 
     const { network } = this.baseLayer.config;
     const graphql = network.type === "local" ? undefined : network.graphql;
@@ -153,7 +166,9 @@ export class MinaTransactionSender {
             transaction,
             chainState: {
               graphql,
-              accounts,
+              accounts: accounts
+                .map((r) => r.account)
+                .filter(filterNonUndefined),
             },
           },
           async (result) => {

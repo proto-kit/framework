@@ -5,6 +5,7 @@ import {
   ModuleContainerDefinition,
   log,
   ChildContainerProvider,
+  mapSequential,
 } from "@proto-kit/common";
 import {
   Runtime,
@@ -18,11 +19,12 @@ import {
 } from "@proto-kit/protocol";
 import { DependencyContainer, injectable } from "tsyringe";
 
-import { sequencerModule, SequencerModule } from "../builder/SequencerModule";
-import { closeable, Closeable } from "../builder/Closeable";
+import { SequencerModule } from "../builder/SequencerModule";
+import { Closeable } from "../builder/Closeable";
+import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
+import { StartableModule } from "../builder/StartableModule";
 
 import { Sequenceable } from "./Sequenceable";
-import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
 
 export type SequencerModulesRecord = ModulesRecord<
   TypedClass<SequencerModule<unknown>>
@@ -106,26 +108,40 @@ export class Sequencer<Modules extends SequencerModulesRecord>
         }
       );
     }
+
     // Iteration #2: We resolve each module and thus populate
     // the orderedModules list to understand the sequencing.
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
-      const sequencerModule = this.resolve(moduleName);
+      const module = this.resolve(moduleName);
       log.info(
-        `Resolving sequencer module ${moduleName} (${sequencerModule.constructor.name})`
+        `Resolving sequencer module ${moduleName} (${module.constructor.name})`
       );
     }
 
     // Iteration #3: We now iterate though the orderedModules list
     // and start the modules in the order they were resolved.
     for (const moduleName of orderedModules) {
-      const sequencerModule = this.resolve(moduleName);
+      const module = this.resolve(moduleName);
 
       log.info(
-        `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
+        `Starting sequencer module ${moduleName} (${module.constructor.name})`
       );
       // eslint-disable-next-line no-await-in-loop
-      await sequencerModule.start();
+      await module.start();
+    }
+
+    // Start modules made startable via @startable()
+    // TODO This doesn't dynamically resolve-and-start in-order like normal sequencer modules
+    if (this.container.isRegistered("Startable", true)) {
+      const additionalStartables =
+        this.container.resolveAll<StartableModule>("Startable");
+      await mapSequential(additionalStartables, async (startable) => {
+        log.info(
+          `Starting injected startable module ${startable.constructor.name}`
+        );
+        await startable.start();
+      });
     }
 
     if (

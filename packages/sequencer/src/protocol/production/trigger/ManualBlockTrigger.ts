@@ -8,6 +8,10 @@ import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
+import {
+  BridgingModule,
+  SettlementTokenConfig,
+} from "../../../settlement/BridgingModule";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
@@ -23,6 +27,8 @@ export class ManualBlockTrigger
     blockProducerModule: BlockProducerModule,
     @injectOptional("SettlementModule")
     settlementModule: SettlementModule | undefined,
+    @injectOptional("BridgingModule")
+    bridgingModule: BridgingModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue
   ) {
@@ -30,7 +36,7 @@ export class ManualBlockTrigger
       blockProducerModule,
       batchProducerModule,
       settlementModule,
-
+      bridgingModule,
       blockQueue
     );
   }
@@ -50,8 +56,8 @@ export class ManualBlockTrigger
     return await super.produceBatch();
   }
 
-  public async settle(batch: SettleableBatch) {
-    return await super.settle(batch);
+  public async settle(batch: SettleableBatch, config: SettlementTokenConfig) {
+    return await super.settle(batch, config);
   }
 
   public async produceBlock(): Promise<Block | undefined> {

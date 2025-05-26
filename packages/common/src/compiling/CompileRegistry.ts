@@ -38,15 +38,16 @@ export class CompileRegistry {
    * actually have the prover compiled.
    * This is true for non-sideloaded circuit dependencies.
    */
-  public async forceProverExists(
-    f: (registry: CompileRegistry) => Promise<void>
-  ) {
+  public async forceProverExists<R>(
+    f: (registry: CompileRegistry) => Promise<R>
+  ): Promise<R> {
     this.inForceProverBlock = true;
-    await f(this);
+    const result = await f(this);
     this.inForceProverBlock = false;
+    return result;
   }
 
-  public async compile(target: CompileTarget) {
+  public async compile(target: CompileTarget, proverNeeded: boolean = true) {
     if (this.artifacts[target.name] === undefined || this.inForceProverBlock) {
       const artifact = await this.compiler.compileContract(target);
       this.artifacts[target.name] = artifact;

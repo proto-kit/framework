@@ -14,7 +14,7 @@ type StoreType = Record<string, { duration: number }[]>;
 @closeable()
 export class ConsoleTracer implements Tracer {
   // Hard-code this for the moment. Needs to be configured.
-  timeInterval: number = 8000;
+  timeInterval: number = 60000;
 
   store: StoreType = {};
 
@@ -38,6 +38,10 @@ export class ConsoleTracer implements Tracer {
   public printSummary() {
     const { store } = this;
     const traceNames = Object.keys(store);
+
+    if (traceNames.length === 0) {
+      return;
+    }
 
     // We checked the record to see if any methods have exceeded the configured interval.
     // If so we print them and then delete from the record.
