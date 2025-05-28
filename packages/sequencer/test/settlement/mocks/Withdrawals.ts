@@ -9,13 +9,26 @@ import {
   MessageProcessorArgs,
   outgoingMessageProcessor,
   OutgoingMessageProcessor,
-  Withdrawal,
 } from "@proto-kit/protocol";
-import { AccountUpdate, Field, PublicKey, TokenId, UInt64 } from "o1js";
+import { AccountUpdate, Field, PublicKey, Struct, TokenId, UInt64 } from "o1js";
 import { inject } from "tsyringe";
-import { prefixToField } from "@proto-kit/common";
+import { EMPTY_PUBLICKEY, prefixToField } from "@proto-kit/common";
 
 import { Balances } from "./Balances";
+
+export class Withdrawal extends Struct({
+  tokenId: Field,
+  address: PublicKey,
+  amount: UInt64,
+}) {
+  public static dummy() {
+    return new Withdrawal({
+      tokenId: Field(0),
+      address: EMPTY_PUBLICKEY,
+      amount: UInt64.from(0),
+    });
+  }
+}
 
 @runtimeModule()
 export class Withdrawals extends RuntimeModule {
