@@ -1,6 +1,7 @@
 import { Field, PublicKey, Struct, UInt64 } from "o1js";
 import { EMPTY_PUBLICKEY } from "@proto-kit/common";
 
+// TODO Remove
 export class Withdrawal extends Struct({
   tokenId: Field,
   address: PublicKey,
