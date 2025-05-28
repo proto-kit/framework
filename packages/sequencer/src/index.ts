@@ -96,7 +96,7 @@ export * from "./state/lmt/AsyncLinkedMerkleTreeDatabase";
 export * from "./state/lmt/CachedLinkedLeafStore";
 export * from "./settlement/SettlementModule";
 export * from "./settlement/BridgingModule";
-export * from "./settlement/messages/outgoing/WithdrawalMessageAdapter";
+export * from "./settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
 export * from "./settlement/messages/IncomingMessageAdapter";
 export * from "./settlement/messages/MinaIncomingMessageAdapter";
 export * from "./settlement/permissions/BaseLayerContractPermissions";

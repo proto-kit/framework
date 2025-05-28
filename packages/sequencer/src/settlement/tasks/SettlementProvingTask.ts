@@ -119,9 +119,6 @@ export class SettlementProvingTask
 
       for (const account of accounts) {
         addCachedAccount(account);
-        // const acc2 = await fetchAccount(account);
-        // console.log(O1jsAccount.toJSON(account));
-        // console.log(O1jsAccount.toJSON(acc2.account!));
       }
 
       // This fetches the network state behind the scenes

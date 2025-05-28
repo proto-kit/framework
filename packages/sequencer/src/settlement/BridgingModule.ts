@@ -1,4 +1,4 @@
-import { inject, injectable } from "tsyringe";
+import { container, inject, injectable } from "tsyringe";
 import {
   BridgeContractConfig,
   BridgeContractType,
@@ -12,10 +12,12 @@ import {
   Protocol,
   SettlementContractModule,
   TokenMapping,
-  PROTOKIT_PREFIXES,
-  Withdrawal,
   TokenBridgeTree,
   TokenBridgeAttestation,
+  OutgoingMessageProcessor,
+  PROTOKIT_FIELD_PREFIXES,
+  OutgoingMessageEvent,
+  BridgeContractContext,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -50,10 +52,7 @@ import { SettleableBatch } from "../storage/model/Batch";
 import type { SettlementModule } from "./SettlementModule";
 import { SettlementUtils } from "./utils/SettlementUtils";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
-import {
-  OutgoingMessageCollector,
-  WithdrawalEvent,
-} from "./messages/outgoing/OutgoingMessageCollector";
+import { OutgoingMessageCollector } from "./messages/outgoing/OutgoingMessageCollector";
 import { ArchiveNode } from "./utils/ArchiveNode";
 
 export type SettlementTokenConfig = Record<
@@ -103,6 +102,12 @@ export class BridgingModule {
     private readonly transactionSender: MinaTransactionSender
   ) {
     this.utils = new SettlementUtils(areProofsEnabled, baseLayer);
+  }
+
+  private getMessageProcessors() {
+    return this.protocol.dependencyContainer.resolveAll<
+      OutgoingMessageProcessor<unknown, unknown>
+    >("OutgoingMessageProcessor");
   }
 
   protected settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
@@ -202,6 +207,8 @@ export class BridgingModule {
       )
     );
 
+    log.debug(`Found ${allEvents.length} outgoing messages`);
+
     const groupedEvents = groupBy(allEvents.flat(), (event) =>
       event.key.tokenId.toString()
     );
@@ -232,7 +239,7 @@ export class BridgingModule {
   }
 
   public async sendRollupTransactionsForToken(
-    events: WithdrawalEvent<Withdrawal>[],
+    events: OutgoingMessageEvent<any>[],
     options:
       | {
           nonce: number;
@@ -414,7 +421,7 @@ export class BridgingModule {
   public async sendRollupTransactionsBase(
     tokenWrapper: (au: AccountUpdate) => Promise<void>,
     tokenId: Field,
-    events: WithdrawalEvent<Withdrawal>[],
+    events: OutgoingMessageEvent<any>[],
     options: { nonce: number; contractKeys: PrivateKey[] }
   ): Promise<
     {
@@ -457,31 +464,39 @@ export class BridgingModule {
     const cachedStore = await CachedLinkedLeafStore.new(this.linkedLeafStore);
     const tree = new LinkedMerkleTree(cachedStore.treeStore, cachedStore);
 
-    const [withdrawalModule, withdrawalStateName] =
-      this.getBridgingModuleConfig().withdrawalStatePath.split(".");
-    const basePath = Path.fromProperty(
-      withdrawalModule,
-      withdrawalStateName,
-      PROTOKIT_PREFIXES.STATE_RUNTIME
-    );
-
     // Create withdrawal batches and send them as L1 transactions
     for (let i = 0; i < events.length; i += OUTGOING_MESSAGE_BATCH_SIZE) {
       const batch = events.slice(i, i + OUTGOING_MESSAGE_BATCH_SIZE);
 
       const keys = batch.map((x) =>
-        Path.fromKey(basePath, OutgoingMessageKey, x.key)
+        Path.fromKey(
+          PROTOKIT_FIELD_PREFIXES.OUTGOING_MESSAGE_BASE_PATH,
+          OutgoingMessageKey,
+          x.key
+        )
       );
       // Preload keys
       await cachedStore.preloadKeys(keys.map((key) => key.toBigInt()));
 
-      const transactionParamaters = batch.map((message, index) => {
+      const transactionParameters = batch.map((message, index) => {
         const witness = tree.getReadWitness(keys[index].toBigInt());
         return new OutgoingMessageArgument({
           witness,
-          value: message.value,
+          messageType: message.messageType,
         });
       });
+
+      const contextData = transactionParameters.map((arg, j) =>
+        this.getMessageProcessors().map((processor) => {
+          return processor.messageType.equals(arg.messageType).toBoolean()
+            ? batch[j].value
+            : processor.dummy();
+        })
+      );
+      container.resolve(BridgeContractContext).data = {
+        messageInputs: contextData,
+      };
+      // TODO Somehow make sure this data ends up in the proving task
 
       const tx = await Mina.transaction(
         {
@@ -493,7 +508,7 @@ export class BridgingModule {
         },
         async () => {
           const numNewAccounts = await bridgeContract.rollupOutgoingMessages(
-            OutgoingMessageArgumentBatch.fromMessages(transactionParamaters)
+            OutgoingMessageArgumentBatch.fromMessages(transactionParameters)
           );
           const au = bridgeContract.self;
           await tokenWrapper(au);
@@ -503,7 +518,7 @@ export class BridgingModule {
           // in a zkapp method
           let numNewAccountsNumber = 0;
           Provable.asProver(() => {
-            numNewAccountsNumber = Number(numNewAccounts.toString()) / 1e9;
+            numNewAccountsNumber = parseInt(numNewAccounts.toString(), 10);
           });
 
           // Pay account creation fees for internal token accounts
@@ -513,6 +528,9 @@ export class BridgingModule {
           );
         }
       );
+
+      log.debug("Sending rollup transaction:");
+      log.debug(tx.toPretty());
 
       const signedTx = this.utils.signTransaction(
         tx,

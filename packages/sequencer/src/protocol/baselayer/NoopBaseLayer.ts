@@ -1,5 +1,6 @@
 import { noop } from "@proto-kit/common";
 import { PublicKey } from "o1js";
+import { OutgoingMessageEvent } from "@proto-kit/protocol";
 
 import {
   SequencerModule,
@@ -7,10 +8,7 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import {
-  OutgoingMessageAdapter,
-  WithdrawalEvent,
-} from "../../settlement/messages/outgoing/OutgoingMessageCollector";
+import { OutgoingMessageAdapter } from "../../settlement/messages/outgoing/OutgoingMessageCollector";
 import { Block } from "../../storage/model/Block";
 
 import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
@@ -36,7 +34,7 @@ class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
 }
 
 class NoopMessageAdapter implements OutgoingMessageAdapter<undefined> {
-  public extractEvents(block: Block): WithdrawalEvent<undefined>[] {
+  public extractEvents(block: Block): OutgoingMessageEvent<any>[] {
     return [];
   }
 }
