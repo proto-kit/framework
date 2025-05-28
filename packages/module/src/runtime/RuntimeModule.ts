@@ -10,6 +10,10 @@ import {
 import { FlexibleProvablePure, Provable, Bool } from "o1js";
 
 import { runtimeMethodNamesMetadataKey } from "../method/runtimeMethod";
+import {
+  OutgoingMessages,
+  OutgoingMessagesRecord,
+} from "../messages/OutgoingMessages";
 
 import { RuntimeEnvironment } from "./RuntimeEnvironment";
 
@@ -78,6 +82,8 @@ export class RuntimeModule<
   public parent?: RuntimeEnvironment;
 
   public events?: RuntimeEvents<any> = undefined;
+
+  public messages?: OutgoingMessages<OutgoingMessagesRecord> = undefined;
 
   public constructor() {
     super();
