@@ -73,9 +73,7 @@ export class Withdrawals extends RuntimeModule {
 export class WithdrawalMessageProcessor extends OutgoingMessageProcessor<Withdrawal> {
   type = Withdrawal;
 
-  // TODO Nicer and less error-prone API (for example enforcing embedding
-  //  the type into the value struct
-  messageType = prefixToField("withdrawal");
+  messageType = "withdrawal";
 
   dummy(): Withdrawal {
     return Withdrawal.dummy();

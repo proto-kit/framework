@@ -57,7 +57,7 @@ export abstract class OutgoingMessageProcessor<
 
   abstract type: FlexibleProvablePure<T>;
 
-  abstract messageType: Field;
+  abstract messageType: string;
 
   abstract dummy(): T;
 

@@ -32,7 +32,6 @@ export const PROTOKIT_FIELD_PREFIXES = {
     padToHashPrefix("message-base-path")
   ),
   OUTGOING_MESSAGE_DUMMY_TYPE: Field(
-    1
-    // TODO prefixToField(padToHashPrefix("OUTGOING_MESSAGE_DUMMY_TYPE"))
+    prefixToField(padToHashPrefix("OUTGOING_MESSAGE_DUMMY_TYPE"))
   ),
 };

@@ -36,6 +36,7 @@ import {
   filterNonUndefined,
   LinkedMerkleTree,
   log,
+  prefixToField,
   reduceSequential,
 } from "@proto-kit/common";
 import { match, Pattern } from "ts-pattern";
@@ -488,7 +489,9 @@ export class BridgingModule {
 
       const contextData = transactionParameters.map((arg, j) =>
         this.getMessageProcessors().map((processor) => {
-          return processor.messageType.equals(arg.messageType).toBoolean()
+          return prefixToField(processor.messageType)
+            .equals(arg.messageType)
+            .toBoolean()
             ? batch[j].value
             : processor.dummy();
         })
