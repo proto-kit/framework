@@ -12,7 +12,7 @@ import {
 } from "@proto-kit/protocol";
 import { AccountUpdate, Field, PublicKey, Struct, TokenId, UInt64 } from "o1js";
 import { inject } from "tsyringe";
-import { EMPTY_PUBLICKEY, prefixToField } from "@proto-kit/common";
+import { EMPTY_PUBLICKEY } from "@proto-kit/common";
 
 import { Balances } from "./Balances";
 
