@@ -64,7 +64,7 @@ import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/Fun
 import { MinaNetworkUtils } from "../../src/protocol/baselayer/network-utils/MinaNetworkUtils";
 
 import { Balances, BalancesKey } from "./mocks/Balances";
-import { Withdrawals } from "./mocks/Withdrawals";
+import { WithdrawalMessageProcessor, Withdrawals } from "./mocks/Withdrawals";
 
 export const settlementTestFn = (
   settlementType: "signed" | "mock-proofs" | "proven",
@@ -140,6 +140,7 @@ export const settlementTestFn = (
             FungibleToken: FungibleTokenContractModule,
             FungibleTokenAdmin: FungibleTokenAdminContractModule,
           }),
+          WithdrawalMessageProcessor,
         },
       }),
 
@@ -185,10 +186,7 @@ export const settlementTestFn = (
         LastStateRoot: {},
         SettlementContractModule: {
           SettlementContract: {},
-          BridgeContract: {
-            withdrawalStatePath: "Withdrawals.withdrawals",
-            withdrawalEventName: "withdrawal",
-          },
+          BridgeContract: {},
           DispatchContract: {
             incomingMessagesMethods: {
               deposit: "Balances.deposit",
@@ -197,6 +195,7 @@ export const settlementTestFn = (
           FungibleToken: {},
           FungibleTokenAdmin: {},
         },
+        WithdrawalMessageProcessor: {},
       },
       TransactionSender: {},
       QueryTransportModule: {},

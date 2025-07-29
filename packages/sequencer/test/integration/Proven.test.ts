@@ -123,10 +123,7 @@ describe.skip("Proven", () => {
           ProtocolStateTestHook: {},
           SettlementContractModule: {
             SettlementContract: {},
-            BridgeContract: {
-              withdrawalStatePath: "Withdrawals.withdrawals",
-              withdrawalEventName: "withdrawal",
-            },
+            BridgeContract: {},
             DispatchContract: {
               incomingMessagesMethods: {
                 deposit: "Balances.deposit",

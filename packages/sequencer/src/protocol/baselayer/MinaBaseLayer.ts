@@ -13,7 +13,7 @@ import {
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
-import { WithdrawalMessageAdapter } from "../../settlement/messages/outgoing/WithdrawalMessageAdapter";
+import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
 import {
   Sequencer,
   SequencerModulesRecord,
@@ -92,7 +92,7 @@ export class MinaBaseLayer
       },
 
       OutgoingMessageAdapter: {
-        useClass: WithdrawalMessageAdapter,
+        useClass: DefaultOutgoingMessageAdapter,
       },
 
       NetworkUtils: {
