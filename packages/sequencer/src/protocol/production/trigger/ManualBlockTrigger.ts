@@ -1,5 +1,4 @@
 import { inject } from "tsyringe";
-import { injectOptional } from "@proto-kit/common";
 
 import { sequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettleableBatch } from "../../../storage/model/Batch";
@@ -25,9 +24,9 @@ export class ManualBlockTrigger
     batchProducerModule: BatchProducerModule,
     @inject("BlockProducerModule")
     blockProducerModule: BlockProducerModule,
-    @injectOptional("SettlementModule")
+    @inject("SettlementModule", { isOptional: true })
     settlementModule: SettlementModule | undefined,
-    @injectOptional("BridgingModule")
+    @inject("BridgingModule", { isOptional: true })
     bridgingModule: BridgingModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue

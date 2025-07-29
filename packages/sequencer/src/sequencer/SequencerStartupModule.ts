@@ -10,7 +10,6 @@ import {
   ArtifactRecord,
   ChildVerificationKeyService,
   CompileRegistry,
-  injectOptional,
   AreProofsEnabled,
 } from "@proto-kit/common";
 
@@ -42,7 +41,7 @@ export class SequencerStartupModule
     private readonly verificationKeyService: VerificationKeyService,
     private readonly registrationFlow: WorkerRegistrationFlow,
     private readonly compileRegistry: CompileRegistry,
-    @injectOptional("BaseLayer")
+    @inject("BaseLayer", { isOptional: true })
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled

@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { injectOptional, log } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import {
   MethodIdResolver,
   MethodParameterEncoder,
@@ -42,7 +42,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @injectOptional("IncomingMessagesService")
+    @inject("IncomingMessagesService", { isOptional: true })
     private readonly messageService: IncomingMessagesService | undefined,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,

@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { injectOptional, log } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
 import { closeable, Closeable } from "../../../sequencer/builder/Closeable";
@@ -49,13 +49,13 @@ export class TimedBlockTrigger
   private settlementInProgress = false;
 
   public constructor(
-    @injectOptional("BatchProducerModule")
+    @inject("BatchProducerModule", { isOptional: true })
     batchProducerModule: BatchProducerModule | undefined,
     @inject("BlockProducerModule")
     blockProducerModule: BlockProducerModule,
-    @injectOptional("SettlementModule")
+    @inject("SettlementModule", { isOptional: true })
     settlementModule: SettlementModule | undefined,
-    @injectOptional("BridgingModule")
+    @inject("BridgingModule", { isOptional: true })
     bridgingModule: BridgingModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue,
