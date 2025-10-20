@@ -11,7 +11,8 @@ export class OpenTelemetryTracer implements Tracer {
     // We need to import this here, so that the OpenTelemetryServer will be resolved
     // before this module, and therefore will be already started when this module is
     // eventually consumed and used
-    @inject("OpenTelemetryServer") openTelemetryServer: OpenTelemetryServer
+    @inject("OpenTelemetryServer")
+    private readonly openTelemetryServer: OpenTelemetryServer
   ) {
     noop();
   }
@@ -24,6 +25,9 @@ export class OpenTelemetryTracer implements Tracer {
     f: () => Promise<T>,
     metadata?: Record<string, string | number>
   ) {
+    if (this.openTelemetryServer.config.tracing?.enabled !== true) {
+      return await f();
+    }
     if (this.tracer === undefined) {
       this.tracer = opentelemetry.trace.getTracer("protokit", "canary");
     }

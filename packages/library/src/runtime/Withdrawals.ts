@@ -1,4 +1,5 @@
 import {
+  outgoingMessage,
   OutgoingMessages,
   runtimeModule,
   RuntimeModule,
@@ -28,6 +29,7 @@ export class Withdrawal extends Struct({
 
 @runtimeModule()
 export class Withdrawals extends RuntimeModule {
+  @outgoingMessage()
   messages = new OutgoingMessages({
     withdrawal: Withdrawal,
   });
