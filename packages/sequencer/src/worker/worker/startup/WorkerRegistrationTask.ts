@@ -5,6 +5,7 @@ import {
   ChildVerificationKeyService,
   CompileRegistry,
   safeParseJson,
+  ModuleContainerLike,
 } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 import {
@@ -43,7 +44,7 @@ export class WorkerRegistrationTask
   private done = false;
 
   public constructor(
-    @inject("Protocol") private readonly protocol: Protocol<any>,
+    @inject("Protocol") private readonly protocol: ModuleContainerLike,
     private readonly compileRegistry: CompileRegistry
   ) {
     super();

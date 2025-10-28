@@ -1,7 +1,7 @@
 import {
   AreProofsEnabled,
   DependencyFactory,
-  ParentContainer,
+  ModuleContainerLike,
 } from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
@@ -56,8 +56,8 @@ export class MinaBaseLayer
   public constructor(
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
-    @inject("ParentContainer")
-    private readonly parentContainer: ParentContainer
+    @inject("Sequencer")
+    private readonly sequencer: ModuleContainerLike
   ) {
     super();
   }
@@ -92,7 +92,7 @@ export class MinaBaseLayer
     if (this.config.network.type === "remote") {
       throw new Error("NetworkUtils not available for remote networks");
     }
-    return this.parentContainer.dependencyContainer.resolve("NetworkUtils");
+    return this.sequencer.dependencyContainer.resolve("NetworkUtils");
   }
 
   public isLocalBlockChain(): boolean {

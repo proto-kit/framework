@@ -138,8 +138,13 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
 > &
   Modules;
 
-export interface ParentContainer {
+export interface ModuleContainerLike {
   get dependencyContainer(): DependencyContainer;
+
+  resolveOrFail<ModuleType>(
+    moduleName: string,
+    moduleType: TypedClass<ModuleType>
+  ): ModuleType;
 }
 
 /**
@@ -148,7 +153,7 @@ export interface ParentContainer {
  */
 export class ModuleContainer<Modules extends ModulesRecord>
   extends ConfigurableModule<ModulesConfig<Modules>>
-  implements ParentContainer
+  implements ModuleContainerLike
 {
   /**
    * Determines how often are modules decorated upon resolution

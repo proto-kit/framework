@@ -1,11 +1,9 @@
 import { inject, injectable } from "tsyringe";
 import { Withdrawal } from "@proto-kit/protocol";
 import { Field, Struct } from "o1js";
+import { ModuleContainerLike } from "@proto-kit/common";
 
-import type { BlockTriggerBase } from "../../protocol/production/trigger/BlockTrigger";
-import { SettlementModule } from "../SettlementModule";
 import { SequencerModule } from "../../sequencer/builder/SequencerModule";
-import { Sequencer } from "../../sequencer/executor/Sequencer";
 import { Block } from "../../storage/model/Block";
 import { BridgingModule } from "../BridgingModule";
 import {
@@ -55,10 +53,7 @@ export class WithdrawalQueue
 
   public constructor(
     @inject("Sequencer")
-    private readonly sequencer: Sequencer<{
-      BlockTrigger: typeof BlockTriggerBase;
-      SettlementModule: typeof SettlementModule;
-    }>,
+    private readonly sequencer: ModuleContainerLike,
     @inject("BlockStorage")
     private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
     @inject("BatchStorage")

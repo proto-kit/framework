@@ -7,7 +7,7 @@ import {
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
-  ParentContainer,
+  ModuleContainerLike,
   RollupMerkleTree,
   RollupMerkleTreeWitness,
 } from "@proto-kit/common";
@@ -19,7 +19,9 @@ export class StateServiceQueryModule
   extends AppChainModule
   implements QueryTransportModule
 {
-  public constructor(@inject("Sequencer") public sequencer: ParentContainer) {
+  public constructor(
+    @inject("Sequencer") public sequencer: ModuleContainerLike
+  ) {
     super();
   }
 

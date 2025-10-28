@@ -8,7 +8,7 @@ import {
   BatchStorage,
 } from "@proto-kit/sequencer";
 import { NetworkState } from "@proto-kit/protocol";
-import { ParentContainer } from "@proto-kit/common";
+import { ModuleContainerLike } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -19,7 +19,7 @@ export class BlockStorageNetworkStateModule
 {
   public constructor(
     @inject("Sequencer")
-    private readonly sequencer: ParentContainer
+    private readonly sequencer: ModuleContainerLike
   ) {
     super();
   }

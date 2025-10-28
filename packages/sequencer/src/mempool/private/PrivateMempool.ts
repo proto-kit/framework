@@ -1,4 +1,9 @@
-import { EventEmitter, log, noop, ParentContainer } from "@proto-kit/common";
+import {
+  EventEmitter,
+  log,
+  noop,
+  ModuleContainerLike,
+} from "@proto-kit/common";
 import { container, inject } from "tsyringe";
 import {
   AccountStateHook,
@@ -48,8 +53,8 @@ export class PrivateMempool
     private readonly transactionStorage: TransactionStorage,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    @inject("ParentContainer")
-    private readonly parentContainer: ParentContainer,
+    @inject("Sequencer")
+    private readonly sequencer: ModuleContainerLike,
     @inject("UnprovenStateService")
     private readonly stateService: AsyncStateService
   ) {
@@ -87,7 +92,7 @@ export class PrivateMempool
   }
 
   private get unprovenQueue(): BlockStorage {
-    return this.parentContainer.dependencyContainer.resolve<BlockStorage>(
+    return this.sequencer.dependencyContainer.resolve<BlockStorage>(
       "BlockStorage"
     );
   }
