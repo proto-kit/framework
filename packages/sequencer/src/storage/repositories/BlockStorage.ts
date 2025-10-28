@@ -13,12 +13,11 @@ export interface BlockQueue {
 }
 
 export interface BlockStorage {
+  // TODO Rename to getCurrentChainLength(), blockheight seems misleading here
   getCurrentBlockHeight: () => Promise<number>;
   getLatestBlock: () => Promise<BlockWithResult | undefined>;
   pushBlock: (block: Block) => Promise<void>;
-}
 
-export interface HistoricalBlockStorage {
   getBlockAt: (height: number) => Promise<Block | undefined>;
   getBlock: (hash: string) => Promise<Block | undefined>;
 }

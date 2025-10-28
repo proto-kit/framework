@@ -1,8 +1,4 @@
-import {
-  Batch,
-  HistoricalBatchStorage,
-  BatchStorage,
-} from "@proto-kit/sequencer";
+import { Batch, BatchStorage } from "@proto-kit/sequencer";
 import { Prisma } from "@prisma/client";
 import { inject, injectable } from "tsyringe";
 
@@ -11,7 +7,7 @@ import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 import { BatchMapper } from "./mappers/BatchMapper";
 
 @injectable()
-export class PrismaBatchStore implements BatchStorage, HistoricalBatchStorage {
+export class PrismaBatchStore implements BatchStorage {
   public constructor(
     @inject("Database") private readonly connection: PrismaConnection,
     private readonly batchMapper: BatchMapper

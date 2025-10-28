@@ -1,9 +1,5 @@
 import { inject } from "tsyringe";
-import {
-  HistoricalBlockStorage,
-  Block,
-  BlockStorage,
-} from "@proto-kit/sequencer";
+import { Block, BlockStorage } from "@proto-kit/sequencer";
 import { Arg, Field, ObjectType, Query } from "type-graphql";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";
@@ -62,7 +58,7 @@ export class BlockModel {
 export class BlockResolver extends GraphqlModule<object> {
   public constructor(
     @inject("BlockStorage")
-    private readonly blockStorage: HistoricalBlockStorage & BlockStorage
+    private readonly blockStorage: BlockStorage
   ) {
     super();
   }
