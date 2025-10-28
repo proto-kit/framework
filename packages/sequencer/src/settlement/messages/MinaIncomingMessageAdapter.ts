@@ -20,7 +20,6 @@ import {
 } from "@proto-kit/common";
 import {
   DispatchContractProtocolModule,
-  Protocol,
   RuntimeTransaction,
   SettlementContractModule,
 } from "@proto-kit/protocol";

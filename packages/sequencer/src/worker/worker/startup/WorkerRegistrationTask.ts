@@ -9,7 +9,6 @@ import {
 } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 import {
-  Protocol,
   RuntimeVerificationKeyRootService,
   SettlementContractModule,
   SettlementSmartContractBase,
