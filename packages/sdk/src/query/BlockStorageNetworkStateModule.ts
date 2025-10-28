@@ -2,12 +2,11 @@ import { inject, injectable } from "tsyringe";
 import {
   BlockStorage,
   NetworkStateTransportModule,
-  Sequencer,
-  SequencerModulesRecord,
   BlockQueue,
   BatchStorage,
 } from "@proto-kit/sequencer";
 import { NetworkState } from "@proto-kit/protocol";
+import { ModuleContainerLike } from "@proto-kit/common";
 
 import { AppChainModule } from "../appChain/AppChainModule";
 
@@ -18,7 +17,7 @@ export class BlockStorageNetworkStateModule
 {
   public constructor(
     @inject("Sequencer")
-    private readonly sequencer: Sequencer<SequencerModulesRecord>
+    private readonly sequencer: ModuleContainerLike
   ) {
     super();
   }

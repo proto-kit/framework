@@ -13,10 +13,13 @@ import {
   RuntimeModulesRecord,
   MethodParameterEncoder,
 } from "@proto-kit/module";
-import { EMPTY_PUBLICKEY, mapSequential } from "@proto-kit/common";
+import {
+  EMPTY_PUBLICKEY,
+  mapSequential,
+  ModuleContainerLike,
+} from "@proto-kit/common";
 import {
   DispatchContractProtocolModule,
-  Protocol,
   RuntimeTransaction,
   SettlementContractModule,
 } from "@proto-kit/protocol";
@@ -36,7 +39,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     @inject("BaseLayer")
     private readonly baseLayer: MinaBaseLayer,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
-    @inject("Protocol") private readonly protocol: Protocol<any>
+    @inject("Protocol") private readonly protocol: ModuleContainerLike
   ) {}
 
   private incomingMessageEventIndex() {

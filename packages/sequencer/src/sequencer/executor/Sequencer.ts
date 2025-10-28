@@ -17,7 +17,7 @@ import {
   Protocol,
   ProtocolModulesRecord,
 } from "@proto-kit/protocol";
-import { DependencyContainer, injectable } from "tsyringe";
+import { injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
 import { Closeable } from "../builder/Closeable";
@@ -60,10 +60,6 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     return this.container.resolve<
       Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>
     >("Protocol");
-  }
-
-  public get dependencyContainer(): DependencyContainer {
-    return this.container;
   }
 
   public create(childContainerProvider: ChildContainerProvider) {
