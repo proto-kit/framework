@@ -19,7 +19,15 @@ import {
 import { MinimumWorkerModules } from "./WorkerModules";
 
 describe("worker", () => {
+  const isSpawned = process.env.IS_SPAWNED_PROCESS === "true";
+
   it("spin up and wait", async () => {
+    if (!isSpawned) {
+      return;
+    }
+
+    const proofsEnabled = process.env.PROOFS_ENABLED === "true";
+
     const sequencerClass = Sequencer.from({
       modules: {
         TaskQueue: BullQueue,
@@ -45,10 +53,11 @@ describe("worker", () => {
     });
 
     console.log("Starting worker...");
+    console.log(`Worker proofs enabled: ${proofsEnabled}`);
 
     log.setLevel("DEBUG");
 
-    await app.start(false, container.createChildContainer());
+    await app.start(proofsEnabled, container.createChildContainer());
 
     console.log("Worker started...");
 

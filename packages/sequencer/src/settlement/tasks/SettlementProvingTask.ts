@@ -99,6 +99,7 @@ export class SettlementProvingTask
   }
 
   private async withCustomInstance<T>(
+    transaction: Transaction<false, true>,
     state: ChainStateTaskArgs,
     f: () => Promise<T>
   ): Promise<T> {
@@ -111,6 +112,7 @@ export class SettlementProvingTask
     // Therefore, we only need to manually add the accounts for remote networks
 
     if (graphql !== undefined) {
+      const oldInstance = Mina.activeInstance;
       const newInstance = Mina.Network(graphql);
       newInstance.proofsEnabled = this.areProofsEnabled.areProofsEnabled;
       Mina.setActiveInstance(newInstance);
@@ -118,6 +120,23 @@ export class SettlementProvingTask
       for (const account of accounts) {
         addCachedAccount(account);
       }
+
+      // This fetches the network state behind the scenes
+      await Mina.transaction(
+        { sender: transaction.transaction.feePayer.body.publicKey },
+        async () => {
+          const au = AccountUpdate.createSigned(
+            transaction.transaction.feePayer.body.publicKey
+          );
+          au.network.blockchainLength.getAndRequireEquals();
+        }
+      );
+
+      const result = await f();
+
+      Mina.setActiveInstance(oldInstance);
+
+      return result;
     }
     return await f();
   }
@@ -133,12 +152,16 @@ export class SettlementProvingTask
 
     const { transaction, chainState } = input;
 
-    const provenTx = await this.withCustomInstance(chainState, async () => {
-      log.info(`Proving tx "${transaction.transaction.memo}"`);
-      const proven = await transaction.prove();
-      log.info("Proven!");
-      return proven;
-    });
+    const provenTx = await this.withCustomInstance(
+      transaction,
+      chainState,
+      async () => {
+        log.info(`Proving tx "${transaction.transaction.memo}"`);
+        const proven = await transaction.prove();
+        log.info("Proven!");
+        return proven;
+      }
+    );
 
     return { transaction: provenTx };
   }
@@ -276,7 +299,10 @@ export class SettlementProvingTask
               args,
               previousProofs: previousProofs,
               blindingValue: Field(lazyProof.blindingValue),
-              memoized: [],
+              memoized: lazyProof.memoized.map(({ fields, aux }) => ({
+                fields: fields.map((f) => Field(f)),
+                aux,
+              })),
               kind: "lazy-proof",
             };
           }
@@ -370,7 +396,10 @@ export class SettlementProvingTask
                   args: encodedArgs,
 
                   blindingValue: lazyProof.blindingValue.toString(),
-                  memoized: [],
+                  memoized: lazyProof.memoized.map((value) => ({
+                    fields: value.fields.map((f) => f.toString()),
+                    aux: value.aux,
+                  })),
                 };
               }
               return null;

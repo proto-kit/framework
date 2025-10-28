@@ -78,9 +78,7 @@ export class PrivateMempool
       const success = await this.transactionStorage.pushUserTransaction(tx);
       if (success) {
         this.events.emit("mempool-transaction-added", tx);
-        log.trace(
-          `Transaction added to mempool: ${tx.hash().toString()} (${(await this.transactionStorage.getPendingUserTransactions()).length} transactions in mempool)`
-        );
+        log.trace(`Transaction added to mempool: ${tx.hash().toString()}`);
       } else {
         log.error(
           `Transaction ${tx.hash().toString()} rejected: already exists in mempool`

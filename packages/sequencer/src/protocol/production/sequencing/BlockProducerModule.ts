@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { injectOptional, log } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import {
   MethodIdResolver,
   MethodParameterEncoder,
@@ -26,6 +26,7 @@ import { Database } from "../../../storage/Database";
 import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
+import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -41,12 +42,12 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @injectOptional("IncomingMessagesService")
+    @inject("IncomingMessagesService", { isOptional: true })
     private readonly messageService: IncomingMessagesService | undefined,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,
-    @inject("UnprovenMerkleStore")
-    private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
+    @inject("UnprovenLinkedLeafStore")
+    private readonly unprovenLinkedLeafStore: AsyncLinkedLeafStore,
     @inject("BlockQueue")
     private readonly blockQueue: BlockQueue,
     @inject("BlockTreeStore")
@@ -118,7 +119,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     const { result, blockHashTreeStore, treeStore, stateService } =
       await this.resultService.generateMetadataForNextBlock(
         block,
-        this.unprovenMerkleStore,
+        this.unprovenLinkedLeafStore,
         this.blockTreeStore,
         this.unprovenStateService
       );

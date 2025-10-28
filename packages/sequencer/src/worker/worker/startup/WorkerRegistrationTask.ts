@@ -10,6 +10,7 @@ import { inject, injectable } from "tsyringe";
 import {
   Protocol,
   RuntimeVerificationKeyRootService,
+  SettlementContractModule,
   SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import { VerificationKey } from "o1js";
@@ -24,6 +25,8 @@ import {
   ArtifactRecordSerializer,
   SerializedArtifactRecord,
 } from "../../../protocol/production/tasks/serializers/ArtifactionRecordSerializer";
+import { SignedSettlementPermissions } from "../../../settlement/permissions/SignedSettlementPermissions";
+import { ProvenSettlementPermissions } from "../../../settlement/permissions/ProvenSettlementPermissions";
 
 import { CloseWorkerError } from "./CloseWorkerError";
 
@@ -32,6 +35,7 @@ export type WorkerStartupPayload = {
   // This has to be nullable, since
   bridgeContractVerificationKey?: VerificationKey;
   compiledArtifacts: ArtifactRecord;
+  isSignedSettlement?: boolean;
 };
 
 @injectable()
@@ -66,9 +70,37 @@ export class WorkerRegistrationTask
     );
     rootService.setRoot(input.runtimeVerificationKeyRoot);
 
+    if (
+      input.bridgeContractVerificationKey !== undefined ||
+      input.isSignedSettlement !== undefined
+    ) {
+      // Invoke this so that SettlementSmartContractBase.args is initialized
+      this.protocol.dependencyContainer
+        .resolve<
+          SettlementContractModule<
+            ReturnType<typeof SettlementContractModule.mandatoryModules>
+          >
+        >("SettlementContractModule")
+        .resolve("SettlementContract")
+        .contractFactory();
+    }
+
     if (input.bridgeContractVerificationKey !== undefined) {
       SettlementSmartContractBase.args.BridgeContractVerificationKey =
         input.bridgeContractVerificationKey;
+    }
+
+    if (input.isSignedSettlement !== undefined) {
+      const contractArgs = SettlementSmartContractBase.args;
+      SettlementSmartContractBase.args = {
+        ...contractArgs,
+        signedSettlements: input.isSignedSettlement,
+        // TODO Add distinction between mina and custom tokens
+        BridgeContractPermissions: (input.isSignedSettlement
+          ? new SignedSettlementPermissions()
+          : new ProvenSettlementPermissions()
+        ).bridgeContractMina(),
+      };
     }
 
     this.compileRegistry.addArtifactsRaw(input.compiledArtifacts);
@@ -87,6 +119,7 @@ export class WorkerRegistrationTask
       runtimeVerificationKeyRoot: string;
       bridgeContractVerificationKey: VerificationKeyJSON | undefined;
       compiledArtifacts: SerializedArtifactRecord;
+      isSignedSettlement: boolean | undefined;
     };
 
     const artifactSerializer = new ArtifactRecordSerializer();
@@ -104,6 +137,7 @@ export class WorkerRegistrationTask
           compiledArtifacts: artifactSerializer.toJSON(
             payload.compiledArtifacts
           ),
+          isSignedSettlement: payload.isSignedSettlement,
         } satisfies WorkerStartupPayloadJSON);
       },
       fromJSON: (payload: string) => {
@@ -122,6 +156,7 @@ export class WorkerRegistrationTask
           compiledArtifacts: artifactSerializer.fromJSON(
             jsonObject.compiledArtifacts
           ),
+          isSignedSettlement: jsonObject.isSignedSettlement,
         };
       },
     };

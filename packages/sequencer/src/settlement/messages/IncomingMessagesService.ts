@@ -28,10 +28,11 @@ export class IncomingMessagesService {
     fromMessagesHash: string,
     toMessagesHash: string
   ) {
-    const dispatchContractAddress = this.settlementModule.addresses?.dispatch;
+    const dispatchContractAddress =
+      this.settlementModule.getAddresses().dispatch;
 
     const fetched = await this.messagesAdapter.fetchPendingMessages(
-      dispatchContractAddress!,
+      dispatchContractAddress,
       {
         fromActionHash: fromMessagesHash,
         toActionHash: toMessagesHash,

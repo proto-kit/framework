@@ -1,6 +1,6 @@
 import { createReference, Reference } from "@proto-kit/common";
 
-import { State } from "../State";
+import { WithPath, WithStateServiceProvider } from "../State";
 import { Path } from "../../model/Path";
 import { StateServiceProvider } from "../StateServiceProvider";
 import { PROTOKIT_PREFIXES } from "../../hashing/protokit-prefixes";
@@ -46,11 +46,11 @@ export function state() {
         // will be the same for all instances.
         // Therefore, we need to somehow save the set instance on the instance itself
 
-        // eslint-disable-next-line max-len
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-assignment
-        const reference: Reference<State<unknown>> | undefined = (this as any)[
-          `protokit_state_cache_${propertyKey}`
-        ];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const reference:
+          | Reference<WithPath & WithStateServiceProvider>
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          | undefined = (this as any)[`protokit_state_cache_${propertyKey}`];
 
         // Short-circuit this to return the state in case its already initialized
         if (reference !== undefined && reference.value.path !== undefined) {
@@ -89,7 +89,7 @@ export function state() {
 
       set: function set(
         this: TargetTransitioningModule & any,
-        newValue: State<unknown>
+        newValue: WithPath & WithStateServiceProvider
       ) {
         this[`protokit_state_cache_${propertyKey}`] = createReference(newValue);
       },

@@ -1,18 +1,29 @@
-import { Bool, Provable, Struct } from "o1js";
-import { RollupMerkleTreeWitness } from "@proto-kit/common";
+import { Bool, Field, FlexibleProvablePure, Provable, Struct } from "o1js";
+import {
+  LinkedMerkleTree,
+  LinkedMerkleTreeReadWitness,
+} from "@proto-kit/common";
 
-import { Withdrawal } from "./Withdrawal";
+import { OutgoingMessage } from "./OutgoingMessage";
 
+// TODO Make that dynamic based on processors configured
 export const OUTGOING_MESSAGE_BATCH_SIZE = 1;
 
+export function createMessageStruct<T>(type: FlexibleProvablePure<T>) {
+  return class MessageStruct extends Struct({
+    value: type,
+    messageType: Field,
+  }) {} satisfies FlexibleProvablePure<OutgoingMessage<T>>;
+}
+
 export class OutgoingMessageArgument extends Struct({
-  witness: RollupMerkleTreeWitness,
-  value: Withdrawal,
+  witness: LinkedMerkleTreeReadWitness,
+  messageType: Field,
 }) {
   public static dummy(): OutgoingMessageArgument {
     return new OutgoingMessageArgument({
-      witness: RollupMerkleTreeWitness.dummy(),
-      value: Withdrawal.dummy(),
+      witness: LinkedMerkleTree.dummyReadWitness(),
+      messageType: Field(0),
     });
   }
 }

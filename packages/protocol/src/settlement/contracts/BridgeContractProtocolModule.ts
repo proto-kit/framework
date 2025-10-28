@@ -1,7 +1,8 @@
-import { injectable } from "tsyringe";
+import { injectable, injectAll } from "tsyringe";
 import { CompileRegistry } from "@proto-kit/common";
 
 import { ContractModule } from "../ContractModule";
+import { OutgoingMessageProcessor } from "../modularity/OutgoingMessageProcessor";
 
 import {
   BridgeContract,
@@ -10,8 +11,7 @@ import {
 } from "./BridgeContract";
 
 export type BridgeContractConfig = {
-  withdrawalStatePath: `${string}.${string}`;
-  withdrawalEventName: string;
+  outgoingBatchSize?: number;
 };
 
 @injectable()
@@ -19,17 +19,20 @@ export class BridgeContractProtocolModule extends ContractModule<
   BridgeContractType,
   BridgeContractConfig
 > {
+  public constructor(
+    @injectAll("OutgoingMessageProcessor", { isOptional: true })
+    private readonly messageProcessors: OutgoingMessageProcessor<unknown>[]
+  ) {
+    super();
+  }
+
   public contractFactory() {
     const { config } = this;
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const withdrawalStatePathSplit = config.withdrawalStatePath.split(".") as [
-      string,
-      string,
-    ];
 
     BridgeContractBase.args = {
-      withdrawalStatePath: withdrawalStatePathSplit,
       SettlementContract: BridgeContractBase.args?.SettlementContract,
+      messageProcessors: this.messageProcessors,
+      batchSize: config.outgoingBatchSize,
     };
 
     return BridgeContract;
@@ -37,7 +40,9 @@ export class BridgeContractProtocolModule extends ContractModule<
 
   public async compile(registry: CompileRegistry) {
     return {
-      BridgeContract: await registry.compile(BridgeContract),
+      BridgeContract: await registry.forceProverExists(
+        async () => await registry.compile(BridgeContract)
+      ),
     };
   }
 }

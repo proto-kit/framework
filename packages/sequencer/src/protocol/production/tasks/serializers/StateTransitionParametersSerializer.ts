@@ -3,7 +3,7 @@ import {
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
 } from "@proto-kit/protocol";
-import { RollupMerkleTreeWitness } from "@proto-kit/common";
+import { LinkedMerkleTreeWitness } from "@proto-kit/common";
 
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import type { StateTransitionProofParameters } from "../StateTransitionTask";
@@ -11,7 +11,7 @@ import type { StateTransitionProofParameters } from "../StateTransitionTask";
 interface StateTransitionParametersJSON {
   publicInput: ReturnType<typeof StateTransitionProverPublicInput.toJSON>;
   batch: ReturnType<typeof StateTransitionProvableBatch.toJSON>;
-  merkleWitnesses: ReturnType<typeof RollupMerkleTreeWitness.toJSON>[];
+  merkleWitnesses: ReturnType<typeof LinkedMerkleTreeWitness.toJSON>[];
   batchState: ReturnType<typeof AppliedStateTransitionBatchState.toJSON>;
 }
 
@@ -27,7 +27,7 @@ export class StateTransitionParametersSerializer
       batch: StateTransitionProvableBatch.toJSON(parameters.batch),
 
       merkleWitnesses: parameters.merkleWitnesses.map((witness) =>
-        RollupMerkleTreeWitness.toJSON(witness)
+        LinkedMerkleTreeWitness.toJSON(witness)
       ),
 
       batchState: AppliedStateTransitionBatchState.toJSON(
@@ -49,7 +49,7 @@ export class StateTransitionParametersSerializer
 
       merkleWitnesses: parsed.merkleWitnesses.map(
         (witness) =>
-          new RollupMerkleTreeWitness(RollupMerkleTreeWitness.fromJSON(witness))
+          new LinkedMerkleTreeWitness(LinkedMerkleTreeWitness.fromJSON(witness))
       ),
 
       batchState: new AppliedStateTransitionBatchState(

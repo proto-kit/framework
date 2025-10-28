@@ -32,6 +32,7 @@ import {
   BlockProducerModule,
   VanillaTaskWorkerModules,
   SequencerStartupModule,
+  DatabasePruneModule,
 } from "@proto-kit/sequencer";
 import { Bool, PrivateKey, PublicKey, Struct } from "o1js";
 
@@ -103,6 +104,7 @@ export function createPrismaAppchain(
     }),
     Sequencer: Sequencer.from({
       modules: {
+        DatabasePruneModule,
         Database: PrismaRedisDatabase,
 
         Mempool: PrivateMempool,
@@ -153,6 +155,9 @@ export function createPrismaAppchain(
         simulatedDuration: 0,
       },
       SequencerStartupModule: {},
+      DatabasePruneModule: {
+        pruneOnStartup: true,
+      },
     },
     Signer: {
       signer: PrivateKey.random(),
