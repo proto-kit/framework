@@ -1,7 +1,6 @@
 import { inject, injectable } from "tsyringe";
 import {
   BlockStorage,
-  HistoricalBatchStorage,
   NetworkStateTransportModule,
   Sequencer,
   SequencerModulesRecord,
@@ -34,10 +33,10 @@ export class BlockStorageNetworkStateModule
     );
   }
 
-  private get provenStorage(): BatchStorage & HistoricalBatchStorage {
-    return this.sequencer.dependencyContainer.resolve<
-      BatchStorage & HistoricalBatchStorage
-    >("BatchStorage");
+  private get provenStorage(): BatchStorage {
+    return this.sequencer.dependencyContainer.resolve<BatchStorage>(
+      "BatchStorage"
+    );
   }
 
   public async getUnprovenNetworkState(): Promise<NetworkState | undefined> {

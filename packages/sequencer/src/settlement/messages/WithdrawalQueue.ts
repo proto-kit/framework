@@ -10,7 +10,7 @@ import { Block } from "../../storage/model/Block";
 import { BridgingModule } from "../BridgingModule";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { SettlementStorage } from "../../storage/repositories/SettlementStorage";
-import { HistoricalBatchStorage } from "../../storage/repositories/BatchStorage";
+import { BatchStorage } from "../../storage/repositories/BatchStorage";
 
 export interface OutgoingMessage<Type> {
   index: number;
@@ -59,7 +59,7 @@ export class WithdrawalQueue
     @inject("BlockStorage")
     private readonly blockStorage: BlockStorage,
     @inject("BatchStorage")
-    private readonly batchStorage: HistoricalBatchStorage,
+    private readonly batchStorage: BatchStorage,
     @inject("SettlementStorage")
     private readonly settlementStorage: SettlementStorage
   ) {

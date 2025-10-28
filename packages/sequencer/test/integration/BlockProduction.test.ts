@@ -25,12 +25,7 @@ import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 
-import {
-  BatchStorage,
-  HistoricalBatchStorage,
-  Sequencer,
-  VanillaTaskWorkerModules,
-} from "../../src";
+import { BatchStorage, Sequencer, VanillaTaskWorkerModules } from "../../src";
 import {
   DefaultTestingSequencerModules,
   testingSequencerModules,
@@ -221,8 +216,7 @@ describe("block production", () => {
     ).toStrictEqual(batch!.toNetworkState.hash().toString());
 
     // Check if the batchstorage has received the block
-    const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage &
-      HistoricalBatchStorage;
+    const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage;
     const retrievedBatch = await batchStorage.getBatchAt(0);
     expect(retrievedBatch).toBeDefined();
 
