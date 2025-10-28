@@ -8,10 +8,12 @@ import { toStateTransitionsHash } from "@proto-kit/module";
 import { yieldSequential } from "@proto-kit/common";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import chunk from "lodash/chunk";
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 
 import { BlockWithResult } from "../../../storage/model/Block";
 import type { NewBlockProverParameters } from "../tasks/NewBlockTask";
+import { Tracer } from "../../../logging/Tracer";
+import { trace } from "../../../logging/trace";
 
 import {
   collectStartingState,
@@ -42,9 +44,14 @@ export type BlockTrace = {
 @injectable()
 export class BlockTracingService {
   public constructor(
-    private readonly transactionTracing: TransactionTracingService
+    private readonly transactionTracing: TransactionTracingService,
+    @inject("Tracer")
+    public readonly tracer: Tracer
   ) {}
 
+  @trace("batch.trace.block", ([, block]) => ({
+    height: block.block.height.toString(),
+  }))
   public async traceBlock(
     state: BlockTracingState,
     block: BlockWithResult,
@@ -85,7 +92,7 @@ export class BlockTracingService {
     const [afterState, transactionTraces] = await yieldSequential(
       chunk(block.block.transactions, 2),
       async (input, [transaction1, transaction2]) => {
-        const [output, trace] =
+        const [output, transactionTrace] =
           transaction2 !== undefined
             ? await this.transactionTracing.createMultiTransactionTrace(
                 input,
@@ -97,7 +104,7 @@ export class BlockTracingService {
                 transaction1
               );
 
-        return [output, trace];
+        return [output, transactionTrace];
       },
       state
     );

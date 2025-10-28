@@ -15,7 +15,7 @@ import {
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
-  testingSequencerFromModules,
+  testingSequencerModules,
 } from "../TestingSequencer";
 
 import { Balance } from "./mocks/Balance";
@@ -56,7 +56,9 @@ describe("block limit", () => {
   });
 
   async function setUpAppChain(maxBlockSize: number | undefined) {
-    const sequencerClass = testingSequencerFromModules({});
+    const sequencerClass = Sequencer.from({
+      modules: testingSequencerModules({}),
+    });
 
     const protocolClass = Protocol.from({
       modules: VanillaProtocolModules.mandatoryModules({
@@ -85,7 +87,6 @@ describe("block limit", () => {
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
-        ProtocolStartupModule: {},
         SequencerStartupModule: {},
       },
       Runtime: {

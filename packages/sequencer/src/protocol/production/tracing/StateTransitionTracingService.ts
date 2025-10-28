@@ -1,6 +1,10 @@
 import { Bool, Field } from "o1js";
-import { mapSequential, RollupMerkleTree } from "@proto-kit/common";
-import { injectable } from "tsyringe";
+import {
+  LinkedMerkleTree,
+  LinkedMerkleTreeWitness,
+  mapSequential,
+} from "@proto-kit/common";
+import { inject, injectable } from "tsyringe";
 import {
   AppliedBatchHashList,
   AppliedStateTransitionBatchState,
@@ -15,9 +19,11 @@ import {
 import { distinctByString } from "../../../helpers/utils";
 import { BlockWithResult } from "../../../storage/model/Block";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
-import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
-import { SyncCachedMerkleTreeStore } from "../../../state/merkle/SyncCachedMerkleTreeStore";
+import { trace } from "../../../logging/trace";
+import { Tracer } from "../../../logging/Tracer";
+import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
+import { SyncCachedLinkedLeafStore } from "../../../state/merkle/SyncCachedLinkedLeafStore";
 
 export interface TracingStateTransitionBatch {
   stateTransitions: UntypedStateTransition[];
@@ -27,6 +33,8 @@ export interface TracingStateTransitionBatch {
 
 @injectable()
 export class StateTransitionTracingService {
+  public constructor(@inject("Tracer") public readonly tracer: Tracer) {}
+
   private allKeys(stateTransitions: { path: Field }[]): Field[] {
     // We have to do the distinct with strings because
     // array.indexOf() doesn't work with fields
@@ -61,8 +69,9 @@ export class StateTransitionTracingService {
     }, []);
   }
 
+  @trace("batch.trace.transitions.merkle_trace")
   public async createMerkleTrace(
-    merkleStore: CachedMerkleTreeStore,
+    merkleStore: CachedLinkedLeafStore,
     stateTransitions: TracingStateTransitionBatch[]
   ) {
     const batches = StateTransitionProvableBatch.fromBatches(
@@ -85,7 +94,7 @@ export class StateTransitionTracingService {
   }
 
   public async traceTransitions(
-    merkleStore: CachedMerkleTreeStore,
+    merkleStore: CachedLinkedLeafStore,
     batches: StateTransitionProvableBatch[]
   ): Promise<StateTransitionProofParameters[]> {
     const keys = this.allKeys(
@@ -96,9 +105,12 @@ export class StateTransitionTracingService {
 
     await merkleStore.preloadKeys(keys.map((key) => key.toBigInt()));
 
-    let batchMerkleStore = new SyncCachedMerkleTreeStore(merkleStore);
+    let batchMerkleStore = new SyncCachedLinkedLeafStore(merkleStore);
 
-    let tree = new RollupMerkleTree(batchMerkleStore);
+    let tree = new LinkedMerkleTree(
+      batchMerkleStore.treeStore,
+      batchMerkleStore
+    );
     const initialRoot = tree.getRoot();
 
     const batchList = new AppliedBatchHashList(Field(0));
@@ -130,17 +142,19 @@ export class StateTransitionTracingService {
         async (transitionInfo) => {
           const { stateTransition, type, witnessRoot } = transitionInfo;
 
-          const merkleWitness = tree.getWitness(
-            stateTransition.path.toBigInt()
-          );
+          let witness: LinkedMerkleTreeWitness;
 
           if (stateTransition.to.isSome.toBoolean()) {
-            tree.setLeaf(
+            witness = tree.setLeaf(
               stateTransition.path.toBigInt(),
-              stateTransition.to.value
+              stateTransition.to.value.toBigInt()
             );
 
             danglingStateRoot = tree.getRoot();
+          } else {
+            witness = LinkedMerkleTreeWitness.fromReadWitness(
+              tree.getReadWitness(stateTransition.path.toBigInt())
+            );
           }
 
           currentSTList.push(stateTransition);
@@ -168,8 +182,11 @@ export class StateTransitionTracingService {
 
               danglingStateRoot = finalizedStateRoot;
 
-              batchMerkleStore = new SyncCachedMerkleTreeStore(merkleStore);
-              tree = new RollupMerkleTree(batchMerkleStore);
+              batchMerkleStore = new SyncCachedLinkedLeafStore(merkleStore);
+              tree = new LinkedMerkleTree(
+                batchMerkleStore.treeStore,
+                batchMerkleStore
+              );
             } else {
               throw new Error("Unreachable");
             }
@@ -192,7 +209,7 @@ export class StateTransitionTracingService {
               );
           }
 
-          return [merkleWitness, witnessRoot] as const;
+          return [witness, witnessRoot] as const;
         }
       );
 

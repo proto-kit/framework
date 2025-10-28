@@ -16,15 +16,13 @@ import {
 import { Field } from "o1js";
 import { log } from "@proto-kit/common";
 
-import {
-  Block,
-  BlockWithResult,
-  TransactionExecutionResult,
-} from "../../../storage/model/Block";
+import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import { Tracer } from "../../../logging/Tracer";
+import { trace } from "../../../logging/trace";
 
 import {
   BlockTrackers,
@@ -40,6 +38,8 @@ export class BlockProductionService {
   public constructor(
     @inject("Protocol")
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
+    @inject("Tracer")
+    public readonly tracer: Tracer,
     private readonly transactionExecutionService: TransactionExecutionService,
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider
@@ -48,6 +48,7 @@ export class BlockProductionService {
       protocol.dependencyContainer.resolveAll("ProvableBlockHook");
   }
 
+  @trace("block.hook.before")
   public async executeBeforeBlockHook(
     args: BeforeBlockHookArguments,
     inputNetworkState: NetworkState,
@@ -99,13 +100,8 @@ export class BlockProductionService {
 
     const lastResult = lastBlockWithResult.result;
     const lastBlock = lastBlockWithResult.block;
-    const executionResults: TransactionExecutionResult[] = [];
 
-    const incomingMessagesList = new MinaActionsHashList(
-      Field(lastBlock.toMessagesHash)
-    );
-
-    let blockState: BlockTrackers = {
+    const blockState: BlockTrackers = {
       blockHashRoot: Field(lastResult.blockHashRoot),
       eternalTransactionsList: new TransactionHashList(
         lastBlock.toEternalTransactionsHash
@@ -128,28 +124,13 @@ export class BlockProductionService {
       UntypedStateTransition.fromStateTransition(transition)
     );
 
-    for (const tx of transactions) {
-      try {
-        // Create execution trace
-        const [newState, executionTrace] =
-          // eslint-disable-next-line no-await-in-loop
-          await this.transactionExecutionService.createExecutionTrace(
-            stateService,
-            tx,
-            networkState,
-            blockState
-          );
-
-        blockState = newState;
-
-        // Push result to results and transaction onto bundle-hash
-        executionResults.push(executionTrace);
-      } catch (error) {
-        if (error instanceof Error) {
-          log.error("Error in inclusion of tx, skipping", error);
-        }
-      }
-    }
+    const [newBlockState, executionResults] =
+      await this.transactionExecutionService.createExecutionTraces(
+        stateService,
+        transactions,
+        networkState,
+        blockState
+      );
 
     const previousBlockHash =
       lastResult.blockHash === 0n ? undefined : Field(lastResult.blockHash);
@@ -163,15 +144,16 @@ export class BlockProductionService {
 
     const block: Omit<Block, "hash"> = {
       transactions: executionResults,
-      transactionsHash: blockState.transactionList.commitment,
+      transactionsHash: newBlockState.transactionList.commitment,
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
-      toEternalTransactionsHash: blockState.eternalTransactionsList.commitment,
+      toEternalTransactionsHash:
+        newBlockState.eternalTransactionsList.commitment,
       height:
         lastBlock.hash.toBigInt() !== 0n ? lastBlock.height.add(1) : Field(0),
       fromBlockHashRoot: Field(lastResult.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       fromStateRoot: Field(lastResult.stateRoot),
-      toMessagesHash: incomingMessagesList.commitment,
+      toMessagesHash: newBlockState.incomingMessages.commitment,
       previousBlockHash,
 
       networkState: {

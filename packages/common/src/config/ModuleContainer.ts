@@ -273,6 +273,10 @@ export class ModuleContainer<Modules extends ModulesRecord>
         this.onAfterModuleResolution(moduleName);
 
         this.registerAliases(moduleName, useClass);
+
+        if (this.isDependencyFactory(useClass)) {
+          this.useDependencyFactory(useClass);
+        }
       }
     });
   }
@@ -292,16 +296,6 @@ export class ModuleContainer<Modules extends ModulesRecord>
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
       this.container.register(moduleName, { useValue });
-    });
-  }
-
-  protected registerClasses(modules: Record<string, TypedClass<unknown>>) {
-    Object.entries(modules).forEach(([moduleName, useClass]) => {
-      this.container.register(
-        moduleName,
-        { useClass },
-        { lifecycle: Lifecycle.ContainerScoped }
-      );
     });
   }
 
@@ -413,6 +407,7 @@ export class ModuleContainer<Modules extends ModulesRecord>
   protected useDependencyFactory(factory: DependencyFactory) {
     const dependencies = factory.dependencies();
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     Object.entries(dependencies).forEach(([rawKey, declaration]) => {
       const key = rawKey.charAt(0).toUpperCase() + rawKey.slice(1);
 
@@ -420,6 +415,15 @@ export class ModuleContainer<Modules extends ModulesRecord>
         !this.container.isRegistered(key) ||
         declaration.forceOverwrite === true
       ) {
+        if (
+          this.container.isRegistered(key) &&
+          (declaration?.forceOverwrite ?? false)
+        ) {
+          log.warn(
+            `You are trying to overwrite dependency ${key}, which is already registered. This is currently not supported. Try to define your dependency earlier.`
+          );
+        }
+
         // Find correct provider type and call respective register
         if (isValueProvider(declaration)) {
           this.container.register(key, declaration);
@@ -438,6 +442,11 @@ export class ModuleContainer<Modules extends ModulesRecord>
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             declaration.useClass as TypedClass<unknown>
           );
+
+          // Register static dependencies
+          if (this.isDependencyFactory(declaration.useClass)) {
+            this.useDependencyFactory(declaration.useClass);
+          }
         } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,

@@ -4,6 +4,8 @@ import {
   TypedClass,
   ModuleContainerDefinition,
   log,
+  ChildContainerProvider,
+  mapSequential,
 } from "@proto-kit/common";
 import {
   Runtime,
@@ -19,6 +21,8 @@ import { injectable } from "tsyringe";
 
 import { SequencerModule } from "../builder/SequencerModule";
 import { Closeable } from "../builder/Closeable";
+import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
+import { StartableModule } from "../builder/StartableModule";
 
 import { Sequenceable } from "./Sequenceable";
 
@@ -58,6 +62,11 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     >("Protocol");
   }
 
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+    this.useDependencyFactory(ConsoleTracingFactory);
+  }
+
   /**
    * Starts the sequencer by iterating over all provided
    * modules to start each
@@ -71,7 +80,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // ensure that we start modules based on the order they were resolved.
     // We iterate through the methods three times:
 
-    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    this.useDependencyFactory(MethodIdFactory);
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition.modules).map(
@@ -95,30 +104,46 @@ export class Sequencer<Modules extends SequencerModulesRecord>
         }
       );
     }
+
     // Iteration #2: We resolve each module and thus populate
     // the orderedModules list to understand the sequencing.
     // eslint-disable-next-line guard-for-in
     for (const moduleName in this.definition.modules) {
-      const sequencerModule = this.resolve(moduleName);
+      const module = this.resolve(moduleName);
       log.info(
-        `Resolving sequencer module ${moduleName} (${sequencerModule.constructor.name})`
+        `Resolving sequencer module ${moduleName} (${module.constructor.name})`
       );
     }
 
     // Iteration #3: We now iterate though the orderedModules list
     // and start the modules in the order they were resolved.
     for (const moduleName of orderedModules) {
-      const sequencerModule = this.resolve(moduleName);
+      const module = this.resolve(moduleName);
 
       log.info(
-        `Starting sequencer module ${moduleName} (${sequencerModule.constructor.name})`
+        `Starting sequencer module ${moduleName} (${module.constructor.name})`
       );
       // eslint-disable-next-line no-await-in-loop
-      await sequencerModule.start();
+      await module.start();
     }
 
-    // TODO This currently also warns for client appchains
-    if (!moduleClassNames.includes("SequencerStartupModule")) {
+    // Start modules made startable via @startable()
+    // TODO This doesn't dynamically resolve-and-start in-order like normal sequencer modules
+    if (this.container.isRegistered("Startable", true)) {
+      const additionalStartables =
+        this.container.resolveAll<StartableModule>("Startable");
+      await mapSequential(additionalStartables, async (startable) => {
+        log.info(
+          `Starting injected startable module ${startable.constructor.name}`
+        );
+        await startable.start();
+      });
+    }
+
+    if (
+      !moduleClassNames.includes("SequencerStartupModule") &&
+      moduleClassNames.includes("BatchProducerModule")
+    ) {
       log.warn("SequencerStartupModule is not defined.");
     }
   }

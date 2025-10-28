@@ -20,14 +20,14 @@ import { AppChain, InMemoryAreProofsEnabled } from "@proto-kit/sdk";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 
-import { testingSequencerFromModules } from "../TestingSequencer";
+import { testingSequencerModules } from "../TestingSequencer";
 import {
   MinaBaseLayer,
   ProvenSettlementPermissions,
+  Sequencer,
   SettlementModule,
   SettlementProvingTask,
   VanillaTaskWorkerModules,
-  WithdrawalQueue,
 } from "../../src";
 import { SettlementStartupModule } from "../../src/sequencer/SettlementStartupModule";
 
@@ -56,16 +56,17 @@ describe.skip("Proven", () => {
         },
       });
 
-      const sequencerClass = testingSequencerFromModules(
-        {
-          BaseLayer: MinaBaseLayer,
-          SettlementModule,
-          OutgoingMessageQueue: WithdrawalQueue,
-        },
-        {
-          SettlementProvingTask,
-        }
-      );
+      const sequencerClass = Sequencer.from({
+        modules: testingSequencerModules(
+          {
+            BaseLayer: MinaBaseLayer,
+            SettlementModule,
+          },
+          {
+            SettlementProvingTask,
+          }
+        ),
+      });
 
       // TODO Analyze how we can get rid of the library import for mandatory modules
       const protocolClass = Protocol.from({
@@ -105,8 +106,10 @@ describe.skip("Proven", () => {
               type: "local",
             },
           },
-          SettlementModule: {},
-          OutgoingMessageQueue: {},
+          SettlementModule: {
+            // TODO
+            feepayer: PrivateKey.random(),
+          },
         },
         Runtime: {
           Balances: {},
@@ -120,10 +123,7 @@ describe.skip("Proven", () => {
           ProtocolStateTestHook: {},
           SettlementContractModule: {
             SettlementContract: {},
-            BridgeContract: {
-              withdrawalStatePath: "Withdrawals.withdrawals",
-              withdrawalEventName: "withdrawal",
-            },
+            BridgeContract: {},
             DispatchContract: {
               incomingMessagesMethods: {
                 deposit: "Balances.deposit",

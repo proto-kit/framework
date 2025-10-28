@@ -2,6 +2,7 @@ import {
   AreProofsEnabled,
   DependencyFactory,
   ModuleContainerLike,
+  DependencyRecord,
 } from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
@@ -13,7 +14,8 @@ import {
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
-import { WithdrawalQueue } from "../../settlement/messages/WithdrawalQueue";
+import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
+import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
 
 import { BaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
@@ -62,6 +64,14 @@ export class MinaBaseLayer
     super();
   }
 
+  public static dependencies() {
+    return {
+      IncomingMessagesService: {
+        useClass: IncomingMessagesService,
+      },
+    } satisfies DependencyRecord;
+  }
+
   public dependencies() {
     const NetworkUtilsClass = match(this.config.network.type)
       .with("local", () => LocalBlockchainUtils)
@@ -78,8 +88,8 @@ export class MinaBaseLayer
         useClass: MinaTransactionSender,
       },
 
-      OutgoingMessageQueue: {
-        useClass: WithdrawalQueue,
+      OutgoingMessageAdapter: {
+        useClass: DefaultOutgoingMessageAdapter,
       },
 
       NetworkUtils: {

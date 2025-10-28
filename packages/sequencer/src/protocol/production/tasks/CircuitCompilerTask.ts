@@ -15,11 +15,14 @@ import {
   Protocol,
   SettlementContractModule,
   RuntimeVerificationKeyRootService,
+  SettlementSmartContractBase,
   MandatoryProtocolModulesRecord,
 } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../../../worker/flow/Task";
 import { UnpreparingTask } from "../../../worker/flow/UnpreparingTask";
+import { SignedSettlementPermissions } from "../../../settlement/permissions/SignedSettlementPermissions";
+import { ProvenSettlementPermissions } from "../../../settlement/permissions/ProvenSettlementPermissions";
 
 import {
   ArtifactRecordSerializer,
@@ -30,6 +33,7 @@ export type CompilerTaskParams = {
   existingArtifacts: ArtifactRecord;
   targets: string[];
   runtimeVKRoot?: string;
+  isSignedSettlement?: boolean;
 };
 
 @injectable()
@@ -54,6 +58,7 @@ export class CircuitCompilerTask extends UnpreparingTask<
       targets: string[];
       runtimeVKRoot?: string;
       existingArtifacts: SerializedArtifactRecord;
+      isSignedSettlement?: boolean;
     };
 
     const serializer = new ArtifactRecordSerializer();
@@ -63,6 +68,7 @@ export class CircuitCompilerTask extends UnpreparingTask<
           targets: input.targets,
           runtimeVKRoot: input.runtimeVKRoot,
           existingArtifacts: serializer.toJSON(input.existingArtifacts),
+          isSignedSettlement: input.isSignedSettlement,
         } satisfies CompilerTaskParamsJSON),
       fromJSON: (input) => {
         const json = safeParseJson<CompilerTaskParamsJSON>(input);
@@ -70,6 +76,7 @@ export class CircuitCompilerTask extends UnpreparingTask<
           targets: json.targets,
           runtimeVKRoot: json.runtimeVKRoot,
           existingArtifacts: serializer.fromJSON(json.existingArtifacts),
+          isSignedSettlement: json.isSignedSettlement,
         };
       },
     };
@@ -140,6 +147,19 @@ export class CircuitCompilerTask extends UnpreparingTask<
       this.protocol.dependencyContainer
         .resolve(RuntimeVerificationKeyRootService)
         .setRoot(BigInt(input.runtimeVKRoot));
+    }
+
+    if (input.isSignedSettlement !== undefined) {
+      const contractArgs = SettlementSmartContractBase.args;
+      SettlementSmartContractBase.args = {
+        ...contractArgs,
+        signedSettlements: input.isSignedSettlement,
+        // TODO Add distinction between mina and custom tokens
+        BridgeContractPermissions: (input.isSignedSettlement
+          ? new SignedSettlementPermissions()
+          : new ProvenSettlementPermissions()
+        ).bridgeContractMina(),
+      };
     }
 
     // TODO make adaptive

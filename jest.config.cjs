@@ -44,4 +44,5 @@ module.exports = {
       },
     ],
   },
+  setupFilesAfterEnv: ["./console-jest.config.js"],
 };
