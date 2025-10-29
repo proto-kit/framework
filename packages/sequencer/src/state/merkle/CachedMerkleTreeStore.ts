@@ -154,6 +154,11 @@ export class CachedMerkleTreeStore
 
     const toFetch: MerkleTreeNodeQuery[] = [];
 
+    // TODO Replace this logic with the following:
+    //  Collect toFetch as { nodeQuery, arrayIndex }
+    //  After fetching, set the data at the specific arrayIndizes
+    //  Same goes for CachedLinkedLeafStore
+
     nodes.forEach((node, index) => {
       const localResult = this.getNode(node.key, node.level);
       if (localResult !== undefined) {

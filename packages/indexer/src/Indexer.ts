@@ -1,4 +1,10 @@
-import { ModuleContainer, ModulesRecord, TypedClass } from "@proto-kit/common";
+import {
+  ChildContainerProvider,
+  ModuleContainer,
+  ModulesRecord,
+  TypedClass,
+} from "@proto-kit/common";
+import { ConsoleTracingFactory } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 
 import { IndexerModule } from "./IndexerModule";
@@ -18,6 +24,11 @@ export class Indexer<
 
   public get taskQueue(): InstanceType<Modules["TaskQueue"]> {
     return this.container.resolve("TaskQueue");
+  }
+
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+    this.useDependencyFactory(ConsoleTracingFactory);
   }
 
   public async start() {

@@ -27,7 +27,6 @@ import {
   SettlementModule,
   SettlementProvingTask,
   VanillaTaskWorkerModules,
-  WithdrawalQueue,
   AppChain,
   InMemoryAreProofsEnabled,
 } from "../../src";
@@ -49,18 +48,17 @@ describe.skip("Proven", () => {
       Balances: ProvenBalance,
     });
 
-    const sequencerClass = Sequencer.from(
-      testingSequencerModules(
-        {
-          BaseLayer: MinaBaseLayer,
-          SettlementModule,
-          OutgoingMessageQueue: WithdrawalQueue,
-        },
-        {
-          SettlementProvingTask,
-        }
-      )
-    );
+      const sequencerClass = Sequencer.from(
+        testingSequencerModules(
+          {
+            BaseLayer: MinaBaseLayer,
+            SettlementModule,
+          },
+          {
+            SettlementProvingTask,
+          }
+        )
+      );
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
@@ -109,7 +107,6 @@ describe.skip("Proven", () => {
             // TODO
             feepayer: PrivateKey.random(),
           },
-          OutgoingMessageQueue: {},
         },
         Runtime: {
           Balances: {},
@@ -123,10 +120,7 @@ describe.skip("Proven", () => {
           ProtocolStateTestHook: {},
           SettlementContractModule: {
             SettlementContract: {},
-            BridgeContract: {
-              withdrawalStatePath: "Withdrawals.withdrawals",
-              withdrawalEventName: "withdrawal",
-            },
+            BridgeContract: {},
             DispatchContract: {
               incomingMessagesMethods: {
                 deposit: "Balances.deposit",

@@ -36,7 +36,7 @@ import {
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
-  MerkleWitnessResolver,
+  LinkedMerkleWitnessResolver as MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
   BlockResolver,
@@ -215,6 +215,7 @@ export async function startServer() {
       BlockTrigger: {
         blockInterval: 10000,
         settlementInterval: 20000,
+        settlementTokenConfig: {},
       },
     },
 

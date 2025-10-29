@@ -13,6 +13,10 @@ import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
 import { Block, BlockWithResult } from "../../../storage/model/Block";
+import {
+  BridgingModule,
+  SettlementTokenConfig,
+} from "../../../settlement/BridgingModule";
 
 /**
  * A BlockTrigger is the primary method to start the production of a block and
@@ -43,6 +47,7 @@ export class BlockTriggerBase<
     protected readonly blockProducerModule: BlockProducerModule,
     protected readonly batchProducerModule: BatchProducerModule | undefined,
     protected readonly settlementModule: SettlementModule | undefined,
+    protected readonly bridgingModule: BridgingModule | undefined,
     protected readonly blockQueue: BlockQueue
   ) {
     super();
@@ -87,14 +92,30 @@ export class BlockTriggerBase<
     return blockWithResult?.block;
   }
 
-  protected async settle(batch: SettleableBatch) {
+  protected async settle(
+    batch: SettleableBatch,
+    config: SettlementTokenConfig
+    // nonce?: number
+  ) {
     if (this.settlementModule === undefined) {
       log.info(
         "SettlementModule not configured, cannot compute settlement, skipping"
       );
       return undefined;
     }
-    return await this.settlementModule.settleBatch(batch);
+    const settlement = await this.settlementModule.settleBatch(batch);
+
+    const txs = await this.bridgingModule?.sendRollupTransactions(
+      [batch],
+      config
+      // TODO nonce override
+    );
+
+    log.info(
+      `Settlement complete (additional ${txs?.length ?? 0} outgoing message batches rolled up)`
+    );
+
+    return { settlement, bridgeTransactions: txs };
   }
 
   public async start(): Promise<void> {

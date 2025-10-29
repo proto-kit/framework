@@ -213,11 +213,11 @@ export class MinaTransactionSimulator {
     const { balance, nonce, state } = au.body.preconditions.account;
 
     if (balance.isSome.toBoolean()) {
-      const nonceValid = account.balance
+      const balanceEnough = account.balance
         .greaterThanOrEqual(balance.value.lower)
         .and(account.balance.lessThanOrEqual(balance.value.upper))
         .toBoolean();
-      if (!nonceValid) errors.push("Not enough balance on account");
+      if (!balanceEnough) errors.push("Not enough balance on account");
     }
 
     if (nonce.isSome.toBoolean()) {

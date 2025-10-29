@@ -40,7 +40,7 @@ describe("worker-proven", () => {
 
     beforeAll(async () => {
       worker = new ChildProcessWorker();
-      worker.start(true);
+      worker.start(true, { PROOFS_ENABLED: `${proofsEnabled}` });
     });
 
     afterAll(async () => {
@@ -57,7 +57,7 @@ describe("worker-proven", () => {
         const sequencerClass = Sequencer.from({
           Database: InMemoryDatabase,
           Mempool: PrivateMempool,
-          BaseLayer: NoopBaseLayer,
+          // BaseLayer: NoopBaseLayer,
           BatchProducerModule,
           BlockProducerModule,
           BlockTrigger: ManualBlockTrigger,
@@ -79,7 +79,7 @@ describe("worker-proven", () => {
             Mempool: {},
             BatchProducerModule: {},
             BlockProducerModule: {},
-            BaseLayer: {},
+            // BaseLayer: {},
             TaskQueue: BullConfig,
             FeeStrategy: {},
             SequencerStartupModule: {},

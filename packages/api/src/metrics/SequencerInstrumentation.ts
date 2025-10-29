@@ -1,6 +1,5 @@
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { BlockTriggerBase, PrivateMempool } from "@proto-kit/sequencer";
-import { injectOptional } from "@proto-kit/common";
 import { InstrumentationBase } from "@opentelemetry/instrumentation";
 
 @injectable()
@@ -8,9 +7,9 @@ export class SequencerInstrumentation extends InstrumentationBase<{}> {
   private blockProduced: (height: number) => void = () => {};
 
   public constructor(
-    @injectOptional("BlockTrigger")
+    @inject("BlockTrigger", { isOptional: true })
     trigger: BlockTriggerBase | undefined,
-    @injectOptional("Mempool")
+    @inject("Mempool", { isOptional: true })
     private readonly mempool: PrivateMempool | undefined
   ) {
     super("protokit", "canary", {});

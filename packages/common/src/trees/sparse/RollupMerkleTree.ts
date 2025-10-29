@@ -1,12 +1,13 @@
 import { Bool, Field, Poseidon, Provable, Struct } from "o1js";
+import uniqBy from "lodash/uniqBy";
 
-import { range } from "../utils";
-import { TypedClass } from "../types";
+import { range } from "../../utils";
+import { TypedClass } from "../../types";
 
 import { MerkleTreeStore } from "./MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
 
-class StructTemplate extends Struct({
+export class StructTemplate extends Struct({
   path: Provable.Array(Field, 0),
   isLeft: Provable.Array(Bool, 0),
 }) {}
@@ -16,7 +17,7 @@ export interface AbstractMerkleWitness extends StructTemplate {
 
   /**
    * Calculates a root depending on the leaf value.
-   * @param leaf Value of the leaf node that belongs to this Witness.
+   * @param hash Value of the leaf node that belongs to this Witness.
    * @returns The calculated root.
    */
   calculateRoot(hash: Field): Field;
@@ -28,6 +29,8 @@ export interface AbstractMerkleWitness extends StructTemplate {
   calculateIndex(): Field;
 
   checkMembership(root: Field, key: Field, value: Field): Bool;
+
+  checkMembershipSimple(root: Field, value: Field): Bool;
 
   checkMembershipGetRoots(
     root: Field,
@@ -64,6 +67,8 @@ export interface AbstractMerkleTree {
    * @param leaf New value.
    */
   setLeaf(index: bigint, leaf: Field): void;
+
+  setLeaves(updates: { index: bigint; leaf: Field }[]): void;
 
   /**
    * Returns the witness (also known as
@@ -115,7 +120,7 @@ export interface AbstractMerkleTreeClass {
  */
 export function createMerkleTree(height: number): AbstractMerkleTreeClass {
   /**
-   * The {@link BaseMerkleWitness} class defines a circuit-compatible base class
+   * The {@link RollupMerkleWitness} class defines a circuit-compatible base class
    * for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
    */
   class RollupMerkleWitness
@@ -176,6 +181,11 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       return root.equals(calculatedRoot);
     }
 
+    public checkMembershipSimple(root: Field, value: Field): Bool {
+      const calculatedRoot = this.calculateRoot(value);
+      return root.equals(calculatedRoot);
+    }
+
     public checkMembershipGetRoots(
       root: Field,
       key: Field,
@@ -200,12 +210,11 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
     public static dummy() {
       return new RollupMerkleWitness({
-        isLeft: Array<Bool>(height - 1).fill(Bool(true)),
-        path: Array<Field>(height - 1).fill(Field(0)),
+        isLeft: Array<Bool>(this.height - 1).fill(Bool(true)),
+        path: Array<Field>(this.height - 1).fill(Field(0)),
       });
     }
   }
-
   return class AbstractRollupMerkleTree implements AbstractMerkleTree {
     public static HEIGHT = height;
 
@@ -288,6 +297,67 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       }
     }
 
+    public setLeaves(updates: { index: bigint; leaf: Field }[]) {
+      updates.forEach(({ index }) => this.assertIndexRange(index));
+
+      type Change = { level: number; index: bigint; value: Field };
+      const changes: Change[] = [];
+
+      // We have to reverse here, because uniqBy only takes the first occurrence of every entry,
+      // but we need the last one (since that semantically overwrites the previous one,
+      // so we can ignore it)
+      let levelChanges = uniqBy(updates.reverse(), "index")
+        // we can assume no index is in this list twice, so we don't care about the 0 case
+        // This is in reverse order, so its a queue
+        .sort((a, b) => (a.index < b.index ? 1 : -1));
+
+      changes.push(
+        ...levelChanges
+          .map(({ leaf, index }) => ({
+            level: 0,
+            index,
+            value: leaf,
+          }))
+          .reverse()
+      );
+
+      for (let level = 1; level < AbstractRollupMerkleTree.HEIGHT; level += 1) {
+        const nextLevelChanges: typeof levelChanges = [];
+        while (levelChanges.length > 0) {
+          const node = levelChanges.pop()!;
+
+          let newNode;
+          if (node.index % 2n === 0n) {
+            let sibling;
+            const potentialSibling = levelChanges.at(-1);
+            if (
+              potentialSibling !== undefined &&
+              potentialSibling.index === node.index + 1n
+            ) {
+              sibling = potentialSibling.leaf;
+              levelChanges.pop();
+            } else {
+              sibling = Field(this.getNode(level - 1, node.index + 1n));
+            }
+            newNode = Poseidon.hash([node.leaf, sibling]);
+          } else {
+            const sibling = Field(this.getNode(level - 1, node.index - 1n));
+            newNode = Poseidon.hash([sibling, node.leaf]);
+          }
+
+          const nextLevelIndex = node.index / 2n;
+          changes.push({ level, index: nextLevelIndex, value: newNode });
+          nextLevelChanges.push({ index: nextLevelIndex, leaf: newNode });
+        }
+
+        levelChanges = nextLevelChanges.reverse();
+      }
+
+      changes.forEach(({ level, index, value }) => {
+        this.setNode(level, index, value);
+      });
+    }
+
     /**
      * Returns the witness (also known as
      * [Merkle Proof or Merkle Witness](https://computersciencewiki.org/index.php/Merkle_proof))
@@ -349,7 +419,7 @@ export class RollupMerkleTreeWitness extends RollupMerkleTree.WITNESS {}
  * More efficient version of `maybeSwapBad` which
  * reuses an intermediate variable
  */
-function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
+export function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
   const m = b.toField().mul(x.sub(y)); // b*(x - y)
   const x1 = y.add(m); // y + b*(x - y)
   const y2 = x.sub(m); // x - b*(x - y) = x + b*(y - x)

@@ -25,7 +25,7 @@ describe("cached merkle store", () => {
     tree1 = new RollupMerkleTree(cache1);
   });
 
-  it("should cache multiple keys corretly", async () => {
+  it("should cache multiple keys correctly", async () => {
     expect.assertions(3);
 
     const cache2 = new CachedMerkleTreeStore(cache1);

@@ -9,18 +9,18 @@ import {
   WitnessedRootHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
-import { mapSequential, RollupMerkleTree } from "@proto-kit/common";
+import { LinkedMerkleTree, mapSequential } from "@proto-kit/common";
 import { toStateTransitionsHash } from "@proto-kit/module";
 
 import {
-  CachedMerkleTreeStore,
-  InMemoryAsyncMerkleTreeStore,
   UntypedStateTransition,
   StateTransitionTracingService,
   TracingStateTransitionBatch,
   StateTransitionProofParameters,
   ConsoleTracer,
+  CachedLinkedLeafStore,
 } from "../../../src";
+import { InMemoryAsyncLinkedLeafStore } from "../../../src/storage/inmemory/InMemoryAsyncLinkedLeafStore";
 
 function createST(obj: {
   path: string;
@@ -52,19 +52,19 @@ function createSTSimple(
 
 async function applyBatchesToTree(
   batches: TracingStateTransitionBatch[],
-  cached: CachedMerkleTreeStore
+  cached: CachedLinkedLeafStore
 ) {
   const sts = batches
     .filter((x) => x.applied)
     .flatMap(({ stateTransitions }) => stateTransitions);
 
-  const tree = new RollupMerkleTree(cached);
+  const tree = new LinkedMerkleTree(cached.treeStore, cached);
 
   await mapSequential(sts, async (st) => {
     await cached.preloadKey(st.path.toBigInt());
 
     if (st.to.isSome.toBoolean()) {
-      tree.setLeaf(st.path.toBigInt(), st.to.treeValue);
+      tree.setLeaf(st.path.toBigInt(), st.to.treeValue.toBigInt());
     }
   });
 
@@ -162,12 +162,13 @@ describe("StateTransitionTracingService", () => {
   });
 
   describe.each(cases)("tracing two chunks of STs", ({ batch, numSTs }) => {
-    const store = new InMemoryAsyncMerkleTreeStore();
-    const cached = new CachedMerkleTreeStore(store);
+    const store = new InMemoryAsyncLinkedLeafStore();
 
     let trace: StateTransitionProofParameters[];
 
     beforeAll(async () => {
+      const cached = await CachedLinkedLeafStore.new(store);
+
       trace = await service.createMerkleTrace(cached, batch);
     });
 
@@ -180,7 +181,7 @@ describe("StateTransitionTracingService", () => {
     it("should set second publicInput correctly", async () => {
       const tree = await applyBatchesToTree(
         batch.slice(0, 4),
-        new CachedMerkleTreeStore(store)
+        await CachedLinkedLeafStore.new(store)
       );
 
       expect(trace[1].publicInput.root.toString()).toStrictEqual(
@@ -215,7 +216,7 @@ describe("StateTransitionTracingService", () => {
       const witnessedRootsList = new WitnessedRootHashList();
       const tempTree = await applyBatchesToTree(
         batch.slice(0, 2),
-        new CachedMerkleTreeStore(store)
+        await CachedLinkedLeafStore.new(store)
       );
 
       witnessedRootsList.push({
@@ -234,12 +235,12 @@ describe("StateTransitionTracingService", () => {
   });
 
   describe("tracing two separate sequences", () => {
-    const store = new InMemoryAsyncMerkleTreeStore();
-    const cached = new CachedMerkleTreeStore(store);
+    const store = new InMemoryAsyncLinkedLeafStore();
+    let cached: CachedLinkedLeafStore;
 
     let trace1: StateTransitionProofParameters[];
     let trace2: StateTransitionProofParameters[];
-    let tree1: RollupMerkleTree;
+    let tree1: LinkedMerkleTree;
 
     const batches: TracingStateTransitionBatch[][] = [
       [
@@ -264,9 +265,10 @@ describe("StateTransitionTracingService", () => {
     ];
 
     beforeAll(async () => {
+      cached = await CachedLinkedLeafStore.new(store);
       trace1 = await service.createMerkleTrace(cached, batches[0]);
 
-      const cached2 = new CachedMerkleTreeStore(store);
+      const cached2 = await CachedLinkedLeafStore.new(store);
       tree1 = await applyBatchesToTree(batches[0], cached2);
 
       trace2 = await service.createMerkleTrace(cached, batches[1]);
@@ -295,8 +297,8 @@ describe("StateTransitionTracingService", () => {
   });
 
   describe("should trace correctly", () => {
-    const store = new InMemoryAsyncMerkleTreeStore();
-    const cached = new CachedMerkleTreeStore(store);
+    const store = new InMemoryAsyncLinkedLeafStore();
+    let cached: CachedLinkedLeafStore;
 
     const batches: TracingStateTransitionBatch[] = [
       {
@@ -319,6 +321,7 @@ describe("StateTransitionTracingService", () => {
     let trace: StateTransitionProofParameters[];
 
     beforeAll(async () => {
+      cached = await CachedLinkedLeafStore.new(store);
       trace = await service.createMerkleTrace(cached, batches);
     });
 
@@ -348,15 +351,15 @@ describe("StateTransitionTracingService", () => {
         expect(result).toBeDefined();
 
         // Check that root matches
-        const tree = new RollupMerkleTree(cached);
+        const tree = new LinkedMerkleTree(cached.treeStore, cached);
         expect(result.root.toString()).toStrictEqual(tree.getRoot().toString());
       });
     });
 
     it("check that STs have been applied to the tree store", async () => {
-      const tracedTree = new RollupMerkleTree(cached);
+      const tracedTree = new LinkedMerkleTree(cached.treeStore, cached);
 
-      const cached2 = new CachedMerkleTreeStore(store);
+      const cached2 = await CachedLinkedLeafStore.new(store);
       const tree = await applyBatchesToTree(batches, cached2);
 
       expect(tracedTree.getRoot().toString()).toStrictEqual(

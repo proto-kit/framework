@@ -18,9 +18,7 @@ export class WorkerRegistrationFlow implements Closeable {
 
   flow?: Closeable;
 
-  public async start(
-    payload: Omit<WorkerStartupPayload, "salt">
-  ): Promise<void> {
+  public async start(payload: WorkerStartupPayload): Promise<void> {
     const flow = this.flowCreator.createFlow("register-worker-flow", {});
     this.flow = flow;
 

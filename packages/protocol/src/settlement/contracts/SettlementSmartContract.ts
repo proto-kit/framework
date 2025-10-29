@@ -1,9 +1,9 @@
 import {
   prefixToField,
-  RollupMerkleTree,
   TypedClass,
   mapSequential,
   ChildVerificationKeyService,
+  LinkedMerkleTree,
 } from "@proto-kit/common";
 import {
   AccountUpdate,
@@ -256,7 +256,7 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     this.dispatchContractAddressX.getAndRequireEquals().assertEquals(Field(0));
 
     this.sequencerKey.set(sequencer.x);
-    this.stateRoot.set(Field(RollupMerkleTree.EMPTY_ROOT));
+    this.stateRoot.set(LinkedMerkleTree.EMPTY_ROOT);
     this.blockHashRoot.set(Field(BlockHashMerkleTree.EMPTY_ROOT));
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);

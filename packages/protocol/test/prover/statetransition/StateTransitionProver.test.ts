@@ -1,9 +1,9 @@
 import { Bool, Field } from "o1js";
 import {
+  InMemoryLinkedLeafStore,
   InMemoryMerkleTreeStorage,
+  LinkedMerkleTree,
   padArray,
-  RollupMerkleTree,
-  RollupMerkleTreeWitness,
 } from "@proto-kit/common";
 import { InMemoryAreProofsEnabled } from "@proto-kit/sequencer";
 
@@ -74,8 +74,13 @@ describe("StateTransitionProver", () => {
           },
         ]);
 
-        const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
-        const witness = tree.getWitness(1n);
+        const tree = new LinkedMerkleTree(
+          new InMemoryMerkleTreeStorage(),
+          new InMemoryLinkedLeafStore()
+        );
+        const witness = LinkedMerkleTree.WITNESS.fromReadWitness(
+          tree.getReadWitness(1n)
+        );
 
         const result = await prover.proveBatch(
           {
@@ -87,7 +92,7 @@ describe("StateTransitionProver", () => {
           batch[0],
           {
             witnesses: padArray([witness], 4, () =>
-              RollupMerkleTreeWitness.dummy()
+              LinkedMerkleTree.dummyWitness()
             ),
           },
           new AppliedStateTransitionBatchState({
@@ -116,17 +121,17 @@ describe("StateTransitionProver", () => {
       const prove = async () =>
         await prover.proveBatch(
           {
-            root: Field(RollupMerkleTree.EMPTY_ROOT),
+            root: Field(LinkedMerkleTree.EMPTY_ROOT),
             witnessedRootsHash: Field(0),
             batchesHash: Field(0),
             currentBatchStateHash: Field(0),
           },
           batch[0],
           {
-            witnesses: padArray([], 4, RollupMerkleTreeWitness.dummy),
+            witnesses: padArray([], 4, () => LinkedMerkleTree.dummyWitness()),
           },
           new AppliedStateTransitionBatchState({
-            root: Field(RollupMerkleTree.EMPTY_ROOT),
+            root: Field(LinkedMerkleTree.EMPTY_ROOT),
             batchHash: Field(0),
           })
         );
@@ -151,13 +156,20 @@ describe("StateTransitionProver", () => {
         },
       ]);
 
-      const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
+      const tree = new LinkedMerkleTree(
+        new InMemoryMerkleTreeStorage(),
+        new InMemoryLinkedLeafStore()
+      );
 
       const inputRoot = tree.getRoot();
 
-      const witness = tree.getWitness(1n);
-      tree.setLeaf(1n, Field(2));
-      const witness2 = tree.getWitness(2n);
+      const witness = LinkedMerkleTree.WITNESS.fromReadWitness(
+        tree.getReadWitness(1n)
+      );
+      tree.setLeaf(1n, 2n);
+      const witness2 = LinkedMerkleTree.WITNESS.fromReadWitness(
+        tree.getReadWitness(2n)
+      );
 
       const prove = async () =>
         await prover.proveBatch(
@@ -171,9 +183,9 @@ describe("StateTransitionProver", () => {
           {
             witnesses: [
               witness,
-              RollupMerkleTreeWitness.dummy(),
+              LinkedMerkleTree.dummyWitness(),
               witness2,
-              RollupMerkleTreeWitness.dummy(),
+              LinkedMerkleTree.dummyWitness(),
             ],
           },
           new AppliedStateTransitionBatchState({
@@ -209,31 +221,40 @@ describe("StateTransitionProver", () => {
         },
       ]);
 
-      const tree = new RollupMerkleTree(new InMemoryMerkleTreeStorage());
+      const tree = new LinkedMerkleTree(
+        new InMemoryMerkleTreeStorage(),
+        new InMemoryLinkedLeafStore()
+      );
 
-      const witness1 = tree.getWitness(1n);
-      tree.setLeaf(1n, Field(2));
-      const witness2 = tree.getWitness(2n);
-      tree.setLeaf(2n, Field(3));
+      const witness1 = tree.setLeaf(1n, 2n);
+      const witness2 = tree.setLeaf(2n, 3n);
+
+      const resultRoot = tree.getRoot();
+
+      const witness3 = tree.setLeaf(2n, 4n);
+      const witness4 = tree.setLeaf(2n, 5n);
 
       const result = await prover.proveBatch(
         {
-          root: Field(RollupMerkleTree.EMPTY_ROOT),
+          root: Field(LinkedMerkleTree.EMPTY_ROOT),
           witnessedRootsHash: Field(0),
           batchesHash: Field(0),
           currentBatchStateHash: Field(0),
         },
         batch[0],
         {
-          witnesses: [witness1, witness2, witness2, witness2],
+          witnesses: [witness1, witness2, witness3, witness4],
+          //   .map((x) =>
+          //   LinkedMerkleTree.WITNESS.fromReadWitness(x)
+          // ),
         },
         new AppliedStateTransitionBatchState({
-          root: Field(RollupMerkleTree.EMPTY_ROOT),
+          root: Field(LinkedMerkleTree.EMPTY_ROOT),
           batchHash: Field(0),
         })
       );
 
-      expect(result.root.toString()).toStrictEqual(tree.getRoot().toString());
+      expect(result.root.toString()).toStrictEqual(resultRoot.toString());
       expect(result.currentBatchStateHash.toString()).toStrictEqual("0");
     });
   });

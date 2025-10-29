@@ -1,5 +1,4 @@
-import { injectable } from "tsyringe";
-import { injectOptional } from "@proto-kit/common";
+import { inject, injectable } from "tsyringe";
 
 import { LocalTaskWorkerModule } from "./LocalTaskWorkerModule";
 
@@ -10,7 +9,7 @@ import { LocalTaskWorkerModule } from "./LocalTaskWorkerModule";
 @injectable()
 export class WorkerReadyModule {
   public constructor(
-    @injectOptional("LocalTaskWorkerModule")
+    @inject("LocalTaskWorkerModule", { isOptional: true })
     private readonly localTaskWorkerModule:
       | LocalTaskWorkerModule<any>
       | undefined

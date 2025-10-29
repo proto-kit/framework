@@ -1,9 +1,9 @@
 import {
   ConfigurableModule,
+  NoConfig,
+  Presets,
   StaticConfigurableModule,
   TypedClass,
-  Presets,
-  NoConfig,
   Startable,
 } from "@proto-kit/common";
 import { injectable } from "tsyringe";

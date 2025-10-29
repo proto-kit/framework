@@ -13,7 +13,7 @@ import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 // We need to create a correctly configured Decimal constructor
 // with our parameters
-const Decimal = Prisma.Decimal.clone({
+export const Decimal = Prisma.Decimal.clone({
   precision: 78,
 });
 
@@ -36,29 +36,32 @@ export class PrismaStateService implements AsyncStateService {
   public async commit(): Promise<void> {
     const { prismaClient } = this.connection;
 
-    const data = this.cache
-      .filter((entry) => entry.value !== undefined)
-      .map((entry) => ({
-        path: new Decimal(entry.key.toString()),
-        values: entry.value!.map((field) => new Decimal(field.toString())),
-        mask: this.mask,
-      }));
+    if (this.cache.length > 0) {
+      const data = this.cache
+        .filter((entry) => entry.value !== undefined)
+        .map((entry) => ({
+          path: new Decimal(entry.key.toString()),
+          values: entry.value!.map((field) => new Decimal(field.toString())),
+          mask: this.mask,
+        }));
 
-    await prismaClient.state.deleteMany({
-      where: {
-        path: {
-          in: this.cache.map((x) => new Decimal(x.key.toString())),
+      await prismaClient.state.deleteMany({
+        where: {
+          path: {
+            in: this.cache.map((x) => new Decimal(x.key.toString())),
+          },
+          mask: this.mask,
         },
-        mask: this.mask,
-      },
-    });
-    await prismaClient.state.createMany({
-      data,
-    });
+      });
+      await prismaClient.state.createMany({
+        data,
+      });
+    }
 
     this.cache = [];
   }
 
+  @trace("db.state.getMany")
   public async getMany(keys: Field[]): Promise<StateEntry[]> {
     const records = await this.connection.prismaClient.state.findMany({
       where: {

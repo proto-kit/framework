@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { afterAll, beforeAll, expect } from "@jest/globals";
-import { expectDefined } from "@proto-kit/common";
+import { expectDefined, log } from "@proto-kit/common";
 import { PrivateKey } from "o1js";
 import { container } from "tsyringe";
 
@@ -18,8 +18,7 @@ describe("sequencer restart", () => {
 
   const clearDB = async () => {
     const db = appChain.sequencer.resolve("Database");
-    await db.prisma.pruneDatabase();
-    await db.redis.pruneDatabase();
+    await db.pruneDatabase();
   };
 
   const setup = async () => {
@@ -29,6 +28,11 @@ describe("sequencer restart", () => {
     appChain.configurePartial({
       Signer: {
         signer: sender,
+      },
+      Sequencer: {
+        DatabasePruneModule: {
+          pruneOnStartup: false,
+        },
       },
     });
 
@@ -40,6 +44,7 @@ describe("sequencer restart", () => {
   };
 
   beforeAll(async () => {
+    log.setLevel("DEBUG");
     await setup();
     await clearDB();
 

@@ -1,5 +1,4 @@
 import { inject } from "tsyringe";
-import { injectOptional } from "@proto-kit/common";
 
 import { sequencerModule } from "../../../sequencer/builder/SequencerModule";
 import { SettleableBatch } from "../../../storage/model/Batch";
@@ -8,6 +7,10 @@ import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { Block, BlockWithResult } from "../../../storage/model/Block";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { SettlementModule } from "../../../settlement/SettlementModule";
+import {
+  BridgingModule,
+  SettlementTokenConfig,
+} from "../../../settlement/BridgingModule";
 
 import { BlockTrigger, BlockTriggerBase } from "./BlockTrigger";
 
@@ -21,8 +24,10 @@ export class ManualBlockTrigger
     batchProducerModule: BatchProducerModule,
     @inject("BlockProducerModule")
     blockProducerModule: BlockProducerModule,
-    @injectOptional("SettlementModule")
+    @inject("SettlementModule", { isOptional: true })
     settlementModule: SettlementModule | undefined,
+    @inject("BridgingModule", { isOptional: true })
+    bridgingModule: BridgingModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue
   ) {
@@ -30,7 +35,7 @@ export class ManualBlockTrigger
       blockProducerModule,
       batchProducerModule,
       settlementModule,
-
+      bridgingModule,
       blockQueue
     );
   }
@@ -50,8 +55,8 @@ export class ManualBlockTrigger
     return await super.produceBatch();
   }
 
-  public async settle(batch: SettleableBatch) {
-    return await super.settle(batch);
+  public async settle(batch: SettleableBatch, config: SettlementTokenConfig) {
+    return await super.settle(batch, config);
   }
 
   public async produceBlock(): Promise<Block | undefined> {

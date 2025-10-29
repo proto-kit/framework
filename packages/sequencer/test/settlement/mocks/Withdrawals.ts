@@ -1,57 +1,44 @@
 import {
-  RuntimeEvents,
+  outgoingMessage,
+  OutgoingMessages,
   runtimeMethod,
   runtimeModule,
   RuntimeModule,
 } from "@proto-kit/module";
-import { StateMap, Withdrawal, state } from "@proto-kit/protocol";
-import { Field, PublicKey, Struct, UInt64 } from "o1js";
+import {
+  MessageProcessorArgs,
+  outgoingMessageProcessor,
+  OutgoingMessageProcessor,
+} from "@proto-kit/protocol";
+import { AccountUpdate, Field, PublicKey, Struct, TokenId, UInt64 } from "o1js";
 import { inject } from "tsyringe";
+import { EMPTY_PUBLICKEY } from "@proto-kit/common";
 
 import { Balances } from "./Balances";
 
-export class WithdrawalKey extends Struct({
-  index: Field,
+export class Withdrawal extends Struct({
   tokenId: Field,
-}) {}
-
-export class WithdrawalEvent extends Struct({
-  key: WithdrawalKey,
-  value: Withdrawal,
-}) {}
+  address: PublicKey,
+  amount: UInt64,
+}) {
+  public static dummy() {
+    return new Withdrawal({
+      tokenId: Field(0),
+      address: EMPTY_PUBLICKEY,
+      amount: UInt64.from(0),
+    });
+  }
+}
 
 @runtimeModule()
 export class Withdrawals extends RuntimeModule {
-  events = new RuntimeEvents({
-    withdrawal: WithdrawalEvent,
+  @outgoingMessage()
+  public messages = new OutgoingMessages({
+    withdrawal: Withdrawal,
   });
-
-  @state() withdrawalCounters = StateMap.from(Field, Field);
-
-  @state() withdrawals = StateMap.from<WithdrawalKey, Withdrawal>(
-    WithdrawalKey,
-    Withdrawal
-  );
 
   public constructor(@inject("Balances") private readonly balances: Balances) {
     super();
-  }
-
-  protected async queueWithdrawal(withdrawal: Withdrawal) {
-    const { tokenId } = withdrawal;
-    const counter = (await this.withdrawalCounters.get(tokenId)).orElse(
-      Field(0)
-    );
-
-    const key = { index: counter, tokenId };
-    await this.withdrawals.set(key, withdrawal);
-
-    await this.withdrawalCounters.set(tokenId, counter.add(1));
-
-    this.events.emit("withdrawal", {
-      key,
-      value: withdrawal,
-    });
   }
 
   @runtimeMethod()
@@ -69,13 +56,43 @@ export class Withdrawals extends RuntimeModule {
     await this.balances.setBalance(tokenId, address, balance.sub(amount));
 
     // Add withdrawal to queue
-    await this.queueWithdrawal(
+    await this.messages.emitMessage(
+      "withdrawal",
       new Withdrawal({
         address,
         // Has to be o1js UInt since the withdrawal will be processed in a o1js SmartContract
         amount: amount,
         tokenId: tokenId,
-      })
+      }),
+      tokenId
     );
+  }
+}
+
+@outgoingMessageProcessor()
+export class WithdrawalMessageProcessor extends OutgoingMessageProcessor<Withdrawal> {
+  type = Withdrawal;
+
+  messageType = "withdrawal";
+
+  dummy(): Withdrawal {
+    return Withdrawal.dummy();
+  }
+
+  process(
+    message: Withdrawal,
+    { bridgeContract }: MessageProcessorArgs
+  ): AccountUpdate[] {
+    const subTokenId = TokenId.derive(
+      bridgeContract.publicKey,
+      bridgeContract.tokenId
+    );
+    const mintAccountUpdate = AccountUpdate.default(
+      message.address,
+      subTokenId
+    );
+    mintAccountUpdate.balance.addInPlace(message.amount);
+    mintAccountUpdate.label = "Withdrawal processor: mint token";
+    return [mintAccountUpdate];
   }
 }

@@ -3,7 +3,7 @@ import { InMemoryMerkleTreeStorage } from "@proto-kit/common";
 import { Bool, Field } from "o1js";
 
 import { Option, ProvableStateTransition } from "../src/index";
-import { RollupMerkleTree } from "../../common/src/trees/RollupMerkleTree.js";
+import { RollupMerkleTree } from "../../common/src/trees/sparse/RollupMerkleTree.js";
 
 // TODO Not worth fixing rn because we will revamp the STProver very soon
 

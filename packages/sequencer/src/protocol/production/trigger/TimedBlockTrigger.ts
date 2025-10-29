@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { injectOptional, log } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import gcd from "compute-gcd";
 
 import { closeable, Closeable } from "../../../sequencer/builder/Closeable";
@@ -8,6 +8,10 @@ import { Mempool } from "../../../mempool/Mempool";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
 import { BlockProducerModule } from "../sequencing/BlockProducerModule";
 import { SettlementModule } from "../../../settlement/SettlementModule";
+import {
+  BridgingModule,
+  SettlementTokenConfig,
+} from "../../../settlement/BridgingModule";
 
 import { BlockEvents, BlockTriggerBase } from "./BlockTrigger";
 
@@ -23,6 +27,8 @@ export interface TimedBlockTriggerConfig {
   settlementInterval?: number;
   blockInterval: number;
   produceEmptyBlocks?: boolean;
+
+  settlementTokenConfig: SettlementTokenConfig;
 }
 
 export interface TimedBlockTriggerEvent extends BlockEvents {
@@ -39,13 +45,18 @@ export class TimedBlockTrigger
 
   private interval?: any;
 
+  // TODO Move that logic to somewhere proper
+  private settlementInProgress = false;
+
   public constructor(
-    @injectOptional("BatchProducerModule")
+    @inject("BatchProducerModule", { isOptional: true })
     batchProducerModule: BatchProducerModule | undefined,
     @inject("BlockProducerModule")
     blockProducerModule: BlockProducerModule,
-    @injectOptional("SettlementModule")
+    @inject("SettlementModule", { isOptional: true })
     settlementModule: SettlementModule | undefined,
+    @inject("BridgingModule", { isOptional: true })
+    bridgingModule: BridgingModule | undefined,
     @inject("BlockQueue")
     blockQueue: BlockQueue,
     @inject("Mempool")
@@ -55,6 +66,7 @@ export class TimedBlockTrigger
       blockProducerModule,
       batchProducerModule,
       settlementModule,
+      bridgingModule,
       blockQueue
     );
   }
@@ -102,12 +114,15 @@ export class TimedBlockTrigger
         // otherwise treat as unproven-only
         if (
           settlementInterval !== undefined &&
-          totalTime % settlementInterval === 0
+          totalTime % settlementInterval === 0 &&
+          !this.settlementInProgress
         ) {
+          this.settlementInProgress = true;
           const batch = await this.produceBatch();
           if (batch !== undefined) {
-            await this.settle(batch);
+            await this.settle(batch, this.config.settlementTokenConfig);
           }
+          this.settlementInProgress = false;
         }
       } catch (error) {
         log.error(error);
