@@ -4,7 +4,6 @@ import { container, DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
   ModuleContainer,
-  ModulesConfig,
   ModulesRecord,
   TypedClass,
   ZkProgrammable,
@@ -65,14 +64,6 @@ const errors = {
   methodNotFound: (methodKey: string) =>
     new Error(`Unable to find method with id ${methodKey}`),
 };
-
-/**
- * Definition / required arguments for the Runtime class
- */
-export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
-  modules: Modules;
-  config?: ModulesConfig<Modules>;
-}
 
 export class RuntimeZkProgrammable<
   Modules extends RuntimeModulesRecord,
