@@ -3,10 +3,7 @@ import { OutgoingMessageEvent } from "@proto-kit/protocol";
 import { filterNonUndefined } from "@proto-kit/common";
 
 import { Block } from "../../../storage/model/Block";
-import {
-  BlockStorage,
-  HistoricalBlockStorage,
-} from "../../../storage/repositories/BlockStorage";
+import { BlockStorage } from "../../../storage/repositories/BlockStorage";
 import { Batch } from "../../../storage/model/Batch";
 
 /**
@@ -25,7 +22,7 @@ export interface OutgoingMessageAdapter<T> {
 export class OutgoingMessageCollector {
   public constructor(
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
+    private readonly blockStorage: BlockStorage,
     @inject("OutgoingMessageAdapter")
     private readonly messageAdapter: OutgoingMessageAdapter<any>
   ) {}

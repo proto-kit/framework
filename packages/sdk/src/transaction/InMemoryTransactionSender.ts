@@ -1,11 +1,10 @@
 import {
   PrivateMempool,
-  Sequencer,
-  SequencerModulesRecord,
   PendingTransaction,
-  AppChainModule,
+  AppChainModule
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
+import { ModuleContainerLike } from "@proto-kit/common";
 
 export interface TransactionSender extends AppChainModule<unknown> {
   send: (transaction: PendingTransaction) => Promise<void>;
@@ -19,7 +18,7 @@ export class InMemoryTransactionSender
   public mempool: PrivateMempool;
 
   public constructor(
-    @inject("Sequencer") public sequencer: Sequencer<SequencerModulesRecord>
+    @inject("Sequencer") public sequencer: ModuleContainerLike
   ) {
     super();
 

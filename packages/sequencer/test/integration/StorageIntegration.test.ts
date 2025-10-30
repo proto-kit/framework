@@ -9,8 +9,6 @@ import { TypedClass, expectDefined } from "@proto-kit/common";
 import {
   AsyncStateService,
   BatchStorage,
-  HistoricalBatchStorage,
-  HistoricalBlockStorage,
   InMemoryDatabase,
   Sequencer,
   SequencerModule,
@@ -154,9 +152,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         generatedBlock.hash.toBigInt()
       );
 
-      const blockStorage = sequencer.resolve(
-        "BlockStorage"
-      ) as HistoricalBlockStorage & BlockStorage;
+      const blockStorage = sequencer.resolve("BlockStorage") as BlockStorage;
       const block2 = await blockStorage.getBlockAt(
         Number(blocks[0].block.height.toString())
       );
@@ -192,9 +188,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const blocks = await sequencer.resolve("BlockQueue").getNewBlocks();
       expect(blocks).toHaveLength(0);
 
-      const batchStorage = sequencer.resolve(
-        "BatchStorage"
-      ) as HistoricalBatchStorage & BatchStorage;
+      const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage;
       const batch = await batchStorage.getBatchAt(0);
 
       expectDefined(batch);

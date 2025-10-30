@@ -16,6 +16,7 @@ import {
   SettlementContractModule,
   RuntimeVerificationKeyRootService,
   SettlementSmartContractBase,
+  MandatoryProtocolModulesRecord,
 } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../../../worker/flow/Task";
@@ -45,7 +46,8 @@ export class CircuitCompilerTask extends UnpreparingTask<
 
   public constructor(
     @inject("Runtime") protected readonly runtime: Runtime<never>,
-    @inject("Protocol") protected readonly protocol: Protocol<any>,
+    @inject("Protocol")
+    protected readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly compileRegistry: CompileRegistry
   ) {
     super();

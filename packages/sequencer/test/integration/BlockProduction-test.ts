@@ -28,7 +28,6 @@ import { afterEach } from "@jest/globals";
 
 import {
   BatchStorage,
-  HistoricalBatchStorage,
   Sequencer,
   SequencerModule,
   VanillaTaskWorkerModules,
@@ -240,8 +239,7 @@ export function testBlockProduction<
     ).toStrictEqual(batch!.toNetworkState.hash().toString());
 
     // Check if the batchstorage has received the block
-    const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage &
-      HistoricalBatchStorage;
+    const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage;
     const retrievedBatch = await batchStorage.getBatchAt(0);
     expect(retrievedBatch).toBeDefined();
 

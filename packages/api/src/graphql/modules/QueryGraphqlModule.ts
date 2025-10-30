@@ -39,7 +39,6 @@ import {
   QueryTransportModule,
   NetworkStateQuery,
   BlockStorage,
-  HistoricalBlockStorage,
   NetworkStateTransportModule,
 } from "@proto-kit/sequencer";
 import {
@@ -80,7 +79,7 @@ export class QueryGraphqlModule<
       MandatoryProtocolModulesRecord & ProtocolModulesRecord
     >,
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage & HistoricalBlockStorage
+    private readonly blockStorage: BlockStorage
   ) {
     super();
   }
