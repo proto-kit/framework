@@ -14,9 +14,9 @@ import {
 import { Protocol } from "@proto-kit/protocol";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
-  AppChain,
   AppChainTransaction,
   BlockStorageNetworkStateModule,
+  ClientAppChain,
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
@@ -93,38 +93,30 @@ export function createPrismaAppchain(
   prismaConnection: PrismaDatabaseConfig["connection"],
   redisConnection: RedisConnectionConfig
 ) {
-  const appChain = AppChain.from({
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({}),
-    }),
+  const appChain = ClientAppChain.from({
+    Protocol: Protocol.from(VanillaProtocolModules.mandatoryModules({})),
     Runtime: Runtime.from({
-      modules: {
-        Balances: MintableBalances,
-      },
+      Balances: MintableBalances,
     }),
     Sequencer: Sequencer.from({
-      modules: {
-        DatabasePruneModule,
-        Database: PrismaRedisDatabase,
+      DatabasePruneModule,
+      Database: PrismaRedisDatabase,
 
-        Mempool: PrivateMempool,
-        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.withoutSettlement()
-        ),
-        BaseLayer: NoopBaseLayer,
-        BatchProducerModule,
-        BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-        SequencerStartupModule,
-      },
+      Mempool: PrivateMempool,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.withoutSettlement()
+      ),
+      BaseLayer: NoopBaseLayer,
+      BatchProducerModule,
+      BlockProducerModule,
+      BlockTrigger: ManualBlockTrigger,
+      TaskQueue: LocalTaskQueue,
+      SequencerStartupModule,
     }),
-    modules: {
-      Signer: InMemorySigner,
-      TransactionSender: InMemoryTransactionSender,
-      QueryTransportModule: StateServiceQueryModule,
-      NetworkStateTransportModule: BlockStorageNetworkStateModule,
-    },
+    Signer: InMemorySigner,
+    TransactionSender: InMemoryTransactionSender,
+    QueryTransportModule: StateServiceQueryModule,
+    NetworkStateTransportModule: BlockStorageNetworkStateModule,
   });
 
   appChain.configurePartial({

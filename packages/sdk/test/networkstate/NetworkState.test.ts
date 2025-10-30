@@ -21,7 +21,7 @@ import { log, RollupMerkleTree, expectDefined } from "@proto-kit/common";
 import { Field } from "o1js";
 import { container } from "tsyringe";
 
-import { AppChain, InMemorySigner, TestingAppChain } from "../../src";
+import { InMemorySigner, TestingAppChain } from "../../src";
 
 import { BalanceChild } from "./Balance";
 
@@ -40,18 +40,22 @@ describe.skip("block production", () => {
 
   let blockTrigger: ManualBlockTrigger;
 
-  let appchain: AppChain<any, any, any, any>;
+  let appchain: ReturnType<typeof createAppChain>;
 
   const tokenId = TokenId.from(0);
+
+  function createAppChain() {
+    return TestingAppChain.fromRuntime({
+      Balances: BalanceChild,
+    });
+  }
 
   beforeEach(async () => {
     // container.reset();
 
     log.setLevel(log.levels.INFO);
 
-    const app = TestingAppChain.fromRuntime({
-      Balances: BalanceChild,
-    });
+    const app = createAppChain();
 
     app.configurePartial({
       Runtime: {

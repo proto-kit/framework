@@ -1,9 +1,4 @@
-import {
-  ModuleContainer,
-  ModuleContainerDefinition,
-  ModulesRecord,
-  TypedClass,
-} from "@proto-kit/common";
+import { ModuleContainer, ModulesRecord, TypedClass } from "@proto-kit/common";
 import { container } from "tsyringe";
 
 import { ProcessorModule } from "./ProcessorModule";
@@ -16,7 +11,7 @@ export class Processor<
   Modules extends ProcessorModulesRecord,
 > extends ModuleContainer<Modules> {
   public static from<Modules extends ProcessorModulesRecord>(
-    definition: ModuleContainerDefinition<Modules>
+    definition: Modules
   ): Processor<Modules> {
     return new Processor(definition);
   }

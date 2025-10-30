@@ -45,9 +45,7 @@ export class EventEmitterProxy<
   public constructor(private readonly container: ModuleContainer<Modules>) {
     super();
     container.moduleNames.forEach((moduleName) => {
-      if (
-        container.isValidModuleName(container.definition.modules, moduleName)
-      ) {
+      if (container.isValidModuleName(container.definition, moduleName)) {
         const module = container.resolve(moduleName);
         if (this.isEventEmitter(module)) {
           module.events.onAll((events: any, args: any[]) => {

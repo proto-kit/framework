@@ -6,7 +6,6 @@ import {
   Configurable,
   log,
   ModuleContainer,
-  ModulesConfig,
   ModulesRecord,
   TypedClass,
 } from "@proto-kit/common";
@@ -22,20 +21,13 @@ export type GraphqlModulesRecord = ModulesRecord<
   TypedClass<GraphqlModule<unknown>>
 >;
 
-export interface GraphqlModulesDefintion<
-  GraphQLModules extends GraphqlModulesRecord,
-> {
-  modules: GraphQLModules;
-  config?: ModulesConfig<GraphQLModules>;
-}
-
 @closeable()
 export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
   extends ModuleContainer<GraphQLModules>
   implements Configurable<unknown>, SequencerModule<unknown>, Closeable
 {
   public static from<GraphQLModules extends GraphqlModulesRecord>(
-    definition: GraphqlModulesDefintion<GraphQLModules>
+    definition: GraphQLModules
   ): TypedClass<GraphqlSequencerModule<GraphQLModules>> {
     return class ScopedGraphQlContainer extends GraphqlSequencerModule<GraphQLModules> {
       public constructor() {
@@ -58,8 +50,8 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
     this.graphqlServer.setContainer(this.container);
 
     // eslint-disable-next-line guard-for-in
-    for (const moduleName in this.definition.modules) {
-      const moduleClass = this.definition.modules[moduleName];
+    for (const moduleName in this.definition) {
+      const moduleClass = this.definition[moduleName];
 
       if (
         Object.prototype.isPrototypeOf.call(

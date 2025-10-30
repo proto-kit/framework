@@ -16,7 +16,7 @@ import {
   SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import {
-  AppChain,
+  ClientAppChain,
   BlockStorageNetworkStateModule,
   InMemorySigner,
   InMemoryTransactionSender,
@@ -107,18 +107,16 @@ export const settlementTestFn = (
 
   function setupAppChain() {
     const runtime = Runtime.from({
-      modules: {
-        Balances,
-        Withdrawals,
-      },
+      Balances,
+      Withdrawals,
     });
 
     // eslint-disable-next-line @typescript-eslint/dot-notation
     SettlementUtils.prototype["isSignedSettlement"] = () =>
       settlementType === "signed";
 
-    const sequencer = Sequencer.from({
-      modules: testingSequencerModules(
+    const sequencer = Sequencer.from(
+      testingSequencerModules(
         {
           BaseLayer: MinaBaseLayer,
           SettlementModule: SettlementModule,
@@ -126,30 +124,26 @@ export const settlementTestFn = (
         {
           SettlementProvingTask,
         }
-      ),
-    });
+      )
+    );
 
-    const appchain = AppChain.from({
+    const appchain = ClientAppChain.from({
       Runtime: runtime,
       Sequencer: sequencer,
 
       Protocol: Protocol.from({
-        modules: {
-          ...VanillaProtocolModules.mandatoryModules({}),
-          SettlementContractModule: SettlementContractModule.with({
-            FungibleToken: FungibleTokenContractModule,
-            FungibleTokenAdmin: FungibleTokenAdminContractModule,
-          }),
-          WithdrawalMessageProcessor,
-        },
+        ...VanillaProtocolModules.mandatoryModules({}),
+        SettlementContractModule: SettlementContractModule.with({
+          FungibleToken: FungibleTokenContractModule,
+          FungibleTokenAdmin: FungibleTokenAdminContractModule,
+        }),
+        WithdrawalMessageProcessor,
       }),
 
-      modules: {
-        Signer: InMemorySigner,
-        TransactionSender: InMemoryTransactionSender,
-        QueryTransportModule: StateServiceQueryModule,
-        NetworkStateTransportModule: BlockStorageNetworkStateModule,
-      },
+      Signer: InMemorySigner,
+      TransactionSender: InMemoryTransactionSender,
+      QueryTransportModule: StateServiceQueryModule,
+      NetworkStateTransportModule: BlockStorageNetworkStateModule,
     });
 
     appchain.configure({

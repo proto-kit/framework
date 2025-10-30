@@ -1,7 +1,6 @@
 import {
   ChildContainerProvider,
   ModuleContainer,
-  ModuleContainerDefinition,
   ModulesRecord,
   TypedClass,
 } from "@proto-kit/common";
@@ -18,7 +17,7 @@ export class Indexer<
   Modules extends IndexerModulesRecord,
 > extends ModuleContainer<Modules> {
   public static from<Modules extends IndexerModulesRecord>(
-    definition: ModuleContainerDefinition<Modules>
+    definition: Modules
   ): Indexer<Modules> {
     return new Indexer(definition);
   }

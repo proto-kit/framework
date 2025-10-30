@@ -1,8 +1,7 @@
 import { log, TypedClass } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
-import { MandatoryProtocolModulesRecord, Protocol } from "@proto-kit/protocol";
-import { AppChain } from "@proto-kit/sdk";
+import { Protocol } from "@proto-kit/protocol";
 import { Bool, PrivateKey, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -14,6 +13,7 @@ import {
   SequencerModule,
   StorageDependencyFactory,
   VanillaTaskWorkerModules,
+  AppChain,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -29,14 +29,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
     testName,
     Database: TypedClass<SequencerModule & StorageDependencyFactory>
   ) => {
-    let appChain: AppChain<
-      { Balance: typeof Balance },
-      MandatoryProtocolModulesRecord,
-      DefaultTestingSequencerModules & {
-        Database: typeof Database;
-      },
-      {}
-    >;
+    let appChain: ReturnType<typeof createAppChain>;
     let sequencer: Sequencer<
       DefaultTestingSequencerModules & { Database: typeof Database }
     >;
@@ -73,33 +66,28 @@ describe.each([["InMemory", InMemoryDatabase]])(
     );
     const user3PublicKey = user3PrivateKey.toPublicKey();
 
-    beforeEach(async () => {
-      log.setLevel(log.levels.INFO);
-
+    function createAppChain() {
       const runtimeClass = Runtime.from({
-        modules: {
-          Balance,
-        },
-
-        config: {
-          Balance: {},
-        },
+        Balance,
       });
 
-      const sequencerClass = Sequencer.from({
-        modules: testingSequencerModules({}),
-      });
+      const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-      const protocolClass = Protocol.from({
-        modules: VanillaProtocolModules.mandatoryModules({}),
-      });
+      const protocolClass = Protocol.from(
+        VanillaProtocolModules.mandatoryModules({})
+      );
 
-      appChain = AppChain.from({
+      return AppChain.from({
         Sequencer: sequencerClass,
         Runtime: runtimeClass,
         Protocol: protocolClass,
-        modules: {},
       });
+    }
+
+    beforeEach(async () => {
+      log.setLevel(log.levels.INFO);
+
+      appChain = createAppChain();
 
       appChain.configure({
         Runtime: {
@@ -116,7 +104,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
           BaseLayer: {},
           TaskQueue: {},
           SequencerStartupModule: {},
-          ProtocolStartupModule: {},
         },
         Protocol: {
           AccountState: {},

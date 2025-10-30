@@ -1,8 +1,7 @@
 #!/usr/bin/env ts-node
 import "reflect-metadata";
 
-import { sleep } from "@proto-kit/common";
-import { Startable } from "@proto-kit/deployment";
+import { sleep, Startable } from "@proto-kit/common";
 
 import { startServer } from "./server";
 

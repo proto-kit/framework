@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import {
-  AppChain,
   BlockStorageNetworkStateModule,
+  ClientAppChain,
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
@@ -27,6 +27,7 @@ import {
   DatabasePruneModule,
   ManualBlockTrigger,
   Sequencer,
+  AppChain,
 } from "../../src";
 // we import PrivateMempool from dist to satisfy constraints of InMemoryTransactionSender
 import { PrivateMempool } from "../../dist";
@@ -56,30 +57,24 @@ export async function duration<Result>(cb: () => Promise<Result>) {
 }
 
 export async function createAppChain() {
-  const appChain = AppChain.from({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
+  const appChain = ClientAppChain.from({
+    Runtime: Runtime.from(
+      VanillaRuntimeModules.with({
         Balances,
-      }),
-    }),
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
+      })
+    ),
+    Protocol: Protocol.from(VanillaProtocolModules.with({})),
     Sequencer: Sequencer.from({
-      modules: {
-        DatabasePruneModule,
-        Database: PrismaRedisDatabase,
-        Mempool: PrivateMempool,
-        BlockProducerModule: BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-      },
+      DatabasePruneModule,
+      Database: PrismaRedisDatabase,
+      Mempool: PrivateMempool,
+      BlockProducerModule: BlockProducerModule,
+      BlockTrigger: ManualBlockTrigger,
     }),
-    modules: {
-      Signer: InMemorySigner,
-      TransactionSender: InMemoryTransactionSender,
-      QueryTransportModule: StateServiceQueryModule,
-      NetworkStateTransportModule: BlockStorageNetworkStateModule,
-    },
+    Signer: InMemorySigner,
+    TransactionSender: InMemoryTransactionSender,
+    QueryTransportModule: StateServiceQueryModule,
+    NetworkStateTransportModule: BlockStorageNetworkStateModule,
   });
 
   appChain.configure({

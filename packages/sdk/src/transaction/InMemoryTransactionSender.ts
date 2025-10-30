@@ -1,8 +1,10 @@
-import { PrivateMempool, PendingTransaction } from "@proto-kit/sequencer";
+import {
+  PrivateMempool,
+  PendingTransaction,
+  AppChainModule,
+} from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 import { ModuleContainerLike } from "@proto-kit/common";
-
-import { AppChainModule } from "../appChain/AppChainModule";
 
 export interface TransactionSender extends AppChainModule<unknown> {
   send: (transaction: PendingTransaction) => Promise<void>;

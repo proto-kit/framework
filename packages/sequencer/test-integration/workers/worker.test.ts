@@ -1,10 +1,10 @@
 import "reflect-metadata";
-import { AppChain } from "@proto-kit/sdk";
 import { BullQueue } from "@proto-kit/deployment";
 import { container } from "tsyringe";
 import { log, sleep } from "@proto-kit/common";
 
 import {
+  AppChain,
   LocalTaskWorkerModule,
   Sequencer,
   VanillaTaskWorkerModules,
@@ -29,19 +29,16 @@ describe("worker", () => {
     const proofsEnabled = process.env.PROOFS_ENABLED === "true";
 
     const sequencerClass = Sequencer.from({
-      modules: {
-        TaskQueue: BullQueue,
-        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.withoutSettlement()
-        ),
-      } satisfies MinimumWorkerModules,
-    });
+      TaskQueue: BullQueue,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.withoutSettlement()
+      ),
+    } satisfies MinimumWorkerModules);
 
     const app = AppChain.from({
       Runtime: runtimeClass,
       Sequencer: sequencerClass,
       Protocol: protocolClass,
-      modules: {},
     });
 
     app.configure({

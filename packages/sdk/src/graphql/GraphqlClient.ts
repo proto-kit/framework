@@ -1,6 +1,5 @@
 import { Client, fetchExchange } from "@urql/core";
-
-import { AppChainModule } from "../appChain/AppChainModule";
+import { AppChainModule } from "@proto-kit/sequencer";
 
 export interface GraphqlClientConfig {
   url: string;
