@@ -1,4 +1,4 @@
-import { DependencyRecord } from "@proto-kit/common";
+import { DependencyFactory, DependencyRecord } from "@proto-kit/common";
 
 import { MethodIdResolver } from "../runtime/MethodIdResolver";
 
@@ -11,3 +11,5 @@ export class MethodIdFactory {
     } satisfies DependencyRecord;
   }
 }
+
+MethodIdFactory satisfies DependencyFactory;

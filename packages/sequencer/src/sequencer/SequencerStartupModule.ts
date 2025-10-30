@@ -151,6 +151,15 @@ export class SequencerStartupModule
 
     log.info("Compiling Protocol circuits, this can take a few minutes");
 
+    const timeout = setTimeout(
+      () => {
+        log.error(
+          "No response yet received from workers - have you configured a TaskQueue and a corresponding worker running (either in-process or somewhere else)"
+        );
+      },
+      this.areProofsEnabled.areProofsEnabled ? 20 * 60 * 1000 : 30 * 1000
+    );
+
     const root = await this.compileRuntime(flow);
 
     const protocolBridgeArtifacts = await this.compileProtocolAndBridge(
@@ -176,6 +185,8 @@ export class SequencerStartupModule
     });
 
     log.info("Protocol circuits compiled successfully, commencing startup");
+
+    clearTimeout(timeout);
   }
 
   public async close() {
