@@ -1,7 +1,7 @@
 import {
   PrivateMempool,
   PendingTransaction,
-  AppChainModule
+  AppChainModule,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 import { ModuleContainerLike } from "@proto-kit/common";
