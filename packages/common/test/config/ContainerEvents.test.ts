@@ -42,10 +42,8 @@ describe("test event propagation", () => {
     expect.assertions(1);
 
     const container = new TestContainer({
-      modules: {
-        test: TestModule,
-        test2: TestModule2,
-      },
+      test: TestModule,
+      test2: TestModule2,
     });
 
     container.configure({

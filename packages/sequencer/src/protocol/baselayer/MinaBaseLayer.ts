@@ -1,6 +1,7 @@
 import {
   AreProofsEnabled,
   DependencyFactory,
+  ModuleContainerLike,
   DependencyRecord,
 } from "@proto-kit/common";
 import { Mina } from "o1js";
@@ -14,10 +15,6 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-} from "../../sequencer/executor/Sequencer";
 import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
 
 import { BaseLayer } from "./BaseLayer";
@@ -62,7 +59,7 @@ export class MinaBaseLayer
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
     @inject("Sequencer")
-    private readonly sequencer: Sequencer<SequencerModulesRecord>
+    private readonly sequencer: ModuleContainerLike
   ) {
     super();
   }

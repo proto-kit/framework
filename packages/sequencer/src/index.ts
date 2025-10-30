@@ -114,3 +114,7 @@ export * from "./logging/Tracer";
 export * from "./logging/trace";
 export * from "./logging/ConsoleTracingFactory";
 export * from "./logging/ConsoleTracer";
+export * from "./appChain/AppChain";
+export * from "./appChain/AppChainModule";
+export * from "./appChain/AreProofsEnabledFactory";
+export * from "./appChain/SharedDependencyFactory";

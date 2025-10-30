@@ -3,8 +3,8 @@ import {
   ChildContainerProvider,
   log,
   ModuleContainer,
-  ModulesConfig,
   ModulesRecord,
+  Startable,
   StringKeyOf,
   TypedClass,
 } from "@proto-kit/common";
@@ -58,20 +58,15 @@ export type MandatoryProtocolModulesRecord = {
   LastStateRoot: TypedClass<LastStateRootBlockHook>;
 };
 
-export interface ProtocolDefinition<Modules extends ProtocolModulesRecord> {
-  modules: Modules;
-  config?: ModulesConfig<Modules>;
-}
-
 export class Protocol<
     Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord,
   >
   extends ModuleContainer<Modules>
-  implements ProtocolEnvironment
+  implements ProtocolEnvironment, Startable
 {
   public static from<
     Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord,
-  >(modules: ProtocolDefinition<Modules>): TypedClass<Protocol<Modules>> {
+  >(modules: Modules): TypedClass<Protocol<Modules>> {
     return class ScopedProtocol extends Protocol<Modules> {
       public constructor() {
         super(modules);
@@ -79,9 +74,11 @@ export class Protocol<
     };
   }
 
-  public definition: ProtocolDefinition<Modules>;
+  // No idea why we have to do this, but if we don't re-define it here,
+  // js can't access it from the superclass somehow
+  public definition: Modules;
 
-  public constructor(definition: ProtocolDefinition<Modules>) {
+  public constructor(definition: Modules) {
     super(definition);
     this.definition = definition;
   }
@@ -115,7 +112,7 @@ export class Protocol<
   private isModule(
     moduleName: keyof Modules
   ): moduleName is StringKeyOf<Modules> {
-    return this.definition.modules[moduleName] !== undefined;
+    return this.definition[moduleName] !== undefined;
   }
 
   public get blockProver(): BlockProvable {
@@ -150,10 +147,8 @@ export class Protocol<
     ABSTRACT_MODULE_TYPES.forEach((moduleTypeRegistration) => {
       const abstractType = moduleTypeRegistration.type;
 
-      const implementingModules = Object.entries(
-        this.definition.modules
-      ).filter(([, value]) =>
-        Object.prototype.isPrototypeOf.call(abstractType, value)
+      const implementingModules = Object.entries(this.definition).filter(
+        ([, value]) => Object.prototype.isPrototypeOf.call(abstractType, value)
       );
 
       const newInjectionToken: string | undefined =
@@ -213,7 +208,7 @@ export class Protocol<
 
   public async start() {
     // eslint-disable-next-line guard-for-in
-    for (const moduleName in this.definition.modules) {
+    for (const moduleName in this.definition) {
       const protocolModule = this.resolve(moduleName);
 
       log.info(

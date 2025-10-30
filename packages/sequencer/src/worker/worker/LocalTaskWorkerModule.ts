@@ -78,7 +78,7 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
   }
 
   public constructor(modules: Tasks) {
-    super({ modules });
+    super(modules);
 
     // Since we disabled configs for tasks, we initialize the config as empty here
     const config = Object.keys(modules).reduce<Record<string, NoConfig>>(

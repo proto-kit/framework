@@ -72,7 +72,7 @@ export class TransactionProvingTask
     private readonly compileRegistry: CompileRegistry
   ) {
     super();
-    this.blockProver = this.protocol.blockProver;
+    this.blockProver = protocol.blockProver;
   }
 
   public inputSerializer(): TaskSerializer<TransactionProvingTaskParameters> {

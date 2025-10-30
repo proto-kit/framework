@@ -21,7 +21,6 @@ import {
   Protocol,
   PROTOKIT_PREFIXES,
 } from "@proto-kit/protocol";
-import { AppChain } from "@proto-kit/sdk";
 import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -29,12 +28,12 @@ import { afterEach } from "@jest/globals";
 
 import {
   BatchStorage,
-  HistoricalBatchStorage,
   Sequencer,
   SequencerModule,
   VanillaTaskWorkerModules,
   DatabasePruneModule,
   AsyncLinkedLeafStore,
+  AppChain,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -105,46 +104,35 @@ export function testBlockProduction<
     }
   >;
 
-  let appChain: AppChain<any, any, any, any>;
+  let appChain: AppChain<any>;
 
   let test: BlockTestService;
   let linkedLeafStore: AsyncLinkedLeafStore;
 
   beforeEach(async () => {
     const runtimeClass = Runtime.from({
-      modules: {
-        Balance,
-        NoopRuntime,
-        EventMaker,
-      },
-
-      config: {
-        Balance: {},
-        NoopRuntime: {},
-        EventMaker: {},
-      },
+      Balance,
+      NoopRuntime,
+      EventMaker,
     });
 
     const sequencerClass = Sequencer.from({
-      modules: {
-        DatabasePruneModule,
-        ...testingSequencerModules({}),
-        Database: database,
-      },
+      DatabasePruneModule,
+      ...testingSequencerModules({}),
+      Database: database,
     });
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
-    const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({
+    const protocolClass = Protocol.from(
+      VanillaProtocolModules.mandatoryModules({
         ProtocolStateTestHook,
-      }),
-    });
+      })
+    );
 
     const app = AppChain.from({
       Runtime: runtimeClass,
       Sequencer: sequencerClass,
       Protocol: protocolClass,
-      modules: {},
     });
 
     app.configure({
@@ -251,8 +239,7 @@ export function testBlockProduction<
     ).toStrictEqual(batch!.toNetworkState.hash().toString());
 
     // Check if the batchstorage has received the block
-    const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage &
-      HistoricalBatchStorage;
+    const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage;
     const retrievedBatch = await batchStorage.getBatchAt(0);
     expect(retrievedBatch).toBeDefined();
 

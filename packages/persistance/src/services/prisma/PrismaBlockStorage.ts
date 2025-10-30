@@ -1,5 +1,4 @@
 import {
-  HistoricalBlockStorage,
   TransactionExecutionResult,
   Block,
   BlockResult,
@@ -27,9 +26,7 @@ import { BlockResultMapper } from "./mappers/BlockResultMapper";
 import { BlockMapper } from "./mappers/BlockMapper";
 
 @injectable()
-export class PrismaBlockStorage
-  implements BlockQueue, BlockStorage, HistoricalBlockStorage
-{
+export class PrismaBlockStorage implements BlockQueue, BlockStorage {
   public constructor(
     @inject("Database") private readonly connection: PrismaConnection,
     private readonly transactionResultMapper: TransactionExecutionResultMapper,

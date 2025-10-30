@@ -30,14 +30,10 @@ class MockedGeneratedResolverFactoryGraphqlModule extends GeneratedResolverFacto
 
 describe("GeneratedResolverFactoryGraphqlModule", () => {
   const indexer = Indexer.from({
-    modules: {
-      GraphqlServer: GraphqlServer,
-      Graphql: GraphqlSequencerModule.from({
-        modules: {
-          GeneratedResolverFactory: MockedGeneratedResolverFactoryGraphqlModule,
-        },
-      }),
-    },
+    GraphqlServer: GraphqlServer,
+    Graphql: GraphqlSequencerModule.from({
+      GeneratedResolverFactory: MockedGeneratedResolverFactoryGraphqlModule,
+    }),
   });
 
   indexer.configurePartial({

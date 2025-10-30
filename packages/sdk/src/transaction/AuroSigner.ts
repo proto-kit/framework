@@ -1,7 +1,6 @@
 import { Field, Signature } from "o1js";
 import { injectable } from "tsyringe";
-
-import { AppChainModule } from "../appChain/AppChainModule";
+import { AppChainModule } from "@proto-kit/sequencer";
 
 import { Signer } from "./InMemorySigner";
 

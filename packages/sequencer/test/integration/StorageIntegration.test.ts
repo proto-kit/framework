@@ -1,17 +1,14 @@
 import "reflect-metadata";
 import { expect } from "@jest/globals";
 import { VanillaProtocolModules } from "@proto-kit/library";
-import { MandatoryProtocolModulesRecord, Protocol } from "@proto-kit/protocol";
+import { Protocol } from "@proto-kit/protocol";
 import { Runtime } from "@proto-kit/module";
-import { AppChain } from "@proto-kit/sdk";
 import { Bool, Field, PrivateKey, UInt64 } from "o1js";
 import { TypedClass, expectDefined } from "@proto-kit/common";
 
 import {
   AsyncStateService,
   BatchStorage,
-  HistoricalBatchStorage,
-  HistoricalBlockStorage,
   InMemoryDatabase,
   Sequencer,
   SequencerModule,
@@ -20,6 +17,7 @@ import {
   StorageDependencyFactory,
   BlockStorage,
   VanillaTaskWorkerModules,
+  AppChain,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -52,12 +50,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
     testName,
     Database: TypedClass<SequencerModule & StorageDependencyFactory>
   ) => {
-    let appChain: AppChain<
-      { Balance: typeof Balance },
-      MandatoryProtocolModulesRecord,
-      DefaultTestingSequencerModules & { Database: typeof Database },
-      {}
-    >;
+    let appChain: ReturnType<typeof createAppChain>;
     let sequencer: Sequencer<
       DefaultTestingSequencerModules & { Database: typeof Database }
     >;
@@ -73,29 +66,30 @@ describe.each([["InMemory", InMemoryDatabase]])(
     const pk = sk.toPublicKey();
     let pkNonce = 0;
 
-    beforeAll(async () => {
-      const sequencerClass = Sequencer.from({
-        modules: testingSequencerModules({
+    function createAppChain() {
+      const sequencerClass = Sequencer.from(
+        testingSequencerModules({
           Database,
-        }),
-      });
+        })
+      );
 
       const runtimeClass = Runtime.from({
-        modules: {
-          Balance,
-        },
+        Balance,
       });
 
-      const protocolClass = Protocol.from({
-        modules: VanillaProtocolModules.mandatoryModules({}),
-      });
+      const protocolClass = Protocol.from(
+        VanillaProtocolModules.mandatoryModules({})
+      );
 
-      appChain = AppChain.from({
+      return AppChain.from({
         Sequencer: sequencerClass,
         Runtime: runtimeClass,
         Protocol: protocolClass,
-        modules: {},
       });
+    }
+
+    beforeAll(async () => {
+      appChain = createAppChain();
 
       appChain.configure({
         Runtime: {
@@ -158,9 +152,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         generatedBlock.hash.toBigInt()
       );
 
-      const blockStorage = sequencer.resolve(
-        "BlockStorage"
-      ) as HistoricalBlockStorage & BlockStorage;
+      const blockStorage = sequencer.resolve("BlockStorage") as BlockStorage;
       const block2 = await blockStorage.getBlockAt(
         Number(blocks[0].block.height.toString())
       );
@@ -196,9 +188,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const blocks = await sequencer.resolve("BlockQueue").getNewBlocks();
       expect(blocks).toHaveLength(0);
 
-      const batchStorage = sequencer.resolve(
-        "BatchStorage"
-      ) as HistoricalBatchStorage & BatchStorage;
+      const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage;
       const batch = await batchStorage.getBatchAt(0);
 
       expectDefined(batch);

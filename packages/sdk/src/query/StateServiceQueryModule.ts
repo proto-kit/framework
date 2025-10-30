@@ -1,19 +1,17 @@
 import {
   AsyncStateService,
   QueryTransportModule,
-  Sequencer,
-  SequencerModulesRecord,
   CachedLinkedLeafStore,
   AsyncLinkedLeafStore,
+  AppChainModule,
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
+  ModuleContainerLike,
   LinkedMerkleTreeReadWitness,
   LinkedMerkleTree,
 } from "@proto-kit/common";
-
-import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
 export class StateServiceQueryModule
@@ -21,7 +19,7 @@ export class StateServiceQueryModule
   implements QueryTransportModule
 {
   public constructor(
-    @inject("Sequencer") public sequencer: Sequencer<SequencerModulesRecord>
+    @inject("Sequencer") public sequencer: ModuleContainerLike
   ) {
     super();
   }

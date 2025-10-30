@@ -2,7 +2,6 @@ import { log } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
-import { AppChain } from "@proto-kit/sdk";
 import { Bool, PrivateKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -12,6 +11,7 @@ import {
   PrivateMempool,
   Sequencer,
   VanillaTaskWorkerModules,
+  AppChain,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -44,33 +44,23 @@ describe("block limit", () => {
   log.setLevel(log.levels.INFO);
 
   const runtimeClass = Runtime.from({
-    modules: {
-      Balance,
-      NoopRuntime,
-    },
-
-    config: {
-      Balance: {},
-      NoopRuntime: {},
-    },
+    Balance,
+    NoopRuntime,
   });
 
   async function setUpAppChain(maxBlockSize: number | undefined) {
-    const sequencerClass = Sequencer.from({
-      modules: testingSequencerModules({}),
-    });
+    const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-    const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({
+    const protocolClass = Protocol.from(
+      VanillaProtocolModules.mandatoryModules({
         ProtocolStateTestHook,
-      }),
-    });
+      })
+    );
 
     const app = AppChain.from({
       Runtime: runtimeClass,
       Sequencer: sequencerClass,
       Protocol: protocolClass,
-      modules: {},
     });
     log.setLevel("TRACE");
 
