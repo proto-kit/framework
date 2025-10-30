@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 import { expectDefined, log } from "@proto-kit/common";
-import { AppChain } from "@proto-kit/sdk";
 import { BullQueue } from "@proto-kit/deployment";
 
 import {
@@ -10,13 +9,13 @@ import {
   BlockProducerModule,
   InMemoryDatabase,
   ManualBlockTrigger,
-  NoopBaseLayer,
   PrivateMempool,
   Sequencer,
   SequencerStartupModule,
+  AppChain,
+  ConstantFeeStrategy,
 } from "../../src";
 import { BlockTestService } from "../../test/integration/services/BlockTestService";
-import { ConstantFeeStrategy } from "../../src/protocol/baselayer/fees/ConstantFeeStrategy";
 
 import {
   BullConfig,
@@ -36,7 +35,7 @@ describe("worker-proven", () => {
 
     let worker: ChildProcessWorker;
 
-    let appChain: AppChain<any, any, any, any>;
+    let appChain: AppChain<any>;
 
     beforeAll(async () => {
       worker = new ChildProcessWorker();
