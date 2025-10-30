@@ -1,4 +1,4 @@
-import { DependencyRecord } from "@proto-kit/common";
+import { DependencyFactory, DependencyRecord } from "@proto-kit/common";
 
 import { ConsoleTracer } from "./ConsoleTracer";
 
@@ -11,3 +11,5 @@ export class ConsoleTracingFactory {
     } satisfies DependencyRecord;
   }
 }
+
+ConsoleTracingFactory satisfies DependencyFactory;

@@ -146,3 +146,5 @@ export class MinaBaseLayer
     this.network = Network;
   }
 }
+
+MinaBaseLayer satisfies DependencyFactory;

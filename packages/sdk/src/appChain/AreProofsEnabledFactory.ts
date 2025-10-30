@@ -1,5 +1,9 @@
 import { injectable } from "tsyringe";
-import { AreProofsEnabled, DependencyRecord } from "@proto-kit/common";
+import {
+  AreProofsEnabled,
+  DependencyFactory,
+  DependencyRecord,
+} from "@proto-kit/common";
 
 @injectable()
 export class InMemoryAreProofsEnabled implements AreProofsEnabled {
@@ -23,3 +27,5 @@ export class AreProofsEnabledFactory {
     } satisfies DependencyRecord;
   }
 }
+
+AreProofsEnabledFactory satisfies DependencyFactory;
