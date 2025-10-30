@@ -48,17 +48,17 @@ describe.skip("Proven", () => {
       Balances: ProvenBalance,
     });
 
-      const sequencerClass = Sequencer.from(
-        testingSequencerModules(
-          {
-            BaseLayer: MinaBaseLayer,
-            SettlementModule,
-          },
-          {
-            SettlementProvingTask,
-          }
-        )
-      );
+    const sequencerClass = Sequencer.from(
+      testingSequencerModules(
+        {
+          BaseLayer: MinaBaseLayer,
+          SettlementModule,
+        },
+        {
+          SettlementProvingTask,
+        }
+      )
+    );
 
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({

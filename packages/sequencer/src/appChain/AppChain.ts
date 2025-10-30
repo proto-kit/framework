@@ -10,8 +10,8 @@ import { Runtime } from "@proto-kit/module";
 import { container, DependencyContainer } from "tsyringe";
 
 import { Sequencer } from "../sequencer/executor/Sequencer";
-import { ConsoleLoggingFactory } from "../logging/ConsoleLoggingFactory";
 import { WorkerReadyModule } from "../worker/worker/WorkerReadyModule";
+import { ConsoleTracingFactory } from "../logging/ConsoleTracingFactory";
 
 import { AreProofsEnabledFactory } from "./AreProofsEnabledFactory";
 import { SharedDependencyFactory } from "./SharedDependencyFactory";
@@ -67,7 +67,7 @@ export class AppChain<
 
     this.useDependencyFactory(AreProofsEnabledFactory);
     this.useDependencyFactory(SharedDependencyFactory);
-    this.useDependencyFactory(ConsoleLoggingFactory);
+    this.useDependencyFactory(ConsoleTracingFactory);
 
     this.container
       .resolve<AreProofsEnabled>("AreProofsEnabled")
