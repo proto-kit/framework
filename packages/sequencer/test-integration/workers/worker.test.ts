@@ -65,6 +65,8 @@ describe("worker", () => {
         .containerEvents.on("ready", res);
     });
 
+    expect(ready).toBe(true);
+
     console.log("Ready received!");
 
     await sleep(10000000);

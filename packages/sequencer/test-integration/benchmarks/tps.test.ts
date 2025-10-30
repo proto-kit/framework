@@ -27,7 +27,6 @@ import {
   DatabasePruneModule,
   ManualBlockTrigger,
   Sequencer,
-  AppChain,
 } from "../../src";
 // we import PrivateMempool from dist to satisfy constraints of InMemoryTransactionSender
 import { PrivateMempool } from "../../dist";
