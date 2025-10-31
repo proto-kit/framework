@@ -234,10 +234,23 @@ export class RuntimeZkProgrammable<
 
     return splitRuntimeMethods().map((bucket, index) => {
       const name = `RuntimeProgram-${index}`;
+      const wrappedBucket = Object.fromEntries(
+        Object.entries(bucket).map(([methodName, methodDef]) => [
+          methodName,
+          {
+            privateInputs: methodDef.privateInputs,
+            method: async (...args: any[]) => {
+              const publicOutput = await methodDef.method(...args);
+              return { publicOutput };
+            },
+          },
+        ])
+      );
+
       const program = ZkProgram({
         name,
         publicOutput: MethodPublicOutput,
-        methods: bucket,
+        methods: wrappedBucket,
       });
 
       const SelfProof = ZkProgram.Proof(program);

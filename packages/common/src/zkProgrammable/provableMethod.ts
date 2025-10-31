@@ -38,7 +38,8 @@ export function toProver(
 
     if (areProofsEnabled) {
       const programProvableMethod = zkProgram.methods[methodName];
-      return await Reflect.apply(programProvableMethod, this, args);
+      const result = await Reflect.apply(programProvableMethod, this, args);
+      return result.proof as Proof<any, any>;
     }
 
     // create a mock proof by simulating method> execution in JS
