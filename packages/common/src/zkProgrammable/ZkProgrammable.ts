@@ -33,7 +33,10 @@ export interface Compile {
   (): Promise<CompileArtifact>;
 }
 
-export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
+export interface PlainZkProgram<
+  PublicInput = undefined,
+  PublicOutput = undefined,
+> {
   name: string;
   compile: Compile;
   verify: Verify<PublicInput, PublicOutput>;
@@ -45,11 +48,19 @@ export interface PlainZkProgram<PublicInput = undefined, PublicOutput = void> {
   >;
   methods: Record<
     string,
-    | ((...args: any) => Promise<Proof<PublicInput, PublicOutput>>)
+    | ((
+        ...args: any
+      ) => Promise<{
+        proof: Proof<PublicInput, PublicOutput>;
+        auxiliaryOutput: any;
+      }>)
     | ((
         publicInput: PublicInput,
         ...args: any
-      ) => Promise<Proof<PublicInput, PublicOutput>>)
+      ) => Promise<{
+        proof: Proof<PublicInput, PublicOutput>;
+        auxiliaryOutput: any;
+      }>)
   >;
   analyzeMethods: () => Promise<
     Record<string, Awaited<ReturnType<typeof Provable.constraintSystem>>>
