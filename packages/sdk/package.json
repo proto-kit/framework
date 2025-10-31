@@ -17,6 +17,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@mina-js/connect": "^0.1.1",
     "@urql/core": "^4.1.4",
     "comlink": "^4.4.1",
     "lodash": "^4.17.21",
