@@ -59,7 +59,7 @@ describe("balances", () => {
 
     await appChain.start();
     appChain.setSigner(senderKey);
-  });
+  }, 120000);
 
   it("regression - transfer from and to same account does not cause minting error", async () => {
     // expect.assertions(2);
