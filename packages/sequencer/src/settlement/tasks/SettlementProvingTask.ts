@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   filterNonUndefined,
   AreProofsEnabled,
@@ -27,6 +28,9 @@ import {
   ProofBase,
   AccountUpdateForest,
   AccountUpdate,
+  ProvableType,
+  Bool,
+  Unconstrained,
 } from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
@@ -178,6 +182,33 @@ export class SettlementProvingTask
         );
   }
 
+  private extractProofs(value: unknown): ProofBase[] {
+    if (value instanceof Proof || value instanceof DynamicProof) {
+      return [value];
+    }
+    if (value instanceof Unconstrained) return [];
+    if (value instanceof Field) return [];
+    if (value instanceof Bool) return [];
+
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => this.extractProofs(item));
+    }
+
+    if (value === null) return [];
+    if (typeof value === "object") {
+      return this.extractProofs(Object.values(value));
+    }
+
+    return [];
+  }
+
+  extractProofTypes(type: ProvableType) {
+    const value = ProvableType.synthesize(type);
+    const proofValues = this.extractProofs(value);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return proofValues.map((proof) => proof.constructor as typeof ProofBase);
+  }
+
   public inputSerializer(): TaskSerializer<TransactionTaskArgs> {
     type AccountJson = ReturnType<typeof Types.Account.toJSON>;
     type LazyProofJson = {
@@ -197,9 +228,7 @@ export class SettlementProvingTask
     };
     return {
       fromJSON: async (json: string): Promise<TransactionTaskArgs> => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: JsonInputObject = JSON.parse(json);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const commandJson: Types.Json.ZkappCommand = JSON.parse(
           jsonObject.transaction
         );
@@ -209,11 +238,6 @@ export class SettlementProvingTask
           const lazyProof = jsonObject.lazyProofs[index];
 
           if (lazyProof !== null) {
-            // Here, we need to decode the AU's lazyproof into the format
-            // that o1js needs to actually create those proofs
-            // For that we need to retrieve a few things. Most prominently,
-            // we need to get the contract class corresponding to that proof
-
             const SmartContractClass =
               this.contractRegistry!.getContractClassByName(
                 lazyProof.zkappClassName
@@ -234,18 +258,17 @@ export class SettlementProvingTask
               throw new Error("Method interface not found");
             }
 
-            const allArgs = method.allArgs.slice(2);
-            const witnessArgTypes = method.witnessArgs.slice(2);
-            const proofTypes = method.proofArgs;
-            let proofsDecoded = 0;
+            const args = method.args.slice(2);
 
             // eslint-disable-next-line no-await-in-loop
-            const args = await mapSequential(
+            const decodedArgs = await mapSequential(
               lazyProof.args,
               async (encodedArg, argsIndex) => {
-                if (allArgs[argsIndex].type === "witness") {
-                  const argType = witnessArgTypes[argsIndex - proofsDecoded];
-                  // encodedArg is this type
+                const argType = args[argsIndex];
+                const argTypeProvable = ProvableType.get(argType);
+                const argProofs = this.extractProofTypes(argType);
+
+                if (argProofs.length === 0) {
                   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                   const arg = encodedArg as { fields: string[]; aux: string[] };
 
@@ -267,37 +290,23 @@ export class SettlementProvingTask
                     return AccountUpdateForest.fromFlatArray(accountUpdates);
                   }
 
-                  return argType.fromFields(
+                  return argTypeProvable.fromFields(
                     arg.fields.map((field) => Field(field)),
                     arg.aux.map((auxI) => JSON.parse(auxI))
                   );
+                } else {
+                  const serializer = this.getProofSerializer(argProofs[0]);
+
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  return await serializer.fromJSON(encodedArg as string);
                 }
-                // fields is JsonProof
-                const serializer = this.getProofSerializer(
-                  proofTypes[proofsDecoded]
-                );
-
-                proofsDecoded += 1;
-                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                return await serializer.fromJSON(encodedArg as string);
               }
-            );
-
-            const proofArgIndizes = allArgs
-              .filter((arg) => arg.type === "proof")
-              .map((arg) => arg.index);
-
-            const previousProofs = proofArgIndizes.map(
-              (argIndex) =>
-                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                (args[argIndex] as ProofBase<unknown, unknown>).proof
             );
 
             transaction.transaction.accountUpdates[index].lazyAuthorization = {
               methodName: lazyProof.methodName,
               ZkappClass: SmartContractClass,
-              args,
-              previousProofs: previousProofs,
+              args: decodedArgs,
               blindingValue: Field(lazyProof.blindingValue),
               memoized: lazyProof.memoized.map(({ fields, aux }) => ({
                 fields: fields.map((f) => Field(f)),
@@ -337,17 +346,15 @@ export class SettlementProvingTask
                   throw new Error("Method interface not found");
                 }
 
-                const allArgs = method.allArgs.slice(2);
-                const witnessArgTypes = method.witnessArgs.slice(2);
-                const proofTypes = method.proofArgs;
-                let proofsEncoded = 0;
+                const args = method.args.slice(2);
 
                 const encodedArgs = lazyProof.args
                   .map((arg, index) => {
-                    if (allArgs[index].type === "witness") {
-                      const witnessType =
-                        witnessArgTypes[index - proofsEncoded];
+                    const argType = args[index];
+                    const argTypeProvable = ProvableType.get(argType);
+                    const argProofs = this.extractProofTypes(argType);
 
+                    if (argProofs.length === 0) {
                       // Special case for AUForest
                       if (arg instanceof AccountUpdateForest) {
                         const accountUpdates = AccountUpdateForest.toFlatArray(
@@ -366,10 +373,10 @@ export class SettlementProvingTask
                         };
                       }
 
-                      const fields = witnessType
+                      const fields = argTypeProvable
                         .toFields(arg)
                         .map((f) => f.toString());
-                      const aux = witnessType
+                      const aux = argTypeProvable
                         .toAuxiliary(arg)
                         .map((x) => JSON.stringify(x));
 
@@ -377,16 +384,10 @@ export class SettlementProvingTask
                         fields,
                         aux,
                       };
-                    }
-                    if (allArgs[index].type === "proof") {
-                      const serializer = this.getProofSerializer(
-                        proofTypes[proofsEncoded]
-                      );
-                      proofsEncoded += 1;
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                    } else {
+                      const serializer = this.getProofSerializer(argProofs[0]);
                       return serializer.toJSON(arg);
                     }
-                    throw new Error("Non-provable parameters not supported");
                   })
                   .filter(filterNonUndefined);
 
@@ -394,7 +395,6 @@ export class SettlementProvingTask
                   methodName: lazyProof.methodName,
                   zkappClassName: lazyProof.ZkappClass.name,
                   args: encodedArgs,
-
                   blindingValue: lazyProof.blindingValue.toString(),
                   memoized: lazyProof.memoized.map((value) => ({
                     fields: value.fields.map((f) => f.toString()),
@@ -461,7 +461,6 @@ export class SettlementProvingTask
   public resultSerializer(): TaskSerializer<TransactionTaskResult> {
     return {
       fromJSON: (json: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: Types.Json.ZkappCommand = JSON.parse(json);
         // We can typecast here since the generic typing only hides properties on the type level
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
