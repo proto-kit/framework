@@ -42,18 +42,22 @@ class TestProgrammable extends ZkProgrammable<
   @provableMethod()
   public async foo(publicInput: TestPublicInput, bar: Balance) {
     // expose the private input as public output again for testing purposes
-    return new TestPublicOutput({
-      bar,
-    });
+    return {
+      publicOutput: new TestPublicOutput({
+        bar,
+      }),
+    };
   }
 
   @provableMethod()
   public async fail(publicInput: TestPublicInput) {
     publicInput.foo.assertEquals(1, failErrorMessage);
 
-    return new TestPublicOutput({
-      bar: Field(0),
-    });
+    return {
+      publicOutput: new TestPublicOutput({
+        bar: Field(0),
+      }),
+    };
   }
 
   public zkProgramFactory() {
@@ -212,6 +216,7 @@ describe("zkProgrammable", () => {
       it("if proofs are disabled, it should successfully verify mock proofs", async () => {
         expect.assertions(1);
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const proof = new testProgrammable.zkProgram[0].Proof({
           proof: MOCK_PROOF,
 
@@ -272,7 +277,7 @@ describe("zkProgrammable", () => {
             // proof bar
             const otherTestProof = await executionContext
               .current()
-              .result.prove<Proof<undefined, void>>();
+              .result.prove<Proof<undefined, undefined>>();
             const otherTestProofVerified =
               await otherTestProgrammable.zkProgram[0].verify(otherTestProof);
 
