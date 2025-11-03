@@ -85,16 +85,15 @@ export class RuntimeMethodExecutionContext extends ProvableMethodExecutionContex
     this.result.stateTransitions.push(stateTransition);
   }
 
-  public addEvent(
-    eventType: FlexibleProvablePure<any>,
-    event: any,
+  public addEvent<T>(
+    eventType: FlexibleProvablePure<T>,
+    event: T,
     eventName: string,
     condition: Bool = Bool(true)
   ) {
     this.assertSetupCalled();
     this.result.events.push({
       eventType,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       event,
       eventName,
       condition,

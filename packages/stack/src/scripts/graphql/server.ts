@@ -1,6 +1,6 @@
 import {
-  AppChain,
   BlockStorageNetworkStateModule,
+  ClientAppChain,
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
@@ -17,29 +17,30 @@ import {
   VanillaRuntimeModules,
   UInt64,
 } from "@proto-kit/library";
-import { log } from "@proto-kit/common";
+import { log, mapSequential, range } from "@proto-kit/common";
 import {
   BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
   LocalTaskWorkerModule,
-  ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
   BlockProducerModule,
   VanillaTaskWorkerModules,
   SequencerStartupModule,
+  TimedBlockTrigger,
 } from "@proto-kit/sequencer";
 import {
   BatchStorageResolver,
   GraphqlSequencerModule,
   GraphqlServer,
   MempoolResolver,
-  MerkleWitnessResolver,
+  LinkedMerkleWitnessResolver as MerkleWitnessResolver,
   NodeStatusResolver,
   QueryGraphqlModule,
   BlockResolver,
+  OpenTelemetryServer,
 } from "@proto-kit/api";
 import { container } from "tsyringe";
 
@@ -83,63 +84,49 @@ export class TestBalances extends Balances {
 export async function startServer() {
   log.setLevel("DEBUG");
 
-  const appChain = AppChain.from({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
+  const appChain = ClientAppChain.from({
+    Runtime: Runtime.from(
+      VanillaRuntimeModules.with({
         Balances: TestBalances,
-      }),
-    }),
+      })
+    ),
 
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
+    Protocol: Protocol.from(VanillaProtocolModules.with({})),
 
     Sequencer: Sequencer.from({
-      modules: {
-        Database: InMemoryDatabase,
-        // Database: PrismaRedisDatabase,
+      Database: InMemoryDatabase,
+      // Database: PrismaRedisDatabase,
+      OpenTelemetryServer,
 
-        Mempool: PrivateMempool,
-        GraphqlServer,
-        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.withoutSettlement()
-        ),
-        BaseLayer: NoopBaseLayer,
-        BatchProducerModule,
-        BlockProducerModule,
-        BlockTrigger: ManualBlockTrigger,
-        TaskQueue: LocalTaskQueue,
-        // SettlementModule: SettlementModule,
+      Mempool: PrivateMempool,
+      GraphqlServer,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.withoutSettlement()
+      ),
 
-        Graphql: GraphqlSequencerModule.from({
-          modules: {
-            MempoolResolver,
-            QueryGraphqlModule,
-            BatchStorageResolver,
-            BlockResolver,
-            NodeStatusResolver,
-            MerkleWitnessResolver,
-          },
+      BaseLayer: NoopBaseLayer,
+      BatchProducerModule,
+      BlockProducerModule,
+      // BlockTrigger: ManualBlockTrigger,
+      BlockTrigger: TimedBlockTrigger,
+      TaskQueue: LocalTaskQueue,
+      // SettlementModule: SettlementModule,
 
-          config: {
-            MempoolResolver: {},
-            QueryGraphqlModule: {},
-            BatchStorageResolver: {},
-            NodeStatusResolver: {},
-            MerkleWitnessResolver: {},
-            BlockResolver: {},
-          },
-        }),
-        SequencerStartupModule,
-      },
+      Graphql: GraphqlSequencerModule.from({
+        MempoolResolver,
+        QueryGraphqlModule,
+        BatchStorageResolver,
+        BlockResolver,
+        NodeStatusResolver,
+        MerkleWitnessResolver,
+      }),
+
+      SequencerStartupModule,
     }),
-
-    modules: {
-      Signer: InMemorySigner,
-      TransactionSender: InMemoryTransactionSender,
-      QueryTransportModule: StateServiceQueryModule,
-      NetworkStateTransportModule: BlockStorageNetworkStateModule,
-    },
+    Signer: InMemorySigner,
+    TransactionSender: InMemoryTransactionSender,
+    QueryTransportModule: StateServiceQueryModule,
+    NetworkStateTransportModule: BlockStorageNetworkStateModule,
   });
 
   appChain.configure({
@@ -184,6 +171,18 @@ export async function startServer() {
         MerkleWitnessResolver: {},
       },
 
+      OpenTelemetryServer: {
+        tracing: {
+          enabled: true,
+          otlp: {
+            url: "http://localhost:4318",
+          },
+        },
+        metrics: {
+          enabled: true,
+        },
+      },
+
       Database: {
         // redis: {
         //   host: "localhost",
@@ -213,7 +212,11 @@ export async function startServer() {
         allowEmptyBlock: true,
       },
 
-      BlockTrigger: {},
+      BlockTrigger: {
+        blockInterval: 10000,
+        settlementInterval: 20000,
+        settlementTokenConfig: {},
+      },
     },
 
     TransactionSender: {},
@@ -241,30 +244,31 @@ export async function startServer() {
   const as = await appChain.query.protocol.AccountState.accountState.get(
     priv.toPublicKey()
   );
-  const nonce = Number(as?.nonce.toString() ?? "0");
+  let nonce = Number(as?.nonce.toString() ?? "0");
 
-  const tx = await appChain.transaction(
-    priv.toPublicKey(),
-    async () => {
-      await balances.addBalance(tokenId, priv.toPublicKey(), UInt64.from(1000));
-    },
-    {
-      nonce,
-    }
-  );
-  appChain.resolve("Signer").config.signer = priv;
-  await tx.sign();
-  await tx.send();
+  setInterval(async () => {
+    const random = Math.floor(Math.random() * 5);
+    await mapSequential(range(0, random), async () => {
+      const tx = await appChain.transaction(
+        priv.toPublicKey(),
+        async () => {
+          await balances.addBalance(
+            tokenId,
+            priv.toPublicKey(),
+            UInt64.from(1000)
+          );
+        },
+        {
+          nonce,
+        }
+      );
+      appChain.resolve("Signer").config.signer = priv;
+      await tx.sign();
+      await tx.send();
 
-  const tx2 = await appChain.transaction(
-    priv.toPublicKey(),
-    async () => {
-      await balances.addBalance(tokenId, priv.toPublicKey(), UInt64.from(1000));
-    },
-    { nonce: nonce + 1 }
-  );
-  await tx2.sign();
-  await tx2.send();
+      nonce += 1;
+    });
+  }, 10000);
 
   return appChain;
 }

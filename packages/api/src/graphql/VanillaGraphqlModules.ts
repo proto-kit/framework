@@ -6,7 +6,7 @@ import { QueryGraphqlModule } from "./modules/QueryGraphqlModule";
 import { BatchStorageResolver } from "./modules/BatchStorageResolver";
 import { NodeStatusResolver } from "./modules/NodeStatusResolver";
 import { BlockResolver } from "./modules/BlockResolver";
-import { MerkleWitnessResolver } from "./modules/MerkleWitnessResolver";
+import { LinkedMerkleWitnessResolver as MerkleWitnessResolver } from "./modules/LinkedMerkleWitnessResolver";
 
 export type VanillaGraphqlModulesRecord = {
   MempoolResolver: typeof MempoolResolver;

@@ -1,5 +1,5 @@
 import { Bool, Field, Poseidon } from "o1js";
-import { RollupMerkleTree } from "@proto-kit/common";
+import { LinkedMerkleTree } from "@proto-kit/common";
 import {
   AfterBlockHookArguments,
   BlockHashMerkleTree,
@@ -25,10 +25,15 @@ import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import type { StateRecord } from "../BatchProducerModule";
+import { trace } from "../../../logging/trace";
+import { Tracer } from "../../../logging/Tracer";
+import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
+import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
 
-function collectStateDiff(
+// This is ordered, because javascript maintains the order based on time of first insertion
+function collectOrderedStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {
   return stateTransitions.reduce<Record<string, Field[] | undefined>>(
@@ -42,7 +47,7 @@ function collectStateDiff(
   );
 }
 
-function createCombinedStateDiff(
+function createCombinedOrderedStateDiff(
   transactions: TransactionExecutionResult[],
   blockHookSTs: UntypedStateTransition[]
 ) {
@@ -55,7 +60,7 @@ function createCombinedStateDiff(
 
       transitions.push(...blockHookSTs);
 
-      return collectStateDiff(transitions);
+      return collectOrderedStateDiff(transitions);
     })
     .reduce<StateRecord>((accumulator, diff) => {
       // accumulator properties will be overwritten by diff's values
@@ -72,12 +77,15 @@ export class BlockResultService {
     @inject("Protocol")
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
     @inject("StateServiceProvider")
-    private readonly stateServiceProvider: StateServiceProvider
+    private readonly stateServiceProvider: StateServiceProvider,
+    @inject("Tracer")
+    public readonly tracer: Tracer
   ) {
     this.blockHooks =
       protocol.dependencyContainer.resolveAll("ProvableBlockHook");
   }
 
+  @trace("block.hook.after")
   public async executeAfterBlockHook(
     args: AfterBlockHookArguments,
     inputNetworkState: NetworkState,
@@ -148,44 +156,53 @@ export class BlockResultService {
   }
 
   public async applyStateDiff(
-    store: CachedMerkleTreeStore,
+    store: CachedLinkedLeafStore,
     stateDiff: StateRecord
-  ): Promise<RollupMerkleTree> {
-    await store.preloadKeys(Object.keys(stateDiff).map(BigInt));
+  ): Promise<LinkedMerkleTree> {
+    const stateKeys = Object.keys(stateDiff);
+    await store.preloadKeys(stateKeys.map(BigInt));
 
     // In case the diff is empty, we preload key 0 in order to
     // retrieve the root, which we need later
-    if (Object.keys(stateDiff).length === 0) {
+    if (stateKeys.length === 0) {
       await store.preloadKey(0n);
     }
 
-    const tree = new RollupMerkleTree(store);
+    const tree = new LinkedMerkleTree(store.treeStore, store);
 
-    Object.entries(stateDiff).forEach(([key, state]) => {
+    const writes = Object.entries(stateDiff).map(([key, state]) => {
       const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
-      tree.setLeaf(BigInt(key), treeValue);
+      return { path: BigInt(key), value: treeValue.toBigInt() };
     });
+    tree.setLeaves(writes);
+    // Object.entries(stateDiff).forEach(([key, state]) => {
+    //   const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
+    //   tree.setLeaf(BigInt(key), treeValue.toBigInt());
+    // });
 
     return tree;
   }
 
+  @trace("block.result.generate", ([block]) => ({
+    height: block.height.toString(),
+  }))
   public async generateMetadataForNextBlock(
     block: Block,
-    merkleTreeStore: AsyncMerkleTreeStore,
+    merkleTreeStore: AsyncLinkedLeafStore,
     blockHashTreeStore: AsyncMerkleTreeStore,
     stateService: AsyncStateService
   ): Promise<{
     result: BlockResult;
-    treeStore: CachedMerkleTreeStore;
+    treeStore: CachedLinkedLeafStore;
     blockHashTreeStore: CachedMerkleTreeStore;
     stateService: CachedStateService;
   }> {
-    const combinedDiff = createCombinedStateDiff(
+    const combinedDiff = createCombinedOrderedStateDiff(
       block.transactions,
       block.beforeBlockStateTransitions
     );
 
-    const inMemoryStore = new CachedMerkleTreeStore(merkleTreeStore);
+    const inMemoryStore = await CachedLinkedLeafStore.new(merkleTreeStore);
 
     const tree = await this.applyStateDiff(inMemoryStore, combinedDiff);
 
@@ -212,7 +229,7 @@ export class BlockResultService {
     // Apply afterBlock STs to the tree
     const tree2 = await this.applyStateDiff(
       inMemoryStore,
-      collectStateDiff(
+      collectOrderedStateDiff(
         stateTransitions.map((stateTransition) =>
           UntypedStateTransition.fromStateTransition(stateTransition)
         )

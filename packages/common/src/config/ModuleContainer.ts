@@ -109,18 +109,6 @@ export type RecursivePartial<T> = {
   [Key in keyof T]?: Partial<T[Key]>;
 };
 
-/**
- * Parameters required when creating a module container instance
- */
-export interface ModuleContainerDefinition<Modules extends ModulesRecord> {
-  modules: Modules;
-  // config is optional, as it may be provided by the parent/wrapper class
-  /**
-   * @deprecated
-   */
-  config?: ModulesConfig<Modules>;
-}
-
 // Removes all keys with a "never" value from an object
 export type FilterNeverValues<Type extends Record<string, unknown>> = {
   [Key in keyof Type as Type[Key] extends never ? never : Key]: Type[Key];
@@ -138,13 +126,23 @@ export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
 > &
   Modules;
 
+export interface ModuleContainerLike {
+  get dependencyContainer(): DependencyContainer;
+
+  resolveOrFail<ModuleType>(
+    moduleName: string,
+    moduleType: TypedClass<ModuleType>
+  ): ModuleType;
+}
+
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
  */
-export class ModuleContainer<
-  Modules extends ModulesRecord,
-> extends ConfigurableModule<ModulesConfig<Modules>> {
+export class ModuleContainer<Modules extends ModulesRecord>
+  extends ConfigurableModule<ModulesConfig<Modules>>
+  implements ModuleContainerLike
+{
   /**
    * Determines how often are modules decorated upon resolution
    * from the tsyringe DI container
@@ -156,7 +154,7 @@ export class ModuleContainer<
 
   private eventEmitterProxy: EventEmitterProxy<Modules> | undefined = undefined;
 
-  public constructor(public definition: ModuleContainerDefinition<Modules>) {
+  public constructor(public definition: Modules) {
     super();
   }
 
@@ -164,7 +162,7 @@ export class ModuleContainer<
    * @returns list of module names
    */
   public get moduleNames() {
-    return Object.keys(this.definition.modules);
+    return Object.keys(this.definition);
   }
 
   /**
@@ -209,7 +207,7 @@ export class ModuleContainer<
   public assertIsValidModuleName(
     moduleName: string
   ): asserts moduleName is StringKeyOf<Modules> {
-    if (!this.isValidModuleName(this.definition.modules, moduleName)) {
+    if (!this.isValidModuleName(this.definition, moduleName)) {
       throw errors.onlyValidModuleNames(moduleName);
     }
   }
@@ -263,6 +261,10 @@ export class ModuleContainer<
         this.onAfterModuleResolution(moduleName);
 
         this.registerAliases(moduleName, useClass);
+
+        if (this.isDependencyFactory(useClass)) {
+          this.useDependencyFactory(useClass);
+        }
       }
     });
   }
@@ -282,16 +284,6 @@ export class ModuleContainer<
   public registerValue<Value>(modules: Record<string, Value>) {
     Object.entries(modules).forEach(([moduleName, useValue]) => {
       this.container.register(moduleName, { useValue });
-    });
-  }
-
-  protected registerClasses(modules: Record<string, TypedClass<unknown>>) {
-    Object.entries(modules).forEach(([moduleName, useClass]) => {
-      this.container.register(
-        moduleName,
-        { useClass },
-        { lifecycle: Lifecycle.ContainerScoped }
-      );
     });
   }
 
@@ -345,13 +337,20 @@ export class ModuleContainer<
 
   public resolveOrFail<ModuleType>(
     moduleName: string,
-    moduleType: TypedClass<ModuleType>
+    moduleType?: TypedClass<ModuleType>
   ) {
-    const instance = this.container.resolve<ModuleType>(moduleName);
-    const isValidModuleInstance = instance instanceof moduleType;
+    if (!this.container.isRegistered(moduleName)) {
+      throw new Error(`Dependency with token ${moduleName} not registered`);
+    }
 
-    if (!isValidModuleInstance) {
-      throw errors.validModuleInstance(moduleName, moduleType.name);
+    const instance = this.container.resolve<ModuleType>(moduleName);
+
+    if (moduleType !== undefined) {
+      const isValidModuleInstance = instance instanceof moduleType;
+
+      if (!isValidModuleInstance) {
+        throw errors.validModuleInstance(moduleName, moduleType.name);
+      }
     }
 
     return instance;
@@ -403,6 +402,7 @@ export class ModuleContainer<
   protected useDependencyFactory(factory: DependencyFactory) {
     const dependencies = factory.dependencies();
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     Object.entries(dependencies).forEach(([rawKey, declaration]) => {
       const key = rawKey.charAt(0).toUpperCase() + rawKey.slice(1);
 
@@ -410,6 +410,15 @@ export class ModuleContainer<
         !this.container.isRegistered(key) ||
         declaration.forceOverwrite === true
       ) {
+        if (
+          this.container.isRegistered(key) &&
+          (declaration?.forceOverwrite ?? false)
+        ) {
+          log.warn(
+            `You are trying to overwrite dependency ${key}, which is already registered. This is currently not supported. Try to define your dependency earlier.`
+          );
+        }
+
         // Find correct provider type and call respective register
         if (isValueProvider(declaration)) {
           this.container.register(key, declaration);
@@ -428,6 +437,11 @@ export class ModuleContainer<
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             declaration.useClass as TypedClass<unknown>
           );
+
+          // Register static dependencies
+          if (this.isDependencyFactory(declaration.useClass)) {
+            this.useDependencyFactory(declaration.useClass);
+          }
         } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
             lifecycle: Lifecycle.Singleton,
@@ -482,6 +496,11 @@ export class ModuleContainer<
     });
 
     // register all provided modules when the container is created
-    this.registerModules(this.definition.modules);
+    this.registerModules(this.definition);
+    this.container.register("ParentContainer", { useValue: this });
+  }
+
+  public get dependencyContainer(): DependencyContainer {
+    return this.container;
   }
 }

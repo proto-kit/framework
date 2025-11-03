@@ -13,10 +13,10 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { BatchStorage } from "../../storage/repositories/BatchStorage";
 import { SettleableBatch } from "../../storage/model/Batch";
-import { CachedMerkleTreeStore } from "../../state/merkle/CachedMerkleTreeStore";
-import { AsyncMerkleTreeStore } from "../../state/async/AsyncMerkleTreeStore";
 import { BlockWithResult } from "../../storage/model/Block";
 import type { Database } from "../../storage/Database";
+import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
+import { CachedLinkedLeafStore } from "../../state/lmt/CachedLinkedLeafStore";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -26,7 +26,7 @@ export type StateRecord = Record<string, Field[] | undefined>;
 
 interface BatchMetadata {
   batch: SettleableBatch;
-  changes: CachedMerkleTreeStore;
+  changes: CachedLinkedLeafStore;
 }
 
 const errors = {
@@ -47,8 +47,8 @@ export class BatchProducerModule extends SequencerModule {
   private productionInProgress = false;
 
   public constructor(
-    @inject("AsyncMerkleStore")
-    private readonly merkleStore: AsyncMerkleTreeStore,
+    @inject("AsyncLinkedLeafStore")
+    private readonly merkleStore: AsyncLinkedLeafStore,
     @inject("BatchStorage") private readonly batchStorage: BatchStorage,
     @inject("Database")
     private readonly database: Database,
@@ -170,15 +170,15 @@ export class BatchProducerModule extends SequencerModule {
    *
    *
    * @param blocks
-   * @param blockId
+   * @param batchId
    * @private
    */
   private async computeBatch(
     blocks: BlockWithResult[],
-    blockId: number
+    batchId: number
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-    changes: CachedMerkleTreeStore;
+    changes: CachedLinkedLeafStore;
     fromNetworkState: NetworkState;
     toNetworkState: NetworkState;
   }> {
@@ -186,14 +186,15 @@ export class BatchProducerModule extends SequencerModule {
       throw errors.blockWithoutTxs();
     }
 
-    const merkleTreeStore = new CachedMerkleTreeStore(this.merkleStore);
+    const merkleTreeStore = await CachedLinkedLeafStore.new(this.merkleStore);
 
     const trace = await this.batchTraceService.traceBatch(
       blocks.map((block) => block),
-      merkleTreeStore
+      merkleTreeStore,
+      batchId
     );
 
-    const proof = await this.batchFlow.executeBatch(trace, blockId);
+    const proof = await this.batchFlow.executeBatch(trace, batchId);
 
     const fromNetworkState = blocks[0].block.networkState.before;
     const toNetworkState = blocks.at(-1)!.result.afterNetworkState;

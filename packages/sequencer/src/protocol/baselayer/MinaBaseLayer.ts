@@ -1,4 +1,9 @@
-import { AreProofsEnabled, DependencyFactory } from "@proto-kit/common";
+import {
+  AreProofsEnabled,
+  DependencyFactory,
+  ModuleContainerLike,
+  DependencyRecord,
+} from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
 import { inject } from "tsyringe";
@@ -9,11 +14,8 @@ import {
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
-import { WithdrawalQueue } from "../../settlement/messages/WithdrawalQueue";
-import {
-  Sequencer,
-  SequencerModulesRecord,
-} from "../../sequencer/executor/Sequencer";
+import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
+import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
 
 import { BaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
@@ -57,9 +59,17 @@ export class MinaBaseLayer
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
     @inject("Sequencer")
-    private readonly sequencer: Sequencer<SequencerModulesRecord>
+    private readonly sequencer: ModuleContainerLike
   ) {
     super();
+  }
+
+  public static dependencies() {
+    return {
+      IncomingMessagesService: {
+        useClass: IncomingMessagesService,
+      },
+    } satisfies DependencyRecord;
   }
 
   public dependencies() {
@@ -78,8 +88,8 @@ export class MinaBaseLayer
         useClass: MinaTransactionSender,
       },
 
-      OutgoingMessageQueue: {
-        useClass: WithdrawalQueue,
+      OutgoingMessageAdapter: {
+        useClass: DefaultOutgoingMessageAdapter,
       },
 
       NetworkUtils: {

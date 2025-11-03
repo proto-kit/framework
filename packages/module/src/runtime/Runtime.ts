@@ -4,7 +4,6 @@ import { container, DependencyContainer, injectable } from "tsyringe";
 import {
   StringKeyOf,
   ModuleContainer,
-  ModulesConfig,
   ModulesRecord,
   TypedClass,
   ZkProgrammable,
@@ -66,14 +65,6 @@ const errors = {
     new Error(`Unable to find method with id ${methodKey}`),
 };
 
-/**
- * Definition / required arguments for the Runtime class
- */
-export interface RuntimeDefinition<Modules extends RuntimeModulesRecord> {
-  modules: Modules;
-  config?: ModulesConfig<Modules>;
-}
-
 export class RuntimeZkProgrammable<
   Modules extends RuntimeModulesRecord,
 > extends ZkProgrammable<undefined, MethodPublicOutput> {
@@ -103,10 +94,7 @@ export class RuntimeZkProgrammable<
 
     const runtimeMethods = runtime.runtimeModuleNames.reduce<Methods>(
       (allMethods, runtimeModuleName) => {
-        runtime.isValidModuleName(
-          runtime.definition.modules,
-          runtimeModuleName
-        );
+        runtime.isValidModuleName(runtime.definition, runtimeModuleName);
 
         /**
          * Couldnt find a better way to circumvent the type assertion
@@ -272,7 +260,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   implements RuntimeEnvironment, CompilableModule
 {
   public static from<Modules extends RuntimeModulesRecord>(
-    definition: RuntimeDefinition<Modules>
+    definition: Modules
   ): TypedClass<Runtime<Modules>> {
     return class RuntimeScoped extends Runtime<Modules> {
       public constructor() {
@@ -284,7 +272,9 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   // runtime modules composed into a ZkProgram
   public program?: ReturnType<typeof ZkProgram>;
 
-  public definition: RuntimeDefinition<Modules>;
+  // No idea why we have to do this, but if we don't re-define it here,
+  // js can't access it from the superclass somehow
+  public definition: Modules;
 
   public zkProgrammable: ZkProgrammable<undefined, MethodPublicOutput>;
 
@@ -293,7 +283,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    *
    * @param modules - Configuration object for the constructed Runtime
    */
-  public constructor(definition: RuntimeDefinition<Modules>) {
+  public constructor(definition: Modules) {
     super(definition);
     this.definition = definition;
     this.zkProgrammable = new RuntimeZkProgrammable<Modules>(this);
@@ -303,7 +293,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
 
-    this.useDependencyFactory(this.container.resolve(MethodIdFactory));
+    this.useDependencyFactory(MethodIdFactory);
   }
 
   public get areProofsEnabled(): AreProofsEnabled | undefined {
@@ -378,7 +368,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    * @returns A list of names of all the registered module names
    */
   public get runtimeModuleNames() {
-    return Object.keys(this.definition.modules);
+    return this.moduleNames;
   }
 
   public async compile(registry: CompileRegistry) {

@@ -1,8 +1,8 @@
 import { PrivateKey } from "o1js";
 import { log } from "@proto-kit/common";
+import { FungibleToken } from "mina-fungible-token";
 
 import { settlementTestFn } from "../test/settlement/Settlement";
-import { FungibleToken } from "mina-fungible-token";
 
 console.log(PrivateKey.random().toPublicKey().toBase58());
 

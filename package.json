@@ -9,6 +9,7 @@
     "build:clean": "npx nx reset && npm run build",
     "build-docker": "docker build -t protokit-base -f ./packages/deployment/docker/base/Dockerfile .",
     "lint": "npx lerna run lint",
+    "lint:fix": "npx lerna run lint -- --fix",
     "lint:staged": "eslint",
     "test": "npx lerna run test -- --passWithNoTests",
     "test:ci": "npx lerna run test --concurrency=1 -- --passWithNoTests --forceExit",

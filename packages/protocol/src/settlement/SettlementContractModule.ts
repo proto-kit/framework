@@ -50,7 +50,7 @@ export class SettlementContractModule<
   extends ModuleContainer<SettlementModules>
   implements ProtocolModule<unknown>
 {
-  public constructor(definition: { modules: SettlementModules }) {
+  public constructor(definition: SettlementModules) {
     super(definition);
   }
 
@@ -62,7 +62,7 @@ export class SettlementContractModule<
   ): TypedClass<SettlementContractModule<SettlementModules>> {
     return class ScopedSettlementContractModule extends SettlementContractModule<SettlementModules> {
       public constructor() {
-        super({ modules });
+        super(modules);
       }
     };
   }

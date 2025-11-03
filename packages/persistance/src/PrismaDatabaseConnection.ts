@@ -1,8 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import {
   sequencerModule,
   SequencerModule,
   StorageDependencyMinimumDependencies,
+  Tracer,
 } from "@proto-kit/sequencer";
 import { DependencyFactory, OmitKeys } from "@proto-kit/common";
 
@@ -27,6 +28,7 @@ export interface PrismaDatabaseConfig {
         };
       }
     | string;
+  log?: (Prisma.LogLevel | Prisma.LogDefinition)[];
 }
 
 export interface PrismaConnection {
@@ -38,6 +40,10 @@ export class PrismaDatabaseConnection
   extends SequencerModule<PrismaDatabaseConfig>
   implements DependencyFactory, PrismaConnection
 {
+  public constructor(private readonly tracer: Tracer) {
+    super();
+  }
+
   private initializedClient: PrismaClient | undefined = undefined;
 
   public get prismaClient(): PrismaClient {
@@ -49,11 +55,11 @@ export class PrismaDatabaseConnection
 
   public dependencies(): OmitKeys<
     StorageDependencyMinimumDependencies,
-    "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
+    "blockTreeStore" | "asyncLinkedLeafStore" | "unprovenLinkedLeafStore"
   > {
     return {
       asyncStateService: {
-        useFactory: () => new PrismaStateService(this, "batch"),
+        useFactory: () => new PrismaStateService(this, this.tracer, "batch"),
       },
       batchStorage: {
         useClass: PrismaBatchStore,
@@ -65,7 +71,7 @@ export class PrismaDatabaseConnection
         useClass: PrismaBlockStorage,
       },
       unprovenStateService: {
-        useFactory: () => new PrismaStateService(this, "block"),
+        useFactory: () => new PrismaStateService(this, this.tracer, "block"),
       },
       settlementStorage: {
         useClass: PrismaSettlementStorage,
@@ -90,6 +96,7 @@ export class PrismaDatabaseConnection
       "Settlement",
       "IncomingMessageBatch",
       "IncomingMessageBatchTransaction",
+      "LinkedLeaf",
     ];
 
     await this.prismaClient.$transaction(
@@ -128,6 +135,7 @@ export class PrismaDatabaseConnection
             url,
           },
         },
+        log: this.config.log,
       });
     } else {
       this.initializedClient = new PrismaClient();

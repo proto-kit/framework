@@ -6,9 +6,9 @@ WORKDIR /src
 COPY package*.json .
 # This sucks
 COPY ./packages/api/package.json ./packages/api/package.json
-COPY ./packages/cli/package.json ./packages/cli/package.json
 COPY ./packages/common/package.json ./packages/common/package.json
 COPY ./packages/deployment/package.json ./packages/deployment/package.json
+COPY ./packages/indexer/package.json ./packages/indexer/package.json
 COPY ./packages/library/package.json ./packages/library/package.json
 COPY ./packages/module/package.json ./packages/module/package.json
 COPY ./packages/persistance/package.json ./packages/persistance/package.json

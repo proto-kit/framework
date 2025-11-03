@@ -1,6 +1,7 @@
 import {
   AccountUpdate,
   Bool,
+  Experimental,
   Field,
   method,
   Permissions,
@@ -16,14 +17,17 @@ import {
   VerificationKey,
 } from "o1js";
 import { noop, range, TypedClass } from "@proto-kit/common";
+import { container, injectable, singleton } from "tsyringe";
 
 import {
   OUTGOING_MESSAGE_BATCH_SIZE,
   OutgoingMessageArgumentBatch,
+  createMessageStruct,
+  OutgoingMessageArgument,
 } from "../messages/OutgoingMessageArgument";
 import { Path } from "../../model/Path";
-import { Withdrawal } from "../messages/Withdrawal";
-import { PROTOKIT_PREFIXES } from "../../hashing/protokit-prefixes";
+import { OutgoingMessageProcessor } from "../modularity/OutgoingMessageProcessor";
+import { PROTOKIT_FIELD_PREFIXES } from "../../hashing/protokit-prefixes";
 
 import type { SettlementContractType } from "./SettlementSmartContract";
 
@@ -52,13 +56,26 @@ export class OutgoingMessageKey extends Struct({
   tokenId: Field,
 }) {}
 
+@injectable()
+@singleton()
+export class BridgeContractContext {
+  public data: {
+    messageInputs: any[][];
+  } = { messageInputs: [] };
+}
+
 export abstract class BridgeContractBase extends TokenContractV2 {
   public static args: {
     SettlementContract:
       | (TypedClass<SettlementContractType> & typeof SmartContract)
       | undefined;
-    withdrawalStatePath: [string, string];
+    messageProcessors: OutgoingMessageProcessor<unknown>[];
+    batchSize?: number;
   };
+
+  public constructor(address: PublicKey, tokenId?: Field) {
+    super(address, tokenId);
+  }
 
   abstract settlementContractAddress: State<PublicKey>;
 
@@ -113,6 +130,8 @@ export abstract class BridgeContractBase extends TokenContractV2 {
   }
 
   public async updateStateRootBase(root: Field) {
+    // It's fine for us to only store the actual root since we only have to
+    // witness values, not update/insert
     this.stateRoot.set(root);
 
     const settlementContractAddress =
@@ -130,54 +149,161 @@ export abstract class BridgeContractBase extends TokenContractV2 {
     this.approve(accountUpdate);
   }
 
-  public async rollupOutgoingMessagesBase(
-    batch: OutgoingMessageArgumentBatch
-  ): Promise<Field> {
+  private batchSize() {
+    return BridgeContractBase.args.batchSize ?? OUTGOING_MESSAGE_BATCH_SIZE;
+  }
+
+  private executeProcessors(batchIndex: number, args: OutgoingMessageArgument) {
+    return BridgeContractBase.args.messageProcessors.map((processor, j) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const value = Experimental.memoizeWitness(processor.type, () => {
+        return container.resolve(BridgeContractContext).data.messageInputs[
+          batchIndex
+        ][j];
+      });
+
+      const MessageType = createMessageStruct(processor.type);
+      const message = new MessageType({
+        messageType: args.messageType,
+        value,
+      });
+      return {
+        messageType: args.messageType,
+        result: processor.processMessage(value, {
+          bridgeContract: {
+            publicKey: this.address,
+            tokenId: this.tokenId,
+          },
+        }),
+        hash: Poseidon.hash(MessageType.toFields(message)),
+      };
+    });
+  }
+
+  public processMessage(
+    batchIndex: number,
+    args: OutgoingMessageArgument,
+    isDummy: Bool
+  ) {
+    const results = this.executeProcessors(batchIndex, args);
+
+    const maxAccountUpdates = Math.max(
+      0,
+      ...results.map(({ result: { accountUpdates } }) => accountUpdates.length)
+    );
+    const AccountUpdateArray = Provable.Array(AccountUpdate, maxAccountUpdates);
+
+    const dummyMessageType =
+      PROTOKIT_FIELD_PREFIXES.OUTGOING_MESSAGE_DUMMY_TYPE;
+    const argMessageType = Provable.if(
+      isDummy,
+      dummyMessageType,
+      args.messageType
+    );
+    const dummyAU = AccountUpdate.dummy();
+
+    const chosen = results
+      .map((a) => {
+        a.result.accountUpdates = a.result.accountUpdates.concat(
+          ...Array<AccountUpdate>(
+            maxAccountUpdates - a.result.accountUpdates.length
+          ).fill(dummyAU)
+        );
+        return a;
+      })
+      .concat({
+        messageType: dummyMessageType,
+        hash: Field(0),
+        result: {
+          accountUpdates: Array<AccountUpdate>(maxAccountUpdates).fill(dummyAU),
+          status: Bool(true),
+          statusMessage: undefined,
+        },
+      })
+      .reduce((a, b) => {
+        const isA = a.messageType.equals(argMessageType);
+
+        const messageType = Provable.if(isA, a.messageType, b.messageType);
+        const hash = Provable.if(isA, a.hash, b.hash);
+        const accountUpdates = Provable.if(
+          isA,
+          AccountUpdateArray,
+          a.result.accountUpdates,
+          b.result.accountUpdates
+        );
+        const status = Provable.if(isA, a.result.status, b.result.status);
+        let statusMessage: string | undefined = undefined;
+        Provable.asProver(() => {
+          if (isA.toBoolean()) {
+            statusMessage = a.result.statusMessage;
+          } else {
+            statusMessage = b.result.statusMessage;
+          }
+        });
+
+        return {
+          messageType,
+          hash,
+          result: { accountUpdates, status, statusMessage },
+        };
+      });
+
+    // If no processor picks up our message type, the reduce above returns
+    // the first candidate. This statement asserts that this is not the case
+    chosen.messageType.assertEquals(
+      argMessageType,
+      "No processor found for message type"
+    );
+
+    return chosen;
+  }
+
+  public async rollupOutgoingMessagesBase(batch: OutgoingMessageArgumentBatch) {
     let counter = this.outgoingMessageCursor.getAndRequireEquals();
     const stateRoot = this.stateRoot.getAndRequireEquals();
-
-    const [withdrawalModule, withdrawalStateName] =
-      BridgeContractBase.args.withdrawalStatePath;
-    const mapPath = Path.fromProperty(
-      withdrawalModule,
-      withdrawalStateName,
-      PROTOKIT_PREFIXES.STATE_RUNTIME
-    );
 
     // Count account creation fee to return later, so that the sender can fund
     // those accounts with a separate AU
     let accountCreationFeePaid = Field(0);
 
-    for (let i = 0; i < OUTGOING_MESSAGE_BATCH_SIZE; i++) {
+    for (let i = 0; i < this.batchSize(); i++) {
       const args = batch.arguments[i];
 
-      // Check witness
-      const path = Path.fromKey(mapPath, OutgoingMessageKey, {
-        index: counter,
-        tokenId: this.tokenId,
-      });
+      const isDummy = batch.isDummys[i];
 
-      // Process message
-      const { address, amount } = args.value;
-      const isDummy = address.equals(this.address);
+      const message = this.processMessage(i, args, isDummy);
+
+      // Check witness
+      const path = Path.fromKey(
+        PROTOKIT_FIELD_PREFIXES.OUTGOING_MESSAGE_BASE_PATH,
+        OutgoingMessageKey,
+        {
+          index: counter,
+          tokenId: this.tokenId,
+        }
+      );
 
       args.witness
-        .checkMembership(
-          stateRoot,
-          path,
-          Poseidon.hash(Withdrawal.toFields(args.value))
-        )
+        .checkMembership(stateRoot, path, message.hash)
         .or(isDummy)
         .assertTrue("Provided Withdrawal witness not valid");
 
-      const tokenAu = this.internal.mint({ address, amount });
-      const isNewAccount = tokenAu.account.isNew.getAndRequireEquals();
+      message.result.status.assertTrue(message.result.statusMessage);
 
-      accountCreationFeePaid = accountCreationFeePaid.add(
-        Provable.if(isNewAccount, Field(1e9), Field(0))
-      );
-
+      message.result.accountUpdates.forEach((accountUpdate) => {
+        Provable.log("Approving account update", accountUpdate.label);
+        this.approve(accountUpdate);
+      });
       counter = counter.add(Provable.if(isDummy, Field(0), Field(1)));
+
+      // Track new accounts to be able to know how much new accounts to fund
+      const newAccounts = message.result.accountUpdates
+        .map((accountUpdate) => {
+          const isNew = accountUpdate.account.isNew.getAndRequireEquals();
+          return Provable.if(isNew, Field(1), Field(0));
+        })
+        .reduce((a, b) => a.add(b));
+      accountCreationFeePaid = accountCreationFeePaid.add(newAccounts);
     }
 
     this.outgoingMessageCursor.set(counter);
@@ -229,9 +355,7 @@ export class BridgeContract
   }
 
   @method.returns(Field)
-  public async rollupOutgoingMessages(
-    batch: OutgoingMessageArgumentBatch
-  ): Promise<Field> {
+  public async rollupOutgoingMessages(batch: OutgoingMessageArgumentBatch) {
     return await this.rollupOutgoingMessagesBase(batch);
   }
 

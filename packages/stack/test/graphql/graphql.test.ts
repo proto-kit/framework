@@ -12,7 +12,7 @@ import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
 import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
 import {
-  AppChain,
+  ClientAppChain,
   InMemorySigner,
   GraphqlTransactionSender,
   GraphqlQueryTransportModule,
@@ -22,33 +22,27 @@ import {
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 
-import { startServer, TestBalances } from "../../src/scripts/graphql/server";
+import { startGraphqlServer, TestBalances } from "./graphql-server";
 
 const pk = PrivateKey.random();
 
 function prepareClient() {
-  const appChain = AppChain.from({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
+  const appChain = ClientAppChain.from({
+    Runtime: Runtime.from(
+      VanillaRuntimeModules.with({
         Balances: TestBalances,
-      }),
-    }),
+      })
+    ),
 
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
+    Protocol: Protocol.from(VanillaProtocolModules.with({})),
 
-    Sequencer: Sequencer.from({
-      modules: {},
-    }),
+    Sequencer: Sequencer.from({}),
 
-    modules: {
-      Signer: InMemorySigner,
-      TransactionSender: GraphqlTransactionSender,
-      QueryTransportModule: GraphqlQueryTransportModule,
-      NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
-      GraphqlClient,
-    },
+    Signer: InMemorySigner,
+    TransactionSender: GraphqlTransactionSender,
+    QueryTransportModule: GraphqlQueryTransportModule,
+    NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
+    GraphqlClient,
   });
 
   appChain.configurePartial({
@@ -93,12 +87,12 @@ function prepareClient() {
 
 describe("graphql client test", () => {
   let appChain: ReturnType<typeof prepareClient>;
-  let server: Awaited<ReturnType<typeof startServer>>;
+  let server: Awaited<ReturnType<typeof startGraphqlServer>>;
   let trigger: ManualBlockTrigger;
   const tokenId = TokenId.from(0);
 
   beforeAll(async () => {
-    server = await startServer();
+    server = await startGraphqlServer();
 
     await sleep(2000);
 
@@ -170,8 +164,8 @@ describe("graphql client test", () => {
 
     expect(witness).toBeDefined();
     // Check if this works, i.e. if it correctly parsed
-    expect(witness!.calculateRoot(Field(0)).toBigInt()).toBeGreaterThanOrEqual(
-      0n
-    );
+    expect(
+      witness!.merkleWitness.calculateRoot(Field(0)).toBigInt()
+    ).toBeGreaterThanOrEqual(0n);
   });
 });

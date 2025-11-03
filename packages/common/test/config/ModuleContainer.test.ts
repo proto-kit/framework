@@ -84,12 +84,10 @@ describe("moduleContainer", () => {
 
   beforeEach(() => {
     container = new TestModuleContainer({
-      modules: {
-        TestModule,
-        OtherTestModule,
-        // this module would not be assignable to TestModuleContainer
-        // WrongTestModule,
-      },
+      TestModule,
+      OtherTestModule,
+      // this module would not be assignable to TestModuleContainer
+      // WrongTestModule,
     });
   });
 

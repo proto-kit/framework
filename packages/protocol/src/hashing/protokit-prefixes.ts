@@ -1,5 +1,7 @@
 import padEnd from "lodash/padEnd";
 import mapValues from "lodash/mapValues";
+import { Field } from "o1js";
+import { prefixToField } from "@proto-kit/common";
 
 const length = 20;
 function padToHashPrefix(s: string): string {
@@ -21,3 +23,15 @@ export const PROTOKIT_PREFIXES = padPrefixRecord({
   STATE_PROTOCOL: "pk-protocol-state",
   STATE_RUNTIME: "pk-runtime-state",
 });
+
+export const PROTOKIT_FIELD_PREFIXES = {
+  OUTGOING_MESSAGE_BASE_PATH: prefixToField(
+    padToHashPrefix("message-base-path")
+  ),
+  OUTGOING_MESSAGE_COUNTER_PATH: prefixToField(
+    padToHashPrefix("message-base-path")
+  ),
+  OUTGOING_MESSAGE_DUMMY_TYPE: Field(
+    prefixToField(padToHashPrefix("OUT_MSG_DUMMY_TYPE"))
+  ),
+};

@@ -39,7 +39,6 @@ import {
   QueryTransportModule,
   NetworkStateQuery,
   BlockStorage,
-  HistoricalBlockStorage,
   NetworkStateTransportModule,
 } from "@proto-kit/sequencer";
 import {
@@ -80,7 +79,7 @@ export class QueryGraphqlModule<
       MandatoryProtocolModulesRecord & ProtocolModulesRecord
     >,
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage & HistoricalBlockStorage
+    private readonly blockStorage: BlockStorage
   ) {
     super();
   }
@@ -317,7 +316,7 @@ export class QueryGraphqlModule<
   ): ObjMap<GraphQLFieldConfig<unknown, unknown>> {
     const types: ObjMap<GraphQLFieldConfig<unknown, unknown>> = {};
 
-    for (const key in container.definition.modules) {
+    for (const key in container.definition) {
       const query = containerQuery[key];
 
       const moduleTypes: ObjMap<GraphQLFieldConfig<unknown, unknown>> = {};

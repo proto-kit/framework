@@ -1,10 +1,6 @@
 import { inject } from "tsyringe";
 import { Arg, Field, ObjectType, Query } from "type-graphql";
-import {
-  Batch,
-  BatchStorage,
-  HistoricalBatchStorage,
-} from "@proto-kit/sequencer";
+import { Batch, BatchStorage } from "@proto-kit/sequencer";
 import { MOCK_PROOF } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
@@ -39,10 +35,9 @@ export class ComputedBlockModel {
 
 @graphqlModule()
 export class BatchStorageResolver extends GraphqlModule {
-  // TODO seperate these two block interfaces
   public constructor(
     @inject("BatchStorage")
-    private readonly batchStorage: BatchStorage & HistoricalBatchStorage,
+    private readonly batchStorage: BatchStorage,
     private readonly blockResolver: BlockResolver
   ) {
     super();
