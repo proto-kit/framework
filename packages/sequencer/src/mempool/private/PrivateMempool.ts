@@ -110,6 +110,11 @@ export class PrivateMempool
     return result?.result.afterNetworkState;
   }
 
+  public async removeTxs(included: string[], dropped: string[]) {
+    await this.transactionStorage.removeTx(included, "included");
+    await this.transactionStorage.removeTx(dropped, "dropped");
+  }
+
   @trace("mempool.get_txs")
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions();
@@ -198,7 +203,10 @@ export class PrivateMempool
       });
       if (removeTxWhen) {
         // eslint-disable-next-line no-await-in-loop
-        await this.transactionStorage.removeTx(tx.hash());
+        await this.transactionStorage.removeTx(
+          [tx.hash().toString()],
+          "dropped"
+        );
         log.trace(
           `Deleting tx ${tx.hash().toString()}  from mempool because removeTransactionWhen condition is satisfied`
         );

@@ -269,14 +269,14 @@ export class TransactionExecutionService {
       runSimulated
     );
 
-    if (!result.status.toBoolean()) {
-      const error = new Error(
-        `Protocol hooks not executable: ${result.statusMessage ?? "unknown"}`
-      );
-      log.debug("Protocol hook error stack trace:", result.stackTrace);
-      // Propagate stack trace from the assertion
-      throw error;
-    }
+    // if (!result.status.toBoolean()) {
+    //   const error = new Error(
+    //     `Protocol hooks not executable: ${result.statusMessage ?? "unknown"}`
+    //   );
+    //   log.debug("Protocol hook error stack trace:", result.stackTrace);
+    //   // Propagate stack trace from the assertion
+    //   throw error;
+    // }
 
     traceLogSTs(`${hookName} STs:`, result.stateTransitions);
 
@@ -285,9 +285,13 @@ export class TransactionExecutionService {
 
   private buildSTBatches(
     transitions: StateTransition<unknown>[][],
-    runtimeStatus: Bool
+    {
+      runtime: runtimeStatus,
+      hooks: hooksStatus,
+    }: { runtime: boolean; hooks: boolean }
   ): StateTransitionBatch[] {
-    const statuses = [true, runtimeStatus.toBoolean(), false];
+    // TODO Why is the last one false by default?
+    const statuses = [hooksStatus, runtimeStatus && hooksStatus, false];
     const reducedTransitions = transitions.map((batch) =>
       reduceStateTransitions(batch).map((transition) =>
         UntypedStateTransition.fromStateTransition(transition)
@@ -322,15 +326,20 @@ export class TransactionExecutionService {
     transactions: PendingTransaction[],
     networkState: NetworkState,
     state: BlockTrackers
-  ): Promise<[BlockTrackers, TransactionExecutionResult[]]> {
+  ): Promise<{
+    blockState: BlockTrackers;
+    executionResults: TransactionExecutionResult[];
+    skipped: TransactionExecutionResult[];
+  }> {
     let blockState = state;
     const executionResults: TransactionExecutionResult[] = [];
+    const skipped: TransactionExecutionResult[] = [];
 
     const networkStateHash = networkState.hash();
 
     for (const tx of transactions) {
       try {
-        const newState = this.addTransactionToBlockProverState(state, tx);
+        const newState = this.addTransactionToBlockProverState(blockState, tx);
 
         // Create execution trace
         const executionTrace =
@@ -343,10 +352,19 @@ export class TransactionExecutionService {
             newState
           );
 
-        blockState = newState;
+        // If the hooks fail AND the tx is not a message (in which case we
+        // have to still execute it), we skip this tx and don't add it to the block
+        if (
+          !executionTrace.hooksStatus.toBoolean() &&
+          !executionTrace.tx.isMessage
+        ) {
+          skipped.push(executionTrace);
+        } else {
+          blockState = newState;
 
-        // Push result to results and transaction onto bundle-hash
-        executionResults.push(executionTrace);
+          // Push result to results and transaction onto bundle-hash
+          executionResults.push(executionTrace);
+        }
       } catch (error) {
         if (error instanceof Error) {
           log.error("Error in inclusion of tx, skipping", error);
@@ -354,7 +372,7 @@ export class TransactionExecutionService {
       }
     }
 
-    return [blockState, executionResults];
+    return { blockState, executionResults, skipped };
   }
 
   @trace("block.transaction", ([, tx, { networkState }]) => ({
@@ -463,7 +481,12 @@ export class TransactionExecutionService {
       afterTxHookResult.stateTransitions
     );
 
-    await recordingStateService.mergeIntoParent();
+    const txHooksValid =
+      beforeTxHookResult.status.toBoolean() &&
+      afterTxHookResult.status.toBoolean();
+    if (txHooksValid) {
+      await recordingStateService.mergeIntoParent();
+    }
 
     // Reset global stateservice
     this.stateServiceProvider.popCurrentStateService();
@@ -479,11 +502,12 @@ export class TransactionExecutionService {
         runtimeResult.stateTransitions,
         afterTxHookResult.stateTransitions,
       ],
-      runtimeResult.status
+      { runtime: runtimeResult.status.toBoolean(), hooks: txHooksValid }
     );
 
     return {
       tx,
+      hooksStatus: Bool(txHooksValid),
       status: runtimeResult.status,
       statusMessage: runtimeResult.statusMessage,
 

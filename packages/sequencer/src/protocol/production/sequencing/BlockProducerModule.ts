@@ -251,6 +251,11 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
           height: block.height.toString(),
         }
       );
+
+      await this.mempool.removeTxs(
+        blockResult.included,
+        blockResult.skippedTxs
+      );
     }
 
     this.productionInProgress = false;
