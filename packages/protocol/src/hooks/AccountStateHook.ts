@@ -58,7 +58,7 @@ export class AccountStateHook extends ProvableTransactionHook {
   // Under these conditions we want the tx removed from the mempool.
   public async removeTransactionWhen({
     transaction,
-  }: BeforeTransactionHookArguments) {
+  }: BeforeTransactionHookArguments): Promise<boolean> {
     const sender = transaction.sender.value;
 
     const aso = await this.accountState.get(sender);

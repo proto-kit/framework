@@ -204,6 +204,8 @@ export class TransactionExecutionService {
 
   private readonly blockProver: BlockProverProgrammable;
 
+  private readonly txHooks: ProvableTransactionHook[];
+
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Protocol")
@@ -219,6 +221,11 @@ export class TransactionExecutionService {
     );
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     this.blockProver = (protocol.blockProver as BlockProver).zkProgrammable;
+
+    this.txHooks =
+      protocol.dependencyContainer.resolveAll<ProvableTransactionHook>(
+        "ProvableTransactionHook"
+      );
   }
 
   private async executeRuntimeMethod(
@@ -328,12 +335,16 @@ export class TransactionExecutionService {
     state: BlockTrackers
   ): Promise<{
     blockState: BlockTrackers;
-    executionResults: TransactionExecutionResult[];
-    skipped: TransactionExecutionResult[];
+    executionResults: {
+      result: TransactionExecutionResult;
+      status: "included" | "skipped" | "shouldRemove";
+    }[];
   }> {
     let blockState = state;
-    const executionResults: TransactionExecutionResult[] = [];
-    const skipped: TransactionExecutionResult[] = [];
+    const executionResults: {
+      result: TransactionExecutionResult;
+      status: "included" | "skipped" | "shouldRemove";
+    }[] = [];
 
     const networkStateHash = networkState.hash();
 
@@ -342,7 +353,7 @@ export class TransactionExecutionService {
         const newState = this.addTransactionToBlockProverState(blockState, tx);
 
         // Create execution trace
-        const executionTrace =
+        const { result: executionTrace, shouldRemove } =
           // eslint-disable-next-line no-await-in-loop
           await this.createExecutionTrace(
             asyncStateService,
@@ -358,12 +369,15 @@ export class TransactionExecutionService {
           !executionTrace.hooksStatus.toBoolean() &&
           !executionTrace.tx.isMessage
         ) {
-          skipped.push(executionTrace);
+          executionResults.push({
+            result: executionTrace,
+            status: shouldRemove ? "shouldRemove" : "skipped",
+          });
         } else {
           blockState = newState;
 
           // Push result to results and transaction onto bundle-hash
-          executionResults.push(executionTrace);
+          executionResults.push({ result: executionTrace, status: "included" });
         }
       } catch (error) {
         if (error instanceof Error) {
@@ -372,7 +386,21 @@ export class TransactionExecutionService {
       }
     }
 
-    return { blockState, executionResults, skipped };
+    return { blockState, executionResults };
+  }
+
+  private async shouldRemove(
+    state: CachedStateService,
+    args: BeforeTransactionHookArguments
+  ) {
+    this.stateServiceProvider.setCurrentStateService(state);
+
+    const returnValues = await mapSequential(this.transactionHooks, (hook) =>
+      hook.removeTransactionWhen(args)
+    );
+
+    this.stateServiceProvider.popCurrentStateService();
+    return returnValues.some((x) => x);
   }
 
   @trace("block.transaction", ([, tx, { networkState }]) => ({
@@ -389,7 +417,7 @@ export class TransactionExecutionService {
     }: { networkState: NetworkState; hash: Field },
     state: BlockTrackers,
     newState: BlockTrackers
-  ): Promise<TransactionExecutionResult> {
+  ): Promise<{ result: TransactionExecutionResult; shouldRemove: boolean }> {
     // TODO Use RecordingStateService -> async asProver needed
     const recordingStateService = new CachedStateService(asyncStateService);
 
@@ -484,8 +512,15 @@ export class TransactionExecutionService {
     const txHooksValid =
       beforeTxHookResult.status.toBoolean() &&
       afterTxHookResult.status.toBoolean();
+    let shouldRemove = false;
     if (txHooksValid) {
       await recordingStateService.mergeIntoParent();
+    } else {
+      // Execute removeWhen to determine whether it should be dropped
+      shouldRemove = await this.shouldRemove(
+        asyncStateService,
+        beforeTxArguments
+      );
     }
 
     // Reset global stateservice
@@ -506,13 +541,16 @@ export class TransactionExecutionService {
     );
 
     return {
-      tx,
-      hooksStatus: Bool(txHooksValid),
-      status: runtimeResult.status,
-      statusMessage: runtimeResult.statusMessage,
+      result: {
+        tx,
+        hooksStatus: Bool(txHooksValid),
+        status: runtimeResult.status,
+        statusMessage: runtimeResult.statusMessage,
 
-      stateTransitions,
-      events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
+        stateTransitions,
+        events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
+      },
+      shouldRemove,
     };
   }
 }

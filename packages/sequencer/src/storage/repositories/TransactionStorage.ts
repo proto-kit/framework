@@ -1,5 +1,3 @@
-import { Field } from "o1js";
-
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 
 export interface TransactionStorage {

@@ -5,7 +5,6 @@ import {
   Tracer,
   TransactionStorage,
 } from "@proto-kit/sequencer";
-import { Field } from "o1js";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 

@@ -93,8 +93,10 @@ export class BlockProductionService {
     | {
         block: Block;
         stateChanges: CachedStateService;
-        included: string[];
-        skippedTxs: string[];
+        includedTxs: {
+          hash: string;
+          type: "included" | "skipped" | "shouldRemove";
+        }[];
       }
     | undefined
   > {
@@ -126,16 +128,13 @@ export class BlockProductionService {
       UntypedStateTransition.fromStateTransition(transition)
     );
 
-    const {
-      blockState: newBlockState,
-      executionResults,
-      skipped,
-    } = await this.transactionExecutionService.createExecutionTraces(
-      stateService,
-      transactions,
-      networkState,
-      blockState
-    );
+    const { blockState: newBlockState, executionResults } =
+      await this.transactionExecutionService.createExecutionTraces(
+        stateService,
+        transactions,
+        networkState,
+        blockState
+      );
 
     const previousBlockHash =
       lastResult.blockHash === 0n ? undefined : Field(lastResult.blockHash);
@@ -148,7 +147,7 @@ export class BlockProductionService {
     }
 
     const block: Omit<Block, "hash"> = {
-      transactions: executionResults,
+      transactions: executionResults.map((x) => x.result),
       transactionsHash: newBlockState.transactionList.commitment,
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash:
@@ -170,8 +169,10 @@ export class BlockProductionService {
 
     const hash = Block.hash(block);
 
-    const included = block.transactions.map((tx) => tx.tx.hash().toString());
-    const skippedTxs = skipped.map((tx) => tx.tx.hash().toString());
+    const includedTxs = executionResults.map((x) => ({
+      hash: x.result.tx.hash().toString(),
+      type: x.status,
+    }));
 
     return {
       block: {
@@ -179,8 +180,7 @@ export class BlockProductionService {
         hash,
       },
       stateChanges: stateService,
-      included,
-      skippedTxs,
+      includedTxs,
     };
   }
 }
