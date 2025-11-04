@@ -50,8 +50,13 @@ export function toProver(
 
       // TODO: provide undefined if public input is not used
       publicInput: isFirstParameterPublicInput ? args[0] : undefined,
-      publicOutput,
-
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      publicOutput:
+        publicOutput &&
+        typeof publicOutput === "object" &&
+        "publicOutput" in publicOutput
+          ? (publicOutput as any).publicOutput
+          : undefined,
       /**
        * We set this to the max possible number, to avoid having
        * to manually count in-circuit proof verifications
