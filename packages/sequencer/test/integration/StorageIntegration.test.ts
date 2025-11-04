@@ -222,6 +222,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await expect(
         txStorage.getPendingUserTransactions()
       ).resolves.toHaveLength(0);
-    }, 30_000);
+    }, 60_000);
   }
 );

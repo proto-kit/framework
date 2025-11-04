@@ -188,7 +188,7 @@ describe("check fee analyzer", () => {
 
     await appChain.start();
     appChain.setSigner(senderKey);
-  }, 120000);
+  }, 60_000);
 
   it("with multiple zk programs", async () => {
     expect.assertions(12);

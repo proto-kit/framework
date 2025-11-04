@@ -58,7 +58,7 @@ describe("fee errors due to limited funds in sender accounts", () => {
 
     await appChain.start();
     appChain.setSigner(senderKey);
-  }, 120000);
+  }, 60_000);
 
   it("should allow a free faucet transaction", async () => {
     expect.assertions(2);
