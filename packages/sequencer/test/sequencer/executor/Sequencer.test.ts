@@ -47,11 +47,9 @@ describe("Sequencer close", () => {
     }
 
     const sequencer = new (Sequencer.from({
-      modules: {
-        Foo: CloseableModule,
-        Bar: CloseableModule,
-        D: DependencyFactoryModule,
-      },
+      Foo: CloseableModule,
+      Bar: CloseableModule,
+      D: DependencyFactoryModule,
     }))();
     sequencer.create(() => container.createChildContainer());
     sequencer.configure({

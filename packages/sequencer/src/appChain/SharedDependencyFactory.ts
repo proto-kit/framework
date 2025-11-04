@@ -1,4 +1,8 @@
-import { DependencyDeclaration, DependencyRecord } from "@proto-kit/common";
+import {
+  DependencyDeclaration,
+  DependencyFactory,
+  DependencyRecord,
+} from "@proto-kit/common";
 import { StateServiceProvider } from "@proto-kit/protocol";
 import { MethodIdResolver } from "@proto-kit/module";
 
@@ -19,3 +23,5 @@ export class SharedDependencyFactory {
     };
   }
 }
+
+SharedDependencyFactory satisfies DependencyFactory;

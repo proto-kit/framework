@@ -106,6 +106,8 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       ...newWorkers,
     };
 
+    log.info("All tasks prepared and ready");
+
     this.prepareResolve!();
   }
 

@@ -2,7 +2,6 @@ import {
   ModuleContainer,
   ModulesRecord,
   TypedClass,
-  ModuleContainerDefinition,
   log,
   ChildContainerProvider,
   mapSequential,
@@ -41,7 +40,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
    * @returns Sequencer
    */
   public static from<Modules extends SequencerModulesRecord>(
-    definition: ModuleContainerDefinition<Modules>
+    definition: Modules
   ): TypedClass<Sequencer<Modules>> {
     return class ScopedSequencer extends Sequencer<Modules> {
       public constructor() {
@@ -83,7 +82,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     this.useDependencyFactory(MethodIdFactory);
 
     // Log startup info
-    const moduleClassNames = Object.values(this.definition.modules).map(
+    const moduleClassNames = Object.values(this.definition).map(
       (clazz) => clazz.name
     );
     log.info("Starting sequencer...");
@@ -93,7 +92,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // to ensure every time a module is resolved it gets recorded.
     const orderedModules: Extract<keyof Modules, string>[] = [];
     // eslint-disable-next-line guard-for-in
-    for (const moduleName in this.definition.modules) {
+    for (const moduleName in this.definition) {
       this.container.afterResolution(
         moduleName,
         () => {
@@ -108,7 +107,7 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // Iteration #2: We resolve each module and thus populate
     // the orderedModules list to understand the sequencing.
     // eslint-disable-next-line guard-for-in
-    for (const moduleName in this.definition.modules) {
+    for (const moduleName in this.definition) {
       const module = this.resolve(moduleName);
       log.info(
         `Resolving sequencer module ${moduleName} (${module.constructor.name})`

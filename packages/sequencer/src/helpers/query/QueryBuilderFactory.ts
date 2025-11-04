@@ -150,7 +150,7 @@ export const QueryBuilderFactory = {
     runtime: Runtime<RuntimeModules>,
     queryTransportModule: QueryTransportModule
   ): Query<RuntimeModule<unknown>, RuntimeModules> {
-    const { modules } = runtime.definition;
+    const modules = runtime.definition;
 
     return Object.keys(modules).reduce<
       Query<RuntimeModule<unknown>, RuntimeModules>
@@ -176,7 +176,7 @@ export const QueryBuilderFactory = {
     protocol: Protocol<ProtocolModules>,
     queryTransportModule: QueryTransportModule
   ): Query<ProtocolModule<unknown>, ProtocolModules> {
-    const { modules } = protocol.definition;
+    const modules = protocol.definition;
 
     return Object.keys(modules).reduce<
       Query<ProtocolModule<unknown>, ProtocolModules>

@@ -32,17 +32,14 @@ export type OpenTelemetryServerConfig = {
 };
 
 @sequencerModule()
-export class OpenTelemetryServer
-  extends SequencerModule<OpenTelemetryServerConfig>
-  implements DependencyFactory
-{
+export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConfig> {
   public constructor(
     @inject("Sequencer") private readonly sequencer: Sequencer<any>
   ) {
     super();
   }
 
-  public dependencies() {
+  public static dependencies() {
     return {
       Tracer: {
         useClass: OpenTelemetryTracer,
@@ -99,3 +96,5 @@ export class OpenTelemetryServer
     log.info("OpenTelemetryServer started");
   }
 }
+
+OpenTelemetryServer satisfies DependencyFactory;

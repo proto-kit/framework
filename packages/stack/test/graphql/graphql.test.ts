@@ -12,7 +12,7 @@ import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
 import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
 import {
-  AppChain,
+  ClientAppChain,
   InMemorySigner,
   GraphqlTransactionSender,
   GraphqlQueryTransportModule,
@@ -27,28 +27,22 @@ import { startGraphqlServer, TestBalances } from "./graphql-server";
 const pk = PrivateKey.random();
 
 function prepareClient() {
-  const appChain = AppChain.from({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
+  const appChain = ClientAppChain.from({
+    Runtime: Runtime.from(
+      VanillaRuntimeModules.with({
         Balances: TestBalances,
-      }),
-    }),
+      })
+    ),
 
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
+    Protocol: Protocol.from(VanillaProtocolModules.with({})),
 
-    Sequencer: Sequencer.from({
-      modules: {},
-    }),
+    Sequencer: Sequencer.from({}),
 
-    modules: {
-      Signer: InMemorySigner,
-      TransactionSender: GraphqlTransactionSender,
-      QueryTransportModule: GraphqlQueryTransportModule,
-      NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
-      GraphqlClient,
-    },
+    Signer: InMemorySigner,
+    TransactionSender: GraphqlTransactionSender,
+    QueryTransportModule: GraphqlQueryTransportModule,
+    NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
+    GraphqlClient,
   });
 
   appChain.configurePartial({

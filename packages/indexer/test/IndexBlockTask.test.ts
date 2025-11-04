@@ -12,13 +12,11 @@ import { IndexBlockTask } from "../src/tasks/IndexBlockTask";
 
 describe("IndexBlockTask", () => {
   const indexer = Indexer.from({
-    modules: {
-      Database: InMemoryDatabase,
-      TaskQueue: LocalTaskQueue,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from({
-        IndexBlockTask: IndexBlockTask,
-      }),
-    },
+    Database: InMemoryDatabase,
+    TaskQueue: LocalTaskQueue,
+    LocalTaskWorkerModule: LocalTaskWorkerModule.from({
+      IndexBlockTask: IndexBlockTask,
+    }),
   });
 
   indexer.configurePartial({

@@ -1,7 +1,6 @@
 import { describe } from "@jest/globals";
 
 import { ArchiveNode } from "../src/settlement/utils/ArchiveNode";
-import { TokenId } from "o1js";
 
 describe("ArchiveNode", () => {
   it("should resolve", async () => {

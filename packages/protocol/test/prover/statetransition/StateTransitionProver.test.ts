@@ -1,4 +1,3 @@
-import { InMemoryAreProofsEnabled } from "@proto-kit/sdk";
 import { Bool, Field } from "o1js";
 import {
   InMemoryLinkedLeafStore,
@@ -6,6 +5,7 @@ import {
   LinkedMerkleTree,
   padArray,
 } from "@proto-kit/common";
+import { InMemoryAreProofsEnabled } from "@proto-kit/sequencer";
 
 import {
   AppliedStateTransitionBatchState,

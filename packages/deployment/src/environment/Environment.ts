@@ -1,11 +1,7 @@
-import { log, assertValidTextLogLevel } from "@proto-kit/common";
-import { AppChain } from "@proto-kit/sdk";
+import { log, assertValidTextLogLevel, Startable } from "@proto-kit/common";
+import { AppChain } from "@proto-kit/sequencer";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-
-export interface Startable {
-  start(): Promise<void>;
-}
 
 export type StartableEnvironment<T> = Record<string, T>;
 
@@ -75,7 +71,7 @@ export class Environment<T extends Startable> {
 
     // TODO Temporary workaround
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    (appChain as unknown as AppChain<any, any, any, any>).configurePartial({
+    (appChain as unknown as AppChain<any>).configurePartial({
       Sequencer: {
         DatabasePruneModule: {
           pruneOnStartup: prune,

@@ -4,11 +4,10 @@ import {
   NetworkStateTransportModule,
   BlockQueue,
   BatchStorage,
+  AppChainModule,
 } from "@proto-kit/sequencer";
 import { NetworkState } from "@proto-kit/protocol";
 import { ModuleContainerLike } from "@proto-kit/common";
-
-import { AppChainModule } from "../appChain/AppChainModule";
 
 @injectable()
 export class BlockStorageNetworkStateModule

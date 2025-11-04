@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
-import { AppChain } from "@proto-kit/sdk";
 import { container } from "tsyringe";
 import { jest } from "@jest/globals";
 import { expectDefined } from "@proto-kit/common";
@@ -12,47 +11,40 @@ import {
   ManualBlockTrigger,
   Sequencer,
   VanillaTaskWorkerModules,
+  AppChain,
+  BlockResultService,
 } from "../../../../src";
 import { ProtocolStateTestHook } from "../../../integration/mocks/ProtocolStateTestHook";
-import {
-  DefaultTestingSequencerModules,
-  testingSequencerModules,
-} from "../../../TestingSequencer";
+import { testingSequencerModules } from "../../../TestingSequencer";
 import { Balance } from "../../../integration/mocks/Balance";
-import { BlockResultService } from "../../../../src/protocol/production/sequencing/BlockResultService";
 
 describe("atomic block production", () => {
-  let appchain: AppChain<any, any, DefaultTestingSequencerModules, any>;
+  let appchain: ReturnType<typeof createAppChain>;
 
   let trigger: ManualBlockTrigger;
 
-  beforeEach(async () => {
+  function createAppChain() {
     const runtimeClass = Runtime.from({
-      modules: {
-        Balance,
-      },
-
-      config: {
-        Balance: {},
-      },
+      Balance,
     });
 
-    const sequencerClass = Sequencer.from({
-      modules: testingSequencerModules({}),
-    });
+    const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-    const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({
+    const protocolClass = Protocol.from(
+      VanillaProtocolModules.mandatoryModules({
         ProtocolStateTestHook,
-      }),
-    });
+      })
+    );
 
-    const app = AppChain.from({
+    return AppChain.from({
       Runtime: runtimeClass,
       Sequencer: sequencerClass,
       Protocol: protocolClass,
-      modules: {},
     });
+  }
+
+  beforeEach(async () => {
+    const app = createAppChain();
 
     app.configure({
       Sequencer: {
