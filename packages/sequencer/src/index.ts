@@ -84,6 +84,7 @@ export * from "./helpers/query/QueryTransportModule";
 export * from "./helpers/query/QueryBuilderFactory";
 export * from "./helpers/query/NetworkStateQuery";
 export * from "./helpers/query/NetworkStateTransportModule";
+export * from "./helpers/query/BlockExplorer";
 export * from "./state/prefilled/PreFilledStateService";
 export * from "./state/async/AsyncMerkleTreeStore";
 export * from "./state/async/AsyncStateService";
