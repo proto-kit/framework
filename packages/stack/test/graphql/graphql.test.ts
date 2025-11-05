@@ -18,6 +18,7 @@ import {
   GraphqlQueryTransportModule,
   GraphqlClient,
   GraphqlNetworkStateTransportModule,
+  GraphqlBlockExplorer,
 } from "@proto-kit/sdk";
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
@@ -41,6 +42,7 @@ function prepareClient() {
     Signer: InMemorySigner,
     TransactionSender: GraphqlTransactionSender,
     QueryTransportModule: GraphqlQueryTransportModule,
+    BlockExplorer: GraphqlBlockExplorer,
     NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
     GraphqlClient,
   });
@@ -76,6 +78,8 @@ function prepareClient() {
     GraphqlClient: {
       url: "http://127.0.0.1:8080/graphql",
     },
+
+    BlockExplorer:{},
 
     Signer: {
       signer: pk,
