@@ -197,6 +197,14 @@ function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
   );
 }
 
+export type TransactionExecutionResultStatus =
+  | {
+      result: TransactionExecutionResult;
+      status: "included";
+    }
+  | { tx: PendingTransaction; status: "skipped" }
+  | { tx: PendingTransaction; status: "shouldRemove" };
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionExecutionService {
@@ -319,6 +327,7 @@ export class TransactionExecutionService {
     );
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   public async createExecutionTraces(
     asyncStateService: CachedStateService,
     transactions: PendingTransaction[],
@@ -326,16 +335,10 @@ export class TransactionExecutionService {
     state: BlockTrackers
   ): Promise<{
     blockState: BlockTrackers;
-    executionResults: {
-      result: TransactionExecutionResult;
-      status: "included" | "skipped" | "shouldRemove";
-    }[];
+    executionResults: TransactionExecutionResultStatus[];
   }> {
     let blockState = state;
-    const executionResults: {
-      result: TransactionExecutionResult;
-      status: "included" | "skipped" | "shouldRemove";
-    }[] = [];
+    const executionResults: TransactionExecutionResultStatus[] = [];
 
     const networkStateHash = networkState.hash();
 
@@ -367,7 +370,7 @@ export class TransactionExecutionService {
             `Error in inclusion of tx, ${actionMessage}: Protocol hooks not executable: ${executionTrace.statusMessage ?? "unknown reason"}`
           );
           executionResults.push({
-            result: executionTrace,
+            tx,
             status: shouldRemove ? "shouldRemove" : "skipped",
           });
         } else {
@@ -377,9 +380,9 @@ export class TransactionExecutionService {
           executionResults.push({ result: executionTrace, status: "included" });
         }
       } catch (error) {
-        console.log("error", error);
         if (error instanceof Error) {
-          log.error("Error in inclusion of tx, skipping", error);
+          log.error("Error in inclusion of tx, dropping", error);
+          executionResults.push({ tx, status: "shouldRemove" });
         }
       }
     }
