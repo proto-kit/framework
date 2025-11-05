@@ -2,12 +2,13 @@ import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
 import { GraphqlClient } from "../graphql/GraphqlClient";
 import { sleep } from "@proto-kit/common";
-import { AppChainModule } from "@proto-kit/sequencer";
+import { AppChainModule, BlockExplorer } from "@proto-kit/sequencer";
 
 
 @injectable()
 export class GraphqlBlockExplorer
-  extends AppChainModule {
+  extends AppChainModule
+  implements BlockExplorer {
 
   public constructor(
     @inject("GraphqlClient") private readonly graphqlClient: GraphqlClient
@@ -38,7 +39,7 @@ export class GraphqlBlockExplorer
         }
 
         if(queryResult.data?.transactionState === "INCLUDED"){
-            return queryResult;
+            return queryResult.data;
         }
         console.log('Sleeping... ');
         await sleep(interval);
@@ -69,6 +70,6 @@ export class GraphqlBlockExplorer
       throw new Error("Error fetching block!");
     }
 
-    return queryResult;
+    return queryResult.data;
   }
 }

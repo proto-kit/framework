@@ -18,6 +18,7 @@ import {
   StateServiceProvider,
 } from "@proto-kit/protocol";
 import {
+  BlockExplorer,
   DummyStateService,
   NetworkStateQuery,
   NetworkStateTransportModule,
@@ -206,7 +207,7 @@ export class ClientAppChain<
       InferModules<AppChainModules["Protocol"]>
     >;
     network: NetworkStateQuery;
-    explorer: GraphqlBlockExplorer;
+    explorer: BlockExplorer;
   } {
     const queryTransportModule = this.container.resolve<QueryTransportModule>(
       "QueryTransportModule"
@@ -219,7 +220,7 @@ export class ClientAppChain<
 
     const network = new NetworkStateQuery(networkStateTransportModule);
 
-    const explorer = this.container.resolve<GraphqlBlockExplorer>("BlockExplorer");
+    const explorer = this.container.resolve<BlockExplorer>("BlockExplorer");
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
