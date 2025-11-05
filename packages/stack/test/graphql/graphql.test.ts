@@ -168,4 +168,23 @@ describe("graphql client test", () => {
       witness!.merkleWitness.calculateRoot(Field(0)).toBigInt()
     ).toBeGreaterThanOrEqual(0n);
   });
+
+    it("should get tx stuff", async () => {
+      expect.assertions(1);
+
+      const tx = await appChain.transaction(pk.toPublicKey(), async () => {
+        await appChain.runtime
+          .resolve("Balances")
+          .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
+      });
+      await tx.sign();
+      await tx.send();
+
+      await trigger.produceBlock();
+
+      const queryResult = await appChain.query.explorer.waitTxInclusion(tx.transaction?.hash().toString()!);
+
+      expect(queryResult).toBe("INCLUDED");
+
+  });
 });
