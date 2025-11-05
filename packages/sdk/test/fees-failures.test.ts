@@ -60,6 +60,10 @@ describe("fee errors due to limited funds in sender accounts", () => {
     appChain.setSigner(senderKey);
   });
 
+  afterAll(async () => {
+    await appChain.close();
+  });
+
   it("should allow a free faucet transaction", async () => {
     expect.assertions(2);
 
@@ -105,8 +109,7 @@ describe("fee errors due to limited funds in sender accounts", () => {
     await appChain.produceBlock();
 
     expect(logSpy).toHaveBeenCalledWith(
-      "Error in inclusion of tx, skipping",
-      Error("Protocol hooks not executable: From balance is insufficient")
+      "Error in inclusion of tx, skipping: Protocol hooks not executable: From balance is insufficient"
     );
 
     const balance = await appChain.query.runtime.Balances.balances.get(

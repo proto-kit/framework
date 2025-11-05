@@ -197,6 +197,14 @@ function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
   );
 }
 
+export type TransactionExecutionResultStatus =
+  | {
+      result: TransactionExecutionResult;
+      status: "included";
+    }
+  | { tx: PendingTransaction; status: "skipped" }
+  | { tx: PendingTransaction; status: "shouldRemove" };
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionExecutionService {
@@ -276,15 +284,6 @@ export class TransactionExecutionService {
       runSimulated
     );
 
-    // if (!result.status.toBoolean()) {
-    //   const error = new Error(
-    //     `Protocol hooks not executable: ${result.statusMessage ?? "unknown"}`
-    //   );
-    //   log.debug("Protocol hook error stack trace:", result.stackTrace);
-    //   // Propagate stack trace from the assertion
-    //   throw error;
-    // }
-
     traceLogSTs(`${hookName} STs:`, result.stateTransitions);
 
     return result;
@@ -328,6 +327,7 @@ export class TransactionExecutionService {
     );
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   public async createExecutionTraces(
     asyncStateService: CachedStateService,
     transactions: PendingTransaction[],
@@ -335,16 +335,10 @@ export class TransactionExecutionService {
     state: BlockTrackers
   ): Promise<{
     blockState: BlockTrackers;
-    executionResults: {
-      result: TransactionExecutionResult;
-      status: "included" | "skipped" | "shouldRemove";
-    }[];
+    executionResults: TransactionExecutionResultStatus[];
   }> {
     let blockState = state;
-    const executionResults: {
-      result: TransactionExecutionResult;
-      status: "included" | "skipped" | "shouldRemove";
-    }[] = [];
+    const executionResults: TransactionExecutionResultStatus[] = [];
 
     const networkStateHash = networkState.hash();
 
@@ -369,8 +363,14 @@ export class TransactionExecutionService {
           !executionTrace.hooksStatus.toBoolean() &&
           !executionTrace.tx.isMessage
         ) {
+          const actionMessage = shouldRemove
+            ? "removing as to removeWhen hooks"
+            : "skipping";
+          log.error(
+            `Error in inclusion of tx, ${actionMessage}: Protocol hooks not executable: ${executionTrace.statusMessage ?? "unknown reason"}`
+          );
           executionResults.push({
-            result: executionTrace,
+            tx,
             status: shouldRemove ? "shouldRemove" : "skipped",
           });
         } else {
@@ -381,7 +381,8 @@ export class TransactionExecutionService {
         }
       } catch (error) {
         if (error instanceof Error) {
-          log.error("Error in inclusion of tx, skipping", error);
+          log.error("Error in inclusion of tx, dropping", error);
+          executionResults.push({ tx, status: "shouldRemove" });
         }
       }
     }
@@ -545,7 +546,10 @@ export class TransactionExecutionService {
         tx,
         hooksStatus: Bool(txHooksValid),
         status: runtimeResult.status,
-        statusMessage: runtimeResult.statusMessage,
+        statusMessage:
+          beforeTxHookResult.statusMessage ??
+          afterTxHookResult.statusMessage ??
+          runtimeResult.statusMessage,
 
         stateTransitions,
         events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),

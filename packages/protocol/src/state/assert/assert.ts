@@ -19,7 +19,7 @@ export function assert(condition: Bool, message?: string | (() => string)) {
   const status = condition.and(previousStatus);
 
   Provable.asProver(() => {
-    if (!condition.toBoolean()) {
+    if (!condition.toBoolean() && previousStatus.toBoolean()) {
       const messageString =
         message !== undefined && typeof message === "function"
           ? message()

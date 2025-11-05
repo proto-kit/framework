@@ -33,7 +33,7 @@ describe("block production", () => {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     mempool = sequencer.resolve("Mempool");
-  });
+  }, 60_000);
 
   it("check tx is removed", async () => {
     await mempool.add(
