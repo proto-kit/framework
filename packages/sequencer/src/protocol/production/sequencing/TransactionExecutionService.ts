@@ -276,15 +276,6 @@ export class TransactionExecutionService {
       runSimulated
     );
 
-    // if (!result.status.toBoolean()) {
-    //   const error = new Error(
-    //     `Protocol hooks not executable: ${result.statusMessage ?? "unknown"}`
-    //   );
-    //   log.debug("Protocol hook error stack trace:", result.stackTrace);
-    //   // Propagate stack trace from the assertion
-    //   throw error;
-    // }
-
     traceLogSTs(`${hookName} STs:`, result.stateTransitions);
 
     return result;
@@ -369,6 +360,12 @@ export class TransactionExecutionService {
           !executionTrace.hooksStatus.toBoolean() &&
           !executionTrace.tx.isMessage
         ) {
+          const actionMessage = shouldRemove
+            ? "removing as to removeWhen hooks"
+            : "skipping";
+          log.error(
+            `Error in inclusion of tx, ${actionMessage}: Protocol hooks not executable: ${executionTrace.statusMessage ?? "unknown reason"}`
+          );
           executionResults.push({
             result: executionTrace,
             status: shouldRemove ? "shouldRemove" : "skipped",
@@ -380,6 +377,7 @@ export class TransactionExecutionService {
           executionResults.push({ result: executionTrace, status: "included" });
         }
       } catch (error) {
+        console.log("error", error);
         if (error instanceof Error) {
           log.error("Error in inclusion of tx, skipping", error);
         }
@@ -545,7 +543,10 @@ export class TransactionExecutionService {
         tx,
         hooksStatus: Bool(txHooksValid),
         status: runtimeResult.status,
-        statusMessage: runtimeResult.statusMessage,
+        statusMessage:
+          beforeTxHookResult.statusMessage ??
+          afterTxHookResult.statusMessage ??
+          runtimeResult.statusMessage,
 
         stateTransitions,
         events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
