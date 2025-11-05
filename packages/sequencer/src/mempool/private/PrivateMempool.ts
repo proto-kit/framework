@@ -124,7 +124,7 @@ export class PrivateMempool
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-    const validationEnabled = this.config.validationEnabled ?? true;
+    const validationEnabled = this.config.validationEnabled ?? false;
     const sortedTxs = validationEnabled
       ? await this.checkTxValid(
           txs,
