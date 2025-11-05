@@ -52,14 +52,17 @@ export function toProver(
       // TODO: provide undefined if public input is not used
       publicInput: isFirstParameterPublicInput ? args[0] : undefined,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      publicOutput:
+      publicOutput: (() => {
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-        publicOutput &&
-        typeof publicOutput === "object" &&
-        "publicOutput" in publicOutput
-          ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            (publicOutput as any).publicOutput
-          : undefined,
+        if (!publicOutput || typeof publicOutput !== "object") {
+          return undefined;
+        }
+        if ("publicOutput" in publicOutput) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          return (publicOutput as any).publicOutput;
+        }
+        return publicOutput;
+      })(),
       /**
        * We set this to the max possible number, to avoid having
        * to manually count in-circuit proof verifications
