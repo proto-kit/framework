@@ -24,7 +24,7 @@
     "ts-mixer": "^6.0.3"
   },
   "peerDependencies": {
-    "o1js": "^2.1.0",
+    "o1js": "^2.10.0",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {

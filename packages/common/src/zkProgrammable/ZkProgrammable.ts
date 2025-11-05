@@ -48,9 +48,7 @@ export interface PlainZkProgram<
   >;
   methods: Record<
     string,
-    | ((
-        ...args: any
-      ) => Promise<{
+    | ((...args: any) => Promise<{
         proof: Proof<PublicInput, PublicOutput>;
         auxiliaryOutput: any;
       }>)
