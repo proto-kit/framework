@@ -20,6 +20,7 @@ describe("block production", () => {
     appChain.configurePartial({
       Runtime: {
         Balance: {},
+        Balances: {},
       },
       Protocol: {
         ...appChain.config.Protocol!,
