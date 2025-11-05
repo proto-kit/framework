@@ -40,6 +40,7 @@ import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
 import { Signer } from "../transaction/InMemorySigner";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
+import { GraphqlBlockExplorer } from "../graphql/GraphqlExplorer";
 
 export type InferModules<Container extends TypedClass<ModuleContainer<any>>> =
   Container extends TypedClass<infer Type>
@@ -77,6 +78,7 @@ export class ClientAppChain<
       TransactionSender: GraphqlTransactionSender,
       QueryTransportModule: GraphqlQueryTransportModule,
       NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
+      BlockExplorer: GraphqlBlockExplorer
     });
 
     appChain.configurePartial({
@@ -86,6 +88,7 @@ export class ClientAppChain<
       TransactionSender: {},
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
+      BlockExplorer: {},
     });
 
     /**
@@ -100,6 +103,9 @@ export class ClientAppChain<
     const stateServiceProvider = new StateServiceProvider();
     stateServiceProvider.setCurrentStateService(new InMemoryStateService());
     container.registerInstance("StateServiceProvider", stateServiceProvider);
+
+    // Should register somehow?
+    //container.registerSingleton("BlockExplorer")
 
     return appChain;
   }
@@ -200,6 +206,7 @@ export class ClientAppChain<
       InferModules<AppChainModules["Protocol"]>
     >;
     network: NetworkStateQuery;
+    explorer: GraphqlBlockExplorer;
   } {
     const queryTransportModule = this.container.resolve<QueryTransportModule>(
       "QueryTransportModule"
@@ -211,6 +218,8 @@ export class ClientAppChain<
       );
 
     const network = new NetworkStateQuery(networkStateTransportModule);
+
+    const explorer = this.container.resolve<GraphqlBlockExplorer>("BlockExplorer");
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
@@ -224,6 +233,8 @@ export class ClientAppChain<
       ),
 
       network,
+
+      explorer
     };
   }
 }
