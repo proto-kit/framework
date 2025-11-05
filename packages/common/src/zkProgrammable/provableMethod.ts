@@ -39,6 +39,7 @@ export function toProver(
     if (areProofsEnabled) {
       const programProvableMethod = zkProgram.methods[methodName];
       const result = await Reflect.apply(programProvableMethod, this, args);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       return result.proof as Proof<any, any>;
     }
 
@@ -52,10 +53,12 @@ export function toProver(
       publicInput: isFirstParameterPublicInput ? args[0] : undefined,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       publicOutput:
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         publicOutput &&
         typeof publicOutput === "object" &&
         "publicOutput" in publicOutput
-          ? (publicOutput as any).publicOutput
+          ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            (publicOutput as any).publicOutput
           : undefined,
       /**
        * We set this to the max possible number, to avoid having

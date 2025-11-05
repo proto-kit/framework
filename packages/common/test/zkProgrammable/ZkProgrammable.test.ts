@@ -216,7 +216,6 @@ describe("zkProgrammable", () => {
       it("if proofs are disabled, it should successfully verify mock proofs", async () => {
         expect.assertions(1);
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const proof = new testProgrammable.zkProgram[0].Proof({
           proof: MOCK_PROOF,
 

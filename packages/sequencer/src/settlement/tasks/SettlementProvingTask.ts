@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   filterNonUndefined,
   AreProofsEnabled,
@@ -203,6 +202,7 @@ export class SettlementProvingTask
   }
 
   extractProofTypes(type: ProvableType) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const value = ProvableType.synthesize(type);
     const proofValues = this.extractProofs(value);
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -228,7 +228,9 @@ export class SettlementProvingTask
     };
     return {
       fromJSON: async (json: string): Promise<TransactionTaskArgs> => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: JsonInputObject = JSON.parse(json);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const commandJson: Types.Json.ZkappCommand = JSON.parse(
           jsonObject.transaction
         );
@@ -386,6 +388,7 @@ export class SettlementProvingTask
                       };
                     } else {
                       const serializer = this.getProofSerializer(argProofs[0]);
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                       return serializer.toJSON(arg);
                     }
                   })
@@ -461,6 +464,7 @@ export class SettlementProvingTask
   public resultSerializer(): TaskSerializer<TransactionTaskResult> {
     return {
       fromJSON: (json: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const jsonObject: Types.Json.ZkappCommand = JSON.parse(json);
         // We can typecast here since the generic typing only hides properties on the type level
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
