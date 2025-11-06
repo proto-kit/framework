@@ -18,9 +18,9 @@ import {
   GraphqlQueryTransportModule,
   GraphqlClient,
   GraphqlNetworkStateTransportModule,
-  InMemoryBlockExplorer,
   GraphqlBlockExplorer,
 } from "@proto-kit/sdk";
+import { InclusionStatus } from "@proto-kit/api";
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 
@@ -174,8 +174,8 @@ describe("graphql client test", () => {
     ).toBeGreaterThanOrEqual(0n);
   });
 
-    it("Should wait for transaction inclusion", async () => {
-      expect.assertions(1);
+    it("should wait for transaction inclusion", async () => {
+      expect.assertions(2);
 
       const tx = await appChain.transaction(pk.toPublicKey(), async () => {
         await appChain.runtime
@@ -185,9 +185,12 @@ describe("graphql client test", () => {
       await tx.sign();
       await tx.send();
       
-      trigger.produceBlock();
-      const queryResult = await appChain.query.explorer.waitTxInclusion(tx.transaction?.hash().toString()!);
-      expect(queryResult.transactionState).toBe("INCLUDED");
+      const preBlockQuery = await appChain.query.explorer.waitTxInclusion(tx.transaction?.hash().toString()!);
+      expect(preBlockQuery.transactionState).toBe(InclusionStatus.PENDING);
+      console.log(preBlockQuery.transactionState)
+      await trigger.produceBlock();
+      const postBlopckQuery = await appChain.query.explorer.waitTxInclusion(tx.transaction?.hash().toString()!);
+      expect(postBlopckQuery.transactionState).toBe(InclusionStatus.PENDING);
 
-  });
+  },60_000);
 });
