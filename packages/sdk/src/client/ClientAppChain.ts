@@ -105,9 +105,6 @@ export class ClientAppChain<
     stateServiceProvider.setCurrentStateService(new InMemoryStateService());
     container.registerInstance("StateServiceProvider", stateServiceProvider);
 
-    // Should register somehow?
-    //container.registerSingleton("BlockExplorer")
-
     return appChain;
   }
 
