@@ -4,6 +4,7 @@ import {
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
+  InMemoryBlockExplorer
 } from "@proto-kit/sdk";
 import { PrivateKey, PublicKey } from "o1js";
 import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
@@ -116,6 +117,7 @@ export async function startGraphqlServer() {
         BlockResolver,
         NodeStatusResolver,
         MerkleWitnessResolver,
+        BlockExplorer: InMemoryBlockExplorer
       }),
 
       SequencerStartupModule,
@@ -167,6 +169,7 @@ export async function startGraphqlServer() {
         NodeStatusResolver: {},
         BlockResolver: {},
         MerkleWitnessResolver: {},
+        BlockExplorer: {},
       },
 
       Database: {
@@ -209,6 +212,8 @@ export async function startGraphqlServer() {
       signer: PrivateKey.random(),
     },
   });
+
+  container.registerInstance("BlockExplorer", InMemoryBlockExplorer);
 
   await appChain.start(false, container.createChildContainer());
   // const pk = PublicKey.fromBase58(

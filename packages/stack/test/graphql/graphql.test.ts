@@ -18,6 +18,7 @@ import {
   GraphqlQueryTransportModule,
   GraphqlClient,
   GraphqlNetworkStateTransportModule,
+  InMemoryBlockExplorer,
   GraphqlBlockExplorer,
 } from "@proto-kit/sdk";
 import { beforeAll } from "@jest/globals";
@@ -183,12 +184,10 @@ describe("graphql client test", () => {
       });
       await tx.sign();
       await tx.send();
-
-      await trigger.produceBlock();
-
+      
+      trigger.produceBlock();
       const queryResult = await appChain.query.explorer.waitTxInclusion(tx.transaction?.hash().toString()!);
-
-      expect(queryResult).toBe("INCLUDED");
+      expect(queryResult.transactionState).toBe("INCLUDED");
 
   });
 });
