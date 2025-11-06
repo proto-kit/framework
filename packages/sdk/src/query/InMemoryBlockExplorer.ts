@@ -20,29 +20,27 @@ export class InMemoryBlockExplorer
 
   public async waitTxInclusion(
     txHash: string,
-    interval = 500,
-    attempts = 3
+    interval = 1000,
+    attempts = 5
   ) {
     while (true) {
       const dbTx = await this.transactionStorage.findTransaction(txHash);
-      console.log("hier");
       
       if (dbTx?.block !== undefined) {
-        return InclusionStatus.INCLUDED; 
+        return { transactionState: InclusionStatus.INCLUDED };
       }
       
       if (attempts <= 0) {
-          return { transactionState: InclusionStatus.PENDING };
+          return { transactionState: InclusionStatus.UNKNOWN };
       }
+
       attempts--;
         
-
       await sleep(interval);
     }
   }
-
-  public async getBlock(hash: string | undefined, height: number | undefined) {
     
+  public async getBlock(hash: string | undefined, height: number | undefined) {
     let block: Block | undefined;
 
     if (hash !== undefined) {
@@ -58,6 +56,5 @@ export class InMemoryBlockExplorer
       return BlockModel.fromServiceLayerModel(block);
     }
     return undefined;
-  
   }
 }
