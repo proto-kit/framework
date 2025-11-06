@@ -174,7 +174,7 @@ describe("graphql client test", () => {
     ).toBeGreaterThanOrEqual(0n);
   });
 
-    it("should get tx stuff", async () => {
+    it("Should wait for transaction inclusion", async () => {
       expect.assertions(1);
 
       const tx = await appChain.transaction(pk.toPublicKey(), async () => {
