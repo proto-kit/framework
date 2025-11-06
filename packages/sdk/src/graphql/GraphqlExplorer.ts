@@ -9,7 +9,6 @@ import { AppChainModule, BlockExplorer } from "@proto-kit/sequencer";
 export class GraphqlBlockExplorer
   extends AppChainModule
   implements BlockExplorer {
-
   public constructor(
     @inject("GraphqlClient") private readonly graphqlClient: GraphqlClient
   ) {
@@ -18,8 +17,8 @@ export class GraphqlBlockExplorer
 
   public async waitTxInclusion(
     txHash: string,
-    interval = 5000,
-    attempts = 0
+    interval = 1000,
+    attempts = 5
   ) {
     
     const query = gql`
@@ -28,8 +27,7 @@ export class GraphqlBlockExplorer
     }
     `;
 
-    while(true){
-
+    while(true){            
         const queryResult = await this.graphqlClient.client
         .query(query, { hash: txHash })
         .toPromise();
@@ -41,7 +39,11 @@ export class GraphqlBlockExplorer
         if(queryResult.data?.transactionState === "INCLUDED"){
             return queryResult.data;
         }
-        console.log('Sleeping... ');
+
+        if (attempts > 0 && attempts-- <= 0) {
+          throw new Error("Transaction not included");
+        }
+        
         await sleep(interval);
     }
     
