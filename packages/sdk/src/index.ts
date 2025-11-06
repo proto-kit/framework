@@ -1,5 +1,6 @@
 export * from "./query/StateServiceQueryModule";
 export * from "./query/BlockStorageNetworkStateModule";
+export * from "./query/InMemoryBlockExplorer";
 export * from "./transaction/AppChainTransaction";
 export * from "./transaction/InMemorySigner";
 export * from "./transaction/InMemoryTransactionSender";
