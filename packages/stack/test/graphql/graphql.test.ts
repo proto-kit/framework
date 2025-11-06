@@ -20,7 +20,7 @@ import {
   GraphqlNetworkStateTransportModule,
   GraphqlBlockExplorer,
 } from "@proto-kit/sdk";
-import { InclusionStatus } from "@proto-kit/api";
+import { BlockModel, InclusionStatus } from "@proto-kit/api";
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 
@@ -184,13 +184,40 @@ describe("graphql client test", () => {
       });
       await tx.sign();
       await tx.send();
-      
-      const preBlockQuery = await appChain.query.explorer.waitTxInclusion(tx.transaction?.hash().toString()!);
-      expect(preBlockQuery.transactionState).toBe(InclusionStatus.PENDING);
-      console.log(preBlockQuery.transactionState)
-      await trigger.produceBlock();
-      const postBlopckQuery = await appChain.query.explorer.waitTxInclusion(tx.transaction?.hash().toString()!);
-      expect(postBlopckQuery.transactionState).toBe(InclusionStatus.PENDING);
 
-  },60_000);
+      const txHash = tx.transaction?.hash().toString()!
+      
+      const preBlockQuery = await appChain.query.explorer.waitTxInclusion(txHash);
+      expect(preBlockQuery.transactionState).toBe(InclusionStatus.PENDING);
+
+      await trigger.produceBlock();
+      
+      const postBlockQuery = await appChain.query.explorer.waitTxInclusion(txHash);
+      expect(postBlockQuery.transactionState).toBe(InclusionStatus.INCLUDED);
+    }, 20_000);
+
+        
+    it("should get block with block hash or block height", async () =>{
+      expect.assertions(1);
+
+
+      const tx = await appChain.transaction(pk.toPublicKey(), async () => {
+        await appChain.runtime
+          .resolve("Balances")
+          .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
+      });
+
+      await tx.sign();
+      await tx.send();
+
+      const block = await trigger.produceBlock();
+      const hash = block?.hash.toString()!;
+      const height = Number(block?.height.toBigInt());
+
+      const blockResult: BlockModel = await appChain.query.explorer.getBlock(hash, height)
+
+      // Blocks should have same transactionsHash.
+      expect(blockResult.transactionsHash).toBe(block?.transactionsHash.toString());
+
+    },10_000);
 });
