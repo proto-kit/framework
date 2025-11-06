@@ -29,6 +29,7 @@
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
+    "@proto-kit/api": "*",
     "o1js": "^1.6.0",
     "tsyringe": "^4.10.0"
   },

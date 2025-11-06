@@ -20,7 +20,7 @@ import {
   GraphqlNetworkStateTransportModule,
   GraphqlBlockExplorer,
 } from "@proto-kit/sdk";
-import { BlockModel, InclusionStatus } from "@proto-kit/api";
+import { InclusionStatus } from "@proto-kit/api";
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 
@@ -80,7 +80,7 @@ function prepareClient() {
       url: "http://127.0.0.1:8080/graphql",
     },
 
-    BlockExplorer:{},
+    BlockExplorer: {},
 
     Signer: {
       signer: pk,
@@ -159,13 +159,12 @@ describe("graphql client test", () => {
   it("should retrieve merkle witness", async () => {
     expect.assertions(2);
 
-    const witness =
-      await appChain!.query.runtime.Balances.balances.merkleWitness(
-        new BalancesKey({
-          tokenId: TokenId.from(0),
-          address: pk.toPublicKey(),
-        })
-      );
+    const witness = await appChain!.query.runtime.Balances.balances.merkleWitness(
+      new BalancesKey({
+        tokenId: TokenId.from(0),
+        address: pk.toPublicKey(),
+      })
+    );
 
     expect(witness).toBeDefined();
     // Check if this works, i.e. if it correctly parsed
@@ -174,49 +173,51 @@ describe("graphql client test", () => {
     ).toBeGreaterThanOrEqual(0n);
   });
 
-    it("should wait for transaction inclusion", async () => {
-      expect.assertions(2);
+  it("should wait for transaction inclusion", async () => {
+    expect.assertions(2);
 
-      const tx = await appChain.transaction(pk.toPublicKey(), async () => {
-        await appChain.runtime
-          .resolve("Balances")
-          .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
-      });
-      await tx.sign();
-      await tx.send();
+    const tx = await appChain.transaction(pk.toPublicKey(), async () => {
+      await appChain.runtime
+        .resolve("Balances")
+        .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
+    });
+    await tx.sign();
+    await tx.send();
 
-      const txHash = tx.transaction?.hash().toString()!
-      
-      const preBlockQuery = await appChain.query.explorer.waitTxInclusion(txHash);
-      expect(preBlockQuery.transactionState).toBe(InclusionStatus.PENDING);
+    const txHash = tx.transaction?.hash().toString()!;
 
-      await trigger.produceBlock();
-      
-      const postBlockQuery = await appChain.query.explorer.waitTxInclusion(txHash);
-      expect(postBlockQuery.transactionState).toBe(InclusionStatus.INCLUDED);
-    }, 20_000);
+    const preBlockQuery = await appChain.query.explorer.waitTxInclusion(
+      txHash
+    );
+    expect(preBlockQuery.transactionState).toBe(InclusionStatus.PENDING);
 
-        
-    it("should get block with block hash or block height", async () =>{
-      expect.assertions(1);
+    await trigger.produceBlock();
 
+    const postBlockQuery = await appChain.query.explorer.waitTxInclusion(
+      txHash
+    );
+    expect(postBlockQuery.transactionState).toBe(InclusionStatus.INCLUDED);
+  }, 20_000);
 
-      const tx = await appChain.transaction(pk.toPublicKey(), async () => {
-        await appChain.runtime
-          .resolve("Balances")
-          .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
-      });
+  it("should get block with block hash or block height", async () => {
+    expect.assertions(1);
 
-      await tx.sign();
-      await tx.send();
+    const tx = await appChain.transaction(pk.toPublicKey(), async () => {
+      await appChain.runtime
+        .resolve("Balances")
+        .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
+    });
 
-      const block = await trigger.produceBlock();
-      const hash = block?.hash.toString()!;
-      const height = Number(block?.height.toBigInt());
+    await tx.sign();
+    await tx.send();
 
-      const blockResult = await appChain.query.explorer.getBlock(hash, height)
+    const block = await trigger.produceBlock();
+    const hash = block?.hash.toString()!;
+    const height = Number(block?.height.toBigInt());
 
-      // Blocks should have same transactionsHash.
-      expect(blockResult.data?.block.transactionsHash).toBe(block?.transactionsHash.toString());
-    },10_000);
+    const blockResult = await appChain.query.explorer.getBlock(hash,height);
+
+    // Blocks should have same transactionsHash.
+    expect(blockResult.block?.tranactionsHash).toBe(block?.transactionsHash.toString());
+  }, 10_000);
 });

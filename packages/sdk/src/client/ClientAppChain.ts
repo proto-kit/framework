@@ -79,7 +79,7 @@ export class ClientAppChain<
       TransactionSender: GraphqlTransactionSender,
       QueryTransportModule: GraphqlQueryTransportModule,
       NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
-      BlockExplorer: GraphqlBlockExplorer
+      BlockExplorer: GraphqlBlockExplorer,
     });
 
     appChain.configurePartial({
@@ -232,7 +232,7 @@ export class ClientAppChain<
 
       network,
 
-      explorer
+      explorer,
     };
   }
 }
