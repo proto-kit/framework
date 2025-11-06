@@ -1,7 +1,7 @@
 
 import { injectable, inject } from "tsyringe";
 import { AppChainModule, Block, BlockExplorer, BlockStorage, TransactionStorage} from "@proto-kit/sequencer";
-import {BlockModel} from "@proto-kit/api";
+import {BlockModel, InclusionStatus} from "@proto-kit/api";
 import { sleep } from "@proto-kit/common";
 
 @injectable()
@@ -20,20 +20,22 @@ export class InMemoryBlockExplorer
 
   public async waitTxInclusion(
     txHash: string,
-    interval = 1000,
-    attempts = 5
+    interval = 500,
+    attempts = 3
   ) {
     while (true) {
       const dbTx = await this.transactionStorage.findTransaction(txHash);
       console.log("hier");
       
       if (dbTx?.block !== undefined) {
-        return "INCLUDED"; 
+        return InclusionStatus.INCLUDED; 
       }
       
-      if (attempts > 0 && attempts-- <= 0) {
-        throw new Error("Transaction not included");
+      if (attempts <= 0) {
+          return { transactionState: InclusionStatus.PENDING };
       }
+      attempts--;
+        
 
       await sleep(interval);
     }

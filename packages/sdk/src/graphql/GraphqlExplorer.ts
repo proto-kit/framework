@@ -3,6 +3,7 @@ import { gql } from "@urql/core";
 import { GraphqlClient } from "../graphql/GraphqlClient";
 import { sleep } from "@proto-kit/common";
 import { AppChainModule, BlockExplorer } from "@proto-kit/sequencer";
+import { InclusionStatus } from "@proto-kit/api";
 
 
 @injectable()
@@ -14,13 +15,11 @@ export class GraphqlBlockExplorer
   ) {
     super();
   }
-
   public async waitTxInclusion(
     txHash: string,
-    interval = 1000,
-    attempts = 5
+    interval = 500,
+    attempts = 3
   ) {
-    
     const query = gql`
     query transactionState($hash: String!) {
         transactionState(hash: $hash)
@@ -36,13 +35,14 @@ export class GraphqlBlockExplorer
         throw new Error("Error in query!");
         }
 
-        if(queryResult.data?.transactionState === "INCLUDED"){
+        if(queryResult.data?.transactionState === InclusionStatus.INCLUDED){
             return queryResult.data;
         }
 
-        if (attempts > 0 && attempts-- <= 0) {
-          throw new Error("Transaction not included");
+        if (attempts <= 0) {
+          return { transactionState: InclusionStatus.PENDING };
         }
+        attempts--;
         
         await sleep(interval);
     }
