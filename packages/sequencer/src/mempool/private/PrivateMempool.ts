@@ -117,6 +117,7 @@ export class PrivateMempool
 
   @trace("mempool.get_txs")
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
+    // TODO Add limit to the storage (or do something smarter entirely)
     const txs = await this.transactionStorage.getPendingUserTransactions();
 
     const baseCachedStateService = new CachedStateService(this.stateService);
@@ -133,7 +134,7 @@ export class PrivateMempool
           networkState,
           limit
         )
-      : txs;
+      : txs.slice(0, limit);
 
     this.protocol.stateServiceProvider.popCurrentStateService();
     return sortedTxs;

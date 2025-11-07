@@ -5,6 +5,7 @@ import { Protocol } from "@proto-kit/protocol";
 import { Bool, PrivateKey, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
+import { afterEach } from "@jest/globals";
 
 import {
   InMemoryDatabase,
@@ -96,7 +97,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
         Sequencer: {
           Database: {},
           BlockTrigger: {},
-          Mempool: {},
+          Mempool: {
+            validationEnabled: true,
+          },
           FeeStrategy: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
@@ -121,6 +124,10 @@ describe.each([["InMemory", InMemoryDatabase]])(
       sequencer = appChain.sequencer;
 
       mempool = sequencer.resolve("Mempool");
+    });
+
+    afterEach(async () => {
+      await appChain.close();
     });
 
     it("transactions are returned in right order - simple", async () => {

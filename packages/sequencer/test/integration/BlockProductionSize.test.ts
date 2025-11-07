@@ -5,6 +5,7 @@ import { Protocol } from "@proto-kit/protocol";
 import { Bool, PrivateKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
+import { afterEach } from "@jest/globals";
 
 import {
   ManualBlockTrigger,
@@ -37,6 +38,7 @@ describe("block limit", () => {
     NoopRuntime: typeof NoopRuntime;
   }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
+  let appchain: AppChain<any>;
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -68,7 +70,9 @@ describe("block limit", () => {
       Sequencer: {
         Database: {},
         BlockTrigger: {},
-        Mempool: {},
+        Mempool: {
+          validationEnabled: true,
+        },
         BatchProducerModule: {},
         BlockProducerModule: {
           maximumBlockSize: maxBlockSize,
@@ -97,6 +101,7 @@ describe("block limit", () => {
     await app.start(false, container.createChildContainer());
 
     ({ runtime, sequencer } = app);
+    appchain = app;
 
     mempool = sequencer.resolve("Mempool");
 
@@ -113,6 +118,10 @@ describe("block limit", () => {
       await mempool.add(tx);
     }
   }
+
+  afterEach(async () => {
+    await appchain.close();
+  });
 
   it.each([
     [5, 5],
