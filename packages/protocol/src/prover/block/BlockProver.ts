@@ -932,11 +932,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
             runtimeProof: DynamicRuntimeProof,
             executionData: BlockProverSingleTransactionExecutionData
           ) {
-            return await proveTransaction(
-              publicInput,
-              runtimeProof,
-              executionData
-            );
+            return {
+              publicOutput: await proveTransaction(
+                publicInput,
+                runtimeProof,
+                executionData
+              ),
+            };
           },
         },
 
@@ -953,12 +955,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
             runtimeProof2: DynamicRuntimeProof,
             executionData: BlockProverMultiTransactionExecutionData
           ) {
-            return await proveTransactions(
-              publicInput,
-              runtimeProof1,
-              runtimeProof2,
-              executionData
-            );
+            return {
+              publicOutput: await proveTransactions(
+                publicInput,
+                runtimeProof1,
+                runtimeProof2,
+                executionData
+              ),
+            };
           },
         },
 
@@ -980,15 +984,17 @@ export class BlockProverProgrammable extends ZkProgrammable<
             afterBlockRootWitness: WitnessedRootWitness,
             transactionProof: BlockProverProof
           ) {
-            return await proveBlock(
-              publicInput,
-              networkState,
-              blockWitness,
-              stateTransitionProof,
-              deferSTs,
-              afterBlockRootWitness,
-              transactionProof
-            );
+            return {
+              publicOutput: await proveBlock(
+                publicInput,
+                networkState,
+                blockWitness,
+                stateTransitionProof,
+                deferSTs,
+                afterBlockRootWitness,
+                transactionProof
+              ),
+            };
           },
         },
 
@@ -1003,7 +1009,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             proof1: BlockProverProof,
             proof2: BlockProverProof
           ) {
-            return await merge(publicInput, proof1, proof2);
+            return { publicOutput: await merge(publicInput, proof1, proof2) };
           },
         },
       },

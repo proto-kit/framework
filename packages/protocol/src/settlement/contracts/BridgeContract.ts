@@ -12,7 +12,7 @@ import {
   State,
   state,
   Struct,
-  TokenContractV2,
+  TokenContract,
   TokenId,
   VerificationKey,
 } from "o1js";
@@ -64,7 +64,7 @@ export class BridgeContractContext {
   } = { messageInputs: [] };
 }
 
-export abstract class BridgeContractBase extends TokenContractV2 {
+export abstract class BridgeContractBase extends TokenContract {
   public static args: {
     SettlementContract:
       | (TypedClass<SettlementContractType> & typeof SmartContract)

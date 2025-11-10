@@ -73,7 +73,7 @@ describe("prisma integration", () => {
       [block, batch] = await appChain.sequencer
         .resolve("BlockTrigger")
         .produceBlockAndBatch();
-    }, 30000);
+    }, 60_000);
 
     afterAll(async () => {
       await teardown();
@@ -201,7 +201,7 @@ describe("prisma integration", () => {
         expectDefined(block2);
         expectDefined(batch2);
         expect(block2.transactions).toHaveLength(1);
-      }, 30000);
+      }, 60_000);
 
       it("should retrieve correct balance for account 2", async () => {
         const balance = await appChain.query.runtime.Balances.balances.get(

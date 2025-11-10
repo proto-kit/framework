@@ -340,9 +340,9 @@ export const settlementTestFn = (
             );
 
             await tokenOwner!.deploy({
-              verificationKey: undefined,
               src: "",
               symbol: "TEST",
+              allowUpdates: false,
             });
             tokenOwner!.self.account.permissions.set(
               permissions.bridgeContractToken()

@@ -95,6 +95,15 @@ export class TimedBlockTrigger
     log.info("Starting timed block trigger");
     const { settlementInterval, blockInterval } = this.config;
 
+    if (
+      settlementInterval !== undefined &&
+      this.batchProducerModule === undefined
+    ) {
+      log.warn(
+        "Settlement interval is configured, but no BatchProducerModule is - Batch production and settlement will not work, consider adding the missing module to your sequencer config"
+      );
+    }
+
     const timerInterval = this.getTimerInterval();
 
     let totalTime = 0;

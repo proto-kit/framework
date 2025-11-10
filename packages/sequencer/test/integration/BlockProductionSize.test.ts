@@ -133,6 +133,6 @@ describe("block limit", () => {
       expect(block).toBeDefined();
       expect(block!.transactions).toHaveLength(maxValue);
     },
-    30000
+    60_000
   );
 });

@@ -38,7 +38,9 @@ export function toProver(
 
     if (areProofsEnabled) {
       const programProvableMethod = zkProgram.methods[methodName];
-      return await Reflect.apply(programProvableMethod, this, args);
+      const result = await Reflect.apply(programProvableMethod, this, args);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return result.proof as Proof<any, any>;
     }
 
     // create a mock proof by simulating method> execution in JS
@@ -49,8 +51,18 @@ export function toProver(
 
       // TODO: provide undefined if public input is not used
       publicInput: isFirstParameterPublicInput ? args[0] : undefined,
-      publicOutput,
-
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      publicOutput: (() => {
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        if (!publicOutput || typeof publicOutput !== "object") {
+          return undefined;
+        }
+        if ("publicOutput" in publicOutput) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          return (publicOutput as any).publicOutput;
+        }
+        return publicOutput;
+      })(),
       /**
        * We set this to the max possible number, to avoid having
        * to manually count in-circuit proof verifications

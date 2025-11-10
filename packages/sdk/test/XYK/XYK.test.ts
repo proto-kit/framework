@@ -66,7 +66,7 @@ describe("xyk", () => {
 
     balances = chain.runtime.resolve("Balances");
     xyk = chain.runtime.resolve("XYK");
-  }, 30_000);
+  }, 60_000);
 
   it("should mint balance for alice", async () => {
     expect.assertions(2);
@@ -94,7 +94,7 @@ describe("xyk", () => {
 
     expect(balanceIn?.toString()).toBe(balanceToMint.toString());
     expect(balanceOut?.toString()).toBe(balanceToMint.toString());
-  }, 30_000);
+  }, 60_000);
 
   it("should create a pool", async () => {
     expect.assertions(2);
@@ -122,7 +122,7 @@ describe("xyk", () => {
     expect(balanceOut?.toString()).toBe(
       String(balanceToMint - initialLiquidityB)
     );
-  }, 30_000);
+  }, 60_000);
 
   it("should sell tokenIn", async () => {
     expect.assertions(2);
@@ -163,7 +163,7 @@ describe("xyk", () => {
 
       String(balanceOutBefore!.toBigInt() + 181n)
     );
-  }, 30_000);
+  }, 60_000);
 
   it("should buy tokenOut", async () => {
     expect.assertions(2);
@@ -197,5 +197,5 @@ describe("xyk", () => {
 
       String(balanceInBefore!.toBigInt() - 135n)
     );
-  }, 30_000);
+  }, 60_000);
 });

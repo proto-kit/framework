@@ -10,8 +10,10 @@ on:
     branches:
       - develop
   
+permissions:
+  id-token: write
 
-jobs:     
+jobs:
   release:
     runs-on: ubuntu-latest
     environment: develop
