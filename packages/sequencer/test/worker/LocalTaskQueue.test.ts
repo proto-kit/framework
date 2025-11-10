@@ -38,6 +38,7 @@ describe("localTaskQueue", () => {
           name: String(index),
           payload: String(input),
           flowId: "0",
+          sequencerId: "0",
         });
       }
 
@@ -48,6 +49,7 @@ describe("localTaskQueue", () => {
           name: String(index),
           payload: String(input),
           flowId: "0",
+          sequencerId: "0",
         });
       }
     }

@@ -1,5 +1,6 @@
 import { inject, injectable } from "tsyringe";
 import { log, mapSequential } from "@proto-kit/common";
+import { Field } from "o1js";
 
 import { InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { Closeable } from "../../sequencer/builder/Closeable";
@@ -45,6 +46,12 @@ export class Flow<State> implements Closeable {
     public state: State
   ) {}
 
+  private static generateSequencerId(): string {
+    return Field.random().toString();
+  }
+
+  public static readonly sequencerId: string = Flow.generateSequencerId();
+
   private async waitForResult(
     queue: InstantiatedQueue,
     taskId: string,
@@ -82,6 +89,11 @@ export class Flow<State> implements Closeable {
       const resolveFunction = this.resultsPending[response.taskId];
 
       if (!this.erroredOut) {
+        // skip responses from old sequencers
+        if (response.sequencerId !== Flow.sequencerId) {
+          return;
+        }
+
         if (response.status === "error") {
           this.reject(
             new Error(
@@ -123,6 +135,7 @@ export class Flow<State> implements Closeable {
       taskId,
       flowId: this.flowId,
       payload,
+      sequencerId: Flow.sequencerId,
     });
 
     this.tasksInProgress += 1;

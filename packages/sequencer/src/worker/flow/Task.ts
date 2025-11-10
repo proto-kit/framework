@@ -20,4 +20,5 @@ export interface TaskPayload {
   payload: string;
   taskId?: string;
   flowId: string;
+  sequencerId: string;
 }

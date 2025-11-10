@@ -50,6 +50,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
           flowId: data.flowId,
           name: data.name,
           payload: await task.resultSerializer().toJSON(output),
+          sequencerId: data.sequencerId,
         };
 
         log.debug(
@@ -70,6 +71,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
           flowId: data.flowId,
           name: data.name,
           payload,
+          sequencerId: data.sequencerId,
         };
       }
     });
