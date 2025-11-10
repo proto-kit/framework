@@ -21,6 +21,6 @@ describe("tx objects hash equality", () => {
 
     const tx2 = tx1.toRuntimeTransaction();
 
-    expect(tx1.hash()).toStrictEqual(tx2.hash());
+    expect(tx1.hash()).toStrictEqual(tx2.hash);
   });
 });

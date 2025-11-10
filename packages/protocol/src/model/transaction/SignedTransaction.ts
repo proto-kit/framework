@@ -26,7 +26,7 @@ export class SignedTransaction extends Struct({
   }
 
   public hash(): Field {
-    return this.transaction.hash();
+    return this.transaction.hash;
   }
 
   public getSignatureData(): Field[] {

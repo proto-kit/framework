@@ -205,7 +205,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     state.pendingSTBatches.push(afterBatch);
 
     // Check transaction integrity against appProof
-    const blockTransactionHash = transaction.hash();
+    const blockTransactionHash = transaction.hash;
 
     blockTransactionHash.assertEquals(
       runtimeOutput.transactionHash,
@@ -350,7 +350,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "transactionList" | "eternalTransactionsList" | "incomingMessages"
     >,
   >(state: T, isMessage: Bool, transaction: RuntimeTransaction): T {
-    const transactionHash = transaction.hash();
+    const transactionHash = transaction.hash;
 
     // Append tx to transaction list
     state.transactionList.pushIf(transactionHash, isMessage.not());

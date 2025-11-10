@@ -13,18 +13,49 @@ export class RuntimeTransaction extends Struct({
   argsHash: Field,
   nonce: UInt64Option,
   sender: PublicKeyOption,
+  hash: Field,
 }) {
+  public static create(input: {
+    methodId: Field;
+    argsHash: Field;
+    nonce: UInt64Option;
+    sender: PublicKeyOption;
+  }) {
+    const { methodId, argsHash, nonce, sender } = input;
+    return new RuntimeTransaction({
+      methodId,
+      argsHash,
+      nonce,
+      sender,
+      hash: Poseidon.hash([
+        methodId,
+        ...sender.value.toFields(),
+        ...nonce.value.toFields(),
+        argsHash,
+      ]),
+    });
+  }
+
   public static fromTransaction(input: {
     methodId: Field;
     argsHash: Field;
     nonce: UInt64;
     sender: PublicKey;
   }) {
+    const { methodId, argsHash } = input;
+    const nonce = UInt64Option.fromSome(input.nonce);
+    const sender = PublicKeyOption.fromSome(input.sender);
     return new RuntimeTransaction({
-      methodId: input.methodId,
-      argsHash: input.argsHash,
-      nonce: UInt64Option.fromSome(input.nonce),
-      sender: PublicKeyOption.fromSome(input.sender),
+      methodId,
+      argsHash,
+      nonce,
+      sender,
+      hash: Poseidon.hash([
+        methodId,
+        ...sender.value.toFields(),
+        ...nonce.value.toFields(),
+        argsHash,
+      ]),
     });
   }
 
@@ -35,26 +66,44 @@ export class RuntimeTransaction extends Struct({
     methodId: Field;
     argsHash: Field;
   }) {
+    const nonce = UInt64Option.none(UInt64.zero);
+    const sender = PublicKeyOption.none(EMPTY_PUBLICKEY);
     return new RuntimeTransaction({
       methodId,
       argsHash,
-      nonce: UInt64Option.none(UInt64.zero),
-      sender: PublicKeyOption.none(EMPTY_PUBLICKEY),
+      nonce,
+      sender,
+      hash: Poseidon.hash([
+        methodId,
+        ...sender.value.toFields(),
+        ...nonce.value.toFields(),
+        argsHash,
+      ]),
     });
   }
 
   public static dummyTransaction(): RuntimeTransaction {
+    const methodId = Field(0);
+    const nonce = new UInt64Option({
+      isSome: Bool(true),
+      value: UInt64.zero,
+    });
+    const sender = new PublicKeyOption({
+      isSome: Bool(true),
+      value: EMPTY_PUBLICKEY,
+    });
+    const argsHash = Field(0);
     return new RuntimeTransaction({
-      methodId: Field(0),
-      nonce: new UInt64Option({
-        isSome: Bool(true),
-        value: UInt64.zero,
-      }),
-      sender: new PublicKeyOption({
-        isSome: Bool(true),
-        value: EMPTY_PUBLICKEY,
-      }),
-      argsHash: Field(0),
+      methodId,
+      argsHash,
+      nonce,
+      sender,
+      hash: Poseidon.hash([
+        methodId,
+        ...sender.value.toFields(),
+        ...nonce.value.toFields(),
+        argsHash,
+      ]),
     });
   }
 
@@ -100,10 +149,7 @@ export class RuntimeTransaction extends Struct({
         value: UInt64.fromFields([fields[3]]),
       }),
       argsHash: fields[4],
+      hash: Poseidon.hash(fields),
     });
-  }
-
-  public hash(): Field {
-    return Poseidon.hash(this.hashData());
   }
 }

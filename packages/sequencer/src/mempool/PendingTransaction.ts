@@ -49,7 +49,8 @@ export class UnsignedTransaction implements UnsignedTransactionBody {
       auxiliaryData: string[];
       isMessage: boolean;
     },
-    memoizedHash?: Field
+    memoizedHash?: Field,
+    memoizedArgsHash?: Field
   ) {
     this.methodId = data.methodId;
     this.nonce = data.nonce;
@@ -61,13 +62,22 @@ export class UnsignedTransaction implements UnsignedTransactionBody {
     if (memoizedHash !== undefined) {
       this.memoizedHash = memoizedHash;
     }
+
+    if (memoizedArgsHash !== undefined) {
+      this.memoizedArgsHash = memoizedArgsHash;
+    }
   }
 
   public argsHash(): Field {
-    return Poseidon.hash(this.argsFields);
+    if (this.memoizedArgsHash === undefined) {
+      this.memoizedArgsHash = Poseidon.hash(this.argsFields);
+    }
+    return this.memoizedArgsHash;
   }
 
   private memoizedHash?: Field = undefined;
+
+  private memoizedArgsHash?: Field = undefined;
 
   public hash(): Field {
     if (this.memoizedHash === undefined) {
@@ -96,9 +106,9 @@ export class UnsignedTransaction implements UnsignedTransactionBody {
 
   public toRuntimeTransaction(): RuntimeTransaction {
     const isSome = Bool(!this.isMessage);
-    return new RuntimeTransaction({
+    return RuntimeTransaction.create({
       methodId: this.methodId,
-      argsHash: Poseidon.hash(this.argsFields),
+      argsHash: this.argsHash(),
       nonce: new UInt64Option({ value: this.nonce, isSome }),
       sender: new PublicKeyOption({ value: this.sender, isSome }),
     });

@@ -141,7 +141,7 @@ export function toWrappedMethod(
     const isMessage = Bool(options.invocationType === "INCOMING_MESSAGE");
     transaction.assertTransactionType(Bool(isMessage));
 
-    const transactionHash = transaction.hash();
+    const transactionHash = transaction.hash;
     const networkStateHash = networkState.hash();
 
     return new MethodPublicOutput({
