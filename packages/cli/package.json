@@ -1,0 +1,40 @@
+{
+  "name": "@proto-kit/cli",
+  "version": "0.1.0",
+  "description": "",
+  "type": "module",
+  "main": "./bin/protokit-cli.js",
+  "bin": {
+    "proto-kit": "./bin/protokit-cli.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist","bin","spectaql.config.template.yml"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint ./src"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "yargs": "17.7.2",
+    "ts-node": "^10.9.1"
+  },
+  "peerDependencies": {
+    "@proto-kit/api": "*",
+    "@proto-kit/common": "*",
+    "@proto-kit/library": "*",
+    "@proto-kit/module": "*",
+    "@proto-kit/protocol": "*",
+    "@proto-kit/sdk": "*",
+    "@proto-kit/sequencer": "*",
+    "o1js": "1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.24",
+    "@types/yargs": "17.0.32"
+  }
+}

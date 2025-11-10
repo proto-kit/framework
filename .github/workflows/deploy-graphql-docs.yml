@@ -1,0 +1,70 @@
+name: Generate & Deploy GraphQL Docs
+
+on:
+  push:
+    branches:
+      - develop
+      
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build packages
+        run: npm run build
+
+      - name: Generate SpectaQL documentation
+        run: npx @proto-kit/cli generate-docs -e
+
+      - name: Upload docs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: graphql-docs
+          path: gqlDocs
+
+  deploy:
+    needs: generate-docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download generated docs
+        uses: actions/download-artifact@v4
+        with:
+          name: graphql-docs
+          path: ./public
+
+      - name: Set pages URL
+        id: vars
+        run: |
+          repo="${GITHUB_REPOSITORY}"
+          pages_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo##*/}"
+          echo "pages_url=${pages_url}" >> $GITHUB_OUTPUT
+
+      - name: Deploy develop branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          keep_files: true
+
+      - name: Show deployment URL
+        run: |
+          echo "GraphQL docs deployed for 'develop':"
+          echo "${{ steps.vars.outputs.pages_url }}"
