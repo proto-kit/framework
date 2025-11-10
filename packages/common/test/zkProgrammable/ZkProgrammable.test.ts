@@ -42,18 +42,22 @@ class TestProgrammable extends ZkProgrammable<
   @provableMethod()
   public async foo(publicInput: TestPublicInput, bar: Balance) {
     // expose the private input as public output again for testing purposes
-    return new TestPublicOutput({
-      bar,
-    });
+    return {
+      publicOutput: new TestPublicOutput({
+        bar,
+      }),
+    };
   }
 
   @provableMethod()
   public async fail(publicInput: TestPublicInput) {
     publicInput.foo.assertEquals(1, failErrorMessage);
 
-    return new TestPublicOutput({
-      bar: Field(0),
-    });
+    return {
+      publicOutput: new TestPublicOutput({
+        bar: Field(0),
+      }),
+    };
   }
 
   public zkProgramFactory() {
@@ -272,7 +276,7 @@ describe("zkProgrammable", () => {
             // proof bar
             const otherTestProof = await executionContext
               .current()
-              .result.prove<Proof<undefined, void>>();
+              .result.prove<Proof<undefined, undefined>>();
             const otherTestProofVerified =
               await otherTestProgrammable.zkProgram[0].verify(otherTestProof);
 

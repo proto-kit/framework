@@ -173,5 +173,5 @@ describe.skip("block production", () => {
 
     const [block3] = await blockTrigger.produceBlockAndBatch();
     expect(block3!.transactions[0].status.toBoolean()).toBe(false);
-  }, 30000);
+  }, 60_000);
 });

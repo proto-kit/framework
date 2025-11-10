@@ -26,7 +26,7 @@ import {
   PrivateKey,
   Provable,
   PublicKey,
-  TokenContractV2,
+  TokenContract,
   TokenId,
   Transaction,
   UInt32,
@@ -317,7 +317,7 @@ export class BridgingModule {
     return this.settlementContractModule().createBridgeContract(
       contractAddress,
       tokenId
-    ) as BridgeContractType & TokenContractV2;
+    ) as BridgeContractType & TokenContract;
   }
 
   public async getBridgeContract(tokenId: Field) {

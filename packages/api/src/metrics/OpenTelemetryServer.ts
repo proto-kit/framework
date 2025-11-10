@@ -59,12 +59,12 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
     );
 
     const metricReader =
-      metrics?.enabled ?? true
+      (metrics?.enabled ?? true)
         ? new PrometheusExporter(metrics?.prometheus)
         : undefined;
 
     const instrumentations =
-      metrics?.enabled ?? true
+      (metrics?.enabled ?? true)
         ? [
             new RuntimeNodeInstrumentation({
               monitoringPrecision: metrics?.nodeScrapeInterval ?? 5000,
@@ -74,7 +74,7 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
         : [];
 
     const traceExporter =
-      tracing?.enabled ?? true
+      (tracing?.enabled ?? true)
         ? new OTLPTraceExporter(tracing?.otlp)
         : undefined;
 

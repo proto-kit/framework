@@ -5,6 +5,7 @@ import {
   Provable,
   DynamicProof,
   FlexibleProvablePure,
+  FlexibleProvable,
 } from "o1js";
 import {
   ArgumentTypes,
@@ -29,7 +30,7 @@ const errors = {
 };
 
 type ArgumentType =
-  | FlexibleProvablePure<any>
+  | FlexibleProvable<any>
   | typeof Proof<unknown, unknown>
   | typeof DynamicProof<unknown, unknown>;
 
@@ -122,7 +123,7 @@ export class MethodParameterEncoder {
       );
     }
     // as any, since we shouldn't be using this workaround in the first place
-    return (type as FlexibleProvablePure<unknown>).sizeInFields();
+    return (type as FlexibleProvable<unknown>).sizeInFields();
   }
 
   public constructor(private readonly types: ArgTypeArray) {}
@@ -178,8 +179,9 @@ export class MethodParameterEncoder {
           }
         }
 
-        return (type as FlexibleProvablePure<unknown>).fromFields(
-          structFields
+        return (type as FlexibleProvable<unknown>).fromFields(
+          structFields,
+          []
         ) as any;
       })
     );

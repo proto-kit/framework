@@ -100,12 +100,14 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             witnesses: MerkleWitnessBatch,
             currentAppliedBatch: AppliedStateTransitionBatchState
           ) {
-            return await instance.proveBatch(
-              publicInput,
-              batch,
-              witnesses,
-              currentAppliedBatch
-            );
+            return {
+              publicOutput: await instance.proveBatch(
+                publicInput,
+                batch,
+                witnesses,
+                currentAppliedBatch
+              ),
+            };
           },
         },
 
@@ -120,7 +122,9 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             proof1: StateTransitionProof,
             proof2: StateTransitionProof
           ) {
-            return await instance.merge(publicInput, proof1, proof2);
+            return {
+              publicOutput: await instance.merge(publicInput, proof1, proof2),
+            };
           },
         },
       },
