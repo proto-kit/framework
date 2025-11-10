@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - develop
-      
 jobs:
   generate-docs:
     runs-on: ubuntu-latest
@@ -26,7 +25,7 @@ jobs:
         run: npm run build
 
       - name: Generate SpectaQL documentation
-        run: npx @proto-kit/cli generate-docs -e
+        run: npx @proto-kit/cli generate-gql-docs -e
 
       - name: Upload docs as artifact
         uses: actions/upload-artifact@v4
