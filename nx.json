@@ -15,23 +15,16 @@
   },
   "targetDefaults": {
     "prisma:generate": {
-      "inputs": [
-        "{projectRoot}/package.json",
-        "{projectRoot}/prisma/**/*"
-      ]
+      "inputs": ["{projectRoot}/package.json", "{projectRoot}/prisma/**/*"]
     },
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "inputs": [
         "{projectRoot}/src/**/*",
         "{projectRoot}/package.json",
         "{projectRoot}/tsconfig.json"
       ],
-      "outputs": [
-        "{projectRoot}/dist"
-      ]
+      "outputs": ["{projectRoot}/dist"]
     }
   }
 }

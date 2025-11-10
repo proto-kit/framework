@@ -11,6 +11,8 @@
     "lint": "npx lerna run lint",
     "lint:fix": "npx lerna run lint -- --fix",
     "lint:staged": "eslint",
+    "format": "prettier --check \"./**/*.{ts,tsx,js,jsx,json}\"",
+    "format:write": "prettier --write \"./**/*.{ts,tsx,js,jsx,json}\"",
     "test": "npx lerna run test -- --passWithNoTests",
     "test:ci": "npx lerna run test --concurrency=1 -- --passWithNoTests --forceExit",
     "test:integration": "npx lerna run test:integration --concurrency=1 -- --passWithNoTests --forceExit",
