@@ -10,7 +10,9 @@
     "access": "public"
   },
   "files": [
-    "dist","bin","spectaql.config.template.yml"
+    "dist",
+    "bin",
+    "spectaql.config.template.yml"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
