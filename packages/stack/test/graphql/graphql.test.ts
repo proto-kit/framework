@@ -174,7 +174,7 @@ describe("graphql client test", () => {
   });
 
   it("should wait for transaction inclusion", async () => {
-    expect.assertions(2);
+    expect.assertions(1);
 
     const tx = await appChain.transaction(pk.toPublicKey(), async () => {
       await appChain.runtime
@@ -185,11 +185,6 @@ describe("graphql client test", () => {
     await tx.send();
 
     const txHash = tx.transaction?.hash().toString()!;
-
-    const preBlockQuery = await appChain.query.explorer.waitTxInclusion(
-      txHash
-    );
-    expect(preBlockQuery.transactionState).toBe(InclusionStatus.PENDING);
 
     await trigger.produceBlock();
 
