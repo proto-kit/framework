@@ -47,7 +47,7 @@ export class GraphqlBlockExplorerTransportModule
       throw new Error(`Error in waitTxInclusion query: ${queryResult.error}`);
     }
 
-    return queryResult.data?.transactionState as InclusionStatus;
+    return queryResult.data?.transactionState;
   }
 
   async getBlock(param?: string | number): Promise<any> {
