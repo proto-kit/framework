@@ -1,4 +1,4 @@
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { sleep } from "@proto-kit/common";
 import { InclusionStatus } from "@proto-kit/api";
 import { BlockExplorerTransportModule } from "./BlockExplorerTransportModule";
@@ -10,7 +10,7 @@ export type TransactionFetcher = (
 @injectable()
 export class BlockExplorerQuery {
   public constructor(
-    private readonly blockExplorer: BlockExplorerTransportModule
+    @inject("BlockExplorerTransportModule") private readonly blockExplorer: BlockExplorerTransportModule
   ) {}
 
   public async waitTxInclusion(
