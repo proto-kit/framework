@@ -43,14 +43,9 @@ export class Flow<State> implements Closeable {
   public constructor(
     private readonly queueImpl: TaskQueue,
     public readonly flowId: string,
-    public state: State
+    public state: State,
+    public readonly sequencerId: string
   ) {}
-
-  private static generateSequencerId(): string {
-    return Field.random().toString();
-  }
-
-  public static readonly sequencerId: string = Flow.generateSequencerId();
 
   private async waitForResult(
     queue: InstantiatedQueue,
@@ -90,7 +85,7 @@ export class Flow<State> implements Closeable {
 
       if (!this.erroredOut) {
         // skip responses from old sequencers
-        if (response.sequencerId !== Flow.sequencerId) {
+        if (response.sequencerId !== this.sequencerId) {
           return;
         }
 
@@ -135,7 +130,7 @@ export class Flow<State> implements Closeable {
       taskId,
       flowId: this.flowId,
       payload,
-      sequencerId: Flow.sequencerId,
+      sequencerId: this.sequencerId,
     });
 
     this.tasksInProgress += 1;
@@ -189,11 +184,15 @@ export class Flow<State> implements Closeable {
 
 @injectable()
 export class FlowCreator {
+  private readonly sequencerId: string;
+
   public constructor(
     @inject("TaskQueue") private readonly queueImpl: TaskQueue
-  ) {}
+  ) {
+    this.sequencerId = Field.random().toString();
+  }
 
   public createFlow<State>(flowId: string, state: State): Flow<State> {
-    return new Flow(this.queueImpl, flowId, state);
+    return new Flow(this.queueImpl, flowId, state, this.sequencerId);
   }
 }
