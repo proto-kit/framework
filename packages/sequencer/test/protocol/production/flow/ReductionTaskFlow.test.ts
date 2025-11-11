@@ -90,6 +90,7 @@ describe("ReductionTaskFlow", () => {
     di.register("TaskQueue", {
       useValue: queue,
     });
+    di.register("Sequencer", { useValue: { id: "1" } });
 
     const worker = new FlowTaskWorker(di.resolve("TaskQueue"), [
       di.resolve(NumberIdentityTask),

@@ -1,9 +1,9 @@
 import { inject, injectable } from "tsyringe";
 import { log, mapSequential } from "@proto-kit/common";
-import { Field } from "o1js";
 
 import { InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { Closeable } from "../../sequencer/builder/Closeable";
+import type { Sequencer } from "../../sequencer/executor/Sequencer";
 
 import { Task, TaskPayload } from "./Task";
 
@@ -184,15 +184,12 @@ export class Flow<State> implements Closeable {
 
 @injectable()
 export class FlowCreator {
-  private readonly sequencerId: string;
-
   public constructor(
-    @inject("TaskQueue") private readonly queueImpl: TaskQueue
-  ) {
-    this.sequencerId = Field.random().toString();
-  }
+    @inject("TaskQueue") private readonly queueImpl: TaskQueue,
+    @inject("Sequencer") private readonly sequencer: Sequencer<any>
+  ) {}
 
   public createFlow<State>(flowId: string, state: State): Flow<State> {
-    return new Flow(this.queueImpl, flowId, state, this.sequencerId);
+    return new Flow(this.queueImpl, flowId, state, this.sequencer.id);
   }
 }

@@ -17,6 +17,7 @@ import {
   ProtocolModulesRecord,
 } from "@proto-kit/protocol";
 import { injectable } from "tsyringe";
+import { Field } from "o1js";
 
 import { SequencerModule } from "../builder/SequencerModule";
 import { Closeable } from "../builder/Closeable";
@@ -34,6 +35,13 @@ export class Sequencer<Modules extends SequencerModulesRecord>
   extends ModuleContainer<Modules>
   implements Sequenceable
 {
+  public readonly id: string;
+
+  public constructor(definition: Modules) {
+    super(definition);
+    this.id = Field.random().toString();
+  }
+
   /**
    * Alternative constructor for Sequencer
    * @param definition

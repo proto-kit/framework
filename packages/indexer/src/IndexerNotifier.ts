@@ -37,11 +37,13 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
         block.block.height.toBigInt()
       );
       const payload = await inputSerializer.toJSON(block);
+      const sequencerId = this.sequencer.id;
 
       const task: TaskPayload = {
         name: this.indexBlockTask.name,
         payload,
         flowId: "", // empty for now
+        sequencerId,
       };
 
       await queue.addTask(task);

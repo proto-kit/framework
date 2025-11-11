@@ -41,6 +41,7 @@ describe("IndexBlockTask", () => {
       name: indexBlockTask.name,
       payload,
       flowId: "",
+      sequencerId: "test-sequencer",
     };
 
     await queue.addTask(task);
