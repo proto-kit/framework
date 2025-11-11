@@ -9,6 +9,6 @@ export * from "./graphql/GraphqlClient";
 export * from "./graphql/GraphqlQueryTransportModule";
 export * from "./graphql/GraphqlTransactionSender";
 export * from "./graphql/GraphqlNetworkStateTransportModule";
-export * from "./graphql/GraphqlExplorer";
+export * from "./graphql/GraphqlBlockExplorerTransportModule";
 export * from "./client/ClientAppChain";
 export * from "./testing/TestingAppChain";
