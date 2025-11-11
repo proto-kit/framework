@@ -84,7 +84,6 @@ export * from "./helpers/query/QueryTransportModule";
 export * from "./helpers/query/QueryBuilderFactory";
 export * from "./helpers/query/NetworkStateQuery";
 export * from "./helpers/query/NetworkStateTransportModule";
-export * from "./helpers/query/BlockExplorer";
 export * from "./helpers/query/BlockExplorerQuery";
 export * from "./helpers/query/BlockExplorerTransportModule";
 export * from "./state/prefilled/PreFilledStateService";
