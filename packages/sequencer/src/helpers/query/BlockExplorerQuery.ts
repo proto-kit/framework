@@ -17,22 +17,20 @@ export class BlockExplorerQuery {
     txHash: string,
   ): Promise<{ transactionState: InclusionStatus }> {
     let remainingAttempts = 5;
-
-    // eslint-disable-next-line no-constant-condition
+    
     while (true) {
-      // eslint-disable-next-line no-await-in-loop
       const status = await this.blockExplorer.waitTxInclusion(txHash);
-
-      if (status === InclusionStatus.INCLUDED) {
+      console.log('from transport: ',status);
+      if (status === "INCLUDED") {
         return { transactionState: InclusionStatus.INCLUDED };
       }
-
+      
+      remainingAttempts -= 1;
+      
       if (remainingAttempts <= 0) {
         return { transactionState: InclusionStatus.UNKNOWN };
       }
-
-      remainingAttempts -= 1;
-      // eslint-disable-next-line no-await-in-loop
+      
       await sleep(1000);
     }
   }
