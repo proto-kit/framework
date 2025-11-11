@@ -8,20 +8,6 @@ import { InclusionStatus } from "@proto-kit/api";
 
 import { GraphqlClient } from "./GraphqlClient";
 
-const BATCH_TRANSACTION_MODEL_FRAGMENT = gql`
-  fragment BatchTransactionModelFragment on BatchTransactionModel {
-    tx {
-      methodId
-      nonce
-      sender
-      argsFields
-      auxiliaryData
-    }
-    status
-    statusMessage
-  }
-`;
-
 @injectable()
 export class GraphqlBlockExplorerTransportModule
   extends AppChainModule
@@ -61,14 +47,21 @@ export class GraphqlBlockExplorerTransportModule
     }
 
     const query = gql`
-      ${BATCH_TRANSACTION_MODEL_FRAGMENT}
       query block($hash: String, $height: Float) {
         block(hash: $hash, height: $height) {
           hash
           previousBlockHash
           height
           txs {
-            ...BatchTransactionModelFragment
+            tx {
+              methodId
+              nonce
+              sender
+              argsFields
+              auxiliaryData
+            }
+            status
+            statusMessage
           }
           transactionsHash
         }
