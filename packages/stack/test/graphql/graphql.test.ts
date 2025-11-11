@@ -174,25 +174,33 @@ describe("graphql client test", () => {
   });
 
   it("should wait for transaction inclusion", async () => {
-    expect.assertions(1);
+  expect.assertions(2);
 
-    const tx = await appChain.transaction(pk.toPublicKey(), async () => {
-      await appChain.runtime
-        .resolve("Balances")
-        .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
-    });
-    await tx.sign();
-    await tx.send();
+  const tx = await appChain.transaction(pk.toPublicKey(), async () => {
+    await appChain.runtime
+      .resolve("Balances")
+      .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
+  });
+  await tx.sign();
+  await tx.send();
 
-    const txHash = tx.transaction?.hash().toString()!;
+  const txHash = tx.transaction?.hash().toString()!;
 
-    await trigger.produceBlock();
+  const waitPromise = appChain.query.explorer.waitTxInclusion(txHash);
 
-    const postBlockQuery = await appChain.query.explorer.waitTxInclusion(
-      txHash
-    );
-    expect(postBlockQuery.transactionState).toBe(InclusionStatus.INCLUDED);
-  }, 20_000);
+  let resolved = false;
+  waitPromise.then(() => { resolved = true; });
+
+  // See that promise is not resolved since block is not triggered.
+  expect(resolved).toBe(false); 
+
+  // Produce block - this should trigger resolution
+  await trigger.produceBlock();
+
+  // Now it should resolve
+  const postBlockQuery = await waitPromise;
+  expect(postBlockQuery.transactionState).toBe(InclusionStatus.INCLUDED);
+}, 20_000);
 
   it("should get block with block hash or block height", async () => {
     expect.assertions(1);
