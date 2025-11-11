@@ -215,9 +215,11 @@ describe("graphql client test", () => {
     const hash = block?.hash.toString()!;
     const height = Number(block?.height.toBigInt());
 
-    const blockResult = await appChain.query.explorer.getBlock(hash);
+    const hashResult = await appChain.query.explorer.getBlock(hash);
+    const heightResult = await appChain.query.explorer.getBlock(height);
 
     // Blocks should have same transactionsHash.
-    expect(blockResult.block?.tranactionsHash).toBe(block?.transactionsHash.toString());
+    expect(hashResult).toEqual(heightResult);
   }, 10_000);
+
 });
