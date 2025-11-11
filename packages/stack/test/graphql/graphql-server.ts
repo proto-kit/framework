@@ -117,7 +117,6 @@ export async function startGraphqlServer() {
         BlockResolver,
         NodeStatusResolver,
         MerkleWitnessResolver,
-        BlockExplorer: InMemoryBlockExplorer,
       }),
 
       SequencerStartupModule,
@@ -127,6 +126,7 @@ export async function startGraphqlServer() {
     TransactionSender: InMemoryTransactionSender,
     QueryTransportModule: StateServiceQueryModule,
     NetworkStateTransportModule: BlockStorageNetworkStateModule,
+    BlockExplorerTransportModule: InMemoryBlockExplorer,
   });
 
   appChain.configure({
@@ -169,7 +169,6 @@ export async function startGraphqlServer() {
         NodeStatusResolver: {},
         BlockResolver: {},
         MerkleWitnessResolver: {},
-        BlockExplorer: {},
       },
 
       Database: {
@@ -211,9 +210,8 @@ export async function startGraphqlServer() {
     Signer: {
       signer: PrivateKey.random(),
     },
+    BlockExplorerTransportModule: {},
   });
-
-  container.registerInstance("BlockExplorer", InMemoryBlockExplorer);
 
   await appChain.start(false, container.createChildContainer());
   // const pk = PublicKey.fromBase58(

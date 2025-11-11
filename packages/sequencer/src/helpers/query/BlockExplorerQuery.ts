@@ -21,7 +21,7 @@ export class BlockExplorerQuery {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       // eslint-disable-next-line no-await-in-loop
-      const status = await this.blockExplorer.fetchTxStatus(txHash);
+      const status = await this.blockExplorer.waitTxInclusion(txHash);
 
       if (status === InclusionStatus.INCLUDED) {
         return { transactionState: InclusionStatus.INCLUDED };

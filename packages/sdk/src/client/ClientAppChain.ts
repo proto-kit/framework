@@ -18,7 +18,6 @@ import {
   StateServiceProvider,
 } from "@proto-kit/protocol";
 import {
-  BlockExplorer,
   DummyStateService,
   NetworkStateQuery,
   NetworkStateTransportModule,
@@ -30,6 +29,8 @@ import {
   AppChain,
   AppChainModule,
   MinimalAppChainDefinition,
+  BlockExplorerQuery,
+  BlockExplorerTransportModule,
 } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 import { Field, PublicKey, UInt64 } from "o1js";
@@ -41,7 +42,8 @@ import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
 import { Signer } from "../transaction/InMemorySigner";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { GraphqlBlockExplorer } from "../graphql/GraphqlExplorer";
+import { GraphqlBlockExplorerTransportModule } from "../graphql/GraphqlBlockExplorerTransportModule";
+
 
 export type InferModules<Container extends TypedClass<ModuleContainer<any>>> =
   Container extends TypedClass<infer Type>
@@ -79,7 +81,7 @@ export class ClientAppChain<
       TransactionSender: GraphqlTransactionSender,
       QueryTransportModule: GraphqlQueryTransportModule,
       NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
-      BlockExplorer: GraphqlBlockExplorer,
+      BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
     });
 
     appChain.configurePartial({
@@ -89,7 +91,7 @@ export class ClientAppChain<
       TransactionSender: {},
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
-      BlockExplorer: {},
+      BlockExplorerTransportModule: {},
     });
 
     /**
@@ -204,7 +206,7 @@ export class ClientAppChain<
       InferModules<AppChainModules["Protocol"]>
     >;
     network: NetworkStateQuery;
-    explorer: BlockExplorer;
+    explorer: BlockExplorerQuery;
   } {
     const queryTransportModule = this.container.resolve<QueryTransportModule>(
       "QueryTransportModule"
@@ -214,10 +216,11 @@ export class ClientAppChain<
       this.container.resolve<NetworkStateTransportModule>(
         "NetworkStateTransportModule"
       );
+    
+    const blockExplorerTransportModule = this.container.resolve<BlockExplorerTransportModule>("BlockExplorerTransportModule");
 
     const network = new NetworkStateQuery(networkStateTransportModule);
-
-    const explorer = this.container.resolve<BlockExplorer>("BlockExplorer");
+    const explorer = new BlockExplorerQuery(blockExplorerTransportModule);
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(

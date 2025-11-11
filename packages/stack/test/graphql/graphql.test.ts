@@ -18,7 +18,7 @@ import {
   GraphqlQueryTransportModule,
   GraphqlClient,
   GraphqlNetworkStateTransportModule,
-  GraphqlBlockExplorer,
+  GraphqlBlockExplorerTransportModule,
 } from "@proto-kit/sdk";
 import { InclusionStatus } from "@proto-kit/api";
 import { beforeAll } from "@jest/globals";
@@ -43,7 +43,7 @@ function prepareClient() {
     Signer: InMemorySigner,
     TransactionSender: GraphqlTransactionSender,
     QueryTransportModule: GraphqlQueryTransportModule,
-    BlockExplorer: GraphqlBlockExplorer,
+    BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
     NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
     GraphqlClient,
   });
@@ -80,7 +80,7 @@ function prepareClient() {
       url: "http://127.0.0.1:8080/graphql",
     },
 
-    BlockExplorer: {},
+    BlockExplorerTransportModule: {},
 
     Signer: {
       signer: pk,
@@ -215,7 +215,7 @@ describe("graphql client test", () => {
     const hash = block?.hash.toString()!;
     const height = Number(block?.height.toBigInt());
 
-    const blockResult = await appChain.query.explorer.getBlock(hash,height);
+    const blockResult = await appChain.query.explorer.getBlock(hash);
 
     // Blocks should have same transactionsHash.
     expect(blockResult.block?.tranactionsHash).toBe(block?.transactionsHash.toString());
