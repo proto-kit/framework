@@ -2,60 +2,45 @@ import { inject, injectable } from "tsyringe";
 import {
   AppChainModule,
   Block,
-  BlockExplorer,
+  BlockExplorerTransportModule,
   BlockStorage,
   TransactionStorage,
 } from "@proto-kit/sequencer";
 import { BlockModel, InclusionStatus } from "@proto-kit/api";
-import { sleep } from "@proto-kit/common";
 
 @injectable()
 export class InMemoryBlockExplorer
   extends AppChainModule
-  implements BlockExplorer {
-    public constructor(
-    @inject("TransactionStorage")
-    private readonly transactionStorage: TransactionStorage,
+  implements BlockExplorerTransportModule {
+  public constructor(
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage
+    private readonly blockStorage: BlockStorage,
+    @inject("TransactionStorage")
+    private readonly transactionStorage: TransactionStorage
   ) {
     super();
   }
 
-  public async waitTxInclusion(
-    txHash: string,
-    interval = 1000,
-    attempts = 5
-  ): Promise<{ transactionState: InclusionStatus }> {
-    let remainingAttempts = attempts;
+  public async fetchTxStatus(txHash: string): Promise<InclusionStatus> {
+    const dbTx = await this.transactionStorage.findTransaction(txHash);
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      // eslint-disable-next-line no-await-in-loop
-      const dbTx = await this.transactionStorage.findTransaction(txHash);
-
-      if (dbTx?.block !== undefined) {
-        return { transactionState: InclusionStatus.INCLUDED };
-      }
-
-      if (dbTx !== undefined) {
-        return { transactionState: InclusionStatus.PENDING };
-      }
-
-      if (remainingAttempts <= 0) {
-        return { transactionState: InclusionStatus.UNKNOWN };
-      }
-
-      remainingAttempts -= 1;
-      // eslint-disable-next-line no-await-in-loop
-      await sleep(interval);
+    if (dbTx?.block !== undefined) {
+      return InclusionStatus.INCLUDED;
     }
+
+    return InclusionStatus.UNKNOWN;
   }
 
-  public async getBlock(
-    hash: string | undefined,
-    height: number | undefined
-  ): Promise<BlockModel | undefined> {
+  async getBlock(param?: string | number): Promise<BlockModel | undefined> {
+    let hash: string | undefined;
+    let height: number | undefined;
+
+    if (typeof param === "string") {
+      hash = param;
+    } else if (typeof param === "number") {
+      height = param;
+    }
+
     let block: Block | undefined;
 
     if (hash !== undefined) {
