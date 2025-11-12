@@ -30,7 +30,7 @@
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
     "@proto-kit/api": "*",
-    "o1js": "^1.6.0",
+    "o1js": "^2.10.0",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
