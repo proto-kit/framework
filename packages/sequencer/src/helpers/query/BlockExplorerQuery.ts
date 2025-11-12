@@ -9,8 +9,6 @@ export enum InclusionStatus {
   SETTLED = "settled",
 }
 
-export type TransactionFetcher = (txHash: string) => Promise<InclusionStatus>;
-
 @injectable()
 export class BlockExplorerQuery {
   public constructor(
@@ -44,7 +42,6 @@ export class BlockExplorerQuery {
 
     while (true) {
       const status = await this.blockExplorer.waitTxInclusion(txHash);
-      console.log("from transport: ", status);
       if (status === "INCLUDED") {
         return { transactionState: InclusionStatus.INCLUDED };
       }
@@ -54,7 +51,6 @@ export class BlockExplorerQuery {
       if (remainingAttempts <= 0) {
         return { transactionState: InclusionStatus.UNKNOWN };
       }
-      console.log("baybay");
       await sleep(interval);
     }
   }
