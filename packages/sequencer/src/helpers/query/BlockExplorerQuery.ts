@@ -15,8 +15,10 @@ export class BlockExplorerQuery {
 
   public async waitTxInclusion(
     txHash: string,
+    interval = 1000,
+    maxAttempts = 10,
   ): Promise<{ transactionState: InclusionStatus }> {
-    let remainingAttempts = 5;
+    let remainingAttempts = maxAttempts;
     
     while (true) {
       const status = await this.blockExplorer.waitTxInclusion(txHash);
@@ -31,7 +33,7 @@ export class BlockExplorerQuery {
         return { transactionState: InclusionStatus.UNKNOWN };
       }
       
-      await sleep(1000);
+      await sleep(interval);
     }
   }
 
