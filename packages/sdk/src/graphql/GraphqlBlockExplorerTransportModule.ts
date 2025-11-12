@@ -2,9 +2,10 @@ import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
 import {
   AppChainModule,
+  Block,
   BlockExplorerTransportModule,
+  InclusionStatus
 } from "@proto-kit/sequencer";
-import { InclusionStatus } from "@proto-kit/api";
 
 import { GraphqlClient } from "./GraphqlClient";
 
@@ -37,7 +38,7 @@ export class GraphqlBlockExplorerTransportModule
     return queryResult.data?.transactionState;
   }
 
-  async getBlock(param?: string | number): Promise<any> {
+  async getBlock(param?: string | number): Promise<Block> {
     let hash: string | undefined;
     let height: number | undefined;
 

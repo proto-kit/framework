@@ -10,7 +10,7 @@ import {
 } from "@proto-kit/library";
 import { Field, PrivateKey } from "o1js";
 import { sleep } from "@proto-kit/common";
-import { ManualBlockTrigger, Sequencer } from "@proto-kit/sequencer";
+import { ManualBlockTrigger, Sequencer, InclusionStatus } from "@proto-kit/sequencer";
 import {
   ClientAppChain,
   InMemorySigner,
@@ -20,7 +20,6 @@ import {
   GraphqlNetworkStateTransportModule,
   GraphqlBlockExplorerTransportModule,
 } from "@proto-kit/sdk";
-import { InclusionStatus } from "@proto-kit/api";
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 

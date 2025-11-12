@@ -4,9 +4,10 @@ import {
   Block,
   BlockExplorerTransportModule,
   BlockStorage,
+  ClientBlock,
   TransactionStorage,
+  InclusionStatus
 } from "@proto-kit/sequencer";
-import { BlockModel, InclusionStatus } from "@proto-kit/api";
 import { ModuleContainerLike } from "@proto-kit/common";
 
 @injectable()
@@ -40,7 +41,7 @@ export class InMemoryBlockExplorer
     return InclusionStatus.UNKNOWN;
   }
 
-  async getBlock(param?: string | number): Promise<BlockModel | undefined> {
+  async getBlock(param?: string | number): Promise<ClientBlock | undefined> {
     let hash: string | undefined;
     let height: number | undefined;
 
@@ -61,7 +62,7 @@ export class InMemoryBlockExplorer
     }
 
     if (block !== undefined) {
-      return BlockModel.fromServiceLayerModel(block);
+      return block;
     }
 
     return undefined;

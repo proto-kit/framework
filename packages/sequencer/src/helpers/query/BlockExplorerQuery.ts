@@ -1,8 +1,13 @@
 import { inject, injectable } from "tsyringe";
 import { sleep } from "@proto-kit/common";
-import { InclusionStatus } from "@proto-kit/api";
+import { BlockExplorerTransportModule, ClientBlock } from "./BlockExplorerTransportModule";
 
-import { BlockExplorerTransportModule } from "./BlockExplorerTransportModule";
+export enum InclusionStatus {
+  UNKNOWN = "unknown",
+  PENDING = "pending",
+  INCLUDED = "included",
+  SETTLED = "settled",
+}
 
 export type TransactionFetcher = (txHash: string) => Promise<InclusionStatus>;
 
@@ -49,7 +54,7 @@ export class BlockExplorerQuery {
       if (remainingAttempts <= 0) {
         return { transactionState: InclusionStatus.UNKNOWN };
       }
-
+      console.log("baybay");
       await sleep(interval);
     }
   }
@@ -68,7 +73,7 @@ export class BlockExplorerQuery {
    * // Get block by height
    * const block = await blockExplorer.getBlock(42);
    */
-  async getBlock(param?: string | number): Promise<any> {
+  async getBlock(param?: string | number): Promise<ClientBlock | undefined> {
     return await this.blockExplorer.getBlock(param);
   }
 }
