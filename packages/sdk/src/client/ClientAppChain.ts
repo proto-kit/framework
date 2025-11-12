@@ -44,7 +44,6 @@ import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
 import { GraphqlBlockExplorerTransportModule } from "../graphql/GraphqlBlockExplorerTransportModule";
 
-
 export type InferModules<Container extends TypedClass<ModuleContainer<any>>> =
   Container extends TypedClass<infer Type>
     ? Type extends ModuleContainer<infer Modules>
@@ -216,8 +215,11 @@ export class ClientAppChain<
       this.container.resolve<NetworkStateTransportModule>(
         "NetworkStateTransportModule"
       );
-    
-    const blockExplorerTransportModule = this.container.resolve<BlockExplorerTransportModule>("BlockExplorerTransportModule");
+
+    const blockExplorerTransportModule =
+      this.container.resolve<BlockExplorerTransportModule>(
+        "BlockExplorerTransportModule"
+      );
 
     const network = new NetworkStateQuery(networkStateTransportModule);
     const explorer = new BlockExplorerQuery(blockExplorerTransportModule);

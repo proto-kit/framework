@@ -12,15 +12,22 @@ import { ModuleContainerLike } from "@proto-kit/common";
 @injectable()
 export class InMemoryBlockExplorer
   extends AppChainModule
-  implements BlockExplorerTransportModule {
+  implements BlockExplorerTransportModule
+{
   private readonly blockStorage: BlockStorage;
+
   private readonly transactionStorage: TransactionStorage;
+
   public constructor(
-    @inject("Sequencer") public sequencer: ModuleContainerLike,
+    @inject("Sequencer") public sequencer: ModuleContainerLike
   ) {
     super();
-    this.blockStorage = sequencer.dependencyContainer.resolve<BlockStorage>("BlockStorage");
-    this.transactionStorage = sequencer.dependencyContainer.resolve<TransactionStorage>("TransactionStorage");
+    this.blockStorage =
+      sequencer.dependencyContainer.resolve<BlockStorage>("BlockStorage");
+    this.transactionStorage =
+      sequencer.dependencyContainer.resolve<TransactionStorage>(
+        "TransactionStorage"
+      );
   }
 
   public async waitTxInclusion(txHash: string): Promise<InclusionStatus> {

@@ -11,7 +11,8 @@ import { GraphqlClient } from "./GraphqlClient";
 @injectable()
 export class GraphqlBlockExplorerTransportModule
   extends AppChainModule
-  implements BlockExplorerTransportModule {
+  implements BlockExplorerTransportModule
+{
   public constructor(
     @inject("GraphqlClient") private readonly graphqlClient: GraphqlClient
   ) {

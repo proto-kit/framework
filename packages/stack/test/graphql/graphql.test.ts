@@ -159,12 +159,13 @@ describe("graphql client test", () => {
   it("should retrieve merkle witness", async () => {
     expect.assertions(2);
 
-    const witness = await appChain!.query.runtime.Balances.balances.merkleWitness(
-      new BalancesKey({
-        tokenId: TokenId.from(0),
-        address: pk.toPublicKey(),
-      })
-    );
+    const witness =
+      await appChain!.query.runtime.Balances.balances.merkleWitness(
+        new BalancesKey({
+          tokenId: TokenId.from(0),
+          address: pk.toPublicKey(),
+        })
+      );
 
     expect(witness).toBeDefined();
     // Check if this works, i.e. if it correctly parsed
@@ -174,33 +175,35 @@ describe("graphql client test", () => {
   });
 
   it("should wait for transaction inclusion", async () => {
-  expect.assertions(2);
+    expect.assertions(2);
 
-  const tx = await appChain.transaction(pk.toPublicKey(), async () => {
-    await appChain.runtime
-      .resolve("Balances")
-      .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
-  });
-  await tx.sign();
-  await tx.send();
+    const tx = await appChain.transaction(pk.toPublicKey(), async () => {
+      await appChain.runtime
+        .resolve("Balances")
+        .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
+    });
+    await tx.sign();
+    await tx.send();
 
-  const txHash = tx.transaction?.hash().toString()!;
+    const txHash = tx.transaction?.hash().toString()!;
 
-  const waitPromise = appChain.query.explorer.waitTxInclusion(txHash);
+    const waitPromise = appChain.query.explorer.waitTxInclusion(txHash);
 
-  let resolved = false;
-  waitPromise.then(() => { resolved = true; });
+    let resolved = false;
+    waitPromise.then(() => {
+      resolved = true;
+    });
 
-  // See that promise is not resolved since block is not triggered.
-  expect(resolved).toBe(false); 
+    // See that promise is not resolved since block is not trigger  ed.
+    expect(resolved).toBe(false);
 
-  // Produce block - this should trigger resolution
-  await trigger.produceBlock();
+    // Produce block - this should trigger resolution
+    await trigger.produceBlock();
 
-  // Now it should resolve
-  const postBlockQuery = await waitPromise;
-  expect(postBlockQuery.transactionState).toBe(InclusionStatus.INCLUDED);
-}, 20_000);
+    // Now it should resolve
+    const postBlockQuery = await waitPromise;
+    expect(postBlockQuery.transactionState).toBe(InclusionStatus.INCLUDED);
+  }, 20_000);
 
   it("should get block with block hash or block height", async () => {
     expect.assertions(1);
@@ -224,5 +227,4 @@ describe("graphql client test", () => {
     // Blocks should have same transactionsHash.
     expect(hashResult).toEqual(heightResult);
   }, 10_000);
-
 });
