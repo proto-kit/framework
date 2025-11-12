@@ -13,6 +13,24 @@ export class BlockExplorerQuery {
     @inject("BlockExplorerTransportModule") private readonly blockExplorer: BlockExplorerTransportModule
   ) {}
 
+
+  /**
+   * Waits for a transaction to be included in a block by polling at regular intervals.
+   * 
+   * @param txHash - Hash string of the transaction to search for
+   * @param interval - Polling interval in milliseconds (default: 1000)
+   * @param maxAttempts - Maximum number of polling attempts (default: 10)
+   * @returns Promise resolving to an object containing the transaction inclusion state
+   * 
+   * @example
+   * ```typescript
+   * // Wait with default settings (1s interval, 10 attempts)
+   * const result = await blockExplorer.waitTxInclusion(txHash);
+   * 
+   * // Wait with custom interval (500ms) and more attempts (20)
+   * const result = await blockExplorer.waitTxInclusion(txHash, 500, 20);
+   * ```
+   */
   public async waitTxInclusion(
     txHash: string,
     interval = 1000,
@@ -37,7 +55,21 @@ export class BlockExplorerQuery {
     }
   }
 
-  async getBlock(param?: string | number): Promise<any> {
-    return this.blockExplorer.getBlock(param);
-  }
+/**
+ * Retrieves a block by its hash or height.
+ * 
+ * @param {string|number} [param] - Block hash (string) or block height (number). If omitted, returns the latest block.
+ * @returns {Promise<BlockModel|undefined>} Promise resolving to a BlockModel object, or undefined if block is not found
+ * 
+ * @example
+ * // Get block by hash
+ * const block = await blockExplorer.getBlock("216543...");
+ * 
+ * @example
+ * // Get block by height
+ * const block = await blockExplorer.getBlock(42);
+ */
+async getBlock(param?: string | number): Promise<any> {
+  return this.blockExplorer.getBlock(param);
+}
 }
