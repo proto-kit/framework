@@ -70,6 +70,7 @@ export async function generateGqlDocsCommand(args: {
 
     const gqlUrl = `http://localhost:${port}/graphql`;
     await generateGqlDocs(gqlUrl);
+    await appChain.close();
   } else {
     console.log(`Using existing GraphQL endpoint: ${args.url}`);
     await generateGqlDocs(args.url);

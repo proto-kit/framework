@@ -22,7 +22,8 @@
   "license": "ISC",
   "dependencies": {
     "yargs": "17.7.2",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "spectaql": "3.0.5"
   },
   "peerDependencies": {
     "@proto-kit/api": "*",

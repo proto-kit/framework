@@ -3,7 +3,9 @@ import fs from "fs";
 import path from "path";
 import http from "http";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
 
+const require = createRequire(import.meta.url);
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 export async function isGraphQLEndpointUp(url: string): Promise<boolean> {
@@ -20,24 +22,42 @@ export async function waitForGraphQLEndpoint(
   url: string,
   retries = 8,
   intervalMs = 5000
-) {
+): Promise<void> {
   for (let i = 0; i < retries; i++) {
     // eslint-disable-next-line no-await-in-loop
     if (await isGraphQLEndpointUp(url)) return;
     // eslint-disable-next-line no-await-in-loop
-    await new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), intervalMs);
+    await new Promise((resolve) => {
+      setTimeout(resolve, intervalMs);
     });
   }
   throw new Error(`GraphQL endpoint did not start after ${retries} attempts.`);
 }
-async function runCommand(
-  command: string,
-  args: string[],
+function resolveSpectaqlBin(): string {
+  const searchPaths = [process.cwd(), dirname];
+
+  for (const base of searchPaths) {
+    try {
+      const pkgPath = require.resolve("spectaql/package.json", {
+        paths: [base],
+      });
+      const spectaqlDir = path.dirname(pkgPath);
+      const spectaqlBin = path.join(spectaqlDir, "bin", "spectaql.js");
+      if (fs.existsSync(spectaqlBin)) return spectaqlBin;
+    } catch (_) {
+      // continue
+    }
+  }
+  throw new Error("Unable to locate SpectaQL. Please install it first.");
+}
+
+async function runSpectaql(
+  binPath: string,
+  configPath: string,
   cwd = process.cwd()
 ): Promise<void> {
   return await new Promise((resolve, reject) => {
-    const proc = spawn(command, args, {
+    const proc = spawn("node", [binPath, configPath], {
       cwd,
       stdio: ["inherit", "pipe", "pipe"],
       shell: true,
@@ -49,7 +69,7 @@ async function runCommand(
     proc.on("exit", (code) =>
       code === 0
         ? resolve()
-        : reject(new Error(`${command} ${args.join(" ")} failed with ${code}`))
+        : reject(new Error(`SpectaQL process failed with exit code ${code}`))
     );
 
     proc.on("error", reject);
@@ -85,7 +105,8 @@ export async function generateGqlDocs(gqlUrl: string) {
   await waitForGraphQLEndpoint(gqlUrl, 8, 5000);
 
   console.log("Generating GraphQL docs...");
-  await runCommand("npx", ["spectaql", generatedPath]);
+  const spectaqlBin = resolveSpectaqlBin();
+  await runSpectaql(spectaqlBin, generatedPath);
   console.log("Docs generated successfully!");
   cleanUp(generatedPath);
 }
