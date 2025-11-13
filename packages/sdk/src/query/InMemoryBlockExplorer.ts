@@ -41,7 +41,7 @@ export class InMemoryBlockExplorer
     return InclusionStatus.UNKNOWN;
   }
 
-  async getBlock(param?: string | number): Promise<ClientBlock | undefined> {
+  async getBlock(param: {hash: string} | {height: number}): Promise<ClientBlock | undefined> {
     let hash: string | undefined;
     let height: number | undefined;
 

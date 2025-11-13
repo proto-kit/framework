@@ -25,5 +25,5 @@ export interface ClientBlock {
 
 export interface BlockExplorerTransportModule {
   waitTxInclusion(txHash: string): Promise<string>;
-  getBlock(param?: string | number): Promise<ClientBlock | undefined>;
+  getBlock(param: {hash: string} | {height: number}): Promise<ClientBlock | undefined>;
 }

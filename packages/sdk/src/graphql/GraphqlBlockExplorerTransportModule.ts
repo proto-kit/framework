@@ -62,7 +62,7 @@ export class GraphqlBlockExplorerTransportModule
     return queryResult.data?.transactionState;
   }
 
-  async getBlock(param?: string | number): Promise<ClientBlock | undefined> {
+  async getBlock(param: {hash: string} | {height: number}): Promise<ClientBlock | undefined> {
     let hash: string | undefined;
     let height: number | undefined;
 

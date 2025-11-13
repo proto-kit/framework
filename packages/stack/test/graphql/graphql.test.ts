@@ -220,8 +220,8 @@ describe("graphql client test", () => {
     const hash = block?.hash.toString()!;
     const height = Number(block?.height.toBigInt());
 
-    const hashResult = await appChain.query.explorer.getBlock(hash);
-    const heightResult = await appChain.query.explorer.getBlock(height);
+    const hashResult = await appChain.query.explorer.getBlock({hash: hash});
+    const heightResult = await appChain.query.explorer.getBlock({height: height});
 
     // Original block and queried block should have same hash.
     expect(block?.hash.toString()).toBe(heightResult?.hash.toString());

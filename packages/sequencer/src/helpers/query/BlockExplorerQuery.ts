@@ -69,7 +69,7 @@ export class BlockExplorerQuery {
    * // Get block by height
    * const block = await blockExplorer.getBlock(42);
    */
-  async getBlock(param?: string | number): Promise<ClientBlock | undefined> {
+  async getBlock(param: {hash: string} | {height: number}): Promise<ClientBlock | undefined> {
     return await this.blockExplorer.getBlock(param);
   }
 }
