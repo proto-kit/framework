@@ -1,6 +1,10 @@
 import { inject, injectable } from "tsyringe";
 import { sleep } from "@proto-kit/common";
-import { BlockExplorerTransportModule, ClientBlock } from "./BlockExplorerTransportModule";
+
+import {
+  BlockExplorerTransportModule,
+  ClientBlock,
+} from "./BlockExplorerTransportModule";
 
 export enum InclusionStatus {
   UNKNOWN = "unknown",
@@ -41,6 +45,7 @@ export class BlockExplorerQuery {
     let remainingAttempts = maxAttempts;
 
     while (true) {
+      // eslint-disable-next-line no-await-in-loop
       const status = await this.blockExplorer.fetchTxInclusion(txHash);
       if (status === "INCLUDED") {
         return { transactionState: InclusionStatus.INCLUDED };
@@ -51,6 +56,7 @@ export class BlockExplorerQuery {
       if (remainingAttempts <= 0) {
         return { transactionState: InclusionStatus.UNKNOWN };
       }
+      // eslint-disable-next-line no-await-in-loop
       await sleep(interval);
     }
   }
@@ -69,7 +75,9 @@ export class BlockExplorerQuery {
    * // Get block by height
    * const block = await blockExplorer.getBlock(42);
    */
-  async getBlock(param: {hash: string} | {height: number}): Promise<ClientBlock | undefined> {
+  async getBlock(
+    param: { hash: string } | { height: number }
+  ): Promise<ClientBlock | undefined> {
     return await this.blockExplorer.getBlock(param);
   }
 }

@@ -4,11 +4,11 @@ import {
   AppChainModule,
   BlockExplorerTransportModule,
   ClientBlock,
-  InclusionStatus
+  InclusionStatus,
 } from "@proto-kit/sequencer";
+import { Bool, Field } from "o1js";
 
 import { GraphqlClient } from "./GraphqlClient";
-import { Bool, Field } from "o1js";
 
 @injectable()
 export class GraphqlBlockExplorerTransportModule
@@ -43,7 +43,6 @@ export class GraphqlBlockExplorerTransportModule
     };
   }
 
-
   public async fetchTxInclusion(txHash: string): Promise<InclusionStatus> {
     const query = gql`
       query transactionState($hash: String!) {
@@ -62,7 +61,9 @@ export class GraphqlBlockExplorerTransportModule
     return queryResult.data?.transactionState;
   }
 
-  async getBlock(param: {hash: string} | {height: number}): Promise<ClientBlock | undefined> {
+  async getBlock(
+    param: { hash: string } | { height: number }
+  ): Promise<ClientBlock | undefined> {
     let hash: string | undefined;
     let height: number | undefined;
 

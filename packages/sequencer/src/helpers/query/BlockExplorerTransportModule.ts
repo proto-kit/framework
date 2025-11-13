@@ -1,4 +1,5 @@
 import { Bool, Field } from "o1js";
+
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 
 /**
@@ -25,5 +26,7 @@ export interface ClientBlock {
 
 export interface BlockExplorerTransportModule {
   fetchTxInclusion(txHash: string): Promise<string>;
-  getBlock(param: {hash: string} | {height: number}): Promise<ClientBlock | undefined>;
+  getBlock(
+    param: { hash: string } | { height: number }
+  ): Promise<ClientBlock | undefined>;
 }

@@ -6,7 +6,7 @@ import {
   BlockStorage,
   ClientBlock,
   TransactionStorage,
-  InclusionStatus
+  InclusionStatus,
 } from "@proto-kit/sequencer";
 import { ModuleContainerLike } from "@proto-kit/common";
 
@@ -41,7 +41,9 @@ export class InMemoryBlockExplorer
     return InclusionStatus.UNKNOWN;
   }
 
-  async getBlock(param: {hash: string} | {height: number}): Promise<ClientBlock | undefined> {
+  async getBlock(
+    param: { hash: string } | { height: number }
+  ): Promise<ClientBlock | undefined> {
     let hash: string | undefined;
     let height: number | undefined;
 
