@@ -2,12 +2,13 @@ import { inject, injectable } from "tsyringe";
 import { gql } from "@urql/core";
 import {
   AppChainModule,
-  Block,
   BlockExplorerTransportModule,
+  ClientBlock,
   InclusionStatus
 } from "@proto-kit/sequencer";
 
 import { GraphqlClient } from "./GraphqlClient";
+import { Bool, Field } from "o1js";
 
 @injectable()
 export class GraphqlBlockExplorerTransportModule
@@ -19,6 +20,29 @@ export class GraphqlBlockExplorerTransportModule
   ) {
     super();
   }
+
+  private parseClientBlock(data: any): ClientBlock | undefined {
+    const blockData = data.block;
+
+    if (!blockData) {
+      return undefined;
+    }
+
+    return {
+      hash: Field(blockData.hash),
+      previousBlockHash: blockData.previousBlockHash
+        ? Field(blockData.previousBlockHash)
+        : undefined,
+      height: Field(blockData.height),
+      transactions: blockData.txs.map((tx: any) => ({
+        tx: tx.tx, // This is simplified tx data from GraphQL
+        status: Bool(tx.status),
+        statusMessage: tx.statusMessage,
+      })),
+      transactionsHash: Field(blockData.transactionsHash),
+    };
+  }
+
 
   public async waitTxInclusion(txHash: string): Promise<InclusionStatus> {
     const query = gql`
@@ -38,7 +62,7 @@ export class GraphqlBlockExplorerTransportModule
     return queryResult.data?.transactionState;
   }
 
-  async getBlock(param?: string | number): Promise<Block> {
+  async getBlock(param?: string | number): Promise<ClientBlock | undefined> {
     let hash: string | undefined;
     let height: number | undefined;
 
@@ -78,6 +102,6 @@ export class GraphqlBlockExplorerTransportModule
       throw new Error("Error fetching block!");
     }
 
-    return queryResult.data;
+    return this.parseClientBlock(queryResult.data);
   }
 }
