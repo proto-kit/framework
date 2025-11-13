@@ -205,7 +205,7 @@ describe("graphql client test", () => {
   }, 20_000);
 
   it("should get block with block hash or block height", async () => {
-    expect.assertions(1);
+    expect.assertions(2);
 
     const tx = await appChain.transaction(pk.toPublicKey(), async () => {
       await appChain.runtime
@@ -222,6 +222,9 @@ describe("graphql client test", () => {
 
     const hashResult = await appChain.query.explorer.getBlock(hash);
     const heightResult = await appChain.query.explorer.getBlock(height);
+
+    // Original block and queried block should have same hash.
+    expect(block?.hash.toString()).toBe(heightResult?.hash.toString());
 
     // Blocks should have same transactionsHash.
     expect(hashResult).toEqual(heightResult);
