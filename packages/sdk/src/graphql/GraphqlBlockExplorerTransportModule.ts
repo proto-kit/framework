@@ -99,7 +99,7 @@ export class GraphqlBlockExplorerTransportModule
       .toPromise();
 
     if (queryResult.error) {
-      throw new Error("Error fetching block!");
+      throw new Error(`Error fetching block!: ${queryResult.error}`);
     }
 
     return this.parseClientBlock(queryResult.data);
