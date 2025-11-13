@@ -44,7 +44,7 @@ export class GraphqlBlockExplorerTransportModule
   }
 
 
-  public async waitTxInclusion(txHash: string): Promise<InclusionStatus> {
+  public async fetchTxInclusion(txHash: string): Promise<InclusionStatus> {
     const query = gql`
       query transactionState($hash: String!) {
         transactionState(hash: $hash)
@@ -56,7 +56,7 @@ export class GraphqlBlockExplorerTransportModule
       .toPromise();
 
     if (queryResult.error) {
-      throw new Error(`Error in waitTxInclusion query: ${queryResult.error}`);
+      throw new Error(`Error in fetchTxInclusion query: ${queryResult.error}`);
     }
 
     return queryResult.data?.transactionState;

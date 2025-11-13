@@ -186,7 +186,7 @@ describe("graphql client test", () => {
 
     const txHash = tx.transaction?.hash().toString()!;
 
-    const waitPromise = appChain.query.explorer.waitTxInclusion(txHash);
+    const waitPromise = appChain.query.explorer.fetchTxInclusion(txHash);
 
     let resolved = false;
     waitPromise.then(() => {

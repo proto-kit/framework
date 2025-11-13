@@ -31,7 +31,7 @@ export class InMemoryBlockExplorer
       );
   }
 
-  public async waitTxInclusion(txHash: string): Promise<InclusionStatus> {
+  public async fetchTxInclusion(txHash: string): Promise<InclusionStatus> {
     const dbTx = await this.transactionStorage.findTransaction(txHash);
 
     if (dbTx?.block !== undefined) {

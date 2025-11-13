@@ -27,13 +27,13 @@ export class BlockExplorerQuery {
    * @example
    * ```typescript
    * // Wait with default settings (1s interval, 10 attempts)
-   * const result = await blockExplorer.waitTxInclusion(txHash);
+   * const result = await blockExplorer.fetchTxInclusion(txHash);
    *
    * // Wait with custom interval (500ms) and more attempts (20)
-   * const result = await blockExplorer.waitTxInclusion(txHash, 500, 20);
+   * const result = await blockExplorer.fetchTxInclusion(txHash, 500, 20);
    * ```
    */
-  public async waitTxInclusion(
+  public async fetchTxInclusion(
     txHash: string,
     interval = 1000,
     maxAttempts = 10
@@ -41,7 +41,7 @@ export class BlockExplorerQuery {
     let remainingAttempts = maxAttempts;
 
     while (true) {
-      const status = await this.blockExplorer.waitTxInclusion(txHash);
+      const status = await this.blockExplorer.fetchTxInclusion(txHash);
       if (status === "INCLUDED") {
         return { transactionState: InclusionStatus.INCLUDED };
       }
