@@ -166,6 +166,7 @@ describe.skip("IndexerNotifier", () => {
       addTask: addTaskSpy,
       onCompleted: jest.fn(async () => 5),
       close: jest.fn(async () => {}),
+      drain: jest.fn(async () => {}),
     };
   });
 

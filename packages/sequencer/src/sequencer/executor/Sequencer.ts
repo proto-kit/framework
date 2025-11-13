@@ -23,6 +23,7 @@ import { SequencerModule } from "../builder/SequencerModule";
 import { Closeable } from "../builder/Closeable";
 import { ConsoleTracingFactory } from "../../logging/ConsoleTracingFactory";
 import { StartableModule } from "../builder/StartableModule";
+import { TaskQueue } from "../../worker/queue/TaskQueue";
 
 import { Sequenceable } from "./Sequenceable";
 
@@ -88,6 +89,12 @@ export class Sequencer<Modules extends SequencerModulesRecord>
     // We iterate through the methods three times:
 
     this.useDependencyFactory(MethodIdFactory);
+
+    // Drain all task queues to clear stale tasks from previous sequencer instances
+    if (this.container.isRegistered("TaskQueue")) {
+      const taskQueue = this.container.resolve<TaskQueue>("TaskQueue");
+      await taskQueue.drainAllQueues();
+    }
 
     // Log startup info
     const moduleClassNames = Object.values(this.definition).map(

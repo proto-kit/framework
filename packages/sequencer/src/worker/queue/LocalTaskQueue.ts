@@ -68,6 +68,10 @@ class InMemoryInstantiatedQueue implements InstantiatedQueue {
   async close() {
     noop();
   }
+
+  async drain() {
+    this.taskQueue.queuedTasks[this.name] = [];
+  }
 }
 
 @sequencerModule()

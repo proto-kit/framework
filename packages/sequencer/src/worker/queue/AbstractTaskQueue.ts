@@ -22,4 +22,10 @@ export abstract class AbstractTaskQueue<
       Object.values(this.queues).map(async (queue) => await queue.close())
     );
   }
+
+  public async drainAllQueues(): Promise<void> {
+    await Promise.all(
+      Object.values(this.queues).map(async (queue) => await queue.drain())
+    );
+  }
 }
