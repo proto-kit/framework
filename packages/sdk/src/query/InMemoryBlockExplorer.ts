@@ -17,6 +17,7 @@ export class InMemoryBlockExplorer
   implements BlockExplorerTransportModule
 {
   private readonly blockStorage: BlockStorage;
+
   private readonly transactionStorage: TransactionStorage;
 
   public constructor(
@@ -55,35 +56,38 @@ export class InMemoryBlockExplorer
       }
     }
 
-    if (block !== undefined) {
-      // Convert block.transactions to ClientTransaction format
-      const clientTransactions: ClientTransaction[] = block.transactions.map(txResult => ({
+    if (block === undefined) {
+      return undefined;
+    }
+
+    // Convert block.transactions to ClientTransaction format
+    const clientTransactions: ClientTransaction[] = block.transactions.map(
+      (txResult) => ({
         tx: {
           hash: txResult.tx.hash().toString(),
           methodId: txResult.tx.methodId.toString(),
           nonce: txResult.tx.nonce.toString(),
           sender: txResult.tx.sender.toBase58(),
-          argsFields: txResult.tx.argsFields.map(f => f.toString()),
+          argsFields: txResult.tx.argsFields.map((f) => f.toString()),
           auxiliaryData: txResult.tx.auxiliaryData || [],
           signature: {
             r: txResult.tx.signature.r.toString(),
-            s: txResult.tx.signature.s.toString()
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
+            s: txResult.tx.signature.s.toString(),
           },
-          isMessage: txResult.tx.isMessage || false
+          isMessage: txResult.tx.isMessage || false,
         },
         status: txResult.status.toBoolean(),
-        statusMessage: txResult.statusMessage
-      }));
+        statusMessage: txResult.statusMessage,
+      })
+    );
 
-      return {
-        hash: block.hash,
-        previousBlockHash: block.previousBlockHash,
-        height: block.height,
-        transactions: JSON.stringify(clientTransactions),
-        transactionsHash: block.transactionsHash
-      };
-    }
-
-    return undefined;
+    return {
+      hash: block.hash,
+      previousBlockHash: block.previousBlockHash,
+      height: block.height,
+      transactions: clientTransactions,
+      transactionsHash: block.transactionsHash,
+    };
   }
 }

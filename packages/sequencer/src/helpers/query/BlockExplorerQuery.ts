@@ -44,7 +44,7 @@ export class BlockExplorerQuery {
   ): Promise<{ transactionState: InclusionStatus }> {
     let remainingAttempts = maxAttempts;
 
-    while (true) {
+    while (remainingAttempts > 0) {
       // eslint-disable-next-line no-await-in-loop
       const status = await this.blockExplorer.fetchTxInclusion(txHash);
       if (status === "INCLUDED") {
@@ -52,20 +52,24 @@ export class BlockExplorerQuery {
       }
 
       remainingAttempts -= 1;
-
       if (remainingAttempts <= 0) {
         return { transactionState: InclusionStatus.UNKNOWN };
       }
+
       // eslint-disable-next-line no-await-in-loop
       await sleep(interval);
     }
+
+    return { transactionState: InclusionStatus.UNKNOWN };
   }
 
   /**
    * Retrieves a block by its hash or height.
    *
-   * @param {string|number} [param] - Block hash (string) or block height (number). If omitted, returns the latest block.
-   * @returns {Promise<BlockModel|undefined>} Promise resolving to a BlockModel object, or undefined if block is not found
+   * @param {string|number} [param] - Block hash (string) or height (number).
+   * If omitted, returns the latest block.
+   * @returns {Promise<ClientBlock | undefined>} Promise resolving to a
+   * ClientBlock object, or undefined if block is not found
    *
    * @example
    * // Get block by hash
@@ -75,11 +79,12 @@ export class BlockExplorerQuery {
    * // Get block by height
    * const block = await blockExplorer.getBlock(42);
    */
+
   async getBlock(
     param: { hash: string } | { height: number }
   ): Promise<ClientBlock | undefined> {
     const block = await this.blockExplorer.getBlock(param);
-    if(block){
+    if (block) {
       return block;
     }
     return undefined;

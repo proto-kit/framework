@@ -22,7 +22,7 @@ export interface ClientBlock {
   hash: Field;
   previousBlockHash: Field | undefined;
   height: Field;
-  transactions: string; // This is the stringified version of ClientTransaction[].
+  transactions: ClientTransaction[];
   transactionsHash: Field;
 }
 
