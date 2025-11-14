@@ -14,7 +14,6 @@ import {
   ManualBlockTrigger,
   Sequencer,
   InclusionStatus,
-  ClientTransaction,
 } from "@proto-kit/sequencer";
 import {
   ClientAppChain,
@@ -230,8 +229,7 @@ describe("graphql client test", () => {
       height: height,
     });
 
-    const heightParsedTx = heightResult?.transactions!
-    
+    const heightParsedTx = heightResult?.transactions!;
 
     const blockTxHash = block?.transactions[0].tx.toJSON().hash;
 

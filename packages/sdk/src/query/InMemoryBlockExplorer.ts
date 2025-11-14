@@ -69,13 +69,13 @@ export class InMemoryBlockExplorer
           nonce: txResult.tx.nonce.toString(),
           sender: txResult.tx.sender.toBase58(),
           argsFields: txResult.tx.argsFields.map((f) => f.toString()),
-          auxiliaryData: txResult.tx.auxiliaryData || [],
+          auxiliaryData: txResult.tx.auxiliaryData,
           signature: {
             r: txResult.tx.signature.r.toString(),
             // eslint-disable-next-line @typescript-eslint/no-base-to-string
             s: txResult.tx.signature.s.toString(),
           },
-          isMessage: txResult.tx.isMessage || false,
+          isMessage: txResult.tx.isMessage,
         },
         status: txResult.status.toBoolean(),
         statusMessage: txResult.statusMessage,

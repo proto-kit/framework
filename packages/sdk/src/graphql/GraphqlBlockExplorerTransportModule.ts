@@ -4,11 +4,22 @@ import {
   AppChainModule,
   BlockExplorerTransportModule,
   ClientBlock,
+  ClientTransaction,
   InclusionStatus,
 } from "@proto-kit/sequencer";
 import { Field } from "o1js";
-import {BlockModel} from "@proto-kit/api";
+
 import { GraphqlClient } from "./GraphqlClient";
+
+interface BlockQueryResponse {
+  block: {
+    hash: string;
+    previousBlockHash: string;
+    height: number;
+    transactionsHash: string;
+    txs: ClientTransaction[];
+  };
+}
 
 @injectable()
 export class GraphqlBlockExplorerTransportModule
@@ -80,27 +91,30 @@ export class GraphqlBlockExplorerTransportModule
     `;
 
     const queryResult = await this.graphqlClient.client
-      .query(query, { hash, height })
+      .query<BlockQueryResponse>(query, { hash, height })
       .toPromise();
 
     if (queryResult.error) {
       throw new Error(`Error fetching block: ${queryResult.error}`);
     }
 
-    if (!queryResult.data?.block) {
+    if (queryResult.data == null || queryResult.data.block == null) {
       return undefined;
     }
 
-    const block: BlockModel = queryResult.data?.block ;
+    const blockData = queryResult.data.block;
+
+    const previousBlockHash =
+      blockData.previousBlockHash != null && blockData.previousBlockHash !== ""
+        ? Field(blockData.previousBlockHash)
+        : undefined;
 
     return {
-      hash: Field.from(block.hash),
-      height: Field(block.height),
-      previousBlockHash: block.previousBlockHash
-        ? Field(block.previousBlockHash)
-        : undefined,
-      transactionsHash: Field(block.transactionsHash),
-      transactions: JSON.stringify(block.txs),
+      hash: Field(blockData.hash),
+      height: Field(blockData.height),
+      previousBlockHash,
+      transactionsHash: Field(blockData.transactionsHash),
+      transactions: blockData.txs,
     };
   }
 }
