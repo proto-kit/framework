@@ -6,8 +6,9 @@ import {
   ClientBlock,
   InclusionStatus,
 } from "@proto-kit/sequencer";
-import { GraphqlClient } from "./GraphqlClient";
 import { Field } from "o1js";
+import {BlockModel} from "@proto-kit/api";
+import { GraphqlClient } from "./GraphqlClient";
 
 @injectable()
 export class GraphqlBlockExplorerTransportModule
@@ -90,16 +91,16 @@ export class GraphqlBlockExplorerTransportModule
       return undefined;
     }
 
-    const block = queryResult.data.block;
-    
+    const block: BlockModel = queryResult.data?.block ;
+
     return {
       hash: Field.from(block.hash),
       height: Field(block.height),
-      previousBlockHash: block.previousBlockHash 
-        ? Field(block.previousBlockHash) 
+      previousBlockHash: block.previousBlockHash
+        ? Field(block.previousBlockHash)
         : undefined,
       transactionsHash: Field(block.transactionsHash),
-      transactions: JSON.stringify(block.txs)
+      transactions: JSON.stringify(block.txs),
     };
   }
 }
