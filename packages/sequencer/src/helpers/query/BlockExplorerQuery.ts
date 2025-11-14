@@ -78,6 +78,10 @@ export class BlockExplorerQuery {
   async getBlock(
     param: { hash: string } | { height: number }
   ): Promise<ClientBlock | undefined> {
-    return await this.blockExplorer.getBlock(param);
+    const block = await this.blockExplorer.getBlock(param);
+    if(block){
+      return block;
+    }
+    return undefined;
   }
 }
