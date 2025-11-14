@@ -109,7 +109,7 @@ describe("fee errors due to limited funds in sender accounts", () => {
     await appChain.produceBlock();
 
     expect(logSpy).toHaveBeenCalledWith(
-      "Error in inclusion of tx, skipping: Protocol hooks not executable: From balance is insufficient"
+      "Error in inclusion of tx, removing as to removeWhen hooks: Protocol hooks not executable: From balance is insufficient"
     );
 
     const balance = await appChain.query.runtime.Balances.balances.get(
