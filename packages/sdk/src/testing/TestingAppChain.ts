@@ -20,6 +20,7 @@ import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSen
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
 import { ClientAppChain } from "../client/ClientAppChain";
+import { InMemoryBlockExplorer } from "../query/InMemoryBlockExplorer";
 
 // ensures we can override vanilla runtime modules type safely
 // Partial<VanillaRuntimeModulesRecord> did not work (idk why)
@@ -47,6 +48,7 @@ export class TestingAppChain<
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,
       NetworkStateTransportModule: BlockStorageNetworkStateModule,
+      BlockExplorerTransportModule: InMemoryBlockExplorer,
     });
 
     appChain.configurePartial({
@@ -84,6 +86,7 @@ export class TestingAppChain<
       TransactionSender: {},
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
+      BlockExplorerTransportModule: {},
     });
 
     return appChain;

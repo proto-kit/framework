@@ -10,6 +10,7 @@ import {
 import { inject } from "tsyringe";
 import { IsNumberString } from "class-validator";
 import {
+  InclusionStatus,
   Mempool,
   PendingTransaction,
   TransactionStorage,
@@ -104,13 +105,6 @@ export class TransactionObject {
     this.auxiliaryData = auxiliaryData;
     this.isMessage = isMessage;
   }
-}
-
-export enum InclusionStatus {
-  UNKNOWN = "unknown",
-  PENDING = "pending",
-  INCLUDED = "included",
-  SETTLED = "settled",
 }
 
 registerEnumType(InclusionStatus, {

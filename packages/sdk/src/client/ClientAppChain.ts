@@ -29,6 +29,8 @@ import {
   AppChain,
   AppChainModule,
   MinimalAppChainDefinition,
+  BlockExplorerQuery,
+  BlockExplorerTransportModule,
 } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 import { Field, PublicKey, UInt64 } from "o1js";
@@ -200,6 +202,7 @@ export class ClientAppChain<
       InferModules<AppChainModules["Protocol"]>
     >;
     network: NetworkStateQuery;
+    explorer: BlockExplorerQuery;
   } {
     const queryTransportModule = this.container.resolve<QueryTransportModule>(
       "QueryTransportModule"
@@ -210,7 +213,13 @@ export class ClientAppChain<
         "NetworkStateTransportModule"
       );
 
+    const blockExplorerTransportModule =
+      this.container.resolve<BlockExplorerTransportModule>(
+        "BlockExplorerTransportModule"
+      );
+
     const network = new NetworkStateQuery(networkStateTransportModule);
+    const explorer = new BlockExplorerQuery(blockExplorerTransportModule);
 
     return {
       runtime: QueryBuilderFactory.fromRuntime(
@@ -224,6 +233,8 @@ export class ClientAppChain<
       ),
 
       network,
+
+      explorer,
     };
   }
 }

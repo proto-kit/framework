@@ -1,5 +1,6 @@
 export * from "./query/StateServiceQueryModule";
 export * from "./query/BlockStorageNetworkStateModule";
+export * from "./query/InMemoryBlockExplorer";
 export * from "./transaction/AppChainTransaction";
 export * from "./transaction/InMemorySigner";
 export * from "./transaction/InMemoryTransactionSender";
@@ -8,5 +9,6 @@ export * from "./graphql/GraphqlClient";
 export * from "./graphql/GraphqlQueryTransportModule";
 export * from "./graphql/GraphqlTransactionSender";
 export * from "./graphql/GraphqlNetworkStateTransportModule";
+export * from "./graphql/GraphqlBlockExplorerTransportModule";
 export * from "./client/ClientAppChain";
 export * from "./testing/TestingAppChain";

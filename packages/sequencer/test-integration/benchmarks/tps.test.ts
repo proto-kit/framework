@@ -5,6 +5,7 @@ import {
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
+  InMemoryBlockExplorer,
 } from "@proto-kit/sdk";
 import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
 import { Protocol, state, State } from "@proto-kit/protocol";
@@ -74,6 +75,7 @@ export async function createAppChain() {
     TransactionSender: InMemoryTransactionSender,
     QueryTransportModule: StateServiceQueryModule,
     NetworkStateTransportModule: BlockStorageNetworkStateModule,
+    BlockExplorerTransportModule: InMemoryBlockExplorer,
   });
 
   appChain.configure({
@@ -112,6 +114,7 @@ export async function createAppChain() {
     QueryTransportModule: {},
     TransactionSender: {},
     NetworkStateTransportModule: {},
+    BlockExplorerTransportModule: {},
   });
 
   await appChain.start(false, container.createChildContainer());

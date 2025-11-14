@@ -17,6 +17,7 @@ import {
   AppChainTransaction,
   BlockStorageNetworkStateModule,
   ClientAppChain,
+  InMemoryBlockExplorer,
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
@@ -117,6 +118,7 @@ export function createPrismaAppchain(
     TransactionSender: InMemoryTransactionSender,
     QueryTransportModule: StateServiceQueryModule,
     NetworkStateTransportModule: BlockStorageNetworkStateModule,
+    BlockExplorerTransportModule: InMemoryBlockExplorer,
   });
 
   appChain.configurePartial({
@@ -157,6 +159,7 @@ export function createPrismaAppchain(
     TransactionSender: {},
     QueryTransportModule: {},
     NetworkStateTransportModule: {},
+    BlockExplorerTransportModule: {},
   });
 
   return appChain;
