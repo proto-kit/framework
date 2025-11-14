@@ -14,6 +14,7 @@ import {
   ManualBlockTrigger,
   Sequencer,
   InclusionStatus,
+  ClientTransaction,
 } from "@proto-kit/sequencer";
 import {
   ClientAppChain,
@@ -28,6 +29,7 @@ import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 
 import { startGraphqlServer, TestBalances } from "./graphql-server";
+
 
 const pk = PrivateKey.random();
 
@@ -197,7 +199,7 @@ describe("graphql client test", () => {
       resolved = true;
     });
 
-    // See that promise is not resolved since block is not trigger  ed.
+    // See that promise is not resolved since block is not triggered.
     expect(resolved).toBe(false);
 
     // Produce block - this should trigger resolution
@@ -208,31 +210,54 @@ describe("graphql client test", () => {
     expect(postBlockQuery.transactionState).toBe(InclusionStatus.INCLUDED);
   }, 20_000);
 
-  it("should get block with block hash or block height", async () => {
-    expect.assertions(2);
+it("should get block with block hash or block height", async () => {
+  expect.assertions(6);
 
-    const tx = await appChain.transaction(pk.toPublicKey(), async () => {
-      await appChain.runtime
-        .resolve("Balances")
-        .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
-    });
+  const tx = await appChain.transaction(pk.toPublicKey(), async () => {
+    await appChain.runtime
+      .resolve("Balances")
+      .addBalance(tokenId, pk.toPublicKey(), UInt64.from(1000));
+  });
 
-    await tx.sign();
-    await tx.send();
+  await tx.sign();
+  await tx.send();
 
-    const block = await trigger.produceBlock();
-    const hash = block?.hash.toString()!;
-    const height = Number(block?.height.toBigInt());
+  const block = await trigger.produceBlock();
+  const hash = block?.hash.toString()!;
+  const height = Number(block?.height.toBigInt());
 
-    const hashResult = await appChain.query.explorer.getBlock({ hash: hash });
-    const heightResult = await appChain.query.explorer.getBlock({
-      height: height,
-    });
+  const hashResult = await appChain.query.explorer.getBlock({ hash: hash });
+  const heightResult = await appChain.query.explorer.getBlock({ height: height });
 
-    // Original block and queried block should have same hash.
-    expect(block?.hash.toString()).toBe(heightResult?.hash.toString());
+  console.log(block);
+  console.log(hashResult);
 
-    // Blocks should have same transactionsHash.
-    expect(hashResult).toEqual(heightResult);
-  }, 10_000);
+  const heightParsedTx = JSON.parse(heightResult?.transactions!) as ClientTransaction [];
+  
+  const blockTxHash = block?.transactions[0].tx.toJSON().hash;
+  
+  const queryTxHash = heightParsedTx[0]?.tx?.hash;
+
+  // Transaction hashes should match
+  expect(blockTxHash).toBe(queryTxHash);
+
+  // Block hashes should match
+  expect(block?.hash.toBigInt()).toBe(heightResult?.hash.toBigInt());
+  
+  // Block heights should match
+  expect(block?.height.toBigInt()).toBe(heightResult?.height.toBigInt());
+  
+  // Previous block hashes should match
+  expect(block?.previousBlockHash?.toBigInt()).toBe(
+    heightResult?.previousBlockHash?.toBigInt()
+  );
+  
+  // Transaction hashes should match
+  expect(block?.transactionsHash.toBigInt()).toBe(
+    heightResult?.transactionsHash.toBigInt()
+  );
+  
+  // Both query methods should return the same result
+  expect(hashResult).toEqual(heightResult);
+}, 10_000);
 });
