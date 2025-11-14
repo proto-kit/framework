@@ -8,12 +8,12 @@ import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 import { BlockModel, BlockResolver } from "./BlockResolver";
 
 @ObjectType()
-export class ComputedBlockModel {
+export class BatchModel {
   public static fromServiceLayerModel(
     { blockHashes, proof }: Batch,
     blocks: (BlockModel | undefined)[]
-  ): ComputedBlockModel {
-    return new ComputedBlockModel(
+  ): BatchModel {
+    return new BatchModel(
       blockHashes.map(
         (blockHash) => blocks.find((block) => block?.hash === blockHash)!
       ),
@@ -43,7 +43,7 @@ export class BatchStorageResolver extends GraphqlModule {
     super();
   }
 
-  @Query(() => ComputedBlockModel, {
+  @Query(() => BatchModel, {
     nullable: true,
     description:
       "Returns previously computed batches of blocks used for settlement",
@@ -67,7 +67,7 @@ export class BatchStorageResolver extends GraphqlModule {
           this.blockResolver.block(undefined, blockHash)
         )
       );
-      return ComputedBlockModel.fromServiceLayerModel(batch, blocks);
+      return BatchModel.fromServiceLayerModel(batch, blocks);
     }
     return undefined;
   }
