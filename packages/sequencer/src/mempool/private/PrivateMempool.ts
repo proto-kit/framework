@@ -110,8 +110,14 @@ export class PrivateMempool
     return result?.result.afterNetworkState;
   }
 
+  public async removeTxs(included: string[], dropped: string[]) {
+    await this.transactionStorage.removeTx(included, "included");
+    await this.transactionStorage.removeTx(dropped, "dropped");
+  }
+
   @trace("mempool.get_txs")
   public async getTxs(limit?: number): Promise<PendingTransaction[]> {
+    // TODO Add limit to the storage (or do something smarter entirely)
     const txs = await this.transactionStorage.getPendingUserTransactions();
 
     const baseCachedStateService = new CachedStateService(this.stateService);
@@ -119,7 +125,7 @@ export class PrivateMempool
     const networkState =
       (await this.getStagedNetworkState()) ?? NetworkState.empty();
 
-    const validationEnabled = this.config.validationEnabled ?? true;
+    const validationEnabled = this.config.validationEnabled ?? false;
     const sortedTxs = validationEnabled
       ? await this.checkTxValid(
           txs,
@@ -128,7 +134,7 @@ export class PrivateMempool
           networkState,
           limit
         )
-      : txs;
+      : txs.slice(0, limit);
 
     this.protocol.stateServiceProvider.popCurrentStateService();
     return sortedTxs;
@@ -188,6 +194,7 @@ export class PrivateMempool
       executionContext.setup(contextInputs);
 
       const signedTransaction = tx.toProtocolTransaction();
+
       // eslint-disable-next-line no-await-in-loop
       await this.accountStateHook.beforeTransaction({
         networkState: networkState,
@@ -218,6 +225,26 @@ export class PrivateMempool
           queue = queue.filter(distinctByPredicate((a, b) => a === b));
         }
       } else {
+        // eslint-disable-next-line no-await-in-loop
+        const removeTxWhen = await this.accountStateHook.removeTransactionWhen({
+          networkState: networkState,
+          transaction: signedTransaction.transaction,
+          signature: signedTransaction.signature,
+          prover: proverState,
+        });
+        if (removeTxWhen) {
+          // eslint-disable-next-line no-await-in-loop
+          await this.transactionStorage.removeTx(
+            [tx.hash().toString()],
+            "dropped"
+          );
+          log.trace(
+            `Deleting tx ${tx.hash().toString()}  from mempool because removeTransactionWhen condition is satisfied`
+          );
+          // eslint-disable-next-line no-continue
+          continue;
+        }
+
         log.trace(
           `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
         );

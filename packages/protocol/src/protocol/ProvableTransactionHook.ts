@@ -74,4 +74,10 @@ export abstract class ProvableTransactionHook<
   public abstract afterTransaction(
     execution: AfterTransactionHookArguments
   ): Promise<void>;
+
+  public async removeTransactionWhen(
+    execution: BeforeTransactionHookArguments
+  ): Promise<boolean> {
+    return false;
+  }
 }

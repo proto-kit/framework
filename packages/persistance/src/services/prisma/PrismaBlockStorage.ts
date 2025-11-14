@@ -122,6 +122,7 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
             data: transactions.map((tx) => {
               return {
                 status: tx.status,
+                hooksStatus: tx.hooksStatus,
                 statusMessage: tx.statusMessage,
                 txHash: tx.txHash,
 

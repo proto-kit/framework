@@ -19,6 +19,7 @@ export interface TransactionExecutionResult {
   tx: PendingTransaction;
   stateTransitions: StateTransitionBatch[];
   status: Bool;
+  hooksStatus: Bool;
   statusMessage?: string;
   events: {
     eventName: string;

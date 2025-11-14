@@ -184,11 +184,20 @@ describe("check fee analyzer", () => {
           },
         },
       },
+      Sequencer: {
+        Mempool: {
+          validationEnabled: true,
+        },
+      },
     });
 
     await appChain.start();
     appChain.setSigner(senderKey);
   }, 60_000);
+
+  afterAll(async () => {
+    await appChain.close();
+  });
 
   it("with multiple zk programs", async () => {
     expect.assertions(12);

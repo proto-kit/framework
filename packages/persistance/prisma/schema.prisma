@@ -62,6 +62,7 @@ model TransactionExecutionResult {
   status           Boolean
   statusMessage    String?
   events           Json    @db.Json
+  hooksStatus      Boolean
 
   tx     Transaction @relation(fields: [txHash], references: [hash])
   txHash String      @id

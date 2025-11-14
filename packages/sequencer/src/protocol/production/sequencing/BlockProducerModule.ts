@@ -251,6 +251,16 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
           height: block.height.toString(),
         }
       );
+
+      // Remove included or dropped txs, leave skipped ones alone
+      await this.mempool.removeTxs(
+        blockResult.includedTxs
+          .filter((x) => x.type === "included")
+          .map((x) => x.hash),
+        blockResult.includedTxs
+          .filter((x) => x.type === "shouldRemove")
+          .map((x) => x.hash)
+      );
     }
 
     this.productionInProgress = false;

@@ -197,12 +197,22 @@ function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
   );
 }
 
+export type TransactionExecutionResultStatus =
+  | {
+      result: TransactionExecutionResult;
+      status: "included";
+    }
+  | { tx: PendingTransaction; status: "skipped" }
+  | { tx: PendingTransaction; status: "shouldRemove" };
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionExecutionService {
   private readonly transactionHooks: ProvableTransactionHook<unknown>[];
 
   private readonly blockProver: BlockProverProgrammable;
+
+  private readonly txHooks: ProvableTransactionHook[];
 
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
@@ -219,6 +229,11 @@ export class TransactionExecutionService {
     );
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     this.blockProver = (protocol.blockProver as BlockProver).zkProgrammable;
+
+    this.txHooks =
+      protocol.dependencyContainer.resolveAll<ProvableTransactionHook>(
+        "ProvableTransactionHook"
+      );
   }
 
   private async executeRuntimeMethod(
@@ -269,15 +284,6 @@ export class TransactionExecutionService {
       runSimulated
     );
 
-    if (!result.status.toBoolean()) {
-      const error = new Error(
-        `Protocol hooks not executable: ${result.statusMessage ?? "unknown"}`
-      );
-      log.debug("Protocol hook error stack trace:", result.stackTrace);
-      // Propagate stack trace from the assertion
-      throw error;
-    }
-
     traceLogSTs(`${hookName} STs:`, result.stateTransitions);
 
     return result;
@@ -285,9 +291,13 @@ export class TransactionExecutionService {
 
   private buildSTBatches(
     transitions: StateTransition<unknown>[][],
-    runtimeStatus: Bool
+    {
+      runtime: runtimeStatus,
+      hooks: hooksStatus,
+    }: { runtime: boolean; hooks: boolean }
   ): StateTransitionBatch[] {
-    const statuses = [true, runtimeStatus.toBoolean(), false];
+    // TODO Why is the last one false by default?
+    const statuses = [hooksStatus, runtimeStatus && hooksStatus, false];
     const reducedTransitions = transitions.map((batch) =>
       reduceStateTransitions(batch).map((transition) =>
         UntypedStateTransition.fromStateTransition(transition)
@@ -317,23 +327,27 @@ export class TransactionExecutionService {
     );
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   public async createExecutionTraces(
     asyncStateService: CachedStateService,
     transactions: PendingTransaction[],
     networkState: NetworkState,
     state: BlockTrackers
-  ): Promise<[BlockTrackers, TransactionExecutionResult[]]> {
+  ): Promise<{
+    blockState: BlockTrackers;
+    executionResults: TransactionExecutionResultStatus[];
+  }> {
     let blockState = state;
-    const executionResults: TransactionExecutionResult[] = [];
+    const executionResults: TransactionExecutionResultStatus[] = [];
 
     const networkStateHash = networkState.hash();
 
     for (const tx of transactions) {
       try {
-        const newState = this.addTransactionToBlockProverState(state, tx);
+        const newState = this.addTransactionToBlockProverState(blockState, tx);
 
         // Create execution trace
-        const executionTrace =
+        const { result: executionTrace, shouldRemove } =
           // eslint-disable-next-line no-await-in-loop
           await this.createExecutionTrace(
             asyncStateService,
@@ -343,18 +357,51 @@ export class TransactionExecutionService {
             newState
           );
 
-        blockState = newState;
+        // If the hooks fail AND the tx is not a message (in which case we
+        // have to still execute it), we skip this tx and don't add it to the block
+        if (
+          !executionTrace.hooksStatus.toBoolean() &&
+          !executionTrace.tx.isMessage
+        ) {
+          const actionMessage = shouldRemove
+            ? "removing as to removeWhen hooks"
+            : "skipping";
+          log.error(
+            `Error in inclusion of tx, ${actionMessage}: Protocol hooks not executable: ${executionTrace.statusMessage ?? "unknown reason"}`
+          );
+          executionResults.push({
+            tx,
+            status: shouldRemove ? "shouldRemove" : "skipped",
+          });
+        } else {
+          blockState = newState;
 
-        // Push result to results and transaction onto bundle-hash
-        executionResults.push(executionTrace);
+          // Push result to results and transaction onto bundle-hash
+          executionResults.push({ result: executionTrace, status: "included" });
+        }
       } catch (error) {
         if (error instanceof Error) {
-          log.error("Error in inclusion of tx, skipping", error);
+          log.error("Error in inclusion of tx, dropping", error);
+          executionResults.push({ tx, status: "shouldRemove" });
         }
       }
     }
 
-    return [blockState, executionResults];
+    return { blockState, executionResults };
+  }
+
+  private async shouldRemove(
+    state: CachedStateService,
+    args: BeforeTransactionHookArguments
+  ) {
+    this.stateServiceProvider.setCurrentStateService(state);
+
+    const returnValues = await mapSequential(this.transactionHooks, (hook) =>
+      hook.removeTransactionWhen(args)
+    );
+
+    this.stateServiceProvider.popCurrentStateService();
+    return returnValues.some((x) => x);
   }
 
   @trace("block.transaction", ([, tx, { networkState }]) => ({
@@ -371,7 +418,7 @@ export class TransactionExecutionService {
     }: { networkState: NetworkState; hash: Field },
     state: BlockTrackers,
     newState: BlockTrackers
-  ): Promise<TransactionExecutionResult> {
+  ): Promise<{ result: TransactionExecutionResult; shouldRemove: boolean }> {
     // TODO Use RecordingStateService -> async asProver needed
     const recordingStateService = new CachedStateService(asyncStateService);
 
@@ -463,7 +510,19 @@ export class TransactionExecutionService {
       afterTxHookResult.stateTransitions
     );
 
-    await recordingStateService.mergeIntoParent();
+    const txHooksValid =
+      beforeTxHookResult.status.toBoolean() &&
+      afterTxHookResult.status.toBoolean();
+    let shouldRemove = false;
+    if (txHooksValid) {
+      await recordingStateService.mergeIntoParent();
+    } else {
+      // Execute removeWhen to determine whether it should be dropped
+      shouldRemove = await this.shouldRemove(
+        asyncStateService,
+        beforeTxArguments
+      );
+    }
 
     // Reset global stateservice
     this.stateServiceProvider.popCurrentStateService();
@@ -479,16 +538,23 @@ export class TransactionExecutionService {
         runtimeResult.stateTransitions,
         afterTxHookResult.stateTransitions,
       ],
-      runtimeResult.status
+      { runtime: runtimeResult.status.toBoolean(), hooks: txHooksValid }
     );
 
     return {
-      tx,
-      status: runtimeResult.status,
-      statusMessage: runtimeResult.statusMessage,
+      result: {
+        tx,
+        hooksStatus: Bool(txHooksValid),
+        status: runtimeResult.status,
+        statusMessage:
+          beforeTxHookResult.statusMessage ??
+          afterTxHookResult.statusMessage ??
+          runtimeResult.statusMessage,
 
-      stateTransitions,
-      events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
+        stateTransitions,
+        events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
+      },
+      shouldRemove,
     };
   }
 }

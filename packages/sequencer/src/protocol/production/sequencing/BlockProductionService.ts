@@ -15,8 +15,13 @@ import {
 } from "@proto-kit/protocol";
 import { Field } from "o1js";
 import { log } from "@proto-kit/common";
+import { match } from "ts-pattern";
 
-import { Block, BlockWithResult } from "../../../storage/model/Block";
+import {
+  Block,
+  BlockWithResult,
+  TransactionExecutionResult,
+} from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
@@ -27,8 +32,15 @@ import { trace } from "../../../logging/trace";
 import {
   BlockTrackers,
   executeWithExecutionContext,
+  TransactionExecutionResultStatus,
   TransactionExecutionService,
 } from "./TransactionExecutionService";
+
+function isIncludedTxs(
+  x: TransactionExecutionResultStatus
+): x is { status: "included"; result: TransactionExecutionResult } {
+  return x.status === "included";
+}
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -93,6 +105,10 @@ export class BlockProductionService {
     | {
         block: Block;
         stateChanges: CachedStateService;
+        includedTxs: {
+          hash: string;
+          type: "included" | "skipped" | "shouldRemove";
+        }[];
       }
     | undefined
   > {
@@ -124,7 +140,7 @@ export class BlockProductionService {
       UntypedStateTransition.fromStateTransition(transition)
     );
 
-    const [newBlockState, executionResults] =
+    const { blockState: newBlockState, executionResults } =
       await this.transactionExecutionService.createExecutionTraces(
         stateService,
         transactions,
@@ -142,8 +158,12 @@ export class BlockProductionService {
       return undefined;
     }
 
+    const includedTransactions = executionResults
+      .filter(isIncludedTxs)
+      .map((x) => x.result);
+
     const block: Omit<Block, "hash"> = {
-      transactions: executionResults,
+      transactions: includedTransactions,
       transactionsHash: newBlockState.transactionList.commitment,
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash:
@@ -165,12 +185,25 @@ export class BlockProductionService {
 
     const hash = Block.hash(block);
 
+    const includedTxs = executionResults.map((x) => {
+      const txHash = match(x)
+        .with({ status: "included" }, ({ result }) => result.tx)
+        .otherwise(({ tx }) => tx)
+        .hash()
+        .toString();
+      return {
+        hash: txHash,
+        type: x.status,
+      };
+    });
+
     return {
       block: {
         ...block,
         hash,
       },
       stateChanges: stateService,
+      includedTxs,
     };
   }
 }

@@ -9,12 +9,13 @@ import {
   BeforeTransactionHookArguments,
   ProvableTransactionHook,
   PublicKeyOption,
+  StateMap,
 } from "@proto-kit/protocol";
 import { Field, Provable, PublicKey } from "o1js";
 import { noop } from "@proto-kit/common";
 
 import { UInt64 } from "../math/UInt64";
-import { Balance, TokenId } from "../runtime/Balances";
+import { Balance, BalancesKey, TokenId } from "../runtime/Balances";
 
 import {
   MethodFeeConfigData,
@@ -29,6 +30,8 @@ interface Balances {
     to: PublicKey,
     amount: Balance
   ) => Promise<void>;
+
+  balances: StateMap<BalancesKey, Balance>;
 }
 
 export interface TransactionFeeHookConfig
@@ -158,5 +161,25 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
 
   public async afterTransaction(): Promise<void> {
     noop();
+  }
+
+  public async removeTransactionWhen(
+    args: BeforeTransactionHookArguments
+  ): Promise<boolean> {
+    const feeConfig = this.feeAnalyzer.getFeeConfig(
+      args.transaction.methodId.toBigInt()
+    );
+
+    const fee = this.getFee(feeConfig);
+
+    const tokenId = new TokenId(this.config.tokenId);
+    const feeRecipient = PublicKey.fromBase58(this.config.feeRecipient);
+
+    const balanceAvailable = await this.balances.balances.get({
+      tokenId,
+      address: feeRecipient,
+    });
+
+    return balanceAvailable.orElse(Balance.from(0)).lessThan(fee).toBoolean();
   }
 }
