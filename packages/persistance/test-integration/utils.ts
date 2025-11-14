@@ -159,6 +159,7 @@ export function createPrismaAppchain(
     TransactionSender: {},
     QueryTransportModule: {},
     NetworkStateTransportModule: {},
+    BlockExplorerTransportModule: {},
   });
 
   return appChain;
