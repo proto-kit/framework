@@ -20,9 +20,10 @@ export class InMemoryTransactionStorage implements TransactionStorage {
   ) {}
 
   public async removeTx(hashes: string[]) {
+    const hashSet = new Set(hashes);
     this.queue = this.queue.filter((tx) => {
       const hash = tx.hash().toString();
-      return !hashes.includes(hash);
+      return !hashSet.has(hash);
     });
   }
 
