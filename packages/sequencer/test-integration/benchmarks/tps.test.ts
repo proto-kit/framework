@@ -2,11 +2,10 @@ import "reflect-metadata";
 import {
   BlockStorageNetworkStateModule,
   ClientAppChain,
-  GraphqlBlockExplorerTransportModule,
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
-  GraphqlClient,
+  InMemoryBlockExplorer,
 } from "@proto-kit/sdk";
 import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
 import { Protocol, state, State } from "@proto-kit/protocol";
@@ -76,8 +75,7 @@ export async function createAppChain() {
     TransactionSender: InMemoryTransactionSender,
     QueryTransportModule: StateServiceQueryModule,
     NetworkStateTransportModule: BlockStorageNetworkStateModule,
-    BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
-    GraphqlClient,
+    BlockExplorerTransportModule: InMemoryBlockExplorer,
   });
 
   appChain.configure({
@@ -117,9 +115,6 @@ export async function createAppChain() {
     TransactionSender: {},
     NetworkStateTransportModule: {},
     BlockExplorerTransportModule: {},
-    GraphqlClient: {
-      url: "127.0.0.1:8080",
-    },
   });
 
   await appChain.start(false, container.createChildContainer());

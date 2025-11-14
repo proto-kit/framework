@@ -16,13 +16,12 @@ import {
   SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import {
-  GraphqlClient,
   ClientAppChain,
   BlockStorageNetworkStateModule,
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
-  GraphqlBlockExplorerTransportModule,
+  InMemoryBlockExplorer,
 } from "@proto-kit/sdk";
 import {
   AccountUpdate,
@@ -146,8 +145,7 @@ export const settlementTestFn = (
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,
       NetworkStateTransportModule: BlockStorageNetworkStateModule,
-      BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
-      GraphqlClient,
+      BlockExplorerTransportModule: InMemoryBlockExplorer,
     });
 
     appchain.configure({
@@ -200,10 +198,6 @@ export const settlementTestFn = (
       Signer: {
         signer: sequencerKey,
       },
-      GraphqlClient: {
-        url: "http://127.0.0.1:8080/graphql",
-      },
-
       NetworkStateTransportModule: {},
       BlockExplorerTransportModule: {},
     });
