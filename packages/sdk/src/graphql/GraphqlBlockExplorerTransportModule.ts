@@ -6,9 +6,8 @@ import {
   ClientBlock,
   InclusionStatus,
 } from "@proto-kit/sequencer";
-import { Bool, Field } from "o1js";
-
 import { GraphqlClient } from "./GraphqlClient";
+import { Field } from "o1js";
 
 @injectable()
 export class GraphqlBlockExplorerTransportModule
@@ -19,28 +18,6 @@ export class GraphqlBlockExplorerTransportModule
     @inject("GraphqlClient") private readonly graphqlClient: GraphqlClient
   ) {
     super();
-  }
-
-  private parseClientBlock(data: any): ClientBlock | undefined {
-    const blockData = data.block;
-
-    if (!blockData) {
-      return undefined;
-    }
-
-    return {
-      hash: Field(blockData.hash),
-      previousBlockHash: blockData.previousBlockHash
-        ? Field(blockData.previousBlockHash)
-        : undefined,
-      height: Field(blockData.height),
-      transactions: blockData.txs.map((tx: any) => ({
-        tx: tx.tx, // This is simplified tx data from GraphQL
-        status: Bool(tx.status),
-        statusMessage: tx.statusMessage,
-      })),
-      transactionsHash: Field(blockData.transactionsHash),
-    };
   }
 
   public async fetchTxInclusion(txHash: string): Promise<InclusionStatus> {
@@ -67,10 +44,10 @@ export class GraphqlBlockExplorerTransportModule
     let hash: string | undefined;
     let height: number | undefined;
 
-    if (typeof param === "string") {
-      hash = param;
-    } else if (typeof param === "number") {
-      height = param;
+    if ("hash" in param) {
+      hash = param.hash;
+    } else {
+      height = param.height;
     }
 
     const query = gql`
@@ -81,11 +58,17 @@ export class GraphqlBlockExplorerTransportModule
           height
           txs {
             tx {
+              hash
               methodId
               nonce
               sender
               argsFields
               auxiliaryData
+              signature {
+                r
+                s
+              }
+              isMessage
             }
             status
             statusMessage
@@ -100,9 +83,23 @@ export class GraphqlBlockExplorerTransportModule
       .toPromise();
 
     if (queryResult.error) {
-      throw new Error(`Error fetching block!: ${queryResult.error}`);
+      throw new Error(`Error fetching block: ${queryResult.error}`);
     }
 
-    return this.parseClientBlock(queryResult.data);
+    if (!queryResult.data?.block) {
+      return undefined;
+    }
+
+    const block = queryResult.data.block;
+    
+    return {
+      hash: Field.from(block.hash),
+      height: Field(block.height),
+      previousBlockHash: block.previousBlockHash 
+        ? Field(block.previousBlockHash) 
+        : undefined,
+      transactionsHash: Field(block.transactionsHash),
+      transactions: JSON.stringify(block.txs)
+    };
   }
 }
