@@ -21,6 +21,7 @@ import {
   InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
+  GraphqlBlockExplorerTransportModule,
 } from "@proto-kit/sdk";
 import {
   AccountUpdate,
@@ -144,6 +145,7 @@ export const settlementTestFn = (
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,
       NetworkStateTransportModule: BlockStorageNetworkStateModule,
+      BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
     });
 
     appchain.configure({
@@ -197,6 +199,7 @@ export const settlementTestFn = (
         signer: sequencerKey,
       },
       NetworkStateTransportModule: {},
+      BlockExplorerTransportModule: {},
     });
 
     return appchain;
