@@ -42,7 +42,6 @@ import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
 import { Signer } from "../transaction/InMemorySigner";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
-import { GraphqlBlockExplorerTransportModule } from "../graphql/GraphqlBlockExplorerTransportModule";
 
 export type InferModules<Container extends TypedClass<ModuleContainer<any>>> =
   Container extends TypedClass<infer Type>
@@ -80,7 +79,6 @@ export class ClientAppChain<
       TransactionSender: GraphqlTransactionSender,
       QueryTransportModule: GraphqlQueryTransportModule,
       NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
-      BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
     });
 
     appChain.configurePartial({
@@ -90,7 +88,6 @@ export class ClientAppChain<
       TransactionSender: {},
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
-      BlockExplorerTransportModule: {},
     });
 
     /**

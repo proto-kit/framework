@@ -46,8 +46,8 @@ function prepareClient() {
     Signer: InMemorySigner,
     TransactionSender: GraphqlTransactionSender,
     QueryTransportModule: GraphqlQueryTransportModule,
-    BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
     NetworkStateTransportModule: GraphqlNetworkStateTransportModule,
+    BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
     GraphqlClient,
   });
 

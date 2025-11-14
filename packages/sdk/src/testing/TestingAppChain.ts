@@ -15,11 +15,13 @@ import {
 } from "@proto-kit/sequencer";
 import { PrivateKey } from "o1js";
 
+import { GraphqlClient } from "../graphql/GraphqlClient";
 import { InMemorySigner } from "../transaction/InMemorySigner";
 import { InMemoryTransactionSender } from "../transaction/InMemoryTransactionSender";
 import { StateServiceQueryModule } from "../query/StateServiceQueryModule";
 import { BlockStorageNetworkStateModule } from "../query/BlockStorageNetworkStateModule";
 import { ClientAppChain } from "../client/ClientAppChain";
+import { GraphqlBlockExplorerTransportModule } from "../graphql/GraphqlBlockExplorerTransportModule";
 
 // ensures we can override vanilla runtime modules type safely
 // Partial<VanillaRuntimeModulesRecord> did not work (idk why)
@@ -47,6 +49,8 @@ export class TestingAppChain<
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,
       NetworkStateTransportModule: BlockStorageNetworkStateModule,
+      BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
+      GraphqlClient,
     });
 
     appChain.configurePartial({
@@ -84,6 +88,10 @@ export class TestingAppChain<
       TransactionSender: {},
       QueryTransportModule: {},
       NetworkStateTransportModule: {},
+      BlockExplorerTransportModule: {},
+      GraphqlClient: {
+        url: "http://127.0.0.1:8080/graphql",
+      },
     });
 
     return appChain;
