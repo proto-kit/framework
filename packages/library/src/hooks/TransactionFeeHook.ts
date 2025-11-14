@@ -180,9 +180,6 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
       address: feeRecipient,
     });
 
-    return balanceAvailable
-      .orElse(Balance.from(0))
-      .greaterThanOrEqual(fee)
-      .toBoolean();
+    return balanceAvailable.orElse(Balance.from(0)).lessThan(fee).toBoolean();
   }
 }
