@@ -1,26 +1,28 @@
-import { Bool, Field } from "o1js";
+import { Field } from "o1js";
 
-import { PendingTransaction } from "../../mempool/PendingTransaction";
-
-/**
- * Simplified transaction result for client consumption.
- * Contains only the essential fields returned by the GraphQL API.
- */
-export interface ClientTransactionResult {
-  tx: PendingTransaction;
-  status: Bool;
+export interface ClientTransaction {
+  tx: {
+    hash: string;
+    methodId: string;
+    nonce: string;
+    sender: string;
+    argsFields: string[];
+    auxiliaryData: string[];
+    signature: {
+      r: string;
+      s: string;
+    };
+    isMessage: boolean;
+  };
+  status: boolean;
   statusMessage?: string;
 }
 
-/**
- * Client-facing block type with simplified transaction data.
- * This matches what the GraphQL API returns.
- */
 export interface ClientBlock {
   hash: Field;
   previousBlockHash: Field | undefined;
   height: Field;
-  transactions: ClientTransactionResult[];
+  transactions: string; // This is the stringified version of ClientTransaction[].
   transactionsHash: Field;
 }
 
