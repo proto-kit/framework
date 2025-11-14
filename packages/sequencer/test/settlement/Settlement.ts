@@ -15,6 +15,7 @@ import {
   SettlementContractModule,
   SettlementSmartContractBase,
 } from "@proto-kit/protocol";
+import { GraphqlClient } from "@proto-kit/sdk";
 import {
   ClientAppChain,
   BlockStorageNetworkStateModule,
@@ -146,6 +147,7 @@ export const settlementTestFn = (
       QueryTransportModule: StateServiceQueryModule,
       NetworkStateTransportModule: BlockStorageNetworkStateModule,
       BlockExplorerTransportModule: GraphqlBlockExplorerTransportModule,
+      GraphqlClient
     });
 
     appchain.configure({
@@ -198,6 +200,10 @@ export const settlementTestFn = (
       Signer: {
         signer: sequencerKey,
       },
+      GraphqlClient: {
+      url: "http://127.0.0.1:8080/graphql",
+     },
+
       NetworkStateTransportModule: {},
       BlockExplorerTransportModule: {},
     });
