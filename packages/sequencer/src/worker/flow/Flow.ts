@@ -3,7 +3,7 @@ import { log, mapSequential } from "@proto-kit/common";
 
 import { InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { Closeable } from "../../sequencer/builder/Closeable";
-import type { Sequencer } from "../../sequencer/executor/Sequencer";
+import { SequencerIdProvider } from "../../sequencer/SequencerIdProvider";
 
 import { Task, TaskPayload } from "./Task";
 
@@ -186,10 +186,15 @@ export class Flow<State> implements Closeable {
 export class FlowCreator {
   public constructor(
     @inject("TaskQueue") private readonly queueImpl: TaskQueue,
-    @inject("Sequencer") private readonly sequencer: Sequencer<any>
+    private readonly sequencerIdProvider: SequencerIdProvider
   ) {}
 
   public createFlow<State>(flowId: string, state: State): Flow<State> {
-    return new Flow(this.queueImpl, flowId, state, this.sequencer.id);
+    return new Flow(
+      this.queueImpl,
+      flowId,
+      state,
+      this.sequencerIdProvider.getSequencerId()
+    );
   }
 }

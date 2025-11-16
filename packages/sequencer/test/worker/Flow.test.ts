@@ -226,7 +226,6 @@ describe("flow", () => {
       await worker.start();
 
       container.register("TaskQueue", { useValue: queue });
-      container.register("Sequencer", { useValue: { id: "1" } });
       const flowCreator = container.resolve(FlowCreator);
 
       const flow = flowCreator.createFlow("1", {
