@@ -1,5 +1,5 @@
 import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
-import { log, noop } from "@proto-kit/common";
+import { log } from "@proto-kit/common";
 import {
   TaskPayload,
   Closeable,
@@ -102,7 +102,8 @@ export class BullQueue
   }
 
   public async start() {
-    noop();
+    // Drain all queues to clear stale tasks from previous sequencer instances
+    await this.drainAllQueues();
   }
 
   public async close() {

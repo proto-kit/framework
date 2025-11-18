@@ -62,6 +62,10 @@ export class InstantiatedBullQueue implements InstantiatedQueue {
     this.listeners.removeListener(listenerId);
   }
 
+  async drain() {
+    await this.queue.drain();
+  }
+
   async close(): Promise<void> {
     await this.events.close();
     await this.queue.drain();

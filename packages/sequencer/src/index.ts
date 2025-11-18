@@ -5,6 +5,7 @@ export * from "./mempool/CompressedSignature";
 export * from "./mempool/private/PrivateMempool";
 export * from "./sequencer/executor/Sequencer";
 export * from "./sequencer/executor/Sequenceable";
+export * from "./sequencer/SequencerIdProvider";
 export * from "./sequencer/builder/SequencerModule";
 export * from "./sequencer/builder/Closeable";
 export * from "./worker/flow/Flow";

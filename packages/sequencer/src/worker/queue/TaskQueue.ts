@@ -13,6 +13,8 @@ export interface TaskQueue {
     executor: (data: TaskPayload) => Promise<TaskPayload>,
     options?: { concurrency?: number }
   ) => Closeable;
+
+  drainAllQueues: () => Promise<void>;
 }
 /**
  * Object that abstracts a concrete connection to a queue instance.
@@ -36,4 +38,9 @@ export interface InstantiatedQueue extends Closeable {
   ) => Promise<number>;
 
   offCompleted: (listenerId: number) => void;
+
+  /**
+   * Drains the queue to clear stale tasks
+   */
+  drain: () => Promise<void>;
 }

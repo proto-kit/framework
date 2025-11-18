@@ -5,6 +5,7 @@ import {
   SequencerModule,
   TaskPayload,
   TaskQueue,
+  SequencerIdProvider,
 } from "@proto-kit/sequencer";
 import { log } from "@proto-kit/common";
 import { inject } from "tsyringe";
@@ -22,7 +23,8 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
     public sequencer: Sequencer<NotifierMandatorySequencerModules>,
     @inject("TaskQueue")
     public taskQueue: TaskQueue,
-    public indexBlockTask: IndexBlockTask
+    public indexBlockTask: IndexBlockTask,
+    private readonly sequencerIdProvider: SequencerIdProvider
   ) {
     super();
   }
@@ -37,11 +39,13 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
         block.block.height.toBigInt()
       );
       const payload = await inputSerializer.toJSON(block);
+      const sequencerId = this.sequencerIdProvider.getSequencerId();
 
       const task: TaskPayload = {
         name: this.indexBlockTask.name,
         payload,
         flowId: "", // empty for now
+        sequencerId,
       };
 
       await queue.addTask(task);

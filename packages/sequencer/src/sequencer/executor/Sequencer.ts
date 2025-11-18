@@ -34,6 +34,10 @@ export class Sequencer<Modules extends SequencerModulesRecord>
   extends ModuleContainer<Modules>
   implements Sequenceable
 {
+  public constructor(definition: Modules) {
+    super(definition);
+  }
+
   /**
    * Alternative constructor for Sequencer
    * @param definition
