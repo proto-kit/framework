@@ -1,0 +1,14 @@
+introspection:
+  url: http://localhost:{{PORT}}/graphql
+
+info:
+  title: ProtoKit API Documentation
+  description: |
+    Explore all queries, mutations and types provided by Protokit.
+
+servers:
+  - url: http://localhost:{{PORT}}/graphql
+    description: Local development server
+
+spectaql:
+  targetDir: ./gqlDocs
