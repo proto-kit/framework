@@ -26,6 +26,7 @@ import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
+import { MinaSigner } from "../settlement/MinaSigner";
 
 @sequencerModule()
 @closeable()
@@ -44,7 +45,9 @@ export class SequencerStartupModule
     @inject("BaseLayer", { isOptional: true })
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
+    private readonly areProofsEnabled: AreProofsEnabled,
+    @inject("Signer")
+    private readonly Signer: MinaSigner
   ) {
     super();
   }
@@ -145,7 +148,8 @@ export class SequencerStartupModule
       this.baseLayer !== undefined && !(this.baseLayer instanceof NoopBaseLayer)
         ? new SettlementUtils(
             this.areProofsEnabled,
-            this.baseLayer
+            this.baseLayer,
+            this.Signer
           ).isSignedSettlement()
         : undefined;
 

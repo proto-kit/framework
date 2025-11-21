@@ -55,6 +55,7 @@ import { SettlementUtils } from "./utils/SettlementUtils";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
 import { OutgoingMessageCollector } from "./messages/outgoing/OutgoingMessageCollector";
 import { ArchiveNode } from "./utils/ArchiveNode";
+import { MinaSigner } from "./MinaSigner";
 
 export type SettlementTokenConfig = Record<
   string,
@@ -99,10 +100,11 @@ export class BridgingModule {
     private readonly feeStrategy: FeeStrategy,
     @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
+    @inject("Signer") signer: MinaSigner,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender
   ) {
-    this.utils = new SettlementUtils(areProofsEnabled, baseLayer);
+    this.utils = new SettlementUtils(areProofsEnabled, baseLayer, signer);
   }
 
   private getMessageProcessors() {
