@@ -18,7 +18,6 @@ import {
 import {
   ClientAppChain,
   BlockStorageNetworkStateModule,
-  InMemorySigner,
   InMemoryTransactionSender,
   StateServiceQueryModule,
   InMemoryBlockExplorer,
@@ -63,7 +62,7 @@ import { SettlementUtils } from "../../src/settlement/utils/SettlementUtils";
 import { FungibleTokenContractModule } from "../../src/settlement/utils/FungibleTokenContractModule";
 import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/FungibleTokenAdminContractModule";
 import { MinaNetworkUtils } from "../../src/protocol/baselayer/network-utils/MinaNetworkUtils";
-
+import { SettlementSigner } from "../../src";
 import { Balances, BalancesKey } from "./mocks/Balances";
 import { WithdrawalMessageProcessor, Withdrawals } from "./mocks/Withdrawals";
 
@@ -141,7 +140,8 @@ export const settlementTestFn = (
         WithdrawalMessageProcessor,
       }),
 
-      Signer: InMemorySigner,
+      // Instead of InMemorySigner, using Settlement Signer here. 
+      Signer: SettlementSigner,
       TransactionSender: InMemoryTransactionSender,
       QueryTransportModule: StateServiceQueryModule,
       NetworkStateTransportModule: BlockStorageNetworkStateModule,
@@ -197,6 +197,7 @@ export const settlementTestFn = (
       QueryTransportModule: {},
       Signer: {
         signer: sequencerKey,
+        contractKeys: {settlementKey: settlementKey, dispatchKey: dispatchKey, minaBridgeKey: minaBridgeKey}
       },
       NetworkStateTransportModule: {},
       BlockExplorerTransportModule: {},
@@ -362,8 +363,6 @@ export const settlementTestFn = (
 
         settlementModule.signTransaction(
           tx,
-          [sequencerKey, tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
-          [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin]
         );
 
         await appChain.sequencer
@@ -539,8 +538,6 @@ export const settlementTestFn = (
 
         settlementModule.signTransaction(
           tx,
-          [userKey],
-          [tokenOwnerKey.tokenOwner],
           [dispatch.address]
         );
 
@@ -720,10 +717,8 @@ export const settlementTestFn = (
         }
       );
 
-      const signed = settlementModule.signTransaction(
+      const signed = await settlementModule.signTransaction(
         tx,
-        [userKey],
-        [tokenBridgeKey, tokenOwnerKey.tokenOwner]
       );
 
       await appChain.sequencer

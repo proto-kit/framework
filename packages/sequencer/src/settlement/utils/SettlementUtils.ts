@@ -10,6 +10,7 @@ import {
 import { AreProofsEnabled, mapSequential } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
+import { MinaSigner } from "../MinaSigner";
 
 /**
  * Utils class that provides methods for sending transactions that are signed-settlement-enabled
@@ -17,7 +18,8 @@ import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 export class SettlementUtils {
   public constructor(
     private readonly areProofsEnabled: AreProofsEnabled,
-    private readonly baseLayer: MinaBaseLayer
+    private readonly baseLayer: MinaBaseLayer,
+    private readonly signer: MinaSigner
   ) {}
 
   /**
@@ -29,6 +31,22 @@ export class SettlementUtils {
       !this.areProofsEnabled.areProofsEnabled &&
       !this.baseLayer.isLocalBlockChain()
     );
+  }
+
+  // Problem with this function for now is that it will not sign selectively. 
+  // It should be added to make this signer mechanism applicable to everywhere.
+  public signTransactionWithModule(
+    tx: Transaction <false,false>,
+    preventNoncePreconditionFor: PublicKey[] = [],
+  ){
+    const contractPublicKeys = this.isSignedSettlement() ? this.signer.getContractKeys() : [];
+    this.requireSignatureIfNecessary(
+      tx,
+      contractPublicKeys,
+      preventNoncePreconditionFor
+    )
+
+    return this.signer.signTransaction(tx);
   }
 
   /**

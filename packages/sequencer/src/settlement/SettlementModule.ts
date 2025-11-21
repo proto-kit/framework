@@ -47,6 +47,7 @@ import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermi
 import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
 import { SettlementUtils } from "./utils/SettlementUtils";
 import { BridgingModule } from "./BridgingModule";
+import { MinaSigner } from "./MinaSigner";
 
 export type SettlementModuleConfig = {
   feepayer: PrivateKey;
@@ -93,12 +94,13 @@ export class SettlementModule
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender,
     @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
+    @inject("Signer") signer: MinaSigner,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
     private readonly settlementStartupModule: SettlementStartupModule
   ) {
     super();
-    this.utils = new SettlementUtils(areProofsEnabled, baseLayer);
+    this.utils = new SettlementUtils(areProofsEnabled, baseLayer, signer);
   }
 
   public dependencies() {
@@ -115,6 +117,7 @@ export class SettlementModule
     );
   }
 
+  // These will be removed and they will be obtained from SettlementSigner.
   public getContractKeys(): {
     settlement: PrivateKey;
     dispatch: PrivateKey;
@@ -158,18 +161,11 @@ export class SettlementModule
     return this.contracts;
   }
 
-  public signTransaction(
+  public async signTransaction(
     tx: Transaction<false, false>,
-    pks: PrivateKey[],
-    tokenContractKeys: PrivateKey[] = [],
     preventNoncePreconditionFor: PublicKey[] = []
-  ): Transaction<false, true> {
-    return this.utils.signTransaction(
-      tx,
-      pks,
-      this.getContractSigningKeys().concat(tokenContractKeys),
-      preventNoncePreconditionFor
-    );
+  ): Promise<Transaction<false, true>> {
+    return await this.utils.signTransactionWithModule(tx, preventNoncePreconditionFor);
   }
 
   private async fetchContractAccounts() {
