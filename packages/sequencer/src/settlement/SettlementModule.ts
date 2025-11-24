@@ -7,7 +7,16 @@ import {
   ContractArgsRegistry,
   SettlementContractArgs,
 } from "@proto-kit/protocol";
-import { fetchAccount, Field, Mina, PublicKey, SmartContract } from "o1js";
+import {
+  AccountUpdate,
+  fetchAccount,
+  Field,
+  Mina,
+  PrivateKey,
+  PublicKey,
+  TokenContract,
+  TokenId,
+} from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
@@ -81,6 +90,9 @@ export class SettlementModule
     return {
       AddressRegistry: {
         useClass: InMemoryAddressRegistry,
+      },
+      L1TransactionRetryStrategy: {
+        useClass: DefaultL1TransactionRetryStrategy,
       },
     };
   }
