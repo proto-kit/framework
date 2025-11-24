@@ -148,3 +148,15 @@ model IncomingMessageBatch {
 
   messages IncomingMessageBatchTransaction[]
 }
+
+model PendingL1Transaction {
+  sender         String
+  nonce          Int
+  attempts       Int
+  status         String   @db.VarChar(32)
+  transaction    Json     @db.Json
+  lastError      String?
+  sentAt         DateTime? 
+
+  @@id([sender, nonce])
+}
