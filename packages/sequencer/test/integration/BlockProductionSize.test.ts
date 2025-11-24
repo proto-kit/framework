@@ -80,6 +80,7 @@ describe("block limit", () => {
         LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
+        L1TransactionRetryStrategy: {},
         FeeStrategy: {},
         SequencerStartupModule: {},
       },

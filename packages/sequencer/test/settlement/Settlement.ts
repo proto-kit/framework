@@ -6,6 +6,8 @@ import {
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
+import { DefaultL1TransactionRetryStrategy } from "../../src/settlement/transactions/DefaultL1TransactionRetryStrategy";
+import { LocalMinaSigner } from "../../src/settlement/transactions/LocalMinaSigner";
 import {
   BlockProverPublicInput,
   BridgeContract,
@@ -133,6 +135,7 @@ export const settlementTestFn = (
           SettlementModule: SettlementModule,
           BridgingModule: BridgingModule,
           SettlementSigner: InMemoryMinaSigner,
+          L1TransactionRetryStrategy: DefaultL1TransactionRetryStrategy
         },
         {
           SettlementProvingTask,
@@ -192,6 +195,7 @@ export const settlementTestFn = (
         SettlementModule: {},
         BridgingModule: {},
         SequencerStartupModule: {},
+        L1TransactionRetryStrategy: {},
 
         TaskQueue: {
           simulatedDuration: 0,

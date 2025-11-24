@@ -75,6 +75,7 @@
     ]
   },
   "dependencies": {
+    "clean": "^4.0.2",
     "react-json-view-lite": "^1.4.0"
   }
 }

@@ -15,6 +15,7 @@ import {
   SequencerStartupModule,
 } from "../src";
 import { ConstantFeeStrategy } from "../src/protocol/baselayer/fees/ConstantFeeStrategy";
+import { DefaultL1TransactionRetryStrategy } from "../src/settlement/transactions/DefaultL1TransactionRetryStrategy";
 
 export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   Database: typeof InMemoryDatabase;
@@ -27,6 +28,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   TaskQueue: typeof LocalTaskQueue;
   FeeStrategy: typeof ConstantFeeStrategy;
   SequencerStartupModule: typeof SequencerStartupModule;
+  L1TransactionRetryStrategy: typeof DefaultL1TransactionRetryStrategy;
 }
 
 export function testingSequencerModules<
@@ -52,6 +54,7 @@ export function testingSequencerModules<
     TaskQueue: LocalTaskQueue,
     FeeStrategy: ConstantFeeStrategy,
     SequencerStartupModule,
+    L1TransactionRetryStrategy: DefaultL1TransactionRetryStrategy,
   } satisfies DefaultTestingSequencerModules;
 
   return {

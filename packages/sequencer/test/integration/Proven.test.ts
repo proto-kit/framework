@@ -100,6 +100,7 @@ describe.skip("Proven", () => {
           TaskQueue: {},
           FeeStrategy: {},
           SequencerStartupModule: {},
+          L1TransactionRetryStrategy: {},
           BaseLayer: {
             network: {
               type: "local",
