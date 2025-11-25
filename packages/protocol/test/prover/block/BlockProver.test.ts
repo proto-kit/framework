@@ -12,9 +12,9 @@
  */
 
 /* eslint-enable max-len */
+import "reflect-metadata";
 import { MAX_FIELD } from "@proto-kit/common";
 import { Bool, Field, Proof, Signature, UInt64 } from "o1js";
-import "reflect-metadata";
 
 import {
   BlockProverMultiTransactionExecutionData,
