@@ -63,7 +63,6 @@ import {
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
 import { testingSequencerModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
-import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 import { BridgingModule } from "../../src/settlement/BridgingModule";
 import { FungibleTokenContractModule } from "../../src/settlement/utils/FungibleTokenContractModule";
 import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/FungibleTokenAdminContractModule";
@@ -111,7 +110,6 @@ export const settlementTestFn = (
   let blockQueue: BlockQueue;
   let userPublicKey: PublicKey;
 
-  let feeStrategy: FeeStrategy;
 
   let blockSerializer: BlockProofSerializer;
 
@@ -287,7 +285,6 @@ export const settlementTestFn = (
         "BlockTrigger"
       );
     blockQueue = appChain.sequencer.resolve("BlockQueue") as BlockQueue;
-    feeStrategy = appChain.sequencer.resolve("FeeStrategy") as FeeStrategy;
 
     blockSerializer =
       appChain.sequencer.dependencyContainer.resolve(BlockProofSerializer);
@@ -389,8 +386,7 @@ export const settlementTestFn = (
           {
             sender: sequencerKey.toPublicKey(),
             memo: "Deploy custom token",
-            nonce: nonceCounter++,
-            fee: feeStrategy.getFee(),
+            nonce: nonceCounter++
           },
           async () => {
             AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 3);
@@ -459,7 +455,6 @@ export const settlementTestFn = (
             sender: sequencerKey.toPublicKey(),
             memo: "Mint custom token",
             nonce: nonceCounter++,
-            fee: feeStrategy.getFee(),
           },
           async () => {
             AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 1);
@@ -775,12 +770,10 @@ export const settlementTestFn = (
 
       const amount = BigInt(1e9 * 10);
 
-      const fee = feeStrategy.getFee();
       const tx = await Mina.transaction(
         {
           sender: userKey.toPublicKey(),
           nonce: user0Nonce++,
-          fee,
           memo: "Redeem withdrawal",
         },
         async () => {
@@ -823,7 +816,7 @@ export const settlementTestFn = (
       ).balance.toBigInt();
 
       // tx fee
-      const minaFees = BigInt(fee);
+      const minaFees = BigInt(tx.transaction.feePayer.body.fee.toString());
 
       expect((balanceAfter - balanceBefore).toString()).toBe(
         (amount - (tokenConfig === undefined ? minaFees : 0n)).toString()

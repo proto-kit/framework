@@ -14,6 +14,7 @@ import {
   Mina,
   PrivateKey,
   PublicKey,
+  SmartContract,
   TokenContract,
   TokenId,
 } from "o1js";
@@ -47,6 +48,7 @@ import {
   AddressRegistry,
   InMemoryAddressRegistry,
 } from "./interactions/AddressRegistry";
+import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 
 export type SettlementModuleConfig = {
   addresses?: {
@@ -78,6 +80,8 @@ export class SettlementModule
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("Sequencer")
     private readonly parentContainer: ModuleContainerLike,
+    @inject("FeeStrategy")
+    private readonly feeStrategy: FeeStrategy,
     @inject("AddressRegistry")
     private readonly addressRegistry: AddressRegistry,
     private readonly argsRegistry: ContractArgsRegistry

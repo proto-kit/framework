@@ -1,4 +1,4 @@
-import { fetchAccount, Mina, PublicKey, Transaction } from "o1js";
+import { fetchAccount, Mina, PublicKey, Transaction, UInt64 } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
   EventsRecord,
@@ -21,6 +21,7 @@ import { MinaSigner } from "./MinaSigner";
 
 import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
 import { L1TransactionRetryStrategy } from "./L1TransactionRetryStrategy";
+import { FeeStrategy } from "../../protocol/baselayer/fees/FeeStrategy";
 
 export interface TxEvents extends EventsRecord {
   sent: [{ hash: string }];
@@ -47,7 +48,8 @@ export class MinaTransactionSender {
     private readonly pendingStorage: PendingL1TransactionStorage,
     @inject("L1TransactionRetryStrategy")
     private readonly retryStrategy: L1TransactionRetryStrategy,
-    @inject("MinaSigner") private readonly signer: MinaSigner
+    @inject("MinaSigner") private readonly signer: MinaSigner,
+    @inject("FeeStrategy") private readonly feeStrategy: FeeStrategy
   ) {
     void this.startPolling();
   }
@@ -84,6 +86,10 @@ export class MinaTransactionSender {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
     const sender = publicKey.toBase58();
     const nonceNum = Number(nonce.toString());
+    // Set Fee [TODO] uncomment after the singer is implemented properly
+    // const unsignedTx = await transaction.setFee(UInt64.from(this.feeStrategy.getFee()));
+    // const signedTx = this.signer.signTransaction(unsignedTx);
+    const signedTx = transaction;
 
     // Setup emitter before queueing
     const emitterKey = this.getEmitterKey(sender, nonceNum);
@@ -100,15 +106,15 @@ export class MinaTransactionSender {
     );
 
     const accounts = await Promise.all(
-      transaction.transaction.accountUpdates.map(
+      signedTx.transaction.accountUpdates.map(
         async (au) =>
           await fetchAccount({ publicKey: au.publicKey, tokenId: au.tokenId })
       )
     );
 
     // Load accounts
-    await this.simulator.getAccounts(transaction);
-    await this.simulator.applyTransaction(transaction);
+    await this.simulator.getAccounts(signedTx);
+    await this.simulator.applyTransaction(signedTx);
 
     log.trace("Applied transaction to local simulated ledger");
 
@@ -120,7 +126,7 @@ export class MinaTransactionSender {
         await flow.pushTask(
           this.provingTask,
           {
-            transaction,
+            transaction: signedTx as Transaction<false, true>,
             chainState: {
               graphql,
               accounts: accounts

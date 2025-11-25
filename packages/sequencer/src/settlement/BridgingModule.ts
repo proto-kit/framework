@@ -50,7 +50,6 @@ import groupBy from "lodash/groupBy";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import truncate from "lodash/truncate";
 
-import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { AsyncLinkedLeafStore } from "../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../state/lmt/CachedLinkedLeafStore";
@@ -115,6 +114,7 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
     private readonly linkedLeafStore: AsyncLinkedLeafStore,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
+    @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("TransactionSender")
@@ -512,7 +512,6 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
           sender: feepayer,
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
-          fee: this.feeStrategy.getFee(),
           memo: "pull state root",
         },
         async () => {
@@ -630,7 +629,6 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
           sender: feepayer,
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
-          fee: this.feeStrategy.getFee(),
           memo: "roll up actions",
         },
         async () => {
