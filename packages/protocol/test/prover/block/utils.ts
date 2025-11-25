@@ -1,4 +1,8 @@
-import { LinkedMerkleTree, MAX_FIELD } from "@proto-kit/common";
+import {
+  LinkedMerkleTree,
+  MAX_FIELD,
+  InMemoryMerkleTreeStorage,
+} from "@proto-kit/common";
 import {
   Bool,
   Field,
@@ -8,6 +12,7 @@ import {
   UInt64,
   VerificationKey,
 } from "o1js";
+import { DummyStateService } from "@proto-kit/sequencer/src/state/state/DummyStateService";
 
 import {
   BlockHashMerkleTreeWitness,
@@ -26,15 +31,17 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
   WitnessedRootWitness,
+  RuntimeVerificationKeyRootService,
+  AccountStateHook,
+  BlockHeightHook,
+  BlockProver,
+  LastStateRootBlockHook,
+  Protocol,
 } from "../../../src";
-
-import { InMemoryMerkleTreeStorage } from "@proto-kit/common";
 import {
   VKTree,
   MethodVKConfigData,
 } from "../../../src/prover/block/accummulators/RuntimeVerificationKeyTree";
-import { RuntimeVerificationKeyRootService } from "../../../src";
-import { DummyStateService } from "@proto-kit/sequencer/src/state/state/DummyStateService";
 import {
   StateTransitionProvableBatch,
   MerkleWitnessBatch,
@@ -83,7 +90,7 @@ export async function createDummyStateTransitionProof(): Promise<StateTransition
     witnessedRootsHash: Field(0),
   });
 
-  const proof = new Proof<
+  return new Proof<
     StateTransitionProverPublicInput,
     StateTransitionProverPublicOutput
   >({
@@ -92,8 +99,6 @@ export async function createDummyStateTransitionProof(): Promise<StateTransition
     proof: "",
     maxProofsVerified: 2,
   });
-
-  return proof;
 }
 
 /**
@@ -159,7 +164,7 @@ export async function createStateTransitionProofWithTransitions(
     witnesses,
     currentAppliedBatch
   );
-  const proof = new Proof<
+  return new Proof<
     StateTransitionProverPublicInput,
     StateTransitionProverPublicOutput
   >({
@@ -168,8 +173,6 @@ export async function createStateTransitionProofWithTransitions(
     proof: "",
     maxProofsVerified: 2,
   });
-
-  return proof;
 }
 
 /**
@@ -191,17 +194,18 @@ export function createRuntimeTransactionWithProof(options?: {
   const networkState = options?.networkState ?? NetworkState.empty();
   const privateKey = PrivateKey.random();
   const publicKey = privateKey.toPublicKey();
-  const runtimeTx = options?.isMessage
-    ? RuntimeTransaction.fromMessage({
-        methodId,
-        argsHash,
-      })
-    : RuntimeTransaction.fromTransaction({
-        methodId: methodId,
-        sender: publicKey,
-        nonce: UInt64.from(0),
-        argsHash: argsHash,
-      });
+  const runtimeTx =
+    options?.isMessage ?? false
+      ? RuntimeTransaction.fromMessage({
+          methodId,
+          argsHash,
+        })
+      : RuntimeTransaction.fromTransaction({
+          methodId: methodId,
+          sender: publicKey,
+          nonce: UInt64.from(0),
+          argsHash: argsHash,
+        });
 
   const signatureData = [
     runtimeTx.methodId,
@@ -216,7 +220,7 @@ export function createRuntimeTransactionWithProof(options?: {
     stateTransitionsHash: Field(0),
     status: Bool(true),
     networkStateHash: networkState.hash(),
-    isMessage: Bool(options?.isMessage || false),
+    isMessage: Bool(options?.isMessage ?? false),
     eventsHash: Field(0),
   });
 
@@ -257,7 +261,15 @@ export function createBlockProverPublicInput(
 /**
  * Sets up VK attestation and injects tree root into service
  */
-export async function setupVerificationKeyAttestation(protocol: any): Promise<{
+export async function setupVerificationKeyAttestation(
+  protocol: Protocol<{
+    StateTransitionProver: typeof StateTransitionProver;
+    BlockProver: typeof BlockProver;
+    AccountState: typeof AccountStateHook;
+    BlockHeight: typeof BlockHeightHook;
+    LastStateRoot: typeof LastStateRootBlockHook;
+  }>
+): Promise<{
   verificationKeyAttestation: RuntimeVerificationKeyAttestation;
 }> {
   const vk = await VerificationKey.dummy();
@@ -275,8 +287,16 @@ export async function setupVerificationKeyAttestation(protocol: any): Promise<{
 /**
  * Sets up state service for transaction execution
  */
-export function setupStateService(protocol: any): DummyStateService {
-  const stateServiceProvider = protocol.stateServiceProvider;
+export function setupStateService(
+  protocol: Protocol<{
+    StateTransitionProver: typeof StateTransitionProver;
+    BlockProver: typeof BlockProver;
+    AccountState: typeof AccountStateHook;
+    BlockHeight: typeof BlockHeightHook;
+    LastStateRoot: typeof LastStateRootBlockHook;
+  }>
+): DummyStateService {
+  const { stateServiceProvider } = protocol;
   const dummyStateService = new DummyStateService();
   stateServiceProvider.setCurrentStateService(dummyStateService);
   return dummyStateService;
@@ -330,7 +350,13 @@ export function createTransactionProof(
  * Helper function to prove a block
  */
 export async function proveBlock(
-  protocol: any,
+  protocol: Protocol<{
+    StateTransitionProver: typeof StateTransitionProver;
+    BlockProver: typeof BlockProver;
+    AccountState: typeof AccountStateHook;
+    BlockHeight: typeof BlockHeightHook;
+    LastStateRoot: typeof LastStateRootBlockHook;
+  }>,
   options?: {
     isEmptyTransition?: boolean;
     deferSTProof?: boolean;
@@ -366,7 +392,7 @@ export async function proveBlock(
   const stProver = protocol.resolve("StateTransitionProver");
   const stProof =
     options?.stProof ??
-    (options?.isEmptyTransition
+    (options?.isEmptyTransition ?? false
       ? await createDummyStateTransitionProof()
       : await createStateTransitionProofWithTransitions(
           initialStateRoot,
@@ -389,7 +415,7 @@ export async function proveBlock(
     networkState,
     blockWitness,
     stProof,
-    Bool(options?.deferSTProof || false),
+    Bool(options?.deferSTProof ?? false),
     dummyWitnessRoot,
     transactionProof
   );
@@ -399,7 +425,13 @@ export async function proveBlock(
  * Helper function to prove a transaction
  */
 export async function proveTransaction(
-  protocol: any,
+  protocol: Protocol<{
+    StateTransitionProver: typeof StateTransitionProver;
+    BlockProver: typeof BlockProver;
+    AccountState: typeof AccountStateHook;
+    BlockHeight: typeof BlockHeightHook;
+    LastStateRoot: typeof LastStateRootBlockHook;
+  }>,
   options?: {
     initialStateRoot?: Field;
     networkState?: NetworkState;
@@ -431,7 +463,7 @@ export async function proveTransaction(
       isMessage,
     });
   const { verificationKeyAttestation: vk } =
-    options?.useInvalidVK
+    options?.useInvalidVK ?? false
       ? {
           verificationKeyAttestation: RuntimeVerificationKeyAttestation.empty(),
         }

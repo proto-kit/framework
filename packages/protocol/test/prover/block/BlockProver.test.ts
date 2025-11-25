@@ -27,8 +27,8 @@ import {
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "../../../src";
-
 import { createAndInitTestingProtocol } from "../../TestingProtocol";
+
 import {
   createBlockProverPublicInput,
   createDummyStateTransitionProof,
@@ -73,7 +73,7 @@ describe("BlockProver", () => {
 
     describe("Assertion Failures", () => {
       it("should fail when transactionsHash does not start from 0", async () => {
-        const errorMsg = `Transactionshash has to start at 0`;
+        const errorMsg = "Transactionshash has to start at 0";
         await expect(async () => {
           await proveBlock(protocol, {
             publicInputOverrides: { transactionsHash: Field(123) },
@@ -82,10 +82,9 @@ describe("BlockProver", () => {
       });
 
       it("should fail when transaction proof blockHashRoot (publicInput) is not empty", async () => {
-        const errorMsg = `TransactionProof cannot carry the blockHashRoot - publicInput`;
-
+        const errorMsg =
+          "TransactionProof cannot carry the blockHashRoot - publicInput";
         const stProof = await createDummyStateTransitionProof();
-
         const badTransactionProof = new Proof<
           BlockProverPublicInput,
           BlockProverPublicOutput
@@ -111,10 +110,9 @@ describe("BlockProver", () => {
       });
 
       it("should fail when blockHashRoot is not empty", async () => {
-        const errorMsg = `TransactionProof cannot carry the blockHashRoot - publicOutput`;
-
+        const errorMsg =
+          "TransactionProof cannot carry the blockHashRoot - publicOutput";
         const stProof = await createDummyStateTransitionProof();
-
         const badTransactionProof = new Proof<
           BlockProverPublicInput,
           BlockProverPublicOutput
@@ -130,7 +128,6 @@ describe("BlockProver", () => {
           maxProofsVerified: 2,
           proof: "",
         });
-
         await expect(async () => {
           await proveBlock(protocol, {
             stProof,
@@ -140,7 +137,7 @@ describe("BlockProver", () => {
       });
 
       it("should fail when transaction proof alter the network state", async () => {
-        const errorMsg = `TransactionProof cannot alter the network state`;
+        const errorMsg = "TransactionProof cannot alter the network state";
 
         const badNetworkState = new NetworkState({
           block: { height: UInt64.from(1) },
@@ -174,7 +171,8 @@ describe("BlockProver", () => {
       });
 
       it("should fail when networkStateHash mismatches in proveBlock", async () => {
-        const errorMsg = `ExecutionData Networkstate doesn't equal public input hash`;
+        const errorMsg =
+          "ExecutionData Networkstate doesn't equal public input hash";
         const badNetworkStateHash = new NetworkState({
           block: { height: UInt64.from(1) },
           previous: { rootHash: Field(1) },
@@ -188,7 +186,8 @@ describe("BlockProver", () => {
       });
 
       it("should fail when transaction proof networkStateHash does not match beforeBlock hook result", async () => {
-        const errorMsg = `TransactionProof networkstate hash not matching beforeBlock hook result`;
+        const errorMsg =
+          "TransactionProof networkstate hash not matching beforeBlock hook result";
 
         const stProof = await createDummyStateTransitionProof();
 
@@ -224,7 +223,7 @@ describe("BlockProver", () => {
       });
 
       it("should fail when transaction proof changes the state root", async () => {
-        const errorMsg = `TransactionProofs can't change the state root`;
+        const errorMsg = "TransactionProofs can't change the state root";
 
         const stProof = await createDummyStateTransitionProof();
 
@@ -251,7 +250,8 @@ describe("BlockProver", () => {
       });
 
       it("should fail when transaction proof does not start STs after beforeBlock hook", async () => {
-        const errorMsg = `Transaction proof doesn't start their STs after the beforeBlockHook`;
+        const errorMsg =
+          "Transaction proof doesn't start their STs after the beforeBlockHook";
 
         const initialStateRoot = Field(0);
         const stProof = await createStateTransitionProofWithTransitions(
@@ -320,7 +320,6 @@ describe("BlockProver", () => {
       it("should fail when state transition proof currentBatchStateHash is not empty at start", async () => {
         const errorMsg = "State for STProof has to be empty at the start";
         const initialStateRoot = Field(0);
-        const networkState = NetworkState.empty();
         const badSTProof = new Proof<
           StateTransitionProverPublicInput,
           StateTransitionProverPublicOutput
@@ -373,7 +372,6 @@ describe("BlockProver", () => {
       it("should fail when state transition proof currentBatchStateHash is not empty at end", async () => {
         const errorMsg = "State for STProof has to be empty at the end";
         const initialStateRoot = Field(0);
-        const networkState = NetworkState.empty();
         const badSTProof = new Proof<
           StateTransitionProverPublicInput,
           StateTransitionProverPublicOutput
@@ -649,18 +647,14 @@ describe("BlockProver", () => {
         const initialStateRoot = Field(0);
         const networkState = NetworkState.empty();
 
-        const {
-          runtimeTx,
-          runtimeProof,
-          signature: validSignature,
-        } = createRuntimeTransactionWithProof();
+        const { runtimeTx, runtimeProof } = createRuntimeTransactionWithProof();
 
         const { verificationKeyAttestation: vk } =
           await setupVerificationKeyAttestation(protocol);
 
         setupStateService(protocol);
 
-        const badSignature = Signature.empty();
+        const badSignature: Signature = Signature.empty() as Signature;
 
         const publicInput = createBlockProverPublicInput({
           stateRoot: initialStateRoot,
