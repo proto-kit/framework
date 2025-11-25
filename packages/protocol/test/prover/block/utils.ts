@@ -8,7 +8,6 @@ import {
   UInt64,
   VerificationKey,
 } from "o1js";
-import "reflect-metadata";
 
 import {
   BlockHashMerkleTreeWitness,
@@ -260,7 +259,6 @@ export function createBlockProverPublicInput(
  */
 export async function setupVerificationKeyAttestation(protocol: any): Promise<{
   verificationKeyAttestation: RuntimeVerificationKeyAttestation;
-  vk: VerificationKey;
 }> {
   const vk = await VerificationKey.dummy();
   const { attestation: verificationKeyAttestation, treeRoot } =
@@ -271,7 +269,7 @@ export async function setupVerificationKeyAttestation(protocol: any): Promise<{
   );
   vkService.setRoot(treeRoot);
 
-  return { verificationKeyAttestation, vk };
+  return { verificationKeyAttestation };
 }
 
 /**
@@ -284,41 +282,40 @@ export function setupStateService(protocol: any): DummyStateService {
   return dummyStateService;
 }
 
+export const DEFAULT_TRANSACTION = {
+  stateRoot: Field(0),
+  transactionsHash: Field(0),
+  eternalTransactionsHash: Field(0),
+  networkStateHash: NetworkState.empty().hash(),
+  blockNumber: MAX_FIELD,
+  pendingSTBatchesHash: Field(0),
+  incomingMessagesHash: Field(0),
+  witnessedRootsHash: Field(0),
+  blockHashRoot: Field(0),
+};
 /**
  * Helper function to create a transaction proof
  */
 export function createTransactionProof(
   initialStateRoot: Field,
-  networkStateHash: Field,
   pendingSTBatchesHash: Field,
   isEmpty: boolean = false
 ): Proof<BlockProverPublicInput, BlockProverPublicOutput> {
   const transactionInput = {
+    ...DEFAULT_TRANSACTION,
     stateRoot: initialStateRoot,
-    transactionsHash: Field(0),
-    eternalTransactionsHash: Field(0),
-    networkStateHash: networkStateHash,
-    blockNumber: MAX_FIELD,
-    pendingSTBatchesHash: Field(0),
-    incomingMessagesHash: Field(0),
-    witnessedRootsHash: Field(0),
-    blockHashRoot: Field(0),
   };
+
   const transactionProofPublicInput = new BlockProverPublicInput(
     transactionInput
   );
   const transactionProofOutput = isEmpty
     ? new BlockProverPublicOutput({ ...transactionInput, closed: Bool(false) })
     : new BlockProverPublicOutput({
-        stateRoot: initialStateRoot,
+        ...transactionInput,
         transactionsHash: Field(123),
         eternalTransactionsHash: Field(789),
-        networkStateHash: networkStateHash,
-        blockNumber: MAX_FIELD,
         pendingSTBatchesHash: pendingSTBatchesHash,
-        incomingMessagesHash: Field(0),
-        witnessedRootsHash: Field(0),
-        blockHashRoot: Field(0),
         closed: Bool(false),
       });
   return new Proof<BlockProverPublicInput, BlockProverPublicOutput>({
@@ -379,7 +376,6 @@ export async function proveBlock(
     options?.transactionProofOverride ??
     createTransactionProof(
       initialStateRoot,
-      networkState.hash(),
       stProof.publicOutput.batchesHash,
       options?.isEmptyTransition
     );
@@ -434,11 +430,10 @@ export async function proveTransaction(
       networkState,
       isMessage,
     });
-  const { verificationKeyAttestation: vk, vk: verificationKey } =
+  const { verificationKeyAttestation: vk } =
     options?.useInvalidVK
       ? {
           verificationKeyAttestation: RuntimeVerificationKeyAttestation.empty(),
-          vk: await VerificationKey.dummy(),
         }
       : await setupVerificationKeyAttestation(protocol);
 

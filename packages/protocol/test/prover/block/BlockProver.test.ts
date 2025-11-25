@@ -13,13 +13,7 @@
 
 /* eslint-enable max-len */
 import { MAX_FIELD } from "@proto-kit/common";
-import {
-  Bool,
-  Field,
-  Proof,
-  Signature,
-  UInt64,
-} from "o1js";
+import { Bool, Field, Proof, Signature, UInt64 } from "o1js";
 import "reflect-metadata";
 
 import {
@@ -35,7 +29,17 @@ import {
 } from "../../../src";
 
 import { createAndInitTestingProtocol } from "../../TestingProtocol";
-import { createBlockProverPublicInput, createDummyStateTransitionProof, createRuntimeTransactionWithProof, createStateTransitionProofWithTransitions, proveBlock, proveTransaction, setupStateService, setupVerificationKeyAttestation } from "./utils";
+import {
+  createBlockProverPublicInput,
+  createDummyStateTransitionProof,
+  createRuntimeTransactionWithProof,
+  createStateTransitionProofWithTransitions,
+  DEFAULT_TRANSACTION,
+  proveBlock,
+  proveTransaction,
+  setupStateService,
+  setupVerificationKeyAttestation,
+} from "./utils";
 
 describe("BlockProver", () => {
   const protocol = createAndInitTestingProtocol();
@@ -80,8 +84,6 @@ describe("BlockProver", () => {
       it("should fail when transaction proof blockHashRoot (publicInput) is not empty", async () => {
         const errorMsg = `TransactionProof cannot carry the blockHashRoot - publicInput`;
 
-        const initialStateRoot = Field(0);
-        const networkState = NetworkState.empty();
         const stProof = await createDummyStateTransitionProof();
 
         const badTransactionProof = new Proof<
@@ -89,26 +91,11 @@ describe("BlockProver", () => {
           BlockProverPublicOutput
         >({
           publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
+            ...DEFAULT_TRANSACTION,
             blockHashRoot: Field(123),
           }),
           publicOutput: new BlockProverPublicOutput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
+            ...DEFAULT_TRANSACTION,
             closed: Bool(false),
           }),
           maxProofsVerified: 2,
@@ -126,8 +113,6 @@ describe("BlockProver", () => {
       it("should fail when blockHashRoot is not empty", async () => {
         const errorMsg = `TransactionProof cannot carry the blockHashRoot - publicOutput`;
 
-        const initialStateRoot = Field(0);
-        const networkState = NetworkState.empty();
         const stProof = await createDummyStateTransitionProof();
 
         const badTransactionProof = new Proof<
@@ -135,25 +120,10 @@ describe("BlockProver", () => {
           BlockProverPublicOutput
         >({
           publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
+            ...DEFAULT_TRANSACTION,
           }),
           publicOutput: new BlockProverPublicOutput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
+            ...DEFAULT_TRANSACTION,
             blockHashRoot: Field(456),
             closed: Bool(false),
           }),
@@ -172,8 +142,6 @@ describe("BlockProver", () => {
       it("should fail when transaction proof alter the network state", async () => {
         const errorMsg = `TransactionProof cannot alter the network state`;
 
-        const initialStateRoot = Field(0);
-        const networkState = NetworkState.empty();
         const badNetworkState = new NetworkState({
           block: { height: UInt64.from(1) },
           previous: { rootHash: Field(1) },
@@ -186,26 +154,11 @@ describe("BlockProver", () => {
           BlockProverPublicOutput
         >({
           publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
+            ...DEFAULT_TRANSACTION,
           }),
           publicOutput: new BlockProverPublicOutput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
+            ...DEFAULT_TRANSACTION,
             networkStateHash: badNetworkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
             closed: Bool(false),
           }),
           maxProofsVerified: 2,
@@ -237,12 +190,8 @@ describe("BlockProver", () => {
       it("should fail when transaction proof networkStateHash does not match beforeBlock hook result", async () => {
         const errorMsg = `TransactionProof networkstate hash not matching beforeBlock hook result`;
 
-        const initialStateRoot = Field(0);
-        const networkState = NetworkState.empty();
         const stProof = await createDummyStateTransitionProof();
 
-        // Create a transaction proof with mismatched networkStateHash
-        // This should not match the beforeBlock hook result
         const badNetworkState = new NetworkState({
           block: { height: UInt64.from(1) },
           previous: { rootHash: Field(1) },
@@ -253,26 +202,13 @@ describe("BlockProver", () => {
           BlockProverPublicOutput
         >({
           publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
+            ...DEFAULT_TRANSACTION,
             networkStateHash: badNetworkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
           }),
           publicOutput: new BlockProverPublicOutput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
+            ...DEFAULT_TRANSACTION,
             eternalTransactionsHash: Field(123),
             networkStateHash: badNetworkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
             closed: Bool(false),
           }),
           maxProofsVerified: 2,
@@ -283,7 +219,6 @@ describe("BlockProver", () => {
           await proveBlock(protocol, {
             stProof,
             transactionProofOverride: badTransactionProof,
-            networkStateHash: networkState.hash(),
           });
         }).rejects.toThrow(errorMsg);
       });
@@ -291,35 +226,16 @@ describe("BlockProver", () => {
       it("should fail when transaction proof changes the state root", async () => {
         const errorMsg = `TransactionProofs can't change the state root`;
 
-        const initialStateRoot = Field(0);
-        const networkState = NetworkState.empty();
         const stProof = await createDummyStateTransitionProof();
 
         const badTransactionProof = new Proof<
           BlockProverPublicInput,
           BlockProverPublicOutput
         >({
-          publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
-          }),
+          publicInput: new BlockProverPublicInput(DEFAULT_TRANSACTION),
           publicOutput: new BlockProverPublicOutput({
+            ...DEFAULT_TRANSACTION,
             stateRoot: Field(999),
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
-            pendingSTBatchesHash: Field(0),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
             closed: Bool(false),
           }),
           maxProofsVerified: 2,
@@ -338,39 +254,24 @@ describe("BlockProver", () => {
         const errorMsg = `Transaction proof doesn't start their STs after the beforeBlockHook`;
 
         const initialStateRoot = Field(0);
-        const networkState = NetworkState.empty();
         const stProof = await createStateTransitionProofWithTransitions(
           initialStateRoot,
           protocol.resolve("StateTransitionProver")
         );
 
-        // Create a transaction proof with incorrect pendingSTBatchesHash
-        // It should match the state after beforeBlock hook, not before
         const badTransactionProof = new Proof<
           BlockProverPublicInput,
           BlockProverPublicOutput
         >({
           publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
+            ...DEFAULT_TRANSACTION,
             pendingSTBatchesHash: Field(999),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
           }),
           publicOutput: new BlockProverPublicOutput({
-            stateRoot: initialStateRoot,
+            ...DEFAULT_TRANSACTION,
             transactionsHash: Field(123),
             eternalTransactionsHash: Field(789),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
             pendingSTBatchesHash: stProof.publicOutput.batchesHash,
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
             closed: Bool(false),
           }),
           maxProofsVerified: 2,
@@ -444,26 +345,14 @@ describe("BlockProver", () => {
           BlockProverPublicOutput
         >({
           publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
+            ...DEFAULT_TRANSACTION,
             pendingSTBatchesHash: Field(999),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
           }),
           publicOutput: new BlockProverPublicOutput({
-            stateRoot: initialStateRoot,
+            ...DEFAULT_TRANSACTION,
             transactionsHash: Field(123),
             eternalTransactionsHash: Field(789),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
             pendingSTBatchesHash: Field(999),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
             closed: Bool(false),
           }),
           maxProofsVerified: 2,
@@ -509,26 +398,14 @@ describe("BlockProver", () => {
           BlockProverPublicOutput
         >({
           publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
+            ...DEFAULT_TRANSACTION,
             pendingSTBatchesHash: Field(999),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
           }),
           publicOutput: new BlockProverPublicOutput({
-            stateRoot: initialStateRoot,
+            ...DEFAULT_TRANSACTION,
             transactionsHash: Field(123),
             eternalTransactionsHash: Field(789),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
             pendingSTBatchesHash: Field(999),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
             closed: Bool(false),
           }),
           maxProofsVerified: 2,
@@ -578,7 +455,6 @@ describe("BlockProver", () => {
         const errorMsg = "from state root not matching";
         const initialStateRoot = Field(0);
         const badStateRoot = Field(999);
-        const networkState = NetworkState.empty();
 
         const badSTProof = new Proof<
           StateTransitionProverPublicInput,
@@ -604,26 +480,14 @@ describe("BlockProver", () => {
           BlockProverPublicOutput
         >({
           publicInput: new BlockProverPublicInput({
-            stateRoot: initialStateRoot,
-            transactionsHash: Field(0),
-            eternalTransactionsHash: Field(0),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
+            ...DEFAULT_TRANSACTION,
             pendingSTBatchesHash: Field(999),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
           }),
           publicOutput: new BlockProverPublicOutput({
-            stateRoot: initialStateRoot,
+            ...DEFAULT_TRANSACTION,
             transactionsHash: Field(123),
             eternalTransactionsHash: Field(789),
-            networkStateHash: networkState.hash(),
-            blockNumber: MAX_FIELD,
             pendingSTBatchesHash: Field(999),
-            incomingMessagesHash: Field(0),
-            witnessedRootsHash: Field(0),
-            blockHashRoot: Field(0),
             closed: Bool(false),
           }),
           maxProofsVerified: 2,
@@ -664,7 +528,7 @@ describe("BlockProver", () => {
       expect(result.transactionsHash.value).not.toEqual(Field(0).value);
       expect(result.pendingSTBatchesHash.value).not.toEqual(Field(0).value);
     });
-    it("should prove a message with empty signature", async () => {
+    it("should prove a message", async () => {
       const initialStateRoot = Field(0);
       const networkState = NetworkState.empty();
 
@@ -742,7 +606,6 @@ describe("BlockProver", () => {
         const initialStateRoot = Field(0);
         const networkState = NetworkState.empty();
         const methodId = Field(1);
-        const argsHash = Field(999);
 
         const { runtimeProof, signature } = createRuntimeTransactionWithProof();
 
@@ -751,10 +614,9 @@ describe("BlockProver", () => {
 
         setupStateService(protocol);
 
-        // Create execution data with a different transaction (different argsHash)
         const badTransaction = RuntimeTransaction.fromMessage({
           methodId,
-          argsHash: Field(888), // Different argsHash causes different hash
+          argsHash: Field(888),
         });
 
         const publicInput = createBlockProverPublicInput({
@@ -798,7 +660,6 @@ describe("BlockProver", () => {
 
         setupStateService(protocol);
 
-        // Create a bad signature
         const badSignature = Signature.empty();
 
         const publicInput = createBlockProverPublicInput({
