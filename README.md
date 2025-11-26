@@ -14,11 +14,13 @@
 
 </div>
 
-# 🚧 Protokit App Chain Framework
+# Protokit
 
 Welcome to the Protokit repository, a protocol development framework for privacy enabled application chains.
 
 Protokit enables developers to build zero-knowledge, interoperable and privacy preserving application chains with a minimal learning curve.
+
+It is powered by Mina as the settlement and bridging layer and uses o1js, the zkDSL built for Mina and Kimchi, it's proof system.
 
 ## 📖 Documentation
 
@@ -26,11 +28,11 @@ Find the documentation for protokit on [our website](https://protokit.dev)
 
 ## ⚡ Features
 
+- 🔗 Powered by [Mina](https://minaprotocol.com)
 - 🔐 Privacy Enabled
-- ♾️ Succint zkVM 
+- ♾️ Succinct zkVM 
 - 🖥️ Supercharged DevX
-- 🔧 Modular
-- 🤝 Interoperable
+- 🔧 Modular and highly customizable
 
 ## 📜 Other repositories
 
@@ -70,6 +72,7 @@ pnpm install
 pnpm run test --filter=chain -- --watchAll
 ```
 
+Visit the [starter kit](https://github.com/proto-kit/starter-kit) for more.
 
 ## 📚 License
 
