@@ -487,3 +487,37 @@ export async function proveTransaction(
     executionData
   );
 }
+
+/**
+ * Helper to create a BlockProverProof
+ */
+export function createBlockProof(
+  overrides: {
+    publicInput?: Partial<BlockProverPublicInput>;
+    publicOutput?: Partial<BlockProverPublicOutput>;
+  } = {}
+): Proof<BlockProverPublicInput, BlockProverPublicOutput> {
+  const defaults = {
+    stateRoot: Field(0),
+    transactionsHash: Field(0),
+    eternalTransactionsHash: Field(0),
+    networkStateHash: NetworkState.empty().hash(),
+    blockNumber: Field(0),
+    pendingSTBatchesHash: Field(0),
+    incomingMessagesHash: Field(0),
+    witnessedRootsHash: Field(0),
+    blockHashRoot: Field(0),
+  };
+  return new Proof<BlockProverPublicInput, BlockProverPublicOutput>({
+    publicInput: new BlockProverPublicInput({
+      ...defaults,
+      ...overrides.publicInput,
+    }),
+    publicOutput: new BlockProverPublicOutput({
+      ...{ ...defaults, closed: Bool(true), blockNumber: Field(1) },
+      ...overrides.publicOutput,
+    }),
+    maxProofsVerified: 2,
+    proof: "",
+  });
+}

@@ -30,6 +30,7 @@ import {
 import { createAndInitTestingProtocol } from "../../TestingProtocol";
 
 import {
+  createBlockProof,
   createBlockProverPublicInput,
   createDummyStateTransitionProof,
   createRuntimeTransactionWithProof,
@@ -741,6 +742,288 @@ describe("BlockProver", () => {
       expect(result.eternalTransactionsHash.value).not.toEqual(
         publicInput.eternalTransactionsHash.value
       );
+    });
+  });
+  describe("proofs Merging", () => {
+    it("should merge two closed block proofs", async () => {
+      const proof1 = createBlockProof({
+        publicInput: { blockNumber: Field(1) },
+        publicOutput: { blockNumber: Field(2), closed: Bool(true) },
+      });
+
+      const proof2 = createBlockProof({
+        publicInput: { blockNumber: Field(2) },
+        publicOutput: { blockNumber: Field(3), closed: Bool(true) },
+      });
+
+      const publicInput = createBlockProverPublicInput({
+        blockNumber: Field(1),
+      });
+
+      const blockProver = protocol.resolve("BlockProver");
+      const result = await blockProver.merge(publicInput, proof1, proof2);
+
+      expect(result).toBeDefined();
+      expect(result.closed.toBoolean()).toEqual(true);
+      expect(result.blockNumber).toEqual(Field(3));
+      expect(result.stateRoot).toEqual(proof2.publicOutput.stateRoot);
+    });
+    it("should merge two consecutive transaction proofs", async () => {
+      const proof1 = createBlockProof({
+        publicInput: { blockNumber: MAX_FIELD },
+        publicOutput: { closed: Bool(false) },
+      });
+      const proof2 = createBlockProof({
+        publicInput: proof1.publicOutput,
+        publicOutput: { blockNumber: MAX_FIELD, closed: Bool(false) },
+      });
+      const publicInput = createBlockProverPublicInput();
+      const blockProver = protocol.resolve("BlockProver");
+      const result = await blockProver.merge(publicInput, proof1, proof2);
+      expect(result).toBeDefined();
+      expect(result.stateRoot).toEqual(proof2.publicOutput.stateRoot);
+      expect(result.closed.toBoolean()).toEqual(false);
+      expect(result.blockNumber).toEqual(proof2.publicOutput.blockNumber);
+    });
+    describe("Assertion Failures", () => {
+      it("should fail when state roots do not match", async () => {
+        const errorMsg =
+          "StateRoots not matching: publicInput.from -> proof1.from";
+
+        const proof1 = createBlockProof({
+          publicInput: { stateRoot: Field(100) },
+        });
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { blockNumber: Field(2) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          stateRoot: Field(1),
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when state roots do not match between proofs", async () => {
+        const errorMsg = "StateRoots not matching: proof1.to -> proof2.from";
+
+        const proof1 = createBlockProof({
+          publicInput: { stateRoot: Field(100) },
+          publicOutput: { stateRoot: Field(100) },
+        });
+        const proof2 = createBlockProof({
+          publicInput: { ...proof1.publicOutput, stateRoot: Field(999) },
+          publicOutput: { blockNumber: Field(2) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          stateRoot: Field(100),
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when transactions hash does not match", async () => {
+        const errorMsg =
+          "Transactions hash not matching: publicInput.from -> proof1.from";
+
+        const proof1 = createBlockProof({
+          publicInput: { transactionsHash: Field(123), blockNumber: MAX_FIELD },
+          publicOutput: {
+            transactionsHash: Field(123),
+            blockNumber: MAX_FIELD,
+            closed: Bool(false),
+          },
+        });
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { closed: Bool(false) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          transactionsHash: Field(999),
+          blockNumber: MAX_FIELD,
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when network state hash does not match", async () => {
+        const errorMsg =
+          "Network state hash not matching: publicInput.from -> proof1.from";
+
+        const networkStateHash2 = new NetworkState({
+          block: { height: UInt64.from(1) },
+          previous: { rootHash: Field(1) },
+        }).hash();
+
+        const proof1 = createBlockProof();
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { blockNumber: Field(2) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          networkStateHash: networkStateHash2,
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when block hash root does not match", async () => {
+        const errorMsg =
+          "Transactions hash not matching: publicInput.from -> proof1.from";
+
+        const proof1 = createBlockProof();
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { blockNumber: Field(2) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          blockHashRoot: Field(999),
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when eternal transactions hash does not match", async () => {
+        const errorMsg =
+          "Transactions hash not matching: publicInput.from -> proof1.from";
+
+        const proof1 = createBlockProof();
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { blockNumber: Field(2) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          eternalTransactionsHash: Field(999),
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when incoming messages hash does not match", async () => {
+        const errorMsg =
+          "IncomingMessagesHash not matching: publicInput.from -> proof1.from";
+
+        const proof1 = createBlockProof();
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { blockNumber: Field(2) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          incomingMessagesHash: Field(999),
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when pending ST batches hash does not match", async () => {
+        const errorMsg =
+          "Transactions hash not matching: publicInput.from -> proof1.from";
+
+        const proof1 = createBlockProof();
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { blockNumber: Field(2) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          pendingSTBatchesHash: Field(999),
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when witnessed roots hash does not match", async () => {
+        const errorMsg =
+          "Transactions hash not matching: publicInput.from -> proof1.from";
+
+        const proof1 = createBlockProof();
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { blockNumber: Field(2) },
+        });
+
+        const publicInput = createBlockProverPublicInput({
+          witnessedRootsHash: Field(999),
+        });
+
+        const blockProver = protocol.resolve("BlockProver");
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when closed indicators do not match", async () => {
+        const errorMsg = "Closed indicators not matching";
+
+        const proof1 = createBlockProof({
+          publicOutput: { closed: Bool(false) },
+        });
+        const proof2 = createBlockProof({
+          publicInput: proof1.publicOutput,
+          publicOutput: { closed: Bool(true) },
+        });
+
+        const publicInput = createBlockProverPublicInput();
+        const blockProver = protocol.resolve("BlockProver");
+
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
+
+      it("should fail when merging with invalid block number progression", async () => {
+        const errorMsg = "Invalid BlockProof merge";
+
+        const blockNumber = Field(5);
+
+        const proof1 = createBlockProof({
+          publicInput: { blockNumber },
+          publicOutput: { blockNumber, closed: Bool(false) },
+        });
+
+        const proof2 = createBlockProof({
+          publicInput: { blockNumber },
+          publicOutput: { blockNumber, closed: Bool(false) },
+        });
+
+        const publicInput = createBlockProverPublicInput({ blockNumber });
+        const blockProver = protocol.resolve("BlockProver");
+
+        await expect(async () => {
+          await blockProver.merge(publicInput, proof1, proof2);
+        }).rejects.toThrow(errorMsg);
+      });
     });
   });
 });
