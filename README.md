@@ -42,9 +42,9 @@ Find the documentation for protokit on [our website](https://protokit.dev)
 ## ▶️ Quickstart
 
 The fastest way to start building with Protokit is to use the [starter kit](https://github.com/proto-kit/starter-kit).
-The starter kit provides a [monorepo](https://en.wikipedia.org/wiki/Monorepo1) aimed at kickstarting application chain development using the Protokit framework.
+The starter kit provides a [monorepo](https://en.wikipedia.org/wiki/Monorepo) aimed at kickstarting application chain development using the Protokit framework.
 
-<Steps>
+
 ### Install dependencies
 
 Before you can start building with Protokit, you need to install the following dependencies:
