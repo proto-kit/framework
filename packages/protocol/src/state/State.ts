@@ -9,6 +9,7 @@ import { StateTransition } from "../model/StateTransition";
 
 import { StateServiceProvider } from "./StateServiceProvider";
 import { RuntimeMethodExecutionContext } from "./context/RuntimeMethodExecutionContext";
+import { WitnessBlockContext } from "./WitnessBlockContext";
 
 export class WithPath {
   public path?: Field;
@@ -137,11 +138,17 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     this.hasPathOrFail();
 
-    const stateTransition = StateTransition.from(this.path, option);
+    const { isInWitnessBlock } = container.resolve(WitnessBlockContext);
 
-    container
-      .resolve(RuntimeMethodExecutionContext)
-      .addStateTransition(stateTransition);
+    // If we're inside a witness block, we only want to retrieve the state
+    // to use as a witness but not emit an ST
+    if (!isInWitnessBlock) {
+      const stateTransition = StateTransition.from(this.path, option);
+
+      container
+        .resolve(RuntimeMethodExecutionContext)
+        .addStateTransition(stateTransition);
+    }
 
     return option;
   }
@@ -169,6 +176,12 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       fromOption,
       toOption
     );
+
+    const { isInWitnessBlock } = container.resolve(WitnessBlockContext);
+
+    if (isInWitnessBlock) {
+      throw new Error("Cannot set state inside of provable block.");
+    }
 
     container
       .resolve(RuntimeMethodExecutionContext)
