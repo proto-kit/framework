@@ -7,10 +7,8 @@
 <!-- markdownlint-restore -->
 
 [![npm version](https://img.shields.io/npm/v/@proto-kit/sdk.svg?style=flat&logo=npm)](https://www.npmjs.com/package/o1js)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)]()
-
-[![PRs Welcome](https://img.shields.io/badge/Documentation-website-green.svg)](https://protokit.dev)
-[![Discord](https://img.shields.io/discord/1155929817070436362?color=green&logo=discord)](https://discord.gg/xdGf2ucppM)
+[![Documentation](https://img.shields.io/badge/Documentation-website-blue.svg)](https://protokit.dev)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-green.svg)]()
 
 </div>
 
