@@ -9,6 +9,7 @@ import { StateTransition } from "../model/StateTransition";
 
 import { StateServiceProvider } from "./StateServiceProvider";
 import { RuntimeMethodExecutionContext } from "./context/RuntimeMethodExecutionContext";
+import { WitnessBlockContext } from "./WitnessBlockContext";
 
 export class WithPath {
   public path?: Field;
@@ -35,57 +36,6 @@ export class WithStateServiceProvider {
     }
   }
 }
-
-@singleton()
-export class IsInWitnessBlockContext {
-  public witnessBlockDepth: number = 0;
-
-  public get isInWitnessBlock() {
-    return this.witnessBlockDepth > 0;
-  }
-}
-const asyncProxyWitnessFunction = (
-  originalFuncDef: typeof Provable.witnessAsync
-) => {
-  return async (...args: Parameters<typeof Provable.witnessAsync>) => {
-    const context = container.resolve(IsInWitnessBlockContext);
-    context.witnessBlockDepth += 1;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const ret = await originalFuncDef(...args);
-    context.witnessBlockDepth -= 1;
-    return ret;
-  };
-};
-
-const proxyWitnessFunction = (originalFuncDef: typeof Provable.witness) => {
-  return (...args: Parameters<typeof Provable.witness>) => {
-    const context = container.resolve(IsInWitnessBlockContext);
-    context.witnessBlockDepth += 1;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const ret = originalFuncDef(...args);
-    context.witnessBlockDepth -= 1;
-    return ret;
-  };
-};
-
-const proxyWitnessFieldsFunction = (originalFuncDef: any) => {
-  return (...args: Parameters<typeof Provable.witnessFields>) => {
-    const context = container.resolve(IsInWitnessBlockContext);
-    context.witnessBlockDepth += 1;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const ret = originalFuncDef(...args);
-    context.witnessBlockDepth -= 1;
-    return ret;
-  };
-};
-
-Provable.witnessAsync = asyncProxyWitnessFunction(Provable.witnessAsync);
-
-Provable.witness = proxyWitnessFunction(Provable.witness);
-
-Provable.witnessFields = proxyWitnessFieldsFunction(Provable.witnessFields);
 
 /**
  * Utilities for runtime module state, such as get/set
@@ -188,8 +138,10 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
 
     this.hasPathOrFail();
 
-    const { isInWitnessBlock } = container.resolve(IsInWitnessBlockContext);
+    const { isInWitnessBlock } = container.resolve(WitnessBlockContext);
 
+    // If we're inside a witness block, we only want to retrieve the state
+    // to use as a witness but not emit an ST
     if (!isInWitnessBlock) {
       const stateTransition = StateTransition.from(this.path, option);
 
@@ -225,7 +177,7 @@ export class State<Value> extends Mixin(WithPath, WithStateServiceProvider) {
       toOption
     );
 
-    const { isInWitnessBlock } = container.resolve(IsInWitnessBlockContext);
+    const { isInWitnessBlock } = container.resolve(WitnessBlockContext);
 
     if (isInWitnessBlock) {
       throw new Error("Cannot set state inside of provable block.");

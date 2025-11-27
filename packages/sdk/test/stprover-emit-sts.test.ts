@@ -66,6 +66,10 @@ describe("StateTransition", () => {
     appChain.setSigner(senderKey);
   });
 
+  afterEach(async () => {
+    await appChain.close();
+  });
+
   it("should emit no sts for get", async () => {
     const stateTester = appChain.runtime.resolve("StateTester");
     const context = container.resolve(RuntimeMethodExecutionContext);
