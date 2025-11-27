@@ -2,11 +2,13 @@ import {
   AreProofsEnabled,
   PlainZkProgram,
   provableMethod,
-  RollupMerkleTreeWitness,
   ZkProgrammable,
   CompilableModule,
   type ArtifactRecord,
   type CompileRegistry,
+  TreeWrite,
+  LinkedMerkleTreeCircuitOps,
+  LinkedMerkleTreeWitness,
 } from "@proto-kit/common";
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
@@ -98,12 +100,14 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             witnesses: MerkleWitnessBatch,
             currentAppliedBatch: AppliedStateTransitionBatchState
           ) {
-            return await instance.proveBatch(
-              publicInput,
-              batch,
-              witnesses,
-              currentAppliedBatch
-            );
+            return {
+              publicOutput: await instance.proveBatch(
+                publicInput,
+                batch,
+                witnesses,
+                currentAppliedBatch
+              ),
+            };
           },
         },
 
@@ -118,7 +122,9 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
             proof1: StateTransitionProof,
             proof2: StateTransitionProof
           ) {
-            return await instance.merge(publicInput, proof1, proof2);
+            return {
+              publicOutput: await instance.merge(publicInput, proof1, proof2),
+            };
           },
         },
       },
@@ -141,6 +147,27 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
         methods,
       },
     ];
+  }
+
+  private transitionToTreeWrite(
+    st: ProvableStateTransition,
+    witness: LinkedMerkleTreeWitness
+  ): TreeWrite {
+    // If from isSome isn't set, the user "ignored the previous value", i.e. we
+    // can assume the value in the witness is correct
+    const from = Provable.if(
+      st.from.isSome,
+      st.from.value,
+      witness.leafCurrent.leaf.value
+    );
+
+    // If the user doesn't want to write, we just carry over the from-value
+    const to = Provable.if(st.to.isSome, st.to.value, from);
+    return {
+      path: st.path,
+      from,
+      to,
+    };
   }
 
   /**
@@ -248,7 +275,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   public applyTransition(
     currentBatch: AppliedStateTransitionBatchState,
     transition: ProvableStateTransition,
-    witness: RollupMerkleTreeWitness,
+    witness: LinkedMerkleTreeWitness,
     index = 0
   ) {
     const impliedRoot = this.applyTransitionToRoot(
@@ -275,22 +302,17 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   private applyTransitionToRoot(
     transition: ProvableStateTransition,
     root: Field,
-    merkleWitness: RollupMerkleTreeWitness,
+    merkleWitness: LinkedMerkleTreeWitness,
     index: number
   ): Field {
-    const membershipValid = merkleWitness.checkMembership(
+    const treeWrite = this.transitionToTreeWrite(transition, merkleWitness);
+
+    return LinkedMerkleTreeCircuitOps.applyTreeWrite(
       root,
-      transition.path,
-      transition.from.value
+      merkleWitness,
+      treeWrite,
+      index
     );
-
-    membershipValid
-      .or(transition.from.isSome.not())
-      .assertTrue(errors.merkleWitnessNotCorrect(index));
-
-    const newRoot = merkleWitness.calculateRoot(transition.to.value);
-
-    return Provable.if(transition.to.isSome, newRoot, root);
   }
 
   /**
@@ -377,6 +399,7 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
       proof1.publicInput.root,
       errors.propertyNotMatching("root", "publicInput.from -> proof1.from")
     );
+
     proof1.publicOutput.root.assertEquals(
       proof2.publicInput.root,
       errors.propertyNotMatching("root", "proof1.to -> proof2.from")

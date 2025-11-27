@@ -18,6 +18,8 @@ import { FlowCreator } from "../../../worker/flow/Flow";
 import { NewBlockProvingParameters, NewBlockTask } from "../tasks/NewBlockTask";
 import { BlockReductionTask } from "../tasks/BlockReductionTask";
 import { BatchTrace } from "../tracing/BatchTracingService";
+import { Tracer } from "../../../logging/Tracer";
+import { trace } from "../../../logging/trace";
 
 import { ReductionTaskFlow } from "./ReductionTaskFlow";
 import { StateTransitionFlow } from "./StateTransitionFlow";
@@ -33,7 +35,9 @@ export class BatchFlow {
     private readonly stateTransitionFlow: StateTransitionFlow,
     private readonly blockFlow: BlockFlow,
     @inject("Protocol")
-    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>
+    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
+    @inject("Tracer")
+    public readonly tracer: Tracer
   ) {}
 
   private isBlockProofsMergable(a: BlockProof, b: BlockProof): boolean {
@@ -88,6 +92,7 @@ export class BatchFlow {
     );
   }
 
+  @trace("batch.prove", ([, batchId]) => ({ batchId }))
   public async executeBatch(batch: BatchTrace, batchId: number) {
     const batchFlow = new ReductionTaskFlow(
       {
@@ -104,9 +109,13 @@ export class BatchFlow {
       number,
       Nullable<NewBlockProvingParameters>
     > = Object.fromEntries(
-      batch.blocks.map((trace, i) => [
+      batch.blocks.map((blockTrace, i) => [
         i,
-        { params: trace.blockParams, input1: undefined, input2: undefined },
+        {
+          params: blockTrace.blockParams,
+          input1: undefined,
+          input2: undefined,
+        },
       ])
     );
 
@@ -125,8 +134,8 @@ export class BatchFlow {
       }
     );
 
-    await mapSequential(batch.blocks, async (trace, blockIndex) => {
-      await this.blockFlow.executeBlock(trace, async (proof) => {
+    await mapSequential(batch.blocks, async (blockTrace, blockIndex) => {
+      await this.blockFlow.executeBlock(blockTrace, async (proof) => {
         map[blockIndex].input2 = proof;
         await this.pushBlockInput(map[blockIndex], batchFlow);
       });

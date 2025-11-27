@@ -49,26 +49,22 @@ class TestBalances extends Balances {
 
 function createAppChain() {
   const appChain = new TestingAppChain({
-    Runtime: Runtime.from({
-      modules: VanillaRuntimeModules.with({
+    Runtime: Runtime.from(
+      VanillaRuntimeModules.with({
         Balances: TestBalances,
-      }),
-    }),
-    Protocol: Protocol.from({
-      modules: VanillaProtocolModules.with({}),
-    }),
-    Sequencer: Sequencer.from({
-      modules: InMemorySequencerModules.with({
+      })
+    ),
+    Protocol: Protocol.from(VanillaProtocolModules.with({})),
+    Sequencer: Sequencer.from(
+      InMemorySequencerModules.with({
         IndexerNotifier: IndexerNotifier,
-      }),
-    }),
+      })
+    ),
 
-    modules: {
-      Signer: InMemorySigner,
-      TransactionSender: InMemoryTransactionSender,
-      QueryTransportModule: StateServiceQueryModule,
-      NetworkStateTransportModule: BlockStorageNetworkStateModule,
-    },
+    Signer: InMemorySigner,
+    TransactionSender: InMemoryTransactionSender,
+    QueryTransportModule: StateServiceQueryModule,
+    NetworkStateTransportModule: BlockStorageNetworkStateModule,
   });
 
   appChain.configurePartial({
@@ -170,6 +166,7 @@ describe.skip("IndexerNotifier", () => {
       addTask: addTaskSpy,
       onCompleted: jest.fn(async () => 5),
       close: jest.fn(async () => {}),
+      drain: jest.fn(async () => {}),
     };
   });
 

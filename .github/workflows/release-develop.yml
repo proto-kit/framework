@@ -10,16 +10,17 @@ on:
     branches:
       - develop
   
+permissions:
+  id-token: write
 
-jobs:     
+jobs:
   release:
     runs-on: ubuntu-latest
     environment: develop
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 22.9.0
           cache: npm
@@ -30,16 +31,8 @@ jobs:
       - name: "Build"
         run: npm run build
 
-      - name: "NPM Identity"
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
-
       - name: Run Lerna Release
         run: npm run publish:canary
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Trigger website build & deployment
         env:

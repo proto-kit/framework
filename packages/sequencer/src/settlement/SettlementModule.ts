@@ -15,7 +15,7 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
-  TokenContractV2,
+  TokenContract,
   Transaction,
 } from "o1js";
 import { inject } from "tsyringe";
@@ -47,10 +47,16 @@ import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermi
 import { SettlementUtils } from "./utils/SettlementUtils";
 import { BridgingModule } from "./BridgingModule";
 
-export interface SettlementModuleConfig {
+export type SettlementModuleConfig = {
   feepayer: PrivateKey;
-  address?: PublicKey;
-}
+} & {
+  // TODO Add possibility to only configure public keys (for proven operation)
+  keys?: {
+    settlement: PrivateKey;
+    dispatch: PrivateKey;
+    minaBridge: PrivateKey;
+  };
+};
 
 export type SettlementModuleEvents = {
   "settlement-submitted": [Batch];
@@ -66,12 +72,7 @@ export class SettlementModule
     dispatch: DispatchSmartContract;
   };
 
-  public addresses?: {
-    settlement: PublicKey;
-    dispatch: PublicKey;
-  };
-
-  public keys?: {
+  private keys?: {
     settlement: PrivateKey;
     dispatch: PrivateKey;
     minaBridge: PrivateKey;
@@ -113,21 +114,35 @@ export class SettlementModule
     );
   }
 
-  private getContractKeys(): PrivateKey[] {
-    if (this.keys === undefined) {
+  public getContractKeys(): {
+    settlement: PrivateKey;
+    dispatch: PrivateKey;
+    minaBridge: PrivateKey;
+  } {
+    const keys = this.keys ?? this.config.keys;
+    if (keys === undefined) {
       throw new Error("Contracts not initialized yet");
     }
-    return [this.keys.dispatch, this.keys.settlement];
+    return keys;
+  }
+
+  public getContractSigningKeys() {
+    return Object.values(this.getContractKeys());
+  }
+
+  public getAddresses() {
+    const keys = this.getContractKeys();
+    return {
+      settlement: keys.settlement.toPublicKey(),
+      dispatch: keys.dispatch.toPublicKey(),
+    };
   }
 
   public getContracts() {
     if (this.contracts === undefined) {
-      const { addresses, protocol } = this;
-      if (addresses === undefined) {
-        throw new Error(
-          "Settlement Contract hasn't been deployed yet. Deploy it first, then restart"
-        );
-      }
+      const addresses = this.getAddresses();
+      const { protocol } = this;
+
       const settlementContractModule = protocol.dependencyContainer.resolve<
         SettlementContractModule<MandatorySettlementModulesRecord>
       >("SettlementContractModule");
@@ -144,9 +159,16 @@ export class SettlementModule
 
   public signTransaction(
     tx: Transaction<false, false>,
-    pks: PrivateKey[]
+    pks: PrivateKey[],
+    tokenContractKeys: PrivateKey[] = [],
+    preventNoncePreconditionFor: PublicKey[] = []
   ): Transaction<false, true> {
-    return this.utils.signTransaction(tx, pks, this.getContractKeys());
+    return this.utils.signTransaction(
+      tx,
+      pks,
+      this.getContractSigningKeys().concat(tokenContractKeys),
+      preventNoncePreconditionFor
+    );
   }
 
   private async fetchContractAccounts() {
@@ -204,12 +226,12 @@ export class SettlementModule
       }
     );
 
-    this.utils.signTransaction(tx, [feepayer], this.getContractKeys());
+    this.utils.signTransaction(tx, [feepayer], this.getContractSigningKeys());
 
     const { hash: transactionHash } =
       await this.transactionSender.proveAndSendTransaction(tx, "included");
 
-    log.info("Settlement transaction send queued");
+    log.info("Settlement transaction sent and included");
 
     const settlement = {
       batches: [batch.height],
@@ -280,10 +302,6 @@ export class SettlementModule
     // cached accounts / local blockchain
     await this.transactionSender.proveAndSendTransaction(tx, "included");
 
-    this.addresses = {
-      settlement: settlementKey.toPublicKey(),
-      dispatch: dispatchKey.toPublicKey(),
-    };
     this.keys = {
       settlement: settlementKey,
       dispatch: dispatchKey,
@@ -315,7 +333,7 @@ export class SettlementModule
       // Specify the mina bridge key here explicitly, since initialize() will issue
       // a account update to that address and by default new accounts have a signature permission
       [feepayerKey, minaBridgeKey],
-      [...this.getContractKeys(), minaBridgeKey]
+      [...this.getContractSigningKeys(), minaBridgeKey]
     );
 
     await this.transactionSender.proveAndSendTransaction(
@@ -325,7 +343,7 @@ export class SettlementModule
   }
 
   public async deployTokenBridge(
-    owner: TokenContractV2,
+    owner: TokenContract,
     ownerKey: PrivateKey,
     contractKey: PrivateKey,
     options: {
@@ -334,7 +352,7 @@ export class SettlementModule
   ) {
     const feepayerKey = this.config.feepayer;
     const feepayer = feepayerKey.toPublicKey();
-    const nonce = options?.nonce ?? 0;
+    const nonce = options?.nonce ?? undefined;
 
     const tokenId = owner.deriveTokenId();
     const { settlement, dispatch } = this.getContracts();
@@ -362,7 +380,7 @@ export class SettlementModule
       // Specify the mina bridge key here explicitly, since deploy() will issue
       // a account update to that address and by default new accounts have a signature permission
       [feepayerKey, contractKey],
-      [...this.getContractKeys(), ownerKey]
+      [...this.getContractSigningKeys(), ownerKey]
     );
 
     await this.transactionSender.proveAndSendTransaction(txSigned, "included");

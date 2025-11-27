@@ -36,7 +36,7 @@ const map = new MerkleMap();
 const witness = map.getWitness(Field(0));
 
 async function foo(publicInput: Field) {
-  return Field(0);
+  return { publicOutput: Field(0) };
 }
 const program = ZkProgram({
   name: "parametersTestProgram",

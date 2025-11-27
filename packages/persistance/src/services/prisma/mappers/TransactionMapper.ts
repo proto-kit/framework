@@ -66,6 +66,7 @@ export class TransactionExecutionResultMapper
     return {
       tx: this.transactionMapper.mapIn(input[1]),
       status: Bool(executionResult.status),
+      hooksStatus: Bool(executionResult.hooksStatus),
       statusMessage: executionResult.statusMessage ?? undefined,
       stateTransitions: this.stBatchMapper.mapIn(
         executionResult.stateTransitions
@@ -80,6 +81,7 @@ export class TransactionExecutionResultMapper
     const tx = this.transactionMapper.mapOut(input.tx);
     const executionResult = {
       status: input.status.toBoolean(),
+      hooksStatus: input.hooksStatus.toBoolean(),
       statusMessage: input.statusMessage ?? null,
       stateTransitions: this.stBatchMapper.mapOut(input.stateTransitions),
       events: this.eventArrayMapper.mapOut(input.events),

@@ -50,6 +50,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
           flowId: data.flowId,
           name: data.name,
           payload: await task.resultSerializer().toJSON(output),
+          sequencerId: data.sequencerId,
         };
 
         log.debug(
@@ -70,6 +71,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
           flowId: data.flowId,
           name: data.name,
           payload,
+          sequencerId: data.sequencerId,
         };
       }
     });
@@ -93,7 +95,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       log.debug(`Preparing task ${task.constructor.name}`);
       // eslint-disable-next-line no-await-in-loop
       await task.prepare();
-      log.trace(`${task.constructor.name} prepared`);
+      log.debug(`${task.constructor.name} prepared`);
     }
 
     const newWorkers = Object.fromEntries(
@@ -105,6 +107,8 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
       ...this.workers,
       ...newWorkers,
     };
+
+    log.info("All tasks prepared and ready");
 
     this.prepareResolve!();
   }

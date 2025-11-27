@@ -1,16 +1,18 @@
 import "reflect-metadata";
 import { afterAll, beforeAll, describe, expect } from "@jest/globals";
-import { expectDefined } from "@proto-kit/common";
+import { expectDefined, log } from "@proto-kit/common";
 import { BalancesKey, TokenId } from "@proto-kit/library";
 import { NetworkState } from "@proto-kit/protocol";
 import { AppChainTransaction } from "@proto-kit/sdk";
 import { Block, Batch } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
 import { container } from "tsyringe";
+import { testBlockProduction } from "@proto-kit/sequencer/test/integration/BlockProduction-test";
 
 import {
   PrismaBatchStore,
   PrismaBlockStorage,
+  PrismaRedisDatabase,
   PrismaTransactionStorage,
 } from "../src";
 
@@ -20,11 +22,24 @@ import {
   prepareBlock,
 } from "./utils";
 
+describe("Prisma block production", () => {
+  const { prismaConfig, redisConfig } = IntegrationTestDBConfig;
+  testBlockProduction(PrismaRedisDatabase, {
+    prisma: {
+      connection: prismaConfig,
+      log: [{ level: "query", emit: "event" }],
+    },
+    redis: redisConfig,
+  });
+});
+
 describe("prisma integration", () => {
   let appChain: ReturnType<typeof createPrismaAppchain>;
 
   const sender = PrivateKey.random();
   let senderNonce = 0;
+
+  log.setLevel("TRACE");
 
   const setup = async () => {
     const { prismaConfig, redisConfig } = IntegrationTestDBConfig;
@@ -37,10 +52,6 @@ describe("prisma integration", () => {
     });
 
     await appChain.start(false, container.createChildContainer());
-
-    const db = appChain.sequencer.resolve("Database");
-    await db.prisma.pruneDatabase();
-    await db.redis.pruneDatabase();
 
     senderNonce = 0;
   };
@@ -62,7 +73,7 @@ describe("prisma integration", () => {
       [block, batch] = await appChain.sequencer
         .resolve("BlockTrigger")
         .produceBlockAndBatch();
-    }, 30000);
+    }, 60_000);
 
     afterAll(async () => {
       await teardown();
@@ -190,7 +201,7 @@ describe("prisma integration", () => {
         expectDefined(block2);
         expectDefined(batch2);
         expect(block2.transactions).toHaveLength(1);
-      }, 30000);
+      }, 60_000);
 
       it("should retrieve correct balance for account 2", async () => {
         const balance = await appChain.query.runtime.Balances.balances.get(

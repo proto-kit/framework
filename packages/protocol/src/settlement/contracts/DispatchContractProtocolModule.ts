@@ -67,7 +67,9 @@ export class DispatchContractProtocolModule extends ContractModule<
       throw new Error("Reference to Settlement Contract not set");
     }
     return {
-      DispatchSmartContract: await registry.compile(DispatchSmartContract),
+      DispatchSmartContract: await registry.forceProverExists(
+        async () => await registry.compile(DispatchSmartContract)
+      ),
     };
   }
 }

@@ -21,6 +21,8 @@ import {
   MethodPublicOutput,
   toBeforeTransactionHookArgument,
   toAfterTransactionHookArgument,
+  ProvableStateTransition,
+  DefaultProvableHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { AreProofsEnabled, log, mapSequential } from "@proto-kit/common";
@@ -30,7 +32,6 @@ import {
   RuntimeModule,
   RuntimeModulesRecord,
   toEventsHash,
-  toStateTransitionsHash,
 } from "@proto-kit/module";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import zip from "lodash/zip";
@@ -42,6 +43,8 @@ import {
   TransactionExecutionResult,
 } from "../../../storage/model/Block";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
+import { trace } from "../../../logging/trace";
+import { Tracer } from "../../../logging/Tracer";
 
 const errors = {
   methodIdNotFound: (methodId: string) =>
@@ -140,6 +143,18 @@ function extractEvents(
   );
 }
 
+// TODO Also use this in tracing as a replacement of toStateTransitionHash
+export function toStateTransitionHashNonProvable(
+  stateTransitions: StateTransition<unknown>[]
+) {
+  const reduced = reduceStateTransitions(stateTransitions);
+  const list = new DefaultProvableHashList(ProvableStateTransition);
+
+  reduced.map((st) => st.toProvable()).forEach((st) => list.push(st));
+
+  return list.commitment;
+}
+
 export async function executeWithExecutionContext<MethodResult>(
   method: () => Promise<MethodResult>,
   contextInputs: RuntimeMethodExecutionData,
@@ -171,7 +186,7 @@ export async function executeWithExecutionContext<MethodResult>(
   };
 }
 
-function traceSTs(msg: string, stateTransitions: StateTransition<any>[]) {
+function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
   log.trace(
     msg,
     JSON.stringify(
@@ -182,6 +197,14 @@ function traceSTs(msg: string, stateTransitions: StateTransition<any>[]) {
   );
 }
 
+export type TransactionExecutionResultStatus =
+  | {
+      result: TransactionExecutionResult;
+      status: "included";
+    }
+  | { tx: PendingTransaction; status: "skipped" }
+  | { tx: PendingTransaction; status: "shouldRemove" };
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionExecutionService {
@@ -189,19 +212,28 @@ export class TransactionExecutionService {
 
   private readonly blockProver: BlockProverProgrammable;
 
+  private readonly txHooks: ProvableTransactionHook[];
+
   public constructor(
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Protocol")
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
     // Coming in from the appchain scope (accessible by protocol & runtime)
     @inject("StateServiceProvider")
-    private readonly stateServiceProvider: StateServiceProvider
+    private readonly stateServiceProvider: StateServiceProvider,
+    @inject("Tracer")
+    public readonly tracer: Tracer
   ) {
     this.transactionHooks = protocol.dependencyContainer.resolveAll(
       "ProvableTransactionHook"
     );
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     this.blockProver = (protocol.blockProver as BlockProver).zkProgrammable;
+
+    this.txHooks =
+      protocol.dependencyContainer.resolveAll<ProvableTransactionHook>(
+        "ProvableTransactionHook"
+      );
   }
 
   private async executeRuntimeMethod(
@@ -252,25 +284,20 @@ export class TransactionExecutionService {
       runSimulated
     );
 
-    if (!result.status.toBoolean()) {
-      const error = new Error(
-        `Protocol hooks not executable: ${result.statusMessage ?? "unknown"}`
-      );
-      log.debug("Protocol hook error stack trace:", result.stackTrace);
-      // Propagate stack trace from the assertion
-      throw error;
-    }
-
-    traceSTs(`${hookName} STs:`, result.stateTransitions);
+    traceLogSTs(`${hookName} STs:`, result.stateTransitions);
 
     return result;
   }
 
   private buildSTBatches(
     transitions: StateTransition<unknown>[][],
-    runtimeStatus: Bool
+    {
+      runtime: runtimeStatus,
+      hooks: hooksStatus,
+    }: { runtime: boolean; hooks: boolean }
   ): StateTransitionBatch[] {
-    const statuses = [true, runtimeStatus.toBoolean(), false];
+    // TODO Why is the last one false by default?
+    const statuses = [hooksStatus, runtimeStatus && hooksStatus, false];
     const reducedTransitions = transitions.map((batch) =>
       reduceStateTransitions(batch).map((transition) =>
         UntypedStateTransition.fromStateTransition(transition)
@@ -287,12 +314,111 @@ export class TransactionExecutionService {
     );
   }
 
+  public addTransactionToBlockProverState(
+    state: BlockTrackers,
+    tx: PendingTransaction
+  ): BlockTrackers {
+    const signedTransaction = tx.toProtocolTransaction();
+    // Add tx to commitments
+    return this.blockProver.addTransactionToBundle(
+      state,
+      Bool(tx.isMessage),
+      signedTransaction.transaction
+    );
+  }
+
+  // eslint-disable-next-line sonarjs/cognitive-complexity
+  public async createExecutionTraces(
+    asyncStateService: CachedStateService,
+    transactions: PendingTransaction[],
+    networkState: NetworkState,
+    state: BlockTrackers
+  ): Promise<{
+    blockState: BlockTrackers;
+    executionResults: TransactionExecutionResultStatus[];
+  }> {
+    let blockState = state;
+    const executionResults: TransactionExecutionResultStatus[] = [];
+
+    const networkStateHash = networkState.hash();
+
+    for (const tx of transactions) {
+      try {
+        const newState = this.addTransactionToBlockProverState(blockState, tx);
+
+        // Create execution trace
+        const { result: executionTrace, shouldRemove } =
+          // eslint-disable-next-line no-await-in-loop
+          await this.createExecutionTrace(
+            asyncStateService,
+            tx,
+            { networkState, hash: networkStateHash },
+            blockState,
+            newState
+          );
+
+        // If the hooks fail AND the tx is not a message (in which case we
+        // have to still execute it), we skip this tx and don't add it to the block
+        if (
+          !executionTrace.hooksStatus.toBoolean() &&
+          !executionTrace.tx.isMessage
+        ) {
+          const actionMessage = shouldRemove
+            ? "removing as to removeWhen hooks"
+            : "skipping";
+          log.error(
+            `Error in inclusion of tx, ${actionMessage}: Protocol hooks not executable: ${executionTrace.statusMessage ?? "unknown reason"}`
+          );
+          executionResults.push({
+            tx,
+            status: shouldRemove ? "shouldRemove" : "skipped",
+          });
+        } else {
+          blockState = newState;
+
+          // Push result to results and transaction onto bundle-hash
+          executionResults.push({ result: executionTrace, status: "included" });
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          log.error("Error in inclusion of tx, dropping", error);
+          executionResults.push({ tx, status: "shouldRemove" });
+        }
+      }
+    }
+
+    return { blockState, executionResults };
+  }
+
+  private async shouldRemove(
+    state: CachedStateService,
+    args: BeforeTransactionHookArguments
+  ) {
+    this.stateServiceProvider.setCurrentStateService(state);
+
+    const returnValues = await mapSequential(this.transactionHooks, (hook) =>
+      hook.removeTransactionWhen(args)
+    );
+
+    this.stateServiceProvider.popCurrentStateService();
+    return returnValues.some((x) => x);
+  }
+
+  @trace("block.transaction", ([, tx, { networkState }]) => ({
+    height: networkState.block.height.toString(),
+    methodId: tx.methodId.toString(),
+    isMessage: tx.isMessage,
+  }))
   public async createExecutionTrace(
     asyncStateService: CachedStateService,
     tx: PendingTransaction,
-    networkState: NetworkState,
-    state: BlockTrackers
-  ): Promise<[BlockTrackers, TransactionExecutionResult]> {
+    {
+      networkState,
+      hash: networkStateHash,
+    }: { networkState: NetworkState; hash: Field },
+    state: BlockTrackers,
+    newState: BlockTrackers
+  ): Promise<{ result: TransactionExecutionResult; shouldRemove: boolean }> {
     // TODO Use RecordingStateService -> async asProver needed
     const recordingStateService = new CachedStateService(asyncStateService);
 
@@ -319,10 +445,16 @@ export class TransactionExecutionService {
       networkState,
       state
     );
-    const beforeTxHookResult = await this.executeProtocolHooks(
-      beforeTxArguments,
-      async (hook, hookArgs) => await hook.beforeTransaction(hookArgs),
-      "beforeTx"
+    const beforeTxHookResult = await this.tracer.trace(
+      "block.transaction.before.execute",
+      () =>
+        this.executeProtocolHooks(
+          beforeTxArguments,
+          async (hook, hookArgs) => {
+            await hook.beforeTransaction(hookArgs);
+          },
+          "beforeTx"
+        )
     );
     const beforeHookEvents = extractEvents(beforeTxHookResult, "beforeTxHook");
 
@@ -330,12 +462,11 @@ export class TransactionExecutionService {
       beforeTxHookResult.stateTransitions
     );
 
-    const runtimeResult = await this.executeRuntimeMethod(
-      method,
-      args,
-      runtimeContextInputs
+    const runtimeResult = await this.tracer.trace(
+      "block.transaction.execute",
+      () => this.executeRuntimeMethod(method, args, runtimeContextInputs)
     );
-    traceSTs("STs:", runtimeResult.stateTransitions);
+    traceLogSTs("STs:", runtimeResult.stateTransitions);
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
@@ -345,11 +476,9 @@ export class TransactionExecutionService {
       );
     }
 
-    // Add runtime to commitments
-    const newState = this.blockProver.addTransactionToBundle(
-      state,
-      Bool(tx.isMessage),
-      signedTransaction.transaction
+    const eventsHash = toEventsHash(runtimeResult.events);
+    const stateTransitionsHash = toStateTransitionHashNonProvable(
+      runtimeResult.stateTransitions
     );
 
     // Execute afterTransaction hook
@@ -359,27 +488,41 @@ export class TransactionExecutionService {
       newState,
       new MethodPublicOutput({
         status: runtimeResult.status,
-        networkStateHash: networkState.hash(),
+        networkStateHash: networkStateHash,
         isMessage: Bool(tx.isMessage),
         transactionHash: tx.hash(),
-        eventsHash: toEventsHash(runtimeResult.events),
-        stateTransitionsHash: toStateTransitionsHash(
-          runtimeResult.stateTransitions
-        ),
+        eventsHash,
+        stateTransitionsHash,
       })
     );
 
-    const afterTxHookResult = await this.executeProtocolHooks(
-      afterTxArguments,
-      async (hook, hookArgs) => await hook.afterTransaction(hookArgs),
-      "afterTx"
+    const afterTxHookResult = await this.tracer.trace(
+      "block.transaction.after.execute",
+      () =>
+        this.executeProtocolHooks(
+          afterTxArguments,
+          async (hook, hookArgs) => await hook.afterTransaction(hookArgs),
+          "afterTx"
+        )
     );
     const afterHookEvents = extractEvents(afterTxHookResult, "afterTxHook");
     await recordingStateService.applyStateTransitions(
       afterTxHookResult.stateTransitions
     );
 
-    await recordingStateService.mergeIntoParent();
+    const txHooksValid =
+      beforeTxHookResult.status.toBoolean() &&
+      afterTxHookResult.status.toBoolean();
+    let shouldRemove = false;
+    if (txHooksValid) {
+      await recordingStateService.mergeIntoParent();
+    } else {
+      // Execute removeWhen to determine whether it should be dropped
+      shouldRemove = await this.shouldRemove(
+        asyncStateService,
+        beforeTxArguments
+      );
+    }
 
     // Reset global stateservice
     this.stateServiceProvider.popCurrentStateService();
@@ -395,19 +538,23 @@ export class TransactionExecutionService {
         runtimeResult.stateTransitions,
         afterTxHookResult.stateTransitions,
       ],
-      runtimeResult.status
+      { runtime: runtimeResult.status.toBoolean(), hooks: txHooksValid }
     );
 
-    return [
-      state,
-      {
+    return {
+      result: {
         tx,
+        hooksStatus: Bool(txHooksValid),
         status: runtimeResult.status,
-        statusMessage: runtimeResult.statusMessage,
+        statusMessage:
+          beforeTxHookResult.statusMessage ??
+          afterTxHookResult.statusMessage ??
+          runtimeResult.statusMessage,
 
         stateTransitions,
         events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
       },
-    ];
+      shouldRemove,
+    };
   }
 }

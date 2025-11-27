@@ -19,6 +19,23 @@ model State {
   mask   String    @db.VarChar(256)
 
   @@id([path, mask])
+  // We only need equality for the path
+  @@index([path], type: Hash)
+  @@index([mask, path], type: BTree)
+}
+
+model LinkedLeaf {
+  index    Decimal @db.Decimal(78, 0)
+  path     Decimal @db.Decimal(78, 0)
+  value    Decimal @db.Decimal(78, 0)
+  nextPath Decimal @db.Decimal(78, 0)
+  mask     String
+
+  @@id([index, mask])
+  // We need a btree here, because we need to support queries with < and > for finding previous lmt leaves for inserting
+  @@index([index], type: BTree)
+  @@index([path], type: BTree)
+  @@index([nextPath], type: BTree)
 }
 
 model Transaction {
@@ -45,6 +62,7 @@ model TransactionExecutionResult {
   status           Boolean
   statusMessage    String?
   events           Json    @db.Json
+  hooksStatus      Boolean
 
   tx     Transaction @relation(fields: [txHash], references: [hash])
   txHash String      @id

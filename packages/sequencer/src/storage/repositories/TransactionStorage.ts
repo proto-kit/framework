@@ -5,6 +5,8 @@ export interface TransactionStorage {
 
   getPendingUserTransactions: () => Promise<PendingTransaction[]>;
 
+  removeTx: (txHashes: string[], type: "included" | "dropped") => Promise<void>;
+
   /**
    * Finds a transaction by its hash.
    * It returns both pending transaction and already included transactions

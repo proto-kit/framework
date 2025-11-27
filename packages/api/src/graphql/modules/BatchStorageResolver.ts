@@ -1,10 +1,6 @@
 import { inject } from "tsyringe";
 import { Arg, Field, ObjectType, Query } from "type-graphql";
-import {
-  Batch,
-  BatchStorage,
-  HistoricalBatchStorage,
-} from "@proto-kit/sequencer";
+import { Batch, BatchStorage } from "@proto-kit/sequencer";
 import { MOCK_PROOF } from "@proto-kit/common";
 
 import { graphqlModule, GraphqlModule } from "../GraphqlModule";
@@ -12,12 +8,12 @@ import { graphqlModule, GraphqlModule } from "../GraphqlModule";
 import { BlockModel, BlockResolver } from "./BlockResolver";
 
 @ObjectType()
-export class ComputedBlockModel {
+export class BatchModel {
   public static fromServiceLayerModel(
     { blockHashes, proof }: Batch,
     blocks: (BlockModel | undefined)[]
-  ): ComputedBlockModel {
-    return new ComputedBlockModel(
+  ): BatchModel {
+    return new BatchModel(
       blockHashes.map(
         (blockHash) => blocks.find((block) => block?.hash === blockHash)!
       ),
@@ -39,16 +35,15 @@ export class ComputedBlockModel {
 
 @graphqlModule()
 export class BatchStorageResolver extends GraphqlModule {
-  // TODO seperate these two block interfaces
   public constructor(
     @inject("BatchStorage")
-    private readonly batchStorage: BatchStorage & HistoricalBatchStorage,
+    private readonly batchStorage: BatchStorage,
     private readonly blockResolver: BlockResolver
   ) {
     super();
   }
 
-  @Query(() => ComputedBlockModel, {
+  @Query(() => BatchModel, {
     nullable: true,
     description:
       "Returns previously computed batches of blocks used for settlement",
@@ -72,7 +67,7 @@ export class BatchStorageResolver extends GraphqlModule {
           this.blockResolver.block(undefined, blockHash)
         )
       );
-      return ComputedBlockModel.fromServiceLayerModel(batch, blocks);
+      return BatchModel.fromServiceLayerModel(batch, blocks);
     }
     return undefined;
   }

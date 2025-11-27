@@ -171,7 +171,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Apply beforeTransaction hook state transitions
     const beforeBatch = await this.executeTransactionHooks(
       async (module, args) => await module.beforeTransaction(args),
-      beforeTxHookArguments
+      beforeTxHookArguments,
+      isMessage
     );
 
     state = this.addTransactionToBundle(
@@ -200,7 +201,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     const afterBatch = await this.executeTransactionHooks(
       async (module, args) => await module.afterTransaction(args),
-      afterTxHookArguments
+      afterTxHookArguments,
+      isMessage
     );
     state.pendingSTBatches.push(afterBatch);
 
@@ -266,20 +268,31 @@ export class BlockProverProgrammable extends ZkProgrammable<
     T extends BeforeTransactionHookArguments | AfterTransactionHookArguments,
   >(
     hook: (module: ProvableTransactionHook<unknown>, args: T) => Promise<void>,
-    hookArguments: T
+    hookArguments: T,
+    isMessage: Bool
   ) {
-    const { batch } = await this.executeHooks(hookArguments, async () => {
-      for (const module of this.transactionHooks) {
-        // eslint-disable-next-line no-await-in-loop
-        await hook(module, hookArguments);
-      }
-    });
+    const { batch, rawStatus } = await this.executeHooks(
+      hookArguments,
+      async () => {
+        for (const module of this.transactionHooks) {
+          // eslint-disable-next-line no-await-in-loop
+          await hook(module, hookArguments);
+        }
+      },
+      isMessage
+    );
+
+    // This is going to set applied to false in case the hook fails
+    // (that's only possible for messages though as others are hard-asserted)
+    batch.applied = rawStatus;
+
     return batch;
   }
 
   private async executeHooks<T>(
     contextArguments: RuntimeMethodExecutionData,
-    method: () => Promise<T>
+    method: () => Promise<T>,
+    isMessage: Bool | undefined = undefined
   ) {
     const executionContext = container.resolve(RuntimeMethodExecutionContext);
     executionContext.clear();
@@ -297,11 +310,23 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const { stateTransitions, status, statusMessage } =
       executionContext.current().result;
 
-    status.assertTrue(`Transaction hook call failed: ${statusMessage ?? "-"}`);
+    // See https://github.com/proto-kit/framework/issues/321 for why we do this here
+    if (isMessage !== undefined) {
+      // isMessage is defined for all tx hooks
+      status
+        .or(isMessage)
+        .assertTrue(
+          `Transaction hook call failed for non-message tx: ${statusMessage ?? "-"}`
+        );
+    } else {
+      // isMessage is undefined for all block hooks
+      status.assertTrue(`Block hook call failed: ${statusMessage ?? "-"}`);
+    }
 
     return {
       batch: this.constructBatch(stateTransitions, Bool(true)),
       result,
+      rawStatus: status,
     };
   }
 
@@ -357,7 +382,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     // Append tx to eternal transaction list
     // TODO Change that to the a sequence-state compatible transaction struct
-    state.eternalTransactionsList.pushIf(transactionHash, isMessage.not());
+    state.eternalTransactionsList.push(transactionHash);
 
     // Append tx to incomingMessagesHash
     const actionHash = MinaActions.actionHash(transaction.hashData());
@@ -504,13 +529,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "Batcheshash doesn't start at 0"
     );
 
-    // Assert from state roots
+    // Assert from state root
     assertEqualsIf(
       stateRoot,
       stateTransitionProof.publicInput.root,
       apply,
       errors.propertyNotMatching("from state root")
     );
+
     // Assert the stBatchesHash executed is the same
     assertEqualsIf(
       pendingSTBatchesHash,
@@ -931,11 +957,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
             runtimeProof: DynamicRuntimeProof,
             executionData: BlockProverSingleTransactionExecutionData
           ) {
-            return await proveTransaction(
-              publicInput,
-              runtimeProof,
-              executionData
-            );
+            return {
+              publicOutput: await proveTransaction(
+                publicInput,
+                runtimeProof,
+                executionData
+              ),
+            };
           },
         },
 
@@ -952,12 +980,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
             runtimeProof2: DynamicRuntimeProof,
             executionData: BlockProverMultiTransactionExecutionData
           ) {
-            return await proveTransactions(
-              publicInput,
-              runtimeProof1,
-              runtimeProof2,
-              executionData
-            );
+            return {
+              publicOutput: await proveTransactions(
+                publicInput,
+                runtimeProof1,
+                runtimeProof2,
+                executionData
+              ),
+            };
           },
         },
 
@@ -979,15 +1009,17 @@ export class BlockProverProgrammable extends ZkProgrammable<
             afterBlockRootWitness: WitnessedRootWitness,
             transactionProof: BlockProverProof
           ) {
-            return await proveBlock(
-              publicInput,
-              networkState,
-              blockWitness,
-              stateTransitionProof,
-              deferSTs,
-              afterBlockRootWitness,
-              transactionProof
-            );
+            return {
+              publicOutput: await proveBlock(
+                publicInput,
+                networkState,
+                blockWitness,
+                stateTransitionProof,
+                deferSTs,
+                afterBlockRootWitness,
+                transactionProof
+              ),
+            };
           },
         },
 
@@ -1002,7 +1034,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             proof1: BlockProverProof,
             proof2: BlockProverProof
           ) {
-            return await merge(publicInput, proof1, proof2);
+            return { publicOutput: await merge(publicInput, proof1, proof2) };
           },
         },
       },
@@ -1074,12 +1106,11 @@ export class BlockProver
   public async compile(
     registry: CompileRegistry
   ): Promise<Record<string, CompileArtifact> | undefined> {
-    await registry.forceProverExists(async () => {
+    return await registry.forceProverExists(async () => {
       await this.stateTransitionProver.compile(registry);
       await this.runtime.compile(registry);
+      return await this.zkProgrammable.compile(registry);
     });
-
-    return await this.zkProgrammable.compile(registry);
   }
 
   public proveTransaction(

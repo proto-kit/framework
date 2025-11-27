@@ -2,20 +2,21 @@ import { log } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
-import { AppChain } from "@proto-kit/sdk";
 import { Bool, PrivateKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
+import { afterEach } from "@jest/globals";
 
 import {
   ManualBlockTrigger,
   PrivateMempool,
   Sequencer,
   VanillaTaskWorkerModules,
+  AppChain,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
-  testingSequencerFromModules,
+  testingSequencerModules,
 } from "../TestingSequencer";
 
 import { Balance } from "./mocks/Balance";
@@ -37,6 +38,7 @@ describe("block limit", () => {
     NoopRuntime: typeof NoopRuntime;
   }>;
   let sequencer: Sequencer<DefaultTestingSequencerModules>;
+  let appchain: AppChain<any>;
 
   let blockTrigger: ManualBlockTrigger;
   let mempool: PrivateMempool;
@@ -44,31 +46,23 @@ describe("block limit", () => {
   log.setLevel(log.levels.INFO);
 
   const runtimeClass = Runtime.from({
-    modules: {
-      Balance,
-      NoopRuntime,
-    },
-
-    config: {
-      Balance: {},
-      NoopRuntime: {},
-    },
+    Balance,
+    NoopRuntime,
   });
 
   async function setUpAppChain(maxBlockSize: number | undefined) {
-    const sequencerClass = testingSequencerFromModules({});
+    const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-    const protocolClass = Protocol.from({
-      modules: VanillaProtocolModules.mandatoryModules({
+    const protocolClass = Protocol.from(
+      VanillaProtocolModules.mandatoryModules({
         ProtocolStateTestHook,
-      }),
-    });
+      })
+    );
 
     const app = AppChain.from({
       Runtime: runtimeClass,
       Sequencer: sequencerClass,
       Protocol: protocolClass,
-      modules: {},
     });
     log.setLevel("TRACE");
 
@@ -76,7 +70,9 @@ describe("block limit", () => {
       Sequencer: {
         Database: {},
         BlockTrigger: {},
-        Mempool: {},
+        Mempool: {
+          validationEnabled: true,
+        },
         BatchProducerModule: {},
         BlockProducerModule: {
           maximumBlockSize: maxBlockSize,
@@ -85,7 +81,6 @@ describe("block limit", () => {
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},
-        ProtocolStartupModule: {},
         SequencerStartupModule: {},
       },
       Runtime: {
@@ -106,6 +101,7 @@ describe("block limit", () => {
     await app.start(false, container.createChildContainer());
 
     ({ runtime, sequencer } = app);
+    appchain = app;
 
     mempool = sequencer.resolve("Mempool");
 
@@ -122,6 +118,10 @@ describe("block limit", () => {
       await mempool.add(tx);
     }
   }
+
+  afterEach(async () => {
+    await appchain.close();
+  });
 
   it.each([
     [5, 5],
@@ -142,6 +142,6 @@ describe("block limit", () => {
       expect(block).toBeDefined();
       expect(block!.transactions).toHaveLength(maxValue);
     },
-    30000
+    60_000
   );
 });

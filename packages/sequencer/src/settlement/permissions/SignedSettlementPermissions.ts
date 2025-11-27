@@ -17,8 +17,20 @@ export class SignedSettlementPermissions
     };
   }
 
+  private dispatchSignature() {
+    return {
+      ...Permissions.default(),
+      editState: Permissions.signature(),
+      send: Permissions.signature(),
+      editActionState: Permissions.none(),
+      // set access permission, to prevent unauthorized token operations
+      // access: Permissions.proofOrSignature(),
+      access: Permissions.none(),
+    };
+  }
+
   public dispatchContract(): Permissions {
-    return this.onlySignature();
+    return this.dispatchSignature();
   }
 
   public settlementContract(): Permissions {

@@ -12,13 +12,11 @@ import { IndexBlockTask } from "../src/tasks/IndexBlockTask";
 
 describe("IndexBlockTask", () => {
   const indexer = Indexer.from({
-    modules: {
-      Database: InMemoryDatabase,
-      TaskQueue: LocalTaskQueue,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from({
-        IndexBlockTask: IndexBlockTask,
-      }),
-    },
+    Database: InMemoryDatabase,
+    TaskQueue: LocalTaskQueue,
+    LocalTaskWorkerModule: LocalTaskWorkerModule.from({
+      IndexBlockTask: IndexBlockTask,
+    }),
   });
 
   indexer.configurePartial({
@@ -43,6 +41,7 @@ describe("IndexBlockTask", () => {
       name: indexBlockTask.name,
       payload,
       flowId: "",
+      sequencerId: "test-sequencer",
     };
 
     await queue.addTask(task);

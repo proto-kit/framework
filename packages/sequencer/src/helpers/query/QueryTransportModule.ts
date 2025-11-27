@@ -1,7 +1,9 @@
 import { Field } from "o1js";
-import { RollupMerkleTreeWitness } from "@proto-kit/common";
+import { LinkedMerkleTreeReadWitness } from "@proto-kit/common";
 
 export interface QueryTransportModule {
   get: (key: Field) => Promise<Field[] | undefined>;
-  merkleWitness: (key: Field) => Promise<RollupMerkleTreeWitness | undefined>;
+  merkleWitness: (
+    key: Field
+  ) => Promise<LinkedMerkleTreeReadWitness | undefined>;
 }

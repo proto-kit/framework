@@ -3,22 +3,35 @@ import { spawn, ChildProcess } from "node:child_process";
 export class ChildProcessWorker {
   process?: ChildProcess;
 
-  start(forwardLogs: boolean = true) {
-    const s = spawn("node", [
-      "--experimental-vm-modules",
-      "--experimental-wasm-modules",
-      "../../node_modules/jest/bin/jest.js",
-      "./test-integration/workers/worker.test.ts",
-    ]);
+  start(forwardLogs: boolean = true, env_args: Record<string, string> = {}) {
+    const s = spawn(
+      "node",
+      [
+        "--experimental-vm-modules",
+        "--experimental-wasm-modules",
+        "../../node_modules/jest/bin/jest.js",
+        "./test-integration/workers/worker.test.ts",
+      ],
+      {
+        env: {
+          ...process.env,
+          IS_SPAWNED_PROCESS: "true",
+          ...env_args,
+        },
+      }
+    );
     s.on("error", (err) => {
+      // eslint-disable-next-line no-console
       console.error(err);
     });
     if (forwardLogs) {
       s.stdout.on("data", (data) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         process.stdout.write(data);
       });
     }
     s.stderr.on("data", (data) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       process.stderr.write(data);
     });
 
@@ -27,6 +40,7 @@ export class ChildProcessWorker {
 
   kill() {
     this.process!.kill("SIGKILL");
+    // eslint-disable-next-line no-console
     console.log("Killed", this.process!.killed);
   }
 }

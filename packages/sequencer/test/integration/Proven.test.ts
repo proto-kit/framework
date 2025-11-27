@@ -16,18 +16,19 @@ import {
   SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
-import { AppChain, InMemoryAreProofsEnabled } from "@proto-kit/sdk";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 
-import { testingSequencerFromModules } from "../TestingSequencer";
+import { testingSequencerModules } from "../TestingSequencer";
 import {
   MinaBaseLayer,
   ProvenSettlementPermissions,
+  Sequencer,
   SettlementModule,
   SettlementProvingTask,
   VanillaTaskWorkerModules,
-  WithdrawalQueue,
+  AppChain,
+  InMemoryAreProofsEnabled,
 } from "../../src";
 import { SettlementStartupModule } from "../../src/sequencer/SettlementStartupModule";
 
@@ -40,54 +41,51 @@ const timeout = 300000;
 describe.skip("Proven", () => {
   let test: BlockTestService;
 
-  let appChain: AppChain<any, any, any, any>;
+  let appChain: ReturnType<typeof createAppChain>;
+
+  function createAppChain() {
+    const runtimeClass = Runtime.from({
+      Balances: ProvenBalance,
+    });
+
+    const sequencerClass = Sequencer.from(
+      testingSequencerModules(
+        {
+          BaseLayer: MinaBaseLayer,
+          SettlementModule,
+        },
+        {
+          SettlementProvingTask,
+        }
+      )
+    );
+
+    // TODO Analyze how we can get rid of the library import for mandatory modules
+    const protocolClass = Protocol.from({
+      ...VanillaProtocolModules.mandatoryModules({
+        ProtocolStateTestHook,
+        // ProtocolStateTestHook2,
+      }),
+      SettlementContractModule: SettlementContractModule.with({
+        // FungibleToken: FungibleTokenContractModule,
+        // FungibleTokenAdmin: FungibleTokenAdminContractModule,
+      }),
+      // modules: VanillaProtocolModules.with({}),
+    });
+
+    return AppChain.from({
+      Runtime: runtimeClass,
+      Sequencer: sequencerClass,
+      Protocol: protocolClass,
+    });
+  }
 
   it(
     "should start up and compile",
     async () => {
       log.setLevel(log.levels.DEBUG);
-      const runtimeClass = Runtime.from({
-        modules: {
-          Balances: ProvenBalance,
-        },
 
-        config: {
-          Balances: {},
-        },
-      });
-
-      const sequencerClass = testingSequencerFromModules(
-        {
-          BaseLayer: MinaBaseLayer,
-          SettlementModule,
-          OutgoingMessageQueue: WithdrawalQueue,
-        },
-        {
-          SettlementProvingTask,
-        }
-      );
-
-      // TODO Analyze how we can get rid of the library import for mandatory modules
-      const protocolClass = Protocol.from({
-        modules: {
-          ...VanillaProtocolModules.mandatoryModules({
-            ProtocolStateTestHook,
-            // ProtocolStateTestHook2,
-          }),
-          SettlementContractModule: SettlementContractModule.with({
-            // FungibleToken: FungibleTokenContractModule,
-            // FungibleTokenAdmin: FungibleTokenAdminContractModule,
-          }),
-        },
-        // modules: VanillaProtocolModules.with({}),
-      });
-
-      const app = AppChain.from({
-        Runtime: runtimeClass,
-        Sequencer: sequencerClass,
-        Protocol: protocolClass,
-        modules: {},
-      });
+      const app = createAppChain();
 
       app.configure({
         Sequencer: {
@@ -105,8 +103,10 @@ describe.skip("Proven", () => {
               type: "local",
             },
           },
-          SettlementModule: {},
-          OutgoingMessageQueue: {},
+          SettlementModule: {
+            // TODO
+            feepayer: PrivateKey.random(),
+          },
         },
         Runtime: {
           Balances: {},
@@ -120,10 +120,7 @@ describe.skip("Proven", () => {
           ProtocolStateTestHook: {},
           SettlementContractModule: {
             SettlementContract: {},
-            BridgeContract: {
-              withdrawalStatePath: "Withdrawals.withdrawals",
-              withdrawalEventName: "withdrawal",
-            },
+            BridgeContract: {},
             DispatchContract: {
               incomingMessagesMethods: {
                 deposit: "Balances.deposit",

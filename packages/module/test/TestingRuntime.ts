@@ -13,9 +13,7 @@ export function createTestingRuntime<Modules extends RuntimeModulesRecord>(
 } {
   const state = new InMemoryStateService();
 
-  const Runtimeclass = Runtime.from({
-    modules,
-  });
+  const Runtimeclass = Runtime.from(modules);
   const runtime = new Runtimeclass();
 
   runtime.configure(config);

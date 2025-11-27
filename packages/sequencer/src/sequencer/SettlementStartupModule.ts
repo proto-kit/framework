@@ -53,12 +53,12 @@ export class SettlementStartupModule {
       settlementVerificationKey === undefined ||
       dispatchVerificationKey === undefined
     ) {
-      if (!retry) {
+      if (retry) {
         log.info(
           "Settlement Contracts not yet compiled, initializing compilation"
         );
         await this.compile();
-        return await this.getArtifacts(true);
+        return await this.getArtifacts(false);
       }
       throw new Error(
         "Settlement contract verification keys not available for deployment"
@@ -72,6 +72,6 @@ export class SettlementStartupModule {
   }
 
   public async retrieveVerificationKeys() {
-    return await this.getArtifacts(false);
+    return await this.getArtifacts(true);
   }
 }

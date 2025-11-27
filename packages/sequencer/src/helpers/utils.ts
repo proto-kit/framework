@@ -46,12 +46,14 @@ abstract class ProofTaskSerializerBase<PublicInputType, PublicOutputType> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const publicInput: PublicInputType =
       this.proofClassInternal.publicInputType.fromFields(
-        jsonProof.publicInput.map(Field)
+        jsonProof.publicInput.map(Field),
+        []
       );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const publicOutput: PublicOutputType =
       this.proofClassInternal.publicOutputType.fromFields(
-        jsonProof.publicOutput.map(Field)
+        jsonProof.publicOutput.map(Field),
+        []
       );
     // eslint-disable-next-line new-cap
     return new c({

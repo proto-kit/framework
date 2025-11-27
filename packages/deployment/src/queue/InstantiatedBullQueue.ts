@@ -25,7 +25,7 @@ export class InstantiatedBullQueue implements InstantiatedQueue {
   }
 
   public async addTask(payload: TaskPayload): Promise<{ taskId: string }> {
-    log.debug("Adding task: ", payload);
+    log.trace("Adding task: ", payload);
     const job = await this.queue.add(this.name, payload, {
       attempts: this.options.retryAttempts ?? 2,
     });
@@ -37,7 +37,7 @@ export class InstantiatedBullQueue implements InstantiatedQueue {
       await this.events.waitUntilReady();
 
       this.events.on("completed", async (result) => {
-        log.debug("Completed task: ", result);
+        log.trace("Completed task: ", result);
         try {
           await this.listeners.executeListeners(
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -60,6 +60,10 @@ export class InstantiatedBullQueue implements InstantiatedQueue {
 
   async offCompleted(listenerId: number) {
     this.listeners.removeListener(listenerId);
+  }
+
+  async drain() {
+    await this.queue.drain();
   }
 
   async close(): Promise<void> {

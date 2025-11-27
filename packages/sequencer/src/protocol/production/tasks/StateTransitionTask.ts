@@ -15,7 +15,7 @@ import {
   log,
   ProvableMethodExecutionContext,
   CompileRegistry,
-  RollupMerkleTreeWitness,
+  LinkedMerkleTreeWitness,
 } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
@@ -28,7 +28,7 @@ export interface StateTransitionProofParameters {
   publicInput: StateTransitionProverPublicInput;
   batch: StateTransitionProvableBatch;
   batchState: AppliedStateTransitionBatchState;
-  merkleWitnesses: RollupMerkleTreeWitness[];
+  merkleWitnesses: LinkedMerkleTreeWitness[];
 }
 
 @injectable()

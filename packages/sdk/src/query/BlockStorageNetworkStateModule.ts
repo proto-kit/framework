@@ -1,17 +1,13 @@
 import { inject, injectable } from "tsyringe";
 import {
   BlockStorage,
-  HistoricalBlockStorage,
-  HistoricalBatchStorage,
   NetworkStateTransportModule,
-  Sequencer,
-  SequencerModulesRecord,
   BlockQueue,
   BatchStorage,
+  AppChainModule,
 } from "@proto-kit/sequencer";
 import { NetworkState } from "@proto-kit/protocol";
-
-import { AppChainModule } from "../appChain/AppChainModule";
+import { ModuleContainerLike } from "@proto-kit/common";
 
 @injectable()
 export class BlockStorageNetworkStateModule
@@ -20,7 +16,7 @@ export class BlockStorageNetworkStateModule
 {
   public constructor(
     @inject("Sequencer")
-    private readonly sequencer: Sequencer<SequencerModulesRecord>
+    private readonly sequencer: ModuleContainerLike
   ) {
     super();
   }
@@ -29,16 +25,16 @@ export class BlockStorageNetworkStateModule
     return this.sequencer.dependencyContainer.resolve<BlockQueue>("BlockQueue");
   }
 
-  private get unprovenStorage(): BlockStorage & HistoricalBlockStorage {
-    return this.sequencer.dependencyContainer.resolve<
-      BlockStorage & HistoricalBlockStorage
-    >("BlockStorage");
+  private get unprovenStorage(): BlockStorage {
+    return this.sequencer.dependencyContainer.resolve<BlockStorage>(
+      "BlockStorage"
+    );
   }
 
-  private get provenStorage(): BatchStorage & HistoricalBatchStorage {
-    return this.sequencer.dependencyContainer.resolve<
-      BatchStorage & HistoricalBatchStorage
-    >("BatchStorage");
+  private get provenStorage(): BatchStorage {
+    return this.sequencer.dependencyContainer.resolve<BatchStorage>(
+      "BatchStorage"
+    );
   }
 
   public async getUnprovenNetworkState(): Promise<NetworkState | undefined> {

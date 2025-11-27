@@ -280,3 +280,18 @@ class ReferenceObject<T> {
 export function createReference<T>(initial: T): Reference<T> {
   return new ReferenceObject(initial);
 }
+
+export namespace BigIntMath {
+  export function max(...args: bigint[]) {
+    return args.reduce((m, e) => (e > m ? e : m));
+  }
+}
+
+export function assertDefined<T>(
+  t: T | undefined,
+  msg?: string
+): asserts t is T {
+  if (t === undefined) {
+    throw new Error(msg ?? "Value is undefined");
+  }
+}

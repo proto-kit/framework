@@ -10,6 +10,7 @@ import {
   ArtifactRecord,
   ChildVerificationKeyService,
   CompileRegistry,
+  AreProofsEnabled,
 } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../worker/flow/Flow";
@@ -19,6 +20,9 @@ import {
   CompilerTaskParams,
 } from "../protocol/production/tasks/CircuitCompilerTask";
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
+import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
+import { SettlementUtils } from "../settlement/utils/SettlementUtils";
+import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
@@ -36,7 +40,11 @@ export class SequencerStartupModule
     private readonly compileTask: CircuitCompilerTask,
     private readonly verificationKeyService: VerificationKeyService,
     private readonly registrationFlow: WorkerRegistrationFlow,
-    private readonly compileRegistry: CompileRegistry
+    private readonly compileRegistry: CompileRegistry,
+    @inject("BaseLayer", { isOptional: true })
+    private readonly baseLayer: MinaBaseLayer | undefined,
+    @inject("AreProofsEnabled")
+    private readonly areProofsEnabled: AreProofsEnabled
   ) {
     super();
   }
@@ -73,12 +81,17 @@ export class SequencerStartupModule
     return root;
   }
 
-  private async compileProtocolAndBridge(flow: Flow<{}>) {
+  private async compileProtocolAndBridge(
+    flow: Flow<{}>,
+    runtimeVkTreeRoot: bigint,
+    isSignedSettlement?: boolean
+  ) {
     // Can happen in parallel
     type ParallelResult = {
       protocol?: ArtifactRecord;
       bridge?: ArtifactRecord;
     };
+
     const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
       const results: ParallelResult = {};
 
@@ -94,7 +107,7 @@ export class SequencerStartupModule
         {
           existingArtifacts: {},
           targets: ["protocol"],
-          runtimeVKRoot: undefined,
+          runtimeVKRoot: runtimeVkTreeRoot.toString(),
         },
         async (protocolResult) => {
           results.protocol = protocolResult;
@@ -108,6 +121,7 @@ export class SequencerStartupModule
           existingArtifacts: {},
           targets: ["Settlement.BridgeContract"],
           runtimeVKRoot: undefined,
+          isSignedSettlement,
         },
         async (bridgeResult) => {
           results.bridge = bridgeResult;
@@ -126,11 +140,33 @@ export class SequencerStartupModule
       .resolve(ChildVerificationKeyService)
       .setCompileRegistry(this.compileRegistry);
 
+    // TODO Find a way to generalize this or at least make it nicer - too much logic here
+    const isSignedSettlement =
+      this.baseLayer !== undefined && !(this.baseLayer instanceof NoopBaseLayer)
+        ? new SettlementUtils(
+            this.areProofsEnabled,
+            this.baseLayer
+          ).isSignedSettlement()
+        : undefined;
+
     log.info("Compiling Protocol circuits, this can take a few minutes");
+
+    const timeout = setTimeout(
+      () => {
+        log.error(
+          "No response yet received from workers - have you configured a TaskQueue and a corresponding worker running (either in-process or somewhere else)"
+        );
+      },
+      this.areProofsEnabled.areProofsEnabled ? 20 * 60 * 1000 : 30 * 1000
+    );
 
     const root = await this.compileRuntime(flow);
 
-    const protocolBridgeArtifacts = await this.compileProtocolAndBridge(flow);
+    const protocolBridgeArtifacts = await this.compileProtocolAndBridge(
+      flow,
+      root,
+      isSignedSettlement
+    );
 
     log.info("Protocol circuits compiled");
 
@@ -145,9 +181,12 @@ export class SequencerStartupModule
       runtimeVerificationKeyRoot: root,
       bridgeContractVerificationKey: bridgeVk?.verificationKey,
       compiledArtifacts: this.compileRegistry.getAllArtifacts(),
+      isSignedSettlement,
     });
 
     log.info("Protocol circuits compiled successfully, commencing startup");
+
+    clearTimeout(timeout);
   }
 
   public async close() {

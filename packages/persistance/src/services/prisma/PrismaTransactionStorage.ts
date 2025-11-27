@@ -1,5 +1,10 @@
 import { inject, injectable } from "tsyringe";
-import { PendingTransaction, TransactionStorage } from "@proto-kit/sequencer";
+import {
+  PendingTransaction,
+  trace,
+  Tracer,
+  TransactionStorage,
+} from "@proto-kit/sequencer";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
@@ -9,9 +14,11 @@ import { TransactionMapper } from "./mappers/TransactionMapper";
 export class PrismaTransactionStorage implements TransactionStorage {
   public constructor(
     @inject("Database") private readonly connection: PrismaConnection,
-    private readonly transactionMapper: TransactionMapper
+    private readonly transactionMapper: TransactionMapper,
+    @inject("Tracer") public readonly tracer: Tracer
   ) {}
 
+  @trace("db.txs.get")
   public async getPendingUserTransactions(): Promise<PendingTransaction[]> {
     const { prismaClient } = this.connection;
 
@@ -26,6 +33,22 @@ export class PrismaTransactionStorage implements TransactionStorage {
       },
     });
     return txs.map((tx) => this.transactionMapper.mapIn(tx));
+  }
+
+  public async removeTx(hashes: string[], type: "included" | "dropped") {
+    // In our schema, included txs are simply just linked with blocks, so we only
+    // need to delete if we drop a tx
+    if (type === "dropped") {
+      const { prismaClient } = this.connection;
+
+      await prismaClient.transaction.deleteMany({
+        where: {
+          hash: {
+            in: hashes,
+          },
+        },
+      });
+    }
   }
 
   public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {

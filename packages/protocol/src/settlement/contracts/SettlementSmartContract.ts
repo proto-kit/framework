@@ -1,9 +1,9 @@
 import {
   prefixToField,
-  RollupMerkleTree,
   TypedClass,
   mapSequential,
   ChildVerificationKeyService,
+  LinkedMerkleTree,
 } from "@proto-kit/common";
 import {
   AccountUpdate,
@@ -17,7 +17,7 @@ import {
   state,
   UInt32,
   AccountUpdateForest,
-  TokenContractV2,
+  TokenContract,
   PrivateKey,
   VerificationKey,
   Permissions,
@@ -105,7 +105,7 @@ export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 //   };
 // }
 
-export abstract class SettlementSmartContractBase extends TokenContractV2 {
+export abstract class SettlementSmartContractBase extends TokenContract {
   // This pattern of injecting args into a smartcontract is currently the only
   // viable solution that works given the inheritance issues of o1js
   // public static args = container.resolve(SettlementSmartContractStaticArgs);
@@ -256,7 +256,7 @@ export abstract class SettlementSmartContractBase extends TokenContractV2 {
     this.dispatchContractAddressX.getAndRequireEquals().assertEquals(Field(0));
 
     this.sequencerKey.set(sequencer.x);
-    this.stateRoot.set(Field(RollupMerkleTree.EMPTY_ROOT));
+    this.stateRoot.set(LinkedMerkleTree.EMPTY_ROOT);
     this.blockHashRoot.set(Field(BlockHashMerkleTree.EMPTY_ROOT));
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);

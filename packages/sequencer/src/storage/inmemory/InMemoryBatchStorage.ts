@@ -1,14 +1,9 @@
 import { log } from "@proto-kit/common";
 
-import {
-  BatchStorage,
-  HistoricalBatchStorage,
-} from "../repositories/BatchStorage";
+import { BatchStorage } from "../repositories/BatchStorage";
 import { Batch } from "../model/Batch";
 
-export class InMemoryBatchStorage
-  implements BatchStorage, HistoricalBatchStorage
-{
+export class InMemoryBatchStorage implements BatchStorage {
   private readonly batches: Batch[] = [];
 
   public async getCurrentBatchHeight(): Promise<number> {

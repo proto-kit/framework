@@ -25,8 +25,10 @@ const TestProgram = ZkProgram({
       privateInputs: [],
       method: async (input: PublicKey) => {
         return {
-          a: Field(input.x),
-          b: Bool(input.isOdd),
+          publicOutput: {
+            a: Field(input.x),
+            b: Bool(input.isOdd),
+          },
         };
       },
     },
@@ -117,5 +119,5 @@ describe("MethodParameterEncoder", () => {
     expect(decoded1.publicOutput.b.equals(output.b).toBoolean()).toStrictEqual(
       true
     );
-  }, 30000);
+  }, 60_000);
 });

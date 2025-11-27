@@ -47,7 +47,7 @@ export class AtomicCompileHelper {
         this.compilationPromises[name] = contract.compile();
         newPromise = true;
       } else {
-        log.trace(`Compiling ${name} - mock`);
+        log.debug(`Compiling ${name} - mock`);
         this.compilationPromises[name] = Promise.resolve({
           verificationKey: MOCK_VERIFICATION_KEY,
         });

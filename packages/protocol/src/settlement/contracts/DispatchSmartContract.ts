@@ -192,7 +192,6 @@ export abstract class DispatchSmartContractBase extends SmartContract {
       }
     );
 
-    Provable.log(root);
     treeWitness
       .checkMembership(root, counter, Field(0))
       .assertTrue("Bridge Tree Witness not valid");

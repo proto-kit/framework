@@ -1,77 +1,64 @@
-import { RuntimeEvents, runtimeModule, RuntimeModule } from "@proto-kit/module";
-import { StateMap, Withdrawal, state } from "@proto-kit/protocol";
-import { Field, PublicKey, Struct } from "o1js";
+import {
+  outgoingMessage,
+  OutgoingMessages,
+  runtimeModule,
+  RuntimeModule,
+} from "@proto-kit/module";
+import { assert } from "@proto-kit/protocol";
+import { Field, PublicKey, Struct, UInt64 as O1UInt64 } from "o1js";
 import { inject } from "tsyringe";
+import { EMPTY_PUBLICKEY } from "@proto-kit/common";
 
 import { UInt64 } from "../math/UInt64";
 
 import { Balances } from "./Balances";
 
-export class WithdrawalKey extends Struct({
-  index: Field,
+export class Withdrawal extends Struct({
   tokenId: Field,
-}) {}
-
-export class WithdrawalEvent extends Struct({
-  key: WithdrawalKey,
-  value: Withdrawal,
-}) {}
+  address: PublicKey,
+  amount: O1UInt64,
+}) {
+  public static dummy() {
+    return new Withdrawal({
+      tokenId: Field(0),
+      address: EMPTY_PUBLICKEY,
+      amount: O1UInt64.from(0),
+    });
+  }
+}
 
 @runtimeModule()
 export class Withdrawals extends RuntimeModule {
-  events = new RuntimeEvents({
-    withdrawal: WithdrawalEvent,
+  @outgoingMessage()
+  messages = new OutgoingMessages({
+    withdrawal: Withdrawal,
   });
-
-  @state() withdrawalCounters = StateMap.from(Field, Field);
-
-  @state() withdrawals = StateMap.from<WithdrawalKey, Withdrawal>(
-    WithdrawalKey,
-    Withdrawal
-  );
 
   public constructor(@inject("Balances") private readonly balances: Balances) {
     super();
-  }
-
-  protected async queueWithdrawal(withdrawal: Withdrawal) {
-    const { tokenId } = withdrawal;
-    const counter = (await this.withdrawalCounters.get(tokenId)).orElse(
-      Field(0)
-    );
-
-    const key = { index: counter, tokenId };
-    await this.withdrawals.set(key, withdrawal);
-
-    await this.withdrawalCounters.set(tokenId, counter.add(1));
-
-    this.events.emit("withdrawal", {
-      key,
-      value: withdrawal,
-    });
   }
 
   public async withdraw(address: PublicKey, amount: UInt64, tokenId: Field) {
     const balance = await this.balances.getBalance(tokenId, address);
 
     const accountCreationFee = UInt64.Unsafe.fromField(Field(1n).mul(1e9));
-    amount.assertGreaterThanOrEqual(
-      accountCreationFee,
+    assert(
+      amount.greaterThanOrEqual(accountCreationFee),
       "Minimum withdrawal amount not met"
     );
-    balance.assertGreaterThanOrEqual(amount, "Not enough balance");
+    assert(balance.greaterThanOrEqual(amount), "Not enough balance");
 
     // Deduct balance from user
     await this.balances.setBalance(tokenId, address, balance.sub(amount));
 
     // Add withdrawal to queue
-    await this.queueWithdrawal(
-      new Withdrawal({
-        address,
-        // Has to be o1js UInt since the withdrawal will be processed in a o1js SmartContract
-        amount: amount.toO1UInt64(),
-        tokenId: tokenId,
-      })
-    );
+    const withdrawal = new Withdrawal({
+      address,
+      // Has to be o1js UInt since the withdrawal will be processed in a o1js SmartContract
+      amount: amount.toO1UInt64(),
+      tokenId: tokenId,
+    });
+
+    await this.messages.emitMessage("withdrawal", withdrawal);
   }
 }

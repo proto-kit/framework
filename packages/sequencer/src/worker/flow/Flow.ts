@@ -3,6 +3,7 @@ import { log, mapSequential } from "@proto-kit/common";
 
 import { InstantiatedQueue, TaskQueue } from "../queue/TaskQueue";
 import { Closeable } from "../../sequencer/builder/Closeable";
+import { SequencerIdProvider } from "../../sequencer/SequencerIdProvider";
 
 import { Task, TaskPayload } from "./Task";
 
@@ -42,7 +43,8 @@ export class Flow<State> implements Closeable {
   public constructor(
     private readonly queueImpl: TaskQueue,
     public readonly flowId: string,
-    public state: State
+    public state: State,
+    public readonly sequencerId: string
   ) {}
 
   private async waitForResult(
@@ -82,6 +84,11 @@ export class Flow<State> implements Closeable {
       const resolveFunction = this.resultsPending[response.taskId];
 
       if (!this.erroredOut) {
+        // skip responses from old sequencers
+        if (response.sequencerId !== this.sequencerId) {
+          return;
+        }
+
         if (response.status === "error") {
           this.reject(
             new Error(
@@ -123,6 +130,7 @@ export class Flow<State> implements Closeable {
       taskId,
       flowId: this.flowId,
       payload,
+      sequencerId: this.sequencerId,
     });
 
     this.tasksInProgress += 1;
@@ -177,10 +185,16 @@ export class Flow<State> implements Closeable {
 @injectable()
 export class FlowCreator {
   public constructor(
-    @inject("TaskQueue") private readonly queueImpl: TaskQueue
+    @inject("TaskQueue") private readonly queueImpl: TaskQueue,
+    private readonly sequencerIdProvider: SequencerIdProvider
   ) {}
 
   public createFlow<State>(flowId: string, state: State): Flow<State> {
-    return new Flow(this.queueImpl, flowId, state);
+    return new Flow(
+      this.queueImpl,
+      flowId,
+      state,
+      this.sequencerIdProvider.getSequencerId()
+    );
   }
 }

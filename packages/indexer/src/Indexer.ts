@@ -1,9 +1,10 @@
 import {
+  ChildContainerProvider,
   ModuleContainer,
-  ModuleContainerDefinition,
   ModulesRecord,
   TypedClass,
 } from "@proto-kit/common";
+import { ConsoleTracingFactory } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 
 import { IndexerModule } from "./IndexerModule";
@@ -16,13 +17,18 @@ export class Indexer<
   Modules extends IndexerModulesRecord,
 > extends ModuleContainer<Modules> {
   public static from<Modules extends IndexerModulesRecord>(
-    definition: ModuleContainerDefinition<Modules>
+    definition: Modules
   ): Indexer<Modules> {
     return new Indexer(definition);
   }
 
   public get taskQueue(): InstanceType<Modules["TaskQueue"]> {
     return this.container.resolve("TaskQueue");
+  }
+
+  public create(childContainerProvider: ChildContainerProvider) {
+    super.create(childContainerProvider);
+    this.useDependencyFactory(ConsoleTracingFactory);
   }
 
   public async start() {

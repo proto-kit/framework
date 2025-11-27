@@ -3,10 +3,7 @@ import { Field } from "o1js";
 
 import { TransactionStorage } from "../repositories/TransactionStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import {
-  HistoricalBlockStorage,
-  BlockStorage,
-} from "../repositories/BlockStorage";
+import { BlockStorage } from "../repositories/BlockStorage";
 
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 
@@ -18,9 +15,17 @@ export class InMemoryTransactionStorage implements TransactionStorage {
 
   public constructor(
     @inject("BlockStorage")
-    private readonly blockStorage: BlockStorage & HistoricalBlockStorage,
+    private readonly blockStorage: BlockStorage,
     @inject("BatchStorage") private readonly batchStorage: InMemoryBatchStorage
   ) {}
+
+  public async removeTx(hashes: string[]) {
+    const hashSet = new Set(hashes);
+    this.queue = this.queue.filter((tx) => {
+      const hash = tx.hash().toString();
+      return !hashSet.has(hash);
+    });
+  }
 
   public async getPendingUserTransactions(): Promise<PendingTransaction[]> {
     const nextHeight = await this.blockStorage.getCurrentBlockHeight();

@@ -24,6 +24,9 @@ import {
 } from "../../../storage/model/Block";
 import { Database } from "../../../storage/Database";
 import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
+import { Tracer } from "../../../logging/Tracer";
+import { trace } from "../../../logging/trace";
+import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -39,11 +42,12 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    private readonly messageService: IncomingMessagesService,
+    @inject("IncomingMessagesService", { isOptional: true })
+    private readonly messageService: IncomingMessagesService | undefined,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,
-    @inject("UnprovenMerkleStore")
-    private readonly unprovenMerkleStore: AsyncMerkleTreeStore,
+    @inject("UnprovenLinkedLeafStore")
+    private readonly unprovenLinkedLeafStore: AsyncLinkedLeafStore,
     @inject("BlockQueue")
     private readonly blockQueue: BlockQueue,
     @inject("BlockTreeStore")
@@ -53,7 +57,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     @inject("MethodIdResolver")
     private readonly methodIdResolver: MethodIdResolver,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
-    @inject("Database") private readonly database: Database
+    @inject("Database") private readonly database: Database,
+    @inject("Tracer") public readonly tracer: Tracer
   ) {
     super();
   }
@@ -105,22 +110,32 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     }
   }
 
+  @trace("block.result", ([block]) => ({ height: block.height.toString() }))
   public async generateMetadata(block: Block): Promise<BlockResult> {
+    const traceMetadata = {
+      height: block.height.toString(),
+    };
+
     const { result, blockHashTreeStore, treeStore, stateService } =
       await this.resultService.generateMetadataForNextBlock(
         block,
-        this.unprovenMerkleStore,
+        this.unprovenLinkedLeafStore,
         this.blockTreeStore,
         this.unprovenStateService
       );
 
-    await this.database.executeInTransaction(async () => {
-      await blockHashTreeStore.mergeIntoParent();
-      await treeStore.mergeIntoParent();
-      await stateService.mergeIntoParent();
+    await this.tracer.trace(
+      "block.result.commit",
+      async () =>
+        await this.database.executeInTransaction(async () => {
+          await blockHashTreeStore.mergeIntoParent();
+          await treeStore.mergeIntoParent();
+          await stateService.mergeIntoParent();
 
-      await this.blockQueue.pushResult(result);
-    });
+          await this.blockQueue.pushResult(result);
+        }),
+      traceMetadata
+    );
 
     return result;
   }
@@ -158,6 +173,9 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return undefined;
   }
 
+  // TODO Move to different service, to remove dependency on mempool and messagequeue
+  //  Idea: Create a service that aggregates a bunch of different sources
+  @trace("block.collect_inputs")
   private async collectProductionData(): Promise<{
     txs: PendingTransaction[];
     metadata: BlockWithResult;
@@ -185,7 +203,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       };
     }
 
-    const messages = await this.messageService.getPendingMessages();
+    let messages: PendingTransaction[] = [];
+    if (this.messageService !== undefined) {
+      messages = await this.messageService.getPendingMessages();
+    }
 
     log.debug(
       `Block collected, ${txs.length} txs, ${messages.length} messages`
@@ -197,6 +218,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     };
   }
 
+  @trace("block")
   private async produceBlock(): Promise<Block | undefined> {
     this.productionInProgress = true;
 
@@ -217,10 +239,28 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     if (blockResult !== undefined) {
       const { block, stateChanges } = blockResult;
 
-      await this.database.executeInTransaction(async () => {
-        await stateChanges.mergeIntoParent();
-        await this.blockQueue.pushBlock(block);
-      });
+      await this.tracer.trace(
+        "block.commit",
+        async () =>
+          // Push changes to the database atomically
+          await this.database.executeInTransaction(async () => {
+            await stateChanges.mergeIntoParent();
+            await this.blockQueue.pushBlock(block);
+          }),
+        {
+          height: block.height.toString(),
+        }
+      );
+
+      // Remove included or dropped txs, leave skipped ones alone
+      await this.mempool.removeTxs(
+        blockResult.includedTxs
+          .filter((x) => x.type === "included")
+          .map((x) => x.hash),
+        blockResult.includedTxs
+          .filter((x) => x.type === "shouldRemove")
+          .map((x) => x.hash)
+      );
     }
 
     this.productionInProgress = false;

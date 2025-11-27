@@ -5,7 +5,7 @@ import { SettlementStorage } from "../../storage/repositories/SettlementStorage"
 import { MessageStorage } from "../../storage/repositories/MessageStorage";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import { SettlementModule } from "../SettlementModule";
+import type { SettlementModule } from "../SettlementModule";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";
 
@@ -28,10 +28,11 @@ export class IncomingMessagesService {
     fromMessagesHash: string,
     toMessagesHash: string
   ) {
-    const dispatchContractAddress = this.settlementModule.addresses?.dispatch;
+    const dispatchContractAddress =
+      this.settlementModule.getAddresses().dispatch;
 
     const fetched = await this.messagesAdapter.fetchPendingMessages(
-      dispatchContractAddress!,
+      dispatchContractAddress,
       {
         fromActionHash: fromMessagesHash,
         toActionHash: toMessagesHash,
