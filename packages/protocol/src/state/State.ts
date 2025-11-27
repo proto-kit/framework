@@ -1,6 +1,6 @@
 import { Mixin } from "ts-mixer";
 import { Bool, Field, Provable, type FlexibleProvablePure, Struct } from "o1js";
-import { container, singleton } from "tsyringe";
+import { container } from "tsyringe";
 import { dummyValue } from "@proto-kit/common";
 
 import { Path } from "../model/Path";
