@@ -182,8 +182,7 @@ export class ClientAppChain<
       isMessage: false,
     });
 
-    // This is replaced with MinaSigner, in that case the 'Signer' interface itself can be replaced by MinaSigner in all around the repo.
-    const signer = this.container.resolve<MinaSigner>("Signer");
+    const signer = this.container.resolve<Signer>("Signer");
     const transactionSender =
       this.container.resolve<TransactionSender>("TransactionSender");
 
