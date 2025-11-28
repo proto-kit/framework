@@ -90,10 +90,10 @@ export const settlementTestFn = (
     admin: PrivateKey.random(),
   };
 
-  const tokenOwnerPubKeys ={
+  const tokenOwnerPubKeys = {
     tokenOwner: tokenOwnerKey.tokenOwner.toPublicKey(),
-    admin: tokenOwnerKey.admin.toPublicKey()
-  } 
+    admin: tokenOwnerKey.admin.toPublicKey(),
+  };
 
   const tokenOwner =
     tokenConfig !== undefined
@@ -173,18 +173,9 @@ export const settlementTestFn = (
         BaseLayer: baseLayerConfig,
         SettlementSigner: {
           signer: sequencerKey,
-          contractKeys: [
-             settlementKey,
-             dispatchKey,
-             minaBridgeKey,
-          ],
-          tokenControllers:[
-            tokenOwnerKey.tokenOwner,
-            tokenOwnerKey.admin
-          ],
-          tokenBridgeKeys:[
-            tokenBridgeKey
-          ],
+          contractKeys: [settlementKey, dispatchKey, minaBridgeKey],
+          tokenControllers: [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
+          tokenBridgeKeys: [tokenBridgeKey],
         },
         BlockProducerModule: {},
         FeeStrategy: {},
@@ -323,15 +314,20 @@ export const settlementTestFn = (
     "should deploy",
     async () => {
       // Deploy contract
-      await settlementModule.deploy(settlementKey.toPublicKey(), dispatchKey.toPublicKey(), minaBridgeKey.toPublicKey(), {
-        nonce: nonceCounter,
-      });
+      await settlementModule.deploy(
+        settlementKey.toPublicKey(),
+        dispatchKey.toPublicKey(),
+        minaBridgeKey.toPublicKey(),
+        {
+          nonce: nonceCounter,
+        }
+      );
 
       nonceCounter += 2;
 
       console.log("Deployed");
     },
-    timeout * 2 
+    timeout * 2
   );
 
   if (tokenConfig !== undefined) {
@@ -382,13 +378,13 @@ export const settlementTestFn = (
         );
         console.log(tx.toPretty());
 
-        settlementModule.utils.signTransaction(
-          tx,
-          {
-            signingWithSignatureCheck: [tokenOwnerPubKeys.tokenOwner, tokenOwnerPubKeys.admin],
-            signWithContract:true
-          }
-        )
+        settlementModule.utils.signTransaction(tx, {
+          signingWithSignatureCheck: [
+            tokenOwnerPubKeys.tokenOwner,
+            tokenOwnerPubKeys.admin,
+          ],
+          signWithContract: true,
+        });
 
         await appChain.sequencer
           .resolveOrFail("TransactionSender", MinaTransactionSender)
@@ -428,10 +424,12 @@ export const settlementTestFn = (
             // tokenOwner!.self.body.incrementNonce = Bool(false);
           }
         );
-        settlementModule.utils.signTransaction(
-          tx,
-         {signingWithSignatureCheck: [tokenOwnerPubKeys.tokenOwner, tokenOwnerPubKeys.admin],}
-        )
+        settlementModule.utils.signTransaction(tx, {
+          signingWithSignatureCheck: [
+            tokenOwnerPubKeys.tokenOwner,
+            tokenOwnerPubKeys.admin,
+          ],
+        });
 
         await appChain.sequencer
           .resolveOrFail("TransactionSender", MinaTransactionSender)
@@ -443,7 +441,6 @@ export const settlementTestFn = (
     it(
       "should deploy custom token bridge",
       async () => {
-        
         await settlementModule.deployTokenBridge(
           tokenOwner!,
           tokenOwnerPubKeys.tokenOwner,
@@ -468,13 +465,22 @@ export const settlementTestFn = (
     "should settle",
     async () => {
       try {
-      console.log('seq Key: ', sequencerKey.toPublicKey().toBase58())
-      console.log('sett Key: ', settlementKey.toPublicKey().toBase58())
-      console.log('disp Key: ', dispatchKey.toPublicKey().toBase58())
-      console.log('minaBridge Key: ', minaBridgeKey.toPublicKey().toBase58())
-      console.log('tokenOwner Key: ', tokenOwnerKey.tokenOwner.toPublicKey().toBase58())
-      console.log('token admin Key: ', tokenOwnerKey.admin.toPublicKey().toBase58())
-      console.log('token bridge key: ', tokenBridgeKey.toPublicKey().toBase58());
+        console.log("seq Key: ", sequencerKey.toPublicKey().toBase58());
+        console.log("sett Key: ", settlementKey.toPublicKey().toBase58());
+        console.log("disp Key: ", dispatchKey.toPublicKey().toBase58());
+        console.log("minaBridge Key: ", minaBridgeKey.toPublicKey().toBase58());
+        console.log(
+          "tokenOwner Key: ",
+          tokenOwnerKey.tokenOwner.toPublicKey().toBase58()
+        );
+        console.log(
+          "token admin Key: ",
+          tokenOwnerKey.admin.toPublicKey().toBase58()
+        );
+        console.log(
+          "token bridge key: ",
+          tokenBridgeKey.toPublicKey().toBase58()
+        );
         const [, batch] = await createBatch(true);
         acc0L2Nonce++;
 
@@ -567,16 +573,13 @@ export const settlementTestFn = (
             }
           }
         );
-        
-        settlementModule.utils.signTransaction(
-          tx,
-          {
-            signingWithSignatureCheck:[tokenOwnerPubKeys.tokenOwner],
-            signWithContract:true,
-            additionalKeys:[userKey],
-            preventNoncePreconditionFor:[dispatch.address]
-          }
-        );
+
+        settlementModule.utils.signTransaction(tx, {
+          signingWithSignatureCheck: [tokenOwnerPubKeys.tokenOwner],
+          signWithContract: true,
+          additionalKeys: [userKey],
+          preventNoncePreconditionFor: [dispatch.address],
+        });
 
         console.log(tx.toPretty());
 
@@ -754,14 +757,14 @@ export const settlementTestFn = (
         }
       );
 
-      const signed = settlementModule.utils.signTransaction(
-        tx,
-        {   
-          signingWithSignatureCheck:[tokenBridgeKey.toPublicKey(), tokenOwnerPubKeys.tokenOwner],
-          signWithContract:true,
-          additionalKeys:[userKey],
-        }
-      )
+      const signed = settlementModule.utils.signTransaction(tx, {
+        signingWithSignatureCheck: [
+          tokenBridgeKey.toPublicKey(),
+          tokenOwnerPubKeys.tokenOwner,
+        ],
+        signWithContract: true,
+        additionalKeys: [userKey],
+      });
 
       await appChain.sequencer
         .resolveOrFail("TransactionSender", MinaTransactionSender)
@@ -788,4 +791,3 @@ export const settlementTestFn = (
     timeout
   );
 };
-  

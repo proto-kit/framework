@@ -121,14 +121,14 @@ export class SettlementModule
     const keysArray = this.utils.getContractAddresses();
     return {
       settlement: keysArray[0],
-      dispatch: keysArray[1]
+      dispatch: keysArray[1],
     };
   }
 
-  public getContractAddresses(){
+  public getContractAddresses() {
     return this.utils.getContractAddresses();
   }
-  
+
   public getContracts() {
     if (this.contracts === undefined) {
       const addresses = this.getAddresses();
@@ -147,7 +147,7 @@ export class SettlementModule
     }
     return this.contracts;
   }
-  
+
   private async fetchContractAccounts() {
     const contracts = this.getContracts();
     await this.utils.fetchContractAccounts(
@@ -155,6 +155,7 @@ export class SettlementModule
       contracts.dispatch
     );
   }
+
   public async settleBatch(
     batch: SettleableBatch,
     options: {
@@ -221,7 +222,7 @@ export class SettlementModule
     return settlement;
   }
 
-  // Can't do anything for now - initialize() method use settlementKey. 
+  // Can't do anything for now - initialize() method use settlementKey.
   public async deploy(
     settlementKey: PublicKey,
     dispatchKey: PublicKey,
@@ -278,14 +279,11 @@ export class SettlementModule
           dispatchKey.toPublicKey()
         );
       }
-    )
+    );
 
-    this.utils.signTransaction(
-      tx,
-      {
-        signWithContract:true
-      }
-    )
+    this.utils.signTransaction(tx, {
+      signWithContract: true,
+    });
     // Note: We can't use this.signTransaction on the above tx
 
     // This should already apply the tx result to the
@@ -294,7 +292,9 @@ export class SettlementModule
 
     await this.utils.fetchContractAccounts(settlement, dispatch);
 
-    const contractSignature = this.utils.signMessageWithContract(settlementKey.toFields());
+    const contractSignature = this.utils.signMessageWithContract(
+      settlementKey.toFields()
+    );
 
     const initTx = await Mina.transaction(
       {
@@ -314,13 +314,10 @@ export class SettlementModule
       }
     );
 
-    const initTxSigned = this.utils.signTransaction(
-      initTx,
-      {
-        signingWithSignatureCheck:[minaBridgeKey],
-        signWithContract: true
-      }
-    );
+    const initTxSigned = this.utils.signTransaction(initTx, {
+      signingWithSignatureCheck: [minaBridgeKey],
+      signWithContract: true,
+    });
 
     await this.transactionSender.proveAndSendTransaction(
       initTxSigned,
@@ -351,25 +348,18 @@ export class SettlementModule
       },
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 1);
-        await settlement.addTokenBridge(
-          tokenId,
-          contractKey,
-          dispatch.address
-        );
+        await settlement.addTokenBridge(tokenId, contractKey, dispatch.address);
         await owner.approveAccountUpdate(settlement.self);
       }
     );
 
-    // Only ContractKeys and OwnerKey for check. 
+    // Only ContractKeys and OwnerKey for check.
     // Used all in signing process.
-    const txSigned = this.utils.signTransaction(
-      tx,
-      {
-        signingWithSignatureCheck:[ownerPublicKey],
-        signingPublicKeys:[contractKey],
-        signWithContract: true
-      }
-    );
+    const txSigned = this.utils.signTransaction(tx, {
+      signingWithSignatureCheck: [ownerPublicKey],
+      signingPublicKeys: [contractKey],
+      signWithContract: true,
+    });
 
     await this.transactionSender.proveAndSendTransaction(txSigned, "included");
   }

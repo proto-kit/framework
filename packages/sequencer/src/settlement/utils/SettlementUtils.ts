@@ -46,22 +46,17 @@ export class SettlementUtils {
     return this.signer.getSignerAddress();
   }
 
-  
-  public sign(signatureData: Field[]): Signature{
+  public sign(signatureData: Field[]): Signature {
     return this.signer.sign(signatureData);
   }
 
-  public signMessageWithContract(signatureData: Field[]): Signature{
+  public signMessageWithContract(signatureData: Field[]): Signature {
     return this.signer.signMessageWithContract(signatureData);
   }
 
   public getContractAddresses(): PublicKey[] {
     const keys = this.signer.getContractAddresses();
-    return [
-      keys[0],
-      keys[1],
-      keys[2],
-    ]
+    return [keys[0], keys[1], keys[2]];
   }
 
   public signTransaction(
@@ -73,10 +68,12 @@ export class SettlementUtils {
       signingPublicKeys = [],
       additionalKeys = [],
       preventNoncePreconditionFor = [],
-      signWithContract = false
+      signWithContract = false,
     } = options;
 
-    let contractKeyArray = this.isSignedSettlement() ? signingWithSignatureCheck : [];
+    const contractKeyArray = this.isSignedSettlement()
+      ? signingWithSignatureCheck
+      : [];
 
     if (signWithContract) {
       this.requireSignatureIfNecessary(
@@ -92,10 +89,13 @@ export class SettlementUtils {
       );
     }
 
-    const pubKeys = signingWithSignatureCheck
-      .concat(signingPublicKeys);
+    const pubKeys = signingWithSignatureCheck.concat(signingPublicKeys);
 
-    return this.signer.signTx(tx, {pubKeys, additionalKeys, signWithContract});
+    return this.signer.signTx(tx, {
+      pubKeys,
+      additionalKeys,
+      signWithContract,
+    });
   }
 
   private requireSignatureIfNecessary(

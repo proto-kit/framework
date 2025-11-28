@@ -116,7 +116,7 @@ export class BridgingModule {
   protected settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
     return this.protocol.dependencyContainer.resolve(
       "SettlementContractModule"
-    );  
+    );
   }
 
   public getBridgingModuleConfig(): BridgeContractConfig {
@@ -400,13 +400,10 @@ export class BridgingModule {
         }
       );
 
-      const signatureOnes = options.contractKeys.map(x => x.toPublicKey());
-      const signedTx = this.utils.signTransaction(
-        tx,
-        {
-          signingWithSignatureCheck:signatureOnes,
-        }
-      );
+      const signatureOnes = options.contractKeys.map((x) => x.toPublicKey());
+      const signedTx = this.utils.signTransaction(tx, {
+        signingWithSignatureCheck: signatureOnes,
+      });
 
       await this.transactionSender.proveAndSendTransaction(
         signedTx,
@@ -539,13 +536,11 @@ export class BridgingModule {
       log.debug("Sending rollup transaction:");
       log.debug(tx.toPretty());
 
-
-      const signedTx = this.utils.signTransaction(
-        tx,
-        {
-          signingWithSignatureCheck:[...options.contractKeys.map(x => x.toPublicKey())]
-        }
-      );
+      const signedTx = this.utils.signTransaction(tx, {
+        signingWithSignatureCheck: [
+          ...options.contractKeys.map((x) => x.toPublicKey()),
+        ],
+      });
 
       await this.transactionSender.proveAndSendTransaction(
         signedTx,

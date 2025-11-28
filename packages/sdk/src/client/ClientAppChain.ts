@@ -31,7 +31,6 @@ import {
   MinimalAppChainDefinition,
   BlockExplorerQuery,
   BlockExplorerTransportModule,
-  MinaSigner,
 } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 import { Field, PublicKey, UInt64 } from "o1js";

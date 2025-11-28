@@ -46,7 +46,8 @@ export class SequencerStartupModule
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
-    @inject("SettlementSigner", {isOptional: true}) private readonly signer: MinaSigner | undefined,
+    @inject("SettlementSigner", { isOptional: true })
+    private readonly signer: MinaSigner | undefined
   ) {
     super();
   }
@@ -144,7 +145,9 @@ export class SequencerStartupModule
 
     // TODO Find a way to generalize this or at least make it nicer - too much logic here
     const isSignedSettlement =
-      this.baseLayer !== undefined && !(this.baseLayer instanceof NoopBaseLayer) && (this.signer !== undefined)
+      this.baseLayer !== undefined &&
+      !(this.baseLayer instanceof NoopBaseLayer) &&
+      this.signer !== undefined
         ? new SettlementUtils(
             this.areProofsEnabled,
             this.baseLayer,

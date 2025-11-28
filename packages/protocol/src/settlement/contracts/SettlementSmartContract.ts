@@ -69,14 +69,7 @@ export interface SettlementContractType {
     args: DeployArgs | undefined,
     permissions: Permissions,
     sequencer: PublicKey,
-<<<<<<< HEAD
     dispatchContract: PublicKey
-=======
-    dispatchContract: PublicKey,
-    bridgeContract: PublicKey,
-    contractKey: PublicKey,
-    contractSignature: Signature
->>>>>>> de1c1c20 (refactor: update address check in settlement contract)
   ) => Promise<void>;
 
   assertStateRoot: (root: Field) => AccountUpdate;
@@ -253,39 +246,13 @@ export abstract class SettlementSmartContractBase extends TokenContract {
 
   protected async initializeBase(
     sequencer: PublicKey,
-<<<<<<< HEAD
     dispatchContract: PublicKey
-=======
-    dispatchContract: PublicKey,
-    bridgeContract: PublicKey,
-    contractKey: PublicKey,
-    contractSignature: Signature,
->>>>>>> de1c1c20 (refactor: update address check in settlement contract)
   ) {
     this.sequencerKey.set(sequencer.x);
     this.stateRoot.set(LinkedMerkleTree.EMPTY_ROOT);
     this.blockHashRoot.set(Field(BlockHashMerkleTree.EMPTY_ROOT));
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);
-<<<<<<< HEAD
-=======
-
-    const { DispatchContract } = SettlementSmartContractBase.args;
-    const contractInstance = new DispatchContract(dispatchContract);
-    await contractInstance.initialize(this.address);
-
-    // Deploy bridge contract for $Mina
-    await this.deployTokenBridge(
-      this.tokenId,
-      bridgeContract,
-      dispatchContract,
-      true
-    );
-
-    contractSignature.verify(contractKey, contractKey.toFields());
-    // contractKey.toPublicKey().assertEquals(this.address);
-
->>>>>>> de1c1c20 (refactor: update address check in settlement contract)
   }
 
   protected async settleBase(
@@ -474,26 +441,8 @@ export class SettlementSmartContract
     await this.initializeBase(sequencer, dispatchContract);
   }
 
-<<<<<<< HEAD
   @method async approveBase(forest: AccountUpdateForest) {
     this.checkZeroBalanceChange(forest);
-=======
-  @method
-  public async initialize(
-    sequencer: PublicKey,
-    dispatchContract: PublicKey,
-    bridgeContract: PublicKey,
-    contractKey: PublicKey,
-    contractSignature: Signature
-  ) {
-    await this.initializeBase(
-      sequencer,
-      dispatchContract,
-      bridgeContract,
-      contractKey,
-      contractSignature
-    );
->>>>>>> de1c1c20 (refactor: update address check in settlement contract)
   }
 
   @method
