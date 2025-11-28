@@ -4,6 +4,7 @@ import {
   Field,
   PrivateKey,
   PublicKey,
+  Signature,
   Transaction,
   UInt32,
 } from "o1js";
@@ -11,6 +12,14 @@ import { AreProofsEnabled, mapSequential } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { MinaSigner } from "../MinaSigner";
+
+interface SignTransactionOptions {
+  signingWithSignatureCheck?: PublicKey[];
+  signingPublicKeys?: PublicKey[];
+  additionalKeys?: PrivateKey[];
+  preventNoncePreconditionFor?: PublicKey[];
+  signWithContract?: boolean;
+}
 
 /**
  * Utils class that provides methods for sending transactions that are signed-settlement-enabled
@@ -33,45 +42,60 @@ export class SettlementUtils {
     );
   }
 
-  // Problem with this function for now is that it will not sign selectively. 
-  // It should be added to make this signer mechanism applicable to everywhere.
-  public signTransactionWithModule(
-    tx: Transaction <false,false>,
-    preventNoncePreconditionFor: PublicKey[] = [],
-  ){
-    const contractPublicKeys = this.isSignedSettlement() ? this.signer.getContractKeys() : [];
-    this.requireSignatureIfNecessary(
-      tx,
-      contractPublicKeys,
-      preventNoncePreconditionFor
-    )
-
-    return this.signer.signTransaction(tx);
+  public getSigner(): PublicKey {
+    return this.signer.getSignerAddress();
   }
 
-  /**
-   * Sign transaction with two variants:
-   *
-   * - If it normal settlement (proofs enabled or mock proofs):
-   *   Sign the transaction normally
-   *
-   * - If it is signed settlement:
-   *   Signed the transactions and make all contract AUs where a private key is known
-   *   via the contractKeys param require a signature and sign them using that key
-   */
+  
+  public sign(signatureData: Field[]): Signature{
+    return this.signer.sign(signatureData);
+  }
+
+  public signMessageWithContract(signatureData: Field[]): Signature{
+    return this.signer.signMessageWithContract(signatureData);
+  }
+
+  public getContractAddresses(): PublicKey[] {
+    const keys = this.signer.getContractAddresses();
+    return [
+      keys[0],
+      keys[1],
+      keys[2],
+    ]
+  }
+
   public signTransaction(
     tx: Transaction<false, false>,
-    pks: PrivateKey[],
-    contractKeys: PrivateKey[],
-    preventNoncePreconditionFor: PublicKey[] = []
-  ): Transaction<false, true> {
-    const contractKeyArray = this.isSignedSettlement() ? contractKeys : [];
-    this.requireSignatureIfNecessary(
-      tx,
-      contractKeyArray.map((key) => key.toPublicKey()),
-      preventNoncePreconditionFor
-    );
-    return tx.sign([...pks, ...contractKeyArray]);
+    options: SignTransactionOptions = {}
+  ) {
+    const {
+      signingWithSignatureCheck = [],
+      signingPublicKeys = [],
+      additionalKeys = [],
+      preventNoncePreconditionFor = [],
+      signWithContract = false
+    } = options;
+
+    let contractKeyArray = this.isSignedSettlement() ? signingWithSignatureCheck : [];
+
+    if (signWithContract) {
+      this.requireSignatureIfNecessary(
+        tx,
+        this.getContractAddresses().concat(contractKeyArray),
+        preventNoncePreconditionFor
+      );
+    } else {
+      this.requireSignatureIfNecessary(
+        tx,
+        contractKeyArray,
+        preventNoncePreconditionFor
+      );
+    }
+
+    const pubKeys = signingWithSignatureCheck
+      .concat(signingPublicKeys);
+
+    return this.signer.signTx(tx, {pubKeys, additionalKeys, signWithContract});
   }
 
   private requireSignatureIfNecessary(
