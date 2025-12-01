@@ -184,8 +184,8 @@ export class BridgingModule {
   }
 
   private async fetchFeepayerNonce() {
-    const { feepayer } = this.settlementModule.config;
-    return await this.transactionSender.getNextNonce(feepayer.toPublicKey());
+    const feepayer = this.utils.getSigner();
+    return await this.transactionSender.getNextNonce(feepayer);
   }
 
   public async sendRollupTransactions(
@@ -383,12 +383,12 @@ export class BridgingModule {
 
     if (settledRoot.toBigInt() !== (tokenBridgeRoot?.toBigInt() ?? -1n)) {
       // Create transaction
-      const { feepayer } = this.settlementModule.config;
+      const feepayer = this.utils.getSigner();
       let { nonce } = options;
 
       const tx = await Mina.transaction(
         {
-          sender: feepayer.toPublicKey(),
+          sender: feepayer,
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
           fee: this.feeStrategy.getFee(),
@@ -430,7 +430,7 @@ export class BridgingModule {
       tx: Transaction<false, true>;
     }[]
   > {
-    const { feepayer } = this.settlementModule.config;
+    const feepayer = this.utils.getSigner();
     let { nonce } = options;
 
     const txs: {
@@ -504,7 +504,7 @@ export class BridgingModule {
 
       const tx = await Mina.transaction(
         {
-          sender: feepayer.toPublicKey(),
+          sender: feepayer,
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
           fee: this.feeStrategy.getFee(),
@@ -526,10 +526,7 @@ export class BridgingModule {
           });
 
           // Pay account creation fees for internal token accounts
-          AccountUpdate.fundNewAccount(
-            feepayer.toPublicKey(),
-            numNewAccountsNumber
-          );
+          AccountUpdate.fundNewAccount(feepayer, numNewAccountsNumber);
         }
       );
 

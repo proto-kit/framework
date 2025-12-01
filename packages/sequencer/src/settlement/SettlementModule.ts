@@ -48,36 +48,18 @@ import { SettlementUtils } from "./utils/SettlementUtils";
 import { BridgingModule } from "./BridgingModule";
 import { MinaSigner } from "./MinaSigner";
 
-export type SettlementModuleConfig = {
-  feepayer: PrivateKey;
-} & {
-  // TODO Add possibility to only configure public keys (for proven operation)
-  keys?: {
-    settlement: PrivateKey;
-    dispatch: PrivateKey;
-    minaBridge: PrivateKey;
-  };
-};
-
 export type SettlementModuleEvents = {
   "settlement-submitted": [Batch];
 };
 
 @sequencerModule()
 export class SettlementModule
-  extends SequencerModule<SettlementModuleConfig>
+  extends SequencerModule
   implements EventEmittingComponent<SettlementModuleEvents>, DependencyFactory
 {
   protected contracts?: {
     settlement: SettlementSmartContract;
     dispatch: DispatchSmartContract;
-  };
-
-  // Those should be removed, so that everything will be handled
-  private keys?: {
-    settlement: PrivateKey;
-    dispatch: PrivateKey;
-    minaBridge: PrivateKey;
   };
 
   public utils: SettlementUtils;
