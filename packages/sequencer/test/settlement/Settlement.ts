@@ -179,9 +179,7 @@ export const settlementTestFn = (
         },
         BlockProducerModule: {},
         FeeStrategy: {},
-        SettlementModule: {
-          feepayer: sequencerKey,
-        },
+        SettlementModule: {},
         SequencerStartupModule: {},
 
         TaskQueue: {
@@ -465,22 +463,6 @@ export const settlementTestFn = (
     "should settle",
     async () => {
       try {
-        console.log("seq Key: ", sequencerKey.toPublicKey().toBase58());
-        console.log("sett Key: ", settlementKey.toPublicKey().toBase58());
-        console.log("disp Key: ", dispatchKey.toPublicKey().toBase58());
-        console.log("minaBridge Key: ", minaBridgeKey.toPublicKey().toBase58());
-        console.log(
-          "tokenOwner Key: ",
-          tokenOwnerKey.tokenOwner.toPublicKey().toBase58()
-        );
-        console.log(
-          "token admin Key: ",
-          tokenOwnerKey.admin.toPublicKey().toBase58()
-        );
-        console.log(
-          "token bridge key: ",
-          tokenBridgeKey.toPublicKey().toBase58()
-        );
         const [, batch] = await createBatch(true);
         acc0L2Nonce++;
 
