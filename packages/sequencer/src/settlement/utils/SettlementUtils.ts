@@ -42,8 +42,8 @@ export class SettlementUtils {
     );
   }
 
-  public getSigner(): PublicKey {
-    return this.signer.getSignerAddress();
+  public getFeepayerKey(): PublicKey {
+    return this.signer.getFeepayerKey();
   }
 
   public sign(signatureData: Field[]): Signature {

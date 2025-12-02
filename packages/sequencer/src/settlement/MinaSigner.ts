@@ -10,7 +10,7 @@ export interface SignTxOptions {
   signWithContract?: boolean;
 }
 export interface MinaSigner {
-  getSignerAddress(): PublicKey;
+  getFeepayerKey(): PublicKey;
 
   getContractAddresses(): PublicKey[];
 
@@ -24,7 +24,7 @@ export interface MinaSigner {
 }
 
 export interface InMemorySignerConfig {
-  signer: PrivateKey;
+  feepayer: PrivateKey;
   contractKeys: PrivateKey[];
   tokenControllers?: PrivateKey[];
   tokenBridgeKeys?: PrivateKey[];
@@ -57,8 +57,8 @@ export class InMemoryMinaSigner
     });
   }
 
-  public getSignerAddress(): PublicKey {
-    return this.config.signer.toPublicKey();
+  public getFeepayerKey(): PublicKey {
+    return this.config.feepayer.toPublicKey();
   }
 
   /**
@@ -82,7 +82,7 @@ export class InMemoryMinaSigner
    * @returns Signature signed by signer.
    */
   public sign(signatureData: Field[]): Signature {
-    return Signature.create(this.config.signer, signatureData);
+    return Signature.create(this.config.feepayer, signatureData);
   }
 
   /**
@@ -119,7 +119,7 @@ export class InMemoryMinaSigner
       privateKeys.push(...this.config.contractKeys);
     }
 
-    const keys = [this.config.signer, ...privateKeys, ...additionalKeys];
+    const keys = [this.config.feepayer, ...privateKeys, ...additionalKeys];
     return tx.sign(keys);
   }
 

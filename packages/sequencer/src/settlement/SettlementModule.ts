@@ -82,7 +82,7 @@ export class SettlementModule
     private readonly settlementStartupModule: SettlementStartupModule
   ) {
     super();
-    this.utils = new SettlementUtils(areProofsEnabled, baseLayer, signer);
+    this.utils = new SettlementUtils(areProofsEnabled, baseLayer, this.signer);
   }
 
   public dependencies() {
@@ -146,7 +146,7 @@ export class SettlementModule
   ): Promise<Settlement> {
     await this.fetchContractAccounts();
     const { settlement: settlementContract, dispatch } = this.getContracts();
-    const feepayer = this.utils.getSigner();
+    const feepayer = this.utils.getFeepayerKey();
     log.debug("Preparing settlement");
 
     const lastSettlementL1BlockHeight =
@@ -213,7 +213,7 @@ export class SettlementModule
       nonce?: number;
     } = {}
   ) {
-    const feepayer = this.utils.getSigner();
+    const feepayer = this.utils.getFeepayerKey();
 
     const nonce = options?.nonce ?? 0;
 
@@ -315,7 +315,7 @@ export class SettlementModule
       nonce?: number;
     }
   ) {
-    const feepayer = this.utils.getSigner();
+    const feepayer = this.utils.getFeepayerKey();
     const nonce = options?.nonce ?? undefined;
 
     const tokenId = owner.deriveTokenId();

@@ -172,7 +172,7 @@ export const settlementTestFn = (
         LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: baseLayerConfig,
         SettlementSigner: {
-          signer: sequencerKey,
+          feepayer: sequencerKey,
           contractKeys: [settlementKey, dispatchKey, minaBridgeKey],
           tokenControllers: [tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
           tokenBridgeKeys: [tokenBridgeKey],
@@ -450,7 +450,6 @@ export const settlementTestFn = (
         console.log(
           `Token bridge address: ${tokenBridgeKey.toPublicKey().toBase58()} @ ${tokenOwner!.deriveTokenId().toString()}`
         );
-
         expect(tokenOwner!.deriveTokenId().toString()).toStrictEqual(
           bridgedTokenId.toString()
         );

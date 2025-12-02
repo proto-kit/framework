@@ -184,7 +184,7 @@ export class BridgingModule {
   }
 
   private async fetchFeepayerNonce() {
-    const feepayer = this.utils.getSigner();
+    const feepayer = this.utils.getFeepayerKey();
     return await this.transactionSender.getNextNonce(feepayer);
   }
 
@@ -383,7 +383,7 @@ export class BridgingModule {
 
     if (settledRoot.toBigInt() !== (tokenBridgeRoot?.toBigInt() ?? -1n)) {
       // Create transaction
-      const feepayer = this.utils.getSigner();
+      const feepayer = this.utils.getFeepayerKey();
       let { nonce } = options;
 
       const tx = await Mina.transaction(
@@ -430,7 +430,7 @@ export class BridgingModule {
       tx: Transaction<false, true>;
     }[]
   > {
-    const feepayer = this.utils.getSigner();
+    const feepayer = this.utils.getFeepayerKey();
     let { nonce } = options;
 
     const txs: {
