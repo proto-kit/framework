@@ -60,7 +60,6 @@ import { testingSequencerModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
 import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 import { BridgingModule } from "../../src/settlement/BridgingModule";
-import { SettlementUtils } from "../../src/settlement/utils/SettlementUtils";
 import { FungibleTokenContractModule } from "../../src/settlement/utils/FungibleTokenContractModule";
 import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/FungibleTokenAdminContractModule";
 import { MinaNetworkUtils } from "../../src/protocol/baselayer/network-utils/MinaNetworkUtils";
@@ -120,7 +119,7 @@ export const settlementTestFn = (
     });
 
     // eslint-disable-next-line @typescript-eslint/dot-notation
-    SettlementUtils.prototype["isSignedSettlement"] = () =>
+    MinaBaseLayer.prototype["isSignedSettlement"] = () =>
       settlementType === "signed";
 
     const sequencer = Sequencer.from(

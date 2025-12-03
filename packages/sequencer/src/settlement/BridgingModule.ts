@@ -445,7 +445,7 @@ export class BridgingModule {
       );
     }
 
-    if (this.utils.isSignedSettlement() && options.contractKeys.length === 0) {
+    if (this.baseLayer.isSignedSettlement() && options.contractKeys.length === 0) {
       throw new Error(
         "Bridging contract private key for signed settlement has to be provided"
       );

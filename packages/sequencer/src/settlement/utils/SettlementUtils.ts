@@ -31,17 +31,6 @@ export class SettlementUtils {
     private readonly signer: MinaSigner
   ) {}
 
-  /**
-   * Signed settlement happens when proofs are disabled and the network is remote
-   * This is because on local network we can use mock proofs, while on remotes ones we can't
-   */
-  public isSignedSettlement(): boolean {
-    return (
-      !this.areProofsEnabled.areProofsEnabled &&
-      !this.baseLayer.isLocalBlockChain()
-    );
-  }
-
   public getFeepayerKey(): PublicKey {
     return this.signer.getFeepayerKey();
   }
@@ -71,7 +60,7 @@ export class SettlementUtils {
       signWithContract = false,
     } = options;
 
-    const contractKeyArray = this.isSignedSettlement()
+    const contractKeyArray = this.baseLayer.isSignedSettlement()
       ? signingWithSignatureCheck
       : [];
 
@@ -103,7 +92,7 @@ export class SettlementUtils {
     addresses: PublicKey[],
     preventNoncePreconditionFor: PublicKey[]
   ) {
-    if (this.isSignedSettlement() && addresses !== undefined) {
+    if (this.baseLayer.isSignedSettlement() && addresses !== undefined) {
       const nonces: Record<string, number> = {};
 
       tx.transaction.accountUpdates.forEach((au) => {

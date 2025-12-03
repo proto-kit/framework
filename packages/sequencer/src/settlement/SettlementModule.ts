@@ -67,7 +67,7 @@ export class SettlementModule
   public events = new EventEmitter<SettlementModuleEvents>();
 
   public constructor(
-    @inject("BaseLayer") baseLayer: MinaBaseLayer,
+    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     @inject("SettlementStorage")
@@ -82,7 +82,7 @@ export class SettlementModule
     private readonly settlementStartupModule: SettlementStartupModule
   ) {
     super();
-    this.utils = new SettlementUtils(areProofsEnabled, baseLayer, this.signer);
+    this.utils = new SettlementUtils(areProofsEnabled, this.baseLayer, this.signer);
   }
 
   public dependencies() {
@@ -228,7 +228,7 @@ export class SettlementModule
     const verificationsKeys =
       await this.settlementStartupModule.retrieveVerificationKeys();
 
-    const permissions = this.utils.isSignedSettlement()
+    const permissions = this.baseLayer.isSignedSettlement()
       ? new SignedSettlementPermissions()
       : new ProvenSettlementPermissions();
 
@@ -352,9 +352,9 @@ export class SettlementModule
 
     SettlementSmartContractBase.args = {
       ...contractArgs,
-      signedSettlements: this.utils.isSignedSettlement(),
+      signedSettlements: this.baseLayer.isSignedSettlement(),
       // TODO Add distinction between mina and custom tokens
-      BridgeContractPermissions: (this.utils.isSignedSettlement()
+      BridgeContractPermissions: (this.baseLayer.isSignedSettlement()
         ? new SignedSettlementPermissions()
         : new ProvenSettlementPermissions()
       ).bridgeContractMina(),

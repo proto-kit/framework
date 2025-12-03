@@ -109,6 +109,17 @@ export class MinaBaseLayer
     return this.config.network.type === "local";
   }
 
+  /**
+   * Signed settlement happens when proofs are disabled and the network is remote
+   * This is because on local network we can use mock proofs, while on remotes ones we can't
+   */
+  public isSignedSettlement(): boolean {
+    return (
+      !this.areProofsEnabled.areProofsEnabled &&
+      !this.isLocalBlockChain()
+    );
+  }
+  
   public async start(): Promise<void> {
     const { network } = this.config;
 
