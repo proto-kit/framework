@@ -274,7 +274,8 @@ export class SettlementModule
 
     await this.utils.fetchContractAccounts(settlement, dispatch);
 
-    const contractSignature = this.utils.signMessageWithContract(
+    const contractSignature = this.utils.signWithKey(
+      settlementKey.toBase58(),
       settlementKey.toFields()
     );
 

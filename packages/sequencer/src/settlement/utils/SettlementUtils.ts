@@ -50,8 +50,8 @@ export class SettlementUtils {
     return this.signer.sign(signatureData);
   }
 
-  public signMessageWithContract(signatureData: Field[]): Signature {
-    return this.signer.signMessageWithContract(signatureData);
+  public signWithKey(settlementKey:string, signatureData: Field[]): Signature {
+    return this.signer.signWithKey(settlementKey,signatureData);
   }
 
   public getContractAddresses(): PublicKey[] {
