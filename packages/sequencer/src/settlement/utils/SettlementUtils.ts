@@ -16,7 +16,6 @@ import { MinaSigner } from "../MinaSigner";
 interface SignTransactionOptions {
   signingWithSignatureCheck?: PublicKey[];
   signingPublicKeys?: PublicKey[];
-  additionalKeys?: PrivateKey[];
   preventNoncePreconditionFor?: PublicKey[];
 }
 
@@ -54,7 +53,6 @@ export class SettlementUtils {
     const {
       signingWithSignatureCheck = [],
       signingPublicKeys = [],
-      additionalKeys = [],
       preventNoncePreconditionFor = [],
     } = options;
 
@@ -72,7 +70,6 @@ export class SettlementUtils {
 
     return this.signer.signTx(tx, {
       pubKeys,
-      additionalKeys,
     });
   }
 
