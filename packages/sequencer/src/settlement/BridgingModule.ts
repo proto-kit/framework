@@ -60,12 +60,12 @@ import { MinaSigner } from "./MinaSigner";
 export type SettlementTokenConfig = Record<
   string,
   | {
-      bridgingContractPrivateKey?: PrivateKey;
+      bridgingContractPublicKey?: PublicKey;
     }
   | {
       tokenOwner: FungibleToken;
-      bridgingContractPrivateKey?: PrivateKey;
-      tokenOwnerPrivateKey?: PrivateKey;
+      bridgingContractPublicKey?: PublicKey;
+      tokenOwnerPublicKey?: PublicKey;
     }
 >;
 
@@ -246,13 +246,13 @@ export class BridgingModule {
     options:
       | {
           nonce: number;
-          bridgingContractPrivateKey?: PrivateKey;
+          bridgingContractPublicKey?: PublicKey;
         }
       | {
           nonce: number;
           tokenOwner: FungibleToken;
-          bridgingContractPrivateKey?: PrivateKey;
-          tokenOwnerPrivateKey?: PrivateKey;
+          bridgingContractPublicKey?: PublicKey;
+          tokenOwnerPublicKey?: PublicKey;
         }
   ) {
     return await match(options)
@@ -260,18 +260,18 @@ export class BridgingModule {
         {
           nonce: Pattern.number,
           tokenOwner: Pattern.instanceOf(FungibleToken),
-          bridgingContractPrivateKey: Pattern.optional(
-            Pattern.instanceOf(PrivateKey)
+          bridgingContractPublicKey: Pattern.optional(
+            Pattern.instanceOf(PublicKey)
           ),
-          tokenOwnerPrivateKey: Pattern.optional(
-            Pattern.instanceOf(PrivateKey)
+          tokenOwnerPublicKey: Pattern.optional(
+            Pattern.instanceOf(PublicKey)
           ),
         },
         ({
           nonce,
           tokenOwner,
-          bridgingContractPrivateKey,
-          tokenOwnerPrivateKey,
+          bridgingContractPublicKey,
+          tokenOwnerPublicKey,
         }) => {
           return this.sendRollupTransactionsBase(
             async (au: AccountUpdate) => {
@@ -282,8 +282,8 @@ export class BridgingModule {
             {
               nonce,
               contractKeys: [
-                bridgingContractPrivateKey,
-                tokenOwnerPrivateKey,
+                bridgingContractPublicKey,
+                tokenOwnerPublicKey,
               ].filter(filterNonUndefined),
             }
           );
@@ -292,11 +292,11 @@ export class BridgingModule {
       .with(
         {
           nonce: Pattern.number,
-          bridgingContractPrivateKey: Pattern.optional(
-            Pattern.instanceOf(PrivateKey)
+          bridgingContractPublicKey: Pattern.optional(
+            Pattern.instanceOf(PublicKey)
           ),
         },
-        ({ nonce, bridgingContractPrivateKey }) => {
+        ({ nonce, bridgingContractPublicKey }) => {
           return this.sendRollupTransactionsBase(
             async () => {},
             TokenId.default,
@@ -304,8 +304,8 @@ export class BridgingModule {
             {
               nonce,
               contractKeys:
-                bridgingContractPrivateKey !== undefined
-                  ? [bridgingContractPrivateKey]
+                bridgingContractPublicKey !== undefined
+                  ? [bridgingContractPublicKey]
                   : [],
             }
           );
@@ -356,7 +356,7 @@ export class BridgingModule {
   public async pullStateRoot(
     tokenWrapper: (au: AccountUpdate) => Promise<void>,
     tokenId: Field,
-    options: { nonce: number; contractKeys: PrivateKey[] }
+    options: { nonce: number; contractKeys: PublicKey[] }
   ): Promise<
     | { nonceUsed: false }
     | { nonceUsed: true; tx: Mina.Transaction<false, true> }
@@ -400,9 +400,8 @@ export class BridgingModule {
         }
       );
 
-      const signatureOnes = options.contractKeys.map((x) => x.toPublicKey());
       const signedTx = this.utils.signTransaction(tx, {
-        signingWithSignatureCheck: signatureOnes,
+        signingWithSignatureCheck: options.contractKeys,
       });
 
       await this.transactionSender.proveAndSendTransaction(
@@ -424,7 +423,7 @@ export class BridgingModule {
     tokenWrapper: (au: AccountUpdate) => Promise<void>,
     tokenId: Field,
     events: OutgoingMessageEvent<any>[],
-    options: { nonce: number; contractKeys: PrivateKey[] }
+    options: { nonce: number; contractKeys: PublicKey[] }
   ): Promise<
     {
       tx: Transaction<false, true>;
@@ -445,7 +444,10 @@ export class BridgingModule {
       );
     }
 
-    if (this.baseLayer.isSignedSettlement() && options.contractKeys.length === 0) {
+    if (
+      this.baseLayer.isSignedSettlement() &&
+      options.contractKeys.length === 0
+    ) {
       throw new Error(
         "Bridging contract private key for signed settlement has to be provided"
       );
@@ -535,7 +537,7 @@ export class BridgingModule {
 
       const signedTx = this.utils.signTransaction(tx, {
         signingWithSignatureCheck: [
-          ...options.contractKeys.map((x) => x.toPublicKey()),
+          ...options.contractKeys
         ],
       });
 
