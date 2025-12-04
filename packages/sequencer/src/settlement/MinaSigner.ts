@@ -7,7 +7,6 @@ import { SequencerModule } from "../sequencer/builder/SequencerModule";
 export interface SignTxOptions {
   pubKeys?: PublicKey[];
   additionalKeys?: PrivateKey[];
-  signWithContract?: boolean;
 }
 export interface MinaSigner {
   getFeepayerKey(): PublicKey;
@@ -105,7 +104,6 @@ export class InMemoryMinaSigner
     const {
       pubKeys = [],
       additionalKeys = [],
-      signWithContract = false,
     } = options;
 
     const privateKeys: PrivateKey[] = [];
@@ -118,10 +116,6 @@ export class InMemoryMinaSigner
         );
       }
       privateKeys.push(privKey);
-    }
-
-    if (signWithContract) {
-      privateKeys.push(...this.config.contractKeys);
     }
 
     const keys = [this.config.feepayer, ...privateKeys, ...additionalKeys];

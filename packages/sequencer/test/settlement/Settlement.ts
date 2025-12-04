@@ -379,8 +379,8 @@ export const settlementTestFn = (
           signingWithSignatureCheck: [
             tokenOwnerPubKeys.tokenOwner,
             tokenOwnerPubKeys.admin,
+            ...settlementModule.getContractAddresses()
           ],
-          signWithContract: true,
         });
 
         await appChain.sequencer
@@ -555,8 +555,7 @@ export const settlementTestFn = (
         );
 
         settlementModule.utils.signTransaction(tx, {
-          signingWithSignatureCheck: [tokenOwnerPubKeys.tokenOwner],
-          signWithContract: true,
+          signingWithSignatureCheck: [tokenOwnerPubKeys.tokenOwner,...settlementModule.getContractAddresses()],
           additionalKeys: [userKey],
           preventNoncePreconditionFor: [dispatch.address],
         });
@@ -741,8 +740,8 @@ export const settlementTestFn = (
         signingWithSignatureCheck: [
           tokenBridgeKey.toPublicKey(),
           tokenOwnerPubKeys.tokenOwner,
+          ...settlementModule.getContractAddresses()
         ],
-        signWithContract: true,
         additionalKeys: [userKey],
       });
 

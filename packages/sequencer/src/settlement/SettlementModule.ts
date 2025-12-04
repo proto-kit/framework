@@ -184,7 +184,7 @@ export class SettlementModule
       }
     );
 
-    this.utils.signTransaction(tx, { signWithContract: true });
+    this.utils.signTransaction(tx, { signingWithSignatureCheck:[...this.getContractAddresses()] });
 
     const { hash: transactionHash } =
       await this.transactionSender.proveAndSendTransaction(tx, "included");
@@ -264,7 +264,7 @@ export class SettlementModule
     );
 
     this.utils.signTransaction(tx, {
-      signWithContract: true,
+      signingWithSignatureCheck:[...this.getContractAddresses()]
     });
     // Note: We can't use this.signTransaction on the above tx
 
@@ -298,8 +298,8 @@ export class SettlementModule
     );
 
     const initTxSigned = this.utils.signTransaction(initTx, {
-      signingWithSignatureCheck: [minaBridgeKey],
-      signWithContract: true,
+            signingWithSignatureCheck:[...this.getContractAddresses(), minaBridgeKey]
+
     });
 
     await this.transactionSender.proveAndSendTransaction(
@@ -339,9 +339,8 @@ export class SettlementModule
     // Only ContractKeys and OwnerKey for check.
     // Used all in signing process.
     const txSigned = this.utils.signTransaction(tx, {
-      signingWithSignatureCheck: [ownerPublicKey],
-      signingPublicKeys: [contractKey],
-      signWithContract: true,
+      signingWithSignatureCheck:[...this.getContractAddresses(),ownerPublicKey],
+      signingPublicKeys: [contractKey]
     });
 
     await this.transactionSender.proveAndSendTransaction(txSigned, "included");

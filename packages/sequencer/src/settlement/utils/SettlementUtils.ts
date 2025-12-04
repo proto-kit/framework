@@ -18,7 +18,6 @@ interface SignTransactionOptions {
   signingPublicKeys?: PublicKey[];
   additionalKeys?: PrivateKey[];
   preventNoncePreconditionFor?: PublicKey[];
-  signWithContract?: boolean;
 }
 
 /**
@@ -57,33 +56,24 @@ export class SettlementUtils {
       signingPublicKeys = [],
       additionalKeys = [],
       preventNoncePreconditionFor = [],
-      signWithContract = false,
     } = options;
 
     const contractKeyArray = this.baseLayer.isSignedSettlement()
       ? signingWithSignatureCheck
       : [];
 
-    if (signWithContract) {
-      this.requireSignatureIfNecessary(
-        tx,
-        this.getContractAddresses().concat(contractKeyArray),
-        preventNoncePreconditionFor
-      );
-    } else {
-      this.requireSignatureIfNecessary(
-        tx,
-        contractKeyArray,
-        preventNoncePreconditionFor
-      );
-    }
+    this.requireSignatureIfNecessary(
+      tx,
+      contractKeyArray,
+      preventNoncePreconditionFor
+    );
+    
 
     const pubKeys = signingWithSignatureCheck.concat(signingPublicKeys);
 
     return this.signer.signTx(tx, {
       pubKeys,
       additionalKeys,
-      signWithContract,
     });
   }
 
@@ -120,7 +110,7 @@ export class SettlementUtils {
 
             const key = `${au.publicKey.toBase58()}-${au.tokenId.toString()}`;
             const nonce = Number(
-              au.body.preconditions.account.nonce.value.lower.toString()
+              au.body.preconditions.account.nonce   .value.lower.toString()
             );
             if (nonces[key] === undefined) {
               nonces[key] = nonce;
