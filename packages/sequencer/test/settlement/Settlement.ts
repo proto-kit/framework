@@ -34,6 +34,7 @@ import {
   SmartContract,
   UInt8,
   Bool,
+  PublicKey,
 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -104,6 +105,7 @@ export const settlementTestFn = (
   let settlementModule: SettlementModule;
   let bridgingModule: BridgingModule;
   let blockQueue: BlockQueue;
+  let userPublicKey: PublicKey;
 
   let feeStrategy: FeeStrategy;
 
@@ -554,9 +556,12 @@ export const settlementTestFn = (
           }
         );
 
+        // Register userKey, to use later. 
+        userPublicKey = settlementModule.utils.registerKey(userKey);
+
         settlementModule.utils.signTransaction(tx, {
           signingWithSignatureCheck: [tokenOwnerPubKeys.tokenOwner,...settlementModule.getContractAddresses()],
-          additionalKeys: [userKey],
+          signingPublicKeys:[userPublicKey],
           preventNoncePreconditionFor: [dispatch.address],
         });
 
@@ -742,7 +747,7 @@ export const settlementTestFn = (
           tokenOwnerPubKeys.tokenOwner,
           ...settlementModule.getContractAddresses()
         ],
-        additionalKeys: [userKey],
+        signingPublicKeys:[userPublicKey],
       });
 
       await appChain.sequencer

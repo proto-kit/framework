@@ -21,6 +21,11 @@ export interface MinaSigner {
     tx: Transaction<false, false>,
     options?: SignTxOptions
   ): Transaction<false, true>;
+
+  registerKey(
+    privateKey: PrivateKey
+  ): PublicKey;
+ 
 }
 
 export interface InMemorySignerConfig {
@@ -95,6 +100,20 @@ export class InMemoryMinaSigner
       throw new Error(`Relevant key not found for ${publicKey}`);
     }
     return Signature.create(key, signatureData);
+  }
+
+  public registerKey(privateKey: PrivateKey): PublicKey{
+    const publicKey = privateKey.toPublicKey();
+    const publicKeyString = publicKey.toBase58()
+
+    const keyExist = this.keyMap.get(publicKeyString);
+
+    if(keyExist){
+      return publicKey;
+    } else{
+      this.keyMap.set(publicKeyString, privateKey);
+      return publicKey;
+    }
   }
 
   public signTx(

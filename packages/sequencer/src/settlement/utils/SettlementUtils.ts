@@ -128,6 +128,10 @@ export class SettlementUtils {
     }
   }
 
+  public registerKey(privateKey: PrivateKey): PublicKey{
+    return this.signer.registerKey(privateKey);
+  }
+
   /**
    * Fetch a set of accounts (and there update internally) with respect to what network is set
    */
