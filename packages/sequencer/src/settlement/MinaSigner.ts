@@ -22,10 +22,7 @@ export interface MinaSigner {
     options?: SignTxOptions
   ): Transaction<false, true>;
 
-  registerKey(
-    privateKey: PrivateKey
-  ): PublicKey;
- 
+  registerKey(privateKey: PrivateKey): PublicKey;
 }
 
 export interface InMemorySignerConfig {
@@ -95,22 +92,22 @@ export class InMemoryMinaSigner
    * @returns Signature signed with private key of settlement contract address.
    */
   public signWithKey(publicKey: string, signatureData: Field[]): Signature {
-    const key = this.keyMap.get(publicKey)
-    if(!key){
+    const key = this.keyMap.get(publicKey);
+    if (!key) {
       throw new Error(`Relevant key not found for ${publicKey}`);
     }
     return Signature.create(key, signatureData);
   }
 
-  public registerKey(privateKey: PrivateKey): PublicKey{
+  public registerKey(privateKey: PrivateKey): PublicKey {
     const publicKey = privateKey.toPublicKey();
-    const publicKeyString = publicKey.toBase58()
+    const publicKeyString = publicKey.toBase58();
 
     const keyExist = this.keyMap.get(publicKeyString);
 
-    if(keyExist){
+    if (keyExist) {
       return publicKey;
-    } else{
+    } else {
       this.keyMap.set(publicKeyString, privateKey);
       return publicKey;
     }
@@ -120,10 +117,7 @@ export class InMemoryMinaSigner
     tx: Transaction<false, false>,
     options: SignTxOptions = {}
   ): Transaction<false, true> {
-    const {
-      pubKeys = [],
-      additionalKeys = [],
-    } = options;
+    const { pubKeys = [], additionalKeys = [] } = options;
 
     const privateKeys: PrivateKey[] = [];
 

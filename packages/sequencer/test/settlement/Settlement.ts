@@ -381,7 +381,7 @@ export const settlementTestFn = (
           signingWithSignatureCheck: [
             tokenOwnerPubKeys.tokenOwner,
             tokenOwnerPubKeys.admin,
-            ...settlementModule.getContractAddresses()
+            ...settlementModule.getContractAddresses(),
           ],
         });
 
@@ -556,12 +556,15 @@ export const settlementTestFn = (
           }
         );
 
-        // Register userKey, to use later. 
+        // Register userKey, to use later.
         userPublicKey = settlementModule.utils.registerKey(userKey);
 
         settlementModule.utils.signTransaction(tx, {
-          signingWithSignatureCheck: [tokenOwnerPubKeys.tokenOwner,...settlementModule.getContractAddresses()],
-          signingPublicKeys:[userPublicKey],
+          signingWithSignatureCheck: [
+            tokenOwnerPubKeys.tokenOwner,
+            ...settlementModule.getContractAddresses(),
+          ],
+          signingPublicKeys: [userPublicKey],
           preventNoncePreconditionFor: [dispatch.address],
         });
 
@@ -665,8 +668,8 @@ export const settlementTestFn = (
 
       const settlementResult = await trigger.settle(batch, {
         [bridgedTokenId.toString()]: {
-          bridgingContractPrivateKey: tokenBridgeKey,
-          tokenOwnerPrivateKey: tokenOwnerKey.tokenOwner,
+          bridgingContractPublicKey: tokenBridgeKey.toPublicKey(),
+          tokenOwnerPublicKey: tokenOwnerKey.tokenOwner.toPublicKey(),
           tokenOwner: tokenOwner,
         },
       });
@@ -745,9 +748,9 @@ export const settlementTestFn = (
         signingWithSignatureCheck: [
           tokenBridgeKey.toPublicKey(),
           tokenOwnerPubKeys.tokenOwner,
-          ...settlementModule.getContractAddresses()
+          ...settlementModule.getContractAddresses(),
         ],
-        signingPublicKeys:[userPublicKey],
+        signingPublicKeys: [userPublicKey],
       });
 
       await appChain.sequencer

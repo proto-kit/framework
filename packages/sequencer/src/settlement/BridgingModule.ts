@@ -23,7 +23,6 @@ import {
   AccountUpdate,
   Field,
   Mina,
-  PrivateKey,
   Provable,
   PublicKey,
   TokenContract,
@@ -263,9 +262,7 @@ export class BridgingModule {
           bridgingContractPublicKey: Pattern.optional(
             Pattern.instanceOf(PublicKey)
           ),
-          tokenOwnerPublicKey: Pattern.optional(
-            Pattern.instanceOf(PublicKey)
-          ),
+          tokenOwnerPublicKey: Pattern.optional(Pattern.instanceOf(PublicKey)),
         },
         ({
           nonce,
@@ -536,9 +533,7 @@ export class BridgingModule {
       log.debug(tx.toPretty());
 
       const signedTx = this.utils.signTransaction(tx, {
-        signingWithSignatureCheck: [
-          ...options.contractKeys
-        ],
+        signingWithSignatureCheck: [...options.contractKeys],
       });
 
       await this.transactionSender.proveAndSendTransaction(

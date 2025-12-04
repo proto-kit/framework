@@ -38,8 +38,8 @@ export class SettlementUtils {
     return this.signer.sign(signatureData);
   }
 
-  public signWithKey(settlementKey:string, signatureData: Field[]): Signature {
-    return this.signer.signWithKey(settlementKey,signatureData);
+  public signWithKey(settlementKey: string, signatureData: Field[]): Signature {
+    return this.signer.signWithKey(settlementKey, signatureData);
   }
 
   public getContractAddresses(): PublicKey[] {
@@ -67,7 +67,6 @@ export class SettlementUtils {
       contractKeyArray,
       preventNoncePreconditionFor
     );
-    
 
     const pubKeys = signingWithSignatureCheck.concat(signingPublicKeys);
 
@@ -110,7 +109,7 @@ export class SettlementUtils {
 
             const key = `${au.publicKey.toBase58()}-${au.tokenId.toString()}`;
             const nonce = Number(
-              au.body.preconditions.account.nonce   .value.lower.toString()
+              au.body.preconditions.account.nonce.value.lower.toString()
             );
             if (nonces[key] === undefined) {
               nonces[key] = nonce;
@@ -128,7 +127,7 @@ export class SettlementUtils {
     }
   }
 
-  public registerKey(privateKey: PrivateKey): PublicKey{
+  public registerKey(privateKey: PrivateKey): PublicKey {
     return this.signer.registerKey(privateKey);
   }
 

@@ -142,12 +142,11 @@ export class SequencerStartupModule
       .resolve(ChildVerificationKeyService)
       .setCompileRegistry(this.compileRegistry);
 
-    // baseLayer exists and it is not a NoopBaseLayer instance -> return signSettlement. if not, return undefined.
-    const isSignedSettlement = 
-        this.baseLayer && !(this.baseLayer instanceof NoopBaseLayer)
-          ? this.baseLayer.isSignedSettlement()
-          : undefined;
-    
+    const isSignedSettlement =
+      this.baseLayer && !(this.baseLayer instanceof NoopBaseLayer)
+        ? this.baseLayer.isSignedSettlement()
+        : undefined;
+
     log.info("Compiling Protocol circuits, this can take a few minutes");
 
     const timeout = setTimeout(
