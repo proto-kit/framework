@@ -106,22 +106,18 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
     // basic way to limit the number of results returned at the argument level
     const resolversEnchanceMap: ResolversEnhanceMap = {
       Block: {
-        aggregateBlock: [ValidateTakeArg()],
         blocks: [ValidateTakeArg()],
         groupByBlock: [ValidateTakeArg()],
       },
       BlockResult: {
-        aggregateBlockResult: [ValidateTakeArg()],
         blockResults: [ValidateTakeArg()],
         groupByBlockResult: [ValidateTakeArg()],
       },
       Transaction: {
-        aggregateTransaction: [ValidateTakeArg()],
         transactions: [ValidateTakeArg()],
         groupByTransaction: [ValidateTakeArg()],
       },
       TransactionExecutionResult: {
-        aggregateTransactionExecutionResult: [ValidateTakeArg()],
         transactionExecutionResults: [ValidateTakeArg()],
         groupByTransactionExecutionResult: [ValidateTakeArg()],
       },

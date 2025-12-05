@@ -15,7 +15,7 @@ import {
 @injectable()
 export class IndexBlockTask
   extends TaskWorkerModule
-  implements Task<IndexBlockTaskParameters, void>
+  implements Task<IndexBlockTaskParameters, string | void>
 {
   public name = "index-block";
 
@@ -30,7 +30,9 @@ export class IndexBlockTask
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   public async prepare(): Promise<void> {}
 
-  public async compute(input: IndexBlockTaskParameters): Promise<void> {
+  public async compute(
+    input: IndexBlockTaskParameters
+  ): Promise<string | void> {
     try {
       await this.blockStorage.pushBlock(input.block);
       await this.blockStorage.pushResult(input.result);
@@ -40,13 +42,14 @@ export class IndexBlockTask
     }
 
     log.info(`Block ${input.block.height.toBigInt()} indexed sucessfully`);
+    return "";
   }
 
   public inputSerializer(): TaskSerializer<IndexBlockTaskParameters> {
     return this.taskSerializer;
   }
 
-  public resultSerializer(): TaskSerializer<void> {
+  public resultSerializer(): TaskSerializer<string | void> {
     return {
       fromJSON: async () => {},
       toJSON: async () => "",

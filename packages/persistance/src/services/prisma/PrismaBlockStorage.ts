@@ -97,16 +97,12 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
 
     const { prismaClient } = this.connection;
 
-    // Note: We can assume all transactions are already in the DB here, because the
-    // mempool shares the same table as this one. But that could change in the future,
-    // then transaction have to be inserted-if-missing
-    // await prismaClient.transaction.createMany({
-    //   data: block.transactions.map((txr) =>
-    //     this.transactionMapper.mapOut(txr.tx)
-    //   ),
-    //   skipDuplicates: true,
-    // });
-
+    await prismaClient.transaction.createMany({
+      data: block.transactions.map((txr) =>
+        this.transactionMapper.mapOut(txr.tx)
+      ),
+      skipDuplicates: true,
+    });
     await prismaClient.block.create({
       data: {
         ...encodedBlock,
