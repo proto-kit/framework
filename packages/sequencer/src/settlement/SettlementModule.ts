@@ -263,8 +263,8 @@ export class SettlementModule
               verificationsKeys.SettlementSmartContract.verificationKey,
           },
           permissions.settlementContract(),
-          feepayerKey.toPublicKey(),
-          dispatchKey.toPublicKey()
+          feepayer,
+          dispatchKey
         );
       }
     );
@@ -297,8 +297,8 @@ export class SettlementModule
         // Deploy bridge contract for $Mina
         await settlement.addTokenBridge(
           TokenId.default,
-          minaBridgeKey.toPublicKey(),
-          dispatchKey.toPublicKey()
+          minaBridgeKey,
+          dispatchKey
         );
       }
     );
