@@ -1,9 +1,12 @@
-import { useRouter } from "next/navigation";
+"use client";
+
+import { useRouter, usePathname } from "next/navigation";
 
 import { Button } from "./ui/button";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <div className="items-center justify-between pt-4 mb-9 flex w-full">
@@ -11,11 +14,22 @@ export default function Header() {
         <Button
           className="pl-0"
           variant={"link"}
-          onClick={() => router.push("/blocks")}
+          onClick={() => {
+            if (!pathname?.startsWith("/blocks")) {
+              router.push("/blocks");
+            }
+          }}
         >
           Blocks
         </Button>
-        <Button variant={"link"} onClick={() => router.push("/transactions")}>
+        <Button
+          variant={"link"}
+          onClick={() => {
+            if (!pathname?.startsWith("/transactions")) {
+              router.push("/transactions");
+            }
+          }}
+        >
           Transactions
         </Button>
       </div>
