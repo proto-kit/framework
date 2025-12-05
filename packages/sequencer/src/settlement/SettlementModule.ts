@@ -9,15 +9,7 @@ import {
   SettlementSmartContractBase,
   DynamicBlockProof,
 } from "@proto-kit/protocol";
-import {
-  AccountUpdate,
-  Mina,
-  PrivateKey,
-  PublicKey,
-  TokenContract,
-  TokenId,
-  Transaction,
-} from "o1js";
+import { AccountUpdate, Mina, PublicKey, TokenContract, TokenId } from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
@@ -279,11 +271,6 @@ export class SettlementModule
     await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     await this.utils.fetchContractAccounts(settlement, dispatch);
-
-    const contractSignature = this.utils.signWithKey(
-      settlementKey.toBase58(),
-      settlementKey.toFields()
-    );
 
     const initTx = await Mina.transaction(
       {
