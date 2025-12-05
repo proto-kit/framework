@@ -37,9 +37,7 @@ export default function TransactionsTableRow({
   const [copied, setCopied] = useState<Record<any, any>>({});
 
   return (
-    <TableRow
-      onClick={() => router.push(`/transactions/${item.hash}`)}
-    >
+    <TableRow onClick={() => router.push(`/transactions/${item.hash}`)}>
       {Object.keys(columns).map(
         (_key) =>
           view.includes(_key) && (
