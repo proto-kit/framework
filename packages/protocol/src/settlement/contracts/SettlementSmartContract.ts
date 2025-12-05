@@ -18,13 +18,13 @@ import {
   UInt32,
   AccountUpdateForest,
   TokenContract,
-  PrivateKey,
   VerificationKey,
   Permissions,
   Struct,
   Provable,
   TokenId,
   DynamicProof,
+  DeployArgs,
 } from "o1js";
 
 import { NetworkState } from "../../model/network/NetworkState";
@@ -65,12 +65,13 @@ export class TokenMapping extends Struct({
 export interface SettlementContractType {
   authorizationField: State<Field>;
 
-  initialize: (
+  deployAndInitialize: (
+    args: DeployArgs | undefined,
+    permissions: Permissions,
     sequencer: PublicKey,
-    dispatchContract: PublicKey,
-    bridgeContract: PublicKey,
-    contractKey: PrivateKey
+    dispatchContract: PublicKey
   ) => Promise<void>;
+
   assertStateRoot: (root: Field) => AccountUpdate;
   settle: (
     blockProof: DynamicBlockProof,
@@ -245,35 +246,13 @@ export abstract class SettlementSmartContractBase extends TokenContract {
 
   protected async initializeBase(
     sequencer: PublicKey,
-    dispatchContract: PublicKey,
-    bridgeContract: PublicKey,
-    contractKey: PrivateKey
+    dispatchContract: PublicKey
   ) {
-    this.sequencerKey.getAndRequireEquals().assertEquals(Field(0));
-    this.stateRoot.getAndRequireEquals().assertEquals(Field(0));
-    this.blockHashRoot.getAndRequireEquals().assertEquals(Field(0));
-    this.networkStateHash.getAndRequireEquals().assertEquals(Field(0));
-    this.dispatchContractAddressX.getAndRequireEquals().assertEquals(Field(0));
-
     this.sequencerKey.set(sequencer.x);
     this.stateRoot.set(LinkedMerkleTree.EMPTY_ROOT);
     this.blockHashRoot.set(Field(BlockHashMerkleTree.EMPTY_ROOT));
     this.networkStateHash.set(NetworkState.empty().hash());
     this.dispatchContractAddressX.set(dispatchContract.x);
-
-    const { DispatchContract } = SettlementSmartContractBase.args;
-    const contractInstance = new DispatchContract(dispatchContract);
-    await contractInstance.initialize(this.address);
-
-    // Deploy bridge contract for $Mina
-    await this.deployTokenBridge(
-      this.tokenId,
-      bridgeContract,
-      dispatchContract,
-      true
-    );
-
-    contractKey.toPublicKey().assertEquals(this.address);
   }
 
   protected async settleBase(
@@ -449,23 +428,21 @@ export class SettlementSmartContract
 
   @state(Field) public authorizationField = State<Field>();
 
-  @method async approveBase(forest: AccountUpdateForest) {
-    this.checkZeroBalanceChange(forest);
+  public async deployAndInitialize(
+    args: DeployArgs | undefined,
+    permissions: Permissions,
+    sequencer: PublicKey,
+    dispatchContract: PublicKey
+  ): Promise<void> {
+    await super.deploy(args);
+
+    this.self.account.permissions.set(permissions);
+
+    await this.initializeBase(sequencer, dispatchContract);
   }
 
-  @method
-  public async initialize(
-    sequencer: PublicKey,
-    dispatchContract: PublicKey,
-    bridgeContract: PublicKey,
-    contractKey: PrivateKey
-  ) {
-    await this.initializeBase(
-      sequencer,
-      dispatchContract,
-      bridgeContract,
-      contractKey
-    );
+  @method async approveBase(forest: AccountUpdateForest) {
+    this.checkZeroBalanceChange(forest);
   }
 
   @method
