@@ -1,6 +1,7 @@
 import {
   AccountUpdate,
   Bool,
+  DeployArgs,
   Field,
   method,
   Poseidon,
@@ -13,6 +14,7 @@ import {
   state,
   TokenId,
   UInt64,
+  Permissions,
 } from "o1js";
 import { InMemoryMerkleTreeStorage, TypedClass } from "@proto-kit/common";
 
@@ -42,7 +44,6 @@ export interface DispatchContractType {
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
   ) => Promise<void>;
-  initialize: (settlementContract: PublicKey) => Promise<void>;
   enableTokenDeposits: (
     tokenId: Field,
     bridgeContractAddress: PublicKey,
@@ -50,6 +51,12 @@ export interface DispatchContractType {
   ) => Promise<void>;
 
   promisedMessagesHash: State<Field>;
+
+  deployAndInitialize: (
+    args: DeployArgs | undefined,
+    permissions: Permissions,
+    settlementContract: PublicKey
+  ) => Promise<void>;
 }
 
 const tokenBridgeRoot = new TokenBridgeTree(
@@ -116,12 +123,6 @@ export abstract class DispatchSmartContractBase extends SmartContract {
   }
 
   protected initializeBase(settlementContract: PublicKey) {
-    this.promisedMessagesHash.getAndRequireEquals().assertEquals(Field(0));
-    this.honoredMessagesHash.getAndRequireEquals().assertEquals(Field(0));
-    this.settlementContract
-      .getAndRequireEquals()
-      .assertEquals(PublicKey.empty<typeof PublicKey>());
-
     this.promisedMessagesHash.set(ACTIONS_EMPTY_HASH);
     this.honoredMessagesHash.set(ACTIONS_EMPTY_HASH);
     this.settlementContract.set(settlementContract);
@@ -239,6 +240,18 @@ export class DispatchSmartContract
 
   @state(Field) public tokenBridgeCount = State<Field>();
 
+  public async deployAndInitialize(
+    args: DeployArgs | undefined,
+    permissions: Permissions,
+    settlementContract: PublicKey
+  ): Promise<void> {
+    await super.deploy(args);
+
+    this.self.account.permissions.set(permissions);
+
+    this.initializeBase(settlementContract);
+  }
+
   @method
   public async enableTokenDeposits(
     tokenId: Field,
@@ -261,11 +274,6 @@ export class DispatchSmartContract
       executedMessagesHash,
       newPromisedMessagesHash
     );
-  }
-
-  @method
-  public async initialize(settlementContract: PublicKey) {
-    return this.initializeBase(settlementContract);
   }
 
   @method

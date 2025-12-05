@@ -16,6 +16,7 @@ import {
   PublicKey,
   Signature,
   TokenContract,
+  TokenId,
   Transaction,
 } from "o1js";
 import { inject } from "tsyringe";
@@ -283,17 +284,25 @@ export class SettlementModule
       },
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 2);
-        await settlement.deploy({
-          verificationKey:
-            verificationsKeys.SettlementSmartContract.verificationKey,
-        });
-        settlement.account.permissions.set(permissions.settlementContract());
 
-        await dispatch.deploy({
-          verificationKey:
-            verificationsKeys.DispatchSmartContract.verificationKey,
-        });
-        dispatch.account.permissions.set(permissions.dispatchContract());
+        await dispatch.deployAndInitialize(
+          {
+            verificationKey:
+              verificationsKeys.DispatchSmartContract.verificationKey,
+          },
+          permissions.dispatchContract(),
+          settlement.address
+        );
+
+        await settlement.deployAndInitialize(
+          {
+            verificationKey:
+              verificationsKeys.SettlementSmartContract.verificationKey,
+          },
+          permissions.settlementContract(),
+          feepayerKey.toPublicKey(),
+          dispatchKey.toPublicKey()
+        );
       }
     ).sign([feepayerKey, settlementKey, dispatchKey]);
     // Note: We can't use this.signTransaction on the above tx
@@ -315,15 +324,15 @@ export class SettlementModule
         sender: feepayer,
         nonce: nonce + 1,
         fee: this.feeStrategy.getFee(),
-        memo: "Protokit settlement init",
+        memo: "Deploy MINA bridge",
       },
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 1);
-        await settlement.initialize(
-          feepayerKey.toPublicKey(),
-          dispatchKey.toPublicKey(),
+        // Deploy bridge contract for $Mina
+        await settlement.addTokenBridge(
+          TokenId.default,
           minaBridgeKey.toPublicKey(),
-          settlementKey
+          dispatchKey.toPublicKey()
         );
       }
     );
