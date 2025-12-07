@@ -15,7 +15,7 @@ export default function Header() {
           className="pl-0"
           variant={"link"}
           onClick={() => {
-            if (!pathname?.startsWith("/blocks")) {
+            if (pathname !== "/blocks") {
               router.push("/blocks");
             }
           }}
@@ -25,7 +25,7 @@ export default function Header() {
         <Button
           variant={"link"}
           onClick={() => {
-            if (!pathname?.startsWith("/transactions")) {
+            if (pathname !== "/transactions") {
               router.push("/transactions");
             }
           }}

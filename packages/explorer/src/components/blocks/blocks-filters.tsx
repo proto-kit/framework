@@ -2,86 +2,26 @@ import { useFormContext } from "react-hook-form";
 import { PopoverClose } from "@radix-ui/react-popover";
 
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form";
+import FilterBuilder, { FilterFieldDef } from "@/components/ui/FilterBuilder";
 
 export interface BlocksFiltersProps {
   clearFilters: () => void;
 }
 
-interface BlocksFilterForm {
-  height?: number | undefined;
-  hash?: string | undefined;
-  hideEmpty?: boolean | undefined;
-}
+const fields: FilterFieldDef[] = [
+  { name: "height", label: "Height", type: "number", placeholder: "Filter by height" },
+  { name: "hash", label: "Hash", type: "string", placeholder: "Filter by hash" },
+  { name: "hideEmpty", label: "Hide empty blocks", type: "boolean", placeholder: "Hide empty blocks" },
+];
 
 export default function BlocksFilters({ clearFilters }: BlocksFiltersProps) {
-  const form = useFormContext<BlocksFilterForm>();
+  const form = useFormContext();
   const handleClearFilters = clearFilters;
 
   return (
     <>
-      <div className="flex flex-col gap-3">
-        <FormField
-          name="height"
-          control={form.control}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Height</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  name="height"
-                  type="number"
-                  placeholder="Filter by height"
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          name="hash"
-          control={form.control}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Hash</FormLabel>
-              <FormControl>
-                <Input {...field} name="hash" placeholder="Filter by hash" />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          name="hideEmpty"
-          control={form.control}
-          render={({ field }) => {
-            console.log("field", field.value);
-            return (
-              <FormItem>
-                <FormControl>
-                  <div className="flex gap-2 mt-2">
-                    <Checkbox
-                      id="hideEmpty"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      name="hideEmpty"
-                    />
-                    <Label htmlFor="hideEmpty">Hide empty blocks</Label>
-                  </div>
-                </FormControl>
-              </FormItem>
-            );
-          }}
-        />
-      </div>
+      <FilterBuilder fields={fields} />
       <div className="flex items-center justify-between mt-6">
         <PopoverClose asChild onClick={handleClearFilters}>
           <Button variant={"outline"}>Clear filters</Button>
