@@ -43,7 +43,7 @@ export class SequencerStartupModule
     @inject("BaseLayer", { isOptional: true })
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled,
+    private readonly areProofsEnabled: AreProofsEnabled
   ) {
     super();
   }

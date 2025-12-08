@@ -88,7 +88,7 @@ export class InMemoryMinaSigner
   public signWithKey(publicKey: PublicKey, signatureData: Field[]): Signature {
     const key = this.keyMap.get(publicKey.toBase58());
     if (!key) {
-      throw new Error(`Relevant key not found for ${publicKey}`);
+      throw new Error(`Relevant key not found for ${publicKey.toBase58()}`);
     }
     return Signature.create(key, signatureData);
   }

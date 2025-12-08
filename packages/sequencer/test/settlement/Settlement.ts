@@ -175,7 +175,11 @@ export const settlementTestFn = (
         SettlementSigner: {
           feepayer: sequencerKey,
           contractKeys: [settlementKey, dispatchKey, minaBridgeKey],
-          tokenBridgeKeys: [tokenBridgeKey, tokenOwnerKey.tokenOwner, tokenOwnerKey.admin],
+          tokenBridgeKeys: [
+            tokenBridgeKey,
+            tokenOwnerKey.tokenOwner,
+            tokenOwnerKey.admin,
+          ],
         },
         BlockProducerModule: {},
         FeeStrategy: {},
@@ -380,7 +384,7 @@ export const settlementTestFn = (
           signingWithSignatureCheck: [
             tokenOwnerPubKeys.tokenOwner,
             tokenOwnerPubKeys.admin,
-            ...settlementModule.getContractAddresses()
+            ...settlementModule.getContractAddresses(),
           ],
         });
 

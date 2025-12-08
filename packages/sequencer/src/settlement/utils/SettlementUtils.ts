@@ -4,7 +4,6 @@ import {
   Field,
   PrivateKey,
   PublicKey,
-  Signature,
   Transaction,
   UInt32,
 } from "o1js";
@@ -28,7 +27,7 @@ export class SettlementUtils {
     private readonly baseLayer: MinaBaseLayer,
     private readonly signer: MinaSigner
   ) {}
-  
+
   public signTransaction(
     tx: Transaction<false, false>,
     options: SignTransactionOptions = {}
