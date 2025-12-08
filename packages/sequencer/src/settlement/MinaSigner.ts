@@ -14,7 +14,7 @@ export interface MinaSigner {
 
   sign(signatureData: Field[]): Signature;
 
-  signWithKey(publicKey: string, signatureData: Field[]): Signature;
+  signWithKey(publicKey: PublicKey, signatureData: Field[]): Signature;
 
   signTx(
     tx: Transaction<false, false>,
@@ -90,8 +90,8 @@ export class InMemoryMinaSigner
    * @param signatureData Data to be signed.
    * @returns Signature signed with private key of settlement contract address.
    */
-  public signWithKey(publicKey: string, signatureData: Field[]): Signature {
-    const key = this.keyMap.get(publicKey);
+  public signWithKey(publicKey: PublicKey, signatureData: Field[]): Signature {
+    const key = this.keyMap.get(publicKey.toBase58());
     if (!key) {
       throw new Error(`Relevant key not found for ${publicKey}`);
     }

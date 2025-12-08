@@ -37,8 +37,8 @@ export class SettlementUtils {
     return this.signer.sign(signatureData);
   }
 
-  public signWithKey(settlementKey: string, signatureData: Field[]): Signature {
-    return this.signer.signWithKey(settlementKey, signatureData);
+  public signWithKey(publicKey: PublicKey, signatureData: Field[]): Signature {
+    return this.signer.signWithKey(publicKey, signatureData);
   }
 
   public getContractAddresses(): PublicKey[] {
