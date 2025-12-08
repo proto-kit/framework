@@ -7,7 +7,7 @@ import {
   Transaction,
   UInt32,
 } from "o1js";
-import { AreProofsEnabled, mapSequential } from "@proto-kit/common";
+import { mapSequential } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { MinaSigner } from "../MinaSigner";
@@ -23,7 +23,6 @@ interface SignTransactionOptions {
  */
 export class SettlementUtils {
   public constructor(
-    private readonly areProofsEnabled: AreProofsEnabled,
     private readonly baseLayer: MinaBaseLayer,
     private readonly signer: MinaSigner
   ) {}

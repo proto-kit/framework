@@ -31,7 +31,6 @@ import {
   UInt32,
 } from "o1js";
 import {
-  AreProofsEnabled,
   filterNonUndefined,
   LinkedMerkleTree,
   log,
@@ -97,13 +96,12 @@ export class BridgingModule {
     private readonly linkedLeafStore: AsyncLinkedLeafStore,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
-    @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender
   ) {
-    this.utils = new SettlementUtils(areProofsEnabled, baseLayer, signer);
+    this.utils = new SettlementUtils(baseLayer, signer);
   }
 
   private getMessageProcessors() {

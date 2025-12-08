@@ -15,7 +15,6 @@ import {
   EventEmitter,
   EventEmittingComponent,
   log,
-  AreProofsEnabled,
   DependencyFactory,
 } from "@proto-kit/common";
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -67,18 +66,13 @@ export class SettlementModule
     private readonly blockProofSerializer: BlockProofSerializer,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender,
-    @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
     private readonly settlementStartupModule: SettlementStartupModule
   ) {
     super();
-    this.utils = new SettlementUtils(
-      areProofsEnabled,
-      this.baseLayer,
-      this.signer
-    );
+    this.utils = new SettlementUtils(this.baseLayer, this.signer);
   }
 
   public dependencies() {
