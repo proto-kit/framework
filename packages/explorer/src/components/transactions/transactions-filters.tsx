@@ -1,4 +1,3 @@
-import { useFormContext } from "react-hook-form";
 import { PopoverClose } from "@radix-ui/react-popover";
 
 import { Button } from "../ui/button";
@@ -10,13 +9,29 @@ export interface TransactionsFiltersProps {
 }
 
 const fields: FilterFieldDef[] = [
-  { name: "hash", label: "Hash", type: "string", placeholder: "Filter by hash" },
-  { name: "methodId", label: "Method ID", type: "string", placeholder: "Filter by method ID" },
-  { name: "sender", label: "Sender", type: "string", placeholder: "Filter by sender" },
+  {
+    name: "hash",
+    label: "Hash",
+    type: "string",
+    placeholder: "Filter by hash",
+  },
+  {
+    name: "methodId",
+    label: "Method ID",
+    type: "string",
+    placeholder: "Filter by method ID",
+  },
+  {
+    name: "sender",
+    label: "Sender",
+    type: "string",
+    placeholder: "Filter by sender",
+  },
 ];
 
-export default function TransactionsFilters({ clearFilters }: TransactionsFiltersProps) {
-  const form = useFormContext();
+export default function TransactionsFilters({
+  clearFilters,
+}: TransactionsFiltersProps) {
   const handleClearFilters = clearFilters;
 
   return (

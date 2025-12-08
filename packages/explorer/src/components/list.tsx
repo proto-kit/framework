@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Filter, Meh } from "lucide-react";
 import { useFormContext } from "react-hook-form";
@@ -58,11 +58,6 @@ export default function List<TableItem>({
   pagination,
   titleClassName,
 }: ListProps<TableItem>) {
-  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
-  const handlePopoverOpen = useCallback(() => {
-    console.log("opening", areFiltersOpen);
-    setAreFiltersOpen(true);
-  }, []);
   const form = useFormContext();
   const searchParams = useSearchParams();
 
@@ -100,7 +95,6 @@ export default function List<TableItem>({
                 <PopoverTrigger asChild={true}>
                   <Button
                     variant={numberOfActiveFilters ? "default" : "outline"}
-                    onClick={handlePopoverOpen}
                   >
                     <Filter className="w-4 h-4 pr-1" />
                     {numberOfActiveFilters

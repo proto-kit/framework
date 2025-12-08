@@ -1,11 +1,9 @@
 "use client";
 
-/* eslint-disable sonarjs/cognitive-complexity */
-/* eslint-disable no-underscore-dangle */
-
 import { useRouter } from "next/navigation";
-import { cn, typed } from "@/lib/utils";
+
 import GenericTableRow from "@/components/ui/GenericTableRow";
+
 export interface TableItem {
   hash: string;
   methodId: string;
@@ -41,5 +39,3 @@ export default function TransactionsTableRow({
     />
   );
 }
-/* eslint-enable sonarjs/cognitive-complexity */
-/* eslint-enable no-underscore-dangle */

@@ -54,7 +54,10 @@ export default function FilterBuilder({ fields }: FilterBuilderProps) {
                     ref={field.ref}
                     name={f.name}
                     type={f.type === "number" ? "number" : "text"}
-                    placeholder={f.placeholder ?? `Filter by ${f.label.toLowerCase()}`}
+                    placeholder={
+                      f.placeholder ?? `Filter by ${f.label.toLowerCase()}`
+                    }
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     value={field.value ?? ""}
                     onChange={(e) => field.onChange(e.target.value)}
                   />

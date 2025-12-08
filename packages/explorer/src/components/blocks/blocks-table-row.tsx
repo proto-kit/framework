@@ -1,5 +1,3 @@
-/* eslint-disable no-underscore-dangle */
-
 import { useRouter } from "next/navigation";
 
 import GenericTableRow from "@/components/ui/GenericTableRow";
@@ -38,4 +36,3 @@ export default function BlocksTableRow({
     />
   );
 }
-/* eslint-enable no-underscore-dangle */

@@ -1,5 +1,9 @@
 "use client";
 
+/* eslint-disable sonarjs/cognitive-complexity */
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable no-nested-ternary */
+
 import React, { useState } from "react";
 import Truncate from "react-truncate-inside";
 import { ChevronRight, Clipboard, CircleCheck, CircleX } from "lucide-react";
@@ -50,7 +54,10 @@ export default function GenericTableRow<Item extends Record<string, any>>({
                         String(item[typed<keyof Item>(_key)])
                       );
                       setCopied((s) => ({ ...s, [_key]: true }));
-                      setTimeout(() => setCopied((s) => ({ ...s, [_key]: false })), 2000);
+                      setTimeout(
+                        () => setCopied((s) => ({ ...s, [_key]: false })),
+                        2000
+                      );
                     }}
                   >
                     <div className="opacity-0 group-hover:opacity-100 absolute w-full rounded-md flex items-center justify-start bg-gray-50">
@@ -96,3 +103,6 @@ export default function GenericTableRow<Item extends Record<string, any>>({
     </TableRow>
   );
 }
+/* eslint-enable sonarjs/cognitive-complexity */
+/* eslint-enable no-underscore-dangle */
+/* eslint-enable no-nested-ternary */

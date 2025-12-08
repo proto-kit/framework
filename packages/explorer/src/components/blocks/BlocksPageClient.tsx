@@ -108,7 +108,8 @@ export default function BlocksPageClient() {
           const fieldType = querySchema[typed<keyof typeof querySchema>(key)];
           const quotedValue = fieldType === "string" ? `"${value}"` : value;
           if (key === "hideEmpty") {
-            return `${filter} , transactionsHash: {not: {equals : "0"}}`;
+            return `${filter} , OR: [{transactionsHash: {not: {equals: "0"}}}, 
+                    {transactions: {some: {tx: {is: {isMessage: {equals: true}}}}}}]`;
           }
 
           return `${filter} , ${key}: {equals: ${quotedValue}}`;
