@@ -27,7 +27,6 @@ export interface MinaSigner {
 export interface InMemorySignerConfig {
   feepayer: PrivateKey;
   contractKeys: PrivateKey[];
-  tokenControllers?: PrivateKey[];
   tokenBridgeKeys?: PrivateKey[];
 }
 
@@ -50,10 +49,6 @@ export class InMemoryMinaSigner
     });
 
     this.config.contractKeys.forEach((key) => {
-      this.keyMap.set(key.toPublicKey().toBase58(), key);
-    });
-
-    this.config.tokenControllers?.forEach((key) => {
       this.keyMap.set(key.toPublicKey().toBase58(), key);
     });
   }
