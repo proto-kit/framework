@@ -22,7 +22,6 @@ import {
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
-import { MinaSigner } from "../settlement/MinaSigner";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
@@ -45,8 +44,6 @@ export class SequencerStartupModule
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
-    @inject("SettlementSigner", { isOptional: true })
-    private readonly signer: MinaSigner | undefined
   ) {
     super();
   }

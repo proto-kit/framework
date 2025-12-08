@@ -96,7 +96,7 @@ export class SettlementModule
   }
 
   public getAddresses() {
-    const keysArray = this.utils.getContractAddresses();
+    const keysArray = this.signer.getContractAddresses();
     return {
       settlement: keysArray[0],
       dispatch: keysArray[1],
@@ -104,7 +104,7 @@ export class SettlementModule
   }
 
   public getContractAddresses() {
-    return this.utils.getContractAddresses();
+    return this.signer.getContractAddresses();
   }
 
   public getContracts() {
@@ -142,12 +142,12 @@ export class SettlementModule
   ): Promise<Settlement> {
     await this.fetchContractAccounts();
     const { settlement: settlementContract, dispatch } = this.getContracts();
-    const feepayer = this.utils.getFeepayerKey();
+    const feepayer = this.signer.getFeepayerKey();
     log.debug("Preparing settlement");
 
     const lastSettlementL1BlockHeight =
       settlementContract.lastSettlementL1BlockHeight.get().value;
-    const signature = await this.utils.sign([
+    const signature = this.signer.sign([
       BATCH_SIGNATURE_PREFIX,
       lastSettlementL1BlockHeight,
     ]);
@@ -181,7 +181,7 @@ export class SettlementModule
     );
 
     this.utils.signTransaction(tx, {
-      signingWithSignatureCheck: [...this.getContractAddresses()],
+      signingWithSignatureCheck: [...this.signer.getContractAddresses()],
     });
 
     const { hash: transactionHash } =
@@ -211,7 +211,7 @@ export class SettlementModule
       nonce?: number;
     } = {}
   ) {
-    const feepayer = this.utils.getFeepayerKey();
+    const feepayer = this.signer.getFeepayerKey();
 
     const nonce = options?.nonce ?? 0;
 
@@ -262,7 +262,7 @@ export class SettlementModule
     );
 
     this.utils.signTransaction(tx, {
-      signingWithSignatureCheck: [...this.getContractAddresses()],
+      signingWithSignatureCheck: [...this.signer.getContractAddresses()],
     });
     // Note: We can't use this.signTransaction on the above tx
 
@@ -292,7 +292,7 @@ export class SettlementModule
 
     const initTxSigned = this.utils.signTransaction(initTx, {
       signingWithSignatureCheck: [
-        ...this.getContractAddresses(),
+        ...this.signer.getContractAddresses(),
         minaBridgeKey,
       ],
     });
@@ -311,7 +311,7 @@ export class SettlementModule
       nonce?: number;
     }
   ) {
-    const feepayer = this.utils.getFeepayerKey();
+    const feepayer = this.signer.getFeepayerKey();
     const nonce = options?.nonce ?? undefined;
 
     const tokenId = owner.deriveTokenId();
@@ -335,7 +335,7 @@ export class SettlementModule
     // Used all in signing process.
     const txSigned = this.utils.signTransaction(tx, {
       signingWithSignatureCheck: [
-        ...this.getContractAddresses(),
+        ...this.signer.getContractAddresses(),
         ownerPublicKey,
       ],
       signingPublicKeys: [contractKey],

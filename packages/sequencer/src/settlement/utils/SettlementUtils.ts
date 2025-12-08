@@ -28,24 +28,7 @@ export class SettlementUtils {
     private readonly baseLayer: MinaBaseLayer,
     private readonly signer: MinaSigner
   ) {}
-
-  public getFeepayerKey(): PublicKey {
-    return this.signer.getFeepayerKey();
-  }
-
-  public sign(signatureData: Field[]): Signature {
-    return this.signer.sign(signatureData);
-  }
-
-  public signWithKey(publicKey: PublicKey, signatureData: Field[]): Signature {
-    return this.signer.signWithKey(publicKey, signatureData);
-  }
-
-  public getContractAddresses(): PublicKey[] {
-    const keys = this.signer.getContractAddresses();
-    return [keys[0], keys[1], keys[2]];
-  }
-
+  
   public signTransaction(
     tx: Transaction<false, false>,
     options: SignTransactionOptions = {}

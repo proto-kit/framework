@@ -381,7 +381,7 @@ export const settlementTestFn = (
           signingWithSignatureCheck: [
             tokenOwnerPubKeys.tokenOwner,
             tokenOwnerPubKeys.admin,
-            ...settlementModule.getContractAddresses(),
+            ...settlementModule.getContractAddresses()
           ],
         });
 
