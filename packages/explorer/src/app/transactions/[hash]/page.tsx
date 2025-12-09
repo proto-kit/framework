@@ -7,23 +7,27 @@ import Truncate from "react-truncate-inside/es";
 
 import { DetailsLayout } from "@/components/details/layout";
 import config from "@/config";
-
+interface Transaction {
+  hash: string;
+  sender: string;
+  methodId: string;
+  nonce: string;
+  executionResult: {
+    status: boolean;
+    statusMessage?: string;
+    block: {
+      batch: {
+        proof: string | null;
+        settlementTransactionHash: string | null;
+      };
+    };
+  };
+  status: boolean;
+  statusMessage?: string;
+}
 export interface GetTransactionQueryResponse {
   data: {
-    transaction:
-      | {
-          hash: string;
-          sender: string;
-          methodId: string;
-          nonce: string;
-          executionResult: {
-            status: boolean;
-            statusMessage?: string;
-          };
-          status: boolean;
-          statusMessage?: string;
-        }
-      | undefined;
+    transaction: Transaction | undefined;
   };
 }
 
@@ -49,6 +53,12 @@ export default function BlockDetail() {
                 executionResult {
                   status
                   statusMessage
+                  block {
+                    batch {
+                      proof
+                      settlementTransactionHash
+                    }
+                  }
                 }
             }
         }`,
@@ -71,13 +81,31 @@ export default function BlockDetail() {
     void query();
   }, []);
 
+  const getStatus = (tx: Transaction | undefined) => {
+    const batch = tx?.executionResult?.block?.batch;
+
+    if (!tx) return "Pending";
+    if (!batch) return tx?.executionResult?.block ? "Included" : "Pending";
+    if (batch.settlementTransactionHash) return "Settled";
+    if (batch.proof) return "Proven";
+
+    return "Included";
+  };
   const details = [
     {
       label: "Nonce",
       value: data?.transaction?.nonce ?? "—",
     },
     {
-      label: "Status",
+      label: "Finality status",
+      value: (
+        <div className="mt-1">
+          <span className="font-medium">{getStatus(data?.transaction)}</span>
+        </div>
+      ),
+    },
+    {
+      label: "Execution status",
       value: (
         <div className="mt-1">
           {data?.transaction?.executionResult?.status != null ? (

@@ -6,14 +6,17 @@ import {
   TaskPayload,
   TaskQueue,
   SequencerIdProvider,
+  PrivateMempool,
 } from "@proto-kit/sequencer";
 import { log } from "@proto-kit/common";
 import { inject } from "tsyringe";
 
 import { IndexBlockTask } from "./tasks/IndexBlockTask";
+import { IndexPendingTxTask } from "./tasks/IndexPendingTxTask";
 
 export type NotifierMandatorySequencerModules = {
   BlockTrigger: typeof BlockTriggerBase;
+  Mempool: typeof PrivateMempool;
 };
 
 @sequencerModule()
@@ -24,6 +27,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
     @inject("TaskQueue")
     public taskQueue: TaskQueue,
     public indexBlockTask: IndexBlockTask,
+    public indexPendingTxTask: IndexPendingTxTask,
     private readonly sequencerIdProvider: SequencerIdProvider
   ) {
     super();
@@ -49,6 +53,27 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
       };
 
       await queue.addTask(task);
+    });
+    this.sequencer.events.on("mempool-transaction-added", async (tx) => {
+      try {
+        const txQueue = await this.taskQueue.getQueue(
+          this.indexPendingTxTask.name
+        );
+        const inputSerializer = this.indexPendingTxTask.inputSerializer();
+        const payload = await inputSerializer.toJSON(tx);
+        const sequencerId = this.sequencerIdProvider.getSequencerId();
+
+        const task: TaskPayload = {
+          name: this.indexPendingTxTask.name,
+          payload,
+          flowId: "",
+          sequencerId,
+        };
+
+        await txQueue.addTask(task);
+      } catch (err) {
+        console.error("Failed to add pending-tx task", err);
+      }
     });
   }
 
