@@ -13,6 +13,15 @@ describe.each(["mock-proofs", "signed"] as const)(
       },
     };
 
+    const localNetwork: MinaBaseLayerConfig = {
+      network: {
+        type:'lightnet',
+        archive:'http://127.0.0.1:8282',
+        accountManager:'http://127.0.0.1:8181',
+        graphql: 'http://127.0.0.1:8080/graphql',
+      }
+    }
+
     describe("Default token", () => {
       settlementTestFn(type, network);
     });
@@ -21,6 +30,10 @@ describe.each(["mock-proofs", "signed"] as const)(
       settlementTestFn(type, network, {
         tokenOwner: FungibleToken,
       });
+    });
+    
+    describe("Default token in lightnet", () => {
+      settlementTestFn(type,localNetwork);
     });
   }
 );
