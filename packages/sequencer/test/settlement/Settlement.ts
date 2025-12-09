@@ -312,6 +312,10 @@ export const settlementTestFn = (
   let user0Nonce = 0;
   let acc0L2Nonce = 0;
 
+  it("should throw error", async () => {
+    await expect(settlementModule.checkDeployment()).rejects.toThrow();
+  });
+
   it(
     "should deploy",
     async () => {
@@ -331,6 +335,11 @@ export const settlementTestFn = (
     },
     timeout * 2
   );
+
+  it("should not throw error", async () => {
+    // If it doesn't throw anything, it indicates that deployment checs were succesful. 
+    await settlementModule.checkDeployment();
+  });
 
   if (tokenConfig !== undefined) {
     it(
