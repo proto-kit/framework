@@ -9,7 +9,7 @@ import {
   SettlementSmartContractBase,
   DynamicBlockProof,
 } from "@proto-kit/protocol";
-import { AccountUpdate, Mina, PublicKey, TokenContract, TokenId } from "o1js";
+import { AccountUpdate, fetchAccount, Mina, PublicKey, TokenContract, TokenId } from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
@@ -351,4 +351,37 @@ export class SettlementModule
       ).bridgeContractMina(),
     };
   }
+  
+  public async checkDeployment(): Promise<void | never> {
+  const network = this.baseLayer.network;
+  if (!network) {
+    throw new Error('Network is not found!?');
+  }
+  
+  const accountAddresses = this.getContractAddresses().concat(
+    // Add token bridge addresses, if exists
+    this.signer.getTokenAddresses()
+  );
+  
+  if (this.baseLayer.config.network.type !== 'local') {
+    // Use Promise.all with map instead of forEach
+    await Promise.all(
+      accountAddresses.map(async (pubKey) => {
+        const { account, error } = await fetchAccount({ publicKey: pubKey.toBase58() });
+        if (!account || !!error) {
+          throw new Error(`Error finding account ${pubKey.toBase58()} on chain`);
+        }
+      })
+    );
+  } else {
+    await Promise.all(
+      accountAddresses.map(async (pubKey) => {
+        const account_exists = Mina.hasAccount(pubKey);
+        if (!account_exists) {
+          throw new Error(`Error finding account ${pubKey.toBase58()} on local chain`);
+        }
+      })
+    );
+  }
+}
 }
