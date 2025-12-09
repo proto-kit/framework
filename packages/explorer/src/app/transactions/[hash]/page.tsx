@@ -7,6 +7,7 @@ import Truncate from "react-truncate-inside/es";
 
 import { DetailsLayout } from "@/components/details/layout";
 import config from "@/config";
+
 interface Transaction {
   hash: string;
   sender: string;
@@ -84,10 +85,11 @@ export default function BlockDetail() {
   const getStatus = (tx: Transaction | undefined) => {
     const batch = tx?.executionResult?.block?.batch;
 
-    if (!tx) return "Pending";
-    if (!batch) return tx?.executionResult?.block ? "Included" : "Pending";
-    if (batch.settlementTransactionHash) return "Settled";
-    if (batch.proof) return "Proven";
+    if (tx == null) return "Pending";
+    if (batch == null)
+      return tx?.executionResult?.block != null ? "Included" : "Pending";
+    if (batch.settlementTransactionHash != null) return "Settled";
+    if (batch.proof != null) return "Proven";
 
     return "Included";
   };

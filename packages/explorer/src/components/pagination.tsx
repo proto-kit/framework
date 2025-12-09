@@ -22,8 +22,7 @@ export default function Pagination({ page, totalCount }: PaginationProps) {
   const nextPage = page + 1;
 
   const hasPreviousPage = page > 1;
-  const hasNextPage =
-    ((totalCount ?? 0) - page * showPerPage) / showPerPage > 1;
+  const hasNextPage = page * showPerPage < (totalCount ?? 0);
 
   const navigate = (to: number) => {
     const params = new URLSearchParams(window.location.search);

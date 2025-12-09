@@ -36,6 +36,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
   public async propagateEventsAsTasks() {
     const queue = await this.taskQueue.getQueue(this.indexBlockTask.name);
     const inputSerializer = this.indexBlockTask.inputSerializer();
+    const txInputSerializer = this.indexPendingTxTask.inputSerializer();
 
     this.sequencer.events.on("block-metadata-produced", async (block) => {
       log.debug(
@@ -59,8 +60,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
         const txQueue = await this.taskQueue.getQueue(
           this.indexPendingTxTask.name
         );
-        const inputSerializer = this.indexPendingTxTask.inputSerializer();
-        const payload = await inputSerializer.toJSON(tx);
+        const payload = await txInputSerializer.toJSON(tx);
         const sequencerId = this.sequencerIdProvider.getSequencerId();
 
         const task: TaskPayload = {

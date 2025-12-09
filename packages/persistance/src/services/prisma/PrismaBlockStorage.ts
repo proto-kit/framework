@@ -106,7 +106,7 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
     //   ),
     //   skipDuplicates: true,
     // });
-    
+
     await prismaClient.block.create({
       data: {
         ...encodedBlock,

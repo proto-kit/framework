@@ -5,8 +5,9 @@ import {
   TaskWorkerModule,
   TransactionStorage,
 } from "@proto-kit/sequencer";
-import { inject, injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
+import { inject, injectable } from "tsyringe";
+
 import { IndexPendingTxTaskParametersSerializer } from "./IndexPendingTxTaskParameters";
 
 @injectable()
@@ -32,7 +33,7 @@ export class IndexPendingTxTask
       await this.transactionStorage.pushUserTransaction(input);
       return "";
     } catch (err) {
-      log.error("Failed to process pending tx task", err as any);
+      log.error("Failed to process pending tx task", err);
       return undefined;
     }
   }
