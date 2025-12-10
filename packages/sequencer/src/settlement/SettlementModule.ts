@@ -9,7 +9,7 @@ import {
   SettlementSmartContractBase,
   DynamicBlockProof,
 } from "@proto-kit/protocol";
-import { AccountUpdate, fetchAccount, Mina, PublicKey, TokenContract, TokenId } from "o1js";
+import { AccountUpdate, fetchAccount, Field, Mina, PublicKey, TokenContract, TokenId } from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
@@ -352,36 +352,52 @@ export class SettlementModule
     };
   }
   
-  public async checkDeployment(): Promise<void | never> {
-  const network = this.baseLayer.network;
-  if (!network) {
-    throw new Error('Network is not found!?');
-  }
-  
-  const accountAddresses = this.getContractAddresses().concat(
-    // Add token bridge addresses, if exists
-    this.signer.getTokenAddresses()
-  );
+  public async checkDeployment(
+  tokenBridges?: Array<{ address: PublicKey; tokenId: Field }>
+): Promise<void | never> {
+  const contractAddresses = this.getContractAddresses();
   
   if (this.baseLayer.config.network.type !== 'local') {
-    // Use Promise.all with map instead of forEach
+    // Check main contracts
     await Promise.all(
-      accountAddresses.map(async (pubKey) => {
-        const { account, error } = await fetchAccount({ publicKey: pubKey.toBase58() });
+      contractAddresses.map(async (pubKey) => {
+        const { account, error } = await fetchAccount({ publicKey: pubKey });
         if (!account || !!error) {
-          throw new Error(`Error finding account ${pubKey.toBase58()} on chain`);
+          throw new Error(`Error finding account ${pubKey.toBase58()}`);
         }
       })
     );
+    
+    // Check token bridges with their tokenIds
+    if (tokenBridges) {
+      await Promise.all(
+        tokenBridges.map(async ({ address, tokenId }) => {
+          const { account, error } = await fetchAccount({ 
+            publicKey: address, 
+            tokenId 
+          });
+          if (!account || !!error) {
+            throw new Error(`Error finding token bridge ${address.toBase58()} @ ${tokenId.toString()}`);
+          }
+        })
+      );
+    }
   } else {
-    await Promise.all(
-      accountAddresses.map(async (pubKey) => {
-        const account_exists = Mina.hasAccount(pubKey);
-        if (!account_exists) {
-          throw new Error(`Error finding account ${pubKey.toBase58()} on local chain`);
+    // Local network
+    contractAddresses.forEach((pubKey) => {
+      if (!Mina.hasAccount(pubKey)) {
+        throw new Error(`Contract ${pubKey.toBase58()} not found on local chain`);
+      }
+    });
+    
+    // Check token bridges
+    if (tokenBridges) {
+      tokenBridges.forEach(({ address, tokenId }) => {
+        if (!Mina.hasAccount(address, tokenId)) {
+          throw new Error(`Token bridge ${address.toBase58()} @ ${tokenId.toString()} not found`);
         }
-      })
-    );
+      });
+    }
   }
 }
 }
