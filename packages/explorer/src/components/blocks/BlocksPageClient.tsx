@@ -23,7 +23,9 @@ export interface GetBlocksQueryResponse {
     blocks: {
       height: string;
       hash: string;
-      fromStateRoot: string;
+      result: {
+        stateRoot: string;
+      };
       _count: {
         transactions: number;
       };
@@ -131,7 +133,9 @@ export default function BlocksPageClient() {
           }){
             height
             hash
-            fromStateRoot
+            result {
+              stateRoot
+            }
             _count {
               transactions
             }
@@ -155,7 +159,7 @@ export default function BlocksPageClient() {
           height: item.height,
           hash: item.hash,
           transactions: item._count?.transactions?.toString(),
-          stateRoot: item.fromStateRoot,
+          stateRoot: item.result.stateRoot,
         })),
       });
       setLoading(false);

@@ -18,7 +18,9 @@ export interface GetBlockQueryResponse {
       | {
           hash: string;
           height: string;
-          fromStateRoot: string;
+          result: {
+            stateRoot: string;
+          };
           transactions: {
             tx: {
               hash: string;
@@ -64,7 +66,9 @@ export default function BlockDetail() {
               block (where: {hash: "${params.hash}"}) {
                 height
                 hash
-                fromStateRoot
+                result {
+                  stateRoot
+                }
                 transactions {
                   tx {
                     hash,
@@ -109,7 +113,7 @@ export default function BlockDetail() {
     },
     {
       label: "StateRoot",
-      value: data?.block?.fromStateRoot ?? "—",
+      value: data?.block?.result.stateRoot ?? "—",
     },
   ];
 
