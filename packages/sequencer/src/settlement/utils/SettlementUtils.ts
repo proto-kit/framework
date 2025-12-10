@@ -7,53 +7,51 @@ import {
   Transaction,
   UInt32,
 } from "o1js";
-import { AreProofsEnabled, mapSequential } from "@proto-kit/common";
+import { mapSequential } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
+import { MinaSigner } from "../MinaSigner";
+
+interface SignTransactionOptions {
+  signingWithSignatureCheck?: PublicKey[];
+  signingPublicKeys?: PublicKey[];
+  preventNoncePreconditionFor?: PublicKey[];
+}
 
 /**
  * Utils class that provides methods for sending transactions that are signed-settlement-enabled
  */
 export class SettlementUtils {
   public constructor(
-    private readonly areProofsEnabled: AreProofsEnabled,
-    private readonly baseLayer: MinaBaseLayer
+    private readonly baseLayer: MinaBaseLayer,
+    private readonly signer: MinaSigner
   ) {}
 
-  /**
-   * Signed settlement happens when proofs are disabled and the network is remote
-   * This is because on local network we can use mock proofs, while on remotes ones we can't
-   */
-  public isSignedSettlement(): boolean {
-    return (
-      !this.areProofsEnabled.areProofsEnabled &&
-      !this.baseLayer.isLocalBlockChain()
-    );
-  }
-
-  /**
-   * Sign transaction with two variants:
-   *
-   * - If it normal settlement (proofs enabled or mock proofs):
-   *   Sign the transaction normally
-   *
-   * - If it is signed settlement:
-   *   Signed the transactions and make all contract AUs where a private key is known
-   *   via the contractKeys param require a signature and sign them using that key
-   */
   public signTransaction(
     tx: Transaction<false, false>,
-    pks: PrivateKey[],
-    contractKeys: PrivateKey[],
-    preventNoncePreconditionFor: PublicKey[] = []
-  ): Transaction<false, true> {
-    const contractKeyArray = this.isSignedSettlement() ? contractKeys : [];
+    options: SignTransactionOptions = {}
+  ) {
+    const {
+      signingWithSignatureCheck = [],
+      signingPublicKeys = [],
+      preventNoncePreconditionFor = [],
+    } = options;
+
+    const contractKeyArray = this.baseLayer.isSignedSettlement()
+      ? signingWithSignatureCheck
+      : [];
+
     this.requireSignatureIfNecessary(
       tx,
-      contractKeyArray.map((key) => key.toPublicKey()),
+      contractKeyArray,
       preventNoncePreconditionFor
     );
-    return tx.sign([...pks, ...contractKeyArray]);
+
+    const pubKeys = signingWithSignatureCheck.concat(signingPublicKeys);
+
+    return this.signer.signTx(tx, {
+      pubKeys,
+    });
   }
 
   private requireSignatureIfNecessary(
@@ -61,7 +59,7 @@ export class SettlementUtils {
     addresses: PublicKey[],
     preventNoncePreconditionFor: PublicKey[]
   ) {
-    if (this.isSignedSettlement() && addresses !== undefined) {
+    if (this.baseLayer.isSignedSettlement() && addresses !== undefined) {
       const nonces: Record<string, number> = {};
 
       tx.transaction.accountUpdates.forEach((au) => {
@@ -105,6 +103,10 @@ export class SettlementUtils {
         }
       });
     }
+  }
+
+  public registerKey(privateKey: PrivateKey): PublicKey {
+    return this.signer.registerKey(privateKey);
   }
 
   /**

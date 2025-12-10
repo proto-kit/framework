@@ -97,6 +97,7 @@ export * from "./state/state/DummyStateService";
 export * from "./state/state/CachedStateService";
 export * from "./state/lmt/AsyncLinkedMerkleTreeDatabase";
 export * from "./state/lmt/CachedLinkedLeafStore";
+export * from "./settlement/MinaSigner";
 export * from "./settlement/SettlementModule";
 export * from "./settlement/BridgingModule";
 export * from "./settlement/messages/outgoing/DefaultOutgoingMessageAdapter";

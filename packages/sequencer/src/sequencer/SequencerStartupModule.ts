@@ -21,7 +21,6 @@ import {
 } from "../protocol/production/tasks/CircuitCompilerTask";
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
-import { SettlementUtils } from "../settlement/utils/SettlementUtils";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
@@ -140,13 +139,9 @@ export class SequencerStartupModule
       .resolve(ChildVerificationKeyService)
       .setCompileRegistry(this.compileRegistry);
 
-    // TODO Find a way to generalize this or at least make it nicer - too much logic here
     const isSignedSettlement =
-      this.baseLayer !== undefined && !(this.baseLayer instanceof NoopBaseLayer)
-        ? new SettlementUtils(
-            this.areProofsEnabled,
-            this.baseLayer
-          ).isSignedSettlement()
+      this.baseLayer && !(this.baseLayer instanceof NoopBaseLayer)
+        ? this.baseLayer.isSignedSettlement()
         : undefined;
 
     log.info("Compiling Protocol circuits, this can take a few minutes");
