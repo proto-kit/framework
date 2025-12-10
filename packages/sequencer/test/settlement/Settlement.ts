@@ -313,7 +313,15 @@ export const settlementTestFn = (
   let acc0L2Nonce = 0;
 
   it("should throw error", async () => {
-    await expect(settlementModule.checkDeployment()).rejects.toThrow();
+    
+    const deploymentPromise = tokenConfig === undefined
+      ? settlementModule.checkDeployment()
+      : settlementModule.checkDeployment([{
+          address: tokenBridgeKey.toPublicKey(),
+          tokenId: tokenOwner!.deriveTokenId()
+        }]);
+  
+    await expect(deploymentPromise).rejects.toThrow();
   });
 
   it(
@@ -335,11 +343,6 @@ export const settlementTestFn = (
     },
     timeout * 2
   );
-
-  it("should not throw error", async () => {
-    // If it doesn't throw anything, it indicates that deployment checs were succesful. 
-    await settlementModule.checkDeployment();
-  });
 
   if (tokenConfig !== undefined) {
     it(
@@ -587,6 +590,12 @@ export const settlementTestFn = (
           .proveAndSendTransaction(tx, "included");
 
         const actions = await Mina.fetchActions(dispatch.address);
+        if (baseLayerConfig.network.type !== "local") {
+        await fetchAccount({
+          publicKey: tokenBridgeKey.toPublicKey(),
+          tokenId: bridgedTokenId
+        });
+       }
         const balanceDiff = bridge.account.balance
           .get()
           .sub(contractBalanceBefore);
@@ -789,4 +798,20 @@ export const settlementTestFn = (
     },
     timeout
   );
+
+  it("should not throw error after settlement", async () => {
+    // If it doesn't throw anything, it indicates that deployment checs were succesful. 
+    if(tokenConfig === undefined)
+    {
+    await settlementModule.checkDeployment();  
+    }
+    else{
+    await settlementModule.checkDeployment([
+        {
+          address: tokenBridgeKey.toPublicKey(),
+          tokenId: tokenOwner!.deriveTokenId()
+        }
+      ]);
+    }
+  });
 };
