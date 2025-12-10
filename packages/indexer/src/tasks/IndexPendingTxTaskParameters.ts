@@ -7,12 +7,16 @@ export class IndexPendingTxTaskParametersSerializer {
   public constructor(public transactionMapper: TransactionMapper) {}
 
   public toJSON(parameters: PendingTransaction): string {
-    return JSON.stringify(this.transactionMapper.mapOut(parameters));
+    return JSON.stringify({
+      tx: this.transactionMapper.mapOut(parameters),
+    });
   }
 
   public fromJSON(json: string): PendingTransaction {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const parsed = JSON.parse(json) as ReturnType<TransactionMapper["mapOut"]>;
-    return this.transactionMapper.mapIn(parsed);
+    const parsed = JSON.parse(json) as {
+      tx: ReturnType<TransactionMapper["mapOut"]>;
+    };
+    return this.transactionMapper.mapIn(parsed.tx);
   }
 }
