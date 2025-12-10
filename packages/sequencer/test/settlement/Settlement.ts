@@ -313,14 +313,16 @@ export const settlementTestFn = (
   let acc0L2Nonce = 0;
 
   it("should throw error", async () => {
-    
-    const deploymentPromise = tokenConfig === undefined
-      ? settlementModule.checkDeployment()
-      : settlementModule.checkDeployment([{
-          address: tokenBridgeKey.toPublicKey(),
-          tokenId: tokenOwner!.deriveTokenId()
-        }]);
-  
+    const deploymentPromise =
+      tokenConfig === undefined
+        ? settlementModule.checkDeployment()
+        : settlementModule.checkDeployment([
+            {
+              address: tokenBridgeKey.toPublicKey(),
+              tokenId: tokenOwner!.deriveTokenId(),
+            },
+          ]);
+
     await expect(deploymentPromise).rejects.toThrow();
   });
 
@@ -591,11 +593,11 @@ export const settlementTestFn = (
 
         const actions = await Mina.fetchActions(dispatch.address);
         if (baseLayerConfig.network.type !== "local") {
-        await fetchAccount({
-          publicKey: tokenBridgeKey.toPublicKey(),
-          tokenId: bridgedTokenId
-        });
-       }
+          await fetchAccount({
+            publicKey: tokenBridgeKey.toPublicKey(),
+            tokenId: bridgedTokenId,
+          });
+        }
         const balanceDiff = bridge.account.balance
           .get()
           .sub(contractBalanceBefore);
@@ -800,17 +802,15 @@ export const settlementTestFn = (
   );
 
   it("should not throw error after settlement", async () => {
-    // If it doesn't throw anything, it indicates that deployment checs were succesful. 
-    if(tokenConfig === undefined)
-    {
-    await settlementModule.checkDeployment();  
-    }
-    else{
-    await settlementModule.checkDeployment([
+    // If it doesn't throw anything, it indicates that deployment checs were succesful.
+    if (tokenConfig === undefined) {
+      await settlementModule.checkDeployment();
+    } else {
+      await settlementModule.checkDeployment([
         {
           address: tokenBridgeKey.toPublicKey(),
-          tokenId: tokenOwner!.deriveTokenId()
-        }
+          tokenId: tokenOwner!.deriveTokenId(),
+        },
       ]);
     }
   });
