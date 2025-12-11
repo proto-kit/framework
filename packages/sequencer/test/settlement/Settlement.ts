@@ -705,9 +705,10 @@ export const settlementTestFn = (
       expect(settlementResult.bridgeTransactions).toHaveLength(2);
 
       await settlementModule.utils.fetchContractAccounts({
-          address: userKey.toPublicKey(),
-          tokenId: bridgingContract.deriveTokenId(),
-        });
+        address: userKey.toPublicKey(),
+        tokenId: bridgingContract.deriveTokenId(),
+      });
+
       const account = Mina.getAccount(
         userKey.toPublicKey(),
         bridgingContract.deriveTokenId()
@@ -801,17 +802,17 @@ export const settlementTestFn = (
 
   it("should not throw error after settlement", async () => {
     expect.assertions(1);
-    
+
     // Obtain promise of deployment check
-    const deploymentCheckPromise = tokenConfig === undefined ? 
-                settlementModule.checkDeployment() 
-                :
-                settlementModule.checkDeployment([
-                  {
-                    address: tokenBridgeKey.toPublicKey(),
-                    tokenId: tokenOwner!.deriveTokenId(),
-                  },
-                ])
+    const deploymentCheckPromise =
+      tokenConfig === undefined
+        ? settlementModule.checkDeployment()
+        : settlementModule.checkDeployment([
+            {
+              address: tokenBridgeKey.toPublicKey(),
+              tokenId: tokenOwner!.deriveTokenId(),
+            },
+          ]);
 
     await expect(deploymentCheckPromise).resolves.toBeUndefined();
   });

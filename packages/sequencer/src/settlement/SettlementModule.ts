@@ -24,7 +24,6 @@ import {
   EventEmittingComponent,
   log,
   DependencyFactory,
-  mapSequential,
 } from "@proto-kit/common";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import truncate from "lodash/truncate";
@@ -360,12 +359,13 @@ export class SettlementModule
       ).bridgeContractMina(),
     };
   }
+
   public async checkDeployment(
     tokenBridges?: Array<{ address: PublicKey; tokenId: Field }>
   ): Promise<void> {
     const contracts: Array<{ address: PublicKey; tokenId?: Field }> = [
-      ...this.getContractAddresses().map(addr => ({ address: addr })),
-      ...(tokenBridges ?? [])
+      ...this.getContractAddresses().map((addr) => ({ address: addr })),
+      ...(tokenBridges ?? []),
     ];
 
     const isLocal = this.baseLayer.isLocalBlockChain();
@@ -377,15 +377,18 @@ export class SettlementModule
           if (!Mina.hasAccount(address, tokenId)) {
             missing.push({
               address: address.toBase58(),
-              error: 'Not found on local chain'
+              error: "Not found on local chain",
             });
           }
         } else {
-          const { account, error } = await fetchAccount({ publicKey: address, tokenId });
+          const { account, error } = await fetchAccount({
+            publicKey: address,
+            tokenId,
+          });
           if (!account) {
             missing.push({
               address: address.toBase58(),
-              error: error?.statusText ?? 'Not found on chain'
+              error: error?.statusText ?? "Not found on chain",
             });
           }
         }
@@ -393,7 +396,9 @@ export class SettlementModule
     );
 
     if (missing.length) {
-      const errorList = missing.map(m => `  ${m.address}: ${m.error}`).join('\n');
+      const errorList = missing
+        .map((m) => `  ${m.address}: ${m.error}`)
+        .join("\n");
       throw new Error(`
         Missing contracts:\n${errorList}
         `);
