@@ -385,7 +385,7 @@ export class SettlementModule
             publicKey: address,
             tokenId,
           });
-          if (!account) {
+          if (account === null || account === undefined) {
             missing.push({
               address: address.toBase58(),
               error: error?.statusText ?? "Not found on chain",
@@ -395,7 +395,7 @@ export class SettlementModule
       })
     );
 
-    if (missing.length) {
+    if (missing.length > 0) {
       const errorList = missing
         .map((m) => `  ${m.address}: ${m.error}`)
         .join("\n");
