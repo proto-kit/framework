@@ -9,7 +9,15 @@ import {
   SettlementSmartContractBase,
   DynamicBlockProof,
 } from "@proto-kit/protocol";
-import { AccountUpdate, Mina, PublicKey, TokenContract, TokenId } from "o1js";
+import {
+  AccountUpdate,
+  fetchAccount,
+  Field,
+  Mina,
+  PublicKey,
+  TokenContract,
+  TokenId,
+} from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
@@ -350,5 +358,50 @@ export class SettlementModule
         : new ProvenSettlementPermissions()
       ).bridgeContractMina(),
     };
+  }
+
+  public async checkDeployment(
+    tokenBridges?: Array<{ address: PublicKey; tokenId: Field }>
+  ): Promise<void> {
+    const contracts: Array<{ address: PublicKey; tokenId?: Field }> = [
+      ...this.getContractAddresses().map((addr) => ({ address: addr })),
+      ...(tokenBridges ?? []),
+    ];
+
+    const isLocal = this.baseLayer.isLocalBlockChain();
+    const missing: Array<{ address: string; error: string }> = [];
+
+    await Promise.all(
+      contracts.map(async ({ address, tokenId }) => {
+        if (isLocal) {
+          if (!Mina.hasAccount(address, tokenId)) {
+            missing.push({
+              address: address.toBase58(),
+              error: "Not found on local chain",
+            });
+          }
+        } else {
+          const { account, error } = await fetchAccount({
+            publicKey: address,
+            tokenId,
+          });
+          if (account === null || account === undefined) {
+            missing.push({
+              address: address.toBase58(),
+              error: error?.statusText ?? "Not found on chain",
+            });
+          }
+        }
+      })
+    );
+
+    if (missing.length > 0) {
+      const errorList = missing
+        .map((m) => `  ${m.address}: ${m.error}`)
+        .join("\n");
+      throw new Error(`
+        Missing contracts:\n${errorList}
+        `);
+    }
   }
 }

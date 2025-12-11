@@ -312,6 +312,20 @@ export const settlementTestFn = (
   let user0Nonce = 0;
   let acc0L2Nonce = 0;
 
+  it("should throw error", async () => {
+    const deploymentPromise =
+      tokenConfig === undefined
+        ? settlementModule.checkDeployment()
+        : settlementModule.checkDeployment([
+            {
+              address: tokenBridgeKey.toPublicKey(),
+              tokenId: tokenOwner!.deriveTokenId(),
+            },
+          ]);
+
+    await expect(deploymentPromise).rejects.toThrow();
+  });
+
   it(
     "should deploy",
     async () => {
@@ -578,6 +592,12 @@ export const settlementTestFn = (
           .proveAndSendTransaction(tx, "included");
 
         const actions = await Mina.fetchActions(dispatch.address);
+        if (baseLayerConfig.network.type !== "local") {
+          await fetchAccount({
+            publicKey: tokenBridgeKey.toPublicKey(),
+            tokenId: bridgedTokenId,
+          });
+        }
         const balanceDiff = bridge.account.balance
           .get()
           .sub(contractBalanceBefore);
@@ -684,12 +704,11 @@ export const settlementTestFn = (
 
       expect(settlementResult.bridgeTransactions).toHaveLength(2);
 
-      if (baseLayerConfig.network.type !== "local") {
-        await fetchAccount({
-          publicKey: userKey.toPublicKey(),
-          tokenId: bridgingContract.deriveTokenId(),
-        });
-      }
+      await settlementModule.utils.fetchContractAccounts({
+        address: userKey.toPublicKey(),
+        tokenId: bridgingContract.deriveTokenId(),
+      });
+
       const account = Mina.getAccount(
         userKey.toPublicKey(),
         bridgingContract.deriveTokenId()
@@ -780,4 +799,21 @@ export const settlementTestFn = (
     },
     timeout
   );
+
+  it("should not throw error after settlement", async () => {
+    expect.assertions(1);
+
+    // Obtain promise of deployment check
+    const deploymentCheckPromise =
+      tokenConfig === undefined
+        ? settlementModule.checkDeployment()
+        : settlementModule.checkDeployment([
+            {
+              address: tokenBridgeKey.toPublicKey(),
+              tokenId: tokenOwner!.deriveTokenId(),
+            },
+          ]);
+
+    await expect(deploymentCheckPromise).resolves.toBeUndefined();
+  });
 };
