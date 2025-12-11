@@ -704,12 +704,10 @@ export const settlementTestFn = (
 
       expect(settlementResult.bridgeTransactions).toHaveLength(2);
 
-      if (baseLayerConfig.network.type !== "local") {
-        await fetchAccount({
-          publicKey: userKey.toPublicKey(),
+      settlementModule.utils.fetchContractAccounts({
+          address: userKey.toPublicKey(),
           tokenId: bridgingContract.deriveTokenId(),
         });
-      }
       const account = Mina.getAccount(
         userKey.toPublicKey(),
         bridgingContract.deriveTokenId()
@@ -802,16 +800,19 @@ export const settlementTestFn = (
   );
 
   it("should not throw error after settlement", async () => {
-    // If it doesn't throw anything, it indicates that deployment checs were succesful.
-    if (tokenConfig === undefined) {
-      await settlementModule.checkDeployment();
-    } else {
-      await settlementModule.checkDeployment([
-        {
-          address: tokenBridgeKey.toPublicKey(),
-          tokenId: tokenOwner!.deriveTokenId(),
-        },
-      ]);
-    }
+    expect.assertions(1);
+    
+    // Obtain promise of deployment check
+    const deploymentCheckPromise = tokenConfig === undefined ? 
+                settlementModule.checkDeployment() 
+                :
+                settlementModule.checkDeployment([
+                  {
+                    address: tokenBridgeKey.toPublicKey(),
+                    tokenId: tokenOwner!.deriveTokenId(),
+                  },
+                ])
+
+    await expect(deploymentCheckPromise).resolves.toBeUndefined();
   });
 };
