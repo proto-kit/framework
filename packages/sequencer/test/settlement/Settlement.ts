@@ -704,7 +704,7 @@ export const settlementTestFn = (
 
       expect(settlementResult.bridgeTransactions).toHaveLength(2);
 
-      settlementModule.utils.fetchContractAccounts({
+      await settlementModule.utils.fetchContractAccounts({
           address: userKey.toPublicKey(),
           tokenId: bridgingContract.deriveTokenId(),
         });
