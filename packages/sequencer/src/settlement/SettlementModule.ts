@@ -24,6 +24,7 @@ import {
   EventEmittingComponent,
   log,
   DependencyFactory,
+  mapSequential,
 } from "@proto-kit/common";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import truncate from "lodash/truncate";
@@ -359,71 +360,43 @@ export class SettlementModule
       ).bridgeContractMina(),
     };
   }
-
   public async checkDeployment(
     tokenBridges?: Array<{ address: PublicKey; tokenId: Field }>
-  ): Promise<void | never> {
-    const contractAddresses = this.getContractAddresses();
+  ): Promise<void> {
+    const contracts: Array<{ address: PublicKey; tokenId?: Field }> = [
+      ...this.getContractAddresses().map(addr => ({ address: addr })),
+      ...(tokenBridges ?? [])
+    ];
 
-    if (this.baseLayer.config.network.type !== "local") {
-      // Check main contracts
-      await Promise.all(
-        contractAddresses.map(async (pubKey) => {
-          const { account, error } = await fetchAccount({ publicKey: pubKey });
+    const isLocal = this.baseLayer.isLocalBlockChain();
+    const missing: Array<{ address: string; error: string }> = [];
 
-          if (!account) {
-            let message = `Account ${pubKey.toBase58()} not found on chain`;
-
-            if (error !== undefined) {
-              message += `: ${error.statusText}`;
-            }
-
-            throw new Error(message);
-          }
-        })
-      );
-
-      // Check token bridges with their tokenIds
-      if (tokenBridges) {
-        await Promise.all(
-          tokenBridges.map(async ({ address, tokenId }) => {
-            const { account, error } = await fetchAccount({
-              publicKey: address,
-              tokenId,
-            });
-
-            if (!account) {
-              let message = `Account ${address.toBase58()} not found on chain`;
-
-              if (error !== undefined) {
-                message += `: ${error.statusText}`;
-              }
-
-              throw new Error(message);
-            }
-          })
-        );
-      }
-    } else {
-      // Local network
-      contractAddresses.forEach((pubKey) => {
-        if (!Mina.hasAccount(pubKey)) {
-          throw new Error(
-            `Contract ${pubKey.toBase58()} not found on local chain`
-          );
-        }
-      });
-
-      // Check token bridges
-      if (tokenBridges) {
-        tokenBridges.forEach(({ address, tokenId }) => {
+    await Promise.all(
+      contracts.map(async ({ address, tokenId }) => {
+        if (isLocal) {
           if (!Mina.hasAccount(address, tokenId)) {
-            throw new Error(
-              `Token bridge ${address.toBase58()} @ ${tokenId.toString()} not found`
-            );
+            missing.push({
+              address: address.toBase58(),
+              error: 'Not found on local chain'
+            });
           }
-        });
-      }
+        } else {
+          const { account, error } = await fetchAccount({ publicKey: address, tokenId });
+          if (!account) {
+            missing.push({
+              address: address.toBase58(),
+              error: error?.statusText ?? 'Not found on chain'
+            });
+          }
+        }
+      })
+    );
+
+    if (missing.length) {
+      const errorList = missing.map(m => `  ${m.address}: ${m.error}`).join('\n');
+      throw new Error(`
+        Missing contracts:\n${errorList}
+        `);
     }
   }
 }
