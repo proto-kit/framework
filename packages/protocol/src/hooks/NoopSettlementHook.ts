@@ -5,14 +5,14 @@ import {
   ProvableSettlementHook,
   SettlementHookInputs,
 } from "../settlement/modularity/ProvableSettlementHook";
-import { SettlementSmartContractBase } from "../settlement/contracts/SettlementSmartContract";
+import { SettlementContractType } from "../settlement/contracts/settlement/SettlementBase";
 
 @injectable()
 export class NoopSettlementHook extends ProvableSettlementHook<
   Record<string, never>
 > {
   public async beforeSettlement(
-    contract: SettlementSmartContractBase,
+    contract: SettlementContractType,
     state: SettlementHookInputs
   ) {
     noop();

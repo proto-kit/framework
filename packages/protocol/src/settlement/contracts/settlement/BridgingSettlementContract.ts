@@ -1,10 +1,4 @@
-import {
-  prefixToField,
-  TypedClass,
-  mapSequential,
-  ChildVerificationKeyService,
-  LinkedMerkleTree,
-} from "@proto-kit/common";
+import { TypedClass, ChildVerificationKeyService } from "@proto-kit/common";
 import {
   AccountUpdate,
   Bool,
@@ -17,52 +11,31 @@ import {
   state,
   UInt32,
   AccountUpdateForest,
-  TokenContract,
   VerificationKey,
   Permissions,
   Struct,
   Provable,
   TokenId,
-  DynamicProof,
   DeployArgs,
 } from "o1js";
 
-import { NetworkState } from "../../model/network/NetworkState";
-import { BlockHashMerkleTree } from "../../prover/block/accummulators/BlockHashMerkleTree";
-import {
-  BlockProverPublicInput,
-  BlockProverPublicOutput,
-} from "../../prover/block/BlockProvable";
-import {
-  ProvableSettlementHook,
-  SettlementHookInputs,
-  SettlementStateRecord,
-} from "../modularity/ProvableSettlementHook";
+import { NetworkState } from "../../../model/network/NetworkState";
+import { ProvableSettlementHook } from "../../modularity/ProvableSettlementHook";
+import { DispatchContractType } from "../DispatchSmartContract";
+import { BridgeContractType } from "../BridgeContract";
+import { TokenBridgeDeploymentAuth } from "../authorizations/TokenBridgeDeploymentAuth";
+import { UpdateMessagesHashAuth } from "../authorizations/UpdateMessagesHashAuth";
 
-import { DispatchContractType } from "./DispatchSmartContract";
-import { BridgeContractType } from "./BridgeContract";
-import { TokenBridgeDeploymentAuth } from "./authorizations/TokenBridgeDeploymentAuth";
-import { UpdateMessagesHashAuth } from "./authorizations/UpdateMessagesHashAuth";
+import { DynamicBlockProof, SettlementBase } from "./SettlementBase";
 
 /* eslint-disable @typescript-eslint/lines-between-class-members */
-
-export class DynamicBlockProof extends DynamicProof<
-  BlockProverPublicInput,
-  BlockProverPublicOutput
-> {
-  public static publicInputType = BlockProverPublicInput;
-
-  public static publicOutputType = BlockProverPublicOutput;
-
-  public static maxProofsVerified = 2 as const;
-}
 
 export class TokenMapping extends Struct({
   tokenId: Field,
   publicKey: PublicKey,
 }) {}
 
-export interface SettlementContractType {
+export interface BridgingSettlementContractType {
   authorizationField: State<Field>;
 
   deployAndInitialize: (
@@ -76,7 +49,6 @@ export interface SettlementContractType {
   settle: (
     blockProof: DynamicBlockProof,
     signature: Signature,
-    dispatchContractAddress: PublicKey,
     publicKey: PublicKey,
     inputNetworkState: NetworkState,
     outputNetworkState: NetworkState,
@@ -88,9 +60,6 @@ export interface SettlementContractType {
     dispatchContract: PublicKey
   ) => Promise<void>;
 }
-
-// Some random prefix for the sequencer signature
-export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 
 // @singleton()
 // export class SettlementSmartContractStaticArgs {
@@ -106,7 +75,7 @@ export const BATCH_SIGNATURE_PREFIX = prefixToField("pk-batchSignature");
 //   };
 // }
 
-export abstract class SettlementSmartContractBase extends TokenContract {
+export abstract class BridgingSettlementContractBase extends SettlementBase {
   // This pattern of injecting args into a smartcontract is currently the only
   // viable solution that works given the inheritance issues of o1js
   // public static args = container.resolve(SettlementSmartContractStaticArgs);
@@ -126,12 +95,7 @@ export abstract class SettlementSmartContractBase extends TokenContract {
     "token-bridge-deployed": TokenMapping,
   };
 
-  abstract sequencerKey: State<Field>;
-  abstract lastSettlementL1BlockHeight: State<UInt32>;
-  abstract stateRoot: State<Field>;
-  abstract networkStateHash: State<Field>;
-  abstract blockHashRoot: State<Field>;
-  abstract dispatchContractAddressX: State<Field>;
+  abstract dispatchContractAddress: State<PublicKey>;
 
   abstract authorizationField: State<Field>;
 
@@ -143,10 +107,19 @@ export abstract class SettlementSmartContractBase extends TokenContract {
     return this.self;
   }
 
+  protected async initializeBaseBridging(
+    sequencer: PublicKey,
+    dispatchContract: PublicKey
+  ) {
+    await super.initializeBase(sequencer);
+
+    this.dispatchContractAddress.set(dispatchContract);
+  }
+
   // TODO Like these properties, I am too lazy to properly infer the types here
   private assertLazyConfigsInitialized() {
     const uninitializedProperties: string[] = [];
-    const { args } = SettlementSmartContractBase;
+    const { args } = BridgingSettlementContractBase;
     if (args.BridgeContractPermissions === undefined) {
       uninitializedProperties.push("BridgeContractPermissions");
     }
@@ -162,17 +135,12 @@ export abstract class SettlementSmartContractBase extends TokenContract {
     }
   }
 
-  protected async deployTokenBridge(
-    tokenId: Field,
-    address: PublicKey,
-    dispatchContractAddress: PublicKey,
-    dispatchContractPreconditionEnforced = false
-  ) {
+  protected async deployTokenBridge(tokenId: Field, address: PublicKey) {
     Provable.asProver(() => {
       this.assertLazyConfigsInitialized();
     });
 
-    const { args } = SettlementSmartContractBase;
+    const { args } = BridgingSettlementContractBase;
     const BridgeContractClass = args.BridgeContract;
     const bridgeContract = new BridgeContractClass(address, tokenId);
 
@@ -223,11 +191,8 @@ export abstract class SettlementSmartContractBase extends TokenContract {
       })
     );
 
-    // We can't set a precondition twice, for the $mina bridge deployment that
-    // would be the case, so we disable it in this case
-    if (!dispatchContractPreconditionEnforced) {
-      this.dispatchContractAddressX.requireEquals(dispatchContractAddress.x);
-    }
+    const dispatchContractAddress =
+      this.dispatchContractAddress.getAndRequireEquals();
 
     // Set authorization for the auth callback, that we need
     this.authorizationField.set(
@@ -238,151 +203,41 @@ export abstract class SettlementSmartContractBase extends TokenContract {
       }).hash()
     );
     const dispatchContract =
-      new SettlementSmartContractBase.args.DispatchContract(
+      new BridgingSettlementContractBase.args.DispatchContract(
         dispatchContractAddress
       );
     await dispatchContract.enableTokenDeposits(tokenId, address, this.address);
   }
 
-  protected async initializeBase(
-    sequencer: PublicKey,
-    dispatchContract: PublicKey
-  ) {
-    this.sequencerKey.set(sequencer.x);
-    this.stateRoot.set(LinkedMerkleTree.EMPTY_ROOT);
-    this.blockHashRoot.set(Field(BlockHashMerkleTree.EMPTY_ROOT));
-    this.networkStateHash.set(NetworkState.empty().hash());
-    this.dispatchContractAddressX.set(dispatchContract.x);
-  }
-
-  protected async settleBase(
+  protected async settleBaseBridging(
     blockProof: DynamicBlockProof,
     signature: Signature,
-    dispatchContractAddress: PublicKey,
     publicKey: PublicKey,
     inputNetworkState: NetworkState,
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
   ) {
-    // Brought in as a constant
-    const blockProofVk =
-      SettlementSmartContractBase.args.ChildVerificationKeyService.getVerificationKey(
-        "BlockProver"
-      );
-    if (!blockProofVk.hash.isConstant()) {
-      throw new Error("Sanity check - vk hash has to be constant");
-    }
-
-    // Verify the blockproof
-    blockProof.verify(blockProofVk);
-
-    // Get and assert on-chain values
-    const stateRoot = this.stateRoot.getAndRequireEquals();
-    const networkStateHash = this.networkStateHash.getAndRequireEquals();
-    const blockHashRoot = this.blockHashRoot.getAndRequireEquals();
-    const sequencerKey = this.sequencerKey.getAndRequireEquals();
-    const lastSettlementL1BlockHeight =
-      this.lastSettlementL1BlockHeight.getAndRequireEquals();
-    const onChainDispatchContractAddressX =
-      this.dispatchContractAddressX.getAndRequireEquals();
-
-    onChainDispatchContractAddressX.assertEquals(
-      dispatchContractAddress.x,
-      "DispatchContract address not provided correctly"
+    await super.settleBase(
+      blockProof,
+      signature,
+      publicKey,
+      inputNetworkState,
+      outputNetworkState,
+      newPromisedMessagesHash
     );
 
-    const { DispatchContract, escapeHatchSlotsInterval, hooks } =
-      SettlementSmartContractBase.args;
+    const dispatchContractAddress =
+      this.dispatchContractAddress.getAndRequireEquals();
+
+    const { DispatchContract } =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      (this.constructor as typeof BridgingSettlementContractBase).args;
 
     // Get dispatch contract values
     // These values are witnesses but will be checked later on the AU
     // call to the dispatch contract via .updateMessagesHash()
     const dispatchContract = new DispatchContract(dispatchContractAddress);
     const promisedMessagesHash = dispatchContract.promisedMessagesHash.get();
-
-    // Get block height and use the lower bound for all ops
-    const minBlockHeightIncluded = this.network.blockchainLength.get();
-    this.network.blockchainLength.requireBetween(
-      minBlockHeightIncluded,
-      // 5 because that is the length the newPromisedMessagesHash will be valid
-      minBlockHeightIncluded.add(4)
-    );
-
-    // Check signature/escape catch
-    publicKey.x.assertEquals(
-      sequencerKey,
-      "Sequencer public key witness not matching"
-    );
-    const signatureValid = signature.verify(publicKey, [
-      BATCH_SIGNATURE_PREFIX,
-      lastSettlementL1BlockHeight.value,
-    ]);
-    const escapeHatchActivated = lastSettlementL1BlockHeight
-      .add(UInt32.from(escapeHatchSlotsInterval))
-      .lessThan(minBlockHeightIncluded);
-    signatureValid
-      .or(escapeHatchActivated)
-      .assertTrue(
-        "Sequencer signature not valid and escape hatch not activated"
-      );
-
-    // Assert correctness of networkState witness
-    inputNetworkState
-      .hash()
-      .assertEquals(networkStateHash, "InputNetworkState witness not valid");
-    outputNetworkState
-      .hash()
-      .assertEquals(
-        blockProof.publicOutput.networkStateHash,
-        "OutputNetworkState witness not valid"
-      );
-
-    blockProof.publicOutput.closed.assertEquals(
-      Bool(true),
-      "Supplied proof is not a closed BlockProof"
-    );
-    blockProof.publicOutput.pendingSTBatchesHash.assertEquals(
-      Field(0),
-      "Supplied proof is has outstanding STs to be proven"
-    );
-
-    // Execute onSettlementHooks for additional checks
-    const stateRecord: SettlementStateRecord = {
-      blockHashRoot,
-      stateRoot,
-      networkStateHash,
-      lastSettlementL1BlockHeight,
-      sequencerKey: publicKey,
-    };
-    const inputs: SettlementHookInputs = {
-      blockProof,
-      contractState: stateRecord,
-      newPromisedMessagesHash,
-      fromNetworkState: inputNetworkState,
-      toNetworkState: outputNetworkState,
-      currentL1BlockHeight: minBlockHeightIncluded,
-    };
-    await mapSequential(hooks, async (hook) => {
-      await hook.beforeSettlement(this, inputs);
-    });
-
-    // Apply blockProof
-    stateRoot.assertEquals(
-      blockProof.publicInput.stateRoot,
-      "Input state root not matching"
-    );
-
-    networkStateHash.assertEquals(
-      blockProof.publicInput.networkStateHash,
-      "Input networkStateHash not matching"
-    );
-    blockHashRoot.assertEquals(
-      blockProof.publicInput.blockHashRoot,
-      "Input blockHashRoot not matching"
-    );
-    this.stateRoot.set(blockProof.publicOutput.stateRoot);
-    this.networkStateHash.set(blockProof.publicOutput.networkStateHash);
-    this.blockHashRoot.set(blockProof.publicOutput.blockHashRoot);
 
     // Assert and apply deposit commitments
     promisedMessagesHash.assertEquals(
@@ -408,14 +263,12 @@ export abstract class SettlementSmartContractBase extends TokenContract {
       promisedMessagesHash,
       newPromisedMessagesHash
     );
-
-    this.lastSettlementL1BlockHeight.set(minBlockHeightIncluded);
   }
 }
 
-export class SettlementSmartContract
-  extends SettlementSmartContractBase
-  implements SettlementContractType
+export class BridgingSettlementContract
+  extends BridgingSettlementContractBase
+  implements BridgingSettlementContractType
 {
   @state(Field) public sequencerKey = State<Field>();
   @state(UInt32) public lastSettlementL1BlockHeight = State<UInt32>();
@@ -424,7 +277,7 @@ export class SettlementSmartContract
   @state(Field) public networkStateHash = State<Field>();
   @state(Field) public blockHashRoot = State<Field>();
 
-  @state(Field) public dispatchContractAddressX = State<Field>();
+  @state(PublicKey) public dispatchContractAddress = State<PublicKey>();
 
   @state(Field) public authorizationField = State<Field>();
 
@@ -438,7 +291,7 @@ export class SettlementSmartContract
 
     this.self.account.permissions.set(permissions);
 
-    await this.initializeBase(sequencer, dispatchContract);
+    await this.initializeBaseBridging(sequencer, dispatchContract);
   }
 
   @method async approveBase(forest: AccountUpdateForest) {
@@ -446,28 +299,22 @@ export class SettlementSmartContract
   }
 
   @method
-  public async addTokenBridge(
-    tokenId: Field,
-    address: PublicKey,
-    dispatchContract: PublicKey
-  ) {
-    await this.deployTokenBridge(tokenId, address, dispatchContract);
+  public async addTokenBridge(tokenId: Field, address: PublicKey) {
+    await this.deployTokenBridge(tokenId, address);
   }
 
   @method
   public async settle(
     blockProof: DynamicBlockProof,
     signature: Signature,
-    dispatchContractAddress: PublicKey,
     publicKey: PublicKey,
     inputNetworkState: NetworkState,
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
   ) {
-    return await this.settleBase(
+    return await this.settleBaseBridging(
       blockProof,
       signature,
-      dispatchContractAddress,
       publicKey,
       inputNetworkState,
       outputNetworkState,

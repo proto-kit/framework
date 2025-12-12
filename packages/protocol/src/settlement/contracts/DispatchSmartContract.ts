@@ -26,7 +26,7 @@ import {
 } from "../../utils/MinaPrefixedProvableHashList";
 import { Deposit } from "../messages/Deposit";
 
-import type { SettlementContractType } from "./SettlementSmartContract";
+import type { BridgingSettlementContractType } from "./settlement/BridgingSettlementContract";
 import { TokenBridgeDeploymentAuth } from "./authorizations/TokenBridgeDeploymentAuth";
 import { UpdateMessagesHashAuth } from "./authorizations/UpdateMessagesHashAuth";
 import {
@@ -40,6 +40,10 @@ import {
 export const ACTIONS_EMPTY_HASH = Reducer.initialActionState;
 
 export interface DispatchContractType {
+  events: {
+    "token-bridge-added": typeof TokenBridgeTreeAddition;
+  };
+
   updateMessagesHash: (
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
@@ -67,7 +71,7 @@ export abstract class DispatchSmartContractBase extends SmartContract {
   public static args: {
     methodIdMappings: RuntimeMethodIdMapping;
     incomingMessagesPaths: Record<string, `${string}.${string}`>;
-    settlementContractClass?: TypedClass<SettlementContractType> &
+    settlementContractClass?: TypedClass<BridgingSettlementContractType> &
       typeof SmartContract;
   };
 

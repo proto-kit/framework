@@ -29,7 +29,7 @@ import { Path } from "../../model/Path";
 import { OutgoingMessageProcessor } from "../modularity/OutgoingMessageProcessor";
 import { PROTOKIT_FIELD_PREFIXES } from "../../hashing/protokit-prefixes";
 
-import type { SettlementContractType } from "./SettlementSmartContract";
+import type { BridgingSettlementContractType } from "./settlement/BridgingSettlementContract";
 
 export type BridgeContractType = {
   stateRoot: State<Field>;
@@ -67,7 +67,7 @@ export class BridgeContractContext {
 export abstract class BridgeContractBase extends TokenContract {
   public static args: {
     SettlementContract:
-      | (TypedClass<SettlementContractType> & typeof SmartContract)
+      | (TypedClass<BridgingSettlementContractType> & typeof SmartContract)
       | undefined;
     messageProcessors: OutgoingMessageProcessor<unknown>[];
     batchSize?: number;

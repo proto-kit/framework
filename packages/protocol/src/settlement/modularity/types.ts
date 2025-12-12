@@ -5,13 +5,14 @@ import {
   SmartContractClassFromInterface,
 } from "../ContractModule";
 import type { SettlementModulesRecord } from "../SettlementContractModule";
+import { SmartContract } from "o1js";
 
 export type InferContractType<
   Module extends TypedClass<ContractModule<any, any>>,
 > =
   Module extends TypedClass<infer ConcreteModule>
     ? ConcreteModule extends ContractModule<infer Contract, any>
-      ? Contract
+      ? Contract & SmartContract
       : never
     : never;
 

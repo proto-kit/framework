@@ -15,24 +15,21 @@ import { ProvableSettlementHook } from "../modularity/ProvableSettlementHook";
 
 import { DispatchSmartContractBase } from "./DispatchSmartContract";
 import {
-  SettlementContractType,
-  SettlementSmartContract,
-  SettlementSmartContractBase,
-} from "./SettlementSmartContract";
+  BridgingSettlementContractType,
+  BridgingSettlementContractBase,
+  BridgingSettlementContract,
+} from "./settlement/BridgingSettlementContract";
 import { BridgeContractBase } from "./BridgeContract";
 import { DispatchContractProtocolModule } from "./DispatchContractProtocolModule";
 import { BridgeContractProtocolModule } from "./BridgeContractProtocolModule";
-
-export type SettlementContractConfig = {
-  escapeHatchSlotsInterval?: number;
-};
-
-// 24 hours
-const DEFAULT_ESCAPE_HATCH = (60 / 3) * 24;
+import {
+  DEFAULT_ESCAPE_HATCH,
+  SettlementContractConfig,
+} from "./SettlementSmartContractModule";
 
 @injectable()
-export class SettlementContractProtocolModule extends ContractModule<
-  SettlementContractType,
+export class BridgingSettlementContractModule extends ContractModule<
+  BridgingSettlementContractType,
   SettlementContractConfig
 > {
   public constructor(
@@ -49,7 +46,7 @@ export class SettlementContractProtocolModule extends ContractModule<
     super();
   }
 
-  public contractFactory(): SmartContractClassFromInterface<SettlementContractType> {
+  public contractFactory(): SmartContractClassFromInterface<BridgingSettlementContractType> {
     const { hooks, config } = this;
     const dispatchContract = this.dispatchContractModule.contractFactory();
     const bridgeContract = this.bridgeContractModule.contractFactory();
@@ -57,8 +54,8 @@ export class SettlementContractProtocolModule extends ContractModule<
     const escapeHatchSlotsInterval =
       config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
 
-    const { args } = SettlementSmartContractBase;
-    SettlementSmartContractBase.args = {
+    const { args } = BridgingSettlementContractBase;
+    BridgingSettlementContractBase.args = {
       ...args,
       DispatchContract: dispatchContract,
       hooks,
@@ -72,12 +69,12 @@ export class SettlementContractProtocolModule extends ContractModule<
 
     // Ideally we don't want to have this cyclic dependency, but we have it in the protocol,
     // So its logical that we can't avoid that here
-    BridgeContractBase.args.SettlementContract = SettlementSmartContract;
+    BridgeContractBase.args.SettlementContract = BridgingSettlementContract;
 
     DispatchSmartContractBase.args.settlementContractClass =
-      SettlementSmartContract;
+      BridgingSettlementContract;
 
-    return SettlementSmartContract;
+    return BridgingSettlementContract;
   }
 
   public async compile(
@@ -91,10 +88,10 @@ export class SettlementContractProtocolModule extends ContractModule<
     this.contractFactory();
 
     // Init params
-    SettlementSmartContractBase.args.BridgeContractVerificationKey =
+    BridgingSettlementContractBase.args.BridgeContractVerificationKey =
       bridgeArtifact.BridgeContract.verificationKey;
 
-    if (SettlementSmartContractBase.args.signedSettlements === undefined) {
+    if (BridgingSettlementContractBase.args.signedSettlements === undefined) {
       throw new Error(
         "Args not fully initialized - make sure to also include the SettlementModule in the sequencer"
       );
@@ -103,7 +100,7 @@ export class SettlementContractProtocolModule extends ContractModule<
     log.debug("Compiling Settlement Contract");
 
     const artifact = await registry.forceProverExists(
-      async (reg) => await registry.compile(SettlementSmartContract)
+      async (reg) => await registry.compile(BridgingSettlementContract)
     );
 
     return {
