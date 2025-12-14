@@ -34,7 +34,7 @@ import {
   sequencerModule,
 } from "../sequencer/builder/SequencerModule";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
-import { Batch, SettleableBatch } from "../storage/model/Batch";
+import { SettleableBatch } from "../storage/model/Batch";
 import { BlockProofSerializer } from "../protocol/production/tasks/serializers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
@@ -59,7 +59,7 @@ export type SettlementModuleConfig = {
 };
 
 export type SettlementModuleEvents = {
-  "settlement-submitted": [Batch];
+  "settlement-submitted": [Settlement];
 };
 
 @sequencerModule()
@@ -241,7 +241,7 @@ export class SettlementModule
 
     await this.settlementStorage.pushSettlement(settlement);
 
-    this.events.emit("settlement-submitted", batch);
+    this.events.emit("settlement-submitted", settlement);
 
     return settlement;
   }
