@@ -1,54 +1,51 @@
 "use client";
 
+/* eslint-disable no-underscore-dangle */
+
 import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useCallback, useEffect, useState } from "react";
 
 import { DetailsLayout } from "@/components/details/layout";
-import TransactionsTableRow, {
+import BlocksTableRow, {
   TableItem,
-} from "@/components/transactions/transactions-table-row";
+} from "@/components/blocks/blocks-table-row";
 import { Form } from "@/components/ui/form";
 import List from "@/components/list";
 import config from "@/config";
 import { typed } from "@/lib/utils";
 
-export interface GetBlockQueryResponse {
+export interface GetBatchQueryResponse {
   data: {
-    block:
+    batch:
       | {
-          hash: string;
-          height: string;
-          result: {
-            stateRoot: string;
-          };
-          transactions: {
-            tx: {
-              hash: string;
-              sender: string;
-              methodId: string;
-              nonce: string;
+          blocks: {
+            height: string;
+            hash: string;
+            result: {
+              stateRoot: string;
             };
-            status: boolean;
-            statusMessage?: string;
+            _count: {
+              transactions: number;
+            };
           }[];
+          settlementTransactionHash: string;
+          height: string;
         }
       | undefined;
   };
 }
 
 const columns: Record<keyof TableItem, string> = {
+  height: "Height",
   hash: "Hash",
-  methodId: "Method ID",
-  sender: "Sender",
-  nonce: "Nonce",
-  status: "Status",
-  statusMessage: "Status Message",
+  transactions: "Transactions",
+  stateRoot: "State Root",
 };
 
-export default function BlockDetail() {
-  const params = useParams<{ hash: string }>();
-  const [data, setData] = useState<GetBlockQueryResponse["data"]>();
+export default function BatchDetail() {
+  const params = useParams<{ height: string }>();
+  const [data, setData] = useState<GetBatchQueryResponse["data"]>();
   const [loading, setLoading] = useState(true);
   const query = useCallback(async () => {
     setLoading(true);
@@ -60,28 +57,25 @@ export default function BlockDetail() {
       },
       body: JSON.stringify({
         query: `{
-              block (where: {hash: "${params.hash}"}) {
+              batch (where: {height: ${params.height}}) {
                 height
-                hash
-                result {
-                  stateRoot
-                }
-                transactions {
-                  tx {
-                    hash,
-                    methodId,
-                    sender,
-                    nonce
-                  },
-                  status,
-                  statusMessage
+                settlementTransactionHash
+                blocks {
+                    height
+                    hash
+                    result {
+                        stateRoot
+                    }
+                    _count {
+                        transactions
+                    }
                 }
               }
         }`,
       }),
     });
     try {
-      const response = typed<GetBlockQueryResponse>(await responseData.json());
+      const response = typed<GetBatchQueryResponse>(await responseData.json());
       setData(response.data);
       setLoading(false);
     } catch (e) {
@@ -98,19 +92,15 @@ export default function BlockDetail() {
   const details = [
     {
       label: "Height",
-      value: data?.block?.height ?? "—",
+      value: data?.batch?.height ?? "—",
     },
     {
-      label: "Transactions",
-      value: `${data?.block?.transactions?.length ?? "—"}`,
+      label: "Settlement Transaction Hash",
+      value: data?.batch?.settlementTransactionHash ?? "—",
     },
     {
-      label: "Hash",
-      value: data?.block?.hash ?? "—",
-    },
-    {
-      label: "StateRoot",
-      value: data?.block?.result.stateRoot ?? "—",
+      label: "Blocks",
+      value: `${data?.batch?.blocks?.length ?? "—"}`,
     },
   ];
 
@@ -120,7 +110,7 @@ export default function BlockDetail() {
     <DetailsLayout
       title={
         <div className="flex gap-4">
-          Block {!loading && <>#{data?.block?.height}</>}
+          Batch {!loading && <>#{data?.batch?.height}</>}
         </div>
       }
       details={details}
@@ -137,7 +127,7 @@ export default function BlockDetail() {
             onViewChange={() => {}}
             loading={loading}
             tableRow={(item, i, rowLoading, view) => (
-              <TransactionsTableRow
+              <BlocksTableRow
                 columns={columns}
                 key={i}
                 item={item}
@@ -149,14 +139,15 @@ export default function BlockDetail() {
             data={{
               totalCount: "0",
               items:
-                data?.block?.transactions?.map((tx) => ({
-                  ...tx.tx,
-                  status: `${tx.status}`,
-                  statusMessage: tx.statusMessage ?? "—",
+                data?.batch?.blocks?.map((item) => ({
+                  height: item.height,
+                  hash: item.hash,
+                  transactions: item._count?.transactions?.toString(),
+                  stateRoot: item.result?.stateRoot,
                 })) ?? [],
             }}
             columns={columns}
-            title={"Transactions"}
+            title={"Blocks"}
             titleClassName="text-4xl lg:text-4xl"
             hasDetails={true}
             pagination={false}
@@ -166,3 +157,4 @@ export default function BlockDetail() {
     </DetailsLayout>
   );
 }
+/* eslint-enable no-underscore-dangle */

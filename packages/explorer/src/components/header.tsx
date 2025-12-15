@@ -32,6 +32,26 @@ export default function Header() {
         >
           Transactions
         </Button>
+        <Button
+          variant={"link"}
+          onClick={() => {
+            if (pathname !== "/batches") {
+              router.push("/batches");
+            }
+          }}
+        >
+          Batches
+        </Button>
+        <Button
+          variant={"link"}
+          onClick={() => {
+            if (pathname !== "/settlments") {
+              router.push("/settlements");
+            }
+          }}
+        >
+          Settlements
+        </Button>
       </div>
       <div className="flex flex-grow gap-3 justify-end">
         <div className="flex flex-row items-center gap-4 relative"></div>
