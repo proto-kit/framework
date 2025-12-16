@@ -7,7 +7,6 @@ import {
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import { DefaultL1TransactionRetryStrategy } from "../../src/settlement/transactions/DefaultL1TransactionRetryStrategy";
-import { LocalMinaSigner } from "../../src/settlement/transactions/LocalMinaSigner";
 import {
   BlockProverPublicInput,
   BridgeContract,

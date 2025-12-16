@@ -10,6 +10,6 @@ export interface L1TransactionRetryStrategy {
   
   prepareRetryTransaction(
     record: PendingL1TransactionRecord,
-  ): Promise<Transaction<any, false>>;
+  ): Promise<Transaction<false, false>>;
 }
 

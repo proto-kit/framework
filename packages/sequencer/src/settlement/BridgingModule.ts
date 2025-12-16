@@ -112,9 +112,6 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
     private readonly outgoingMessageCollector: OutgoingMessageCollector,
     @inject("AsyncLinkedLeafStore")
     private readonly linkedLeafStore: AsyncLinkedLeafStore,
-    @inject("FeeStrategy")
-    private readonly feeStrategy: FeeStrategy,
-    @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("TransactionSender")

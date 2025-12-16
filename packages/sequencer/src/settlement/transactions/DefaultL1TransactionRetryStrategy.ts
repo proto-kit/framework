@@ -62,7 +62,7 @@ export class DefaultL1TransactionRetryStrategy
 
   public async prepareRetryTransaction(
     record: PendingL1TransactionRecord
-  ): Promise<Transaction<any, false>> {
+  ): Promise<Transaction<false, false>> {
     const tx = Transaction.fromJSON(JSON.parse(record.transactionJson));
     const currentFee = tx.transaction.feePayer.body.fee;
     const newFee = UInt64.from(this.bumpFee(Number(currentFee.toBigInt())));

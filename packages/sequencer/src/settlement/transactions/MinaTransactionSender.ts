@@ -1,4 +1,4 @@
-import { fetchAccount, Mina, PublicKey, Transaction, UInt64 } from "o1js";
+import { fetchAccount, Mina, PublicKey, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
   EventsRecord,
@@ -17,11 +17,11 @@ import {
   SettlementProvingTask,
   TransactionTaskResult,
 } from "../tasks/SettlementProvingTask";
-import { MinaSigner } from "./MinaSigner";
 
 import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
 import { L1TransactionRetryStrategy } from "./L1TransactionRetryStrategy";
 import { FeeStrategy } from "../../protocol/baselayer/fees/FeeStrategy";
+import { MinaSigner } from "../MinaSigner";
 
 export interface TxEvents extends EventsRecord {
   sent: [{ hash: string }];
@@ -48,7 +48,7 @@ export class MinaTransactionSender {
     private readonly pendingStorage: PendingL1TransactionStorage,
     @inject("L1TransactionRetryStrategy")
     private readonly retryStrategy: L1TransactionRetryStrategy,
-    @inject("MinaSigner") private readonly signer: MinaSigner,
+    @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("FeeStrategy") private readonly feeStrategy: FeeStrategy
   ) {
     void this.startPolling();
@@ -281,7 +281,7 @@ export class MinaTransactionSender {
     // Prepare retry
     try {
       const retryTx = await this.retryStrategy.prepareRetryTransaction(record);
-      const signedRetryTx = this.signer.signTransaction(retryTx);
+      const signedRetryTx = this.signer.signTx(retryTx);
       // Send the retry transaction
       await this.sendTransaction({...record, transactionJson: this.serializeTransaction(signedRetryTx), attempts: record.attempts + 1});
     } catch (error) {
