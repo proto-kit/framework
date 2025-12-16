@@ -63,14 +63,6 @@ export class MinaTransactionSender {
     return parseInt(account.nonce.toString(), 10);
   }
 
-  private serializeTransaction(tx: Transaction<any, any>): string {
-    return JSON.stringify(tx.toJSON());
-  }
-
-  private deserializeTransaction(json: string): Transaction<false, false> {
-    return Mina.Transaction.fromJSON(JSON.parse(json));
-  }
-
   /**
    * Tf there is a transaction with a lower nonce thats not included yet, this transaction will be queued instead.
    * @param transaction - The transaction to prove and send.
@@ -154,7 +146,7 @@ export class MinaTransactionSender {
       sender,
       nonce: nonceNum,
       attempts: 0,
-      transactionJson: this.serializeTransaction(result.transaction),
+      transaction: result.transaction,
       sentAt: new Date(),
     });
 
@@ -227,7 +219,7 @@ export class MinaTransactionSender {
   }
 
   private async sendTransaction(record: PendingL1TransactionRecord) {
-    const tx = this.deserializeTransaction(record.transactionJson);
+    const tx = record.transaction;
     const emitterKey = this.getEmitterKey(record.sender, record.nonce);
     const emitter = this.activeEmitters.get(emitterKey);
 
@@ -238,7 +230,7 @@ export class MinaTransactionSender {
         status: "sent",
         attempts: record.attempts + 1,
         sentAt: new Date(),   
-        transactionJson: this.serializeTransaction(tx),
+        transaction: tx,
       });
 
       log.info(`Sent L1 transaction ${pendingTx.hash} for nonce ${record.nonce} (Attempt ${record.attempts + 1})`);
@@ -283,7 +275,7 @@ export class MinaTransactionSender {
       const retryTx = await this.retryStrategy.prepareRetryTransaction(record);
       const signedRetryTx = this.signer.signTx(retryTx);
       // Send the retry transaction
-      await this.sendTransaction({...record, transactionJson: this.serializeTransaction(signedRetryTx), attempts: record.attempts + 1});
+      await this.sendTransaction({...record, transaction: signedRetryTx, attempts: record.attempts + 1});
     } catch (error) {
       log.error(`Failed to prepare retry for ${record.sender}:${record.nonce}`, error);
       await this.pendingStorage.update(record.sender, record.nonce, {

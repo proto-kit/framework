@@ -1,3 +1,5 @@
+import { Transaction } from "o1js";
+
 export type PendingL1TransactionStatus =
   | "queued"
   | "sent"
@@ -9,7 +11,7 @@ export interface PendingL1TransactionRecord {
   nonce: number;
   attempts: number;
   status: PendingL1TransactionStatus;
-  transactionJson: string;
+  transaction: Transaction<any, any>;
   lastError?: string;
   sentAt?: Date;
 }

@@ -28,7 +28,7 @@ export class PrismaPendingL1TransactionStorage
         nonce: record.nonce,
         attempts: record.attempts,
         status: status,
-        transaction: JSON.parse(record.transactionJson),
+        transaction: record.transaction.toJSON(),
         lastError: record.lastError ?? null,
         sentAt: record.sentAt,
       },
@@ -51,7 +51,7 @@ export class PrismaPendingL1TransactionStorage
       data: {
         ...(updates.attempts !== undefined && { attempts: updates.attempts }),
         ...(updates.status !== undefined && { status: updates.status }),
-        ...(updates.transactionJson !== undefined && { transaction: JSON.parse(updates.transactionJson) }),
+        ...(updates.transaction !== undefined && { transaction: updates.transaction.toJSON() }),
         ...(updates.lastError !== undefined && { lastError: updates.lastError }),
         ...(updates.sentAt !== undefined && { sentAt: updates.sentAt }),
       },
