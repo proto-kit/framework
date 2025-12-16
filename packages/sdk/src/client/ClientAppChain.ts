@@ -19,18 +19,12 @@ import {
 } from "@proto-kit/protocol";
 import {
   DummyStateService,
-  NetworkStateQuery,
-  NetworkStateTransportModule,
   Query,
-  QueryBuilderFactory,
-  QueryTransportModule,
   Sequencer,
   UnsignedTransaction,
   AppChain,
   AppChainModule,
   MinimalAppChainDefinition,
-  BlockExplorerQuery,
-  BlockExplorerTransportModule,
 } from "@proto-kit/sequencer";
 import { container } from "tsyringe";
 import { Field, PublicKey, UInt64 } from "o1js";
@@ -42,6 +36,7 @@ import { GraphqlTransactionSender } from "../graphql/GraphqlTransactionSender";
 import { Signer } from "../transaction/InMemorySigner";
 import { AppChainTransaction } from "../transaction/AppChainTransaction";
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
+import { QueryService } from "../query/QueryService";
 
 export type InferModules<Container extends TypedClass<ModuleContainer<any>>> =
   Container extends TypedClass<infer Type>
@@ -53,6 +48,12 @@ export type InferModules<Container extends TypedClass<ModuleContainer<any>>> =
 export class ClientAppChain<
   AppChainModules extends MinimalAppChainDefinition,
 > extends AppChain<AppChainModules> {
+  // Optional for our lazy initialization purpose. 
+  private QueryService?: QueryService<
+    InferModules<AppChainModules["Runtime"]>,
+    InferModules<AppChainModules["Protocol"]>
+  >;
+
   public static from<Modules extends MinimalAppChainDefinition>(
     definition: Modules
   ) {
@@ -192,49 +193,17 @@ export class ClientAppChain<
     return transaction;
   }
 
-  public get query(): {
-    runtime: Query<
-      RuntimeModule<unknown>,
-      InferModules<AppChainModules["Runtime"]>
-    >;
-    protocol: Query<
-      ProtocolModule<unknown>,
-      InferModules<AppChainModules["Protocol"]>
-    >;
-    network: NetworkStateQuery;
-    explorer: BlockExplorerQuery;
-  } {
-    const queryTransportModule = this.container.resolve<QueryTransportModule>(
-      "QueryTransportModule"
-    );
-
-    const networkStateTransportModule =
-      this.container.resolve<NetworkStateTransportModule>(
-        "NetworkStateTransportModule"
-      );
-
-    const blockExplorerTransportModule =
-      this.container.resolve<BlockExplorerTransportModule>(
-        "BlockExplorerTransportModule"
-      );
-
-    const network = new NetworkStateQuery(networkStateTransportModule);
-    const explorer = new BlockExplorerQuery(blockExplorerTransportModule);
-
-    return {
-      runtime: QueryBuilderFactory.fromRuntime(
+  public get query(): QueryService<
+    InferModules<AppChainModules["Runtime"]>,
+    InferModules<AppChainModules["Protocol"]>
+  > {
+    if (this.QueryService === undefined) {
+      this.QueryService = new QueryService(
         this.runtime,
-        queryTransportModule
-      ),
-
-      protocol: QueryBuilderFactory.fromProtocol(
         this.protocol,
-        queryTransportModule
-      ),
-
-      network,
-
-      explorer,
-    };
+        this.container
+      );
+    }
+    return this.QueryService;
   }
 }
