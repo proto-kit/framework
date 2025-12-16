@@ -48,7 +48,7 @@ export type InferModules<Container extends TypedClass<ModuleContainer<any>>> =
 export class ClientAppChain<
   AppChainModules extends MinimalAppChainDefinition,
 > extends AppChain<AppChainModules> {
-  // Optional for our lazy initialization purpose. 
+  // Optional for our lazy initialization purpose.
   private QueryService?: QueryService<
     InferModules<AppChainModules["Runtime"]>,
     InferModules<AppChainModules["Protocol"]>
