@@ -12,6 +12,7 @@ import {
   NetworkStateQuery,
   NetworkStateTransportModule,
   Query,
+  QueryBuilderFactory,
   QueryTransportModule,
 } from "@proto-kit/sequencer";
 
@@ -92,5 +93,63 @@ export class QueryService<
         );
     }
     return this.BlockExplorerTransport;
+  }
+
+  /**
+   * Getter of query module for runtime modules. 
+   * If not initialized before, it is initialized. 
+   * @returns A {@link Query} module for runtime module. 
+   */
+  public get runtime(): Query<RuntimeModule<unknown>, RuntimeModules> {
+    if (this.RuntimeQuery === undefined) {
+      this.RuntimeQuery = QueryBuilderFactory.fromRuntime(
+        this.runtimeInstance,
+        this.queryTransport
+      );
+    }
+    return this.RuntimeQuery;
+  }
+
+  /**
+   * Getter of query module for protocol. 
+   * If not initialized before, it is initialized. 
+   * @returns A {@link Query} module for protocol module. 
+   */
+  public get protocol(): Query<ProtocolModule<unknown>, ProtocolModules> {
+    if (this.ProtocolQuery === undefined) {
+      this.ProtocolQuery = QueryBuilderFactory.fromProtocol(
+        this.protocolInstance,
+        this.queryTransport
+      );
+    }
+    return this.ProtocolQuery;
+  }
+
+  /**
+   * Getter of network state query module. 
+   * If not initialized before, it is initialized. 
+   * @returns A {@link NetworkStateQuery} module. 
+   */
+  public get network(): NetworkStateQuery {
+    if (this.NetworkQuery === undefined) {
+      this.NetworkQuery = new NetworkStateQuery(
+        this.networkStateTransport
+      );
+    }
+    return this.NetworkQuery;
+  }
+
+  /**
+   * Getter of block explorer query module. 
+   * If not initialized before, it is initialized. 
+   * @returns A {@link BlockExplorerQuery} module. 
+   */
+  public get explorer(): BlockExplorerQuery {
+    if (this.ExplorerQuery === undefined) {
+      this.ExplorerQuery = new BlockExplorerQuery(
+        this.blockExplorerTransport
+      );
+    }
+    return this.ExplorerQuery;
   }
 }
