@@ -103,52 +103,53 @@ export default function BlocksPageClient() {
     setLoading(true);
 
     const skip = showPerPage * (page - 1);
-    const initialFilterString = "where : {";
-    const filterString = Object.entries(filters).reduce(
-      (filter, [key, value]) => {
-        if (value != null) {
-          const fieldType = querySchema[typed<keyof typeof querySchema>(key)];
-          const quotedValue = fieldType === "string" ? `"${value}"` : value;
-          if (key === "hideEmpty") {
-            return `${filter} , OR: [{transactionsHash: {not: {equals: "0"}}}, 
-                    {transactions: {some: {tx: {is: {isMessage: {equals: true}}}}}}]`;
-          }
 
-          return `${filter} , ${key}: {equals: ${quotedValue}}`;
+    const where = Object.entries(filters || {}).reduce<Record<string, object>>(
+      (filter, [key, value]) => {
+        if (value != null && value !== "") {
+          if (key === "hideEmpty") {
+            filter["OR"] = [
+              { transactionsHash: { not: { equals: "0" } } },
+              {
+                transactions: {
+                  some: { tx: { is: { isMessage: { equals: true } } } },
+                },
+              },
+            ];
+          } else {
+            const fieldType = querySchema[typed<keyof typeof querySchema>(key)];
+            filter[key] = {
+              equals: fieldType === "number" ? Number(value) : value,
+            };
+          }
         }
         return filter;
       },
-      initialFilterString
+      {}
     );
+
+    const variables = {
+      take: showPerPage,
+      skip,
+      where: Object.keys(where).length ? where : undefined,
+    };
+
+    const queryStr = `query GetBlocks($take: Int!, $skip: Int!, $where: BlockWhereInput) {
+      blocks(take: $take, skip: $skip, orderBy: {height: desc}, where: $where) {
+        height
+        hash
+        result { stateRoot }
+        _count { transactions }
+      }
+      aggregateBlock(where: $where) { _count { _all } }
+    }`;
 
     const responseData = await fetch(`${config.INDEXER_URL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        query: `{
-          blocks(take: ${showPerPage}, skip: ${skip},orderBy: {height: desc}, ${
-            filterString !== initialFilterString ? `${filterString}}` : ""
-          }){
-            height
-            hash
-            result {
-              stateRoot
-            }
-            _count {
-              transactions
-            }
-          }
-          aggregateBlock ${
-            filterString !== initialFilterString ? `(${filterString}})` : ""
-          } {
-            _count {
-              _all
-            }
-          }
-        }`,
-      }),
+      body: JSON.stringify({ query: queryStr, variables }),
     });
     try {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

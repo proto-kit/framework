@@ -23,7 +23,9 @@ const fields: FilterFieldDef[] = [
   },
 ];
 
-export default function BlocksFilters({ clearFilters }: SettlementsFiltersProps) {
+export default function BlocksFilters({
+  clearFilters,
+}: SettlementsFiltersProps) {
   const handleClearFilters = clearFilters;
 
   return (

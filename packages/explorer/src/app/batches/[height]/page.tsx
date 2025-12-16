@@ -50,28 +50,27 @@ export default function BatchDetail() {
   const query = useCallback(async () => {
     setLoading(true);
 
+    const queryStr = `query GetBatch($height: Int!) {
+      batch(where: { height: $height }) {
+        height
+        settlementTransactionHash
+        blocks {
+          height
+          hash
+          result { stateRoot }
+          _count { transactions }
+        }
+      }
+    }`;
+
     const responseData = await fetch(`${config.INDEXER_URL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: `{
-              batch (where: {height: ${params.height}}) {
-                height
-                settlementTransactionHash
-                blocks {
-                    height
-                    hash
-                    result {
-                        stateRoot
-                    }
-                    _count {
-                        transactions
-                    }
-                }
-              }
-        }`,
+        query: queryStr,
+        variables: { height: Number(params.height) },
       }),
     });
     try {

@@ -45,6 +45,17 @@ export default function SettlementDetail() {
   const [loading, setLoading] = useState(true);
   const query = useCallback(async () => {
     setLoading(true);
+    const queryStr = `query GetSettlement($transactionHash: String!) {
+      settlement(where: { transactionHash: $transactionHash }) {
+        batches {
+          height
+          settlementTransactionHash
+          _count { blocks }
+        }
+        transactionHash
+        promisedMessagesHash
+      }
+    }`;
 
     const responseData = await fetch(`${config.INDEXER_URL}`, {
       method: "POST",
@@ -52,19 +63,8 @@ export default function SettlementDetail() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: `{
-              settlement (where: {transactionHash: "${params.transactionHash}"}) {
-                batches {
-                    height
-                    settlementTransactionHash
-                    _count {
-                        blocks
-                    }
-                }
-                transactionHash
-                promisedMessagesHash
-              }
-        }`,
+        query: queryStr,
+        variables: { transactionHash: params.transactionHash },
       }),
     });
     try {

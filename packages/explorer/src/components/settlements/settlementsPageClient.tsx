@@ -93,44 +93,41 @@ export default function SettlementsPageClient() {
     setLoading(true);
 
     const skip = showPerPage * (page - 1);
-    const initialFilterString = "where : {";
-    const filterString = Object.entries(filters).reduce(
+
+    const where = Object.entries(filters || {}).reduce<Record<string, object>>(
       (filter, [key, value]) => {
-        if (value != null) {
+        if (value != null && value !== "") {
           const fieldType = querySchema[typed<keyof typeof querySchema>(key)];
-          const quotedValue = fieldType === "string" ? `"${value}"` : value;
-          return `${filter} , ${key}: {equals: ${quotedValue}}`;
+          filter[key] = {
+            equals: fieldType === "string" ? String(value) : value,
+          };
         }
         return filter;
       },
-      initialFilterString
+      {}
     );
+
+    const variables = {
+      take: showPerPage,
+      skip,
+      where: Object.keys(where).length ? where : undefined,
+    };
+
+    const queryStr = `query GetSettlements($take: Int!, $skip: Int!, $where: SettlementWhereInput) {
+      settlements(take: $take, skip: $skip, where: $where) {
+        transactionHash
+        promisedMessagesHash
+        _count { batches }
+      }
+      aggregateSettlement(where: $where) { _count { _all } }
+    }`;
 
     const responseData = await fetch(`${config.INDEXER_URL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        query: `{
-          settlements(take: ${showPerPage}, skip: ${skip}, ${
-            filterString !== initialFilterString ? `${filterString}}` : ""
-          }){
-            transactionHash
-            promisedMessagesHash
-            _count {
-              batches
-            }
-          }
-          aggregateSettlement ${
-            filterString !== initialFilterString ? `(${filterString}})` : ""
-          } {
-            _count {
-              _all
-            }
-          }
-        }`,
-      }),
+      body: JSON.stringify({ query: queryStr, variables }),
     });
     try {
       const response =

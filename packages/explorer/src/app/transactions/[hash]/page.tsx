@@ -38,6 +38,19 @@ export default function BlockDetail() {
   const [loading, setLoading] = useState(true);
   const query = useCallback(async () => {
     setLoading(true);
+    const queryStr = `query GetTransaction($hash: String!) {
+      transaction(where: { hash: $hash }) {
+        hash
+        methodId
+        sender
+        nonce
+        executionResult {
+          status
+          statusMessage
+          block { batch { proof settlementTransactionHash } }
+        }
+      }
+    }`;
 
     const responseData = await fetch(`${config.INDEXER_URL}`, {
       method: "POST",
@@ -45,24 +58,8 @@ export default function BlockDetail() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: `{
-          transaction(where: { hash: "${params.hash}"}) {
-                hash
-                methodId
-                sender
-                nonce
-                executionResult {
-                  status
-                  statusMessage
-                  block {
-                    batch {
-                      proof
-                      settlementTransactionHash
-                    }
-                  }
-                }
-            }
-        }`,
+        query: queryStr,
+        variables: { hash: params.hash },
       }),
     });
     try {

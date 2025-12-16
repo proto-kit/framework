@@ -93,44 +93,41 @@ export default function BatchesPageClient() {
     setLoading(true);
 
     const skip = showPerPage * (page - 1);
-    const initialFilterString = "where : {";
-    const filterString = Object.entries(filters).reduce(
+
+    const where = Object.entries(filters).reduce<Record<string, any>>(
       (filter, [key, value]) => {
-        if (value != null) {
+        if (value != null && value !== "") {
           const fieldType = querySchema[typed<keyof typeof querySchema>(key)];
-          const quotedValue = fieldType === "string" ? `"${value}"` : value;
-          return `${filter} , ${key}: {equals: ${quotedValue}}`;
+          filter[key] = {
+            equals: fieldType === "string" ? String(value) : value,
+          };
         }
         return filter;
       },
-      initialFilterString
+      {}
     );
+
+    const variables = {
+      take: showPerPage,
+      skip,
+      where: Object.keys(where).length ? where : undefined,
+    };
+
+    const queryStr = `query GetBatches($take: Int!, $skip: Int!, $where: BatchWhereInput) {
+      batches(take: $take, skip: $skip, orderBy: {height: desc}, where: $where) {
+        settlementTransactionHash
+        height
+        _count { blocks }
+      }
+      aggregateBatch(where: $where) { _count { _all } }
+    }`;
 
     const responseData = await fetch(`${config.INDEXER_URL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        query: `{
-          batches(take: ${showPerPage}, skip: ${skip},orderBy: {height: desc}, ${
-            filterString !== initialFilterString ? `${filterString}}` : ""
-          }){
-            settlementTransactionHash
-            height
-            _count {
-              blocks
-            }
-          }
-          aggregateBatch ${
-            filterString !== initialFilterString ? `(${filterString}})` : ""
-          } {
-            _count {
-              _all
-            }
-          }
-        }`,
-      }),
+      body: JSON.stringify({ query: queryStr, variables }),
     });
     try {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

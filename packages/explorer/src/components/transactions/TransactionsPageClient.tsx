@@ -106,46 +106,45 @@ export default function TransactionsPageClient() {
     setLoading(true);
 
     const skip = showPerPage * (page - 1);
-    const initialFilterString = "where : { ";
 
-    const filterString = Object.entries(filters).reduce(
+    const where = Object.entries(filters || {}).reduce<Record<string, object>>(
       (filter, [key, value]) => {
-        if (value != null) {
-          return `${filter}, ${key}: {equals: "${value}"}`;
+        if (value != null && value !== "") {
+          filter[key] = { equals: value };
         }
         return filter;
       },
-      initialFilterString
+      {}
     );
+
+    const variables = {
+      take: showPerPage,
+      skip,
+      where: Object.keys(where).length ? where : undefined,
+    };
+
+    const queryStr = `query GetTransactions($take: Int!, $skip: Int!, $where: TransactionWhereInput) {
+      transactions(take: $take, skip: $skip, where: $where) {
+        methodId
+        hash
+        nonce
+        sender
+        executionResult {
+          status
+          statusMessage
+        }
+      }
+      aggregateTransaction(where: $where) {
+        _count { _all }
+      }
+    }`;
 
     const responseData = await fetch(`${config.INDEXER_URL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        query: `{
-          transactions(take: ${showPerPage}, skip: ${skip}, ${
-            filterString !== initialFilterString ? `${filterString}}` : ""
-          }){
-            methodId
-            hash
-            nonce
-            sender
-            executionResult {
-              status
-              statusMessage
-            }
-          }
-          aggregateTransaction ${
-            filterString !== initialFilterString ? `(${filterString}})` : ""
-          } { 
-            _count {
-              _all
-              }
-            }
-        }`,
-      }),
+      body: JSON.stringify({ query: queryStr, variables }),
     });
     try {
       const response =
