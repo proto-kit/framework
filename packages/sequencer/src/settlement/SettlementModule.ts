@@ -131,10 +131,10 @@ export class SettlementModule
         SettlementContractModule<MandatorySettlementModulesRecord>
       >("SettlementContractModule");
 
-      const contracts = settlementContractModule.createContracts({
-        SettlementContract: address,
-      });
-      this.contract = contracts.SettlementContract;
+      this.contract = settlementContractModule.createContract(
+        "SettlementContract",
+        address
+      );
     }
     return this.contract;
   }
@@ -191,11 +191,7 @@ export class SettlementModule
   }
 
   public async start(): Promise<void> {
-    const contractArgs =
-      this.argsRegistry.getArgs<SettlementContractArgs>("SettlementContract");
-
-    this.argsRegistry.setArgs("SettlementContract", {
-      ...contractArgs,
+    this.argsRegistry.addArgs<SettlementContractArgs>("SettlementContract", {
       signedSettlements: this.baseLayer.isSignedSettlement(),
     });
 

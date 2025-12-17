@@ -660,19 +660,16 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
   }
 
   public async start(): Promise<void> {
-    const contractArgs =
-      this.argsRegistry.getArgs<BridgingSettlementContractArgs>(
-        "SettlementContract"
-      );
-
-    this.argsRegistry.setArgs("SettlementContract", {
-      ...contractArgs,
-      // TODO Add distinction between mina and custom tokens
-      BridgeContractPermissions: (this.baseLayer.isSignedSettlement()
-        ? new SignedSettlementPermissions()
-        : new ProvenSettlementPermissions()
-      ).bridgeContractMina(),
-    });
+    this.argsRegistry.addArgs<BridgingSettlementContractArgs>(
+      "SettlementContract",
+      {
+        // TODO Add distinction between mina and custom tokens
+        BridgeContractPermissions: (this.baseLayer.isSignedSettlement()
+          ? new SignedSettlementPermissions()
+          : new ProvenSettlementPermissions()
+        ).bridgeContractMina(),
+      }
+    );
 
     const dispatchAddress = this.config.addresses?.DispatchContract;
     if (dispatchAddress !== undefined) {

@@ -50,16 +50,11 @@ export class SettlementSmartContractModule extends ContractModule<
     const escapeHatchSlotsInterval =
       config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
 
-    const args =
-      this.argsRegistry.getArgs<SettlementContractArgs>("SettlementContract");
-    const newArgs = {
-      ...args,
+    this.argsRegistry.addArgs<SettlementContractArgs>("SettlementContract", {
       hooks,
       escapeHatchSlotsInterval,
-      signedSettlements: args?.signedSettlements,
       ChildVerificationKeyService: this.childVerificationKeyService,
-    };
-    this.argsRegistry.setArgs("SettlementContract", newArgs);
+    });
 
     return BridgingSettlementContract;
   }

@@ -7,7 +7,7 @@ import {
   noop,
   StringKeyOf,
 } from "@proto-kit/common";
-import { Field, PublicKey } from "o1js";
+import { Field, PublicKey, SmartContract } from "o1js";
 import { injectable } from "tsyringe";
 
 import { ProtocolEnvironment } from "../protocol/ProtocolEnvironment";
@@ -122,5 +122,29 @@ export class SettlementContractModule<
     return new ContractClass(address, tokenId) as InferContractType<
       SettlementModules[ContractName]
     >;
+  }
+
+  public createContracts<
+    ContractName extends keyof SettlementModules,
+  >(addresses: {
+    [Key in ContractName]: PublicKey;
+  }): {
+    [Key in ContractName]: SmartContract &
+      InferContractType<SettlementModules[Key]>;
+  } {
+    const classes = this.getContractClasses();
+
+    const obj: Record<string, SmartContract> = {};
+    // eslint-disable-next-line guard-for-in
+    for (const key in addresses) {
+      const ContractClass = classes[key];
+      obj[key] = new ContractClass(addresses[key]);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return obj as {
+      [Key in keyof SettlementModules]: SmartContract &
+        InferContractType<SettlementModules[Key]>;
+    };
   }
 }

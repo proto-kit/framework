@@ -171,11 +171,12 @@ export class SequencerStartupModule
     const bridgeVk = protocolBridgeArtifacts.BridgeContract;
     if (bridgeVk !== undefined) {
       // TODO Inject CompileRegistry directly
-      const args =
-        this.contractArgsRegistry.getArgs<BridgingSettlementContractArgs>(
-          "SettlementContract"
-        )!;
-      args.BridgeContractVerificationKey = bridgeVk.verificationKey;
+      this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
+        "SettlementContract",
+        {
+          BridgeContractVerificationKey: bridgeVk.verificationKey,
+        }
+      );
     }
 
     await this.registrationFlow.start({

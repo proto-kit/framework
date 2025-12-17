@@ -27,6 +27,7 @@ import { TokenBridgeDeploymentAuth } from "../authorizations/TokenBridgeDeployme
 import { UpdateMessagesHashAuth } from "../authorizations/UpdateMessagesHashAuth";
 import {
   ContractArgsRegistry,
+  NaiveObjectSchema,
   StaticInitializationContract,
 } from "../../ContractArgsRegistry";
 
@@ -34,6 +35,7 @@ import {
   DynamicBlockProof,
   SettlementBase,
   SettlementContractArgs,
+  SettlementContractArgsSchema,
   SettlementContractType,
 } from "./SettlementBase";
 
@@ -56,9 +58,17 @@ export interface BridgingSettlementContractArgs extends SettlementContractArgs {
   BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
   // Lazily initialized
   BridgeContractVerificationKey: VerificationKey | undefined;
-  BridgeContractPermissions: Permissions | undefined;
-  signedSettlements: boolean | undefined;
+  BridgeContractPermissions: Permissions;
 }
+
+export const BridgingSettlementContractArgsSchema: NaiveObjectSchema<BridgingSettlementContractArgs> =
+  {
+    ...SettlementContractArgsSchema,
+    DispatchContract: "Required",
+    BridgeContract: "Required",
+    BridgeContractVerificationKey: "Optional",
+    BridgeContractPermissions: "Required",
+  };
 
 export abstract class BridgingSettlementContractBase
   extends SettlementBase
@@ -67,7 +77,7 @@ export abstract class BridgingSettlementContractBase
   public getInitializationArgs(): BridgingSettlementContractArgs {
     return container
       .resolve(ContractArgsRegistry)
-      .getArgs("SettlementContract")!;
+      .getArgs("SettlementContract", BridgingSettlementContractArgsSchema);
   }
 
   events = {
@@ -95,32 +105,9 @@ export abstract class BridgingSettlementContractBase
     this.dispatchContractAddress.set(dispatchContract);
   }
 
-  // TODO Like these properties, I am too lazy to properly infer the types here
-  private assertLazyConfigsInitialized() {
-    const uninitializedProperties: string[] = [];
-    const args = this.getInitializationArgs();
-    if (args.BridgeContractPermissions === undefined) {
-      uninitializedProperties.push("BridgeContractPermissions");
-    }
-    if (args.signedSettlements === undefined) {
-      uninitializedProperties.push("signedSettlements");
-    }
-    if (uninitializedProperties.length > 0) {
-      throw new Error(
-        `Lazy configs of SettlementSmartContract haven't been initialized ${uninitializedProperties.reduce(
-          (a, b) => `${a},${b}`
-        )}`
-      );
-    }
-  }
-
   // TODO We should move this to the dispatchcontract eventually - or after mesa
   //  to the combined settlement & dispatch contract
   protected async deployTokenBridge(tokenId: Field, address: PublicKey) {
-    Provable.asProver(() => {
-      this.assertLazyConfigsInitialized();
-    });
-
     const {
       BridgeContractVerificationKey,
       signedSettlements,
@@ -130,15 +117,6 @@ export abstract class BridgingSettlementContractBase
     } = this.getInitializationArgs();
 
     const bridgeContract = new BridgeContractClass(address, tokenId);
-
-    if (
-      signedSettlements === undefined ||
-      BridgeContractPermissions === undefined
-    ) {
-      throw new Error(
-        "Static arguments for SettlementSmartContract not initialized"
-      );
-    }
 
     if (
       BridgeContractVerificationKey !== undefined &&

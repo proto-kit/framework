@@ -19,6 +19,7 @@ import {
   BridgingSettlementContractType,
   BridgingSettlementContract,
   BridgingSettlementContractArgs,
+  BridgingSettlementContractArgsSchema,
 } from "./settlement/BridgingSettlementContract";
 import { BridgeContractBase } from "./BridgeContract";
 import { DispatchContractProtocolModule } from "./DispatchContractProtocolModule";
@@ -57,22 +58,16 @@ export class BridgingSettlementContractModule extends ContractModule<
     const escapeHatchSlotsInterval =
       config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
 
-    const args =
-      this.argsRegistry.getArgs<BridgingSettlementContractArgs>(
-        "SettlementContract"
-      );
-    const newArgs = {
-      ...args,
-      DispatchContract: dispatchContract,
-      hooks,
-      escapeHatchSlotsInterval,
-      BridgeContract: bridgeContract,
-      BridgeContractVerificationKey: args?.BridgeContractVerificationKey,
-      BridgeContractPermissions: args?.BridgeContractPermissions,
-      signedSettlements: args?.signedSettlements,
-      ChildVerificationKeyService: this.childVerificationKeyService,
-    };
-    this.argsRegistry.setArgs("SettlementContract", newArgs);
+    this.argsRegistry.addArgs<BridgingSettlementContractArgs>(
+      "SettlementContract",
+      {
+        DispatchContract: dispatchContract,
+        hooks,
+        escapeHatchSlotsInterval,
+        BridgeContract: bridgeContract,
+        ChildVerificationKeyService: this.childVerificationKeyService,
+      }
+    );
 
     // Ideally we don't want to have this cyclic dependency, but we have it in the protocol,
     // So its logical that we can't avoid that here
@@ -95,13 +90,18 @@ export class BridgingSettlementContractModule extends ContractModule<
     this.contractFactory();
 
     // Init params
-    const args =
-      this.argsRegistry.getArgs<BridgingSettlementContractArgs>(
-        "SettlementContract"
-      )!;
-    args.BridgeContractVerificationKey =
-      bridgeArtifact.BridgeContract.verificationKey;
+    this.argsRegistry.addArgs<BridgingSettlementContractArgs>(
+      "SettlementContract",
+      {
+        BridgeContractVerificationKey:
+          bridgeArtifact.BridgeContract.verificationKey,
+      }
+    );
 
+    const args = this.argsRegistry.getArgs<BridgingSettlementContractArgs>(
+      "SettlementContract",
+      BridgingSettlementContractArgsSchema
+    );
     if (args.signedSettlements === undefined) {
       throw new Error(
         "Args not fully initialized - make sure to also include the SettlementModule in the sequencer"

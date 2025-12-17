@@ -32,6 +32,7 @@ import {
 } from "../../../prover/block/BlockProvable";
 import {
   ContractArgsRegistry,
+  NaiveObjectSchema,
   StaticInitializationContract,
 } from "../../ContractArgsRegistry";
 
@@ -78,9 +79,17 @@ export interface SettlementContractType {
 export interface SettlementContractArgs {
   hooks: ProvableSettlementHook<unknown>[];
   escapeHatchSlotsInterval: number;
-  signedSettlements: boolean | undefined;
+  signedSettlements: boolean;
   ChildVerificationKeyService: ChildVerificationKeyService;
 }
+
+export const SettlementContractArgsSchema: NaiveObjectSchema<SettlementContractArgs> =
+  {
+    ChildVerificationKeyService: "Required",
+    hooks: "Required",
+    escapeHatchSlotsInterval: "Required",
+    signedSettlements: "Required",
+  };
 
 export abstract class SettlementBase
   extends TokenContract
@@ -89,7 +98,7 @@ export abstract class SettlementBase
   getInitializationArgs(): SettlementContractArgs {
     return container
       .resolve(ContractArgsRegistry)
-      .getArgs("SettlementContract")!;
+      .getArgs("SettlementContract", SettlementContractArgsSchema);
   }
 
   abstract sequencerKey: State<Field>;

@@ -88,27 +88,24 @@ export class WorkerRegistrationTask
     }
 
     if (input.bridgeContractVerificationKey !== undefined) {
-      const args =
-        this.contractArgsRegistry.getArgs<BridgingSettlementContractArgs>(
-          "SettlementContract"
-        )!;
-      args.BridgeContractVerificationKey = input.bridgeContractVerificationKey;
+      this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
+        "SettlementContract",
+        { BridgeContractVerificationKey: input.bridgeContractVerificationKey }
+      );
     }
 
     if (input.isSignedSettlement !== undefined) {
-      const contractArgs =
-        this.contractArgsRegistry.getArgs<BridgingSettlementContractArgs>(
-          "SettlementContract"
-        )!;
-      this.contractArgsRegistry.setArgs("SettlementContract", {
-        ...contractArgs,
-        signedSettlements: input.isSignedSettlement,
-        // TODO Add distinction between mina and custom tokens
-        BridgeContractPermissions: (input.isSignedSettlement
-          ? new SignedSettlementPermissions()
-          : new ProvenSettlementPermissions()
-        ).bridgeContractMina(),
-      });
+      this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
+        "SettlementContract",
+        {
+          signedSettlements: input.isSignedSettlement,
+          // TODO Add distinction between mina and custom tokens
+          BridgeContractPermissions: (input.isSignedSettlement
+            ? new SignedSettlementPermissions()
+            : new ProvenSettlementPermissions()
+          ).bridgeContractMina(),
+        }
+      );
     }
 
     this.compileRegistry.addArtifactsRaw(input.compiledArtifacts);

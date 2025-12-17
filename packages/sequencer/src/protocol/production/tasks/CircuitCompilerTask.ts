@@ -154,20 +154,17 @@ export class CircuitCompilerTask extends UnpreparingTask<
     }
 
     if (input.isSignedSettlement !== undefined) {
-      const contractArgs =
-        this.contractArgsRegistry.getArgs<BridgingSettlementContractArgs>(
-          "SettlementContract"
-        );
-      const newArgs = {
-        ...contractArgs,
-        signedSettlements: input.isSignedSettlement,
-        // TODO Add distinction between mina and custom tokens
-        BridgeContractPermissions: (input.isSignedSettlement
-          ? new SignedSettlementPermissions()
-          : new ProvenSettlementPermissions()
-        ).bridgeContractMina(),
-      };
-      this.contractArgsRegistry.setArgs("SettlementContract", newArgs);
+      this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
+        "SettlementContract",
+        {
+          signedSettlements: input.isSignedSettlement,
+          // TODO Add distinction between mina and custom tokens
+          BridgeContractPermissions: (input.isSignedSettlement
+            ? new SignedSettlementPermissions()
+            : new ProvenSettlementPermissions()
+          ).bridgeContractMina(),
+        }
+      );
     }
 
     // TODO make adaptive
