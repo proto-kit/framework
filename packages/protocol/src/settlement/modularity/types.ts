@@ -1,11 +1,11 @@
 import { TypedClass } from "@proto-kit/common";
+import { SmartContract } from "o1js";
 
 import {
   ContractModule,
   SmartContractClassFromInterface,
 } from "../ContractModule";
 import type { SettlementModulesRecord } from "../SettlementContractModule";
-import { SmartContract } from "o1js";
 
 export type InferContractType<
   Module extends TypedClass<ContractModule<any, any>>,

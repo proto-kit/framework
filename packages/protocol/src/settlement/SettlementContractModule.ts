@@ -25,7 +25,10 @@ import {
 import { GetContracts, InferContractType } from "./modularity/types";
 import { BridgingSettlementContractType } from "./contracts/settlement/BridgingSettlementContract";
 import { SettlementContractType } from "./contracts/settlement/SettlementBase";
-import { SettlementContractConfig } from "./contracts/SettlementSmartContractModule";
+import {
+  SettlementContractConfig,
+  SettlementSmartContractModule,
+} from "./contracts/SettlementSmartContractModule";
 
 export type SettlementModulesRecord = ModulesRecord<
   TypedClass<ContractModule<unknown, unknown>>
@@ -70,7 +73,7 @@ export class SettlementContractModule<
 
   public static settlementOnly() {
     return {
-      SettlementContract: SettlementContractModule,
+      SettlementContract: SettlementSmartContractModule,
     } as const;
   }
 

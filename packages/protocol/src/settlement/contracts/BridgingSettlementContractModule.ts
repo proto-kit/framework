@@ -12,12 +12,13 @@ import {
   SmartContractClassFromInterface,
 } from "../ContractModule";
 import { ProvableSettlementHook } from "../modularity/ProvableSettlementHook";
+import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
 import { DispatchSmartContractBase } from "./DispatchSmartContract";
 import {
   BridgingSettlementContractType,
-  BridgingSettlementContractBase,
   BridgingSettlementContract,
+  BridgingSettlementContractArgs,
 } from "./settlement/BridgingSettlementContract";
 import { BridgeContractBase } from "./BridgeContract";
 import { DispatchContractProtocolModule } from "./DispatchContractProtocolModule";
@@ -26,6 +27,7 @@ import {
   DEFAULT_ESCAPE_HATCH,
   SettlementContractConfig,
 } from "./SettlementSmartContractModule";
+import { SettlementContract } from "./settlement/SettlementContract";
 
 @injectable()
 export class BridgingSettlementContractModule extends ContractModule<
@@ -41,7 +43,8 @@ export class BridgingSettlementContractModule extends ContractModule<
     private readonly dispatchContractModule: DispatchContractProtocolModule,
     @inject("BridgeContract")
     private readonly bridgeContractModule: BridgeContractProtocolModule,
-    private readonly childVerificationKeyService: ChildVerificationKeyService
+    private readonly childVerificationKeyService: ChildVerificationKeyService,
+    private readonly argsRegistry: ContractArgsRegistry
   ) {
     super();
   }
@@ -54,8 +57,11 @@ export class BridgingSettlementContractModule extends ContractModule<
     const escapeHatchSlotsInterval =
       config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
 
-    const { args } = BridgingSettlementContractBase;
-    BridgingSettlementContractBase.args = {
+    const args =
+      this.argsRegistry.getArgs<BridgingSettlementContractArgs>(
+        "SettlementContract"
+      );
+    const newArgs = {
       ...args,
       DispatchContract: dispatchContract,
       hooks,
@@ -66,6 +72,7 @@ export class BridgingSettlementContractModule extends ContractModule<
       signedSettlements: args?.signedSettlements,
       ChildVerificationKeyService: this.childVerificationKeyService,
     };
+    this.argsRegistry.setArgs("SettlementContract", newArgs);
 
     // Ideally we don't want to have this cyclic dependency, but we have it in the protocol,
     // So its logical that we can't avoid that here
@@ -88,10 +95,14 @@ export class BridgingSettlementContractModule extends ContractModule<
     this.contractFactory();
 
     // Init params
-    BridgingSettlementContractBase.args.BridgeContractVerificationKey =
+    const args =
+      this.argsRegistry.getArgs<BridgingSettlementContractArgs>(
+        "SettlementContract"
+      )!;
+    args.BridgeContractVerificationKey =
       bridgeArtifact.BridgeContract.verificationKey;
 
-    if (BridgingSettlementContractBase.args.signedSettlements === undefined) {
+    if (args.signedSettlements === undefined) {
       throw new Error(
         "Args not fully initialized - make sure to also include the SettlementModule in the sequencer"
       );
@@ -100,7 +111,11 @@ export class BridgingSettlementContractModule extends ContractModule<
     log.debug("Compiling Settlement Contract");
 
     const artifact = await registry.forceProverExists(
-      async (reg) => await registry.compile(BridgingSettlementContract)
+      async (reg) =>
+        await registry.compile(
+          BridgingSettlementContract,
+          SettlementContract.name
+        )
     );
 
     return {

@@ -1,12 +1,15 @@
 import {
   Bool,
+  DeployArgs,
   DynamicProof,
   Field,
+  Option,
   PublicKey,
   Signature,
   State,
   TokenContract,
   UInt32,
+  Permissions,
 } from "o1js";
 import {
   ChildVerificationKeyService,
@@ -14,6 +17,7 @@ import {
   mapSequential,
   prefixToField,
 } from "@proto-kit/common";
+import { container } from "tsyringe";
 
 import { BlockHashMerkleTree } from "../../../prover/block/accummulators/BlockHashMerkleTree";
 import { NetworkState } from "../../../model/network/NetworkState";
@@ -26,6 +30,10 @@ import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
 } from "../../../prover/block/BlockProvable";
+import {
+  ContractArgsRegistry,
+  StaticInitializationContract,
+} from "../../ContractArgsRegistry";
 
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 
@@ -50,6 +58,13 @@ export interface SettlementContractType {
   networkStateHash: State<Field>;
   blockHashRoot: State<Field>;
 
+  deployAndInitialize: (
+    args: DeployArgs | undefined,
+    permissions: Permissions,
+    sequencer: PublicKey,
+    dispatchContract: Option<PublicKey>
+  ) => Promise<void>;
+
   settle: (
     blockProof: DynamicBlockProof,
     signature: Signature,
@@ -60,13 +75,29 @@ export interface SettlementContractType {
   ) => Promise<void>;
 }
 
-export abstract class SettlementBase extends TokenContract {
-  public static args: {
-    hooks: ProvableSettlementHook<unknown>[];
-    escapeHatchSlotsInterval: number;
-    signedSettlements: boolean | undefined;
-    ChildVerificationKeyService: ChildVerificationKeyService;
-  };
+export interface SettlementContractArgs {
+  hooks: ProvableSettlementHook<unknown>[];
+  escapeHatchSlotsInterval: number;
+  signedSettlements: boolean | undefined;
+  ChildVerificationKeyService: ChildVerificationKeyService;
+}
+
+export abstract class SettlementBase
+  extends TokenContract
+  implements StaticInitializationContract<SettlementContractArgs>
+{
+  getInitializationArgs(): SettlementContractArgs {
+    return container
+      .resolve(ContractArgsRegistry)
+      .getArgs("SettlementContract")!;
+  }
+  //
+  // public static args: {
+  //   hooks: ProvableSettlementHook<unknown>[];
+  //   escapeHatchSlotsInterval: number;
+  //   signedSettlements: boolean | undefined;
+  //   ChildVerificationKeyService: ChildVerificationKeyService;
+  // };
 
   abstract sequencerKey: State<Field>;
   abstract lastSettlementL1BlockHeight: State<UInt32>;
@@ -90,6 +121,13 @@ export abstract class SettlementBase extends TokenContract {
     newPromisedMessagesHash: Field
   ): Promise<void>;
 
+  abstract deployAndInitialize(
+    args: DeployArgs | undefined,
+    permissions: Permissions,
+    sequencer: PublicKey,
+    dispatchContract: Option<PublicKey>
+  ): Promise<void>;
+
   protected async settleBase(
     blockProof: DynamicBlockProof,
     signature: Signature,
@@ -98,29 +136,29 @@ export abstract class SettlementBase extends TokenContract {
     outputNetworkState: NetworkState,
     newPromisedMessagesHash: Field
   ) {
+    const {
+      escapeHatchSlotsInterval,
+      hooks,
+      ChildVerificationKeyService: childVerificationKeyService,
+    } = this.getInitializationArgs();
+
     // Brought in as a constant
     const blockProofVk =
-      SettlementBase.args.ChildVerificationKeyService.getVerificationKey(
-        "BlockProver"
-      );
+      childVerificationKeyService.getVerificationKey("BlockProver");
     if (!blockProofVk.hash.isConstant()) {
       throw new Error("Sanity check - vk hash has to be constant");
     }
-
     // Verify the blockproof
-    blockProof.verify(blockProofVk);
 
+    blockProof.verify(blockProofVk);
     // Get and assert on-chain values
     const stateRoot = this.stateRoot.getAndRequireEquals();
     const networkStateHash = this.networkStateHash.getAndRequireEquals();
     const blockHashRoot = this.blockHashRoot.getAndRequireEquals();
     const sequencerKey = this.sequencerKey.getAndRequireEquals();
+
     const lastSettlementL1BlockHeight =
       this.lastSettlementL1BlockHeight.getAndRequireEquals();
-
-    const { escapeHatchSlotsInterval, hooks } =
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      (this.constructor as typeof SettlementBase).args;
 
     // Get block height and use the lower bound for all ops
     const minBlockHeightIncluded = this.network.blockchainLength.get();

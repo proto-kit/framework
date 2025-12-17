@@ -12,12 +12,14 @@ import {
   SmartContractClassFromInterface,
 } from "../ContractModule";
 import { ProvableSettlementHook } from "../modularity/ProvableSettlementHook";
+import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
+import { BridgingSettlementContract } from "./settlement/BridgingSettlementContract";
 import {
-  BridgingSettlementContractType,
-  BridgingSettlementContract,
-} from "./settlement/BridgingSettlementContract";
-import { SettlementBase } from "./settlement/SettlementBase";
+  SettlementContractArgs,
+  SettlementContractType,
+} from "./settlement/SettlementBase";
+import { SettlementContract } from "./settlement/SettlementContract";
 
 export type SettlementContractConfig = {
   escapeHatchSlotsInterval?: number;
@@ -28,7 +30,7 @@ export const DEFAULT_ESCAPE_HATCH = (60 / 3) * 24;
 
 @injectable()
 export class SettlementSmartContractModule extends ContractModule<
-  BridgingSettlementContractType,
+  SettlementContractType,
   SettlementContractConfig
 > {
   public constructor(
@@ -36,25 +38,28 @@ export class SettlementSmartContractModule extends ContractModule<
     private readonly hooks: ProvableSettlementHook<unknown>[],
     @inject("BlockProver")
     private readonly blockProver: BlockProvable,
-    private readonly childVerificationKeyService: ChildVerificationKeyService
+    private readonly childVerificationKeyService: ChildVerificationKeyService,
+    private readonly argsRegistry: ContractArgsRegistry
   ) {
     super();
   }
 
-  public contractFactory(): SmartContractClassFromInterface<BridgingSettlementContractType> {
+  public contractFactory(): SmartContractClassFromInterface<SettlementContractType> {
     const { hooks, config } = this;
 
     const escapeHatchSlotsInterval =
       config.escapeHatchSlotsInterval ?? DEFAULT_ESCAPE_HATCH;
 
-    const { args } = SettlementBase;
-    SettlementBase.args = {
+    const args =
+      this.argsRegistry.getArgs<SettlementContractArgs>("SettlementContract");
+    const newArgs = {
       ...args,
       hooks,
       escapeHatchSlotsInterval,
       signedSettlements: args?.signedSettlements,
       ChildVerificationKeyService: this.childVerificationKeyService,
     };
+    this.argsRegistry.setArgs("SettlementContract", newArgs);
 
     return BridgingSettlementContract;
   }
@@ -70,7 +75,7 @@ export class SettlementSmartContractModule extends ContractModule<
     log.debug("Compiling Settlement Contract");
 
     const artifact = await registry.forceProverExists(
-      async (reg) => await registry.compile(BridgingSettlementContract)
+      async (reg) => await registry.compile(SettlementContract)
     );
 
     return {

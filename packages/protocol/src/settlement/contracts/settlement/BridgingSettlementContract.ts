@@ -1,4 +1,4 @@
-import { TypedClass, ChildVerificationKeyService } from "@proto-kit/common";
+import { TypedClass, O1PublicKeyOption } from "@proto-kit/common";
 import {
   AccountUpdate,
   Bool,
@@ -18,15 +18,24 @@ import {
   TokenId,
   DeployArgs,
 } from "o1js";
+import { container } from "tsyringe";
 
 import { NetworkState } from "../../../model/network/NetworkState";
-import { ProvableSettlementHook } from "../../modularity/ProvableSettlementHook";
 import { DispatchContractType } from "../DispatchSmartContract";
 import { BridgeContractType } from "../BridgeContract";
 import { TokenBridgeDeploymentAuth } from "../authorizations/TokenBridgeDeploymentAuth";
 import { UpdateMessagesHashAuth } from "../authorizations/UpdateMessagesHashAuth";
+import {
+  ContractArgsRegistry,
+  StaticInitializationContract,
+} from "../../ContractArgsRegistry";
 
-import { DynamicBlockProof, SettlementBase } from "./SettlementBase";
+import {
+  DynamicBlockProof,
+  SettlementBase,
+  SettlementContractArgs,
+  SettlementContractType,
+} from "./SettlementBase";
 
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 
@@ -35,30 +44,11 @@ export class TokenMapping extends Struct({
   publicKey: PublicKey,
 }) {}
 
-export interface BridgingSettlementContractType {
+export interface BridgingSettlementContractType extends SettlementContractType {
   authorizationField: State<Field>;
 
-  deployAndInitialize: (
-    args: DeployArgs | undefined,
-    permissions: Permissions,
-    sequencer: PublicKey,
-    dispatchContract: PublicKey
-  ) => Promise<void>;
-
   assertStateRoot: (root: Field) => AccountUpdate;
-  settle: (
-    blockProof: DynamicBlockProof,
-    signature: Signature,
-    publicKey: PublicKey,
-    inputNetworkState: NetworkState,
-    outputNetworkState: NetworkState,
-    newPromisedMessagesHash: Field
-  ) => Promise<void>;
-  addTokenBridge: (
-    tokenId: Field,
-    address: PublicKey,
-    dispatchContract: PublicKey
-  ) => Promise<void>;
+  addTokenBridge: (tokenId: Field, address: PublicKey) => Promise<void>;
 }
 
 // @singleton()
@@ -75,21 +65,39 @@ export interface BridgingSettlementContractType {
 //   };
 // }
 
-export abstract class BridgingSettlementContractBase extends SettlementBase {
+export interface BridgingSettlementContractArgs extends SettlementContractArgs {
+  DispatchContract: TypedClass<DispatchContractType & SmartContract>;
+  BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
+  // Lazily initialized
+  BridgeContractVerificationKey: VerificationKey | undefined;
+  BridgeContractPermissions: Permissions | undefined;
+  signedSettlements: boolean | undefined;
+}
+
+export abstract class BridgingSettlementContractBase
+  extends SettlementBase
+  implements StaticInitializationContract<BridgingSettlementContractArgs>
+{
   // This pattern of injecting args into a smartcontract is currently the only
   // viable solution that works given the inheritance issues of o1js
   // public static args = container.resolve(SettlementSmartContractStaticArgs);
-  public static args: {
-    DispatchContract: TypedClass<DispatchContractType & SmartContract>;
-    hooks: ProvableSettlementHook<unknown>[];
-    escapeHatchSlotsInterval: number;
-    BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
-    // Lazily initialized
-    BridgeContractVerificationKey: VerificationKey | undefined;
-    BridgeContractPermissions: Permissions | undefined;
-    signedSettlements: boolean | undefined;
-    ChildVerificationKeyService: ChildVerificationKeyService;
-  };
+  // public static args: {
+  //   DispatchContract: TypedClass<DispatchContractType & SmartContract>;
+  //   hooks: ProvableSettlementHook<unknown>[];
+  //   escapeHatchSlotsInterval: number;
+  //   BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
+  //   // Lazily initialized
+  //   BridgeContractVerificationKey: VerificationKey | undefined;
+  //   BridgeContractPermissions: Permissions | undefined;
+  //   signedSettlements: boolean | undefined;
+  //   ChildVerificationKeyService: ChildVerificationKeyService;
+  // };
+
+  public getInitializationArgs(): BridgingSettlementContractArgs {
+    return container
+      .resolve(ContractArgsRegistry)
+      .getArgs("SettlementContract")!;
+  }
 
   events = {
     "token-bridge-deployed": TokenMapping,
@@ -119,7 +127,7 @@ export abstract class BridgingSettlementContractBase extends SettlementBase {
   // TODO Like these properties, I am too lazy to properly infer the types here
   private assertLazyConfigsInitialized() {
     const uninitializedProperties: string[] = [];
-    const { args } = BridgingSettlementContractBase;
+    const args = this.getInitializationArgs();
     if (args.BridgeContractPermissions === undefined) {
       uninitializedProperties.push("BridgeContractPermissions");
     }
@@ -135,20 +143,22 @@ export abstract class BridgingSettlementContractBase extends SettlementBase {
     }
   }
 
+  // TODO We should move this to the dispatchcontract eventually - or after mesa
+  //  to the combined settlement & dispatch contract
   protected async deployTokenBridge(tokenId: Field, address: PublicKey) {
     Provable.asProver(() => {
       this.assertLazyConfigsInitialized();
     });
 
-    const { args } = BridgingSettlementContractBase;
-    const BridgeContractClass = args.BridgeContract;
-    const bridgeContract = new BridgeContractClass(address, tokenId);
-
     const {
       BridgeContractVerificationKey,
       signedSettlements,
       BridgeContractPermissions,
-    } = args;
+      BridgeContract: BridgeContractClass,
+      DispatchContract,
+    } = this.getInitializationArgs();
+
+    const bridgeContract = new BridgeContractClass(address, tokenId);
 
     if (
       signedSettlements === undefined ||
@@ -169,9 +179,9 @@ export abstract class BridgingSettlementContractBase extends SettlementBase {
     // This function is not a zkapps method, therefore it will be part of this methods execution
     // The returning account update (owner.self) is therefore part of this circuit and is assertable
     const deploymentAccountUpdate = await bridgeContract.deployProvable(
-      args.BridgeContractVerificationKey,
-      args.signedSettlements!,
-      args.BridgeContractPermissions!,
+      BridgeContractVerificationKey,
+      signedSettlements!,
+      BridgeContractPermissions!,
       this.address
     );
 
@@ -202,10 +212,7 @@ export abstract class BridgingSettlementContractBase extends SettlementBase {
         address,
       }).hash()
     );
-    const dispatchContract =
-      new BridgingSettlementContractBase.args.DispatchContract(
-        dispatchContractAddress
-      );
+    const dispatchContract = new DispatchContract(dispatchContractAddress);
     await dispatchContract.enableTokenDeposits(tokenId, address, this.address);
   }
 
@@ -229,9 +236,7 @@ export abstract class BridgingSettlementContractBase extends SettlementBase {
     const dispatchContractAddress =
       this.dispatchContractAddress.getAndRequireEquals();
 
-    const { DispatchContract } =
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      (this.constructor as typeof BridgingSettlementContractBase).args;
+    const { DispatchContract } = this.getInitializationArgs();
 
     // Get dispatch contract values
     // These values are witnesses but will be checked later on the AU
@@ -285,13 +290,17 @@ export class BridgingSettlementContract
     args: DeployArgs | undefined,
     permissions: Permissions,
     sequencer: PublicKey,
-    dispatchContract: PublicKey
+    dispatchContract: O1PublicKeyOption
   ): Promise<void> {
+    dispatchContract.assertSome(
+      "Bridging-enabled settlement contract requires a dispatch contract address"
+    );
+
     await super.deploy(args);
 
     this.self.account.permissions.set(permissions);
 
-    await this.initializeBaseBridging(sequencer, dispatchContract);
+    await this.initializeBaseBridging(sequencer, dispatchContract.value);
   }
 
   @method async approveBase(forest: AccountUpdateForest) {
