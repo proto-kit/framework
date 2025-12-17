@@ -105,11 +105,7 @@ export class VanillaDeployInteraction implements DeployInteraction {
     utils.signTransaction(tx, {
       signingWithSignatureCheck: [...this.signer.getContractAddresses()],
     });
-    // this.signer.signTx(tx);
-    // Note: We can't use this.signTransaction on the above tx
 
-    // This should already apply the tx result to the
-    // cached accounts / local blockchain
     await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     this.addressRegistry.addContractAddress(

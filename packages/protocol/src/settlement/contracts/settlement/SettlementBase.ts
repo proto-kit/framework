@@ -91,13 +91,6 @@ export abstract class SettlementBase
       .resolve(ContractArgsRegistry)
       .getArgs("SettlementContract")!;
   }
-  //
-  // public static args: {
-  //   hooks: ProvableSettlementHook<unknown>[];
-  //   escapeHatchSlotsInterval: number;
-  //   signedSettlements: boolean | undefined;
-  //   ChildVerificationKeyService: ChildVerificationKeyService;
-  // };
 
   abstract sequencerKey: State<Field>;
   abstract lastSettlementL1BlockHeight: State<UInt32>;
@@ -246,10 +239,6 @@ export abstract class SettlementBase
 
     this.lastSettlementL1BlockHeight.set(minBlockHeightIncluded);
   }
-
-  // TODO Move all settlement-only logic here from the old impl
 }
-
-// TODO Connect the above with the Smartcontract API implementing the abstract class
 
 /* eslint-enable @typescript-eslint/lines-between-class-members */

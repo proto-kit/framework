@@ -3,7 +3,6 @@ import {
   mapSequential,
   TypedClass,
   LinkedMerkleTree,
-  log,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
@@ -269,8 +268,6 @@ export const settlementTestFn = (
   }
 
   beforeAll(async () => {
-    log.setLevel("INFO");
-
     appChain = setupAppChain();
 
     await appChain.start(

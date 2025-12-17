@@ -51,20 +51,6 @@ export interface BridgingSettlementContractType extends SettlementContractType {
   addTokenBridge: (tokenId: Field, address: PublicKey) => Promise<void>;
 }
 
-// @singleton()
-// export class SettlementSmartContractStaticArgs {
-//   public args?: {
-//     DispatchContract: TypedClass<DispatchContractType & SmartContract>;
-//     hooks: ProvableSettlementHook<unknown>[];
-//     escapeHatchSlotsInterval: number;
-//     BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
-//     // Lazily initialized
-//     BridgeContractVerificationKey: VerificationKey | undefined;
-//     BridgeContractPermissions: Permissions | undefined;
-//     signedSettlements: boolean | undefined;
-//   };
-// }
-
 export interface BridgingSettlementContractArgs extends SettlementContractArgs {
   DispatchContract: TypedClass<DispatchContractType & SmartContract>;
   BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
@@ -78,21 +64,6 @@ export abstract class BridgingSettlementContractBase
   extends SettlementBase
   implements StaticInitializationContract<BridgingSettlementContractArgs>
 {
-  // This pattern of injecting args into a smartcontract is currently the only
-  // viable solution that works given the inheritance issues of o1js
-  // public static args = container.resolve(SettlementSmartContractStaticArgs);
-  // public static args: {
-  //   DispatchContract: TypedClass<DispatchContractType & SmartContract>;
-  //   hooks: ProvableSettlementHook<unknown>[];
-  //   escapeHatchSlotsInterval: number;
-  //   BridgeContract: TypedClass<BridgeContractType> & typeof SmartContract;
-  //   // Lazily initialized
-  //   BridgeContractVerificationKey: VerificationKey | undefined;
-  //   BridgeContractPermissions: Permissions | undefined;
-  //   signedSettlements: boolean | undefined;
-  //   ChildVerificationKeyService: ChildVerificationKeyService;
-  // };
-
   public getInitializationArgs(): BridgingSettlementContractArgs {
     return container
       .resolve(ContractArgsRegistry)
