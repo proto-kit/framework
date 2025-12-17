@@ -11,6 +11,7 @@ import { CircuitCompilerTask } from "../protocol/production/tasks/CircuitCompile
 
 @injectable()
 export class SettlementStartupModule {
+  // TODO Why is this a separate module?
   public constructor(
     private readonly compileRegistry: CompileRegistry,
     private readonly flowCreator: FlowCreator,
@@ -42,9 +43,8 @@ export class SettlementStartupModule {
     SettlementSmartContract: CompileArtifact;
     DispatchSmartContract: CompileArtifact;
   }> {
-    const settlementVerificationKey = this.compileRegistry.getArtifact(
-      "SettlementSmartContract"
-    );
+    const settlementVerificationKey =
+      this.compileRegistry.getArtifact("SettlementContract");
     const dispatchVerificationKey = this.compileRegistry.getArtifact(
       "DispatchSmartContract"
     );

@@ -15,8 +15,10 @@ import {
   Protocol,
   SettlementContractModule,
   RuntimeVerificationKeyRootService,
-  SettlementSmartContractBase,
   MandatoryProtocolModulesRecord,
+  type SettlementModulesRecord,
+  BridgingSettlementContractArgs,
+  ContractArgsRegistry,
 } from "@proto-kit/protocol";
 
 import { TaskSerializer } from "../../../worker/flow/Task";
@@ -48,7 +50,8 @@ export class CircuitCompilerTask extends UnpreparingTask<
     @inject("Runtime") protected readonly runtime: Runtime<never>,
     @inject("Protocol")
     protected readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly compileRegistry: CompileRegistry
+    private readonly compileRegistry: CompileRegistry,
+    private readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
   }
@@ -97,7 +100,7 @@ export class CircuitCompilerTask extends UnpreparingTask<
     const container = this.protocol.dependencyContainer;
     if (container.isRegistered("SettlementContractModule")) {
       const settlementModule = container.resolve<
-        SettlementContractModule<MandatorySettlementModulesRecord>
+        SettlementContractModule<SettlementModulesRecord>
       >("SettlementContractModule");
 
       // Needed so that all contractFactory functions are called, because
@@ -115,9 +118,10 @@ export class CircuitCompilerTask extends UnpreparingTask<
 
       const sumModule = {
         compile: async (registry: CompileRegistry) => {
-          await reduceSequential<CompilableModule, ArtifactRecord>(
-            modules.map(([, module]) => module),
-            async (record, module) => {
+          await reduceSequential<[string, CompilableModule], ArtifactRecord>(
+            modules,
+            async (record, [moduleName, module]) => {
+              log.info(`Compiling ${moduleName}`);
               const artifacts = await module.compile(registry);
               return {
                 ...record,
@@ -129,9 +133,9 @@ export class CircuitCompilerTask extends UnpreparingTask<
         },
       };
 
-      modules.push(["Settlement", sumModule]);
+      const combinedModules = [...modules, ["Settlement", sumModule]];
 
-      return Object.fromEntries(modules);
+      return Object.fromEntries(combinedModules);
     }
     return {};
   }
@@ -150,8 +154,11 @@ export class CircuitCompilerTask extends UnpreparingTask<
     }
 
     if (input.isSignedSettlement !== undefined) {
-      const contractArgs = SettlementSmartContractBase.args;
-      SettlementSmartContractBase.args = {
+      const contractArgs =
+        this.contractArgsRegistry.getArgs<BridgingSettlementContractArgs>(
+          "SettlementContract"
+        );
+      const newArgs = {
         ...contractArgs,
         signedSettlements: input.isSignedSettlement,
         // TODO Add distinction between mina and custom tokens
@@ -160,6 +167,7 @@ export class CircuitCompilerTask extends UnpreparingTask<
           : new ProvenSettlementPermissions()
         ).bridgeContractMina(),
       };
+      this.contractArgsRegistry.setArgs("SettlementContract", newArgs);
     }
 
     // TODO make adaptive

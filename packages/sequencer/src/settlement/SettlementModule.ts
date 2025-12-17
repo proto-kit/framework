@@ -1,32 +1,22 @@
 import {
   Protocol,
   SettlementContractModule,
-  BATCH_SIGNATURE_PREFIX,
-  DispatchSmartContract,
-  SettlementSmartContract,
   MandatorySettlementModulesRecord,
   MandatoryProtocolModulesRecord,
-  SettlementSmartContractBase,
-  DynamicBlockProof,
+  type SettlementContractType,
+  ContractArgsRegistry,
+  SettlementContractArgs,
 } from "@proto-kit/protocol";
-import {
-  AccountUpdate,
-  fetchAccount,
-  Field,
-  Mina,
-  PublicKey,
-  TokenContract,
-  TokenId,
-} from "o1js";
+import { fetchAccount, Field, Mina, PublicKey, SmartContract } from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
   EventEmittingComponent,
-  log,
   DependencyFactory,
+  ModuleContainerLike,
+  DependencyRecord,
+  log,
 } from "@proto-kit/common";
-// eslint-disable-next-line import/no-extraneous-dependencies
-import truncate from "lodash/truncate";
 
 import {
   SequencerModule,
@@ -34,18 +24,26 @@ import {
 } from "../sequencer/builder/SequencerModule";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { Batch, SettleableBatch } from "../storage/model/Batch";
-import { BlockProofSerializer } from "../protocol/production/tasks/serializers/BlockProofSerializer";
 import { Settlement } from "../storage/model/Settlement";
-import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
-import { SettlementStartupModule } from "../sequencer/SettlementStartupModule";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 
-import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
-import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermissions";
-import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
 import { SettlementUtils } from "./utils/SettlementUtils";
-import { BridgingModule } from "./BridgingModule";
+import type { BridgingModule } from "./BridgingModule";
 import { MinaSigner } from "./MinaSigner";
+import { BridgingDeployInteraction } from "./interactions/bridging/BridgingDeployInteraction";
+import { VanillaDeployInteraction } from "./interactions/vanilla/VanillaDeployInteraction";
+import { BridgingSettlementInteraction } from "./interactions/bridging/BridgingSettlementInteraction";
+import { VanillaSettlementInteraction } from "./interactions/vanilla/VanillaSettlementInteraction";
+import {
+  AddressRegistry,
+  InMemoryAddressRegistry,
+} from "./interactions/AddressRegistry";
+
+export type SettlementModuleConfig = {
+  addresses?: {
+    SettlementContract: PublicKey;
+  };
+};
 
 export type SettlementModuleEvents = {
   "settlement-submitted": [Batch];
@@ -53,13 +51,10 @@ export type SettlementModuleEvents = {
 
 @sequencerModule()
 export class SettlementModule
-  extends SequencerModule
-  implements EventEmittingComponent<SettlementModuleEvents>, DependencyFactory
+  extends SequencerModule<SettlementModuleConfig>
+  implements EventEmittingComponent<SettlementModuleEvents>
 {
-  protected contracts?: {
-    settlement: SettlementSmartContract;
-    dispatch: DispatchSmartContract;
-  };
+  protected contract?: SettlementContractType & SmartContract;
 
   public utils: SettlementUtils;
 
@@ -71,24 +66,31 @@ export class SettlementModule
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     @inject("SettlementStorage")
     private readonly settlementStorage: SettlementStorage,
-    private readonly blockProofSerializer: BlockProofSerializer,
-    @inject("TransactionSender")
-    private readonly transactionSender: MinaTransactionSender,
     @inject("SettlementSigner") private readonly signer: MinaSigner,
-    @inject("FeeStrategy")
-    private readonly feeStrategy: FeeStrategy,
-    private readonly settlementStartupModule: SettlementStartupModule
+    @inject("Sequencer")
+    private readonly parentContainer: ModuleContainerLike,
+    @inject("AddressRegistry")
+    private readonly addressRegistry: AddressRegistry,
+    private readonly argsRegistry: ContractArgsRegistry
   ) {
     super();
     this.utils = new SettlementUtils(this.baseLayer, this.signer);
   }
 
-  public dependencies() {
+  public static dependencies(): DependencyRecord {
     return {
-      BridgingModule: {
-        useClass: BridgingModule,
+      AddressRegistry: {
+        useClass: InMemoryAddressRegistry,
       },
     };
+  }
+
+  private bridgingModule(): BridgingModule | undefined {
+    const container = this.parentContainer.dependencyContainer;
+    if (container.isRegistered("BridgingModule")) {
+      return container.resolve<BridgingModule>("BridgingModule");
+    }
+    return undefined;
   }
 
   protected settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
@@ -97,43 +99,44 @@ export class SettlementModule
     );
   }
 
-  public getAddresses() {
-    const keysArray = this.signer.getContractAddresses();
-    return {
-      settlement: keysArray[0],
-      dispatch: keysArray[1],
-    };
+  public getSettlementContractAddress(): PublicKey {
+    const keys =
+      this.addressRegistry.getContractAddress("SettlementContract") ??
+      this.config.addresses?.SettlementContract;
+
+    if (keys === undefined) {
+      throw new Error("Contracts not initialized yet");
+    }
+    return keys;
   }
 
-  public getContractAddresses() {
-    return this.signer.getContractAddresses();
+  public getSettlementContract() {
+    if (this.contract === undefined) {
+      const address = this.getSettlementContractAddress();
+      this.contract = this.settlementContractModule().createContract(
+        "SettlementContract",
+        address
+      );
+    }
+
+    return this.contract;
   }
 
-  public getContracts() {
-    if (this.contracts === undefined) {
-      const addresses = this.getAddresses();
+  public getContract() {
+    if (this.contract === undefined) {
+      const address = this.getSettlementContractAddress();
       const { protocol } = this;
 
       const settlementContractModule = protocol.dependencyContainer.resolve<
         SettlementContractModule<MandatorySettlementModulesRecord>
       >("SettlementContractModule");
 
-      // TODO Add generic inference of concrete Contract types
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      this.contracts = settlementContractModule.createContracts(addresses) as {
-        settlement: SettlementSmartContract;
-        dispatch: DispatchSmartContract;
-      };
+      const contracts = settlementContractModule.createContracts({
+        SettlementContract: address,
+      });
+      this.contract = contracts.SettlementContract;
     }
-    return this.contracts;
-  }
-
-  private async fetchContractAccounts() {
-    const contracts = this.getContracts();
-    await this.utils.fetchContractAccounts(
-      contracts.settlement,
-      contracts.dispatch
-    );
+    return this.contract;
   }
 
   public async settleBatch(
@@ -142,60 +145,18 @@ export class SettlementModule
       nonce?: number;
     } = {}
   ): Promise<Settlement> {
-    await this.fetchContractAccounts();
-    const { settlement: settlementContract, dispatch } = this.getContracts();
-    const feepayer = this.signer.getFeepayerKey();
     log.debug("Preparing settlement");
 
-    const lastSettlementL1BlockHeight =
-      settlementContract.lastSettlementL1BlockHeight.get().value;
-    const signature = this.signer.sign([
-      BATCH_SIGNATURE_PREFIX,
-      lastSettlementL1BlockHeight,
-    ]);
-
-    const latestSequenceStateHash = dispatch.account.actionState.get();
-
-    const blockProof = await this.blockProofSerializer
-      .getBlockProofSerializer()
-      .fromJSONProof(batch.proof);
-
-    const dynamicBlockProof = DynamicBlockProof.fromProof(blockProof);
-
-    const tx = await Mina.transaction(
-      {
-        sender: feepayer,
-        nonce: options?.nonce,
-        fee: this.feeStrategy.getFee(),
-        memo: "Protokit settle",
-      },
-      async () => {
-        await settlementContract.settle(
-          dynamicBlockProof,
-          signature,
-          dispatch.address,
-          feepayer,
-          batch.fromNetworkState,
-          batch.toNetworkState,
-          latestSequenceStateHash
-        );
-      }
-    );
-
-    this.utils.signTransaction(tx, {
-      signingWithSignatureCheck: [...this.signer.getContractAddresses()],
-    });
-
-    const { hash: transactionHash } =
-      await this.transactionSender.proveAndSendTransaction(tx, "included");
-
-    log.info("Settlement transaction sent and included");
-
-    const settlement = {
-      batches: [batch.height],
-      promisedMessagesHash: latestSequenceStateHash.toString(),
-      transactionHash,
-    };
+    const bridgingModule = this.bridgingModule();
+    const interaction =
+      bridgingModule !== undefined
+        ? this.parentContainer.dependencyContainer.resolve(
+            BridgingSettlementInteraction
+          )
+        : this.parentContainer.dependencyContainer.resolve(
+            VanillaSettlementInteraction
+          );
+    const settlement = await interaction.settle(batch, options);
 
     await this.settlementStorage.pushSettlement(settlement);
 
@@ -205,166 +166,65 @@ export class SettlementModule
   }
 
   // Can't do anything for now - initialize() method use settlementKey.
+  // TODO Rethink that interface - deploy with addresses as args would be pretty nice
   public async deploy(
-    settlementKey: PublicKey,
-    dispatchKey: PublicKey,
-    minaBridgeKey: PublicKey,
+    addresses: {
+      settlementContract: PublicKey;
+      dispatchContract?: PublicKey;
+    },
     options: {
       nonce?: number;
     } = {}
   ) {
-    const feepayer = this.signer.getFeepayerKey();
+    const bridgingModule = this.bridgingModule();
+    // TODO Add overwriting in dependency factories and then resolve based on that here
+    const interaction =
+      bridgingModule !== undefined
+        ? this.parentContainer.dependencyContainer.resolve(
+            BridgingDeployInteraction
+          )
+        : this.parentContainer.dependencyContainer.resolve(
+            VanillaDeployInteraction
+          );
 
-    const nonce = options?.nonce ?? 0;
-
-    const sm = this.protocol.dependencyContainer.resolve<
-      SettlementContractModule<MandatorySettlementModulesRecord>
-    >("SettlementContractModule");
-    const { settlement, dispatch } = sm.createContracts({
-      settlement: settlementKey,
-      dispatch: dispatchKey,
-    });
-
-    const verificationsKeys =
-      await this.settlementStartupModule.retrieveVerificationKeys();
-
-    const permissions = this.baseLayer.isSignedSettlement()
-      ? new SignedSettlementPermissions()
-      : new ProvenSettlementPermissions();
-
-    const tx = await Mina.transaction(
-      {
-        sender: feepayer,
-        nonce,
-        fee: this.feeStrategy.getFee(),
-        memo: "Protokit settlement deploy",
-      },
-      async () => {
-        AccountUpdate.fundNewAccount(feepayer, 2);
-
-        await dispatch.deployAndInitialize(
-          {
-            verificationKey:
-              verificationsKeys.DispatchSmartContract.verificationKey,
-          },
-          permissions.dispatchContract(),
-          settlement.address
-        );
-
-        await settlement.deployAndInitialize(
-          {
-            verificationKey:
-              verificationsKeys.SettlementSmartContract.verificationKey,
-          },
-          permissions.settlementContract(),
-          feepayer,
-          dispatchKey
-        );
-      }
-    );
-
-    this.utils.signTransaction(tx, {
-      signingWithSignatureCheck: [...this.signer.getContractAddresses()],
-    });
-    // Note: We can't use this.signTransaction on the above tx
-
-    // This should already apply the tx result to the
-    // cached accounts / local blockchain
-    await this.transactionSender.proveAndSendTransaction(tx, "included");
-
-    await this.utils.fetchContractAccounts(settlement, dispatch);
-
-    const initTx = await Mina.transaction(
-      {
-        sender: feepayer,
-        nonce: nonce + 1,
-        fee: this.feeStrategy.getFee(),
-        memo: "Deploy MINA bridge",
-      },
-      async () => {
-        AccountUpdate.fundNewAccount(feepayer, 1);
-        // Deploy bridge contract for $Mina
-        await settlement.addTokenBridge(
-          TokenId.default,
-          minaBridgeKey,
-          dispatchKey
-        );
-      }
-    );
-
-    const initTxSigned = this.utils.signTransaction(initTx, {
-      signingWithSignatureCheck: [
-        ...this.signer.getContractAddresses(),
-        minaBridgeKey,
-      ],
-    });
-
-    await this.transactionSender.proveAndSendTransaction(
-      initTxSigned,
-      "included"
-    );
-  }
-
-  public async deployTokenBridge(
-    owner: TokenContract,
-    ownerPublicKey: PublicKey,
-    contractKey: PublicKey,
-    options: {
-      nonce?: number;
-    }
-  ) {
-    const feepayer = this.signer.getFeepayerKey();
-    const nonce = options?.nonce ?? undefined;
-
-    const tokenId = owner.deriveTokenId();
-    const { settlement, dispatch } = this.getContracts();
-
-    const tx = await Mina.transaction(
-      {
-        sender: feepayer,
-        nonce: nonce,
-        memo: `Deploy token bridge for ${truncate(tokenId.toString(), { length: 6 })}`,
-        fee: this.feeStrategy.getFee(),
-      },
-      async () => {
-        AccountUpdate.fundNewAccount(feepayer, 1);
-        await settlement.addTokenBridge(tokenId, contractKey, dispatch.address);
-        await owner.approveAccountUpdate(settlement.self);
-      }
-    );
-
-    // Only ContractKeys and OwnerKey for check.
-    // Used all in signing process.
-    const txSigned = this.utils.signTransaction(tx, {
-      signingWithSignatureCheck: [
-        ...this.signer.getContractAddresses(),
-        ownerPublicKey,
-      ],
-      signingPublicKeys: [contractKey],
-    });
-
-    await this.transactionSender.proveAndSendTransaction(txSigned, "included");
+    await interaction.deploy(addresses, options);
   }
 
   public async start(): Promise<void> {
-    const contractArgs = SettlementSmartContractBase.args;
+    const contractArgs =
+      this.argsRegistry.getArgs<SettlementContractArgs>("SettlementContract");
 
-    SettlementSmartContractBase.args = {
+    this.argsRegistry.setArgs("SettlementContract", {
       ...contractArgs,
       signedSettlements: this.baseLayer.isSignedSettlement(),
-      // TODO Add distinction between mina and custom tokens
-      BridgeContractPermissions: (this.baseLayer.isSignedSettlement()
-        ? new SignedSettlementPermissions()
-        : new ProvenSettlementPermissions()
-      ).bridgeContractMina(),
-    };
+    });
+
+    const settlementContractAddress = this.config.addresses?.SettlementContract;
+    if (settlementContractAddress !== undefined) {
+      this.addressRegistry.addContractAddress(
+        "SettlementContract",
+        settlementContractAddress
+      );
+
+      await this.checkDeployment();
+    }
   }
 
   public async checkDeployment(
     tokenBridges?: Array<{ address: PublicKey; tokenId: Field }>
   ): Promise<void> {
+    const addresses = [
+      this.addressRegistry.getContractAddress("SettlementContract")!,
+    ];
+
+    const bridgeContractAddress =
+      this.bridgingModule()?.config.addresses?.DispatchContract;
+    if (bridgeContractAddress !== undefined) {
+      addresses.push(bridgeContractAddress);
+    }
+
     const contracts: Array<{ address: PublicKey; tokenId?: Field }> = [
-      ...this.getContractAddresses().map((addr) => ({ address: addr })),
+      ...addresses.map((addr) => ({ address: addr })),
       ...(tokenBridges ?? []),
     ];
 
@@ -405,3 +265,5 @@ export class SettlementModule
     }
   }
 }
+
+SettlementModule satisfies DependencyFactory;

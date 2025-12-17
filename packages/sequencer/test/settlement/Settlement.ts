@@ -3,17 +3,19 @@ import {
   mapSequential,
   TypedClass,
   LinkedMerkleTree,
+  log,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import {
   BlockProverPublicInput,
   BridgeContract,
+  ContractArgsRegistry,
+  DispatchSmartContract,
   NetworkState,
   Protocol,
   ReturnType,
   SettlementContractModule,
-  SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import {
   ClientAppChain,
@@ -129,6 +131,7 @@ export const settlementTestFn = (
         {
           BaseLayer: MinaBaseLayer,
           SettlementModule: SettlementModule,
+          BridgingModule: BridgingModule,
           SettlementSigner: InMemoryMinaSigner,
         },
         {
@@ -143,7 +146,8 @@ export const settlementTestFn = (
 
       Protocol: Protocol.from({
         ...VanillaProtocolModules.mandatoryModules({}),
-        SettlementContractModule: SettlementContractModule.with({
+        SettlementContractModule: SettlementContractModule.from({
+          ...SettlementContractModule.settlementAndBridging(),
           FungibleToken: FungibleTokenContractModule,
           FungibleTokenAdmin: FungibleTokenAdminContractModule,
         }),
@@ -170,7 +174,9 @@ export const settlementTestFn = (
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        LocalTaskWorkerModule: {
+          ...VanillaTaskWorkerModules.defaultConfig(),
+        },
         BaseLayer: baseLayerConfig,
         SettlementSigner: {
           feepayer: sequencerKey,
@@ -184,6 +190,7 @@ export const settlementTestFn = (
         BlockProducerModule: {},
         FeeStrategy: {},
         SettlementModule: {},
+        BridgingModule: {},
         SequencerStartupModule: {},
 
         TaskQueue: {
@@ -262,6 +269,8 @@ export const settlementTestFn = (
   }
 
   beforeAll(async () => {
+    log.setLevel("INFO");
+
     appChain = setupAppChain();
 
     await appChain.start(
@@ -302,8 +311,9 @@ export const settlementTestFn = (
   }, timeout * 3);
 
   afterAll(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    SettlementSmartContractBase.args = undefined as any;
+    container
+      .resolve(ContractArgsRegistry)
+      .setArgs("SettlementContract", undefined);
 
     await appChain.close();
   });
@@ -313,37 +323,55 @@ export const settlementTestFn = (
   let acc0L2Nonce = 0;
 
   it("should throw error", async () => {
-    const deploymentPromise =
+    const additionalAddresses =
       tokenConfig === undefined
-        ? settlementModule.checkDeployment()
-        : settlementModule.checkDeployment([
+        ? undefined
+        : [
             {
               address: tokenBridgeKey.toPublicKey(),
               tokenId: tokenOwner!.deriveTokenId(),
             },
-          ]);
+          ];
 
-    await expect(deploymentPromise).rejects.toThrow();
+    await expect(
+      settlementModule.checkDeployment(additionalAddresses)
+    ).rejects.toThrow();
   });
 
   it(
-    "should deploy",
+    "should deploy settlement contracts",
     async () => {
       // Deploy contract
       await settlementModule.deploy(
-        settlementKey.toPublicKey(),
-        dispatchKey.toPublicKey(),
-        minaBridgeKey.toPublicKey(),
+        {
+          dispatchContract: dispatchKey.toPublicKey(),
+          settlementContract: settlementKey.toPublicKey(),
+        },
         {
           nonce: nonceCounter,
         }
       );
 
-      nonceCounter += 2;
+      nonceCounter += 1;
 
       console.log("Deployed");
     },
-    timeout * 2
+    timeout
+  );
+
+  it(
+    "should deploy mina bridge",
+    async () => {
+      // Deploy contract
+      await bridgingModule.deployMinaBridge(minaBridgeKey.toPublicKey(), {
+        nonce: nonceCounter,
+      });
+
+      nonceCounter += 1;
+
+      console.log("Deployed mina bridge");
+    },
+    timeout
   );
 
   if (tokenConfig !== undefined) {
@@ -398,7 +426,8 @@ export const settlementTestFn = (
           signingWithSignatureCheck: [
             tokenOwnerPubKeys.tokenOwner,
             tokenOwnerPubKeys.admin,
-            ...settlementModule.getContractAddresses(),
+            settlementModule.getSettlementContractAddress(),
+            bridgingModule.getDispatchContractAddress(),
           ],
         });
 
@@ -457,9 +486,8 @@ export const settlementTestFn = (
     it(
       "should deploy custom token bridge",
       async () => {
-        await settlementModule.deployTokenBridge(
+        await bridgingModule.deployTokenBridge(
           tokenOwner!,
-          tokenOwnerPubKeys.tokenOwner,
           tokenBridgeKey.toPublicKey(),
           {
             nonce: nonceCounter++,
@@ -500,9 +528,9 @@ export const settlementTestFn = (
         console.log("Block settled");
 
         await settlementModule.utils.fetchContractAccounts({
-          address: settlementModule.getAddresses().settlement,
+          address: settlementModule.getSettlementContractAddress(),
         });
-        const { settlement } = settlementModule.getContracts();
+        const settlement = settlementModule.getSettlementContract();
         expectDefined(lastBlock);
         expectDefined(lastBlock.result);
         expect(settlement.networkStateHash.get().toString()).toStrictEqual(
@@ -526,7 +554,9 @@ export const settlementTestFn = (
     "should include deposit",
     async () => {
       try {
-        const { settlement, dispatch } = settlementModule.getContracts();
+        const settlement = settlementModule.getSettlementContract();
+        const dispatch =
+          bridgingModule.getDispatchContract() as DispatchSmartContract;
         const bridge = new BridgeContract(
           tokenBridgeKey.toPublicKey(),
           bridgedTokenId
@@ -579,7 +609,7 @@ export const settlementTestFn = (
         settlementModule.utils.signTransaction(tx, {
           signingWithSignatureCheck: [
             tokenOwnerPubKeys.tokenOwner,
-            ...settlementModule.getContractAddresses(),
+            settlementModule.getSettlementContractAddress(),
           ],
           signingPublicKeys: [userPublicKey],
           preventNoncePreconditionFor: [dispatch.address],
@@ -770,7 +800,7 @@ export const settlementTestFn = (
         signingWithSignatureCheck: [
           tokenBridgeKey.toPublicKey(),
           tokenOwnerPubKeys.tokenOwner,
-          ...settlementModule.getContractAddresses(),
+          settlementModule.getSettlementContractAddress(),
         ],
         signingPublicKeys: [userPublicKey],
       });
@@ -804,16 +834,18 @@ export const settlementTestFn = (
     expect.assertions(1);
 
     // Obtain promise of deployment check
-    const deploymentCheckPromise =
+    const additionalAddresses =
       tokenConfig === undefined
-        ? settlementModule.checkDeployment()
-        : settlementModule.checkDeployment([
+        ? undefined
+        : [
             {
               address: tokenBridgeKey.toPublicKey(),
               tokenId: tokenOwner!.deriveTokenId(),
             },
-          ]);
+          ];
 
-    await expect(deploymentCheckPromise).resolves.toBeUndefined();
+    await expect(
+      settlementModule.checkDeployment(additionalAddresses)
+    ).resolves.toBeUndefined();
   });
 };

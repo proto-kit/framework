@@ -1,9 +1,10 @@
 import { inject } from "tsyringe";
 import {
+  BridgingSettlementContractArgs,
+  ContractArgsRegistry,
   MandatoryProtocolModulesRecord,
   Protocol,
   RuntimeVerificationKeyRootService,
-  SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import {
   log,
@@ -43,7 +44,8 @@ export class SequencerStartupModule
     @inject("BaseLayer", { isOptional: true })
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
+    private readonly areProofsEnabled: AreProofsEnabled,
+    private readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
   }
@@ -168,8 +170,12 @@ export class SequencerStartupModule
     // Init BridgeContract vk for settlement contract
     const bridgeVk = protocolBridgeArtifacts.BridgeContract;
     if (bridgeVk !== undefined) {
-      SettlementSmartContractBase.args.BridgeContractVerificationKey =
-        bridgeVk.verificationKey;
+      // TODO Inject CompileRegistry directly
+      const args =
+        this.contractArgsRegistry.getArgs<BridgingSettlementContractArgs>(
+          "SettlementContract"
+        )!;
+      args.BridgeContractVerificationKey = bridgeVk.verificationKey;
     }
 
     await this.registrationFlow.start({

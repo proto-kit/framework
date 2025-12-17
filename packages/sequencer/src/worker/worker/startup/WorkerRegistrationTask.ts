@@ -9,9 +9,10 @@ import {
 } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 import {
+  BridgingSettlementContractArgs,
+  ContractArgsRegistry,
   RuntimeVerificationKeyRootService,
   SettlementContractModule,
-  SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import { VerificationKey } from "o1js";
 
@@ -48,7 +49,8 @@ export class WorkerRegistrationTask
 
   public constructor(
     @inject("Protocol") private readonly protocol: ModuleContainerLike,
-    private readonly compileRegistry: CompileRegistry
+    private readonly compileRegistry: CompileRegistry,
+    private readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
   }
@@ -78,7 +80,7 @@ export class WorkerRegistrationTask
       this.protocol.dependencyContainer
         .resolve<
           SettlementContractModule<
-            ReturnType<typeof SettlementContractModule.mandatoryModules>
+            ReturnType<typeof SettlementContractModule.settlementOnly>
           >
         >("SettlementContractModule")
         .resolve("SettlementContract")
@@ -86,13 +88,19 @@ export class WorkerRegistrationTask
     }
 
     if (input.bridgeContractVerificationKey !== undefined) {
-      SettlementSmartContractBase.args.BridgeContractVerificationKey =
-        input.bridgeContractVerificationKey;
+      const args =
+        this.contractArgsRegistry.getArgs<BridgingSettlementContractArgs>(
+          "SettlementContract"
+        )!;
+      args.BridgeContractVerificationKey = input.bridgeContractVerificationKey;
     }
 
     if (input.isSignedSettlement !== undefined) {
-      const contractArgs = SettlementSmartContractBase.args;
-      SettlementSmartContractBase.args = {
+      const contractArgs =
+        this.contractArgsRegistry.getArgs<BridgingSettlementContractArgs>(
+          "SettlementContract"
+        )!;
+      this.contractArgsRegistry.setArgs("SettlementContract", {
         ...contractArgs,
         signedSettlements: input.isSignedSettlement,
         // TODO Add distinction between mina and custom tokens
@@ -100,7 +108,7 @@ export class WorkerRegistrationTask
           ? new SignedSettlementPermissions()
           : new ProvenSettlementPermissions()
         ).bridgeContractMina(),
-      };
+      });
     }
 
     this.compileRegistry.addArtifactsRaw(input.compiledArtifacts);
