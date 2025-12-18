@@ -54,9 +54,6 @@ export class QueryService<
    */
   private get queryTransport(): QueryTransportModule {
     if (this.QueryTransport === undefined) {
-      if (!this.container.isRegistered("QueryTransportModule")) {
-        throw new Error("QueryTransportModule is not registered");
-      }
       this.QueryTransport = this.container.resolve<QueryTransportModule>(
         "QueryTransportModule"
       );
@@ -71,9 +68,6 @@ export class QueryService<
    */
   private get networkStateTransport(): NetworkStateTransportModule {
     if (this.NetworkStateTransport === undefined) {
-      if (!this.container.isRegistered("NetworkStateTransportModule")) {
-        throw new Error("NetworkStateTransportModule is not registered.");
-      }
       this.NetworkStateTransport =
         this.container.resolve<NetworkStateTransportModule>(
           "NetworkStateTransportModule"
@@ -89,9 +83,6 @@ export class QueryService<
    */
   private get blockExplorerTransport(): BlockExplorerTransportModule {
     if (this.BlockExplorerTransport === undefined) {
-      if (!this.container.isRegistered("BlockExplorerTransportModule")) {
-        throw new Error("BlockExplorerTransportModule is not registered.");
-      }
       this.BlockExplorerTransport =
         this.container.resolve<BlockExplorerTransportModule>(
           "BlockExplorerTransportModule"
