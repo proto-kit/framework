@@ -31,7 +31,7 @@ export interface TxEvents extends EventsRecord {
 }
 
 export type TxSendResult<Input extends "sent" | "included" | "none"> =
-  Input extends "none" ? void : { hash: string };
+  Input extends "none" ? void : { transactionId: string };
 
 @injectable()
 @closeable()
@@ -146,7 +146,7 @@ export class MinaTransactionSender implements Closeable {
     // const signedTx = this.signer.signTransaction(result.transaction);
 
     // Queue the transaction
-    await this.pendingStorage.queue({
+    const txnId = await this.pendingStorage.queue({
       sender,
       nonce: nonceNum,
       attempts: 0,
@@ -156,11 +156,11 @@ export class MinaTransactionSender implements Closeable {
 
     if (waitOnStatus !== "none") {
       const waitInstruction: "sent" | "included" = waitOnStatus;
-      const hash = await new Promise<TxSendResult<"sent" | "included">>(
+      const {transactionId: txId} = await new Promise<TxSendResult<"sent" | "included">>(
         (resolve, reject) => {
           emitter.on(waitInstruction, (txSendResult) => {
-            log.info(`Tx ${txSendResult.hash} ${waitInstruction}`);
-            resolve(txSendResult);
+            log.info(`Tx ${txnId} ${waitInstruction}`);
+            resolve({ transactionId: txnId });
             if (waitInstruction === "included") {
               this.activeEmitters.delete(emitterKey);
             }
@@ -174,7 +174,7 @@ export class MinaTransactionSender implements Closeable {
 
       // Yeah that's not super clean, but couldn't figure out a better way tbh
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return hash as TxSendResult<Wait>;
+      return {transactionId: txId} as TxSendResult<Wait>;
     }
     
     // If waitOnStatus is none, delete the emitter.
@@ -236,7 +236,7 @@ export class MinaTransactionSender implements Closeable {
     try {
       const pendingTx = await tx.send();
       // Update DB
-      await this.pendingStorage.update(record.sender, record.nonce, {
+      await this.pendingStorage.update(record.id, {
         status: "sent",
         attempts: record.attempts + 1,
         sentAt: new Date(),   
@@ -244,14 +244,14 @@ export class MinaTransactionSender implements Closeable {
       });
 
       log.info(`Sent L1 transaction ${pendingTx.hash} for nonce ${record.nonce} (Attempt ${record.attempts + 1})`);
-      emitter?.emit("sent", { hash: pendingTx.hash });
+      emitter?.emit("sent", { hash: pendingTx.hash});
 
       // Wait for inclusion
       pendingTx.wait().then(
         async (included) => {
           log.info(`Transaction ${included.hash} included`);
           emitter?.emit("included", { hash: included.hash });
-          await this.pendingStorage.update(record.sender, record.nonce, { status: "included" });
+          await this.pendingStorage.update(record.id, { status: "included" });
           this.activeEmitters.delete(emitterKey);
         },
         async (error) => {
@@ -262,7 +262,7 @@ export class MinaTransactionSender implements Closeable {
       );
     } catch (error) {
       log.error(`Failed to send transaction ${record.sender}:${record.nonce}`, error);
-      await this.pendingStorage.update(record.sender, record.nonce, {
+      await this.pendingStorage.update(record.id, {
         status: "failed",
         lastError: error instanceof Error ? error.message : String(error),
       });
@@ -288,7 +288,7 @@ export class MinaTransactionSender implements Closeable {
       await this.sendTransaction({...record, transaction: signedRetryTx, attempts: record.attempts + 1});
     } catch (error) {
       log.error(`Failed to prepare retry for ${record.sender}:${record.nonce}`, error);
-      await this.pendingStorage.update(record.sender, record.nonce, {
+      await this.pendingStorage.update(record.id, {
         status: "failed",
         lastError: error instanceof Error ? error.message : String(error),
       });

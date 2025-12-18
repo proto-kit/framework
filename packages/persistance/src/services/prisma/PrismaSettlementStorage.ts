@@ -18,7 +18,7 @@ export class PrismaSettlementStorage implements SettlementStorage {
 
     const batch = await prismaClient.batch.findFirst({
       where: {
-        settlementTransactionHash: {
+        settlementTransactionId: {
           not: null,
         },
       },

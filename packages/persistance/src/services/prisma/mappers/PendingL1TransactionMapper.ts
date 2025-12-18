@@ -8,6 +8,7 @@ import { Mina } from "o1js";
 export class PendingL1TransactionMapper {
   public mapOut(input: PendingL1Transaction): PendingL1TransactionRecord {
     return {
+      id: input.id,
       sender: input.sender,
       nonce: input.nonce,
       attempts: input.attempts,
@@ -22,6 +23,7 @@ export class PendingL1TransactionMapper {
     input: PendingL1TransactionRecord
   ): Prisma.PendingL1TransactionCreateInput {
     return {
+      id: input.id,
       sender: input.sender,
       nonce: input.nonce,
       attempts: input.attempts,

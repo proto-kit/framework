@@ -7,6 +7,7 @@ export type PendingL1TransactionStatus =
   | "failed";
 
 export interface PendingL1TransactionRecord {
+  id: string;
   sender: string;
   nonce: number;
   attempts: number;
@@ -17,20 +18,13 @@ export interface PendingL1TransactionRecord {
 }
 
 export interface PendingL1TransactionStorage {
-  queue(record: Omit<PendingL1TransactionRecord, "status">): Promise<void>;
+  queue(record: Omit<PendingL1TransactionRecord, "status" | "id">): Promise<string>;
 
-  update(
-    sender: string,
-    nonce: number,
-    updates: Partial<Omit<PendingL1TransactionRecord, "sender" | "nonce">>
-  ): Promise<void>;
+  update(id: string, updates: Partial<Omit<PendingL1TransactionRecord, "id">>): Promise<void>;
 
-  delete(sender: string, nonce: number): Promise<void>;
+  delete(id: string): Promise<void>;
 
-  findBySenderAndNonce(
-    sender: string,
-    nonce: number
-  ): Promise<PendingL1TransactionRecord | undefined>;
+  findById(id: string): Promise<PendingL1TransactionRecord | undefined>;
 
   findByStatuses(statuses: PendingL1TransactionStatus[]): Promise<PendingL1TransactionRecord[]>;
 }

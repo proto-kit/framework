@@ -1,5 +1,5 @@
 export interface Settlement {
-  transactionHash: string;
+  transactionId: string;
   promisedMessagesHash: string;
   batches: number[];
 }

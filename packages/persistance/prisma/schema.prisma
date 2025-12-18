@@ -105,8 +105,8 @@ model Batch {
 
   blocks Block[]
 
-  settlementTransactionHash String?
-  settlement                Settlement? @relation(fields: [settlementTransactionHash], references: [transactionHash])
+  settlementTransactionId String?
+  settlement              Settlement? @relation(fields: [settlementTransactionId], references: [transactionId])
 }
 
 model BlockResult {
@@ -123,8 +123,7 @@ model BlockResult {
 }
 
 model Settlement {
-  // transaction String
-  transactionHash      String @id
+  transactionId        String @id
   promisedMessagesHash String
 
   batches Batch[]
@@ -150,13 +149,14 @@ model IncomingMessageBatch {
 }
 
 model PendingL1Transaction {
+  id             String @id @default(cuid())
   sender         String
   nonce          Int
   attempts       Int
   status         String   @db.VarChar(32)
   transaction    Json     @db.Json
   lastError      String?
-  sentAt         DateTime? 
+  sentAt         DateTime?
 
-  @@id([sender, nonce])
+  @@unique([sender, nonce])
 }

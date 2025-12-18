@@ -21,7 +21,7 @@ export class BatchMapper
     const batch: PrismaBatch = {
       proof: input.proof,
       height: input.height,
-      settlementTransactionHash: null,
+      settlementTransactionId: null,
     };
     return [batch, []];
   }

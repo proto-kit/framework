@@ -10,45 +10,37 @@ export class InMemoryPendingL1TransactionStorage
   // Key: sender:nonce
   private store = new Map<string, PendingL1TransactionRecord>();
 
-  private getKey(sender: string, nonce: number): string {
-    return `${sender}:${nonce}`;
-  }
 
-  public async queue(record: Omit<PendingL1TransactionRecord, "status">): Promise<void> {
-    const key = this.getKey(record.sender, record.nonce);
+  public async queue(record: Omit<PendingL1TransactionRecord, "status">): Promise<string> {
+    const key = Math.random().toString(36).substring(2, 15);
     this.store.set(key, {
       ...record,
+      id: key,
       status: "queued",
     });
+    return key;
   }
 
   public async update(
-    sender: string,
-    nonce: number,
-    updates: Partial<Omit<PendingL1TransactionRecord, "sender" | "nonce">>
+    id: string,
+    updates: Partial<Omit<PendingL1TransactionRecord, "id">>
   ): Promise<void> {
-    const key = this.getKey(sender, nonce);
-    const existing = this.store.get(key);
+    const existing = this.store.get(id);
     if (existing === undefined) {
       return;
     }
-    this.store.set(key, {
+    this.store.set(id, {
       ...existing,
       ...updates,
     });
   }
 
-  public async delete(sender: string, nonce: number): Promise<void> {
-    const key = this.getKey(sender, nonce);
-    this.store.delete(key);
+  public async delete(id: string): Promise<void> {
+    this.store.delete(id);
   }
 
-  public async findBySenderAndNonce(
-    sender: string,
-    nonce: number
-  ): Promise<PendingL1TransactionRecord | undefined> {
-    const key = this.getKey(sender, nonce);
-    return this.store.get(key);
+  public async findById(id: string): Promise<PendingL1TransactionRecord | undefined> {
+    return this.store.get(id);
   }
 
   public async findByStatuses(statuses: PendingL1TransactionStatus[]): Promise<PendingL1TransactionRecord[]> {

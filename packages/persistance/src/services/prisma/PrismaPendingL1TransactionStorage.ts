@@ -19,27 +19,22 @@ export class PrismaPendingL1TransactionStorage
     @inject("Database") private readonly connection: PrismaConnection
   ) {}
 
-  public async queue(record: Omit<PendingL1TransactionRecord, "status">): Promise<void> {
+  public async queue(record: Omit<PendingL1TransactionRecord, "status">): Promise<string> {
     const { prismaClient } = this.connection;
     const status:PendingL1TransactionStatus = "queued";
-    await prismaClient.pendingL1Transaction.create({
+    const txnRecord = await prismaClient.pendingL1Transaction.create({
       data: this.mapper.mapIn({...record, status}),
     });
+    return txnRecord.id;
   }
 
   public async update(
-    sender: string,
-    nonce: number,
-    updates: Partial<Omit<PendingL1TransactionRecord, "sender" | "nonce">>
+    id: string,
+    updates: Partial<Omit<PendingL1TransactionRecord, "id">>
   ): Promise<void> {
     const { prismaClient } = this.connection;
     await prismaClient.pendingL1Transaction.update({
-      where: {
-        sender_nonce: {
-          sender,
-          nonce,
-        },
-      },
+      where: { id },
       data: {
         ...(updates.attempts !== undefined && { attempts: updates.attempts }),
         ...(updates.status !== undefined && { status: updates.status }),
@@ -50,29 +45,20 @@ export class PrismaPendingL1TransactionStorage
     });
   }
 
-  public async delete(sender: string, nonce: number): Promise<void> {
+  public async delete(id: string): Promise<void> {
     const { prismaClient } = this.connection;
     await prismaClient.pendingL1Transaction.delete({
       where: {
-        sender_nonce: {
-          sender,
-          nonce,
-        },
+        id,
       },
     });
   }
 
-  public async findBySenderAndNonce(
-    sender: string,
-    nonce: number
-  ): Promise<PendingL1TransactionRecord | undefined> {
+  public async findById(id: string): Promise<PendingL1TransactionRecord | undefined> {
     const { prismaClient } = this.connection;
     const record = await prismaClient.pendingL1Transaction.findUnique({
       where: {
-        sender_nonce: {
-          sender,
-          nonce,
-        },
+        id,
       },
     });
     if (!record) {
