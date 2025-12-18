@@ -151,12 +151,15 @@ describe.skip("Proven", () => {
       SettlementStartupModule
     );
 
-    const vks = await module.retrieveVerificationKeys();
+    const vks = await module.retrieveVerificationKeys({
+      SettlementContract: true,
+      DispatchSmartContract: true,
+    });
 
     console.log(vks);
 
     expect(vks.DispatchSmartContract).toBeDefined();
-    expect(vks.SettlementSmartContract).toBeDefined();
+    expect(vks.SettlementContract).toBeDefined();
   });
 
   it.skip("Hello", async () => {
