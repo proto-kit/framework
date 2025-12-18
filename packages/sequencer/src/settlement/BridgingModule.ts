@@ -92,13 +92,11 @@ export type BridgingModuleConfig = {
  */
 @injectable()
 export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
+  // TODO Eventually, we don't want to store this here either, but build a smarter AddressRegistry
   private seenBridgeDeployments: {
     latestDeployment: number;
-    // tokenId => Bridge address
-    deployments: Record<string, PublicKey>;
   } = {
     latestDeployment: -1,
-    deployments: {},
   };
 
   private utils: SettlementUtils;
@@ -184,18 +182,20 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
       .map((event) => {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const mapping = event.event.data as unknown as TokenMapping;
-        return [mapping.tokenId.toString(), mapping.publicKey];
+        return [mapping.tokenId.toBigInt(), mapping.publicKey] as const;
       });
-    const mergedDeployments = {
-      ...this.seenBridgeDeployments.deployments,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      ...(Object.fromEntries(tuples) as Record<string, PublicKey>),
-    };
+
+    tuples.forEach(([tokenId, publicKey]) => {
+      this.addressRegistry.addContractAddress(
+        this.addressRegistry.getIdentifier("BridgeContract", tokenId),
+        publicKey
+      );
+    });
+
     const latestDeployment = events
       .map((event) => Number(event.blockHeight.toString()))
       .reduce((a, b) => (a > b ? a : b), 0);
     this.seenBridgeDeployments = {
-      deployments: mergedDeployments,
       latestDeployment,
     };
   }
@@ -268,14 +268,18 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
   public async getBridgeAddress(
     tokenId: Field
   ): Promise<PublicKey | undefined> {
-    const { deployments } = this.seenBridgeDeployments;
+    const identifier = this.addressRegistry.getIdentifier(
+      "BridgeContract",
+      tokenId.toBigInt()
+    );
+    const deployment = this.addressRegistry.getContractAddress(identifier);
 
-    if (Object.keys(deployments).includes(tokenId.toString())) {
-      return deployments[tokenId.toString()];
+    if (deployment !== undefined) {
+      return deployment;
     }
 
     await this.updateBridgeAddresses();
-    return this.seenBridgeDeployments.deployments[tokenId.toString()];
+    return this.addressRegistry.getContractAddress(identifier);
   }
 
   public async getDepositContractAttestation(tokenId: Field) {
