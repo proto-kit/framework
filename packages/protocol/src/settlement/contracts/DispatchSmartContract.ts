@@ -17,6 +17,7 @@ import {
   Permissions,
 } from "o1js";
 import { InMemoryMerkleTreeStorage, TypedClass } from "@proto-kit/common";
+import { container } from "tsyringe";
 
 import { RuntimeMethodIdMapping } from "../../model/RuntimeLike";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
@@ -25,6 +26,11 @@ import {
   MinaEvents,
 } from "../../utils/MinaPrefixedProvableHashList";
 import { Deposit } from "../messages/Deposit";
+import {
+  ContractArgsRegistry,
+  NaiveObjectSchema,
+  StaticInitializationContract,
+} from "../ContractArgsRegistry";
 
 import type { BridgingSettlementContractType } from "./settlement/BridgingSettlementContract";
 import { TokenBridgeDeploymentAuth } from "./authorizations/TokenBridgeDeploymentAuth";
@@ -67,14 +73,24 @@ const tokenBridgeRoot = new TokenBridgeTree(
   new InMemoryMerkleTreeStorage()
 ).getRoot();
 
-export abstract class DispatchSmartContractBase extends SmartContract {
-  public static args: {
-    methodIdMappings: RuntimeMethodIdMapping;
-    incomingMessagesPaths: Record<string, `${string}.${string}`>;
-    settlementContractClass?: TypedClass<BridgingSettlementContractType> &
-      typeof SmartContract;
+export interface DispatchContractArgs {
+  methodIdMappings: RuntimeMethodIdMapping;
+  incomingMessagesPaths: Record<string, `${string}.${string}`>;
+  settlementContractClass: TypedClass<BridgingSettlementContractType> &
+    typeof SmartContract;
+}
+
+export const DispatchContractArgsSchema: NaiveObjectSchema<DispatchContractArgs> =
+  {
+    incomingMessagesPaths: "Required",
+    methodIdMappings: "Required",
+    settlementContractClass: "Required",
   };
 
+export abstract class DispatchSmartContractBase
+  extends SmartContract
+  implements StaticInitializationContract<DispatchContractArgs>
+{
   events = {
     "token-bridge-added": TokenBridgeTreeAddition,
     // We need a placeholder event here, so that o1js internally adds a identifier to the
@@ -93,6 +109,12 @@ export abstract class DispatchSmartContractBase extends SmartContract {
 
   abstract tokenBridgeCount: State<Field>;
 
+  getInitializationArgs(): DispatchContractArgs {
+    return container
+      .resolve(ContractArgsRegistry)
+      .getArgs("DispatchContract", DispatchContractArgsSchema);
+  }
+
   protected updateMessagesHashBase(
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
@@ -109,12 +131,12 @@ export abstract class DispatchSmartContractBase extends SmartContract {
     this.self.account.actionState.requireEquals(newPromisedMessagesHash);
     this.promisedMessagesHash.set(newPromisedMessagesHash);
 
+    const args = this.getInitializationArgs();
     const settlementContractAddress =
       this.settlementContract.getAndRequireEquals();
-    const settlementContract =
-      new DispatchSmartContractBase.args.settlementContractClass!(
-        settlementContractAddress
-      );
+    const settlementContract = new args.settlementContractClass!(
+      settlementContractAddress
+    );
 
     settlementContract.authorizationField.requireEquals(
       new UpdateMessagesHashAuth({
@@ -179,10 +201,10 @@ export abstract class DispatchSmartContractBase extends SmartContract {
     // treeWitness: TokenBridgeTreeWitness
   ) {
     this.settlementContract.requireEquals(settlementContractAddress);
-    const settlementContract =
-      new DispatchSmartContractBase.args.settlementContractClass!(
-        settlementContractAddress
-      );
+    const args = this.getInitializationArgs();
+    const settlementContract = new args.settlementContractClass!(
+      settlementContractAddress
+    );
 
     // Append bridge address to the tree
     // TODO This not concurrent and will fail if multiple users deploy bridges at the same time
@@ -322,7 +344,7 @@ export class DispatchSmartContract
     });
 
     const { methodIdMappings, incomingMessagesPaths } =
-      DispatchSmartContractBase.args;
+      this.getInitializationArgs();
 
     const methodId = Field(
       methodIdMappings[incomingMessagesPaths.deposit].methodId

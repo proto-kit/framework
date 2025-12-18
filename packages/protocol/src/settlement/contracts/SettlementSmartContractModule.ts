@@ -56,7 +56,7 @@ export class SettlementSmartContractModule extends ContractModule<
       ChildVerificationKeyService: this.childVerificationKeyService,
     });
 
-    return BridgingSettlementContract;
+    return SettlementContract;
   }
 
   public async compile(

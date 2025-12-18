@@ -6,9 +6,11 @@ import { OutgoingMessageProcessor } from "../modularity/OutgoingMessageProcessor
 
 import {
   BridgeContract,
+  BridgeContractArgs,
   BridgeContractBase,
   BridgeContractType,
 } from "./BridgeContract";
+import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
 export type BridgeContractConfig = {
   outgoingBatchSize?: number;
@@ -21,7 +23,8 @@ export class BridgeContractProtocolModule extends ContractModule<
 > {
   public constructor(
     @injectAll("OutgoingMessageProcessor", { isOptional: true })
-    private readonly messageProcessors: OutgoingMessageProcessor<unknown>[]
+    private readonly messageProcessors: OutgoingMessageProcessor<unknown>[],
+    private readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
   }
@@ -29,11 +32,10 @@ export class BridgeContractProtocolModule extends ContractModule<
   public contractFactory() {
     const { config } = this;
 
-    BridgeContractBase.args = {
-      SettlementContract: BridgeContractBase.args?.SettlementContract,
+    this.contractArgsRegistry.addArgs<BridgeContractArgs>("BridgeContract", {
       messageProcessors: this.messageProcessors,
       batchSize: config.outgoingBatchSize,
-    };
+    });
 
     return BridgeContract;
   }

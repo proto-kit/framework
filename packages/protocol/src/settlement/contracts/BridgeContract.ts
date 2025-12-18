@@ -16,7 +16,7 @@ import {
   TokenId,
   VerificationKey,
 } from "o1js";
-import { noop, range, TypedClass } from "@proto-kit/common";
+import { batch, noop, range, TypedClass } from "@proto-kit/common";
 import { container, injectable, singleton } from "tsyringe";
 
 import {
@@ -30,6 +30,12 @@ import { OutgoingMessageProcessor } from "../modularity/OutgoingMessageProcessor
 import { PROTOKIT_FIELD_PREFIXES } from "../../hashing/protokit-prefixes";
 
 import type { BridgingSettlementContractType } from "./settlement/BridgingSettlementContract";
+import {
+  ContractArgsRegistry,
+  NaiveObjectSchema,
+  StaticInitializationContract,
+} from "../ContractArgsRegistry";
+import { hash } from "node:crypto";
 
 export type BridgeContractType = {
   stateRoot: State<Field>;
@@ -64,17 +70,31 @@ export class BridgeContractContext {
   } = { messageInputs: [] };
 }
 
-export abstract class BridgeContractBase extends TokenContract {
-  public static args: {
-    SettlementContract:
-      | (TypedClass<BridgingSettlementContractType> & typeof SmartContract)
-      | undefined;
-    messageProcessors: OutgoingMessageProcessor<unknown>[];
-    batchSize?: number;
-  };
+export interface BridgeContractArgs {
+  SettlementContract: TypedClass<BridgingSettlementContractType> &
+    typeof SmartContract;
+  messageProcessors: OutgoingMessageProcessor<unknown>[];
+  batchSize?: number;
+}
 
+export const BridgeContractArgsSchema: NaiveObjectSchema<BridgeContractArgs> = {
+  batchSize: "Optional",
+  SettlementContract: "Required",
+  messageProcessors: "Required",
+};
+
+export abstract class BridgeContractBase
+  extends TokenContract
+  implements StaticInitializationContract<BridgeContractArgs>
+{
   public constructor(address: PublicKey, tokenId?: Field) {
     super(address, tokenId);
+  }
+
+  getInitializationArgs(): BridgeContractArgs {
+    return container
+      .resolve(ContractArgsRegistry)
+      .getArgs("BridgeContract", BridgeContractArgsSchema);
   }
 
   abstract settlementContractAddress: State<PublicKey>;
@@ -134,14 +154,11 @@ export abstract class BridgeContractBase extends TokenContract {
     // witness values, not update/insert
     this.stateRoot.set(root);
 
+    const args = this.getInitializationArgs();
+
     const settlementContractAddress =
       this.settlementContractAddress.getAndRequireEquals();
-    const SettlementContractClass = BridgeContractBase.args.SettlementContract;
-    if (SettlementContractClass === undefined) {
-      throw new Error(
-        "Settlement Contract class hasn't been set yet, something is wrong with your module composition"
-      );
-    }
+    const SettlementContractClass = args.SettlementContract;
     const settlementContract = new SettlementContractClass(
       settlementContractAddress
     );
@@ -150,11 +167,14 @@ export abstract class BridgeContractBase extends TokenContract {
   }
 
   private batchSize() {
-    return BridgeContractBase.args.batchSize ?? OUTGOING_MESSAGE_BATCH_SIZE;
+    return (
+      this.getInitializationArgs().batchSize ?? OUTGOING_MESSAGE_BATCH_SIZE
+    );
   }
 
   private executeProcessors(batchIndex: number, args: OutgoingMessageArgument) {
-    return BridgeContractBase.args.messageProcessors.map((processor, j) => {
+    const { messageProcessors } = this.getInitializationArgs();
+    return messageProcessors.map((processor, j) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const value = Experimental.memoizeWitness(processor.type, () => {
         return container.resolve(BridgeContractContext).data.messageInputs[

@@ -10,6 +10,7 @@ import { Runtime } from "@proto-kit/module";
 import {
   BridgeContract,
   BridgingSettlementContract,
+  BridgingSettlementContractArgs,
   ContractArgsRegistry,
   DispatchSmartContract,
   Protocol,
@@ -171,17 +172,19 @@ describe.skip("Proven", () => {
       });
       vkService.setCompileRegistry(registry);
 
-      container.resolve(ContractArgsRegistry).setArgs("SettlementContract", {
-        DispatchContract: DispatchSmartContract,
-        ChildVerificationKeyService: vkService,
-        BridgeContractVerificationKey: MOCK_VERIFICATION_KEY,
-        signedSettlements: false,
-        BridgeContract: BridgeContract,
-        hooks: [],
-        BridgeContractPermissions:
-          new ProvenSettlementPermissions().bridgeContractMina(),
-        escapeHatchSlotsInterval: 1000,
-      });
+      container
+        .resolve(ContractArgsRegistry)
+        .addArgs<BridgingSettlementContractArgs>("SettlementContract", {
+          DispatchContract: DispatchSmartContract,
+          ChildVerificationKeyService: vkService,
+          BridgeContractVerificationKey: MOCK_VERIFICATION_KEY,
+          signedSettlements: false,
+          BridgeContract: BridgeContract,
+          hooks: [],
+          BridgeContractPermissions:
+            new ProvenSettlementPermissions().bridgeContractMina(),
+          escapeHatchSlotsInterval: 1000,
+        });
       const vk = await BridgingSettlementContract.compile();
       console.log(vk.verificationKey);
     } catch (e) {

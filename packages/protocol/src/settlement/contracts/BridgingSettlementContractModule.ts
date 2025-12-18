@@ -14,14 +14,17 @@ import {
 import { ProvableSettlementHook } from "../modularity/ProvableSettlementHook";
 import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
-import { DispatchSmartContractBase } from "./DispatchSmartContract";
+import {
+  DispatchContractArgs,
+  DispatchSmartContractBase,
+} from "./DispatchSmartContract";
 import {
   BridgingSettlementContractType,
   BridgingSettlementContract,
   BridgingSettlementContractArgs,
   BridgingSettlementContractArgsSchema,
 } from "./settlement/BridgingSettlementContract";
-import { BridgeContractBase } from "./BridgeContract";
+import { BridgeContractArgs, BridgeContractBase } from "./BridgeContract";
 import { DispatchContractProtocolModule } from "./DispatchContractProtocolModule";
 import { BridgeContractProtocolModule } from "./BridgeContractProtocolModule";
 import {
@@ -69,12 +72,14 @@ export class BridgingSettlementContractModule extends ContractModule<
       }
     );
 
-    // Ideally we don't want to have this cyclic dependency, but we have it in the protocol,
-    // So its logical that we can't avoid that here
-    BridgeContractBase.args.SettlementContract = BridgingSettlementContract;
-
-    DispatchSmartContractBase.args.settlementContractClass =
-      BridgingSettlementContract;
+    // Ideally, we don't want to have this cyclic dependency, but we have it in the protocol,
+    // So it's logical that we can't avoid that here
+    this.argsRegistry.addArgs<BridgeContractArgs>("BridgeContract", {
+      SettlementContract: BridgingSettlementContract,
+    });
+    this.argsRegistry.addArgs<DispatchContractArgs>("DispatchContract", {
+      settlementContractClass: BridgingSettlementContract,
+    });
 
     return BridgingSettlementContract;
   }
@@ -97,16 +102,6 @@ export class BridgingSettlementContractModule extends ContractModule<
           bridgeArtifact.BridgeContract.verificationKey,
       }
     );
-
-    const args = this.argsRegistry.getArgs<BridgingSettlementContractArgs>(
-      "SettlementContract",
-      BridgingSettlementContractArgsSchema
-    );
-    if (args.signedSettlements === undefined) {
-      throw new Error(
-        "Args not fully initialized - make sure to also include the SettlementModule in the sequencer"
-      );
-    }
 
     log.debug("Compiling Settlement Contract");
 
