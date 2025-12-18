@@ -61,7 +61,6 @@ export class BridgingDeployInteraction implements DeployInteraction {
 
     const nonce = options?.nonce ?? 0;
 
-    // TODO Move this workflow to AddressRegistry
     const sm = this.settlementContractModule();
     const {
       SettlementContract: settlementContract,

@@ -57,7 +57,6 @@ export class VanillaSettlementInteraction implements SettleInteraction {
       throw new Error("Settlement addresses haven't been initialized");
     }
 
-    // TODO Move this workflow to AddressRegistry
     const sm = this.settlementContractModule();
     const { SettlementContract: settlementContract } = sm.createContracts({
       SettlementContract: settlementKey,

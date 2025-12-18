@@ -64,7 +64,6 @@ export class VanillaDeployInteraction implements DeployInteraction {
 
     const nonce = options?.nonce ?? 0;
 
-    // TODO Move this workflow to AddressRegistry
     const sm = this.settlementContractModule();
     const { SettlementContract: settlementContract } = sm.createContracts({
       SettlementContract: settlementKey,

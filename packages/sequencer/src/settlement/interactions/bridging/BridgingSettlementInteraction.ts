@@ -62,7 +62,6 @@ export class BridgingSettlementInteraction implements SettleInteraction {
       );
     }
 
-    // TODO Move this workflow to AddressRegistry
     const sm = this.settlementContractModule();
     const {
       SettlementContract: settlementContract,
