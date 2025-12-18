@@ -1,4 +1,4 @@
-import { fetchAccount, Mina, PublicKey, Transaction } from "o1js";
+import { Bool, fetchAccount, Mina, PublicKey, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
   EventsRecord,
@@ -22,6 +22,7 @@ import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
 import { L1TransactionRetryStrategy } from "./L1TransactionRetryStrategy";
 import { FeeStrategy } from "../../protocol/baselayer/fees/FeeStrategy";
 import { MinaSigner } from "../MinaSigner";
+import { closeable, Closeable } from "../../sequencer/builder/Closeable";
 
 export interface TxEvents extends EventsRecord {
   sent: [{ hash: string }];
@@ -33,11 +34,14 @@ export type TxSendResult<Input extends "sent" | "included" | "none"> =
   Input extends "none" ? void : { hash: string };
 
 @injectable()
-export class MinaTransactionSender {
+@closeable()
+export class MinaTransactionSender implements Closeable {
   private activeEmitters = new Map<
     string,
     ReplayingSingleUseEventEmitter<TxEvents>
   >();
+
+  private interval?: any;
 
   public constructor(
     private readonly creator: FlowCreator,
@@ -51,7 +55,7 @@ export class MinaTransactionSender {
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("FeeStrategy") private readonly feeStrategy: FeeStrategy
   ) {
-    void this.startPolling();
+    this.startPolling();
   }
 
   private getEmitterKey(sender: string, nonce: number): string {
@@ -180,16 +184,22 @@ export class MinaTransactionSender {
     return undefined as TxSendResult<Wait>;
   }
 
-  private async startPolling() {
-    // Polling loop
-    while (true) {
+  private startPolling() {
+    const intervalMs = 5000;
+
+    this.interval = setInterval(async () => {
       try {
         await this.processPendingTransactions();
-        await new Promise((r) => setTimeout(r, 5000)); // 5s interval
       } catch (e) {
         log.error("Error in MinaTransactionSender polling loop", e);
-        await new Promise((r) => setTimeout(r, 10000));
       }
+    }, intervalMs);
+  }
+
+  public async close(): Promise<void> {
+    if (this.interval !== undefined) {
+      clearInterval(this.interval);
+      this.interval = undefined;
     }
   }
 

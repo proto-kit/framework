@@ -23,15 +23,7 @@ export class PrismaPendingL1TransactionStorage
     const { prismaClient } = this.connection;
     const status:PendingL1TransactionStatus = "queued";
     await prismaClient.pendingL1Transaction.create({
-      data: {
-        sender: record.sender,
-        nonce: record.nonce,
-        attempts: record.attempts,
-        status: status,
-        transaction: record.transaction.toJSON(),
-        lastError: record.lastError ?? null,
-        sentAt: record.sentAt,
-      },
+      data: this.mapper.mapIn({...record, status}),
     });
   }
 
