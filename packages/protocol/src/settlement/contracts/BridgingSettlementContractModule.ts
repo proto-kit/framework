@@ -14,17 +14,13 @@ import {
 import { ProvableSettlementHook } from "../modularity/ProvableSettlementHook";
 import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
-import {
-  DispatchContractArgs,
-  DispatchSmartContractBase,
-} from "./DispatchSmartContract";
+import { DispatchContractArgs } from "./DispatchSmartContract";
 import {
   BridgingSettlementContractType,
   BridgingSettlementContract,
   BridgingSettlementContractArgs,
-  BridgingSettlementContractArgsSchema,
 } from "./settlement/BridgingSettlementContract";
-import { BridgeContractArgs, BridgeContractBase } from "./BridgeContract";
+import { BridgeContractArgs } from "./BridgeContract";
 import { DispatchContractProtocolModule } from "./DispatchContractProtocolModule";
 import { BridgeContractProtocolModule } from "./BridgeContractProtocolModule";
 import {

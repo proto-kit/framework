@@ -14,7 +14,6 @@ import {
   VerificationKey,
   Permissions,
   Struct,
-  Provable,
   TokenId,
   DeployArgs,
 } from "o1js";

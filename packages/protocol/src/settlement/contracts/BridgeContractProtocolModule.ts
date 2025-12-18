@@ -3,14 +3,13 @@ import { CompileRegistry } from "@proto-kit/common";
 
 import { ContractModule } from "../ContractModule";
 import { OutgoingMessageProcessor } from "../modularity/OutgoingMessageProcessor";
+import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
 import {
   BridgeContract,
   BridgeContractArgs,
-  BridgeContractBase,
   BridgeContractType,
 } from "./BridgeContract";
-import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
 export type BridgeContractConfig = {
   outgoingBatchSize?: number;

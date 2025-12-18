@@ -16,7 +16,7 @@ import {
   TokenId,
   VerificationKey,
 } from "o1js";
-import { batch, noop, range, TypedClass } from "@proto-kit/common";
+import { noop, range, TypedClass } from "@proto-kit/common";
 import { container, injectable, singleton } from "tsyringe";
 
 import {
@@ -28,14 +28,13 @@ import {
 import { Path } from "../../model/Path";
 import { OutgoingMessageProcessor } from "../modularity/OutgoingMessageProcessor";
 import { PROTOKIT_FIELD_PREFIXES } from "../../hashing/protokit-prefixes";
-
-import type { BridgingSettlementContractType } from "./settlement/BridgingSettlementContract";
 import {
   ContractArgsRegistry,
   NaiveObjectSchema,
   StaticInitializationContract,
 } from "../ContractArgsRegistry";
-import { hash } from "node:crypto";
+
+import type { BridgingSettlementContractType } from "./settlement/BridgingSettlementContract";
 
 export type BridgeContractType = {
   stateRoot: State<Field>;

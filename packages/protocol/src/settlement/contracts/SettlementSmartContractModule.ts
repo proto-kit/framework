@@ -14,7 +14,6 @@ import {
 import { ProvableSettlementHook } from "../modularity/ProvableSettlementHook";
 import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
-import { BridgingSettlementContract } from "./settlement/BridgingSettlementContract";
 import {
   SettlementContractArgs,
   SettlementContractType,

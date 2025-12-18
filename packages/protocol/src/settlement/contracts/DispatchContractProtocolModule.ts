@@ -12,7 +12,6 @@ import { ContractArgsRegistry } from "../ContractArgsRegistry";
 import {
   DispatchSmartContract,
   DispatchContractType,
-  DispatchSmartContractBase,
   DispatchContractArgs,
 } from "./DispatchSmartContract";
 
