@@ -13,18 +13,17 @@ import { Skeleton } from "./skeleton";
 
 import { typed } from "@/lib/utils";
 
-export interface GenericTableRowProps<Item extends Record<string, any>> {
+export interface GenericTableRowProps<Item> {
   columns: Record<string, string>;
   view: string[];
   loading: boolean;
   item: Item;
-  onRowClick?: () => void;
   copyKeys?: string[];
   statusKey?: string;
-  cellRenderer?: (key: string, value: any, item: Item) => React.ReactNode;
+  onRowClick?: () => void;
 }
 
-export default function GenericTableRow<Item extends Record<string, any>>({
+export default function GenericTableRow<Item>({
   columns,
   view,
   loading,
@@ -32,7 +31,6 @@ export default function GenericTableRow<Item extends Record<string, any>>({
   onRowClick,
   copyKeys = [],
   statusKey,
-  cellRenderer,
 }: GenericTableRowProps<Item>) {
   const [copied, setCopied] = useState<Record<string, boolean>>({});
   return (
@@ -42,9 +40,7 @@ export default function GenericTableRow<Item extends Record<string, any>>({
           view.includes(_key) && (
             <TableCell className={""} key={_key}>
               {!loading ? (
-                cellRenderer ? (
-                  cellRenderer(_key, item[typed<keyof Item>(_key)], item)
-                ) : copyKeys.includes(_key) ? (
+                copyKeys.includes(_key) ? (
                   <div
                     className="flex gap-1.5 items-center group relative"
                     onClick={(e) => {

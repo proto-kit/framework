@@ -4,19 +4,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 
-import BatchesFilters from "@/components/batches/batches-filters";
 import useQueryParams from "@/hooks/use-query-params";
-import BatchesTableRow, {
-  TableItem,
-} from "@/components/batches/batches-table-row";
-import { Form } from "@/components/ui/form";
-import List, { ListProps } from "@/components/list";
-import config from "@/config";
+import DataTable from "@/components/ui/DataTable";
+import { FilterFieldDef } from "@/components/ui/FilterBuilder";
+import configs from "@/config";
 import { showPerPage } from "@/components/pagination";
-import { typed } from "@/lib/utils";
+import { buildWhere } from "@/lib/utils";
+
+export interface TableItem {
+  height: string;
+  blocks: string;
+  settlementTransactionHash: string;
+}
 
 export interface GetBatchesQueryResponse {
   data: {
@@ -27,7 +27,7 @@ export interface GetBatchesQueryResponse {
         blocks: number;
       };
     }[];
-    aggregateBatches: {
+    aggregateBatch: {
       _count: {
         _all: number;
       };
@@ -35,7 +35,7 @@ export interface GetBatchesQueryResponse {
   };
 }
 
-const columns: Record<keyof TableItem, string> = {
+export const columns: Record<keyof TableItem, string> = {
   height: "Height",
   blocks: "Blocks",
   settlementTransactionHash: "Settlement Transaction Hash",
@@ -46,139 +46,107 @@ const formSchema = z.object({
   settlementTransactionHash: z.string().optional(),
 });
 
-export default function BatchesPageClient() {
-  const querySchema = {
-    height: "number",
-    settlementTransactionHash: "string",
-  } as const;
+const querySchema = {
+  height: "number",
+  settlementTransactionHash: "string",
+} as const;
 
+const fields: FilterFieldDef[] = [
+  {
+    name: "height",
+    label: "Height",
+    type: "number",
+    placeholder: "Filter by height",
+  },
+  {
+    name: "settlementTransactionHash",
+    label: "Settlement transaction hash",
+    type: "string",
+    placeholder: "Filter by settlement tx hash",
+  },
+];
+
+const graphqlQuery = `query GetBatches($take: Int!, $skip: Int!, $where: BatchWhereInput) {
+  batches(take: $take, skip: $skip, orderBy: {height: desc}, where: $where) {
+    settlementTransactionHash
+    height
+    _count { blocks }
+  }
+  aggregateBatch(where: $where) { _count { _all } }
+}`;
+
+export default function BatchesPageClient() {
   const [page, view, filters, setPage, setView, setFilters] = useQueryParams(
     columns,
     querySchema
   );
-  const [data, setData] = useState<ListProps<TableItem>["data"]>();
-  const [loading, setLoading] = useState(true);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      settlementTransactionHash:
-        filters?.settlementTransactionHash != null &&
-        filters?.settlementTransactionHash !== ""
-          ? filters?.settlementTransactionHash
-          : undefined,
-      height:
-        filters?.height != null && filters?.height !== ""
-          ? filters?.height
-          : undefined,
-    },
-  });
+  const [data, setData] = useState<TableItem[]>([]);
+  const [totalCount, setTotalCount] = useState<string>("0");
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleSubmit = useCallback(
-    (formData: z.infer<typeof formSchema>) => {
-      setFilters(formData);
-      setPage(1);
-    },
-    [setFilters, setPage]
-  );
-
-  const clearFilters = useCallback(() => {
-    setFilters({});
-    form.setValue("height", "");
-    form.setValue("settlementTransactionHash", "");
-    void form.trigger();
-  }, [setFilters, form]);
-
-  const query = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
-
-    const skip = showPerPage * (page - 1);
-
-    const where = Object.entries(filters).reduce<Record<string, any>>(
-      (filter, [key, value]) => {
-        if (value != null && value !== "") {
-          const fieldType = querySchema[typed<keyof typeof querySchema>(key)];
-          filter[key] = {
-            equals: fieldType === "string" ? String(value) : value,
-          };
-        }
-        return filter;
-      },
-      {}
-    );
-
+    const skip = showPerPage * (Math.max(1, page) - 1);
+    const where = buildWhere<string | number>(filters, querySchema);
     const variables = {
       take: showPerPage,
       skip,
       where: Object.keys(where).length ? where : undefined,
     };
 
-    const queryStr = `query GetBatches($take: Int!, $skip: Int!, $where: BatchWhereInput) {
-      batches(take: $take, skip: $skip, orderBy: {height: desc}, where: $where) {
-        settlementTransactionHash
-        height
-        _count { blocks }
-      }
-      aggregateBatch(where: $where) { _count { _all } }
-    }`;
-
-    const responseData = await fetch(`${config.INDEXER_URL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: queryStr, variables }),
-    });
     try {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const response = (await responseData.json()) as GetBatchesQueryResponse;
-      setData({
-        totalCount: response.data?.aggregateBatches?._count?._all.toString(),
-        items: response?.data?.batches?.map((item) => ({
-          height: item.height,
-          settlementTransactionHash: item.settlementTransactionHash,
-          blocks: item._count?.blocks?.toString(),
-        })),
+      const response = await fetch(`${configs.INDEXER_URL}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: graphqlQuery, variables }),
       });
+
+      const result: GetBatchesQueryResponse =
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (await response.json()) as GetBatchesQueryResponse;
+      const batches = result.data?.batches;
+      const mappedItems: TableItem[] = batches?.map((item) => ({
+        height: item.height,
+        settlementTransactionHash: item.settlementTransactionHash,
+        blocks: item._count?.blocks?.toString() || "0",
+      }));
+
+      setData(mappedItems);
+      setTotalCount(
+        result.data?.aggregateBatch?._count?._all?.toString() || "0"
+      );
       setLoading(false);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error("Failed to fetch batches:", error);
       setLoading(false);
-      setData(undefined);
+      setData([]);
+      setTotalCount("0");
     }
   }, [filters, page]);
 
   useEffect(() => {
-    void query();
-  }, [filters, page]);
+    void fetchData();
+  }, [fetchData]);
 
   return (
-    <>
-      <Form {...form}>
-        <form id="table" onSubmit={form.handleSubmit(handleSubmit)}>
-          <List
-            view={view}
-            onViewChange={setView}
-            filters={<BatchesFilters clearFilters={clearFilters} />}
-            loading={loading}
-            tableRow={(item, i, isLoading, currentView) => (
-              <BatchesTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={isLoading}
-                view={currentView}
-              />
-            )}
-            page={page}
-            data={data}
-            columns={columns}
-            title={"Batches"}
-            hasDetails={true}
-          />
-        </form>
-      </Form>
-    </>
+    <DataTable
+      title="Batches"
+      columns={columns}
+      items={data}
+      totalCount={totalCount}
+      loading={loading}
+      filterFields={fields}
+      formSchema={formSchema}
+      filters={filters}
+      page={page}
+      view={view}
+      onFiltersChange={setFilters}
+      onPageChange={setPage}
+      onViewChange={setView}
+      navigationPath="/batches/{height}"
+      copyKeys={["settlementTransactionHash"]}
+    />
   );
 }
 /* eslint-enable no-underscore-dangle */

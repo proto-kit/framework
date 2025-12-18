@@ -3,17 +3,13 @@
 /* eslint-disable no-underscore-dangle */
 
 import { useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { useCallback, useEffect, useState } from "react";
 
 import { DetailsLayout } from "@/components/details/layout";
-import BlocksTableRow, {
-  TableItem,
-} from "@/components/blocks/blocks-table-row";
-import { Form } from "@/components/ui/form";
-import List from "@/components/list";
+import DataTable from "@/components/ui/DataTable";
 import config from "@/config";
 import { typed } from "@/lib/utils";
+import { columns, TableItem } from "@/components/blocks/BlocksPageClient";
 
 export interface GetBatchQueryResponse {
   data: {
@@ -35,13 +31,6 @@ export interface GetBatchQueryResponse {
       | undefined;
   };
 }
-
-const columns: Record<keyof TableItem, string> = {
-  height: "Height",
-  hash: "Hash",
-  transactions: "Transactions",
-  stateRoot: "State Root",
-};
 
 export default function BatchDetail() {
   const params = useParams<{ height: string }>();
@@ -82,11 +71,11 @@ export default function BatchDetail() {
       setLoading(false);
       setData(undefined);
     }
-  }, []);
+  }, [params.height]);
 
   useEffect(() => {
     void query();
-  }, []);
+  }, [query]);
 
   const details = [
     {
@@ -103,7 +92,12 @@ export default function BatchDetail() {
     },
   ];
 
-  const form = useForm();
+  const blocks: TableItem[] = (data?.batch?.blocks || []).map((item) => ({
+    height: item.height,
+    hash: item.hash,
+    transactions: item._count?.transactions?.toString(),
+    stateRoot: item.result?.stateRoot,
+  }));
 
   return (
     <DetailsLayout
@@ -115,44 +109,16 @@ export default function BatchDetail() {
       details={details}
       loading={loading}
     >
-      <Form {...form}>
-        <form
-          id="table"
-          className="w-full"
-          onSubmit={form.handleSubmit(() => {})}
-        >
-          <List
-            view={Object.keys(columns)}
-            onViewChange={() => {}}
-            loading={loading}
-            tableRow={(item, i, rowLoading, view) => (
-              <BlocksTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={rowLoading}
-                view={view}
-              />
-            )}
-            page={0}
-            data={{
-              totalCount: "0",
-              items:
-                data?.batch?.blocks?.map((item) => ({
-                  height: item.height,
-                  hash: item.hash,
-                  transactions: item._count?.transactions?.toString(),
-                  stateRoot: item.result?.stateRoot,
-                })) ?? [],
-            }}
-            columns={columns}
-            title={"Blocks"}
-            titleClassName="text-4xl lg:text-4xl"
-            hasDetails={true}
-            pagination={false}
-          />
-        </form>
-      </Form>
+      <DataTable
+        view={Object.keys(columns)}
+        title="Blocks"
+        columns={columns}
+        items={blocks}
+        totalCount={blocks.length.toString()}
+        loading={loading}
+        navigationPath="/blocks/{hash}"
+        copyKeys={["hash", "stateRoot"]}
+      />
     </DetailsLayout>
   );
 }

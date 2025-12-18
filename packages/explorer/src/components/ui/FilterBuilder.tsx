@@ -1,4 +1,3 @@
-import React from "react";
 import { useFormContext } from "react-hook-form";
 
 import { Input } from "./input";
@@ -19,6 +18,7 @@ export interface FilterFieldDef {
   label: string;
   type: FilterFieldType;
   placeholder?: string;
+  initialValue?: string | boolean;
 }
 
 export interface FilterBuilderProps {
@@ -53,13 +53,29 @@ export default function FilterBuilder({ fields }: FilterBuilderProps) {
                   <Input
                     ref={field.ref}
                     name={f.name}
-                    type={f.type === "number" ? "number" : "text"}
+                    inputMode={f.type === "number" ? "numeric" : undefined}
+                    pattern={f.type === "number" ? "[0-9]*" : undefined}
                     placeholder={
                       f.placeholder ?? `Filter by ${f.label.toLowerCase()}`
                     }
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.value)}
+                    onChange={(e) => {
+                      if (f.type === "number") {
+                        const cleaned = e.target.value.replace(/\D+/g, "");
+                        field.onChange(cleaned);
+                      } else {
+                        field.onChange(e.target.value);
+                      }
+                    }}
+                    onPaste={(e) => {
+                      if (f.type === "number") {
+                        const text = e.clipboardData.getData("text");
+                        if (!/^\d+$/.test(text)) {
+                          e.preventDefault();
+                        }
+                      }
+                    }}
                   />
                 )}
               </FormControl>

@@ -3,19 +3,14 @@
 /* eslint-disable no-underscore-dangle */
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 
-import config from "@/config";
-import List, { ListProps } from "@/components/list";
-import { showPerPage } from "@/components/pagination";
+import DataTable from "@/components/ui/DataTable";
+import { FilterFieldDef } from "@/components/ui/FilterBuilder";
 import useQueryParams from "@/hooks/use-query-params";
-import TransactionsTableRow, {
-  TableItem,
-} from "@/components/transactions/transactions-table-row";
-import { Form } from "@/components/ui/form";
-import TransactionsFilters from "@/components/transactions/transactions-filters";
+import configs from "@/config";
+import { showPerPage } from "@/components/pagination";
+import { buildWhere } from "@/lib/utils";
 
 export interface GetTransactionsQueryResponse {
   data: {
@@ -37,7 +32,16 @@ export interface GetTransactionsQueryResponse {
   };
 }
 
-const columns: Record<keyof TableItem, string> = {
+export interface TableItem {
+  hash: string;
+  methodId: string;
+  sender: string;
+  nonce: string;
+  status: string;
+  statusMessage: string;
+}
+
+export const columns: Record<keyof TableItem, string> = {
   hash: "Hash",
   methodId: "Method ID",
   sender: "Sender",
@@ -52,155 +56,122 @@ const formSchema = z.object({
   hash: z.string().optional(),
 });
 
-export default function TransactionsPageClient() {
-  const querySchema = {
-    methodId: "string",
-    sender: "string",
-    hash: "string",
-  } as const;
+const querySchema = {
+  methodId: "string",
+  sender: "string",
+  hash: "string",
+} as const;
 
+const fields: FilterFieldDef[] = [
+  {
+    name: "hash",
+    label: "Hash",
+    type: "string",
+    placeholder: "Filter by hash",
+  },
+  {
+    name: "methodId",
+    label: "Method ID",
+    type: "string",
+    placeholder: "Filter by method ID",
+  },
+  {
+    name: "sender",
+    label: "Sender",
+    type: "string",
+    placeholder: "Filter by sender",
+  },
+];
+
+const graphqlQuery = `query GetTransactions($take: Int!, $skip: Int!, $where: TransactionWhereInput) {
+  transactions(take: $take, skip: $skip, where: $where) {
+    methodId
+    hash
+    nonce
+    sender
+    executionResult {
+      status
+      statusMessage
+    }
+  }
+  aggregateTransaction(where: $where) {
+    _count { _all }
+  }
+}`;
+
+export default function TransactionsPageClient() {
   const [page, view, filters, setPage, setView, setFilters] = useQueryParams(
     columns,
     querySchema
   );
-  const [data, setData] = useState<ListProps<TableItem>["data"]>();
+  const [data, setData] = useState<TableItem[]>([]);
+  const [totalCount, setTotalCount] = useState("0");
   const [loading, setLoading] = useState(true);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      hash:
-        filters?.hash != null && filters?.hash !== ""
-          ? filters?.hash
-          : undefined,
-      methodId:
-        filters?.methodId != null && filters?.methodId !== ""
-          ? filters?.methodId
-          : undefined,
-      sender:
-        filters?.sender != null && filters?.sender !== ""
-          ? filters?.sender
-          : undefined,
-    },
-  });
-
-  const handleSubmit = useCallback(
-    (formData: z.infer<typeof formSchema>) => {
-      setFilters({
-        ...formData,
-      });
-      setPage(1);
-    },
-    [setFilters, setPage]
-  );
-
-  const clearFilters = useCallback(() => {
-    setFilters({});
-    form.setValue("sender", "");
-    form.setValue("hash", "");
-    form.setValue("methodId", "");
-    void form.trigger();
-  }, [setFilters, form]);
-
-  const query = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
 
     const skip = showPerPage * (page - 1);
-
-    const where = Object.entries(filters || {}).reduce<Record<string, object>>(
-      (filter, [key, value]) => {
-        if (value != null && value !== "") {
-          filter[key] = { equals: value };
-        }
-        return filter;
-      },
-      {}
-    );
-
+    const where = buildWhere(filters, querySchema);
     const variables = {
       take: showPerPage,
       skip,
       where: Object.keys(where).length ? where : undefined,
     };
 
-    const queryStr = `query GetTransactions($take: Int!, $skip: Int!, $where: TransactionWhereInput) {
-      transactions(take: $take, skip: $skip, where: $where) {
-        methodId
-        hash
-        nonce
-        sender
-        executionResult {
-          status
-          statusMessage
-        }
-      }
-      aggregateTransaction(where: $where) {
-        _count { _all }
-      }
-    }`;
-
-    const responseData = await fetch(`${config.INDEXER_URL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: queryStr, variables }),
-    });
     try {
-      const response =
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        (await responseData.json()) as GetTransactionsQueryResponse;
-
-      setData({
-        totalCount: response.data.aggregateTransaction._count._all.toString(),
-        items: response.data.transactions?.map((item) => ({
-          hash: item.hash,
-          methodId: item.methodId,
-          sender: item.sender,
-          nonce: item.nonce,
-          status: item.executionResult.status ? "true" : "false",
-          statusMessage: item.executionResult.statusMessage ?? "—",
-        })),
+      const response = await fetch(`${configs.INDEXER_URL}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: graphqlQuery, variables }),
       });
+
+      const result: GetTransactionsQueryResponse =
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (await response.json()) as GetTransactionsQueryResponse;
+      const transactions = result.data?.transactions;
+      const mappedItems: TableItem[] = transactions?.map((item) => ({
+        hash: item.hash,
+        methodId: item.methodId,
+        sender: item.sender,
+        nonce: item.nonce,
+        status: item.executionResult.status ? "true" : "false",
+        statusMessage: item.executionResult.statusMessage ?? "—",
+      }));
+
+      setData(mappedItems);
+      setTotalCount(
+        result.data?.aggregateTransaction?._count?._all?.toString() || "0"
+      );
       setLoading(false);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error("Failed to fetch transactions:", error);
       setLoading(false);
-      setData(undefined);
+      setData([]);
     }
   }, [filters, page]);
 
   useEffect(() => {
-    void query();
-  }, [filters, page]);
-
+    void fetchData();
+  }, [fetchData]);
   return (
-    <>
-      <Form {...form}>
-        <form id="table" onSubmit={form.handleSubmit(handleSubmit)}>
-          <List
-            view={view}
-            onViewChange={setView}
-            filters={<TransactionsFilters clearFilters={clearFilters} />}
-            loading={loading}
-            tableRow={(item, i, isLoading, currentView) => (
-              <TransactionsTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={isLoading}
-                view={currentView}
-              />
-            )}
-            page={page}
-            data={data}
-            columns={columns}
-            title={"Transactions"}
-            hasDetails={true}
-          />
-        </form>
-      </Form>
-    </>
+    <DataTable
+      title="Transactions"
+      columns={columns}
+      items={data}
+      totalCount={totalCount}
+      loading={loading}
+      filterFields={fields}
+      formSchema={formSchema}
+      filters={filters}
+      page={page}
+      view={view}
+      onFiltersChange={setFilters}
+      onPageChange={setPage}
+      onViewChange={setView}
+      navigationPath="/transactions/{hash}"
+      copyKeys={["hash", "sender"]}
+    />
   );
 }
 /* eslint-enable no-underscore-dangle */

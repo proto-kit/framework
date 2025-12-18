@@ -13,13 +13,12 @@ function isValidFilter(
   if (value == null || value === "") return false;
   if (!(key in allowed)) return false;
   const expected = allowed[key];
-
   switch (expected) {
     case "number":
       return !Number.isNaN(Number(value));
 
     case "boolean":
-      return ["true", "false"].includes(value.toLowerCase());
+      return ["true"].includes(value.toString());
 
     case "string":
       return typeof value === "string";

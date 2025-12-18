@@ -1,17 +1,16 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { useCallback, useEffect, useState } from "react";
 
 import { DetailsLayout } from "@/components/details/layout";
-import TransactionsTableRow, {
-  TableItem,
-} from "@/components/transactions/transactions-table-row";
-import { Form } from "@/components/ui/form";
-import List from "@/components/list";
+import DataTable from "@/components/ui/DataTable";
 import config from "@/config";
 import { typed } from "@/lib/utils";
+import {
+  columns,
+  TableItem,
+} from "@/components/transactions/TransactionsPageClient";
 
 export interface GetBlockQueryResponse {
   data: {
@@ -37,19 +36,11 @@ export interface GetBlockQueryResponse {
   };
 }
 
-const columns: Record<keyof TableItem, string> = {
-  hash: "Hash",
-  methodId: "Method ID",
-  sender: "Sender",
-  nonce: "Nonce",
-  status: "Status",
-  statusMessage: "Status Message",
-};
-
 export default function BlockDetail() {
   const params = useParams<{ hash: string }>();
   const [data, setData] = useState<GetBlockQueryResponse["data"]>();
   const [loading, setLoading] = useState(true);
+
   const query = useCallback(async () => {
     setLoading(true);
 
@@ -85,11 +76,11 @@ export default function BlockDetail() {
       setLoading(false);
       setData(undefined);
     }
-  }, []);
+  }, [params.hash]);
 
   useEffect(() => {
     void query();
-  }, []);
+  }, [query]);
 
   const details = [
     {
@@ -110,7 +101,13 @@ export default function BlockDetail() {
     },
   ];
 
-  const form = useForm();
+  const transactions: TableItem[] = (data?.block?.transactions || []).map(
+    (tx) => ({
+      ...tx.tx,
+      status: `${tx.status}`,
+      statusMessage: tx.statusMessage ?? "—",
+    })
+  );
 
   return (
     <DetailsLayout
@@ -122,43 +119,16 @@ export default function BlockDetail() {
       details={details}
       loading={loading}
     >
-      <Form {...form}>
-        <form
-          id="table"
-          className="w-full"
-          onSubmit={form.handleSubmit(() => {})}
-        >
-          <List
-            view={Object.keys(columns)}
-            onViewChange={() => {}}
-            loading={loading}
-            tableRow={(item, i, rowLoading, view) => (
-              <TransactionsTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={rowLoading}
-                view={view}
-              />
-            )}
-            page={0}
-            data={{
-              totalCount: "0",
-              items:
-                data?.block?.transactions?.map((tx) => ({
-                  ...tx.tx,
-                  status: `${tx.status}`,
-                  statusMessage: tx.statusMessage ?? "—",
-                })) ?? [],
-            }}
-            columns={columns}
-            title={"Transactions"}
-            titleClassName="text-4xl lg:text-4xl"
-            hasDetails={true}
-            pagination={false}
-          />
-        </form>
-      </Form>
+      <DataTable
+        view={Object.keys(columns)}
+        title="Transactions"
+        columns={columns}
+        items={transactions}
+        totalCount={transactions.length.toString()}
+        loading={loading}
+        navigationPath="/transactions/{hash}"
+        copyKeys={["hash", "methodId", "sender"]}
+      />
     </DetailsLayout>
   );
 }

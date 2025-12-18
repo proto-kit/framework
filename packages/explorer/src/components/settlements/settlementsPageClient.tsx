@@ -4,19 +4,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 
-import SettlementsFilters from "@/components/settlements/settlements-filters";
+import DataTable from "@/components/ui/DataTable";
+import { FilterFieldDef } from "@/components/ui/FilterBuilder";
 import useQueryParams from "@/hooks/use-query-params";
-import SettlementsTableRow, {
-  TableItem,
-} from "@/components/settlements/settlements-table-row";
-import { Form } from "@/components/ui/form";
-import List, { ListProps } from "@/components/list";
-import config from "@/config";
+import configs from "@/config";
 import { showPerPage } from "@/components/pagination";
-import { typed } from "@/lib/utils";
+import { buildWhere } from "@/lib/utils";
+
+export interface TableItem {
+  transactionHash: string;
+  promisedMessagesHash: string;
+  batches: string;
+}
 
 export interface GetSettlementsQueryResponse {
   data: {
@@ -35,7 +35,7 @@ export interface GetSettlementsQueryResponse {
   };
 }
 
-const columns: Record<keyof TableItem, string> = {
+export const columns: Record<keyof TableItem, string> = {
   transactionHash: "Transaction Hash",
   promisedMessagesHash: "Promised Messages Hash",
   batches: "Batches",
@@ -46,66 +46,51 @@ const formSchema = z.object({
   promisedMessagesHash: z.string().optional(),
 });
 
-export default function SettlementsPageClient() {
-  const querySchema = {
-    transactionHash: "string",
-    promisedMessagesHash: "string",
-  } as const;
+const querySchema = {
+  transactionHash: "string",
+  promisedMessagesHash: "string",
+} as const;
 
+const fields: FilterFieldDef[] = [
+  {
+    name: "transactionHash",
+    label: "Transaction Hash",
+    type: "string",
+    placeholder: "Filter by transaction hash",
+  },
+  {
+    name: "promisedMessagesHash",
+    label: "Promised Messages Hash",
+    type: "string",
+    placeholder: "Filter by promised messages hash",
+  },
+];
+
+const graphqlQuery = `query GetSettlements($take: Int!, $skip: Int!, $where: SettlementWhereInput) {
+  settlements(take: $take, skip: $skip, where: $where) {
+    transactionHash
+    promisedMessagesHash
+    _count { batches }
+  }
+  aggregateSettlement(where: $where) { _count { _all } }
+}`;
+
+export default function SettlementsPageClient() {
   const [page, view, filters, setPage, setView, setFilters] = useQueryParams(
     columns,
     querySchema
   );
-  const [data, setData] = useState<ListProps<TableItem>["data"]>();
-  const [loading, setLoading] = useState(true);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      transactionHash:
-        filters?.transactionHash != null && filters?.transactionHash !== ""
-          ? filters?.transactionHash
-          : undefined,
-      promisedMessagesHash:
-        filters?.promisedMessagesHash != null &&
-        filters?.promisedMessagesHash !== ""
-          ? filters?.promisedMessagesHash
-          : undefined,
-    },
-  });
+  const [data, setData] = useState<TableItem[]>([]);
+  const [totalCount, setTotalCount] = useState<string>("0");
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleSubmit = useCallback(
-    (formData: z.infer<typeof formSchema>) => {
-      setFilters(formData);
-      setPage(1);
-    },
-    [setFilters, setPage]
-  );
-
-  const clearFilters = useCallback(() => {
-    setFilters({});
-    form.setValue("transactionHash", "");
-    form.setValue("promisedMessagesHash", "");
-    void form.trigger();
-  }, [setFilters, form]);
-
-  const query = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
 
-    const skip = showPerPage * (page - 1);
+    const skip = showPerPage * (Math.max(1, page) - 1);
 
-    const where = Object.entries(filters || {}).reduce<Record<string, object>>(
-      (filter, [key, value]) => {
-        if (value != null && value !== "") {
-          const fieldType = querySchema[typed<keyof typeof querySchema>(key)];
-          filter[key] = {
-            equals: fieldType === "string" ? String(value) : value,
-          };
-        }
-        return filter;
-      },
-      {}
-    );
+    const where = buildWhere<string | number>(filters, querySchema);
 
     const variables = {
       take: showPerPage,
@@ -113,73 +98,57 @@ export default function SettlementsPageClient() {
       where: Object.keys(where).length ? where : undefined,
     };
 
-    const queryStr = `query GetSettlements($take: Int!, $skip: Int!, $where: SettlementWhereInput) {
-      settlements(take: $take, skip: $skip, where: $where) {
-        transactionHash
-        promisedMessagesHash
-        _count { batches }
-      }
-      aggregateSettlement(where: $where) { _count { _all } }
-    }`;
-
-    const responseData = await fetch(`${config.INDEXER_URL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: queryStr, variables }),
-    });
     try {
-      const response =
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        (await responseData.json()) as GetSettlementsQueryResponse;
-      setData({
-        totalCount: response.data?.aggregateSettlement?._count?._all.toString(),
-        items: response?.data?.settlements?.map((item) => ({
-          transactionHash: item.transactionHash,
-          promisedMessagesHash: item.promisedMessagesHash,
-          batches: item._count?.batches?.toString(),
-        })),
+      const response = await fetch(`${configs.INDEXER_URL}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: graphqlQuery, variables }),
       });
+      const result: GetSettlementsQueryResponse =
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (await response.json()) as GetSettlementsQueryResponse;
+      const settlements = result.data?.settlements;
+      const mappedItems: TableItem[] = settlements?.map((item) => ({
+        transactionHash: item.transactionHash,
+        promisedMessagesHash: item.promisedMessagesHash,
+        batches: item._count?.batches?.toString() || "0",
+      }));
+
+      setData(mappedItems);
+      setTotalCount(
+        result.data?.aggregateSettlement?._count?._all?.toString() || "0"
+      );
       setLoading(false);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error("Failed to fetch settlements:", error);
       setLoading(false);
-      setData(undefined);
+      setData([]);
+      setTotalCount("0");
     }
   }, [filters, page]);
 
   useEffect(() => {
-    void query();
-  }, [filters, page]);
+    void fetchData();
+  }, [fetchData]);
 
   return (
-    <>
-      <Form {...form}>
-        <form id="table" onSubmit={form.handleSubmit(handleSubmit)}>
-          <List
-            view={view}
-            onViewChange={setView}
-            filters={<SettlementsFilters clearFilters={clearFilters} />}
-            loading={loading}
-            tableRow={(item, i, isLoading, currentView) => (
-              <SettlementsTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={isLoading}
-                view={currentView}
-              />
-            )}
-            page={page}
-            data={data}
-            columns={columns}
-            title={"Settlements"}
-            hasDetails={true}
-          />
-        </form>
-      </Form>
-    </>
+    <DataTable
+      title="Settlements"
+      columns={columns}
+      items={data}
+      totalCount={totalCount}
+      loading={loading}
+      filterFields={fields}
+      formSchema={formSchema}
+      filters={filters}
+      page={page}
+      view={view}
+      onFiltersChange={setFilters}
+      onPageChange={setPage}
+      onViewChange={setView}
+      navigationPath="/settlements/{transactionHash}"
+      copyKeys={["transactionHash", "promisedMessagesHash"]}
+    />
   );
 }
 /* eslint-enable no-underscore-dangle */

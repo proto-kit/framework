@@ -3,17 +3,14 @@
 /* eslint-disable no-underscore-dangle */
 
 import { useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { useCallback, useEffect, useState } from "react";
+import Truncate from "react-truncate-inside/es";
 
 import { DetailsLayout } from "@/components/details/layout";
-import BatchesTableRow, {
-  TableItem,
-} from "@/components/batches/batches-table-row";
-import { Form } from "@/components/ui/form";
-import List from "@/components/list";
+import DataTable from "@/components/ui/DataTable";
 import config from "@/config";
 import { typed } from "@/lib/utils";
+import { columns, TableItem } from "@/components/batches/BatchesPageClient";
 
 export interface GetSettlementQueryResponse {
   data: {
@@ -33,16 +30,11 @@ export interface GetSettlementQueryResponse {
   };
 }
 
-const columns: Record<keyof TableItem, string> = {
-  height: "Height",
-  blocks: "Blocks",
-  settlementTransactionHash: "Settlement Transaction Hash",
-};
-
 export default function SettlementDetail() {
   const params = useParams<{ transactionHash: string }>();
   const [data, setData] = useState<GetSettlementQueryResponse["data"]>();
   const [loading, setLoading] = useState(true);
+
   const query = useCallback(async () => {
     setLoading(true);
     const queryStr = `query GetSettlement($transactionHash: String!) {
@@ -78,11 +70,11 @@ export default function SettlementDetail() {
       setLoading(false);
       setData(undefined);
     }
-  }, []);
+  }, [params.transactionHash]);
 
   useEffect(() => {
     void query();
-  }, []);
+  }, [query]);
 
   const details = [
     {
@@ -99,55 +91,40 @@ export default function SettlementDetail() {
     },
   ];
 
-  const form = useForm();
+  const batches: TableItem[] = (data?.settlement?.batches || []).map(
+    (item) => ({
+      height: item.height,
+      settlementTransactionHash: item.settlementTransactionHash,
+      blocks: item._count?.blocks?.toString(),
+    })
+  );
 
   return (
     <DetailsLayout
       title={
         <div className="flex gap-4">
-          Settlement {!loading && <>#{data?.settlement?.transactionHash}</>}
+          Settlement 
+          {!loading && (
+            <Truncate
+              text={data?.settlement?.transactionHash ?? ""}
+              width={500}
+            />
+          )}
         </div>
       }
       details={details}
       loading={loading}
     >
-      <Form {...form}>
-        <form
-          id="table"
-          className="w-full"
-          onSubmit={form.handleSubmit(() => {})}
-        >
-          <List
-            view={Object.keys(columns)}
-            onViewChange={() => {}}
-            loading={loading}
-            tableRow={(item, i, rowLoading, view) => (
-              <BatchesTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={rowLoading}
-                view={view}
-              />
-            )}
-            page={0}
-            data={{
-              totalCount: "0",
-              items:
-                data?.settlement?.batches?.map((item) => ({
-                  height: item.height,
-                  settlementTransactionHash: item.settlementTransactionHash,
-                  blocks: item._count?.blocks?.toString(),
-                })) ?? [],
-            }}
-            columns={columns}
-            title={"Batches"}
-            titleClassName="text-4xl lg:text-4xl"
-            hasDetails={true}
-            pagination={false}
-          />
-        </form>
-      </Form>
+      <DataTable
+        view={Object.keys(columns)}
+        title="Batches"
+        columns={columns}
+        items={batches}
+        totalCount={batches.length.toString()}
+        loading={loading}
+        navigationPath="/batches/{height}"
+        copyKeys={["settlementTransactionHash"]}
+      />
     </DetailsLayout>
   );
 }

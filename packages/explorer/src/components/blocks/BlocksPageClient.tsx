@@ -4,19 +4,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 
-import BlocksFilters from "@/components/blocks/blocks-filters";
+import DataTable from "@/components/ui/DataTable";
+import { FilterFieldDef } from "@/components/ui/FilterBuilder";
 import useQueryParams from "@/hooks/use-query-params";
-import BlocksTableRow, {
-  TableItem,
-} from "@/components/blocks/blocks-table-row";
-import { Form } from "@/components/ui/form";
-import List, { ListProps } from "@/components/list";
-import config from "@/config";
+import configs from "@/config";
 import { showPerPage } from "@/components/pagination";
-import { typed } from "@/lib/utils";
+
+export interface TableItem {
+  height: string;
+  hash: string;
+  transactions: string;
+  stateRoot: string;
+}
 
 export interface GetBlocksQueryResponse {
   data: {
@@ -38,7 +38,7 @@ export interface GetBlocksQueryResponse {
   };
 }
 
-const columns: Record<keyof TableItem, string> = {
+export const columns: Record<keyof TableItem, string> = {
   height: "Height",
   hash: "Hash",
   transactions: "Transactions",
@@ -51,157 +51,147 @@ const formSchema = z.object({
   hideEmpty: z.boolean().optional(),
 });
 
-export default function BlocksPageClient() {
-  const querySchema = {
-    height: "number",
-    hash: "string",
-    hideEmpty: "string",
-  } as const;
+const querySchema = {
+  height: "number",
+  hash: "string",
+  hideEmpty: "boolean",
+} as const;
 
+const fields: FilterFieldDef[] = [
+  {
+    name: "height",
+    label: "Height",
+    type: "number",
+    placeholder: "Filter by height",
+  },
+  {
+    name: "hash",
+    label: "Hash",
+    type: "string",
+    placeholder: "Filter by hash",
+  },
+  {
+    name: "hideEmpty",
+    label: "Hide empty blocks",
+    type: "boolean",
+    placeholder: "Hide empty blocks",
+    initialValue: false,
+  },
+];
+
+const graphqlQuery = `query GetBlocks($take: Int!, $skip: Int!, $where: BlockWhereInput) {
+  blocks(take: $take, skip: $skip, orderBy: {height: desc}, where: $where) {
+    height
+    hash
+    result { stateRoot }
+    _count { transactions }
+  }
+  aggregateBlock(where: $where) { _count { _all } }
+}`;
+
+const queryTransformer = (
+  filters: Record<string, unknown>,
+  schema: Record<string, "string" | "boolean" | "number">
+) => {
+  const where: Record<string, unknown> = {};
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value != null && value !== "") {
+      if (key === "hideEmpty") {
+        where.OR =
+          value === "true"
+            ? [
+                { transactionsHash: { not: { equals: "0" } } },
+                {
+                  transactions: {
+                    some: { tx: { is: { isMessage: { equals: true } } } },
+                  },
+                },
+              ]
+            : undefined;
+      } else {
+        const fieldType = schema[key];
+        where[key] = {
+          equals: fieldType === "number" ? Number(value) : value,
+        };
+      }
+    }
+  });
+
+  return where;
+};
+
+export default function BlocksPageClient() {
   const [page, view, filters, setPage, setView, setFilters] = useQueryParams(
     columns,
     querySchema
   );
-  const [data, setData] = useState<ListProps<TableItem>["data"]>();
+  const [data, setData] = useState<TableItem[]>([]);
+  const [totalCount, setTotalCount] = useState("0");
   const [loading, setLoading] = useState(true);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      hash:
-        filters?.hash != null && filters?.hash !== ""
-          ? filters?.hash
-          : undefined,
-      height:
-        filters?.height != null && filters?.height !== ""
-          ? filters?.height
-          : undefined,
-      hideEmpty: filters?.hideEmpty != null && filters?.hideEmpty !== "",
-    },
-  });
-
-  const handleSubmit = useCallback(
-    (formData: z.infer<typeof formSchema>) => {
-      setFilters({
-        ...formData,
-        hideEmpty: formData.hideEmpty === true ? "0" : undefined,
-      });
-      setPage(1);
-    },
-    [setFilters, setPage]
-  );
-
-  const clearFilters = useCallback(() => {
-    setFilters({});
-    form.setValue("height", "");
-    form.setValue("hash", "");
-    form.setValue("hideEmpty", false);
-    void form.trigger();
-  }, [setFilters, form]);
-
-  const query = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
 
     const skip = showPerPage * (page - 1);
-
-    const where = Object.entries(filters || {}).reduce<Record<string, object>>(
-      (filter, [key, value]) => {
-        if (value != null && value !== "") {
-          if (key === "hideEmpty") {
-            filter["OR"] = [
-              { transactionsHash: { not: { equals: "0" } } },
-              {
-                transactions: {
-                  some: { tx: { is: { isMessage: { equals: true } } } },
-                },
-              },
-            ];
-          } else {
-            const fieldType = querySchema[typed<keyof typeof querySchema>(key)];
-            filter[key] = {
-              equals: fieldType === "number" ? Number(value) : value,
-            };
-          }
-        }
-        return filter;
-      },
-      {}
-    );
-
+    const where = queryTransformer(filters, querySchema);
     const variables = {
       take: showPerPage,
       skip,
       where: Object.keys(where).length ? where : undefined,
     };
 
-    const queryStr = `query GetBlocks($take: Int!, $skip: Int!, $where: BlockWhereInput) {
-      blocks(take: $take, skip: $skip, orderBy: {height: desc}, where: $where) {
-        height
-        hash
-        result { stateRoot }
-        _count { transactions }
-      }
-      aggregateBlock(where: $where) { _count { _all } }
-    }`;
-
-    const responseData = await fetch(`${config.INDEXER_URL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: queryStr, variables }),
-    });
     try {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const response = (await responseData.json()) as GetBlocksQueryResponse;
-      setData({
-        totalCount: response.data?.aggregateBlock?._count?._all.toString(),
-        items: response?.data?.blocks?.map((item) => ({
-          height: item.height,
-          hash: item.hash,
-          transactions: item._count?.transactions?.toString(),
-          stateRoot: item.result.stateRoot,
-        })),
+      const response = await fetch(`${configs.INDEXER_URL}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: graphqlQuery, variables }),
       });
+
+      const result: GetBlocksQueryResponse =
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (await response.json()) as GetBlocksQueryResponse;
+      const blocks = result.data?.blocks;
+      const mappedItems: TableItem[] = blocks?.map((item) => ({
+        height: item.height,
+        hash: item.hash,
+        transactions: item._count?.transactions?.toString(),
+        stateRoot: item.result.stateRoot,
+      }));
+
+      setData(mappedItems);
+      setTotalCount(
+        result.data?.aggregateBlock?._count?._all?.toString() || "0"
+      );
       setLoading(false);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error("Failed to fetch blocks:", error);
       setLoading(false);
-      setData(undefined);
+      setData([]);
     }
   }, [filters, page]);
 
   useEffect(() => {
-    void query();
-  }, [filters, page]);
+    void fetchData();
+  }, [fetchData]);
 
   return (
-    <>
-      <Form {...form}>
-        <form id="table" onSubmit={form.handleSubmit(handleSubmit)}>
-          <List
-            view={view}
-            onViewChange={setView}
-            filters={<BlocksFilters clearFilters={clearFilters} />}
-            loading={loading}
-            tableRow={(item, i, isLoading, currentView) => (
-              <BlocksTableRow
-                columns={columns}
-                key={i}
-                item={item}
-                loading={isLoading}
-                view={currentView}
-              />
-            )}
-            page={page}
-            data={data}
-            columns={columns}
-            title={"Blocks"}
-            hasDetails={true}
-          />
-        </form>
-      </Form>
-    </>
+    <DataTable
+      title="Blocks"
+      columns={columns}
+      items={data}
+      totalCount={totalCount}
+      loading={loading}
+      filterFields={fields}
+      formSchema={formSchema}
+      filters={filters}
+      page={page}
+      view={view}
+      onFiltersChange={setFilters}
+      onPageChange={setPage}
+      onViewChange={setView}
+      navigationPath="/blocks/{hash}"
+      copyKeys={["hash", "stateRoot"]}
+    />
   );
 }
 /* eslint-enable no-underscore-dangle */
