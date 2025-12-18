@@ -179,7 +179,7 @@ export const settlementOnlyTestFn = (
     });
 
     const result = await trigger.produceBlockAndBatch();
-    const [block, batch] = result;
+    const [block] = result;
 
     console.log(
       `block ${block?.height.toString()} ${block?.fromMessagesHash.toString()} -> ${block?.toMessagesHash.toString()}`

@@ -128,7 +128,7 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
     this.utils = new SettlementUtils(baseLayer, signer);
   }
 
-  public dependencies() {
+  public static dependencies() {
     return {
       IncomingMessagesService: {
         useClass: IncomingMessagesService,
