@@ -73,7 +73,9 @@ export class VanillaDeployInteraction implements DeployInteraction {
     await utils.fetchContractAccounts(settlementContract);
 
     const verificationsKeys =
-      await this.settlementStartupModule.retrieveVerificationKeys();
+      await this.settlementStartupModule.retrieveVerificationKeys({
+        SettlementContract: true,
+      });
 
     const permissions = this.baseLayer.isSignedSettlement()
       ? new SignedSettlementPermissions()
@@ -87,12 +89,12 @@ export class VanillaDeployInteraction implements DeployInteraction {
         memo: "Protokit settlement deploy",
       },
       async () => {
-        AccountUpdate.fundNewAccount(feepayer, 2);
+        AccountUpdate.fundNewAccount(feepayer, 1);
 
         await settlementContract.deployAndInitialize(
           {
             verificationKey:
-              verificationsKeys.SettlementSmartContract.verificationKey,
+              verificationsKeys.SettlementContract.verificationKey,
           },
           permissions.settlementContract(),
           feepayer,

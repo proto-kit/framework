@@ -71,7 +71,10 @@ export class BridgingDeployInteraction implements DeployInteraction {
     });
 
     const verificationsKeys =
-      await this.settlementStartupModule.retrieveVerificationKeys();
+      await this.settlementStartupModule.retrieveVerificationKeys({
+        SettlementContract: true,
+        DispatchSmartContract: true,
+      });
 
     const utils = new SettlementUtils(this.baseLayer, this.signer);
     await utils.fetchContractAccounts(settlementContract, dispatchContract);
@@ -102,7 +105,7 @@ export class BridgingDeployInteraction implements DeployInteraction {
         await settlementContract.deployAndInitialize(
           {
             verificationKey:
-              verificationsKeys.SettlementSmartContract.verificationKey,
+              verificationsKeys.SettlementContract.verificationKey,
           },
           permissions.settlementContract(),
           feepayer,

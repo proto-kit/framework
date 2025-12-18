@@ -36,6 +36,7 @@ import {
   UInt32,
 } from "o1js";
 import {
+  DependencyRecord,
   filterNonUndefined,
   LinkedMerkleTree,
   log,
@@ -65,6 +66,7 @@ import { MinaSigner } from "./MinaSigner";
 import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
 import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermissions";
 import { AddressRegistry } from "./interactions/AddressRegistry";
+import { IncomingMessagesService } from "./messages/IncomingMessagesService";
 
 export type SettlementTokenConfig = Record<
   string,
@@ -124,6 +126,14 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
     super();
 
     this.utils = new SettlementUtils(baseLayer, signer);
+  }
+
+  public dependencies() {
+    return {
+      IncomingMessagesService: {
+        useClass: IncomingMessagesService,
+      },
+    } satisfies DependencyRecord;
   }
 
   public getDispatchContract() {
@@ -685,3 +695,5 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
   }
   /* eslint-enable no-await-in-loop */
 }
+
+// BridgingModule satisfies DependencyFactory;

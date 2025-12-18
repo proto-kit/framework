@@ -39,39 +39,38 @@ export class SettlementStartupModule {
     return artifacts;
   }
 
-  private async getArtifacts(retry: boolean): Promise<{
-    SettlementSmartContract: CompileArtifact;
-    DispatchSmartContract: CompileArtifact;
-  }> {
-    const settlementVerificationKey =
-      this.compileRegistry.getArtifact("SettlementContract");
-    const dispatchVerificationKey = this.compileRegistry.getArtifact(
-      "DispatchSmartContract"
+  private async getArtifacts<Contracts extends Record<string, true>>(
+    contracts: Contracts,
+    retry: boolean
+  ): Promise<Record<keyof Contracts, CompileArtifact>> {
+    const artifacts = Object.entries(contracts).map(
+      ([contract]) =>
+        [contract, this.compileRegistry.getArtifact(contract)] as const
     );
 
-    if (
-      settlementVerificationKey === undefined ||
-      dispatchVerificationKey === undefined
-    ) {
+    if (artifacts.some((x) => x[1] === undefined)) {
       if (retry) {
         log.info(
           "Settlement Contracts not yet compiled, initializing compilation"
         );
         await this.compile();
-        return await this.getArtifacts(false);
+        return await this.getArtifacts(contracts, false);
       }
       throw new Error(
         "Settlement contract verification keys not available for deployment"
       );
     }
 
-    return {
-      SettlementSmartContract: settlementVerificationKey,
-      DispatchSmartContract: dispatchVerificationKey,
-    };
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return Object.fromEntries(artifacts) as Record<
+      keyof Contracts,
+      CompileArtifact
+    >;
   }
 
-  public async retrieveVerificationKeys() {
-    return await this.getArtifacts(true);
+  public async retrieveVerificationKeys<Contracts extends Record<string, true>>(
+    contracts: Contracts
+  ) {
+    return await this.getArtifacts(contracts, true);
   }
 }

@@ -1,4 +1,4 @@
-import { inject } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { Field, Mina } from "o1js";
 import {
   BATCH_SIGNATURE_PREFIX,
@@ -21,6 +21,7 @@ import { SettleableBatch } from "../../../storage/model/Batch";
 import { Settlement } from "../../../storage/model/Settlement";
 import { SettleInteraction } from "../SettleInteraction";
 
+@injectable()
 export class VanillaSettlementInteraction implements SettleInteraction {
   public constructor(
     @inject("AddressRegistry")

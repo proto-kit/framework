@@ -5,7 +5,7 @@ import { SettlementStorage } from "../../storage/repositories/SettlementStorage"
 import { MessageStorage } from "../../storage/repositories/MessageStorage";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import { BridgingModule } from "../BridgingModule";
+import type { BridgingModule } from "../BridgingModule";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";
 
