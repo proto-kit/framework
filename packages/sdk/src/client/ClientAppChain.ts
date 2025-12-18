@@ -49,7 +49,7 @@ export class ClientAppChain<
   AppChainModules extends MinimalAppChainDefinition,
 > extends AppChain<AppChainModules> {
   // Optional for our lazy initialization purpose.
-  private QueryService?: QueryService<
+  private queryService?: QueryService<
     InferModules<AppChainModules["Runtime"]>,
     InferModules<AppChainModules["Protocol"]>
   >;
@@ -197,13 +197,13 @@ export class ClientAppChain<
     InferModules<AppChainModules["Runtime"]>,
     InferModules<AppChainModules["Protocol"]>
   > {
-    if (this.QueryService === undefined) {
-      this.QueryService = new QueryService(
+    if (this.queryService === undefined) {
+      this.queryService = new QueryService(
         this.runtime,
         this.protocol,
         this.container
       );
     }
-    return this.QueryService;
+    return this.queryService;
   }
 }
