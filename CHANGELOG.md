@@ -8,4 +8,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
-- Introduced Changelog
+- Introduced Changelog [#378](https://github.com/proto-kit/framework/pull/378)
