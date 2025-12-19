@@ -30,7 +30,7 @@ export interface TxEvents extends EventsRecord {
   rejected: [any];
 }
 
-export type TxSendResult<Input extends "sent" | "included" | "none"> =
+export type TxSendResult<Input extends "sent" | "included" | "queued" | "none"> =
   Input extends "none" ? void : { transactionId: string };
 
 @injectable()
@@ -74,7 +74,7 @@ export class MinaTransactionSender implements Closeable {
    * @returns 
    */
   public async proveAndSendTransaction<
-    Wait extends "sent" | "included" | "none",
+    Wait extends "sent" | "included" | "queued" | "none",
   >(
     transaction: Transaction<false, true>,
     waitOnStatus: Wait
@@ -153,6 +153,9 @@ export class MinaTransactionSender implements Closeable {
       transaction: result.transaction,
       sentAt: new Date(),
     });
+    if (waitOnStatus === "queued") {
+      return {transactionId: txnId} as TxSendResult<Wait>;
+    }
 
     if (waitOnStatus !== "none") {
       const waitInstruction: "sent" | "included" = waitOnStatus;
