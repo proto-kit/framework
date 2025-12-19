@@ -3,6 +3,7 @@ import {
   ChildContainerProvider,
   log,
   ModuleContainer,
+  ModulesConfig,
   ModulesRecord,
   Startable,
   StringKeyOf,
@@ -22,6 +23,9 @@ import { NoopSettlementHook } from "../hooks/NoopSettlementHook";
 import { AccountStateHook } from "../hooks/AccountStateHook";
 import { NoopTransactionHook } from "../hooks/NoopTransactionHook";
 import { TransactionProvable } from "../prover/transaction/TransactionProvable";
+import { StateTransitionProver } from "../prover/statetransition/StateTransitionProver";
+import { TransactionProver } from "../prover/transaction/TransactionProver";
+import { BlockProver } from "../prover/block/BlockProver";
 
 import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
@@ -141,6 +145,28 @@ export class Protocol<
     return this.container.resolve<
       InstanceType<Modules["StateTransitionProver"]>
     >("StateTransitionProver");
+  }
+
+  public static defaultModules() {
+    return {
+      StateTransitionProver,
+      TransactionProver,
+      BlockProver,
+      AccountState: AccountStateHook,
+      BlockHeight: BlockHeightHook,
+      LastStateRoot: LastStateRootBlockHook,
+    };
+  }
+
+  public static defaultConfig() {
+    return {
+      StateTransitionProver: {},
+      TransactionProver: {},
+      BlockProver: {},
+      AccountState: {},
+      BlockHeight: {},
+      LastStateRoot: {},
+    } satisfies ModulesConfig<ReturnType<typeof Protocol.defaultModules>>;
   }
 
   public getAreProofsEnabled(): AreProofsEnabled {

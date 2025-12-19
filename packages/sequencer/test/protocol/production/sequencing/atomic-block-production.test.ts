@@ -63,12 +63,7 @@ describe("atomic block production", () => {
         Balance: {},
       },
       Protocol: {
-        AccountState: {},
-        BlockProver: {},
-        StateTransitionProver: {},
-        TransactionProver: {},
-        BlockHeight: {},
-        LastStateRoot: {},
+        ...Protocol.defaultConfig(),
         ProtocolStateTestHook: {},
       },
     });

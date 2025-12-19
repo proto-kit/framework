@@ -88,12 +88,7 @@ describe("block limit", () => {
         NoopRuntime: {},
       },
       Protocol: {
-        AccountState: {},
-        BlockProver: {},
-        StateTransitionProver: {},
-        TransactionProver: {},
-        BlockHeight: {},
-        LastStateRoot: {},
+        ...Protocol.defaultConfig(),
         ProtocolStateTestHook: {},
       },
     });
