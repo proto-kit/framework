@@ -160,6 +160,7 @@ export function testBlockProduction<
         AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
+        TransactionProver: {},
         BlockHeight: {},
         LastStateRoot: {},
         ProtocolStateTestHook: {},

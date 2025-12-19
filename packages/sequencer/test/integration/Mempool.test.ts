@@ -112,6 +112,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           AccountState: {},
           BlockProver: {},
           StateTransitionProver: {},
+          TransactionProver: {},
           BlockHeight: {},
           LastStateRoot: {},
         },

@@ -114,6 +114,7 @@ describe.skip("Proven", () => {
           AccountState: {},
           BlockProver: {},
           StateTransitionProver: {},
+          TransactionProver: {},
           BlockHeight: {},
           LastStateRoot: {},
           ProtocolStateTestHook: {},

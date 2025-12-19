@@ -91,6 +91,7 @@ describe("block limit", () => {
         AccountState: {},
         BlockProver: {},
         StateTransitionProver: {},
+        TransactionProver: {},
         BlockHeight: {},
         LastStateRoot: {},
         ProtocolStateTestHook: {},
