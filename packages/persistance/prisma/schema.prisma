@@ -127,6 +127,7 @@ model Settlement {
   promisedMessagesHash String
 
   batches Batch[]
+  pendingL1Transaction PendingL1Transaction? @relation(fields: [transactionId], references: [id])
 }
 
 model IncomingMessageBatchTransaction {
@@ -157,6 +158,8 @@ model PendingL1Transaction {
   transaction    Json     @db.Json
   lastError      String?
   sentAt         DateTime?
+
+  settlement Settlement?
 
   @@unique([sender, nonce])
 }
