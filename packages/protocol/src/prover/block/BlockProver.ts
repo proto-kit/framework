@@ -13,7 +13,6 @@ import {
   ZkProgrammable,
 } from "@proto-kit/common";
 
-import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import {
   StateTransitionProof,
@@ -36,7 +35,9 @@ import { StateServiceProvider } from "../../state/StateServiceProvider";
 import { executeHooks } from "../utils";
 import {
   TransactionProof,
+  TransactionProvable,
   TransactionProverPublicInput,
+  TransactionProverPublicOutput,
 } from "../transaction/TransactionProvable";
 
 import {
@@ -76,6 +77,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
     public readonly stateTransitionProver: ZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
+    >,
+    public readonly transactionProver: ZkProgrammable<
+      TransactionProverPublicInput,
+      TransactionProverPublicOutput
     >,
     private readonly blockHooks: ProvableBlockHook<unknown>[],
     private readonly stateServiceProvider: StateServiceProvider
@@ -547,8 +552,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     BlockProverPublicInput,
     BlockProverPublicOutput
   >[] {
-    const { prover, stateTransitionProver } = this;
+    const { prover, stateTransitionProver, transactionProver } = this;
     const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
+    const TransactionProofClass = transactionProver.zkProgram[0].Proof;
     const proveBlock = prover.proveBlock.bind(prover);
     const merge = prover.merge.bind(prover);
 
@@ -565,7 +571,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             StateTransitionProofClass,
             Bool,
             WitnessedRootWitness,
-            SelfProof<BlockProverPublicInput, BlockProverPublicOutput>,
+            TransactionProofClass,
           ],
           async method(
             publicInput: BlockProverPublicInput,
@@ -646,9 +652,12 @@ export class BlockProver
       StateTransitionProverPublicOutput
     > &
       StateTransitionProvable,
-    @inject("Runtime")
-    public readonly runtime: WithZkProgrammable<undefined, MethodPublicOutput> &
-      CompilableModule,
+    @inject("TransactionProver")
+    public readonly transactionProver: WithZkProgrammable<
+      TransactionProverPublicInput,
+      TransactionProverPublicOutput
+    > &
+      TransactionProvable,
     @injectAll("ProvableBlockHook")
     blockHooks: ProvableBlockHook<unknown>[],
     @inject("StateServiceProvider")
@@ -658,6 +667,7 @@ export class BlockProver
     this.zkProgrammable = new BlockProverProgrammable(
       this,
       stateTransitionProver.zkProgrammable,
+      transactionProver.zkProgrammable,
       blockHooks,
       stateServiceProvider
     );
@@ -668,7 +678,7 @@ export class BlockProver
   ): Promise<Record<string, CompileArtifact> | undefined> {
     return await registry.forceProverExists(async () => {
       await this.stateTransitionProver.compile(registry);
-      await this.runtime.compile(registry);
+      await this.transactionProver.compile(registry);
       return await this.zkProgrammable.compile(registry);
     });
   }
