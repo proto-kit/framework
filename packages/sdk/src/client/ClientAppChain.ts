@@ -48,12 +48,6 @@ export type InferModules<Container extends TypedClass<ModuleContainer<any>>> =
 export class ClientAppChain<
   AppChainModules extends MinimalAppChainDefinition,
 > extends AppChain<AppChainModules> {
-  // Optional for our lazy initialization purpose.
-  private queryService?: QueryService<
-    InferModules<AppChainModules["Runtime"]>,
-    InferModules<AppChainModules["Protocol"]>
-  >;
-
   public static from<Modules extends MinimalAppChainDefinition>(
     definition: Modules
   ) {
@@ -197,13 +191,11 @@ export class ClientAppChain<
     InferModules<AppChainModules["Runtime"]>,
     InferModules<AppChainModules["Protocol"]>
   > {
-    if (this.queryService === undefined) {
-      this.queryService = new QueryService(
-        this.runtime,
-        this.protocol,
-        this.container
-      );
-    }
-    return this.queryService;
+    return this.container.resolve<
+      QueryService<
+        InferModules<AppChainModules["Runtime"]>,
+        InferModules<AppChainModules["Protocol"]>
+      >
+    >(QueryService);
   }
 }
