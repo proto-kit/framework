@@ -10,28 +10,19 @@ import {
   WitnessedRootHashList,
   WitnessedRootWitness,
 } from "../accumulators/WitnessedRootHashList";
-import { TransactionProof } from "../transaction/TransactionProvable";
+import {
+  TransactionProof,
+  TransactionProverState,
+  TransactionProverStateCommitments,
+} from "../transaction/TransactionProvable";
 
 import { BlockHashMerkleTreeWitness } from "./accummulators/BlockHashMerkleTree";
 
-// Should be equal to BlockProver.PublicInput
-export interface BlockProverState {
+export class BlockProverState extends TransactionProverState {
   /**
    * The current state root of the block prover
    */
   stateRoot: Field;
-
-  /**
-   * The current commitment of the transaction-list which
-   * will at the end equal the bundle hash
-   */
-  transactionList: TransactionHashList;
-
-  /**
-   * The network state which gives access to values such as blockHeight
-   * This value is the same for the whole batch (L2 block)
-   */
-  networkState: NetworkState;
 
   /**
    * The root of the merkle tree encoding all block hashes,
@@ -39,93 +30,61 @@ export interface BlockProverState {
    */
   blockHashRoot: Field;
 
-  /**
-   * A variant of the transactionsHash that is never reset.
-   * Thought for usage in the sequence state mempool.
-   * In comparison, transactionsHash restarts at 0 for every new block
-   */
-  eternalTransactionsList: TransactionHashList;
-
-  pendingSTBatches: AppliedBatchHashList;
-
-  incomingMessages: MinaActionsHashList;
-
-  witnessedRoots: WitnessedRootHashList;
-
   blockNumber: Field;
-}
 
-// TODO Sort and organize public inputs and outputs
-export class BlockProverStateCommitments extends Struct({
-  transactionsHash: Field,
-  stateRoot: Field,
-  // Commitment to the list of unprocessed (pending) batches of STs that need to be proven
-  pendingSTBatchesHash: Field,
-  witnessedRootsHash: Field,
-  networkStateHash: Field,
-  blockHashRoot: Field,
-  eternalTransactionsHash: Field,
-  incomingMessagesHash: Field,
-  blockNumber: Field,
-}) {
-  public static fromBlockProverState(
-    state: BlockProverState
-  ): BlockProverStateCommitments {
+  constructor(args: {
+    transactionList: TransactionHashList;
+    networkState: NetworkState;
+    eternalTransactionsList: TransactionHashList;
+    pendingSTBatches: AppliedBatchHashList;
+    incomingMessages: MinaActionsHashList;
+    witnessedRoots: WitnessedRootHashList;
+    stateRoot: Field;
+    blockHashRoot: Field;
+    blockNumber: Field;
+  }) {
+    super(args);
+    this.stateRoot = args.stateRoot;
+    this.blockHashRoot = args.blockHashRoot;
+    this.blockNumber = args.blockNumber;
+  }
+
+  public toCommitments(): BlockProverPublicInput {
     return {
-      networkStateHash: state.networkState.hash(),
-      stateRoot: state.stateRoot,
-      blockNumber: state.blockNumber,
-      blockHashRoot: state.blockHashRoot,
-      pendingSTBatchesHash: state.pendingSTBatches.commitment,
-      transactionsHash: state.transactionList.commitment,
-      eternalTransactionsHash: state.eternalTransactionsList.commitment,
-      incomingMessagesHash: state.incomingMessages.commitment,
-      witnessedRootsHash: state.witnessedRoots.commitment,
+      ...super.toCommitments(),
+      stateRoot: this.stateRoot,
+      blockHashRoot: this.blockHashRoot,
+      blockNumber: this.blockNumber,
     };
   }
 
-  public static toBlockProverState(
-    publicInput: BlockProverStateCommitments,
+  public static fromCommitments(
+    publicInput: BlockProverPublicInput,
     networkState: NetworkState
   ): BlockProverState {
-    publicInput.networkStateHash.assertEquals(
-      networkState.hash(),
-      "ExecutionData Networkstate doesn't equal public input hash"
-    );
-
-    return {
-      networkState,
+    return new BlockProverState({
+      ...super.fromCommitments(publicInput, networkState),
       stateRoot: publicInput.stateRoot,
       blockHashRoot: publicInput.blockHashRoot,
-      transactionList: new TransactionHashList(publicInput.transactionsHash),
-      eternalTransactionsList: new TransactionHashList(
-        publicInput.eternalTransactionsHash
-      ),
-      incomingMessages: new MinaActionsHashList(
-        publicInput.incomingMessagesHash
-      ),
-      pendingSTBatches: new AppliedBatchHashList(
-        publicInput.pendingSTBatchesHash
-      ),
-      witnessedRoots: new WitnessedRootHashList(publicInput.witnessedRootsHash),
       blockNumber: publicInput.blockNumber,
-    };
+    });
   }
 }
 
-export class BlockProverPublicInput extends BlockProverStateCommitments {}
+export const BlockProverStateCommitments = {
+  ...TransactionProverStateCommitments,
+  stateRoot: Field,
+  blockHashRoot: Field,
+  blockNumber: Field,
+};
+
+export class BlockProverPublicInput extends Struct(
+  BlockProverStateCommitments
+) {}
 
 export class BlockProverPublicOutput extends Struct({
-  transactionsHash: Field,
-  stateRoot: Field,
-  pendingSTBatchesHash: Field,
-  witnessedRootsHash: Field,
-  networkStateHash: Field,
-  blockHashRoot: Field,
-  eternalTransactionsHash: Field,
-  incomingMessagesHash: Field,
+  ...BlockProverStateCommitments,
   closed: Bool,
-  blockNumber: Field,
 }) {
   public equals(input: BlockProverPublicInput, closed: Bool): Bool {
     const output2 = BlockProverPublicOutput.toFields({

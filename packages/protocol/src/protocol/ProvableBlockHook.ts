@@ -4,13 +4,13 @@ import { NoConfig } from "@proto-kit/common";
 import { NetworkState } from "../model/network/NetworkState";
 import {
   BlockProverState,
-  BlockProverStateCommitments,
+  BlockProverPublicInput,
 } from "../prover/block/BlockProvable";
 
 import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
 export type ProvableHookBlockState = Pick<
-  BlockProverStateCommitments,
+  BlockProverPublicInput,
   | "transactionsHash"
   | "eternalTransactionsHash"
   | "incomingMessagesHash"

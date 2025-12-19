@@ -44,7 +44,7 @@ import {
   BlockProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  BlockProverStateCommitments,
+  BlockProverState,
 } from "./BlockProvable";
 import {
   BlockHashMerkleTreeWitness,
@@ -232,10 +232,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       "TransactionProof cannot alter the network state"
     );
 
-    const state = BlockProverStateCommitments.toBlockProverState(
-      publicInput,
-      networkState
-    );
+    const state = BlockProverState.fromCommitments(publicInput, networkState);
 
     // Verify Transaction proof if it has at least 1 tx - i.e. the
     // input and output doesn't match fully
@@ -376,7 +373,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     state.blockNumber = blockIndex.add(1);
 
     return new BlockProverPublicOutput({
-      ...BlockProverStateCommitments.fromBlockProverState(state),
+      ...state.toCommitments(),
       closed: Bool(true),
     });
   }

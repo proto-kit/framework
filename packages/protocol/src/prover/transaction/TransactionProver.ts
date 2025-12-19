@@ -50,9 +50,6 @@ const errors = {
   propertyNotMatchingStep: (propertyName: string, step: string) =>
     `${propertyName} not matching: ${step}`,
 
-  stateRootNotMatching: (step: string) =>
-    errors.propertyNotMatchingStep("StateRoots", step),
-
   transactionsHashNotMatching: (step: string) =>
     errors.propertyNotMatchingStep("Transactions hash", step),
 
