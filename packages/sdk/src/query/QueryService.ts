@@ -25,7 +25,7 @@ import {
 export class QueryService<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord &
-    MandatoryProtocolModulesRecord
+    MandatoryProtocolModulesRecord,
 > {
   // Lazily initialized query instances
   private RuntimeQuery?: Query<RuntimeModule<unknown>, RuntimeModules>;
