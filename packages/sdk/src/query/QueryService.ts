@@ -1,4 +1,4 @@
-import { DependencyContainer } from "tsyringe";
+import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   Runtime,
   RuntimeModule,
@@ -20,19 +20,15 @@ import {
   QueryTransportModule,
 } from "@proto-kit/sequencer";
 
+@scoped(Lifecycle.ContainerScoped)
+@injectable()
 export class QueryService<
   RuntimeModules extends RuntimeModulesRecord,
   ProtocolModules extends ProtocolModulesRecord &
     MandatoryProtocolModulesRecord = ProtocolModulesRecord &
     MandatoryProtocolModulesRecord,
 > {
-  // Here, fields are optional for lazy initialization.
-  private QueryTransport?: QueryTransportModule;
-
-  private NetworkStateTransport?: NetworkStateTransportModule;
-
-  private BlockExplorerTransport?: BlockExplorerTransportModule;
-
+  // Lazily initialized query instances
   private RuntimeQuery?: Query<RuntimeModule<unknown>, RuntimeModules>;
 
   private ProtocolQuery?: Query<ProtocolModule<unknown>, ProtocolModules>;
@@ -42,54 +38,17 @@ export class QueryService<
   private ExplorerQuery?: BlockExplorerQuery;
 
   public constructor(
+    @inject("Runtime")
     private readonly runtimeInstance: Runtime<RuntimeModules>,
+    @inject("Protocol")
     private readonly protocolInstance: Protocol<ProtocolModules>,
-    private readonly container: DependencyContainer
+    @inject("QueryTransportModule", { isOptional: true })
+    private readonly queryTransport: QueryTransportModule,
+    @inject("NetworkStateTransportModule", { isOptional: true })
+    private readonly networkStateTransport: NetworkStateTransportModule,
+    @inject("BlockExplorerTransportModule", { isOptional: true })
+    private readonly blockExplorerTransport: BlockExplorerTransportModule
   ) {}
-
-  /**
-   * A helper function that resolves QueryTrasnportModule.
-   * If not resolved before, it is resolved.
-   * @returns The registered transport module as {@link QueryTrasnportModule}
-   */
-  private get queryTransport(): QueryTransportModule {
-    if (this.QueryTransport === undefined) {
-      this.QueryTransport = this.container.resolve<QueryTransportModule>(
-        "QueryTransportModule"
-      );
-    }
-    return this.QueryTransport;
-  }
-
-  /**
-   * A helper function that resolves NetworkStateTransport.
-   * If not resolved before, it is resolved.
-   * @returns The registered transport module as {@link BlockExplorerTransport}
-   */
-  private get networkStateTransport(): NetworkStateTransportModule {
-    if (this.NetworkStateTransport === undefined) {
-      this.NetworkStateTransport =
-        this.container.resolve<NetworkStateTransportModule>(
-          "NetworkStateTransportModule"
-        );
-    }
-    return this.NetworkStateTransport;
-  }
-
-  /**
-   * A helper function that resolves BlockExplorerTransportModule.
-   * If not resolved before, it is resolved.
-   * @returns The registered transport module as {@link BlockExplorerTransport}
-   */
-  private get blockExplorerTransport(): BlockExplorerTransportModule {
-    if (this.BlockExplorerTransport === undefined) {
-      this.BlockExplorerTransport =
-        this.container.resolve<BlockExplorerTransportModule>(
-          "BlockExplorerTransportModule"
-        );
-    }
-    return this.BlockExplorerTransport;
-  }
 
   /**
    * Getter of query module for runtime modules.
