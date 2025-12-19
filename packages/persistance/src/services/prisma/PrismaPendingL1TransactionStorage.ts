@@ -1,5 +1,4 @@
 import { inject, injectable } from "tsyringe";
-import { Prisma } from "@prisma/client";
 import {
   PendingL1TransactionRecord,
   PendingL1TransactionStatus,
@@ -7,6 +6,7 @@ import {
 } from "@proto-kit/sequencer";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
+
 import { PendingL1TransactionMapper } from "./mappers/PendingL1TransactionMapper";
 
 @injectable()
@@ -19,11 +19,13 @@ export class PrismaPendingL1TransactionStorage
     @inject("Database") private readonly connection: PrismaConnection
   ) {}
 
-  public async queue(record: Omit<PendingL1TransactionRecord, "status">): Promise<string> {
+  public async queue(
+    record: Omit<PendingL1TransactionRecord, "status">
+  ): Promise<string> {
     const { prismaClient } = this.connection;
-    const status:PendingL1TransactionStatus = "queued";
+    const status: PendingL1TransactionStatus = "queued";
     const txnRecord = await prismaClient.pendingL1Transaction.create({
-      data: this.mapper.mapIn({...record, status}),
+      data: this.mapper.mapIn({ ...record, status }),
     });
     return txnRecord.id;
   }
@@ -38,8 +40,12 @@ export class PrismaPendingL1TransactionStorage
       data: {
         ...(updates.attempts !== undefined && { attempts: updates.attempts }),
         ...(updates.status !== undefined && { status: updates.status }),
-        ...(updates.transaction !== undefined && { transaction: updates.transaction.toJSON() }),
-        ...(updates.lastError !== undefined && { lastError: updates.lastError }),
+        ...(updates.transaction !== undefined && {
+          transaction: updates.transaction.toJSON(),
+        }),
+        ...(updates.lastError !== undefined && {
+          lastError: updates.lastError,
+        }),
         ...(updates.sentAt !== undefined && { sentAt: updates.sentAt }),
       },
     });
@@ -54,7 +60,9 @@ export class PrismaPendingL1TransactionStorage
     });
   }
 
-  public async findById(id: string): Promise<PendingL1TransactionRecord | undefined> {
+  public async findById(
+    id: string
+  ): Promise<PendingL1TransactionRecord | undefined> {
     const { prismaClient } = this.connection;
     const record = await prismaClient.pendingL1Transaction.findUnique({
       where: {
@@ -67,7 +75,9 @@ export class PrismaPendingL1TransactionStorage
     return this.mapper.mapOut(record);
   }
 
-  public async findByStatuses(statuses: PendingL1TransactionStatus[]): Promise<PendingL1TransactionRecord[]> {
+  public async findByStatuses(
+    statuses: PendingL1TransactionStatus[]
+  ): Promise<PendingL1TransactionRecord[]> {
     const { prismaClient } = this.connection;
     const rows = await prismaClient.pendingL1Transaction.findMany({
       where: {

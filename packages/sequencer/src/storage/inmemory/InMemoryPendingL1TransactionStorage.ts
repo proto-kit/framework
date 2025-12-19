@@ -10,8 +10,9 @@ export class InMemoryPendingL1TransactionStorage
   // Key: sender:nonce
   private store = new Map<string, PendingL1TransactionRecord>();
 
-
-  public async queue(record: Omit<PendingL1TransactionRecord, "status">): Promise<string> {
+  public async queue(
+    record: Omit<PendingL1TransactionRecord, "status">
+  ): Promise<string> {
     const key = Math.random().toString(36).substring(2, 15);
     this.store.set(key, {
       ...record,
@@ -39,11 +40,15 @@ export class InMemoryPendingL1TransactionStorage
     this.store.delete(id);
   }
 
-  public async findById(id: string): Promise<PendingL1TransactionRecord | undefined> {
+  public async findById(
+    id: string
+  ): Promise<PendingL1TransactionRecord | undefined> {
     return this.store.get(id);
   }
 
-  public async findByStatuses(statuses: PendingL1TransactionStatus[]): Promise<PendingL1TransactionRecord[]> {
+  public async findByStatuses(
+    statuses: PendingL1TransactionStatus[]
+  ): Promise<PendingL1TransactionRecord[]> {
     return Array.from(this.store.values()).filter((record) =>
       statuses.includes(record.status)
     );

@@ -6,7 +6,6 @@ import {
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
-import { DefaultL1TransactionRetryStrategy } from "../../src/settlement/transactions/DefaultL1TransactionRetryStrategy";
 import {
   BlockProverPublicInput,
   BridgeContract,
@@ -66,6 +65,7 @@ import { BridgingModule } from "../../src/settlement/BridgingModule";
 import { FungibleTokenContractModule } from "../../src/settlement/utils/FungibleTokenContractModule";
 import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/FungibleTokenAdminContractModule";
 import { MinaNetworkUtils } from "../../src/protocol/baselayer/network-utils/MinaNetworkUtils";
+import { DefaultL1TransactionRetryStrategy } from "../../src/settlement/transactions/DefaultL1TransactionRetryStrategy";
 
 import { Balances, BalancesKey } from "./mocks/Balances";
 import { WithdrawalMessageProcessor, Withdrawals } from "./mocks/Withdrawals";
@@ -109,7 +109,6 @@ export const settlementTestFn = (
   let blockQueue: BlockQueue;
   let userPublicKey: PublicKey;
 
-
   let blockSerializer: BlockProofSerializer;
 
   const bridgedTokenId =
@@ -132,7 +131,7 @@ export const settlementTestFn = (
           SettlementModule: SettlementModule,
           BridgingModule: BridgingModule,
           SettlementSigner: InMemoryMinaSigner,
-          L1TransactionRetryStrategy: DefaultL1TransactionRetryStrategy
+          L1TransactionRetryStrategy: DefaultL1TransactionRetryStrategy,
         },
         {
           SettlementProvingTask,
@@ -385,7 +384,7 @@ export const settlementTestFn = (
           {
             sender: sequencerKey.toPublicKey(),
             memo: "Deploy custom token",
-            nonce: nonceCounter++
+            nonce: nonceCounter++,
           },
           async () => {
             AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 3);

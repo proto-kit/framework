@@ -1,8 +1,8 @@
+import { PendingL1Transaction, Prisma } from "@prisma/client";
 import {
-  PendingL1Transaction,
-  Prisma,
-} from "@prisma/client";
-import { PendingL1TransactionRecord, PendingL1TransactionStatus } from "@proto-kit/sequencer";
+  PendingL1TransactionRecord,
+  PendingL1TransactionStatus,
+} from "@proto-kit/sequencer";
 import { Mina } from "o1js";
 
 export class PendingL1TransactionMapper {

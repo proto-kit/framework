@@ -12,7 +12,6 @@ import {
   fetchAccount,
   Field,
   Mina,
-  PrivateKey,
   PublicKey,
   SmartContract,
   TokenContract,

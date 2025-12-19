@@ -5,7 +5,6 @@ import {
 } from "@proto-kit/api";
 import { NonEmptyArray, createMethodMiddlewareDecorator } from "type-graphql";
 import { inject } from "tsyringe";
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { PrismaClient } from "@prisma/client-indexer";
 
 import {
@@ -90,6 +89,7 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
   public async initializePrismaClient() {
     // setup the prisma client and feed it to the server,
     // since this is necessary for the returned resolvers to work
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const prismaClient = new PrismaClient({
       // datasourceUrl: 'postgresql://admin:password@localhost:5433/protokit-indexer?schema=public'
     });
@@ -100,6 +100,7 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
 
   public async resolvers(): Promise<NonEmptyArray<Function>> {
     this.graphqlServer.setContext({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       prisma: await this.initializePrismaClient(),
     });
 

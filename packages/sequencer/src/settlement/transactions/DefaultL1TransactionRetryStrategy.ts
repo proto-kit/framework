@@ -1,4 +1,4 @@
-import { noop } from "@proto-kit/common";
+import { noop, sleep } from "@proto-kit/common";
 import { Transaction, UInt64 } from "o1js";
 import { inject } from "tsyringe";
 
@@ -54,31 +54,26 @@ export class DefaultL1TransactionRetryStrategy
   public async shouldRetry(
     record: PendingL1TransactionRecord
   ): Promise<boolean> {
-    if (record.attempts >= this.retryConfig.maxAttempts) {
-      return false;
-    }
-    return true;
+    return record.attempts < this.retryConfig.maxAttempts;
   }
 
   public async prepareRetryTransaction(
     record: PendingL1TransactionRecord
-  ): Promise<Transaction<false, false>> {
+  ): Promise<Transaction<any, false>> {
     const tx = record.transaction;
     const currentFee = tx.transaction.feePayer.body.fee;
     const newFee = UInt64.from(this.bumpFee(Number(currentFee.toBigInt())));
-    tx.setFee(newFee);
+    await tx.setFee(newFee);
     // Delay if needed
-    await new Promise((resolve) =>
-      setTimeout(
-        resolve,
-        Math.max(
-          0,
-          this.retryConfig.retryDelayMs -
-            (Date.now() - (record.sentAt?.getTime() ?? 0))
-        )
+    await sleep(
+      Math.max(
+        0,
+        this.retryConfig.retryDelayMs -
+          (Date.now() - (record.sentAt?.getTime() ?? 0))
       )
     );
-    return tx as Transaction<false, false>;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return tx as Transaction<any, false>;
   }
 
   private bumpFee(currentFee: number): number {
