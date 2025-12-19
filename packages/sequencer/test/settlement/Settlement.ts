@@ -198,6 +198,7 @@ export const settlementTestFn = (
       },
       Protocol: {
         StateTransitionProver: {},
+        TransactionProver: {},
         BlockHeight: {},
         AccountState: {},
         BlockProver: {},

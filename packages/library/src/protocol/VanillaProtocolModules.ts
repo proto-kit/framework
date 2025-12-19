@@ -6,6 +6,7 @@ import {
   ProtocolModulesRecord,
   StateTransitionProver,
   LastStateRootBlockHook,
+  TransactionProver,
 } from "@proto-kit/protocol";
 import { PrivateKey } from "o1js";
 
@@ -21,6 +22,7 @@ export class VanillaProtocolModules {
   ): MandatoryProtocolModulesRecord & ProtocolModules {
     return {
       StateTransitionProver,
+      TransactionProver,
       BlockProver,
       AccountState: AccountStateHook,
       BlockHeight: BlockHeightHook,

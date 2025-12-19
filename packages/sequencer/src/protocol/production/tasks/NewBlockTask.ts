@@ -2,7 +2,6 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProvable,
   BlockProverPublicInput,
-  BlockProverPublicOutput,
   NetworkState,
   Protocol,
   StateTransitionProof,
@@ -10,8 +9,10 @@ import {
   BlockHashMerkleTreeWitness,
   MandatoryProtocolModulesRecord,
   WitnessedRootWitness,
+  TransactionProof,
+  BlockProof,
 } from "@proto-kit/protocol";
-import { Bool, Proof } from "o1js";
+import { Bool } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
@@ -26,8 +27,6 @@ import type { TaskStateRecord } from "../tracing/BlockTracingService";
 import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
 import { executeWithPrefilledStateService } from "./TransactionProvingTask";
 
-type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
-
 export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
   networkState: NetworkState;
@@ -40,7 +39,7 @@ export interface NewBlockProverParameters {
 
 export type NewBlockProvingParameters = PairingDerivedInput<
   StateTransitionProof,
-  BlockProof,
+  TransactionProof,
   NewBlockProverParameters
 >;
 

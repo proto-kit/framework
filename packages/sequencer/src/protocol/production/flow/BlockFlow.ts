@@ -1,19 +1,19 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
-  BlockProof,
   BlockProverPublicInput,
   BlockProverPublicOutput,
   MandatoryProtocolModulesRecord,
   Protocol,
+  TransactionProof,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { MAX_FIELD } from "@proto-kit/common";
 
 import { TransactionProvingTask } from "../tasks/TransactionProvingTask";
-import { BlockReductionTask } from "../tasks/BlockReductionTask";
 import { TransactionProvingTaskParameters } from "../tasks/serializers/types/TransactionProvingTypes";
 import { FlowCreator } from "../../../worker/flow/Flow";
 import { BlockTrace } from "../tracing/BlockTracingService";
+import { TransactionReductionTask } from "../tasks/TransactionReductionTask";
 
 import { ReductionTaskFlow } from "./ReductionTaskFlow";
 import { TransactionFlow } from "./TransactionFlow";
@@ -26,7 +26,7 @@ export class BlockFlow {
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly transactionProvingTask: TransactionProvingTask,
-    private readonly blockReductionTask: BlockReductionTask,
+    private readonly transactionReductionTask: TransactionReductionTask,
     private readonly transactionFlow: TransactionFlow
   ) {}
 
@@ -54,22 +54,19 @@ export class BlockFlow {
 
   private async executeTransactions(
     trace: BlockTrace
-  ): Promise<ReductionTaskFlow<TransactionProvingTaskParameters, BlockProof>> {
+  ): Promise<
+    ReductionTaskFlow<TransactionProvingTaskParameters, TransactionProof>
+  > {
     const transactionFlow = new ReductionTaskFlow(
       {
         name: `transactions-${trace.height}`,
         inputLength: trace.transactions.length,
         mappingTask: this.transactionProvingTask,
-        reductionTask: this.blockReductionTask,
+        reductionTask: this.transactionReductionTask,
 
         mergableFunction: (a, b) =>
-          a.publicOutput.stateRoot
-            .equals(b.publicInput.stateRoot)
-            .and(
-              a.publicOutput.transactionsHash.equals(
-                b.publicInput.transactionsHash
-              )
-            )
+          a.publicOutput.transactionsHash
+            .equals(b.publicInput.transactionsHash)
             .and(
               a.publicInput.networkStateHash.equals(
                 b.publicInput.networkStateHash
@@ -99,7 +96,7 @@ export class BlockFlow {
 
   public async executeBlock(
     trace: BlockTrace,
-    callback: (proof: BlockProof) => Promise<void>
+    callback: (proof: TransactionProof) => Promise<void>
   ) {
     if (trace.transactions.length === 0) {
       const proof = await this.dummyTransactionProof(trace);
