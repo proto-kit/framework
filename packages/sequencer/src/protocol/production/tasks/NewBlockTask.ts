@@ -11,6 +11,7 @@ import {
   WitnessedRootWitness,
   TransactionProof,
   BlockProof,
+  TransactionProvable,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
 import {
@@ -51,6 +52,8 @@ export class NewBlockTask
 {
   private readonly stateTransitionProver: StateTransitionProvable;
 
+  private readonly transactionProver: TransactionProvable;
+
   private readonly blockProver: BlockProvable;
 
   public readonly name = "newBlock";
@@ -63,7 +66,8 @@ export class NewBlockTask
   ) {
     super();
     this.stateTransitionProver = protocol.stateTransitionProver;
-    this.blockProver = this.protocol.blockProver;
+    this.transactionProver = protocol.transactionProver;
+    this.blockProver = protocol.blockProver;
   }
 
   public inputSerializer(): TaskSerializer<NewBlockProvingParameters> {
@@ -71,13 +75,13 @@ export class NewBlockTask
       this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
     );
 
-    const blockProofSerializer = new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+    const transactionProofSerializer = new ProofTaskSerializer(
+      this.transactionProver.zkProgrammable.zkProgram[0].Proof
     );
 
     return new NewBlockProvingParametersSerializer(
       stProofSerializer,
-      blockProofSerializer
+      transactionProofSerializer
     );
   }
 
@@ -125,6 +129,6 @@ export class NewBlockTask
 
   public async prepare(): Promise<void> {
     // Compile
-    await this.blockProver.compile(this.compileRegistry);
+    await this.transactionProver.compile(this.compileRegistry);
   }
 }

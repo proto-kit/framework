@@ -1,13 +1,12 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
-  BlockProverPublicInput,
-  BlockProverPublicOutput,
   MandatoryProtocolModulesRecord,
   Protocol,
   TransactionProof,
+  TransactionProverPublicInput,
+  TransactionProverPublicOutput,
 } from "@proto-kit/protocol";
-import { Bool, Field } from "o1js";
-import { MAX_FIELD } from "@proto-kit/common";
+import { Field } from "o1js";
 
 import { TransactionProvingTask } from "../tasks/TransactionProvingTask";
 import { TransactionProvingTaskParameters } from "../tasks/serializers/types/TransactionProvingTypes";
@@ -35,17 +34,14 @@ export class BlockFlow {
       ...trace.blockParams.publicInput,
       networkStateHash: Field(0),
       transactionsHash: Field(0),
-      blockHashRoot: Field(0),
-      blockNumber: MAX_FIELD,
-    } satisfies BlockProverPublicInput;
+    } satisfies TransactionProverPublicInput;
 
     // TODO Set publicInput.stateRoot to result after block hooks!
-    const publicOutput = new BlockProverPublicOutput({
+    const publicOutput = new TransactionProverPublicOutput({
       ...publicInput,
-      closed: Bool(true),
     });
 
-    return await this.protocol.blockProver.zkProgrammable.zkProgram[0].Proof.dummy(
+    return await this.protocol.transactionProver.zkProgrammable.zkProgram[0].Proof.dummy(
       publicInput,
       publicOutput,
       2

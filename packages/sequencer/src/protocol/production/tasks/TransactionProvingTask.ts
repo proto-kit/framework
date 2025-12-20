@@ -1,5 +1,4 @@
 import {
-  BlockProof,
   MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
@@ -61,7 +60,7 @@ export class TransactionProvingTask
   private readonly runtimeProofType =
     this.runtime.zkProgrammable.zkProgram[0].Proof;
 
-  public name = "block";
+  public name = "transaction";
 
   public constructor(
     @inject("Protocol")
@@ -93,7 +92,7 @@ export class TransactionProvingTask
 
   public async compute(
     input: TransactionProvingTaskParameters
-  ): Promise<BlockProof> {
+  ): Promise<TransactionProof> {
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
       input.parameters.startingState,
@@ -123,7 +122,7 @@ export class TransactionProvingTask
       this.protocol.stateServiceProvider,
       input.parameters.startingState,
       async () =>
-        await this.executionContext.current().result.prove<BlockProof>()
+        await this.executionContext.current().result.prove<TransactionProof>()
     );
   }
 
