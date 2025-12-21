@@ -314,7 +314,7 @@ export const settlementTestFn = (
   let user0Nonce = 0;
   let acc0L2Nonce = 0;
 
-  it.only("Print constraint summary", async () => {
+  it.skip("Print constraint summary", async () => {
     await appChain.protocol.dependencyContainer
       .resolve(CircuitAnalysisModule)
       .printSummary();
