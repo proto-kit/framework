@@ -103,7 +103,7 @@ export default function SettlementDetail() {
     <DetailsLayout
       title={
         <div className="flex gap-4">
-          Settlement 
+          Settlement
           {!loading && (
             <Truncate
               text={data?.settlement?.transactionHash ?? ""}

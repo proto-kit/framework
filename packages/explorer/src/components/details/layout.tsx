@@ -1,7 +1,9 @@
+/* eslint-disable no-nested-ternary */
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 import { Skeleton } from "../ui/skeleton";
+import CopyToClipboard from "../ui/copy-to-clipboard";
 
 import { cn } from "@/lib/utils";
 
@@ -51,7 +53,11 @@ export function DetailsLayout({
                   )}
                 </p>
                 {!loading ? (
-                  detail.value
+                  String(detail.value).length > 50 ? (
+                    <CopyToClipboard text={String(detail.value)} />
+                  ) : (
+                    detail.value
+                  )
                 ) : (
                   <Skeleton className="h-6 relative top-1" />
                 )}
@@ -65,3 +71,4 @@ export function DetailsLayout({
     </div>
   );
 }
+/* eslint-enable no-nested-ternary */

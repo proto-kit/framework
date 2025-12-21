@@ -24,7 +24,7 @@ export default function RootLayout({
           GeistMono.variable,
         ])}
       >
-        <div className="flex flex-col h-full w-full max-w-screen-lg mx-auto">
+        <div className="flex flex-col h-full w-full max-w-screen-lg mx-auto p-2">
           <div className="min-w-full">
             <Header />
 

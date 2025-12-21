@@ -1,15 +1,13 @@
 "use client";
 
-/* eslint-disable sonarjs/cognitive-complexity */
-/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-nested-ternary */
 
-import React, { useState } from "react";
-import Truncate from "react-truncate-inside";
-import { ChevronRight, Clipboard, CircleCheck, CircleX } from "lucide-react";
+import React from "react";
+import { ChevronRight, CircleCheck, CircleX } from "lucide-react";
 
 import { TableCell, TableRow } from "./table";
 import { Skeleton } from "./skeleton";
+import Copy from "./copy-to-clipboard";
 
 import { typed } from "@/lib/utils";
 
@@ -32,7 +30,6 @@ export default function GenericTableRow<Item>({
   copyKeys = [],
   statusKey,
 }: GenericTableRowProps<Item>) {
-  const [copied, setCopied] = useState<Record<string, boolean>>({});
   return (
     <TableRow onClick={onRowClick}>
       {Object.keys(columns).map(
@@ -41,38 +38,7 @@ export default function GenericTableRow<Item>({
             <TableCell className={""} key={_key}>
               {!loading ? (
                 copyKeys.includes(_key) ? (
-                  <div
-                    className="flex gap-1.5 items-center group relative"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      void navigator.clipboard.writeText(
-                        String(item[typed<keyof Item>(_key)])
-                      );
-                      setCopied((s) => ({ ...s, [_key]: true }));
-                      setTimeout(
-                        () => setCopied((s) => ({ ...s, [_key]: false })),
-                        2000
-                      );
-                    }}
-                  >
-                    <div className="opacity-0 group-hover:opacity-100 absolute w-full rounded-md flex items-center justify-start bg-gray-50">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Clipboard className="w-4 h-4  text-muted-foreground" />
-                        <span className="text-md">
-                          {copied[_key] === false || copied[_key] == null
-                            ? "Click to copy"
-                            : "Copied successfully!"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="group-hover:opacity-0">
-                      <Truncate
-                        text={String(item[typed<keyof Item>(_key)])}
-                        width={150}
-                      />
-                    </div>
-                  </div>
+                  <Copy text={String(item[typed<keyof Item>(_key)])} />
                 ) : statusKey === _key ? (
                   <div className="flex w-full items-center justify-center">
                     {String(item[typed<keyof Item>(_key)]) === "true" ? (
@@ -99,6 +65,4 @@ export default function GenericTableRow<Item>({
     </TableRow>
   );
 }
-/* eslint-enable sonarjs/cognitive-complexity */
-/* eslint-enable no-underscore-dangle */
 /* eslint-enable no-nested-ternary */

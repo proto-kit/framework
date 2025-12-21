@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 
 import BlocksPageClient from "@/components/blocks/BlocksPageClient";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 
 export default function BlocksPage() {
   return (
-    <Suspense fallback={<div></div>}>
+    <Suspense fallback={<PageSkeleton />}>
       <BlocksPageClient />
     </Suspense>
   );
