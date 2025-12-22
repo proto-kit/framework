@@ -67,7 +67,7 @@ export default function GlobalSearch() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          gqlQuery,
+          query: gqlQuery,
           variables: { input: searchQuery },
         }),
       });
