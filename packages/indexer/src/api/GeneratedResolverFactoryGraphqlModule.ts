@@ -5,6 +5,7 @@ import {
 } from "@proto-kit/api";
 import { NonEmptyArray, createMethodMiddlewareDecorator } from "type-graphql";
 import { inject } from "tsyringe";
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { PrismaClient } from "@prisma/client-indexer";
 
 import {
