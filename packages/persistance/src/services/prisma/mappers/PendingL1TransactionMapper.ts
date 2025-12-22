@@ -6,20 +6,21 @@ import {
 import { Mina } from "o1js";
 
 export class PendingL1TransactionMapper {
-  public mapOut(input: PendingL1Transaction): PendingL1TransactionRecord {
+  public mapIn(input: PendingL1Transaction): PendingL1TransactionRecord {
     return {
       id: input.id,
       sender: input.sender,
       nonce: input.nonce,
       attempts: input.attempts,
       status: input.status as PendingL1TransactionStatus,
-      transaction: Mina.Transaction.fromJSON(input.transaction as string),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      transaction: Mina.Transaction.fromJSON(input.transaction as any),
       lastError: input.lastError ?? undefined,
       sentAt: input.sentAt ? new Date(input.sentAt) : undefined,
     };
   }
 
-  public mapIn(
+  public mapOut(
     input: PendingL1TransactionRecord
   ): Prisma.PendingL1TransactionCreateInput {
     return {

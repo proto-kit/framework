@@ -25,7 +25,7 @@ export class PrismaPendingL1TransactionStorage
     const { prismaClient } = this.connection;
     const status: PendingL1TransactionStatus = "queued";
     const txnRecord = await prismaClient.pendingL1Transaction.create({
-      data: this.mapper.mapIn({ ...record, status }),
+      data: this.mapper.mapOut({ ...record, status }),
     });
     return txnRecord.id;
   }
@@ -72,7 +72,7 @@ export class PrismaPendingL1TransactionStorage
     if (!record) {
       return undefined;
     }
-    return this.mapper.mapOut(record);
+    return this.mapper.mapIn(record);
   }
 
   public async findByStatuses(
@@ -86,6 +86,6 @@ export class PrismaPendingL1TransactionStorage
         },
       },
     });
-    return rows.map((record) => this.mapper.mapOut(record));
+    return rows.map((record) => this.mapper.mapIn(record));
   }
 }
