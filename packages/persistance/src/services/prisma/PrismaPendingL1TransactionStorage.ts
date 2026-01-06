@@ -43,6 +43,7 @@ export class PrismaPendingL1TransactionStorage
         ...(updates.transaction !== undefined && {
           transaction: updates.transaction.toJSON(),
         }),
+        ...(updates.hash !== undefined && { hash: updates.hash }),
         ...(updates.lastError !== undefined && {
           lastError: updates.lastError,
         }),

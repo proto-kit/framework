@@ -1,4 +1,4 @@
-import { fetchAccount, PublicKey, Transaction } from "o1js";
+import { fetchAccount, PublicKey, Transaction, UInt64 } from "o1js";
 import { inject, injectable } from "tsyringe";
 import {
   EventsRecord,
@@ -20,6 +20,7 @@ import {
 import { FeeStrategy } from "../../protocol/baselayer/fees/FeeStrategy";
 import { MinaSigner } from "../MinaSigner";
 import { closeable, Closeable } from "../../sequencer/builder/Closeable";
+import { pollTransactionStatus } from "../utils/MinaTransactionUtils";
 
 import { L1TransactionRetryStrategy } from "./L1TransactionRetryStrategy";
 import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
@@ -42,7 +43,7 @@ export class MinaTransactionSender implements Closeable {
     ReplayingSingleUseEventEmitter<TxEvents>
   >();
 
-  private interval?: any;
+  private pollingTimeout?: NodeJS.Timeout;
 
   public constructor(
     private readonly creator: FlowCreator,
@@ -84,10 +85,10 @@ export class MinaTransactionSender implements Closeable {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
     const sender = publicKey.toBase58();
     const nonceNum = Number(nonce.toString());
-    // Set Fee [TODO] uncomment after the singer is implemented properly
-    // const unsignedTx = await transaction.setFee(UInt64.from(this.feeStrategy.getFee()));
-    // const signedTx = this.signer.signTransaction(unsignedTx);
-    const signedTx = transaction;
+    const unsignedTx = await transaction.setFee(
+      UInt64.from(this.feeStrategy.getFee())
+    );
+    const signedTx = this.signer.signTx(unsignedTx);
 
     // Setup emitter before queueing
     const emitterKey = this.getEmitterKey(sender, nonceNum);
@@ -178,6 +179,16 @@ export class MinaTransactionSender implements Closeable {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       return { transactionId: txId } as TxSendResult<Wait>;
     }
+    // sent to L1, wait for inclusion
+    await this.sendTransaction({
+      id: txnId,
+      status: "sent",
+      sender,
+      nonce: nonceNum,
+      attempts: 0,
+      transaction: result.transaction,
+      sentAt: new Date(),
+    });
 
     // If waitOnStatus is none, delete the emitter.
     this.activeEmitters.delete(emitterKey);
@@ -188,21 +199,22 @@ export class MinaTransactionSender implements Closeable {
 
   private startPolling() {
     const intervalMs = 5000;
-
-    this.interval = setInterval(async () => {
+    const poll = async () => {
       try {
         await this.processPendingTransactions();
       } catch (e) {
         log.error("Error in MinaTransactionSender polling loop", e);
+      } finally {
+        this.pollingTimeout = setTimeout(poll, intervalMs);
       }
-    }, intervalMs);
+    };
+    this.pollingTimeout = setTimeout(poll, intervalMs);
   }
 
   public async close(): Promise<void> {
-    if (this.interval !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      clearInterval(this.interval);
-      this.interval = undefined;
+    if (this.pollingTimeout !== undefined) {
+      clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = undefined;
     }
   }
 
@@ -218,6 +230,7 @@ export class MinaTransactionSender implements Closeable {
       (bySender[tx.sender] ??= []).push(tx);
     }
 
+    /* eslint-disable no-await-in-loop */
     for (const sender of Object.keys(bySender)) {
       // Sort in ascending order of nonce
       const txs = bySender[sender].sort((a, b) => a.nonce - b.nonce);
@@ -228,19 +241,38 @@ export class MinaTransactionSender implements Closeable {
       // transactions stays in queued state until the previous transaction is included or rejected
       const txToSend = txs[0];
       if (txToSend.status === "queued") {
-        // eslint-disable-next-line no-await-in-loop
         await this.sendTransaction(txToSend);
       }
       // If the transaction is sent and the emitter is not active,
-      // [TODO] check L1 for inclusion and retry if needed
-      // else if (
-      //   txToSend.status === "sent" &&
-      //   !this.activeEmitters.has(
-      //     this.getEmitterKey(txToSend.sender, txToSend.nonce)
-      //   )
-      // ) {
-      //   await this.sendTransaction(txToSend);
-      // }
+      else if (
+        txToSend.status === "sent" &&
+        !this.activeEmitters.has(
+          this.getEmitterKey(txToSend.sender, txToSend.nonce)
+        )
+      ) {
+        await this.checkSentTransactionStatusAndRetry(txToSend);
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+  }
+
+  private async checkSentTransactionStatusAndRetry(
+    txToSend: PendingL1TransactionRecord
+  ) {
+    // Check L1 for inclusion and retry if needed
+    if (txToSend.hash === undefined) {
+      // Transaction not found, send again
+      await this.retryTransaction(txToSend);
+      return;
+    }
+    const inclusionStatus = await pollTransactionStatus(txToSend.hash);
+    if (inclusionStatus === "included") {
+      await this.pendingStorage.update(txToSend.id, {
+        status: "included",
+      });
+    } else {
+      // Transaction not included, retry
+      await this.retryTransaction(txToSend);
     }
   }
 
@@ -257,6 +289,7 @@ export class MinaTransactionSender implements Closeable {
         attempts: record.attempts + 1,
         sentAt: new Date(),
         transaction: tx,
+        hash: pendingTx.hash,
       });
 
       log.info(

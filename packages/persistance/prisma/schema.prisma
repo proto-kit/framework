@@ -156,6 +156,7 @@ model PendingL1Transaction {
   attempts    Int
   status      String    @db.VarChar(32)
   transaction Json      @db.Json
+  hash        String?
   lastError   String?
   sentAt      DateTime?
 
