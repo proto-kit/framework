@@ -175,9 +175,9 @@ export class PrivateMempool
         previousBlock?.result.blockHashRoot ?? BlockHashMerkleTree.EMPTY_ROOT
       ),
       eternalTransactionsHash:
-        previousBlock?.block.toEternalTransactionsHash ?? Field(0),
-      transactionsHash: previousBlock?.block.transactionsHash ?? Field(0),
-      incomingMessagesHash: previousBlock?.block.toMessagesHash ?? Field(0),
+      previousBlock?.block.toEternalTransactionsHash !== undefined ? Field(previousBlock?.block.toEternalTransactionsHash) : Field(0),
+      transactionsHash: previousBlock?.block.transactionsHash !== undefined ? Field(previousBlock?.block.transactionsHash) : Field(0),
+      incomingMessagesHash: previousBlock?.block.toMessagesHash !== undefined ? Field(previousBlock?.block.toMessagesHash) : Field(0),
     };
 
     while (

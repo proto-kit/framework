@@ -35,6 +35,7 @@ import {
   TransactionExecutionResultStatus,
   TransactionExecutionService,
 } from "./TransactionExecutionService";
+import { FieldString } from "../../../helpers/utils";
 
 function isIncludedTxs(
   x: TransactionExecutionResultStatus
@@ -120,10 +121,10 @@ export class BlockProductionService {
     const blockState: BlockTrackers = {
       blockHashRoot: Field(lastResult.blockHashRoot),
       eternalTransactionsList: new TransactionHashList(
-        lastBlock.toEternalTransactionsHash
+        Field(lastBlock.toEternalTransactionsHash)
       ),
       transactionList: new TransactionHashList(),
-      incomingMessages: new MinaActionsHashList(lastBlock.toMessagesHash),
+      incomingMessages: new MinaActionsHashList(Field(lastBlock.toMessagesHash)),
     };
 
     // Get used networkState by executing beforeBlock() hooks
@@ -149,7 +150,7 @@ export class BlockProductionService {
       );
 
     const previousBlockHash =
-      lastResult.blockHash === 0n ? undefined : Field(lastResult.blockHash);
+      lastResult.blockHash === 0n ? undefined : FieldString(lastResult.blockHash);
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
@@ -164,16 +165,16 @@ export class BlockProductionService {
 
     const block: Omit<Block, "hash"> = {
       transactions: includedTransactions,
-      transactionsHash: newBlockState.transactionList.commitment,
+      transactionsHash: FieldString(newBlockState.transactionList.commitment),
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash:
-        newBlockState.eternalTransactionsList.commitment,
+        FieldString(newBlockState.eternalTransactionsList.commitment),
       height:
-        lastBlock.hash.toBigInt() !== 0n ? lastBlock.height.add(1) : Field(0),
-      fromBlockHashRoot: Field(lastResult.blockHashRoot),
+        FieldString(lastBlock.hash) !== "0" ? FieldString(BigInt(lastBlock.height) + 1n) : FieldString(0),
+      fromBlockHashRoot: FieldString(lastResult.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
-      fromStateRoot: Field(lastResult.stateRoot),
-      toMessagesHash: newBlockState.incomingMessages.commitment,
+      fromStateRoot: FieldString(lastResult.stateRoot),
+      toMessagesHash: FieldString(newBlockState.incomingMessages.commitment),
       previousBlockHash,
 
       networkState: {
@@ -183,7 +184,7 @@ export class BlockProductionService {
       beforeBlockStateTransitions,
     };
 
-    const hash = Block.hash(block);
+    const hash = Block.hash(block).toString();
 
     const includedTxs = executionResults.map((x) => {
       const txHash = match(x)

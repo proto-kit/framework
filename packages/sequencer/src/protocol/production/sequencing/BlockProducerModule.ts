@@ -155,7 +155,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         }
 
         log.info(
-          `Produced block #${block.height.toBigInt()} (${block.transactions.length} txs)`
+          `Produced block #${block.height} (${block.transactions.length} txs)`
         );
         this.prettyPrintBlockContents(block);
 

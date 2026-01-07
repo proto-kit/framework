@@ -75,7 +75,7 @@ export class HandlersExecutor<
   ) {
     await client.block.create({
       data: {
-        height: Number(block.block.height.toBigInt()),
+        height: Number(block.block.height),
       },
     });
   }

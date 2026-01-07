@@ -59,10 +59,10 @@ export class BlockTracingService {
   ): Promise<[BlockTracingState, BlockTrace]> {
     const publicInput: BlockProverPublicInput = new BlockProverPublicInput({
       stateRoot: state.stateRoot,
-      blockNumber: block.block.height,
-      blockHashRoot: block.block.fromBlockHashRoot,
-      eternalTransactionsHash: block.block.fromEternalTransactionsHash,
-      incomingMessagesHash: block.block.fromMessagesHash,
+      blockNumber: Field(block.block.height),
+      blockHashRoot: Field(block.block.fromBlockHashRoot),
+      eternalTransactionsHash: Field(block.block.fromEternalTransactionsHash),
+      incomingMessagesHash: Field(block.block.fromMessagesHash),
       transactionsHash: Field(0),
       networkStateHash: block.block.networkState.before.hash(),
       witnessedRootsHash: state.witnessedRoots.commitment,

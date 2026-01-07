@@ -29,18 +29,18 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
         ),
       },
 
-      hash: Field(input.hash),
-      height: Field(input.height),
-      fromEternalTransactionsHash: Field(input.fromEternalTransactionsHash),
-      toEternalTransactionsHash: Field(input.toEternalTransactionsHash),
-      fromBlockHashRoot: Field(input.fromBlockHashRoot),
-      fromMessagesHash: Field(input.fromMessagesHash),
-      toMessagesHash: Field(input.toMessagesHash),
-      fromStateRoot: Field(input.fromStateRoot),
+      hash: input.hash,
+      height: input.height.toString(),
+      fromEternalTransactionsHash: input.fromEternalTransactionsHash,
+      toEternalTransactionsHash: input.toEternalTransactionsHash,
+      fromBlockHashRoot: input.fromBlockHashRoot,
+      fromMessagesHash: input.fromMessagesHash,
+      toMessagesHash: input.toMessagesHash,
+      fromStateRoot: input.fromStateRoot,
 
-      transactionsHash: Field(input.transactionsHash),
+      transactionsHash: input.transactionsHash,
       previousBlockHash:
-        input.parentHash !== null ? Field(input.parentHash) : undefined,
+        input.parentHash !== null ? input.parentHash : undefined,
 
       beforeBlockStateTransitions: this.stArrayMapper.mapIn(
         input.beforeBlockStateTransitions
@@ -50,19 +50,19 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
 
   public mapOut(input: Block): PrismaBlock {
     return {
-      height: Number(input.height.toBigInt()),
+      height: Number(input.height),
       beforeNetworkState: NetworkState.toJSON(input.networkState.before),
       duringNetworkState: NetworkState.toJSON(input.networkState.during),
-      fromEternalTransactionsHash: input.fromEternalTransactionsHash.toString(),
-      toEternalTransactionsHash: input.toEternalTransactionsHash.toString(),
-      fromBlockHashRoot: input.fromBlockHashRoot.toString(),
-      fromMessagesHash: input.fromMessagesHash.toString(),
-      toMessagesHash: input.toMessagesHash.toString(),
-      fromStateRoot: input.fromStateRoot.toString(),
+      fromEternalTransactionsHash: input.fromEternalTransactionsHash,
+      toEternalTransactionsHash: input.toEternalTransactionsHash,
+      fromBlockHashRoot: input.fromBlockHashRoot,
+      fromMessagesHash: input.fromMessagesHash,
+      toMessagesHash: input.toMessagesHash,
+      fromStateRoot: input.fromStateRoot,
 
-      hash: input.hash.toString(),
-      transactionsHash: input.transactionsHash.toString(),
-      parentHash: input.previousBlockHash?.toString() ?? null,
+      hash: input.hash,
+      transactionsHash: input.transactionsHash,
+      parentHash: input.previousBlockHash ?? null,
       batchHeight: null,
 
       beforeBlockStateTransitions: this.stArrayMapper.mapOut(

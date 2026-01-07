@@ -10,6 +10,7 @@ import {
   InclusionStatus,
 } from "@proto-kit/sequencer";
 import { ModuleContainerLike } from "@proto-kit/common";
+import { Field } from "o1js";
 
 @injectable()
 export class InMemoryBlockExplorer
@@ -83,11 +84,11 @@ export class InMemoryBlockExplorer
     );
 
     return {
-      hash: block.hash,
-      previousBlockHash: block.previousBlockHash,
-      height: block.height,
+      hash: Field(block.hash),
+      previousBlockHash: block.previousBlockHash!==undefined ?  Field(block.previousBlockHash): undefined,
+      height: Field(block.height),
       transactions: clientTransactions,
-      transactionsHash: block.transactionsHash,
+      transactionsHash: Field(block.transactionsHash),
     };
   }
 }

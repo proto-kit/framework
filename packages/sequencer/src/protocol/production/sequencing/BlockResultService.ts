@@ -131,21 +131,21 @@ export class BlockResultService {
     );
 
     // TODO This can be optimized a lot (we are only interested in the root at this step)
-    await blockHashInMemoryStore.preloadKey(block.height.toBigInt());
+    await blockHashInMemoryStore.preloadKey(BigInt(block.height));
 
     const blockHashTree = new BlockHashMerkleTree(blockHashInMemoryStore);
 
     blockHashTree.setLeaf(
-      block.height.toBigInt(),
+      BigInt(block.height),
       new BlockHashTreeEntry({
         block: {
-          index: block.height,
-          transactionListHash: block.transactionsHash,
+          index: Field(block.height),
+          transactionListHash: Field(block.transactionsHash),
         },
         closed: Bool(true),
       }).hash()
     );
-    const blockHashWitness = blockHashTree.getWitness(block.height.toBigInt());
+    const blockHashWitness = blockHashTree.getWitness(BigInt(block.height));
     const newBlockHashRoot = blockHashTree.getRoot();
 
     return {
@@ -218,9 +218,9 @@ export class BlockResultService {
       {
         blockHashRoot,
         stateRoot: witnessedStateRoot,
-        incomingMessagesHash: block.toMessagesHash,
-        transactionsHash: block.transactionsHash,
-        eternalTransactionsHash: block.toEternalTransactionsHash,
+        incomingMessagesHash: Field(block.toMessagesHash),
+        transactionsHash: Field(block.transactionsHash),
+        eternalTransactionsHash: Field(block.toEternalTransactionsHash),
       },
       block.networkState.during,
       stateService
@@ -250,7 +250,7 @@ export class BlockResultService {
         afterBlockStateTransitions: stateTransitions.map((st) =>
           UntypedStateTransition.fromStateTransition(st)
         ),
-        blockHash: block.hash.toBigInt(),
+        blockHash: BigInt(block.hash),
       },
       treeStore: inMemoryStore,
       blockHashTreeStore: cachedBlockHashTreeStore,

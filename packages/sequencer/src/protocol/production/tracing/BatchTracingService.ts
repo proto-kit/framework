@@ -19,6 +19,7 @@ import {
   BlockTracingState,
 } from "./BlockTracingService";
 import { StateTransitionTracingService } from "./StateTransitionTracingService";
+import { Field } from "o1js";
 
 type BatchTracingState = Omit<BlockTracingState, "transactionList">;
 
@@ -40,11 +41,11 @@ export class BatchTracingService {
     return {
       pendingSTBatches: new AppliedBatchHashList(),
       witnessedRoots: new WitnessedRootHashList(),
-      stateRoot: block.block.fromStateRoot,
+      stateRoot: Field(block.block.fromStateRoot),
       eternalTransactionsList: new TransactionHashList(
-        block.block.fromEternalTransactionsHash
+        Field(block.block.fromEternalTransactionsHash)
       ),
-      incomingMessages: new MinaActionsHashList(block.block.fromMessagesHash),
+      incomingMessages: new MinaActionsHashList(Field(block.block.fromMessagesHash)),
       networkState: block.block.networkState.before,
     };
   }

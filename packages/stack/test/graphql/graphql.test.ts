@@ -222,7 +222,7 @@ describe("graphql client test", () => {
 
     const block = await trigger.produceBlock();
     const hash = block?.hash.toString()!;
-    const height = Number(block?.height.toBigInt());
+    const height = Number(block?.height);
 
     const hashResult = await appChain.query.explorer.getBlock({ hash: hash });
     const heightResult = await appChain.query.explorer.getBlock({
@@ -239,19 +239,19 @@ describe("graphql client test", () => {
     expect(blockTxHash).toBe(queryTxHash);
 
     // Block hashes should match
-    expect(block?.hash.toBigInt()).toBe(heightResult?.hash.toBigInt());
+    expect(block?.hash).toBe(heightResult?.hash.toString());
 
     // Block heights should match
-    expect(block?.height.toBigInt()).toBe(heightResult?.height.toBigInt());
+    expect(block?.height).toBe(heightResult?.height.toString());
 
     // Previous block hashes should match
-    expect(block?.previousBlockHash?.toBigInt()).toBe(
-      heightResult?.previousBlockHash?.toBigInt()
+    expect(block?.previousBlockHash).toBe(
+      heightResult?.previousBlockHash?.toString()
     );
 
     // Transaction hashes should match
-    expect(block?.transactionsHash.toBigInt()).toBe(
-      heightResult?.transactionsHash.toBigInt()
+    expect(block?.transactionsHash).toBe(
+      heightResult?.transactionsHash.toString()
     );
 
     // Both query methods should return the same result

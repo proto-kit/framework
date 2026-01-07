@@ -148,8 +148,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const { block } = blocks[0];
 
-      expect(block.hash.toBigInt()).toStrictEqual(
-        generatedBlock.hash.toBigInt()
+      expect(block.hash).toStrictEqual(
+        generatedBlock.hash
       );
 
       const blockStorage = sequencer.resolve("BlockStorage") as BlockStorage;
@@ -158,8 +158,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
       );
 
       expectDefined(block2);
-      expect(block2.hash.toBigInt()).toStrictEqual(
-        generatedBlock.hash.toBigInt()
+      expect(block2.hash).toStrictEqual(
+        generatedBlock.hash
       );
 
       const stateDiff = collectStateDiff(

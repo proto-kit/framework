@@ -40,7 +40,7 @@ export class TimedProcessorTrigger extends ProcessorModule<TimedProcessorTrigger
       return false;
     }
 
-    if (lastProcessedBlockHeight === Number(block?.block.height.toBigInt())) {
+    if (lastProcessedBlockHeight === Number(block?.block.height)) {
       throw new Error(
         `Block height #${lastProcessedBlockHeight} was already processed`
       );
