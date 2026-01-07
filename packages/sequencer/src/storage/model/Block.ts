@@ -4,6 +4,7 @@ import {
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
   NetworkState,
+  NetworkStateJson
 } from "@proto-kit/protocol";
 import { LinkedMerkleTree } from "@proto-kit/common";
 
@@ -36,8 +37,8 @@ export interface Block {
   previousBlockHash: FieldString | undefined;
   height: FieldString;
   networkState: {
-    before: NetworkState;
-    during: NetworkState;
+    before: NetworkStateJson;
+    during: NetworkStateJson;
   };
 
   transactions: TransactionExecutionResult[];
@@ -102,8 +103,8 @@ export const BlockWithResult = {
         toEternalTransactionsHash: FieldString(0),
         transactions: [],
         networkState: {
-          before: NetworkState.empty(),
-          during: NetworkState.empty(),
+          before: NetworkState.toJSON(NetworkState.empty()),
+          during: NetworkState.toJSON(NetworkState.empty()) ,
         },
         fromBlockHashRoot: FieldString(BlockHashMerkleTree.EMPTY_ROOT),
         fromMessagesHash: FieldString(0),
