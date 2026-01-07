@@ -1,7 +1,7 @@
 import { singleton } from "tsyringe";
 import { Block } from "@proto-kit/sequencer";
 import { Block as PrismaBlock } from "@prisma/client";
-import { NetworkState } from "@proto-kit/protocol";
+import { NetworkState, NetworkStateJson } from "@proto-kit/protocol";
 import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
@@ -19,14 +19,14 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       transactions: [],
 
       networkState: {
-        before: new NetworkState(
+        before: 
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          NetworkState.fromJSON(input.beforeNetworkState as any)
-        ),
-        during: new NetworkState(
+          input.beforeNetworkState as NetworkStateJson
+        ,
+        during:
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          NetworkState.fromJSON(input.duringNetworkState as any)
-        ),
+          input.duringNetworkState as NetworkStateJson
+
       },
 
       hash: input.hash,
@@ -51,8 +51,8 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
   public mapOut(input: Block): PrismaBlock {
     return {
       height: Number(input.height),
-      beforeNetworkState: NetworkState.toJSON(input.networkState.before),
-      duringNetworkState: NetworkState.toJSON(input.networkState.during),
+      beforeNetworkState: input.networkState.before,
+      duringNetworkState: input.networkState.during,
       fromEternalTransactionsHash: input.fromEternalTransactionsHash,
       toEternalTransactionsHash: input.toEternalTransactionsHash,
       fromBlockHashRoot: input.fromBlockHashRoot,

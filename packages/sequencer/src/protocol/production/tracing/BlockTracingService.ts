@@ -1,6 +1,7 @@
 import {
   BlockProverPublicInput,
   BlockProverState,
+  NetworkState,
   WitnessedRootWitness,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
@@ -50,7 +51,7 @@ export class BlockTracingService {
   ) {}
 
   @trace("batch.trace.block", ([, block]) => ({
-    height: block.block.height.toString(),
+    height: block.block.height,
   }))
   public async traceBlock(
     state: BlockTracingState,
@@ -64,7 +65,9 @@ export class BlockTracingService {
       eternalTransactionsHash: Field(block.block.fromEternalTransactionsHash),
       incomingMessagesHash: Field(block.block.fromMessagesHash),
       transactionsHash: Field(0),
-      networkStateHash: block.block.networkState.before.hash(),
+      networkStateHash: new NetworkState(
+        NetworkState.fromJSON(block.block.networkState.before)
+      ).hash(),
       witnessedRootsHash: state.witnessedRoots.commitment,
       pendingSTBatchesHash: state.pendingSTBatches.commitment,
     });
@@ -75,7 +78,9 @@ export class BlockTracingService {
 
     const blockTrace = {
       publicInput,
-      networkState: block.block.networkState.before,
+      networkState: new NetworkState(
+        NetworkState.fromJSON(block.block.networkState.before)
+      ) ,
       deferSTProof: Bool(!includeSTProof),
       blockWitness: block.result.blockHashWitness,
       startingStateBeforeHook,
@@ -87,7 +92,9 @@ export class BlockTracingService {
       ),
       applied: Bool(true),
     });
-    state.networkState = block.block.networkState.during;
+    state.networkState = new NetworkState(
+        NetworkState.fromJSON(block.block.networkState.during)
+      ) ;
 
     const [afterState, transactionTraces] = await yieldSequential(
       chunk(block.block.transactions, 2),
@@ -144,7 +151,7 @@ export class BlockTracingService {
           afterBlockRootWitness,
         },
         transactions: transactionTraces,
-        height: block.block.height.toString(),
+        height: block.block.height,
       },
     ];
   }

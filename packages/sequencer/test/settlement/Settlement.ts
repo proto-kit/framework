@@ -249,7 +249,7 @@ export const settlementTestFn = (
     const [block, batch] = result;
 
     console.log(
-      `block ${block?.height.toString()} ${block?.fromMessagesHash.toString()} -> ${block?.toMessagesHash.toString()}`
+      `block ${block?.height} ${block?.fromMessagesHash} -> ${block?.toMessagesHash}`
     );
     const proof = await blockSerializer
       .getBlockProofSerializer()
@@ -686,7 +686,7 @@ export const settlementTestFn = (
       expectDefined(batch);
 
       console.log("Test networkstate");
-      console.log(NetworkState.toJSON(block.networkState.during));
+      console.log(block.networkState.during);
       console.log(NetworkState.toJSON(batch.toNetworkState));
 
       const settlementResult = await trigger.settle(batch, {

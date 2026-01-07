@@ -141,7 +141,7 @@ export class BatchProducerModule extends SequencerModule {
   ): Promise<BatchMetadata | undefined> {
     const batch = await this.computeBatch(blocks, height);
 
-    const blockHashes = blocks.map((bundle) => bundle.block.hash.toString());
+    const blockHashes = blocks.map((bundle) => bundle.block.hash);
 
     const jsonProof = this.blockProofSerializer
       .getBlockProofSerializer()
@@ -196,7 +196,7 @@ export class BatchProducerModule extends SequencerModule {
 
     const proof = await this.batchFlow.executeBatch(trace, batchId);
 
-    const fromNetworkState = blocks[0].block.networkState.before;
+    const fromNetworkState = new NetworkState(NetworkState.fromJSON(blocks[0].block.networkState.before));
     const toNetworkState = blocks.at(-1)!.result.afterNetworkState;
 
     return {

@@ -101,8 +101,8 @@ describe("prisma integration", () => {
         block.transactions[0].tx.hash().toString()
       );
 
-      expect(retrievedBlock.hash.toString()).toStrictEqual(
-        block.hash.toString()
+      expect(retrievedBlock.hash).toStrictEqual(
+        block.hash
       );
 
       // Check that events match
@@ -111,24 +111,12 @@ describe("prisma integration", () => {
         block.transactions[0].events
       );
 
-      expect(
-        NetworkState.toFields(retrievedBlock.networkState.before).map((x) =>
-          x.toString()
-        )
-      ).toStrictEqual(
-        NetworkState.toFields(block.networkState.before).map((x) =>
-          x.toString()
-        )
+      expect(retrievedBlock.networkState.before).toStrictEqual(
+        block.networkState.before
       );
-      expect(
-        NetworkState.toFields(retrievedBlock.networkState.during).map((x) =>
-          x.toString()
-        )
-      ).toStrictEqual(
-        NetworkState.toFields(block.networkState.during).map((x) =>
-          x.toString()
-        )
-      );
+      expect(retrievedBlock.networkState.during).toStrictEqual(
+        block.networkState.during)
+      
     });
 
     it("should save and retrieve the same batch", async () => {

@@ -178,8 +178,8 @@ export class BlockProductionService {
       previousBlockHash,
 
       networkState: {
-        before: new NetworkState(lastResult.afterNetworkState),
-        during: networkState,
+        before: NetworkState.toJSON(lastResult.afterNetworkState),
+        during: NetworkState.toJSON(networkState),
       },
       beforeBlockStateTransitions,
     };
