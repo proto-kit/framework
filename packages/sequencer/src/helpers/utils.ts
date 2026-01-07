@@ -204,4 +204,4 @@ export type FieldString = string;
  * @param value Value to be converted to {@link Field}.
  * @returns 
  */
-export const FieldString = (value: number | string | bigint): FieldString => String(value);
+export const FieldString = (value: number | string | bigint | Field): FieldString => String(value);
