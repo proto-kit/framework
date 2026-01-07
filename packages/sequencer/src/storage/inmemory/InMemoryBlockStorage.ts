@@ -47,7 +47,7 @@ export class InMemoryBlockStorage implements BlockStorage, BlockQueue {
     if (result !== undefined) {
       if (result.result === undefined) {
         throw new Error(
-          `Block result for block ${result.block.height.toString()} not found`
+          `Block result for block ${result.block.height} not found`
         );
       }
       return {
@@ -65,7 +65,7 @@ export class InMemoryBlockStorage implements BlockStorage, BlockQueue {
     if (latestBatch !== undefined) {
       cursor = this.blocks.reduce(
         (c, block, index) =>
-          latestBatch.blockHashes.includes(block.hash.toString())
+          latestBatch.blockHashes.includes(block.hash)
             ? index + 1
             : c,
         0
@@ -100,6 +100,6 @@ export class InMemoryBlockStorage implements BlockStorage, BlockQueue {
   }
 
   public async getBlock(hash: string): Promise<Block | undefined> {
-    return this.blocks.find((block) => block.hash.toString() === hash);
+    return this.blocks.find((block) => block.hash === hash);
   }
 }

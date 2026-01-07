@@ -10,7 +10,7 @@ import { BatchTransactionModel } from "./model/BatchTransactionModel";
 export class BlockModel {
   public static fromServiceLayerModel(block: Block) {
     return new BlockModel(
-      Number(block.networkState.during.block.height.toBigInt()),
+      Number(block.networkState.during.block.height),
       block.transactions.map((tx) =>
         BatchTransactionModel.fromServiceLayerModel({
           tx: tx.tx,
@@ -18,9 +18,9 @@ export class BlockModel {
           statusMessage: tx.statusMessage,
         })
       ),
-      block.transactionsHash.toString(),
-      block.hash.toString(),
-      block.previousBlockHash?.toString()
+      block.transactionsHash,
+      block.hash,
+      block.previousBlockHash
     );
   }
 

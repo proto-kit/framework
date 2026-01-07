@@ -87,7 +87,7 @@ describe("HandlersModule", () => {
           await client.balance.create({
             data: {
               address: from.toBase58(),
-              height: Number(block.height.toString()),
+              height: Number(block.height),
               amount: newFromBalance > 0n ? newFromBalance.toString() : "0",
             },
           });
@@ -109,7 +109,7 @@ describe("HandlersModule", () => {
           await client.balance.create({
             data: {
               address: to.toBase58(),
-              height: Number(block.height.toString()),
+              height: Number(block.height),
               amount: newToBalance > 0n ? newToBalance.toString() : "0",
             },
           });

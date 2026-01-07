@@ -88,7 +88,7 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
         const encoded = this.transactionResultMapper.mapOut(tx);
         return {
           ...encoded[0],
-          blockHash: block.hash.toString(),
+          blockHash: block.hash,
         };
       }
     );
@@ -191,7 +191,7 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
     if (result !== undefined) {
       if (result.result === undefined) {
         throw new Error(
-          `Block result for block ${result.block.height.toString()} not found`
+          `Block result for block ${result.block.height} not found`
         );
       }
       return {

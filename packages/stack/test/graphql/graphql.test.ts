@@ -221,7 +221,7 @@ describe("graphql client test", () => {
     await tx.send();
 
     const block = await trigger.produceBlock();
-    const hash = block?.hash.toString()!;
+    const hash = block?.hash!;
     const height = Number(block?.height);
 
     const hashResult = await appChain.query.explorer.getBlock({ hash: hash });

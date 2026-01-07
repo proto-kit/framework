@@ -184,7 +184,7 @@ export class BlockResultService {
   }
 
   @trace("block.result.generate", ([block]) => ({
-    height: block.height.toString(),
+    height: block.height,
   }))
   public async generateMetadataForNextBlock(
     block: Block,
@@ -222,7 +222,9 @@ export class BlockResultService {
         transactionsHash: Field(block.transactionsHash),
         eternalTransactionsHash: Field(block.toEternalTransactionsHash),
       },
-      block.networkState.during,
+      new NetworkState(
+       NetworkState.fromJSON(block.networkState.during) 
+      ),
       stateService
     );
 

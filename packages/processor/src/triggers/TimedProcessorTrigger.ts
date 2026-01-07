@@ -46,13 +46,13 @@ export class TimedProcessorTrigger extends ProcessorModule<TimedProcessorTrigger
       );
     }
 
-    log.info(`Processing block #${block?.block.height.toString()}`);
+    log.info(`Processing block #${block?.block.height}`);
     const startTime = Date.now();
 
     await this.handlersExecutor.execute(block);
 
     log.info(
-      `Block #${block?.block.height.toString()} processed in ${Date.now() - startTime}ms`
+      `Block #${block?.block.height} processed in ${Date.now() - startTime}ms`
     );
 
     return true;

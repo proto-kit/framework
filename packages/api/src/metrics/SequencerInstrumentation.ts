@@ -15,7 +15,7 @@ export class SequencerInstrumentation extends InstrumentationBase<{}> {
     super("protokit", "canary", {});
     if (trigger !== undefined) {
       trigger.events.on("block-produced", (block) => {
-        this.blockProduced(parseInt(block.height.toString(), 10));
+        this.blockProduced(parseInt(block.height, 10));
       });
     }
   }

@@ -110,10 +110,10 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     }
   }
 
-  @trace("block.result", ([block]) => ({ height: block.height.toString() }))
+  @trace("block.result", ([block]) => ({ height: block.height }))
   public async generateMetadata(block: Block): Promise<BlockResult> {
     const traceMetadata = {
-      height: block.height.toString(),
+      height: block.height,
     };
 
     const { result, blockHashTreeStore, treeStore, stateService } =
@@ -193,7 +193,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       metadata = BlockWithResult.createEmpty();
     } else if (parentBlock.result === undefined) {
       throw new Error(
-        `Metadata for block at height ${parentBlock.block.height.toString()} not available`
+        `Metadata for block at height ${parentBlock.block.height} not available`
       );
     } else {
       metadata = {
@@ -248,7 +248,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
             await this.blockQueue.pushBlock(block);
           }),
         {
-          height: block.height.toString(),
+          height: block.height,
         }
       );
 

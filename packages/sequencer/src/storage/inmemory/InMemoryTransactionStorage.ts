@@ -105,10 +105,10 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       );
       if (txResult !== undefined) {
         // eslint-disable-next-line no-await-in-loop
-        const batch = await this.findBatch(block.hash.toString());
+        const batch = await this.findBatch(block.hash);
         return {
           transaction: txResult.tx,
-          block: block.transactionsHash.toString(),
+          block: block.transactionsHash,
           batch,
         };
       }
