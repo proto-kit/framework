@@ -156,39 +156,52 @@ export class MinaTransactionSender implements Closeable {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       return { transactionId: txnId } as TxSendResult<Wait>;
     }
-
+    let waitPromise: Promise<TxSendResult<"sent" | "included">> | undefined =
+      undefined;
     if (waitOnStatus !== "none") {
       const waitInstruction: "sent" | "included" = waitOnStatus;
-      const { transactionId: txId } = await new Promise<
-        TxSendResult<"sent" | "included">
-      >((resolve, reject) => {
-        emitter.on(waitInstruction, (txSendResult) => {
-          log.info(`Tx ${txnId} ${waitInstruction}`);
-          resolve({ transactionId: txnId });
-          if (waitInstruction === "included") {
+      waitPromise = new Promise<TxSendResult<"sent" | "included">>(
+        (resolve, reject) => {
+          emitter.on(waitInstruction, (txSendResult) => {
+            log.info(`Tx ${txnId} ${waitInstruction}`);
+            resolve({ transactionId: txnId });
+            if (waitInstruction === "included") {
+              this.activeEmitters.delete(emitterKey);
+            }
+          });
+          emitter.on("rejected", (error) => {
+            reject(error);
             this.activeEmitters.delete(emitterKey);
-          }
-        });
-        emitter.on("rejected", (error) => {
-          reject(error);
-          this.activeEmitters.delete(emitterKey);
-        });
-      });
+          });
+        }
+      );
+    }
 
-      // Yeah that's not super clean, but couldn't figure out a better way tbh
+    // Send immediately only if there is no pending tx with a lower nonce for this sender.
+    const pendingForSender = (
+      await this.pendingStorage.findByStatuses(["queued", "sent"])
+    ).filter((r) => r.sender === sender);
+    const hasLowerNoncePending = pendingForSender.some(
+      (r) => r.id !== txnId && r.nonce < nonceNum
+    );
+
+    if (!hasLowerNoncePending) {
+      await this.sendTransaction({
+        id: txnId,
+        status: "queued",
+        sender,
+        nonce: nonceNum,
+        attempts: 0,
+        transaction: result.transaction,
+        sentAt: new Date(),
+      });
+    }
+
+    if (waitPromise) {
+      const { transactionId: txId } = await waitPromise;
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       return { transactionId: txId } as TxSendResult<Wait>;
     }
-    // sent to L1, wait for inclusion
-    await this.sendTransaction({
-      id: txnId,
-      status: "sent",
-      sender,
-      nonce: nonceNum,
-      attempts: 0,
-      transaction: result.transaction,
-      sentAt: new Date(),
-    });
 
     // If waitOnStatus is none, delete the emitter.
     this.activeEmitters.delete(emitterKey);
@@ -206,9 +219,11 @@ export class MinaTransactionSender implements Closeable {
         log.error("Error in MinaTransactionSender polling loop", e);
       } finally {
         this.pollingTimeout = setTimeout(poll, intervalMs);
+        this.pollingTimeout.unref?.(); // important for unit tests.
       }
     };
     this.pollingTimeout = setTimeout(poll, intervalMs);
+    this.pollingTimeout.unref?.();
   }
 
   public async close(): Promise<void> {

@@ -1,3 +1,3 @@
-import console from "console";
+import "reflect-metadata";
 
-global.console = console;
+globalThis.console = console;
