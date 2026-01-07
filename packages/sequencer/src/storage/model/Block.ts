@@ -9,6 +9,7 @@ import { LinkedMerkleTree } from "@proto-kit/common";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { UntypedStateTransition } from "../../protocol/production/helpers/UntypedStateTransition";
+import { FieldString } from "../../helpers/utils";
 
 export interface StateTransitionBatch {
   stateTransitions: UntypedStateTransition[];
@@ -31,23 +32,23 @@ export interface TransactionExecutionResult {
 // TODO Why is Block using Fields, but BlockResult bigints? Align that towards the best option
 
 export interface Block {
-  hash: Field;
-  previousBlockHash: Field | undefined;
-  height: Field;
+  hash: FieldString;
+  previousBlockHash: FieldString | undefined;
+  height: FieldString;
   networkState: {
     before: NetworkState;
     during: NetworkState;
   };
 
   transactions: TransactionExecutionResult[];
-  transactionsHash: Field;
+  transactionsHash: FieldString;
 
-  fromEternalTransactionsHash: Field;
-  fromBlockHashRoot: Field;
-  fromMessagesHash: Field;
-  fromStateRoot: Field;
-  toEternalTransactionsHash: Field;
-  toMessagesHash: Field;
+  fromEternalTransactionsHash: FieldString;
+  fromBlockHashRoot: FieldString;
+  fromMessagesHash: FieldString;
+  fromStateRoot: FieldString;
+  toEternalTransactionsHash: FieldString;
+  toMessagesHash: FieldString;
 
   beforeBlockStateTransitions: UntypedStateTransition[];
 }
@@ -59,7 +60,7 @@ export const Block = {
   },
 
   hash(block: Omit<Block, "hash">): Field {
-    return Block.calculateHash(block.height, block.transactionsHash);
+    return Block.calculateHash(Field(block.height), Field(block.transactionsHash));
   },
 };
 
@@ -93,21 +94,21 @@ export const BlockWithResult = {
   createEmpty: () =>
     ({
       block: {
-        hash: Field(0),
+        hash: FieldString(0),
 
-        height: Field(0),
-        transactionsHash: Field(0),
-        fromEternalTransactionsHash: Field(0),
-        toEternalTransactionsHash: Field(0),
+        height: FieldString(0),
+        transactionsHash: FieldString(0),
+        fromEternalTransactionsHash: FieldString(0),
+        toEternalTransactionsHash: FieldString(0),
         transactions: [],
         networkState: {
           before: NetworkState.empty(),
           during: NetworkState.empty(),
         },
-        fromBlockHashRoot: Field(BlockHashMerkleTree.EMPTY_ROOT),
-        fromMessagesHash: Field(0),
-        fromStateRoot: LinkedMerkleTree.EMPTY_ROOT,
-        toMessagesHash: ACTIONS_EMPTY_HASH,
+        fromBlockHashRoot: FieldString(BlockHashMerkleTree.EMPTY_ROOT),
+        fromMessagesHash: FieldString(0),
+        fromStateRoot: FieldString(LinkedMerkleTree.EMPTY_ROOT),
+        toMessagesHash: FieldString(ACTIONS_EMPTY_HASH),
         beforeBlockStateTransitions: [],
 
         previousBlockHash: undefined,
