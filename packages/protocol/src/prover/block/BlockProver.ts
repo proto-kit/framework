@@ -382,7 +382,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
       pendingSTBatchesHash: args.pendingSTBatchesHash,
       witnessedRootsHash: args.witnessedRootsHash,
     });
-    Provable.log("Pushing", isNotEmptyBlock, bundle);
     state.bundleList.pushIf(bundle, isNotEmptyBlock);
 
     // 3.
