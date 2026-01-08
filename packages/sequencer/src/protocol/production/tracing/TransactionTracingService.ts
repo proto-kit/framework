@@ -1,39 +1,30 @@
 import {
   addTransactionToBundle,
-  BlockProverMultiTransactionExecutionData,
-  BlockProverPublicInput,
-  BlockProverSingleTransactionExecutionData,
   NetworkState,
+  TransactionProverArguments,
+  TransactionProverPublicInput,
+  TransactionProverState,
   TransactionProverTransactionArguments,
 } from "@proto-kit/protocol";
-import { Bool, Field } from "o1js";
-import { MAX_FIELD } from "@proto-kit/common";
+import { Bool } from "o1js";
 import { toStateTransitionsHash } from "@proto-kit/module";
 import { injectable } from "tsyringe";
 
 import { TransactionExecutionResult } from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import type { RuntimeProofParameters } from "../tasks/RuntimeProvingTask";
-import {
-  TransactionProverTaskParameters,
-  TransactionProvingType,
-} from "../tasks/serializers/types/TransactionProvingTypes";
+import { TransactionProverTaskParameters } from "../tasks/serializers/types/TransactionProvingTypes";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
 
-import type { BlockTracingState, TaskStateRecord } from "./BlockTracingService";
+import type { TaskStateRecord } from "./BlockTracingService";
 
-export type TransactionTrace =
-  | {
-      type: TransactionProvingType.SINGLE;
-      transaction: TransactionProverTaskParameters<BlockProverSingleTransactionExecutionData>;
-      runtime: [RuntimeProofParameters];
-    }
-  | {
-      type: TransactionProvingType.MULTI;
-      transaction: TransactionProverTaskParameters<BlockProverMultiTransactionExecutionData>;
-      runtime: [RuntimeProofParameters, RuntimeProofParameters];
-    };
+export type TransactionTrace = {
+  transaction: TransactionProverTaskParameters;
+  runtime: RuntimeProofParameters;
+};
+
+export type TransactionTracingState = TransactionProverState;
 
 export function collectStartingState(
   stateTransitions: UntypedStateTransition[]
@@ -76,23 +67,17 @@ export class TransactionTracingService {
   }
 
   private getTransactionProofPublicInput(
-    previousState: BlockTracingState
-  ): BlockProverPublicInput {
+    previousState: TransactionTracingState
+  ): TransactionProverPublicInput {
     return {
-      stateRoot: previousState.stateRoot,
-      transactionsHash: previousState.transactionList.commitment,
+      bundlesHash: previousState.bundleList.commitment,
       eternalTransactionsHash: previousState.eternalTransactionsList.commitment,
       incomingMessagesHash: previousState.incomingMessages.commitment,
-      networkStateHash: previousState.networkState.hash(),
-      witnessedRootsHash: previousState.witnessedRoots.commitment,
-      pendingSTBatchesHash: previousState.pendingSTBatches.commitment,
-      blockHashRoot: Field(0),
-      blockNumber: MAX_FIELD,
     };
   }
 
   private appendTransactionToState(
-    previousState: BlockTracingState,
+    previousState: TransactionTracingState,
     transaction: TransactionExecutionResult
   ) {
     // TODO Remove this call and instead reuse results from sequencing
@@ -128,7 +113,8 @@ export class TransactionTracingService {
   }
 
   private async traceTransaction(
-    previousState: BlockTracingState,
+    previousState: TransactionTracingState,
+    networkState: NetworkState,
     transaction: TransactionExecutionResult
   ) {
     const beforeHookStartingState = collectStartingState(
@@ -137,90 +123,61 @@ export class TransactionTracingService {
 
     const runtimeTrace1 = this.createRuntimeProofParams(
       transaction,
-      previousState.networkState
+      networkState
     );
 
     const afterHookStartingState = collectStartingState(
       transaction.stateTransitions[2].stateTransitions.flat()
     );
 
+    const args: TransactionProverArguments = {
+      networkState: networkState,
+      transactionHash: previousState.transactionList.commitment,
+      pendingSTBatchesHash: previousState.pendingSTBatches.commitment,
+      witnessedRootsHash: previousState.witnessedRoots.commitment,
+      bundleListPreimage: previousState.bundleList.preimage!,
+    };
+
     const newState = this.appendTransactionToState(previousState, transaction);
+
+    newState.bundleList.addToBundle(newState, networkState);
 
     return {
       state: newState,
       runtime: runtimeTrace1,
       startingState: [beforeHookStartingState, afterHookStartingState],
+      args,
     };
   }
 
-  public async createSingleTransactionTrace(
-    previousState: BlockTracingState,
+  public async createTransactionTrace(
+    previousState: TransactionTracingState,
+    networkState: NetworkState,
     transaction: TransactionExecutionResult
-  ): Promise<[BlockTracingState, TransactionTrace]> {
+  ): Promise<[TransactionTracingState, TransactionTrace]> {
     const publicInput = this.getTransactionProofPublicInput(previousState);
 
     const {
       state: newState,
       startingState,
       runtime,
-    } = await this.traceTransaction(previousState, transaction);
+      args,
+    } = await this.traceTransaction(previousState, networkState, transaction);
 
-    const transactionTrace: TransactionProverTaskParameters<BlockProverSingleTransactionExecutionData> =
-      {
-        executionData: {
-          transaction: await this.getTransactionData(transaction.tx),
-          networkState: previousState.networkState,
-        },
-        startingState,
-        publicInput,
-      };
+    const transactionTrace: TransactionProverTaskParameters = {
+      executionData: {
+        transaction: await this.getTransactionData(transaction.tx),
+        args,
+      },
+      startingState,
+      publicInput,
+    };
 
     return [
       newState,
       {
-        type: TransactionProvingType.SINGLE,
         transaction: transactionTrace,
-        runtime: [runtime],
-      },
-    ];
-  }
-
-  public async createMultiTransactionTrace(
-    previousState: BlockTracingState,
-    transaction1: TransactionExecutionResult,
-    transaction2: TransactionExecutionResult
-  ): Promise<[BlockTracingState, TransactionTrace]> {
-    const publicInput = this.getTransactionProofPublicInput(previousState);
-
-    const {
-      state: tmpState,
-      startingState: startingState1,
-      runtime: runtime1,
-    } = await this.traceTransaction(previousState, transaction1);
-
-    const {
-      state: resultState,
-      startingState: startingState2,
-      runtime: runtime2,
-    } = await this.traceTransaction(tmpState, transaction2);
-
-    const transactionTrace: TransactionProverTaskParameters<BlockProverMultiTransactionExecutionData> =
-      {
-        executionData: {
-          transaction1: await this.getTransactionData(transaction1.tx),
-          transaction2: await this.getTransactionData(transaction2.tx),
-          networkState: previousState.networkState,
-        },
-        startingState: [...startingState1, ...startingState2],
-        publicInput,
-      };
-
-    return [
-      resultState,
-      {
-        type: TransactionProvingType.MULTI,
-        transaction: transactionTrace,
-        runtime: [runtime1, runtime2],
+        runtime,
       },
     ];
   }
