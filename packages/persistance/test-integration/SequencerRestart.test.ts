@@ -40,7 +40,7 @@ describe("sequencer restart", () => {
   };
 
   const teardown = async () => {
-    await appChain.sequencer.resolve("Database").close();
+    await appChain.close();
   };
 
   beforeAll(async () => {

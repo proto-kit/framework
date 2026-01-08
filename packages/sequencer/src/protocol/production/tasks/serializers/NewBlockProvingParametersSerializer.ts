@@ -1,4 +1,5 @@
 import {
+  BlockArguments,
   BlockHashMerkleTreeWitness,
   BlockProverPublicInput,
   NetworkState,
@@ -9,7 +10,6 @@ import {
   TransactionProof,
   TransactionProverPublicInput,
   TransactionProverPublicOutput,
-  WitnessedRootWitness,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
 
@@ -30,10 +30,13 @@ interface JsonType {
     publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
     networkState: ReturnType<typeof NetworkState.toJSON>;
     blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
-    startingStateBeforeHook: JSONEncodableState;
-    startingStateAfterHook: JSONEncodableState;
     deferSTProof: boolean;
-    afterBlockRootWitness: ReturnType<typeof WitnessedRootWitness.toJSON>;
+    deferTransactionProof: boolean;
+    blocks: {
+      startingStateBeforeHook: JSONEncodableState;
+      startingStateAfterHook: JSONEncodableState;
+      args: ReturnType<typeof BlockArguments.toJSON>;
+    }[];
   };
 }
 
@@ -71,19 +74,22 @@ export class NewBlockProvingParametersSerializer
           input.params.blockWitness
         ),
 
-        startingStateBeforeHook: DecodedStateSerializer.toJSON(
-          input.params.startingStateBeforeHook
-        ),
+        blocks: input.params.blocks.map((block) => {
+          return {
+            startingStateBeforeHook: DecodedStateSerializer.toJSON(
+              block.startingStateBeforeHook
+            ),
 
-        startingStateAfterHook: DecodedStateSerializer.toJSON(
-          input.params.startingStateAfterHook
-        ),
+            startingStateAfterHook: DecodedStateSerializer.toJSON(
+              block.startingStateAfterHook
+            ),
+
+            args: BlockArguments.toJSON(block.args),
+          };
+        }),
 
         deferSTProof: input.params.deferSTProof.toBoolean(),
-
-        afterBlockRootWitness: WitnessedRootWitness.toJSON(
-          input.params.afterBlockRootWitness
-        ),
+        deferTransactionProof: input.params.deferTransactionProof.toBoolean(),
       },
     } satisfies JsonType);
   }
@@ -108,19 +114,22 @@ export class NewBlockProvingParametersSerializer
           BlockHashMerkleTreeWitness.fromJSON(jsonObject.params.blockWitness)
         ),
 
-        startingStateBeforeHook: DecodedStateSerializer.fromJSON(
-          jsonObject.params.startingStateBeforeHook
-        ),
+        blocks: jsonObject.params.blocks.map((block) => {
+          return {
+            startingStateBeforeHook: DecodedStateSerializer.fromJSON(
+              block.startingStateBeforeHook
+            ),
 
-        startingStateAfterHook: DecodedStateSerializer.fromJSON(
-          jsonObject.params.startingStateBeforeHook
-        ),
+            startingStateAfterHook: DecodedStateSerializer.fromJSON(
+              block.startingStateBeforeHook
+            ),
+
+            args: BlockArguments.fromJSON(block.args),
+          };
+        }),
 
         deferSTProof: Bool(jsonObject.params.deferSTProof),
-
-        afterBlockRootWitness: WitnessedRootWitness.fromJSON(
-          jsonObject.params.afterBlockRootWitness
-        ),
+        deferTransactionProof: Bool(jsonObject.params.deferTransactionProof),
       },
     };
   }

@@ -1,5 +1,5 @@
 import { beforeEach } from "@jest/globals";
-import { Field, Provable } from "o1js";
+import { Field } from "o1js";
 
 import {
   createMerkleTree,
