@@ -23,13 +23,19 @@ export type VerifiedTransition<T> = {
  * Utilities for creating a hash list from a given value type.
  */
 export abstract class ProvableHashList<Value> {
+  public commitment: Field;
+
   public constructor(
     protected readonly valueType: ProvablePure<Value>,
-    public commitment: Field = Field(0),
+    commitment?: Field | undefined,
     private unconstrainedList: Unconstrained<
       ProvableHashListData<Value>[]
     > = Unconstrained.from([])
-  ) {}
+  ) {
+    this.commitment = commitment ?? this.empty();
+  }
+
+  protected abstract empty(): Field;
 
   protected abstract hash(elements: Field[]): Field;
 
@@ -61,11 +67,24 @@ export abstract class ProvableHashList<Value> {
     this.commitment = to;
   }
 
+  public fastForwardIf(
+    transition: VerifiedTransition<Field>,
+    condition: Bool,
+    message: string = "some hashlist"
+  ) {
+    const { from, to } = transition;
+
+    condition
+      .implies(from.equals(this.commitment))
+      .assertTrue(`From-commitment for ${message} not matching`);
+
+    this.commitment = Provable.if(condition, to, this.commitment);
+  }
+
   public witnessTip(preimage: Field, value: Value): Bool {
-    return this.hash([
-      this.commitment,
-      ...this.valueType.toFields(value),
-    ]).equals(this.commitment);
+    return this.hash([preimage, ...this.valueType.toFields(value)]).equals(
+      this.commitment
+    );
   }
 
   /**
@@ -111,6 +130,10 @@ export abstract class ProvableHashList<Value> {
     return this.commitment;
   }
 
+  public isEmpty(): Bool {
+    return this.commitment.equals(this.empty());
+  }
+
   public getUnconstrainedValues(): Unconstrained<
     ProvableHashListData<Value>[]
   > {
@@ -121,5 +144,9 @@ export abstract class ProvableHashList<Value> {
 export class DefaultProvableHashList<Value> extends ProvableHashList<Value> {
   public hash(elements: Field[]): Field {
     return Poseidon.hash(elements);
+  }
+
+  public empty(): Field {
+    return Field(0);
   }
 }

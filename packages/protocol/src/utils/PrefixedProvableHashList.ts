@@ -15,6 +15,10 @@ export class PrefixedProvableHashList<Value> extends ProvableHashList<Value> {
     this.prefix = stringToField(prefix);
   }
 
+  public empty(): Field {
+    return Field(0);
+  }
+
   protected hash(elements: Field[]): Field {
     return Poseidon.hash([this.prefix, ...elements]);
   }

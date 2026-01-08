@@ -43,8 +43,10 @@ export function constructBatch(
 // TODO How does this interact with the RuntimeMethodExecutionContext when executing runtimemethods?
 export async function executeHooks<T>(
   contextArguments: RuntimeMethodExecutionData,
+  hookName: string,
   method: () => Promise<T>,
-  isMessage: Bool | undefined = undefined
+  // This can be either that the tx is a message, or we are inside a dummy block hook
+  skipEnforceStatus: Bool | undefined = undefined
 ) {
   const executionContext = container.resolve(RuntimeMethodExecutionContext);
   executionContext.clear();
@@ -63,16 +65,16 @@ export async function executeHooks<T>(
     executionContext.current().result;
 
   // See https://github.com/proto-kit/framework/issues/321 for why we do this here
-  if (isMessage !== undefined) {
+  if (skipEnforceStatus !== undefined) {
     // isMessage is defined for all tx hooks
     status
-      .or(isMessage)
+      .or(skipEnforceStatus)
       .assertTrue(
-        `Transaction hook call failed for non-message tx: ${statusMessage ?? "-"}`
+        `${hookName} hook call failed for non-message tx: ${statusMessage ?? "-"}`
       );
   } else {
     // isMessage is undefined for all block hooks
-    status.assertTrue(`Block hook call failed: ${statusMessage ?? "-"}`);
+    status.assertTrue(`${hookName} hook call failed: ${statusMessage ?? "-"}`);
   }
 
   return {
