@@ -135,10 +135,7 @@ export async function startGraphqlServer() {
     },
 
     Protocol: {
-      BlockProver: {},
-      StateTransitionProver: {},
-      AccountState: {},
-      BlockHeight: {},
+      ...Protocol.defaultConfig(),
       TransactionFee: {
         tokenId: 0n,
         feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
@@ -146,7 +143,6 @@ export async function startGraphqlServer() {
         methods: {},
         perWeightUnitFee: 0n,
       },
-      LastStateRoot: {},
     },
 
     Sequencer: {
