@@ -32,7 +32,7 @@ jobs:
         run: npm run build
 
       - name: "Publish nightly"
-        run: npx pkg-pr-new publish --compact './packages/*'
+        run: npx pkg-pr-new publish ./packages/*'
 
       - name: Trigger website build & deployment
         env:
