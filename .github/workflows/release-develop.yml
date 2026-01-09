@@ -31,8 +31,8 @@ jobs:
       - name: "Build"
         run: npm run build
 
-      - name: Run Lerna Release
-        run: npm run publish:canary
+      - name: "Publish nightly"
+        run: npx pkg-pr-new publish --compact './packages/*'
 
       - name: Trigger website build & deployment
         env:
