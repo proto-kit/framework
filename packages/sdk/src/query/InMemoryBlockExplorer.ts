@@ -84,11 +84,11 @@ export class InMemoryBlockExplorer
     );
 
     return {
-      hash: Field(block.hash),
-      previousBlockHash: block.previousBlockHash!==undefined ?  Field(block.previousBlockHash): undefined,
-      height: Field(block.height),
+      hash: block.hash,
+      previousBlockHash: block.previousBlockHash!==undefined ?  block.previousBlockHash: undefined,
+      height: block.height,
       transactions: clientTransactions,
-      transactionsHash: Field(block.transactionsHash),
+      transactionsHash: block.transactionsHash,
     };
   }
 }

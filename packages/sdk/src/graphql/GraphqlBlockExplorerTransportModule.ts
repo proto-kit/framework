@@ -7,7 +7,6 @@ import {
   ClientTransaction,
   InclusionStatus,
 } from "@proto-kit/sequencer";
-import { Field } from "o1js";
 
 import { GraphqlClient } from "./GraphqlClient";
 
@@ -106,14 +105,14 @@ export class GraphqlBlockExplorerTransportModule
 
     const previousBlockHash =
       blockData.previousBlockHash != null && blockData.previousBlockHash !== ""
-        ? Field(blockData.previousBlockHash)
+        ? blockData.previousBlockHash
         : undefined;
 
     return {
-      hash: Field(blockData.hash),
-      height: Field(blockData.height),
+      hash: blockData.hash,
+      height: blockData.height.toString(),
       previousBlockHash,
-      transactionsHash: Field(blockData.transactionsHash),
+      transactionsHash: blockData.transactionsHash,
       transactions: blockData.txs,
     };
   }

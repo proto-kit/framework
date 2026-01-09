@@ -19,11 +19,11 @@ export interface ClientTransaction {
 }
 
 export interface ClientBlock {
-  hash: Field;
-  previousBlockHash: Field | undefined;
-  height: Field;
+  hash: string;
+  previousBlockHash: string | undefined;
+  height: string;
   transactions: ClientTransaction[];
-  transactionsHash: Field;
+  transactionsHash: string;
 }
 
 export interface BlockExplorerTransportModule {
