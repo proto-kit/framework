@@ -8,4 +8,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Added nightly releases via pkg.pr.new [#384](https://github.com/proto-kit/framework/pull/384)
 - Introduced Changelog [#378](https://github.com/proto-kit/framework/pull/378)
