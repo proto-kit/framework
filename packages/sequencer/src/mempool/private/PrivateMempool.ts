@@ -10,6 +10,7 @@ import {
   BlockHashMerkleTree,
   MandatoryProtocolModulesRecord,
   NetworkState,
+  NetworkStateJson,
   Protocol,
   ProvableHookBlockState,
   RuntimeMethodExecutionContext,
@@ -105,9 +106,11 @@ export class PrivateMempool
     );
   }
 
-  public async getStagedNetworkState(): Promise<NetworkState | undefined> {
+  public async getStagedNetworkState(): Promise<NetworkStateJson | undefined> {
     const result = await this.unprovenQueue.getLatestBlock();
-    return result?.result.afterNetworkState;
+    return result?.result.afterNetworkState 
+          ? NetworkState.toJSON(result.result.afterNetworkState) 
+          : undefined;
   }
 
   public async removeTxs(included: string[], dropped: string[]) {
@@ -122,8 +125,12 @@ export class PrivateMempool
 
     const baseCachedStateService = new CachedStateService(this.stateService);
 
-    const networkState =
-      (await this.getStagedNetworkState()) ?? NetworkState.empty();
+    // Should provide NetworkState to checkTxValid.
+    const stagedNetworkState = await this.getStagedNetworkState();
+
+    const networkState = stagedNetworkState 
+      ? new NetworkState(NetworkState.fromJSON(stagedNetworkState))
+      : NetworkState.empty();
 
     const validationEnabled = this.config.validationEnabled ?? false;
     const sortedTxs = validationEnabled

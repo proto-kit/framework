@@ -156,7 +156,7 @@ describe("graphql client test", () => {
     const state = await appChain.query.network.unproven;
 
     expect(state).toBeDefined();
-    expect(state!.block.height.toBigInt()).toBeGreaterThanOrEqual(0n);
+    expect(BigInt(state!.block.height)).toBeGreaterThanOrEqual(0n);
   });
 
   it("should retrieve merkle witness", async () => {

@@ -1,4 +1,4 @@
-import { NetworkState } from "@proto-kit/protocol";
+import { NetworkStateJson } from "@proto-kit/protocol";
 
 import { NetworkStateTransportModule } from "./NetworkStateTransportModule";
 
@@ -7,15 +7,15 @@ export class NetworkStateQuery {
     private readonly transportModule: NetworkStateTransportModule
   ) {}
 
-  public get unproven(): Promise<NetworkState | undefined> {
+  public get unproven(): Promise<NetworkStateJson | undefined> {
     return this.transportModule.getUnprovenNetworkState();
   }
 
-  public get stagedUnproven(): Promise<NetworkState | undefined> {
+  public get stagedUnproven(): Promise<NetworkStateJson | undefined> {
     return this.transportModule.getStagedNetworkState();
   }
 
-  public get proven(): Promise<NetworkState | undefined> {
+  public get proven(): Promise<NetworkStateJson | undefined> {
     return this.transportModule.getProvenNetworkState();
   }
 }

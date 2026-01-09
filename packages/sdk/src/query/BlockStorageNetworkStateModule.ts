@@ -6,7 +6,7 @@ import {
   BatchStorage,
   AppChainModule,
 } from "@proto-kit/sequencer";
-import { NetworkState } from "@proto-kit/protocol";
+import { NetworkState, NetworkStateJson } from "@proto-kit/protocol";
 import { ModuleContainerLike } from "@proto-kit/common";
 
 @injectable()
@@ -37,7 +37,7 @@ export class BlockStorageNetworkStateModule
     );
   }
 
-  public async getUnprovenNetworkState(): Promise<NetworkState | undefined> {
+  public async getUnprovenNetworkState(): Promise<NetworkStateJson | undefined> {
     const latestBlock = await this.unprovenStorage.getLatestBlock();
     return latestBlock?.block.networkState.during;
   }
@@ -46,12 +46,14 @@ export class BlockStorageNetworkStateModule
    * Staged network state is the networkstate after the latest unproven block
    * with afterBundle() hooks executed
    */
-  public async getStagedNetworkState(): Promise<NetworkState | undefined> {
+  public async getStagedNetworkState(): Promise<NetworkStateJson | undefined> {
     const result = await this.unprovenStorage.getLatestBlock();
-    return result?.result.afterNetworkState;
+    return result?.result.afterNetworkState 
+          ? NetworkState.toJSON(result.result.afterNetworkState) 
+          : undefined;
   }
 
-  public async getProvenNetworkState(): Promise<NetworkState | undefined> {
+  public async getProvenNetworkState(): Promise<NetworkStateJson | undefined> {
     const batch = await this.provenStorage.getLatestBatch();
 
     if (batch !== undefined) {
