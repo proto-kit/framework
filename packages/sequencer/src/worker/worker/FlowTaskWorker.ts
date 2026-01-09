@@ -92,7 +92,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
     // Call them in order of registration, because the prepare methods
     // might depend on each other or a result that is saved in a DI singleton
     for (const task of tasks) {
-      log.debug(`Preparing task ${task.constructor.name}`);
+      log.info(`Preparing task ${task.constructor.name}`);
       // eslint-disable-next-line no-await-in-loop
       await task.prepare();
       log.debug(`${task.constructor.name} prepared`);

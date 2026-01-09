@@ -93,7 +93,7 @@ export function addTransactionToBundle<
   const transactionHash = transaction.hash();
 
   // Append tx to transaction list
-  state.transactionList.pushIf(transactionHash, isMessage.not());
+  state.transactionList.push(transactionHash);
 
   // Append tx to eternal transaction list
   // TODO Change that to the a sequence-state compatible transaction struct

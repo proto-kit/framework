@@ -171,7 +171,7 @@ export class BlockProductionService {
       height:
         lastBlock.hash.toBigInt() !== 0n ? lastBlock.height.add(1) : Field(0),
       fromBlockHashRoot: Field(lastResult.blockHashRoot),
-      fromMessagesHash: lastBlock.fromMessagesHash,
+      fromMessagesHash: lastBlock.toMessagesHash,
       fromStateRoot: Field(lastResult.stateRoot),
       toMessagesHash: newBlockState.incomingMessages.commitment,
       previousBlockHash,
