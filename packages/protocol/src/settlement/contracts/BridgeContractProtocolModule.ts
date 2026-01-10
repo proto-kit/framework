@@ -3,10 +3,11 @@ import { CompileRegistry } from "@proto-kit/common";
 
 import { ContractModule } from "../ContractModule";
 import { OutgoingMessageProcessor } from "../modularity/OutgoingMessageProcessor";
+import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
 import {
   BridgeContract,
-  BridgeContractBase,
+  BridgeContractArgs,
   BridgeContractType,
 } from "./BridgeContract";
 
@@ -21,7 +22,8 @@ export class BridgeContractProtocolModule extends ContractModule<
 > {
   public constructor(
     @injectAll("OutgoingMessageProcessor", { isOptional: true })
-    private readonly messageProcessors: OutgoingMessageProcessor<unknown>[]
+    private readonly messageProcessors: OutgoingMessageProcessor<unknown>[],
+    private readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
   }
@@ -29,11 +31,10 @@ export class BridgeContractProtocolModule extends ContractModule<
   public contractFactory() {
     const { config } = this;
 
-    BridgeContractBase.args = {
-      SettlementContract: BridgeContractBase.args?.SettlementContract,
+    this.contractArgsRegistry.addArgs<BridgeContractArgs>("BridgeContract", {
       messageProcessors: this.messageProcessors,
       batchSize: config.outgoingBatchSize,
-    };
+    });
 
     return BridgeContract;
   }

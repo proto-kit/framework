@@ -9,11 +9,12 @@ import {
 import { Runtime } from "@proto-kit/module";
 import {
   BridgeContract,
+  BridgingSettlementContract,
+  BridgingSettlementContractArgs,
+  ContractArgsRegistry,
   DispatchSmartContract,
   Protocol,
   SettlementContractModule,
-  SettlementSmartContract,
-  SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { container } from "tsyringe";
@@ -66,7 +67,8 @@ describe.skip("Proven", () => {
         ProtocolStateTestHook,
         // ProtocolStateTestHook2,
       }),
-      SettlementContractModule: SettlementContractModule.with({
+      SettlementContractModule: SettlementContractModule.from({
+        ...SettlementContractModule.settlementAndBridging(),
         // FungibleToken: FungibleTokenContractModule,
         // FungibleTokenAdmin: FungibleTokenAdminContractModule,
       }),
@@ -103,10 +105,7 @@ describe.skip("Proven", () => {
               type: "local",
             },
           },
-          SettlementModule: {
-            // TODO
-            feepayer: PrivateKey.random(),
-          },
+          SettlementModule: {},
         },
         Runtime: {
           Balances: {},
@@ -152,12 +151,15 @@ describe.skip("Proven", () => {
       SettlementStartupModule
     );
 
-    const vks = await module.retrieveVerificationKeys();
+    const vks = await module.retrieveVerificationKeys({
+      SettlementContract: true,
+      DispatchSmartContract: true,
+    });
 
     console.log(vks);
 
     expect(vks.DispatchSmartContract).toBeDefined();
-    expect(vks.SettlementSmartContract).toBeDefined();
+    expect(vks.SettlementContract).toBeDefined();
   });
 
   it.skip("Hello", async () => {
@@ -172,18 +174,21 @@ describe.skip("Proven", () => {
         },
       });
       vkService.setCompileRegistry(registry);
-      SettlementSmartContractBase.args = {
-        DispatchContract: DispatchSmartContract,
-        ChildVerificationKeyService: vkService,
-        BridgeContractVerificationKey: MOCK_VERIFICATION_KEY,
-        signedSettlements: false,
-        BridgeContract: BridgeContract,
-        hooks: [],
-        BridgeContractPermissions:
-          new ProvenSettlementPermissions().bridgeContractMina(),
-        escapeHatchSlotsInterval: 1000,
-      };
-      const vk = await SettlementSmartContract.compile();
+
+      container
+        .resolve(ContractArgsRegistry)
+        .addArgs<BridgingSettlementContractArgs>("SettlementContract", {
+          DispatchContract: DispatchSmartContract,
+          ChildVerificationKeyService: vkService,
+          BridgeContractVerificationKey: MOCK_VERIFICATION_KEY,
+          signedSettlements: false,
+          BridgeContract: BridgeContract,
+          hooks: [],
+          BridgeContractPermissions:
+            new ProvenSettlementPermissions().bridgeContractMina(),
+          escapeHatchSlotsInterval: 1000,
+        });
+      const vk = await BridgingSettlementContract.compile();
       console.log(vk.verificationKey);
     } catch (e) {
       console.error(e);
