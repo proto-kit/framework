@@ -20,6 +20,7 @@ import {
   StateTransitionProvableBatch,
   StateTransitionType,
 } from "../../model/StateTransitionProvableBatch";
+import { StateTransitionProverType } from "../../protocol/Protocol";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 import { WitnessedRootHashList } from "../accumulators/WitnessedRootHashList";
@@ -432,7 +433,10 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
 @injectable()
 export class StateTransitionProver
   extends ProtocolModule
-  implements StateTransitionProvable, CompilableModule
+  implements
+    StateTransitionProvable,
+    StateTransitionProverType,
+    CompilableModule
 {
   public zkProgrammable: StateTransitionProverProgrammable;
 

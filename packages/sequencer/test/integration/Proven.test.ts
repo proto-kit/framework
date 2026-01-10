@@ -111,7 +111,11 @@ describe.skip("Proven", () => {
           Balances: {},
         },
         Protocol: {
-          ...Protocol.defaultConfig(),
+          AccountState: {},
+          BlockProver: {},
+          StateTransitionProver: {},
+          BlockHeight: {},
+          LastStateRoot: {},
           ProtocolStateTestHook: {},
           SettlementContractModule: {
             SettlementContract: {},

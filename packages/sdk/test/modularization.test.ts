@@ -67,7 +67,11 @@ describe("modularization", () => {
         TestRuntimeModule: {},
       },
       Protocol: {
-        ...Protocol.defaultConfig(),
+        AccountState: {},
+        BlockProver: {},
+        StateTransitionProver: {},
+        BlockHeight: {},
+        LastStateRoot: {},
         TransactionFee: {
           tokenId: 0n,
           feeRecipient: PrivateKey.random().toPublicKey().toBase58(),

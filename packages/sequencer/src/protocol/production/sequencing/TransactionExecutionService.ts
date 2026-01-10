@@ -13,6 +13,8 @@ import {
   MandatoryProtocolModulesRecord,
   reduceStateTransitions,
   StateTransition,
+  BlockProver,
+  BlockProverProgrammable,
   BeforeTransactionHookArguments,
   AfterTransactionHookArguments,
   BlockProverState,
@@ -21,7 +23,6 @@ import {
   toAfterTransactionHookArgument,
   ProvableStateTransition,
   DefaultProvableHashList,
-  addTransactionToBundle,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { AreProofsEnabled, log, mapSequential } from "@proto-kit/common";
@@ -209,6 +210,8 @@ export type TransactionExecutionResultStatus =
 export class TransactionExecutionService {
   private readonly transactionHooks: ProvableTransactionHook<unknown>[];
 
+  private readonly blockProver: BlockProverProgrammable;
+
   private readonly txHooks: ProvableTransactionHook[];
 
   public constructor(
@@ -224,6 +227,8 @@ export class TransactionExecutionService {
     this.transactionHooks = protocol.dependencyContainer.resolveAll(
       "ProvableTransactionHook"
     );
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    this.blockProver = (protocol.blockProver as BlockProver).zkProgrammable;
 
     this.txHooks =
       protocol.dependencyContainer.resolveAll<ProvableTransactionHook>(
@@ -315,7 +320,7 @@ export class TransactionExecutionService {
   ): BlockTrackers {
     const signedTransaction = tx.toProtocolTransaction();
     // Add tx to commitments
-    return addTransactionToBundle(
+    return this.blockProver.addTransactionToBundle(
       state,
       Bool(tx.isMessage),
       signedTransaction.transaction

@@ -2,6 +2,7 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProvable,
   BlockProverPublicInput,
+  BlockProverPublicOutput,
   NetworkState,
   Protocol,
   StateTransitionProof,
@@ -9,11 +10,8 @@ import {
   BlockHashMerkleTreeWitness,
   MandatoryProtocolModulesRecord,
   WitnessedRootWitness,
-  TransactionProof,
-  BlockProof,
-  TransactionProvable,
 } from "@proto-kit/protocol";
-import { Bool } from "o1js";
+import { Bool, Proof } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
@@ -28,6 +26,8 @@ import type { TaskStateRecord } from "../tracing/BlockTracingService";
 import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
 import { executeWithPrefilledStateService } from "./TransactionProvingTask";
 
+type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
+
 export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
   networkState: NetworkState;
@@ -40,7 +40,7 @@ export interface NewBlockProverParameters {
 
 export type NewBlockProvingParameters = PairingDerivedInput<
   StateTransitionProof,
-  TransactionProof,
+  BlockProof,
   NewBlockProverParameters
 >;
 
@@ -51,8 +51,6 @@ export class NewBlockTask
   implements Task<NewBlockProvingParameters, BlockProof>
 {
   private readonly stateTransitionProver: StateTransitionProvable;
-
-  private readonly transactionProver: TransactionProvable;
 
   private readonly blockProver: BlockProvable;
 
@@ -66,8 +64,7 @@ export class NewBlockTask
   ) {
     super();
     this.stateTransitionProver = protocol.stateTransitionProver;
-    this.transactionProver = protocol.transactionProver;
-    this.blockProver = protocol.blockProver;
+    this.blockProver = this.protocol.blockProver;
   }
 
   public inputSerializer(): TaskSerializer<NewBlockProvingParameters> {
@@ -75,13 +72,13 @@ export class NewBlockTask
       this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
     );
 
-    const transactionProofSerializer = new ProofTaskSerializer(
-      this.transactionProver.zkProgrammable.zkProgram[0].Proof
+    const blockProofSerializer = new ProofTaskSerializer(
+      this.blockProver.zkProgrammable.zkProgram[0].Proof
     );
 
     return new NewBlockProvingParametersSerializer(
       stProofSerializer,
-      transactionProofSerializer
+      blockProofSerializer
     );
   }
 
@@ -129,6 +126,6 @@ export class NewBlockTask
 
   public async prepare(): Promise<void> {
     // Compile
-    await this.transactionProver.compile(this.compileRegistry);
+    await this.blockProver.compile(this.compileRegistry);
   }
 }

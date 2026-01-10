@@ -1,10 +1,10 @@
 import {
   BlockProverPublicInput,
+  BlockProverTransactionArguments,
   MethodPublicOutput,
   NetworkState,
   ReturnType,
   RuntimeTransaction,
-  TransactionProverTransactionArguments,
 } from "@proto-kit/protocol";
 import { JsonProof, Signature } from "o1js";
 
@@ -21,7 +21,7 @@ import {
 } from "./DecodedStateSerializer";
 import { RuntimeVerificationKeyAttestationSerializer } from "./RuntimeVerificationKeyAttestationSerializer";
 
-export type TransactionProverTransactionArgumentsJSON = {
+export type BlockProverTransactionArgumentsJSON = {
   transaction: ReturnType<typeof RuntimeTransaction.toJSON>;
   signature: ReturnType<typeof Signature.toJSON>;
   verificationKeyAttestation: ReturnType<
@@ -30,13 +30,13 @@ export type TransactionProverTransactionArgumentsJSON = {
 };
 
 export type SingleExecutionDataJSON = {
-  transaction: TransactionProverTransactionArgumentsJSON;
+  transaction: BlockProverTransactionArgumentsJSON;
   networkState: ReturnType<typeof NetworkState.toJSON>;
 };
 
 export type MultiExecutionDataJSON = {
-  transaction1: TransactionProverTransactionArgumentsJSON;
-  transaction2: TransactionProverTransactionArgumentsJSON;
+  transaction1: BlockProverTransactionArgumentsJSON;
+  transaction2: BlockProverTransactionArgumentsJSON;
   networkState: ReturnType<typeof NetworkState.toJSON>;
 };
 
@@ -71,9 +71,9 @@ export class TransactionProvingTaskParameterSerializer
     >
   ) {}
 
-  private transactionProverArgumentsToJson(
-    args: TransactionProverTransactionArguments
-  ): TransactionProverTransactionArgumentsJSON {
+  private blockProverArgumentsToJson(
+    args: BlockProverTransactionArguments
+  ): BlockProverTransactionArgumentsJSON {
     return {
       transaction: RuntimeTransaction.toJSON(args.transaction),
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -85,9 +85,9 @@ export class TransactionProvingTaskParameterSerializer
     };
   }
 
-  private transactionProverArgumentsFromJson(
-    args: TransactionProverTransactionArgumentsJSON
-  ): TransactionProverTransactionArguments {
+  private blockProverArgumentsFromJson(
+    args: BlockProverTransactionArgumentsJSON
+  ): BlockProverTransactionArguments {
     return {
       transaction: new RuntimeTransaction(
         RuntimeTransaction.fromJSON(args.transaction)
@@ -120,9 +120,7 @@ export class TransactionProvingTaskParameterSerializer
       const { executionData } = parameters;
       const executionDataJson: SingleExecutionDataJSON = {
         networkState: NetworkState.toJSON(executionData.networkState),
-        transaction: this.transactionProverArgumentsToJson(
-          executionData.transaction
-        ),
+        transaction: this.blockProverArgumentsToJson(executionData.transaction),
       };
 
       taskParamsJson = {
@@ -137,10 +135,10 @@ export class TransactionProvingTaskParameterSerializer
       const { executionData } = parameters;
       const executionDataJson: MultiExecutionDataJSON = {
         networkState: NetworkState.toJSON(executionData.networkState),
-        transaction1: this.transactionProverArgumentsToJson(
+        transaction1: this.blockProverArgumentsToJson(
           executionData.transaction1
         ),
-        transaction2: this.transactionProverArgumentsToJson(
+        transaction2: this.blockProverArgumentsToJson(
           executionData.transaction2
         ),
       };
@@ -185,7 +183,7 @@ export class TransactionProvingTaskParameterSerializer
         parameters: {
           ...partialParameters,
           executionData: {
-            transaction: this.transactionProverArgumentsFromJson(
+            transaction: this.blockProverArgumentsFromJson(
               parameters.executionData.transaction
             ),
             networkState: new NetworkState(
@@ -207,10 +205,10 @@ export class TransactionProvingTaskParameterSerializer
       parameters: {
         ...partialParameters,
         executionData: {
-          transaction1: this.transactionProverArgumentsFromJson(
+          transaction1: this.blockProverArgumentsFromJson(
             parameters.executionData.transaction1
           ),
-          transaction2: this.transactionProverArgumentsFromJson(
+          transaction2: this.blockProverArgumentsFromJson(
             parameters.executionData.transaction2
           ),
           networkState: new NetworkState(

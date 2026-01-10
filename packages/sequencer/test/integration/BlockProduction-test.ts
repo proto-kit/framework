@@ -157,7 +157,11 @@ export function testBlockProduction<
         EventMaker: {},
       },
       Protocol: {
-        ...Protocol.defaultConfig(),
+        AccountState: {},
+        BlockProver: {},
+        StateTransitionProver: {},
+        BlockHeight: {},
+        LastStateRoot: {},
         ProtocolStateTestHook: {},
       },
     });

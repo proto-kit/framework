@@ -3,7 +3,6 @@ import {
   ChildContainerProvider,
   log,
   ModuleContainer,
-  ModulesConfig,
   ModulesRecord,
   Startable,
   StringKeyOf,
@@ -22,10 +21,6 @@ import { ProvableSettlementHook } from "../settlement/modularity/ProvableSettlem
 import { NoopSettlementHook } from "../hooks/NoopSettlementHook";
 import { AccountStateHook } from "../hooks/AccountStateHook";
 import { NoopTransactionHook } from "../hooks/NoopTransactionHook";
-import { TransactionProvable } from "../prover/transaction/TransactionProvable";
-import { StateTransitionProver } from "../prover/statetransition/StateTransitionProver";
-import { TransactionProver } from "../prover/transaction/TransactionProver";
-import { BlockProver } from "../prover/block/BlockProver";
 
 import { ProtocolModule } from "./ProtocolModule";
 import { ProvableTransactionHook } from "./ProvableTransactionHook";
@@ -49,10 +44,6 @@ export type ProtocolModulesRecord = ModulesRecord<
   TypedClass<ProtocolModule<unknown>>
 >;
 
-export interface TransactionProverType
-  extends ProtocolModule,
-    TransactionProvable {}
-
 export interface BlockProverType extends ProtocolModule, BlockProvable {}
 
 export interface StateTransitionProverType
@@ -60,7 +51,6 @@ export interface StateTransitionProverType
     StateTransitionProvable {}
 
 export type MandatoryProtocolModulesRecord = {
-  TransactionProver: TypedClass<TransactionProverType>;
   BlockProver: TypedClass<BlockProverType>;
   StateTransitionProver: TypedClass<StateTransitionProverType>;
   AccountState: TypedClass<AccountStateHook>;
@@ -125,14 +115,6 @@ export class Protocol<
     return this.definition[moduleName] !== undefined;
   }
 
-  public get transactionProver(): TransactionProvable {
-    // Why do I resolve directly here?
-    // I don't know exactly but generics don't let me use .resolve()
-    return this.container.resolve<InstanceType<Modules["TransactionProver"]>>(
-      "TransactionProver"
-    );
-  }
-
   public get blockProver(): BlockProvable {
     // Why do I resolve directly here?
     // I don't know exactly but generics don't let me use .resolve()
@@ -145,28 +127,6 @@ export class Protocol<
     return this.container.resolve<
       InstanceType<Modules["StateTransitionProver"]>
     >("StateTransitionProver");
-  }
-
-  public static defaultModules() {
-    return {
-      StateTransitionProver,
-      TransactionProver,
-      BlockProver,
-      AccountState: AccountStateHook,
-      BlockHeight: BlockHeightHook,
-      LastStateRoot: LastStateRootBlockHook,
-    };
-  }
-
-  public static defaultConfig() {
-    return {
-      StateTransitionProver: {},
-      TransactionProver: {},
-      BlockProver: {},
-      AccountState: {},
-      BlockHeight: {},
-      LastStateRoot: {},
-    } satisfies ModulesConfig<ReturnType<typeof Protocol.defaultModules>>;
   }
 
   public getAreProofsEnabled(): AreProofsEnabled {

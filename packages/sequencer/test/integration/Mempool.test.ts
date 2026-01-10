@@ -1,4 +1,5 @@
 import { log, TypedClass } from "@proto-kit/common";
+import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 import { Bool, PrivateKey, UInt64 } from "o1js";
@@ -73,7 +74,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-      const protocolClass = Protocol.from(Protocol.defaultModules());
+      const protocolClass = Protocol.from(
+        VanillaProtocolModules.mandatoryModules({})
+      );
 
       return AppChain.from({
         Sequencer: sequencerClass,
@@ -105,7 +108,13 @@ describe.each([["InMemory", InMemoryDatabase]])(
           TaskQueue: {},
           SequencerStartupModule: {},
         },
-        Protocol: Protocol.defaultConfig(),
+        Protocol: {
+          AccountState: {},
+          BlockProver: {},
+          StateTransitionProver: {},
+          BlockHeight: {},
+          LastStateRoot: {},
+        },
       });
 
       // Start AppChain

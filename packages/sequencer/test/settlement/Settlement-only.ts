@@ -133,7 +133,11 @@ export const settlementOnlyTestFn = (
         },
       },
       Protocol: {
-        ...Protocol.defaultConfig(),
+        StateTransitionProver: {},
+        BlockHeight: {},
+        AccountState: {},
+        BlockProver: {},
+        LastStateRoot: {},
         SettlementContractModule: {
           SettlementContract: {},
         },

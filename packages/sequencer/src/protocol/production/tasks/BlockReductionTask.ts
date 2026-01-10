@@ -18,6 +18,7 @@ import {
   PairTuple,
   ProofTaskSerializer,
 } from "../../../helpers/utils";
+import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -35,7 +36,8 @@ export class BlockReductionTask
       MandatoryProtocolModulesRecord & ProtocolModulesRecord
     >,
     private readonly executionContext: ProvableMethodExecutionContext,
-    private readonly compileRegistry: CompileRegistry
+    private readonly compileRegistry: CompileRegistry,
+    private readonly verificationKeyService: VerificationKeyService
   ) {
     super();
     this.blockProver = this.protocol.blockProver;

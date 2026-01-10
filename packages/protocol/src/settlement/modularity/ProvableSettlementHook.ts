@@ -3,7 +3,7 @@ import { InferProofBase } from "@proto-kit/common";
 
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { NetworkState } from "../../model/network/NetworkState";
-import type { BlockProof } from "../../prover/block/BlockProvable";
+import type { BlockProof } from "../../prover/block/BlockProver";
 import type { SettlementContractType } from "../contracts/settlement/SettlementBase";
 
 export type InputBlockProof = InferProofBase<BlockProof>;

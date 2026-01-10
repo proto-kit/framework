@@ -137,7 +137,6 @@ export async function startServer() {
     Protocol: {
       BlockProver: {},
       StateTransitionProver: {},
-      TransactionProver: {},
       AccountState: {},
       BlockHeight: {},
       TransactionFee: {

@@ -1,14 +1,13 @@
 import {
   BlockHashMerkleTreeWitness,
+  BlockProof,
   BlockProverPublicInput,
+  BlockProverPublicOutput,
   NetworkState,
   ReturnType,
   StateTransitionProof,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
-  TransactionProof,
-  TransactionProverPublicInput,
-  TransactionProverPublicOutput,
   WitnessedRootWitness,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
@@ -39,7 +38,7 @@ interface JsonType {
 
 type NewBlockPayload = PairingDerivedInput<
   StateTransitionProof,
-  TransactionProof,
+  BlockProof,
   NewBlockProverParameters
 >;
 
@@ -51,16 +50,16 @@ export class NewBlockProvingParametersSerializer
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    private readonly transactionProofSerializer: ProofTaskSerializer<
-      TransactionProverPublicInput,
-      TransactionProverPublicOutput
+    private readonly blockProofSerializer: ProofTaskSerializer<
+      BlockProverPublicInput,
+      BlockProverPublicOutput
     >
   ) {}
 
   public toJSON(input: NewBlockPayload) {
     return JSON.stringify({
       input1: this.stProofSerializer.toJSON(input.input1),
-      input2: this.transactionProofSerializer.toJSON(input.input2),
+      input2: this.blockProofSerializer.toJSON(input.input2),
 
       params: {
         publicInput: BlockProverPublicInput.toJSON(input.params.publicInput),
@@ -93,7 +92,7 @@ export class NewBlockProvingParametersSerializer
     const jsonObject: JsonType = JSON.parse(json);
     return {
       input1: await this.stProofSerializer.fromJSON(jsonObject.input1),
-      input2: await this.transactionProofSerializer.fromJSON(jsonObject.input2),
+      input2: await this.blockProofSerializer.fromJSON(jsonObject.input2),
 
       params: {
         publicInput: BlockProverPublicInput.fromJSON(

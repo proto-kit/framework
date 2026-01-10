@@ -124,9 +124,6 @@ export class BatchFlow {
       map[index].input1 = dummySTProof;
     });
 
-    // TODO Make sure we use deferErrorsTo to everywhere (preferably with a nice pattern)
-    //  Currently, a lot of errors just get eaten and the chain just halts with no
-    //  error being thrown
     await this.stateTransitionFlow.executeBatches(
       batch.stateTransitionTrace,
       batchId,

@@ -1,15 +1,18 @@
 import {
-  addTransactionToBundle,
+  BlockProver,
   BlockProverMultiTransactionExecutionData,
+  BlockProverProgrammable,
   BlockProverPublicInput,
   BlockProverSingleTransactionExecutionData,
+  BlockProverTransactionArguments,
+  MandatoryProtocolModulesRecord,
   NetworkState,
-  TransactionProverTransactionArguments,
+  Protocol,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { MAX_FIELD } from "@proto-kit/common";
 import { toStateTransitionsHash } from "@proto-kit/module";
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 
 import { TransactionExecutionResult } from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
@@ -56,13 +59,19 @@ export function collectStartingState(
 
 @injectable()
 export class TransactionTracingService {
+  private readonly blockProver: BlockProverProgrammable;
+
   public constructor(
-    private readonly verificationKeyService: VerificationKeyService
-  ) {}
+    private readonly verificationKeyService: VerificationKeyService,
+    @inject("Protocol") protocol: Protocol<MandatoryProtocolModulesRecord>
+  ) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    this.blockProver = (protocol.blockProver as BlockProver).zkProgrammable;
+  }
 
   public async getTransactionData(
     transaction: PendingTransaction
-  ): Promise<TransactionProverTransactionArguments> {
+  ): Promise<BlockProverTransactionArguments> {
     const verificationKeyAttestation =
       this.verificationKeyService.getAttestation(
         transaction.methodId.toBigInt()
@@ -96,7 +105,7 @@ export class TransactionTracingService {
     transaction: TransactionExecutionResult
   ) {
     // TODO Remove this call and instead reuse results from sequencing
-    const newState = addTransactionToBundle(
+    const newState = this.blockProver.addTransactionToBundle(
       previousState,
       Bool(transaction.tx.isMessage),
       transaction.tx.toRuntimeTransaction()
