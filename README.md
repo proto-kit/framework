@@ -6,10 +6,11 @@
 <br />
 <!-- markdownlint-restore -->
 
-[![npm version](https://img.shields.io/npm/v/@proto-kit/sdk.svg?style=flat&logo=npm)](https://www.npmjs.com/package/@proto-kit/sdk)
 [![Documentation](https://img.shields.io/badge/Documentation-website-blue.svg)](https://protokit.dev)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-green.svg)]()
 
+[![npm version](https://img.shields.io/npm/v/@proto-kit/sdk.svg?style=flat&logo=npm)](https://www.npmjs.com/package/@proto-kit/sdk)
+[![pkg.pr.new](https://pkg.pr.new/badge/proto-kit/framework)](https://pkg.pr.new/~/proto-kit/framework)
 </div>
 
 # Protokit
