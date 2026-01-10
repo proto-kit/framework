@@ -1,6 +1,5 @@
 import "reflect-metadata";
 import { expect } from "@jest/globals";
-import { VanillaProtocolModules } from "@proto-kit/library";
 import { Protocol } from "@proto-kit/protocol";
 import { Runtime } from "@proto-kit/module";
 import { Bool, Field, PrivateKey, UInt64 } from "o1js";
@@ -59,9 +58,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
     let unprovenState: AsyncStateService;
     let provenState: AsyncStateService;
 
-    // let unprovenTreeStore: AsyncMerkleTreeStore;
-    // let provenTreeStore: AsyncMerkleTreeStore;
-
     const sk = PrivateKey.random();
     const pk = sk.toPublicKey();
     let pkNonce = 0;
@@ -77,9 +73,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         Balance,
       });
 
-      const protocolClass = Protocol.from(
-        VanillaProtocolModules.mandatoryModules({})
-      );
+      const protocolClass = Protocol.from(Protocol.defaultModules());
 
       return AppChain.from({
         Sequencer: sequencerClass,
@@ -107,13 +101,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           FeeStrategy: {},
           SequencerStartupModule: {},
         },
-        Protocol: {
-          AccountState: {},
-          BlockProver: {},
-          StateTransitionProver: {},
-          BlockHeight: {},
-          LastStateRoot: {},
-        },
+        Protocol: Protocol.defaultConfig(),
       });
 
       await appChain.start(false);

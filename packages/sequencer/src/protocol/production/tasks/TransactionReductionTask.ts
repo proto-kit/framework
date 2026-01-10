@@ -1,10 +1,10 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
-  BlockProof,
-  BlockProvable,
   MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
+  TransactionProof,
+  TransactionProvable,
 } from "@proto-kit/protocol";
 import {
   CompileRegistry,
@@ -21,13 +21,13 @@ import {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
-export class BlockReductionTask
+export class TransactionReductionTask
   extends TaskWorkerModule
-  implements Task<PairTuple<BlockProof>, BlockProof>
+  implements Task<PairTuple<TransactionProof>, TransactionProof>
 {
-  private readonly blockProver: BlockProvable;
+  private readonly transactionProver: TransactionProvable;
 
-  public name = "blockReduction";
+  public name = "transactionReduction";
 
   public constructor(
     @inject("Protocol")
@@ -38,28 +38,32 @@ export class BlockReductionTask
     private readonly compileRegistry: CompileRegistry
   ) {
     super();
-    this.blockProver = this.protocol.blockProver;
+    this.transactionProver = this.protocol.transactionProver;
   }
 
-  public inputSerializer(): TaskSerializer<PairTuple<BlockProof>> {
+  public inputSerializer(): TaskSerializer<PairTuple<TransactionProof>> {
     return new PairProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+      this.transactionProver.zkProgrammable.zkProgram[0].Proof
     );
   }
 
-  public resultSerializer(): TaskSerializer<BlockProof> {
+  public resultSerializer(): TaskSerializer<TransactionProof> {
     return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+      this.transactionProver.zkProgrammable.zkProgram[0].Proof
     );
   }
 
-  public async compute(input: PairTuple<BlockProof>): Promise<BlockProof> {
+  public async compute(
+    input: PairTuple<TransactionProof>
+  ): Promise<TransactionProof> {
     const [r1, r2] = input;
-    await this.blockProver.merge(r1.publicInput, r1, r2);
-    return await this.executionContext.current().result.prove<BlockProof>();
+    await this.transactionProver.merge(r1.publicInput, r1, r2);
+    return await this.executionContext
+      .current()
+      .result.prove<TransactionProof>();
   }
 
   public async prepare(): Promise<void> {
-    await this.blockProver.compile(this.compileRegistry);
+    await this.transactionProver.compile(this.compileRegistry);
   }
 }
