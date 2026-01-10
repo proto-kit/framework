@@ -28,6 +28,7 @@ import { closeable } from "../../sequencer/builder/Closeable";
 import { StateTransitionReductionTask } from "../../protocol/production/tasks/StateTransitionReductionTask";
 import { TransactionProvingTask } from "../../protocol/production/tasks/TransactionProvingTask";
 import { BlockReductionTask } from "../../protocol/production/tasks/BlockReductionTask";
+import { TransactionReductionTask } from "../../protocol/production/tasks/TransactionReductionTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
@@ -135,6 +136,7 @@ export class VanillaTaskWorkerModules {
       StateTransitionReductionTask,
       RuntimeProvingTask,
       TransactionProvingTask,
+      TransactionReductionTask,
       BlockReductionTask,
       NewBlockTask,
       CircuitCompilerTask,
@@ -154,6 +156,7 @@ export class VanillaTaskWorkerModules {
       StateTransitionTask: {},
       RuntimeProvingTask: {},
       TransactionProvingTask: {},
+      TransactionReductionTask: {},
       BlockReductionTask: {},
       NewBlockTask: {},
       StateTransitionReductionTask: {},

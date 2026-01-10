@@ -1,11 +1,7 @@
 import {
-  AccountStateHook,
-  BlockHeightHook,
-  BlockProver,
   MandatoryProtocolModulesRecord,
   ProtocolModulesRecord,
-  StateTransitionProver,
-  LastStateRootBlockHook,
+  Protocol,
 } from "@proto-kit/protocol";
 import { PrivateKey } from "o1js";
 
@@ -20,11 +16,7 @@ export class VanillaProtocolModules {
     additionalModules: ProtocolModules
   ): MandatoryProtocolModulesRecord & ProtocolModules {
     return {
-      StateTransitionProver,
-      BlockProver,
-      AccountState: AccountStateHook,
-      BlockHeight: BlockHeightHook,
-      LastStateRoot: LastStateRootBlockHook,
+      ...Protocol.defaultModules(),
       ...additionalModules,
     };
   }
@@ -40,11 +32,7 @@ export class VanillaProtocolModules {
 
   public static mandatoryConfig() {
     return {
-      BlockProver: {},
-      StateTransitionProver: {},
-      AccountState: {},
-      BlockHeight: {},
-      LastStateRoot: {},
+      ...Protocol.defaultConfig(),
     };
   }
 
