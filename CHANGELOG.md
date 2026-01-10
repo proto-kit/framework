@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Added CircuitAnalysisModule for easy analysis of protocol circuits [#379](https://github.com/proto-kit/framework/pull/379)
 - Separated settlement and bridging functionally, so now settlement can be used without bridging [#376](https://github.com/proto-kit/framework/pull/376)
 - Added nightly releases via pkg.pr.new [#384](https://github.com/proto-kit/framework/pull/384)
 - Introduced Changelog [#378](https://github.com/proto-kit/framework/pull/378)
