@@ -159,6 +159,8 @@ model PendingL1Transaction {
   hash        String?
   lastError   String?
   sentAt      DateTime?
+  queuedAt    DateTime?
+  nextActionAt DateTime?
 
   settlement Settlement?
 

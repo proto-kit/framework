@@ -16,6 +16,16 @@ export interface PendingL1TransactionRecord {
   hash?: string;
   lastError?: string;
   sentAt?: Date;
+  /**
+   * When the transaction entered the durable queue (after proving).
+   * Optional for storages that don't persist it yet.
+   */
+  queuedAt?: Date;
+  /**
+   * When the dispatcher should next act on this transaction.
+   * Optional for storages that don't persist it yet.
+   */
+  nextActionAt?: Date;
 }
 
 export interface PendingL1TransactionStorage {

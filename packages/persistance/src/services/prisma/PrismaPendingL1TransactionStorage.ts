@@ -20,7 +20,7 @@ export class PrismaPendingL1TransactionStorage
   ) {}
 
   public async queue(
-    record: Omit<PendingL1TransactionRecord, "status">
+    record: Omit<PendingL1TransactionRecord, "status" | "id">
   ): Promise<string> {
     const { prismaClient } = this.connection;
     const status: PendingL1TransactionStatus = "queued";
@@ -48,6 +48,10 @@ export class PrismaPendingL1TransactionStorage
           lastError: updates.lastError,
         }),
         ...(updates.sentAt !== undefined && { sentAt: updates.sentAt }),
+        ...(updates.queuedAt !== undefined && { queuedAt: updates.queuedAt }),
+        ...(updates.nextActionAt !== undefined && {
+          nextActionAt: updates.nextActionAt,
+        }),
       },
     });
   }

@@ -17,15 +17,17 @@ export class PendingL1TransactionMapper {
       transaction: Mina.Transaction.fromJSON(input.transaction as any),
       hash: input.hash ?? undefined,
       lastError: input.lastError ?? undefined,
-      sentAt: input.sentAt ? new Date(input.sentAt) : undefined,
+      sentAt: input.sentAt ?? undefined,
+      queuedAt: input.queuedAt ?? undefined,
+      nextActionAt: input.nextActionAt ?? undefined,
     };
   }
 
   public mapOut(
-    input: PendingL1TransactionRecord
+    input: Omit<PendingL1TransactionRecord, "id"> & { id?: string }
   ): Prisma.PendingL1TransactionCreateInput {
     return {
-      id: input.id,
+      id: input.id ?? undefined,
       sender: input.sender,
       nonce: input.nonce,
       attempts: input.attempts,
@@ -33,7 +35,9 @@ export class PendingL1TransactionMapper {
       transaction: input.transaction.toJSON(),
       hash: input.hash ?? null,
       lastError: input.lastError ?? null,
-      sentAt: input.sentAt ? input.sentAt.toJSON() : null,
+      sentAt: input.sentAt ?? null,
+      queuedAt: input.queuedAt ?? null,
+      nextActionAt: input.nextActionAt ?? null,
     };
   }
 }

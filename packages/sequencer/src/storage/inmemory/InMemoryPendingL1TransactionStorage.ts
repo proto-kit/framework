@@ -11,7 +11,7 @@ export class InMemoryPendingL1TransactionStorage
   private store = new Map<string, PendingL1TransactionRecord>();
 
   public async queue(
-    record: Omit<PendingL1TransactionRecord, "status">
+    record: Omit<PendingL1TransactionRecord, "status" | "id">
   ): Promise<string> {
     const key = Math.random().toString(36).substring(2, 15);
     this.store.set(key, {
