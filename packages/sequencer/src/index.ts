@@ -111,6 +111,8 @@ export * from "./settlement/permissions/SignedSettlementPermissions";
 export * from "./settlement/tasks/SettlementProvingTask";
 export * from "./settlement/transactions/L1TransactionRetryStrategy";
 export * from "./settlement/transactions/DefaultL1TransactionRetryStrategy";
+export * from "./settlement/transactions/L1TransactionDispatcher";
+export * from "./settlement/transactions/TxStatusWaiter";
 export * from "./settlement/transactions/MinaTransactionSender";
 export * from "./settlement/transactions/MinaTransactionSimulator";
 export * from "./settlement/transactions/MinaSimulationService";
