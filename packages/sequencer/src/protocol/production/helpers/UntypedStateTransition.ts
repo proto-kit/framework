@@ -3,6 +3,20 @@ import { ProvableStateTransition, StateTransition } from "@proto-kit/protocol";
 
 import { UntypedOption } from "./UntypedOption";
 
+export interface UntypedSTJson{
+  path: string, 
+  from:{
+    isSome: boolean;
+    isForcedSome: boolean;
+    value: string[];
+  },
+  to: {
+    isSome: boolean;
+    isForcedSome: boolean;
+    value: string[];
+  }
+};
+
 /**
  * Generic state transition that constraints the current method circuit
  * to external state, by providing a state anchor.

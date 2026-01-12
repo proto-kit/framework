@@ -8,7 +8,8 @@ import { log } from "@proto-kit/common";
 import { jest } from "@jest/globals";
 
 import { Indexer } from "../src/Indexer";
-import { GeneratedResolverFactoryGraphqlModule } from "../src/api/GeneratedResolverFactoryGraphqlModule";
+import { GeneratedResolverFactoryGraphqlModule } from "../src";
+
 
 log.setLevel("info");
 
