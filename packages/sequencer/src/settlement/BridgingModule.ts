@@ -246,7 +246,6 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
         sender: feepayer,
         nonce: nonce,
         memo: `Deploy token bridge for ${truncate(tokenId.toString(), { length: 6 })}`,
-        fee: this.feeStrategy.getFee(),
       },
       async () => {
         AccountUpdate.fundNewAccount(feepayer, 1);

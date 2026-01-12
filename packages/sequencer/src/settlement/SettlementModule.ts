@@ -7,16 +7,7 @@ import {
   ContractArgsRegistry,
   SettlementContractArgs,
 } from "@proto-kit/protocol";
-import {
-  AccountUpdate,
-  fetchAccount,
-  Field,
-  Mina,
-  PublicKey,
-  SmartContract,
-  TokenContract,
-  TokenId,
-} from "o1js";
+import { fetchAccount, Field, Mina, PublicKey, SmartContract } from "o1js";
 import { inject } from "tsyringe";
 import {
   EventEmitter,
@@ -35,6 +26,7 @@ import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { Batch, SettleableBatch } from "../storage/model/Batch";
 import { Settlement } from "../storage/model/Settlement";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
+import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 
 import { SettlementUtils } from "./utils/SettlementUtils";
 import type { BridgingModule } from "./BridgingModule";
@@ -47,7 +39,7 @@ import {
   AddressRegistry,
   InMemoryAddressRegistry,
 } from "./interactions/AddressRegistry";
-import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
+import { DefaultL1TransactionRetryStrategy } from "./transactions/DefaultL1TransactionRetryStrategy";
 
 export type SettlementModuleConfig = {
   addresses?: {

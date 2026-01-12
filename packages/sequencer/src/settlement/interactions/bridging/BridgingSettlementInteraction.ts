@@ -112,7 +112,7 @@ export class BridgingSettlementInteraction implements SettleInteraction {
       signingWithSignatureCheck: this.signer.getContractAddresses(),
     });
 
-    const { hash: transactionHash } =
+    const { transactionId } =
       await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     log.info("Settlement transaction sent and included");
@@ -120,7 +120,7 @@ export class BridgingSettlementInteraction implements SettleInteraction {
     return {
       batches: [batch.height],
       promisedMessagesHash: latestSequenceStateHash.toString(),
-      transactionHash,
+      transactionId,
     };
   }
 }
