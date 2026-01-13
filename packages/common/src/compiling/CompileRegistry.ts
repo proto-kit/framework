@@ -47,22 +47,17 @@ export class CompileRegistry {
     return result;
   }
 
-  public async compile(target: CompileTarget, proverNeeded: boolean = true) {
-    if (this.artifacts[target.name] === undefined || this.inForceProverBlock) {
+  public async compile(target: CompileTarget, nameOverride?: string) {
+    const name = nameOverride ?? target.name;
+    if (this.artifacts[name] === undefined || this.inForceProverBlock) {
       const artifact = await this.compiler.compileContract(target);
-      this.artifacts[target.name] = artifact;
+      this.artifacts[name] = artifact;
       return artifact;
     }
-    return this.artifacts[target.name];
+    return this.artifacts[name];
   }
 
   public getArtifact(name: string): CompileArtifact | undefined {
-    if (this.artifacts[name] === undefined) {
-      throw new Error(
-        `Artifact for ${name} not available, did you compile it via the CompileRegistry?`
-      );
-    }
-
     return this.artifacts[name];
   }
 

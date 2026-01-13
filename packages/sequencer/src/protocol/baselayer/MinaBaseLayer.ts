@@ -2,7 +2,6 @@ import {
   AreProofsEnabled,
   DependencyFactory,
   ModuleContainerLike,
-  DependencyRecord,
 } from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
@@ -15,7 +14,6 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
-import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
 
 import { BaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
@@ -64,14 +62,6 @@ export class MinaBaseLayer
     super();
   }
 
-  public static dependencies() {
-    return {
-      IncomingMessagesService: {
-        useClass: IncomingMessagesService,
-      },
-    } satisfies DependencyRecord;
-  }
-
   public dependencies() {
     const NetworkUtilsClass = match(this.config.network.type)
       .with("local", () => LocalBlockchainUtils)
@@ -109,6 +99,14 @@ export class MinaBaseLayer
     return this.config.network.type === "local";
   }
 
+  /**
+   * Signed settlement happens when proofs are disabled and the network is remote
+   * This is because on local network we can use mock proofs, while on remotes ones we can't
+   */
+  public isSignedSettlement(): boolean {
+    return !this.areProofsEnabled.areProofsEnabled && !this.isLocalBlockChain();
+  }
+
   public async start(): Promise<void> {
     const { network } = this.config;
 
@@ -143,5 +141,3 @@ export class MinaBaseLayer
     this.network = Network;
   }
 }
-
-MinaBaseLayer satisfies DependencyFactory;

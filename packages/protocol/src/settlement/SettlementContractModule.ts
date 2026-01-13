@@ -16,17 +16,19 @@ import { ProtocolModule } from "../protocol/ProtocolModule";
 import { ContractModule } from "./ContractModule";
 import { DispatchContractProtocolModule } from "./contracts/DispatchContractProtocolModule";
 import { DispatchContractType } from "./contracts/DispatchSmartContract";
-import {
-  SettlementContractConfig,
-  SettlementContractProtocolModule,
-} from "./contracts/SettlementContractProtocolModule";
-import { SettlementContractType } from "./contracts/SettlementSmartContract";
+import { BridgingSettlementContractModule } from "./contracts/BridgingSettlementContractModule";
 import { BridgeContractType } from "./contracts/BridgeContract";
 import {
   BridgeContractConfig,
   BridgeContractProtocolModule,
 } from "./contracts/BridgeContractProtocolModule";
-import { GetContracts } from "./modularity/types";
+import { GetContracts, InferContractType } from "./modularity/types";
+import { BridgingSettlementContractType } from "./contracts/settlement/BridgingSettlementContract";
+import { SettlementContractType } from "./contracts/settlement/SettlementBase";
+import {
+  SettlementContractConfig,
+  SettlementSmartContractModule,
+} from "./contracts/SettlementSmartContractModule";
 
 export type SettlementModulesRecord = ModulesRecord<
   TypedClass<ContractModule<unknown, unknown>>
@@ -36,6 +38,12 @@ export type MandatorySettlementModulesRecord = {
   SettlementContract: TypedClass<
     ContractModule<SettlementContractType, SettlementContractConfig>
   >;
+};
+
+export type BridgingSettlementModulesRecord = {
+  SettlementContract: TypedClass<
+    ContractModule<BridgingSettlementContractType, SettlementContractConfig>
+  >;
   DispatchContract: TypedClass<ContractModule<DispatchContractType, unknown>>;
   BridgeContract: TypedClass<
     ContractModule<BridgeContractType, BridgeContractConfig>
@@ -44,8 +52,7 @@ export type MandatorySettlementModulesRecord = {
 
 @injectable()
 export class SettlementContractModule<
-    SettlementModules extends SettlementModulesRecord &
-      MandatorySettlementModulesRecord,
+    SettlementModules extends SettlementModulesRecord,
   >
   extends ModuleContainer<SettlementModules>
   implements ProtocolModule<unknown>
@@ -54,10 +61,7 @@ export class SettlementContractModule<
     super(definition);
   }
 
-  public static from<
-    SettlementModules extends SettlementModulesRecord &
-      MandatorySettlementModulesRecord,
-  >(
+  public static from<SettlementModules extends SettlementModulesRecord>(
     modules: SettlementModules
   ): TypedClass<SettlementContractModule<SettlementModules>> {
     return class ScopedSettlementContractModule extends SettlementContractModule<SettlementModules> {
@@ -67,27 +71,18 @@ export class SettlementContractModule<
     };
   }
 
-  public static mandatoryModules() {
+  public static settlementOnly() {
     return {
-      SettlementContract: SettlementContractProtocolModule,
-      DispatchContract: DispatchContractProtocolModule,
-      BridgeContract: BridgeContractProtocolModule,
+      SettlementContract: SettlementSmartContractModule,
     } as const;
   }
 
-  public static fromDefaults() {
-    return SettlementContractModule.from(
-      SettlementContractModule.mandatoryModules()
-    );
-  }
-
-  public static with<AdditionalModules extends SettlementModulesRecord>(
-    additionalModules: AdditionalModules
-  ) {
-    return SettlementContractModule.from({
-      ...SettlementContractModule.mandatoryModules(),
-      ...additionalModules,
-    } as const);
+  public static settlementAndBridging() {
+    return {
+      SettlementContract: BridgingSettlementContractModule,
+      DispatchContract: DispatchContractProtocolModule,
+      BridgeContract: BridgeContractProtocolModule,
+    } as const;
   }
 
   // ** For protocol module
@@ -116,30 +111,40 @@ export class SettlementContractModule<
     return Object.fromEntries(contracts);
   }
 
-  public createContracts(addresses: {
-    settlement: PublicKey;
-    dispatch: PublicKey;
-  }): {
-    settlement: SettlementContractType & SmartContract;
-    dispatch: DispatchContractType & SmartContract;
-  } {
-    const { DispatchContract, SettlementContract } = this.getContractClasses();
-
-    const dispatchInstance = new DispatchContract(addresses.dispatch);
-    const settlementInstance = new SettlementContract(addresses.settlement);
-
-    return {
-      dispatch: dispatchInstance,
-      settlement: settlementInstance,
-    };
-  }
-
-  public createBridgeContract(
+  public createContract<ContractName extends StringKeyOf<SettlementModules>>(
+    contractName: ContractName,
     address: PublicKey,
     tokenId?: Field
-  ): BridgeContractType & SmartContract {
-    const { BridgeContract } = this.getContractClasses();
+  ): InferContractType<SettlementModules[ContractName]> {
+    const module = this.resolve(contractName);
+    const ContractClass = module.contractFactory();
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return new ContractClass(address, tokenId) as InferContractType<
+      SettlementModules[ContractName]
+    >;
+  }
 
-    return new BridgeContract(address, tokenId);
+  public createContracts<
+    ContractName extends keyof SettlementModules,
+  >(addresses: {
+    [Key in ContractName]: PublicKey;
+  }): {
+    [Key in ContractName]: SmartContract &
+      InferContractType<SettlementModules[Key]>;
+  } {
+    const classes = this.getContractClasses();
+
+    const obj: Record<string, SmartContract> = {};
+    // eslint-disable-next-line guard-for-in
+    for (const key in addresses) {
+      const ContractClass = classes[key];
+      obj[key] = new ContractClass(addresses[key]);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return obj as {
+      [Key in keyof SettlementModules]: SmartContract &
+        InferContractType<SettlementModules[Key]>;
+    };
   }
 }

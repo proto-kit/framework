@@ -1,6 +1,7 @@
 import {
   AccountUpdate,
   Bool,
+  DeployArgs,
   Field,
   method,
   Poseidon,
@@ -13,8 +14,10 @@ import {
   state,
   TokenId,
   UInt64,
+  Permissions,
 } from "o1js";
 import { InMemoryMerkleTreeStorage, TypedClass } from "@proto-kit/common";
+import { container } from "tsyringe";
 
 import { RuntimeMethodIdMapping } from "../../model/RuntimeLike";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
@@ -23,8 +26,13 @@ import {
   MinaEvents,
 } from "../../utils/MinaPrefixedProvableHashList";
 import { Deposit } from "../messages/Deposit";
+import {
+  ContractArgsRegistry,
+  NaiveObjectSchema,
+  StaticInitializationContract,
+} from "../ContractArgsRegistry";
 
-import type { SettlementContractType } from "./SettlementSmartContract";
+import type { BridgingSettlementContractType } from "./settlement/BridgingSettlementContract";
 import { TokenBridgeDeploymentAuth } from "./authorizations/TokenBridgeDeploymentAuth";
 import { UpdateMessagesHashAuth } from "./authorizations/UpdateMessagesHashAuth";
 import {
@@ -38,11 +46,14 @@ import {
 export const ACTIONS_EMPTY_HASH = Reducer.initialActionState;
 
 export interface DispatchContractType {
+  events: {
+    "token-bridge-added": typeof TokenBridgeTreeAddition;
+  };
+
   updateMessagesHash: (
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
   ) => Promise<void>;
-  initialize: (settlementContract: PublicKey) => Promise<void>;
   enableTokenDeposits: (
     tokenId: Field,
     bridgeContractAddress: PublicKey,
@@ -50,20 +61,36 @@ export interface DispatchContractType {
   ) => Promise<void>;
 
   promisedMessagesHash: State<Field>;
+
+  deployAndInitialize: (
+    args: DeployArgs | undefined,
+    permissions: Permissions,
+    settlementContract: PublicKey
+  ) => Promise<void>;
 }
 
 const tokenBridgeRoot = new TokenBridgeTree(
   new InMemoryMerkleTreeStorage()
 ).getRoot();
 
-export abstract class DispatchSmartContractBase extends SmartContract {
-  public static args: {
-    methodIdMappings: RuntimeMethodIdMapping;
-    incomingMessagesPaths: Record<string, `${string}.${string}`>;
-    settlementContractClass?: TypedClass<SettlementContractType> &
-      typeof SmartContract;
+export interface DispatchContractArgs {
+  methodIdMappings: RuntimeMethodIdMapping;
+  incomingMessagesPaths: Record<string, `${string}.${string}`>;
+  settlementContractClass: TypedClass<BridgingSettlementContractType> &
+    typeof SmartContract;
+}
+
+export const DispatchContractArgsSchema: NaiveObjectSchema<DispatchContractArgs> =
+  {
+    incomingMessagesPaths: "Required",
+    methodIdMappings: "Required",
+    settlementContractClass: "Required",
   };
 
+export abstract class DispatchSmartContractBase
+  extends SmartContract
+  implements StaticInitializationContract<DispatchContractArgs>
+{
   events = {
     "token-bridge-added": TokenBridgeTreeAddition,
     // We need a placeholder event here, so that o1js internally adds a identifier to the
@@ -82,6 +109,12 @@ export abstract class DispatchSmartContractBase extends SmartContract {
 
   abstract tokenBridgeCount: State<Field>;
 
+  getInitializationArgs(): DispatchContractArgs {
+    return container
+      .resolve(ContractArgsRegistry)
+      .getArgs("DispatchContract", DispatchContractArgsSchema);
+  }
+
   protected updateMessagesHashBase(
     executedMessagesHash: Field,
     newPromisedMessagesHash: Field
@@ -98,12 +131,12 @@ export abstract class DispatchSmartContractBase extends SmartContract {
     this.self.account.actionState.requireEquals(newPromisedMessagesHash);
     this.promisedMessagesHash.set(newPromisedMessagesHash);
 
+    const args = this.getInitializationArgs();
     const settlementContractAddress =
       this.settlementContract.getAndRequireEquals();
-    const settlementContract =
-      new DispatchSmartContractBase.args.settlementContractClass!(
-        settlementContractAddress
-      );
+    const settlementContract = new args.settlementContractClass!(
+      settlementContractAddress
+    );
 
     settlementContract.authorizationField.requireEquals(
       new UpdateMessagesHashAuth({
@@ -116,12 +149,6 @@ export abstract class DispatchSmartContractBase extends SmartContract {
   }
 
   protected initializeBase(settlementContract: PublicKey) {
-    this.promisedMessagesHash.getAndRequireEquals().assertEquals(Field(0));
-    this.honoredMessagesHash.getAndRequireEquals().assertEquals(Field(0));
-    this.settlementContract
-      .getAndRequireEquals()
-      .assertEquals(PublicKey.empty<typeof PublicKey>());
-
     this.promisedMessagesHash.set(ACTIONS_EMPTY_HASH);
     this.honoredMessagesHash.set(ACTIONS_EMPTY_HASH);
     this.settlementContract.set(settlementContract);
@@ -174,10 +201,10 @@ export abstract class DispatchSmartContractBase extends SmartContract {
     // treeWitness: TokenBridgeTreeWitness
   ) {
     this.settlementContract.requireEquals(settlementContractAddress);
-    const settlementContract =
-      new DispatchSmartContractBase.args.settlementContractClass!(
-        settlementContractAddress
-      );
+    const args = this.getInitializationArgs();
+    const settlementContract = new args.settlementContractClass!(
+      settlementContractAddress
+    );
 
     // Append bridge address to the tree
     // TODO This not concurrent and will fail if multiple users deploy bridges at the same time
@@ -239,6 +266,18 @@ export class DispatchSmartContract
 
   @state(Field) public tokenBridgeCount = State<Field>();
 
+  public async deployAndInitialize(
+    args: DeployArgs | undefined,
+    permissions: Permissions,
+    settlementContract: PublicKey
+  ): Promise<void> {
+    await super.deploy(args);
+
+    this.self.account.permissions.set(permissions);
+
+    this.initializeBase(settlementContract);
+  }
+
   @method
   public async enableTokenDeposits(
     tokenId: Field,
@@ -261,11 +300,6 @@ export class DispatchSmartContract
       executedMessagesHash,
       newPromisedMessagesHash
     );
-  }
-
-  @method
-  public async initialize(settlementContract: PublicKey) {
-    return this.initializeBase(settlementContract);
   }
 
   @method
@@ -310,7 +344,7 @@ export class DispatchSmartContract
     });
 
     const { methodIdMappings, incomingMessagesPaths } =
-      DispatchSmartContractBase.args;
+      this.getInitializationArgs();
 
     const methodId = Field(
       methodIdMappings[incomingMessagesPaths.deposit].methodId

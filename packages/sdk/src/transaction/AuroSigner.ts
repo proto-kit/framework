@@ -4,6 +4,7 @@ import { AppChainModule } from "@proto-kit/sequencer";
 
 import { Signer } from "./InMemorySigner";
 
+// Will be implemented for MinaSigner here.
 @injectable()
 export class AuroSigner extends AppChainModule<unknown> implements Signer {
   public async sign(message: Field[]): Promise<Signature> {

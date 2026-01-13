@@ -1,5 +1,13 @@
 // allows to reference interfaces as 'classes' rather than instances
-import { Bool, DynamicProof, Field, Proof, ProofBase, PublicKey } from "o1js";
+import {
+  Bool,
+  DynamicProof,
+  Field,
+  Proof,
+  ProofBase,
+  PublicKey,
+  Option,
+} from "o1js";
 
 export type TypedClass<Class> = new (...args: any[]) => Class;
 
@@ -56,3 +64,5 @@ export type InferProofBase<
     : ProofType extends DynamicProof<infer PI, infer PO>
       ? ProofBase<PI, PO>
       : undefined;
+
+export class O1PublicKeyOption extends Option(PublicKey) {}

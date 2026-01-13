@@ -1,9 +1,10 @@
 import { inject } from "tsyringe";
 import {
+  BridgingSettlementContractArgs,
+  ContractArgsRegistry,
   MandatoryProtocolModulesRecord,
   Protocol,
   RuntimeVerificationKeyRootService,
-  SettlementSmartContractBase,
 } from "@proto-kit/protocol";
 import {
   log,
@@ -21,7 +22,6 @@ import {
 } from "../protocol/production/tasks/CircuitCompilerTask";
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
-import { SettlementUtils } from "../settlement/utils/SettlementUtils";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
@@ -44,7 +44,8 @@ export class SequencerStartupModule
     @inject("BaseLayer", { isOptional: true })
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
+    private readonly areProofsEnabled: AreProofsEnabled,
+    private readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
   }
@@ -140,13 +141,9 @@ export class SequencerStartupModule
       .resolve(ChildVerificationKeyService)
       .setCompileRegistry(this.compileRegistry);
 
-    // TODO Find a way to generalize this or at least make it nicer - too much logic here
     const isSignedSettlement =
-      this.baseLayer !== undefined && !(this.baseLayer instanceof NoopBaseLayer)
-        ? new SettlementUtils(
-            this.areProofsEnabled,
-            this.baseLayer
-          ).isSignedSettlement()
+      this.baseLayer && !(this.baseLayer instanceof NoopBaseLayer)
+        ? this.baseLayer.isSignedSettlement()
         : undefined;
 
     log.info("Compiling Protocol circuits, this can take a few minutes");
@@ -173,8 +170,13 @@ export class SequencerStartupModule
     // Init BridgeContract vk for settlement contract
     const bridgeVk = protocolBridgeArtifacts.BridgeContract;
     if (bridgeVk !== undefined) {
-      SettlementSmartContractBase.args.BridgeContractVerificationKey =
-        bridgeVk.verificationKey;
+      // TODO Inject CompileRegistry directly
+      this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
+        "SettlementContract",
+        {
+          BridgeContractVerificationKey: bridgeVk.verificationKey,
+        }
+      );
     }
 
     await this.registrationFlow.start({

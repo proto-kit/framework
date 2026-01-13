@@ -101,7 +101,6 @@ describe.skip("blockProof", () => {
           incomingMessagesHash: Field(0),
           transactionsHash: Field(0),
           eternalTransactionsHash: Field(0),
-          blockHashRoot: Field(0),
         },
       });
     });
