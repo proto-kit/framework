@@ -14,6 +14,7 @@ import {
   ReturnType,
   SettlementContractModule,
   SettlementSmartContractBase,
+  hashNetworkState,
 } from "@proto-kit/protocol";
 import {
   ClientAppChain,
@@ -506,7 +507,7 @@ export const settlementTestFn = (
         expectDefined(lastBlock);
         expectDefined(lastBlock.result);
         expect(settlement.networkStateHash.get().toString()).toStrictEqual(
-          lastBlock!.result.afterNetworkState.hash().toString()
+          hashNetworkState(lastBlock!.result.afterNetworkState).toString()
         );
         expect(settlement.stateRoot.get().toString()).toStrictEqual(
           lastBlock!.result.stateRoot.toString()
@@ -623,12 +624,12 @@ export const settlementTestFn = (
         console.log(
           `Empty Network State ${NetworkState.empty().hash().toString()}`
         );
-        console.log(batch!.toNetworkState.hash().toString());
-        console.log(batch2!.fromNetworkState.hash().toString());
+        console.log(hashNetworkState(batch!.toNetworkState));
+        console.log(hashNetworkState(batch2!.fromNetworkState));
 
-        expect(batch!.toNetworkState.hash().toString()).toStrictEqual(
-          batch2!.fromNetworkState.hash().toString()
-        );
+        expect(
+          hashNetworkState(batch!.toNetworkState)
+        ).toStrictEqual(hashNetworkState(batch2!.fromNetworkState));
 
         expect(batch2!.blockHashes).toHaveLength(1);
 
@@ -687,7 +688,7 @@ export const settlementTestFn = (
 
       console.log("Test networkstate");
       console.log(block.networkState.during);
-      console.log(NetworkState.toJSON(batch.toNetworkState));
+      console.log(batch.toNetworkState);
 
       const settlementResult = await trigger.settle(batch, {
         [bridgedTokenId.toString()]: {
