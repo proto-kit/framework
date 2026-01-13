@@ -1,5 +1,11 @@
 import { createMerkleTree } from "@proto-kit/common";
-import { Bool, Field, Poseidon, Struct } from "o1js";
+import {
+  Bool,
+  Field,
+  InferJson,
+  Poseidon,
+  Struct,
+} from "o1js";
 
 export class BlockHashMerkleTree extends createMerkleTree(40) {}
 export class BlockHashMerkleTreeWitness extends BlockHashMerkleTree.WITNESS {}
@@ -22,3 +28,4 @@ export class BlockHashTreeEntry extends Struct({
     return Poseidon.hash([blockHash, ...this.closed.toFields()]);
   }
 }
+export type BlockHashMerkleTreeWitnessJson = InferJson<typeof BlockHashMerkleTreeWitness>;

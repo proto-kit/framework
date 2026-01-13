@@ -3,6 +3,7 @@ import { LinkedMerkleTree } from "@proto-kit/common";
 import {
   AfterBlockHookArguments,
   BlockHashMerkleTree,
+  BlockHashMerkleTreeWitness,
   BlockHashTreeEntry,
   MandatoryProtocolModulesRecord,
   NetworkState,
@@ -21,7 +22,10 @@ import {
 } from "../../../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
-import { UntypedStateTransition, UntypedSTJson } from "../helpers/UntypedStateTransition";
+import {
+  UntypedStateTransition,
+  UntypedSTJson,
+} from "../helpers/UntypedStateTransition";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import type { StateRecord } from "../BatchProducerModule";
@@ -31,20 +35,18 @@ import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore"
 import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
+import { FieldString } from "../../../helpers/utils";
 
 // This is ordered, because javascript maintains the order based on time of first insertion
 function collectOrderedStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {
-  return stateTransitions.reduce<Record<string, Field[] | undefined>>(
-    (state, st) => {
-      if (st.toValue.isSome.toBoolean()) {
-        state[st.path.toString()] = st.toValue.value;
-      }
-      return state;
-    },
-    {}
-  );
+  return stateTransitions.reduce<StateRecord>((state, st) => {
+    if (st.toValue.isSome.toBoolean()) {
+      state[st.path.toString()] = st.toValue.value;
+    }
+    return state;
+  }, {});
 }
 
 function createCombinedOrderedStateDiff(
@@ -199,7 +201,9 @@ export class BlockResultService {
   }> {
     const combinedDiff = createCombinedOrderedStateDiff(
       block.transactions,
-      block.beforeBlockStateTransitions.map((st: UntypedSTJson) => UntypedStateTransition.fromJSON(st))
+      block.beforeBlockStateTransitions.map((st: UntypedSTJson) =>
+        UntypedStateTransition.fromJSON(st)
+      )
     );
 
     const inMemoryStore = await CachedLinkedLeafStore.new(merkleTreeStore);
@@ -222,9 +226,7 @@ export class BlockResultService {
         transactionsHash: Field(block.transactionsHash),
         eternalTransactionsHash: Field(block.toEternalTransactionsHash),
       },
-      new NetworkState(
-       NetworkState.fromJSON(block.networkState.during) 
-      ),
+      new NetworkState(NetworkState.fromJSON(block.networkState.during)),
       stateService
     );
 
@@ -242,17 +244,17 @@ export class BlockResultService {
 
     return {
       result: {
-        afterNetworkState: methodResult,
+        afterNetworkState: NetworkState.toJSON(methodResult),
         // This is the state root after the last tx and the afterBlock hook
-        stateRoot: stateRoot.toBigInt(),
-        witnessedRoots: [witnessedStateRoot.toBigInt()],
-        blockHashRoot: blockHashRoot.toBigInt(),
-        blockHashWitness,
+        stateRoot: FieldString(stateRoot),
+        witnessedRoots: [FieldString(witnessedStateRoot)],
+        blockHashRoot: FieldString(blockHashRoot),
+        blockHashWitness: BlockHashMerkleTreeWitness.toJSON(blockHashWitness),
 
         afterBlockStateTransitions: stateTransitions.map((st) =>
           UntypedStateTransition.fromStateTransition(st).toJSON()
         ),
-        blockHash: BigInt(block.hash),
+        blockHash: FieldString(block.hash),
       },
       treeStore: inMemoryStore,
       blockHashTreeStore: cachedBlockHashTreeStore,

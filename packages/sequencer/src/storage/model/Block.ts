@@ -79,7 +79,7 @@ export interface BlockResult {
   blockHashRoot: string;
   afterNetworkState: NetworkStateJson;
   afterBlockStateTransitions: UntypedSTJson[];
-  blockHashWitness: BlockHashMerkleTreeWitness;
+  blockHashWitness: BlockHashMerkleTreeWitnessJson;
 }
 
 export interface BlockWithResult {
@@ -126,7 +126,7 @@ export const BlockWithResult = {
         stateRoot: String(LinkedMerkleTree.EMPTY_ROOT),
         blockHashRoot: String(BlockHashMerkleTree.EMPTY_ROOT),
         afterBlockStateTransitions: [],
-        blockHashWitness: BlockHashMerkleTree.WITNESS.dummy(),
+        blockHashWitness: BlockHashMerkleTreeWitness.toJSON(BlockHashMerkleTree.WITNESS.dummy()),
         blockHash: "0",
         witnessedRoots: [String(LinkedMerkleTree.EMPTY_ROOT)],
       },
