@@ -56,6 +56,7 @@ import {
   VanillaTaskWorkerModules,
   Sequencer,
   InMemoryMinaSigner,
+  CircuitAnalysisModule,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
 import { testingSequencerModules } from "../TestingSequencer";
@@ -312,6 +313,12 @@ export const settlementTestFn = (
   let nonceCounter = 0;
   let user0Nonce = 0;
   let acc0L2Nonce = 0;
+
+  it.skip("Print constraint summary", async () => {
+    await appChain.protocol.dependencyContainer
+      .resolve(CircuitAnalysisModule)
+      .printSummary();
+  });
 
   it("should throw error", async () => {
     const additionalAddresses =
