@@ -23,8 +23,7 @@ import {
   sequencerModule,
 } from "../sequencer/builder/SequencerModule";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
-import { Batch, SettleableBatch } from "../storage/model/Batch";
-import { BlockProofSerializer } from "../protocol/production/tasks/serializers/BlockProofSerializer";
+import { SettleableBatch } from "../storage/model/Batch";
 import { Settlement } from "../storage/model/Settlement";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
 
