@@ -386,7 +386,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     const merge = prover.merge.bind(prover);
 
     const program = ZkProgram({
-      name: "BlockProver",
+      name: "TransactionProver",
       publicInput: TransactionProverPublicInput,
       publicOutput: TransactionProverPublicOutput,
 
