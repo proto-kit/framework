@@ -144,7 +144,14 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
     return zeroes;
   }
 
-  const zero = generateZeroes();
+  let zeroCache: bigint[] | undefined = undefined;
+
+  function getZeroes() {
+    if (zeroCache === undefined) {
+      zeroCache = generateZeroes();
+    }
+    return zeroCache;
+  }
 
   /**
    * The {@link RollupMerkleWitness} class defines a circuit-compatible base class
@@ -186,6 +193,9 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       leafIndex: Field,
       leaf: Field
     ): [Field, RollupMerkleWitness] {
+      // This won't generate any constraints, since it's purely a computation on constants
+      const zero = getZeroes();
+
       if (zero.length === 0) {
         throw new Error("Zeroes not initialized");
       }
