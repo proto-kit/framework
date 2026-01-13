@@ -8,6 +8,7 @@ import {
   MandatoryProtocolModulesRecord,
   SettlementSmartContractBase,
   DynamicBlockProof,
+  NetworkState,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
@@ -175,8 +176,8 @@ export class SettlementModule
           signature,
           dispatch.address,
           feepayer,
-          batch.fromNetworkState,
-          batch.toNetworkState,
+          new NetworkState(NetworkState.fromJSON(batch.fromNetworkState)),
+          new NetworkState(NetworkState.fromJSON(batch.toNetworkState)),
           latestSequenceStateHash
         );
       }

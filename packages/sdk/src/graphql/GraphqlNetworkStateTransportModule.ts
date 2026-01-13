@@ -3,7 +3,7 @@ import {
   NetworkStateTransportModule,
   AppChainModule,
 } from "@proto-kit/sequencer";
-import { NetworkState, NetworkStateJson } from "@proto-kit/protocol";
+import { NetworkStateJson } from "@proto-kit/protocol";
 import { gql } from "@urql/core";
 
 import { GraphqlClient } from "./GraphqlClient";
@@ -58,7 +58,7 @@ export class GraphqlNetworkStateTransportModule
 
       try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        return NetworkState.toJSON((NetworkState.fromJSON(json)));
+        return json as NetworkStateJson;
       } catch (e) {
         if (e instanceof Error) {
           throw errors.receivedResultMalformed(e.message);

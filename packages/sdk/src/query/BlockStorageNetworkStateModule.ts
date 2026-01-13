@@ -48,9 +48,7 @@ export class BlockStorageNetworkStateModule
    */
   public async getStagedNetworkState(): Promise<NetworkStateJson | undefined> {
     const result = await this.unprovenStorage.getLatestBlock();
-    return result?.result.afterNetworkState 
-          ? NetworkState.toJSON(result.result.afterNetworkState) 
-          : undefined;
+    return result?.result.afterNetworkState;
   }
 
   public async getProvenNetworkState(): Promise<NetworkStateJson | undefined> {

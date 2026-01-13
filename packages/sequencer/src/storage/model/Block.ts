@@ -3,13 +3,17 @@ import {
   ACTIONS_EMPTY_HASH,
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
+  BlockHashMerkleTreeWitnessJson,
   NetworkState,
-  NetworkStateJson
+  NetworkStateJson,
 } from "@proto-kit/protocol";
 import { LinkedMerkleTree } from "@proto-kit/common";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
-import { UntypedStateTransition, UntypedSTJson } from "../../protocol/production/helpers/UntypedStateTransition";
+import {
+  UntypedStateTransition,
+  UntypedSTJson,
+} from "../../protocol/production/helpers/UntypedStateTransition";
 import { FieldString } from "../../helpers/utils";
 
 export interface StateTransitionBatch {
@@ -61,16 +65,19 @@ export const Block = {
   },
 
   hash(block: Omit<Block, "hash">): Field {
-    return Block.calculateHash(Field(block.height), Field(block.transactionsHash));
+    return Block.calculateHash(
+      Field(block.height),
+      Field(block.transactionsHash)
+    );
   },
 };
 
 export interface BlockResult {
-  blockHash: bigint;
-  witnessedRoots: [bigint];
-  stateRoot: bigint;
-  blockHashRoot: bigint;
-  afterNetworkState: NetworkState;
+  blockHash: string;
+  witnessedRoots: [string];
+  stateRoot: string;
+  blockHashRoot: string;
+  afterNetworkState: NetworkStateJson;
   afterBlockStateTransitions: UntypedSTJson[];
   blockHashWitness: BlockHashMerkleTreeWitness;
 }
@@ -104,7 +111,7 @@ export const BlockWithResult = {
         transactions: [],
         networkState: {
           before: NetworkState.toJSON(NetworkState.empty()),
-          during: NetworkState.toJSON(NetworkState.empty()) ,
+          during: NetworkState.toJSON(NetworkState.empty()),
         },
         fromBlockHashRoot: FieldString(BlockHashMerkleTree.EMPTY_ROOT),
         fromMessagesHash: FieldString(0),
@@ -115,13 +122,13 @@ export const BlockWithResult = {
         previousBlockHash: undefined,
       },
       result: {
-        afterNetworkState: NetworkState.empty(),
-        stateRoot: LinkedMerkleTree.EMPTY_ROOT.toBigInt(),
-        blockHashRoot: BlockHashMerkleTree.EMPTY_ROOT,
+        afterNetworkState: NetworkState.toJSON(NetworkState.empty()),
+        stateRoot: String(LinkedMerkleTree.EMPTY_ROOT),
+        blockHashRoot: String(BlockHashMerkleTree.EMPTY_ROOT),
         afterBlockStateTransitions: [],
         blockHashWitness: BlockHashMerkleTree.WITNESS.dummy(),
-        blockHash: 0n,
-        witnessedRoots: [LinkedMerkleTree.EMPTY_ROOT.toBigInt()],
+        blockHash: "0",
+        witnessedRoots: [String(LinkedMerkleTree.EMPTY_ROOT)],
       },
     }) satisfies BlockWithResult,
 };

@@ -1,4 +1,5 @@
 import {
+  BlockHashMerkleTreeWitness,
   BlockProverPublicInput,
   BlockProverState,
   NetworkState,
@@ -83,7 +84,9 @@ export class BlockTracingService {
         NetworkState.fromJSON(block.block.networkState.before)
       ) ,
       deferSTProof: Bool(!includeSTProof),
-      blockWitness: block.result.blockHashWitness,
+      blockWitness: new BlockHashMerkleTreeWitness(
+        BlockHashMerkleTreeWitness.fromJSON(block.result.blockHashWitness)
+      ),
       startingStateBeforeHook,
     } satisfies Partial<NewBlockProverParameters>;
 
@@ -141,7 +144,9 @@ export class BlockTracingService {
     const startingStateAfterHook = collectStartingState(
       block.result.afterBlockStateTransitions.map((st: UntypedSTJson) => UntypedStateTransition.fromJSON(st))
     );
-    state.networkState = block.result.afterNetworkState;
+    state.networkState = new NetworkState(
+       NetworkState.fromJSON(block.result.afterNetworkState)
+      );
 
     return [
       afterState,

@@ -28,6 +28,7 @@ import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
+import { FieldString } from "../../../helpers/utils";
 
 import {
   BlockTrackers,
@@ -35,7 +36,6 @@ import {
   TransactionExecutionResultStatus,
   TransactionExecutionService,
 } from "./TransactionExecutionService";
-import { FieldString } from "../../../helpers/utils";
 
 function isIncludedTxs(
   x: TransactionExecutionResultStatus
@@ -130,7 +130,7 @@ export class BlockProductionService {
     // Get used networkState by executing beforeBlock() hooks
     const beforeHookResult = await this.executeBeforeBlockHook(
       toProvableHookBlockState(blockState),
-      lastResult.afterNetworkState,
+      new NetworkState(NetworkState.fromJSON(lastResult.afterNetworkState)),
       stateService
     );
 
@@ -150,7 +150,7 @@ export class BlockProductionService {
       );
 
     const previousBlockHash =
-      lastResult.blockHash === 0n ? undefined : FieldString(lastResult.blockHash);
+      lastResult.blockHash === "0" ? undefined : FieldString(lastResult.blockHash);
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
@@ -178,10 +178,12 @@ export class BlockProductionService {
       previousBlockHash,
 
       networkState: {
-        before: NetworkState.toJSON(lastResult.afterNetworkState),
+        before: lastResult.afterNetworkState,
         during: NetworkState.toJSON(networkState),
       },
-      beforeBlockStateTransitions: beforeBlockStateTransitions.map((st: UntypedStateTransition) => st.toJSON()),
+      beforeBlockStateTransitions: beforeBlockStateTransitions.map(
+        (st: UntypedStateTransition) => st.toJSON()
+      ),
     };
 
     const hash = Block.hash(block).toString();
