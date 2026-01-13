@@ -144,6 +144,8 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
     return zeroes;
   }
 
+  const zero = generateZeroes();
+
   /**
    * The {@link RollupMerkleWitness} class defines a circuit-compatible base class
    * for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
@@ -184,11 +186,6 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       leafIndex: Field,
       leaf: Field
     ): [Field, RollupMerkleWitness] {
-      let zero: bigint[] = [];
-      Provable.asProver(() => {
-        zero = generateZeroes();
-      });
-
       if (zero.length === 0) {
         throw new Error("Zeroes not initialized");
       }
