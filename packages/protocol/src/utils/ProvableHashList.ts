@@ -40,12 +40,14 @@ export abstract class ProvableHashList<Value> {
   protected abstract hash(elements: Field[]): Field;
 
   private pushUnconstrained(preimage: Field, value: Value) {
-    const valueConstant = this.valueType.fromFields(
-      this.valueType.toFields(value).map((field) => field.toConstant())
-    );
-    this.unconstrainedList.get().push({
-      preimage: preimage.toConstant(),
-      value: valueConstant,
+    this.unconstrainedList.updateAsProver((array) => {
+      return [
+        ...array,
+        {
+          preimage: preimage.toConstant(),
+          value: Provable.toConstant(this.valueType, value),
+        },
+      ];
     });
   }
 
