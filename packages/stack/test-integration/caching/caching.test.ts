@@ -134,7 +134,8 @@ function clearCache() {
   fs.mkdirSync(cachedir("o1js"));
 }
 
-describe("caching stack test", () => {
+// This test is convered by workers-proven.test.ts
+describe.skip("caching stack test", () => {
   let appchain: Awaited<ReturnType<typeof startAppChain>>;
 
   beforeAll(async () => {
