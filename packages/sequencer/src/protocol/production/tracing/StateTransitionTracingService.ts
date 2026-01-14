@@ -18,7 +18,7 @@ import {
 
 import { distinctByString } from "../../../helpers/utils";
 import { BlockWithResult } from "../../../storage/model/Block";
-import { UntypedStateTransition, UntypedSTJson } from "../helpers/UntypedStateTransition";
+import { UntypedStateTransition, UntypedStateTransitionJson } from "../helpers/UntypedStateTransition";
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
 import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
@@ -47,7 +47,7 @@ export class StateTransitionTracingService {
     return blocks.reduce<TracingStateTransitionBatch[]>((previous, block) => {
       const batches = [
         {
-          stateTransitions: block.block.beforeBlockStateTransitions.map((st: UntypedSTJson) => UntypedStateTransition.fromJSON(st)),
+          stateTransitions: block.block.beforeBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st)),
           applied: true,
         },
         ...block.block.transactions.flatMap((tx) => tx.stateTransitions),
@@ -62,7 +62,7 @@ export class StateTransitionTracingService {
       }
 
       return batchBeforeWitnessing.concat({
-        stateTransitions: block.result.afterBlockStateTransitions.map((st: UntypedSTJson) => UntypedStateTransition.fromJSON(st)),
+        stateTransitions: block.result.afterBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st)),
         applied: true,
         witnessRoot: false,
       });

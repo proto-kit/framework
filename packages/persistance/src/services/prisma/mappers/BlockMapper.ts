@@ -2,7 +2,7 @@ import { singleton } from "tsyringe";
 import {
   Block,
   UntypedStateTransition,
-  UntypedSTJson,
+  UntypedStateTransitionJson,
 } from "@proto-kit/sequencer";
 import { Prisma, Block as PrismaBlock } from "@prisma/client";
 import { NetworkStateJson } from "@proto-kit/protocol";
@@ -46,7 +46,7 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
         input.parentHash !== null ? input.parentHash : undefined,
 
       // This is cleaner to keep mapIn
-      beforeBlockStateTransitions: input.beforeBlockStateTransitions as unknown as UntypedSTJson[]
+      beforeBlockStateTransitions: input.beforeBlockStateTransitions as unknown as UntypedStateTransitionJson[]
     };
   }
 

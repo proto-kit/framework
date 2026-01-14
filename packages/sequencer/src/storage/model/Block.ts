@@ -12,7 +12,7 @@ import { LinkedMerkleTree } from "@proto-kit/common";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import {
   UntypedStateTransition,
-  UntypedSTJson,
+  UntypedStateTransitionJson,
 } from "../../protocol/production/helpers/UntypedStateTransition";
 import { FieldString } from "../../helpers/utils";
 
@@ -55,7 +55,7 @@ export interface Block {
   toEternalTransactionsHash: FieldString;
   toMessagesHash: FieldString;
 
-  beforeBlockStateTransitions: UntypedSTJson[];
+  beforeBlockStateTransitions: UntypedStateTransitionJson[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -78,7 +78,7 @@ export interface BlockResult {
   stateRoot: string;
   blockHashRoot: string;
   afterNetworkState: NetworkStateJson;
-  afterBlockStateTransitions: UntypedSTJson[];
+  afterBlockStateTransitions: UntypedStateTransitionJson[];
   blockHashWitness: BlockHashMerkleTreeWitnessJson;
 }
 

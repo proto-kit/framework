@@ -3,7 +3,7 @@ import { ProvableStateTransition, StateTransition } from "@proto-kit/protocol";
 
 import { UntypedOption } from "./UntypedOption";
 
-export interface UntypedSTJson{
+export interface UntypedStateTransitionJson{
   path: string, 
   from:{
     isSome: boolean;

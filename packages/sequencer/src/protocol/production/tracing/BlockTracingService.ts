@@ -22,7 +22,7 @@ import {
   TransactionTrace,
   TransactionTracingService,
 } from "./TransactionTracingService";
-import { UntypedStateTransition, UntypedSTJson } from "../helpers/UntypedStateTransition";
+import { UntypedStateTransition, UntypedStateTransitionJson } from "../helpers/UntypedStateTransition";
 
 export type TaskStateRecord = Record<string, Field[]>;
 
@@ -75,7 +75,7 @@ export class BlockTracingService {
     });
 
     const startingStateBeforeHook = collectStartingState(
-      block.block.beforeBlockStateTransitions.map((st: UntypedSTJson) => UntypedStateTransition.fromJSON(st))
+      block.block.beforeBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st))
     );
 
     const blockTrace = {
@@ -92,7 +92,7 @@ export class BlockTracingService {
 
     state.pendingSTBatches.push({
       batchHash: toStateTransitionsHash(
-        block.block.beforeBlockStateTransitions.map((st: UntypedSTJson) => UntypedStateTransition.fromJSON(st))
+        block.block.beforeBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st))
       ),
       applied: Bool(true),
     });
@@ -142,7 +142,7 @@ export class BlockTracingService {
     }
 
     const startingStateAfterHook = collectStartingState(
-      block.result.afterBlockStateTransitions.map((st: UntypedSTJson) => UntypedStateTransition.fromJSON(st))
+      block.result.afterBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st))
     );
     state.networkState = new NetworkState(
        NetworkState.fromJSON(block.result.afterNetworkState)
