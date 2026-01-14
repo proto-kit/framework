@@ -337,7 +337,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
    * Encoding: "stringToField(module.name) << 128 + stringToField(method-name)"
    */
   public getMethodById(
-    methodId: bigint
+    methodId: string
   ): ((...args: unknown[]) => Promise<unknown>) | undefined {
     const methodDescriptor =
       this.methodIdResolver.getMethodNameFromId(methodId);

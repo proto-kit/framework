@@ -57,11 +57,11 @@ export class RuntimeProvingTask
   }
 
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
-    const method = this.runtime.getMethodById(input.tx.methodId.toBigInt());
+    const method = this.runtime.getMethodById(input.tx.methodId.toString());
 
     const methodDescriptors = this.runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodNameFromId(input.tx.methodId.toBigInt());
+      .getMethodNameFromId(input.tx.methodId.toString());
 
     if (methodDescriptors === undefined || method === undefined) {
       throw new Error(`MethodId not found ${input.tx.methodId.toString()}`);

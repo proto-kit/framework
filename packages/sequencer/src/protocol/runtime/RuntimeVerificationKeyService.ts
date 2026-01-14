@@ -25,7 +25,7 @@ export type VKRecord = {
 };
 
 export interface WithGetMethodId {
-  getMethodId: (moduleName: string, methodName: string) => bigint;
+  getMethodId: (moduleName: string, methodName: string) => string;
 }
 
 export interface WithZkProgrammableAndGetMethodById<PublicInput, PublicOutput> {
@@ -82,7 +82,7 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
           );
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           return [
-            methodId.toString(),
+            methodId,
             new VerificationKey(artifact.verificationKey),
           ] as [string, VerificationKey];
         });
@@ -131,8 +131,8 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
     return this.persistedVKRecord;
   }
 
-  public getAttestation(methodId: bigint) {
-    const verificationKey = this.getVkRecord()[methodId.toString()];
+  public getAttestation(methodId: string) {
+    const verificationKey = this.getVkRecord()[methodId];
     if (verificationKey === undefined) {
       throw new Error(
         `MethodId not registered in VerificationKeyService (${methodId})`
@@ -147,9 +147,9 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
     });
   }
 
-  public getWitness(methodId: bigint) {
+  public getWitness(methodId: string) {
     const vkTree = this.getVKTree();
-    return vkTree.tree.getWitness(vkTree.indexes[methodId.toString()]);
+    return vkTree.tree.getWitness(vkTree.indexes[methodId]);
   }
 
   public getRoot(): bigint {

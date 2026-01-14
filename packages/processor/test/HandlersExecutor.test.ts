@@ -42,7 +42,7 @@ describe("HandlersModule", () => {
     ) => {
       // iterate over all transactions
       for (const tx of block.transactions) {
-        const methodId = tx.tx.methodId.toBigInt();
+        const methodId = tx.tx.methodId.toString();
 
         const methodDescriptor =
           appChain.runtime.methodIdResolver.getMethodNameFromId(methodId);

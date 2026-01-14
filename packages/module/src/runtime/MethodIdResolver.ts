@@ -29,7 +29,7 @@ export class MethodIdResolver {
       this.runtime.assertIsValidModuleName(moduleName);
 
       runtime.resolve(moduleName).runtimeMethodNames.forEach((methodName) => {
-        dict[this.getMethodId(moduleName, methodName).toString()] = {
+        dict[this.getMethodId(moduleName, methodName)] = {
           moduleName,
           methodName,
         };
@@ -83,8 +83,8 @@ export class MethodIdResolver {
       }, {});
   }
 
-  public getMethodNameFromId(methodId: bigint): [string, string] | undefined {
-    const methodPath = this.dictionary[methodId.toString()];
+  public getMethodNameFromId(methodId: string): [string, string] | undefined {
+    const methodPath = this.dictionary[methodId];
 
     if (methodPath === undefined) {
       return undefined;
@@ -97,12 +97,12 @@ export class MethodIdResolver {
     return [moduleName, methodName];
   }
 
-  public getMethodId(moduleName: string, methodName: string): bigint {
+  public getMethodId(moduleName: string, methodName: string): string {
     this.runtime.assertIsValidModuleName(moduleName);
 
     return Poseidon.hash([
       stringToField(moduleName),
       stringToField(methodName),
-    ]).toBigInt();
+    ]).toString();
   }
 }

@@ -110,8 +110,8 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
                 {
                   ...values,
 
-                  [methodId.toString()]: {
-                    methodId,
+                  [methodId]: {
+                    methodId: BigInt(methodId),
 
                     baseFee:
                       this.config.methods[combinedMethodName]?.baseFee ??
@@ -129,7 +129,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
                 {
                   ...indexes,
                   // eslint-disable-next-line no-plusplus
-                  [methodId.toString()]: BigInt(methodCounter++),
+                  [methodId]: BigInt(methodCounter++),
                 },
               ];
             },

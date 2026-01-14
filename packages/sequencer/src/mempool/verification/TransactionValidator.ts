@@ -20,7 +20,7 @@ export class TransactionValidator {
     // module name validation happens inside getMethodNameFromId
     // and also in the next step
     const methodPath = this.runtime.methodIdResolver.getMethodNameFromId(
-      tx.methodId.toBigInt()
+      tx.methodId.toString()
     );
 
     if (methodPath === undefined) {

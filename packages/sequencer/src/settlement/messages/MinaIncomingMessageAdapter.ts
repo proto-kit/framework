@@ -71,7 +71,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     const { methodId } = tx;
 
     const methodPointer = this.runtime.methodIdResolver.getMethodNameFromId(
-      methodId.toBigInt()
+      methodId.toString()
     );
 
     if (methodPointer === undefined) {

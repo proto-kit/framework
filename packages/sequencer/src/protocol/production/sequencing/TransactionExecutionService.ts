@@ -88,10 +88,10 @@ async function decodeTransaction(
   module: RuntimeModule<unknown>;
 }> {
   const methodDescriptors = runtime.methodIdResolver.getMethodNameFromId(
-    tx.methodId.toBigInt()
+    tx.methodId.toString()
   );
 
-  const method = runtime.getMethodById(tx.methodId.toBigInt());
+  const method = runtime.getMethodById(tx.methodId.toString());
 
   if (methodDescriptors === undefined || method === undefined) {
     throw errors.methodIdNotFound(tx.methodId.toString());
