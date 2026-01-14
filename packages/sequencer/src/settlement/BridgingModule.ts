@@ -268,7 +268,14 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
       signingPublicKeys: [contractKey],
     });
 
-    await this.transactionSender.proveAndSendTransaction(txSigned, "included");
+    await this.transactionSender.signProveAndSendTransaction(
+      txSigned,
+      [
+        ...this.signer.getContractAddresses(),
+        ...(owner ? [owner.address] : []),
+      ],
+      "included"
+    );
   }
 
   public async getBridgeAddress(
@@ -520,8 +527,9 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
         signingWithSignatureCheck: options.contractKeys,
       });
 
-      await this.transactionSender.proveAndSendTransaction(
+      await this.transactionSender.signProveAndSendTransaction(
         signedTx,
+        options.contractKeys,
         "included"
       );
 
@@ -654,8 +662,9 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
         signingWithSignatureCheck: [...options.contractKeys],
       });
 
-      await this.transactionSender.proveAndSendTransaction(
+      await this.transactionSender.signProveAndSendTransaction(
         signedTx,
+        options.contractKeys,
         "included"
       );
 

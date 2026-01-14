@@ -87,7 +87,11 @@ export class LocalBlockchainUtils implements MinaNetworkUtils {
 
     tx.sign([faucetDonor]);
 
-    await this.transactionSender.proveAndSendTransaction(tx, "included");
+    await this.transactionSender.signProveAndSendTransaction(
+      tx,
+      [faucetDonorPublicKey],
+      "included"
+    );
 
     log.provable.info(
       `Funded account ${receiver.toBase58()} with ${fundingAmount / 1e9} MINA`

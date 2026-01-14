@@ -107,7 +107,11 @@ export class VanillaDeployInteraction implements DeployInteraction {
       signingWithSignatureCheck: [...this.signer.getContractAddresses()],
     });
 
-    await this.transactionSender.proveAndSendTransaction(tx, "included");
+    await this.transactionSender.signProveAndSendTransaction(
+      tx,
+      this.signer.getContractAddresses(),
+      "included"
+    );
 
     this.addressRegistry.addContractAddress(
       "SettlementContract",

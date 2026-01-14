@@ -105,7 +105,11 @@ export class VanillaSettlementInteraction implements SettleInteraction {
     });
 
     const { transactionId } =
-      await this.transactionSender.proveAndSendTransaction(tx, "included");
+      await this.transactionSender.signProveAndSendTransaction(
+        tx,
+        this.signer.getContractAddresses(),
+        "included"
+      );
 
     log.info("Settlement transaction sent and included");
 

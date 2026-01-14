@@ -7,11 +7,11 @@ import {
   PendingL1TransactionStorage,
 } from "../../storage/repositories/PendingL1TransactionStorage";
 import { MinaSigner } from "../MinaSigner";
+import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 import { L1TransactionRetryStrategy } from "./L1TransactionRetryStrategy";
 import { TxStatusWaiter } from "./TxStatusWaiter";
 import { checkZkappTransactionStatus } from "./ZkappTransactionStatus";
-import { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 export interface DispatcherConfig {
   pollIntervalMs?: number;
@@ -38,7 +38,7 @@ export class L1TransactionDispatcher {
     private readonly waiter: TxStatusWaiter,
     @inject("L1TransactionDispatcherConfig")
     private readonly config: Required<DispatcherConfig>,
-    @inject("MinaBaseLayer")
+    @inject("BaseLayer")
     private readonly baseLayer: MinaBaseLayer
   ) {}
 
@@ -184,7 +184,7 @@ export class L1TransactionDispatcher {
     }
 
     // don't check status on local chain
-    if (!this.baseLayer.isLocalBlockChain()) {
+    if (this.baseLayer.isLocalBlockChain()) {
       await this.pendingStorage.update(record.id, {
         status: "included",
       });
