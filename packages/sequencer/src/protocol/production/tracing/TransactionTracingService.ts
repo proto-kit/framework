@@ -74,7 +74,7 @@ export class TransactionTracingService {
   ): Promise<BlockProverTransactionArguments> {
     const verificationKeyAttestation =
       this.verificationKeyService.getAttestation(
-        transaction.methodId.toBigInt()
+        transaction.methodId.toString()
       );
 
     return {

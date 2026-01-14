@@ -74,7 +74,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   private prettyPrintBlockContents(block: Block) {
     block.transactions.forEach((tx, i) => {
       const methodName = this.methodIdResolver.getMethodNameFromId(
-        tx.tx.methodId.toBigInt()
+        tx.tx.methodId.toString()
       );
       if (!methodName) return;
 
