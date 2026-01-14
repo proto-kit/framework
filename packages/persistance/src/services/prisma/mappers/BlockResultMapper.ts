@@ -1,7 +1,10 @@
 import { singleton } from "tsyringe";
-import { BlockResult } from "@proto-kit/sequencer";
+import { BlockResult, UntypedStateTransition } from "@proto-kit/sequencer";
 import { BlockResult as DBBlockResult } from "@prisma/client";
-import { BlockHashMerkleTreeWitness, NetworkState } from "@proto-kit/protocol";
+import {
+  BlockHashMerkleTreeWitnessJson,
+  NetworkStateJson,
+} from "@proto-kit/protocol";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
@@ -17,23 +20,19 @@ export class BlockResultMapper
 
   public mapIn(input: DBBlockResult): BlockResult {
     return {
-      afterNetworkState: new NetworkState(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        NetworkState.fromJSON(input.afterNetworkState as any)
-      ),
+      afterNetworkState: input.afterNetworkState as NetworkStateJson,
 
-      stateRoot: BigInt(input.stateRoot),
-      blockHashRoot: BigInt(input.blockHashRoot),
-      blockHashWitness: new BlockHashMerkleTreeWitness(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        BlockHashMerkleTreeWitness.fromJSON(input.blockHashWitness as any)
-      ),
-      afterBlockStateTransitions: this.stArrayMapper.mapIn(
-        input.afterBlockStateTransitions
-      ),
-      blockHash: BigInt(input.blockHash),
+      stateRoot: input.stateRoot,
+      blockHashRoot: input.blockHashRoot,
+      blockHashWitness:
+        input.blockHashWitness as BlockHashMerkleTreeWitnessJson,
 
-      witnessedRoots: [BigInt(input.witnessedRoots[0])],
+      afterBlockStateTransitions: this.stArrayMapper
+        .mapIn(input.afterBlockStateTransitions)
+        .map((st) => st.toJSON()),
+      blockHash: input.blockHash,
+
+      witnessedRoots: [input.witnessedRoots[0]],
     };
   }
 
@@ -43,13 +42,13 @@ export class BlockResultMapper
       blockHash: input.blockHash.toString(),
       blockHashRoot: input.blockHashRoot.toString(),
 
-      blockHashWitness: BlockHashMerkleTreeWitness.toJSON(
-        input.blockHashWitness
-      ),
+      blockHashWitness: input.blockHashWitness,
       afterBlockStateTransitions: this.stArrayMapper.mapOut(
-        input.afterBlockStateTransitions
+        input.afterBlockStateTransitions.map((st) =>
+          UntypedStateTransition.fromJSON(st)
+        )
       ),
-      afterNetworkState: NetworkState.toJSON(input.afterNetworkState),
+      afterNetworkState: input.afterNetworkState,
 
       witnessedRoots: [input.witnessedRoots[0].toString()],
     };
