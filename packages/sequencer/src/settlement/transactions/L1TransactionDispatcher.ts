@@ -11,18 +11,13 @@ import { MinaSigner } from "../MinaSigner";
 import { L1TransactionRetryStrategy } from "./L1TransactionRetryStrategy";
 import { TxStatusWaiter } from "./TxStatusWaiter";
 import { checkZkappTransactionStatus } from "./ZkappTransactionStatus";
+import { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 export interface DispatcherConfig {
   pollIntervalMs?: number;
   statusCheckIntervalMs?: number;
   inclusionTimeoutMs?: number;
 }
-
-const DEFAULT_CONFIG: Required<DispatcherConfig> = {
-  pollIntervalMs: 5000,
-  statusCheckIntervalMs: 5000,
-  inclusionTimeoutMs: 10 * 60 * 1000,
-};
 
 @injectable()
 export class L1TransactionDispatcher {
@@ -41,21 +36,11 @@ export class L1TransactionDispatcher {
     private readonly retryStrategy: L1TransactionRetryStrategy,
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     private readonly waiter: TxStatusWaiter,
-    private readonly dispatcherConfig: DispatcherConfig = {}
+    @inject("L1TransactionDispatcherConfig")
+    private readonly config: Required<DispatcherConfig>,
+    @inject("MinaBaseLayer")
+    private readonly baseLayer: MinaBaseLayer
   ) {}
-
-  private get config(): Required<DispatcherConfig> {
-    return {
-      pollIntervalMs:
-        this.dispatcherConfig.pollIntervalMs ?? DEFAULT_CONFIG.pollIntervalMs,
-      statusCheckIntervalMs:
-        this.dispatcherConfig.statusCheckIntervalMs ??
-        DEFAULT_CONFIG.statusCheckIntervalMs,
-      inclusionTimeoutMs:
-        this.dispatcherConfig.inclusionTimeoutMs ??
-        DEFAULT_CONFIG.inclusionTimeoutMs,
-    };
-  }
 
   public start() {
     this.startPolling();
@@ -195,6 +180,15 @@ export class L1TransactionDispatcher {
 
     if (record.hash === undefined || record.hash.length === 0) {
       await this.retryTransaction(record);
+      return;
+    }
+
+    // don't check status on local chain
+    if (!this.baseLayer.isLocalBlockChain()) {
+      await this.pendingStorage.update(record.id, {
+        status: "included",
+      });
+      this.waiter.notifyIncluded(record.id, record.hash);
       return;
     }
 

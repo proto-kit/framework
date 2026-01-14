@@ -42,7 +42,22 @@ export interface MinaBaseLayerConfig {
     | LocalMinaBaseLayerConfig
     | LightnetMinaBaseLayerConfig
     | RemoteMinaBaseLayerConfig;
+  /**
+   * Configuration for the L1 transaction dispatcher (polling + status checks).
+   * Defaults are applied internally.
+   */
+  transactionDispatcher?: {
+    pollIntervalMs?: number;
+    statusCheckIntervalMs?: number;
+    inclusionTimeoutMs?: number;
+  };
 }
+
+const DEFAULT_L1_TRANSACTION_DISPATCHER_CONFIG = {
+  pollIntervalMs: 5000,
+  statusCheckIntervalMs: 5000,
+  inclusionTimeoutMs: 10 * 60 * 1000,
+} as const;
 
 @sequencerModule()
 export class MinaBaseLayer
@@ -76,6 +91,13 @@ export class MinaBaseLayer
 
       TransactionSender: {
         useClass: MinaTransactionSender,
+      },
+
+      L1TransactionDispatcherConfig: {
+        useValue: {
+          ...DEFAULT_L1_TRANSACTION_DISPATCHER_CONFIG,
+          ...(this.config.transactionDispatcher ?? {}),
+        },
       },
 
       OutgoingMessageAdapter: {
