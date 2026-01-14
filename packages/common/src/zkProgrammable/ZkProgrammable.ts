@@ -108,9 +108,9 @@ export function compileToMockable(
   compile: Compile,
   { areProofsEnabled }: AreProofsEnabled
 ): Compile {
-  return async () => {
+  return async (...args) => {
     if (areProofsEnabled) {
-      return await compile();
+      return await compile(...args);
     }
 
     return {

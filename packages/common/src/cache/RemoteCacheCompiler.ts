@@ -22,7 +22,15 @@ export class RemoteCacheCompiler {
     @inject("RemoteCache", { isOptional: true })
     private readonly remoteCache: RemoteCache | undefined,
     private readonly manifest: CacheManifest
-  ) {}
+  ) {
+    if (remoteCache === undefined) {
+      log.debug(
+        "No remote cache configured, only using local file system cache for circuits"
+      );
+    } else {
+      log.debug("Using remote cache for circuit caching");
+    }
+  }
 
   private getFileFromObjectName(object: string): string {
     const dir = cachedir("o1js");

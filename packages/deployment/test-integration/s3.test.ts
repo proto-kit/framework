@@ -1,8 +1,6 @@
-import { RemoteCacheCompiler } from "@proto-kit/sequencer";
 import Minio from "minio";
 import { Field, ZkProgram } from "o1js";
-import { log } from "@proto-kit/common";
-
+import { CacheManifest, log, RemoteCacheCompiler } from "@proto-kit/common";
 import { S3RemoteCache } from "../src/cache/S3RemoteCache";
 
 const program = ZkProgram({
@@ -59,5 +57,5 @@ describe("s3", () => {
   }, 100000);
 
   // Not a lot else we can test this way, since o1js keeps the prover, therefore recompiling
-  // doesn't do anything with regards to the cache...
+  // doesn't do anything regarding the cache...
 });

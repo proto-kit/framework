@@ -2,11 +2,8 @@ import { Readable } from "stream";
 import { finished } from "node:stream/promises";
 
 import * as Minio from "minio";
-import {
-  RemoteCache,
-  SequencerModule,
-  sequencerModule,
-} from "@proto-kit/sequencer";
+import { RemoteCache } from "@proto-kit/common";
+import { SequencerModule, sequencerModule } from "@proto-kit/sequencer";
 
 export type S3Config = {
   client: Minio.ClientOptions;
