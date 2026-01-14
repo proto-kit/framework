@@ -1,6 +1,10 @@
+import * as fs from "node:fs";
+
 import Minio from "minio";
 import { Field, ZkProgram } from "o1js";
+import cachedir from "cachedir";
 import { CacheManifest, log, RemoteCacheCompiler } from "@proto-kit/common";
+
 import { S3RemoteCache } from "../src/cache/S3RemoteCache";
 
 const program = ZkProgram({
@@ -26,13 +30,13 @@ describe("s3", () => {
     secretKey: "minioadmin",
   };
 
-  // function clearCache() {
-  //   fs.rmSync(cachedir("o1js"), { force: true, recursive: true });
-  //   fs.mkdirSync(cachedir("o1js"));
-  // }
+  function clearCache() {
+    fs.rmSync(cachedir("o1js"), { force: true, recursive: true });
+    fs.mkdirSync(cachedir("o1js"));
+  }
 
   beforeAll(() => {
-    // clearCache();
+    clearCache();
 
     log.setLevel("DEBUG");
   });
