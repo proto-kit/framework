@@ -39,8 +39,11 @@ export abstract class ProvableHashList<Value> {
 
   protected abstract hash(elements: Field[]): Field;
 
-  private pushUnconstrained(preimage: Field, value: Value) {
+  private pushUnconstrained(preimage: Field, value: Value, condition?: Bool) {
     this.unconstrainedList.updateAsProver((array) => {
+      if (condition !== undefined && !condition.toBoolean()) {
+        return array;
+      }
       return [
         ...array,
         {
@@ -97,9 +100,7 @@ export abstract class ProvableHashList<Value> {
    * @returns Current hash list.
    */
   public push(value: Value) {
-    Provable.asProver(() => {
-      this.pushUnconstrained(this.commitment, value);
-    });
+    this.pushUnconstrained(this.commitment, value);
 
     this.commitment = this.hash([
       this.commitment,
@@ -110,11 +111,7 @@ export abstract class ProvableHashList<Value> {
   }
 
   public pushIf(value: Value, condition: Bool) {
-    Provable.asProver(() => {
-      if (condition.toBoolean()) {
-        this.pushUnconstrained(this.commitment, value);
-      }
-    });
+    this.pushUnconstrained(this.commitment, value, condition);
 
     const newCommitment = this.hash([
       this.commitment,
