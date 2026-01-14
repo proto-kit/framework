@@ -9,7 +9,7 @@ import {
 } from "@proto-kit/protocol";
 import { LinkedMerkleTree } from "@proto-kit/common";
 
-import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { PendingTransaction, PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 import {
   UntypedStateTransition,
   UntypedStateTransitionJson,
@@ -34,6 +34,60 @@ export interface TransactionExecutionResult {
   }[];
 }
 
+export interface StateTransitionBatchJson {
+  stateTransitions: UntypedStateTransitionJson[];
+  applied: boolean;
+}
+
+export interface TransactionExecutionResultJson {
+  tx: PendingTransactionJSONType;
+  stateTransitions: StateTransitionBatchJson[];
+  status: boolean;
+  hooksStatus: boolean;
+  statusMessage?: string;
+  events: {
+    eventName: string;
+    data: FieldString[]; 
+    source: "afterTxHook" | "beforeTxHook" | "runtime";
+  }[];
+}
+
+export function txResultToJson(txResult: TransactionExecutionResult): TransactionExecutionResultJson {
+  return {
+    tx: txResult.tx.toJSON(),
+    stateTransitions: txResult.stateTransitions.map(batch => ({
+      stateTransitions: batch.stateTransitions.map(st => st.toJSON()),
+      applied: batch.applied,
+    })),
+    status: txResult.status.toBoolean(),
+    hooksStatus: txResult.hooksStatus.toBoolean(),
+    statusMessage: txResult.statusMessage,
+    events: txResult.events.map(e => ({
+      eventName: e.eventName,
+      data: e.data.map(f => f.toString()),
+      source: e.source,
+    })),
+  };
+}
+
+export function txResultFromJson(json: TransactionExecutionResultJson): TransactionExecutionResult {
+  return {
+    tx: PendingTransaction.fromJSON(json.tx),
+    stateTransitions: json.stateTransitions.map(batch => ({
+      stateTransitions: batch.stateTransitions.map(st => UntypedStateTransition.fromJSON(st)),
+      applied: batch.applied,
+    })),
+    status: Bool(json.status),
+    hooksStatus: Bool(json.hooksStatus),
+    statusMessage: json.statusMessage,
+    events: json.events.map(e => ({
+      eventName: e.eventName,
+      data: e.data.map(f => Field(f)),
+      source: e.source,
+    })),
+  };
+}
+
 // TODO Why is Block using Fields, but BlockResult bigints? Align that towards the best option
 
 export interface Block {
@@ -45,7 +99,7 @@ export interface Block {
     during: NetworkStateJson;
   };
 
-  transactions: TransactionExecutionResult[];
+  transactions: TransactionExecutionResultJson[];
   transactionsHash: FieldString;
 
   fromEternalTransactionsHash: FieldString;

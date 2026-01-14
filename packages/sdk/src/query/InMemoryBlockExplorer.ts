@@ -65,20 +65,16 @@ export class InMemoryBlockExplorer
     const clientTransactions: ClientTransaction[] = block.transactions.map(
       (txResult) => ({
         tx: {
-          hash: txResult.tx.hash().toString(),
-          methodId: txResult.tx.methodId.toString(),
-          nonce: txResult.tx.nonce.toString(),
-          sender: txResult.tx.sender.toBase58(),
-          argsFields: txResult.tx.argsFields.map((f) => f.toString()),
+          hash: txResult.tx.hash,
+          methodId: txResult.tx.methodId,
+          nonce: txResult.tx.nonce,
+          sender: txResult.tx.sender,
+          argsFields: txResult.tx.argsFields,
           auxiliaryData: txResult.tx.auxiliaryData,
-          signature: {
-            r: txResult.tx.signature.r.toString(),
-            // eslint-disable-next-line @typescript-eslint/no-base-to-string
-            s: txResult.tx.signature.s.toString(),
-          },
+          signature: txResult.tx.signature,
           isMessage: txResult.tx.isMessage,
         },
-        status: txResult.status.toBoolean(),
+        status: txResult.status,
         statusMessage: txResult.statusMessage,
       })
     );

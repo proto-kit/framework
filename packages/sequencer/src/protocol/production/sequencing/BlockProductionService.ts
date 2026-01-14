@@ -21,6 +21,7 @@ import {
   Block,
   BlockWithResult,
   TransactionExecutionResult,
+  txResultToJson,
 } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
@@ -164,7 +165,7 @@ export class BlockProductionService {
       .map((x) => x.result);
 
     const block: Omit<Block, "hash"> = {
-      transactions: includedTransactions,
+      transactions: includedTransactions.map(txResultToJson),
       transactionsHash: FieldString(newBlockState.transactionList.commitment),
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash:

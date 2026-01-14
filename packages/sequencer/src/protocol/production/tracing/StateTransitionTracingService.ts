@@ -50,7 +50,12 @@ export class StateTransitionTracingService {
           stateTransitions: block.block.beforeBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st)),
           applied: true,
         },
-        ...block.block.transactions.flatMap((tx) => tx.stateTransitions),
+        ...block.block.transactions.flatMap((tx) => 
+          tx.stateTransitions.map(batch => ({
+            stateTransitions: batch.stateTransitions.map(st => UntypedStateTransition.fromJSON(st)),
+            applied: batch.applied,
+          }))
+        ),
       ].map((batch) => ({ ...batch, witnessRoot: false }));
 
       const batchBeforeWitnessing = previous.concat(batches);

@@ -6,7 +6,7 @@ import {
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
-import { Provable } from "o1js";
+import { Field, Provable } from "o1js";
 
 import { Mempool } from "../../../mempool/Mempool";
 import {
@@ -74,7 +74,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   private prettyPrintBlockContents(block: Block) {
     block.transactions.forEach((tx, i) => {
       const methodName = this.methodIdResolver.getMethodNameFromId(
-        tx.tx.methodId.toString()
+        tx.tx.methodId
       );
       if (!methodName) return;
 
@@ -88,20 +88,20 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       log.info(`Transaction #${i}`);
       log.info(
         "Sender:",
-        tx.tx.sender.toBase58(),
+        tx.tx.sender,
         "Nonce:",
-        tx.tx.nonce.toBigInt()
+        tx.tx.nonce
       );
       log.info(`Method: ${methodName?.join(".")}`);
       log.info();
       if (log.getLevel() <= log.levels.INFO) {
         Provable.log(
           "Arguments:",
-          paramEncoder.decode(tx.tx.argsFields, tx.tx.auxiliaryData)
+          paramEncoder.decode(tx.tx.argsFields.map((s) => Field(s)), tx.tx.auxiliaryData)
         );
       }
       log.info(
-        `Status: ${tx.status.toBoolean()}`,
+        `Status: ${tx.status ? "true" : "false"}`,
         tx.statusMessage !== undefined ? `Reason: ${tx.statusMessage}` : ""
       );
     });

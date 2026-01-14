@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { Block, BlockStorage } from "@proto-kit/sequencer";
+import { Block, BlockStorage, PendingTransaction } from "@proto-kit/sequencer";
 import { Arg, Field, ObjectType, Query } from "type-graphql";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";
@@ -13,8 +13,8 @@ export class BlockModel {
       Number(block.networkState.during.block.height),
       block.transactions.map((tx) =>
         BatchTransactionModel.fromServiceLayerModel({
-          tx: tx.tx,
-          status: tx.status.toBoolean(),
+          tx: PendingTransaction.fromJSON(tx.tx),
+          status: tx.status,
           statusMessage: tx.statusMessage,
         })
       ),

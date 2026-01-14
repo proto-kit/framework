@@ -18,7 +18,7 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   Block,
   BlockResult,
-  TransactionExecutionResult,
+  TransactionExecutionResultJson,
 } from "../../../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
@@ -50,7 +50,7 @@ function collectOrderedStateDiff(
 }
 
 function createCombinedOrderedStateDiff(
-  transactions: TransactionExecutionResult[],
+  transactions: TransactionExecutionResultJson[],
   blockHookSTs: UntypedStateTransition[]
 ) {
   // Flatten diff list into a single diff by applying them over each other
@@ -58,7 +58,9 @@ function createCombinedOrderedStateDiff(
     .map((tx) => {
       const transitions = tx.stateTransitions
         .filter(({ applied }) => applied)
-        .flatMap(({ stateTransitions }) => stateTransitions);
+        .flatMap(({ stateTransitions }) => 
+          stateTransitions.map(st => UntypedStateTransition.fromJSON(st))
+        );
 
       transitions.push(...blockHookSTs);
 

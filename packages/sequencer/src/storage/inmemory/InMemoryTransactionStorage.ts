@@ -1,5 +1,4 @@
 import { inject, injectable } from "tsyringe";
-import { Field } from "o1js";
 
 import { TransactionStorage } from "../repositories/TransactionStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
@@ -37,7 +36,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       // eslint-disable-next-line no-await-in-loop
       const block = await this.blockStorage.getBlockAt(height);
       if (block !== undefined) {
-        const hashes = block.transactions.map((tx) => tx.tx.hash().toString());
+        const hashes = block.transactions.map((tx) => tx.tx.hash);
         this.queue = this.queue.filter(
           (tx) => !hashes.includes(tx.hash().toString())
         );
@@ -92,7 +91,6 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     }
 
     const tipHeight = await this.blockStorage.getCurrentBlockHeight();
-    const hashField = Field(hash);
 
     for (let height = tipHeight - 1; height >= 0; height--) {
       // eslint-disable-next-line no-await-in-loop
@@ -101,13 +99,13 @@ export class InMemoryTransactionStorage implements TransactionStorage {
         return undefined;
       }
       const txResult = block.transactions.find((tx) =>
-        tx.tx.hash().equals(hashField).toBoolean()
+        tx.tx.hash === hash
       );
       if (txResult !== undefined) {
         // eslint-disable-next-line no-await-in-loop
         const batch = await this.findBatch(block.hash);
         return {
-          transaction: txResult.tx,
+          transaction: PendingTransaction.fromJSON(txResult.tx),
           block: block.transactionsHash,
           batch,
         };

@@ -12,7 +12,7 @@ import { yieldSequential } from "@proto-kit/common";
 import chunk from "lodash/chunk";
 import { inject, injectable } from "tsyringe";
 
-import { BlockWithResult } from "../../../storage/model/Block";
+import { BlockWithResult, txResultFromJson } from "../../../storage/model/Block";
 import type { NewBlockProverParameters } from "../tasks/NewBlockTask";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
@@ -101,7 +101,7 @@ export class BlockTracingService {
       ) ;
 
     const [afterState, transactionTraces] = await yieldSequential(
-      chunk(block.block.transactions, 2),
+      chunk(block.block.transactions.map(txResultFromJson), 2),
       async (input, [transaction1, transaction2]) => {
         const [output, transactionTrace] =
           transaction2 !== undefined
