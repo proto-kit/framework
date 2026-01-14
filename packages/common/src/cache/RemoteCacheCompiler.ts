@@ -2,13 +2,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import cachedir from "cachedir";
+
+import { log } from "../log";
+import { mapSequential } from "../utils";
 import {
   CompileArtifact,
-  log,
-  mapSequential,
   PlainZkProgram,
-} from "@proto-kit/common";
-import cachedir from "cachedir";
+} from "../zkProgrammable/ZkProgrammable";
 
 import { RemoteCache } from "./RemoteCache";
 import { ProxyCache } from "./ProxyCache";

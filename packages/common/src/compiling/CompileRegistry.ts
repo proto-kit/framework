@@ -19,14 +19,7 @@ import {
 @injectable()
 @singleton()
 export class CompileRegistry {
-  public constructor(
-    @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
-  ) {
-    this.compiler = new AtomicCompileHelper(this.areProofsEnabled);
-  }
-
-  private compiler: AtomicCompileHelper;
+  public constructor(private readonly compiler: AtomicCompileHelper) {}
 
   private artifacts: ArtifactRecord = {};
 

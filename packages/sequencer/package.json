@@ -33,7 +33,6 @@
   },
   "dependencies": {
     "ascii-table3": "^0.9.0",
-    "cachedir": "^2.4.0",
     "compute-gcd": "^1.2.1",
     "lodash-es": "^4.17.21",
     "mina-fungible-token": "^1.1.0",
