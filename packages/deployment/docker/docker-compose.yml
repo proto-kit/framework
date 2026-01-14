@@ -11,3 +11,5 @@ include:
   - ./lightnet/docker-compose.yml
 
   - ./monitoring/docker-compose.yml
+
+  - ./minio/docker-compose.yml

@@ -1,4 +1,11 @@
-import { ZkProgram, FlexibleProvablePure, Proof, Field, Provable } from "o1js";
+import {
+  ZkProgram,
+  FlexibleProvablePure,
+  Proof,
+  Field,
+  Provable,
+  Cache as O1Cache,
+} from "o1js";
 import { Memoize } from "typescript-memoize";
 
 import { log } from "../log";
@@ -30,7 +37,14 @@ export interface Verify<PublicInput, PublicOutput> {
 }
 
 export interface Compile {
-  (): Promise<CompileArtifact>;
+  (options?: {
+    cache?: O1Cache;
+    forceRecompile?: boolean;
+    proofsEnabled?: boolean;
+    withRuntimeTables?: boolean;
+    numChunks?: number;
+    lazyMode?: boolean;
+  }): Promise<CompileArtifact>;
 }
 
 export interface PlainZkProgram<
@@ -93,7 +107,7 @@ export const MOCK_VERIFICATION_KEY = dummyVerificationKey();
 export function compileToMockable(
   compile: Compile,
   { areProofsEnabled }: AreProofsEnabled
-): () => Promise<CompileArtifact> {
+): Compile {
   return async () => {
     if (areProofsEnabled) {
       return await compile();
