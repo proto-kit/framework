@@ -43,7 +43,6 @@ import { FungibleToken, FungibleTokenAdmin } from "mina-fungible-token";
 
 import {
   ManualBlockTrigger,
-  PendingTransaction,
   PrivateMempool,
   BlockQueue,
   SettlementModule,

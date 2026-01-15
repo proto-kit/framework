@@ -167,7 +167,7 @@ describe("testing app chain", () => {
 
     console.log("block2", block2);
 
-    expect(block2?.transactions[0].status.toBoolean()).toBe(true);
+    expect(block2?.transactions[0].status).toBe(true);
 
     /**
      * Observe new state after the block has been produced

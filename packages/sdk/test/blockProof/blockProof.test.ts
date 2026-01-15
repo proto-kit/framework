@@ -138,7 +138,7 @@ describe.skip("blockProof", () => {
       })
     );
 
-    expect(block?.transactions[0].status.toBoolean()).toBe(true);
+    expect(block?.transactions[0].status).toBe(true);
     expect(aliceBalance?.toBigInt()).toBe(1000n);
   }, 120_000);
 });

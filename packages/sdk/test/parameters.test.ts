@@ -146,6 +146,6 @@ describe("parameters", () => {
     const block = await appChain.produceBlock();
 
     expectDefined(block);
-    expect(block.transactions[0].status.toBoolean()).toBe(true);
+    expect(block.transactions[0].status).toBe(true);
   }, 60_000);
 });

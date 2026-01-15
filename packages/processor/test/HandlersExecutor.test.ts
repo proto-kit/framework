@@ -6,7 +6,7 @@ import {
 import { TestingAppChain } from "@proto-kit/sdk";
 import { Balance, Balances, TokenId } from "@proto-kit/library";
 import { MethodParameterEncoder } from "@proto-kit/module";
-import { PrivateKey, PublicKey } from "o1js";
+import { Field, PrivateKey, PublicKey } from "o1js";
 import { mockDeep } from "jest-mock-extended";
 import { container } from "tsyringe";
 
@@ -66,7 +66,7 @@ describe("HandlersModule", () => {
           // @ts-expect-error
           const [, from, to, amount]: [TokenId, PublicKey, PublicKey, Balance] =
             await parameterDecoder.decode(
-              tx.tx.argsFields,
+              tx.tx.argsFields.map(Field),
               tx.tx.auxiliaryData
             );
 

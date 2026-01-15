@@ -211,7 +211,7 @@ export function testBlockProduction<
     expect(block).toBeDefined();
 
     expect(block!.transactions).toHaveLength(1);
-    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].status).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
     expect(block!.transactions[0].stateTransitions).toHaveLength(3);
@@ -289,7 +289,7 @@ export function testBlockProduction<
     expect(block).toBeDefined();
 
     expect(block!.transactions).toHaveLength(1);
-    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].status).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
     expect(batch!.blockHashes).toHaveLength(1);
@@ -319,7 +319,7 @@ export function testBlockProduction<
     const [block] = await test.produceBlockAndBatch();
 
     expect(block?.transactions).toHaveLength(1);
-    expect(block?.transactions[0].status.toBoolean()).toBe(false);
+    expect(block?.transactions[0].status).toBe(false);
     expect(block?.transactions[0].statusMessage).toBe("Condition not met");
 
     const balanceModule = runtime.resolve("Balance");
@@ -359,7 +359,7 @@ export function testBlockProduction<
     expect(block).toBeDefined();
 
     expect(block!.transactions).toHaveLength(1);
-    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].status).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
     expect(
@@ -415,7 +415,7 @@ export function testBlockProduction<
     expect(block2).toBeDefined();
 
     expect(block2!.transactions).toHaveLength(1);
-    expect(block2!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block2!.transactions[0].status).toBe(true);
     expect(block2!.transactions[0].statusMessage).toBeUndefined();
 
     await expect(
@@ -449,17 +449,17 @@ export function testBlockProduction<
     expect(block!.transactions).toHaveLength(numberTxs);
 
     range(0, numberTxs).forEach((index) => {
-      expect(block!.transactions[index].status.toBoolean()).toBe(true);
+      expect(block!.transactions[index].status).toBe(true);
       expect(block!.transactions[index].statusMessage).toBe(undefined);
 
       const transitions =
         block!.transactions[index].stateTransitions[1].stateTransitions;
 
       const fromBalance = increment * index;
-      expect(transitions[0].fromValue.value[0].toBigInt()).toStrictEqual(
+      expect(BigInt(transitions[0].from.value[0])).toStrictEqual(
         BigInt(fromBalance)
       );
-      expect(transitions[0].toValue.value[0].toBigInt()).toStrictEqual(
+      expect(BigInt(transitions[0].to.value[0])).toStrictEqual(
         BigInt(fromBalance + increment)
       );
     });
@@ -591,7 +591,7 @@ export function testBlockProduction<
 
           for (let k = 0; k < txsPerBlock; k++) {
             expect(block!.transactions).toHaveLength(txsPerBlock);
-            expect(block!.transactions[0].status.toBoolean()).toBe(true);
+            expect(block!.transactions[0].status).toBe(true);
           }
         }
 
@@ -624,7 +624,7 @@ export function testBlockProduction<
 
     expect(block!.transactions).toHaveLength(1);
 
-    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].status).toBe(true);
     expect(block!.transactions[0].statusMessage).toBe(undefined);
 
     expect(batch!.blockHashes).toHaveLength(1);
@@ -671,7 +671,7 @@ export function testBlockProduction<
     expect(block).toBeDefined();
 
     expect(block!.transactions).toHaveLength(1);
-    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].status).toBe(true);
     expect(block!.transactions[0].statusMessage).toBeUndefined();
 
     expect(
@@ -717,13 +717,13 @@ export function testBlockProduction<
     };
     const firstEventReduced = {
       eventName: firstExpectedEvent.eventName,
-      data: firstExpectedEvent.eventType.toFields(firstExpectedEvent.event),
+      data: firstExpectedEvent.eventType.toFields(firstExpectedEvent.event).map(f => f.toString()),
       source: "runtime",
     };
 
     const secondEventReduced = {
       eventName: secondExpectedEvent.eventName,
-      data: secondExpectedEvent.eventType.toFields(secondExpectedEvent.event),
+      data: secondExpectedEvent.eventType.toFields(secondExpectedEvent.event).map(f => f.toString()),
       source: "runtime",
     };
 

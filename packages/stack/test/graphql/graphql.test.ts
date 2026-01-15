@@ -231,7 +231,7 @@ describe("graphql client test", () => {
 
     const heightParsedTx = heightResult?.transactions!;
 
-    const blockTxHash = block?.transactions[0].tx.toJSON().hash;
+    const blockTxHash = block?.transactions[0].tx.hash;
 
     const queryTxHash = heightParsedTx[0]?.tx?.hash;
 

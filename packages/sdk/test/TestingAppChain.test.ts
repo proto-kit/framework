@@ -147,7 +147,7 @@ describe("testing app chain", () => {
 
     Provable.log("block", block);
 
-    expect(block?.transactions[0].status.toBoolean()).toBe(true);
+    expect(block?.transactions[0].status).toBe(true);
 
     /**
      * Observe new state after the block has been produced

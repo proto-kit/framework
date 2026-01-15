@@ -18,6 +18,7 @@ import {
   BlockStorage,
   VanillaTaskWorkerModules,
   AppChain,
+  UntypedStateTransition,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -36,7 +37,7 @@ function checkStateDiffEquality(stateDiff: StateRecord, state: StateEntry[]) {
           return value === undefined;
         }
         if (value !== undefined) {
-          return entry.value.find((v, i) => v !== value[i]) === undefined;
+          return entry.value.find((v, i) => !v.equals(value[i]).toBoolean()) === undefined;
         }
       }
       return false;
@@ -161,12 +162,10 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(block2.hash).toStrictEqual(
         generatedBlock.hash
       );
-
-      const stateDiff = collectStateDiff(
-        block.transactions.flatMap((tx) =>
-          tx.stateTransitions.flatMap((batch) => batch.stateTransitions)
+      const input = block.transactions.flatMap((tx) =>
+          tx.stateTransitions.flatMap((batch) => batch.stateTransitions.map(st => UntypedStateTransition.fromJSON(st)))
         )
-      );
+      const stateDiff = collectStateDiff(input);
 
       const state = await unprovenState.getMany(
         Object.keys(stateDiff).map(Field)
@@ -215,7 +214,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const txs = await txStorage.getPendingUserTransactions();
 
       expect(txs).toHaveLength(1);
-      expect(txs[0].hash().toString()).toStrictEqual(tx.hash().toString());
+      expect(txs[0].hash).toStrictEqual(tx.hash);
 
       await sequencer.resolve("BlockTrigger").produceBlock();
 

@@ -97,8 +97,8 @@ describe("prisma integration", () => {
 
       // Check that transactions match
       expect(retrievedBlock.transactions).toHaveLength(1);
-      expect(retrievedBlock.transactions[0].tx.hash().toString()).toStrictEqual(
-        block.transactions[0].tx.hash().toString()
+      expect(retrievedBlock.transactions[0].tx.hash).toStrictEqual(
+        block.transactions[0].tx.hash
       );
 
       expect(retrievedBlock.hash).toStrictEqual(
@@ -228,7 +228,7 @@ describe("prisma integration", () => {
       expectDefined(transaction.transaction);
 
       expect(txs).toHaveLength(1);
-      expect(txs[0].hash().toString()).toStrictEqual(
+      expect(txs[0].hash).toStrictEqual(
         transaction.transaction.hash().toString()
       );
     });
@@ -244,7 +244,7 @@ describe("prisma integration", () => {
       expectDefined(transaction.transaction);
 
       expect(txs).toHaveLength(1);
-      expect(txs[0].hash().toString()).toStrictEqual(
+      expect(txs[0].hash).toStrictEqual(
         transaction.transaction.hash().toString()
       );
     });

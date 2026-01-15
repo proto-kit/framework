@@ -121,7 +121,7 @@ describe.skip("block production", () => {
     expectDefined(block2);
 
     expect(block2.transactions).toHaveLength(1);
-    expect(block2!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block2!.transactions[0].status).toBe(true);
   }, 60000);
 
   it("should produce a valid block", async () => {
@@ -138,7 +138,7 @@ describe.skip("block production", () => {
     await tx.send();
 
     const [block, batch] = await blockTrigger.produceBlockAndBatch();
-    expect(block!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block!.transactions[0].status).toBe(true);
 
     expectDefined(batch);
     const publicOutput = BlockProverPublicOutput.fromFields(
@@ -155,7 +155,7 @@ describe.skip("block production", () => {
     await tx2.send();
 
     const [block2, batch2] = await blockTrigger.produceBlockAndBatch();
-    expect(block2!.transactions[0].status.toBoolean()).toBe(true);
+    expect(block2!.transactions[0].status).toBe(true);
 
     expectDefined(batch2);
     const publicOutput2 = BlockProverPublicOutput.fromFields(
@@ -172,6 +172,6 @@ describe.skip("block production", () => {
     await tx3.send();
 
     const [block3] = await blockTrigger.produceBlockAndBatch();
-    expect(block3!.transactions[0].status.toBoolean()).toBe(false);
+    expect(block3!.transactions[0].status).toBe(false);
   }, 60_000);
 });
