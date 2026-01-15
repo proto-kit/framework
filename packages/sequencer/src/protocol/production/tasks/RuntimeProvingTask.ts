@@ -7,6 +7,7 @@ import {
 import {
   MethodPublicOutput,
   NetworkState,
+  NetworkStateJson,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
@@ -16,8 +17,8 @@ import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
-import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import { TaskStateRecord } from "../tracing/BlockTracingService";
+import { PendingTransaction, PendingTransactionJSONType } from "../../../mempool/PendingTransaction";
+import { TaskStateRecord, TaskStateRecordJson, taskStateRecordFromJson } from "../tracing/BlockTracingService";
 
 import { RuntimeProofParametersSerializer } from "./serializers/RuntimeProofParametersSerializer";
 
@@ -29,11 +30,17 @@ export interface RuntimeProofParameters {
   state: TaskStateRecord;
 }
 
+export interface RuntimeProofParametersJson {
+  tx: PendingTransactionJSONType;
+  networkState: NetworkStateJson;
+  state: TaskStateRecordJson;
+}
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class RuntimeProvingTask
   extends TaskWorkerModule
-  implements Task<RuntimeProofParameters, RuntimeProof>
+  implements Task<RuntimeProofParametersJson, RuntimeProof>
 {
   protected readonly runtimeZkProgrammable =
     this.runtime.zkProgrammable.zkProgram;
@@ -48,7 +55,7 @@ export class RuntimeProvingTask
     super();
   }
 
-  public inputSerializer(): TaskSerializer<RuntimeProofParameters> {
+  public inputSerializer(): TaskSerializer<RuntimeProofParametersJson> {
     return new RuntimeProofParametersSerializer();
   }
 
@@ -56,15 +63,20 @@ export class RuntimeProvingTask
     return new ProofTaskSerializer(this.runtimeZkProgrammable[0].Proof);
   }
 
-  public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
-    const method = this.runtime.getMethodById(input.tx.methodId.toString());
+  public async compute(input: RuntimeProofParametersJson): Promise<RuntimeProof> {
+    // Convert from JSON to provable types at the proving boundary
+    const tx = PendingTransaction.fromJSON(input.tx);
+    const networkState = new NetworkState(NetworkState.fromJSON(input.networkState));
+    const state = taskStateRecordFromJson(input.state);
+
+    const method = this.runtime.getMethodById(tx.methodId.toString());
 
     const methodDescriptors = this.runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodNameFromId(input.tx.methodId.toString());
+      .getMethodNameFromId(tx.methodId.toString());
 
     if (methodDescriptors === undefined || method === undefined) {
-      throw new Error(`MethodId not found ${input.tx.methodId.toString()}`);
+      throw new Error(`MethodId not found ${tx.methodId.toString()}`);
     }
 
     const [moduleName, methodName] = methodDescriptors;
@@ -74,19 +86,19 @@ export class RuntimeProvingTask
       methodName
     );
     const decodedArguments = await parameterEncoder.decode(
-      input.tx.argsFields,
-      input.tx.auxiliaryData
+      tx.argsFields,
+      tx.auxiliaryData
     );
 
-    const prefilledStateService = new PreFilledStateService(input.state);
+    const prefilledStateService = new PreFilledStateService(state);
     this.runtime.stateServiceProvider.setCurrentStateService(
       prefilledStateService
     );
 
     // Set network state and transaction for the runtimemodule to access
-    const { transaction, signature } = input.tx.toProtocolTransaction();
+    const { transaction, signature } = tx.toProtocolTransaction();
     const contextInputs = {
-      networkState: input.networkState,
+      networkState,
       transaction,
       signature,
     };

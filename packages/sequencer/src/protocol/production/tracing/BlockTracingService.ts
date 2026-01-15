@@ -26,7 +26,22 @@ import { UntypedStateTransition, UntypedStateTransitionJson } from "../helpers/U
 
 export type TaskStateRecord = Record<string, Field[]>;
 
+export type TaskStateRecordJson = Record<string, string[]>;
+
+export function taskStateRecordToJson(record: TaskStateRecord): TaskStateRecordJson {
+  return Object.fromEntries(
+    Object.entries(record).map(([key, fields]) => [key, fields.map(f => f.toString())])
+  );
+}
+
+export function taskStateRecordFromJson(json: TaskStateRecordJson): TaskStateRecord {
+  return Object.fromEntries(
+    Object.entries(json).map(([key, strings]) => [key, strings.map(s => Field(s))])
+  );
+}
+
 export type BlockTracingState = Pick<
+
   BlockProverState,
   | "witnessedRoots"
   | "stateRoot"

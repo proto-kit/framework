@@ -10,16 +10,14 @@ import { JsonProof, Signature } from "o1js";
 
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../../helpers/utils";
+import { TaskStateRecordJson } from "../../tracing/BlockTracingService";
 
 import {
   TransactionProvingTaskParameters,
   TransactionProvingType,
 } from "./types/TransactionProvingTypes";
-import {
-  DecodedStateSerializer,
-  JSONEncodableState,
-} from "./DecodedStateSerializer";
 import { RuntimeVerificationKeyAttestationSerializer } from "./RuntimeVerificationKeyAttestationSerializer";
+
 
 export type BlockProverTransactionArgumentsJSON = {
   transaction: ReturnType<typeof RuntimeTransaction.toJSON>;
@@ -43,7 +41,7 @@ export type MultiExecutionDataJSON = {
 export type TransactionProverTaskParametersJSON<
   ExecutionData extends SingleExecutionDataJSON | MultiExecutionDataJSON,
 > = {
-  startingState: JSONEncodableState[];
+  startingState: TaskStateRecordJson[];
   publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
   executionData: ExecutionData;
 };
@@ -108,9 +106,7 @@ export class TransactionProvingTaskParameterSerializer
     const partialParameters = {
       publicInput: BlockProverPublicInput.toJSON(parameters.publicInput),
 
-      startingState: parameters.startingState.map((stateRecord) =>
-        DecodedStateSerializer.toJSON(stateRecord)
-      ),
+      startingState: parameters.startingState,
     };
 
     // The reason we can't just use the structs toJSON is that the VerificationKey
@@ -169,9 +165,7 @@ export class TransactionProvingTaskParameterSerializer
     const partialParameters = {
       publicInput: BlockProverPublicInput.fromJSON(parameters.publicInput),
 
-      startingState: parameters.startingState.map((stateRecord) =>
-        DecodedStateSerializer.fromJSON(stateRecord)
-      ),
+      startingState: parameters.startingState,
     };
 
     if (type === TransactionProvingType.SINGLE) {

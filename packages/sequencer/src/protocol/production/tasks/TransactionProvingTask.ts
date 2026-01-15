@@ -18,7 +18,7 @@ import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskSerializer, Task } from "../../../worker/flow/Task";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
-import type { TaskStateRecord } from "../tracing/BlockTracingService";
+import { TaskStateRecord, TaskStateRecordJson, taskStateRecordFromJson } from "../tracing/BlockTracingService";
 
 import { TransactionProvingTaskParameterSerializer } from "./serializers/TransactionProvingTaskParameterSerializer";
 import {
@@ -93,9 +93,12 @@ export class TransactionProvingTask
   public async compute(
     input: TransactionProvingTaskParameters
   ): Promise<BlockProof> {
+
+    const startingStateProvable = input.parameters.startingState.map(taskStateRecordFromJson);
+
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      input.parameters.startingState,
+      startingStateProvable,
       async () => {
         const { type, parameters } = input;
 
@@ -120,7 +123,7 @@ export class TransactionProvingTask
 
     return await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      input.parameters.startingState,
+      startingStateProvable,
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );

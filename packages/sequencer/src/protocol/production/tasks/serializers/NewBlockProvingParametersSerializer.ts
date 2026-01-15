@@ -16,11 +16,7 @@ import type { NewBlockProverParameters } from "../NewBlockTask";
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../../helpers/utils";
 import { PairingDerivedInput } from "../../flow/ReductionTaskFlow";
-
-import {
-  DecodedStateSerializer,
-  JSONEncodableState,
-} from "./DecodedStateSerializer";
+import { TaskStateRecordJson } from "../../tracing/BlockTracingService";
 
 interface JsonType {
   input1: string;
@@ -29,12 +25,13 @@ interface JsonType {
     publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
     networkState: ReturnType<typeof NetworkState.toJSON>;
     blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
-    startingStateBeforeHook: JSONEncodableState;
-    startingStateAfterHook: JSONEncodableState;
+    startingStateBeforeHook: TaskStateRecordJson;
+    startingStateAfterHook: TaskStateRecordJson;
     deferSTProof: boolean;
     afterBlockRootWitness: ReturnType<typeof WitnessedRootWitness.toJSON>;
   };
 }
+
 
 type NewBlockPayload = PairingDerivedInput<
   StateTransitionProof,
@@ -70,15 +67,9 @@ export class NewBlockProvingParametersSerializer
           input.params.blockWitness
         ),
 
-        startingStateBeforeHook: DecodedStateSerializer.toJSON(
-          input.params.startingStateBeforeHook
-        ),
+        startingStateBeforeHook: input.params.startingStateBeforeHook,
 
-        startingStateAfterHook: DecodedStateSerializer.toJSON(
-          input.params.startingStateAfterHook
-        ),
-
-        deferSTProof: input.params.deferSTProof.toBoolean(),
+        startingStateAfterHook: input.params.startingStateAfterHook, deferSTProof: input.params.deferSTProof.toBoolean(),
 
         afterBlockRootWitness: WitnessedRootWitness.toJSON(
           input.params.afterBlockRootWitness
@@ -107,13 +98,9 @@ export class NewBlockProvingParametersSerializer
           BlockHashMerkleTreeWitness.fromJSON(jsonObject.params.blockWitness)
         ),
 
-        startingStateBeforeHook: DecodedStateSerializer.fromJSON(
-          jsonObject.params.startingStateBeforeHook
-        ),
+        startingStateBeforeHook: jsonObject.params.startingStateBeforeHook,
 
-        startingStateAfterHook: DecodedStateSerializer.fromJSON(
-          jsonObject.params.startingStateBeforeHook
-        ),
+        startingStateAfterHook: jsonObject.params.startingStateAfterHook,
 
         deferSTProof: Bool(jsonObject.params.deferSTProof),
 

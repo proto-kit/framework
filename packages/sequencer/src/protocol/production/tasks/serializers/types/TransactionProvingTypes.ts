@@ -6,7 +6,7 @@ import {
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
 
-import type { TaskStateRecord } from "../../../tracing/BlockTracingService";
+import type { TaskStateRecordJson } from "../../../tracing/BlockTracingService";
 
 export type RuntimeProof = Proof<void, MethodPublicOutput>;
 
@@ -22,8 +22,9 @@ export interface TransactionProverTaskParameters<
 > {
   publicInput: BlockProverPublicInput;
   executionData: ExecutionData;
-  startingState: TaskStateRecord[];
+  startingState: TaskStateRecordJson[];
 }
+
 
 export type TransactionProvingTaskParameters =
   | {

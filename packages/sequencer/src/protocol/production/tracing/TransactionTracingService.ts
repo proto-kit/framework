@@ -16,7 +16,7 @@ import { inject, injectable } from "tsyringe";
 
 import { TransactionExecutionResult } from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import type { RuntimeProofParameters } from "../tasks/RuntimeProvingTask";
+import type { RuntimeProofParametersJson } from "../tasks/RuntimeProvingTask";
 import {
   TransactionProverTaskParameters,
   TransactionProvingType,
@@ -24,23 +24,23 @@ import {
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
 
-import type { BlockTracingState, TaskStateRecord } from "./BlockTracingService";
+import type { BlockTracingState, TaskStateRecordJson } from "./BlockTracingService";
 
 export type TransactionTrace =
   | {
       type: TransactionProvingType.SINGLE;
       transaction: TransactionProverTaskParameters<BlockProverSingleTransactionExecutionData>;
-      runtime: [RuntimeProofParameters];
+      runtime: [RuntimeProofParametersJson];
     }
   | {
       type: TransactionProvingType.MULTI;
       transaction: TransactionProverTaskParameters<BlockProverMultiTransactionExecutionData>;
-      runtime: [RuntimeProofParameters, RuntimeProofParameters];
+      runtime: [RuntimeProofParametersJson, RuntimeProofParametersJson];
     };
 
 export function collectStartingState(
   stateTransitions: UntypedStateTransition[]
-): TaskStateRecord {
+): TaskStateRecordJson {
   const stateEntries = stateTransitions
     // Filter distinct
     .filter(
@@ -52,10 +52,11 @@ export function collectStartingState(
     // "state hasn't been set before" and has to correlate to a precondition on Field(0)
     // and for that the state has to be undefined
     .filter((st) => st.fromValue.isSome.toBoolean())
-    .map((st) => [st.path.toString(), st.fromValue.value]);
+    .map((st) => [st.path.toString(), st.fromValue.value.map((f: Field) => f.toString())]);
 
   return Object.fromEntries(stateEntries);
 }
+
 
 @injectable()
 export class TransactionTracingService {
@@ -124,14 +125,14 @@ export class TransactionTracingService {
   private createRuntimeProofParams(
     tx: TransactionExecutionResult,
     networkState: NetworkState
-  ): RuntimeProofParameters {
+  ): RuntimeProofParametersJson {
     const startingState = collectStartingState(
       tx.stateTransitions[1].stateTransitions
     );
 
     return {
-      tx: tx.tx,
-      networkState,
+      tx: tx.tx.toJSON(),
+      networkState: NetworkState.toJSON(networkState),
       state: startingState,
     };
   }
