@@ -6,6 +6,8 @@ import { MessageStorage } from "../../storage/repositories/MessageStorage";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
 import { PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 import type { SettlementModule } from "../SettlementModule";
+import { PendingTransaction } from "../../mempool/PendingTransaction";
+import type { BridgingModule } from "../BridgingModule";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";
 
@@ -20,8 +22,8 @@ export class IncomingMessagesService {
     private readonly messagesAdapter: IncomingMessageAdapter,
     @inject("BlockStorage")
     private readonly blockStorage: BlockStorage,
-    @inject("SettlementModule")
-    private readonly settlementModule: SettlementModule
+    @inject("BridgingModule")
+    private readonly bridgingModule: BridgingModule
   ) {}
 
   private async fetchRemaining(
@@ -29,7 +31,7 @@ export class IncomingMessagesService {
     toMessagesHash: string
   ) {
     const dispatchContractAddress =
-      this.settlementModule.getAddresses().dispatch;
+      this.bridgingModule.getDispatchContractAddress();
 
     const fetched = await this.messagesAdapter.fetchPendingMessages(
       dispatchContractAddress,

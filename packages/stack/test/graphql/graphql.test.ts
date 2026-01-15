@@ -57,10 +57,7 @@ function prepareClient() {
     },
 
     Protocol: {
-      AccountState: {},
-      BlockProver: {},
-      StateTransitionProver: {},
-      BlockHeight: {},
+      ...Protocol.defaultConfig(),
       TransactionFee: {
         tokenId: 0n,
         feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
@@ -68,7 +65,6 @@ function prepareClient() {
         methods: {},
         perWeightUnitFee: 0n,
       },
-      LastStateRoot: {},
     },
 
     Sequencer: {

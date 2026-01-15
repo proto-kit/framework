@@ -28,6 +28,8 @@ function logProvable(
 // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
 if (process.env?.IN_CI ?? false) {
   loglevel.setLevel("ERROR");
+} else {
+  loglevel.setLevel("INFO");
 }
 
 const timeMap: Record<string, number> = {};

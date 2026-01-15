@@ -1,11 +1,11 @@
 import {
-  BlockProof,
-  BlockProvable,
   MandatoryProtocolModulesRecord,
   Protocol,
   ProtocolModulesRecord,
   StateServiceProvider,
   DynamicRuntimeProof,
+  TransactionProvable,
+  TransactionProof,
 } from "@proto-kit/protocol";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
@@ -56,14 +56,14 @@ export async function executeWithPrefilledStateService<Return>(
 @scoped(Lifecycle.ContainerScoped)
 export class TransactionProvingTask
   extends TaskWorkerModule
-  implements Task<TransactionProvingTaskParameters, BlockProof>
+  implements Task<TransactionProvingTaskParameters, TransactionProof>
 {
-  private readonly blockProver: BlockProvable;
+  private readonly transactionProver: TransactionProvable;
 
   private readonly runtimeProofType =
     this.runtime.zkProgrammable.zkProgram[0].Proof;
 
-  public name = "block";
+  public name = "transaction";
 
   public constructor(
     @inject("Protocol")
@@ -75,7 +75,7 @@ export class TransactionProvingTask
     private readonly compileRegistry: CompileRegistry
   ) {
     super();
-    this.blockProver = protocol.blockProver;
+    this.transactionProver = protocol.transactionProver;
   }
 
   public inputSerializer(): TaskSerializer<TransactionProvingTaskParameters> {
@@ -87,19 +87,18 @@ export class TransactionProvingTask
     );
   }
 
-  public resultSerializer(): TaskSerializer<BlockProof> {
+  public resultSerializer(): TaskSerializer<TransactionProof> {
     return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+      this.transactionProver.zkProgrammable.zkProgram[0].Proof
     );
   }
 
   public async compute(
     input: TransactionProvingTaskParameters
-  ): Promise<BlockProof> {
+  ): Promise<TransactionProof> {
     const startingStateProvable = input.parameters.startingState.map(
       taskStateRecordFromJson
     );
-
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
       startingStateProvable,
@@ -109,13 +108,13 @@ export class TransactionProvingTask
         const proof1 = DynamicRuntimeProof.fromProof(input.proof1);
 
         if (type === TransactionProvingType.SINGLE) {
-          await this.blockProver.proveTransaction(
+          await this.transactionProver.proveTransaction(
             parameters.publicInput,
             proof1,
             parameters.executionData
           );
         } else {
-          await this.blockProver.proveTransactions(
+          await this.transactionProver.proveTransactions(
             parameters.publicInput,
             proof1,
             DynamicRuntimeProof.fromProof(input.proof2),
@@ -129,12 +128,12 @@ export class TransactionProvingTask
       this.protocol.stateServiceProvider,
       startingStateProvable,
       async () =>
-        await this.executionContext.current().result.prove<BlockProof>()
+        await this.executionContext.current().result.prove<TransactionProof>()
     );
   }
 
   public async prepare(): Promise<void> {
     // Compile
-    await this.blockProver.compile(this.compileRegistry);
+    await this.transactionProver.compile(this.compileRegistry);
   }
 }

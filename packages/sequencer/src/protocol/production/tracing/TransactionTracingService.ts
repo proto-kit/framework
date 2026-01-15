@@ -1,18 +1,15 @@
 import {
-  BlockProver,
+  addTransactionToBundle,
   BlockProverMultiTransactionExecutionData,
-  BlockProverProgrammable,
   BlockProverPublicInput,
   BlockProverSingleTransactionExecutionData,
-  BlockProverTransactionArguments,
-  MandatoryProtocolModulesRecord,
   NetworkState,
-  Protocol,
+  TransactionProverTransactionArguments,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { MAX_FIELD } from "@proto-kit/common";
 import { toStateTransitionsHash } from "@proto-kit/module";
-import { inject, injectable } from "tsyringe";
+import { injectable } from "tsyringe";
 
 import {
   TransactionExecutionResultJson,
@@ -68,19 +65,13 @@ export function collectStartingState(
 
 @injectable()
 export class TransactionTracingService {
-  private readonly blockProver: BlockProverProgrammable;
-
   public constructor(
-    private readonly verificationKeyService: VerificationKeyService,
-    @inject("Protocol") protocol: Protocol<MandatoryProtocolModulesRecord>
-  ) {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    this.blockProver = (protocol.blockProver as BlockProver).zkProgrammable;
-  }
+    private readonly verificationKeyService: VerificationKeyService
+  ) {}
 
   public async getTransactionData(
     transaction: PendingTransaction
-  ): Promise<BlockProverTransactionArguments> {
+  ): Promise<TransactionProverTransactionArguments> {
     const verificationKeyAttestation =
       this.verificationKeyService.getAttestation(
         transaction.methodId.toString()
@@ -113,10 +104,10 @@ export class TransactionTracingService {
     previousState: BlockTracingState,
     transaction: TransactionExecutionResultJson
   ) {
+    
     const tx = PendingTransaction.fromJSON(transaction.tx);
-
-    // TODO Remove this call and instead reuse results from sequencing ?
-    const newState = this.blockProver.addTransactionToBundle(
+    // TODO Remove this call and instead reuse results from sequencing
+    const newState = addTransactionToBundle(
       previousState,
       Bool(tx.isMessage),
       tx.toRuntimeTransaction()

@@ -87,6 +87,7 @@ export * from "./helpers/query/NetworkStateQuery";
 export * from "./helpers/query/NetworkStateTransportModule";
 export * from "./helpers/query/BlockExplorerQuery";
 export * from "./helpers/query/BlockExplorerTransportModule";
+export * from "./helpers/CircuitAnalysisModule";
 export * from "./state/prefilled/PreFilledStateService";
 export * from "./state/async/AsyncMerkleTreeStore";
 export * from "./state/async/AsyncStateService";

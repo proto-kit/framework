@@ -53,11 +53,7 @@ export class TestingAppChain<
 
     appChain.configurePartial({
       Protocol: {
-        AccountState: {},
-        BlockProver: {},
-        StateTransitionProver: {},
-        BlockHeight: {},
-        LastStateRoot: {},
+        ...Protocol.defaultConfig(),
         TransactionFee: {
           tokenId: 0n,
           feeRecipient: randomFeeRecipient,

@@ -4,3 +4,6 @@ export * from "./IndexerNotifier";
 export * from "./api/GeneratedResolverFactoryGraphqlModule";
 export * from "./tasks/IndexBlockTask";
 export * from "./tasks/IndexBlockTaskParameters";
+export * from "./tasks/IndexPendingTxTask";
+export * from "./tasks/IndexBatchTask";
+export * from "./tasks/IndexSettlementTask";

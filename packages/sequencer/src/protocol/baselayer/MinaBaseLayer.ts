@@ -2,7 +2,6 @@ import {
   AreProofsEnabled,
   DependencyFactory,
   ModuleContainerLike,
-  DependencyRecord,
 } from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
@@ -15,7 +14,6 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
-import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
 
 import { BaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
@@ -62,14 +60,6 @@ export class MinaBaseLayer
     private readonly sequencer: ModuleContainerLike
   ) {
     super();
-  }
-
-  public static dependencies() {
-    return {
-      IncomingMessagesService: {
-        useClass: IncomingMessagesService,
-      },
-    } satisfies DependencyRecord;
   }
 
   public dependencies() {
@@ -151,5 +141,3 @@ export class MinaBaseLayer
     this.network = Network;
   }
 }
-
-MinaBaseLayer satisfies DependencyFactory;

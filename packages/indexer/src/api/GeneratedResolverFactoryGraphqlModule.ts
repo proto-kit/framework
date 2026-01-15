@@ -9,36 +9,52 @@ import { inject } from "tsyringe";
 import { PrismaClient } from "@prisma/client-indexer";
 
 import {
+  AggregateBatchResolver,
   AggregateBlockResolver,
   AggregateBlockResultResolver,
+  AggregateSettlementResolver,
   AggregateTransactionExecutionResultResolver,
   AggregateTransactionResolver,
+  BatchRelationsResolver,
   BlockRelationsResolver,
   BlockResultRelationsResolver,
+  FindFirstBatchOrThrowResolver,
+  FindFirstBatchResolver,
   FindFirstBlockOrThrowResolver,
   FindFirstBlockResolver,
   FindFirstBlockResultOrThrowResolver,
   FindFirstBlockResultResolver,
+  FindFirstSettlementOrThrowResolver,
+  FindFirstSettlementResolver,
   FindFirstTransactionExecutionResultOrThrowResolver,
   FindFirstTransactionExecutionResultResolver,
   FindFirstTransactionOrThrowResolver,
   FindFirstTransactionResolver,
+  FindManyBatchResolver,
   FindManyBlockResolver,
   FindManyBlockResultResolver,
+  FindManySettlementResolver,
   FindManyTransactionExecutionResultResolver,
   FindManyTransactionResolver,
+  FindUniqueBatchOrThrowResolver,
+  FindUniqueBatchResolver,
   FindUniqueBlockResolver,
   FindUniqueBlockResultOrThrowResolver,
   FindUniqueBlockResultResolver,
+  FindUniqueSettlementOrThrowResolver,
+  FindUniqueSettlementResolver,
   FindUniqueTransactionExecutionResultOrThrowResolver,
   FindUniqueTransactionExecutionResultResolver,
   FindUniqueTransactionOrThrowResolver,
   FindUniqueTransactionResolver,
+  GroupByBatchResolver,
   GroupByBlockResolver,
   GroupByBlockResultResolver,
+  GroupBySettlementResolver,
   GroupByTransactionExecutionResultResolver,
   GroupByTransactionResolver,
   ResolversEnhanceMap,
+  SettlementRelationsResolver,
   TransactionExecutionResultRelationsResolver,
   TransactionRelationsResolver,
   applyResolversEnhanceMap,
@@ -54,8 +70,7 @@ export function cleanResolvers(resolvers: NonEmptyArray<Function>) {
         method.includes("update") ||
         method.includes("create") ||
         method.includes("delete") ||
-        method.includes("upsert") ||
-        method.includes("batch");
+        method.includes("upsert");
 
       if (shouldRemove) {
         delete resolver.prototype[method];
@@ -106,24 +121,28 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
     // basic way to limit the number of results returned at the argument level
     const resolversEnchanceMap: ResolversEnhanceMap = {
       Block: {
-        aggregateBlock: [ValidateTakeArg()],
         blocks: [ValidateTakeArg()],
         groupByBlock: [ValidateTakeArg()],
       },
       BlockResult: {
-        aggregateBlockResult: [ValidateTakeArg()],
         blockResults: [ValidateTakeArg()],
         groupByBlockResult: [ValidateTakeArg()],
       },
       Transaction: {
-        aggregateTransaction: [ValidateTakeArg()],
         transactions: [ValidateTakeArg()],
         groupByTransaction: [ValidateTakeArg()],
       },
       TransactionExecutionResult: {
-        aggregateTransactionExecutionResult: [ValidateTakeArg()],
         transactionExecutionResults: [ValidateTakeArg()],
         groupByTransactionExecutionResult: [ValidateTakeArg()],
+      },
+      Batch: {
+        batches: [ValidateTakeArg()],
+        groupByBatch: [ValidateTakeArg()],
+      },
+      Settlement: {
+        settlements: [ValidateTakeArg()],
+        groupBySettlement: [ValidateTakeArg()],
       },
     };
 
@@ -167,6 +186,24 @@ export class GeneratedResolverFactoryGraphqlModule extends ResolverFactoryGraphq
       FindUniqueTransactionExecutionResultResolver,
       GroupByTransactionExecutionResultResolver,
       TransactionExecutionResultRelationsResolver,
+      // batches resolvers
+      AggregateBatchResolver,
+      FindFirstBatchOrThrowResolver,
+      FindFirstBatchResolver,
+      FindManyBatchResolver,
+      FindUniqueBatchOrThrowResolver,
+      FindUniqueBatchResolver,
+      GroupByBatchResolver,
+      BatchRelationsResolver,
+      // settlements resolvers
+      AggregateSettlementResolver,
+      FindFirstSettlementOrThrowResolver,
+      FindFirstSettlementResolver,
+      FindManySettlementResolver,
+      FindUniqueSettlementOrThrowResolver,
+      FindUniqueSettlementResolver,
+      GroupBySettlementResolver,
+      SettlementRelationsResolver,
     ]) as NonEmptyArray<Function>;
   }
 }
