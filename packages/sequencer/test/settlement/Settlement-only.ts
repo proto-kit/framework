@@ -12,6 +12,7 @@ import {
 import {
   BlockProverPublicInput,
   ContractArgsRegistry,
+  NetworkState,
   Protocol,
   SettlementContractModule,
 } from "@proto-kit/protocol";
@@ -155,6 +156,7 @@ export const settlementOnlyTestFn = (
   async function createBatch(
     withTransactions: boolean,
     customNonce: number = 0,
+    // Why is it like this?
     txs: PendingTransaction[] = []
   ) {
     const mempool = appChain.sequencer.resolve("Mempool") as PrivateMempool;
@@ -171,7 +173,7 @@ export const settlementOnlyTestFn = (
       await mempool.add(tx);
     }
     await mapSequential(txs, async (tx) => {
-      await mempool.add(tx);
+      await mempool.add(tx.toJSON());
     });
 
     const result = await trigger.produceBlockAndBatch();
@@ -275,10 +277,14 @@ export const settlementOnlyTestFn = (
           address: settlementModule.getSettlementContractAddress(),
         });
         const settlement = settlementModule.getSettlementContract();
+
+        const afterNetworkState = new NetworkState(
+          NetworkState.fromJSON(lastBlock!.result?.afterNetworkState!)
+        );
         expectDefined(lastBlock);
         expectDefined(lastBlock.result);
         expect(settlement.networkStateHash.get().toString()).toStrictEqual(
-          lastBlock!.result.afterNetworkState.hash().toString()
+          afterNetworkState.hash().toString()
         );
         expect(settlement.stateRoot.get().toString()).toStrictEqual(
           lastBlock!.result.stateRoot.toString()

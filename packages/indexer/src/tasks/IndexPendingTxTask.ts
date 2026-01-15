@@ -1,5 +1,5 @@
 import {
-  PendingTransaction,
+  PendingTransactionJSONType,
   Task,
   TaskSerializer,
   TaskWorkerModule,
@@ -13,7 +13,7 @@ import { IndexPendingTxTaskParametersSerializer } from "./IndexPendingTxTaskPara
 @injectable()
 export class IndexPendingTxTask
   extends TaskWorkerModule
-  implements Task<PendingTransaction, string | void>
+  implements Task<PendingTransactionJSONType, string | void>
 {
   public name = "index-pending-tx";
 
@@ -28,7 +28,9 @@ export class IndexPendingTxTask
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   public async prepare(): Promise<void> {}
 
-  public async compute(input: PendingTransaction): Promise<string | void> {
+  public async compute(
+    input: PendingTransactionJSONType
+  ): Promise<string | void> {
     try {
       await this.transactionStorage.pushUserTransaction(input);
       return "";
@@ -38,7 +40,7 @@ export class IndexPendingTxTask
     }
   }
 
-  public inputSerializer(): TaskSerializer<PendingTransaction> {
+  public inputSerializer(): TaskSerializer<PendingTransactionJSONType> {
     return this.taskSerializer;
   }
 

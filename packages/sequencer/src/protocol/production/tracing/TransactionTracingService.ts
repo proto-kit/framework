@@ -104,7 +104,6 @@ export class TransactionTracingService {
     previousState: BlockTracingState,
     transaction: TransactionExecutionResultJson
   ) {
-    
     const tx = PendingTransaction.fromJSON(transaction.tx);
     // TODO Remove this call and instead reuse results from sequencing
     const newState = addTransactionToBundle(

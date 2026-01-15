@@ -3,9 +3,6 @@ import {
   SettlementContractModule,
   MandatorySettlementModulesRecord,
   MandatoryProtocolModulesRecord,
-  SettlementSmartContractBase,
-  DynamicBlockProof,
-  NetworkState,
   type SettlementContractType,
   ContractArgsRegistry,
   SettlementContractArgs,
@@ -150,55 +147,6 @@ export class SettlementModule
   ): Promise<Settlement> {
     log.debug("Preparing settlement");
 
-    const lastSettlementL1BlockHeight =
-      settlementContract.lastSettlementL1BlockHeight.get().value;
-    const signature = this.signer.sign([
-      BATCH_SIGNATURE_PREFIX,
-      lastSettlementL1BlockHeight,
-    ]);
-
-    const latestSequenceStateHash = dispatch.account.actionState.get();
-
-    const blockProof = await this.blockProofSerializer
-      .getBlockProofSerializer()
-      .fromJSONProof(batch.proof);
-
-    const dynamicBlockProof = DynamicBlockProof.fromProof(blockProof);
-
-    const tx = await Mina.transaction(
-      {
-        sender: feepayer,
-        nonce: options?.nonce,
-        fee: this.feeStrategy.getFee(),
-        memo: "Protokit settle",
-      },
-      async () => {
-        await settlementContract.settle(
-          dynamicBlockProof,
-          signature,
-          dispatch.address,
-          feepayer,
-          new NetworkState(NetworkState.fromJSON(batch.fromNetworkState)),
-          new NetworkState(NetworkState.fromJSON(batch.toNetworkState)),
-          latestSequenceStateHash
-        );
-      }
-    );
-
-    this.utils.signTransaction(tx, {
-      signingWithSignatureCheck: [...this.signer.getContractAddresses()],
-    });
-
-    const { hash: transactionHash } =
-      await this.transactionSender.proveAndSendTransaction(tx, "included");
-
-    log.info("Settlement transaction sent and included");
-
-    const settlement = {
-      batches: [batch.height],
-      promisedMessagesHash: latestSequenceStateHash.toString(),
-      transactionHash,
-    };
     const bridgingModule = this.bridgingModule();
     const interaction =
       bridgingModule !== undefined

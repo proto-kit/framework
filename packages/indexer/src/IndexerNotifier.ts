@@ -66,7 +66,8 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
         const txQueue = await this.taskQueue.getQueue(
           this.indexPendingTxTask.name
         );
-        const payload = await txInputSerializer.toJSON(tx);
+        // This part seems weird
+        const payload = await txInputSerializer.toJSON(tx.toJSON());
         const sequencerId = this.sequencerIdProvider.getSequencerId();
 
         const task: TaskPayload = {

@@ -15,7 +15,6 @@ import {
   Protocol,
   ReturnType,
   SettlementContractModule,
-  SettlementSmartContractBase,
   hashNetworkState,
 } from "@proto-kit/protocol";
 import {
