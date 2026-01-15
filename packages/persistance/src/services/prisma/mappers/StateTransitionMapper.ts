@@ -1,7 +1,7 @@
 import { singleton } from "tsyringe";
 import {
-  StateTransitionBatch,
-  UntypedStateTransition,
+  StateTransitionBatchJson,
+  UntypedStateTransitionJson,
 } from "@proto-kit/sequencer";
 import { Prisma } from "@prisma/client";
 
@@ -9,26 +9,27 @@ import { ObjectMapper } from "../../../ObjectMapper";
 
 @singleton()
 export class StateTransitionMapper
-  implements ObjectMapper<UntypedStateTransition, Prisma.JsonObject>
+  implements ObjectMapper<UntypedStateTransitionJson, Prisma.JsonObject>
 {
-  public mapIn(input: Prisma.JsonObject): UntypedStateTransition {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    return UntypedStateTransition.fromJSON(input as any);
+  public mapIn(input: Prisma.JsonObject): UntypedStateTransitionJson {
+    // 
+    return input as unknown as UntypedStateTransitionJson;
   }
 
-  public mapOut(input: UntypedStateTransition): Prisma.JsonObject {
-    return input.toJSON();
+  public mapOut(input: UntypedStateTransitionJson): Prisma.JsonObject {
+    // Already JSON-compatible, just cast
+    return input as unknown as Prisma.JsonObject;
   }
 }
 
 @singleton()
 export class StateTransitionArrayMapper
   implements
-    ObjectMapper<UntypedStateTransition[], Prisma.JsonValue | undefined>
+    ObjectMapper<UntypedStateTransitionJson[], Prisma.JsonValue | undefined>
 {
   public constructor(private readonly stMapper: StateTransitionMapper) {}
 
-  public mapIn(input: Prisma.JsonValue | undefined): UntypedStateTransition[] {
+  public mapIn(input: Prisma.JsonValue | undefined): UntypedStateTransitionJson[] {
     if (input === undefined) return [];
 
     if (Array.isArray(input)) {
@@ -39,20 +40,20 @@ export class StateTransitionArrayMapper
     return [];
   }
 
-  public mapOut(input: UntypedStateTransition[]): Prisma.JsonValue {
+  public mapOut(input: UntypedStateTransitionJson[]): Prisma.JsonValue {
     return input.map((st) => this.stMapper.mapOut(st)) as Prisma.JsonArray;
   }
 }
 
 @singleton()
 export class StateTransitionBatchArrayMapper
-  implements ObjectMapper<StateTransitionBatch[], Prisma.JsonValue>
+  implements ObjectMapper<StateTransitionBatchJson[], Prisma.JsonValue>
 {
   public constructor(
     private readonly stArrayMapper: StateTransitionArrayMapper
   ) {}
 
-  public mapOut(input: StateTransitionBatch[]): Prisma.JsonValue {
+  public mapOut(input: StateTransitionBatchJson[]): Prisma.JsonValue {
     return input.map((st) => ({
       stateTransitions: this.stArrayMapper.mapOut(
         st.stateTransitions
@@ -61,7 +62,7 @@ export class StateTransitionBatchArrayMapper
     }));
   }
 
-  public mapIn(input: Prisma.JsonValue): StateTransitionBatch[] {
+  public mapIn(input: Prisma.JsonValue): StateTransitionBatchJson[] {
     if (input === undefined) return [];
 
     if (Array.isArray(input)) {

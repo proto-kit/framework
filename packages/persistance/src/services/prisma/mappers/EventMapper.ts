@@ -1,31 +1,28 @@
 import { singleton } from "tsyringe";
 import { Prisma } from "@prisma/client";
-import { Field } from "o1js";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
-type EventData = {
+type EventDataJson = {
   eventName: string;
-  data: Field[];
+  data: string[];
   source: "afterTxHook" | "beforeTxHook" | "runtime";
 };
 
 @singleton()
-export class EventMapper implements ObjectMapper<EventData, Prisma.JsonObject> {
-  public mapIn(input: Prisma.JsonObject): EventData {
+export class EventMapper implements ObjectMapper<EventDataJson, Prisma.JsonObject> {
+  public mapIn(input: Prisma.JsonObject): EventDataJson {
     return {
       eventName: input.eventName as string,
-      data: (input.data as Prisma.JsonArray).map((field) =>
-        Field.fromJSON(field as string)
-      ),
+      data: input.data as string[],
       source: this.sourceConvert(input.source as string),
     };
   }
 
-  public mapOut(input: EventData): Prisma.JsonObject {
+  public mapOut(input: EventDataJson): Prisma.JsonObject {
     return {
       eventName: input.eventName,
-      data: input.data.map((field) => field.toString()),
+      data: input.data,
       source: input.source,
     } as Prisma.JsonObject;
   }
@@ -46,11 +43,11 @@ export class EventMapper implements ObjectMapper<EventData, Prisma.JsonObject> {
 
 @singleton()
 export class EventArrayMapper
-  implements ObjectMapper<EventData[], Prisma.JsonValue | undefined>
+  implements ObjectMapper<EventDataJson[], Prisma.JsonValue | undefined>
 {
   public constructor(private readonly eventMapper: EventMapper) {}
 
-  public mapIn(input: Prisma.JsonValue | undefined): EventData[] {
+  public mapIn(input: Prisma.JsonValue | undefined): EventDataJson[] {
     if (input === undefined) return [];
 
     if (Array.isArray(input)) {
@@ -61,9 +58,10 @@ export class EventArrayMapper
     return [];
   }
 
-  public mapOut(input: EventData[]): Prisma.JsonValue {
+  public mapOut(input: EventDataJson[]): Prisma.JsonValue {
     return input.map((event) =>
       this.eventMapper.mapOut(event)
     ) as Prisma.JsonArray;
   }
 }
+

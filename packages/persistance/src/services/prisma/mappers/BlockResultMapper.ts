@@ -1,6 +1,6 @@
 import { singleton } from "tsyringe";
 import { BlockResult, UntypedStateTransition } from "@proto-kit/sequencer";
-import { BlockResult as DBBlockResult } from "@prisma/client";
+import { BlockResult as DBBlockResult, Prisma } from "@prisma/client";
 import {
   BlockHashMerkleTreeWitnessJson,
   NetworkStateJson,
@@ -29,7 +29,7 @@ export class BlockResultMapper
 
       afterBlockStateTransitions: this.stArrayMapper
         .mapIn(input.afterBlockStateTransitions)
-        .map((st) => st.toJSON()),
+        .map((st) => st),
       blockHash: input.blockHash,
 
       witnessedRoots: [input.witnessedRoots[0]],
@@ -43,11 +43,7 @@ export class BlockResultMapper
       blockHashRoot: input.blockHashRoot.toString(),
 
       blockHashWitness: input.blockHashWitness,
-      afterBlockStateTransitions: this.stArrayMapper.mapOut(
-        input.afterBlockStateTransitions.map((st) =>
-          UntypedStateTransition.fromJSON(st)
-        )
-      ),
+      afterBlockStateTransitions: input.afterBlockStateTransitions as unknown as Prisma.JsonArray,
       afterNetworkState: input.afterNetworkState,
 
       witnessedRoots: [input.witnessedRoots[0].toString()],
