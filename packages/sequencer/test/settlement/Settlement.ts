@@ -627,9 +627,9 @@ export const settlementTestFn = (
         console.log(hashNetworkState(batch!.toNetworkState));
         console.log(hashNetworkState(batch2!.fromNetworkState));
 
-        expect(
-          hashNetworkState(batch!.toNetworkState)
-        ).toStrictEqual(hashNetworkState(batch2!.fromNetworkState));
+        expect(hashNetworkState(batch!.toNetworkState)).toStrictEqual(
+          hashNetworkState(batch2!.fromNetworkState)
+        );
 
         expect(batch2!.blockHashes).toHaveLength(1);
 

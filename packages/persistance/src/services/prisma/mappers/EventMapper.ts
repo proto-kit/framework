@@ -10,7 +10,9 @@ type EventDataJson = {
 };
 
 @singleton()
-export class EventMapper implements ObjectMapper<EventDataJson, Prisma.JsonObject> {
+export class EventMapper
+  implements ObjectMapper<EventDataJson, Prisma.JsonObject>
+{
   public mapIn(input: Prisma.JsonObject): EventDataJson {
     return {
       eventName: input.eventName as string,
@@ -64,4 +66,3 @@ export class EventArrayMapper
     ) as Prisma.JsonArray;
   }
 }
-

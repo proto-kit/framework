@@ -124,7 +124,9 @@ export class BlockProductionService {
         Field(lastBlock.toEternalTransactionsHash)
       ),
       transactionList: new TransactionHashList(),
-      incomingMessages: new MinaActionsHashList(Field(lastBlock.toMessagesHash)),
+      incomingMessages: new MinaActionsHashList(
+        Field(lastBlock.toMessagesHash)
+      ),
     };
 
     // Get used networkState by executing beforeBlock() hooks
@@ -150,7 +152,9 @@ export class BlockProductionService {
       );
 
     const previousBlockHash =
-      lastResult.blockHash === "0" ? undefined : FieldString(lastResult.blockHash);
+      lastResult.blockHash === "0"
+        ? undefined
+        : FieldString(lastResult.blockHash);
 
     if (executionResults.length === 0 && !allowEmptyBlocks) {
       log.info(
@@ -167,10 +171,13 @@ export class BlockProductionService {
       transactions: includedTransactions,
       transactionsHash: FieldString(newBlockState.transactionList.commitment),
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
-      toEternalTransactionsHash:
-        FieldString(newBlockState.eternalTransactionsList.commitment),
+      toEternalTransactionsHash: FieldString(
+        newBlockState.eternalTransactionsList.commitment
+      ),
       height:
-        FieldString(lastBlock.hash) !== "0" ? FieldString(BigInt(lastBlock.height) + 1n) : FieldString(0),
+        FieldString(lastBlock.hash) !== "0"
+          ? FieldString(BigInt(lastBlock.height) + 1n)
+          : FieldString(0),
       fromBlockHashRoot: FieldString(lastResult.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       fromStateRoot: FieldString(lastResult.stateRoot),
@@ -191,9 +198,8 @@ export class BlockProductionService {
     const includedTxs = executionResults.map((x) => {
       const txHash = match(x)
         .with({ status: "included" }, ({ result }) => result.tx)
-        .otherwise(({ tx }) => tx)
-        .hash;
-        
+        .otherwise(({ tx }) => tx).hash;
+
       return {
         hash: txHash,
         type: x.status,

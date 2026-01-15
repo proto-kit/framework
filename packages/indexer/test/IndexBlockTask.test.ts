@@ -54,8 +54,6 @@ describe("IndexBlockTask", () => {
     const storage = indexer.resolve("BlockStorage");
     const latestBlock = await storage.getLatestBlock();
 
-    expect(latestBlock?.block.hash).toBe(
-      block.block.hash
-    );
+    expect(latestBlock?.block.hash).toBe(block.block.hash);
   });
 });

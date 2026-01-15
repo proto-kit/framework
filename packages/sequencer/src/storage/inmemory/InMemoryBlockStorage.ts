@@ -65,9 +65,7 @@ export class InMemoryBlockStorage implements BlockStorage, BlockQueue {
     if (latestBatch !== undefined) {
       cursor = this.blocks.reduce(
         (c, block, index) =>
-          latestBatch.blockHashes.includes(block.hash)
-            ? index + 1
-            : c,
+          latestBatch.blockHashes.includes(block.hash) ? index + 1 : c,
         0
       );
     }

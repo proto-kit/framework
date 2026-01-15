@@ -86,18 +86,16 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
       log.info("---------------------------------------");
       log.info(`Transaction #${i}`);
-      log.info(
-        "Sender:",
-        tx.tx.sender,
-        "Nonce:",
-        tx.tx.nonce
-      );
+      log.info("Sender:", tx.tx.sender, "Nonce:", tx.tx.nonce);
       log.info(`Method: ${methodName?.join(".")}`);
       log.info();
       if (log.getLevel() <= log.levels.INFO) {
         Provable.log(
           "Arguments:",
-          paramEncoder.decode(tx.tx.argsFields.map((s) => Field(s)), tx.tx.auxiliaryData)
+          paramEncoder.decode(
+            tx.tx.argsFields.map((s) => Field(s)),
+            tx.tx.auxiliaryData
+          )
         );
       }
       log.info(

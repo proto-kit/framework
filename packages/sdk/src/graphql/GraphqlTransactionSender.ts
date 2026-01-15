@@ -1,5 +1,8 @@
 import { inject, injectable } from "tsyringe";
-import { PendingTransaction, AppChainModule, PendingTransactionJSONType } from "@proto-kit/sequencer";
+import {
+  AppChainModule,
+  PendingTransactionJSONType,
+} from "@proto-kit/sequencer";
 import { gql } from "@urql/core";
 
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";

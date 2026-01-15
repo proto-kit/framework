@@ -141,7 +141,7 @@ async function sendTransactions(
   const txs = await mempool.getTxs();
   console.log(
     "txs",
-    txs.map((tx) => tx.nonce.toBigInt())
+    txs.map((tx) => tx.nonce)
   );
 
   return await appChain.produceBlock();

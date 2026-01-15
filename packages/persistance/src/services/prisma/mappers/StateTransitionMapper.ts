@@ -12,7 +12,7 @@ export class StateTransitionMapper
   implements ObjectMapper<UntypedStateTransitionJson, Prisma.JsonObject>
 {
   public mapIn(input: Prisma.JsonObject): UntypedStateTransitionJson {
-    // 
+    //
     return input as unknown as UntypedStateTransitionJson;
   }
 
@@ -29,7 +29,9 @@ export class StateTransitionArrayMapper
 {
   public constructor(private readonly stMapper: StateTransitionMapper) {}
 
-  public mapIn(input: Prisma.JsonValue | undefined): UntypedStateTransitionJson[] {
+  public mapIn(
+    input: Prisma.JsonValue | undefined
+  ): UntypedStateTransitionJson[] {
     if (input === undefined) return [];
 
     if (Array.isArray(input)) {

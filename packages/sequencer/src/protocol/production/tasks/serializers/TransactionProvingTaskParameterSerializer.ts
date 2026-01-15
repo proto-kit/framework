@@ -18,7 +18,6 @@ import {
 } from "./types/TransactionProvingTypes";
 import { RuntimeVerificationKeyAttestationSerializer } from "./RuntimeVerificationKeyAttestationSerializer";
 
-
 export type BlockProverTransactionArgumentsJSON = {
   transaction: ReturnType<typeof RuntimeTransaction.toJSON>;
   signature: ReturnType<typeof Signature.toJSON>;

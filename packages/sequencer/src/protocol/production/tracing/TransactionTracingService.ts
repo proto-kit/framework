@@ -14,7 +14,10 @@ import { MAX_FIELD } from "@proto-kit/common";
 import { toStateTransitionsHash } from "@proto-kit/module";
 import { inject, injectable } from "tsyringe";
 
-import { TransactionExecutionResultJson, STBatchFromJson } from "../../../storage/model/Block";
+import {
+  TransactionExecutionResultJson,
+  STBatchFromJson,
+} from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import type { RuntimeProofParametersJson } from "../tasks/RuntimeProvingTask";
 import {
@@ -24,7 +27,10 @@ import {
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
 
-import type { BlockTracingState, TaskStateRecordJson } from "./BlockTracingService";
+import type {
+  BlockTracingState,
+  TaskStateRecordJson,
+} from "./BlockTracingService";
 
 export type TransactionTrace =
   | {
@@ -52,11 +58,13 @@ export function collectStartingState(
     // "state hasn't been set before" and has to correlate to a precondition on Field(0)
     // and for that the state has to be undefined
     .filter((st) => st.fromValue.isSome.toBoolean())
-    .map((st) => [st.path.toString(), st.fromValue.value.map((f: Field) => f.toString())]);
+    .map((st) => [
+      st.path.toString(),
+      st.fromValue.value.map((f: Field) => f.toString()),
+    ]);
 
   return Object.fromEntries(stateEntries);
 }
-
 
 @injectable()
 export class TransactionTracingService {
@@ -105,9 +113,8 @@ export class TransactionTracingService {
     previousState: BlockTracingState,
     transaction: TransactionExecutionResultJson
   ) {
-
     const tx = PendingTransaction.fromJSON(transaction.tx);
-    
+
     // TODO Remove this call and instead reuse results from sequencing ?
     const newState = this.blockProver.addTransactionToBundle(
       previousState,
@@ -130,12 +137,11 @@ export class TransactionTracingService {
     tx: TransactionExecutionResultJson,
     networkState: NetworkState
   ): RuntimeProofParametersJson {
-
     const stBatch = STBatchFromJson(tx.stateTransitions[1]);
     const startingState = collectStartingState(stBatch.stateTransitions);
 
     return {
-      tx: tx.tx, 
+      tx: tx.tx,
       networkState: NetworkState.toJSON(networkState),
       state: startingState,
     };
@@ -146,7 +152,7 @@ export class TransactionTracingService {
     transaction: TransactionExecutionResultJson
   ) {
     const stBatches = transaction.stateTransitions.map(STBatchFromJson);
-    
+
     const beforeHookStartingState = collectStartingState(
       stBatches[0].stateTransitions.flat()
     );
@@ -184,7 +190,9 @@ export class TransactionTracingService {
     const transactionTrace: TransactionProverTaskParameters<BlockProverSingleTransactionExecutionData> =
       {
         executionData: {
-          transaction: await this.getTransactionData(PendingTransaction.fromJSON(transaction.tx)),
+          transaction: await this.getTransactionData(
+            PendingTransaction.fromJSON(transaction.tx)
+          ),
           networkState: previousState.networkState,
         },
         startingState,
@@ -223,8 +231,12 @@ export class TransactionTracingService {
     const transactionTrace: TransactionProverTaskParameters<BlockProverMultiTransactionExecutionData> =
       {
         executionData: {
-          transaction1: await this.getTransactionData(PendingTransaction.fromJSON(transaction1.tx)),
-          transaction2: await this.getTransactionData(PendingTransaction.fromJSON(transaction2.tx)),
+          transaction1: await this.getTransactionData(
+            PendingTransaction.fromJSON(transaction1.tx)
+          ),
+          transaction2: await this.getTransactionData(
+            PendingTransaction.fromJSON(transaction2.tx)
+          ),
           networkState: previousState.networkState,
         },
         startingState: [...startingState1, ...startingState2],

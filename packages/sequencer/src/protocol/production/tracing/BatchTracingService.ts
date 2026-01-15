@@ -7,6 +7,7 @@ import {
   WitnessedRootHashList,
 } from "@proto-kit/protocol";
 import { inject, injectable } from "tsyringe";
+import { Field } from "o1js";
 
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
 import { BlockWithResult } from "../../../storage/model/Block";
@@ -20,7 +21,6 @@ import {
   BlockTracingState,
 } from "./BlockTracingService";
 import { StateTransitionTracingService } from "./StateTransitionTracingService";
-import { Field } from "o1js";
 
 type BatchTracingState = Omit<BlockTracingState, "transactionList">;
 
@@ -46,8 +46,12 @@ export class BatchTracingService {
       eternalTransactionsList: new TransactionHashList(
         Field(block.block.fromEternalTransactionsHash)
       ),
-      incomingMessages: new MinaActionsHashList(Field(block.block.fromMessagesHash)),
-      networkState: new NetworkState(NetworkState.fromJSON(block.block.networkState.before)),
+      incomingMessages: new MinaActionsHashList(
+        Field(block.block.fromMessagesHash)
+      ),
+      networkState: new NetworkState(
+        NetworkState.fromJSON(block.block.networkState.before)
+      ),
     };
   }
 

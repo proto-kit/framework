@@ -57,7 +57,7 @@ export class GraphqlNetworkStateTransportModule
       }
 
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return json as NetworkStateJson;
       } catch (e) {
         if (e instanceof Error) {

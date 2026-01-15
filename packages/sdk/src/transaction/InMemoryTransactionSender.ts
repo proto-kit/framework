@@ -1,6 +1,5 @@
 import {
   PrivateMempool,
-  PendingTransaction,
   AppChainModule,
   PendingTransactionJSONType,
 } from "@proto-kit/sequencer";

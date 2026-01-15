@@ -24,7 +24,10 @@ import {
   SettlementContractModule,
 } from "@proto-kit/protocol";
 
-import { PendingTransaction, PendingTransactionJSONType } from "../../mempool/PendingTransaction";
+import {
+  PendingTransaction,
+  PendingTransactionJSONType,
+} from "../../mempool/PendingTransaction";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";

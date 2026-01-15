@@ -1,5 +1,6 @@
 import { Bool, Field, Poseidon, Provable } from "o1js";
 import floor from "lodash/floor";
+
 import { NetworkStateJson } from "../model/network/NetworkState";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (

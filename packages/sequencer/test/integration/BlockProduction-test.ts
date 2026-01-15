@@ -236,9 +236,7 @@ export function testBlockProduction<
     expectDefined(latestBlockWithResult);
     expectDefined(latestBlockWithResult.result);
     expect(
-      hashNetworkState(
-        latestBlockWithResult.result.afterNetworkState
-      )
+      hashNetworkState(latestBlockWithResult.result.afterNetworkState)
     ).toStrictEqual(hashNetworkState(batch!.toNetworkState));
 
     // Check if the batchstorage has received the block
@@ -717,13 +715,17 @@ export function testBlockProduction<
     };
     const firstEventReduced = {
       eventName: firstExpectedEvent.eventName,
-      data: firstExpectedEvent.eventType.toFields(firstExpectedEvent.event).map(f => f.toString()),
+      data: firstExpectedEvent.eventType
+        .toFields(firstExpectedEvent.event)
+        .map((f) => f.toString()),
       source: "runtime",
     };
 
     const secondEventReduced = {
       eventName: secondExpectedEvent.eventName,
-      data: secondExpectedEvent.eventType.toFields(secondExpectedEvent.event).map(f => f.toString()),
+      data: secondExpectedEvent.eventType
+        .toFields(secondExpectedEvent.event)
+        .map((f) => f.toString()),
       source: "runtime",
     };
 

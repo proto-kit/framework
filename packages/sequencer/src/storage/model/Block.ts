@@ -9,7 +9,10 @@ import {
 } from "@proto-kit/protocol";
 import { LinkedMerkleTree } from "@proto-kit/common";
 
-import { PendingTransaction, PendingTransactionJSONType } from "../../mempool/PendingTransaction";
+import {
+  PendingTransaction,
+  PendingTransactionJSONType,
+} from "../../mempool/PendingTransaction";
 import {
   UntypedStateTransition,
   UntypedStateTransitionJson,
@@ -47,7 +50,7 @@ export interface TransactionExecutionResultJson {
   statusMessage?: string;
   events: {
     eventName: string;
-    data: FieldString[]; 
+    data: FieldString[];
     source: "afterTxHook" | "beforeTxHook" | "runtime";
   }[];
 }
@@ -144,7 +147,9 @@ export const BlockWithResult = {
         stateRoot: String(LinkedMerkleTree.EMPTY_ROOT),
         blockHashRoot: String(BlockHashMerkleTree.EMPTY_ROOT),
         afterBlockStateTransitions: [],
-        blockHashWitness: BlockHashMerkleTreeWitness.toJSON(BlockHashMerkleTree.WITNESS.dummy()),
+        blockHashWitness: BlockHashMerkleTreeWitness.toJSON(
+          BlockHashMerkleTree.WITNESS.dummy()
+        ),
         blockHash: "0",
         witnessedRoots: [String(LinkedMerkleTree.EMPTY_ROOT)],
       },
@@ -215,5 +220,3 @@ export function STBatchFromJson(
     applied: stBatch.applied,
   };
 }
-
-

@@ -1,5 +1,3 @@
-import { Field } from "o1js";
-
 export interface ClientTransaction {
   tx: {
     hash: string;

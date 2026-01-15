@@ -61,7 +61,7 @@ export class DefaultOutgoingMessageAdapter
         )
         .map((event) => {
           const type = this.outgoingWithdrawalEvents[event.eventName];
-          return type.eventType.fromFields(event.data.map(d => Field(d)));
+          return type.eventType.fromFields(event.data.map((d) => Field(d)));
         })
     );
   }

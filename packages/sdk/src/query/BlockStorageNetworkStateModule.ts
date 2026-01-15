@@ -6,7 +6,7 @@ import {
   BatchStorage,
   AppChainModule,
 } from "@proto-kit/sequencer";
-import { NetworkState, NetworkStateJson } from "@proto-kit/protocol";
+import { NetworkStateJson } from "@proto-kit/protocol";
 import { ModuleContainerLike } from "@proto-kit/common";
 
 @injectable()
@@ -37,7 +37,9 @@ export class BlockStorageNetworkStateModule
     );
   }
 
-  public async getUnprovenNetworkState(): Promise<NetworkStateJson | undefined> {
+  public async getUnprovenNetworkState(): Promise<
+    NetworkStateJson | undefined
+  > {
     const latestBlock = await this.unprovenStorage.getLatestBlock();
     return latestBlock?.block.networkState.during;
   }

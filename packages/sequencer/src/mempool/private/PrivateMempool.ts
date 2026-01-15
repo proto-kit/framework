@@ -20,7 +20,10 @@ import {
 import { Field } from "o1js";
 
 import type { Mempool, MempoolEvents } from "../Mempool";
-import { PendingTransaction, PendingTransactionJSONType } from "../PendingTransaction";
+import {
+  PendingTransaction,
+  PendingTransactionJSONType,
+} from "../PendingTransaction";
 import {
   sequencerModule,
   SequencerModule,
@@ -79,12 +82,13 @@ export class PrivateMempool
     if (txValid) {
       const success = await this.transactionStorage.pushUserTransaction(tx);
       if (success) {
-        this.events.emit("mempool-transaction-added", PendingTransaction.fromJSON(tx));
+        this.events.emit(
+          "mempool-transaction-added",
+          PendingTransaction.fromJSON(tx)
+        );
         log.trace(`Transaction added to mempool: ${tx.hash}`);
       } else {
-        log.error(
-          `Transaction ${tx.hash} rejected: already exists in mempool`
-        );
+        log.error(`Transaction ${tx.hash} rejected: already exists in mempool`);
       }
 
       return success;
@@ -126,9 +130,8 @@ export class PrivateMempool
     // Should provide NetworkState to checkTxValid.
     const stagedNetworkState = await this.getStagedNetworkState();
 
-    const networkState = stagedNetworkState
-      ? stagedNetworkState
-      : NetworkState.toJSON(NetworkState.empty());
+    const networkState =
+      stagedNetworkState || NetworkState.toJSON(NetworkState.empty());
 
     const validationEnabled = this.config.validationEnabled ?? false;
     const sortedTxs = validationEnabled
@@ -196,7 +199,7 @@ export class PrivateMempool
     const provableNetworkState = new NetworkState(
       NetworkState.fromJSON(networkState)
     );
-    
+
     let pendingTransaction: PendingTransaction;
 
     while (
@@ -254,10 +257,7 @@ export class PrivateMempool
         });
         if (removeTxWhen) {
           // eslint-disable-next-line no-await-in-loop
-          await this.transactionStorage.removeTx(
-            [tx.hash],
-            "dropped"
-          );
+          await this.transactionStorage.removeTx([tx.hash], "dropped");
           log.trace(
             `Deleting tx ${tx.hash}  from mempool because removeTransactionWhen condition is satisfied`
           );
@@ -265,9 +265,7 @@ export class PrivateMempool
           continue;
         }
 
-        log.trace(
-          `Skipped tx ${tx.hash} because ${statusMessage}`
-        );
+        log.trace(`Skipped tx ${tx.hash} because ${statusMessage}`);
         if (!(tx.hash in skippedTransactions)) {
           skippedTransactions[tx.hash] = {
             transaction: tx,

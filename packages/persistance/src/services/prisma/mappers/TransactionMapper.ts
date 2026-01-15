@@ -1,6 +1,5 @@
 import { singleton, injectable } from "tsyringe";
 import {
-  PendingTransaction,
   TransactionExecutionResultJson,
   PendingTransactionJSONType,
 } from "@proto-kit/sequencer";

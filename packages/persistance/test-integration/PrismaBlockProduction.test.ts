@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { afterAll, beforeAll, describe, expect } from "@jest/globals";
 import { expectDefined, log } from "@proto-kit/common";
 import { BalancesKey, TokenId } from "@proto-kit/library";
-import { NetworkState } from "@proto-kit/protocol";
 import { AppChainTransaction } from "@proto-kit/sdk";
 import { Block, Batch } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
@@ -101,9 +100,7 @@ describe("prisma integration", () => {
         block.transactions[0].tx.hash
       );
 
-      expect(retrievedBlock.hash).toStrictEqual(
-        block.hash
-      );
+      expect(retrievedBlock.hash).toStrictEqual(block.hash);
 
       // Check that events match
       expect(retrievedBlock.transactions[0].events).toHaveLength(1);
@@ -115,8 +112,8 @@ describe("prisma integration", () => {
         block.networkState.before
       );
       expect(retrievedBlock.networkState.during).toStrictEqual(
-        block.networkState.during)
-      
+        block.networkState.during
+      );
     });
 
     it("should save and retrieve the same batch", async () => {

@@ -81,10 +81,10 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
             methodName
           );
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          return [
-            methodId,
-            new VerificationKey(artifact.verificationKey),
-          ] as [string, VerificationKey];
+          return [methodId, new VerificationKey(artifact.verificationKey)] as [
+            string,
+            VerificationKey,
+          ];
         });
       }
     );

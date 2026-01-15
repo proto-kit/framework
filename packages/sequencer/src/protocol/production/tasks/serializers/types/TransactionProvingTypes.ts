@@ -25,7 +25,6 @@ export interface TransactionProverTaskParameters<
   startingState: TaskStateRecordJson[];
 }
 
-
 export type TransactionProvingTaskParameters =
   | {
       type: TransactionProvingType.SINGLE;

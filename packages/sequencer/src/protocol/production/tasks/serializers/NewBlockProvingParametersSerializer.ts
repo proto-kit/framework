@@ -32,7 +32,6 @@ interface JsonType {
   };
 }
 
-
 type NewBlockPayload = PairingDerivedInput<
   StateTransitionProof,
   BlockProof,
@@ -69,7 +68,8 @@ export class NewBlockProvingParametersSerializer
 
         startingStateBeforeHook: input.params.startingStateBeforeHook,
 
-        startingStateAfterHook: input.params.startingStateAfterHook, deferSTProof: input.params.deferSTProof.toBoolean(),
+        startingStateAfterHook: input.params.startingStateAfterHook,
+        deferSTProof: input.params.deferSTProof.toBoolean(),
 
         afterBlockRootWitness: WitnessedRootWitness.toJSON(
           input.params.afterBlockRootWitness

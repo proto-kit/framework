@@ -1,6 +1,6 @@
 import { injectable } from "tsyringe";
 
-import { PendingTransaction, PendingTransactionJSONType } from "../../mempool/PendingTransaction";
+import { PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 import { MessageStorage } from "../repositories/MessageStorage";
 
 @injectable()

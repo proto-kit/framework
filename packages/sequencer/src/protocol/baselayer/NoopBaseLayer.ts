@@ -7,7 +7,7 @@ import {
   sequencerModule,
 } from "../../sequencer/builder/SequencerModule";
 import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
-import { PendingTransaction, PendingTransactionJSONType } from "../../mempool/PendingTransaction";
+import { PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 import { OutgoingMessageAdapter } from "../../settlement/messages/outgoing/OutgoingMessageCollector";
 import { Block } from "../../storage/model/Block";
 

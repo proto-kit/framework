@@ -33,9 +33,9 @@ import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
+import { FieldString } from "../../../helpers/utils";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
-import { FieldString } from "../../../helpers/utils";
 
 // This is ordered, because javascript maintains the order based on time of first insertion
 function collectOrderedStateDiff(
@@ -58,8 +58,8 @@ function createCombinedOrderedStateDiff(
     .map((tx) => {
       const transitions = tx.stateTransitions
         .filter(({ applied }) => applied)
-        .flatMap(({ stateTransitions }) => 
-          stateTransitions.map(st => UntypedStateTransition.fromJSON(st))
+        .flatMap(({ stateTransitions }) =>
+          stateTransitions.map((st) => UntypedStateTransition.fromJSON(st))
         );
 
       transitions.push(...blockHookSTs);

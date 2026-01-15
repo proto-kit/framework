@@ -17,8 +17,15 @@ import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
-import { PendingTransaction, PendingTransactionJSONType } from "../../../mempool/PendingTransaction";
-import { TaskStateRecord, TaskStateRecordJson, taskStateRecordFromJson } from "../tracing/BlockTracingService";
+import {
+  PendingTransaction,
+  PendingTransactionJSONType,
+} from "../../../mempool/PendingTransaction";
+import {
+  TaskStateRecord,
+  TaskStateRecordJson,
+  taskStateRecordFromJson,
+} from "../tracing/BlockTracingService";
 
 import { RuntimeProofParametersSerializer } from "./serializers/RuntimeProofParametersSerializer";
 
@@ -63,10 +70,14 @@ export class RuntimeProvingTask
     return new ProofTaskSerializer(this.runtimeZkProgrammable[0].Proof);
   }
 
-  public async compute(input: RuntimeProofParametersJson): Promise<RuntimeProof> {
+  public async compute(
+    input: RuntimeProofParametersJson
+  ): Promise<RuntimeProof> {
     // Convert from JSON to provable types at the proving boundary
     const tx = PendingTransaction.fromJSON(input.tx);
-    const networkState = new NetworkState(NetworkState.fromJSON(input.networkState));
+    const networkState = new NetworkState(
+      NetworkState.fromJSON(input.networkState)
+    );
     const state = taskStateRecordFromJson(input.state);
 
     const method = this.runtime.getMethodById(tx.methodId.toString());

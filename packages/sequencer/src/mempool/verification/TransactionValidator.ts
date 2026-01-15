@@ -5,7 +5,10 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 
-import { PendingTransaction, PendingTransactionJSONType } from "../PendingTransaction";
+import {
+  PendingTransaction,
+  PendingTransactionJSONType,
+} from "../PendingTransaction";
 
 @injectable()
 export class TransactionValidator {
@@ -38,7 +41,9 @@ export class TransactionValidator {
     return undefined;
   }
 
-  public validateTx(tx: PendingTransactionJSONType): [boolean, string | undefined] {
+  public validateTx(
+    tx: PendingTransactionJSONType
+  ): [boolean, string | undefined] {
     const methodError = this.validateMethod(tx);
 
     if (methodError !== undefined) {

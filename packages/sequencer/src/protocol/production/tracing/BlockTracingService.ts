@@ -12,36 +12,48 @@ import { yieldSequential } from "@proto-kit/common";
 import chunk from "lodash/chunk";
 import { inject, injectable } from "tsyringe";
 
-import { BlockWithResult, txResultFromJson } from "../../../storage/model/Block";
+import { BlockWithResult } from "../../../storage/model/Block";
 import type { NewBlockProverParameters } from "../tasks/NewBlockTask";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
+import {
+  UntypedStateTransition,
+  UntypedStateTransitionJson,
+} from "../helpers/UntypedStateTransition";
 
 import {
   collectStartingState,
   TransactionTrace,
   TransactionTracingService,
 } from "./TransactionTracingService";
-import { UntypedStateTransition, UntypedStateTransitionJson } from "../helpers/UntypedStateTransition";
 
 export type TaskStateRecord = Record<string, Field[]>;
 
 export type TaskStateRecordJson = Record<string, string[]>;
 
-export function taskStateRecordToJson(record: TaskStateRecord): TaskStateRecordJson {
+export function taskStateRecordToJson(
+  record: TaskStateRecord
+): TaskStateRecordJson {
   return Object.fromEntries(
-    Object.entries(record).map(([key, fields]) => [key, fields.map(f => f.toString())])
+    Object.entries(record).map(([key, fields]) => [
+      key,
+      fields.map((f) => f.toString()),
+    ])
   );
 }
 
-export function taskStateRecordFromJson(json: TaskStateRecordJson): TaskStateRecord {
+export function taskStateRecordFromJson(
+  json: TaskStateRecordJson
+): TaskStateRecord {
   return Object.fromEntries(
-    Object.entries(json).map(([key, strings]) => [key, strings.map(s => Field(s))])
+    Object.entries(json).map(([key, strings]) => [
+      key,
+      strings.map((s) => Field(s)),
+    ])
   );
 }
 
 export type BlockTracingState = Pick<
-
   BlockProverState,
   | "witnessedRoots"
   | "stateRoot"
@@ -90,14 +102,16 @@ export class BlockTracingService {
     });
 
     const startingStateBeforeHook = collectStartingState(
-      block.block.beforeBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st))
+      block.block.beforeBlockStateTransitions.map(
+        (st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st)
+      )
     );
 
     const blockTrace = {
       publicInput,
       networkState: new NetworkState(
         NetworkState.fromJSON(block.block.networkState.before)
-      ) ,
+      ),
       deferSTProof: Bool(!includeSTProof),
       blockWitness: new BlockHashMerkleTreeWitness(
         BlockHashMerkleTreeWitness.fromJSON(block.result.blockHashWitness)
@@ -107,13 +121,16 @@ export class BlockTracingService {
 
     state.pendingSTBatches.push({
       batchHash: toStateTransitionsHash(
-        block.block.beforeBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st))
+        block.block.beforeBlockStateTransitions.map(
+          (st: UntypedStateTransitionJson) =>
+            UntypedStateTransition.fromJSON(st)
+        )
       ),
       applied: Bool(true),
     });
     state.networkState = new NetworkState(
-        NetworkState.fromJSON(block.block.networkState.during)
-      ) ;
+      NetworkState.fromJSON(block.block.networkState.during)
+    );
 
     const [afterState, transactionTraces] = await yieldSequential(
       chunk(block.block.transactions, 2),
@@ -157,11 +174,13 @@ export class BlockTracingService {
     }
 
     const startingStateAfterHook = collectStartingState(
-      block.result.afterBlockStateTransitions.map((st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st))
+      block.result.afterBlockStateTransitions.map(
+        (st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st)
+      )
     );
     state.networkState = new NetworkState(
-       NetworkState.fromJSON(block.result.afterNetworkState)
-      );
+      NetworkState.fromJSON(block.result.afterNetworkState)
+    );
 
     return [
       afterState,

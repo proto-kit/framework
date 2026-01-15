@@ -34,10 +34,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
     const inputSerializer = this.indexBlockTask.inputSerializer();
 
     this.sequencer.events.on("block-metadata-produced", async (block) => {
-      log.debug(
-        "Notifiying the indexer about block",
-        block.block.height
-      );
+      log.debug("Notifiying the indexer about block", block.block.height);
       const payload = await inputSerializer.toJSON(block);
       const sequencerId = this.sequencerIdProvider.getSequencerId();
 

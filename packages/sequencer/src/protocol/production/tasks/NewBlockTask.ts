@@ -21,7 +21,10 @@ import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
-import { TaskStateRecordJson, taskStateRecordFromJson } from "../tracing/BlockTracingService";
+import {
+  TaskStateRecordJson,
+  taskStateRecordFromJson,
+} from "../tracing/BlockTracingService";
 
 import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
 import { executeWithPrefilledStateService } from "./TransactionProvingTask";
@@ -111,8 +114,12 @@ export class NewBlockTask
     );
 
     // Convert from JSON to provable types at the proving boundary
-    const startingStateBeforeHookProvable = taskStateRecordFromJson(startingStateBeforeHook);
-    const startingStateAfterHookProvable = taskStateRecordFromJson(startingStateAfterHook);
+    const startingStateBeforeHookProvable = taskStateRecordFromJson(
+      startingStateBeforeHook
+    );
+    const startingStateAfterHookProvable = taskStateRecordFromJson(
+      startingStateAfterHook
+    );
 
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,

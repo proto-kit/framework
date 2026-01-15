@@ -38,7 +38,9 @@ export function createTransaction(spec: {
     sender: spec.privateKey.toPublicKey(),
     nonce: UInt64.from(spec.nonce),
     isMessage: false,
-  }).sign(spec.privateKey).toJSON();
+  })
+    .sign(spec.privateKey)
+    .toJSON();
 }
 
 export function collectStateDiff(

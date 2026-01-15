@@ -13,7 +13,7 @@ export class RuntimeProofParametersSerializer
   }
 
   public fromJSON(json: string): RuntimeProofParametersJson {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return JSON.parse(json) as RuntimeProofParametersJson;
   }
 }
-

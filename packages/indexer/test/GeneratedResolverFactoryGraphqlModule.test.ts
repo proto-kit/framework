@@ -10,7 +10,6 @@ import { jest } from "@jest/globals";
 import { Indexer } from "../src/Indexer";
 import { GeneratedResolverFactoryGraphqlModule } from "../src";
 
-
 log.setLevel("info");
 
 const port = 8081;

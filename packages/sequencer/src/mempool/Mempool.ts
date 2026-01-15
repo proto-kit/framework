@@ -1,6 +1,9 @@
 import { EventEmittingComponent } from "@proto-kit/common";
 
-import type { PendingTransaction, PendingTransactionJSONType } from "./PendingTransaction";
+import type {
+  PendingTransaction,
+  PendingTransactionJSONType,
+} from "./PendingTransaction";
 
 export type MempoolEvents = {
   "mempool-transaction-added": [PendingTransaction];

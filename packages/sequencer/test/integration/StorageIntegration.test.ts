@@ -37,7 +37,10 @@ function checkStateDiffEquality(stateDiff: StateRecord, state: StateEntry[]) {
           return value === undefined;
         }
         if (value !== undefined) {
-          return entry.value.find((v, i) => !v.equals(value[i]).toBoolean()) === undefined;
+          return (
+            entry.value.find((v, i) => !v.equals(value[i]).toBoolean()) ===
+            undefined
+          );
         }
       }
       return false;
@@ -149,9 +152,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const { block } = blocks[0];
 
-      expect(block.hash).toStrictEqual(
-        generatedBlock.hash
-      );
+      expect(block.hash).toStrictEqual(generatedBlock.hash);
 
       const blockStorage = sequencer.resolve("BlockStorage") as BlockStorage;
       const block2 = await blockStorage.getBlockAt(
@@ -159,12 +160,14 @@ describe.each([["InMemory", InMemoryDatabase]])(
       );
 
       expectDefined(block2);
-      expect(block2.hash).toStrictEqual(
-        generatedBlock.hash
-      );
+      expect(block2.hash).toStrictEqual(generatedBlock.hash);
       const input = block.transactions.flatMap((tx) =>
-          tx.stateTransitions.flatMap((batch) => batch.stateTransitions.map(st => UntypedStateTransition.fromJSON(st)))
+        tx.stateTransitions.flatMap((batch) =>
+          batch.stateTransitions.map((st) =>
+            UntypedStateTransition.fromJSON(st)
+          )
         )
+      );
       const stateDiff = collectStateDiff(input);
 
       const state = await unprovenState.getMany(

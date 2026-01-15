@@ -1,9 +1,5 @@
 import { singleton } from "tsyringe";
-import {
-  Block,
-  UntypedStateTransition,
-  UntypedStateTransitionJson,
-} from "@proto-kit/sequencer";
+import { Block, UntypedStateTransitionJson } from "@proto-kit/sequencer";
 import { Prisma, Block as PrismaBlock } from "@prisma/client";
 import { NetworkStateJson } from "@proto-kit/protocol";
 
@@ -22,14 +18,8 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       transactions: [],
 
       networkState: {
-        before: 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          input.beforeNetworkState as NetworkStateJson
-        ,
-        during:
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          input.duringNetworkState as NetworkStateJson
-
+        before: input.beforeNetworkState as NetworkStateJson,
+        during: input.duringNetworkState as NetworkStateJson,
       },
 
       hash: input.hash,
@@ -46,7 +36,8 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
         input.parentHash !== null ? input.parentHash : undefined,
 
       // This is cleaner to keep mapIn
-      beforeBlockStateTransitions: input.beforeBlockStateTransitions as unknown as UntypedStateTransitionJson[]
+      beforeBlockStateTransitions:
+        input.beforeBlockStateTransitions as unknown as UntypedStateTransitionJson[],
     };
   }
 
@@ -67,7 +58,8 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       parentHash: input.previousBlockHash ?? null,
       batchHeight: null,
 
-      beforeBlockStateTransitions: input.beforeBlockStateTransitions as unknown as Prisma.JsonArray 
+      beforeBlockStateTransitions:
+        input.beforeBlockStateTransitions as unknown as Prisma.JsonArray,
     };
   }
 }
