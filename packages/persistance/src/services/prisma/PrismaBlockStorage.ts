@@ -1,5 +1,5 @@
 import {
-  TransactionExecutionResult,
+  TransactionExecutionResultJson,
   Block,
   BlockResult,
   BlockQueue,
@@ -53,7 +53,7 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
     if (dbResult === null) {
       return undefined;
     }
-    const transactions = dbResult.transactions.map<TransactionExecutionResult>(
+    const transactions = dbResult.transactions.map<TransactionExecutionResultJson>(
       (txresult) => this.transactionResultMapper.mapIn([txresult, txresult.tx])
     );
 
@@ -80,7 +80,7 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
   public async pushBlock(block: Block): Promise<void> {
     log.trace(
       "Pushing block to DB. Txs:",
-      block.transactions.map((x) => x.tx.hash().toString())
+      block.transactions.map((x) => x.tx.hash)
     );
 
     const transactions = block.transactions.map<DBTransactionExecutionResult>(
@@ -221,7 +221,7 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
     });
 
     return blocks.map((block, index) => {
-      const transactions = block.transactions.map<TransactionExecutionResult>(
+      const transactions = block.transactions.map<TransactionExecutionResultJson>(
         (txresult) => {
           return this.transactionResultMapper.mapIn([txresult, txresult.tx]);
         }

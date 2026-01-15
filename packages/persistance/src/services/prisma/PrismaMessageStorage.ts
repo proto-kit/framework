@@ -1,4 +1,4 @@
-import { MessageStorage, PendingTransaction } from "@proto-kit/sequencer";
+import { MessageStorage, PendingTransactionJSONType } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
@@ -21,7 +21,7 @@ export class PrismaMessageStorage implements MessageStorage {
     const batches: {
       fromMessagesHash: string;
       toMessagesHash: string;
-      messages: PendingTransaction[];
+      messages: PendingTransactionJSONType[];
     }[] = [];
     let currentHash = fromMessagesHash;
 
@@ -43,7 +43,7 @@ export class PrismaMessageStorage implements MessageStorage {
     | {
         fromMessagesHash: string;
         toMessagesHash: string;
-        messages: PendingTransaction[];
+        messages: PendingTransactionJSONType[];
       }
     | undefined
   > {
@@ -84,7 +84,7 @@ export class PrismaMessageStorage implements MessageStorage {
   public async pushMessages(
     fromMessageHash: string,
     toMessageHash: string,
-    messages: PendingTransaction[]
+    messages: PendingTransactionJSONType[]
   ): Promise<void> {
     const transactions = messages.map((message) =>
       this.transactionMapper.mapOut(message)
