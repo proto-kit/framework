@@ -52,42 +52,6 @@ export interface TransactionExecutionResultJson {
   }[];
 }
 
-export function txResultToJson(txResult: TransactionExecutionResult): TransactionExecutionResultJson {
-  return {
-    tx: txResult.tx.toJSON(),
-    stateTransitions: txResult.stateTransitions.map(batch => ({
-      stateTransitions: batch.stateTransitions.map(st => st.toJSON()),
-      applied: batch.applied,
-    })),
-    status: txResult.status.toBoolean(),
-    hooksStatus: txResult.hooksStatus.toBoolean(),
-    statusMessage: txResult.statusMessage,
-    events: txResult.events.map(e => ({
-      eventName: e.eventName,
-      data: e.data.map(f => f.toString()),
-      source: e.source,
-    })),
-  };
-}
-
-export function txResultFromJson(json: TransactionExecutionResultJson): TransactionExecutionResult {
-  return {
-    tx: PendingTransaction.fromJSON(json.tx),
-    stateTransitions: json.stateTransitions.map(batch => ({
-      stateTransitions: batch.stateTransitions.map(st => UntypedStateTransition.fromJSON(st)),
-      applied: batch.applied,
-    })),
-    status: Bool(json.status),
-    hooksStatus: Bool(json.hooksStatus),
-    statusMessage: json.statusMessage,
-    events: json.events.map(e => ({
-      eventName: e.eventName,
-      data: e.data.map(f => Field(f)),
-      source: e.source,
-    })),
-  };
-}
-
 // TODO Why is Block using Fields, but BlockResult bigints? Align that towards the best option
 
 export interface Block {
@@ -186,3 +150,70 @@ export const BlockWithResult = {
       },
     }) satisfies BlockWithResult,
 };
+
+export function txResultToJson(
+  txResult: TransactionExecutionResult
+): TransactionExecutionResultJson {
+  return {
+    tx: txResult.tx.toJSON(),
+    stateTransitions: txResult.stateTransitions.map((batch) => ({
+      stateTransitions: batch.stateTransitions.map((st) => st.toJSON()),
+      applied: batch.applied,
+    })),
+    status: txResult.status.toBoolean(),
+    hooksStatus: txResult.hooksStatus.toBoolean(),
+    statusMessage: txResult.statusMessage,
+    events: txResult.events.map((e) => ({
+      eventName: e.eventName,
+      data: e.data.map((f) => f.toString()),
+      source: e.source,
+    })),
+  };
+}
+
+export function txResultFromJson(
+  json: TransactionExecutionResultJson
+): TransactionExecutionResult {
+  return {
+    tx: PendingTransaction.fromJSON(json.tx),
+    stateTransitions: json.stateTransitions.map((batch) => ({
+      stateTransitions: batch.stateTransitions.map((st) =>
+        UntypedStateTransition.fromJSON(st)
+      ),
+      applied: batch.applied,
+    })),
+    status: Bool(json.status),
+    hooksStatus: Bool(json.hooksStatus),
+    statusMessage: json.statusMessage,
+    events: json.events.map((e) => ({
+      eventName: e.eventName,
+      data: e.data.map((f) => Field(f)),
+      source: e.source,
+    })),
+  };
+}
+
+export function STBatchToJson(
+  stBatch: StateTransitionBatch
+): StateTransitionBatchJson {
+  return {
+    stateTransitions: stBatch.stateTransitions.map(
+      (untypedST: UntypedStateTransition) => untypedST.toJSON()
+    ),
+    applied: stBatch.applied,
+  };
+}
+
+export function STBatchFromJson(
+  stBatch: StateTransitionBatchJson
+): StateTransitionBatch {
+  return {
+    stateTransitions: stBatch.stateTransitions.map(
+      (untypedST: UntypedStateTransitionJson) =>
+        UntypedStateTransition.fromJSON(untypedST)
+    ),
+    applied: stBatch.applied,
+  };
+}
+
+
