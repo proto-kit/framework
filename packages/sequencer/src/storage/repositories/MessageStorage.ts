@@ -1,4 +1,4 @@
-import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 
 /**
  * Interface to store Messages previously fetched by a IncomingMessageadapter
@@ -7,14 +7,14 @@ export interface MessageStorage {
   pushMessages: (
     fromMessagesHash: string,
     toMessagesHash: string,
-    messages: PendingTransaction[]
+    messages: PendingTransactionJSONType[]
   ) => Promise<void>;
 
   getNextMessagesBatch: (fromMessagesHash: string) => Promise<
     | {
         fromMessagesHash: string;
         toMessagesHash: string;
-        messages: PendingTransaction[];
+        messages: PendingTransactionJSONType[];
       }
     | undefined
   >;
@@ -26,7 +26,7 @@ export interface MessageStorage {
     {
       fromMessagesHash: string;
       toMessagesHash: string;
-      messages: PendingTransaction[];
+      messages: PendingTransactionJSONType[];
     }[]
   >;
 }

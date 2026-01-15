@@ -1,6 +1,6 @@
 import { EventEmittingComponent } from "@proto-kit/common";
 
-import type { PendingTransaction } from "./PendingTransaction";
+import type { PendingTransaction, PendingTransactionJSONType } from "./PendingTransaction";
 
 export type MempoolEvents = {
   "mempool-transaction-added": [PendingTransaction];
@@ -12,12 +12,12 @@ export interface Mempool<Events extends MempoolEvents = MempoolEvents>
    * Add a transaction to the mempool
    * @returns The new commitment to the mempool
    */
-  add: (tx: PendingTransaction) => Promise<boolean>;
+  add: (tx: PendingTransactionJSONType) => Promise<boolean>;
 
   /**
    * Retrieve all transactions that are currently in the mempool
    */
-  getTxs: (limit?: number) => Promise<PendingTransaction[]>;
+  getTxs: (limit?: number) => Promise<PendingTransactionJSONType[]>;
 
   removeTxs: (included: string[], dropped: string[]) => Promise<void>;
 }

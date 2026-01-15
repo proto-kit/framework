@@ -1,9 +1,9 @@
-import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 
 export interface TransactionStorage {
-  pushUserTransaction: (tx: PendingTransaction) => Promise<boolean>;
+  pushUserTransaction: (tx: PendingTransactionJSONType) => Promise<boolean>;
 
-  getPendingUserTransactions: () => Promise<PendingTransaction[]>;
+  getPendingUserTransactions: () => Promise<PendingTransactionJSONType[]>;
 
   removeTx: (txHashes: string[], type: "included" | "dropped") => Promise<void>;
 
@@ -16,7 +16,7 @@ export interface TransactionStorage {
    */
   findTransaction: (hash: string) => Promise<
     | {
-        transaction: PendingTransaction;
+        transaction: PendingTransactionJSONType;
         block?: string;
         batch?: number;
       }

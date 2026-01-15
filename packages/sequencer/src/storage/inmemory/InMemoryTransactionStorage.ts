@@ -1,14 +1,14 @@
 import { inject, injectable } from "tsyringe";
 
 import { TransactionStorage } from "../repositories/TransactionStorage";
-import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { PendingTransaction, PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 import { BlockStorage } from "../repositories/BlockStorage";
 
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 
 @injectable()
 export class InMemoryTransactionStorage implements TransactionStorage {
-  private queue: PendingTransaction[] = [];
+  private queue: PendingTransactionJSONType[] = [];
 
   private latestScannedBlock = -1;
 
@@ -21,12 +21,12 @@ export class InMemoryTransactionStorage implements TransactionStorage {
   public async removeTx(hashes: string[]) {
     const hashSet = new Set(hashes);
     this.queue = this.queue.filter((tx) => {
-      const hash = tx.hash().toString();
+      const hash = tx.hash;
       return !hashSet.has(hash);
     });
   }
 
-  public async getPendingUserTransactions(): Promise<PendingTransaction[]> {
+  public async getPendingUserTransactions(): Promise<PendingTransactionJSONType[]> {
     const nextHeight = await this.blockStorage.getCurrentBlockHeight();
     for (
       let height = this.latestScannedBlock + 1;
@@ -38,7 +38,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       if (block !== undefined) {
         const hashes = block.transactions.map((tx) => tx.tx.hash);
         this.queue = this.queue.filter(
-          (tx) => !hashes.includes(tx.hash().toString())
+          (tx) => !hashes.includes(tx.hash)
         );
       }
     }
@@ -47,10 +47,10 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     return this.queue.slice();
   }
 
-  public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {
+  public async pushUserTransaction(tx: PendingTransactionJSONType): Promise<boolean> {
     const notInQueue =
       this.queue.find(
-        (tx2) => tx2.hash().toString() === tx.hash().toString()
+        (tx2) => tx2.hash === tx.hash
       ) === undefined;
     if (notInQueue) {
       this.queue.push(tx);
@@ -76,14 +76,14 @@ export class InMemoryTransactionStorage implements TransactionStorage {
 
   public async findTransaction(hash: string): Promise<
     | {
-        transaction: PendingTransaction;
+        transaction: PendingTransactionJSONType;
         block?: string;
         batch?: number;
       }
     | undefined
   > {
     const pending = await this.getPendingUserTransactions();
-    const pendingResult = pending.find((tx) => tx.hash().toString() === hash);
+    const pendingResult = pending.find((tx) => tx.hash === hash);
     if (pendingResult !== undefined) {
       return {
         transaction: pendingResult,
@@ -105,7 +105,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
         // eslint-disable-next-line no-await-in-loop
         const batch = await this.findBatch(block.hash);
         return {
-          transaction: PendingTransaction.fromJSON(txResult.tx),
+          transaction: txResult.tx,
           block: block.transactionsHash,
           batch,
         };
