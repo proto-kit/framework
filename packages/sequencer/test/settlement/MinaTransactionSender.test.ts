@@ -38,6 +38,11 @@ type SenderFixture = {
   retryStrategy: any;
 };
 
+type BaseLayerStub = {
+  isLocalBlockChain: () => boolean;
+  config: { network: { type: "local" | "remote" | "lightnet" } };
+};
+
 function makeSender(
   pendingStorage: PendingL1TransactionStorage,
   dispatcherConfig: {
@@ -47,6 +52,10 @@ function makeSender(
   } = {
     pollIntervalMs: 5,
     statusCheckIntervalMs: 5,
+  },
+  baseLayerStub: BaseLayerStub = {
+    isLocalBlockChain: () => true,
+    config: { network: { type: "local" } },
   }
 ): SenderFixture {
   const flowCreator = {
@@ -73,8 +82,6 @@ function makeSender(
     applyTransaction: jest.fn(async () => undefined),
   } as any;
 
-  const baseLayer = { config: { network: { type: "local" } } } as any;
-
   const retryStrategy = {
     shouldRetry: jest.fn(async () => true),
     prepareRetryTransaction: jest.fn(async (record: any) => record.transaction),
@@ -89,13 +96,14 @@ function makeSender(
     retryStrategy as any,
     signer as any,
     waiter,
-    dispatcherConfig
+    dispatcherConfig,
+    baseLayerStub as any
   );
   const sender = new MinaTransactionSender(
     flowCreator,
     provingTask,
     simulator,
-    baseLayer,
+    baseLayerStub as any,
     pendingStorage as any,
     signer,
     feeStrategy,
@@ -134,7 +142,6 @@ describe("MinaTransactionSender (unit)", () => {
     const pendingStorage: PendingL1TransactionStorage =
       new InMemoryPendingL1TransactionStorage();
     const { sender } = makeSender(pendingStorage);
-    checkZkappTransactionStatus.mockResolvedValue({ success: false });
 
     const { tx } = makeTx({ senderBase58: "S", nonce: 0, hash: "H1" });
 
@@ -159,7 +166,6 @@ describe("MinaTransactionSender (unit)", () => {
     const pendingStorage: PendingL1TransactionStorage =
       new InMemoryPendingL1TransactionStorage();
     const { sender } = makeSender(pendingStorage);
-    checkZkappTransactionStatus.mockResolvedValueOnce({ success: true });
 
     const { tx } = makeTx({ senderBase58: "S", nonce: 0, hash: "H2" });
     try {
@@ -178,7 +184,6 @@ describe("MinaTransactionSender (unit)", () => {
     const pendingStorage: PendingL1TransactionStorage =
       new InMemoryPendingL1TransactionStorage();
     const { sender } = makeSender(pendingStorage);
-    checkZkappTransactionStatus.mockResolvedValue({ success: false });
 
     const tx0 = makeTx({ senderBase58: "S", nonce: 0, hash: "H0" });
     const tx1 = makeTx({ senderBase58: "S", nonce: 1, hash: "H1" });
@@ -202,11 +207,18 @@ describe("MinaTransactionSender (unit)", () => {
   it("should retry a transaction if first attempt fails", async () => {
     const pendingStorage: PendingL1TransactionStorage =
       new InMemoryPendingL1TransactionStorage();
-    const { sender } = makeSender(pendingStorage, {
-      pollIntervalMs: 5,
-      statusCheckIntervalMs: 0,
-      inclusionTimeoutMs: 0,
-    });
+    const { sender } = makeSender(
+      pendingStorage,
+      {
+        pollIntervalMs: 5,
+        statusCheckIntervalMs: 0,
+        inclusionTimeoutMs: 0,
+      },
+      {
+        isLocalBlockChain: () => false,
+        config: { network: { type: "remote" } },
+      }
+    );
 
     const { tx } = makeTx({ senderBase58: "S", nonce: 0, hash: "H-R1" });
 
@@ -238,11 +250,18 @@ describe("MinaTransactionSender (unit)", () => {
   it("should stop retrying when shouldRetry returns false", async () => {
     const pendingStorage: PendingL1TransactionStorage =
       new InMemoryPendingL1TransactionStorage();
-    const { sender, retryStrategy } = makeSender(pendingStorage, {
-      pollIntervalMs: 5,
-      statusCheckIntervalMs: 0,
-      inclusionTimeoutMs: 0,
-    });
+    const { sender, retryStrategy } = makeSender(
+      pendingStorage,
+      {
+        pollIntervalMs: 5,
+        statusCheckIntervalMs: 0,
+        inclusionTimeoutMs: 0,
+      },
+      {
+        isLocalBlockChain: () => false,
+        config: { network: { type: "remote" } },
+      }
+    );
 
     // Force "no retry"
     retryStrategy.shouldRetry = jest.fn(async () => false);

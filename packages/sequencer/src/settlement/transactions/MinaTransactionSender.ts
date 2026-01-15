@@ -34,7 +34,7 @@ export class MinaTransactionSender implements Closeable {
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("FeeStrategy") private readonly feeStrategy: FeeStrategy,
     private readonly dispatcher: L1TransactionDispatcher,
-    private readonly waiter: TxStatusWaiter
+    @inject("TxStatusWaiter") private readonly waiter: TxStatusWaiter
   ) {
     this.dispatcher.start();
   }
@@ -90,6 +90,9 @@ export class MinaTransactionSender implements Closeable {
       queuedAt: now,
       nextActionAt: now,
     });
+    log.info(
+      `MinaTransactionSender: queued transaction ${txnId} for sender ${sender} nonce ${nonceNum}`
+    );
 
     this.dispatcher.requestDispatch(sender);
 

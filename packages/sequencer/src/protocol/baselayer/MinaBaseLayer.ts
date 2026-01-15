@@ -13,6 +13,7 @@ import {
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
+import { TxStatusWaiter } from "../../settlement/transactions/TxStatusWaiter";
 import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
 
 import { BaseLayer } from "./BaseLayer";
@@ -91,6 +92,10 @@ export class MinaBaseLayer
 
       TransactionSender: {
         useClass: MinaTransactionSender,
+      },
+
+      TxStatusWaiter: {
+        useClass: TxStatusWaiter,
       },
 
       L1TransactionDispatcherConfig: {

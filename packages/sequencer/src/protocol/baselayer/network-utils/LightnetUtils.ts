@@ -105,11 +105,7 @@ export class LightnetUtils implements MinaNetworkUtils {
 
     tx.sign([faucetDonor]);
 
-    await this.transactionSender.signProveAndSendTransaction(
-      tx,
-      [faucetDonorPublicKey],
-      "included"
-    );
+    await this.transactionSender.proveAndSendTransaction(tx, "included");
 
     log.provable.info(
       `Funded account ${receiver.toBase58()} with ${fundingAmount / 1e9} MINA`

@@ -2,6 +2,7 @@ import { inject, injectable } from "tsyringe";
 import {
   EventsRecord,
   ReplayingSingleUseEventEmitter,
+  log,
 } from "@proto-kit/common";
 
 import {
@@ -79,6 +80,9 @@ export class TxStatusWaiter {
   ): Promise<void> {
     const initial = await this.pendingStorage.findById(txId);
     if (!initial) {
+      log.info(
+        `TxStatusWaiter: waitFor(${desiredStatus}) unknown txId=${txId}`
+      );
       throw new Error(`Unknown pending L1 transaction id ${txId}`);
     }
     if (initial.status === "failed") {
@@ -90,23 +94,20 @@ export class TxStatusWaiter {
 
     const emitter = this.getEmitter(txId);
     const eventPromise = new Promise<void>((resolve, reject) => {
-      emitter.on(desiredStatus, () => resolve());
+      emitter.on(desiredStatus, () => {
+        log.info(
+          `TxStatusWaiter: waitFor(${desiredStatus}) resolved by event txId=${txId}`
+        );
+        resolve();
+      });
       emitter.on("failed", ({ error }) => {
+        log.info(
+          `TxStatusWaiter: waitFor(${desiredStatus}) rejected by failed event txId=${txId}`,
+          error
+        );
         reject(error instanceof Error ? error : new Error(String(error)));
       });
     });
-
-    // if the status change happened between the first DB read and listener registration
-    const afterSubscribe = await this.pendingStorage.findById(txId);
-    if (!afterSubscribe) {
-      throw new Error(`Unknown pending L1 transaction id ${txId}`);
-    }
-    if (afterSubscribe.status === "failed") {
-      throw TxStatusWaiter.toError(afterSubscribe);
-    }
-    if (TxStatusWaiter.isSatisfied(afterSubscribe, desiredStatus)) {
-      return;
-    }
 
     if (options.timeoutMs !== undefined) {
       const timeoutPromise = new Promise<void>((_, reject) => {

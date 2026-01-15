@@ -35,7 +35,7 @@ export class L1TransactionDispatcher {
     @inject("L1TransactionRetryStrategy")
     private readonly retryStrategy: L1TransactionRetryStrategy,
     @inject("SettlementSigner") private readonly signer: MinaSigner,
-    private readonly waiter: TxStatusWaiter,
+    @inject("TxStatusWaiter") private readonly waiter: TxStatusWaiter,
     @inject("L1TransactionDispatcherConfig")
     private readonly config: Required<DispatcherConfig>,
     @inject("BaseLayer")
