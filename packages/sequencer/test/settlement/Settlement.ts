@@ -56,6 +56,7 @@ import {
   VanillaTaskWorkerModules,
   Sequencer,
   InMemoryMinaSigner,
+  PendingTransactionJSONType,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
 import { testingSequencerModules } from "../TestingSequencer";
@@ -227,7 +228,7 @@ export const settlementTestFn = (
   async function createBatch(
     withTransactions: boolean,
     customNonce: number = 0,
-    txs: PendingTransaction[] = []
+    txs: PendingTransactionJSONType[] = []
   ) {
     const mempool = appChain.sequencer.resolve("Mempool") as PrivateMempool;
     if (withTransactions) {
@@ -683,7 +684,7 @@ export const settlementTestFn = (
       acc0L2Nonce += 2;
 
       expectDefined(block);
-      expect(block.transactions[0].status.toBoolean()).toBe(true);
+      expect(block.transactions[0].status).toBe(true);
       expectDefined(batch);
 
       console.log("Test networkstate");

@@ -7,7 +7,7 @@ import {
   sequencerModule,
 } from "../../sequencer/builder/SequencerModule";
 import { IncomingMessageAdapter } from "../../settlement/messages/IncomingMessageAdapter";
-import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { PendingTransaction, PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 import { OutgoingMessageAdapter } from "../../settlement/messages/outgoing/OutgoingMessageCollector";
 import { Block } from "../../storage/model/Block";
 
@@ -23,7 +23,7 @@ class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   ): Promise<{
     from: string;
     to: string;
-    messages: PendingTransaction[];
+    messages: PendingTransactionJSONType[];
   }> {
     return {
       from: "0",

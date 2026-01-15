@@ -5,7 +5,7 @@ import {
   RuntimeModulesRecord,
 } from "@proto-kit/module";
 
-import { PendingTransaction } from "../PendingTransaction";
+import { PendingTransaction, PendingTransactionJSONType } from "../PendingTransaction";
 
 @injectable()
 export class TransactionValidator {
@@ -13,14 +13,14 @@ export class TransactionValidator {
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {}
 
-  private validateMethod(tx: PendingTransaction): string | undefined {
+  private validateMethod(tx: PendingTransactionJSONType): string | undefined {
     // Check if method exists
 
     // We don't actually need to use runtime.getMethodById here, bcs the
     // module name validation happens inside getMethodNameFromId
     // and also in the next step
     const methodPath = this.runtime.methodIdResolver.getMethodNameFromId(
-      tx.methodId.toString()
+      tx.methodId
     );
 
     if (methodPath === undefined) {
@@ -38,16 +38,18 @@ export class TransactionValidator {
     return undefined;
   }
 
-  public validateTx(tx: PendingTransaction): [boolean, string | undefined] {
+  public validateTx(tx: PendingTransactionJSONType): [boolean, string | undefined] {
     const methodError = this.validateMethod(tx);
 
     if (methodError !== undefined) {
       return [false, methodError];
     }
 
-    const validSignature = tx.signature.verify(
-      tx.sender,
-      tx.getSignatureData()
+    const transaction = PendingTransaction.fromJSON(tx);
+
+    const validSignature = transaction.signature.verify(
+      transaction.sender,
+      transaction.getSignatureData()
     );
 
     if (!validSignature.toBoolean()) {

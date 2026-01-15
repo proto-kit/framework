@@ -125,10 +125,10 @@ export class MempoolResolver extends GraphqlModule {
     description: "Adds a transaction to the mempool and validates it",
   })
   public async submitTx(@Arg("tx") tx: TransactionObject): Promise<string> {
-    const decoded = PendingTransaction.fromJSON(tx);
+    const decoded = PendingTransaction.fromJSON(tx).toJSON();
     await this.mempool.add(decoded);
 
-    return decoded.hash().toString();
+    return decoded.hash;
   }
 
   // TODO Add retrieval of pending messages somewhere as well
@@ -162,6 +162,6 @@ export class MempoolResolver extends GraphqlModule {
   })
   public async transactions() {
     const txs = await this.transactionStorage.getPendingUserTransactions();
-    return txs.map((x) => x.hash().toString());
+    return txs.map((x) => x.hash);
   }
 }

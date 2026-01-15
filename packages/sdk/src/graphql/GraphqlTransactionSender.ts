@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { PendingTransaction, AppChainModule } from "@proto-kit/sequencer";
+import { PendingTransaction, AppChainModule, PendingTransactionJSONType } from "@proto-kit/sequencer";
 import { gql } from "@urql/core";
 
 import { TransactionSender } from "../transaction/InMemoryTransactionSender";
@@ -17,13 +17,13 @@ export class GraphqlTransactionSender
     super();
   }
 
-  public async send(transaction: PendingTransaction): Promise<void> {
+  public async send(transaction: PendingTransactionJSONType): Promise<void> {
     const query = gql`
       mutation SubmitTx($tx: TransactionObjectInput!) {
         submitTx(tx: $tx)
       }
     `;
-    const tx = transaction.toJSON();
+    const tx = transaction;
 
     const queryResult = await this.graphqlClient.client
       .mutation(query, { tx })

@@ -7,6 +7,7 @@ import {
 } from "@proto-kit/module";
 
 import {
+  PendingTransactionJSONType,
   StateRecord,
   UnsignedTransaction,
   UntypedStateTransition,
@@ -18,7 +19,7 @@ export function createTransaction(spec: {
   method: [string, string];
   args: ArgumentTypes;
   nonce: number;
-}) {
+}): PendingTransactionJSONType {
   const methodId = spec.runtime.dependencyContainer
     .resolve<MethodIdResolver>("MethodIdResolver")
     .getMethodId(spec.method[0], spec.method[1]);
@@ -37,7 +38,7 @@ export function createTransaction(spec: {
     sender: spec.privateKey.toPublicKey(),
     nonce: UInt64.from(spec.nonce),
     isMessage: false,
-  }).sign(spec.privateKey);
+  }).sign(spec.privateKey).toJSON();
 }
 
 export function collectStateDiff(
