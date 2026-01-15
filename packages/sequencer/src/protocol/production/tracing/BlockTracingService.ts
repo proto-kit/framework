@@ -116,7 +116,7 @@ export class BlockTracingService {
       ) ;
 
     const [afterState, transactionTraces] = await yieldSequential(
-      chunk(block.block.transactions.map(txResultFromJson), 2),
+      chunk(block.block.transactions, 2),
       async (input, [transaction1, transaction2]) => {
         const [output, transactionTrace] =
           transaction2 !== undefined

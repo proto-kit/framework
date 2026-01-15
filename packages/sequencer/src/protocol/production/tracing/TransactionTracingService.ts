@@ -14,7 +14,7 @@ import { MAX_FIELD } from "@proto-kit/common";
 import { toStateTransitionsHash } from "@proto-kit/module";
 import { inject, injectable } from "tsyringe";
 
-import { TransactionExecutionResult } from "../../../storage/model/Block";
+import { TransactionExecutionResultJson, STBatchFromJson } from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import type { RuntimeProofParametersJson } from "../tasks/RuntimeProvingTask";
 import {
@@ -103,16 +103,20 @@ export class TransactionTracingService {
 
   private appendTransactionToState(
     previousState: BlockTracingState,
-    transaction: TransactionExecutionResult
+    transaction: TransactionExecutionResultJson
   ) {
-    // TODO Remove this call and instead reuse results from sequencing
+
+    const tx = PendingTransaction.fromJSON(transaction.tx);
+    
+    // TODO Remove this call and instead reuse results from sequencing ?
     const newState = this.blockProver.addTransactionToBundle(
       previousState,
-      Bool(transaction.tx.isMessage),
-      transaction.tx.toRuntimeTransaction()
+      Bool(tx.isMessage),
+      tx.toRuntimeTransaction()
     );
 
-    transaction.stateTransitions.forEach((batch) => {
+    const stBatches = transaction.stateTransitions.map(STBatchFromJson);
+    stBatches.forEach((batch) => {
       newState.pendingSTBatches.push({
         applied: Bool(batch.applied),
         batchHash: toStateTransitionsHash(batch.stateTransitions),
@@ -123,15 +127,15 @@ export class TransactionTracingService {
   }
 
   private createRuntimeProofParams(
-    tx: TransactionExecutionResult,
+    tx: TransactionExecutionResultJson,
     networkState: NetworkState
   ): RuntimeProofParametersJson {
-    const startingState = collectStartingState(
-      tx.stateTransitions[1].stateTransitions
-    );
+
+    const stBatch = STBatchFromJson(tx.stateTransitions[1]);
+    const startingState = collectStartingState(stBatch.stateTransitions);
 
     return {
-      tx: tx.tx.toJSON(),
+      tx: tx.tx, 
       networkState: NetworkState.toJSON(networkState),
       state: startingState,
     };
@@ -139,10 +143,12 @@ export class TransactionTracingService {
 
   private async traceTransaction(
     previousState: BlockTracingState,
-    transaction: TransactionExecutionResult
+    transaction: TransactionExecutionResultJson
   ) {
+    const stBatches = transaction.stateTransitions.map(STBatchFromJson);
+    
     const beforeHookStartingState = collectStartingState(
-      transaction.stateTransitions[0].stateTransitions.flat()
+      stBatches[0].stateTransitions.flat()
     );
 
     const runtimeTrace1 = this.createRuntimeProofParams(
@@ -151,7 +157,7 @@ export class TransactionTracingService {
     );
 
     const afterHookStartingState = collectStartingState(
-      transaction.stateTransitions[2].stateTransitions.flat()
+      stBatches[2].stateTransitions.flat()
     );
 
     const newState = this.appendTransactionToState(previousState, transaction);
@@ -165,7 +171,7 @@ export class TransactionTracingService {
 
   public async createSingleTransactionTrace(
     previousState: BlockTracingState,
-    transaction: TransactionExecutionResult
+    transaction: TransactionExecutionResultJson
   ): Promise<[BlockTracingState, TransactionTrace]> {
     const publicInput = this.getTransactionProofPublicInput(previousState);
 
@@ -178,7 +184,7 @@ export class TransactionTracingService {
     const transactionTrace: TransactionProverTaskParameters<BlockProverSingleTransactionExecutionData> =
       {
         executionData: {
-          transaction: await this.getTransactionData(transaction.tx),
+          transaction: await this.getTransactionData(PendingTransaction.fromJSON(transaction.tx)),
           networkState: previousState.networkState,
         },
         startingState,
@@ -197,8 +203,8 @@ export class TransactionTracingService {
 
   public async createMultiTransactionTrace(
     previousState: BlockTracingState,
-    transaction1: TransactionExecutionResult,
-    transaction2: TransactionExecutionResult
+    transaction1: TransactionExecutionResultJson,
+    transaction2: TransactionExecutionResultJson
   ): Promise<[BlockTracingState, TransactionTrace]> {
     const publicInput = this.getTransactionProofPublicInput(previousState);
 
@@ -217,8 +223,8 @@ export class TransactionTracingService {
     const transactionTrace: TransactionProverTaskParameters<BlockProverMultiTransactionExecutionData> =
       {
         executionData: {
-          transaction1: await this.getTransactionData(transaction1.tx),
-          transaction2: await this.getTransactionData(transaction2.tx),
+          transaction1: await this.getTransactionData(PendingTransaction.fromJSON(transaction1.tx)),
+          transaction2: await this.getTransactionData(PendingTransaction.fromJSON(transaction2.tx)),
           networkState: previousState.networkState,
         },
         startingState: [...startingState1, ...startingState2],
