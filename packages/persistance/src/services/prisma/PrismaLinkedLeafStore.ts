@@ -144,7 +144,7 @@ export class PrismaLinkedLeafStore implements AsyncLinkedLeafStore {
     >`
       SELECT * FROM "LinkedLeaf" l
         RIGHT JOIN (SELECT unnest(ARRAY[${pathsDecimals}]) as query_path) f 
-        ON l.path < f.query_path AND l."nextPath" > f.query_path
+        ON l.path < f.query_path::numeric AND l."nextPath" > f.query_path::numeric
         WHERE l.mask = ${this.mask}
     `;
 
