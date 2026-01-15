@@ -14,7 +14,7 @@ import {
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
-import { PendingTransaction } from "../../../mempool/PendingTransaction";
+import { PendingTransactionJSONType } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import {
@@ -177,7 +177,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   //  Idea: Create a service that aggregates a bunch of different sources
   @trace("block.collect_inputs")
   private async collectProductionData(): Promise<{
-    txs: PendingTransaction[];
+    txs: PendingTransactionJSONType[];
     metadata: BlockWithResult;
   }> {
     const txs = await this.mempool.getTxs(this.maximumBlockSize());
@@ -203,7 +203,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       };
     }
 
-    let messages: PendingTransaction[] = [];
+    let messages: PendingTransactionJSONType[] = [];
     if (this.messageService !== undefined) {
       messages = await this.messageService.getPendingMessages();
     }

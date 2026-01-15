@@ -20,11 +20,10 @@ import { match } from "ts-pattern";
 import {
   Block,
   BlockWithResult,
-  TransactionExecutionResult,
-  txResultToJson,
+  TransactionExecutionResultJson,
 } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
-import { PendingTransaction } from "../../../mempool/PendingTransaction";
+import { PendingTransactionJSONType } from "../../../mempool/PendingTransaction";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { Tracer } from "../../../logging/Tracer";
@@ -40,7 +39,7 @@ import {
 
 function isIncludedTxs(
   x: TransactionExecutionResultStatus
-): x is { status: "included"; result: TransactionExecutionResult } {
+): x is { status: "included"; result: TransactionExecutionResultJson } {
   return x.status === "included";
 }
 
@@ -100,7 +99,7 @@ export class BlockProductionService {
    */
   public async createBlock(
     asyncStateService: AsyncStateService,
-    transactions: PendingTransaction[],
+    transactions: PendingTransactionJSONType[],
     lastBlockWithResult: BlockWithResult,
     allowEmptyBlocks: boolean
   ): Promise<
@@ -165,7 +164,7 @@ export class BlockProductionService {
       .map((x) => x.result);
 
     const block: Omit<Block, "hash"> = {
-      transactions: includedTransactions.map(txResultToJson),
+      transactions: includedTransactions,
       transactionsHash: FieldString(newBlockState.transactionList.commitment),
       fromEternalTransactionsHash: lastBlock.toEternalTransactionsHash,
       toEternalTransactionsHash:
@@ -193,8 +192,8 @@ export class BlockProductionService {
       const txHash = match(x)
         .with({ status: "included" }, ({ result }) => result.tx)
         .otherwise(({ tx }) => tx)
-        .hash()
-        .toString();
+        .hash;
+        
       return {
         hash: txHash,
         type: x.status,

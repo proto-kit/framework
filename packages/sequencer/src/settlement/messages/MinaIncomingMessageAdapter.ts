@@ -24,7 +24,7 @@ import {
   SettlementContractModule,
 } from "@proto-kit/protocol";
 
-import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { PendingTransaction, PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";
@@ -67,7 +67,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
   private async mapActionToTransactions(
     tx: RuntimeTransaction,
     fieldArgs: Field[]
-  ): Promise<PendingTransaction> {
+  ): Promise<PendingTransactionJSONType> {
     const { methodId } = tx;
 
     const methodPointer = this.runtime.methodIdResolver.getMethodNameFromId(
@@ -96,7 +96,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       argsFields: fields,
       auxiliaryData: auxiliary,
       isMessage: true,
-    });
+    }).toJSON();
   }
 
   public async fetchPendingMessages(
@@ -109,7 +109,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
   ): Promise<{
     from: string;
     to: string;
-    messages: PendingTransaction[];
+    messages: PendingTransactionJSONType[];
   }> {
     const { network } = this.baseLayer;
     if (network === undefined) {

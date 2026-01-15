@@ -1,6 +1,6 @@
 import { PublicKey } from "o1js";
 
-import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 
 /**
  * An interface provided by the BaseLayer via DependencyFactory,
@@ -19,6 +19,6 @@ export interface IncomingMessageAdapter {
   ) => Promise<{
     from: string;
     to: string;
-    messages: PendingTransaction[];
+    messages: PendingTransactionJSONType[];
   }>;
 }

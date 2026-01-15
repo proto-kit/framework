@@ -36,11 +36,13 @@ import {
 // eslint-disable-next-line import/no-extraneous-dependencies
 import zip from "lodash/zip";
 
-import { PendingTransaction } from "../../../mempool/PendingTransaction";
+import { PendingTransaction, PendingTransactionJSONType } from "../../../mempool/PendingTransaction";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
   StateTransitionBatch,
   TransactionExecutionResult,
+  TransactionExecutionResultJson,
+  STBatchToJson,
 } from "../../../storage/model/Block";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { trace } from "../../../logging/trace";
@@ -80,7 +82,7 @@ function getAreProofsEnabledFromModule(
 }
 
 async function decodeTransaction(
-  tx: PendingTransaction,
+  tx: PendingTransactionJSONType,
   runtime: Runtime<RuntimeModulesRecord>
 ): Promise<{
   method: SomeRuntimeMethod;
@@ -88,13 +90,13 @@ async function decodeTransaction(
   module: RuntimeModule<unknown>;
 }> {
   const methodDescriptors = runtime.methodIdResolver.getMethodNameFromId(
-    tx.methodId.toString()
+    tx.methodId
   );
 
-  const method = runtime.getMethodById(tx.methodId.toString());
+  const method = runtime.getMethodById(tx.methodId);
 
   if (methodDescriptors === undefined || method === undefined) {
-    throw errors.methodIdNotFound(tx.methodId.toString());
+    throw errors.methodIdNotFound(tx.methodId);
   }
 
   const [moduleName, methodName] = methodDescriptors;
@@ -104,7 +106,7 @@ async function decodeTransaction(
     module,
     methodName
   );
-  const args = await parameterDecoder.decode(tx.argsFields, tx.auxiliaryData);
+  const args = await parameterDecoder.decode(tx.argsFields.map(Field), tx.auxiliaryData);
 
   return {
     method,
@@ -199,11 +201,11 @@ function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
 
 export type TransactionExecutionResultStatus =
   | {
-      result: TransactionExecutionResult;
+      result: TransactionExecutionResultJson;
       status: "included";
     }
-  | { tx: PendingTransaction; status: "skipped" }
-  | { tx: PendingTransaction; status: "shouldRemove" };
+  | { tx: PendingTransactionJSONType; status: "skipped" }
+  | { tx: PendingTransactionJSONType; status: "shouldRemove" };
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -316,9 +318,9 @@ export class TransactionExecutionService {
 
   public addTransactionToBlockProverState(
     state: BlockTrackers,
-    tx: PendingTransaction
+    tx: PendingTransactionJSONType
   ): BlockTrackers {
-    const signedTransaction = tx.toProtocolTransaction();
+    const signedTransaction = PendingTransaction.fromJSON(tx).toProtocolTransaction();
     // Add tx to commitments
     return this.blockProver.addTransactionToBundle(
       state,
@@ -330,7 +332,7 @@ export class TransactionExecutionService {
   // eslint-disable-next-line sonarjs/cognitive-complexity
   public async createExecutionTraces(
     asyncStateService: CachedStateService,
-    transactions: PendingTransaction[],
+    transactions: PendingTransactionJSONType[],
     networkState: NetworkState,
     state: BlockTrackers
   ): Promise<{
@@ -360,7 +362,7 @@ export class TransactionExecutionService {
         // If the hooks fail AND the tx is not a message (in which case we
         // have to still execute it), we skip this tx and don't add it to the block
         if (
-          !executionTrace.hooksStatus.toBoolean() &&
+          !executionTrace.hooksStatus &&
           !executionTrace.tx.isMessage
         ) {
           const actionMessage = shouldRemove
@@ -411,14 +413,14 @@ export class TransactionExecutionService {
   }))
   public async createExecutionTrace(
     asyncStateService: CachedStateService,
-    tx: PendingTransaction,
+    tx: PendingTransactionJSONType,
     {
       networkState,
       hash: networkStateHash,
     }: { networkState: NetworkState; hash: Field },
     state: BlockTrackers,
     newState: BlockTrackers
-  ): Promise<{ result: TransactionExecutionResult; shouldRemove: boolean }> {
+  ): Promise<{ result: TransactionExecutionResultJson; shouldRemove: boolean }> {
     // TODO Use RecordingStateService -> async asProver needed
     const recordingStateService = new CachedStateService(asyncStateService);
 
@@ -430,7 +432,7 @@ export class TransactionExecutionService {
     const previousProofsEnabled = appChain.areProofsEnabled;
     appChain.setProofsEnabled(false);
 
-    const signedTransaction = tx.toProtocolTransaction();
+    const signedTransaction = PendingTransaction.fromJSON(tx).toProtocolTransaction();
     const runtimeContextInputs = {
       transaction: signedTransaction.transaction,
       networkState,
@@ -490,7 +492,7 @@ export class TransactionExecutionService {
         status: runtimeResult.status,
         networkStateHash: networkStateHash,
         isMessage: Bool(tx.isMessage),
-        transactionHash: tx.hash(),
+        transactionHash: Field(tx.hash),
         eventsHash,
         stateTransitionsHash,
       })
@@ -544,15 +546,19 @@ export class TransactionExecutionService {
     return {
       result: {
         tx,
-        hooksStatus: Bool(txHooksValid),
-        status: runtimeResult.status,
+        hooksStatus: txHooksValid,
+        status: runtimeResult.status.toBoolean(),
         statusMessage:
           beforeTxHookResult.statusMessage ??
           afterTxHookResult.statusMessage ??
           runtimeResult.statusMessage,
 
-        stateTransitions,
-        events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents),
+        stateTransitions: stateTransitions.map(STBatchToJson),
+        events: beforeHookEvents.concat(runtimeResultEvents, afterHookEvents).map(e => ({
+          eventName: e.eventName,
+          data: e.data.map(f => f.toString()),
+          source: e.source,
+        })),
       },
       shouldRemove,
     };

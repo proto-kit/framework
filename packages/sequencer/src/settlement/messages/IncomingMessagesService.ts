@@ -4,7 +4,7 @@ import { ACTIONS_EMPTY_HASH } from "@proto-kit/protocol";
 import { SettlementStorage } from "../../storage/repositories/SettlementStorage";
 import { MessageStorage } from "../../storage/repositories/MessageStorage";
 import { BlockStorage } from "../../storage/repositories/BlockStorage";
-import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { PendingTransactionJSONType } from "../../mempool/PendingTransaction";
 import type { SettlementModule } from "../SettlementModule";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";
@@ -53,7 +53,7 @@ export class IncomingMessagesService {
 
   private isComplete(
     messages:
-      | { toMessagesHash: string; messages: PendingTransaction[] }
+      | { toMessagesHash: string; messages: PendingTransactionJSONType[] }
       | undefined,
     targetMessagesHash: string
   ) {
@@ -64,7 +64,7 @@ export class IncomingMessagesService {
 
   private async ensureMessageCompleteness(
     messages:
-      | { toMessagesHash: string; messages: PendingTransaction[] }
+      | { toMessagesHash: string; messages: PendingTransactionJSONType[] }
       | undefined,
     fromMessagesHash: string,
     targetMessagesHash: string
@@ -90,7 +90,7 @@ export class IncomingMessagesService {
     batches: {
       fromMessagesHash: string;
       toMessagesHash: string;
-      messages: PendingTransaction[];
+      messages: PendingTransactionJSONType[];
     }[]
   ) {
     return {
