@@ -169,8 +169,6 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return undefined;
   }
 
-  // TODO Move to different service, to remove dependency on mempool and messagequeue
-  //  Idea: Create a service that aggregates a bunch of different sources
   @trace("block.collect_inputs")
   private async collectProductionData(): Promise<BlockWithResult> {
     const parentBlock = await this.blockQueue.getLatestBlockAndResult();
@@ -220,25 +218,26 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
       await this.tracer.trace(
         "block.commit",
-        async () =>
+        async () => {
           // Push changes to the database atomically
           await this.database.executeInTransaction(async () => {
             await stateChanges.mergeIntoParent();
             await this.blockQueue.pushBlock(block);
-          }),
+
+            // Remove included or dropped txs, leave skipped ones alone
+            await this.mempool.removeTxs(
+              blockResult.includedTxs
+                .filter((x) => x.type === "included")
+                .map((x) => x.hash),
+              blockResult.includedTxs
+                .filter((x) => x.type === "shouldRemove")
+                .map((x) => x.hash)
+            );
+          });
+        },
         {
           height: block.height.toString(),
         }
-      );
-
-      // Remove included or dropped txs, leave skipped ones alone
-      await this.mempool.removeTxs(
-        blockResult.includedTxs
-          .filter((x) => x.type === "included")
-          .map((x) => x.hash),
-        blockResult.includedTxs
-          .filter((x) => x.type === "shouldRemove")
-          .map((x) => x.hash)
       );
     }
 
