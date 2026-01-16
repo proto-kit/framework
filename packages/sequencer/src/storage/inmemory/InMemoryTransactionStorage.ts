@@ -9,7 +9,7 @@ import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 
 @injectable()
 export class InMemoryTransactionStorage implements TransactionStorage {
-  private queue: PendingTransaction[] = [];
+  private queue: { tx: PendingTransaction; sortingValue: number }[] = [];
 
   private latestScannedBlock = -1;
 
@@ -21,10 +21,15 @@ export class InMemoryTransactionStorage implements TransactionStorage {
 
   public async removeTx(hashes: string[]) {
     const hashSet = new Set(hashes);
-    this.queue = this.queue.filter((tx) => {
+    this.queue = this.queue.filter(({ tx }) => {
       const hash = tx.hash().toString();
       return !hashSet.has(hash);
     });
+  }
+
+  private sortQueue() {
+    // Sort in-place and descending
+    this.queue.sort(({ sortingValue: a }, { sortingValue: b }) => b - a);
   }
 
   public async getPendingUserTransactions(
@@ -42,25 +47,30 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       if (block !== undefined) {
         const hashes = block.transactions.map((tx) => tx.tx.hash().toString());
         this.queue = this.queue.filter(
-          (tx) => !hashes.includes(tx.hash().toString())
+          ({ tx }) => !hashes.includes(tx.hash().toString())
         );
       }
     }
     this.latestScannedBlock = nextHeight - 1;
 
+    this.sortQueue();
+
     const from = offset ?? 0;
     const to = limit !== undefined ? from + limit : undefined;
 
-    return this.queue.slice(from, to);
+    return this.queue.slice(from, to).map(({ tx }) => tx);
   }
 
-  public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {
+  public async pushUserTransaction(
+    tx: PendingTransaction,
+    priority: number
+  ): Promise<boolean> {
     const notInQueue =
       this.queue.find(
-        (tx2) => tx2.hash().toString() === tx.hash().toString()
+        ({ tx: tx2 }) => tx2.hash().toString() === tx.hash().toString()
       ) === undefined;
     if (notInQueue) {
-      this.queue.push(tx);
+      this.queue.push({ tx, sortingValue: priority });
     }
     return notInQueue;
   }

@@ -12,10 +12,14 @@ import { TransactionValidator } from "../verification/TransactionValidator";
 import { Tracer } from "../../logging/Tracer";
 import { trace } from "../../logging/trace";
 import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
+import { MempoolSorting } from "../sorting/MempoolSorting";
+import { DefaultMempoolSorting } from "../sorting/DefaultMempoolSorting";
 
 @sequencerModule()
 export class PrivateMempool extends SequencerModule implements Mempool {
   public readonly events = new EventEmitter<MempoolEvents>();
+
+  private readonly mempoolSorting: MempoolSorting;
 
   public constructor(
     private readonly transactionValidator: TransactionValidator,
@@ -23,9 +27,12 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     private readonly transactionStorage: TransactionStorage,
     @inject("IncomingMessagesService", { isOptional: true })
     private readonly messageService: IncomingMessagesService | undefined,
-    @inject("Tracer") public readonly tracer: Tracer
+    @inject("Tracer") public readonly tracer: Tracer,
+    @inject("MempoolSorting", { isOptional: true })
+    mempoolSorting: MempoolSorting | undefined
   ) {
     super();
+    this.mempoolSorting = mempoolSorting ?? new DefaultMempoolSorting();
   }
 
   public async length(): Promise<number> {
@@ -36,7 +43,12 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   public async add(tx: PendingTransaction): Promise<boolean> {
     const [txValid, error] = this.transactionValidator.validateTx(tx);
     if (txValid) {
-      const success = await this.transactionStorage.pushUserTransaction(tx);
+      const sortingValue = this.mempoolSorting!.presortingPriority(tx);
+
+      const success = await this.transactionStorage.pushUserTransaction(
+        tx,
+        sortingValue
+      );
       if (success) {
         this.events.emit("mempool-transaction-added", tx);
         log.trace(`Transaction added to mempool: ${tx.hash().toString()}`);
@@ -69,10 +81,19 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     offset: number,
     limit?: number
   ): Promise<PendingTransaction[]> {
-    return await this.transactionStorage.getPendingUserTransactions(
+    const txs = await this.transactionStorage.getPendingUserTransactions(
       offset,
       limit
     );
+
+    if (this.mempoolSorting.enablePostSorting()) {
+      // Sorts in place
+      txs.sort(
+        this.mempoolSorting.presortingPriority.bind(this.mempoolSorting)
+      );
+    }
+
+    return txs;
   }
 
   @trace("mempool.get_mandatory_txs")
