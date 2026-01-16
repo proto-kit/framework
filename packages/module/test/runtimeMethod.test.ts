@@ -10,7 +10,7 @@ import {
 } from "o1js";
 import {
   MethodPublicOutput,
-  NetworkState,
+  ProvableNetworkState,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
 } from "@proto-kit/protocol";
@@ -118,7 +118,7 @@ describe("runtimeMethod", () => {
 
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
+      networkState: ProvableNetworkState.empty(),
     });
 
     const module = runtime.resolve("Balances");
@@ -126,7 +126,7 @@ describe("runtimeMethod", () => {
 
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
+      networkState: ProvableNetworkState.empty(),
     });
 
     await expect(context.current().result.prover!()).rejects.toThrow(
@@ -158,7 +158,7 @@ describe("runtimeMethod", () => {
         methodId: Field(eventMakerMethodId),
         argsHash: Poseidon.hash([]),
       }),
-      networkState: NetworkState.empty(),
+      networkState: ProvableNetworkState.empty(),
     });
 
     const module = runtime.resolve("EventMaker");

@@ -7,7 +7,7 @@ import {
 import { Field, PrivateKey, UInt64 as O1UInt64, Signature } from "o1js";
 import {
   BlockProverPublicOutput,
-  NetworkState,
+  ProvableNetworkState,
   ProvableTransactionHook,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
@@ -74,7 +74,7 @@ describe.skip("blockProof", () => {
 
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
+      networkState: ProvableNetworkState.empty(),
     });
 
     const balancesMethodId = appChain.runtime.methodIdResolver.getMethodId(
@@ -95,7 +95,7 @@ describe.skip("blockProof", () => {
           methodId: Field(balancesMethodId),
           argsHash: Field(0),
         }),
-        networkState: NetworkState.empty(),
+        networkState: ProvableNetworkState.empty(),
         signature: Signature.create(PrivateKey.random(), [Field(0)]),
         prover: {
           incomingMessagesHash: Field(0),

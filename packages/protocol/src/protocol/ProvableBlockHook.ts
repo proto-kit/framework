@@ -1,7 +1,7 @@
 import { Field } from "o1js";
 import { NoConfig } from "@proto-kit/common";
 
-import { NetworkState } from "../model/network/NetworkState";
+import { ProvableNetworkState } from "../model/network/NetworkState";
 import {
   BlockProverState,
   BlockProverPublicInput,
@@ -51,12 +51,12 @@ export abstract class ProvableBlockHook<
   Config = NoConfig,
 > extends TransitioningProtocolModule<Config> {
   public abstract beforeBlock(
-    networkState: NetworkState,
+    networkState: ProvableNetworkState,
     state: BeforeBlockHookArguments
-  ): Promise<NetworkState>;
+  ): Promise<ProvableNetworkState>;
 
   public abstract afterBlock(
-    networkState: NetworkState,
+    networkState: ProvableNetworkState,
     state: AfterBlockHookArguments
-  ): Promise<NetworkState>;
+  ): Promise<ProvableNetworkState>;
 }

@@ -3,7 +3,7 @@ import { BlockResult } from "@proto-kit/sequencer";
 import { BlockResult as DBBlockResult, Prisma } from "@prisma/client";
 import {
   BlockHashMerkleTreeWitnessJson,
-  NetworkStateJson,
+  NetworkState,
 } from "@proto-kit/protocol";
 
 import { ObjectMapper } from "../../../ObjectMapper";
@@ -20,7 +20,7 @@ export class BlockResultMapper
 
   public mapIn(input: DBBlockResult): BlockResult {
     return {
-      afterNetworkState: input.afterNetworkState as NetworkStateJson,
+      afterNetworkState: input.afterNetworkState as NetworkState,
 
       stateRoot: input.stateRoot,
       blockHashRoot: input.blockHashRoot,

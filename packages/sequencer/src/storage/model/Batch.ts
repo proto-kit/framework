@@ -1,5 +1,5 @@
 import { JsonProof } from "o1js";
-import { NetworkStateJson } from "@proto-kit/protocol";
+import { NetworkState } from "@proto-kit/protocol";
 
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 
@@ -16,6 +16,6 @@ export interface Batch {
 }
 
 export interface SettleableBatch extends Batch {
-  fromNetworkState: NetworkStateJson;
-  toNetworkState: NetworkStateJson;
+  fromNetworkState: NetworkState;
+  toNetworkState: NetworkState;
 }

@@ -9,8 +9,8 @@ import {
   AccountStateHook,
   BlockHashMerkleTree,
   MandatoryProtocolModulesRecord,
+  ProvableNetworkState,
   NetworkState,
-  NetworkStateJson,
   Protocol,
   ProvableHookBlockState,
   RuntimeMethodExecutionContext,
@@ -110,7 +110,7 @@ export class PrivateMempool
     );
   }
 
-  public async getStagedNetworkState(): Promise<NetworkStateJson | undefined> {
+  public async getStagedNetworkState(): Promise<NetworkState | undefined> {
     const result = await this.unprovenQueue.getLatestBlock();
     return result?.result.afterNetworkState;
   }
@@ -127,11 +127,11 @@ export class PrivateMempool
 
     const baseCachedStateService = new CachedStateService(this.stateService);
 
-    // Should provide NetworkState to checkTxValid.
+    // Should provide ProvableNetworkState to checkTxValid.
     const stagedNetworkState = await this.getStagedNetworkState();
 
     const networkState =
-      stagedNetworkState || NetworkState.toJSON(NetworkState.empty());
+      stagedNetworkState || ProvableNetworkState.toJSON(ProvableNetworkState.empty());
 
     const validationEnabled = this.config.validationEnabled ?? false;
     const sortedTxs = validationEnabled
@@ -160,7 +160,7 @@ export class PrivateMempool
     transactions: PendingTransactionJSONType[],
     baseService: CachedStateService,
     stateServiceProvider: StateServiceProvider,
-    networkState: NetworkStateJson,
+    networkState: NetworkState,
     limit?: number
   ) {
     const executionContext = container.resolve<RuntimeMethodExecutionContext>(
@@ -196,8 +196,8 @@ export class PrivateMempool
           : Field(0),
     };
 
-    const provableNetworkState = new NetworkState(
-      NetworkState.fromJSON(networkState)
+    const provableNetworkState = new ProvableNetworkState(
+      ProvableNetworkState.fromJSON(networkState)
     );
 
     let pendingTransaction: PendingTransaction;

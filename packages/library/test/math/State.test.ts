@@ -4,7 +4,7 @@ import {
   StateServiceProvider,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
-  NetworkState,
+  ProvableNetworkState,
 } from "@proto-kit/protocol";
 import { UInt64, Field } from "o1js";
 import { InMemoryStateService } from "@proto-kit/module";
@@ -24,7 +24,7 @@ describe("interop uint <-> state", () => {
     const context = container.resolve(RuntimeMethodExecutionContext);
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
+      networkState: ProvableNetworkState.empty(),
     });
 
     const uint = await state.get();

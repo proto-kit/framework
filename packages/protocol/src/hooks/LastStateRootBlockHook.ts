@@ -2,16 +2,16 @@ import {
   AfterBlockHookArguments,
   ProvableBlockHook,
 } from "../protocol/ProvableBlockHook";
-import { NetworkState } from "../model/network/NetworkState";
+import { ProvableNetworkState } from "../model/network/NetworkState";
 
 export class LastStateRootBlockHook extends ProvableBlockHook<
   Record<string, never>
 > {
   public async afterBlock(
-    networkState: NetworkState,
+    networkState: ProvableNetworkState,
     { stateRoot }: AfterBlockHookArguments
-  ): Promise<NetworkState> {
-    return new NetworkState({
+  ): Promise<ProvableNetworkState> {
+    return new ProvableNetworkState({
       block: networkState.block,
       previous: {
         rootHash: stateRoot,
@@ -19,7 +19,7 @@ export class LastStateRootBlockHook extends ProvableBlockHook<
     });
   }
 
-  public async beforeBlock(networkState: NetworkState): Promise<NetworkState> {
+  public async beforeBlock(networkState: ProvableNetworkState): Promise<ProvableNetworkState> {
     return networkState;
   }
 }

@@ -2,7 +2,7 @@ import { inject } from "tsyringe";
 import {
   BlockProverPublicInput,
   BlockProverPublicOutput,
-  NetworkStateJson,
+  NetworkState,
 } from "@proto-kit/protocol";
 import { Field, Proof } from "o1js";
 import { log, noop } from "@proto-kit/common";
@@ -179,8 +179,8 @@ export class BatchProducerModule extends SequencerModule {
   ): Promise<{
     proof: Proof<BlockProverPublicInput, BlockProverPublicOutput>;
     changes: CachedLinkedLeafStore;
-    fromNetworkState: NetworkStateJson;
-    toNetworkState: NetworkStateJson;
+    fromNetworkState: NetworkState;
+    toNetworkState: NetworkState;
   }> {
     if (blocks.length === 0 || blocks.flat(1).length === 0) {
       throw errors.blockWithoutTxs();

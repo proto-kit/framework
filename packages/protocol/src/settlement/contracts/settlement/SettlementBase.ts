@@ -20,7 +20,7 @@ import {
 import { container } from "tsyringe";
 
 import { BlockHashMerkleTree } from "../../../prover/block/accummulators/BlockHashMerkleTree";
-import { NetworkState } from "../../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../../model/network/NetworkState";
 import {
   ProvableSettlementHook,
   SettlementHookInputs,
@@ -70,8 +70,8 @@ export interface SettlementContractType {
     blockProof: DynamicBlockProof,
     signature: Signature,
     publicKey: PublicKey,
-    inputNetworkState: NetworkState,
-    outputNetworkState: NetworkState,
+    inputNetworkState: ProvableNetworkState,
+    outputNetworkState: ProvableNetworkState,
     newPromisedMessagesHash: Field
   ) => Promise<void>;
 }
@@ -111,15 +111,15 @@ export abstract class SettlementBase
     this.sequencerKey.set(sequencer.x);
     this.stateRoot.set(LinkedMerkleTree.EMPTY_ROOT);
     this.blockHashRoot.set(Field(BlockHashMerkleTree.EMPTY_ROOT));
-    this.networkStateHash.set(NetworkState.empty().hash());
+    this.networkStateHash.set(ProvableNetworkState.empty().hash());
   }
 
   abstract settle(
     blockProof: DynamicBlockProof,
     signature: Signature,
     publicKey: PublicKey,
-    inputNetworkState: NetworkState,
-    outputNetworkState: NetworkState,
+    inputNetworkState: ProvableNetworkState,
+    outputNetworkState: ProvableNetworkState,
     newPromisedMessagesHash: Field
   ): Promise<void>;
 
@@ -134,8 +134,8 @@ export abstract class SettlementBase
     blockProof: DynamicBlockProof,
     signature: Signature,
     publicKey: PublicKey,
-    inputNetworkState: NetworkState,
-    outputNetworkState: NetworkState,
+    inputNetworkState: ProvableNetworkState,
+    outputNetworkState: ProvableNetworkState,
     newPromisedMessagesHash: Field
   ) {
     const {

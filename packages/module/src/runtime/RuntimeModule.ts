@@ -1,7 +1,7 @@
 import { ConfigurableModule, NoConfig, Presets } from "@proto-kit/common";
 import { container, injectable } from "tsyringe";
 import {
-  NetworkState,
+  ProvableNetworkState,
   RuntimeTransaction,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
@@ -112,7 +112,7 @@ export class RuntimeModule<
     return this.getInputs().transaction;
   }
 
-  public get network(): NetworkState {
+  public get network(): ProvableNetworkState {
     return this.getInputs().networkState;
   }
 }

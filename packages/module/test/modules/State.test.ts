@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { PublicKey, UInt64 } from "o1js";
 import { container } from "tsyringe";
 import {
-  NetworkState,
+  ProvableNetworkState,
   Option,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
@@ -56,7 +56,7 @@ describe("state", () => {
 
       const executionContext = container.resolve(RuntimeMethodExecutionContext);
       executionContext.setup({
-        networkState: NetworkState.empty(),
+        networkState: ProvableNetworkState.empty(),
         transaction: RuntimeTransaction.dummyTransaction(),
       });
       await balances.transientState();

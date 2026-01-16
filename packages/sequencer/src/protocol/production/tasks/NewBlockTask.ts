@@ -2,7 +2,7 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProvable,
   BlockProverPublicInput,
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   StateTransitionProof,
   StateTransitionProvable,
@@ -33,7 +33,7 @@ import { executeWithPrefilledStateService } from "./TransactionProvingTask";
 
 export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
-  networkState: NetworkState;
+  networkState: ProvableNetworkState;
   blockWitness: BlockHashMerkleTreeWitness;
   deferSTProof: Bool;
   afterBlockRootWitness: WitnessedRootWitness;

@@ -1,7 +1,7 @@
 import { Bool, Field, Poseidon, Provable } from "o1js";
 import floor from "lodash/floor";
 
-import { NetworkStateJson } from "../model/network/NetworkState";
+import { NetworkState } from "../model/network/NetworkState";
 
 export type ReturnType<FunctionType extends Function> = FunctionType extends (
   ...args: any[]
@@ -35,11 +35,11 @@ export function notInCircuit(): MethodDecorator {
   };
 }
 
-export function networkStateToFields(json: NetworkStateJson): Field[] {
+export function networkStateToFields(json: NetworkState): Field[] {
   return [Field(json.block.height), Field(json.previous.rootHash)];
 }
 
-export function hashNetworkState(json: NetworkStateJson): string {
+export function hashNetworkState(json: NetworkState): string {
   return Poseidon.hash(networkStateToFields(json)).toString();
 }
 

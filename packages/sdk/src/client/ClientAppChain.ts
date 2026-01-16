@@ -9,7 +9,7 @@ import {
 } from "@proto-kit/module";
 import {
   MandatoryProtocolModulesRecord,
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   ProtocolModule,
   ProtocolModulesRecord,
@@ -112,7 +112,7 @@ export class ClientAppChain<
 
     executionContext.setup({
       transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
+      networkState: ProvableNetworkState.empty(),
     });
     executionContext.setSimulated(true);
 

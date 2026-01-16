@@ -2,7 +2,7 @@ import { log, yieldSequential } from "@proto-kit/common";
 import {
   AppliedBatchHashList,
   MinaActionsHashList,
-  NetworkState,
+  ProvableNetworkState,
   TransactionHashList,
   WitnessedRootHashList,
 } from "@proto-kit/protocol";
@@ -49,8 +49,8 @@ export class BatchTracingService {
       incomingMessages: new MinaActionsHashList(
         Field(block.block.fromMessagesHash)
       ),
-      networkState: new NetworkState(
-        NetworkState.fromJSON(block.block.networkState.before)
+      networkState: new ProvableNetworkState(
+        ProvableNetworkState.fromJSON(block.block.networkState.before)
       ),
     };
   }

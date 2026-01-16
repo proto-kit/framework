@@ -5,7 +5,7 @@ import {
   BridgingSettlementModulesRecord,
   DynamicBlockProof,
   MandatoryProtocolModulesRecord,
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   SettlementContractModule,
 } from "@proto-kit/protocol";
@@ -94,8 +94,8 @@ export class VanillaSettlementInteraction implements SettleInteraction {
           dynamicBlockProof,
           signature,
           feepayer,
-          new NetworkState(NetworkState.fromJSON(batch.fromNetworkState)),
-          new NetworkState(NetworkState.fromJSON(batch.toNetworkState)),
+          new ProvableNetworkState(ProvableNetworkState.fromJSON(batch.fromNetworkState)),
+          new ProvableNetworkState(ProvableNetworkState.fromJSON(batch.toNetworkState)),
           latestSequenceStateHash
         );
       }

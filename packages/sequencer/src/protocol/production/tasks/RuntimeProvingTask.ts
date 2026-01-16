@@ -6,8 +6,8 @@ import {
 } from "@proto-kit/module";
 import {
   MethodPublicOutput,
+  ProvableNetworkState,
   NetworkState,
-  NetworkStateJson,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
@@ -33,13 +33,13 @@ type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
 export interface RuntimeProofParameters {
   tx: PendingTransaction;
-  networkState: NetworkState;
+  networkState: ProvableNetworkState;
   state: TaskStateRecord;
 }
 
 export interface RuntimeProofParametersJson {
   tx: PendingTransactionJSONType;
-  networkState: NetworkStateJson;
+  networkState: NetworkState;
   state: TaskStateRecordJson;
 }
 
@@ -75,8 +75,8 @@ export class RuntimeProvingTask
   ): Promise<RuntimeProof> {
     // Convert from JSON to provable types at the proving boundary
     const tx = PendingTransaction.fromJSON(input.tx);
-    const networkState = new NetworkState(
-      NetworkState.fromJSON(input.networkState)
+    const networkState = new ProvableNetworkState(
+      ProvableNetworkState.fromJSON(input.networkState)
     );
     const state = taskStateRecordFromJson(input.state);
 

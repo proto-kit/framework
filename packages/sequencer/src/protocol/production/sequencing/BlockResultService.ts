@@ -6,7 +6,7 @@ import {
   BlockHashMerkleTreeWitness,
   BlockHashTreeEntry,
   MandatoryProtocolModulesRecord,
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   ProtocolModulesRecord,
   ProvableBlockHook,
@@ -92,7 +92,7 @@ export class BlockResultService {
   @trace("block.hook.after")
   public async executeAfterBlockHook(
     args: AfterBlockHookArguments,
-    inputNetworkState: NetworkState,
+    inputNetworkState: ProvableNetworkState,
     asyncStateService: AsyncStateService
   ) {
     const cachedStateService = new CachedStateService(asyncStateService);
@@ -106,7 +106,7 @@ export class BlockResultService {
 
     const executionResult = await executeWithExecutionContext(
       async () =>
-        await this.blockHooks.reduce<Promise<NetworkState>>(
+        await this.blockHooks.reduce<Promise<ProvableNetworkState>>(
           async (networkState, hook) =>
             await hook.afterBlock(await networkState, args),
           Promise.resolve(inputNetworkState)
@@ -228,7 +228,7 @@ export class BlockResultService {
         transactionsHash: Field(block.transactionsHash),
         eternalTransactionsHash: Field(block.toEternalTransactionsHash),
       },
-      new NetworkState(NetworkState.fromJSON(block.networkState.during)),
+      new ProvableNetworkState(ProvableNetworkState.fromJSON(block.networkState.during)),
       stateService
     );
 
@@ -246,7 +246,7 @@ export class BlockResultService {
 
     return {
       result: {
-        afterNetworkState: NetworkState.toJSON(methodResult),
+        afterNetworkState: ProvableNetworkState.toJSON(methodResult),
         // This is the state root after the last tx and the afterBlock hook
         stateRoot: FieldString(stateRoot),
         witnessedRoots: [FieldString(witnessedStateRoot)],

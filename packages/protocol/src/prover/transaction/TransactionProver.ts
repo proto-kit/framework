@@ -11,7 +11,7 @@ import {
 import { Bool, Field, SelfProof, VerificationKey, ZkProgram } from "o1js";
 import { inject, injectable, injectAll } from "tsyringe";
 
-import { NetworkState } from "../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../model/network/NetworkState";
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
 import {
@@ -102,7 +102,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     fromState: TransactionProverState,
     runtimeOutput: MethodPublicOutput,
     executionData: ApplyTransactionArguments,
-    networkState: NetworkState
+    networkState: ProvableNetworkState
   ): Promise<TransactionProverState> {
     const { transaction, signature } = executionData;
 

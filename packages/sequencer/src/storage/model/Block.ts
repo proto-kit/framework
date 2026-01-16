@@ -4,8 +4,8 @@ import {
   BlockHashMerkleTree,
   BlockHashMerkleTreeWitness,
   BlockHashMerkleTreeWitnessJson,
+  ProvableNetworkState,
   NetworkState,
-  NetworkStateJson,
 } from "@proto-kit/protocol";
 import { LinkedMerkleTree } from "@proto-kit/common";
 
@@ -62,8 +62,8 @@ export interface Block {
   previousBlockHash: FieldString | undefined;
   height: FieldString;
   networkState: {
-    before: NetworkStateJson;
-    during: NetworkStateJson;
+    before: NetworkState;
+    during: NetworkState;
   };
 
   transactions: TransactionExecutionResultJson[];
@@ -98,7 +98,7 @@ export interface BlockResult {
   witnessedRoots: [string];
   stateRoot: string;
   blockHashRoot: string;
-  afterNetworkState: NetworkStateJson;
+  afterNetworkState: NetworkState;
   afterBlockStateTransitions: UntypedStateTransitionJson[];
   blockHashWitness: BlockHashMerkleTreeWitnessJson;
 }
@@ -131,8 +131,8 @@ export const BlockWithResult = {
         toEternalTransactionsHash: FieldString(0),
         transactions: [],
         networkState: {
-          before: NetworkState.toJSON(NetworkState.empty()),
-          during: NetworkState.toJSON(NetworkState.empty()),
+          before: ProvableNetworkState.toJSON(ProvableNetworkState.empty()),
+          during: ProvableNetworkState.toJSON(ProvableNetworkState.empty()),
         },
         fromBlockHashRoot: FieldString(BlockHashMerkleTree.EMPTY_ROOT),
         fromMessagesHash: FieldString(0),
@@ -143,7 +143,7 @@ export const BlockWithResult = {
         previousBlockHash: undefined,
       },
       result: {
-        afterNetworkState: NetworkState.toJSON(NetworkState.empty()),
+        afterNetworkState: ProvableNetworkState.toJSON(ProvableNetworkState.empty()),
         stateRoot: String(LinkedMerkleTree.EMPTY_ROOT),
         blockHashRoot: String(BlockHashMerkleTree.EMPTY_ROOT),
         afterBlockStateTransitions: [],

@@ -10,7 +10,7 @@ describe("noop", () => {
 // import {
 //   RuntimeMethodExecutionContext,
 //   RuntimeTransaction,
-//   NetworkState,
+//   ProvableNetworkState,
 // } from "@proto-kit/protocol";
 //
 // import { MethodIdResolver } from "../src";
@@ -62,7 +62,7 @@ describe("noop", () => {
 //     const context = container.resolve(RuntimeMethodExecutionContext);
 //     context.setup({
 //       transaction: RuntimeTransaction.dummyTransaction(),
-//       networkState: NetworkState.empty(),
+//       networkState: ProvableNetworkState.empty(),
 //     });
 //
 //     await runtime.zkProgrammable.zkProgram.analyzeMethods();

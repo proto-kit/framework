@@ -8,7 +8,7 @@ import {
   SimpleAsyncStateService,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
-  NetworkState,
+  ProvableNetworkState,
   PROTOKIT_PREFIXES,
 } from "@proto-kit/protocol";
 
@@ -74,7 +74,7 @@ describe("balances", () => {
       const executionContext = container.resolve(RuntimeMethodExecutionContext);
       executionContext.setup({
         transaction: RuntimeTransaction.dummyTransaction(),
-        networkState: NetworkState.empty(),
+        networkState: ProvableNetworkState.empty(),
       });
 
       const expectedStateTransitionsHash =
@@ -114,7 +114,7 @@ describe("balances", () => {
         );
         executionContext.setup({
           transaction: RuntimeTransaction.dummyTransaction(),
-          networkState: NetworkState.empty(),
+          networkState: ProvableNetworkState.empty(),
         });
         await balances.getTotalSupply();
 
@@ -177,7 +177,7 @@ describe("balances", () => {
         );
         executionContext.setup({
           transaction: RuntimeTransaction.dummyTransaction(),
-          networkState: NetworkState.empty(),
+          networkState: ProvableNetworkState.empty(),
         });
 
         await balances.getTotalSupply();
@@ -236,7 +236,7 @@ describe("balances", () => {
         );
         executionContext.setup({
           transaction: RuntimeTransaction.dummyTransaction(),
-          networkState: NetworkState.empty(),
+          networkState: ProvableNetworkState.empty(),
         });
 
         await balances.setTotalSupply();
@@ -305,7 +305,7 @@ describe("balances", () => {
         );
         executionContext.setup({
           transaction: RuntimeTransaction.dummyTransaction(),
-          networkState: NetworkState.empty(),
+          networkState: ProvableNetworkState.empty(),
         });
 
         await balances.getBalance(address);

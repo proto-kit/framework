@@ -9,7 +9,7 @@ import "reflect-metadata";
 
 import {
   MethodPublicOutput,
-  NetworkState,
+  ProvableNetworkState,
   SignedTransaction,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
@@ -59,7 +59,7 @@ class RuntimeZkProgrammable extends ZkProgrammable<
 }
 
 describe("blockProver", () => {
-  const networkState = new NetworkState({
+  const networkState = new ProvableNetworkState({
     block: {
       height: UInt64.zero,
     },
@@ -78,7 +78,7 @@ describe("blockProver", () => {
     protocolHash: Field,
     tx: SignedTransaction,
     // eslint-disable-next-line @typescript-eslint/no-shadow
-    networkState: NetworkState
+    networkState: ProvableNetworkState
   ): BlockProverProofPair {
     const transactionHash = tx.transaction.hash();
     const sthash = Field(123);

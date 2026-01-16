@@ -2,7 +2,7 @@ import { Field, PublicKey, UInt32 } from "o1js";
 import { InferProofBase } from "@proto-kit/common";
 
 import { ProtocolModule } from "../../protocol/ProtocolModule";
-import { NetworkState } from "../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../model/network/NetworkState";
 import type { BlockProof } from "../../prover/block/BlockProvable";
 import type { SettlementContractType } from "../contracts/settlement/SettlementBase";
 
@@ -19,8 +19,8 @@ export type SettlementStateRecord = {
 
 export type SettlementHookInputs = {
   blockProof: InputBlockProof;
-  fromNetworkState: NetworkState;
-  toNetworkState: NetworkState;
+  fromNetworkState: ProvableNetworkState;
+  toNetworkState: ProvableNetworkState;
   newPromisedMessagesHash: Field;
   contractState: SettlementStateRecord;
   currentL1BlockHeight: UInt32;

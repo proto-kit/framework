@@ -2,7 +2,7 @@ import { NoConfig } from "@proto-kit/common";
 import { Signature } from "o1js";
 
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
-import { NetworkState } from "../model/network/NetworkState";
+import { ProvableNetworkState } from "../model/network/NetworkState";
 import { MethodPublicOutput } from "../model/MethodPublicOutput";
 import {
   TransactionProverPublicInput,
@@ -36,7 +36,7 @@ export function toBeforeTransactionHookArgument(
     TransactionProverTransactionArguments,
     "verificationKeyAttestation"
   >,
-  networkState: NetworkState,
+  networkState: ProvableNetworkState,
   state: Parameters<typeof toProvableHookTransactionState>[0]
 ): BeforeTransactionHookArguments {
   const { transaction, signature } = executionData;
@@ -54,7 +54,7 @@ export function toAfterTransactionHookArgument(
     TransactionProverTransactionArguments,
     "verificationKeyAttestation"
   >,
-  networkState: NetworkState,
+  networkState: ProvableNetworkState,
   state: Parameters<typeof toProvableHookTransactionState>[0],
   runtimeResult: MethodPublicOutput
 ): AfterTransactionHookArguments {
@@ -77,7 +77,7 @@ export type TransactionResult = Omit<
 export interface BeforeTransactionHookArguments {
   transaction: RuntimeTransaction;
   signature: Signature;
-  networkState: NetworkState;
+  networkState: ProvableNetworkState;
   prover: ProvableHookTransactionState;
 }
 

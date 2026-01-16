@@ -9,7 +9,7 @@ export class PreviousBlock extends Struct({
   rootHash: Field,
 }) {}
 
-export class NetworkState extends Struct({
+export class ProvableNetworkState extends Struct({
   block: CurrentBlock,
   previous: PreviousBlock,
 }) {
@@ -21,7 +21,7 @@ export class NetworkState extends Struct({
   }
 
   public static empty() {
-    return new NetworkState({
+    return new ProvableNetworkState({
       block: {
         height: UInt64.zero,
       },
@@ -32,4 +32,4 @@ export class NetworkState extends Struct({
   }
 }
 
-export type NetworkStateJson = InferJson<typeof NetworkState>;
+export type NetworkState = InferJson<typeof ProvableNetworkState>;

@@ -3,7 +3,7 @@ import {
   BeforeBlockHookArguments,
   MandatoryProtocolModulesRecord,
   MinaActionsHashList,
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   ProtocolModulesRecord,
   ProvableBlockHook,
@@ -64,7 +64,7 @@ export class BlockProductionService {
   @trace("block.hook.before")
   public async executeBeforeBlockHook(
     args: BeforeBlockHookArguments,
-    inputNetworkState: NetworkState,
+    inputNetworkState: ProvableNetworkState,
     cachedStateService: CachedStateService
   ) {
     this.stateServiceProvider.setCurrentStateService(cachedStateService);
@@ -77,7 +77,7 @@ export class BlockProductionService {
 
     const executionResult = await executeWithExecutionContext(
       async () =>
-        await this.blockHooks.reduce<Promise<NetworkState>>(
+        await this.blockHooks.reduce<Promise<ProvableNetworkState>>(
           async (networkState, hook) =>
             await hook.beforeBlock(await networkState, args),
           Promise.resolve(inputNetworkState)
@@ -132,7 +132,7 @@ export class BlockProductionService {
     // Get used networkState by executing beforeBlock() hooks
     const beforeHookResult = await this.executeBeforeBlockHook(
       toProvableHookBlockState(blockState),
-      new NetworkState(NetworkState.fromJSON(lastResult.afterNetworkState)),
+      new ProvableNetworkState(ProvableNetworkState.fromJSON(lastResult.afterNetworkState)),
       stateService
     );
 
@@ -186,7 +186,7 @@ export class BlockProductionService {
 
       networkState: {
         before: lastResult.afterNetworkState,
-        during: NetworkState.toJSON(networkState),
+        during: ProvableNetworkState.toJSON(networkState),
       },
       beforeBlockStateTransitions: beforeBlockStateTransitions.map(
         (st: UntypedStateTransition) => st.toJSON()

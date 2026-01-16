@@ -1,7 +1,7 @@
 import {
   BlockHashMerkleTreeWitness,
   BlockProverPublicInput,
-  NetworkState,
+  ProvableNetworkState,
   ReturnType,
   StateTransitionProof,
   StateTransitionProverPublicInput,
@@ -24,7 +24,7 @@ interface JsonType {
   input2: string;
   params: {
     publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
-    networkState: ReturnType<typeof NetworkState.toJSON>;
+    networkState: ReturnType<typeof ProvableNetworkState.toJSON>;
     blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
     startingStateBeforeHook: TaskStateRecordJson;
     startingStateAfterHook: TaskStateRecordJson;
@@ -61,7 +61,7 @@ export class NewBlockProvingParametersSerializer
       params: {
         publicInput: BlockProverPublicInput.toJSON(input.params.publicInput),
 
-        networkState: NetworkState.toJSON(input.params.networkState),
+        networkState: ProvableNetworkState.toJSON(input.params.networkState),
 
         blockWitness: BlockHashMerkleTreeWitness.toJSON(
           input.params.blockWitness
@@ -91,8 +91,8 @@ export class NewBlockProvingParametersSerializer
           jsonObject.params.publicInput
         ),
 
-        networkState: new NetworkState(
-          NetworkState.fromJSON(jsonObject.params.networkState)
+        networkState: new ProvableNetworkState(
+          ProvableNetworkState.fromJSON(jsonObject.params.networkState)
         ),
 
         blockWitness: new BlockHashMerkleTreeWitness(

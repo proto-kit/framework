@@ -24,7 +24,7 @@ import {
 } from "@proto-kit/module";
 import {
   MandatoryProtocolModulesRecord,
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   ProtocolModulesRecord,
   State,
@@ -385,7 +385,7 @@ export class QueryGraphqlModule<
       this.networkStateTransportModule
     );
     const networkType = this.flexiblePureToGraphql(
-      NetworkState,
+      ProvableNetworkState,
       "Network",
       this.jsonToGraphQl.bind(this)
     );

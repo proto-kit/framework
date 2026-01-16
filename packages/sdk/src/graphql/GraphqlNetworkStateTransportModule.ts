@@ -3,7 +3,7 @@ import {
   NetworkStateTransportModule,
   AppChainModule,
 } from "@proto-kit/sequencer";
-import { NetworkStateJson } from "@proto-kit/protocol";
+import { NetworkState } from "@proto-kit/protocol";
 import { gql } from "@urql/core";
 
 import { GraphqlClient } from "./GraphqlClient";
@@ -28,9 +28,9 @@ export class GraphqlNetworkStateTransportModule
     super();
   }
 
-  private async retrieveNetworkState(path: string): Promise<NetworkStateJson> {
+  private async retrieveNetworkState(path: string): Promise<NetworkState> {
     const query = gql`
-      query NetworkState {
+      query ProvableNetworkState {
         network {
           ${path} {
             block {
@@ -58,7 +58,7 @@ export class GraphqlNetworkStateTransportModule
 
       try {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return json as NetworkStateJson;
+        return json as NetworkState;
       } catch (e) {
         if (e instanceof Error) {
           throw errors.receivedResultMalformed(e.message);
@@ -69,15 +69,15 @@ export class GraphqlNetworkStateTransportModule
     throw new Error(queryResult.error.message);
   }
 
-  public async getProvenNetworkState(): Promise<NetworkStateJson> {
+  public async getProvenNetworkState(): Promise<NetworkState> {
     return await this.retrieveNetworkState("proven");
   }
 
-  public async getStagedNetworkState(): Promise<NetworkStateJson> {
+  public async getStagedNetworkState(): Promise<NetworkState> {
     return await this.retrieveNetworkState("staged");
   }
 
-  public async getUnprovenNetworkState(): Promise<NetworkStateJson> {
+  public async getUnprovenNetworkState(): Promise<NetworkState> {
     return await this.retrieveNetworkState("unproven");
   }
 }

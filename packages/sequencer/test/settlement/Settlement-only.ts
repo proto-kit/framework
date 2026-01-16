@@ -12,7 +12,7 @@ import {
 import {
   BlockProverPublicInput,
   ContractArgsRegistry,
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   SettlementContractModule,
 } from "@proto-kit/protocol";
@@ -278,8 +278,8 @@ export const settlementOnlyTestFn = (
         });
         const settlement = settlementModule.getSettlementContract();
 
-        const afterNetworkState = new NetworkState(
-          NetworkState.fromJSON(lastBlock!.result?.afterNetworkState!)
+        const afterNetworkState = new ProvableNetworkState(
+          ProvableNetworkState.fromJSON(lastBlock!.result?.afterNetworkState!)
         );
         expectDefined(lastBlock);
         expectDefined(lastBlock.result);

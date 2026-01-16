@@ -19,7 +19,7 @@ import {
   SimpleAsyncStateService,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
-  NetworkState,
+  ProvableNetworkState,
 } from "@proto-kit/protocol";
 
 import {
@@ -388,7 +388,7 @@ export class Runtime<Modules extends RuntimeModulesRecord>
     const context = container.resolve(RuntimeMethodExecutionContext);
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
+      networkState: ProvableNetworkState.empty(),
     });
     return await this.zkProgrammable.compile(registry);
   }

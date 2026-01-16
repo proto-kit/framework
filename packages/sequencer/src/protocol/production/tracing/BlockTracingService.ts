@@ -2,7 +2,7 @@ import {
   BlockHashMerkleTreeWitness,
   BlockProverPublicInput,
   BlockProverState,
-  NetworkState,
+  ProvableNetworkState,
   WitnessedRootWitness,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
@@ -94,8 +94,8 @@ export class BlockTracingService {
       eternalTransactionsHash: Field(block.block.fromEternalTransactionsHash),
       incomingMessagesHash: Field(block.block.fromMessagesHash),
       transactionsHash: Field(0),
-      networkStateHash: new NetworkState(
-        NetworkState.fromJSON(block.block.networkState.before)
+      networkStateHash: new ProvableNetworkState(
+        ProvableNetworkState.fromJSON(block.block.networkState.before)
       ).hash(),
       witnessedRootsHash: state.witnessedRoots.commitment,
       pendingSTBatchesHash: state.pendingSTBatches.commitment,
@@ -109,8 +109,8 @@ export class BlockTracingService {
 
     const blockTrace = {
       publicInput,
-      networkState: new NetworkState(
-        NetworkState.fromJSON(block.block.networkState.before)
+      networkState: new ProvableNetworkState(
+        ProvableNetworkState.fromJSON(block.block.networkState.before)
       ),
       deferSTProof: Bool(!includeSTProof),
       blockWitness: new BlockHashMerkleTreeWitness(
@@ -128,8 +128,8 @@ export class BlockTracingService {
       ),
       applied: Bool(true),
     });
-    state.networkState = new NetworkState(
-      NetworkState.fromJSON(block.block.networkState.during)
+    state.networkState = new ProvableNetworkState(
+      ProvableNetworkState.fromJSON(block.block.networkState.during)
     );
 
     const [afterState, transactionTraces] = await yieldSequential(
@@ -178,8 +178,8 @@ export class BlockTracingService {
         (st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st)
       )
     );
-    state.networkState = new NetworkState(
-      NetworkState.fromJSON(block.result.afterNetworkState)
+    state.networkState = new ProvableNetworkState(
+      ProvableNetworkState.fromJSON(block.result.afterNetworkState)
     );
 
     return [

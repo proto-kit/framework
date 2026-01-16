@@ -1,7 +1,7 @@
 import {
   BlockProverPublicInput,
   MethodPublicOutput,
-  NetworkState,
+  ProvableNetworkState,
   ReturnType,
   RuntimeTransaction,
   TransactionProverTransactionArguments,
@@ -28,13 +28,13 @@ export type TransactionProverTransactionArgumentsJSON = {
 
 export type SingleExecutionDataJSON = {
   transaction: TransactionProverTransactionArgumentsJSON;
-  networkState: ReturnType<typeof NetworkState.toJSON>;
+  networkState: ReturnType<typeof ProvableNetworkState.toJSON>;
 };
 
 export type MultiExecutionDataJSON = {
   transaction1: TransactionProverTransactionArgumentsJSON;
   transaction2: TransactionProverTransactionArgumentsJSON;
-  networkState: ReturnType<typeof NetworkState.toJSON>;
+  networkState: ReturnType<typeof ProvableNetworkState.toJSON>;
 };
 
 export type TransactionProverTaskParametersJSON<
@@ -114,7 +114,7 @@ export class TransactionProvingTaskParameterSerializer
     if (type === TransactionProvingType.SINGLE) {
       const { executionData } = parameters;
       const executionDataJson: SingleExecutionDataJSON = {
-        networkState: NetworkState.toJSON(executionData.networkState),
+        networkState: ProvableNetworkState.toJSON(executionData.networkState),
         transaction: this.transactionProverArgumentsToJson(
           executionData.transaction
         ),
@@ -131,7 +131,7 @@ export class TransactionProvingTaskParameterSerializer
     } else {
       const { executionData } = parameters;
       const executionDataJson: MultiExecutionDataJSON = {
-        networkState: NetworkState.toJSON(executionData.networkState),
+        networkState: ProvableNetworkState.toJSON(executionData.networkState),
         transaction1: this.transactionProverArgumentsToJson(
           executionData.transaction1
         ),
@@ -181,8 +181,8 @@ export class TransactionProvingTaskParameterSerializer
             transaction: this.transactionProverArgumentsFromJson(
               parameters.executionData.transaction
             ),
-            networkState: new NetworkState(
-              NetworkState.fromJSON(parameters.executionData.networkState)
+            networkState: new ProvableNetworkState(
+              ProvableNetworkState.fromJSON(parameters.executionData.networkState)
             ),
           },
         },
@@ -206,8 +206,8 @@ export class TransactionProvingTaskParameterSerializer
           transaction2: this.transactionProverArgumentsFromJson(
             parameters.executionData.transaction2
           ),
-          networkState: new NetworkState(
-            NetworkState.fromJSON(parameters.executionData.networkState)
+          networkState: new ProvableNetworkState(
+            ProvableNetworkState.fromJSON(parameters.executionData.networkState)
           ),
         },
       },

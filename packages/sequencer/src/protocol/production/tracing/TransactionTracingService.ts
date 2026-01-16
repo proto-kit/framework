@@ -3,7 +3,7 @@ import {
   BlockProverMultiTransactionExecutionData,
   BlockProverPublicInput,
   BlockProverSingleTransactionExecutionData,
-  NetworkState,
+  ProvableNetworkState,
   TransactionProverTransactionArguments,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
@@ -125,14 +125,14 @@ export class TransactionTracingService {
 
   private createRuntimeProofParams(
     tx: TransactionExecutionResultJson,
-    networkState: NetworkState
+    networkState: ProvableNetworkState
   ): RuntimeProofParametersJson {
     const stBatch = STBatchFromJson(tx.stateTransitions[1]);
     const startingState = collectStartingState(stBatch.stateTransitions);
 
     return {
       tx: tx.tx,
-      networkState: NetworkState.toJSON(networkState),
+      networkState: ProvableNetworkState.toJSON(networkState),
       state: startingState,
     };
   }

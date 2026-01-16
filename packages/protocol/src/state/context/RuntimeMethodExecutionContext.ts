@@ -7,7 +7,7 @@ import {
 
 import { StateTransition } from "../../model/StateTransition";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
-import { NetworkState } from "../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../model/network/NetworkState";
 
 const errors = {
   setupNotCalled: () =>
@@ -35,13 +35,13 @@ export class RuntimeProvableMethodExecutionResult extends ProvableMethodExecutio
 
 export interface RuntimeMethodExecutionData {
   transaction: RuntimeTransaction;
-  networkState: NetworkState;
+  networkState: ProvableNetworkState;
 }
 
 export class RuntimeMethodExecutionDataStruct
   extends Struct({
     transaction: RuntimeTransaction,
-    networkState: NetworkState,
+    networkState: ProvableNetworkState,
   })
   implements RuntimeMethodExecutionData {}
 

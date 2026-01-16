@@ -8,7 +8,7 @@ import { container, inject } from "tsyringe";
 import {
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
-  NetworkState,
+  ProvableNetworkState,
 } from "@proto-kit/protocol";
 import { Field, Poseidon, Struct } from "o1js";
 
@@ -77,7 +77,7 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
 
     context.setup({
       transaction: RuntimeTransaction.dummyTransaction(),
-      networkState: NetworkState.empty(),
+      networkState: ProvableNetworkState.empty(),
     });
 
     container.resolve(RuntimeMethodExecutionContext).clear();

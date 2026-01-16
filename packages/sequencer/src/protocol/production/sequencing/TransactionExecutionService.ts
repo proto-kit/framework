@@ -2,7 +2,7 @@ import assert from "node:assert";
 
 import { container, inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   ProtocolModulesRecord,
   ProvableTransactionHook,
@@ -334,7 +334,7 @@ export class TransactionExecutionService {
   public async createExecutionTraces(
     asyncStateService: CachedStateService,
     transactions: PendingTransactionJSONType[],
-    networkState: NetworkState,
+    networkState: ProvableNetworkState,
     state: BlockTrackers
   ): Promise<{
     blockState: BlockTrackers;
@@ -415,7 +415,7 @@ export class TransactionExecutionService {
     {
       networkState,
       hash: networkStateHash,
-    }: { networkState: NetworkState; hash: Field },
+    }: { networkState: ProvableNetworkState; hash: Field },
     state: BlockTrackers,
     newState: BlockTrackers
   ): Promise<{

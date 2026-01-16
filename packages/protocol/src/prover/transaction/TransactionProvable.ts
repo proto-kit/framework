@@ -5,7 +5,7 @@ import { DynamicProof, Field, Proof, Signature, Struct, Void } from "o1js";
 import { RuntimeTransaction } from "../../model/transaction/RuntimeTransaction";
 import { RuntimeVerificationKeyAttestation } from "../block/accummulators/RuntimeVerificationKeyTree";
 import { MethodPublicOutput } from "../../model/MethodPublicOutput";
-import { NetworkState } from "../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../model/network/NetworkState";
 import { TransactionHashList } from "../accumulators/TransactionHashList";
 import { AppliedBatchHashList } from "../accumulators/AppliedBatchHashList";
 import { MinaActionsHashList } from "../../utils/MinaPrefixedProvableHashList";
@@ -22,7 +22,7 @@ export class TransactionProverState {
    * The network state which gives access to values such as blockHeight
    * This value is the same for the whole batch (L2 block)
    */
-  networkState: NetworkState;
+  networkState: ProvableNetworkState;
 
   /**
    * A variant of the transactionsHash that is never reset.
@@ -39,7 +39,7 @@ export class TransactionProverState {
 
   constructor(args: {
     transactionList: TransactionHashList;
-    networkState: NetworkState;
+    networkState: ProvableNetworkState;
     eternalTransactionsList: TransactionHashList;
     pendingSTBatches: AppliedBatchHashList;
     incomingMessages: MinaActionsHashList;
@@ -66,7 +66,7 @@ export class TransactionProverState {
 
   public static fromCommitments(
     publicInput: TransactionProverPublicInput,
-    networkState: NetworkState
+    networkState: ProvableNetworkState
   ): TransactionProverState {
     publicInput.networkStateHash.assertEquals(
       networkState.hash(),
@@ -137,13 +137,13 @@ export class DynamicRuntimeProof extends DynamicProof<
 
 export class BlockProverSingleTransactionExecutionData extends Struct({
   transaction: TransactionProverTransactionArguments,
-  networkState: NetworkState,
+  networkState: ProvableNetworkState,
 }) {}
 
 export class BlockProverMultiTransactionExecutionData extends Struct({
   transaction1: TransactionProverTransactionArguments,
   transaction2: TransactionProverTransactionArguments,
-  networkState: NetworkState,
+  networkState: ProvableNetworkState,
 }) {}
 
 export type TransactionProof = Proof<

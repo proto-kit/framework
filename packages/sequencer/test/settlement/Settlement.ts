@@ -11,7 +11,7 @@ import {
   BridgeContract,
   ContractArgsRegistry,
   DispatchSmartContract,
-  NetworkState,
+  ProvableNetworkState,
   Protocol,
   ReturnType,
   SettlementContractModule,
@@ -650,7 +650,7 @@ export const settlementTestFn = (
         console.log(networkstateHash.zkapp!.appState.map((x) => x.toString()));
 
         console.log(
-          `Empty Network State ${NetworkState.empty().hash().toString()}`
+          `Empty Network State ${ProvableNetworkState.empty().hash().toString()}`
         );
         console.log(hashNetworkState(batch!.toNetworkState));
         console.log(hashNetworkState(batch2!.fromNetworkState));

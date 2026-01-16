@@ -4,7 +4,7 @@ import { Bool, Field, UInt64 } from "o1js";
 import { container } from "tsyringe";
 
 import {
-  NetworkState,
+  ProvableNetworkState,
   RuntimeMethodExecutionContext,
   RuntimeTransaction,
   State,
@@ -18,7 +18,7 @@ describe("state", () => {
 
     executionContext.setup({
       transaction: undefined as unknown as RuntimeTransaction,
-      networkState: undefined as unknown as NetworkState,
+      networkState: undefined as unknown as ProvableNetworkState,
     });
   });
 

@@ -6,7 +6,7 @@ import { container } from "tsyringe";
 import { assert } from "../../../src/state/assert/assert";
 import { RuntimeMethodExecutionContext } from "../../../src/state/context/RuntimeMethodExecutionContext";
 import { RuntimeTransaction } from "../../../src/model/transaction/RuntimeTransaction";
-import { NetworkState } from "../../../src/model/network/NetworkState";
+import { ProvableNetworkState } from "../../../src/model/network/NetworkState";
 
 describe("assert", () => {
   const defaultStatusMessage = "something went wrong";
@@ -17,7 +17,7 @@ describe("assert", () => {
 
     executionContext.setup({
       transaction: undefined as unknown as RuntimeTransaction,
-      networkState: undefined as unknown as NetworkState,
+      networkState: undefined as unknown as ProvableNetworkState,
     });
   });
 

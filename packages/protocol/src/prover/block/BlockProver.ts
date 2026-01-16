@@ -28,7 +28,7 @@ import {
   ProvableBlockHook,
   toProvableHookBlockState,
 } from "../../protocol/ProvableBlockHook";
-import { NetworkState } from "../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../model/network/NetworkState";
 import { assertEqualsIf } from "../../utils/utils";
 import { WitnessedRootWitness } from "../accumulators/WitnessedRootHashList";
 import { StateServiceProvider } from "../../state/StateServiceProvider";
@@ -99,11 +99,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
   >(
     hook: (
       module: ProvableBlockHook<unknown>,
-      networkState: NetworkState,
+      networkState: ProvableNetworkState,
       args: T
-    ) => Promise<NetworkState>,
+    ) => Promise<ProvableNetworkState>,
     hookArguments: T,
-    inputNetworkState: NetworkState
+    inputNetworkState: ProvableNetworkState
   ) {
     const transaction = RuntimeTransaction.dummyTransaction();
     const startingInputs = {
@@ -114,7 +114,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     return await executeHooks(startingInputs, async () => {
       const executionContext = container.resolve(RuntimeMethodExecutionContext);
 
-      return await this.blockHooks.reduce<Promise<NetworkState>>(
+      return await this.blockHooks.reduce<Promise<ProvableNetworkState>>(
         async (networkStatePromise, blockHook) => {
           const networkState = await networkStatePromise;
 
@@ -218,7 +218,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
   @provableMethod()
   public async proveBlock(
     publicInput: BlockProverPublicInput,
-    networkState: NetworkState,
+    networkState: ProvableNetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
     deferSTProof: Bool,
@@ -566,7 +566,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       methods: {
         proveBlock: {
           privateInputs: [
-            NetworkState,
+            ProvableNetworkState,
             BlockHashMerkleTreeWitness,
             StateTransitionProofClass,
             Bool,
@@ -575,7 +575,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
           ],
           async method(
             publicInput: BlockProverPublicInput,
-            networkState: NetworkState,
+            networkState: ProvableNetworkState,
             blockWitness: BlockHashMerkleTreeWitness,
             stateTransitionProof: StateTransitionProof,
             deferSTs: Bool,
@@ -685,7 +685,7 @@ export class BlockProver
 
   public proveBlock(
     publicInput: BlockProverPublicInput,
-    networkState: NetworkState,
+    networkState: ProvableNetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
     deferSTs: Bool,

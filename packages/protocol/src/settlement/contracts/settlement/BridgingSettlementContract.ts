@@ -19,7 +19,7 @@ import {
 } from "o1js";
 import { container } from "tsyringe";
 
-import { NetworkState } from "../../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../../model/network/NetworkState";
 import { DispatchContractType } from "../DispatchSmartContract";
 import { BridgeContractType } from "../BridgeContract";
 import { TokenBridgeDeploymentAuth } from "../authorizations/TokenBridgeDeploymentAuth";
@@ -168,8 +168,8 @@ export abstract class BridgingSettlementContractBase
     blockProof: DynamicBlockProof,
     signature: Signature,
     publicKey: PublicKey,
-    inputNetworkState: NetworkState,
-    outputNetworkState: NetworkState,
+    inputNetworkState: ProvableNetworkState,
+    outputNetworkState: ProvableNetworkState,
     newPromisedMessagesHash: Field
   ) {
     await super.settleBase(
@@ -265,8 +265,8 @@ export class BridgingSettlementContract
     blockProof: DynamicBlockProof,
     signature: Signature,
     publicKey: PublicKey,
-    inputNetworkState: NetworkState,
-    outputNetworkState: NetworkState,
+    inputNetworkState: ProvableNetworkState,
+    outputNetworkState: ProvableNetworkState,
     newPromisedMessagesHash: Field
   ) {
     return await this.settleBaseBridging(

@@ -2,7 +2,7 @@ import { Bool, Field, Proof, Struct } from "o1js";
 import { CompilableModule, WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
-import { NetworkState } from "../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../model/network/NetworkState";
 import { TransactionHashList } from "../accumulators/TransactionHashList";
 import { MinaActionsHashList } from "../../utils/MinaPrefixedProvableHashList";
 import { AppliedBatchHashList } from "../accumulators/AppliedBatchHashList";
@@ -34,7 +34,7 @@ export class BlockProverState extends TransactionProverState {
 
   constructor(args: {
     transactionList: TransactionHashList;
-    networkState: NetworkState;
+    networkState: ProvableNetworkState;
     eternalTransactionsList: TransactionHashList;
     pendingSTBatches: AppliedBatchHashList;
     incomingMessages: MinaActionsHashList;
@@ -60,7 +60,7 @@ export class BlockProverState extends TransactionProverState {
 
   public static fromCommitments(
     publicInput: BlockProverPublicInput,
-    networkState: NetworkState
+    networkState: ProvableNetworkState
   ): BlockProverState {
     return new BlockProverState({
       ...super.fromCommitments(publicInput, networkState),
@@ -105,7 +105,7 @@ export interface BlockProvable
     CompilableModule {
   proveBlock: (
     publicInput: BlockProverPublicInput,
-    networkState: NetworkState,
+    networkState: ProvableNetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
     deferSTs: Bool,

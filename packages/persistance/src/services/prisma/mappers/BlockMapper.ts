@@ -1,7 +1,7 @@
 import { singleton } from "tsyringe";
 import { Block, UntypedStateTransitionJson } from "@proto-kit/sequencer";
 import { Prisma, Block as PrismaBlock } from "@prisma/client";
-import { NetworkStateJson } from "@proto-kit/protocol";
+import { NetworkState } from "@proto-kit/protocol";
 
 import { ObjectMapper } from "../../../ObjectMapper";
 
@@ -18,8 +18,8 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       transactions: [],
 
       networkState: {
-        before: input.beforeNetworkState as NetworkStateJson,
-        during: input.duringNetworkState as NetworkStateJson,
+        before: input.beforeNetworkState as NetworkState,
+        during: input.duringNetworkState as NetworkState,
       },
 
       hash: input.hash,

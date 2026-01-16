@@ -12,7 +12,7 @@ import {
 } from "o1js";
 import { O1PublicKeyOption } from "@proto-kit/common";
 
-import { NetworkState } from "../../../model/network/NetworkState";
+import { ProvableNetworkState } from "../../../model/network/NetworkState";
 
 import {
   DynamicBlockProof,
@@ -59,8 +59,8 @@ export class SettlementContract
     blockProof: DynamicBlockProof,
     signature: Signature,
     publicKey: PublicKey,
-    inputNetworkState: NetworkState,
-    outputNetworkState: NetworkState,
+    inputNetworkState: ProvableNetworkState,
+    outputNetworkState: ProvableNetworkState,
     newPromisedMessagesHash: Field
   ): Promise<void> {
     await super.settleBase(
