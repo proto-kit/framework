@@ -342,32 +342,10 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
       )
     );
 
-    // Check pendingSTBatchesHash
-    // publicInput.pendingSTBatchesHash.assertEquals(
-    //   proof1.publicInput.pendingSTBatchesHash,
-    //   errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
-    // );
-    // proof1.publicOutput.pendingSTBatchesHash.assertEquals(
-    //   proof2.publicInput.pendingSTBatchesHash,
-    //   errors.transactionsHashNotMatching("proof1.to -> proof2.from")
-    // );
-    //
-    // // Check witnessedRootsHash
-    // publicInput.witnessedRootsHash.assertEquals(
-    //   proof1.publicInput.witnessedRootsHash,
-    //   errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
-    // );
-    // proof1.publicOutput.witnessedRootsHash.assertEquals(
-    //   proof2.publicInput.witnessedRootsHash,
-    //   errors.transactionsHashNotMatching("proof1.to -> proof2.from")
-    // );
-
     return new TransactionProverPublicOutput({
       bundlesHash: proof2.publicOutput.bundlesHash,
       eternalTransactionsHash: proof2.publicOutput.eternalTransactionsHash,
       incomingMessagesHash: proof2.publicOutput.incomingMessagesHash,
-      // pendingSTBatchesHash: proof2.publicOutput.pendingSTBatchesHash,
-      // witnessedRootsHash: proof2.publicOutput.witnessedRootsHash,
     });
   }
 
