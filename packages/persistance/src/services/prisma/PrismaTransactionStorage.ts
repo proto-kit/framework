@@ -34,6 +34,11 @@ export class PrismaTransactionStorage implements TransactionStorage {
           equals: false,
         },
       },
+      orderBy: {
+        priority: {
+          priority: "desc",
+        },
+      },
       skip: offset,
       take: limit,
     });
@@ -56,13 +61,27 @@ export class PrismaTransactionStorage implements TransactionStorage {
     }
   }
 
-  public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {
+  public async pushUserTransaction(
+    tx: PendingTransaction,
+    priority: number
+  ): Promise<boolean> {
     const { prismaClient } = this.connection;
 
-    const result = await prismaClient.transaction.createMany({
-      data: [this.transactionMapper.mapOut(tx)],
-      skipDuplicates: true,
-    });
+    const transactionData = this.transactionMapper.mapOut(tx);
+
+    const [result] = await prismaClient.$transaction([
+      prismaClient.transaction.createMany({
+        data: [transactionData],
+        skipDuplicates: true,
+      }),
+
+      prismaClient.transactionPriority.create({
+        data: {
+          priority,
+          transactionHash: transactionData.hash,
+        },
+      }),
+    ]);
 
     return result.count === 1;
   }
