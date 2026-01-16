@@ -3,7 +3,10 @@ import { PendingTransaction } from "../../mempool/PendingTransaction";
 export interface TransactionStorage {
   pushUserTransaction: (tx: PendingTransaction) => Promise<boolean>;
 
-  getPendingUserTransactions: () => Promise<PendingTransaction[]>;
+  getPendingUserTransactions: (
+    offset: number,
+    limit?: number
+  ) => Promise<PendingTransaction[]>;
 
   removeTx: (txHashes: string[], type: "included" | "dropped") => Promise<void>;
 

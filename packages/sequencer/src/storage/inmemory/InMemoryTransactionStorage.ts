@@ -27,7 +27,10 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     });
   }
 
-  public async getPendingUserTransactions(): Promise<PendingTransaction[]> {
+  public async getPendingUserTransactions(
+    offset: number,
+    limit?: number
+  ): Promise<PendingTransaction[]> {
     const nextHeight = await this.blockStorage.getCurrentBlockHeight();
     for (
       let height = this.latestScannedBlock + 1;
@@ -45,7 +48,10 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     }
     this.latestScannedBlock = nextHeight - 1;
 
-    return this.queue.slice();
+    const from = offset ?? 0;
+    const to = limit !== undefined ? from + limit : undefined;
+
+    return this.queue.slice(from, to);
   }
 
   public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {
@@ -83,7 +89,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       }
     | undefined
   > {
-    const pending = await this.getPendingUserTransactions();
+    const pending = await this.getPendingUserTransactions(0);
     const pendingResult = pending.find((tx) => tx.hash().toString() === hash);
     if (pendingResult !== undefined) {
       return {

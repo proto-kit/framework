@@ -14,7 +14,6 @@ import {
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
-import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import {
@@ -23,7 +22,6 @@ import {
   BlockWithResult,
 } from "../../../storage/model/Block";
 import { Database } from "../../../storage/Database";
-import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
@@ -42,8 +40,6 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @inject("IncomingMessagesService", { isOptional: true })
-    private readonly messageService: IncomingMessagesService | undefined,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenLinkedLeafStore")
@@ -176,12 +172,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   // TODO Move to different service, to remove dependency on mempool and messagequeue
   //  Idea: Create a service that aggregates a bunch of different sources
   @trace("block.collect_inputs")
-  private async collectProductionData(): Promise<{
-    txs: PendingTransaction[];
-    metadata: BlockWithResult;
-  }> {
-    const txs = await this.mempool.getTxs(this.maximumBlockSize());
-
+  private async collectProductionData(): Promise<BlockWithResult> {
     const parentBlock = await this.blockQueue.getLatestBlockAndResult();
 
     let metadata: BlockWithResult;
@@ -203,41 +194,29 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       };
     }
 
-    let messages: PendingTransaction[] = [];
-    if (this.messageService !== undefined) {
-      messages = await this.messageService.getPendingMessages();
-    }
-
-    log.debug(
-      `Block collected, ${txs.length} txs, ${messages.length} messages`
-    );
-
-    return {
-      txs: messages.concat(txs),
-      metadata,
-    };
+    return metadata;
   }
 
   @trace("block")
   private async produceBlock(): Promise<Block | undefined> {
     this.productionInProgress = true;
 
-    const { txs, metadata } = await this.collectProductionData();
-
-    // Skip production if no transactions are available for now
-    if (txs.length === 0 && !this.allowEmptyBlock()) {
-      return undefined;
-    }
+    const metadata = await this.collectProductionData();
 
     const blockResult = await this.productionService.createBlock(
       this.unprovenStateService,
-      txs,
       metadata,
-      this.allowEmptyBlock()
+      this.allowEmptyBlock(),
+      this.maximumBlockSize()
     );
 
     if (blockResult !== undefined) {
       const { block, stateChanges } = blockResult;
+
+      // Skip production if no transactions are available for now
+      if (block.transactions.length === 0 && !this.allowEmptyBlock()) {
+        return undefined;
+      }
 
       await this.tracer.trace(
         "block.commit",
