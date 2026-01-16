@@ -23,6 +23,8 @@ import {
   DefaultProvableHashList,
   addTransactionToBundle,
   TransactionProverState,
+  TransactionHashList,
+  MinaActionsHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { log, mapSequential } from "@proto-kit/common";
@@ -63,6 +65,24 @@ export type BlockTrackers = Pick<
   "eternalTransactionsList" | "incomingMessages" | "transactionList"
 > &
   Pick<BlockProverState, "blockHashRoot">;
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const BlockTrackers = {
+  clone: (trackers: BlockTrackers) => {
+    return {
+      eternalTransactionsList: new TransactionHashList(
+        trackers.eternalTransactionsList.commitment
+      ),
+      transactionList: new TransactionHashList(
+        trackers.transactionList.commitment
+      ),
+      incomingMessages: new MinaActionsHashList(
+        trackers.incomingMessages.commitment
+      ),
+      blockHashRoot: trackers.blockHashRoot,
+    } satisfies BlockTrackers;
+  },
+};
 
 async function decodeTransaction(
   tx: PendingTransaction,

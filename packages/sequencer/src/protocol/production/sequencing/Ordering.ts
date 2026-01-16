@@ -118,7 +118,7 @@ export class Ordering {
       }
     }
 
-    return this.transactionQueue.pop();
+    return this.transactionQueue.shift();
   }
 
   public getResults() {

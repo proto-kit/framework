@@ -546,13 +546,15 @@ export function testBlockProduction<
     async (batches, blocksPerBatch, txsPerBlock) => {
       expect.assertions(
         2 * batches +
-          1 * batches * blocksPerBatch +
-          2 * batches * blocksPerBatch * txsPerBlock
+          2 * batches * blocksPerBatch +
+          1 * batches * blocksPerBatch * txsPerBlock
       );
 
       log.setLevel("DEBUG");
 
-      const sender = PrivateKey.random();
+      const sender = PrivateKey.fromBase58(
+        "EKEiL7J4ouZGAz8uHo3oUebfA8zTWYYwLsojTyK9cAafi9sBBRpN"
+      );
 
       const keys = range(0, batches * blocksPerBatch * txsPerBlock).map(() =>
         PrivateKey.random()
@@ -582,9 +584,9 @@ export function testBlockProduction<
 
           expect(block).toBeDefined();
 
+          expect(block!.transactions).toHaveLength(txsPerBlock);
           for (let k = 0; k < txsPerBlock; k++) {
-            expect(block!.transactions).toHaveLength(txsPerBlock);
-            expect(block!.transactions[0].status.toBoolean()).toBe(true);
+            expect(block!.transactions[k].status.toBoolean()).toBe(true);
           }
         }
 

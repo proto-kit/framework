@@ -80,7 +80,7 @@ export class BlockBuilder {
     while ((tx = await ordering.requestNextTransaction()) !== undefined) {
       try {
         const newState = this.executionService.addTransactionToBlockProverState(
-          blockState,
+          BlockTrackers.clone(blockState),
           tx
         );
 
@@ -103,18 +103,18 @@ export class BlockBuilder {
 
         let shouldRemove = false;
         if (transactionIncluded) {
-          // eslint-disable-next-line no-await-in-loop
-          await recordingStateService.mergeIntoParent();
+          blockState = newState;
 
           // Only for successful hooks, messages will be included but progress thrown away
           if (executionTrace.hooksStatus.toBoolean()) {
-            blockState = newState;
+            // eslint-disable-next-line no-await-in-loop
+            await recordingStateService.mergeIntoParent();
           }
         } else {
           // Execute removeWhen to determine whether it should be dropped
           // eslint-disable-next-line no-await-in-loop
           shouldRemove = await this.shouldRemove(
-            asyncStateService,
+            new CachedStateService(asyncStateService),
             toBeforeTransactionHookArgument(
               tx.toProtocolTransaction(),
               networkState,
