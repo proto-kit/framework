@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "TransactionPriority" (
     "transactionHash" TEXT NOT NULL,
-    "priority" INTEGER NOT NULL,
+    "priority" BIGINT NOT NULL,
 
     CONSTRAINT "TransactionPriority_pkey" PRIMARY KEY ("transactionHash")
 );

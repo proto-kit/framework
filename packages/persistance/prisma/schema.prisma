@@ -61,7 +61,7 @@ model Transaction {
 model TransactionPriority {
   transactionHash String
 
-  priority Int
+  priority BigInt
 
   Transaction Transaction @relation(fields: [transactionHash], references: [hash])
 
