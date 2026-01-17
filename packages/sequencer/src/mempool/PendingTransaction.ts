@@ -13,6 +13,7 @@ import {
   SignedTransaction,
   UInt64Option,
 } from "@proto-kit/protocol";
+import { FieldString } from "../helpers/utils";
 
 export type UnsignedTransactionBody = {
   methodId: Field;
@@ -105,17 +106,17 @@ export class UnsignedTransaction implements UnsignedTransactionBody {
   }
 
   public signed(signature: Signature): PendingTransaction {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return new PendingTransaction({
-      methodId: this.methodId,
-      sender: this.sender,
-      nonce: this.nonce,
-      signature,
-      argsFields: this.argsFields,
+      hash: this.hash().toString(),
+      methodId: this.methodId.toString(),
+      sender: this.sender.toBase58(),
+      nonce: this.nonce.toString(),
+      signature: { r: signature.r.toJSON(), s: signature.s.toJSON() },
+      argsFields: this.argsFields.map((f) => f.toString()),
       auxiliaryData: this.auxiliaryData,
       isMessage: this.isMessage,
     });
-  }
+}
 }
 
 export interface PendingTransactionJSONType {
@@ -132,64 +133,62 @@ export interface PendingTransactionJSONType {
   isMessage: boolean;
 }
 
-export class PendingTransaction extends UnsignedTransaction {
+export class PendingTransaction {
   public static fromJSON(
     object: PendingTransactionJSONType
   ): PendingTransaction {
-    return new PendingTransaction(
-      {
-        methodId: Field.fromJSON(object.methodId),
-        nonce: UInt64.from(object.nonce),
-        sender: PublicKey.fromBase58(object.sender),
-        argsFields: object.argsFields.map((x) => Field.fromJSON(x)),
-        signature: Signature.fromJSON(object.signature),
-        auxiliaryData: object.auxiliaryData.slice(),
-        isMessage: object.isMessage,
-      },
-      Field(object.hash)
-    );
+    return new PendingTransaction({
+      hash: object.hash,
+      methodId: object.methodId,
+      nonce: object.nonce,
+      sender: object.sender,
+      argsFields: object.argsFields.slice(),
+      auxiliaryData: object.auxiliaryData.slice(),
+      signature: { r: object.signature.r, s: object.signature.s },
+      isMessage: object.isMessage,
+    });
   }
-
-  public signature: Signature;
 
   public constructor(
-    data: {
-      methodId: Field;
-      nonce: UInt64;
-      sender: PublicKey;
-      signature: Signature;
-      argsFields: Field[];
+    public data: {
+      hash: FieldString;
+      methodId: FieldString;
+      nonce: string;
+      sender: string;
+      argsFields: FieldString[];
       auxiliaryData: string[];
+      signature: { r: string; s: string };
       isMessage: boolean;
-    },
-    memoizedHash?: Field
-  ) {
-    super(data, memoizedHash);
-    this.signature = data.signature;
-  }
+    }
+  ) {}
 
   public toJSON(): PendingTransactionJSONType {
     return {
-      hash: this.hash().toString(),
-      methodId: this.methodId.toJSON(),
-      nonce: this.nonce.toString(),
-      sender: this.sender.toBase58(),
-      argsFields: this.argsFields.map((x) => x.toJSON()),
-      auxiliaryData: this.auxiliaryData.slice(),
-      isMessage: this.isMessage,
-
-      signature: {
-        r: this.signature.r.toJSON(),
-
-        s: this.signature.s.toJSON(),
-      },
+      hash: this.data.hash,
+      methodId: this.data.methodId,
+      nonce: this.data.nonce,
+      sender: this.data.sender,
+      argsFields: this.data.argsFields.slice(),
+      auxiliaryData: this.data.auxiliaryData.slice(),
+      signature: { r: this.data.signature.r, s: this.data.signature.s },
+      isMessage: this.data.isMessage,
     };
+  }
+
+  public toRuntimeTransaction(): RuntimeTransaction {
+    const isSome = Bool(!this.data.isMessage);
+    return new RuntimeTransaction({
+      methodId: Field(this.data.methodId),
+      argsHash: Poseidon.hash(this.data.argsFields.map((f) => Field(f))),
+      nonce: new UInt64Option({ value: UInt64.from(this.data.nonce), isSome }),
+      sender: new PublicKeyOption({ value: PublicKey.fromBase58(this.data.sender), isSome }),
+    });
   }
 
   public toProtocolTransaction(): SignedTransaction {
     return new SignedTransaction({
       transaction: this.toRuntimeTransaction(),
-      signature: this.signature,
+      signature: Signature.fromJSON(this.data.signature),
     });
   }
 }
