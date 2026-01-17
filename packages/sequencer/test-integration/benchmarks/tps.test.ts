@@ -104,9 +104,7 @@ export async function createAppChain() {
         maximumBlockSize: 100,
       },
       BlockTrigger: {},
-      Mempool: {
-        validationEnabled: false,
-      },
+      Mempool: {},
     },
     Signer: {
       signer: PrivateKey.random(),

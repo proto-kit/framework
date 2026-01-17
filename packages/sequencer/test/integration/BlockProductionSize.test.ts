@@ -70,9 +70,7 @@ describe("block limit", () => {
       Sequencer: {
         Database: {},
         BlockTrigger: {},
-        Mempool: {
-          validationEnabled: true,
-        },
+        Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {
           maximumBlockSize: maxBlockSize,

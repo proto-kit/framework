@@ -185,9 +185,7 @@ describe("check fee analyzer", () => {
         },
       },
       Sequencer: {
-        Mempool: {
-          validationEnabled: true,
-        },
+        Mempool: {},
       },
     });
 

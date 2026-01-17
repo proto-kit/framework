@@ -98,9 +98,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         Sequencer: {
           Database: {},
           BlockTrigger: {},
-          Mempool: {
-            validationEnabled: true,
-          },
+          Mempool: {},
           FeeStrategy: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
