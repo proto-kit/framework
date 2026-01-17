@@ -60,7 +60,7 @@ export interface TransactionExecutionResultJson {
 export interface Block {
   hash: FieldString;
   previousBlockHash: FieldString | undefined;
-  height: FieldString;
+  height: number;
   networkState: {
     before: NetworkState;
     during: NetworkState;
@@ -94,10 +94,10 @@ export const Block = {
 };
 
 export interface BlockResult {
-  blockHash: string;
-  witnessedRoots: [string];
-  stateRoot: string;
-  blockHashRoot: string;
+  blockHash: FieldString;
+  witnessedRoots: [FieldString];
+  stateRoot: FieldString;
+  blockHashRoot: FieldString;
   afterNetworkState: NetworkState;
   afterBlockStateTransitions: UntypedStateTransitionJson[];
   blockHashWitness: BlockHashMerkleTreeWitnessJson;
@@ -125,7 +125,7 @@ export const BlockWithResult = {
       block: {
         hash: FieldString(0),
 
-        height: FieldString(0),
+        height: 0,
         transactionsHash: FieldString(0),
         fromEternalTransactionsHash: FieldString(0),
         toEternalTransactionsHash: FieldString(0),

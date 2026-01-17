@@ -183,7 +183,7 @@ describe.skip("IndexerNotifier", () => {
       .resolve(IndexBlockTaskParametersSerializer)
       .fromJSON(addTaskSpy.mock.lastCall?.[0].payload!);
 
-    expect(block.height).toBe("0");
+    expect(block.height).toBe(0);
     expect(block.transactions.length).toBe(2);
   });
 });

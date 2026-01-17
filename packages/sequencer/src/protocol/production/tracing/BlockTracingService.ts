@@ -68,7 +68,7 @@ export type BlockTrace = {
   blockParams: NewBlockProverParameters;
   transactions: TransactionTrace[];
   // Only for debugging and logging
-  height: string;
+  height: number;
 };
 
 @injectable()

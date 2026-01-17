@@ -23,7 +23,7 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       },
 
       hash: input.hash,
-      height: input.height.toString(),
+      height: input.height,
       fromEternalTransactionsHash: input.fromEternalTransactionsHash,
       toEternalTransactionsHash: input.toEternalTransactionsHash,
       fromBlockHashRoot: input.fromBlockHashRoot,

@@ -19,7 +19,7 @@ export interface ClientTransaction {
 export interface ClientBlock {
   hash: string;
   previousBlockHash: string | undefined;
-  height: string;
+  height: number;
   transactions: ClientTransaction[];
   transactionsHash: string;
 }

@@ -53,7 +53,7 @@ export class TransactionFlow {
 
   public async proveRuntimes(
     trace: TransactionTrace,
-    blockHeight: string,
+    blockHeight: number,
     txIndex: number,
     callback: (params: TransactionProvingTaskParameters) => Promise<void>
   ) {

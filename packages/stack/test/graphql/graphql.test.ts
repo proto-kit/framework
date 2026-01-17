@@ -238,7 +238,7 @@ describe("graphql client test", () => {
     expect(block?.hash).toBe(heightResult?.hash.toString());
 
     // Block heights should match
-    expect(block?.height).toBe(heightResult?.height.toString());
+    expect(block?.height).toBe(heightResult?.height);
 
     // Previous block hashes should match
     expect(block?.previousBlockHash).toBe(

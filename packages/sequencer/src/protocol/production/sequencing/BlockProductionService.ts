@@ -175,9 +175,9 @@ export class BlockProductionService {
         newBlockState.eternalTransactionsList.commitment
       ),
       height:
-        FieldString(lastBlock.hash) !== "0"
-          ? FieldString(BigInt(lastBlock.height) + 1n)
-          : FieldString(0),
+        (lastBlock.hash) !== "0"
+          ? lastBlock.height + 1
+          : 0,
       fromBlockHashRoot: FieldString(lastResult.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       fromStateRoot: FieldString(lastResult.stateRoot),

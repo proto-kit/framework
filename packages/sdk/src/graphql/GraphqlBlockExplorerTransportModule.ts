@@ -110,7 +110,7 @@ export class GraphqlBlockExplorerTransportModule
 
     return {
       hash: blockData.hash,
-      height: blockData.height.toString(),
+      height: blockData.height,
       previousBlockHash,
       transactionsHash: blockData.transactionsHash,
       transactions: blockData.txs,

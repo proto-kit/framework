@@ -115,6 +115,6 @@ describe("atomic block production", () => {
     const block = await trigger.produceBlock();
 
     expectDefined(block);
-    expect(block.height).toBe("1");
+    expect(block.height).toBe(1);
   });
 });
