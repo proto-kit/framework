@@ -21,12 +21,12 @@ export class DefaultMempoolSorting
     return false;
   }
 
-  public postSorting(a: PendingTransaction, b: PendingTransaction): number {
-    return 0;
+  public postSorting(transactions: PendingTransaction[]): PendingTransaction[] {
+    return transactions;
   }
 
   public presortingPriority(tx: PendingTransaction): number {
     // This means we order by first in, first out in the db
-    return -Date.now();
+    return Date.UTC(2500, 0) - Date.now();
   }
 }

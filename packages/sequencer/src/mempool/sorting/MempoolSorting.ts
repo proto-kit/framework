@@ -21,8 +21,6 @@ export interface MempoolSorting {
   /**
    * Postsorting happens on the sequencer-side. It's less fast but can take in any two
    * transactions and directly compare them based on arbitrary logic
-   * @param a
-   * @param b
    */
-  postSorting(a: PendingTransaction, b: PendingTransaction): number;
+  postSorting(transactions: PendingTransaction[]): PendingTransaction[];
 }

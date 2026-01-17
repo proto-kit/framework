@@ -81,16 +81,13 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     offset?: number,
     limit?: number
   ): Promise<PendingTransaction[]> {
-    const txs = await this.transactionStorage.getPendingUserTransactions(
+    let txs = await this.transactionStorage.getPendingUserTransactions(
       offset ?? 0,
       limit
     );
 
     if (this.mempoolSorting.enablePostSorting()) {
-      // Sorts in place
-      txs.sort(
-        this.mempoolSorting.presortingPriority.bind(this.mempoolSorting)
-      );
+      txs = this.mempoolSorting.postSorting(txs);
     }
 
     return txs;
