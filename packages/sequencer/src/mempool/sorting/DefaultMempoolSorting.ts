@@ -26,6 +26,7 @@ export class DefaultMempoolSorting
   }
 
   public presortingPriority(tx: PendingTransaction): number {
-    return 0;
+    // This means we order by first in, first out in the db
+    return -Date.now();
   }
 }

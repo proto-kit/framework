@@ -1,4 +1,4 @@
-import { log, TypedClass } from "@proto-kit/common";
+import { expectDefined, log, TypedClass } from "@proto-kit/common";
 import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 import { Bool, PrivateKey, UInt64 } from "o1js";
@@ -14,6 +14,7 @@ import {
   StorageDependencyFactory,
   VanillaTaskWorkerModules,
   AppChain,
+  ManualBlockTrigger,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -23,19 +24,21 @@ import {
 import { Balance } from "./mocks/Balance";
 import { createTransaction } from "./utils";
 
-// TODO Reenable with next PR
-describe.skip.each([["InMemory", InMemoryDatabase]])(
-  "Mempool test",
+describe.each([["InMemory", InMemoryDatabase]])(
+  "Block Ordering test: %s",
   (
     testName,
     Database: TypedClass<SequencerModule & StorageDependencyFactory>
   ) => {
     let appChain: ReturnType<typeof createAppChain>;
     let sequencer: Sequencer<
-      DefaultTestingSequencerModules & { Database: typeof Database }
+      DefaultTestingSequencerModules & {
+        Database: typeof Database;
+      }
     >;
     let runtime: Runtime<{ Balance: typeof Balance }>;
     let mempool: PrivateMempool;
+    let trigger: ManualBlockTrigger;
 
     async function mempoolAddTransactions(
       userPrivateKey: PrivateKey,
@@ -116,6 +119,7 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
       sequencer = appChain.sequencer;
 
       mempool = sequencer.resolve("Mempool");
+      trigger = sequencer.resolve("BlockTrigger");
     });
 
     afterEach(async () => {
@@ -123,7 +127,7 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
     });
 
     it("transactions are returned in right order - simple", async () => {
-      expect.assertions(13);
+      expect.assertions(14);
 
       await mempoolAddTransactions(user1PrivateKey, 0);
       await mempoolAddTransactions(user2PrivateKey, 0);
@@ -132,7 +136,9 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
       await mempoolAddTransactions(user2PrivateKey, 1);
       await mempoolAddTransactions(user3PrivateKey, 1);
 
-      const txs = await mempool.getTxs(0);
+      const block = await trigger.produceBlock();
+      expectDefined(block);
+      const txs = block.transactions.map((x) => x.tx);
 
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
@@ -150,7 +156,7 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
     });
 
     it("transactions are returned in right order - medium", async () => {
-      expect.assertions(13);
+      expect.assertions(14);
 
       log.setLevel("TRACE");
 
@@ -161,7 +167,9 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
       await mempoolAddTransactions(user2PrivateKey, 1);
       await mempoolAddTransactions(user3PrivateKey, 0);
 
-      const txs = await mempool.getTxs(0);
+      const block = await trigger.produceBlock();
+      expectDefined(block);
+      const txs = block.transactions.map((x) => x.tx);
 
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
@@ -179,7 +187,7 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
     });
 
     it("transactions are returned in right order - harder", async () => {
-      expect.assertions(13);
+      expect.assertions(14);
 
       await mempoolAddTransactions(user1PrivateKey, 0);
       await mempoolAddTransactions(user2PrivateKey, 1);
@@ -188,7 +196,9 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
       await mempoolAddTransactions(user3PrivateKey, 0);
       await mempoolAddTransactions(user1PrivateKey, 1);
 
-      const txs = await mempool.getTxs(0);
+      const block = await trigger.produceBlock();
+      expectDefined(block);
+      const txs = block.transactions.map((x) => x.tx);
 
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
@@ -206,7 +216,7 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
     });
 
     it("transactions are returned in right order - hardest", async () => {
-      expect.assertions(13);
+      expect.assertions(14);
 
       await mempoolAddTransactions(user1PrivateKey, 0);
       await mempoolAddTransactions(user1PrivateKey, 4);
@@ -217,7 +227,9 @@ describe.skip.each([["InMemory", InMemoryDatabase]])(
       await mempoolAddTransactions(user3PrivateKey, 0);
       await mempoolAddTransactions(user1PrivateKey, 1);
 
-      const txs = await mempool.getTxs(0);
+      const block = await trigger.produceBlock();
+      expectDefined(block);
+      const txs = block.transactions.map((x) => x.tx);
 
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
