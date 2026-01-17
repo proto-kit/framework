@@ -1,12 +1,19 @@
+import "reflect-metadata";
 import { Balances } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
-import { TestingAppChain } from "@proto-kit/sdk";
 import { Bool, PrivateKey, UInt64 } from "o1js";
-import "reflect-metadata";
 import { expectDefined, log } from "@proto-kit/common";
 import { afterEach, beforeEach, describe, expect } from "@jest/globals";
+import { Protocol } from "@proto-kit/protocol";
 
-import { PrivateMempool, Sequencer } from "../../src";
+import {
+  AppChain,
+  ManualBlockTrigger,
+  PrivateMempool,
+  Sequencer,
+  VanillaTaskWorkerModules,
+} from "../../src";
+import { testingSequencerModules } from "../TestingSequencer";
 
 import { createTransaction } from "./utils";
 import { Balance } from "./mocks/Balance";
@@ -17,44 +24,61 @@ describe("mempool removal mechanism", () => {
   let mempool: PrivateMempool;
   let runtime: Runtime<{ Balances: typeof Balances; Balance: typeof Balance }>;
   let sequencer: Sequencer<any>;
+  let trigger: ManualBlockTrigger;
 
-  const createAppChain = async (validationEnabled: boolean) => {
-    // eslint-disable-next-line @typescript-eslint/no-shadow
-    const appChain = TestingAppChain.fromRuntime({ Balance });
+  const createAppChain = async () => {
+    const app = AppChain.from({
+      Sequencer: Sequencer.from(testingSequencerModules({})),
+      Protocol: Protocol.from(Protocol.defaultModules()),
+      Runtime: Runtime.from({
+        Balances,
+        Balance,
+      }),
+    });
 
-    appChain.configurePartial({
+    app.configurePartial({
       Runtime: {
         Balance: {},
         Balances: {},
       },
       Protocol: {
-        ...appChain.config.Protocol!,
+        ...Protocol.defaultConfig(),
       },
       Sequencer: {
-        ...appChain.config.Sequencer,
-        Mempool: { validationEnabled },
+        Database: {},
+        BlockTrigger: {},
+        Mempool: {},
+        BatchProducerModule: {},
+        BlockProducerModule: {},
+        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        BaseLayer: {},
+        TaskQueue: {},
+        FeeStrategy: {},
+        SequencerStartupModule: {},
       },
     });
 
-    await appChain.start();
-    runtime = appChain.runtime;
-    sequencer = appChain.sequencer;
+    await app.start();
+    runtime = app.runtime;
+    sequencer = app.sequencer;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     mempool = sequencer.resolve("Mempool");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    trigger = sequencer.resolve("BlockTrigger");
 
-    return appChain;
+    return app;
   };
+
+  beforeEach(async () => {
+    appChain = await createAppChain();
+  }, 60_000);
 
   afterEach(async () => {
     await appChain.close();
   });
 
   describe("block pipeline reaction", () => {
-    beforeEach(async () => {
-      appChain = await createAppChain(false);
-    }, 60_000);
-
     it("check only one is included, other is skipped", async () => {
       log.setLevel("trace");
 
@@ -81,7 +105,7 @@ describe("mempool removal mechanism", () => {
       const txs2 = await mempool.getTxs();
       expect(txs2.length).toBe(2);
 
-      const block = await appChain.produceBlock();
+      const block = await trigger.produceBlock();
 
       expectDefined(block);
       expect(block.transactions).toHaveLength(1);
@@ -113,7 +137,7 @@ describe("mempool removal mechanism", () => {
       const txs2 = await mempool.getTxs();
       expect(txs2.length).toBe(2);
 
-      const block = await appChain.produceBlock();
+      const block = await trigger.produceBlock();
 
       expectDefined(block);
       expect(block.transactions).toHaveLength(1);
@@ -122,11 +146,7 @@ describe("mempool removal mechanism", () => {
     });
   });
 
-  describe("mempool simulation", () => {
-    beforeEach(async () => {
-      appChain = await createAppChain(true);
-    }, 60_000);
-
+  describe("block production reordering", () => {
     it("check tx is removed", async () => {
       await mempool.add(
         createTransaction({
@@ -151,7 +171,7 @@ describe("mempool removal mechanism", () => {
       const txs = await mempool.getTxs();
       expect(txs.length).toBe(2);
 
-      await appChain!.produceBlock();
+      await trigger!.produceBlock();
 
       await mempool.add(
         createTransaction({

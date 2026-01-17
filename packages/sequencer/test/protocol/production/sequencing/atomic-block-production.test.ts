@@ -3,7 +3,7 @@ import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { container } from "tsyringe";
-import { jest } from "@jest/globals";
+import { afterEach, jest } from "@jest/globals";
 import { expectDefined } from "@proto-kit/common";
 
 import {
@@ -74,6 +74,10 @@ describe("atomic block production", () => {
     await app.start(false, container.createChildContainer());
 
     trigger = app.sequencer.resolve("BlockTrigger");
+  });
+
+  afterEach(async () => {
+    await appchain.close();
   });
 
   /**

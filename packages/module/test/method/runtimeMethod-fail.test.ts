@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { Bool, Field, PublicKey, Struct, ZkProgram } from "o1js";
 import { noop } from "@proto-kit/common";
 

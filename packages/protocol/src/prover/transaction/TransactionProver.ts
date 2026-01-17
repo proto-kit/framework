@@ -24,7 +24,7 @@ import {
 import { StateServiceProvider } from "../../state/StateServiceProvider";
 import { RuntimeVerificationKeyRootService } from "../block/services/RuntimeVerificationKeyRootService";
 import { addTransactionToBundle, executeHooks } from "../utils";
-import { SignedTransaction } from "../../model/transaction/SignedTransaction";
+import { AuthorizedTransaction } from "../../model/transaction/AuthorizedTransaction";
 import {
   MethodVKConfigData,
   MinimalVKTreeService,
@@ -115,8 +115,14 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
 
     const { isMessage } = runtimeOutput;
 
+    const authorizedTransaction = new AuthorizedTransaction({
+      transaction,
+      signature,
+      isMessage,
+    });
+
     const beforeTxHookArguments = toBeforeTransactionHookArgument(
-      executionData,
+      authorizedTransaction,
       networkState,
       state
     );
@@ -140,7 +146,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
 
     // Apply afterTransaction hook state transitions
     const afterTxHookArguments = toAfterTransactionHookArgument(
-      executionData,
+      authorizedTransaction,
       networkState,
       state,
       runtimeOutput
@@ -165,14 +171,10 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
       "Transactions provided in AppProof and BlockProof do not match"
     );
 
-    // Check transaction signature
-    new SignedTransaction({
-      transaction,
-      signature,
-    })
-      .validateSignature()
-      .or(isMessage)
-      .assertTrue("Transaction signature not valid");
+    // Check transaction signature or isMessage
+    authorizedTransaction
+      .validateAuthorization()
+      .assertTrue("Transaction authorization not valid");
 
     // Validate layout of transaction witness
     transaction.assertTransactionType(isMessage);
@@ -210,7 +212,10 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     isMessage: Bool
   ) {
     const { batch, rawStatus } = await executeHooks(
-      hookArguments,
+      {
+        transaction: hookArguments.transaction.transaction,
+        networkState: hookArguments.networkState,
+      },
       `${type}Transaction`,
       async () => {
         for (const module of this.transactionHooks) {

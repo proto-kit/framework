@@ -6,7 +6,7 @@ export * from "./model/StateTransitionProvableBatch";
 export * from "./model/Option";
 export * from "./model/Path";
 export * from "./model/network/NetworkState";
-export * from "./model/transaction/SignedTransaction";
+export * from "./model/transaction/AuthorizedTransaction";
 export * from "./model/transaction/RuntimeTransaction";
 export * from "./model/transaction/ValueOption";
 export * from "./model/MethodPublicOutput";

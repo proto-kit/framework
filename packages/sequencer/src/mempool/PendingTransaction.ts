@@ -10,7 +10,7 @@ import {
 import {
   PublicKeyOption,
   RuntimeTransaction,
-  SignedTransaction,
+  AuthorizedTransaction,
   UInt64Option,
 } from "@proto-kit/protocol";
 
@@ -82,7 +82,7 @@ export class UnsignedTransaction implements UnsignedTransactionBody {
   }
 
   public getSignatureData(): Field[] {
-    return SignedTransaction.getSignatureData({
+    return AuthorizedTransaction.getSignatureData({
       nonce: this.nonce,
       methodId: this.methodId,
       argsHash: this.argsHash(),
@@ -186,10 +186,11 @@ export class PendingTransaction extends UnsignedTransaction {
     };
   }
 
-  public toProtocolTransaction(): SignedTransaction {
-    return new SignedTransaction({
+  public toProtocolTransaction(): AuthorizedTransaction {
+    return new AuthorizedTransaction({
       transaction: this.toRuntimeTransaction(),
       signature: this.signature,
+      isMessage: Bool(this.isMessage),
     });
   }
 }

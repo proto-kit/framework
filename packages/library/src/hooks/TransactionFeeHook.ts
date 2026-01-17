@@ -126,20 +126,15 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
    *
    * @param executionData
    */
-  public async beforeTransaction(
-    executionData: BeforeTransactionHookArguments
-  ): Promise<void> {
+  public async beforeTransaction({
+    transaction: { transaction },
+  }: BeforeTransactionHookArguments): Promise<void> {
     const feeConfig = Provable.witness(MethodFeeConfigData, () =>
-      this.feeAnalyzer.getFeeConfig(
-        executionData.transaction.methodId.toBigInt()
-      )
+      this.feeAnalyzer.getFeeConfig(transaction.methodId.toBigInt())
     );
     const witness = Provable.witness(
       RuntimeFeeAnalyzerService.getWitnessType(),
-      () =>
-        this.feeAnalyzer.getWitness(
-          executionData.transaction.methodId.toBigInt()
-        )
+      () => this.feeAnalyzer.getWitness(transaction.methodId.toBigInt())
     );
 
     const root = Field(this.feeAnalyzer.getRoot());
@@ -147,14 +142,14 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
 
     root.assertEquals(calculatedRoot, errors.invalidFeeTreeRoot());
     feeConfig.methodId.assertEquals(
-      executionData.transaction.methodId,
+      transaction.methodId,
       errors.invalidFeeConfigMethodId()
     );
 
     const fee = this.getFee(feeConfig);
 
     await this.transferFee(
-      executionData.transaction.sender,
+      transaction.sender,
       UInt64.Unsafe.fromField(fee.value)
     );
   }
@@ -163,23 +158,26 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     noop();
   }
 
-  public async removeTransactionWhen(
-    args: BeforeTransactionHookArguments
-  ): Promise<boolean> {
+  public async removeTransactionWhen({
+    transaction,
+  }: BeforeTransactionHookArguments): Promise<boolean> {
     const feeConfig = this.feeAnalyzer.getFeeConfig(
-      args.transaction.methodId.toBigInt()
+      transaction.transaction.methodId.toBigInt()
     );
 
     const fee = this.getFee(feeConfig);
 
     const tokenId = new TokenId(this.config.tokenId);
-    const feeRecipient = PublicKey.fromBase58(this.config.feeRecipient);
 
     const balanceAvailable = await this.balances.balances.get({
       tokenId,
-      address: feeRecipient,
+      address: transaction.transaction.sender.value,
     });
 
-    return balanceAvailable.orElse(Balance.from(0)).lessThan(fee).toBoolean();
+    return balanceAvailable
+      .orElse(Balance.from(0))
+      .lessThan(fee)
+      .or(transaction.isMessage)
+      .toBoolean();
   }
 }

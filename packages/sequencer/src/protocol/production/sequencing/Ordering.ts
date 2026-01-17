@@ -78,7 +78,6 @@ export class Ordering {
     if (result.hooksStatus.toBoolean() || result.tx.isMessage) {
       // Included
       this.ordered += 1;
-      this.userTxOffset += result.tx.isMessage ? 0 : 1;
       this.results.push({
         status: "included",
         result,
@@ -114,6 +113,7 @@ export class Ordering {
       const space = this.sizeLimit - this.ordered;
       if (space > 0) {
         const newTxs = await this.mempool.getTxs(this.userTxOffset, space);
+        this.userTxOffset += space;
         this.transactionQueue.push(...newTxs);
       }
     }
