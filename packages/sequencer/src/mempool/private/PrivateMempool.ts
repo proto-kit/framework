@@ -78,11 +78,11 @@ export class PrivateMempool extends SequencerModule implements Mempool {
 
   @trace("mempool.get_txs")
   public async getTxs(
-    offset: number,
+    offset?: number,
     limit?: number
   ): Promise<PendingTransaction[]> {
     const txs = await this.transactionStorage.getPendingUserTransactions(
-      offset,
+      offset ?? 0,
       limit
     );
 

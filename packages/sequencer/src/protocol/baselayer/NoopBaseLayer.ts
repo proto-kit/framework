@@ -11,7 +11,7 @@ import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { OutgoingMessageAdapter } from "../../settlement/messages/outgoing/OutgoingMessageCollector";
 import { Block } from "../../storage/model/Block";
 
-import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
+import { StaticBaseLayer, StaticBaseLayerDependencyRecord } from "./BaseLayer";
 
 class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   async fetchPendingMessages(
@@ -40,7 +40,7 @@ class NoopMessageAdapter implements OutgoingMessageAdapter<undefined> {
 }
 
 @sequencerModule()
-export class NoopBaseLayer extends SequencerModule implements BaseLayer {
+export class NoopBaseLayer extends SequencerModule {
   public async blockProduced(): Promise<void> {
     noop();
   }
@@ -49,7 +49,7 @@ export class NoopBaseLayer extends SequencerModule implements BaseLayer {
     noop();
   }
 
-  public dependencies(): BaseLayerDependencyRecord {
+  public static dependencies(): StaticBaseLayerDependencyRecord {
     return {
       OutgoingMessageAdapter: {
         useClass: NoopMessageAdapter,
@@ -60,3 +60,5 @@ export class NoopBaseLayer extends SequencerModule implements BaseLayer {
     };
   }
 }
+
+NoopBaseLayer satisfies StaticBaseLayer;

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { expect } from "@jest/globals";
+import { afterAll, expect } from "@jest/globals";
 import { Protocol } from "@proto-kit/protocol";
 import { Runtime } from "@proto-kit/module";
 import { Bool, Field, PrivateKey, UInt64 } from "o1js";
@@ -113,6 +113,10 @@ describe.each([["InMemory", InMemoryDatabase]])(
       provenState = sequencer.resolve("AsyncStateService");
     });
 
+    afterAll(async () => {
+      await appChain.close();
+    });
+
     it("test unproven block prod", async () => {
       await appChain.sequencer.resolve("Mempool").add(
         createTransaction({
@@ -200,7 +204,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       });
       await mempool.add(tx);
 
-      const txs = await txStorage.getPendingUserTransactions();
+      const txs = await txStorage.getPendingUserTransactions(0);
 
       expect(txs).toHaveLength(1);
       expect(txs[0].hash().toString()).toStrictEqual(tx.hash().toString());
@@ -208,7 +212,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await sequencer.resolve("BlockTrigger").produceBlock();
 
       await expect(
-        txStorage.getPendingUserTransactions()
+        txStorage.getPendingUserTransactions(0)
       ).resolves.toHaveLength(0);
     }, 60_000);
   }
