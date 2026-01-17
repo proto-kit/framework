@@ -20,7 +20,7 @@ import {
   Path,
   Protocol,
   PROTOKIT_PREFIXES,
-  hashNetworkState,
+  ProvableNetworkState,
 } from "@proto-kit/protocol";
 import { Bool, Field, PrivateKey, PublicKey, Struct, UInt64 } from "o1js";
 import "reflect-metadata";
@@ -232,8 +232,20 @@ export function testBlockProduction<
     expectDefined(latestBlockWithResult);
     expectDefined(latestBlockWithResult.result);
     expect(
-      hashNetworkState(latestBlockWithResult.result.afterNetworkState)
-    ).toStrictEqual(hashNetworkState(batch!.toNetworkState));
+      new ProvableNetworkState(
+        ProvableNetworkState.fromJSON(
+          latestBlockWithResult.result.afterNetworkState
+        )
+      )
+        .hash()
+        .toString()
+    ).toStrictEqual(
+      new ProvableNetworkState(
+        ProvableNetworkState.fromJSON(batch!.toNetworkState)
+      )
+        .hash()
+        .toString()
+    );
 
     // Check if the batchstorage has received the block
     const batchStorage = sequencer.resolve("BatchStorage") as BatchStorage;
