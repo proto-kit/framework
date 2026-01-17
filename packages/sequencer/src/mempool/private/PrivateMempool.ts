@@ -15,8 +15,15 @@ import { IncomingMessagesService } from "../../settlement/messages/IncomingMessa
 import { MempoolSorting } from "../sorting/MempoolSorting";
 import { DefaultMempoolSorting } from "../sorting/DefaultMempoolSorting";
 
+type PrivateMempoolConfig = {
+  type?: "hybrid" | "private" | "based";
+};
+
 @sequencerModule()
-export class PrivateMempool extends SequencerModule implements Mempool {
+export class PrivateMempool
+  extends SequencerModule<PrivateMempoolConfig>
+  implements Mempool
+{
   public readonly events = new EventEmitter<MempoolEvents>();
 
   private readonly mempoolSorting: MempoolSorting;
@@ -33,6 +40,10 @@ export class PrivateMempool extends SequencerModule implements Mempool {
   ) {
     super();
     this.mempoolSorting = mempoolSorting ?? new DefaultMempoolSorting();
+  }
+
+  private type() {
+    return this.config.type ?? "hybrid";
   }
 
   public async length(): Promise<number> {
@@ -81,6 +92,10 @@ export class PrivateMempool extends SequencerModule implements Mempool {
     offset?: number,
     limit?: number
   ): Promise<PendingTransaction[]> {
+    if (this.type() === "based") {
+      return [];
+    }
+
     let txs = await this.transactionStorage.getPendingUserTransactions(
       offset ?? 0,
       limit
@@ -95,6 +110,9 @@ export class PrivateMempool extends SequencerModule implements Mempool {
 
   @trace("mempool.get_mandatory_txs")
   public async getMandatoryTxs(): Promise<PendingTransaction[]> {
+    if (this.type() === "private") {
+      return [];
+    }
     return (await this.messageService?.getPendingMessages()) ?? [];
   }
 
