@@ -17,7 +17,7 @@ export class ProtocolStateTestHook extends ProvableTransactionHook {
   public async beforeTransaction(
     executionData: BeforeTransactionHookArguments
   ): Promise<void> {
-    const { methodId } = executionData.transaction;
+    const { methodId } = executionData.transaction.transaction;
     const invocations = await this.methodIdInvocations.get(methodId);
     await this.methodIdInvocations.set(
       methodId,

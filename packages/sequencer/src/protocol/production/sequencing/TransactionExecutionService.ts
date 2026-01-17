@@ -274,7 +274,7 @@ export class TransactionExecutionService {
           );
         }),
       {
-        transaction: hookArguments.transaction,
+        transaction: hookArguments.transaction.transaction,
         networkState: hookArguments.networkState,
       },
       runSimulated
