@@ -60,33 +60,15 @@ export class InMemoryBlockExplorer
       return undefined;
     }
 
-    // Convert block.transactions to ClientTransaction format
-    const clientTransactions: ClientTransaction[] = block.transactions.map(
-      (txResult) => ({
-        tx: {
-          hash: txResult.tx.hash,
-          methodId: txResult.tx.methodId,
-          nonce: txResult.tx.nonce,
-          sender: txResult.tx.sender,
-          argsFields: txResult.tx.argsFields,
-          auxiliaryData: txResult.tx.auxiliaryData,
-          signature: txResult.tx.signature,
-          isMessage: txResult.tx.isMessage,
-        },
-        status: txResult.status,
-        statusMessage: txResult.statusMessage,
-      })
-    );
+    const clientTransactions: ClientTransaction[] = block.transactions;
 
     return {
-      hash: block.hash,
+      ...block,
       previousBlockHash:
         block.previousBlockHash !== undefined
           ? block.previousBlockHash
           : undefined,
-      height: block.height,
       transactions: clientTransactions,
-      transactionsHash: block.transactionsHash,
     };
   }
 }

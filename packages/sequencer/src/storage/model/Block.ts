@@ -144,8 +144,8 @@ export const BlockWithResult = {
       },
       result: {
         afterNetworkState: ProvableNetworkState.toJSON(ProvableNetworkState.empty()),
-        stateRoot: String(LinkedMerkleTree.EMPTY_ROOT),
-        blockHashRoot: String(BlockHashMerkleTree.EMPTY_ROOT),
+        stateRoot: FieldString(LinkedMerkleTree.EMPTY_ROOT),
+        blockHashRoot: FieldString(BlockHashMerkleTree.EMPTY_ROOT),
         afterBlockStateTransitions: [],
         blockHashWitness: BlockHashMerkleTreeWitness.toJSON(
           BlockHashMerkleTree.WITNESS.dummy()
