@@ -11,11 +11,9 @@ import { LinkedMerkleTree } from "@proto-kit/common";
 
 import {
   PendingTransaction,
-  PendingTransactionJSONType,
 } from "../../mempool/PendingTransaction";
 import {
   UntypedStateTransition,
-  UntypedStateTransitionJson,
 } from "../../protocol/production/helpers/UntypedStateTransition";
 import { FieldString } from "../../helpers/utils";
 
@@ -27,24 +25,6 @@ export interface StateTransitionBatch {
 export interface TransactionExecutionResult {
   tx: PendingTransaction;
   stateTransitions: StateTransitionBatch[];
-  status: Bool;
-  hooksStatus: Bool;
-  statusMessage?: string;
-  events: {
-    eventName: string;
-    data: Field[];
-    source: "afterTxHook" | "beforeTxHook" | "runtime";
-  }[];
-}
-
-export interface StateTransitionBatchJson {
-  stateTransitions: UntypedStateTransitionJson[];
-  applied: boolean;
-}
-
-export interface TransactionExecutionResultJson {
-  tx: PendingTransactionJSONType;
-  stateTransitions: StateTransitionBatchJson[];
   status: boolean;
   hooksStatus: boolean;
   statusMessage?: string;
@@ -66,7 +46,7 @@ export interface Block {
     during: NetworkState;
   };
 
-  transactions: TransactionExecutionResultJson[];
+  transactions: TransactionExecutionResult[];
   transactionsHash: FieldString;
 
   fromEternalTransactionsHash: FieldString;
@@ -76,7 +56,7 @@ export interface Block {
   toEternalTransactionsHash: FieldString;
   toMessagesHash: FieldString;
 
-  beforeBlockStateTransitions: UntypedStateTransitionJson[];
+  beforeBlockStateTransitions: UntypedStateTransition[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -99,7 +79,7 @@ export interface BlockResult {
   stateRoot: FieldString;
   blockHashRoot: FieldString;
   afterNetworkState: NetworkState;
-  afterBlockStateTransitions: UntypedStateTransitionJson[];
+  afterBlockStateTransitions: UntypedStateTransition[];
   blockHashWitness: BlockHashMerkleTreeWitnessJson;
 }
 
@@ -155,68 +135,3 @@ export const BlockWithResult = {
       },
     }) satisfies BlockWithResult,
 };
-
-export function txResultToJson(
-  txResult: TransactionExecutionResult
-): TransactionExecutionResultJson {
-  return {
-    tx: txResult.tx.toJSON(),
-    stateTransitions: txResult.stateTransitions.map((batch) => ({
-      stateTransitions: batch.stateTransitions.map((st) => st.toJSON()),
-      applied: batch.applied,
-    })),
-    status: txResult.status.toBoolean(),
-    hooksStatus: txResult.hooksStatus.toBoolean(),
-    statusMessage: txResult.statusMessage,
-    events: txResult.events.map((e) => ({
-      eventName: e.eventName,
-      data: e.data.map((f) => f.toString()),
-      source: e.source,
-    })),
-  };
-}
-
-export function txResultFromJson(
-  json: TransactionExecutionResultJson
-): TransactionExecutionResult {
-  return {
-    tx: PendingTransaction.fromJSON(json.tx),
-    stateTransitions: json.stateTransitions.map((batch) => ({
-      stateTransitions: batch.stateTransitions.map((st) =>
-        UntypedStateTransition.fromJSON(st)
-      ),
-      applied: batch.applied,
-    })),
-    status: Bool(json.status),
-    hooksStatus: Bool(json.hooksStatus),
-    statusMessage: json.statusMessage,
-    events: json.events.map((e) => ({
-      eventName: e.eventName,
-      data: e.data.map((f) => Field(f)),
-      source: e.source,
-    })),
-  };
-}
-
-export function STBatchToJson(
-  stBatch: StateTransitionBatch
-): StateTransitionBatchJson {
-  return {
-    stateTransitions: stBatch.stateTransitions.map(
-      (untypedST: UntypedStateTransition) => untypedST.toJSON()
-    ),
-    applied: stBatch.applied,
-  };
-}
-
-export function STBatchFromJson(
-  stBatch: StateTransitionBatchJson
-): StateTransitionBatch {
-  return {
-    stateTransitions: stBatch.stateTransitions.map(
-      (untypedST: UntypedStateTransitionJson) =>
-        UntypedStateTransition.fromJSON(untypedST)
-    ),
-    applied: stBatch.applied,
-  };
-}
