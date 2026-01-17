@@ -1,15 +1,30 @@
-import { Bool, Field } from "o1js";
+import { Bool, Field, Poseidon } from "o1js";
 import { Option, OptionBase } from "@proto-kit/protocol";
 
 /**
  * Option facilitating in-circuit values that may or may not exist.
  */
-export class UntypedOption extends OptionBase {
+export class UntypedOption {
+  public constructor(
+    public isSome: boolean,
+    public value: string[],
+    public isForcedSome: boolean
+  ) {}
+
+  public get treeValue() {
+    const treeValue = Poseidon.hash(this.encodeValueToFields());
+
+    if(this.isSome && !this.isForcedSome){
+      return treeValue.toString();
+    }
+    return "0";
+  } 
+
   public static fromOption<Value>(option: Option<Value> | Option<Field>) {
     return new UntypedOption(
-      option.isSome,
-      option.encodeValueToFields(),
-      option.isForcedSome
+      option.isSome.toBoolean(),
+      option.encodeValueToFields().map((f) => f.toString()),
+      option.isForcedSome.toBoolean()
     );
   }
 
@@ -22,26 +37,22 @@ export class UntypedOption extends OptionBase {
     value: string[];
     isForcedSome: boolean;
   }): UntypedOption {
-    return new UntypedOption(
-      Bool(isSome),
-      value.map((fieldString) => Field(fieldString)),
-      Bool(isForcedSome)
-    );
+    return new UntypedOption(isSome, value, isForcedSome);
   }
 
-  public constructor(
-    isSome: Bool,
-    public value: Field[],
-    enforceEmpty: Bool
-  ) {
-    super(isSome, enforceEmpty);
+  public toJSON(){
+    return {
+        isSome: this.isSome,
+        value: this.value,
+        isForcedSome: this.isForcedSome
+    };
   }
 
   public clone() {
     return new UntypedOption(this.isSome, this.value, this.isForcedSome);
   }
 
-  protected encodeValueToFields(): Field[] {
-    return this.value;
+  public encodeValueToFields(): Field[] {
+    return this.value.map((fieldString) => Field(fieldString))
   }
 }

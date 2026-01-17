@@ -1,21 +1,7 @@
 import { Field } from "o1js";
-import { ProvableStateTransition, StateTransition } from "@proto-kit/protocol";
+import { ProvableOption, ProvableStateTransition, StateTransition } from "@proto-kit/protocol";
 
 import { UntypedOption } from "./UntypedOption";
-
-export interface UntypedStateTransitionJson {
-  path: string;
-  from: {
-    isSome: boolean;
-    isForcedSome: boolean;
-    value: string[];
-  };
-  to: {
-    isSome: boolean;
-    isForcedSome: boolean;
-    value: string[];
-  };
-}
 
 /**
  * Generic state transition that constraints the current method circuit
@@ -24,7 +10,7 @@ export interface UntypedStateTransitionJson {
 export class UntypedStateTransition {
   public static fromStateTransition<Value>(st: StateTransition<Value>) {
     return new UntypedStateTransition(
-      st.path,
+      st.path.toString(),
       UntypedOption.fromOption(st.fromValue),
       UntypedOption.fromOption(st.toValue)
     );
@@ -40,45 +26,31 @@ export class UntypedStateTransition {
     to: Parameters<typeof UntypedOption.fromJSON>[0];
   }): UntypedStateTransition {
     return new UntypedStateTransition(
-      Field(path),
+      path,
       UntypedOption.fromJSON(from),
       UntypedOption.fromJSON(to)
     );
   }
 
   public constructor(
-    public path: Field,
-    public fromValue: UntypedOption,
-    public toValue: UntypedOption
+    public path: string,
+    public from: UntypedOption,
+    public to: UntypedOption
   ) {}
-
-  public get from() {
-    const from = this.fromValue.clone();
-    from.forceSome();
-    return from;
-  }
-
-  public get to() {
-    return this.toValue.clone();
-  }
-
-  /**
-   * Converts a StateTransition to a ProvableStateTransition,
-   * while enforcing the 'from' property to be 'Some' in all cases.
-   */
-  public toProvable(): ProvableStateTransition {
-    return new ProvableStateTransition({
-      path: this.path,
-      from: this.from.toProvable(),
-      to: this.to.toProvable(),
-    });
-  }
 
   public toJSON() {
     return {
-      path: this.path.toString(),
-      from: this.fromValue.toJSON(),
-      to: this.toValue.toJSON(),
+      path: this.path,
+      from: this.from.toJSON(),
+      to: this.to.toJSON(),
     };
+  }
+
+  public toProvable(): ProvableStateTransition {
+    return new ProvableStateTransition({
+      path: Field(this.path),
+      from: new ProvableOption(ProvableOption.fromFields(this.from.value.map(Field))),
+      to: new ProvableOption(ProvableOption.fromFields(this.to.value.map(Field)))
+    });
   }
 }
