@@ -8,8 +8,7 @@ import {
 import {
   PendingTransaction,
 } from "../PendingTransaction";
-import { Field, Poseidon, PublicKey, Signature, UInt64 } from "o1js";
-import { SignedTransaction } from "packages/protocol/dist";
+import { Signature} from "o1js";
 
 @injectable()
 export class TransactionValidator {
@@ -52,16 +51,14 @@ export class TransactionValidator {
     }
 
     const signature = Signature.fromJSON(tx.data.signature)
-    const signatureData = SignedTransaction.getSignatureData({
-      nonce: UInt64.from(tx.data.nonce),
-      methodId: Field(tx.data.methodId),
-      argsHash: Poseidon.hash(tx.data.argsFields.map((f) => Field(f))),
-    });
+    const runtimeTx = tx.toRuntimeTransaction();
+
 
     const validSignature = signature.verify(
-      PublicKey.fromBase58(tx.data.sender),
-      signatureData
+      runtimeTx.sender.value,
+      [runtimeTx.methodId, ...runtimeTx.nonce.value.value.toFields(), runtimeTx.argsHash]
     );
+
 
     if (!validSignature.toBoolean()) {
       return [false, "Signature provided is not valid"];
