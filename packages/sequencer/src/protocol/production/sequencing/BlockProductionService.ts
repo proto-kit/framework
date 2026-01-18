@@ -20,7 +20,7 @@ import { match } from "ts-pattern";
 import {
   Block,
   BlockWithResult,
-  TransactionExecutionResultJson,
+  TransactionExecutionResult,
 } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { PendingTransactionJSONType } from "../../../mempool/PendingTransaction";
@@ -39,7 +39,7 @@ import {
 
 function isIncludedTxs(
   x: TransactionExecutionResultStatus
-): x is { status: "included"; result: TransactionExecutionResultJson } {
+): x is { status: "included"; result: TransactionExecutionResult } {
   return x.status === "included";
 }
 

@@ -12,7 +12,7 @@ import { toStateTransitionsHash } from "@proto-kit/module";
 import { injectable } from "tsyringe";
 
 import {
-  TransactionExecutionResultJson,
+  TransactionExecutionResult,
   STBatchFromJson,
 } from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
@@ -102,7 +102,7 @@ export class TransactionTracingService {
 
   private appendTransactionToState(
     previousState: BlockTracingState,
-    transaction: TransactionExecutionResultJson
+    transaction: TransactionExecutionResult
   ) {
     const tx = PendingTransaction.fromJSON(transaction.tx);
     // TODO Remove this call and instead reuse results from sequencing
@@ -124,7 +124,7 @@ export class TransactionTracingService {
   }
 
   private createRuntimeProofParams(
-    tx: TransactionExecutionResultJson,
+    tx: TransactionExecutionResult,
     networkState: ProvableNetworkState
   ): RuntimeProofParametersJson {
     const stBatch = STBatchFromJson(tx.stateTransitions[1]);
@@ -139,7 +139,7 @@ export class TransactionTracingService {
 
   private async traceTransaction(
     previousState: BlockTracingState,
-    transaction: TransactionExecutionResultJson
+    transaction: TransactionExecutionResult
   ) {
     const stBatches = transaction.stateTransitions.map(STBatchFromJson);
 
@@ -167,7 +167,7 @@ export class TransactionTracingService {
 
   public async createSingleTransactionTrace(
     previousState: BlockTracingState,
-    transaction: TransactionExecutionResultJson
+    transaction: TransactionExecutionResult
   ): Promise<[BlockTracingState, TransactionTrace]> {
     const publicInput = this.getTransactionProofPublicInput(previousState);
 
@@ -201,8 +201,8 @@ export class TransactionTracingService {
 
   public async createMultiTransactionTrace(
     previousState: BlockTracingState,
-    transaction1: TransactionExecutionResultJson,
-    transaction2: TransactionExecutionResultJson
+    transaction1: TransactionExecutionResult,
+    transaction2: TransactionExecutionResult
   ): Promise<[BlockTracingState, TransactionTrace]> {
     const publicInput = this.getTransactionProofPublicInput(previousState);
 

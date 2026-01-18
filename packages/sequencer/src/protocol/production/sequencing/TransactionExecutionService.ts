@@ -42,8 +42,7 @@ import {
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
   StateTransitionBatch,
-  TransactionExecutionResultJson,
-  STBatchToJson,
+  TransactionExecutionResult,
 } from "../../../storage/model/Block";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { trace } from "../../../logging/trace";
@@ -205,7 +204,7 @@ function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
 
 export type TransactionExecutionResultStatus =
   | {
-      result: TransactionExecutionResultJson;
+      result: TransactionExecutionResult;
       status: "included";
     }
   | { tx: PendingTransactionJSONType; status: "skipped" }
@@ -419,7 +418,7 @@ export class TransactionExecutionService {
     state: BlockTrackers,
     newState: BlockTrackers
   ): Promise<{
-    result: TransactionExecutionResultJson;
+    result: TransactionExecutionResult;
     shouldRemove: boolean;
   }> {
     // TODO Use RecordingStateService -> async asProver needed
@@ -555,7 +554,7 @@ export class TransactionExecutionService {
           afterTxHookResult.statusMessage ??
           runtimeResult.statusMessage,
 
-        stateTransitions: stateTransitions.map(STBatchToJson),
+        stateTransitions: stateTransitions,
         events: beforeHookEvents
           .concat(runtimeResultEvents, afterHookEvents)
           .map((e) => ({
