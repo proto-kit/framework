@@ -13,7 +13,6 @@ import { injectable } from "tsyringe";
 
 import {
   TransactionExecutionResult,
-  STBatchFromJson,
 } from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import type { RuntimeProofParametersJson } from "../tasks/RuntimeProvingTask";
@@ -48,16 +47,16 @@ export function collectStartingState(
     // Filter distinct
     .filter(
       (st, index, array) =>
-        array.findIndex((st2) => st2.path.toBigInt() === st.path.toBigInt()) ===
+        array.findIndex((st2) => st2.path === st.path) ===
         index
     )
     // Filter out STs that have isSome: false as precondition, because this means
     // "state hasn't been set before" and has to correlate to a precondition on Field(0)
     // and for that the state has to be undefined
-    .filter((st) => st.fromValue.isSome.toBoolean())
+    .filter((st) => st.from.isSome)
     .map((st) => [
-      st.path.toString(),
-      st.fromValue.value.map((f: Field) => f.toString()),
+      st.path,
+      st.from.value,
     ]);
 
   return Object.fromEntries(stateEntries);
@@ -112,7 +111,7 @@ export class TransactionTracingService {
       tx.toRuntimeTransaction()
     );
 
-    const stBatches = transaction.stateTransitions.map(STBatchFromJson);
+    const stBatches = transaction.stateTransitions;
     stBatches.forEach((batch) => {
       newState.pendingSTBatches.push({
         applied: Bool(batch.applied),
@@ -127,7 +126,7 @@ export class TransactionTracingService {
     tx: TransactionExecutionResult,
     networkState: ProvableNetworkState
   ): RuntimeProofParametersJson {
-    const stBatch = STBatchFromJson(tx.stateTransitions[1]);
+    const stBatch = tx.stateTransitions[1];
     const startingState = collectStartingState(stBatch.stateTransitions);
 
     return {
@@ -141,7 +140,7 @@ export class TransactionTracingService {
     previousState: BlockTracingState,
     transaction: TransactionExecutionResult
   ) {
-    const stBatches = transaction.stateTransitions.map(STBatchFromJson);
+    const stBatches = transaction.stateTransitions;
 
     const beforeHookStartingState = collectStartingState(
       stBatches[0].stateTransitions.flat()

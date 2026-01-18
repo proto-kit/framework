@@ -188,9 +188,7 @@ export class BlockProductionService {
         before: lastResult.afterNetworkState,
         during: ProvableNetworkState.toJSON(networkState),
       },
-      beforeBlockStateTransitions: beforeBlockStateTransitions.map(
-        (st: UntypedStateTransition) => st.toJSON()
-      ),
+      beforeBlockStateTransitions: beforeBlockStateTransitions
     };
 
     const hash = Block.hash(block).toString();

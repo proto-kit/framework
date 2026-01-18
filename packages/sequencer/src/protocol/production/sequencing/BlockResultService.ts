@@ -42,7 +42,7 @@ function collectOrderedStateDiff(
 ): StateRecord {
   return stateTransitions.reduce<StateRecord>((state, st) => {
     if (st.to.isSome) {
-      state[st.path.toString()] = st.toValue.value;
+      state[st.path] = st.to.value;
     }
     return state;
   }, {});
@@ -251,7 +251,7 @@ export class BlockResultService {
         blockHashWitness: BlockHashMerkleTreeWitness.toJSON(blockHashWitness),
 
         afterBlockStateTransitions: stateTransitions.map((st) =>
-          UntypedStateTransition.fromStateTransition(st).toJSON()
+          UntypedStateTransition.fromStateTransition(st)
         ),
         blockHash: FieldString(block.hash),
       },
