@@ -194,17 +194,3 @@ export class PairProofTaskSerializer<PublicInputType, PublicOutputType>
     );
   }
 }
-
-/**
- * Type for serialized {@link Field}.
- */
-export type FieldString = string;
-/**
- *
- * @param value Value to be converted to {@link Field}.
- * @returns
- */
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FieldString = (
-  value: number | string | bigint | Field
-): FieldString => String(value);

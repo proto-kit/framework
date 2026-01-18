@@ -28,7 +28,7 @@ import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
-import { FieldString } from "../../../helpers/utils";
+import { FieldString } from "@proto-kit/common";
 
 import {
   BlockTrackers,

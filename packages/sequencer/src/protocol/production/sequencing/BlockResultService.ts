@@ -33,7 +33,7 @@ import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
-import { FieldString } from "../../../helpers/utils";
+import { FieldString } from "@proto-kit/common";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
 

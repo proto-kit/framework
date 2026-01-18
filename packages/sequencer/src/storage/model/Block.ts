@@ -15,7 +15,7 @@ import {
 import {
   UntypedStateTransition,
 } from "../../protocol/production/helpers/UntypedStateTransition";
-import { FieldString } from "../../helpers/utils";
+import { FieldString } from "@proto-kit/common";
 
 export interface StateTransitionBatch {
   stateTransitions: UntypedStateTransition[];

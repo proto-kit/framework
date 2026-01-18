@@ -13,7 +13,7 @@ import {
   SignedTransaction,
   UInt64Option,
 } from "@proto-kit/protocol";
-import { FieldString } from "../helpers/utils";
+import { FieldString } from "@proto-kit/common";
 
 export type UnsignedTransactionBody = {
   methodId: Field;
