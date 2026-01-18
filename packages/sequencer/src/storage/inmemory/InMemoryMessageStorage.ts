@@ -1,6 +1,6 @@
 import { injectable } from "tsyringe";
 
-import { PendingTransactionJSONType } from "../../mempool/PendingTransaction";
+import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { MessageStorage } from "../repositories/MessageStorage";
 
 @injectable()
@@ -8,7 +8,7 @@ export class InMemoryMessageStorage implements MessageStorage {
   private messages: {
     [key: string]: {
       toMessagesHash: string;
-      messages: PendingTransactionJSONType[];
+      messages: PendingTransaction[];
     };
   } = {};
 
@@ -16,7 +16,7 @@ export class InMemoryMessageStorage implements MessageStorage {
     | {
         fromMessagesHash: string;
         toMessagesHash: string;
-        messages: PendingTransactionJSONType[];
+        messages: PendingTransaction[];
       }
     | undefined
   > {
@@ -37,7 +37,7 @@ export class InMemoryMessageStorage implements MessageStorage {
     const batches: {
       fromMessagesHash: string;
       toMessagesHash: string;
-      messages: PendingTransactionJSONType[];
+      messages: PendingTransaction[];
     }[] = [];
     let currentHash = fromMessagesHash;
 
@@ -61,7 +61,7 @@ export class InMemoryMessageStorage implements MessageStorage {
   public async pushMessages(
     fromMessagesHash: string,
     toMessagesHash: string,
-    messages: PendingTransactionJSONType[]
+    messages: PendingTransaction[]
   ): Promise<void> {
     this.messages[fromMessagesHash] = {
       messages,

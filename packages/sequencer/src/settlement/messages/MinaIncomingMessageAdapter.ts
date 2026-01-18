@@ -26,7 +26,6 @@ import {
 
 import {
   PendingTransaction,
-  PendingTransactionJSONType,
 } from "../../mempool/PendingTransaction";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
@@ -70,7 +69,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
   private async mapActionToTransactions(
     tx: RuntimeTransaction,
     fieldArgs: Field[]
-  ): Promise<PendingTransactionJSONType> {
+  ): Promise<PendingTransaction> {
     const { methodId } = tx;
 
     const methodPointer = this.runtime.methodIdResolver.getMethodNameFromId(
@@ -90,16 +89,25 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     const args = await methodEncoder.decode(fieldArgs, []);
 
     const { fields, auxiliary } = methodEncoder.encode(args);
+    const signature = Signature.create(PrivateKey.random(), [Field(0)]);
+    const hash = Poseidon.hash([
+      methodId,
+      ...EMPTY_PUBLICKEY.toFields(),
+      ...UInt64.zero.toFields(),
+      Poseidon.hash(fields),
+    ]).toString();
+
 
     return new PendingTransaction({
-      methodId,
-      sender: EMPTY_PUBLICKEY,
-      nonce: UInt64.zero,
-      signature: Signature.create(PrivateKey.random(), [Field(0)]),
-      argsFields: fields,
+      hash,
+      methodId: methodId.toString(),
+      sender: EMPTY_PUBLICKEY.toBase58(),
+      nonce: UInt64.zero.toString(),
+      signature: { r: signature.r.toJSON(), s: signature.s.toJSON() },
+      argsFields: fields.map((f) => f.toString()),
       auxiliaryData: auxiliary,
       isMessage: true,
-    }).toJSON();
+    });
   }
 
   public async fetchPendingMessages(
@@ -112,7 +120,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
   ): Promise<{
     from: string;
     to: string;
-    messages: PendingTransactionJSONType[];
+    messages: PendingTransaction[];
   }> {
     const { network } = this.baseLayer;
     if (network === undefined) {

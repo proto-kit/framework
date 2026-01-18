@@ -49,7 +49,7 @@ export class TransactionObject {
       isMessage,
     } = pt.toJSON();
     return new TransactionObject(
-      pt.hash().toString(),
+      pt.data.hash,
       methodId,
       sender,
       nonce,
@@ -125,10 +125,10 @@ export class MempoolResolver extends GraphqlModule {
     description: "Adds a transaction to the mempool and validates it",
   })
   public async submitTx(@Arg("tx") tx: TransactionObject): Promise<string> {
-    const decoded = PendingTransaction.fromJSON(tx).toJSON();
+    const decoded = PendingTransaction.fromJSON(tx);
     await this.mempool.add(decoded);
 
-    return decoded.hash;
+    return decoded.data.hash;
   }
 
   // TODO Add retrieval of pending messages somewhere as well
@@ -162,6 +162,6 @@ export class MempoolResolver extends GraphqlModule {
   })
   public async transactions() {
     const txs = await this.transactionStorage.getPendingUserTransactions();
-    return txs.map((x) => x.hash);
+    return txs.map((x) => x.data.hash);
   }
 }

@@ -13,7 +13,7 @@ export class BlockModel {
       Number(block.networkState.during.block.height),
       block.transactions.map((tx) =>
         BatchTransactionModel.fromServiceLayerModel({
-          tx: PendingTransaction.fromJSON(tx.tx),
+          tx: tx.tx,
           status: tx.status,
           statusMessage: tx.statusMessage,
         })

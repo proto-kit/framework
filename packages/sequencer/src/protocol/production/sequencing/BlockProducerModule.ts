@@ -14,7 +14,7 @@ import {
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
-import { PendingTransactionJSONType } from "../../../mempool/PendingTransaction";
+import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import {
@@ -74,7 +74,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   private prettyPrintBlockContents(block: Block) {
     block.transactions.forEach((tx, i) => {
       const methodName = this.methodIdResolver.getMethodNameFromId(
-        tx.tx.methodId
+        tx.tx.data.methodId
       );
       if (!methodName) return;
 
@@ -86,15 +86,15 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
       log.info("---------------------------------------");
       log.info(`Transaction #${i}`);
-      log.info("Sender:", tx.tx.sender, "Nonce:", tx.tx.nonce);
+      log.info("Sender:", tx.tx.data.sender, "Nonce:", tx.tx.data.nonce);
       log.info(`Method: ${methodName?.join(".")}`);
       log.info();
       if (log.getLevel() <= log.levels.INFO) {
         Provable.log(
           "Arguments:",
           paramEncoder.decode(
-            tx.tx.argsFields.map((s) => Field(s)),
-            tx.tx.auxiliaryData
+            tx.tx.data.argsFields.map((s) => Field(s)),
+            tx.tx.data.auxiliaryData
           )
         );
       }
@@ -175,7 +175,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   //  Idea: Create a service that aggregates a bunch of different sources
   @trace("block.collect_inputs")
   private async collectProductionData(): Promise<{
-    txs: PendingTransactionJSONType[];
+    txs: PendingTransaction[];
     metadata: BlockWithResult;
   }> {
     const txs = await this.mempool.getTxs(this.maximumBlockSize());
@@ -201,7 +201,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       };
     }
 
-    let messages: PendingTransactionJSONType[] = [];
+    let messages: PendingTransaction[] = [];
     if (this.messageService !== undefined) {
       messages = await this.messageService.getPendingMessages();
     }

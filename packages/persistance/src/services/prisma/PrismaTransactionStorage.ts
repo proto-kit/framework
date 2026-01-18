@@ -1,6 +1,6 @@
 import { inject, injectable } from "tsyringe";
 import {
-  PendingTransactionJSONType,
+  PendingTransaction,
   trace,
   Tracer,
   TransactionStorage,
@@ -20,7 +20,7 @@ export class PrismaTransactionStorage implements TransactionStorage {
 
   @trace("db.txs.get")
   public async getPendingUserTransactions(): Promise<
-    PendingTransactionJSONType[]
+    PendingTransaction[]
   > {
     const { prismaClient } = this.connection;
 
@@ -54,7 +54,7 @@ export class PrismaTransactionStorage implements TransactionStorage {
   }
 
   public async pushUserTransaction(
-    tx: PendingTransactionJSONType
+    tx: PendingTransaction
   ): Promise<boolean> {
     const { prismaClient } = this.connection;
 
@@ -68,7 +68,7 @@ export class PrismaTransactionStorage implements TransactionStorage {
 
   public async findTransaction(hash: string): Promise<
     | {
-        transaction: PendingTransactionJSONType;
+        transaction: PendingTransaction;
         block?: string;
         batch?: number;
       }

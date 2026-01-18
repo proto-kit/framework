@@ -7,8 +7,9 @@ import {
 
 import {
   PendingTransaction,
-  PendingTransactionJSONType,
 } from "../PendingTransaction";
+import { Field, Poseidon, PublicKey, Signature, UInt64 } from "o1js";
+import { SignedTransaction } from "packages/protocol/dist";
 
 @injectable()
 export class TransactionValidator {
@@ -16,18 +17,18 @@ export class TransactionValidator {
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>
   ) {}
 
-  private validateMethod(tx: PendingTransactionJSONType): string | undefined {
+  private validateMethod(tx: PendingTransaction): string | undefined {
     // Check if method exists
 
     // We don't actually need to use runtime.getMethodById here, bcs the
     // module name validation happens inside getMethodNameFromId
     // and also in the next step
     const methodPath = this.runtime.methodIdResolver.getMethodNameFromId(
-      tx.methodId
+      tx.data.methodId
     );
 
     if (methodPath === undefined) {
-      return `Method with id ${tx.methodId} does not exist`;
+      return `Method with id ${tx.data.methodId} does not exist`;
     }
 
     // Check if parameters are decodable
@@ -42,7 +43,7 @@ export class TransactionValidator {
   }
 
   public validateTx(
-    tx: PendingTransactionJSONType
+    tx: PendingTransaction
   ): [boolean, string | undefined] {
     const methodError = this.validateMethod(tx);
 
@@ -50,11 +51,16 @@ export class TransactionValidator {
       return [false, methodError];
     }
 
-    const transaction = PendingTransaction.fromJSON(tx);
+    const signature = Signature.fromJSON(tx.data.signature)
+    const signatureData = SignedTransaction.getSignatureData({
+      nonce: UInt64.from(tx.data.nonce),
+      methodId: Field(tx.data.methodId),
+      argsHash: Poseidon.hash(tx.data.argsFields.map((f) => Field(f))),
+    });
 
-    const validSignature = transaction.signature.verify(
-      transaction.sender,
-      transaction.getSignatureData()
+    const validSignature = signature.verify(
+      PublicKey.fromBase58(tx.data.sender),
+      signatureData
     );
 
     if (!validSignature.toBoolean()) {

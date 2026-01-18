@@ -1,5 +1,5 @@
 import {
-  PendingTransactionJSONType,
+  PendingTransaction,
   Task,
   TaskSerializer,
   TaskWorkerModule,
@@ -13,7 +13,7 @@ import { IndexPendingTxTaskParametersSerializer } from "./IndexPendingTxTaskPara
 @injectable()
 export class IndexPendingTxTask
   extends TaskWorkerModule
-  implements Task<PendingTransactionJSONType, string | void>
+  implements Task<PendingTransaction, string | void>
 {
   public name = "index-pending-tx";
 
@@ -29,7 +29,7 @@ export class IndexPendingTxTask
   public async prepare(): Promise<void> {}
 
   public async compute(
-    input: PendingTransactionJSONType
+    input: PendingTransaction
   ): Promise<string | void> {
     try {
       await this.transactionStorage.pushUserTransaction(input);
@@ -40,7 +40,7 @@ export class IndexPendingTxTask
     }
   }
 
-  public inputSerializer(): TaskSerializer<PendingTransactionJSONType> {
+  public inputSerializer(): TaskSerializer<PendingTransaction> {
     return this.taskSerializer;
   }
 

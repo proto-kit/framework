@@ -22,7 +22,6 @@ import { Field } from "o1js";
 import type { Mempool, MempoolEvents } from "../Mempool";
 import {
   PendingTransaction,
-  PendingTransactionJSONType,
 } from "../PendingTransaction";
 import {
   sequencerModule,
@@ -38,7 +37,7 @@ import { Tracer } from "../../logging/Tracer";
 import { trace } from "../../logging/trace";
 
 type MempoolTransactionPaths = {
-  transaction: PendingTransactionJSONType;
+  transaction: PendingTransaction;
   paths: string[];
 };
 
@@ -77,30 +76,30 @@ export class PrivateMempool
     return txs.length;
   }
 
-  public async add(tx: PendingTransactionJSONType): Promise<boolean> {
+  public async add(tx: PendingTransaction): Promise<boolean> {
     const [txValid, error] = this.transactionValidator.validateTx(tx);
     if (txValid) {
       const success = await this.transactionStorage.pushUserTransaction(tx);
       if (success) {
         this.events.emit(
           "mempool-transaction-added",
-          PendingTransaction.fromJSON(tx)
+          tx
         );
-        log.trace(`Transaction added to mempool: ${tx.hash}`);
+        log.trace(`Transaction added to mempool: ${tx.data.hash}`);
       } else {
-        log.error(`Transaction ${tx.hash} rejected: already exists in mempool`);
+        log.error(`Transaction ${tx.data.hash} rejected: already exists in mempool`);
       }
 
       return success;
     }
 
     log.error(
-      `Validation of tx ${tx.hash} failed:`,
+      `Validation of tx ${tx.data.hash} failed:`,
       `${error ?? "unknown error"}`
     );
 
     throw new Error(
-      `Validation of tx ${tx.hash} failed: ${error ?? "unknown error"}`
+      `Validation of tx ${tx.data.hash} failed: ${error ?? "unknown error"}`
     );
   }
 
@@ -121,7 +120,7 @@ export class PrivateMempool
   }
 
   @trace("mempool.get_txs")
-  public async getTxs(limit?: number): Promise<PendingTransactionJSONType[]> {
+  public async getTxs(limit?: number): Promise<PendingTransaction[]> {
     // TODO Add limit to the storage (or do something smarter entirely)
     const txs = await this.transactionStorage.getPendingUserTransactions();
 
@@ -157,7 +156,7 @@ export class PrivateMempool
   @trace("mempool.validate_txs")
   // eslint-disable-next-line sonarjs/cognitive-complexity
   private async checkTxValid(
-    transactions: PendingTransactionJSONType[],
+    transactions: PendingTransaction[],
     baseService: CachedStateService,
     stateServiceProvider: StateServiceProvider,
     networkState: NetworkState,
@@ -169,10 +168,10 @@ export class PrivateMempool
     executionContext.clear();
 
     // Initialize starting state
-    const sortedTransactions: PendingTransactionJSONType[] = [];
+    const sortedTransactions: PendingTransaction[] = [];
     const skippedTransactions: Record<string, MempoolTransactionPaths> = {};
 
-    let queue: PendingTransactionJSONType[] = [...transactions];
+    let queue: PendingTransaction[] = [...transactions];
 
     const previousBlock = await this.unprovenQueue.getLatestBlock();
 
@@ -200,23 +199,20 @@ export class PrivateMempool
       ProvableNetworkState.fromJSON(networkState)
     );
 
-    let pendingTransaction: PendingTransaction;
-
     while (
       queue.length > 0 &&
       sortedTransactions.length < (limit ?? Number.MAX_VALUE)
     ) {
       const [tx] = queue.splice(0, 1);
-      pendingTransaction = PendingTransaction.fromJSON(tx);
       const txStateService = new CachedStateService(baseService);
       stateServiceProvider.setCurrentStateService(txStateService);
       const contextInputs: RuntimeMethodExecutionData = {
         networkState: provableNetworkState,
-        transaction: pendingTransaction.toProtocolTransaction().transaction,
+        transaction: tx.toProtocolTransaction().transaction,
       };
       executionContext.setup(contextInputs);
 
-      const signedTransaction = pendingTransaction.toProtocolTransaction();
+      const signedTransaction = tx.toProtocolTransaction();
 
       // eslint-disable-next-line no-await-in-loop
       await this.accountStateHook.beforeTransaction({
@@ -229,13 +225,13 @@ export class PrivateMempool
         executionContext.current().result;
 
       if (status.toBoolean()) {
-        log.trace(`Accepted tx ${tx.hash}`);
+        log.trace(`Accepted tx ${tx.data.hash}`);
         sortedTransactions.push(tx);
         // eslint-disable-next-line no-await-in-loop
         await txStateService.applyStateTransitions(stateTransitions);
         // eslint-disable-next-line no-await-in-loop
         await txStateService.mergeIntoParent();
-        delete skippedTransactions[tx.hash];
+        delete skippedTransactions[tx.data.hash];
         if (Object.entries(skippedTransactions).length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-loop-func
           stateTransitions.forEach((st) => {
@@ -257,17 +253,17 @@ export class PrivateMempool
         });
         if (removeTxWhen) {
           // eslint-disable-next-line no-await-in-loop
-          await this.transactionStorage.removeTx([tx.hash], "dropped");
+          await this.transactionStorage.removeTx([tx.data.hash], "dropped");
           log.trace(
-            `Deleting tx ${tx.hash}  from mempool because removeTransactionWhen condition is satisfied`
+            `Deleting tx ${tx.data.hash}  from mempool because removeTransactionWhen condition is satisfied`
           );
           // eslint-disable-next-line no-continue
           continue;
         }
 
-        log.trace(`Skipped tx ${tx.hash} because ${statusMessage}`);
-        if (!(tx.hash in skippedTransactions)) {
-          skippedTransactions[tx.hash] = {
+        log.trace(`Skipped tx ${tx.data.hash} because ${statusMessage}`);
+        if (!(tx.data.hash in skippedTransactions)) {
+          skippedTransactions[tx.data.hash] = {
             transaction: tx,
             paths: stateTransitions
               .map((x) => x.path)

@@ -55,7 +55,7 @@ import {
   VanillaTaskWorkerModules,
   Sequencer,
   InMemoryMinaSigner,
-  PendingTransactionJSONType,
+  PendingTransaction,
   CircuitAnalysisModule,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
@@ -229,7 +229,7 @@ export const settlementTestFn = (
   async function createBatch(
     withTransactions: boolean,
     customNonce: number = 0,
-    txs: PendingTransactionJSONType[] = []
+    txs: PendingTransaction[] = []
   ) {
     const mempool = appChain.sequencer.resolve("Mempool") as PrivateMempool;
     if (withTransactions) {

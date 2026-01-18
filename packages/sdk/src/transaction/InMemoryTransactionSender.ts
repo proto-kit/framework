@@ -1,13 +1,13 @@
 import {
   PrivateMempool,
   AppChainModule,
-  PendingTransactionJSONType,
+  PendingTransaction,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 import { ModuleContainerLike } from "@proto-kit/common";
 
 export interface TransactionSender extends AppChainModule<unknown> {
-  send: (transaction: PendingTransactionJSONType) => Promise<void>;
+  send: (transaction: PendingTransaction) => Promise<void>;
 }
 
 @injectable()
@@ -25,7 +25,7 @@ export class InMemoryTransactionSender
     this.mempool = this.sequencer.resolveOrFail("Mempool", PrivateMempool);
   }
 
-  public async send(transaction: PendingTransactionJSONType) {
+  public async send(transaction: PendingTransaction) {
     await this.mempool.add(transaction);
   }
 }

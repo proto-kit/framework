@@ -1,7 +1,7 @@
 import { singleton, injectable } from "tsyringe";
 import {
-  TransactionExecutionResultJson,
-  PendingTransactionJSONType,
+  TransactionExecutionResult,
+  PendingTransaction,
 } from "@proto-kit/sequencer";
 import {
   Transaction as DBTransaction,
@@ -16,10 +16,10 @@ import { EventArrayMapper } from "./EventMapper";
 @singleton()
 @injectable()
 export class TransactionMapper
-  implements ObjectMapper<PendingTransactionJSONType, DBTransaction>
+  implements ObjectMapper<PendingTransaction, DBTransaction>
 {
-  public mapIn(input: DBTransaction): PendingTransactionJSONType {
-    return {
+  public mapIn(input: DBTransaction): PendingTransaction { 
+    return new PendingTransaction({
       hash: input.hash,
       methodId: input.methodId,
       nonce: input.nonce,
@@ -31,20 +31,20 @@ export class TransactionMapper
         r: input.signature_r,
         s: input.signature_s,
       },
-    };
+    });
   }
 
-  public mapOut(input: PendingTransactionJSONType): DBTransaction {
+  public mapOut(input: PendingTransaction): DBTransaction {
     return {
-      hash: input.hash,
-      methodId: input.methodId,
-      nonce: input.nonce,
-      sender: input.sender,
-      argsFields: input.argsFields,
-      auxiliaryData: input.auxiliaryData,
-      isMessage: input.isMessage,
-      signature_r: input.signature.r,
-      signature_s: input.signature.s,
+      hash: input.data.hash,
+      methodId: input.data.methodId,
+      nonce: input.data.nonce,
+      sender: input.data.sender,
+      argsFields: input.data.argsFields,
+      auxiliaryData: input.data.auxiliaryData,
+      isMessage: input.data.isMessage,
+      signature_r: input.data.signature.r,
+      signature_s: input.data.signature.s,
     };
   }
 }
@@ -53,7 +53,7 @@ export class TransactionMapper
 export class TransactionExecutionResultMapper
   implements
     ObjectMapper<
-      TransactionExecutionResultJson,
+      TransactionExecutionResult,
       [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction]
     >
 {
@@ -65,7 +65,7 @@ export class TransactionExecutionResultMapper
 
   public mapIn(
     input: [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction]
-  ): TransactionExecutionResultJson {
+  ): TransactionExecutionResult {
     const executionResult = input[0];
     return {
       tx: this.transactionMapper.mapIn(input[1]),
@@ -80,7 +80,7 @@ export class TransactionExecutionResultMapper
   }
 
   mapOut(
-    input: TransactionExecutionResultJson
+    input: TransactionExecutionResult
   ): [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction] {
     const tx = this.transactionMapper.mapOut(input.tx);
     const executionResult = {
