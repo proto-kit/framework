@@ -1,6 +1,6 @@
 import { singleton } from "tsyringe";
 import {
-  StateTransitionBatchJson,
+  StateTransitionBatch,
   UntypedStateTransition,
 } from "@proto-kit/sequencer";
 import { Prisma } from "@prisma/client";
@@ -50,13 +50,13 @@ export class StateTransitionArrayMapper
 
 @singleton()
 export class StateTransitionBatchArrayMapper
-  implements ObjectMapper<StateTransitionBatchJson[], Prisma.JsonValue>
+  implements ObjectMapper<StateTransitionBatch[], Prisma.JsonValue>
 {
   public constructor(
     private readonly stArrayMapper: StateTransitionArrayMapper
   ) {}
 
-  public mapOut(input: StateTransitionBatchJson[]): Prisma.JsonValue {
+  public mapOut(input: StateTransitionBatch[]): Prisma.JsonValue {
     return input.map((st) => ({
       stateTransitions: this.stArrayMapper.mapOut(
         st.stateTransitions
@@ -65,7 +65,7 @@ export class StateTransitionBatchArrayMapper
     }));
   }
 
-  public mapIn(input: Prisma.JsonValue): StateTransitionBatchJson[] {
+  public mapIn(input: Prisma.JsonValue): StateTransitionBatch[] {
     if (input === undefined) return [];
 
     if (Array.isArray(input)) {
