@@ -37,7 +37,6 @@ import zip from "lodash/zip";
 
 import {
   PendingTransaction,
-  PendingTransactionJSONType,
 } from "../../../mempool/PendingTransaction";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
@@ -82,7 +81,7 @@ function getAreProofsEnabledFromModule(
 }
 
 async function decodeTransaction(
-  tx: PendingTransactionJSONType,
+  tx: PendingTransaction,
   runtime: Runtime<RuntimeModulesRecord>
 ): Promise<{
   method: SomeRuntimeMethod;
@@ -207,8 +206,8 @@ export type TransactionExecutionResultStatus =
       result: TransactionExecutionResult;
       status: "included";
     }
-  | { tx: PendingTransactionJSONType; status: "skipped" }
-  | { tx: PendingTransactionJSONType; status: "shouldRemove" };
+  | { tx: PendingTransaction; status: "skipped" }
+  | { tx: PendingTransaction; status: "shouldRemove" };
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -317,7 +316,7 @@ export class TransactionExecutionService {
 
   public addTransactionToBlockProverState(
     state: BlockTrackers,
-    tx: PendingTransactionJSONType
+    tx: PendingTransaction
   ): BlockTrackers {
     const signedTransaction =
       PendingTransaction.fromJSON(tx).toProtocolTransaction();
@@ -332,7 +331,7 @@ export class TransactionExecutionService {
   // eslint-disable-next-line sonarjs/cognitive-complexity
   public async createExecutionTraces(
     asyncStateService: CachedStateService,
-    transactions: PendingTransactionJSONType[],
+    transactions: PendingTransaction[],
     networkState: ProvableNetworkState,
     state: BlockTrackers
   ): Promise<{
@@ -410,7 +409,7 @@ export class TransactionExecutionService {
   }))
   public async createExecutionTrace(
     asyncStateService: CachedStateService,
-    tx: PendingTransactionJSONType,
+    tx: PendingTransaction,
     {
       networkState,
       hash: networkStateHash,

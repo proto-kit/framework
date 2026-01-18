@@ -23,7 +23,7 @@ import {
   TransactionExecutionResult,
 } from "../../../storage/model/Block";
 import { CachedStateService } from "../../../state/state/CachedStateService";
-import { PendingTransactionJSONType } from "../../../mempool/PendingTransaction";
+import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { Tracer } from "../../../logging/Tracer";
@@ -99,7 +99,7 @@ export class BlockProductionService {
    */
   public async createBlock(
     asyncStateService: AsyncStateService,
-    transactions: PendingTransactionJSONType[],
+    transactions: PendingTransaction[],
     lastBlockWithResult: BlockWithResult,
     allowEmptyBlocks: boolean
   ): Promise<
