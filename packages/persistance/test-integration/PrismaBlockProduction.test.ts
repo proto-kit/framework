@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect } from "@jest/globals";
 import { expectDefined, log } from "@proto-kit/common";
 import { BalancesKey, TokenId } from "@proto-kit/library";
 import { AppChainTransaction } from "@proto-kit/sdk";
-import { Block, Batch } from "@proto-kit/sequencer";
+import { Block, Batch, PendingTransaction } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
 import { container } from "tsyringe";
 import { testBlockProduction } from "@proto-kit/sequencer/test/integration/BlockProduction-test";
@@ -96,8 +96,8 @@ describe("prisma integration", () => {
 
       // Check that transactions match
       expect(retrievedBlock.transactions).toHaveLength(1);
-      expect(retrievedBlock.transactions[0].tx.hash).toStrictEqual(
-        block.transactions[0].tx.hash
+      expect(retrievedBlock.transactions[0].tx.data.hash).toStrictEqual(
+        block.transactions[0].tx.data.hash
       );
 
       expect(retrievedBlock.hash).toStrictEqual(block.hash);
@@ -224,10 +224,16 @@ describe("prisma integration", () => {
 
       expectDefined(transaction.transaction);
 
+      let txHash: string; 
+      
+      if (transaction.transaction instanceof PendingTransaction) {
+        txHash = transaction.transaction.data.hash;
+      } else {
+        txHash = transaction.transaction!.hash().toString();
+      }
+
       expect(txs).toHaveLength(1);
-      expect(txs[0].hash).toStrictEqual(
-        transaction.transaction.hash().toString()
-      );
+      expect(txs[0].data.hash).toStrictEqual(txHash);
     });
 
     it("should resolve transaction from storage as pending", async () => {
@@ -240,9 +246,17 @@ describe("prisma integration", () => {
 
       expectDefined(transaction.transaction);
 
+      let txHash: string; 
+      
+      if (transaction.transaction instanceof PendingTransaction) {
+        txHash = transaction.transaction.data.hash;
+      } else {
+        txHash = transaction.transaction!.hash().toString();
+      }
+
       expect(txs).toHaveLength(1);
-      expect(txs[0].hash).toStrictEqual(
-        transaction.transaction.hash().toString()
+      expect(txs[0].data.hash).toStrictEqual(
+        txHash
       );
     });
   });

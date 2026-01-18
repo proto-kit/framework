@@ -41,7 +41,7 @@ function collectOrderedStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {
   return stateTransitions.reduce<StateRecord>((state, st) => {
-    if (st.toValue.isSome.toBoolean()) {
+    if (st.to.isSome) {
       state[st.path.toString()] = st.toValue.value;
     }
     return state;

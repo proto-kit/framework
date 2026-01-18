@@ -6,7 +6,7 @@ import {
   ProvableNetworkState,
   TransactionProverTransactionArguments,
 } from "@proto-kit/protocol";
-import { Bool, Field } from "o1js";
+import { Bool, Field, Signature } from "o1js";
 import { MAX_FIELD } from "@proto-kit/common";
 import { toStateTransitionsHash } from "@proto-kit/module";
 import { injectable } from "tsyringe";
@@ -74,12 +74,12 @@ export class TransactionTracingService {
   ): Promise<TransactionProverTransactionArguments> {
     const verificationKeyAttestation =
       this.verificationKeyService.getAttestation(
-        transaction.methodId.toString()
+        transaction.data.methodId
       );
 
     return {
       transaction: transaction.toRuntimeTransaction(),
-      signature: transaction.signature,
+      signature: Signature.fromJSON(transaction.data.signature),
       verificationKeyAttestation,
     };
   }
@@ -104,11 +104,11 @@ export class TransactionTracingService {
     previousState: BlockTracingState,
     transaction: TransactionExecutionResult
   ) {
-    const tx = PendingTransaction.fromJSON(transaction.tx);
+    const tx = transaction.tx;
     // TODO Remove this call and instead reuse results from sequencing
     const newState = addTransactionToBundle(
       previousState,
-      Bool(tx.isMessage),
+      Bool(tx.data.isMessage),
       tx.toRuntimeTransaction()
     );
 
@@ -181,7 +181,7 @@ export class TransactionTracingService {
       {
         executionData: {
           transaction: await this.getTransactionData(
-            PendingTransaction.fromJSON(transaction.tx)
+            transaction.tx
           ),
           networkState: previousState.networkState,
         },
@@ -222,10 +222,10 @@ export class TransactionTracingService {
       {
         executionData: {
           transaction1: await this.getTransactionData(
-            PendingTransaction.fromJSON(transaction1.tx)
+            transaction1.tx
           ),
           transaction2: await this.getTransactionData(
-            PendingTransaction.fromJSON(transaction2.tx)
+            transaction2.tx
           ),
           networkState: previousState.networkState,
         },

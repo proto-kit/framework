@@ -205,7 +205,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const txs = await txStorage.getPendingUserTransactions();
 
       expect(txs).toHaveLength(1);
-      expect(txs[0].hash).toStrictEqual(tx.hash);
+      expect(txs[0].data.hash).toStrictEqual(tx.data.hash);
 
       await sequencer.resolve("BlockTrigger").produceBlock();
 

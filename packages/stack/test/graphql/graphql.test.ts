@@ -14,6 +14,8 @@ import {
   ManualBlockTrigger,
   Sequencer,
   InclusionStatus,
+  PendingTransaction,
+  UnsignedTransaction,
 } from "@proto-kit/sequencer";
 import {
   ClientAppChain,
@@ -184,7 +186,9 @@ describe("graphql client test", () => {
     await tx.sign();
     await tx.send();
 
-    const txHash = tx.transaction?.hash().toString()!;
+    const txHash = tx.transaction instanceof UnsignedTransaction
+    ? tx.transaction.hash().toString()
+    : tx.transaction!.data.hash;
 
     const waitPromise = appChain.query.explorer.fetchTxInclusion(txHash);
 
@@ -227,7 +231,7 @@ describe("graphql client test", () => {
 
     const heightParsedTx = heightResult?.transactions!;
 
-    const blockTxHash = block?.transactions[0].tx.hash;
+    const blockTxHash = block?.transactions[0].tx.data.hash;
 
     const queryTxHash = heightParsedTx[0]?.tx?.hash;
 

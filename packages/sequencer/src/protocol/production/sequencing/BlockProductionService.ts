@@ -198,7 +198,7 @@ export class BlockProductionService {
     const includedTxs = executionResults.map((x) => {
       const txHash = match(x)
         .with({ status: "included" }, ({ result }) => result.tx)
-        .otherwise(({ tx }) => tx).hash;
+        .otherwise(({ tx }) => tx).data.hash;
 
       return {
         hash: txHash,
