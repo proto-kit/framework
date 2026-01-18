@@ -18,8 +18,8 @@ export class UntypedOption {
       return treeValue.toString();
     }
     return "0";
-  } 
-
+  }
+  
   public static fromOption<Value>(option: Option<Value> | Option<Field>) {
     return new UntypedOption(
       option.isSome.toBoolean(),

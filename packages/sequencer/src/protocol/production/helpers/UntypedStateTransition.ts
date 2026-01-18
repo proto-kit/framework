@@ -1,4 +1,4 @@
-import { Field } from "o1js";
+import { Bool, Field } from "o1js";
 import { ProvableOption, ProvableStateTransition, StateTransition } from "@proto-kit/protocol";
 
 import { UntypedOption } from "./UntypedOption";
@@ -49,8 +49,15 @@ export class UntypedStateTransition {
   public toProvable(): ProvableStateTransition {
     return new ProvableStateTransition({
       path: Field(this.path),
-      from: new ProvableOption(ProvableOption.fromFields(this.from.value.map(Field))),
-      to: new ProvableOption(ProvableOption.fromFields(this.to.value.map(Field)))
+      from: new ProvableOption({
+        isSome: Bool(this.from.isSome),
+        value: Field(this.from.treeValue),
+      }),
+      to: new ProvableOption({
+        isSome: Bool(this.to.isSome),
+        value: Field(this.to.treeValue),
+      }),
     });
   }
 }
+
