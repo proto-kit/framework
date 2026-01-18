@@ -1,7 +1,7 @@
 import { singleton } from "tsyringe";
 import {
   StateTransitionBatchJson,
-  UntypedStateTransitionJson,
+  UntypedStateTransition,
 } from "@proto-kit/sequencer";
 import { Prisma } from "@prisma/client";
 
@@ -9,15 +9,16 @@ import { ObjectMapper } from "../../../ObjectMapper";
 
 @singleton()
 export class StateTransitionMapper
-  implements ObjectMapper<UntypedStateTransitionJson, Prisma.JsonObject>
+  implements ObjectMapper<UntypedStateTransition, Prisma.JsonObject>
 {
-  public mapIn(input: Prisma.JsonObject): UntypedStateTransitionJson {
-    //
-    return input as unknown as UntypedStateTransitionJson;
+  public mapIn(input: Prisma.JsonObject): UntypedStateTransition {
+
+    return input as unknown as UntypedStateTransition;
   }
 
-  public mapOut(input: UntypedStateTransitionJson): Prisma.JsonObject {
+  public mapOut(input: UntypedStateTransition): Prisma.JsonObject {
     // Already JSON-compatible, just cast
+    input.toJSON();
     return input as unknown as Prisma.JsonObject;
   }
 }
@@ -25,13 +26,13 @@ export class StateTransitionMapper
 @singleton()
 export class StateTransitionArrayMapper
   implements
-    ObjectMapper<UntypedStateTransitionJson[], Prisma.JsonValue | undefined>
+    ObjectMapper<UntypedStateTransition[], Prisma.JsonValue | undefined>
 {
   public constructor(private readonly stMapper: StateTransitionMapper) {}
 
   public mapIn(
     input: Prisma.JsonValue | undefined
-  ): UntypedStateTransitionJson[] {
+  ): UntypedStateTransition[] {
     if (input === undefined) return [];
 
     if (Array.isArray(input)) {
@@ -42,7 +43,7 @@ export class StateTransitionArrayMapper
     return [];
   }
 
-  public mapOut(input: UntypedStateTransitionJson[]): Prisma.JsonValue {
+  public mapOut(input: UntypedStateTransition[]): Prisma.JsonValue {
     return input.map((st) => this.stMapper.mapOut(st)) as Prisma.JsonArray;
   }
 }

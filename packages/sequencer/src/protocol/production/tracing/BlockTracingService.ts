@@ -18,7 +18,6 @@ import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
 import {
   UntypedStateTransition,
-  UntypedStateTransitionJson,
 } from "../helpers/UntypedStateTransition";
 
 import {
@@ -102,9 +101,7 @@ export class BlockTracingService {
     });
 
     const startingStateBeforeHook = collectStartingState(
-      block.block.beforeBlockStateTransitions.map(
-        (st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st)
-      )
+      block.block.beforeBlockStateTransitions
     );
 
     const blockTrace = {
@@ -121,10 +118,7 @@ export class BlockTracingService {
 
     state.pendingSTBatches.push({
       batchHash: toStateTransitionsHash(
-        block.block.beforeBlockStateTransitions.map(
-          (st: UntypedStateTransitionJson) =>
-            UntypedStateTransition.fromJSON(st)
-        )
+        block.block.beforeBlockStateTransitions,
       ),
       applied: Bool(true),
     });
@@ -174,9 +168,7 @@ export class BlockTracingService {
     }
 
     const startingStateAfterHook = collectStartingState(
-      block.result.afterBlockStateTransitions.map(
-        (st: UntypedStateTransitionJson) => UntypedStateTransition.fromJSON(st)
-      )
+      block.result.afterBlockStateTransitions
     );
     state.networkState = new ProvableNetworkState(
       ProvableNetworkState.fromJSON(block.result.afterNetworkState)

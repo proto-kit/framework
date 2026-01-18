@@ -20,7 +20,6 @@ import { distinctByString } from "../../../helpers/utils";
 import { BlockWithResult } from "../../../storage/model/Block";
 import {
   UntypedStateTransition,
-  UntypedStateTransitionJson,
 } from "../helpers/UntypedStateTransition";
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
 import { trace } from "../../../logging/trace";
@@ -50,10 +49,7 @@ export class StateTransitionTracingService {
     return blocks.reduce<TracingStateTransitionBatch[]>((previous, block) => {
       const batches = [
         {
-          stateTransitions: block.block.beforeBlockStateTransitions.map(
-            (st: UntypedStateTransitionJson) =>
-              UntypedStateTransition.fromJSON(st)
-          ),
+          stateTransitions: block.block.beforeBlockStateTransitions,
           applied: true,
         },
         ...block.block.transactions.flatMap((tx) =>
@@ -75,10 +71,7 @@ export class StateTransitionTracingService {
       }
 
       return batchBeforeWitnessing.concat({
-        stateTransitions: block.result.afterBlockStateTransitions.map(
-          (st: UntypedStateTransitionJson) =>
-            UntypedStateTransition.fromJSON(st)
-        ),
+        stateTransitions: block.result.afterBlockStateTransitions,
         applied: true,
         witnessRoot: false,
       });

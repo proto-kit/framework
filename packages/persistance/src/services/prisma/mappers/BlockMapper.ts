@@ -1,5 +1,5 @@
 import { singleton } from "tsyringe";
-import { Block, UntypedStateTransitionJson } from "@proto-kit/sequencer";
+import { Block, UntypedStateTransition } from "@proto-kit/sequencer";
 import { Prisma, Block as PrismaBlock } from "@prisma/client";
 import { NetworkState } from "@proto-kit/protocol";
 
@@ -37,7 +37,7 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
 
       // This is cleaner to keep mapIn
       beforeBlockStateTransitions:
-        input.beforeBlockStateTransitions as unknown as UntypedStateTransitionJson[],
+        input.beforeBlockStateTransitions as unknown as UntypedStateTransition[],
     };
   }
 

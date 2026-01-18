@@ -24,7 +24,6 @@ import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore"
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
 import {
   UntypedStateTransition,
-  UntypedStateTransitionJson,
 } from "../helpers/UntypedStateTransition";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
@@ -203,9 +202,7 @@ export class BlockResultService {
   }> {
     const combinedDiff = createCombinedOrderedStateDiff(
       block.transactions,
-      block.beforeBlockStateTransitions.map((st: UntypedStateTransitionJson) =>
-        UntypedStateTransition.fromJSON(st)
-      )
+      block.beforeBlockStateTransitions
     );
 
     const inMemoryStore = await CachedLinkedLeafStore.new(merkleTreeStore);
