@@ -85,21 +85,21 @@ export class PrivateMempool
           "mempool-transaction-added",
           tx
         );
-        log.trace(`Transaction added to mempool: ${tx.data.hash}`);
+        log.trace(`Transaction added to mempool: ${tx.hash}`);
       } else {
-        log.error(`Transaction ${tx.data.hash} rejected: already exists in mempool`);
+        log.error(`Transaction ${tx.hash} rejected: already exists in mempool`);
       }
 
       return success;
     }
 
     log.error(
-      `Validation of tx ${tx.data.hash} failed:`,
+      `Validation of tx ${tx.hash} failed:`,
       `${error ?? "unknown error"}`
     );
 
     throw new Error(
-      `Validation of tx ${tx.data.hash} failed: ${error ?? "unknown error"}`
+      `Validation of tx ${tx.hash} failed: ${error ?? "unknown error"}`
     );
   }
 
@@ -225,13 +225,13 @@ export class PrivateMempool
         executionContext.current().result;
 
       if (status.toBoolean()) {
-        log.trace(`Accepted tx ${tx.data.hash}`);
+        log.trace(`Accepted tx ${tx.hash}`);
         sortedTransactions.push(tx);
         // eslint-disable-next-line no-await-in-loop
         await txStateService.applyStateTransitions(stateTransitions);
         // eslint-disable-next-line no-await-in-loop
         await txStateService.mergeIntoParent();
-        delete skippedTransactions[tx.data.hash];
+        delete skippedTransactions[tx.hash];
         if (Object.entries(skippedTransactions).length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-loop-func
           stateTransitions.forEach((st) => {
@@ -253,17 +253,17 @@ export class PrivateMempool
         });
         if (removeTxWhen) {
           // eslint-disable-next-line no-await-in-loop
-          await this.transactionStorage.removeTx([tx.data.hash], "dropped");
+          await this.transactionStorage.removeTx([tx.hash], "dropped");
           log.trace(
-            `Deleting tx ${tx.data.hash}  from mempool because removeTransactionWhen condition is satisfied`
+            `Deleting tx ${tx.hash}  from mempool because removeTransactionWhen condition is satisfied`
           );
           // eslint-disable-next-line no-continue
           continue;
         }
 
-        log.trace(`Skipped tx ${tx.data.hash} because ${statusMessage}`);
-        if (!(tx.data.hash in skippedTransactions)) {
-          skippedTransactions[tx.data.hash] = {
+        log.trace(`Skipped tx ${tx.hash} because ${statusMessage}`);
+        if (!(tx.hash in skippedTransactions)) {
+          skippedTransactions[tx.hash] = {
             transaction: tx,
             paths: stateTransitions
               .map((x) => x.path)

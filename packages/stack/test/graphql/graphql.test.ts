@@ -188,7 +188,7 @@ describe("graphql client test", () => {
 
     const txHash = tx.transaction instanceof UnsignedTransaction
     ? tx.transaction.hash().toString()
-    : tx.transaction!.data.hash;
+    : tx.transaction!.hash;
 
     const waitPromise = appChain.query.explorer.fetchTxInclusion(txHash);
 
@@ -231,7 +231,7 @@ describe("graphql client test", () => {
 
     const heightParsedTx = heightResult?.transactions!;
 
-    const blockTxHash = block?.transactions[0].tx.data.hash;
+    const blockTxHash = block?.transactions[0].tx.hash;
 
     const queryTxHash = heightParsedTx[0]?.tx?.hash;
 

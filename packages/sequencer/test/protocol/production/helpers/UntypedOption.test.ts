@@ -20,12 +20,12 @@ describe("option <-> untypedoption", () => {
 
     const untyped = UntypedOption.fromOption(option);
 
-    expect(untyped.isSome.toBoolean()).toStrictEqual(option.isSome.toBoolean());
-    expect(untyped.isForcedSome.toBoolean()).toStrictEqual(
+    expect(untyped.isSome).toStrictEqual(option.isSome.toBoolean());
+    expect(untyped.isForcedSome).toStrictEqual(
       option.isForcedSome.toBoolean()
     );
     expect(untyped.value).toStrictEqual(
-      option.valueType.toFields(option.value)
+      option.valueType.toFields(option.value).map(f => f.toString())
     );
 
     const provable1 = option.toProvable();
@@ -34,3 +34,4 @@ describe("option <-> untypedoption", () => {
     expect(provable1).toStrictEqual(provable2);
   });
 });
+

@@ -74,7 +74,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
   private prettyPrintBlockContents(block: Block) {
     block.transactions.forEach((tx, i) => {
       const methodName = this.methodIdResolver.getMethodNameFromId(
-        tx.tx.data.methodId
+        tx.tx.methodId
       );
       if (!methodName) return;
 
@@ -86,15 +86,15 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
       log.info("---------------------------------------");
       log.info(`Transaction #${i}`);
-      log.info("Sender:", tx.tx.data.sender, "Nonce:", tx.tx.data.nonce);
+      log.info("Sender:", tx.tx.sender, "Nonce:", tx.tx.nonce);
       log.info(`Method: ${methodName?.join(".")}`);
       log.info();
       if (log.getLevel() <= log.levels.INFO) {
         Provable.log(
           "Arguments:",
           paramEncoder.decode(
-            tx.tx.data.argsFields.map((s) => Field(s)),
-            tx.tx.data.auxiliaryData
+            tx.tx.argsFields.map((s) => Field(s)),
+            tx.tx.auxiliaryData
           )
         );
       }

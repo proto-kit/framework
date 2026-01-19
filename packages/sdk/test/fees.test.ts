@@ -135,7 +135,8 @@ describe("fees", () => {
       await pit.burn(burnAmount);
     });
 
-    const methodId = tx.transaction?.methodId.toBigInt();
+    
+    const methodId = tx.transaction?.methodId.toString();
     expectDefined(methodId);
     const transactionFeeConfig =
       transactionFeeModule.feeAnalyzer.getFeeConfig(methodId);

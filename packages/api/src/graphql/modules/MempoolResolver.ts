@@ -49,7 +49,7 @@ export class TransactionObject {
       isMessage,
     } = pt.toJSON();
     return new TransactionObject(
-      pt.data.hash,
+      pt.hash,
       methodId,
       sender,
       nonce,
@@ -128,7 +128,7 @@ export class MempoolResolver extends GraphqlModule {
     const decoded = PendingTransaction.fromJSON(tx);
     await this.mempool.add(decoded);
 
-    return decoded.data.hash;
+    return decoded.hash;
   }
 
   // TODO Add retrieval of pending messages somewhere as well
@@ -162,6 +162,6 @@ export class MempoolResolver extends GraphqlModule {
   })
   public async transactions() {
     const txs = await this.transactionStorage.getPendingUserTransactions();
-    return txs.map((x) => x.data.hash);
+    return txs.map((x) => x.hash);
   }
 }

@@ -30,10 +30,10 @@ describe("stateTransition", () => {
 
     const untyped = UntypedStateTransition.fromStateTransition(st);
 
-    expect(untyped.path).toStrictEqual(st.path);
+    expect(untyped.path).toStrictEqual(st.path.toString());
 
     expect(untyped.from.value).toStrictEqual(
-      st.fromValue.valueType.toFields(st.fromValue.value)
+      st.fromValue.valueType.toFields(st.fromValue.value).map((f) => f.toString())
     );
     expect(untyped.from.isSome).toStrictEqual(
       st.fromValue.isSome.toBoolean()
@@ -43,7 +43,7 @@ describe("stateTransition", () => {
     );
 
     expect(untyped.to.value).toStrictEqual(
-      st.toValue.valueType.toFields(st.toValue.value)
+      st.toValue.valueType.toFields(st.toValue.value).map((f) => f.toString())
     );
     expect(untyped.to.isSome).toStrictEqual(
       st.toValue.isSome.toBoolean()
@@ -53,6 +53,7 @@ describe("stateTransition", () => {
     );
 
     const provable1 = st.toProvable();
+
     const provable2 = untyped.toProvable();
 
     expect(provable1).toStrictEqual(provable2);

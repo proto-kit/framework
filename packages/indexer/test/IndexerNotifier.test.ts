@@ -131,7 +131,7 @@ async function sendTransactions(
       { nonce: i }
     );
 
-    console.log("tx nonce", (tx.transaction as PendingTransaction).data.nonce);
+    console.log("tx nonce", (tx.transaction as PendingTransaction).nonce);
 
     await tx.sign();
     await tx.send();
@@ -142,7 +142,7 @@ async function sendTransactions(
   const txs = await mempool.getTxs();
   console.log(
     "txs",
-    txs.map((tx) => tx.data.nonce)
+    txs.map((tx) => tx.nonce)
   );
 
   return await appChain.produceBlock();

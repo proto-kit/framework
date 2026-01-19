@@ -42,7 +42,7 @@ describe("HandlersModule", () => {
     ) => {
       // iterate over all transactions
       for (const tx of block.transactions) {
-        const methodId = tx.tx.data.methodId;
+        const methodId = tx.tx.methodId;
 
         const methodDescriptor =
           appChain.runtime.methodIdResolver.getMethodNameFromId(methodId);
@@ -66,8 +66,8 @@ describe("HandlersModule", () => {
           // @ts-expect-error
           const [, from, to, amount]: [TokenId, PublicKey, PublicKey, Balance] =
             await parameterDecoder.decode(
-              tx.tx.data.argsFields.map(Field),
-              tx.tx.data.auxiliaryData
+              tx.tx.argsFields.map(Field),
+              tx.tx.auxiliaryData
             );
 
           const currentFromBalance = await client.balance.findFirst({

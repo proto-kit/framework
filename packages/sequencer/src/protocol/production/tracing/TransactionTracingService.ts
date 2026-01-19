@@ -73,12 +73,12 @@ export class TransactionTracingService {
   ): Promise<TransactionProverTransactionArguments> {
     const verificationKeyAttestation =
       this.verificationKeyService.getAttestation(
-        transaction.data.methodId
+        transaction.methodId
       );
 
     return {
       transaction: transaction.toRuntimeTransaction(),
-      signature: Signature.fromJSON(transaction.data.signature),
+      signature: Signature.fromJSON(transaction.signature),
       verificationKeyAttestation,
     };
   }
@@ -107,7 +107,7 @@ export class TransactionTracingService {
     // TODO Remove this call and instead reuse results from sequencing
     const newState = addTransactionToBundle(
       previousState,
-      Bool(tx.data.isMessage),
+      Bool(tx.isMessage),
       tx.toRuntimeTransaction()
     );
 

@@ -81,7 +81,7 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
   public async pushBlock(block: Block): Promise<void> {
     log.trace(
       "Pushing block to DB. Txs:",
-      block.transactions.map((x) => x.tx.data.hash)
+      block.transactions.map((x) => x.tx.hash)
     );
 
     const transactions = block.transactions.map<DBTransactionExecutionResult>(

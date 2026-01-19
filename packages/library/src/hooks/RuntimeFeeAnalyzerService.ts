@@ -166,8 +166,8 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     return this.persistedFeeTree;
   }
 
-  public getFeeConfig(methodId: bigint) {
-    const feeConfig = this.getFeeTree().values[methodId.toString()];
+  public getFeeConfig(methodId: string) {
+    const feeConfig = this.getFeeTree().values[methodId];
 
     return new MethodFeeConfigData({
       methodId: Field(feeConfig.methodId),
@@ -177,9 +177,9 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
     });
   }
 
-  public getWitness(methodId: bigint) {
+  public getWitness(methodId: string) {
     const feeTree = this.getFeeTree();
-    return feeTree.tree.getWitness(feeTree.indexes[methodId.toString()]);
+    return feeTree.tree.getWitness(feeTree.indexes[methodId]);
   }
 
   public getRoot(): bigint {

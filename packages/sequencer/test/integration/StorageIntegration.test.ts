@@ -151,11 +151,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(block2.hash).toStrictEqual(generatedBlock.hash);
       const input = block.transactions.flatMap((tx) =>
         tx.stateTransitions.flatMap((batch) =>
-          batch.stateTransitions.map((st) =>
-            UntypedStateTransition.fromJSON(st)
-          )
-        )
-      );
+          batch.stateTransitions));
       const stateDiff = collectStateDiff(input);
 
       const state = await unprovenState.getMany(
@@ -205,7 +201,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const txs = await txStorage.getPendingUserTransactions();
 
       expect(txs).toHaveLength(1);
-      expect(txs[0].data.hash).toStrictEqual(tx.data.hash);
+      expect(txs[0].hash).toStrictEqual(tx.hash);
 
       await sequencer.resolve("BlockTrigger").produceBlock();
 

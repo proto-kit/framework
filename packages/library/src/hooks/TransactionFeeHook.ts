@@ -131,14 +131,14 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   ): Promise<void> {
     const feeConfig = Provable.witness(MethodFeeConfigData, () =>
       this.feeAnalyzer.getFeeConfig(
-        executionData.transaction.methodId.toBigInt()
+        executionData.transaction.methodId.toString()
       )
     );
     const witness = Provable.witness(
       RuntimeFeeAnalyzerService.getWitnessType(),
       () =>
         this.feeAnalyzer.getWitness(
-          executionData.transaction.methodId.toBigInt()
+          executionData.transaction.methodId.toString()
         )
     );
 
@@ -167,7 +167,7 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
     args: BeforeTransactionHookArguments
   ): Promise<boolean> {
     const feeConfig = this.feeAnalyzer.getFeeConfig(
-      args.transaction.methodId.toBigInt()
+      args.transaction.methodId.toString()
     );
 
     const fee = this.getFee(feeConfig);

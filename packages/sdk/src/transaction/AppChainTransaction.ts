@@ -47,7 +47,6 @@ export class AppChainTransaction {
 
   public async send() {
     this.hasPendingTransaction(this.transaction);
-    // Wait for next commit
     await this.transactionSender.send(this.transaction);
   }
 }

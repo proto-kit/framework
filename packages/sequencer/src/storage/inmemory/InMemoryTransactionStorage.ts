@@ -21,7 +21,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
   public async removeTx(hashes: string[]) {
     const hashSet = new Set(hashes);
     this.queue = this.queue.filter((tx) => {
-      return !hashSet.has(tx.data.hash);
+      return !hashSet.has(tx.hash);
     });
   }
 
@@ -37,8 +37,8 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       // eslint-disable-next-line no-await-in-loop
       const block = await this.blockStorage.getBlockAt(height);
       if (block !== undefined) {
-        const hashes = block.transactions.map((tx) => tx.tx.data.hash);
-        this.queue = this.queue.filter((tx) => !hashes.includes(tx.data.hash));
+        const hashes = block.transactions.map((tx) => tx.tx.hash);
+        this.queue = this.queue.filter((tx) => !hashes.includes(tx.hash));
       }
     }
     this.latestScannedBlock = nextHeight - 1;
@@ -50,7 +50,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     tx: PendingTransaction
   ): Promise<boolean> {
     const notInQueue =
-      this.queue.find((tx2) => tx2.data.hash === tx.data.hash) === undefined;
+      this.queue.find((tx2) => tx2.hash === tx.hash) === undefined;
     if (notInQueue) {
       this.queue.push(tx);
     }
@@ -82,7 +82,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     | undefined
   > {
     const pending = await this.getPendingUserTransactions();
-    const pendingResult = pending.find((tx) => tx.data.hash === hash);
+    const pendingResult = pending.find((tx) => tx.hash === hash);
     if (pendingResult !== undefined) {
       return {
         transaction: pendingResult,
@@ -97,7 +97,7 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       if (block === undefined) {
         return undefined;
       }
-      const txResult = block.transactions.find((tx) => tx.tx.data.hash === hash);
+      const txResult = block.transactions.find((tx) => tx.tx.hash === hash);
       if (txResult !== undefined) {
         // eslint-disable-next-line no-await-in-loop
         const batch = await this.findBatch(block.hash);

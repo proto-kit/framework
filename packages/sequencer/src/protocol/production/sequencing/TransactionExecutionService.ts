@@ -89,13 +89,13 @@ async function decodeTransaction(
   module: RuntimeModule<unknown>;
 }> {
   const methodDescriptors = runtime.methodIdResolver.getMethodNameFromId(
-    tx.data.methodId
+    tx.methodId
   );
 
-  const method = runtime.getMethodById(tx.data.methodId);
+  const method = runtime.getMethodById(tx.methodId);
 
   if (methodDescriptors === undefined || method === undefined) {
-    throw errors.methodIdNotFound(tx.data.methodId);
+    throw errors.methodIdNotFound(tx.methodId);
   }
 
   const [moduleName, methodName] = methodDescriptors;
@@ -106,8 +106,8 @@ async function decodeTransaction(
     methodName
   );
   const args = await parameterDecoder.decode(
-    tx.data.argsFields.map(Field),
-    tx.data.auxiliaryData
+    tx.argsFields.map(Field),
+    tx.auxiliaryData
   );
 
   return {
@@ -323,7 +323,7 @@ export class TransactionExecutionService {
     // Add tx to commitments
     return addTransactionToBundle(
       state,
-      Bool(tx.data.isMessage),
+      Bool(tx.isMessage),
       signedTransaction.transaction
     );
   }
@@ -360,7 +360,7 @@ export class TransactionExecutionService {
 
         // If the hooks fail AND the tx is not a message (in which case we
         // have to still execute it), we skip this tx and don't add it to the block
-        if (!executionTrace.hooksStatus && !executionTrace.tx.data.isMessage) {
+        if (!executionTrace.hooksStatus && !executionTrace.tx.isMessage) {
           const actionMessage = shouldRemove
             ? "removing as to removeWhen hooks"
             : "skipping";
@@ -404,8 +404,8 @@ export class TransactionExecutionService {
 
   @trace("block.transaction", ([, tx, { networkState }]) => ({
     height: networkState.block.height.toString(),
-    methodId: tx.data.methodId.toString(),
-    isMessage: tx.data.isMessage,
+    methodId: tx.methodId.toString(),
+    isMessage: tx.isMessage,
   }))
   public async createExecutionTrace(
     asyncStateService: CachedStateService,
@@ -491,8 +491,8 @@ export class TransactionExecutionService {
       new MethodPublicOutput({
         status: runtimeResult.status,
         networkStateHash: networkStateHash,
-        isMessage: Bool(tx.data.isMessage),
-        transactionHash: Field(tx.data.hash),
+        isMessage: Bool(tx.isMessage),
+        transactionHash: Field(tx.hash),
         eventsHash,
         stateTransitionsHash,
       })

@@ -36,15 +36,15 @@ export class TransactionMapper
 
   public mapOut(input: PendingTransaction): DBTransaction {
     return {
-      hash: input.data.hash,
-      methodId: input.data.methodId,
-      nonce: input.data.nonce,
-      sender: input.data.sender,
-      argsFields: input.data.argsFields,
-      auxiliaryData: input.data.auxiliaryData,
-      isMessage: input.data.isMessage,
-      signature_r: input.data.signature.r,
-      signature_s: input.data.signature.s,
+      hash: input.hash,
+      methodId: input.methodId,
+      nonce: input.nonce,
+      sender: input.sender,
+      argsFields: input.argsFields,
+      auxiliaryData: input.auxiliaryData,
+      isMessage: input.isMessage,
+      signature_r: input.signature.r,
+      signature_s: input.signature.s,
     };
   }
 }

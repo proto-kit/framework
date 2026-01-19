@@ -23,11 +23,11 @@ export class TransactionValidator {
     // module name validation happens inside getMethodNameFromId
     // and also in the next step
     const methodPath = this.runtime.methodIdResolver.getMethodNameFromId(
-      tx.data.methodId
+      tx.methodId
     );
 
     if (methodPath === undefined) {
-      return `Method with id ${tx.data.methodId} does not exist`;
+      return `Method with id ${tx.methodId} does not exist`;
     }
 
     // Check if parameters are decodable
@@ -50,7 +50,7 @@ export class TransactionValidator {
       return [false, methodError];
     }
 
-    const signature = Signature.fromJSON(tx.data.signature)
+    const signature = Signature.fromJSON(tx.signature)
     const runtimeTx = tx.toRuntimeTransaction();
 
 

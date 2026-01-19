@@ -68,14 +68,14 @@ export class RuntimeProvingTask
       ProvableNetworkState.fromJSON(input.networkState)
     );
 
-    const method = this.runtime.getMethodById(tx.data.methodId);
+    const method = this.runtime.getMethodById(tx.methodId);
 
     const methodDescriptors = this.runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodNameFromId(tx.data.methodId);
+      .getMethodNameFromId(tx.methodId);
 
     if (methodDescriptors === undefined || method === undefined) {
-      throw new Error(`MethodId not found ${tx.data.methodId}`);
+      throw new Error(`MethodId not found ${tx.methodId}`);
     }
 
     const [moduleName, methodName] = methodDescriptors;
@@ -85,8 +85,8 @@ export class RuntimeProvingTask
       methodName
     );
     const decodedArguments = await parameterEncoder.decode(
-      tx.data.argsFields.map(Field),
-      tx.data.auxiliaryData
+      tx.argsFields.map(Field),
+      tx.auxiliaryData
     );
 
     const prefilledStateService = new PreFilledStateService(

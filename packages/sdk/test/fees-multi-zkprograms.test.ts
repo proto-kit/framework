@@ -6,7 +6,7 @@ import { expectDefined, noop } from "@proto-kit/common";
 import { inject } from "tsyringe";
 import { Balance, Balances, BalancesKey, TokenId } from "@proto-kit/library";
 
-import { TestingAppChain } from "../src";
+import { TestingAppChain } from "../src"; 
 
 // This test is designed to check what happens when we have multiple zkPrograms.
 // Currently, the hardcoded maximum for methods per zkProgram is 8 (see Runtime.ts).
@@ -226,8 +226,9 @@ describe("check fee analyzer", () => {
     );
 
     await tx2.sign();
-    await tx2.send();
-    const methodId2 = tx2.transaction?.methodId.toBigInt();
+    await tx2.send();                                                                                                                                                                                                      
+    
+    const methodId2 = tx2.transaction?.methodId.toString()
     expectDefined(methodId2);
     const transactionFeeConfig2 =
       transactionFeeModule.feeAnalyzer.getFeeConfig(methodId2);
@@ -244,7 +245,7 @@ describe("check fee analyzer", () => {
 
     await tx3.sign();
     await tx3.send();
-    const methodId3 = tx3.transaction?.methodId.toBigInt();
+    const methodId3 = tx3.transaction?.methodId.toString()
     expectDefined(methodId3);
     const transactionFeeConfig3 =
       transactionFeeModule.feeAnalyzer.getFeeConfig(methodId3);
@@ -262,7 +263,7 @@ describe("check fee analyzer", () => {
     await tx4.sign();
     await tx4.send();
 
-    const methodId4 = tx4.transaction?.methodId.toBigInt();
+    const methodId4 = tx4.transaction?.methodId.toString()
     expectDefined(methodId4);
     const transactionFeeConfig4 =
       transactionFeeModule.feeAnalyzer.getFeeConfig(methodId4);
@@ -280,7 +281,7 @@ describe("check fee analyzer", () => {
     await tx5.sign();
     await tx5.send();
 
-    const methodId5 = tx5.transaction?.methodId.toBigInt();
+    const methodId5 = tx5.transaction?.methodId.toString()
     expectDefined(methodId5);
     const transactionFeeConfig5 =
       transactionFeeModule.feeAnalyzer.getFeeConfig(methodId5);
