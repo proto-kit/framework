@@ -1,4 +1,4 @@
-import { inject, injectable } from "tsyringe";
+import { inject, injectable, singleton } from "tsyringe";
 import {
   EventsRecord,
   ReplayingSingleUseEventEmitter,
@@ -23,6 +23,7 @@ export interface WaitForTxOptions {
 }
 
 @injectable()
+@singleton()
 export class TxStatusWaiter {
   private readonly emitters = new Map<
     string,
@@ -80,7 +81,7 @@ export class TxStatusWaiter {
   ): Promise<void> {
     const initial = await this.pendingStorage.findById(txId);
     if (!initial) {
-      log.info(
+      log.warn(
         `TxStatusWaiter: waitFor(${desiredStatus}) unknown txId=${txId}`
       );
       throw new Error(`Unknown pending L1 transaction id ${txId}`);
@@ -101,7 +102,7 @@ export class TxStatusWaiter {
         resolve();
       });
       emitter.on("failed", ({ error }) => {
-        log.info(
+        log.warn(
           `TxStatusWaiter: waitFor(${desiredStatus}) rejected by failed event txId=${txId}`,
           error
         );

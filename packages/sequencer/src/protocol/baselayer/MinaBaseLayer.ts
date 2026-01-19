@@ -5,7 +5,7 @@ import {
 } from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
-import { inject } from "tsyringe";
+import { DependencyContainer, inject } from "tsyringe";
 
 import { MinaIncomingMessageAdapter } from "../../settlement/messages/MinaIncomingMessageAdapter";
 import {
@@ -13,8 +13,12 @@ import {
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
+import { L1TransactionDispatcher } from "../../settlement/transactions/L1TransactionDispatcher";
 import { TxStatusWaiter } from "../../settlement/transactions/TxStatusWaiter";
 import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
+import type { PendingL1TransactionStorage } from "../../storage/repositories/PendingL1TransactionStorage";
+import type { L1TransactionRetryStrategy } from "../../settlement/transactions/L1TransactionRetryStrategy";
+import type { MinaSigner } from "../../settlement/MinaSigner";
 
 import { BaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
@@ -94,14 +98,29 @@ export class MinaBaseLayer
         useClass: MinaTransactionSender,
       },
 
-      TxStatusWaiter: {
-        useClass: TxStatusWaiter,
-      },
-
-      L1TransactionDispatcherConfig: {
-        useValue: {
-          ...DEFAULT_L1_TRANSACTION_DISPATCHER_CONFIG,
-          ...(this.config.transactionDispatcher ?? {}),
+      L1TransactionDispatcher: {
+        useFactory: (container: DependencyContainer) => {
+          const config = {
+            ...DEFAULT_L1_TRANSACTION_DISPATCHER_CONFIG,
+            ...(this.config.transactionDispatcher ?? {}),
+          };
+          const pendingStorage = container.resolve<PendingL1TransactionStorage>(
+            "PendingL1TransactionStorage"
+          );
+          const retryStrategy = container.resolve<L1TransactionRetryStrategy>(
+            "L1TransactionRetryStrategy"
+          );
+          const signer = container.resolve<MinaSigner>("SettlementSigner");
+          const waiter = container.resolve(TxStatusWaiter);
+          const baseLayer = container.resolve<MinaBaseLayer>("BaseLayer");
+          return new L1TransactionDispatcher(
+            pendingStorage,
+            retryStrategy,
+            signer,
+            waiter,
+            config,
+            baseLayer
+          );
         },
       },
 

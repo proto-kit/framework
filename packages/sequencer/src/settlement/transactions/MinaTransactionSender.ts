@@ -1,6 +1,6 @@
 import { fetchAccount, PublicKey, Transaction, UInt64 } from "o1js";
 import { inject, injectable } from "tsyringe";
-import { filterNonUndefined, log } from "@proto-kit/common";
+import { filterNonUndefined, log, Startable } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { PendingL1TransactionStorage } from "../../storage/repositories/PendingL1TransactionStorage";
@@ -12,6 +12,7 @@ import {
 import { FeeStrategy } from "../../protocol/baselayer/fees/FeeStrategy";
 import { MinaSigner } from "../MinaSigner";
 import { closeable, Closeable } from "../../sequencer/builder/Closeable";
+import { startable } from "../../sequencer/builder/StartableModule";
 
 import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
 import { L1TransactionDispatcher } from "./L1TransactionDispatcher";
@@ -23,19 +24,24 @@ export type TxSendResult<
 
 @injectable()
 @closeable()
-export class MinaTransactionSender implements Closeable {
+@startable()
+export class MinaTransactionSender implements Closeable, Startable {
   public constructor(
     private readonly creator: FlowCreator,
     private readonly provingTask: SettlementProvingTask,
     private readonly simulator: MinaTransactionSimulator,
-    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
+    @inject("BaseLayer")
+    private readonly baseLayer: MinaBaseLayer,
     @inject("PendingL1TransactionStorage")
     private readonly pendingStorage: PendingL1TransactionStorage,
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("FeeStrategy") private readonly feeStrategy: FeeStrategy,
+    @inject("L1TransactionDispatcher")
     private readonly dispatcher: L1TransactionDispatcher,
-    @inject("TxStatusWaiter") private readonly waiter: TxStatusWaiter
-  ) {
+    private readonly waiter: TxStatusWaiter
+  ) {}
+
+  public async start(): Promise<void> {
     this.dispatcher.start();
   }
 
