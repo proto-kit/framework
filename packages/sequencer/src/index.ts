@@ -39,7 +39,6 @@ export * from "./protocol/production/tasks/serializers/ArtifactionRecordSerializ
 export * from "./protocol/production/tasks/serializers/BlockProofSerializer";
 export * from "./protocol/production/tasks/serializers/DecodedStateSerializer";
 export * from "./protocol/production/tasks/serializers/NewBlockProvingParametersSerializer";
-export * from "./protocol/production/tasks/serializers/RuntimeProofParametersSerializer";
 export * from "./protocol/production/tasks/serializers/RuntimeVerificationKeyAttestationSerializer";
 export * from "./protocol/production/tasks/serializers/StateTransitionParametersSerializer";
 export * from "./protocol/production/tasks/serializers/TransactionProvingTaskParameterSerializer";
