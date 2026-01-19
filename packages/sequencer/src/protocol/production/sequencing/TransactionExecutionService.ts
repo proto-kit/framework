@@ -35,9 +35,7 @@ import {
 // eslint-disable-next-line import/no-extraneous-dependencies
 import zip from "lodash/zip";
 
-import {
-  PendingTransaction,
-} from "../../../mempool/PendingTransaction";
+import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import {
   StateTransitionBatch,
@@ -105,10 +103,7 @@ async function decodeTransaction(
     module,
     methodName
   );
-  const args = await parameterDecoder.decode(
-    tx.argsFields,
-    tx.auxiliaryData
-  );
+  const args = await parameterDecoder.decode(tx.argsFields, tx.auxiliaryData);
 
   return {
     method,
@@ -318,8 +313,7 @@ export class TransactionExecutionService {
     state: BlockTrackers,
     tx: PendingTransaction
   ): BlockTrackers {
-    const signedTransaction =
-      tx.toProtocolTransaction();
+    const signedTransaction = tx.toProtocolTransaction();
     // Add tx to commitments
     return addTransactionToBundle(
       state,
@@ -431,8 +425,7 @@ export class TransactionExecutionService {
     const previousProofsEnabled = appChain.areProofsEnabled;
     appChain.setProofsEnabled(false);
 
-    const signedTransaction =
-      tx.toProtocolTransaction();
+    const signedTransaction = tx.toProtocolTransaction();
     const runtimeContextInputs = {
       transaction: signedTransaction.transaction,
       networkState,

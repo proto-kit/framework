@@ -155,10 +155,8 @@ export class MethodParameterEncoder {
           const inputFieldSize = MethodParameterEncoder.fieldSize(
             type.publicInputType
           )!;
-          const input = structFields
-            .slice(0, inputFieldSize);
-          const output = structFields
-            .slice(inputFieldSize);
+          const input = structFields.slice(0, inputFieldSize);
+          const output = structFields.slice(inputFieldSize);
 
           // fromJSON has incompatible signature for Proof and DynamicProof
           if (isProofType(type)) {

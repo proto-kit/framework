@@ -53,10 +53,9 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
     if (dbResult === null) {
       return undefined;
     }
-    const transactions =
-      dbResult.transactions.map<TransactionExecutionResult>((txresult) =>
-        this.transactionResultMapper.mapIn([txresult, txresult.tx])
-      );
+    const transactions = dbResult.transactions.map<TransactionExecutionResult>(
+      (txresult) => this.transactionResultMapper.mapIn([txresult, txresult.tx])
+    );
 
     return {
       block: {
@@ -222,10 +221,11 @@ export class PrismaBlockStorage implements BlockQueue, BlockStorage {
     });
 
     return blocks.map((block, index) => {
-      const transactions =
-        block.transactions.map<TransactionExecutionResult>((txresult) => {
+      const transactions = block.transactions.map<TransactionExecutionResult>(
+        (txresult) => {
           return this.transactionResultMapper.mapIn([txresult, txresult.tx]);
-        });
+        }
+      );
       const decodedBlock = this.blockMapper.mapIn(block);
       decodedBlock.transactions = transactions;
 

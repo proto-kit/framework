@@ -24,7 +24,9 @@ describe("memPool", () => {
 
       const signed = unsigned.sign(pk);
 
-      expect(data).toStrictEqual(signed.toProtocolTransaction().getSignatureData());
+      expect(data).toStrictEqual(
+        signed.toProtocolTransaction().getSignatureData()
+      );
       expect(hash).toStrictEqual(signed.hash);
     });
   });

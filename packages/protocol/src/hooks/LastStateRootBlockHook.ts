@@ -19,7 +19,9 @@ export class LastStateRootBlockHook extends ProvableBlockHook<
     });
   }
 
-  public async beforeBlock(networkState: ProvableNetworkState): Promise<ProvableNetworkState> {
+  public async beforeBlock(
+    networkState: ProvableNetworkState
+  ): Promise<ProvableNetworkState> {
     return networkState;
   }
 }

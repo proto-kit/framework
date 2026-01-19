@@ -1,5 +1,5 @@
 import { singleton } from "tsyringe";
-import { Block, UntypedStateTransition } from "@proto-kit/sequencer";
+import { Block } from "@proto-kit/sequencer";
 import { Prisma, Block as PrismaBlock } from "@prisma/client";
 import { NetworkState } from "@proto-kit/protocol";
 
@@ -35,8 +35,7 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       previousBlockHash:
         input.parentHash !== null ? input.parentHash : undefined,
 
-      beforeBlockStateTransitions:
-        this.stArrayMapper.mapIn(
+      beforeBlockStateTransitions: this.stArrayMapper.mapIn(
         input.beforeBlockStateTransitions
       ),
     };

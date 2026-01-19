@@ -18,7 +18,7 @@ import { EventArrayMapper } from "./EventMapper";
 export class TransactionMapper
   implements ObjectMapper<PendingTransaction, DBTransaction>
 {
-  public mapIn(input: DBTransaction): PendingTransaction { 
+  public mapIn(input: DBTransaction): PendingTransaction {
     return new PendingTransaction({
       hash: input.hash,
       methodId: input.methodId,

@@ -1,4 +1,4 @@
-import { Bool, Field, Poseidon } from "o1js";
+import { Bool, Field } from "o1js";
 import {
   LinkedMerkleTree,
   LinkedMerkleTreeWitness,
@@ -9,7 +9,6 @@ import {
   AppliedBatchHashList,
   AppliedStateTransitionBatchState,
   DefaultProvableHashList,
-  ProvableOption,
   ProvableStateTransition,
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
@@ -19,9 +18,7 @@ import {
 
 import { distinctByString } from "../../../helpers/utils";
 import { BlockWithResult } from "../../../storage/model/Block";
-import {
-  UntypedStateTransition,
-} from "../helpers/UntypedStateTransition";
+import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
 import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
@@ -55,9 +52,7 @@ export class StateTransitionTracingService {
         },
         ...block.block.transactions.flatMap((tx) =>
           tx.stateTransitions.map((batch) => ({
-            stateTransitions: batch.stateTransitions.map((st) =>
-              st
-            ),
+            stateTransitions: batch.stateTransitions.map((st) => st),
             applied: batch.applied,
           }))
         ),
@@ -85,13 +80,13 @@ export class StateTransitionTracingService {
     stateTransitions: TracingStateTransitionBatch[]
   ) {
     const batches = StateTransitionProvableBatch.fromBatches(
-    stateTransitions.map(
+      stateTransitions.map(
         ({
           stateTransitions: batchStateTransitions,
           applied,
           witnessRoot,
         }) => ({
-          stateTransitions: batchStateTransitions.map((transition) => 
+          stateTransitions: batchStateTransitions.map((transition) =>
             transition.toProvable()
           ),
           applied: Bool(applied),

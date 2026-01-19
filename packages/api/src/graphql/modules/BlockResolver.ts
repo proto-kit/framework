@@ -1,5 +1,5 @@
 import { inject } from "tsyringe";
-import { Block, BlockStorage, PendingTransaction } from "@proto-kit/sequencer";
+import { Block, BlockStorage } from "@proto-kit/sequencer";
 import { Arg, Field, ObjectType, Query } from "type-graphql";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";

@@ -1,5 +1,5 @@
 import { Bool, Field, Poseidon } from "o1js";
-import { LinkedMerkleTree } from "@proto-kit/common";
+import { LinkedMerkleTree, FieldString } from "@proto-kit/common";
 import {
   AfterBlockHookArguments,
   BlockHashMerkleTree,
@@ -22,9 +22,7 @@ import {
 } from "../../../storage/model/Block";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { CachedMerkleTreeStore } from "../../../state/merkle/CachedMerkleTreeStore";
-import {
-  UntypedStateTransition,
-} from "../helpers/UntypedStateTransition";
+import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { CachedStateService } from "../../../state/state/CachedStateService";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import type { StateRecord } from "../BatchProducerModule";
@@ -32,7 +30,6 @@ import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
-import { FieldString } from "@proto-kit/common";
 
 import { executeWithExecutionContext } from "./TransactionExecutionService";
 
@@ -174,7 +171,8 @@ export class BlockResultService {
     const tree = new LinkedMerkleTree(store.treeStore, store);
 
     const writes = Object.entries(stateDiff).map(([key, state]) => {
-      const treeValue = state !== undefined ? Poseidon.hash(state.map(Field)) : Field(0);
+      const treeValue =
+        state !== undefined ? Poseidon.hash(state.map(Field)) : Field(0);
       return { path: BigInt(key), value: treeValue.toBigInt() };
     });
     tree.setLeaves(writes);
@@ -225,7 +223,9 @@ export class BlockResultService {
         transactionsHash: Field(block.transactionsHash),
         eternalTransactionsHash: Field(block.toEternalTransactionsHash),
       },
-      new ProvableNetworkState(ProvableNetworkState.fromJSON(block.networkState.during)),
+      new ProvableNetworkState(
+        ProvableNetworkState.fromJSON(block.networkState.during)
+      ),
       stateService
     );
 

@@ -1,7 +1,4 @@
-import {
-  MessageStorage,
-  PendingTransaction,
-} from "@proto-kit/sequencer";
+import { MessageStorage, PendingTransaction } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";

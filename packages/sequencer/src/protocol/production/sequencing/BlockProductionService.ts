@@ -14,7 +14,7 @@ import {
   TransactionHashList,
 } from "@proto-kit/protocol";
 import { Field } from "o1js";
-import { log } from "@proto-kit/common";
+import { log, FieldString } from "@proto-kit/common";
 import { match } from "ts-pattern";
 
 import {
@@ -28,7 +28,6 @@ import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
-import { FieldString } from "@proto-kit/common";
 
 import {
   BlockTrackers,
@@ -132,7 +131,9 @@ export class BlockProductionService {
     // Get used networkState by executing beforeBlock() hooks
     const beforeHookResult = await this.executeBeforeBlockHook(
       toProvableHookBlockState(blockState),
-      new ProvableNetworkState(ProvableNetworkState.fromJSON(lastResult.afterNetworkState)),
+      new ProvableNetworkState(
+        ProvableNetworkState.fromJSON(lastResult.afterNetworkState)
+      ),
       stateService
     );
 
@@ -174,10 +175,7 @@ export class BlockProductionService {
       toEternalTransactionsHash: FieldString(
         newBlockState.eternalTransactionsList.commitment
       ),
-      height:
-        (lastBlock.hash) !== "0"
-          ? lastBlock.height + 1
-          : 0,
+      height: lastBlock.hash !== "0" ? lastBlock.height + 1 : 0,
       fromBlockHashRoot: FieldString(lastResult.blockHashRoot),
       fromMessagesHash: lastBlock.toMessagesHash,
       fromStateRoot: FieldString(lastResult.stateRoot),
@@ -188,7 +186,7 @@ export class BlockProductionService {
         before: lastResult.afterNetworkState,
         during: ProvableNetworkState.toJSON(networkState),
       },
-      beforeBlockStateTransitions: beforeBlockStateTransitions
+      beforeBlockStateTransitions: beforeBlockStateTransitions,
     };
 
     const hash = Block.hash(block).toString();

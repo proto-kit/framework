@@ -10,19 +10,20 @@ import {
   NetworkState,
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
-import { Field, Proof } from "o1js";
+import { Proof } from "o1js";
 import { CompileRegistry } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
-import {
-  PendingTransaction,
-} from "../../../mempool/PendingTransaction";
+import { PendingTransaction } from "../../../mempool/PendingTransaction";
 
 import { RuntimeProofParametersSerializer } from "./serializers/RuntimeProofParametersSerializer";
-import { DecodedStateSerializer, JSONEncodableState } from "./serializers/DecodedStateSerializer";
+import {
+  DecodedStateSerializer,
+  JSONEncodableState,
+} from "./serializers/DecodedStateSerializer";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -59,11 +60,9 @@ export class RuntimeProvingTask
     return new ProofTaskSerializer(this.runtimeZkProgrammable[0].Proof);
   }
 
-  public async compute(
-    input: RuntimeProofParameters
-  ): Promise<RuntimeProof> {
+  public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
     // Convert from JSON to provable types at the proving boundary
-    const tx = input.tx;
+    const { tx } = input;
     const networkState = new ProvableNetworkState(
       ProvableNetworkState.fromJSON(input.networkState)
     );

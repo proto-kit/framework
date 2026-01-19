@@ -24,7 +24,10 @@ import {
   TransactionProvingTaskParameters,
   TransactionProvingType,
 } from "./serializers/types/TransactionProvingTypes";
-import { DecodedStateSerializer, JSONEncodableState, TaskStateRecord } from "./serializers/DecodedStateSerializer";
+import {
+  DecodedStateSerializer,
+  JSONEncodableState,
+} from "./serializers/DecodedStateSerializer";
 
 export async function executeWithPrefilledStateService<Return>(
   stateServiceProvider: StateServiceProvider,
@@ -37,7 +40,7 @@ export async function executeWithPrefilledStateService<Return>(
     .forEach((startingState) => {
       stateServiceProvider.setCurrentStateService(
         new PreFilledStateService({
-          ...DecodedStateSerializer.fromJSON(startingState)
+          ...DecodedStateSerializer.fromJSON(startingState),
         })
       );
     });

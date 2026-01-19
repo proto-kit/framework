@@ -13,7 +13,6 @@ import {
   SignedTransaction,
   UInt64Option,
 } from "@proto-kit/protocol";
-import { FieldString } from "@proto-kit/common";
 
 export type UnsignedTransactionBody = {
   methodId: Field;
@@ -27,6 +26,106 @@ export type UnsignedTransactionBody = {
   auxiliaryData: string[];
   isMessage: boolean;
 };
+
+interface PendingTransactionJSONType {
+  hash: string;
+  methodId: string;
+  nonce: string;
+  sender: string;
+  argsFields: string[];
+  auxiliaryData: string[];
+  signature: {
+    r: string;
+    s: string;
+  };
+  isMessage: boolean;
+}
+
+export class PendingTransaction {
+  public readonly hash: string;
+
+  public readonly methodId: string;
+
+  public readonly nonce: string;
+
+  public readonly sender: string;
+
+  public readonly argsFields: string[];
+
+  public readonly auxiliaryData: string[];
+
+  public readonly signature: { r: string; s: string };
+
+  public readonly isMessage: boolean;
+
+  public static fromJSON(
+    object: PendingTransactionJSONType
+  ): PendingTransaction {
+    return new PendingTransaction({
+      hash: object.hash,
+      methodId: object.methodId,
+      nonce: object.nonce,
+      sender: object.sender,
+      argsFields: object.argsFields.slice(),
+      auxiliaryData: object.auxiliaryData.slice(),
+      signature: { r: object.signature.r, s: object.signature.s },
+      isMessage: object.isMessage,
+    });
+  }
+
+  public constructor(data: {
+    hash: string;
+    methodId: string;
+    nonce: string;
+    sender: string;
+    argsFields: string[];
+    auxiliaryData: string[];
+    signature: { r: string; s: string };
+    isMessage: boolean;
+  }) {
+    this.hash = data.hash;
+    this.methodId = data.methodId;
+    this.nonce = data.nonce;
+    this.sender = data.sender;
+    this.argsFields = data.argsFields;
+    this.auxiliaryData = data.auxiliaryData;
+    this.signature = data.signature;
+    this.isMessage = data.isMessage;
+  }
+
+  public toJSON(): PendingTransactionJSONType {
+    return {
+      hash: this.hash,
+      methodId: this.methodId,
+      nonce: this.nonce,
+      sender: this.sender,
+      argsFields: this.argsFields.slice(),
+      auxiliaryData: this.auxiliaryData.slice(),
+      signature: { r: this.signature.r, s: this.signature.s },
+      isMessage: this.isMessage,
+    };
+  }
+
+  public toRuntimeTransaction(): RuntimeTransaction {
+    const isSome = Bool(!this.isMessage);
+    return new RuntimeTransaction({
+      methodId: Field(this.methodId),
+      argsHash: Poseidon.hash(this.argsFields.map((f) => Field(f))),
+      nonce: new UInt64Option({ value: UInt64.from(this.nonce), isSome }),
+      sender: new PublicKeyOption({
+        value: PublicKey.fromBase58(this.sender),
+        isSome,
+      }),
+    });
+  }
+
+  public toProtocolTransaction(): SignedTransaction {
+    return new SignedTransaction({
+      transaction: this.toRuntimeTransaction(),
+      signature: Signature.fromJSON(this.signature),
+    });
+  }
+}
 
 export class UnsignedTransaction implements UnsignedTransactionBody {
   public readonly methodId: Field;
@@ -105,7 +204,7 @@ export class UnsignedTransaction implements UnsignedTransactionBody {
     });
   }
 
-  public signed(signature: Signature): PendingTransaction {
+  public signed(signature: Signature) {
     return new PendingTransaction({
       hash: this.hash().toString(),
       methodId: this.methodId.toString(),
@@ -115,94 +214,6 @@ export class UnsignedTransaction implements UnsignedTransactionBody {
       argsFields: this.argsFields.map((f) => f.toString()),
       auxiliaryData: this.auxiliaryData,
       isMessage: this.isMessage,
-    });
-}
-}
-
-interface PendingTransactionJSONType {
-  hash: string;
-  methodId: string;
-  nonce: string;
-  sender: string;
-  argsFields: string[];
-  auxiliaryData: string[];
-  signature: {
-    r: string;
-    s: string;
-  };
-  isMessage: boolean;
-}
-
-export class PendingTransaction {
-  public readonly hash: string;
-  public readonly methodId: string;
-  public readonly nonce: string;
-  public readonly sender: string;
-  public readonly argsFields: string[];
-  public readonly auxiliaryData: string[];
-  public readonly signature: { r: string; s: string };
-  public readonly isMessage: boolean;
-
-  public static fromJSON(object: PendingTransactionJSONType): PendingTransaction {
-    return new PendingTransaction({
-      hash: object.hash,
-      methodId: object.methodId,
-      nonce: object.nonce,
-      sender: object.sender,
-      argsFields: object.argsFields.slice(),
-      auxiliaryData: object.auxiliaryData.slice(),
-      signature: { r: object.signature.r, s: object.signature.s },
-      isMessage: object.isMessage,
-    });
-  }
-
-  public constructor(data: {
-    hash: string;
-    methodId: string;
-    nonce: string;
-    sender: string;
-    argsFields: string[];
-    auxiliaryData: string[];
-    signature: { r: string; s: string };
-    isMessage: boolean;
-  }) {
-    this.hash = data.hash;
-    this.methodId = data.methodId;
-    this.nonce = data.nonce;
-    this.sender = data.sender;
-    this.argsFields = data.argsFields;
-    this.auxiliaryData = data.auxiliaryData;
-    this.signature = data.signature;
-    this.isMessage = data.isMessage;
-  }
-
-  public toJSON(): PendingTransactionJSONType {
-    return {
-      hash: this.hash,
-      methodId: this.methodId,
-      nonce: this.nonce,
-      sender: this.sender,
-      argsFields: this.argsFields.slice(),
-      auxiliaryData: this.auxiliaryData.slice(),
-      signature: { r: this.signature.r, s: this.signature.s },
-      isMessage: this.isMessage,
-    };
-  }
-
-  public toRuntimeTransaction(): RuntimeTransaction {
-    const isSome = Bool(!this.isMessage);
-    return new RuntimeTransaction({
-      methodId: Field(this.methodId),
-      argsHash: Poseidon.hash(this.argsFields.map((f) => Field(f))),
-      nonce: new UInt64Option({ value: UInt64.from(this.nonce), isSome }),
-      sender: new PublicKeyOption({ value: PublicKey.fromBase58(this.sender), isSome }),
-    });
-  }
-
-  public toProtocolTransaction(): SignedTransaction {
-    return new SignedTransaction({
-      transaction: this.toRuntimeTransaction(),
-      signature: Signature.fromJSON(this.signature),
     });
   }
 }

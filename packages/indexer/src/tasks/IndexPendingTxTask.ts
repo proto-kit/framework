@@ -28,9 +28,7 @@ export class IndexPendingTxTask
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   public async prepare(): Promise<void> {}
 
-  public async compute(
-    input: PendingTransaction
-  ): Promise<string | void> {
+  public async compute(input: PendingTransaction): Promise<string | void> {
     try {
       await this.transactionStorage.pushUserTransaction(input);
       return "";

@@ -182,7 +182,9 @@ export class TransactionProvingTaskParameterSerializer
               parameters.executionData.transaction
             ),
             networkState: new ProvableNetworkState(
-              ProvableNetworkState.fromJSON(parameters.executionData.networkState)
+              ProvableNetworkState.fromJSON(
+                parameters.executionData.networkState
+              )
             ),
           },
         },

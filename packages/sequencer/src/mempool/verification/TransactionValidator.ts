@@ -4,11 +4,9 @@ import {
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
+import { Signature } from "o1js";
 
-import {
-  PendingTransaction,
-} from "../PendingTransaction";
-import { Signature} from "o1js";
+import { PendingTransaction } from "../PendingTransaction";
 
 @injectable()
 export class TransactionValidator {
@@ -41,24 +39,21 @@ export class TransactionValidator {
     return undefined;
   }
 
-  public validateTx(
-    tx: PendingTransaction
-  ): [boolean, string | undefined] {
+  public validateTx(tx: PendingTransaction): [boolean, string | undefined] {
     const methodError = this.validateMethod(tx);
 
     if (methodError !== undefined) {
       return [false, methodError];
     }
 
-    const signature = Signature.fromJSON(tx.signature)
+    const signature = Signature.fromJSON(tx.signature);
     const runtimeTx = tx.toRuntimeTransaction();
 
-
-    const validSignature = signature.verify(
-      runtimeTx.sender.value,
-      [runtimeTx.methodId, ...runtimeTx.nonce.value.value.toFields(), runtimeTx.argsHash]
-    );
-
+    const validSignature = signature.verify(runtimeTx.sender.value, [
+      runtimeTx.methodId,
+      ...runtimeTx.nonce.value.value.toFields(),
+      runtimeTx.argsHash,
+    ]);
 
     if (!validSignature.toBoolean()) {
       return [false, "Signature provided is not valid"];

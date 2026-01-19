@@ -11,9 +11,7 @@ import { MAX_FIELD } from "@proto-kit/common";
 import { toStateTransitionsHash } from "@proto-kit/module";
 import { injectable } from "tsyringe";
 
-import {
-  TransactionExecutionResult,
-} from "../../../storage/model/Block";
+import { TransactionExecutionResult } from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import type { RuntimeProofParameters } from "../tasks/RuntimeProvingTask";
 import {
@@ -22,11 +20,9 @@ import {
 } from "../tasks/serializers/types/TransactionProvingTypes";
 import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
-
-import type {
-  BlockTracingState,
-} from "./BlockTracingService";
 import { JSONEncodableState } from "../tasks/serializers/DecodedStateSerializer";
+
+import type { BlockTracingState } from "./BlockTracingService";
 
 export type TransactionTrace =
   | {
@@ -47,17 +43,13 @@ export function collectStartingState(
     // Filter distinct
     .filter(
       (st, index, array) =>
-        array.findIndex((st2) => st2.path === st.path) ===
-        index
+        array.findIndex((st2) => st2.path === st.path) === index
     )
     // Filter out STs that have isSome: false as precondition, because this means
     // "state hasn't been set before" and has to correlate to a precondition on Field(0)
     // and for that the state has to be undefined
     .filter((st) => st.from.isSome)
-    .map((st) => [
-      st.path,
-      st.from.value,
-    ]);
+    .map((st) => [st.path, st.from.value]);
 
   return Object.fromEntries(stateEntries);
 }
@@ -72,9 +64,7 @@ export class TransactionTracingService {
     transaction: PendingTransaction
   ): Promise<TransactionProverTransactionArguments> {
     const verificationKeyAttestation =
-      this.verificationKeyService.getAttestation(
-        transaction.methodId
-      );
+      this.verificationKeyService.getAttestation(transaction.methodId);
 
     return {
       transaction: transaction.toRuntimeTransaction(),
@@ -103,7 +93,7 @@ export class TransactionTracingService {
     previousState: BlockTracingState,
     transaction: TransactionExecutionResult
   ) {
-    const tx = transaction.tx;
+    const { tx } = transaction;
     // TODO Remove this call and instead reuse results from sequencing
     const newState = addTransactionToBundle(
       previousState,
@@ -179,9 +169,7 @@ export class TransactionTracingService {
     const transactionTrace: TransactionProverTaskParameters<BlockProverSingleTransactionExecutionData> =
       {
         executionData: {
-          transaction: await this.getTransactionData(
-            transaction.tx
-          ),
+          transaction: await this.getTransactionData(transaction.tx),
           networkState: previousState.networkState,
         },
         startingState,
@@ -220,12 +208,8 @@ export class TransactionTracingService {
     const transactionTrace: TransactionProverTaskParameters<BlockProverMultiTransactionExecutionData> =
       {
         executionData: {
-          transaction1: await this.getTransactionData(
-            transaction1.tx
-          ),
-          transaction2: await this.getTransactionData(
-            transaction2.tx
-          ),
+          transaction1: await this.getTransactionData(transaction1.tx),
+          transaction2: await this.getTransactionData(transaction2.tx),
           networkState: previousState.networkState,
         },
         startingState: [...startingState1, ...startingState2],

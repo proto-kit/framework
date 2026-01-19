@@ -4,7 +4,7 @@ import {
   BlockProverPublicOutput,
   NetworkState,
 } from "@proto-kit/protocol";
-import { Field, Proof } from "o1js";
+import { Proof } from "o1js";
 import { log, noop } from "@proto-kit/common";
 
 import {

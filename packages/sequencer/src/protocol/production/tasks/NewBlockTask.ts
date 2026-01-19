@@ -62,7 +62,7 @@ export class NewBlockTask
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly executionContext: ProvableMethodExecutionContext,
-    private readonly compileRegistry: CompileRegistry,
+    private readonly compileRegistry: CompileRegistry
   ) {
     super();
     this.stateTransitionProver = protocol.stateTransitionProver;
@@ -115,13 +115,13 @@ export class NewBlockTask
 
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      [startingStateBeforeHook , startingStateAfterHook],
+      [startingStateBeforeHook, startingStateAfterHook],
       async () => {}
     );
 
     return await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      [startingStateBeforeHook , startingStateAfterHook],
+      [startingStateBeforeHook, startingStateAfterHook],
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );

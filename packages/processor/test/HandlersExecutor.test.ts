@@ -6,7 +6,7 @@ import {
 import { TestingAppChain } from "@proto-kit/sdk";
 import { Balance, Balances, TokenId } from "@proto-kit/library";
 import { MethodParameterEncoder } from "@proto-kit/module";
-import { Field, PrivateKey, PublicKey } from "o1js";
+import { PrivateKey, PublicKey } from "o1js";
 import { mockDeep } from "jest-mock-extended";
 import { container } from "tsyringe";
 
@@ -42,7 +42,7 @@ describe("HandlersModule", () => {
     ) => {
       // iterate over all transactions
       for (const tx of block.transactions) {
-        const methodId = tx.tx.methodId;
+        const { methodId } = tx.tx;
 
         const methodDescriptor =
           appChain.runtime.methodIdResolver.getMethodNameFromId(methodId);

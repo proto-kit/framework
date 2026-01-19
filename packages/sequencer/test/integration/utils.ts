@@ -38,18 +38,14 @@ export function createTransaction(spec: {
     sender: spec.privateKey.toPublicKey(),
     nonce: UInt64.from(spec.nonce),
     isMessage: false,
-  })
-    .sign(spec.privateKey)
+  }).sign(spec.privateKey);
 }
 
 export function collectStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {
-  return stateTransitions.reduce<StateRecord>(
-    (state, st) => {
-      state[st.path] = st.to.value;
-      return state;
-    },
-    {}
-  );
+  return stateTransitions.reduce<StateRecord>((state, st) => {
+    state[st.path] = st.to.value;
+    return state;
+  }, {});
 }

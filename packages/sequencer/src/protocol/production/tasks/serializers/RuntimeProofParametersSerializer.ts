@@ -2,10 +2,6 @@ import { TaskSerializer } from "../../../../worker/flow/Task";
 import type { RuntimeProofParameters } from "../RuntimeProvingTask";
 import { PendingTransaction } from "../../../../mempool/PendingTransaction";
 
-/**
- * Serializer for RuntimeProofParametersJson.
- * Since RuntimeProofParametersJson is already JSON-compatible, this is trivial.
- */
 export class RuntimeProofParametersSerializer
   implements TaskSerializer<RuntimeProofParameters>
 {
@@ -26,4 +22,3 @@ export class RuntimeProofParametersSerializer
     };
   }
 }
-

@@ -224,8 +224,8 @@ describe("prisma integration", () => {
 
       expectDefined(transaction.transaction);
 
-      let txHash: string; 
-      
+      let txHash: string;
+
       if (transaction.transaction instanceof PendingTransaction) {
         txHash = transaction.transaction.hash;
       } else {
@@ -246,8 +246,8 @@ describe("prisma integration", () => {
 
       expectDefined(transaction.transaction);
 
-      let txHash: string; 
-      
+      let txHash: string;
+
       if (transaction.transaction instanceof PendingTransaction) {
         txHash = transaction.transaction.hash;
       } else {
@@ -255,9 +255,7 @@ describe("prisma integration", () => {
       }
 
       expect(txs).toHaveLength(1);
-      expect(txs[0].hash).toStrictEqual(
-        txHash
-      );
+      expect(txs[0].hash).toStrictEqual(txHash);
     });
   });
 });

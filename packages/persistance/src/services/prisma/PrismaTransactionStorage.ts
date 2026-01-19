@@ -19,9 +19,7 @@ export class PrismaTransactionStorage implements TransactionStorage {
   ) {}
 
   @trace("db.txs.get")
-  public async getPendingUserTransactions(): Promise<
-    PendingTransaction[]
-  > {
+  public async getPendingUserTransactions(): Promise<PendingTransaction[]> {
     const { prismaClient } = this.connection;
 
     const txs = await prismaClient.transaction.findMany({
@@ -53,9 +51,7 @@ export class PrismaTransactionStorage implements TransactionStorage {
     }
   }
 
-  public async pushUserTransaction(
-    tx: PendingTransaction
-  ): Promise<boolean> {
+  public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {
     const { prismaClient } = this.connection;
 
     const result = await prismaClient.transaction.createMany({

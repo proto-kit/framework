@@ -296,7 +296,6 @@ export function assertDefined<T>(
   }
 }
 
-
 /**
  * Type for serialized {@link Field}.
  */
@@ -310,4 +309,3 @@ export type FieldString = string;
 export const FieldString = (
   value: number | string | bigint | Field
 ): FieldString => String(value);
-

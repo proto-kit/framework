@@ -1,4 +1,4 @@
-import { Bool, Field, Poseidon } from "o1js";
+import { Field, Poseidon } from "o1js";
 import {
   ACTIONS_EMPTY_HASH,
   BlockHashMerkleTree,
@@ -7,15 +7,10 @@ import {
   ProvableNetworkState,
   NetworkState,
 } from "@proto-kit/protocol";
-import { LinkedMerkleTree } from "@proto-kit/common";
+import { LinkedMerkleTree, FieldString } from "@proto-kit/common";
 
-import {
-  PendingTransaction,
-} from "../../mempool/PendingTransaction";
-import {
-  UntypedStateTransition,
-} from "../../protocol/production/helpers/UntypedStateTransition";
-import { FieldString } from "@proto-kit/common";
+import { PendingTransaction } from "../../mempool/PendingTransaction";
+import { UntypedStateTransition } from "../../protocol/production/helpers/UntypedStateTransition";
 
 export interface StateTransitionBatch {
   stateTransitions: UntypedStateTransition[];
@@ -121,7 +116,9 @@ export const BlockWithResult = {
         previousBlockHash: undefined,
       },
       result: {
-        afterNetworkState: ProvableNetworkState.toJSON(ProvableNetworkState.empty()),
+        afterNetworkState: ProvableNetworkState.toJSON(
+          ProvableNetworkState.empty()
+        ),
         stateRoot: FieldString(LinkedMerkleTree.EMPTY_ROOT),
         blockHashRoot: FieldString(BlockHashMerkleTree.EMPTY_ROOT),
         afterBlockStateTransitions: [],

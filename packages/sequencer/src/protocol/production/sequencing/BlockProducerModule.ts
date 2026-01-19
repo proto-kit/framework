@@ -6,7 +6,7 @@ import {
   Runtime,
   RuntimeModulesRecord,
 } from "@proto-kit/module";
-import { Field, Provable } from "o1js";
+import { Provable } from "o1js";
 
 import { Mempool } from "../../../mempool/Mempool";
 import {
@@ -92,10 +92,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       if (log.getLevel() <= log.levels.INFO) {
         Provable.log(
           "Arguments:",
-          paramEncoder.decode(
-            tx.tx.argsFields,
-            tx.tx.auxiliaryData
-          )
+          paramEncoder.decode(tx.tx.argsFields, tx.tx.auxiliaryData)
         );
       }
       log.info(

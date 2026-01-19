@@ -17,7 +17,6 @@ import {
   BlockStorage,
   VanillaTaskWorkerModules,
   AppChain,
-  UntypedStateTransition,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -150,8 +149,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expectDefined(block2);
       expect(block2.hash).toStrictEqual(generatedBlock.hash);
       const input = block.transactions.flatMap((tx) =>
-        tx.stateTransitions.flatMap((batch) =>
-          batch.stateTransitions));
+        tx.stateTransitions.flatMap((batch) => batch.stateTransitions)
+      );
       const stateDiff = collectStateDiff(input);
 
       const state = await unprovenState.getMany(

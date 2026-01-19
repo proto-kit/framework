@@ -1,6 +1,6 @@
 import { PublicKey } from "o1js";
-import { PendingTransaction } from "../../mempool/PendingTransaction";
 
+import { PendingTransaction } from "../../mempool/PendingTransaction";
 
 /**
  * An interface provided by the BaseLayer via DependencyFactory,

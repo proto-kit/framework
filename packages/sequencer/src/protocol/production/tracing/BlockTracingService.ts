@@ -89,7 +89,7 @@ export class BlockTracingService {
 
     state.pendingSTBatches.push({
       batchHash: toStateTransitionsHash(
-        block.block.beforeBlockStateTransitions,
+        block.block.beforeBlockStateTransitions
       ),
       applied: Bool(true),
     });

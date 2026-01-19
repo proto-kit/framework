@@ -47,10 +47,10 @@ export class UntypedOption {
     return new UntypedOption(this.isSome, [...this.value], this.isForcedSome);
   }
 
-  public forceSome() {                                                                                                                                                                                       
-    this.isForcedSome = !this.isSome;                                                                                                                                                                        
-    this.isSome = true;                                                                                                                                                                                      
-  }      
+  public forceSome() {
+    this.isForcedSome = !this.isSome;
+    this.isSome = true;
+  }
 
   public encodeValueToFields(): Field[] {
     return this.value.map((fieldString) => Field(fieldString));

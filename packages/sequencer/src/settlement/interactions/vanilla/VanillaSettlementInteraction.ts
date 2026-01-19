@@ -94,8 +94,12 @@ export class VanillaSettlementInteraction implements SettleInteraction {
           dynamicBlockProof,
           signature,
           feepayer,
-          new ProvableNetworkState(ProvableNetworkState.fromJSON(batch.fromNetworkState)),
-          new ProvableNetworkState(ProvableNetworkState.fromJSON(batch.toNetworkState)),
+          new ProvableNetworkState(
+            ProvableNetworkState.fromJSON(batch.fromNetworkState)
+          ),
+          new ProvableNetworkState(
+            ProvableNetworkState.fromJSON(batch.toNetworkState)
+          ),
           latestSequenceStateHash
         );
       }

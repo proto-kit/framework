@@ -20,9 +20,7 @@ import {
 import { Field } from "o1js";
 
 import type { Mempool, MempoolEvents } from "../Mempool";
-import {
-  PendingTransaction,
-} from "../PendingTransaction";
+import { PendingTransaction } from "../PendingTransaction";
 import {
   sequencerModule,
   SequencerModule,
@@ -81,10 +79,7 @@ export class PrivateMempool
     if (txValid) {
       const success = await this.transactionStorage.pushUserTransaction(tx);
       if (success) {
-        this.events.emit(
-          "mempool-transaction-added",
-          tx
-        );
+        this.events.emit("mempool-transaction-added", tx);
         log.trace(`Transaction added to mempool: ${tx.hash}`);
       } else {
         log.error(`Transaction ${tx.hash} rejected: already exists in mempool`);
@@ -130,7 +125,8 @@ export class PrivateMempool
     const stagedNetworkState = await this.getStagedNetworkState();
 
     const networkState =
-      stagedNetworkState || ProvableNetworkState.toJSON(ProvableNetworkState.empty());
+      stagedNetworkState ||
+      ProvableNetworkState.toJSON(ProvableNetworkState.empty());
 
     const validationEnabled = this.config.validationEnabled ?? false;
     const sortedTxs = validationEnabled

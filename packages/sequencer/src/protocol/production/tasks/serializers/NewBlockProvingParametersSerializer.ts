@@ -17,6 +17,7 @@ import type { NewBlockProverParameters } from "../NewBlockTask";
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../../helpers/utils";
 import { PairingDerivedInput } from "../../flow/ReductionTaskFlow";
+
 import { JSONEncodableState } from "./DecodedStateSerializer";
 
 interface JsonType {
@@ -70,6 +71,7 @@ export class NewBlockProvingParametersSerializer
         startingStateBeforeHook: input.params.startingStateBeforeHook,
 
         startingStateAfterHook: input.params.startingStateAfterHook,
+
         deferSTProof: input.params.deferSTProof.toBoolean(),
 
         afterBlockRootWitness: WitnessedRootWitness.toJSON(

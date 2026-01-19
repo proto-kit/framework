@@ -37,9 +37,7 @@ export class BlockStorageNetworkStateModule
     );
   }
 
-  public async getUnprovenNetworkState(): Promise<
-    NetworkState | undefined
-  > {
+  public async getUnprovenNetworkState(): Promise<NetworkState | undefined> {
     const latestBlock = await this.unprovenStorage.getLatestBlock();
     return latestBlock?.block.networkState.during;
   }

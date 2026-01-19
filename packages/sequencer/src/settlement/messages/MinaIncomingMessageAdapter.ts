@@ -24,9 +24,7 @@ import {
   SettlementContractModule,
 } from "@proto-kit/protocol";
 
-import {
-  PendingTransaction,
-} from "../../mempool/PendingTransaction";
+import { PendingTransaction } from "../../mempool/PendingTransaction";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 
 import { IncomingMessageAdapter } from "./IncomingMessageAdapter";
@@ -96,7 +94,6 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       ...UInt64.zero.toFields(),
       Poseidon.hash(fields),
     ]).toString();
-
 
     return new PendingTransaction({
       hash,

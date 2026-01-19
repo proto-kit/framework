@@ -33,11 +33,11 @@ describe("stateTransition", () => {
     expect(untyped.path).toStrictEqual(st.path.toString());
 
     expect(untyped.from.value).toStrictEqual(
-      st.fromValue.valueType.toFields(st.fromValue.value).map((f) => f.toString())
+      st.fromValue.valueType
+        .toFields(st.fromValue.value)
+        .map((f) => f.toString())
     );
-    expect(untyped.from.isSome).toStrictEqual(
-      st.fromValue.isSome.toBoolean()
-    );
+    expect(untyped.from.isSome).toStrictEqual(st.fromValue.isSome.toBoolean());
     expect(untyped.from.isForcedSome).toStrictEqual(
       st.fromValue.isForcedSome.toBoolean()
     );
@@ -45,9 +45,7 @@ describe("stateTransition", () => {
     expect(untyped.to.value).toStrictEqual(
       st.toValue.valueType.toFields(st.toValue.value).map((f) => f.toString())
     );
-    expect(untyped.to.isSome).toStrictEqual(
-      st.toValue.isSome.toBoolean()
-    );
+    expect(untyped.to.isSome).toStrictEqual(st.toValue.isSome.toBoolean());
     expect(untyped.to.isForcedSome).toStrictEqual(
       st.toValue.isForcedSome.toBoolean()
     );
