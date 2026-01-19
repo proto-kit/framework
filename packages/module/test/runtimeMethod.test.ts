@@ -91,10 +91,10 @@ describe("runtimeMethod", () => {
     expect.assertions(1 + parameters.length);
 
     const module = runtime.resolve("Balances");
-
+    const parametersArray = parameters.flatMap((x) => x.toFields().map(f => f.toString()));
     const decoder = MethodParameterEncoder.fromMethod(module, "getBalance");
     const recodedParameters = await decoder.decode(
-      parameters.flatMap((x) => x.toFields()),
+      parametersArray,
       []
     );
 
