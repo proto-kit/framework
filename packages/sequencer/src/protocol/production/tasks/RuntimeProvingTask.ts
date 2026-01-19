@@ -18,12 +18,12 @@ import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
+import { JSONTaskSerializer } from "../../../worker/flow/JSONTaskSerializer";
 
 import {
   DecodedStateSerializer,
   JSONEncodableState,
 } from "./serializers/DecodedStateSerializer";
-import { JSONTaskSerializer } from "../../../worker/flow/JSONTaskSerializer";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
@@ -96,7 +96,8 @@ export class RuntimeProvingTask
     );
 
     // Set network state and transaction for the runtimemodule to access
-    const { transaction, signature } = PendingTransaction.fromJSON(tx).toProtocolTransaction();
+    const { transaction, signature } =
+      PendingTransaction.fromJSON(tx).toProtocolTransaction();
     const contextInputs = {
       networkState,
       transaction,
