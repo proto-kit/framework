@@ -173,7 +173,7 @@ export const settlementOnlyTestFn = (
       await mempool.add(tx);
     }
     await mapSequential(txs, async (tx) => {
-      await mempool.add(tx.toJSON());
+      await mempool.add(tx);
     });
 
     const result = await trigger.produceBlockAndBatch();

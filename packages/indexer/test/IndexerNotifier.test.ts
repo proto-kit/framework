@@ -22,6 +22,7 @@ import {
 } from "@proto-kit/sdk";
 import {
   LocalTaskQueue,
+  PendingTransaction,
   Sequencer,
   TaskPayload,
   VanillaTaskWorkerModules,
@@ -130,7 +131,7 @@ async function sendTransactions(
       { nonce: i }
     );
 
-    console.log("tx nonce", tx.transaction?.nonce.toBigInt());
+    console.log("tx nonce", (tx.transaction as PendingTransaction).data.nonce);
 
     await tx.sign();
     await tx.send();
@@ -141,7 +142,7 @@ async function sendTransactions(
   const txs = await mempool.getTxs();
   console.log(
     "txs",
-    txs.map((tx) => tx.nonce)
+    txs.map((tx) => tx.data.nonce)
   );
 
   return await appChain.produceBlock();

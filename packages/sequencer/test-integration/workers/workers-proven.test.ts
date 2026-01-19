@@ -120,7 +120,7 @@ describe("worker-proven", () => {
         expectDefined(block);
 
         expect(block.transactions).toHaveLength(1);
-        expect(block.transactions[0].status.toBoolean()).toBe(true);
+        expect(block.transactions[0].status).toBe(true);
 
         expectDefined(batch);
 

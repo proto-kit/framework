@@ -20,12 +20,12 @@ describe("memPool", () => {
       });
 
       const data = unsigned.getSignatureData();
-      const hash = unsigned.hash();
+      const hash = unsigned.hash().toString();
 
       const signed = unsigned.sign(pk);
 
-      expect(data).toStrictEqual(signed.getSignatureData());
-      expect(hash).toStrictEqual(signed.hash());
+      expect(data).toStrictEqual(signed.toProtocolTransaction().getSignatureData());
+      expect(hash).toStrictEqual(signed.data.hash);
     });
   });
 

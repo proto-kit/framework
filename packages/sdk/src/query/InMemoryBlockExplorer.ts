@@ -59,8 +59,11 @@ export class InMemoryBlockExplorer
     if (block === undefined) {
       return undefined;
     }
-
-    const clientTransactions: ClientTransaction[] = block.transactions;
+    const clientTransactions: ClientTransaction[] = block.transactions.map((txResult) => ({
+      tx: txResult.tx.toJSON(),
+      status: txResult.status,
+      statusMessage: txResult.statusMessage,
+    }));
 
     return {
       ...block,

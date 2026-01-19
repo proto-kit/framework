@@ -61,10 +61,10 @@ async function applyBatchesToTree(
   const tree = new LinkedMerkleTree(cached.treeStore, cached);
 
   await mapSequential(sts, async (st) => {
-    await cached.preloadKey(st.path.toBigInt());
+    await cached.preloadKey(BigInt(st.path));
 
-    if (st.to.isSome.toBoolean()) {
-      tree.setLeaf(st.path.toBigInt(), st.to.treeValue.toBigInt());
+    if (st.to.isSome) {
+      tree.setLeaf(BigInt(st.path), BigInt(st.to.treeValue));
     }
   });
 

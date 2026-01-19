@@ -134,18 +134,18 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const txs = await mempool.getTxs();
 
       expect(txs).toHaveLength(6);
-      expect(txs[0].nonce).toStrictEqual("0");
-      expect(txs[0].sender).toStrictEqual(user1PublicKey.toBase58());
-      expect(txs[1].nonce).toStrictEqual("0");
-      expect(txs[1].sender).toStrictEqual(user2PublicKey.toBase58());
-      expect(txs[2].nonce).toStrictEqual("0");
-      expect(txs[2].sender).toStrictEqual(user3PublicKey.toBase58());
-      expect(txs[3].nonce).toStrictEqual("1");
-      expect(txs[3].sender).toStrictEqual(user1PublicKey.toBase58());
-      expect(txs[4].nonce).toStrictEqual("1");
-      expect(txs[4].sender).toStrictEqual(user2PublicKey.toBase58());
-      expect(txs[5].nonce).toStrictEqual("1");
-      expect(txs[5].sender).toStrictEqual(user3PublicKey.toBase58());
+      expect(txs[0].data.nonce).toStrictEqual("0");
+      expect(txs[0].data.sender).toStrictEqual(user1PublicKey.toBase58());
+      expect(txs[1].data.nonce).toStrictEqual("0");
+      expect(txs[1].data.sender).toStrictEqual(user2PublicKey.toBase58());
+      expect(txs[2].data.nonce).toStrictEqual("0");
+      expect(txs[2].data.sender).toStrictEqual(user3PublicKey.toBase58());
+      expect(txs[3].data.nonce).toStrictEqual("1");
+      expect(txs[3].data.sender).toStrictEqual(user1PublicKey.toBase58());
+      expect(txs[4].data.nonce).toStrictEqual("1");
+      expect(txs[4].data.sender).toStrictEqual(user2PublicKey.toBase58());
+      expect(txs[5].data.nonce).toStrictEqual("1");
+      expect(txs[5].data.sender).toStrictEqual(user3PublicKey.toBase58());
     });
 
     it("transactions are returned in right order - medium", async () => {
@@ -163,18 +163,18 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const txs = await mempool.getTxs();
 
       expect(txs).toHaveLength(6);
-      expect(txs[0].nonce).toStrictEqual("0");
-      expect(txs[0].sender).toStrictEqual(user1PublicKey.toBase58());
-      expect(txs[1].nonce).toStrictEqual("0");
-      expect(txs[1].sender).toStrictEqual(user2PublicKey.toBase58());
-      expect(txs[2].nonce).toStrictEqual("1");
-      expect(txs[2].sender).toStrictEqual(user1PublicKey.toBase58());
-      expect(txs[3].nonce).toStrictEqual("1");
-      expect(txs[3].sender).toStrictEqual(user2PublicKey.toBase58());
-      expect(txs[4].nonce).toStrictEqual("0");
-      expect(txs[4].sender).toStrictEqual(user3PublicKey.toBase58());
-      expect(txs[5].nonce).toStrictEqual("1");
-      expect(txs[5].sender).toStrictEqual(user3PublicKey.toBase58());
+      expect(txs[0].data.nonce).toStrictEqual("0");
+      expect(txs[0].data.sender).toStrictEqual(user1PublicKey.toBase58());
+      expect(txs[1].data.nonce).toStrictEqual("0");
+      expect(txs[1].data.sender).toStrictEqual(user2PublicKey.toBase58());
+      expect(txs[2].data.nonce).toStrictEqual("1");
+      expect(txs[2].data.sender).toStrictEqual(user1PublicKey.toBase58());
+      expect(txs[3].data.nonce).toStrictEqual("1");
+      expect(txs[3].data.sender).toStrictEqual(user2PublicKey.toBase58());
+      expect(txs[4].data.nonce).toStrictEqual("0");
+      expect(txs[4].data.sender).toStrictEqual(user3PublicKey.toBase58());
+      expect(txs[5].data.nonce).toStrictEqual("1");
+      expect(txs[5].data.sender).toStrictEqual(user3PublicKey.toBase58());
     });
 
     it("transactions are returned in right order - harder", async () => {
@@ -190,18 +190,18 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const txs = await mempool.getTxs();
 
       expect(txs).toHaveLength(6);
-      expect(txs[0].nonce).toStrictEqual("0");
-      expect(txs[0].sender).toStrictEqual(user1PublicKey.toBase58());
-      expect(txs[1].nonce).toStrictEqual("0");
-      expect(txs[1].sender).toStrictEqual(user2PublicKey.toBase58());
-      expect(txs[2].nonce).toStrictEqual("0");
-      expect(txs[2].sender).toStrictEqual(user3PublicKey.toBase58());
-      expect(txs[3].nonce).toStrictEqual("1");
-      expect(txs[3].sender).toStrictEqual(user1PublicKey.toBase58());
-      expect(txs[4].nonce).toStrictEqual("1");
-      expect(txs[4].sender).toStrictEqual(user2PublicKey.toBase58());
-      expect(txs[5].nonce).toStrictEqual("1");
-      expect(txs[5].sender).toStrictEqual(user3PublicKey.toBase58());
+      expect(txs[0].data.nonce).toStrictEqual("0");
+      expect(txs[0].data.sender).toStrictEqual(user1PublicKey.toBase58());
+      expect(txs[1].data.nonce).toStrictEqual("0");
+      expect(txs[1].data.sender).toStrictEqual(user2PublicKey.toBase58());
+      expect(txs[2].data.nonce).toStrictEqual("0");
+      expect(txs[2].data.sender).toStrictEqual(user3PublicKey.toBase58());
+      expect(txs[3].data.nonce).toStrictEqual("1");
+      expect(txs[3].data.sender).toStrictEqual(user1PublicKey.toBase58());
+      expect(txs[4].data.nonce).toStrictEqual("1");
+      expect(txs[4].data.sender).toStrictEqual(user2PublicKey.toBase58());
+      expect(txs[5].data.nonce).toStrictEqual("1");
+      expect(txs[5].data.sender).toStrictEqual(user3PublicKey.toBase58());
     });
 
     it("transactions are returned in right order - hardest", async () => {
@@ -219,18 +219,18 @@ describe.each([["InMemory", InMemoryDatabase]])(
       const txs = await mempool.getTxs();
 
       expect(txs).toHaveLength(6);
-      expect(txs[0].nonce).toStrictEqual("0");
-      expect(txs[0].sender).toStrictEqual(user1PublicKey.toBase58());
-      expect(txs[1].nonce).toStrictEqual("0");
-      expect(txs[1].sender).toStrictEqual(user2PublicKey.toBase58());
-      expect(txs[2].nonce).toStrictEqual("0");
-      expect(txs[2].sender).toStrictEqual(user3PublicKey.toBase58());
-      expect(txs[3].nonce).toStrictEqual("1");
-      expect(txs[3].sender).toStrictEqual(user1PublicKey.toBase58());
-      expect(txs[4].nonce).toStrictEqual("1");
-      expect(txs[4].sender).toStrictEqual(user2PublicKey.toBase58());
-      expect(txs[5].nonce).toStrictEqual("1");
-      expect(txs[5].sender).toStrictEqual(user3PublicKey.toBase58());
+      expect(txs[0].data.nonce).toStrictEqual("0");
+      expect(txs[0].data.sender).toStrictEqual(user1PublicKey.toBase58());
+      expect(txs[1].data.nonce).toStrictEqual("0");
+      expect(txs[1].data.sender).toStrictEqual(user2PublicKey.toBase58());
+      expect(txs[2].data.nonce).toStrictEqual("0");
+      expect(txs[2].data.sender).toStrictEqual(user3PublicKey.toBase58());
+      expect(txs[3].data.nonce).toStrictEqual("1");
+      expect(txs[3].data.sender).toStrictEqual(user1PublicKey.toBase58());
+      expect(txs[4].data.nonce).toStrictEqual("1");
+      expect(txs[4].data.sender).toStrictEqual(user2PublicKey.toBase58());
+      expect(txs[5].data.nonce).toStrictEqual("1");
+      expect(txs[5].data.sender).toStrictEqual(user3PublicKey.toBase58());
     });
   }
 );
