@@ -35,8 +35,6 @@ export interface TransactionExecutionResult {
   }[];
 }
 
-// TODO Why is Block using Fields, but BlockResult bigints? Align that towards the best option
-
 export interface Block {
   hash: FieldString;
   previousBlockHash: FieldString | undefined;

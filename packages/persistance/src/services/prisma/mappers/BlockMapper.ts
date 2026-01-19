@@ -35,9 +35,10 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
       previousBlockHash:
         input.parentHash !== null ? input.parentHash : undefined,
 
-      // This is cleaner to keep mapIn
       beforeBlockStateTransitions:
-        input.beforeBlockStateTransitions as unknown as UntypedStateTransition[],
+        this.stArrayMapper.mapIn(
+        input.beforeBlockStateTransitions
+      ),
     };
   }
 

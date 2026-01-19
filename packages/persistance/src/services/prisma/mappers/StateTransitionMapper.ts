@@ -17,9 +17,7 @@ export class StateTransitionMapper
   }
 
   public mapOut(input: UntypedStateTransition): Prisma.JsonObject {
-    // Already JSON-compatible, just cast
-    input.toJSON();
-    return input as unknown as Prisma.JsonObject;
+    return input.toJSON();
   }
 }
 

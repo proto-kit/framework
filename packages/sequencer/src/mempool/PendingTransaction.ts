@@ -119,7 +119,7 @@ export class UnsignedTransaction implements UnsignedTransactionBody {
 }
 }
 
-export interface PendingTransactionJSONType {
+interface PendingTransactionJSONType {
   hash: string;
   methodId: string;
   nonce: string;
