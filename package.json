@@ -75,6 +75,7 @@
     ]
   },
   "dependencies": {
+    "o1js": "https://pkg.pr.new/o1-labs/o1js@c6af2a2",
     "react-json-view-lite": "^1.4.0"
   }
 }

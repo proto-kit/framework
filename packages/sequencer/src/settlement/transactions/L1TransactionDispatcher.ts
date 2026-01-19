@@ -1,4 +1,4 @@
-import { Transaction } from "o1js";
+import { Mina, Transaction } from "o1js";
 import { inject, injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
 
@@ -136,7 +136,7 @@ export class L1TransactionDispatcher {
   private async sendTransaction(
     record: Omit<
       PendingL1TransactionRecord,
-      "status" | "sentAt" | "lastError" | "nextActionAt" | "hash"
+      "status" | "sentAt" | "lastError" | "nextActionAt"
     >
   ): Promise<void> {
     const tx = record.transaction;
@@ -149,7 +149,6 @@ export class L1TransactionDispatcher {
         attempts: record.attempts + 1,
         sentAt: now,
         transaction: tx,
-        hash: pendingTx.hash,
         lastError: undefined,
         nextActionAt: new Date(
           now.getTime() + this.config.statusCheckIntervalMs
@@ -177,30 +176,27 @@ export class L1TransactionDispatcher {
     if (!record) return;
     if (record.status !== "sent") return;
 
-    if (record.hash === undefined || record.hash.length === 0) {
-      await this.retryTransaction(record);
-      return;
-    }
+    const hash = await Mina.Transaction.hash(record.transaction.toJSON());
 
     // don't check status on local chain
     if (this.baseLayer.isLocalBlockChain()) {
       await this.pendingStorage.update(record.id, {
         status: "included",
       });
-      this.waiter.notifyIncluded(record.id, record.hash);
+      this.waiter.notifyIncluded(record.id, hash);
       return;
     }
 
     // Single status check (no long blocking loops)
-    const result = await checkZkappTransactionStatus(record.hash);
+    const result = await checkZkappTransactionStatus(hash);
     if (result.success) {
       await this.pendingStorage.update(record.id, {
         status: "included",
       });
-      this.waiter.notifyIncluded(record.id, record.hash);
+      this.waiter.notifyIncluded(record.id, hash);
       return;
     } else if (result.failureReason) {
-      log.error(`Transaction ${record.hash} failed`, result.failureReason);
+      log.error(`Transaction ${hash} failed`, result.failureReason);
       await this.retryTransaction(record);
       return;
     } else if (!result.success) {

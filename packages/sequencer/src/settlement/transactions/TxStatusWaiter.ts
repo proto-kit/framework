@@ -1,4 +1,4 @@
-import { inject, injectable, singleton } from "tsyringe";
+import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   EventsRecord,
   ReplayingSingleUseEventEmitter,
@@ -23,7 +23,7 @@ export interface WaitForTxOptions {
 }
 
 @injectable()
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class TxStatusWaiter {
   private readonly emitters = new Map<
     string,

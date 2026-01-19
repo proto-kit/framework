@@ -13,7 +13,6 @@ export interface PendingL1TransactionRecord {
   attempts: number;
   status: PendingL1TransactionStatus;
   transaction: Transaction<any, any>;
-  hash?: string;
   lastError?: string;
   sentAt?: Date;
   /**
