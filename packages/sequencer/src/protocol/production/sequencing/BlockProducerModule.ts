@@ -93,7 +93,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         Provable.log(
           "Arguments:",
           paramEncoder.decode(
-            tx.tx.argsFields.map((s) => Field(s)),
+            tx.tx.argsFields,
             tx.tx.auxiliaryData
           )
         );

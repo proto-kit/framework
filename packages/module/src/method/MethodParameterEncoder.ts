@@ -128,7 +128,7 @@ export class MethodParameterEncoder {
 
   public constructor(private readonly types: ArgTypeArray) {}
 
-  public decode(fields: Field[], auxiliary: string[]): Promise<ArgArray> {
+  public decode(fields: string[], auxiliary: string[]): Promise<ArgArray> {
     if (fields.length < this.fieldSize()) {
       throw errors.fieldLengthNotMatching(this.fieldSize(), fields.length);
     }
@@ -156,11 +156,9 @@ export class MethodParameterEncoder {
             type.publicInputType
           )!;
           const input = structFields
-            .slice(0, inputFieldSize)
-            .map((x) => x.toString());
+            .slice(0, inputFieldSize);
           const output = structFields
-            .slice(inputFieldSize)
-            .map((x) => x.toString());
+            .slice(inputFieldSize);
 
           // fromJSON has incompatible signature for Proof and DynamicProof
           if (isProofType(type)) {
@@ -180,7 +178,7 @@ export class MethodParameterEncoder {
         }
 
         return (type as FlexibleProvable<unknown>).fromFields(
-          structFields,
+          structFields.map(Field),
           []
         ) as any;
       })

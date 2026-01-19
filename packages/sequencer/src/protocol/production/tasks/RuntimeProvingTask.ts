@@ -85,7 +85,7 @@ export class RuntimeProvingTask
       methodName
     );
     const decodedArguments = await parameterEncoder.decode(
-      tx.argsFields.map(Field),
+      tx.argsFields,
       tx.auxiliaryData
     );
 

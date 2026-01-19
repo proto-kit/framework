@@ -106,7 +106,7 @@ async function decodeTransaction(
     methodName
   );
   const args = await parameterDecoder.decode(
-    tx.argsFields.map(Field),
+    tx.argsFields,
     tx.auxiliaryData
   );
 

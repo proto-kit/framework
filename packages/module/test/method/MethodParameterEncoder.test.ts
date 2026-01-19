@@ -50,7 +50,8 @@ describe("MethodParameterEncoder", () => {
     expect(fields[0].toString()).toBe("2");
     expect(fields[1].toString()).toStrictEqual(Bool(true).toField().toString());
 
-    const decoded = await encoder.decode(fields, auxiliary);
+    const fieldString = fields.map(field => field.toString());
+    const decoded = await encoder.decode(fieldString, auxiliary);
     expect(decoded).toHaveLength(1);
     const decoded1 = decoded[0] as unknown as NonMethods<TestStruct>;
     expect(decoded1.a.toString()).toStrictEqual("2");
@@ -70,8 +71,8 @@ describe("MethodParameterEncoder", () => {
     expect(fields.map((x) => x.toString())).toStrictEqual(
       pk.toFields().map((x) => x.toString())
     );
-
-    const decoded = await encoder.decode(fields, auxiliary);
+    const fieldString = fields.map(field => field.toString());
+    const decoded = await encoder.decode(fieldString, auxiliary);
     expect(decoded).toHaveLength(1);
 
     const decoded1 = decoded[0] as unknown as PublicKey;
@@ -105,8 +106,8 @@ describe("MethodParameterEncoder", () => {
         x.toString()
       )
     );
-
-    const decoded = await encoder.decode(fields, auxiliary);
+    const fieldString = fields.map(field => field.toString());
+    const decoded = await encoder.decode(fieldString, auxiliary);
     expect(decoded).toHaveLength(1);
 
     const decoded1 = decoded[0] as unknown as Proof<PublicKey, TestStruct>;

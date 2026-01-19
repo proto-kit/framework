@@ -68,7 +68,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
 
   private async mapActionToTransactions(
     tx: RuntimeTransaction,
-    fieldArgs: Field[]
+    fieldArgs: string[]
   ): Promise<PendingTransaction> {
     const { methodId } = tx;
 
@@ -180,7 +180,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       if (correspondingEvent === undefined) {
         throw new Error("Couldn't find events corresponding to action");
       }
-      const args = correspondingEvent.event.data.map((x) => Field(x));
+      const args = correspondingEvent.event.data;
 
       return await this.mapActionToTransactions(tx, args);
     });

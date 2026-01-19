@@ -66,7 +66,7 @@ describe("HandlersModule", () => {
           // @ts-expect-error
           const [, from, to, amount]: [TokenId, PublicKey, PublicKey, Balance] =
             await parameterDecoder.decode(
-              tx.tx.argsFields.map(Field),
+              tx.tx.argsFields,
               tx.tx.auxiliaryData
             );
 
