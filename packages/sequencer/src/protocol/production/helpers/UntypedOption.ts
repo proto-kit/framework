@@ -1,9 +1,6 @@
 import { Bool, Field, Poseidon } from "o1js";
-import { Option, OptionBase } from "@proto-kit/protocol";
+import { Option, ProvableOption } from "@proto-kit/protocol";
 
-/**
- * Option facilitating in-circuit values that may or may not exist.
- */
 export class UntypedOption {
   public constructor(
     public isSome: boolean,
@@ -11,15 +8,13 @@ export class UntypedOption {
     public isForcedSome: boolean
   ) {}
 
-  public get treeValue() {
-    const treeValue = Poseidon.hash(this.encodeValueToFields());
-
-    if(this.isSome && !this.isForcedSome){
-      return treeValue.toString();
+  public get treeValue(): string {
+    if (this.isSome && !this.isForcedSome) {
+      return Poseidon.hash(this.encodeValueToFields()).toString();
     }
     return "0";
   }
-  
+
   public static fromOption<Value>(option: Option<Value> | Option<Field>) {
     return new UntypedOption(
       option.isSome.toBoolean(),
@@ -40,19 +35,31 @@ export class UntypedOption {
     return new UntypedOption(isSome, value, isForcedSome);
   }
 
-  public toJSON(){
+  public toJSON() {
     return {
-        isSome: this.isSome,
-        value: this.value,
-        isForcedSome: this.isForcedSome
+      isSome: this.isSome,
+      value: this.value,
+      isForcedSome: this.isForcedSome,
     };
   }
 
   public clone() {
-    return new UntypedOption(this.isSome, this.value, this.isForcedSome);
+    return new UntypedOption(this.isSome, [...this.value], this.isForcedSome);
   }
 
+  public forceSome() {                                                                                                                                                                                       
+    this.isForcedSome = !this.isSome;                                                                                                                                                                        
+    this.isSome = true;                                                                                                                                                                                      
+  }      
+
   public encodeValueToFields(): Field[] {
-    return this.value.map((fieldString) => Field(fieldString))
+    return this.value.map((fieldString) => Field(fieldString));
+  }
+
+  public toProvable(): ProvableOption {
+    return new ProvableOption({
+      isSome: Bool(this.isSome),
+      value: Field(this.treeValue),
+    });
   }
 }

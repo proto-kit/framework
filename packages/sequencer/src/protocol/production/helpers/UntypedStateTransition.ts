@@ -1,12 +1,7 @@
-import { Bool, Field } from "o1js";
-import { ProvableOption, ProvableStateTransition, StateTransition } from "@proto-kit/protocol";
-
+import { Field } from "o1js";
+import { ProvableStateTransition, StateTransition } from "@proto-kit/protocol";
 import { UntypedOption } from "./UntypedOption";
 
-/**
- * Generic state transition that constraints the current method circuit
- * to external state, by providing a state anchor.
- */
 export class UntypedStateTransition {
   public static fromStateTransition<Value>(st: StateTransition<Value>) {
     return new UntypedStateTransition(
@@ -47,17 +42,13 @@ export class UntypedStateTransition {
   }
 
   public toProvable(): ProvableStateTransition {
+    const from = this.from.clone();
+    from.forceSome();
+
     return new ProvableStateTransition({
       path: Field(this.path),
-      from: new ProvableOption({
-        isSome: Bool(this.from.isSome),
-        value: Field(this.from.treeValue),
-      }),
-      to: new ProvableOption({
-        isSome: Bool(this.to.isSome),
-        value: Field(this.to.treeValue),
-      }),
+      from: from.toProvable(),
+      to: this.to.toProvable(),
     });
   }
 }
-
