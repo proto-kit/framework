@@ -10,13 +10,13 @@ import { JsonProof, Signature } from "o1js";
 
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../../helpers/utils";
-import { TaskStateRecordJson } from "../../tracing/BlockTracingService";
 
 import {
   TransactionProvingTaskParameters,
   TransactionProvingType,
 } from "./types/TransactionProvingTypes";
 import { RuntimeVerificationKeyAttestationSerializer } from "./RuntimeVerificationKeyAttestationSerializer";
+import { JSONEncodableState } from "./DecodedStateSerializer";
 
 export type TransactionProverTransactionArgumentsJSON = {
   transaction: ReturnType<typeof RuntimeTransaction.toJSON>;
@@ -40,7 +40,7 @@ export type MultiExecutionDataJSON = {
 export type TransactionProverTaskParametersJSON<
   ExecutionData extends SingleExecutionDataJSON | MultiExecutionDataJSON,
 > = {
-  startingState: TaskStateRecordJson[];
+  startingState: JSONEncodableState[];
   publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
   executionData: ExecutionData;
 };

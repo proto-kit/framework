@@ -20,20 +20,17 @@ import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateSe
 import {
   PendingTransaction,
 } from "../../../mempool/PendingTransaction";
-import {
-  TaskStateRecord,
-} from "../tracing/BlockTracingService";
 
 import { RuntimeProofParametersSerializer } from "./serializers/RuntimeProofParametersSerializer";
+import { DecodedStateSerializer, JSONEncodableState } from "./serializers/DecodedStateSerializer";
 
 type RuntimeProof = Proof<undefined, MethodPublicOutput>;
 
 export interface RuntimeProofParameters {
   tx: PendingTransaction;
-  networkState: ProvableNetworkState;
-  state: TaskStateRecord;
+  networkState: NetworkState;
+  state: JSONEncodableState;
 }
-
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -67,15 +64,15 @@ export class RuntimeProvingTask
   ): Promise<RuntimeProof> {
     // Convert from JSON to provable types at the proving boundary
     const tx = input.tx;
-    const networkState = input.networkState;
+    const networkState = new ProvableNetworkState(
+      ProvableNetworkState.fromJSON(input.networkState)
+    );
 
-    const state = input.state;
-
-    const method = this.runtime.getMethodById(tx.data.methodId.toString());
+    const method = this.runtime.getMethodById(tx.data.methodId);
 
     const methodDescriptors = this.runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodNameFromId(tx.data.methodId.toString());
+      .getMethodNameFromId(tx.data.methodId);
 
     if (methodDescriptors === undefined || method === undefined) {
       throw new Error(`MethodId not found ${tx.data.methodId}`);
@@ -92,7 +89,9 @@ export class RuntimeProvingTask
       tx.data.auxiliaryData
     );
 
-    const prefilledStateService = new PreFilledStateService(state);
+    const prefilledStateService = new PreFilledStateService(
+      DecodedStateSerializer.fromJSON(input.state)
+    );
     this.runtime.stateServiceProvider.setCurrentStateService(
       prefilledStateService
     );

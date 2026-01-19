@@ -174,7 +174,7 @@ export class BlockResultService {
     const tree = new LinkedMerkleTree(store.treeStore, store);
 
     const writes = Object.entries(stateDiff).map(([key, state]) => {
-      const treeValue = state !== undefined ? Poseidon.hash(state) : Field(0);
+      const treeValue = state !== undefined ? Poseidon.hash(state.map(Field)) : Field(0);
       return { path: BigInt(key), value: treeValue.toBigInt() };
     });
     tree.setLeaves(writes);

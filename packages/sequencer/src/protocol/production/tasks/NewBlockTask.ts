@@ -23,13 +23,10 @@ import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
-import {
-  TaskStateRecordJson,
-  taskStateRecordFromJson,
-} from "../tracing/BlockTracingService";
 
 import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
 import { executeWithPrefilledStateService } from "./TransactionProvingTask";
+import { JSONEncodableState } from "./serializers/DecodedStateSerializer";
 
 export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
@@ -37,8 +34,8 @@ export interface NewBlockProverParameters {
   blockWitness: BlockHashMerkleTreeWitness;
   deferSTProof: Bool;
   afterBlockRootWitness: WitnessedRootWitness;
-  startingStateBeforeHook: TaskStateRecordJson;
-  startingStateAfterHook: TaskStateRecordJson;
+  startingStateBeforeHook: JSONEncodableState;
+  startingStateAfterHook: JSONEncodableState;
 }
 
 export type NewBlockProvingParameters = PairingDerivedInput<
@@ -65,7 +62,7 @@ export class NewBlockTask
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly executionContext: ProvableMethodExecutionContext,
-    private readonly compileRegistry: CompileRegistry
+    private readonly compileRegistry: CompileRegistry,
   ) {
     super();
     this.stateTransitionProver = protocol.stateTransitionProver;
@@ -116,23 +113,15 @@ export class NewBlockTask
       input2
     );
 
-    // Convert from JSON to provable types at the proving boundary
-    const startingStateBeforeHookProvable = taskStateRecordFromJson(
-      startingStateBeforeHook
-    );
-    const startingStateAfterHookProvable = taskStateRecordFromJson(
-      startingStateAfterHook
-    );
-
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      [startingStateBeforeHookProvable, startingStateAfterHookProvable],
+      [startingStateBeforeHook , startingStateAfterHook],
       async () => {}
     );
 
     return await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      [startingStateBeforeHookProvable, startingStateAfterHookProvable],
+      [startingStateBeforeHook , startingStateAfterHook],
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );

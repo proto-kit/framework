@@ -16,41 +16,12 @@ import { BlockWithResult } from "../../../storage/model/Block";
 import type { NewBlockProverParameters } from "../tasks/NewBlockTask";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
-import {
-  UntypedStateTransition,
-} from "../helpers/UntypedStateTransition";
 
 import {
   collectStartingState,
   TransactionTrace,
   TransactionTracingService,
 } from "./TransactionTracingService";
-
-export type TaskStateRecord = Record<string, Field[]>;
-
-export type TaskStateRecordJson = Record<string, string[]>;
-
-export function taskStateRecordToJson(
-  record: TaskStateRecord
-): TaskStateRecordJson {
-  return Object.fromEntries(
-    Object.entries(record).map(([key, fields]) => [
-      key,
-      fields.map((f) => f.toString()),
-    ])
-  );
-}
-
-export function taskStateRecordFromJson(
-  json: TaskStateRecordJson
-): TaskStateRecord {
-  return Object.fromEntries(
-    Object.entries(json).map(([key, strings]) => [
-      key,
-      strings.map((s) => Field(s)),
-    ])
-  );
-}
 
 export type BlockTracingState = Pick<
   BlockProverState,

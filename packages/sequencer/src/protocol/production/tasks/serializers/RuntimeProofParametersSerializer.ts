@@ -1,19 +1,29 @@
 import { TaskSerializer } from "../../../../worker/flow/Task";
-import type { RuntimeProofParametersJson } from "../RuntimeProvingTask";
+import type { RuntimeProofParameters } from "../RuntimeProvingTask";
+import { PendingTransaction } from "../../../../mempool/PendingTransaction";
 
 /**
  * Serializer for RuntimeProofParametersJson.
  * Since RuntimeProofParametersJson is already JSON-compatible, this is trivial.
  */
 export class RuntimeProofParametersSerializer
-  implements TaskSerializer<RuntimeProofParametersJson>
+  implements TaskSerializer<RuntimeProofParameters>
 {
-  public toJSON(parameters: RuntimeProofParametersJson): string {
-    return JSON.stringify(parameters);
+  public toJSON(parameters: RuntimeProofParameters): string {
+    return JSON.stringify({
+      tx: parameters.tx.toJSON(),
+      networkState: parameters.networkState,
+      state: parameters.state,
+    });
   }
 
-  public fromJSON(json: string): RuntimeProofParametersJson {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return JSON.parse(json) as RuntimeProofParametersJson;
+  public fromJSON(json: string): RuntimeProofParameters {
+    const parsed = JSON.parse(json);
+    return {
+      tx: PendingTransaction.fromJSON(parsed.tx),
+      networkState: parsed.networkState,
+      state: parsed.state,
+    };
   }
 }
+

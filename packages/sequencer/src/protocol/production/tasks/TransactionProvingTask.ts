@@ -18,20 +18,17 @@ import { ProofTaskSerializer } from "../../../helpers/utils";
 import { TaskSerializer, Task } from "../../../worker/flow/Task";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
-import {
-  TaskStateRecord,
-  taskStateRecordFromJson,
-} from "../tracing/BlockTracingService";
 
 import { TransactionProvingTaskParameterSerializer } from "./serializers/TransactionProvingTaskParameterSerializer";
 import {
   TransactionProvingTaskParameters,
   TransactionProvingType,
 } from "./serializers/types/TransactionProvingTypes";
+import { DecodedStateSerializer, JSONEncodableState, TaskStateRecord } from "./serializers/DecodedStateSerializer";
 
 export async function executeWithPrefilledStateService<Return>(
   stateServiceProvider: StateServiceProvider,
-  startingStates: TaskStateRecord[],
+  startingStates: JSONEncodableState[],
   callback: () => Promise<Return>
 ): Promise<Return> {
   startingStates
@@ -40,7 +37,7 @@ export async function executeWithPrefilledStateService<Return>(
     .forEach((startingState) => {
       stateServiceProvider.setCurrentStateService(
         new PreFilledStateService({
-          ...startingState,
+          ...DecodedStateSerializer.fromJSON(startingState)
         })
       );
     });
@@ -96,9 +93,8 @@ export class TransactionProvingTask
   public async compute(
     input: TransactionProvingTaskParameters
   ): Promise<TransactionProof> {
-    const startingStateProvable = input.parameters.startingState.map(
-      taskStateRecordFromJson
-    );
+    const startingStateProvable = input.parameters.startingState;
+
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
       startingStateProvable,

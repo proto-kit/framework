@@ -22,7 +22,7 @@ import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
 import { BatchFlow } from "./flow/BatchFlow";
 
-export type StateRecord = Record<string, Field[] | undefined>;
+export type StateRecord = Record<string, string[] | undefined>;
 
 interface BatchMetadata {
   batch: SettleableBatch;

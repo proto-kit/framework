@@ -15,7 +15,7 @@ import {
   TransactionExecutionResult,
 } from "../../../storage/model/Block";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
-import type { RuntimeProofParametersJson } from "../tasks/RuntimeProvingTask";
+import type { RuntimeProofParameters } from "../tasks/RuntimeProvingTask";
 import {
   TransactionProverTaskParameters,
   TransactionProvingType,
@@ -25,24 +25,24 @@ import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyServ
 
 import type {
   BlockTracingState,
-  TaskStateRecordJson,
 } from "./BlockTracingService";
+import { JSONEncodableState } from "../tasks/serializers/DecodedStateSerializer";
 
 export type TransactionTrace =
   | {
       type: TransactionProvingType.SINGLE;
       transaction: TransactionProverTaskParameters<BlockProverSingleTransactionExecutionData>;
-      runtime: [RuntimeProofParametersJson];
+      runtime: [RuntimeProofParameters];
     }
   | {
       type: TransactionProvingType.MULTI;
       transaction: TransactionProverTaskParameters<BlockProverMultiTransactionExecutionData>;
-      runtime: [RuntimeProofParametersJson, RuntimeProofParametersJson];
+      runtime: [RuntimeProofParameters, RuntimeProofParameters];
     };
 
 export function collectStartingState(
   stateTransitions: UntypedStateTransition[]
-): TaskStateRecordJson {
+): JSONEncodableState {
   const stateEntries = stateTransitions
     // Filter distinct
     .filter(
@@ -125,7 +125,7 @@ export class TransactionTracingService {
   private createRuntimeProofParams(
     tx: TransactionExecutionResult,
     networkState: ProvableNetworkState
-  ): RuntimeProofParametersJson {
+  ): RuntimeProofParameters {
     const stBatch = tx.stateTransitions[1];
     const startingState = collectStartingState(stBatch.stateTransitions);
 

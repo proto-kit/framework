@@ -17,7 +17,7 @@ import type { NewBlockProverParameters } from "../NewBlockTask";
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../../helpers/utils";
 import { PairingDerivedInput } from "../../flow/ReductionTaskFlow";
-import { TaskStateRecordJson } from "../../tracing/BlockTracingService";
+import { JSONEncodableState } from "./DecodedStateSerializer";
 
 interface JsonType {
   input1: string;
@@ -26,8 +26,8 @@ interface JsonType {
     publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
     networkState: ReturnType<typeof ProvableNetworkState.toJSON>;
     blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
-    startingStateBeforeHook: TaskStateRecordJson;
-    startingStateAfterHook: TaskStateRecordJson;
+    startingStateBeforeHook: JSONEncodableState;
+    startingStateAfterHook: JSONEncodableState;
     deferSTProof: boolean;
     afterBlockRootWitness: ReturnType<typeof WitnessedRootWitness.toJSON>;
   };
