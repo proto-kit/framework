@@ -21,6 +21,7 @@ import {
   TestingAppChain,
 } from "@proto-kit/sdk";
 import {
+  JSONTaskSerializer,
   LocalTaskQueue,
   PendingTransaction,
   Sequencer,
@@ -28,7 +29,7 @@ import {
   VanillaTaskWorkerModules,
 } from "@proto-kit/sequencer";
 
-import { IndexerNotifier, IndexBlockTaskParametersSerializer } from "../src";
+import { IndexerNotifier, IndexBlockTaskParameters } from "../src";
 
 class TestBalances extends Balances {
   @runtimeMethod()
@@ -180,9 +181,9 @@ describe.skip("IndexerNotifier", () => {
   }, 20000);
 
   it("should create a task for every unproven block produced", async () => {
-    const { block } = container
-      .resolve(IndexBlockTaskParametersSerializer)
-      .fromJSON(addTaskSpy.mock.lastCall?.[0].payload!);
+    const serializer = JSONTaskSerializer.fromType<IndexBlockTaskParameters>();
+
+    const { block } = await serializer.fromJSON(addTaskSpy.mock.lastCall?.[0].payload!);
 
     expect(block.height).toBe(0);
     expect(block.transactions.length).toBe(2);

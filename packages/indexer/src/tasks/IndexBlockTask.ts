@@ -1,5 +1,6 @@
 import {
   BlockQueue,
+  JSONTaskSerializer,
   Task,
   TaskSerializer,
   TaskWorkerModule,
@@ -9,7 +10,6 @@ import { inject, injectable } from "tsyringe";
 
 import {
   IndexBlockTaskParameters,
-  IndexBlockTaskParametersSerializer,
 } from "./IndexBlockTaskParameters";
 
 @injectable()
@@ -20,7 +20,6 @@ export class IndexBlockTask
   public name = "index-block";
 
   public constructor(
-    public taskSerializer: IndexBlockTaskParametersSerializer,
     @inject("BlockQueue")
     public blockStorage: BlockQueue
   ) {
@@ -45,7 +44,7 @@ export class IndexBlockTask
   }
 
   public inputSerializer(): TaskSerializer<IndexBlockTaskParameters> {
-    return this.taskSerializer;
+    return JSONTaskSerializer.fromType<IndexBlockTaskParameters>();
   }
 
   public resultSerializer(): TaskSerializer<string | void> {

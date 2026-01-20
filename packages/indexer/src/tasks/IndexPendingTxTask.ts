@@ -1,4 +1,5 @@
 import {
+  JSONTaskSerializer,
   PendingTransaction,
   Task,
   TaskSerializer,
@@ -8,8 +9,6 @@ import {
 import { log } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 
-import { IndexPendingTxTaskParametersSerializer } from "./IndexPendingTxTaskParameters";
-
 @injectable()
 export class IndexPendingTxTask
   extends TaskWorkerModule
@@ -18,7 +17,6 @@ export class IndexPendingTxTask
   public name = "index-pending-tx";
 
   public constructor(
-    public taskSerializer: IndexPendingTxTaskParametersSerializer,
     @inject("TransactionStorage")
     public transactionStorage: TransactionStorage
   ) {
@@ -39,7 +37,7 @@ export class IndexPendingTxTask
   }
 
   public inputSerializer(): TaskSerializer<PendingTransaction> {
-    return this.taskSerializer;
+    return JSONTaskSerializer.fromType<PendingTransaction>();
   }
 
   public resultSerializer(): TaskSerializer<string | void> {
