@@ -94,12 +94,14 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       Poseidon.hash(fields),
     ]).toString();
 
+    const signature = Signature.create(PrivateKey.random(), [Field(0)]);
+
     return new PendingTransaction({
       hash,
       methodId: methodId.toString(),
       sender: EMPTY_PUBLICKEY.toBase58(),
       nonce: UInt64.zero.toString(),
-      signature: Signature.create(PrivateKey.random(), [Field(0)]).toJSON(),
+      signature: { r: signature.r.toString(), s: signature.s.toJSON() },
       argsFields: fields.map((f) => f.toString()),
       auxiliaryData: auxiliary,
       isMessage: true,

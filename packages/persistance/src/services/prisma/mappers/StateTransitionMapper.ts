@@ -12,7 +12,8 @@ export class StateTransitionMapper
   implements ObjectMapper<UntypedStateTransition, Prisma.JsonObject>
 {
   public mapIn(input: Prisma.JsonObject): UntypedStateTransition {
-    return input as unknown as UntypedStateTransition;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return UntypedStateTransition.fromJSON(input as any);
   }
 
   public mapOut(input: UntypedStateTransition): Prisma.JsonObject {

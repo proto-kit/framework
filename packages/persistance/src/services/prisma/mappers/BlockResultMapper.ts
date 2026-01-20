@@ -27,9 +27,9 @@ export class BlockResultMapper
       blockHashWitness:
         input.blockHashWitness as BlockHashMerkleTreeWitnessJson,
 
-      afterBlockStateTransitions: this.stArrayMapper
-        .mapIn(input.afterBlockStateTransitions)
-        .map((st) => st),
+      afterBlockStateTransitions: this.stArrayMapper.mapIn(
+        input.afterBlockStateTransitions
+      ),
       blockHash: input.blockHash,
 
       witnessedRoots: [input.witnessedRoots[0]],

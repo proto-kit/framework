@@ -96,11 +96,9 @@ export class TransactionProvingTask
   public async compute(
     input: TransactionProvingTaskParameters
   ): Promise<TransactionProof> {
-    const startingStateProvable = input.parameters.startingState;
-
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      startingStateProvable,
+      input.parameters.startingState,
       async () => {
         const { type, parameters } = input;
 
@@ -125,7 +123,7 @@ export class TransactionProvingTask
 
     return await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      startingStateProvable,
+      input.parameters.startingState,
       async () =>
         await this.executionContext.current().result.prove<TransactionProof>()
     );
