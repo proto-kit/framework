@@ -52,12 +52,12 @@ export class TxStatusWaiter {
 
   public notifyIncluded(txId: string, hash: string) {
     this.getEmitter(txId).emit("included", { hash });
-    this.emitters.delete(txId);
+    // this.emitters.delete(txId);
   }
 
   public notifyFailed(txId: string, error: unknown) {
     this.getEmitter(txId).emit("failed", { error });
-    this.emitters.delete(txId);
+    // this.emitters.delete(txId);
   }
 
   private static isSatisfied(

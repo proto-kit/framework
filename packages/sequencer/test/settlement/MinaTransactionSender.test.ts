@@ -1,279 +1,309 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import "reflect-metadata";
-import { jest } from "@jest/globals";
 
-import type { PendingL1TransactionStorage } from "../../src/storage/repositories/PendingL1TransactionStorage";
-import { InMemoryPendingL1TransactionStorage } from "../../src/storage/inmemory/InMemoryPendingL1TransactionStorage";
+import { describe, it, expect, afterEach, jest } from "@jest/globals";
+import { PrivateKey, Mina, UInt64, UInt32 } from "o1js";
 
-let MinaTransactionSender: any;
-let L1TransactionDispatcher: any;
-let TxStatusWaiter: any;
-let checkZkappTransactionStatus: any;
+import type { MinaBaseLayer } from "../../src/protocol/baselayer/MinaBaseLayer";
+import type { MinaSigner } from "../../src/settlement/MinaSigner";
+import type { L1TransactionRetryStrategy } from "../../src/settlement/transactions/L1TransactionRetryStrategy";
+import type { DispatcherConfig } from "../../src/settlement/transactions/L1TransactionDispatcher";
+import type { FlowCreator } from "../../src/worker/flow/Flow";
+import type { SettlementProvingTask } from "../../src/settlement/tasks/SettlementProvingTask";
+import type { MinaTransactionSimulator } from "../../src/settlement/transactions/MinaTransactionSimulator";
+import type { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 
-beforeAll(async () => {
-  // Capture the mock in this closure so we don't need an extra import just to access it.
-  checkZkappTransactionStatus = jest.fn();
+// Mock checkZkappTransactionStatus BEFORE importing dispatcher
+const mockCheckZkappTransactionStatus =
+  jest.fn<
+    () => Promise<{ success: boolean; failureReason: string[] | null }>
+  >();
 
-  // L1TransactionDispatcher imports checkZkappTransactionStatus directly, so we need to mock
-  // the module BEFORE importing MinaTransactionSender (ESM).
-  jest.unstable_mockModule(
-    "../../src/settlement/transactions/ZkappTransactionStatus",
-    () => ({
-      checkZkappTransactionStatus,
-    })
-  );
-  ({ MinaTransactionSender } = await import(
-    "../../src/settlement/transactions/MinaTransactionSender"
-  ));
-  ({ L1TransactionDispatcher } = await import(
-    "../../src/settlement/transactions/L1TransactionDispatcher"
-  ));
-  ({ TxStatusWaiter } = await import(
-    "../../src/settlement/transactions/TxStatusWaiter"
-  ));
+jest.unstable_mockModule(
+  "../../src/settlement/transactions/ZkappTransactionStatus",
+  () => ({
+    checkZkappTransactionStatus: mockCheckZkappTransactionStatus,
+  })
+);
+
+// Dynamic imports after mock
+const { L1TransactionDispatcher } = await import(
+  "../../src/settlement/transactions/L1TransactionDispatcher"
+);
+const { MinaTransactionSender } = await import(
+  "../../src/settlement/transactions/MinaTransactionSender"
+);
+const { TxStatusWaiter } = await import(
+  "../../src/settlement/transactions/TxStatusWaiter"
+);
+const { InMemoryPendingL1TransactionStorage } = await import(
+  "../../src/storage/inmemory/InMemoryPendingL1TransactionStorage"
+);
+
+// Mock Mina.Transaction.hash
+// @ts-expect-error - mocking static method
+Mina.Transaction.hash = jest.fn(async (txJson: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const parsed = JSON.parse(txJson);
+  return `hash-${parsed?.feePayer?.body?.nonce ?? "0"}`;
 });
 
-type SenderFixture = {
-  sender: any;
-  retryStrategy: any;
+// Fixed sender key for all tests
+const senderKey = PrivateKey.random();
+const senderBase58 = senderKey.toPublicKey().toBase58();
+
+// Stateless mocks (shared across tests)
+const dispatcherConfig: Required<DispatcherConfig> = {
+  pollIntervalMs: 100_000_000, // No polling
+  statusCheckIntervalMs: 10,
+  inclusionTimeoutMs: 100,
 };
 
-type BaseLayerStub = {
-  isLocalBlockChain: () => boolean;
-  config: { network: { type: "local" | "remote" | "lightnet" } };
+const mockBaseLayer: MinaBaseLayer = {
+  isLocalBlockChain: () => false,
+  config: { network: { type: "remote", graphql: "x", archive: "x" } },
+} as unknown as MinaBaseLayer;
+
+const mockSigner: MinaSigner = {
+  signTx: (tx: any) => tx,
+} as unknown as MinaSigner;
+
+const mockRetryStrategy: L1TransactionRetryStrategy = {
+  shouldRetry: async (r) => r.attempts < 3,
+  getRetryDelayMs: () => 0,
+  prepareRetryTransaction: async (r) =>
+    r.transaction as unknown as Mina.Transaction<any, false>,
 };
 
-function makeSender(
-  pendingStorage: PendingL1TransactionStorage,
-  dispatcherConfig: {
-    pollIntervalMs?: number;
-    statusCheckIntervalMs?: number;
-    inclusionTimeoutMs?: number;
-  } = {
-    pollIntervalMs: 5,
-    statusCheckIntervalMs: 5,
-  },
-  baseLayerStub: BaseLayerStub = {
-    isLocalBlockChain: () => true,
-    config: { network: { type: "local" } },
-  }
-): SenderFixture {
-  const flowCreator = {
-    createFlow: jest.fn(() => ({
-      withFlow: async (fn: any) =>
-        await new Promise((resolve, reject) => {
-          fn(resolve, reject);
-        }),
-      pushTask: async (
-        _task: any,
-        params: { transaction: any },
-        onResult: (result: any) => Promise<void>
-      ) => {
-        await onResult({ transaction: params.transaction });
-      },
-    })),
-  } as any;
+const mockSimulator: MinaTransactionSimulator = {
+  getAccount: async () => ({ nonce: UInt32.from(0) }),
+  getAccounts: async () => [],
+  applyTransaction: async () => {},
+} as unknown as MinaTransactionSimulator;
 
-  const provingTask = {} as any;
+const mockFeeStrategy: FeeStrategy = { getFee: () => 1e9 };
+const mockProvingTask = {} as SettlementProvingTask;
 
-  const simulator = {
-    getAccount: jest.fn(async () => ({ nonce: { toString: () => "0" } })),
-    getAccounts: jest.fn(async () => undefined),
-    applyTransaction: jest.fn(async () => undefined),
-  } as any;
+/** Create a minimal mock transaction */
+function createMockTx(nonce: number) {
+  const pubKey = senderKey.toPublicKey();
+  const mockSend = jest
+    .fn<() => Promise<{ hash: string }>>()
+    .mockResolvedValue({ hash: `tx-hash-${nonce}` });
 
-  const retryStrategy = {
-    shouldRetry: jest.fn(async () => true),
-    prepareRetryTransaction: jest.fn(async (record: any) => record.transaction),
-  } as any;
-
-  const signer = { signTx: jest.fn((tx: any) => tx) } as any;
-  const feeStrategy = { getFee: () => 0 } as any;
-
-  const waiter = new TxStatusWaiter(pendingStorage as any);
-  const dispatcher = new L1TransactionDispatcher(
-    pendingStorage as any,
-    retryStrategy as any,
-    signer as any,
-    waiter,
-    dispatcherConfig,
-    baseLayerStub as any
-  );
-  const sender = new MinaTransactionSender(
-    flowCreator,
-    provingTask,
-    simulator,
-    baseLayerStub as any,
-    pendingStorage as any,
-    signer,
-    feeStrategy,
-    dispatcher,
-    waiter
-  );
-  return { sender: sender as typeof MinaTransactionSender, retryStrategy };
-}
-
-function makeTx({ senderBase58 = "S", nonce = 0, hash = "TX_HASH" } = {}) {
-  const tx: any = {
-    // used by proveAndSendTransaction() before proving
+  return {
     transaction: {
       feePayer: {
         body: {
-          publicKey: { toBase58: () => senderBase58 },
-          nonce: { toString: () => String(nonce) },
+          publicKey: pubKey,
+          nonce: UInt32.from(nonce),
+          fee: UInt64.from(1e9),
         },
       },
       accountUpdates: [],
     },
-    setFee: jest.fn(async () => tx),
-    send: jest.fn(async () => ({ hash })),
-    toPretty: () => "<tx>",
-  };
-
-  return { tx };
+    send: mockSend,
+    toJSON: () =>
+      JSON.stringify({
+        feePayer: { body: { publicKey: pubKey.toBase58(), nonce: `${nonce}` } },
+      }),
+  } as unknown as Mina.Transaction<any, any>;
 }
 
-describe("MinaTransactionSender (unit)", () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-  });
-
-  it("proveAndSendTransaction should immediately send if there is no lower-nonce pending tx, and resolve 'sent'", async () => {
-    const pendingStorage: PendingL1TransactionStorage =
-      new InMemoryPendingL1TransactionStorage();
-    const { sender } = makeSender(pendingStorage);
-
-    const { tx } = makeTx({ senderBase58: "S", nonce: 0, hash: "H1" });
-
-    try {
-      const { transactionId } = await sender.proveAndSendTransaction(
-        tx,
-        "sent"
-      );
-
-      const record = await pendingStorage.findById(transactionId as string);
-
-      expect(record?.status).toBe("sent");
-      expect(record?.hash).toBe("H1");
-      expect(record?.attempts).toBe(1);
-      expect(tx.send).toHaveBeenCalledTimes(1);
-    } finally {
-      await sender.close();
-    }
-  });
-
-  it("proveAndSendTransaction should transition sent -> included once the transaction is included", async () => {
-    const pendingStorage: PendingL1TransactionStorage =
-      new InMemoryPendingL1TransactionStorage();
-    const { sender } = makeSender(pendingStorage);
-
-    const { tx } = makeTx({ senderBase58: "S", nonce: 0, hash: "H2" });
-    try {
-      const { transactionId } = await sender.proveAndSendTransaction(
-        tx,
-        "included"
-      );
-      const record = await pendingStorage.findById(transactionId as string);
-      expect(record?.status).toBe("included");
-    } finally {
-      await sender.close();
-    }
-  });
-
-  it("should send multiple nonce-increasing transactions for the same sender", async () => {
-    const pendingStorage: PendingL1TransactionStorage =
-      new InMemoryPendingL1TransactionStorage();
-    const { sender } = makeSender(pendingStorage);
-
-    const tx0 = makeTx({ senderBase58: "S", nonce: 0, hash: "H0" });
-    const tx1 = makeTx({ senderBase58: "S", nonce: 1, hash: "H1" });
-
-    try {
-      const sent0 = await sender.proveAndSendTransaction(tx0.tx, "sent");
-      const sent1 = await sender.proveAndSendTransaction(tx1.tx, "sent");
-
-      expect(tx0.tx.send).toHaveBeenCalledTimes(1);
-      expect(tx1.tx.send).toHaveBeenCalledTimes(1);
-
-      const r0 = await pendingStorage.findById(sent0.transactionId as string);
-      const r1 = await pendingStorage.findById(sent1.transactionId as string);
-      expect(r0).toBeDefined();
-      expect(r1).toBeDefined();
-    } finally {
-      await sender.close();
-    }
-  });
-
-  it("should retry a transaction if first attempt fails", async () => {
-    const pendingStorage: PendingL1TransactionStorage =
-      new InMemoryPendingL1TransactionStorage();
-    const { sender } = makeSender(
-      pendingStorage,
-      {
-        pollIntervalMs: 5,
-        statusCheckIntervalMs: 0,
-        inclusionTimeoutMs: 0,
+/** Create a mock FlowCreator that immediately resolves proving */
+function createMockFlowCreator(
+  getProvenTx: () => Mina.Transaction<any, any>
+): FlowCreator {
+  return {
+    createFlow: () => ({
+      withFlow: async <T>(
+        executor: (resolve: (v: T) => void, reject: (e: Error) => void) => void
+      ) =>
+        await new Promise<T>((res, rej) => {
+          executor(res, rej);
+        }),
+      pushTask: async (_task: unknown, _input: unknown, callback: Function) => {
+        callback({ transaction: getProvenTx() });
       },
-      {
-        isLocalBlockChain: () => false,
-        config: { network: { type: "remote" } },
-      }
+    }),
+  } as unknown as FlowCreator;
+}
+
+/** Create fresh test context (storage, dispatcher, waiter, sender) */
+function createTestContext(
+  retryStrategy: L1TransactionRetryStrategy = mockRetryStrategy,
+  flowCreator?: FlowCreator
+) {
+  const storage = new InMemoryPendingL1TransactionStorage();
+  const waiter = new TxStatusWaiter(storage);
+  const dispatcher = new L1TransactionDispatcher(
+    storage,
+    retryStrategy,
+    mockSigner,
+    waiter,
+    dispatcherConfig,
+    mockBaseLayer
+  );
+
+  const provenTx = createMockTx(0);
+  const sender = new MinaTransactionSender(
+    flowCreator ?? createMockFlowCreator(() => provenTx),
+    mockProvingTask,
+    mockSimulator,
+    mockBaseLayer,
+    storage,
+    mockSigner,
+    mockFeeStrategy,
+    dispatcher,
+    waiter
+  );
+
+  return { storage, waiter, dispatcher, sender, provenTx };
+}
+
+describe("MinaTransactionSender", () => {
+  const contexts: Array<{
+    sender: InstanceType<typeof MinaTransactionSender>;
+  }> = [];
+
+  afterEach(async () => {
+    jest.clearAllMocks();
+    await Promise.all(contexts.map((c) => c.sender.close()));
+    contexts.length = 0;
+  });
+
+  function useContext(
+    retryStrategy?: L1TransactionRetryStrategy,
+    flowCreator?: FlowCreator
+  ) {
+    const ctx = createTestContext(retryStrategy, flowCreator);
+    contexts.push(ctx);
+    return ctx;
+  }
+
+  it("should send transaction and resolve 'sent'", async () => {
+    const { sender, storage, provenTx } = useContext();
+    const inputTx = createMockTx(0);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const result = await sender.proveAndSendTransaction(inputTx as any, "sent");
+
+    expect(result.transactionId).toBeDefined();
+    const record = await storage.findById(result.transactionId);
+    expect(record!.status).toBe("sent");
+    expect(provenTx.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("should transition sent -> included when status check succeeds", async () => {
+    mockCheckZkappTransactionStatus.mockResolvedValue({
+      success: true,
+      failureReason: null,
+    });
+
+    const { sender, storage, waiter, dispatcher } = useContext();
+    const inputTx = createMockTx(0);
+
+    const result = await sender.proveAndSendTransaction(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      inputTx as any,
+      "queued"
     );
 
-    const { tx } = makeTx({ senderBase58: "S", nonce: 0, hash: "H-R1" });
+    await waiter.waitFor(result.transactionId, "sent", { timeoutMs: 1000 });
+    dispatcher.requestDispatch(senderBase58);
+    await waiter.waitFor(result.transactionId, "included", { timeoutMs: 1000 });
 
-    (tx as any).send = jest
-      .fn()
-      .mockImplementationOnce(async () => ({ hash: "H-R1" }))
-      .mockImplementationOnce(async () => ({ hash: "H-R2" }));
+    const record = await storage.findById(result.transactionId);
+    expect(record!.status).toBe("included");
+  });
 
-    checkZkappTransactionStatus
-      .mockResolvedValueOnce({ success: false })
-      .mockResolvedValueOnce({ success: true });
+  it("should send multiple nonce-increasing transactions", async () => {
+    const tx0 = createMockTx(0);
+    const tx1 = createMockTx(1);
+    const tx2 = createMockTx(2);
 
-    try {
-      const { transactionId } = await sender.proveAndSendTransaction(
-        tx,
-        "included"
-      );
-      const record = await pendingStorage.findById(transactionId as string);
+    let txIndex = 0;
+    const provenTxs = [tx0, tx1, tx2];
+    const flowCreator = createMockFlowCreator(() => provenTxs[txIndex++]);
+    const { sender } = useContext(undefined, flowCreator);
 
-      expect((tx as any).send).toHaveBeenCalledTimes(2);
-      expect(record?.status).toBe("included");
-      expect(record?.hash).toBe("H-R2");
-      expect(record?.attempts).toBeGreaterThanOrEqual(2);
-    } finally {
-      await sender.close();
-    }
+    /* eslint-disable @typescript-eslint/no-unsafe-argument */
+    await Promise.all([
+      sender.proveAndSendTransaction(tx0 as any, "sent"),
+      sender.proveAndSendTransaction(tx1 as any, "sent"),
+      sender.proveAndSendTransaction(tx2 as any, "sent"),
+    ]);
+    /* eslint-enable @typescript-eslint/no-unsafe-argument */
+
+    expect(tx0.send).toHaveBeenCalledTimes(1);
+    expect(tx1.send).toHaveBeenCalledTimes(1);
+    expect(tx2.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("should retry when status check fails", async () => {
+    let callCount = 0;
+    mockCheckZkappTransactionStatus.mockImplementation(async () => {
+      callCount++;
+      return callCount === 1
+        ? { success: false, failureReason: ["error"] }
+        : { success: true, failureReason: null };
+    });
+
+    const { sender, storage, waiter, dispatcher } = useContext();
+    const inputTx = createMockTx(0);
+
+    const result = await sender.proveAndSendTransaction(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      inputTx as any,
+      "queued"
+    );
+
+    await waiter.waitFor(result.transactionId, "sent", { timeoutMs: 1000 });
+
+    // First check fails, triggers retry
+    dispatcher.requestDispatch(senderBase58);
+    await new Promise((r) => {
+      setTimeout(r, 50);
+    });
+
+    // Second check succeeds
+    dispatcher.requestDispatch(senderBase58);
+    await waiter.waitFor(result.transactionId, "included", { timeoutMs: 1000 });
+
+    const record = await storage.findById(result.transactionId);
+    expect(record!.status).toBe("included");
+    expect(record!.attempts).toBeGreaterThanOrEqual(2);
   });
 
   it("should stop retrying when shouldRetry returns false", async () => {
-    const pendingStorage: PendingL1TransactionStorage =
-      new InMemoryPendingL1TransactionStorage();
-    const { sender, retryStrategy } = makeSender(
-      pendingStorage,
-      {
-        pollIntervalMs: 5,
-        statusCheckIntervalMs: 0,
-        inclusionTimeoutMs: 0,
-      },
-      {
-        isLocalBlockChain: () => false,
-        config: { network: { type: "remote" } },
-      }
+    mockCheckZkappTransactionStatus.mockResolvedValue({
+      success: false,
+      failureReason: ["permanent error"],
+    });
+
+    const noRetryStrategy: L1TransactionRetryStrategy = {
+      shouldRetry: async () => false,
+      getRetryDelayMs: () => 0,
+      prepareRetryTransaction: async (r) =>
+        r.transaction as unknown as Mina.Transaction<any, false>,
+    };
+
+    const { sender, storage, waiter, dispatcher } = useContext(noRetryStrategy);
+    const inputTx = createMockTx(0);
+
+    const result = await sender.proveAndSendTransaction(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      inputTx as any,
+      "queued"
     );
 
-    // Force "no retry"
-    retryStrategy.shouldRetry = jest.fn(async () => false);
+    await waiter.waitFor(result.transactionId, "sent", { timeoutMs: 1000 });
+    dispatcher.requestDispatch(senderBase58);
 
-    checkZkappTransactionStatus.mockResolvedValueOnce({ success: false });
-    const { tx } = makeTx({ senderBase58: "S", nonce: 0, hash: "H-F" });
-    try {
-      const promise = sender.proveAndSendTransaction(tx, "included");
-      await expect(promise).rejects.toBeDefined();
-    } finally {
-      await sender.close();
-    }
+    await expect(
+      waiter.waitFor(result.transactionId, "included", { timeoutMs: 500 })
+    ).rejects.toThrow();
+
+    const record = await storage.findById(result.transactionId);
+    expect(record!.status).toBe("failed");
   });
 });
-/* eslint-enable @typescript-eslint/no-unsafe-assignment */

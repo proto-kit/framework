@@ -5,4 +5,6 @@
  * reliably mock it in ESM mode via `jest.unstable_mockModule(...)` without
  * mocking `o1js` itself.
  */
-export { checkZkappTransaction as checkZkappTransactionStatus } from "o1js";
+import { checkZkappTransaction } from "o1js";
+
+export const checkZkappTransactionStatus = checkZkappTransaction;
