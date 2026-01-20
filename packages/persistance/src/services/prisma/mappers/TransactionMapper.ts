@@ -24,7 +24,7 @@ export class TransactionMapper
       signature: {
         r: input.signature_r,
         s: input.signature_s,
-      }
+      },
     });
   }
 

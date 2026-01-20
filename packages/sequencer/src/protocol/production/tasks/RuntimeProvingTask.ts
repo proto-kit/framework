@@ -61,7 +61,6 @@ export class RuntimeProvingTask
   }
 
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
-
     const method = this.runtime.getMethodById(input.tx.methodId);
 
     const methodDescriptors = this.runtime.dependencyContainer
@@ -91,10 +90,13 @@ export class RuntimeProvingTask
     );
 
     // Set network state and transaction for the runtimemodule to access
-    const { transaction, signature } =
-      PendingTransaction.fromJSON(input.tx).toProtocolTransaction();
+    const { transaction, signature } = PendingTransaction.fromJSON(
+      input.tx
+    ).toProtocolTransaction();
     const contextInputs = {
-      networkState: new ProvableNetworkState( ProvableNetworkState.fromJSON( input.networkState ) ),
+      networkState: new ProvableNetworkState(
+        ProvableNetworkState.fromJSON(input.networkState)
+      ),
       transaction,
       signature,
     };

@@ -183,7 +183,9 @@ describe.skip("IndexerNotifier", () => {
   it("should create a task for every unproven block produced", async () => {
     const serializer = JSONTaskSerializer.fromType<IndexBlockTaskParameters>();
 
-    const { block } = await serializer.fromJSON(addTaskSpy.mock.lastCall?.[0].payload!);
+    const { block } = await serializer.fromJSON(
+      addTaskSpy.mock.lastCall?.[0].payload!
+    );
 
     expect(block.height).toBe(0);
     expect(block.transactions.length).toBe(2);

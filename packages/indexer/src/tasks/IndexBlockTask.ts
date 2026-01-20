@@ -8,9 +8,7 @@ import {
 import { log } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 
-import {
-  IndexBlockTaskParameters,
-} from "./IndexBlockTaskParameters";
+import { IndexBlockTaskParameters } from "./IndexBlockTaskParameters";
 
 @injectable()
 export class IndexBlockTask

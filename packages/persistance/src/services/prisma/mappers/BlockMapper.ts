@@ -43,7 +43,7 @@ export class BlockMapper implements ObjectMapper<Block, PrismaBlock> {
 
   public mapOut(input: Block): PrismaBlock {
     return {
-      height: Number(input.height),
+      height: input.height,
       beforeNetworkState: input.networkState.before,
       duringNetworkState: input.networkState.during,
       fromEternalTransactionsHash: input.fromEternalTransactionsHash,
