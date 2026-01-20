@@ -177,18 +177,9 @@ export class PrivateMempool
       blockHashRoot: Field(
         previousBlock?.result.blockHashRoot ?? BlockHashMerkleTree.EMPTY_ROOT
       ),
-      eternalTransactionsHash:
-        previousBlock?.block.toEternalTransactionsHash !== undefined
-          ? Field(previousBlock?.block.toEternalTransactionsHash)
-          : Field(0),
-      transactionsHash:
-        previousBlock?.block.transactionsHash !== undefined
-          ? Field(previousBlock?.block.transactionsHash)
-          : Field(0),
-      incomingMessagesHash:
-        previousBlock?.block.toMessagesHash !== undefined
-          ? Field(previousBlock?.block.toMessagesHash)
-          : Field(0),
+      eternalTransactionsHash: Field(previousBlock?.block.toEternalTransactionsHash ?? 0),
+      transactionsHash: Field(previousBlock?.block.transactionsHash ?? 0),
+      incomingMessagesHash: Field(previousBlock?.block.toMessagesHash ?? 0),
     };
 
     const provableNetworkState = new ProvableNetworkState(

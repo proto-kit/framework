@@ -20,17 +20,11 @@ export class TransactionMapper
 {
   public mapIn(input: DBTransaction): PendingTransaction {
     return new PendingTransaction({
-      hash: input.hash,
-      methodId: input.methodId,
-      nonce: input.nonce,
-      sender: input.sender,
-      argsFields: input.argsFields,
-      auxiliaryData: input.auxiliaryData,
-      isMessage: input.isMessage,
+      ...input,
       signature: {
         r: input.signature_r,
         s: input.signature_s,
-      },
+      }
     });
   }
 

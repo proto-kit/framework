@@ -6,7 +6,7 @@ import {
 } from "@proto-kit/module";
 import { Signature } from "o1js";
 
-import { PendingTransaction } from "../PendingTransaction";
+import { PendingTransaction, UnsignedTransaction } from "../PendingTransaction";
 
 @injectable()
 export class TransactionValidator {

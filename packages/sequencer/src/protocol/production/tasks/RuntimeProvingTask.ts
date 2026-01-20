@@ -61,20 +61,15 @@ export class RuntimeProvingTask
   }
 
   public async compute(input: RuntimeProofParameters): Promise<RuntimeProof> {
-    // Convert from JSON to provable types at the proving boundary
-    const { tx } = input;
-    const networkState = new ProvableNetworkState(
-      ProvableNetworkState.fromJSON(input.networkState)
-    );
 
-    const method = this.runtime.getMethodById(tx.methodId);
+    const method = this.runtime.getMethodById(input.tx.methodId);
 
     const methodDescriptors = this.runtime.dependencyContainer
       .resolve<MethodIdResolver>("MethodIdResolver")
-      .getMethodNameFromId(tx.methodId);
+      .getMethodNameFromId(input.tx.methodId);
 
     if (methodDescriptors === undefined || method === undefined) {
-      throw new Error(`MethodId not found ${tx.methodId}`);
+      throw new Error(`MethodId not found ${input.tx.methodId}`);
     }
 
     const [moduleName, methodName] = methodDescriptors;
@@ -84,8 +79,8 @@ export class RuntimeProvingTask
       methodName
     );
     const decodedArguments = await parameterEncoder.decode(
-      tx.argsFields,
-      tx.auxiliaryData
+      input.tx.argsFields,
+      input.tx.auxiliaryData
     );
 
     const prefilledStateService = new PreFilledStateService(
@@ -97,9 +92,9 @@ export class RuntimeProvingTask
 
     // Set network state and transaction for the runtimemodule to access
     const { transaction, signature } =
-      PendingTransaction.fromJSON(tx).toProtocolTransaction();
+      PendingTransaction.fromJSON(input.tx).toProtocolTransaction();
     const contextInputs = {
-      networkState,
+      networkState: new ProvableNetworkState( ProvableNetworkState.fromJSON( input.networkState ) ),
       transaction,
       signature,
     };

@@ -87,7 +87,6 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
     const args = await methodEncoder.decode(fieldArgs, []);
 
     const { fields, auxiliary } = methodEncoder.encode(args);
-    const signature = Signature.create(PrivateKey.random(), [Field(0)]);
     const hash = Poseidon.hash([
       methodId,
       ...EMPTY_PUBLICKEY.toFields(),
@@ -100,7 +99,7 @@ export class MinaIncomingMessageAdapter implements IncomingMessageAdapter {
       methodId: methodId.toString(),
       sender: EMPTY_PUBLICKEY.toBase58(),
       nonce: UInt64.zero.toString(),
-      signature: { r: signature.r.toJSON(), s: signature.s.toJSON() },
+      signature: Signature.create(PrivateKey.random(), [Field(0)]).toJSON(),
       argsFields: fields.map((f) => f.toString()),
       auxiliaryData: auxiliary,
       isMessage: true,
