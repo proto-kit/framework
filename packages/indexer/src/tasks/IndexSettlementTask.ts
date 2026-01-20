@@ -4,6 +4,7 @@ import {
   TaskWorkerModule,
   Settlement,
   SettlementStorage,
+  JSONTaskSerializer,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
@@ -36,15 +37,7 @@ export class IndexSettlementTask
   }
 
   public inputSerializer(): TaskSerializer<Settlement> {
-    return {
-      toJSON: (parameter: Settlement): string => {
-        return JSON.stringify(parameter);
-      },
-      fromJSON: (parameter: string) => {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return JSON.parse(parameter) as Settlement;
-      },
-    };
+    return JSONTaskSerializer.fromType<Settlement>();
   }
 
   public resultSerializer(): TaskSerializer<string | void> {

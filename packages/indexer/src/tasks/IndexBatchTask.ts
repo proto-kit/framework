@@ -4,6 +4,7 @@ import {
   TaskWorkerModule,
   Batch,
   BatchStorage,
+  JSONTaskSerializer,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
@@ -36,15 +37,7 @@ export class IndexBatchTask
   }
 
   public inputSerializer(): TaskSerializer<Batch> {
-    return {
-      toJSON: (parameter: Batch): string => {
-        return JSON.stringify(parameter);
-      },
-      fromJSON: (parameter: string) => {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return JSON.parse(parameter) as Batch;
-      },
-    };
+    return JSONTaskSerializer.fromType<Batch>();
   }
 
   public resultSerializer(): TaskSerializer<string | void> {
