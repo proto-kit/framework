@@ -1,22 +1,37 @@
 import {
-  BlockProverPublicInput,
   MethodPublicOutput,
-  ProvableNetworkState,
   ReturnType,
   RuntimeTransaction,
+  TransactionProverPublicInput,
   TransactionProverTransactionArguments,
+  TransactionProverArguments,
 } from "@proto-kit/protocol";
 import { JsonProof, Signature } from "o1js";
+import { assertSizeOneOrTwo, mapSequential } from "@proto-kit/common";
 
 import { TaskSerializer } from "../../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../../helpers/utils";
 
 import {
+  TransactionProverTaskParameters,
   TransactionProvingTaskParameters,
-  TransactionProvingType,
 } from "./types/TransactionProvingTypes";
 import { RuntimeVerificationKeyAttestationSerializer } from "./RuntimeVerificationKeyAttestationSerializer";
-import { JSONEncodableState } from "./DecodedStateSerializer";
+import { DecodedStateSerializer, JSONEncodableState } from "./DecodedStateSerializer";
+
+export type TransactionProvingTaskParametersJSON = {
+  parameters: TransactionProverTaskParametersJSON;
+  proof: JsonProof;
+}[];
+
+export type TransactionProverTaskParametersJSON = {
+  startingState: JSONEncodableState[];
+  publicInput: ReturnType<typeof TransactionProverPublicInput.toJSON>;
+  executionData: {
+    transaction: TransactionProverTransactionArgumentsJSON;
+    args: ReturnType<typeof TransactionProverArguments.toJSON>;
+  };
+};
 
 export type TransactionProverTransactionArgumentsJSON = {
   transaction: ReturnType<typeof RuntimeTransaction.toJSON>;
@@ -25,38 +40,6 @@ export type TransactionProverTransactionArgumentsJSON = {
     typeof RuntimeVerificationKeyAttestationSerializer.toJSON
   >;
 };
-
-export type SingleExecutionDataJSON = {
-  transaction: TransactionProverTransactionArgumentsJSON;
-  networkState: ReturnType<typeof ProvableNetworkState.toJSON>;
-};
-
-export type MultiExecutionDataJSON = {
-  transaction1: TransactionProverTransactionArgumentsJSON;
-  transaction2: TransactionProverTransactionArgumentsJSON;
-  networkState: ReturnType<typeof ProvableNetworkState.toJSON>;
-};
-
-export type TransactionProverTaskParametersJSON<
-  ExecutionData extends SingleExecutionDataJSON | MultiExecutionDataJSON,
-> = {
-  startingState: JSONEncodableState[];
-  publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
-  executionData: ExecutionData;
-};
-
-export type TransactionProvingTaskParametersJSON =
-  | {
-      type: TransactionProvingType.SINGLE;
-      proof1: JsonProof;
-      parameters: TransactionProverTaskParametersJSON<SingleExecutionDataJSON>;
-    }
-  | {
-      type: TransactionProvingType.MULTI;
-      proof1: JsonProof;
-      proof2: JsonProof;
-      parameters: TransactionProverTaskParametersJSON<MultiExecutionDataJSON>;
-    };
 
 export class TransactionProvingTaskParameterSerializer
   implements TaskSerializer<TransactionProvingTaskParameters>
@@ -97,59 +80,33 @@ export class TransactionProvingTaskParameterSerializer
     };
   }
 
-  public toJSON(input: TransactionProvingTaskParameters): string {
-    let taskParamsJson: TransactionProvingTaskParametersJSON;
+  public toJSON(inputs: TransactionProvingTaskParameters): string {
+    const taskParamsJson: TransactionProvingTaskParametersJSON = inputs.map(
+      (input) => {
+        const { parameters, proof } = input;
+        const { executionData } = parameters;
 
-    const { type, parameters } = input;
+        const proofJSON = this.runtimeProofSerializer.toJSONProof(proof);
 
-    const partialParameters = {
-      publicInput: BlockProverPublicInput.toJSON(parameters.publicInput),
+        const parametersJSON: TransactionProverTaskParametersJSON = {
+          publicInput: TransactionProverPublicInput.toJSON(
+            parameters.publicInput
+          ),
 
-      startingState: parameters.startingState,
-    };
+          startingState: parameters.startingState,
 
-    // The reason we can't just use the structs toJSON is that the VerificationKey
-    // toJSON and fromJSON isn't consistent -> i.e. the serialization doesn't work
-    // the same both ways. We fix that in our custom serializer
-    if (type === TransactionProvingType.SINGLE) {
-      const { executionData } = parameters;
-      const executionDataJson: SingleExecutionDataJSON = {
-        networkState: ProvableNetworkState.toJSON(executionData.networkState),
-        transaction: this.transactionProverArgumentsToJson(
-          executionData.transaction
-        ),
-      };
+          executionData: {
+            args: TransactionProverArguments.toJSON(executionData.args),
 
-      taskParamsJson = {
-        type,
-        proof1: this.runtimeProofSerializer.toJSONProof(input.proof1),
-        parameters: {
-          ...partialParameters,
-          executionData: executionDataJson,
-        },
-      };
-    } else {
-      const { executionData } = parameters;
-      const executionDataJson: MultiExecutionDataJSON = {
-        networkState: ProvableNetworkState.toJSON(executionData.networkState),
-        transaction1: this.transactionProverArgumentsToJson(
-          executionData.transaction1
-        ),
-        transaction2: this.transactionProverArgumentsToJson(
-          executionData.transaction2
-        ),
-      };
+            transaction: this.transactionProverArgumentsToJson(
+              executionData.transaction
+            ),
+          },
+        };
 
-      taskParamsJson = {
-        type,
-        proof1: this.runtimeProofSerializer.toJSONProof(input.proof1),
-        proof2: this.runtimeProofSerializer.toJSONProof(input.proof2),
-        parameters: {
-          ...partialParameters,
-          executionData: executionDataJson,
-        },
-      };
-    }
+        return { parameters: parametersJSON, proof: proofJSON };
+      }
+    );
 
     return JSON.stringify(taskParamsJson);
   }
@@ -161,58 +118,34 @@ export class TransactionProvingTaskParameterSerializer
     const jsonReadyObject: TransactionProvingTaskParametersJSON =
       JSON.parse(json);
 
-    const { type, parameters } = jsonReadyObject;
+    const result = await mapSequential(jsonReadyObject, async (input) => {
+      const { parameters, proof } = input;
 
-    const partialParameters = {
-      publicInput: BlockProverPublicInput.fromJSON(parameters.publicInput),
+      const decodedProof =
+        await this.runtimeProofSerializer.fromJSONProof(proof);
 
-      startingState: parameters.startingState,
-    };
-
-    if (type === TransactionProvingType.SINGLE) {
-      return {
-        type,
-        proof1: await this.runtimeProofSerializer.fromJSONProof(
-          jsonReadyObject.proof1
+      const decodedParameters: TransactionProverTaskParameters = {
+        publicInput: TransactionProverPublicInput.fromJSON(
+          parameters.publicInput
         ),
-        parameters: {
-          ...partialParameters,
-          executionData: {
-            transaction: this.transactionProverArgumentsFromJson(
-              parameters.executionData.transaction
-            ),
-            networkState: new ProvableNetworkState(
-              ProvableNetworkState.fromJSON(
-                parameters.executionData.networkState
-              )
-            ),
-          },
+        startingState: parameters.startingState,
+        executionData: {
+          transaction: this.transactionProverArgumentsFromJson(
+            parameters.executionData.transaction
+          ),
+          args: TransactionProverArguments.fromJSON(
+            parameters.executionData.args
+          ),
         },
       };
-    }
+      return {
+        parameters: decodedParameters,
+        proof: decodedProof,
+      };
+    });
 
-    return {
-      type,
-      proof1: await this.runtimeProofSerializer.fromJSONProof(
-        jsonReadyObject.proof1
-      ),
-      proof2: await this.runtimeProofSerializer.fromJSONProof(
-        jsonReadyObject.proof2
-      ),
-      parameters: {
-        ...partialParameters,
-        executionData: {
-          transaction1: this.transactionProverArgumentsFromJson(
-            parameters.executionData.transaction1
-          ),
-          transaction2: this.transactionProverArgumentsFromJson(
-            parameters.executionData.transaction2
-          ),
-          networkState: new ProvableNetworkState(
-            ProvableNetworkState.fromJSON(parameters.executionData.networkState)
-          ),
-        },
-      },
-    };
+    assertSizeOneOrTwo(result);
+
+    return result;
   }
 }

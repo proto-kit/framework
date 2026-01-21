@@ -52,7 +52,7 @@ export class WitnessedRootHashList extends DefaultProvableHashList<WitnessedRoot
     );
 
     // Conditions:
-    // (1) don't append if witnessedRoot == finalizedRoot  -> Already covered in BlockProver
+    // (1) don't append if witnessedRoot == finalizedRoot -> Already covered in BlockProver
     // (2) don't append if preimage.push({ finalizedRoot, pendingSTBatchesHash }) == this.commitment
     const skipPush = preimageCheckList.commitment.equals(this.commitment);
 

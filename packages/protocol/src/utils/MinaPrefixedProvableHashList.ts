@@ -47,9 +47,13 @@ export class MinaPrefixedProvableHashList<
   public constructor(
     valueType: ProvablePure<Value>,
     public readonly prefix: string,
-    internalCommitment: Field = Field(0)
+    internalCommitment?: Field
   ) {
     super(valueType, internalCommitment);
+  }
+
+  public empty(): Field {
+    return Field(0);
   }
 
   protected hash(elements: Field[]): Field {
@@ -60,7 +64,7 @@ export class MinaPrefixedProvableHashList<
 }
 
 export class MinaActionsHashList extends MinaPrefixedProvableHashList<Field> {
-  public constructor(internalCommitment: Field = Field(0)) {
+  public constructor(internalCommitment?: Field) {
     super(Field, MINA_PREFIXES.sequenceEvents, internalCommitment);
   }
 }

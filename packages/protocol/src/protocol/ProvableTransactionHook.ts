@@ -1,28 +1,28 @@
 import { NoConfig } from "@proto-kit/common";
-import { Signature } from "o1js";
+import { Field, Signature } from "o1js";
 
 import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { ProvableNetworkState } from "../model/network/NetworkState";
 import { MethodPublicOutput } from "../model/MethodPublicOutput";
 import {
-  TransactionProverPublicInput,
   TransactionProverState,
   TransactionProverTransactionArguments,
 } from "../prover/transaction/TransactionProvable";
 
 import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
-export type ProvableHookTransactionState = Pick<
-  TransactionProverPublicInput,
-  "transactionsHash" | "eternalTransactionsHash" | "incomingMessagesHash"
->;
+export type ProvableHookTransactionState = {
+  transactionsHash: Field;
+  eternalTransactionsHash: Field;
+  incomingMessagesHash: Field;
+};
 
 export function toProvableHookTransactionState(
   state: Pick<
     TransactionProverState,
     "transactionList" | "eternalTransactionsList" | "incomingMessages"
   >
-) {
+): ProvableHookTransactionState {
   const { transactionList, eternalTransactionsList, incomingMessages } = state;
   return {
     transactionsHash: transactionList.commitment,

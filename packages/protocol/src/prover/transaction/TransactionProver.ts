@@ -32,11 +32,11 @@ import {
 } from "../block/accummulators/RuntimeVerificationKeyTree";
 
 import {
-  BlockProverMultiTransactionExecutionData,
-  BlockProverSingleTransactionExecutionData,
+  TransactionProverExecutionData,
   DynamicRuntimeProof,
   TransactionProof,
   TransactionProvable,
+  TransactionProverArguments,
   TransactionProverPublicInput,
   TransactionProverPublicOutput,
   TransactionProverState,
@@ -53,14 +53,18 @@ const errors = {
   transactionsHashNotMatching: (step: string) =>
     errors.propertyNotMatchingStep("Transactions hash", step),
 
-  networkStateHashNotMatching: (step: string) =>
-    errors.propertyNotMatchingStep("Network state hash", step),
+  bundlesHashNotMatching: (step: string) =>
+    errors.propertyNotMatchingStep("Bundles hash", step),
 };
 
 type ApplyTransactionArguments = Omit<
   TransactionProverTransactionArguments,
   "verificationKeyAttestation"
 >;
+
+type TransactionHookArgument<T extends "before" | "after"> = T extends "before"
+  ? BeforeTransactionHookArguments
+  : AfterTransactionHookArguments;
 
 export class TransactionProverZkProgrammable extends ZkProgrammable<
   TransactionProverPublicInput,
@@ -96,6 +100,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
    * @param runtimeOutput
    * @param executionData
    * @param networkState
+   * @param bundleListPreimage
    * @returns The new BlockProver-state to be used as public output
    */
   public async applyTransaction(
@@ -118,12 +123,11 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
 
     // Apply beforeTransaction hook state transitions
     const beforeBatch = await this.executeTransactionHooks(
+      "before",
       async (module, args) => await module.beforeTransaction(args),
       beforeTxHookArguments,
       isMessage
     );
-
-    state = addTransactionToBundle(state, runtimeOutput.isMessage, transaction);
 
     state.pendingSTBatches.push(beforeBatch);
 
@@ -131,6 +135,8 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
       batchHash: runtimeOutput.stateTransitionsHash,
       applied: runtimeOutput.status,
     });
+
+    state = addTransactionToBundle(state, runtimeOutput.isMessage, transaction);
 
     // Apply afterTransaction hook state transitions
     const afterTxHookArguments = toAfterTransactionHookArgument(
@@ -144,6 +150,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     this.stateServiceProvider.popCurrentStateService();
 
     const afterBatch = await this.executeTransactionHooks(
+      "after",
       async (module, args) => await module.afterTransaction(args),
       afterTxHookArguments,
       isMessage
@@ -170,14 +177,6 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     // Validate layout of transaction witness
     transaction.assertTransactionType(isMessage);
 
-    // Check network state integrity against appProof
-    state.networkState
-      .hash()
-      .assertEquals(
-        runtimeOutput.networkStateHash,
-        "Network state does not match state used in AppProof"
-      );
-
     return new TransactionProverState(state);
   }
 
@@ -201,15 +200,18 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     return verificationKey;
   }
 
-  private async executeTransactionHooks<
-    T extends BeforeTransactionHookArguments | AfterTransactionHookArguments,
-  >(
-    hook: (module: ProvableTransactionHook<unknown>, args: T) => Promise<void>,
-    hookArguments: T,
+  private async executeTransactionHooks<T extends "before" | "after">(
+    type: T,
+    hook: (
+      module: ProvableTransactionHook<unknown>,
+      args: TransactionHookArgument<T>
+    ) => Promise<void>,
+    hookArguments: TransactionHookArgument<T>,
     isMessage: Bool
   ) {
     const { batch, rawStatus } = await executeHooks(
       hookArguments,
+      `${type}Transaction`,
       async () => {
         for (const module of this.transactionHooks) {
           // eslint-disable-next-line no-await-in-loop
@@ -227,10 +229,15 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
   }
 
   public async proveTransactionInternal(
-    fromState: TransactionProverState,
+    publicInput: TransactionProverPublicInput,
     runtimeProof: DynamicRuntimeProof,
-    { transaction, networkState }: BlockProverSingleTransactionExecutionData
-  ): Promise<TransactionProverState> {
+    transaction: TransactionProverTransactionArguments,
+    args: TransactionProverArguments
+  ): Promise<TransactionProverPublicOutput> {
+    const state = TransactionProverState.fromCommitments(publicInput, args);
+
+    state.bundleList.checkLastBundleElement(state, args.networkState);
+
     const verificationKey = this.verifyVerificationKeyAttestation(
       transaction.verificationKeyAttestation,
       transaction.transaction.methodId
@@ -238,32 +245,30 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
 
     runtimeProof.verify(verificationKey);
 
-    return await this.applyTransaction(
-      fromState,
+    const result = await this.applyTransaction(
+      state,
       runtimeProof.publicOutput,
       transaction,
-      networkState
+      args.networkState
     );
+
+    result.bundleList.addToBundle(result, args.networkState);
+
+    return result.toCommitments();
   }
 
   @provableMethod()
   public async proveTransaction(
     publicInput: TransactionProverPublicInput,
     runtimeProof: DynamicRuntimeProof,
-    executionData: BlockProverSingleTransactionExecutionData
+    executionData: TransactionProverExecutionData
   ): Promise<TransactionProverPublicOutput> {
-    const state = TransactionProverState.fromCommitments(
+    return await this.proveTransactionInternal(
       publicInput,
-      executionData.networkState
-    );
-
-    const stateTo = await this.proveTransactionInternal(
-      state,
       runtimeProof,
-      executionData
+      executionData.transaction,
+      executionData.args
     );
-
-    return new TransactionProverPublicOutput(stateTo.toCommitments());
   }
 
   @provableMethod()
@@ -271,30 +276,25 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     publicInput: TransactionProverPublicInput,
     runtimeProof1: DynamicRuntimeProof,
     runtimeProof2: DynamicRuntimeProof,
-    executionData: BlockProverMultiTransactionExecutionData
+    executionData1: TransactionProverExecutionData,
+    executionData2: TransactionProverExecutionData
   ): Promise<TransactionProverPublicOutput> {
-    const state = TransactionProverState.fromCommitments(
+    const state1 = await this.proveTransactionInternal(
       publicInput,
-      executionData.networkState
+      runtimeProof1,
+      executionData1.transaction,
+      executionData1.args
     );
 
-    // this.staticChecks(publicInput);
-
-    const state1 = await this.proveTransactionInternal(state, runtimeProof1, {
-      transaction: executionData.transaction1,
-      networkState: executionData.networkState,
-    });
-
     // Switch to next state record for 2nd tx beforeTx hook
-    // TODO Can be prevented by merging 1st afterTx + 2nd beforeTx
     this.stateServiceProvider.popCurrentStateService();
 
-    const stateTo = await this.proveTransactionInternal(state1, runtimeProof2, {
-      transaction: executionData.transaction2,
-      networkState: executionData.networkState,
-    });
-
-    return new TransactionProverPublicOutput(stateTo.toCommitments());
+    return await this.proveTransactionInternal(
+      state1,
+      runtimeProof2,
+      executionData2.transaction,
+      executionData2.args
+    );
   }
 
   @provableMethod()
@@ -306,27 +306,14 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     proof1.verify();
     proof2.verify();
 
-    // Check transaction list hash.
-    // Only assert them if these are tx proofs, skip for closed proofs
-    publicInput.transactionsHash
-      .equals(proof1.publicInput.transactionsHash)
-      .assertTrue(
-        errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
-      );
-    proof1.publicOutput.transactionsHash
-      .equals(proof2.publicInput.transactionsHash)
-      .assertTrue(
-        errors.transactionsHashNotMatching("proof1.to -> proof2.from")
-      );
-
-    // Check networkhash
-    publicInput.networkStateHash.assertEquals(
-      proof1.publicInput.networkStateHash,
-      errors.networkStateHashNotMatching("publicInput.from -> proof1.from")
+    // Check bundlesHash
+    publicInput.bundlesHash.assertEquals(
+      proof1.publicInput.bundlesHash,
+      errors.bundlesHashNotMatching("publicInput.from -> proof1.from")
     );
-    proof1.publicOutput.networkStateHash.assertEquals(
-      proof2.publicInput.networkStateHash,
-      errors.networkStateHashNotMatching("proof1.to -> proof2.from")
+    proof1.publicOutput.bundlesHash.assertEquals(
+      proof2.publicInput.bundlesHash,
+      errors.bundlesHashNotMatching("proof1.to -> proof2.from")
     );
 
     // Check eternalTransactionsHash
@@ -355,33 +342,10 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
       )
     );
 
-    // Check pendingSTBatchesHash
-    publicInput.pendingSTBatchesHash.assertEquals(
-      proof1.publicInput.pendingSTBatchesHash,
-      errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
-    );
-    proof1.publicOutput.pendingSTBatchesHash.assertEquals(
-      proof2.publicInput.pendingSTBatchesHash,
-      errors.transactionsHashNotMatching("proof1.to -> proof2.from")
-    );
-
-    // Check witnessedRootsHash
-    publicInput.witnessedRootsHash.assertEquals(
-      proof1.publicInput.witnessedRootsHash,
-      errors.transactionsHashNotMatching("publicInput.from -> proof1.from")
-    );
-    proof1.publicOutput.witnessedRootsHash.assertEquals(
-      proof2.publicInput.witnessedRootsHash,
-      errors.transactionsHashNotMatching("proof1.to -> proof2.from")
-    );
-
     return new TransactionProverPublicOutput({
-      transactionsHash: proof2.publicOutput.transactionsHash,
-      networkStateHash: proof2.publicOutput.networkStateHash,
+      bundlesHash: proof2.publicOutput.bundlesHash,
       eternalTransactionsHash: proof2.publicOutput.eternalTransactionsHash,
       incomingMessagesHash: proof2.publicOutput.incomingMessagesHash,
-      pendingSTBatchesHash: proof2.publicOutput.pendingSTBatchesHash,
-      witnessedRootsHash: proof2.publicOutput.witnessedRootsHash,
     });
   }
 
@@ -400,21 +364,18 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     const merge = prover.merge.bind(prover);
 
     const program = ZkProgram({
-      name: "BlockProver",
+      name: "TransactionProver",
       publicInput: TransactionProverPublicInput,
       publicOutput: TransactionProverPublicOutput,
 
       methods: {
         proveTransaction: {
-          privateInputs: [
-            DynamicRuntimeProof,
-            BlockProverSingleTransactionExecutionData,
-          ],
+          privateInputs: [DynamicRuntimeProof, TransactionProverExecutionData],
 
           async method(
             publicInput: TransactionProverPublicInput,
             runtimeProof: DynamicRuntimeProof,
-            executionData: BlockProverSingleTransactionExecutionData
+            executionData: TransactionProverExecutionData
           ) {
             return {
               publicOutput: await proveTransaction(
@@ -430,21 +391,24 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
           privateInputs: [
             DynamicRuntimeProof,
             DynamicRuntimeProof,
-            BlockProverMultiTransactionExecutionData,
+            TransactionProverExecutionData,
+            TransactionProverExecutionData,
           ],
 
           async method(
             publicInput: TransactionProverPublicInput,
             runtimeProof1: DynamicRuntimeProof,
             runtimeProof2: DynamicRuntimeProof,
-            executionData: BlockProverMultiTransactionExecutionData
+            executionData1: TransactionProverExecutionData,
+            executionData2: TransactionProverExecutionData
           ) {
             return {
               publicOutput: await proveTransactions(
                 publicInput,
                 runtimeProof1,
                 runtimeProof2,
-                executionData
+                executionData1,
+                executionData2
               ),
             };
           },
@@ -537,7 +501,7 @@ export class TransactionProver
   public proveTransaction(
     publicInput: TransactionProverPublicInput,
     runtimeProof: DynamicRuntimeProof,
-    executionData: BlockProverSingleTransactionExecutionData
+    executionData: TransactionProverExecutionData
   ): Promise<TransactionProverPublicOutput> {
     return this.zkProgrammable.proveTransaction(
       publicInput,
@@ -550,13 +514,15 @@ export class TransactionProver
     publicInput: TransactionProverPublicInput,
     runtimeProof1: DynamicRuntimeProof,
     runtimeProof2: DynamicRuntimeProof,
-    executionData: BlockProverMultiTransactionExecutionData
+    executionData1: TransactionProverExecutionData,
+    executionData2: TransactionProverExecutionData
   ): Promise<TransactionProverPublicOutput> {
     return this.zkProgrammable.proveTransactions(
       publicInput,
       runtimeProof1,
       runtimeProof2,
-      executionData
+      executionData1,
+      executionData2
     );
   }
 

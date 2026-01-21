@@ -10,6 +10,7 @@ import { TransactionHashList } from "../accumulators/TransactionHashList";
 import { AppliedBatchHashList } from "../accumulators/AppliedBatchHashList";
 import { MinaActionsHashList } from "../../utils/MinaPrefixedProvableHashList";
 import { WitnessedRootHashList } from "../accumulators/WitnessedRootHashList";
+import { BundleHashList, BundlePreimage } from "../accumulators/BlockHashList";
 
 export class TransactionProverState {
   /**
@@ -22,7 +23,7 @@ export class TransactionProverState {
    * The network state which gives access to values such as blockHeight
    * This value is the same for the whole batch (L2 block)
    */
-  networkState: ProvableNetworkState;
+  bundleList: BundleHashList;
 
   /**
    * A variant of the transactionsHash that is never reset.
@@ -39,14 +40,14 @@ export class TransactionProverState {
 
   constructor(args: {
     transactionList: TransactionHashList;
-    networkState: ProvableNetworkState;
+    bundleList: BundleHashList;
     eternalTransactionsList: TransactionHashList;
     pendingSTBatches: AppliedBatchHashList;
     incomingMessages: MinaActionsHashList;
     witnessedRoots: WitnessedRootHashList;
   }) {
     this.transactionList = args.transactionList;
-    this.networkState = args.networkState;
+    this.bundleList = args.bundleList;
     this.eternalTransactionsList = args.eternalTransactionsList;
     this.pendingSTBatches = args.pendingSTBatches;
     this.incomingMessages = args.incomingMessages;
@@ -55,50 +56,55 @@ export class TransactionProverState {
 
   public toCommitments(): TransactionProverPublicInput {
     return {
-      networkStateHash: this.networkState.hash(),
-      pendingSTBatchesHash: this.pendingSTBatches.commitment,
-      transactionsHash: this.transactionList.commitment,
+      bundlesHash: this.bundleList.commitment,
+      // pendingSTBatchesHash: this.pendingSTBatches.commitment,
+      // transactionsHash: this.transactionList.commitment,
       eternalTransactionsHash: this.eternalTransactionsList.commitment,
       incomingMessagesHash: this.incomingMessages.commitment,
-      witnessedRootsHash: this.witnessedRoots.commitment,
+      // witnessedRootsHash: this.witnessedRoots.commitment,
     };
   }
 
   public static fromCommitments(
     publicInput: TransactionProverPublicInput,
-    networkState: ProvableNetworkState
+    args: TransactionProverArguments
   ): TransactionProverState {
-    publicInput.networkStateHash.assertEquals(
-      networkState.hash(),
-      "ExecutionData Networkstate doesn't equal public input hash"
-    );
-
     return new TransactionProverState({
-      networkState,
-      transactionList: new TransactionHashList(publicInput.transactionsHash),
+      // Stuff that has to be authenticated via public input, since it's not inside the bundle hash
+      bundleList: new BundleHashList(
+        publicInput.bundlesHash,
+        args.bundleListPreimage
+      ),
       eternalTransactionsList: new TransactionHashList(
         publicInput.eternalTransactionsHash
       ),
       incomingMessages: new MinaActionsHashList(
         publicInput.incomingMessagesHash
       ),
-      pendingSTBatches: new AppliedBatchHashList(
-        publicInput.pendingSTBatchesHash
-      ),
-      witnessedRoots: new WitnessedRootHashList(publicInput.witnessedRootsHash),
+      // Remainders (i.e. stuff that goes into the bundle)
+      transactionList: new TransactionHashList(args.transactionHash),
+      pendingSTBatches: new AppliedBatchHashList(args.pendingSTBatchesHash),
+      witnessedRoots: new WitnessedRootHashList(args.witnessedRootsHash),
     });
   }
 }
 
+// These are all linear trackers, i.e. continuously progressing without
+// interruptions from the block prover
 export const TransactionProverStateCommitments = {
-  transactionsHash: Field,
-  // Commitment to the list of unprocessed (pending) batches of STs that need to be proven
-  pendingSTBatchesHash: Field,
-  witnessedRootsHash: Field,
-  networkStateHash: Field,
+  bundlesHash: Field,
   eternalTransactionsHash: Field,
   incomingMessagesHash: Field,
 };
+
+export class TransactionProverArguments extends Struct({
+  // Commitment to the list of unprocessed (pending) batches of STs that need to be proven
+  pendingSTBatchesHash: Field,
+  witnessedRootsHash: Field,
+  transactionHash: Field,
+  bundleListPreimage: BundlePreimage,
+  networkState: ProvableNetworkState,
+}) {}
 
 export class TransactionProverPublicInput extends Struct(
   TransactionProverStateCommitments
@@ -135,15 +141,9 @@ export class DynamicRuntimeProof extends DynamicProof<
   static maxProofsVerified = 0 as const;
 }
 
-export class BlockProverSingleTransactionExecutionData extends Struct({
+export class TransactionProverExecutionData extends Struct({
   transaction: TransactionProverTransactionArguments,
-  networkState: ProvableNetworkState,
-}) {}
-
-export class BlockProverMultiTransactionExecutionData extends Struct({
-  transaction1: TransactionProverTransactionArguments,
-  transaction2: TransactionProverTransactionArguments,
-  networkState: ProvableNetworkState,
+  args: TransactionProverArguments,
 }) {}
 
 export type TransactionProof = Proof<
@@ -160,14 +160,15 @@ export interface TransactionProvable
   proveTransaction: (
     publicInput: TransactionProverPublicInput,
     runtimeProof: DynamicRuntimeProof,
-    executionData: BlockProverSingleTransactionExecutionData
+    executionData: TransactionProverExecutionData
   ) => Promise<TransactionProverPublicOutput>;
 
   proveTransactions: (
     publicInput: TransactionProverPublicInput,
     runtimeProof1: DynamicRuntimeProof,
     runtimeProof2: DynamicRuntimeProof,
-    executionData: BlockProverMultiTransactionExecutionData
+    executionData1: TransactionProverExecutionData,
+    executionData2: TransactionProverExecutionData
   ) => Promise<TransactionProverPublicOutput>;
 
   merge: (

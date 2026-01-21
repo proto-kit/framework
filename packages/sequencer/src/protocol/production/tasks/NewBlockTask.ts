@@ -8,10 +8,11 @@ import {
   StateTransitionProvable,
   BlockHashMerkleTreeWitness,
   MandatoryProtocolModulesRecord,
-  WitnessedRootWitness,
   TransactionProof,
   BlockProof,
   TransactionProvable,
+  BlockArguments,
+  BlockArgumentsBatch,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
 import {
@@ -28,14 +29,19 @@ import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvi
 import { executeWithPrefilledStateService } from "./TransactionProvingTask";
 import { JSONEncodableState } from "./serializers/DecodedStateSerializer";
 
+export type NewBlockArguments = {
+  args: BlockArguments;
+  startingStateBeforeHook: JSONEncodableState;
+  startingStateAfterHook: JSONEncodableState;
+};
+
 export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
   networkState: ProvableNetworkState;
   blockWitness: BlockHashMerkleTreeWitness;
   deferSTProof: Bool;
-  afterBlockRootWitness: WitnessedRootWitness;
-  startingStateBeforeHook: JSONEncodableState;
-  startingStateAfterHook: JSONEncodableState;
+  deferTransactionProof: Bool;
+  blocks: NewBlockArguments[];
 }
 
 export type NewBlockProvingParameters = PairingDerivedInput<
@@ -96,32 +102,41 @@ export class NewBlockTask
     const {
       networkState,
       blockWitness,
-      startingStateBeforeHook,
-      startingStateAfterHook,
       publicInput,
       deferSTProof,
-      afterBlockRootWitness,
+      deferTransactionProof,
+      blocks,
     } = parameters;
 
-    await this.blockProver.proveBlock(
-      publicInput,
-      networkState,
-      blockWitness,
-      input1,
-      deferSTProof,
-      afterBlockRootWitness,
-      input2
-    );
+    const blockArgumentBatch = new BlockArgumentsBatch({
+      batch: blocks.map((block) => block.args),
+    });
+
+    const stateRecords = blocks.flatMap((block) => [
+      block.startingStateBeforeHook,
+      block.startingStateAfterHook,
+    ]);
 
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      [startingStateBeforeHook, startingStateAfterHook],
-      async () => {}
+      stateRecords,
+      async () => {
+        await this.blockProver.proveBlockBatch(
+          publicInput,
+          networkState,
+          blockWitness,
+          input1,
+          deferSTProof,
+          input2,
+          deferTransactionProof,
+          blockArgumentBatch
+        );
+      }
     );
 
     return await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      [startingStateBeforeHook, startingStateAfterHook],
+      stateRecords,
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );

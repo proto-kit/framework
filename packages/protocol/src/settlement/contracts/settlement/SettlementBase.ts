@@ -1,5 +1,4 @@
 import {
-  Bool,
   DeployArgs,
   DynamicProof,
   Field,
@@ -199,13 +198,18 @@ export abstract class SettlementBase
         "OutputNetworkState witness not valid"
       );
 
-    blockProof.publicOutput.closed.assertEquals(
-      Bool(true),
-      "Supplied proof is not a closed BlockProof"
+    // Check remainders are zero
+    blockProof.publicOutput.remainders.bundlesHash.assertEquals(
+      Field(0),
+      "Bundles list has not been fully proven"
     );
-    blockProof.publicOutput.pendingSTBatchesHash.assertEquals(
+    blockProof.publicOutput.remainders.pendingSTBatchesHash.assertEquals(
       Field(0),
       "Supplied proof is has outstanding STs to be proven"
+    );
+    blockProof.publicOutput.remainders.witnessedRootsHash.assertEquals(
+      Field(0),
+      "Supplied proof is has outstanding witnessed roots hashes to be proven"
     );
 
     // Execute onSettlementHooks for additional checks

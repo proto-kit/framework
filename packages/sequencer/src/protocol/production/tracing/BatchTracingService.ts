@@ -1,31 +1,44 @@
-import { log, yieldSequential } from "@proto-kit/common";
+import { log, range, unzip, yieldSequential } from "@proto-kit/common";
 import {
   AppliedBatchHashList,
+  BLOCK_ARGUMENT_BATCH_SIZE,
   MinaActionsHashList,
   ProvableNetworkState,
   TransactionHashList,
   WitnessedRootHashList,
+  BundleHashList,
+  BlockArguments,
 } from "@proto-kit/protocol";
 import { inject, injectable } from "tsyringe";
-import { Field } from "o1js";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import chunk from "lodash/chunk";
+import { Bool, Field } from "o1js";
 
 import { StateTransitionProofParameters } from "../tasks/StateTransitionTask";
 import { BlockWithResult } from "../../../storage/model/Block";
 import { trace } from "../../../logging/trace";
 import { Tracer } from "../../../logging/Tracer";
 import { CachedLinkedLeafStore } from "../../../state/lmt/CachedLinkedLeafStore";
-
 import {
-  BlockTrace,
-  BlockTracingService,
-  BlockTracingState,
-} from "./BlockTracingService";
-import { StateTransitionTracingService } from "./StateTransitionTracingService";
+  NewBlockArguments,
+  NewBlockProverParameters,
+} from "../tasks/NewBlockTask";
 
-type BatchTracingState = Omit<BlockTracingState, "transactionList">;
+import { BlockTracingService, BlockTracingState } from "./BlockTracingService";
+import { StateTransitionTracingService } from "./StateTransitionTracingService";
+import { TransactionTrace } from "./TransactionTracingService";
+
+type BatchTracingState = BlockTracingState;
+
+export type BlockTrace = {
+  block: NewBlockProverParameters;
+  // Only for debugging and logging
+  heights: [string, string];
+};
 
 export type BatchTrace = {
   blocks: BlockTrace[];
+  transactions: TransactionTrace[];
   stateTransitionTrace: StateTransitionProofParameters[];
 };
 
@@ -42,6 +55,7 @@ export class BatchTracingService {
     return {
       pendingSTBatches: new AppliedBatchHashList(),
       witnessedRoots: new WitnessedRootHashList(),
+      bundleList: new BundleHashList(),
       stateRoot: Field(block.block.fromStateRoot),
       eternalTransactionsList: new TransactionHashList(
         Field(block.block.fromEternalTransactionsHash)
@@ -52,6 +66,8 @@ export class BatchTracingService {
       networkState: new ProvableNetworkState(
         ProvableNetworkState.fromJSON(block.block.networkState.before)
       ),
+      blockNumber: Field(block.block.height),
+      blockHashRoot: Field(block.block.fromBlockHashRoot),
     };
   }
 
@@ -63,25 +79,71 @@ export class BatchTracingService {
 
     // Trace blocks
     const numBlocks = blocks.length;
+    const numBatches = Math.ceil(numBlocks / BLOCK_ARGUMENT_BATCH_SIZE);
+
     const [, blockTraces] = await yieldSequential(
-      blocks,
-      async (state, block, index) => {
-        const blockProverState: BlockTracingState = {
-          ...state,
-          transactionList: new TransactionHashList(),
+      chunk(blocks, BLOCK_ARGUMENT_BATCH_SIZE),
+      async (state, batch, index) => {
+        // Trace batch of blocks fitting in single proof
+        const batchTrace = this.blockTracingService.openBlock(state, batch[0]);
+        const start = state.blockNumber.toString();
+
+        const [newState, combinedTraces] = await yieldSequential(
+          batch,
+          async (state2, block, jndex) => {
+            const [newState2, blockTrace, transactions] =
+              await this.blockTracingService.traceBlock(state2, block);
+            return [
+              newState2,
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              [blockTrace, transactions] as [
+                NewBlockArguments,
+                TransactionTrace[],
+              ],
+            ];
+          },
+          state
+        );
+
+        // Fill up with dummies
+        const dummyBlockArgs = BlockArguments.noop(
+          newState,
+          Field(blocks.at(-1)!.result.stateRoot)
+        );
+        const dummies = range(
+          blocks.length,
+          BLOCK_ARGUMENT_BATCH_SIZE
+        ).map<NewBlockArguments>(() => ({
+          args: dummyBlockArgs,
+          startingStateAfterHook: {},
+          startingStateBeforeHook: {},
+        }));
+
+        const [blockArgumentBatch, transactionTraces] = unzip(combinedTraces);
+
+        const blockTrace: BlockTrace = {
+          block: {
+            ...batchTrace,
+            blocks: blockArgumentBatch.concat(dummies),
+            deferTransactionProof: Bool(numBatches - 1 < index),
+            deferSTProof: Bool(numBatches - 1 < index),
+          },
+          heights: [start, newState.blockNumber.toString()],
         };
-        const [newState, blockTrace] =
-          await this.blockTracingService.traceBlock(
-            blockProverState,
-            block,
-            index === numBlocks - 1
-          );
-        return [newState, blockTrace];
+
+        return [
+          newState,
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          [blockTrace, transactionTraces] as [BlockTrace, TransactionTrace[][]],
+        ];
       },
       batchState
     );
 
-    return blockTraces;
+    return {
+      blockTraces: blockTraces.map(([x]) => x),
+      transactionTraces: blockTraces.map(([, x]) => x),
+    };
   }
 
   @trace("batch.trace.transitions")
@@ -108,20 +170,22 @@ export class BatchTracingService {
     batchId: number
   ): Promise<BatchTrace> {
     if (blocks.length === 0) {
-      return { blocks: [], stateTransitionTrace: [] };
+      return { blocks: [], stateTransitionTrace: [], transactions: [] };
     }
 
     // Traces the STs and the blocks in parallel, however not in separate processes
     // Therefore, we only optimize the idle time for async operations like DB reads
-    const [blockTraces, stateTransitionTrace] = await Promise.all([
-      // Trace blocks
-      this.traceBlocks(blocks),
-      // Trace STs
-      this.traceStateTransitions(blocks, merkleTreeStore),
-    ]);
+    const [{ blockTraces, transactionTraces }, stateTransitionTrace] =
+      await Promise.all([
+        // Trace blocks
+        this.traceBlocks(blocks),
+        // Trace STs
+        this.traceStateTransitions(blocks, merkleTreeStore),
+      ]);
 
     return {
       blocks: blockTraces,
+      transactions: transactionTraces.flat(2),
       stateTransitionTrace,
     };
   }

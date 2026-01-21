@@ -87,7 +87,11 @@ export function yieldSequential<Source, State, Target>(
     array,
     async ([state, collectedTargets], curr, index, arr) => {
       const [newState, addition] = await callbackfn(state, curr, index, arr);
-      return [newState, collectedTargets.concat(addition)];
+      // The reason we wrap this in an array here is for a special case where Target is a tuple
+      // or array itself. In this case, js interprets by flattening the Value in the array
+      // (which it does when a function (like concat) uses a spread operator and the
+      // input is an array)
+      return [newState, collectedTargets.concat([addition])];
     },
     [initialValue, []]
   );
@@ -103,6 +107,18 @@ export function mapSequential<T, R>(
     ret.push(next);
     return ret;
   }, Promise.resolve([]));
+}
+
+export function unzip<A, B>(array: [A, B][]): [A[], B[]] {
+  const as = array.map(([a]) => a);
+  const bs = array.map(([, b]) => b);
+  return [as, bs];
+}
+
+export function assertSizeOneOrTwo<T>(arr: T[]): asserts arr is [T] | [T, T] {
+  if (!(arr.length === 1 || arr.length === 2)) {
+    throw new Error("Given array not size 1 or 2");
+  }
 }
 
 /**

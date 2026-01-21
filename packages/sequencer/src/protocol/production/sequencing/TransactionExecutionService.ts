@@ -22,6 +22,7 @@ import {
   ProvableStateTransition,
   DefaultProvableHashList,
   addTransactionToBundle,
+  TransactionProverState,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { AreProofsEnabled, log, mapSequential } from "@proto-kit/common";
@@ -58,12 +59,10 @@ export type RuntimeContextReducedExecutionResult = Pick<
 >;
 
 export type BlockTrackers = Pick<
-  BlockProverState,
-  | "transactionList"
-  | "eternalTransactionsList"
-  | "incomingMessages"
-  | "blockHashRoot"
->;
+  TransactionProverState,
+  "eternalTransactionsList" | "incomingMessages" | "transactionList"
+> &
+  Pick<BlockProverState, "blockHashRoot">;
 
 function getAreProofsEnabledFromModule(
   module: RuntimeModule<unknown>

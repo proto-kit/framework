@@ -1,10 +1,10 @@
 import { injectable } from "tsyringe";
+import { assertSizeOneOrTwo } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../../../worker/flow/Flow";
 import {
   RuntimeProof,
   TransactionProvingTaskParameters,
-  TransactionProvingType,
 } from "../tasks/serializers/types/TransactionProvingTypes";
 import { RuntimeProvingTask } from "../tasks/RuntimeProvingTask";
 import { TransactionTrace } from "../tracing/TransactionTracingService";
@@ -20,31 +20,31 @@ export class TransactionFlow {
     flow: Flow<{
       runtimeProofs: { proof: RuntimeProof; index: number }[];
     }>,
-    trace: TransactionTrace,
+    trace: [TransactionTrace] | [TransactionTrace, TransactionTrace],
     callback: (params: TransactionProvingTaskParameters) => Promise<void>
   ) {
-    const requiredLength = trace.type === TransactionProvingType.MULTI ? 2 : 1;
+    const requiredLength = trace.length;
 
     if (flow.state.runtimeProofs.length === requiredLength) {
       let parameters: TransactionProvingTaskParameters;
 
-      if (trace.type === TransactionProvingType.MULTI) {
+      if (requiredLength === 2) {
         // Sort ascending
         const sorted = flow.state.runtimeProofs.sort(
           ({ index: a }, { index: b }) => a - b
         );
-        parameters = {
-          type: trace.type,
-          parameters: trace.transaction,
-          proof1: sorted[0].proof,
-          proof2: sorted[1].proof,
-        };
+
+        parameters = [
+          { parameters: trace[0].transaction, proof: sorted[0].proof },
+          { parameters: trace[1].transaction, proof: sorted[1].proof },
+        ];
       } else {
-        parameters = {
-          type: trace.type,
-          parameters: trace.transaction,
-          proof1: flow.state.runtimeProofs[0].proof,
-        };
+        parameters = [
+          {
+            parameters: trace[0].transaction,
+            proof: flow.state.runtimeProofs[0].proof,
+          },
+        ];
       }
 
       await callback(parameters);
@@ -52,13 +52,15 @@ export class TransactionFlow {
   }
 
   public async proveRuntimes(
-    trace: TransactionTrace,
-    blockHeight: number,
+    trace: TransactionTrace[],
+    blockHeight: string,
     txIndex: number,
     callback: (params: TransactionProvingTaskParameters) => Promise<void>
   ) {
+    assertSizeOneOrTwo(trace);
+
     const name = `transaction-${blockHeight}-${txIndex}${
-      trace.type === TransactionProvingType.MULTI ? "-double" : ""
+      trace.length === 2 ? "-double" : ""
     }`;
     const flow = this.flowCreator.createFlow<{
       runtimeProofs: { proof: RuntimeProof; index: number }[];
@@ -66,24 +68,17 @@ export class TransactionFlow {
       runtimeProofs: [],
     });
 
-    await flow.pushTask(
-      this.runtimeProvingTask,
-      trace.runtime[0],
-      async (proof) => {
-        flow.state.runtimeProofs.push({ proof, index: 0 });
-        await this.resolveTransactionFlow(flow, trace, callback);
-      }
+    await Promise.all(
+      trace.map(async (transaction, index) => {
+        await flow.pushTask(
+          this.runtimeProvingTask,
+          transaction.runtime,
+          async (proof) => {
+            flow.state.runtimeProofs.push({ proof, index });
+            await this.resolveTransactionFlow(flow, trace, callback);
+          }
+        );
+      })
     );
-
-    if (trace.type === TransactionProvingType.MULTI) {
-      await flow.pushTask(
-        this.runtimeProvingTask,
-        trace.runtime[1],
-        async (proof) => {
-          flow.state.runtimeProofs.push({ proof, index: 1 });
-          await this.resolveTransactionFlow(flow, trace, callback);
-        }
-      );
-    }
   }
 }
