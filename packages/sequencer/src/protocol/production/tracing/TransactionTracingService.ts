@@ -19,7 +19,6 @@ import { UntypedStateTransition } from "../helpers/UntypedStateTransition";
 import { VerificationKeyService } from "../../runtime/RuntimeVerificationKeyService";
 import { JSONEncodableState } from "../tasks/serializers/DecodedStateSerializer";
 
-
 export type TransactionTrace = {
   transaction: TransactionProverTaskParameters;
   runtime: RuntimeProofParameters;
@@ -99,24 +98,27 @@ export class TransactionTracingService {
 
   private createRuntimeProofParams(
     tx: TransactionExecutionResult,
-    networkState: ProvableNetworkState
+    networkState: NetworkState
   ): RuntimeProofParameters {
     const stBatch = tx.stateTransitions[1];
     const startingState = collectStartingState(stBatch.stateTransitions);
 
     return {
       tx: tx.tx,
-      networkState: ProvableNetworkState.toJSON(networkState),
+      networkState: networkState,
       state: startingState,
     };
   }
 
   private async traceTransaction(
     previousState: TransactionTracingState,
-    networkState: ProvableNetworkState,
+    networkState: NetworkState,
     transaction: TransactionExecutionResult
   ) {
     const stBatches = transaction.stateTransitions;
+    const provableNetworkState = new ProvableNetworkState(
+      ProvableNetworkState.fromJSON(networkState)
+    );
 
     const beforeHookStartingState = collectStartingState(
       stBatches[0].stateTransitions.flat()
@@ -132,7 +134,7 @@ export class TransactionTracingService {
     );
 
     const args: TransactionProverArguments = {
-      networkState: networkState,
+      networkState: provableNetworkState,
       transactionHash: previousState.transactionList.commitment,
       pendingSTBatchesHash: previousState.pendingSTBatches.commitment,
       witnessedRootsHash: previousState.witnessedRoots.commitment,
@@ -141,7 +143,7 @@ export class TransactionTracingService {
 
     const newState = this.appendTransactionToState(previousState, transaction);
 
-    newState.bundleList.addToBundle(newState, networkState);
+    newState.bundleList.addToBundle(newState, provableNetworkState);
 
     return {
       state: newState,
@@ -153,7 +155,7 @@ export class TransactionTracingService {
 
   public async createTransactionTrace(
     previousState: TransactionTracingState,
-    networkState: ProvableNetworkState,
+    networkState: NetworkState,
     transaction: TransactionExecutionResult
   ): Promise<[TransactionTracingState, TransactionTrace]> {
     const publicInput = this.getTransactionProofPublicInput(previousState);
