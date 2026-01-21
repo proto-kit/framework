@@ -21,10 +21,7 @@ import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { TransactionProvingTaskParameterSerializer } from "./serializers/TransactionProvingTaskParameterSerializer";
-import {
-  TransactionProvingTaskParameters,
-  TransactionProvingType,
-} from "./serializers/types/TransactionProvingTypes";
+import { TransactionProvingTaskParameters } from "./serializers/types/TransactionProvingTypes";
 
 export async function executeWithPrefilledStateService<Return>(
   stateServiceProvider: StateServiceProvider,
@@ -93,26 +90,31 @@ export class TransactionProvingTask
   public async compute(
     input: TransactionProvingTaskParameters
   ): Promise<TransactionProof> {
+    const startingState = input.flatMap((i) => i.parameters.startingState);
+
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      input.parameters.startingState,
+      startingState,
       async () => {
-        const { type, parameters } = input;
+        const { parameters, proof } = input[0];
 
-        const proof1 = DynamicRuntimeProof.fromProof(input.proof1);
+        const proof1 = DynamicRuntimeProof.fromProof(proof);
 
-        if (type === TransactionProvingType.SINGLE) {
+        if (input.length === 1) {
           await this.transactionProver.proveTransaction(
             parameters.publicInput,
             proof1,
             parameters.executionData
           );
         } else {
+          const { parameters: parameters2, proof: proof2 } = input[1];
+
           await this.transactionProver.proveTransactions(
             parameters.publicInput,
             proof1,
-            DynamicRuntimeProof.fromProof(input.proof2),
-            parameters.executionData
+            DynamicRuntimeProof.fromProof(proof2),
+            parameters.executionData,
+            parameters2.executionData
           );
         }
       }
@@ -120,7 +122,7 @@ export class TransactionProvingTask
 
     return await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      input.parameters.startingState,
+      startingState,
       async () =>
         await this.executionContext.current().result.prove<TransactionProof>()
     );

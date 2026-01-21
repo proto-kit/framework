@@ -10,7 +10,7 @@ import {
   reduceStateTransitions,
   RuntimeTransaction,
   StateServiceProvider,
-  toProvableHookBlockState,
+  toBeforeBlockHookArgument,
   TransactionHashList,
 } from "@proto-kit/protocol";
 import { Field } from "o1js";
@@ -128,7 +128,7 @@ export class BlockProductionService {
 
     // Get used networkState by executing beforeBlock() hooks
     const beforeHookResult = await this.executeBeforeBlockHook(
-      toProvableHookBlockState(blockState),
+      toBeforeBlockHookArgument(blockState),
       lastResult.afterNetworkState,
       stateService
     );

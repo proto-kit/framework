@@ -7,6 +7,17 @@ import { TypedClass } from "../../types";
 import { MerkleTreeStore } from "./MerkleTreeStore";
 import { InMemoryMerkleTreeStorage } from "./InMemoryMerkleTreeStorage";
 
+/**
+ * More efficient version of `maybeSwapBad` which
+ * reuses an intermediate variable
+ */
+export function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
+  const m = b.toField().mul(x.sub(y)); // b*(x - y)
+  const x1 = y.add(m); // y + b*(x - y)
+  const y2 = x.sub(m); // x - b*(x - y) = x + b*(y - x)
+  return [x1, y2];
+}
+
 export class StructTemplate extends Struct({
   path: Provable.Array(Field, 0),
   isLeft: Provable.Array(Bool, 0),
@@ -21,6 +32,11 @@ export interface AbstractMerkleWitness extends StructTemplate {
    * @returns The calculated root.
    */
   calculateRoot(hash: Field): Field;
+
+  calculateRootIncrement(
+    index: Field,
+    leaf: Field
+  ): [Field, AbstractMerkleWitness];
 
   /**
    * Calculates the index of the leaf node that belongs to this Witness.
@@ -119,6 +135,24 @@ export interface AbstractMerkleTreeClass {
  * It also holds the Witness class under tree.WITNESS
  */
 export function createMerkleTree(height: number): AbstractMerkleTreeClass {
+  function generateZeroes() {
+    const zeroes = [0n];
+    for (let index = 1; index < height; index += 1) {
+      const previousLevel = Field(zeroes[index - 1]);
+      zeroes.push(Poseidon.hash([previousLevel, previousLevel]).toBigInt());
+    }
+    return zeroes;
+  }
+
+  let zeroCache: bigint[] | undefined = undefined;
+
+  function getZeroes() {
+    if (zeroCache === undefined) {
+      zeroCache = generateZeroes();
+    }
+    return zeroCache;
+  }
+
   /**
    * The {@link RollupMerkleWitness} class defines a circuit-compatible base class
    * for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
@@ -147,12 +181,72 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
       for (let index = 1; index < n; ++index) {
         const isLeft = this.isLeft[index - 1];
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+
         const [left, right] = maybeSwap(isLeft, hash, this.path[index - 1]);
         hash = Poseidon.hash([left, right]);
       }
 
       return hash;
+    }
+
+    public calculateRootIncrement(
+      leafIndex: Field,
+      leaf: Field
+    ): [Field, RollupMerkleWitness] {
+      // This won't generate any constraints, since it's purely a computation on constants
+      const zero = getZeroes();
+
+      if (zero.length === 0) {
+        throw new Error("Zeroes not initialized");
+      }
+      const zeroes = zero.map((x) => Field(x));
+
+      let hash = leaf;
+      const n = this.height();
+
+      let notDiverged = Bool(true);
+      const newPath = leafIndex.add(1).toBits();
+      newPath.push(Bool(false));
+
+      const newSiblings: Field[] = [];
+      const newIsLefts: Bool[] = [];
+
+      for (let index = 0; index < n - 1; ++index) {
+        const isLeft = this.isLeft[index];
+        const sibling = this.path[index];
+
+        const newIsLeft = newPath[index].not();
+
+        // Bool(true) default for root level
+        let convergesNextLevel = Bool(true);
+        if (index < n - 2) {
+          convergesNextLevel = newPath[index + 1]
+            .equals(this.isLeft[index + 1])
+            .not();
+        }
+
+        const nextSibling = Provable.if(
+          convergesNextLevel.and(notDiverged),
+          hash,
+          Provable.if(notDiverged, zeroes[index], sibling)
+        );
+
+        notDiverged = notDiverged.and(convergesNextLevel.not());
+
+        newSiblings.push(nextSibling);
+        newIsLefts.push(newIsLeft);
+
+        const [left, right] = maybeSwap(isLeft, hash, sibling);
+        hash = Poseidon.hash([left, right]);
+      }
+
+      return [
+        hash,
+        new RollupMerkleWitness({
+          isLeft: newIsLefts,
+          path: newSiblings,
+        }),
+      ];
     }
 
     /**
@@ -215,6 +309,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       });
     }
   }
+
   return class AbstractRollupMerkleTree implements AbstractMerkleTree {
     public static HEIGHT = height;
 
@@ -238,13 +333,7 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
     public constructor(store: MerkleTreeStore) {
       this.store = store;
-      this.zeroes = [0n];
-      for (let index = 1; index < AbstractRollupMerkleTree.HEIGHT; index += 1) {
-        const previousLevel = Field(this.zeroes[index - 1]);
-        this.zeroes.push(
-          Poseidon.hash([previousLevel, previousLevel]).toBigInt()
-        );
-      }
+      this.zeroes = generateZeroes();
     }
 
     public assertIndexRange(index: bigint) {
@@ -414,14 +503,3 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
 
 export class RollupMerkleTree extends createMerkleTree(256) {}
 export class RollupMerkleTreeWitness extends RollupMerkleTree.WITNESS {}
-
-/**
- * More efficient version of `maybeSwapBad` which
- * reuses an intermediate variable
- */
-export function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
-  const m = b.toField().mul(x.sub(y)); // b*(x - y)
-  const x1 = y.add(m); // y + b*(x - y)
-  const y2 = x.sub(m); // x - b*(x - y) = x + b*(y - x)
-  return [x1, y2];
-}

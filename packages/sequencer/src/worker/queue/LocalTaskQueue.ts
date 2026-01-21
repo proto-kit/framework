@@ -1,4 +1,4 @@
-import { log, mapSequential, noop } from "@proto-kit/common";
+import { log, mapSequential, noop, sleep } from "@proto-kit/common";
 
 import { sequencerModule } from "../../sequencer/builder/SequencerModule";
 import { TaskPayload } from "../flow/Task";
@@ -7,12 +7,6 @@ import { Closeable } from "../../sequencer/builder/Closeable";
 import { InstantiatedQueue, TaskQueue } from "./TaskQueue";
 import { ListenerList } from "./ListenerList";
 import { AbstractTaskQueue } from "./AbstractTaskQueue";
-
-async function sleep(ms: number) {
-  await new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 // Had to extract it to here bc eslint would ruin the code
 interface QueueListener {

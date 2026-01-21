@@ -418,7 +418,7 @@ export function testBlockProduction<
 
   const numberTxs = 3;
 
-  it("should produce block with multiple transaction", async () => {
+  it("should produce block with multiple transactions", async () => {
     log.setLevel("TRACE");
 
     expect.assertions(6 + 4 * numberTxs);

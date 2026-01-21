@@ -23,23 +23,34 @@ export type VerifiedTransition<T> = {
  * Utilities for creating a hash list from a given value type.
  */
 export abstract class ProvableHashList<Value> {
+  public commitment: Field;
+
   public constructor(
     protected readonly valueType: ProvablePure<Value>,
-    public commitment: Field = Field(0),
+    commitment?: Field | undefined,
     private unconstrainedList: Unconstrained<
       ProvableHashListData<Value>[]
     > = Unconstrained.from([])
-  ) {}
+  ) {
+    this.commitment = commitment ?? this.empty();
+  }
+
+  protected abstract empty(): Field;
 
   protected abstract hash(elements: Field[]): Field;
 
-  private pushUnconstrained(preimage: Field, value: Value) {
-    const valueConstant = this.valueType.fromFields(
-      this.valueType.toFields(value).map((field) => field.toConstant())
-    );
-    this.unconstrainedList.get().push({
-      preimage: preimage.toConstant(),
-      value: valueConstant,
+  private pushUnconstrained(preimage: Field, value: Value, condition?: Bool) {
+    this.unconstrainedList.updateAsProver((array) => {
+      if (condition !== undefined && !condition.toBoolean()) {
+        return array;
+      }
+      return [
+        ...array,
+        {
+          preimage: preimage.toConstant(),
+          value: Provable.toConstant(this.valueType, value),
+        },
+      ];
     });
   }
 
@@ -61,11 +72,24 @@ export abstract class ProvableHashList<Value> {
     this.commitment = to;
   }
 
+  public fastForwardIf(
+    transition: VerifiedTransition<Field>,
+    condition: Bool,
+    message: string = "some hashlist"
+  ) {
+    const { from, to } = transition;
+
+    condition
+      .implies(from.equals(this.commitment))
+      .assertTrue(`From-commitment for ${message} not matching`);
+
+    this.commitment = Provable.if(condition, to, this.commitment);
+  }
+
   public witnessTip(preimage: Field, value: Value): Bool {
-    return this.hash([
-      this.commitment,
-      ...this.valueType.toFields(value),
-    ]).equals(this.commitment);
+    return this.hash([preimage, ...this.valueType.toFields(value)]).equals(
+      this.commitment
+    );
   }
 
   /**
@@ -76,9 +100,7 @@ export abstract class ProvableHashList<Value> {
    * @returns Current hash list.
    */
   public push(value: Value) {
-    Provable.asProver(() => {
-      this.pushUnconstrained(this.commitment, value);
-    });
+    this.pushUnconstrained(this.commitment, value);
 
     this.commitment = this.hash([
       this.commitment,
@@ -89,11 +111,7 @@ export abstract class ProvableHashList<Value> {
   }
 
   public pushIf(value: Value, condition: Bool) {
-    Provable.asProver(() => {
-      if (condition.toBoolean()) {
-        this.pushUnconstrained(this.commitment, value);
-      }
-    });
+    this.pushUnconstrained(this.commitment, value, condition);
 
     const newCommitment = this.hash([
       this.commitment,
@@ -111,6 +129,10 @@ export abstract class ProvableHashList<Value> {
     return this.commitment;
   }
 
+  public isEmpty(): Bool {
+    return this.commitment.equals(this.empty());
+  }
+
   public getUnconstrainedValues(): Unconstrained<
     ProvableHashListData<Value>[]
   > {
@@ -121,5 +143,9 @@ export abstract class ProvableHashList<Value> {
 export class DefaultProvableHashList<Value> extends ProvableHashList<Value> {
   public hash(elements: Field[]): Field {
     return Poseidon.hash(elements);
+  }
+
+  public empty(): Field {
+    return Field(0);
   }
 }

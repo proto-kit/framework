@@ -25,11 +25,6 @@ const errors = {
   runtimeNotProvided: (name: string) =>
     new Error(`Runtime was not provided for module: ${name}`),
 
-  methodInputsNotProvided: () =>
-    new Error(
-      "Method execution inputs not provided, provide them via context.inputs"
-    ),
-
   runtimeNameNotSet: () => new Error("Runtime name was not set"),
 
   fieldNotConstant: (name: string) =>

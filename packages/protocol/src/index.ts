@@ -22,6 +22,7 @@ export * from "./prover/accumulators/StateTransitionReductionList";
 export * from "./prover/accumulators/AppliedBatchHashList";
 export * from "./prover/accumulators/WitnessedRootHashList";
 export * from "./prover/accumulators/TransactionHashList";
+export * from "./prover/accumulators/BlockHashList";
 export * from "./prover/block/BlockProver";
 export * from "./prover/block/BlockProvable";
 export * from "./prover/block/accummulators/RuntimeVerificationKeyTree";

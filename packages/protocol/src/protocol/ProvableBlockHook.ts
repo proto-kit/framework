@@ -3,40 +3,44 @@ import { NoConfig } from "@proto-kit/common";
 
 import { NetworkState } from "../model/network/NetworkState";
 import {
-  BlockProverState,
   BlockProverPublicInput,
+  BlockArguments,
+  BlockProverState,
 } from "../prover/block/BlockProvable";
 
 import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
 export type ProvableHookBlockState = Pick<
-  BlockProverPublicInput,
-  | "transactionsHash"
-  | "eternalTransactionsHash"
-  | "incomingMessagesHash"
-  | "blockHashRoot"
+  BlockProverPublicInput & BlockArguments,
+  "eternalTransactionsHash" | "incomingMessagesHash" | "blockHashRoot"
 >;
 
-export function toProvableHookBlockState(
+export function toBeforeBlockHookArgument(
   state: Pick<
     BlockProverState,
-    | "transactionList"
-    | "eternalTransactionsList"
-    | "incomingMessages"
-    | "blockHashRoot"
+    "eternalTransactionsList" | "incomingMessages" | "blockHashRoot"
   >
 ) {
-  const {
-    transactionList,
-    eternalTransactionsList,
-    incomingMessages,
-    blockHashRoot,
-  } = state;
+  const { eternalTransactionsList, incomingMessages, blockHashRoot } = state;
   return {
-    transactionsHash: transactionList.commitment,
     eternalTransactionsHash: eternalTransactionsList.commitment,
     incomingMessagesHash: incomingMessages.commitment,
     blockHashRoot,
+  };
+}
+
+export function toAfterBlockHookArgument(
+  state: Pick<
+    BlockProverState,
+    "eternalTransactionsList" | "incomingMessages" | "blockHashRoot"
+  >,
+  stateRoot: Field,
+  transactionsHash: Field
+) {
+  return {
+    ...toBeforeBlockHookArgument(state),
+    stateRoot,
+    transactionsHash,
   };
 }
 
@@ -44,6 +48,7 @@ export interface BeforeBlockHookArguments extends ProvableHookBlockState {}
 
 export interface AfterBlockHookArguments extends BeforeBlockHookArguments {
   stateRoot: Field;
+  transactionsHash: Field;
 }
 
 // Purpose is to build transition from -> to network state

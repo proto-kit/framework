@@ -7,11 +7,10 @@ import {
 import { container, inject } from "tsyringe";
 import {
   AccountStateHook,
-  BlockHashMerkleTree,
   MandatoryProtocolModulesRecord,
   NetworkState,
   Protocol,
-  ProvableHookBlockState,
+  ProvableHookTransactionState,
   RuntimeMethodExecutionContext,
   RuntimeMethodExecutionData,
   StateServiceProvider,
@@ -170,10 +169,7 @@ export class PrivateMempool
 
     // TODO This is not sound currently as the prover state changes all the time
     //  in the actual blockprover. We need to properly simulate that
-    const proverState: ProvableHookBlockState = {
-      blockHashRoot: Field(
-        previousBlock?.result.blockHashRoot ?? BlockHashMerkleTree.EMPTY_ROOT
-      ),
+    const proverState: ProvableHookTransactionState = {
       eternalTransactionsHash:
         previousBlock?.block.toEternalTransactionsHash ?? Field(0),
       transactionsHash: previousBlock?.block.transactionsHash ?? Field(0),
