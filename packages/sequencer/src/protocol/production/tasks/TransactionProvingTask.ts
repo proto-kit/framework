@@ -21,7 +21,10 @@ import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
 
 import { TransactionProvingTaskParameterSerializer } from "./serializers/TransactionProvingTaskParameterSerializer";
 import { TransactionProvingTaskParameters } from "./serializers/types/TransactionProvingTypes";
-import { DecodedStateSerializer, JSONEncodableState } from "./serializers/DecodedStateSerializer";
+import {
+  DecodedStateSerializer,
+  JSONEncodableState,
+} from "./serializers/DecodedStateSerializer";
 
 export async function executeWithPrefilledStateService<Return>(
   stateServiceProvider: StateServiceProvider,

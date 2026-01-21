@@ -17,7 +17,7 @@ import {
   TransactionProvingTaskParameters,
 } from "./types/TransactionProvingTypes";
 import { RuntimeVerificationKeyAttestationSerializer } from "./RuntimeVerificationKeyAttestationSerializer";
-import { DecodedStateSerializer, JSONEncodableState } from "./DecodedStateSerializer";
+import { JSONEncodableState } from "./DecodedStateSerializer";
 
 export type TransactionProvingTaskParametersJSON = {
   parameters: TransactionProverTaskParametersJSON;

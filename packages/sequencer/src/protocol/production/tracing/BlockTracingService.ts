@@ -71,7 +71,7 @@ export class BlockTracingService {
         ProvableNetworkState.fromJSON(firstBlock.networkState.before)
       ),
       blockWitness: new BlockHashMerkleTreeWitness(
-        BlockHashMerkleTreeWitness.fromJSON(firstResult.blockHashWitness) 
+        BlockHashMerkleTreeWitness.fromJSON(firstResult.blockHashWitness)
       ),
     };
   }
@@ -127,7 +127,7 @@ export class BlockTracingService {
         const [output, transactionTrace] =
           await this.transactionTracing.createTransactionTrace(
             input,
-            state.networkState,
+            ProvableNetworkState.toJSON(state.networkState),
             transaction
           );
 

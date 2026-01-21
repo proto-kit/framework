@@ -133,7 +133,7 @@ export class BlockProductionService {
       toBeforeBlockHookArgument(blockState),
       new ProvableNetworkState(
         ProvableNetworkState.fromJSON(lastResult.afterNetworkState)
-      ) ,
+      ),
       stateService
     );
 

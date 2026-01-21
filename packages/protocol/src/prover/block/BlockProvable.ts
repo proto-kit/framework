@@ -186,7 +186,9 @@ export class BlockProverState {
       stateRoot: fields[5],
       blockHashRoot: fields[6],
       blockNumber: fields[7],
-      networkState: new ProvableNetworkState(ProvableNetworkState.fromFields(fields.slice(8))),
+      networkState: new ProvableNetworkState(
+        ProvableNetworkState.fromFields(fields.slice(8))
+      ),
       blockWitness: new BlockHashMerkleTreeWitness(
         BlockHashMerkleTreeWitness.fromFields(
           fields.slice(8 + ProvableNetworkState.sizeInFields())
@@ -244,7 +246,12 @@ export class BlockProverState {
       ),
       blockNumber: Provable.if(condition, a.blockNumber, b.blockNumber),
       networkState: new ProvableNetworkState(
-        Provable.if(condition, ProvableNetworkState, a.networkState, b.networkState)
+        Provable.if(
+          condition,
+          ProvableNetworkState,
+          a.networkState,
+          b.networkState
+        )
       ),
     });
   }

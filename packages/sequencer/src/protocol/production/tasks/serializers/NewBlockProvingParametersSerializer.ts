@@ -18,7 +18,7 @@ import { TaskSerializer } from "../../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../../helpers/utils";
 import { PairingDerivedInput } from "../../flow/ReductionTaskFlow";
 
-import { DecodedStateSerializer, JSONEncodableState } from "./DecodedStateSerializer";
+import { JSONEncodableState } from "./DecodedStateSerializer";
 
 interface JsonType {
   input1: string;
@@ -111,9 +111,7 @@ export class NewBlockProvingParametersSerializer
           return {
             startingStateBeforeHook: block.startingStateBeforeHook,
 
-
             startingStateAfterHook: block.startingStateBeforeHook,
-            
 
             args: BlockArguments.fromJSON(block.args),
           };
