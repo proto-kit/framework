@@ -34,6 +34,9 @@ export class PrismaTransactionStorage implements TransactionStorage {
         isMessage: {
           equals: false,
         },
+        inputPaths: {
+          is: null,
+        },
       },
       orderBy: {
         priority: {

@@ -57,7 +57,7 @@ model Transaction {
 
   priority TransactionPriority?
 
-  inputPaths SkippedTransactionInputPaths[]
+  inputPaths SkippedTransactionInputPaths?
 }
 
 model TransactionPriority {
