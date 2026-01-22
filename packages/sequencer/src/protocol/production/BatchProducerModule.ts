@@ -17,6 +17,7 @@ import { BlockWithResult } from "../../storage/model/Block";
 import type { Database } from "../../storage/Database";
 import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../../state/lmt/CachedLinkedLeafStore";
+import { ensureNotBusy } from "../../helpers/BusyGuard";
 
 import { BlockProofSerializer } from "./tasks/serializers/BlockProofSerializer";
 import { BatchTracingService } from "./tracing/BatchTracingService";
@@ -44,8 +45,6 @@ const errors = {
  */
 @sequencerModule()
 export class BatchProducerModule extends SequencerModule {
-  private productionInProgress = false;
-
   public constructor(
     @inject("AsyncLinkedLeafStore")
     private readonly merkleStore: AsyncLinkedLeafStore,
@@ -64,41 +63,11 @@ export class BatchProducerModule extends SequencerModule {
    * transactions that are present in the mempool. This function should also
    * be the one called by BlockTriggerss
    */
+  @ensureNotBusy()
   public async createBatch(
     blocks: BlockWithResult[]
   ): Promise<SettleableBatch | undefined> {
-    if (!this.productionInProgress) {
-      try {
-        this.productionInProgress = true;
-
-        const batch = await this.tryProduceBatch(blocks);
-
-        this.productionInProgress = false;
-
-        return batch;
-      } catch (error: unknown) {
-        this.productionInProgress = false;
-        // TODO Check if that still makes sense
-        if (error instanceof Error) {
-          if (
-            !error.message.includes(
-              "Can't create a block with zero transactions"
-            )
-          ) {
-            log.error(error);
-          }
-
-          throw error;
-        } else {
-          log.error(error);
-        }
-      }
-    } else {
-      log.debug(
-        "Skipping new block production because production is still in progress"
-      );
-    }
-    return undefined;
+    return await this.tryProduceBatch(blocks);
   }
 
   private async tryProduceBatch(
