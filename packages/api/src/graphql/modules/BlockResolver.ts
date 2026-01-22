@@ -4,7 +4,7 @@ import { Arg, Field, ObjectType, Query } from "type-graphql";
 
 import { GraphqlModule, graphqlModule } from "../GraphqlModule";
 
-import { BatchTransactionModel } from "./model/BatchTransactionModel";
+import { TransactionExecutionResultModel } from "./model/TransactionExecutionResultModel";
 
 @ObjectType()
 export class BlockModel {
@@ -12,9 +12,9 @@ export class BlockModel {
     return new BlockModel(
       Number(block.networkState.during.block.height.toBigInt()),
       block.transactions.map((tx) =>
-        BatchTransactionModel.fromServiceLayerModel({
+        TransactionExecutionResultModel.fromServiceLayerModel({
           tx: tx.tx,
-          status: tx.status.toBoolean(),
+          status: tx.status,
           statusMessage: tx.statusMessage,
         })
       ),
@@ -33,15 +33,15 @@ export class BlockModel {
   @Field()
   height: number;
 
-  @Field(() => [BatchTransactionModel])
-  txs: BatchTransactionModel[];
+  @Field(() => [TransactionExecutionResultModel])
+  txs: TransactionExecutionResultModel[];
 
   @Field()
   transactionsHash: string;
 
   private constructor(
     height: number,
-    txs: BatchTransactionModel[],
+    txs: TransactionExecutionResultModel[],
     transactionsHash: string,
     hash: string,
     previousBlockHash: string | undefined

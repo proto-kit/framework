@@ -145,8 +145,8 @@ export class InMemoryTransactionStorage implements TransactionStorage {
   public async reportSkippedTransactions(
     paths: Record<string, bigint[]>
   ): Promise<void> {
-    Object.entries(paths).forEach(([txHash, paths]) => {
-      this.pathResolution.pushPaths(txHash, paths);
+    Object.entries(paths).forEach(([txHash, transactionPaths]) => {
+      this.pathResolution.pushPaths(txHash, transactionPaths);
     });
 
     // Remove all unresolved txs from queue and append them to the unresolvedSet
