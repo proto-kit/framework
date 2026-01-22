@@ -4,7 +4,6 @@ import { log } from "@proto-kit/common";
  * Mostly useful for production of blocks, batches and tasks.
  */
 export function ensureNotBusy<T>() {
-
   let inProgress = false;
 
   return function innerFunction(
@@ -14,10 +13,7 @@ export function ensureNotBusy<T>() {
   ): void {
     const originalMethod = descriptor.value!;
 
-    descriptor.value = async function wrapped(
-      this: T,
-      ...args: unknown[]
-    ) {
+    descriptor.value = async function wrapped(this: T, ...args: unknown[]) {
       if (inProgress) {
         log.trace(`${methodName} is in use at the moment.`);
         return undefined;

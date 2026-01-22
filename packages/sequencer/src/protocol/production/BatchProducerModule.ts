@@ -68,7 +68,7 @@ export class BatchProducerModule extends SequencerModule {
   ): Promise<SettleableBatch | undefined> {
     return await this.tryProduceBatch(blocks);
   }
-  
+
   @ensureNotBusy()
   private async tryProduceBatch(
     blocks: BlockWithResult[]

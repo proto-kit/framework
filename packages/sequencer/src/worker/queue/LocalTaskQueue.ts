@@ -3,7 +3,6 @@ import { log, mapSequential, noop, sleep } from "@proto-kit/common";
 import { sequencerModule } from "../../sequencer/builder/SequencerModule";
 import { TaskPayload } from "../flow/Task";
 import { Closeable } from "../../sequencer/builder/Closeable";
-import { ensureNotBusy } from "../../helpers/BusyGuard";
 
 import { InstantiatedQueue, TaskQueue } from "./TaskQueue";
 import { ListenerList } from "./ListenerList";
@@ -94,7 +93,7 @@ export class LocalTaskQueue
 
   private taskInProgress = false;
 
-public async workNextTasks() {
+  public async workNextTasks() {
     if (this.taskInProgress) {
       return;
     }
