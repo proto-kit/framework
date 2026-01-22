@@ -92,50 +92,56 @@ export class LocalTaskQueue
     [key: string]: QueueListener[] | undefined;
   } = {};
 
-  @ensureNotBusy()
-  public async workNextTasks() {
-    let hasMoreTasks = true;
+  private taskInProgress = false;
 
-    while (hasMoreTasks) {
-      const tasksToExecute = Object.entries(this.queuedTasks).flatMap(
-        ([queueName, tasks]) => {
-          if (tasks.length > 0 && this.workers[queueName]) {
-            const functions = tasks.map((task) => async () => {
-              // Execute task in worker
+public async workNextTasks() {
+    if (this.taskInProgress) {
+      return;
+    }
+    this.taskInProgress = true;
 
-              log.trace(`Working ${task.payload.name} with id ${task.taskId}`);
+    // Collect all tasks
+    const tasksToExecute = Object.entries(this.queuedTasks).flatMap(
+      ([queueName, tasks]) => {
+        if (tasks.length > 0 && this.workers[queueName]) {
+          const functions = tasks.map((task) => async () => {
+            // Execute task in worker
 
-              const payload = await this.workers[queueName]?.handler(
-                task.payload
-              );
+            log.trace(`Working ${task.payload.name} with id ${task.taskId}`);
 
-              if (payload === "closed" || payload === undefined) {
-                return;
+            const payload = await this.workers[queueName]?.handler(
+              task.payload
+            );
+
+            if (payload === "closed" || payload === undefined) {
+              return;
+            }
+            log.trace("LocalTaskQueue got", JSON.stringify(payload));
+
+            // Notify listeners about result
+            const listenerPromises = this.listeners[queueName]?.map(
+              async (listener) => {
+                await listener(payload);
               }
-              log.trace("LocalTaskQueue got", JSON.stringify(payload));
-
-              // Notify listeners about result
-              const listenerPromises = this.listeners[queueName]?.map(
-                async (listener) => {
-                  // eslint-disable-next-line no-await-in-loop
-                  await listener(payload);
-                }
-              );
-              await Promise.all(listenerPromises || []);
-            });
-            this.queuedTasks[queueName] = [];
-            return functions;
-          }
-
-          return [];
+            );
+            await Promise.all(listenerPromises || []);
+          });
+          this.queuedTasks[queueName] = [];
+          return functions;
         }
-      );
 
-      // Execute all tasks
-      await mapSequential(tasksToExecute, async (task) => await task());
+        return [];
+      }
+    );
 
-      // Continue loop only if we processed tasks (more may have arrived)
-      hasMoreTasks = tasksToExecute.length > 0;
+    // Execute all tasks
+    await mapSequential(tasksToExecute, async (task) => await task());
+
+    this.taskInProgress = false;
+
+    // In case new tasks came up in the meantime, execute them as well
+    if (tasksToExecute.length > 0) {
+      await this.workNextTasks();
     }
   }
 
