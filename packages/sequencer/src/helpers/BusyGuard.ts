@@ -11,7 +11,8 @@ export function ensureNotBusy() {
   ) {
     const originalMethod = descriptor.value!;
 
-    descriptor.value = async function decorator(
+    // eslint-disable-next-line consistent-return
+    descriptor.value = async function value(
       this: { inProgress: boolean },
       ...args: any[]
     ) {

@@ -97,7 +97,6 @@ export class LocalTaskQueue
     let hasMoreTasks = true;
 
     while (hasMoreTasks) {
-      // Collect all tasks
       const tasksToExecute = Object.entries(this.queuedTasks).flatMap(
         ([queueName, tasks]) => {
           if (tasks.length > 0 && this.workers[queueName]) {
@@ -118,6 +117,7 @@ export class LocalTaskQueue
               // Notify listeners about result
               const listenerPromises = this.listeners[queueName]?.map(
                 async (listener) => {
+                  // eslint-disable-next-line no-await-in-loop
                   await listener(payload);
                 }
               );
