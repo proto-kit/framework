@@ -19,6 +19,61 @@ export type OrderingReport = {
   shouldRemove: boolean;
 };
 
+export type OrderingMetadata = {
+  skippedPaths: { [p: string]: bigint[] };
+  allChangedPaths: bigint[];
+};
+
+export class PathResolution<Object> {
+  failedTxIds = new Map<symbol, Object>();
+
+  paths = new Map<bigint, symbol[]>();
+
+  public resolvePaths(paths: bigint[]) {
+    const allSymbols = paths.flatMap((key) => {
+      const symbols = this.paths.get(key);
+      if (symbols !== undefined) {
+        this.paths.delete(key);
+      }
+      return symbols ?? [];
+    });
+
+    return allSymbols
+      .map((symbol) => {
+        const tx = this.failedTxIds.get(symbol);
+        this.failedTxIds.delete(symbol);
+        return tx;
+      })
+      .filter(filterNonUndefined);
+  }
+
+  public pushPaths(object: Object, paths: bigint[]) {
+    const symbol = Symbol("tx");
+    this.failedTxIds.set(symbol, object);
+
+    paths.forEach((path) => {
+      const symbols = this.paths.get(path) ?? [];
+      symbols.push(symbol);
+      this.paths.set(path, symbols);
+    });
+  }
+
+  // TODO I hate how inefficient this function is - the tradeoff here is
+  //  lookup performance during block production vs. after
+  public retrieveUnresolved(key: (o: Object) => string) {
+    const paths = new Map<string, bigint[]>();
+    for (const [path, txs] of this.paths.entries()) {
+      txs.forEach((tx) => {
+        const hash = key(this.failedTxIds.get(tx)!);
+        const thisPaths = paths.get(hash) ?? [];
+        thisPaths.push(path);
+        paths.set(hash, thisPaths);
+      });
+    }
+    return Object.fromEntries(paths.entries());
+  }
+}
+
 export class Ordering {
   public constructor(
     private readonly mempool: Mempool,
@@ -36,42 +91,26 @@ export class Ordering {
   userTxOffset = 0;
 
   // For dependency resolution
-  failedTxIds = new Map<symbol, PendingTransaction>();
+  pathResolution = new PathResolution<PendingTransaction>();
 
-  paths = new Map<bigint, symbol[]>();
+  allChangedPaths = new Set<bigint>();
 
   public resolvePaths(result: TransactionExecutionResult) {
-    const keys = allKeys(result.stateTransitions[0].stateTransitions);
+    const paths = allKeys(
+      result.stateTransitions.flatMap((x) => x.stateTransitions)
+    );
 
-    const allSymbols = keys.flatMap((key) => {
-      const symbols = this.paths.get(key);
-      if (symbols !== undefined) {
-        this.paths.delete(key);
-      }
-      return symbols ?? [];
-    });
-
-    const txs = allSymbols
-      .map((symbol) => {
-        const tx = this.failedTxIds.get(symbol);
-        this.failedTxIds.delete(symbol);
-        return tx;
-      })
-      .filter(filterNonUndefined);
+    const txs = this.pathResolution.resolvePaths(paths);
 
     this.transactionQueue.push(...txs);
+
+    paths.forEach((path) => this.allChangedPaths.add(path));
   }
 
   private pushFailed(result: TransactionExecutionResult) {
-    const symbol = Symbol("tx");
-    this.failedTxIds.set(symbol, result.tx);
-
     const keys = allKeys(result.stateTransitions[0].stateTransitions);
-    keys.forEach((key) => {
-      const symbols = this.paths.get(key) ?? [];
-      symbols.push(symbol);
-      this.paths.set(key, symbols);
-    });
+
+    this.pathResolution.pushPaths(result.tx, keys);
   }
 
   public reportResult({ result, shouldRemove }: OrderingReport) {
@@ -100,29 +139,41 @@ export class Ordering {
     }
   }
 
-  public async requestNextTransaction() {
-    if (this.transactionQueue.length === 0) {
-      // Fetch messages
-      if (!this.mandatoryTransactionsCompleted) {
-        const mandos = await this.mempool.getMandatoryTxs();
-        this.transactionQueue.push(...mandos);
-        this.mandatoryTransactionsCompleted = true;
-      }
+  private space() {
+    return this.sizeLimit - this.ordered;
+  }
 
-      // Fetch as much txs as space is available
-      const space = this.sizeLimit - this.ordered;
-      if (space > 0) {
+  private mandoQueue: PendingTransaction[] = [];
+
+  public async requestNextTransaction() {
+    // Fetch messages
+    if (!this.mandatoryTransactionsCompleted) {
+      const mandos = await this.mempool.getMandatoryTxs();
+      this.mandoQueue.push(...mandos);
+      this.mandatoryTransactionsCompleted = true;
+    }
+
+    if (this.mandoQueue.length > 0) {
+      return this.mandoQueue.shift();
+    }
+
+    const space = this.space();
+    if (space > 0) {
+      if (this.transactionQueue.length === 0) {
+        // Fetch as many txs as space is availabe
         const newTxs = await this.mempool.getTxs(this.userTxOffset, space);
         this.userTxOffset += space;
         this.transactionQueue.push(...newTxs);
       }
-    }
 
-    return this.transactionQueue.shift();
+      return this.transactionQueue.shift();
+    } else {
+      return undefined;
+    }
   }
 
   public getResults() {
-    return this.results
+    const results = this.results
       .reverse()
       .filter(
         distinctByPredicate(
@@ -130,5 +181,15 @@ export class Ordering {
         )
       )
       .reverse();
+
+    return {
+      results,
+      orderingMetadata: {
+        skippedPaths: this.pathResolution.retrieveUnresolved((tx) =>
+          tx.hash().toString()
+        ),
+        allChangedPaths: Array.from(this.allChangedPaths),
+      },
+    };
   }
 }

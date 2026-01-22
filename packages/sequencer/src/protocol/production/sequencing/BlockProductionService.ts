@@ -35,6 +35,7 @@ import {
   TransactionExecutionResultStatus,
 } from "./TransactionExecutionService";
 import { BlockBuilder } from "./BlockBuilder";
+import { OrderingMetadata } from "./Ordering";
 
 function isIncludedTxs(x: TransactionExecutionResultStatus): x is {
   status: "included";
@@ -111,6 +112,7 @@ export class BlockProductionService {
           hash: string;
           type: "included" | "skipped" | "shouldRemove";
         }[];
+        orderingMetadata: OrderingMetadata;
       }
     | undefined
   > {
@@ -142,13 +144,16 @@ export class BlockProductionService {
       UntypedStateTransition.fromStateTransition(transition)
     );
 
-    const { blockState: newBlockState, executionResults } =
-      await this.blockBuilder.buildBlock(
-        stateService,
-        networkState,
-        blockState,
-        maximumBlockSize
-      );
+    const {
+      blockState: newBlockState,
+      executionResults,
+      orderingMetadata,
+    } = await this.blockBuilder.buildBlock(
+      stateService,
+      networkState,
+      blockState,
+      maximumBlockSize
+    );
 
     const previousBlockHash =
       lastResult.blockHash === 0n ? undefined : Field(lastResult.blockHash);
@@ -206,6 +211,7 @@ export class BlockProductionService {
       },
       stateChanges: stateService,
       includedTxs,
+      orderingMetadata,
     };
   }
 }

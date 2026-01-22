@@ -28,4 +28,11 @@ export interface TransactionStorage {
       }
     | undefined
   >;
+
+  /**
+   * Mapping hash => path[]
+   */
+  reportSkippedTransactions: (paths: Record<string, bigint[]>) => Promise<void>;
+
+  reportChangedPaths: (paths: bigint[]) => Promise<void>;
 }

@@ -25,6 +25,7 @@ import { Database } from "../../../storage/Database";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
+import { TransactionStorage } from "../../../storage/repositories/TransactionStorage";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -46,6 +47,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly unprovenLinkedLeafStore: AsyncLinkedLeafStore,
     @inject("BlockQueue")
     private readonly blockQueue: BlockQueue,
+    @inject("TransactionStorage")
+    private readonly transactionStorage: TransactionStorage,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly productionService: BlockProductionService,
@@ -209,7 +212,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     );
 
     if (blockResult !== undefined) {
-      const { block, stateChanges } = blockResult;
+      const { block, stateChanges, orderingMetadata } = blockResult;
 
       // Skip production if no transactions are available for now
       if (block.transactions.length === 0 && !this.allowEmptyBlock()) {
@@ -232,6 +235,13 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
               blockResult.includedTxs
                 .filter((x) => x.type === "shouldRemove")
                 .map((x) => x.hash)
+            );
+
+            await this.transactionStorage.reportChangedPaths(
+              orderingMetadata.allChangedPaths
+            );
+            await this.transactionStorage.reportSkippedTransactions(
+              orderingMetadata.skippedPaths
             );
           });
         },
