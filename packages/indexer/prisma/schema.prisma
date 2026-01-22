@@ -96,8 +96,8 @@ model Batch {
 
   blocks Block[]
 
-  settlementTransactionHash String?
-  settlement                Settlement? @relation(fields: [settlementTransactionHash], references: [transactionHash])
+  settlementTransactionId String?
+  settlement              Settlement? @relation(fields: [settlementTransactionId], references: [transactionId])
 }
 
 model BlockResult {
@@ -114,8 +114,7 @@ model BlockResult {
 }
 
 model Settlement {
-  // transaction String
-  transactionHash      String @id
+  transactionId        String @id
   promisedMessagesHash String
 
   batches Batch[]

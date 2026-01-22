@@ -100,6 +100,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           TaskQueue: {},
           FeeStrategy: {},
           SequencerStartupModule: {},
+          L1TransactionRetryStrategy: {},
         },
         Protocol: Protocol.defaultConfig(),
       });

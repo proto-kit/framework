@@ -58,6 +58,7 @@ describe("atomic block production", () => {
         TaskQueue: {},
         FeeStrategy: {},
         SequencerStartupModule: {},
+        L1TransactionRetryStrategy: {},
       },
       Runtime: {
         Balance: {},

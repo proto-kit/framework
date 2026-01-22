@@ -127,6 +127,7 @@ export const settlementOnlyTestFn = (
         FeeStrategy: {},
         SettlementModule: {},
         SequencerStartupModule: {},
+        L1TransactionRetryStrategy: {},
 
         TaskQueue: {
           simulatedDuration: 0,

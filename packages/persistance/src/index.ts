@@ -7,6 +7,7 @@ export * from "./services/prisma/PrismaBatchStore";
 export * from "./services/prisma/PrismaSettlementStorage";
 export * from "./services/prisma/PrismaMessageStorage";
 export * from "./services/prisma/PrismaTransactionStorage";
+export * from "./services/prisma/PrismaPendingL1TransactionStorage";
 export * from "./services/prisma/mappers/BatchMapper";
 export * from "./services/prisma/mappers/BlockMapper";
 export * from "./services/prisma/mappers/FieldMapper";

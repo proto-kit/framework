@@ -104,6 +104,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           BaseLayer: {},
           TaskQueue: {},
           SequencerStartupModule: {},
+          L1TransactionRetryStrategy: {},
         },
         Protocol: Protocol.defaultConfig(),
       });

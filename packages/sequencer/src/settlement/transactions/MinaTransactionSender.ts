@@ -1,146 +1,131 @@
-import { fetchAccount, Mina, PublicKey, Transaction } from "o1js";
+import { fetchAccount, PublicKey, Transaction, UInt64 } from "o1js";
 import { inject, injectable } from "tsyringe";
-import {
-  EventEmitter,
-  EventsRecord,
-  EventListenable,
-  log,
-  ReplayingSingleUseEventEmitter,
-  filterNonUndefined,
-} from "@proto-kit/common";
+import { filterNonUndefined, log, Startable } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
+import { PendingL1TransactionStorage } from "../../storage/repositories/PendingL1TransactionStorage";
 import { FlowCreator } from "../../worker/flow/Flow";
 import {
   SettlementProvingTask,
   TransactionTaskResult,
 } from "../tasks/SettlementProvingTask";
+import { FeeStrategy } from "../../protocol/baselayer/fees/FeeStrategy";
+import { MinaSigner } from "../MinaSigner";
+import { closeable, Closeable } from "../../sequencer/builder/Closeable";
+import { startable } from "../../sequencer/builder/StartableModule";
 
 import { MinaTransactionSimulator } from "./MinaTransactionSimulator";
+import { L1TransactionDispatcher } from "./L1TransactionDispatcher";
+import { TxStatusWaiter, WaitableTxStatus } from "./TxStatusWaiter";
 
-type SenderKey = string;
-
-export interface TxEvents extends EventsRecord {
-  sent: [{ hash: string }];
-  included: [{ hash: string }];
-  rejected: [any];
-}
-
-export type TxSendResult<Input extends "sent" | "included" | "none"> =
-  Input extends "none" ? void : { hash: string };
+export type TxSendResult<
+  Input extends "sent" | "included" | "queued" | "none",
+> = Input extends "none" ? void : { transactionId: string };
 
 @injectable()
-export class MinaTransactionSender {
-  private txStatusEmitters: Record<string, EventEmitter<TxEvents>> = {};
-
-  // TODO Persist all of that
-  private txQueue: Record<SenderKey, number[]> = {};
-
-  private txIdCursor: number = 0;
-
-  private cache: { tx: Transaction<any, true>; id: number }[] = [];
-
+@closeable()
+@startable()
+export class MinaTransactionSender implements Closeable, Startable {
   public constructor(
     private readonly creator: FlowCreator,
     private readonly provingTask: SettlementProvingTask,
     private readonly simulator: MinaTransactionSimulator,
-    @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer
+    @inject("BaseLayer")
+    private readonly baseLayer: MinaBaseLayer,
+    @inject("PendingL1TransactionStorage")
+    private readonly pendingStorage: PendingL1TransactionStorage,
+    @inject("SettlementSigner") private readonly signer: MinaSigner,
+    @inject("FeeStrategy") private readonly feeStrategy: FeeStrategy,
+    @inject("L1TransactionDispatcher")
+    private readonly dispatcher: L1TransactionDispatcher,
+    private readonly waiter: TxStatusWaiter
   ) {}
+
+  public async start(): Promise<void> {
+    this.dispatcher.start();
+  }
 
   public async getNextNonce(sender: PublicKey): Promise<number> {
     const account = await this.simulator.getAccount(sender);
     return parseInt(account.nonce.toString(), 10);
   }
 
-  private async trySendCached({
-    tx,
-    id,
-  }: {
-    tx: Transaction<any, true>;
-    id: number;
-  }): Promise<Mina.PendingTransaction | undefined> {
-    const feePayer = tx.transaction.feePayer.body;
-    const sender = feePayer.publicKey.toBase58();
-    const senderQueue = this.txQueue[sender];
-
-    const sendable = senderQueue.at(0) === Number(feePayer.nonce.toString());
-    if (sendable) {
-      const txId = await tx.send();
-
-      const statusEmitter = this.txStatusEmitters[id];
-      log.info(`Sent L1 transaction ${txId.hash}`);
-      statusEmitter.emit("sent", { hash: txId.hash });
-
-      txId.wait().then(
-        (included) => {
-          log.info(`L1 transaction ${included.hash} has been included`);
-          statusEmitter.emit("included", { hash: included.hash });
-        },
-        (error) => {
-          log.info("Waiting on L1 transaction threw and error", error);
-          statusEmitter.emit("rejected", error);
-        }
-      );
-
-      senderQueue.pop();
-      return txId;
-    }
-    return undefined;
-  }
-
-  private async resolveCached(): Promise<number> {
-    const indizesToRemove: number[] = [];
-    for (let i = 0; i < this.cache.length; i++) {
-      // eslint-disable-next-line no-await-in-loop
-      const result = await this.trySendCached(this.cache[i]);
-      if (result !== undefined) {
-        indizesToRemove.push(i);
-      }
-    }
-    this.cache = this.cache.filter(
-      (ignored, index) => !indizesToRemove.includes(index)
-    );
-    return indizesToRemove.length;
-  }
-
-  private async sendOrQueue(
-    tx: Transaction<any, true>
-  ): Promise<EventListenable<TxEvents>> {
-    // eslint-disable-next-line no-plusplus
-    const id = this.txIdCursor++;
-    this.cache.push({ tx, id });
-    const eventEmitter = new ReplayingSingleUseEventEmitter<TxEvents>();
-    this.txStatusEmitters[id] = eventEmitter;
-
-    let removedLastIteration = 0;
-    do {
-      // eslint-disable-next-line no-await-in-loop
-      removedLastIteration = await this.resolveCached();
-    } while (removedLastIteration > 0);
-
-    // This altered return type only exposes listening-related functions and erases the rest
-    return eventEmitter;
-  }
-
-  public async proveAndSendTransaction<
-    Wait extends "sent" | "included" | "none",
+  /**
+   * sets the fee, signs the transaction, proves it, and sends it to the network.
+   */
+  public async signProveAndSendTransaction<
+    Wait extends "sent" | "included" | "queued" | "none",
   >(
-    transaction: Transaction<false, true>,
+    transaction: Transaction<false, any>,
+    signers: PublicKey[],
+    waitOnStatus: Wait
+  ): Promise<TxSendResult<Wait>> {
+    const unsignedTx = await transaction.setFee(
+      UInt64.from(this.feeStrategy.getFee())
+    );
+    const signedTx = this.signer.signTx(
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      unsignedTx as Transaction<false, false>,
+      { pubKeys: signers }
+    );
+    return await this.proveAndSendTransaction(signedTx, waitOnStatus);
+  }
+
+  /**
+   * Submit a transaction to be proven, queued and dispatched to L1.
+   */
+  public async proveAndSendTransaction<
+    Wait extends "sent" | "included" | "queued" | "none",
+  >(
+    transaction: Transaction<false, any>,
     waitOnStatus: Wait
   ): Promise<TxSendResult<Wait>> {
     const { publicKey, nonce } = transaction.transaction.feePayer.body;
+    const sender = publicKey.toBase58();
+    const nonceNum = Number(nonce.toString());
+    const result = await this.proveTransaction(transaction, sender, nonceNum);
 
-    log.debug(
-      `Proving tx from sender ${publicKey.toBase58()} nonce ${nonce.toString()}`
+    log.debug("Tx proving complete, queueing for sending");
+
+    const now = new Date();
+    const txnId = await this.pendingStorage.queue({
+      sender,
+      nonce: nonceNum,
+      attempts: 0,
+      transaction: result.transaction,
+      queuedAt: now,
+      nextActionAt: now,
+    });
+    log.info(
+      `MinaTransactionSender: queued transaction ${txnId} for sender ${sender} nonce ${nonceNum}`
     );
 
-    // Add Transaction to sender's queue
-    (this.txQueue[publicKey.toBase58()] ??= []).push(Number(nonce.toString()));
+    this.dispatcher.requestDispatch(sender);
 
-    const flow = this.creator.createFlow(
-      `tx-${publicKey.toBase58()}-${nonce.toString()}`,
-      {}
-    );
+    if (waitOnStatus === "queued") {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return { transactionId: txnId } as TxSendResult<Wait>;
+    }
+
+    if (waitOnStatus === "sent" || waitOnStatus === "included") {
+      const desired: WaitableTxStatus = waitOnStatus;
+      await this.waiter.waitFor(txnId, desired);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return { transactionId: txnId } as TxSendResult<Wait>;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return undefined as TxSendResult<Wait>;
+  }
+
+  private async proveTransaction(
+    transaction: Transaction<false, any>,
+    sender: string,
+    nonceNum: number
+  ): Promise<TransactionTaskResult> {
+    log.debug(`Proving tx from sender ${sender} nonce ${nonceNum}`);
+
+    const flow = this.creator.createFlow(`tx-${sender}-${nonceNum}`, {});
 
     const accounts = await Promise.all(
       transaction.transaction.accountUpdates.map(
@@ -149,11 +134,8 @@ export class MinaTransactionSender {
       )
     );
 
-    // Load accounts
     await this.simulator.getAccounts(transaction);
     await this.simulator.applyTransaction(transaction);
-
-    log.trace("Applied transaction to local simulated ledger");
 
     const { network } = this.baseLayer.config;
     const graphql = network.type === "local" ? undefined : network.graphql;
@@ -178,33 +160,10 @@ export class MinaTransactionSender {
       }
     );
 
-    const result = await resultPromise;
+    return await resultPromise;
+  }
 
-    log.debug("Tx proving complete, queueing for sending");
-
-    log.trace(result.transaction.toPretty());
-
-    const txStatus = await this.sendOrQueue(result.transaction);
-
-    if (waitOnStatus !== "none") {
-      const waitInstruction: "sent" | "included" = waitOnStatus;
-      const hash = await new Promise<TxSendResult<"sent" | "included">>(
-        (resolve, reject) => {
-          txStatus.on(waitInstruction, (txSendResult) => {
-            log.info(`Tx ${txSendResult.hash} included`);
-            resolve(txSendResult);
-          });
-          txStatus.on("rejected", (error) => {
-            reject(error);
-          });
-        }
-      );
-
-      // Yeah that's not super clean, but couldn't figure out a better way tbh
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return hash as TxSendResult<Wait>;
-    }
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return undefined as TxSendResult<Wait>;
+  public async close(): Promise<void> {
+    await this.dispatcher.stop();
   }
 }

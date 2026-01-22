@@ -26,6 +26,7 @@ import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { SettleableBatch } from "../storage/model/Batch";
 import { Settlement } from "../storage/model/Settlement";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
+import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 
 import { SettlementUtils } from "./utils/SettlementUtils";
 import type { BridgingModule } from "./BridgingModule";
@@ -38,6 +39,7 @@ import {
   AddressRegistry,
   InMemoryAddressRegistry,
 } from "./interactions/AddressRegistry";
+import { DefaultL1TransactionRetryStrategy } from "./transactions/DefaultL1TransactionRetryStrategy";
 
 export type SettlementModuleConfig = {
   addresses?: {
@@ -69,6 +71,8 @@ export class SettlementModule
     @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("Sequencer")
     private readonly parentContainer: ModuleContainerLike,
+    @inject("FeeStrategy")
+    private readonly feeStrategy: FeeStrategy,
     @inject("AddressRegistry")
     private readonly addressRegistry: AddressRegistry,
     private readonly argsRegistry: ContractArgsRegistry
@@ -81,6 +85,9 @@ export class SettlementModule
     return {
       AddressRegistry: {
         useClass: InMemoryAddressRegistry,
+      },
+      L1TransactionRetryStrategy: {
+        useClass: DefaultL1TransactionRetryStrategy,
       },
     };
   }

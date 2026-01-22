@@ -13,6 +13,7 @@ import { PrismaBlockStorage } from "./services/prisma/PrismaBlockStorage";
 import { PrismaSettlementStorage } from "./services/prisma/PrismaSettlementStorage";
 import { PrismaMessageStorage } from "./services/prisma/PrismaMessageStorage";
 import { PrismaTransactionStorage } from "./services/prisma/PrismaTransactionStorage";
+import { PrismaPendingL1TransactionStorage } from "./services/prisma/PrismaPendingL1TransactionStorage";
 
 export interface PrismaDatabaseConfig {
   // Either object-based config or connection string
@@ -82,6 +83,9 @@ export class PrismaDatabaseConnection
       transactionStorage: {
         useClass: PrismaTransactionStorage,
       },
+      pendingL1TransactionStorage: {
+        useClass: PrismaPendingL1TransactionStorage,
+      },
     };
   }
 
@@ -97,6 +101,7 @@ export class PrismaDatabaseConnection
       "IncomingMessageBatch",
       "IncomingMessageBatchTransaction",
       "LinkedLeaf",
+      "PendingL1Transaction",
     ];
 
     await this.prismaClient.$transaction(

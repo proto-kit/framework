@@ -16,6 +16,7 @@ import { InMemoryMessageStorage } from "./InMemoryMessageStorage";
 import { InMemorySettlementStorage } from "./InMemorySettlementStorage";
 import { InMemoryTransactionStorage } from "./InMemoryTransactionStorage";
 import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
+import { InMemoryPendingL1TransactionStorage } from "./InMemoryPendingL1TransactionStorage";
 
 @sequencerModule()
 @closeable()
@@ -54,6 +55,9 @@ export class InMemoryDatabase extends SequencerModule implements Database {
       },
       transactionStorage: {
         useClass: InMemoryTransactionStorage,
+      },
+      pendingL1TransactionStorage: {
+        useClass: InMemoryPendingL1TransactionStorage,
       },
     };
   }

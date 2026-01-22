@@ -109,7 +109,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
     this.sequencer.events.on("settlement-submitted", async (settlement) => {
       log.debug(
         "Notifiying the indexer about settlement",
-        settlement.transactionHash
+        settlement.transactionId
       );
       try {
         const settlementQueue = await this.taskQueue.getQueue(
@@ -129,7 +129,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
         await settlementQueue.addTask(task);
       } catch (err) {
         log.error(
-          `Failed to add index settlement: ${settlement.transactionHash} ${err}`
+          `Failed to add index settlement: ${settlement.transactionId} ${err}`
         );
       }
     });

@@ -150,6 +150,7 @@ export function testBlockProduction<
         TaskQueue: {},
         FeeStrategy: {},
         SequencerStartupModule: {},
+        L1TransactionRetryStrategy: {},
       },
       Runtime: {
         Balance: {},
