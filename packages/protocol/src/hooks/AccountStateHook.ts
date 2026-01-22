@@ -14,8 +14,12 @@ export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
+export type AccountStateHookConfig = {
+  maximumNonceLookahead?: number;
+};
+
 @injectable()
-export class AccountStateHook extends ProvableTransactionHook {
+export class AccountStateHook extends ProvableTransactionHook<AccountStateHookConfig> {
   @state() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState
@@ -67,6 +71,10 @@ export class AccountStateHook extends ProvableTransactionHook {
 
     const currentNonce = accountState.nonce;
 
-    return transaction.nonce.value.lessThan(currentNonce).toBoolean();
+    const exceedsMaximumLookahead = transaction.nonce.value.greaterThan(
+      currentNonce.add(this.config.maximumNonceLookahead ?? 10)
+    );
+    const nonceIsInPast = transaction.nonce.value.lessThan(currentNonce);
+    return nonceIsInPast.or(exceedsMaximumLookahead).toBoolean();
   }
 }
