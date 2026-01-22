@@ -110,7 +110,7 @@ describe("mempool removal mechanism", () => {
       expectDefined(block);
       expect(block.transactions).toHaveLength(1);
 
-      await expect(mempool.getTxs()).resolves.toHaveLength(1);
+      await expect(mempool.getTxs()).resolves.toHaveLength(0);
     });
 
     it("check only one is included, other is removed", async () => {
