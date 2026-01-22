@@ -3,35 +3,31 @@ import { log } from "@proto-kit/common";
  * Decorator that ensures a function/method is not currently in use.
  * Mostly useful for production of blocks, batches and tasks.
  */
-export function ensureNotBusy() {
-  return function InnerFunction(
-    target: object,
+export function ensureNotBusy<T>() {
+
+  let inProgress = false;
+
+  return function innerFunction(
+    _target: T,
     methodName: string,
     descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<any>>
-  ) {
+  ): void {
     const originalMethod = descriptor.value!;
 
-    // eslint-disable-next-line consistent-return
-    descriptor.value = async function value(
-      this: { inProgress: boolean },
-      ...args: any[]
+    descriptor.value = async function wrapped(
+      this: T,
+      ...args: unknown[]
     ) {
-      if (this.inProgress === true) {
-        log.info(`${methodName.toString()} is in use at the moment.`);
+      if (inProgress) {
+        log.trace(`${methodName} is in use at the moment.`);
         return undefined;
       }
 
-      this.inProgress = true;
+      inProgress = true;
       try {
         return await originalMethod.apply(this, args);
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          throw error;
-        } else {
-          log.error(error);
-        }
       } finally {
-        this.inProgress = false;
+        inProgress = false;
       }
     };
   };

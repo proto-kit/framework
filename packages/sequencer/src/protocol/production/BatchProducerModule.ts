@@ -63,13 +63,13 @@ export class BatchProducerModule extends SequencerModule {
    * transactions that are present in the mempool. This function should also
    * be the one called by BlockTriggerss
    */
-  @ensureNotBusy()
   public async createBatch(
     blocks: BlockWithResult[]
   ): Promise<SettleableBatch | undefined> {
     return await this.tryProduceBatch(blocks);
   }
-
+  
+  @ensureNotBusy()
   private async tryProduceBatch(
     blocks: BlockWithResult[]
   ): Promise<SettleableBatch | undefined> {
