@@ -56,6 +56,8 @@ model Transaction {
   IncomingMessageBatchTransaction IncomingMessageBatchTransaction[]
 
   priority TransactionPriority?
+
+  inputPaths SkippedTransactionInputPaths[]
 }
 
 model TransactionPriority {
@@ -66,6 +68,14 @@ model TransactionPriority {
   Transaction Transaction @relation(fields: [transactionHash], references: [hash])
 
   @@id([transactionHash])
+}
+
+model SkippedTransactionInputPaths {
+  transactionHash String @id
+
+  paths Decimal[] @db.Decimal(78, 0)
+
+  transaction Transaction @relation(fields: [transactionHash], references: [hash])
 }
 
 model TransactionExecutionResult {
