@@ -1,4 +1,4 @@
-import { Bool, Field, Poseidon } from "o1js";
+import { Field, Poseidon } from "o1js";
 import { Option, ProvableOption } from "@proto-kit/protocol";
 
 export class UntypedOption {
@@ -10,9 +10,9 @@ export class UntypedOption {
 
   public get treeValue(): string {
     if (this.isSome && !this.isForcedSome) {
-      return Poseidon.hash(this.encodeValueToFields()
-      .map(fieldString => Field(fieldString))
-    ).toString();
+      return Poseidon.hash(
+        this.encodeValueToFields().map((fieldString) => Field(fieldString))
+      ).toString();
     }
     return "0";
   }
@@ -58,12 +58,12 @@ export class UntypedOption {
     return this.value;
   }
 
-  public toProvable(): ProvableOption {                                                                                                                                                         
+  public toProvable(): ProvableOption {
     return new ProvableOption(
-      ProvableOption.fromJSON({                                                                                                                                                                 
-      isSome: this.isSome,
-      value: this.treeValue,
-    })
-  );                                                                                                                                                                                         
-  }    
+      ProvableOption.fromJSON({
+        isSome: this.isSome,
+        value: this.treeValue,
+      })
+    );
+  }
 }

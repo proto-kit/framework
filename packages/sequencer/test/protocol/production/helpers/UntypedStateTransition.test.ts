@@ -37,7 +37,9 @@ describe("stateTransition", () => {
         .toFields(st.fromValue.value)
         .map((f) => f.toString())
     );
-    expect(untyped.fromValue.isSome).toStrictEqual(st.fromValue.isSome.toBoolean());
+    expect(untyped.fromValue.isSome).toStrictEqual(
+      st.fromValue.isSome.toBoolean()
+    );
     expect(untyped.fromValue.isForcedSome).toStrictEqual(
       st.fromValue.isForcedSome.toBoolean()
     );

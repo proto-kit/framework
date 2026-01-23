@@ -54,9 +54,7 @@ function createCombinedOrderedStateDiff(
     .map((tx) => {
       const transitions = tx.stateTransitions
         .filter(({ applied }) => applied)
-        .flatMap(({ stateTransitions }) =>
-          stateTransitions
-        );
+        .flatMap(({ stateTransitions }) => stateTransitions);
 
       transitions.push(...blockHookSTs);
 
