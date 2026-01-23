@@ -77,11 +77,11 @@ export const settlementTestFn = (
     tokenOwner: TypedClass<FungibleToken> & typeof SmartContract;
   },
   timeout: number = 120_000,
-  sequencerKeyInput?: PrivateKey
+  fundedKeysInput: PrivateKey[] = []
 ) => {
-  let testAccounts: PrivateKey[] = [];
+  let testAccounts: PrivateKey[] = fundedKeysInput.slice(1);
 
-  const sequencerKey = sequencerKeyInput ?? PrivateKey.random();
+  const sequencerKey = fundedKeysInput[0] ?? PrivateKey.random();
   const settlementKey = PrivateKey.random();
   const dispatchKey = PrivateKey.random();
   const minaBridgeKey = PrivateKey.random();
@@ -265,6 +265,10 @@ export const settlementTestFn = (
     return result;
   }
 
+  let nonceCounter = 0;
+  let user0Nonce = 0;
+  let acc0L2Nonce = 0;
+
   beforeAll(async () => {
     appChain = setupAppChain();
 
@@ -293,17 +297,30 @@ export const settlementTestFn = (
       appChain.sequencer.dependencyContainer.resolve<MinaNetworkUtils>(
         "NetworkUtils"
       );
-    const accs = await networkUtils.getFundedAccounts(3);
-    testAccounts = accs.slice(1);
-
     await networkUtils.waitForNetwork();
 
-    console.log(
-      `Funding ${sequencerKey.toPublicKey().toBase58()} from ${accs[0].toPublicKey().toBase58()}`
-    );
+    if (fundedKeysInput.length === 0) {
+      const accs = await networkUtils.getFundedAccounts(2);
+      testAccounts = accs.slice(1);
 
-    if (sequencerKeyInput === undefined) {
+      console.log(
+        `Funding ${sequencerKey.toPublicKey().toBase58()} from ${accs[0].toPublicKey().toBase58()}`
+      );
+
       await networkUtils.faucet(sequencerKey.toPublicKey(), 20 * 1e9);
+    } else {
+      const sequencerAccount = await fetchAccount({
+        publicKey: fundedKeysInput[0].toPublicKey(),
+      });
+      nonceCounter = parseInt(
+        sequencerAccount.account?.nonce.toString() ?? "0",
+        10
+      );
+
+      const account = await fetchAccount({
+        publicKey: testAccounts[0].toPublicKey(),
+      });
+      user0Nonce = parseInt(account.account?.nonce.toString() ?? "0", 10);
     }
   }, timeout * 3);
 
@@ -312,10 +329,6 @@ export const settlementTestFn = (
 
     await appChain.close();
   });
-
-  let nonceCounter = 0;
-  let user0Nonce = 0;
-  let acc0L2Nonce = 0;
 
   it.skip("Print constraint summary", async () => {
     await appChain.protocol.dependencyContainer

@@ -18,14 +18,21 @@ describe("Settlement - Devnet", () => {
     "EKFBrGinEnesgbsNJMHikKVSJxxcRQBaSUEi55jD5YfQeRxVLBKN"
   );
 
-  it.skip("Random pk", () => {
+  const userKey = PrivateKey.fromBase58(
+    "EKE6jLyNZePXufcRDrJ8HbtWvTqoJKXFwKsd2ZG3iUeHxJ2xegHp"
+  );
+
+  it("Random pk", () => {
     const pk = PrivateKey.random();
     console.log(pk.toBase58());
     console.log(pk.toPublicKey().toBase58());
   });
 
   describe("Default token", () => {
-    settlementTestFn("proven", network, undefined, 500_000, sequencerKey);
+    settlementTestFn("proven", network, undefined, 500_000, [
+      sequencerKey,
+      userKey,
+    ]);
   });
 
   describe("Custom token", () => {
@@ -36,7 +43,7 @@ describe("Settlement - Devnet", () => {
         tokenOwner: FungibleToken,
       },
       500_000,
-      sequencerKey
+      [sequencerKey, userKey]
     );
   });
 });
