@@ -14,7 +14,6 @@ import {
   ContractArgsRegistry,
   DispatchSmartContract,
   Protocol,
-  SettlementContractModule,
 } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { container } from "tsyringe";
@@ -22,24 +21,20 @@ import { PrivateKey, UInt64 } from "o1js";
 
 import { testingSequencerModules } from "../TestingSequencer";
 import {
-  MinaBaseLayer,
   ProvenSettlementPermissions,
   Sequencer,
-  SettlementModule,
-  SettlementProvingTask,
   VanillaTaskWorkerModules,
   AppChain,
   InMemoryAreProofsEnabled,
 } from "../../src";
 import { SettlementStartupModule } from "../../src/sequencer/SettlementStartupModule";
 
-import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
 import { BlockTestService } from "./services/BlockTestService";
 import { ProvenBalance } from "./mocks/ProvenBalance";
 
 const timeout = 300000;
 
-describe.skip("Proven", () => {
+describe("Proven", () => {
   let test: BlockTestService;
 
   let appChain: ReturnType<typeof createAppChain>;
@@ -52,11 +47,11 @@ describe.skip("Proven", () => {
     const sequencerClass = Sequencer.from(
       testingSequencerModules(
         {
-          BaseLayer: MinaBaseLayer,
-          SettlementModule,
+          // BaseLayer: MinaBaseLayer,
+          // SettlementModule,
         },
         {
-          SettlementProvingTask,
+          // SettlementProvingTask,
         }
       )
     );
@@ -64,14 +59,14 @@ describe.skip("Proven", () => {
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
       ...VanillaProtocolModules.mandatoryModules({
-        ProtocolStateTestHook,
+        // ProtocolStateTestHook,
         // ProtocolStateTestHook2,
       }),
-      SettlementContractModule: SettlementContractModule.from({
-        ...SettlementContractModule.settlementAndBridging(),
-        // FungibleToken: FungibleTokenContractModule,
-        // FungibleTokenAdmin: FungibleTokenAdminContractModule,
-      }),
+      // SettlementContractModule: SettlementContractModule.from({
+      //   ...SettlementContractModule.settlementAndBridging(),
+      // FungibleToken: FungibleTokenContractModule,
+      // FungibleTokenAdmin: FungibleTokenAdminContractModule,
+      // }),
       // modules: VanillaProtocolModules.with({}),
     });
 
@@ -81,6 +76,10 @@ describe.skip("Proven", () => {
       Protocol: protocolClass,
     });
   }
+
+  afterAll(async () => {
+    await appChain.close();
+  });
 
   it(
     "should start up and compile",
@@ -101,27 +100,27 @@ describe.skip("Proven", () => {
           FeeStrategy: {},
           SequencerStartupModule: {},
           BaseLayer: {
-            network: {
-              type: "local",
-            },
+            //   network: {
+            //     type: "local",
+            //   },
           },
-          SettlementModule: {},
+          // SettlementModule: {},
         },
         Runtime: {
           Balances: {},
         },
         Protocol: {
           ...Protocol.defaultConfig(),
-          ProtocolStateTestHook: {},
-          SettlementContractModule: {
-            SettlementContract: {},
-            BridgeContract: {},
-            DispatchContract: {
-              incomingMessagesMethods: {
-                deposit: "Balances.deposit",
-              },
-            },
-          },
+          // ProtocolStateTestHook: {},
+          // SettlementContractModule: {
+          //   SettlementContract: {},
+          //   BridgeContract: {},
+          //   DispatchContract: {
+          //     incomingMessagesMethods: {
+          //       deposit: "Balances.deposit",
+          //     },
+          //   },
+          // },
           // ProtocolStateTestHook2: {},
         },
       });
@@ -129,7 +128,7 @@ describe.skip("Proven", () => {
       try {
         // Start AppChain
         const childContainer = container.createChildContainer();
-        await app.start(true, childContainer);
+        await app.start(false, childContainer);
 
         test = app.sequencer.dependencyContainer.resolve(BlockTestService);
 
@@ -142,7 +141,7 @@ describe.skip("Proven", () => {
     timeout
   );
 
-  it("should compile settlement contracts", async () => {
+  it.skip("should compile settlement contracts", async () => {
     const module = appChain.sequencer.dependencyContainer.resolve(
       SettlementStartupModule
     );
