@@ -10,7 +10,9 @@ export class UntypedOption {
 
   public get treeValue(): string {
     if (this.isSome && !this.isForcedSome) {
-      return Poseidon.hash(this.encodeValueToFields()).toString();
+      return Poseidon.hash(this.encodeValueToFields()
+      .map(fieldString => Field(fieldString))
+    ).toString();
     }
     return "0";
   }
@@ -52,14 +54,14 @@ export class UntypedOption {
     this.isSome = true;
   }
 
-  public encodeValueToFields(): Field[] {
-    return this.value.map((fieldString) => Field(fieldString));
+  public encodeValueToFields(): string[] {
+    return this.value;
   }
 
-  public toProvable(): ProvableOption {
-    return new ProvableOption({
-      isSome: Bool(this.isSome),
-      value: Field(this.treeValue),
-    });
-  }
+  public toProvable(): ProvableOption {                                                                                                                                                         
+    return new ProvableOption({                                                                                                                                                                 
+      isSome: Bool(this.isSome),                                                                                                                                                                
+      value: Field(this.treeValue),                                                                                                                                                             
+    });                                                                                                                                                                                         
+  }    
 }

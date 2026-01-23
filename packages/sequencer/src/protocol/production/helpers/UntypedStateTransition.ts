@@ -30,25 +30,32 @@ export class UntypedStateTransition {
 
   public constructor(
     public path: string,
-    public from: UntypedOption,
-    public to: UntypedOption
+    public fromValue: UntypedOption,
+    public toValue: UntypedOption
   ) {}
+
+  public get from() {
+    const from = this.fromValue.clone();
+    from.forceSome();
+    return from;
+  }
+
+  public get to() {
+    return this.toValue.clone();
+  }
 
   public toJSON() {
     return {
       path: this.path,
-      from: this.from.toJSON(),
-      to: this.to.toJSON(),
+      from: this.fromValue.toJSON(),
+      to: this.toValue.toJSON(),
     };
   }
 
   public toProvable(): ProvableStateTransition {
-    const from = this.from.clone();
-    from.forceSome();
-
     return new ProvableStateTransition({
       path: Field(this.path),
-      from: from.toProvable(),
+      from: this.from.toProvable(),
       to: this.to.toProvable(),
     });
   }
