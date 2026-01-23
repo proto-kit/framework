@@ -38,8 +38,8 @@ function collectOrderedStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {
   return stateTransitions.reduce<StateRecord>((state, st) => {
-    if (st.to.isSome) {
-      state[st.path] = st.to.value;
+    if (st.toValue.isSome) {
+      state[st.path] = st.toValue.value;
     }
     return state;
   }, {});
@@ -55,7 +55,7 @@ function createCombinedOrderedStateDiff(
       const transitions = tx.stateTransitions
         .filter(({ applied }) => applied)
         .flatMap(({ stateTransitions }) =>
-          stateTransitions.map((st) => UntypedStateTransition.fromJSON(st))
+          stateTransitions
         );
 
       transitions.push(...blockHookSTs);

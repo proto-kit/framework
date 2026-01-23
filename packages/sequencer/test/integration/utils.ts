@@ -45,7 +45,7 @@ export function collectStateDiff(
   stateTransitions: UntypedStateTransition[]
 ): StateRecord {
   return stateTransitions.reduce<StateRecord>((state, st) => {
-    state[st.path] = st.to.value;
+    state[st.path] = st.toValue.value;
     return state;
   }, {});
 }

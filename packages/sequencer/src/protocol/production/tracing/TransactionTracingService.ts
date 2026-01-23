@@ -38,8 +38,8 @@ export function collectStartingState(
     // Filter out STs that have isSome: false as precondition, because this means
     // "state hasn't been set before" and has to correlate to a precondition on Field(0)
     // and for that the state has to be undefined
-    .filter((st) => st.from.isSome)
-    .map((st) => [st.path, st.from.value]);
+    .filter((st) => st.fromValue.isSome)
+    .map((st) => [st.path, st.fromValue.value]);
 
   return Object.fromEntries(stateEntries);
 }

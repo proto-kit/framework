@@ -50,7 +50,7 @@ export class BlockTracingService {
     "publicInput" | "networkState" | "blockWitness"
   > {
     const publicInput: BlockProverPublicInput = new BlockProverPublicInput({
-      stateRoot: Field(state.stateRoot),
+      stateRoot: state.stateRoot,
       blockNumber: Field(firstBlock.height),
       blockHashRoot: Field(firstBlock.fromBlockHashRoot),
       eternalTransactionsHash: Field(firstBlock.fromEternalTransactionsHash),

@@ -95,7 +95,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         );
       }
       log.info(
-        `Status: ${tx.status ? "true" : "false"}`,
+        `Status: ${tx.status}`,
         tx.statusMessage !== undefined ? `Reason: ${tx.statusMessage}` : ""
       );
     });
