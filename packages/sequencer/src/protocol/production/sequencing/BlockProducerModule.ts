@@ -27,6 +27,7 @@ import { IncomingMessagesService } from "../../../settlement/messages/IncomingMe
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
+import { ensureNotBusy } from "../../../helpers/BusyGuard";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -38,8 +39,6 @@ export interface BlockConfig {
 
 @sequencerModule()
 export class BlockProducerModule extends SequencerModule<BlockConfig> {
-  private productionInProgress = false;
-
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
     @inject("IncomingMessagesService", { isOptional: true })
@@ -135,37 +134,25 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return result;
   }
 
+  @ensureNotBusy()
   public async tryProduceBlock(): Promise<Block | undefined> {
-    if (!this.productionInProgress) {
-      try {
-        const block = await this.produceBlock();
+    const block = await this.produceBlock();
 
-        if (block === undefined) {
-          if (!this.allowEmptyBlock()) {
-            log.info("No transactions in mempool, skipping production");
-          } else {
-            log.error("Something wrong happened, skipping block");
-          }
-          return undefined;
-        }
-
-        log.info(
-          `Produced block #${block.height} (${block.transactions.length} txs)`
-        );
-        this.prettyPrintBlockContents(block);
-
-        return block;
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          throw error;
-        } else {
-          log.error(error);
-        }
-      } finally {
-        this.productionInProgress = false;
+    if (block === undefined) {
+      if (!this.allowEmptyBlock()) {
+        log.info("No transactions in mempool, skipping production");
+      } else {
+        log.error("Something wrong happened, skipping block");
       }
+      return undefined;
     }
-    return undefined;
+
+    log.info(
+      `Produced block #${block.height} (${block.transactions.length} txs)`
+    );
+    this.prettyPrintBlockContents(block);
+
+    return block;
   }
 
   // TODO Move to different service, to remove dependency on mempool and messagequeue
@@ -215,8 +202,6 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   @trace("block")
   private async produceBlock(): Promise<Block | undefined> {
-    this.productionInProgress = true;
-
     const { txs, metadata } = await this.collectProductionData();
 
     // Skip production if no transactions are available for now
@@ -257,8 +242,6 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
           .map((x) => x.hash)
       );
     }
-
-    this.productionInProgress = false;
 
     return blockResult?.block;
   }
