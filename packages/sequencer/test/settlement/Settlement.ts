@@ -76,11 +76,12 @@ export const settlementTestFn = (
   tokenConfig?: {
     tokenOwner: TypedClass<FungibleToken> & typeof SmartContract;
   },
-  timeout: number = 120_000
+  timeout: number = 120_000,
+  sequencerKeyInput?: PrivateKey
 ) => {
   let testAccounts: PrivateKey[] = [];
 
-  const sequencerKey = PrivateKey.random();
+  const sequencerKey = sequencerKeyInput ?? PrivateKey.random();
   const settlementKey = PrivateKey.random();
   const dispatchKey = PrivateKey.random();
   const minaBridgeKey = PrivateKey.random();
@@ -301,7 +302,9 @@ export const settlementTestFn = (
       `Funding ${sequencerKey.toPublicKey().toBase58()} from ${accs[0].toPublicKey().toBase58()}`
     );
 
-    await networkUtils.faucet(sequencerKey.toPublicKey(), 20 * 1e9);
+    if (sequencerKeyInput === undefined) {
+      await networkUtils.faucet(sequencerKey.toPublicKey(), 20 * 1e9);
+    }
   }, timeout * 3);
 
   afterAll(async () => {
