@@ -59,9 +59,11 @@ export class UntypedOption {
   }
 
   public toProvable(): ProvableOption {                                                                                                                                                         
-    return new ProvableOption({                                                                                                                                                                 
-      isSome: Bool(this.isSome),                                                                                                                                                                
-      value: Field(this.treeValue),                                                                                                                                                             
-    });                                                                                                                                                                                         
+    return new ProvableOption(
+      ProvableOption.fromJSON({                                                                                                                                                                 
+      isSome: this.isSome,
+      value: this.treeValue,
+    })
+  );                                                                                                                                                                                         
   }    
 }
