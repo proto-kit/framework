@@ -287,9 +287,10 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
 
     // Verify Transaction proof if it has at least 1 tx and it isn't deferred
-    const verifyTransactionProof = deferTransactionProof
-      .not()
-      .and(state.bundleList.isEmpty().not());
+    const finalizeBlockProof = deferTransactionProof.not();
+    const verifyTransactionProof = finalizeBlockProof.and(
+      state.bundleList.isEmpty().not()
+    );
 
     transactionProof.verifyIf(verifyTransactionProof);
 
@@ -356,14 +357,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     const deferredOutput = {
       ...publicInput,
-      blockProverStateHashRemainder: finalizedOutput.hash(),
     };
+    deferredOutput.proverStateRemainder = finalizedOutput.hash();
 
     return new BlockProverPublicOutput(
       Provable.if(
-        verifyTransactionProof,
+        finalizeBlockProof,
         BlockProverPublicOutput,
-        finalizedOutput.finalize(verifyTransactionProof),
+        finalizedOutput.finalize(finalizeBlockProof),
         deferredOutput
       )
     );

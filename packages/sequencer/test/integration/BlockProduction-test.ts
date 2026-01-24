@@ -537,11 +537,10 @@ export function testBlockProduction<
 
   it.each([
     [2, 1, 1],
-    [1, 2, 1],
-    [1, 1, 2],
     [1, 5, 1],
     [2, 2, 2],
     [1, 14, 0],
+    [1, 6, 5],
   ])(
     "should produce multiple blocks with multiple batches with multiple transactions",
     async (batches, blocksPerBatch, txsPerBlock) => {
