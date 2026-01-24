@@ -539,6 +539,7 @@ export function testBlockProduction<
     [2, 1, 1],
     [1, 2, 1],
     [1, 1, 2],
+    [1, 5, 1],
     [2, 2, 2],
     [1, 14, 0],
   ])(

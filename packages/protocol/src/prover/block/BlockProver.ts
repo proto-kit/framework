@@ -6,6 +6,7 @@ import {
   CompileArtifact,
   CompileRegistry,
   log,
+  NonMethods,
   PlainZkProgram,
   provableMethod,
   reduceSequential,
@@ -42,13 +43,14 @@ import {
 import { Bundle } from "../accumulators/BlockHashList";
 
 import {
-  BlockProvable,
+  BlockArguments,
+  BlockArgumentsBatch,
   BlockProof,
+  BlockProvable,
   BlockProverPublicInput,
   BlockProverPublicOutput,
   BlockProverState,
-  BlockArgumentsBatch,
-  BlockArguments,
+  BlockProverStateInput,
 } from "./BlockProvable";
 import {
   BlockHashMerkleTreeWitness,
@@ -223,6 +225,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
   @provableMethod()
   public async proveBlockBatch(
     publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
@@ -231,28 +234,44 @@ export class BlockProverProgrammable extends ZkProgrammable<
     deferTransactionProof: Bool,
     batch: BlockArgumentsBatch
   ): Promise<BlockProverPublicOutput> {
-    publicInput.networkStateHash.assertEquals(
+    const hasNoStateRemained = publicInput.proverStateRemainder.equals(0);
+
+    // If the state is supplied as a witness, we check that it is equals the PI's stateHash
+    stateWitness
+      .hash()
+      .equals(publicInput.proverStateRemainder)
+      .or(hasNoStateRemained)
+      .assertTrue("Input state witness is invalid");
+
+    const stateInputs = Provable.if(
+      hasNoStateRemained,
+      BlockProverStateInput,
+      BlockProverStateInput.fromPublicInput(publicInput),
+      stateWitness
+    );
+
+    stateInputs.networkStateHash.assertEquals(
       networkState.hash(),
       "Network state not valid"
+    );
+
+    let state = BlockProverState.blockProverFromCommitments(
+      stateInputs,
+      networkState,
+      blockWitness
     );
 
     // Calculate the new block tree hash
     const blockIndex = blockWitness.calculateIndex();
 
-    blockIndex.assertEquals(publicInput.blockNumber);
+    blockIndex.assertEquals(stateInputs.blockNumber);
 
     blockWitness
       .calculateRoot(Field(0))
       .assertEquals(
-        publicInput.blockHashRoot,
+        stateInputs.blockHashRoot,
         "Supplied block hash witness not matching state root"
       );
-
-    let state = BlockProverState.blockProverFromCommitments(
-      publicInput,
-      networkState,
-      blockWitness
-    );
 
     // Prove blocks iteratively
     state = await reduceSequential(
@@ -333,7 +352,21 @@ export class BlockProverProgrammable extends ZkProgrammable<
     state.pendingSTBatches.commitment = stateProofResult.pendingSTBatchesHash;
     state.witnessedRoots.commitment = stateProofResult.witnessedRootsHash;
 
-    return new BlockProverPublicOutput(state.toCommitments());
+    const finalizedOutput = state.toCommitments();
+
+    const deferredOutput = {
+      ...publicInput,
+      blockProverStateHashRemainder: finalizedOutput.hash(),
+    };
+
+    return new BlockProverPublicOutput(
+      Provable.if(
+        verifyTransactionProof,
+        BlockProverPublicOutput,
+        finalizedOutput.finalize(verifyTransactionProof),
+        deferredOutput
+      )
+    );
   }
 
   private async proveBlock(
@@ -456,13 +489,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     proof2.verify();
 
     function checkProperty<
-      Key extends
-        | "stateRoot"
-        | "networkStateHash"
-        | "blockHashRoot"
-        | "eternalTransactionsHash"
-        | "incomingMessagesHash"
-        | "blockNumber",
+      Key extends keyof NonMethods<BlockProverPublicInput>,
     >(key: Key) {
       // Check state
       publicInput[key].assertEquals(
@@ -475,29 +502,12 @@ export class BlockProverProgrammable extends ZkProgrammable<
       );
     }
 
-    function checkRemainderProperty<
-      Key extends "pendingSTBatchesHash" | "witnessedRootsHash" | "bundlesHash",
-    >(key: Key) {
-      // Check state
-      publicInput.remainders[key].assertEquals(
-        proof1.publicInput.remainders[key],
-        errors.propertyNotMatchingStep(key, "publicInput.from -> proof1.from")
-      );
-      proof1.publicOutput.remainders[key].assertEquals(
-        proof2.publicInput.remainders[key],
-        errors.propertyNotMatchingStep(key, "proof1.to -> proof2.from")
-      );
-    }
-
     checkProperty("stateRoot");
     checkProperty("networkStateHash");
     checkProperty("blockHashRoot");
     checkProperty("eternalTransactionsHash");
     checkProperty("incomingMessagesHash");
-
-    checkRemainderProperty("bundlesHash");
-    checkRemainderProperty("pendingSTBatchesHash");
-    checkRemainderProperty("witnessedRootsHash");
+    checkProperty("proverStateRemainder");
 
     return proof2.publicOutput;
   }
@@ -525,6 +535,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       methods: {
         proveBlockBatch: {
           privateInputs: [
+            BlockProverStateInput,
             NetworkState,
             BlockHashMerkleTreeWitness,
             StateTransitionProofClass,
@@ -535,6 +546,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
           ],
           async method(
             publicInput: BlockProverPublicInput,
+            stateWitness: BlockProverStateInput,
             networkState: NetworkState,
             blockWitness: BlockHashMerkleTreeWitness,
             stateTransitionProof: StateTransitionProof,
@@ -546,6 +558,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             return {
               publicOutput: await proveBlockBatch(
                 publicInput,
+                stateWitness,
                 networkState,
                 blockWitness,
                 stateTransitionProof,
@@ -647,6 +660,7 @@ export class BlockProver
 
   public proveBlockBatch(
     publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
     stateTransitionProof: StateTransitionProof,
@@ -657,6 +671,7 @@ export class BlockProver
   ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveBlockBatch(
       publicInput,
+      stateWitness,
       networkState,
       blockWitness,
       stateTransitionProof,

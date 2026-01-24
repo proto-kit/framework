@@ -2,6 +2,7 @@ import {
   BlockArguments,
   BlockHashMerkleTreeWitness,
   BlockProverPublicInput,
+  BlockProverStateInput,
   NetworkState,
   ReturnType,
   StateTransitionProof,
@@ -28,6 +29,7 @@ interface JsonType {
   input2: string;
   params: {
     publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
+    stateWitness: ReturnType<typeof BlockProverStateInput.toJSON>;
     networkState: ReturnType<typeof NetworkState.toJSON>;
     blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
     deferSTProof: boolean;
@@ -68,6 +70,8 @@ export class NewBlockProvingParametersSerializer
       params: {
         publicInput: BlockProverPublicInput.toJSON(input.params.publicInput),
 
+        stateWitness: BlockProverStateInput.toJSON(input.params.stateWitness),
+
         networkState: NetworkState.toJSON(input.params.networkState),
 
         blockWitness: BlockHashMerkleTreeWitness.toJSON(
@@ -102,8 +106,12 @@ export class NewBlockProvingParametersSerializer
       input2: await this.transactionProofSerializer.fromJSON(jsonObject.input2),
 
       params: {
-        publicInput: BlockProverPublicInput.fromJSON(
-          jsonObject.params.publicInput
+        publicInput: new BlockProverPublicInput(
+          BlockProverPublicInput.fromJSON(jsonObject.params.publicInput)
+        ),
+
+        stateWitness: new BlockProverStateInput(
+          BlockProverStateInput.fromJSON(jsonObject.params.stateWitness)
         ),
 
         networkState: new NetworkState(

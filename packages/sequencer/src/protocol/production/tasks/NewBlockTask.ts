@@ -13,6 +13,7 @@ import {
   TransactionProvable,
   BlockArguments,
   BlockArgumentsBatch,
+  BlockProverStateInput,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
 import {
@@ -37,6 +38,7 @@ export type NewBlockArguments = {
 
 export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
+  stateWitness: BlockProverStateInput;
   networkState: NetworkState;
   blockWitness: BlockHashMerkleTreeWitness;
   deferSTProof: Bool;
@@ -103,6 +105,7 @@ export class NewBlockTask
       networkState,
       blockWitness,
       publicInput,
+      stateWitness,
       deferSTProof,
       deferTransactionProof,
       blocks,
@@ -123,6 +126,7 @@ export class NewBlockTask
       async () => {
         await this.blockProver.proveBlockBatch(
           publicInput,
+          stateWitness,
           networkState,
           blockWitness,
           input1,
