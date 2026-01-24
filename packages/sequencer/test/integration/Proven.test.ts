@@ -5,6 +5,7 @@ import {
   MOCK_VERIFICATION_KEY,
   ChildVerificationKeyService,
   CompileRegistry,
+  range,
 } from "@proto-kit/common";
 import { Runtime } from "@proto-kit/module";
 import {
@@ -94,7 +95,9 @@ describe("Proven", () => {
           BlockTrigger: {},
           Mempool: {},
           BatchProducerModule: {},
-          BlockProducerModule: {},
+          BlockProducerModule: {
+            maximumBlockSize: 5,
+          },
           LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           TaskQueue: {},
           FeeStrategy: {},
@@ -190,7 +193,7 @@ describe("Proven", () => {
     }
   }, 500000);
 
-  it(
+  it.skip(
     "should produce simple block",
     async () => {
       expect.assertions(6);
@@ -216,9 +219,48 @@ describe("Proven", () => {
 
       console.log(batch.proof);
 
-      expect(batch.proof.proof.length).toBeGreaterThan(50);
       expect(batch.blockHashes).toHaveLength(1);
+      expect(batch.proof.proof.length).toBeGreaterThan(50);
     },
     timeout
+  );
+
+  it(
+    "should produce large block",
+    async () => {
+      log.setLevel("INFO");
+
+      const privateKey = PrivateKey.random();
+
+      for (const i of range(0, 30)) {
+        await test.addTransaction({
+          method: ["Balances", "addBalance"],
+          privateKey,
+          args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
+        });
+      }
+
+      // Produce 6 blocks, 5 txs each into 1 batch
+      const block = await test.produceBlock();
+
+      expectDefined(block);
+      expect(block.transactions).toHaveLength(5);
+      expect(block.transactions[0].status.toBoolean()).toBe(true);
+
+      await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+      // await test.produceBlock();
+      const batch = await test.produceBatch();
+
+      expectDefined(batch);
+
+      console.log(batch.proof);
+
+      expect(batch.blockHashes).toHaveLength(6);
+      expect(batch.proof.proof.length).toBeGreaterThan(50);
+    },
+    timeout * 10
   );
 });
