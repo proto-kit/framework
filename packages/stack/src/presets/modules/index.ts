@@ -196,7 +196,7 @@ export class DefaultConfigs {
   }) {
     return {
       Graphql: VanillaGraphqlModules.defaultConfig(),
-      GraphqlServer: DefaultConfigs.graphqlServer({
+      ...DefaultConfigs.graphqlServer({
         preset: options?.preset,
         overrides: options?.overrides,
       }),
@@ -452,9 +452,11 @@ export class DefaultConfigs {
     );
 
     return {
-      port: config.graphqlPort,
-      host: config.graphqlHost,
-      graphiql: config.graphiqlEnabled,
+      GraphqlServer: {
+        port: config.graphqlPort,
+        host: config.graphqlHost,
+        graphiql: config.graphiqlEnabled,
+      },
     };
   }
 
