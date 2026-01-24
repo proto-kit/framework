@@ -357,8 +357,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     const deferredOutput = {
       ...publicInput,
-      blockProverStateHashRemainder: finalizedOutput.hash(),
     };
+    deferredOutput.proverStateRemainder = finalizedOutput.hash();
 
     return new BlockProverPublicOutput(
       Provable.if(
