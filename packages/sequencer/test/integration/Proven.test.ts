@@ -251,7 +251,7 @@ describe("Proven", () => {
       await test.produceBlock();
       await test.produceBlock();
       await test.produceBlock();
-      // await test.produceBlock();
+      await test.produceBlock();
       const batch = await test.produceBatch();
 
       expectDefined(batch);
