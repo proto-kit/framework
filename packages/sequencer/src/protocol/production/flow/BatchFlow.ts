@@ -48,6 +48,11 @@ export class BatchFlow {
           b.publicInput.eternalTransactionsHash
         )
       )
+      .and(
+        a.publicOutput.proverStateRemainder.equals(
+          b.publicInput.proverStateRemainder
+        )
+      )
       .toBoolean();
   }
 

@@ -79,9 +79,13 @@ export abstract class ProvableHashList<Value> {
   ) {
     const { from, to } = transition;
 
-    condition
-      .implies(from.equals(this.commitment))
-      .assertTrue(`From-commitment for ${message} not matching`);
+    // Equal to condition -> (from == this.commitment)
+    from
+      .mul(condition.toField())
+      .assertEquals(
+        this.commitment.mul(condition.toField()),
+        `From-commitment for ${message} not matching`
+      );
 
     this.commitment = Provable.if(condition, to, this.commitment);
   }
