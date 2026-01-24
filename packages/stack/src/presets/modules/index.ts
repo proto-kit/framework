@@ -19,13 +19,13 @@ import {
   DatabasePruneModule,
   InMemoryDatabase,
   LocalTaskQueue,
+  AppChainModulesRecord,
 } from "@proto-kit/sequencer";
 import {
   IndexerNotifier,
   GeneratedResolverFactoryGraphqlModule,
   IndexBlockTask,
 } from "@proto-kit/indexer";
-import { PrivateKey } from "o1js";
 import { PrismaRedisDatabase } from "@proto-kit/persistance";
 import { BullQueue } from "@proto-kit/deployment";
 import {
@@ -41,579 +41,476 @@ import {
   InMemoryTransactionSender,
   StateServiceQueryModule,
 } from "@proto-kit/sdk";
-import { AppChainModulesRecord } from "@proto-kit/sequencer";
+import { PrivateKey } from "o1js";
+import { NonEmptyArray } from "type-graphql";
+
 import {
   buildCustomTokenConfig,
   buildSettlementTokenConfig,
-  definePreset,
-  orderModulesByDependencies,
-  parseApiEnv,
-  parseCoreEnv,
-  parseMetricsEnv,
-  parseSettlementEnv,
-  parseIndexerEnv,
-  parseProcessorEnv,
-  parseDatabaseEnv,
-  parseDatabasePruneEnv,
-  parseGraphqlServerEnv,
-  parseRedisEnv,
   resolveEnv,
 } from "./utils";
-import { NonEmptyArray } from "type-graphql";
 import {
   Environment,
-  ModuleOverrides,
-  ApiEnv,
-  ConfigOverrides,
   CoreEnv,
   MetricsEnv,
   IndexerEnv,
   ProcessorEnv,
   SettlementEnv,
-  DatabaseEnv,
-  TaskQueueEnv,
-  DatabasePruneEnv,
-  GraphqlServerEnv,
   RedisEnv,
+  DatabaseEnv,
+  RedisTaskQueueEnv,
+  GraphqlServerEnv,
 } from "./types";
 
 export class DefaultModules {
-  static api(options?: {
-    overrides?: ModuleOverrides;
-  }): SequencerModulesRecord {
-    return definePreset(
-      {
-        GraphqlServer,
-        Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
-      },
-      options?.overrides
-    );
+  static api() {
+    return {
+      GraphqlServer,
+      Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
+    } satisfies SequencerModulesRecord;
   }
-  static core(options?: {
-    overrides?: ModuleOverrides;
-    settlementEnabled?: boolean;
-  }): SequencerModulesRecord {
-    return definePreset(
-      {
-        ...DefaultModules.api(),
-        Mempool: PrivateMempool,
-        BlockProducerModule,
-        BlockTrigger: TimedBlockTrigger,
-        SequencerStartupModule,
-        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.withoutSettlement()
-        ),
-        ...(options?.settlementEnabled ? DefaultModules.settlement() : {}),
-      },
-      options?.overrides
-    );
+
+  static core(options?: { settlementEnabled?: boolean }) {
+    const settlementEnabled = options?.settlementEnabled ?? false;
+    return {
+      ...(settlementEnabled ? DefaultModules.settlement() : {}),
+      ...DefaultModules.api(),
+      Mempool: PrivateMempool,
+      BlockProducerModule,
+      BlockTrigger: TimedBlockTrigger,
+      SequencerStartupModule,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.withoutSettlement()
+      ),
+    } satisfies SequencerModulesRecord;
   }
-  static metrics(options?: {
-    overrides?: ModuleOverrides;
-  }): SequencerModulesRecord {
-    return definePreset(
-      {
-        OpenTelemetryServer,
-      },
-      options?.overrides
-    );
+
+  static metrics() {
+    return {
+      OpenTelemetryServer,
+    } satisfies SequencerModulesRecord;
   }
-  static settlement(options?: {
-    overrides?: ModuleOverrides;
-  }): SequencerModulesRecord {
-    return definePreset(
-      {
-        BaseLayer: MinaBaseLayer,
-        FeeStrategy: ConstantFeeStrategy,
-        BatchProducerModule,
-        SettlementModule,
-        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.allTasks()
-        ),
-      },
-      options?.overrides
-    );
+
+  static settlement() {
+    return {
+      BaseLayer: MinaBaseLayer,
+      FeeStrategy: ConstantFeeStrategy,
+      BatchProducerModule,
+      SettlementModule,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.allTasks()
+      ),
+    } satisfies SequencerModulesRecord;
   }
-  static sequencerIndexer(options?: {
-    overrides?: ModuleOverrides;
-  }): SequencerModulesRecord {
-    return definePreset(
-      {
-        IndexerNotifier,
-      },
-      options?.overrides
-    );
+
+  static sequencerIndexer() {
+    return {
+      IndexerNotifier,
+    } satisfies SequencerModulesRecord;
   }
-  static indexer(options?: { overrides?: ModuleOverrides }) {
-    return definePreset(
-      {
-        Database: PrismaRedisDatabase,
-        TaskQueue: BullQueue,
-        TaskWorker: LocalTaskWorkerModule.from({
-          IndexBlockTask,
-        }),
-        GraphqlServer,
-        Graphql: GraphqlSequencerModule.from({
-          GeneratedResolverFactory: GeneratedResolverFactoryGraphqlModule,
-        }),
-      },
-      options?.overrides
-    );
+
+  static indexer() {
+    return {
+      Database: PrismaRedisDatabase,
+      TaskQueue: BullQueue,
+      TaskWorker: LocalTaskWorkerModule.from({
+        IndexBlockTask,
+      }),
+      GraphqlServer,
+      Graphql: GraphqlSequencerModule.from({
+        GeneratedResolverFactory: GeneratedResolverFactoryGraphqlModule,
+      }),
+    } satisfies SequencerModulesRecord;
   }
+
   static processor<PrismaClient extends BasePrismaClient>(
     resolvers: NonEmptyArray<Function>,
-    handlers: HandlersRecord<PrismaClient>,
-    options?: { overrides?: ModuleOverrides }
+    handlers: HandlersRecord<PrismaClient>
   ) {
-    return definePreset(
-      {
-        GraphqlServer,
-        GraphqlSequencerModule: GraphqlSequencerModule.from({
-          ResolverFactory: ResolverFactoryGraphqlModule.from(resolvers),
-        }),
-        HandlersExecutor: HandlersExecutor.from(handlers),
-        BlockFetching,
-        Trigger: TimedProcessorTrigger,
-      },
-      options?.overrides
-    );
+    return {
+      GraphqlServer,
+      GraphqlSequencerModule: GraphqlSequencerModule.from({
+        ResolverFactory: ResolverFactoryGraphqlModule.from(resolvers),
+      }),
+      HandlersExecutor: HandlersExecutor.from(handlers),
+      BlockFetching,
+      Trigger: TimedProcessorTrigger,
+    } satisfies SequencerModulesRecord;
   }
-  static database(options?: {
-    overrides?: ModuleOverrides;
-    preset?: Environment;
-  }): SequencerModulesRecord {
-    const preset = options?.preset ?? "inmemory";
 
-    return definePreset(
-      {
-        Database:
-          preset === "inmemory" ? InMemoryDatabase : PrismaRedisDatabase,
-      },
-      options?.overrides
-    );
+  static inMemoryDatabase() {
+    return {
+      Database: InMemoryDatabase,
+    } satisfies SequencerModulesRecord;
   }
-  static taskQueue(options?: {
-    overrides?: ModuleOverrides;
-    preset?: Environment;
-  }): SequencerModulesRecord {
-    const preset = options?.preset ?? "inmemory";
-    return definePreset(
-      {
-        TaskQueue: preset === "inmemory" ? LocalTaskQueue : BullQueue,
-      },
-      options?.overrides
-    );
+
+  static PrismaRedisDatabase() {
+    return {
+      Database: PrismaRedisDatabase,
+      DatabasePruneModule,
+    } satisfies SequencerModulesRecord;
   }
-  static databasePrune(options?: {
-    overrides?: ModuleOverrides;
-  }): SequencerModulesRecord {
-    return definePreset(
-      {
-        DatabasePruneModule,
-      },
-      options?.overrides
-    );
+
+  static localTaskQueue() {
+    return {
+      TaskQueue: LocalTaskQueue,
+    } satisfies SequencerModulesRecord;
   }
-  static worker(options?: {
-    overrides?: ModuleOverrides;
-  }): SequencerModulesRecord {
-    return definePreset(
-      {
-        TaskQueue: BullQueue,
-        LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.allTasks()
-        ),
-      },
-      options?.overrides
-    );
+
+  static RedisTaskQueue() {
+    return {
+      TaskQueue: BullQueue,
+    } satisfies SequencerModulesRecord;
   }
-  static appChainBase(options?: {
-    overrides?: Partial<AppChainModulesRecord>;
-  }): AppChainModulesRecord {
-    return definePreset(
-      {
-        TransactionSender: InMemoryTransactionSender,
-        QueryTransportModule: StateServiceQueryModule,
-        NetworkStateTransportModule: BlockStorageNetworkStateModule,
-      },
-      options?.overrides
-    ) as AppChainModulesRecord;
+
+  static worker() {
+    return {
+      TaskQueue: BullQueue,
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.allTasks()
+      ),
+    } satisfies SequencerModulesRecord;
   }
-  static settlementScript(options?: {
-    overrides?: ModuleOverrides;
-  }): SequencerModulesRecord {
-    return definePreset(
-      {
-        ...DefaultModules.settlement(),
-        Mempool: PrivateMempool,
-        TaskQueue: LocalTaskQueue,
-        SequencerStartupModule,
-      },
-      options?.overrides
-    );
+
+  static appChainBase() {
+    return {
+      TransactionSender: InMemoryTransactionSender,
+      QueryTransportModule: StateServiceQueryModule,
+      NetworkStateTransportModule: BlockStorageNetworkStateModule,
+    } satisfies AppChainModulesRecord;
   }
-  static ordered(modules: any) {
-    return orderModulesByDependencies(modules);
+
+  static settlementScript() {
+    return {
+      ...DefaultModules.settlement(),
+      Mempool: PrivateMempool,
+      TaskQueue: LocalTaskQueue,
+      SequencerStartupModule,
+    } satisfies SequencerModulesRecord;
   }
 }
 export class DefaultConfigs {
   static api(options?: {
     preset?: Environment;
-    envs?: Partial<ApiEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    return definePreset(
-      {
-        Graphql: VanillaGraphqlModules.defaultConfig(),
-        GraphqlServer: DefaultConfigs.graphqlServer({
-          type: "protokit",
-          preset: options?.preset,
-          envs: options?.envs,
-        }),
-      },
-      options?.overrides
-    );
+    overrides?: Partial<GraphqlServerEnv>;
+  }) {
+    return {
+      Graphql: VanillaGraphqlModules.defaultConfig(),
+      GraphqlServer: DefaultConfigs.graphqlServer({
+        preset: options?.preset,
+        overrides: options?.overrides,
+      }),
+    };
   }
+
   static core(options?: {
     preset?: Environment;
-    envs?: Partial<CoreEnv> & Partial<ApiEnv> & Partial<SettlementEnv>;
-    overrides?: ConfigOverrides;
+    overrides?: Partial<CoreEnv> &
+      Partial<GraphqlServerEnv> &
+      Partial<SettlementEnv>;
     settlementEnabled?: boolean;
-  }): ConfigOverrides {
-    const config = resolveEnv<CoreEnv>(options?.preset, options?.envs);
-    const parsed = parseCoreEnv(
-      { ...config, ...options?.envs },
-      options?.settlementEnabled
-    );
+  }) {
+    const settlementEnabled = options?.settlementEnabled ?? false;
+    const config = resolveEnv<CoreEnv>(options?.preset, options?.overrides);
     const apiConfig = DefaultConfigs.api({
       preset: options?.preset,
-      envs: options?.envs,
+      overrides: options?.overrides,
     });
-    const settlementConfig = options?.settlementEnabled
+    const settlementConfig = settlementEnabled
       ? DefaultConfigs.settlement({
           preset: options?.preset,
-          envs: options?.envs,
+          overrides: options?.overrides,
         })
       : {};
     const blockTriggerConfig = {
-      blockInterval: parsed.blockInterval,
+      blockInterval: config.blockInterval,
       produceEmptyBlocks: true,
-      ...(options?.settlementEnabled
+      ...(settlementEnabled
         ? {
-            settlementInterval: parsed.settlementInterval,
+            settlementInterval: config.settlementInterval,
             settlementTokenConfig: buildSettlementTokenConfig(
-              parsed.minaBridgeKey!,
+              config.minaBridgeContractPrivateKey!,
               buildCustomTokenConfig(
-                parsed.customTokenKey,
-                parsed.customTokenBridgeKey
+                config.customTokenPrivateKey,
+                config.customTokenBridgePrivateKey
               )
             ),
           }
         : { settlementTokenConfig: {} }),
     };
 
-    return definePreset(
-      {
-        ...apiConfig,
-        Mempool: {},
-        BlockProducerModule: {},
-        BlockTrigger: blockTriggerConfig,
-        SequencerStartupModule: {},
-        LocalTaskWorkerModule: VanillaGraphqlModules.defaultConfig(),
-        ...settlementConfig,
-      },
-      options?.overrides
-    );
+    return {
+      ...apiConfig,
+      Mempool: {},
+      BlockProducerModule: {},
+      BlockTrigger: blockTriggerConfig,
+      SequencerStartupModule: {},
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      ...settlementConfig,
+    };
   }
+
   static metrics(options?: {
     preset?: Environment;
-    envs?: MetricsEnv;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const configs = resolveEnv<MetricsEnv>(options?.preset, options?.envs);
-    const parsed = parseMetricsEnv(configs);
-    return definePreset(
-      {
-        OpenTelemetryServer: {
-          metrics: {
-            enabled: parsed.metricsEnabled,
-            prometheus: {
-              host: parsed.metricsHost,
-              port: parsed.metricsPort,
-              appendTimestamp: true,
-            },
-            nodeScrapeInterval: parsed.metricsScrapingFrequency,
+    overrides?: Partial<MetricsEnv>;
+  }) {
+    const config = resolveEnv<MetricsEnv>(options?.preset, options?.overrides);
+    return {
+      OpenTelemetryServer: {
+        metrics: {
+          enabled: config.metricsEnabled,
+          prometheus: {
+            host: config.metricsHost,
+            port: config.metricsPort,
+            appendTimestamp: true,
           },
-          tracing: {
-            enabled: parsed.tracingEnabled,
-            otlp: {
-              url: parsed.tracingUrl,
-            },
+          nodeScrapeInterval: config.metricsScrapingFrequency,
+        },
+        tracing: {
+          enabled: config.tracingEnabled,
+          otlp: {
+            url: config.tracingUrl,
           },
         },
       },
-      options?.overrides
-    );
+    };
   }
-  static sequencerIndexer(options?: {
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    return definePreset({ IndexerNotifier: {} }, options?.overrides);
+
+  static sequencerIndexer() {
+    return { IndexerNotifier: {} };
   }
+
   static indexer(options?: {
     preset?: Environment;
-    envs?: Partial<IndexerEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const config = resolveEnv<IndexerEnv>(options?.preset, options?.envs);
-    const parsed = parseIndexerEnv(config);
-    const redisConfig = DefaultConfigs.redis({
+    overrides?: Partial<IndexerEnv>;
+  }) {
+    const config = resolveEnv(options?.preset, options?.overrides);
+    const taskQueueConfig = DefaultConfigs.redisTaskQueue({
       preset: options?.preset,
-      envs: options?.envs,
+      overrides: options?.overrides,
     });
-    const databaseConfig = DefaultConfigs.database({
+    const databaseConfig = DefaultConfigs.prismaRedisDatabase({
       preset: options?.preset,
-      envs: options?.envs,
+      overrides: {
+        databaseUrl: config.indexerDatabaseUrl,
+        ...options?.overrides,
+      },
     });
     const graphqlServerConfig = DefaultConfigs.graphqlServer({
-      type: "indexer",
       preset: options?.preset,
-      envs: options?.envs,
+      overrides: {
+        graphqlHost: config.indexerGraphqlHost,
+        graphqlPort: config.indexerGraphqlPort,
+        graphiqlEnabled: config.indexerGraphqlEnabled,
+        ...options?.overrides,
+      },
     });
 
-    return definePreset(
-      {
-        ...databaseConfig,
-        TaskQueue: redisConfig.TaskQueue,
-        TaskWorker: {
-          IndexBlockTask: {},
-        },
-        ...graphqlServerConfig,
-        Graphql: {
-          GeneratedResolverFactory: {},
-        },
+    return {
+      ...databaseConfig,
+      ...taskQueueConfig,
+      TaskWorker: {
+        IndexBlockTask: {},
       },
-      options?.overrides
-    );
+      ...graphqlServerConfig,
+      Graphql: {
+        GeneratedResolverFactory: {},
+      },
+    };
   }
+
   static processor(options?: {
     preset?: Environment;
-    envs?: Partial<ProcessorEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const config = resolveEnv<ProcessorEnv>(options?.preset, options?.envs);
-    const parsed = parseProcessorEnv(config);
-    const graphqlServerConfig = DefaultConfigs.graphqlServer({
-      type: "processor",
-      preset: options?.preset,
-      envs: options?.envs,
-    });
-    return definePreset(
-      {
-        HandlersExecutor: {},
-        BlockFetching: {
-          url: `http://${parsed.processorIndexerGraphqlHost}:${parsed.indexerGraphqlPort}`,
-        },
-        Trigger: {
-          interval: (parsed.blockInterval ?? 5000) / 5,
-        },
-        ...graphqlServerConfig,
-        GraphqlSequencerModule: {
-          ResolverFactory: {},
-        },
-      },
+    overrides?: Partial<ProcessorEnv>;
+  }) {
+    const config = resolveEnv<ProcessorEnv>(
+      options?.preset,
       options?.overrides
     );
+    const graphqlServerConfig = DefaultConfigs.graphqlServer({
+      preset: options?.preset,
+      overrides: {
+        graphqlHost: config.processorGraphqlHost,
+        graphqlPort: config.processorGraphqlPort,
+        graphiqlEnabled: config.processorGraphqlEnabled,
+        ...options?.overrides,
+      },
+    });
+    return {
+      HandlersExecutor: {},
+      BlockFetching: {
+        url: `http://${config.processorIndexerGraphqlHost}:${config.indexerGraphqlPort}`,
+      },
+      Trigger: {
+        interval: Number(config.blockInterval) / 5,
+      },
+      ...graphqlServerConfig,
+      GraphqlSequencerModule: {
+        ResolverFactory: {},
+      },
+    };
   }
+
   static settlement(options?: {
     preset?: Environment;
-    envs?: Partial<SettlementEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const config = resolveEnv<SettlementEnv>(options?.preset, options?.envs);
-    const parsed = parseSettlementEnv(config);
-
-    return definePreset(
-      {
-        BaseLayer: {
-          network: {
-            type: parsed.network,
-            graphql: parsed.graphql,
-            archive: parsed.archive,
-            accountManager: parsed.accountManager,
-          },
-        },
-        SettlementModule: {
-          feepayer: PrivateKey.fromBase58(parsed.sequencerPrivateKey),
-          keys: {
-            settlement: PrivateKey.fromBase58(
-              parsed.settlementContractPrivateKey
-            ),
-            dispatch: PrivateKey.fromBase58(
-              parsed.dispatcherContractPrivateKey
-            ),
-            minaBridge: PrivateKey.fromBase58(
-              parsed.minaBridgeContractPrivateKey
-            ),
-          },
-        },
-        FeeStrategy: {},
-        BatchProducerModule: {},
-      },
+    overrides?: Partial<SettlementEnv>;
+  }) {
+    const config = resolveEnv<SettlementEnv>(
+      options?.preset,
       options?.overrides
     );
-  }
-  static database(options?: {
-    preset?: Environment;
-    envs?: Partial<DatabaseEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const preset = options?.preset ?? "inmemory";
-    if (preset === "inmemory") {
-      return { Database: definePreset({}, options?.overrides) };
-    }
-    const config = resolveEnv<DatabaseEnv>(options?.preset, options?.envs);
-    const parsed = parseDatabaseEnv(config);
-    const redisConfig = DefaultConfigs.redis({
-      preset: options?.preset,
-      envs: options?.envs,
-    });
-    return {
-      Database: definePreset(
-        {
-          ...redisConfig,
-          prisma: {
-            connection: parsed.databaseUrl,
-          },
-        },
-        options?.overrides
-      ),
-    };
-  }
-  static taskQueue(options?: {
-    preset?: Environment;
-    envs?: Partial<TaskQueueEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const preset = options?.preset ?? "inmemory";
-    if (preset === "inmemory") {
-      return {
-        TaskQueue: definePreset({}, options?.overrides),
-      };
-    }
-    const redisConfig = DefaultConfigs.redis({
-      preset: options?.preset,
-      envs: options?.envs,
-    });
-
-    return { TaskQueue: definePreset(redisConfig, options?.overrides) };
-  }
-  static databasePrune(options?: {
-    preset?: Environment;
-    envs?: Partial<DatabasePruneEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const config = resolveEnv<DatabasePruneEnv>(options?.preset, options?.envs);
-    const parsed = parseDatabasePruneEnv(config);
 
     return {
-      DatabasePruneModule: definePreset(
-        {
-          pruneOnStartup: parsed.pruneOnStartup,
+      BaseLayer: {
+        network: {
+          type: "lightnet" as const,
+          graphql: config.minaNodeGraphqlHost,
+          archive: config.minaArchiveGraphqlHost,
+          accountManager: config.minaAccountManagerHost,
         },
-        options?.overrides
-      ),
+      },
+      SettlementModule: {
+        feepayer: PrivateKey.fromBase58(config.sequencerPrivateKey),
+        keys: {
+          settlement: PrivateKey.fromBase58(
+            config.settlementContractPrivateKey
+          ),
+          dispatch: PrivateKey.fromBase58(config.dispatcherContractPrivateKey),
+          minaBridge: PrivateKey.fromBase58(
+            config.minaBridgeContractPrivateKey
+          ),
+        },
+      },
+      FeeStrategy: {},
+      BatchProducerModule: {},
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
     };
   }
+
+  static inMemoryDatabase() {
+    return { Database: {} };
+  }
+
+  static prismaRedisDatabase(options?: {
+    preset?: Environment;
+    overrides?: Partial<DatabaseEnv>;
+  }) {
+    const preset = options?.preset ?? "development";
+    const config = resolveEnv<DatabaseEnv>(preset, options?.overrides);
+    const redisConfig = DefaultConfigs.redis({
+      preset,
+      overrides: options?.overrides,
+    });
+    return {
+      Database: {
+        ...redisConfig,
+        prisma: {
+          connection: config.databaseUrl,
+        },
+      },
+      DatabasePruneModule: {
+        pruneOnStartup: config.pruneOnStartup,
+      },
+    };
+  }
+
+  static localTaskQueue() {
+    return {
+      TaskQueue: {},
+    };
+  }
+
+  static redisTaskQueue(options?: {
+    preset?: Environment;
+    overrides?: Partial<RedisTaskQueueEnv>;
+  }) {
+    const config = resolveEnv<RedisTaskQueueEnv>(
+      options?.preset,
+      options?.overrides
+    );
+
+    return {
+      TaskQueue: {
+        redis: {
+          host: config.redisHost,
+          port: config.redisPort,
+          password: config.redisPassword,
+          db: config.redisDb,
+        },
+        retryAttempts: config.retryAttempts,
+      },
+    };
+  }
+
   static graphqlServer(options?: {
     preset?: Environment;
-    envs?: Partial<GraphqlServerEnv>;
-    overrides?: ConfigOverrides;
-    type?: "indexer" | "processor" | "protokit";
-  }): ConfigOverrides {
-    const config = resolveEnv<GraphqlServerEnv>(options?.preset, options?.envs);
-    const parsed = parseGraphqlServerEnv(config, options?.type);
-
-    return definePreset(
-      {
-        port: parsed.graphqlPort,
-        host: parsed.graphqlHost,
-        graphiql: parsed.graphiqlEnabled,
-      },
+    overrides?: Partial<GraphqlServerEnv>;
+  }) {
+    const config = resolveEnv<GraphqlServerEnv>(
+      options?.preset,
       options?.overrides
     );
-  }
-  static redis(options?: {
-    preset?: Environment;
-    envs?: Partial<RedisEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const config = resolveEnv<RedisEnv>(options?.preset, options?.envs);
-    const parsed = parseRedisEnv(config);
 
     return {
-      redis: definePreset(
-        {
-          host: parsed.redisHost,
-          port: parsed.redisPort,
-          password: parsed.redisPassword,
-        },
-        options?.overrides
-      ),
+      port: config.graphqlPort,
+      host: config.graphqlHost,
+      graphiql: config.graphiqlEnabled,
     };
   }
-  static appChainBase(options?: {
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    return definePreset(
-      {
-        QueryTransportModule: {},
-        NetworkStateTransportModule: {},
-        TransactionSender: {},
+
+  static redis(options?: {
+    preset?: Environment;
+    overrides?: Partial<RedisEnv>;
+  }) {
+    const config = resolveEnv<RedisEnv>(options?.preset, options?.overrides);
+
+    return {
+      redis: {
+        host: config.redisHost,
+        port: config.redisPort,
+        password: config.redisPassword,
       },
-      options?.overrides
-    );
+    };
   }
+
+  static appChainBase() {
+    return {
+      QueryTransportModule: {},
+      NetworkStateTransportModule: {},
+      TransactionSender: {},
+    };
+  }
+
   static worker(options?: {
     preset?: Environment;
-    envs?: Partial<RedisEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
-    const redisConfig = DefaultConfigs.redis({
+    overrides?: Partial<RedisTaskQueueEnv>;
+  }) {
+    const taskQueueConfig = DefaultConfigs.redisTaskQueue({
       preset: options?.preset,
-      envs: options?.envs,
-      overrides: {
-        db: 1,
-      },
+      overrides: options?.overrides,
     });
 
-    return definePreset(
-      {
-        TaskQueue: redisConfig,
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
-      },
-      options?.overrides
-    );
+    return {
+      ...taskQueueConfig,
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+    };
   }
+
   static settlementScript(options?: {
     preset?: Environment;
-    envs?: Partial<SettlementEnv>;
-    overrides?: ConfigOverrides;
-  }): ConfigOverrides {
+    overrides?: Partial<SettlementEnv>;
+  }) {
     const settlementConfig = DefaultConfigs.settlement({
       preset: options?.preset,
-      envs: options?.envs,
+      overrides: options?.overrides,
     });
-    return definePreset(
-      {
-        ...settlementConfig,
-        SequencerStartupModule: {},
-        TaskQueue: {
-          simulatedDuration: 0,
-        },
-        Mempool: {},
+    return {
+      ...settlementConfig,
+      SequencerStartupModule: {},
+      TaskQueue: {
+        simulatedDuration: 0,
       },
-      options?.overrides
-    );
+      Mempool: {},
+    };
   }
 }
