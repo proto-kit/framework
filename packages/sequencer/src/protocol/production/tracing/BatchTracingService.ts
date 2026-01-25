@@ -117,21 +117,21 @@ export class BatchTracingService {
           state
         );
 
+        const [blockArgumentBatch, transactionTraces] = unzip(combinedTraces);
+
         // Fill up with dummies
         const dummyBlockArgs = BlockArguments.noop(
           newState,
           Field(blocks.at(-1)!.result.stateRoot)
         );
         const dummies = range(
-          blocks.length,
+          blockArgumentBatch.length,
           BLOCK_ARGUMENT_BATCH_SIZE
         ).map<NewBlockArguments>(() => ({
           args: dummyBlockArgs,
           startingStateAfterHook: {},
           startingStateBeforeHook: {},
         }));
-
-        const [blockArgumentBatch, transactionTraces] = unzip(combinedTraces);
 
         const blockTrace: BlockTrace = {
           block: {
