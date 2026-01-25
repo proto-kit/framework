@@ -14,6 +14,7 @@ import {
   BlockArguments,
   BlockArgumentsBatch,
   BlockProverStateInput,
+  BLOCK_ARGUMENT_BATCH_SIZE,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
 import {
@@ -110,6 +111,10 @@ export class NewBlockTask
       deferTransactionProof,
       blocks,
     } = parameters;
+
+    if (blocks.length !== BLOCK_ARGUMENT_BATCH_SIZE) {
+      throw new Error("Given block argument length not exactly batch size");
+    }
 
     const blockArgumentBatch = new BlockArgumentsBatch({
       batch: blocks.map((block) => block.args),
