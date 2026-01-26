@@ -9,10 +9,8 @@ import {
   StateTransitionProvable,
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
 import {
-  log,
   ProvableMethodExecutionContext,
   CompileRegistry,
   LinkedMerkleTreeWitness,

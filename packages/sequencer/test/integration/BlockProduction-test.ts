@@ -697,6 +697,7 @@ export function testBlockProduction<
 
       const privateKey = PrivateKey.random();
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       for (const i of range(0, 7)) {
         await test.addTransaction({
           method: ["Balance", "addBalance"],
