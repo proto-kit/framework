@@ -93,7 +93,7 @@ export class BridgingSettlementInteraction implements SettleInteraction {
       {
         sender: feepayer,
         nonce: options?.nonce,
-        fee: this.feeStrategy.getFee(),
+        fee: await this.feeStrategy.getFee(),
         memo: "Protokit settle",
       },
       async () => {

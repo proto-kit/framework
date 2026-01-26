@@ -87,7 +87,7 @@ export class BridgingDeployInteraction implements DeployInteraction {
       {
         sender: feepayer,
         nonce,
-        fee: this.feeStrategy.getFee(),
+        fee: await this.feeStrategy.getFee(),
         memo: "Protokit settlement deploy",
       },
       async () => {

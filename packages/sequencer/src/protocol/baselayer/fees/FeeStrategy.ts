@@ -1,3 +1,3 @@
 export interface FeeStrategy {
-  getFee(): number;
+  getFee(): Promise<number>;
 }
