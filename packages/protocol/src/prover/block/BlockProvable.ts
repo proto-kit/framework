@@ -318,6 +318,11 @@ export class BlockProverState {
           condition,
           a.witnessedRoots.commitment,
           b.witnessedRoots.commitment
+        ),
+        Provable.if(
+          condition,
+          a.witnessedRoots.preimage,
+          b.witnessedRoots.preimage
         )
       ),
       stateRoot: Provable.if(condition, a.stateRoot, b.stateRoot),
