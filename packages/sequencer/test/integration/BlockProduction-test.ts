@@ -34,6 +34,7 @@ import {
   DatabasePruneModule,
   AsyncLinkedLeafStore,
   AppChain,
+  BlockProducerModule,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -682,6 +683,45 @@ export function testBlockProduction<
 
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
+  }, 30000);
+
+  it("should produce some filled blocks and some empty blocks", async () => {
+    log.setLevel("INFO");
+
+    (sequencer.resolve("BlockProducerModule") as BlockProducerModule).config = {
+      maximumBlockSize: 5,
+    };
+
+    const privateKey = PrivateKey.random();
+
+    for (const i of range(0, 7)) {
+      await test.addTransaction({
+        method: ["Balance", "addBalance"],
+        privateKey,
+        args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
+      });
+    }
+
+    // Produce 6 blocks, 5 txs each into 1 batch
+    const block = await test.produceBlock();
+
+    expectDefined(block);
+    expect(block.transactions).toHaveLength(5);
+    expect(block.transactions[0].status.toBoolean()).toBe(true);
+
+    await test.produceBlock();
+    await test.produceBlock();
+    await test.produceBlock();
+    await test.produceBlock();
+    await test.produceBlock();
+    const batch = await test.produceBatch();
+
+    expectDefined(batch);
+
+    console.log(batch.proof);
+
+    expect(batch.blockHashes).toHaveLength(6);
+    expect(batch.proof.proof.length).toBeGreaterThan(50);
   }, 30000);
 
   it("events - should produce block with the right events", async () => {

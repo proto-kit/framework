@@ -13,7 +13,6 @@ export class WitnessedRoot extends Struct({
 
 export class WitnessedRootWitness extends Struct({
   witnessedRoot: Field,
-  // preimage: Field,
 }) {}
 
 /**
@@ -37,8 +36,6 @@ export class WitnessedRootHashList extends DefaultProvableHashList<WitnessedRoot
    * points fall back to the same ST (because any batches in between were empty),
    * this has to be detected and compensated for.
    * This function does this using the preimage of the current list state.
-   *
-   * @param preimage The preimage to the **current** state of the list.
    */
   public witnessRoot(witnessedRoot: WitnessedRoot, condition: Bool) {
     // Note, we don't have to validate the preimage here because of the following
@@ -55,15 +52,11 @@ export class WitnessedRootHashList extends DefaultProvableHashList<WitnessedRoot
     // (2) don't append if preimage.push({ finalizedRoot, pendingSTBatchesHash }) == this.commitment
     const skipPush = preimageCheckList.commitment.equals(this.commitment);
 
-    // Provable.log("preimage", preimage);
-    Provable.log("Pushing witnessed root", witnessedRoot, skipPush);
-
     const fromCommitment = this.commitment;
 
     const pushCondition = condition.and(skipPush.not());
     this.pushIf(witnessedRoot, pushCondition);
 
     this.preimage = Provable.if(pushCondition, fromCommitment, this.preimage);
-    Provable.log(this.commitment);
   }
 }
