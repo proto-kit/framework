@@ -377,6 +377,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const { networkState, blockWitness } = state;
     const { afterBlockRootWitness, transactionsHash, isDummy } = args;
 
+    const startingPendingStBatches = state.pendingSTBatches.commitment;
+
     // 1. Execute beforeBlock hooks
     const beforeBlockArgs = toBeforeBlockHookArgument(state);
     const beforeBlockResult = await this.executeBlockHooks(
@@ -439,18 +441,16 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
     // 4. Execute afterBlock hooks
     // Witness root
-    const isEmpty = state.pendingSTBatches.commitment.equals(0);
-    isEmpty
-      .implies(state.stateRoot.equals(afterBlockRootWitness.witnessedRoot))
-      .assertTrue();
+    const hasNoSTBatches = state.pendingSTBatches.commitment.equals(
+      startingPendingStBatches
+    );
 
     state.witnessedRoots.witnessRoot(
       {
         appliedBatchListState: state.pendingSTBatches.commitment,
         root: afterBlockRootWitness.witnessedRoot,
       },
-      afterBlockRootWitness.preimage,
-      isEmpty.not()
+      hasNoSTBatches.not()
     );
 
     // Switch state service to afterBlock one

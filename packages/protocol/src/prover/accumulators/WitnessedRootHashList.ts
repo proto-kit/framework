@@ -1,4 +1,4 @@
-import { Bool, Field, Struct } from "o1js";
+import { Bool, Field, Provable, Struct } from "o1js";
 
 import { DefaultProvableHashList } from "../../utils/ProvableHashList";
 
@@ -13,7 +13,7 @@ export class WitnessedRoot extends Struct({
 
 export class WitnessedRootWitness extends Struct({
   witnessedRoot: Field,
-  preimage: Field,
+  // preimage: Field,
 }) {}
 
 /**
@@ -21,7 +21,10 @@ export class WitnessedRootWitness extends Struct({
  */
 
 export class WitnessedRootHashList extends DefaultProvableHashList<WitnessedRoot> {
-  public constructor(commitment: Field = Field(0)) {
+  public constructor(
+    commitment: Field = Field(0),
+    public preimage: Field = Field(0)
+  ) {
     super(WitnessedRoot, commitment);
   }
 
@@ -37,17 +40,13 @@ export class WitnessedRootHashList extends DefaultProvableHashList<WitnessedRoot
    *
    * @param preimage The preimage to the **current** state of the list.
    */
-  public witnessRoot(
-    witnessedRoot: WitnessedRoot,
-    preimage: Field,
-    condition: Bool
-  ) {
+  public witnessRoot(witnessedRoot: WitnessedRoot, condition: Bool) {
     // Note, we don't have to validate the preimage here because of the following
     // 1. If the sequencer doesn't provide the correct witness, the BlockProver's
     //    equality check will fail
     // 2. If the list is empty, no preimage exists, therefore condition (2) doesn't
     //    apply, which is the same outcome when the sequencer provides an arbitrary witness
-    const preimageCheckList = new WitnessedRootHashList(preimage).push(
+    const preimageCheckList = new WitnessedRootHashList(this.preimage).push(
       witnessedRoot
     );
 
@@ -56,6 +55,15 @@ export class WitnessedRootHashList extends DefaultProvableHashList<WitnessedRoot
     // (2) don't append if preimage.push({ finalizedRoot, pendingSTBatchesHash }) == this.commitment
     const skipPush = preimageCheckList.commitment.equals(this.commitment);
 
-    return this.pushIf(witnessedRoot, condition.and(skipPush.not()));
+    // Provable.log("preimage", preimage);
+    Provable.log("Pushing witnessed root", witnessedRoot, skipPush);
+
+    const fromCommitment = this.commitment;
+
+    const pushCondition = condition.and(skipPush.not());
+    this.pushIf(witnessedRoot, pushCondition);
+
+    this.preimage = Provable.if(pushCondition, fromCommitment, this.preimage);
+    Provable.log(this.commitment);
   }
 }
