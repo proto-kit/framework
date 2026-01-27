@@ -20,12 +20,12 @@ import {
   state,
   State,
   Permissions,
-  VerificationKey,
   TokenId,
   Field,
   UInt64,
   Poseidon,
   Provable,
+  method,
 } from "o1js";
 import { container } from "tsyringe";
 import { Withdrawal, WithdrawalMessageProcessor } from "@proto-kit/library";
@@ -33,6 +33,7 @@ import {
   InMemoryLinkedLeafStore,
   InMemoryMerkleTreeStorage,
   LinkedMerkleTree,
+  noop,
 } from "@proto-kit/common";
 
 class MockSettlementContract
@@ -42,8 +43,12 @@ class MockSettlementContract
   @state(Field) root = State<Field>(Field(100));
 
   public assertStateRoot(root: Field): AccountUpdate {
-    // this.root.requireNothing()
     return this.self;
+  }
+
+  @method
+  public async test() {
+    noop();
   }
 }
 
@@ -61,18 +66,22 @@ describe("bridging contract", () => {
     const key1 = PrivateKey.random();
     const key2 = PrivateKey.random();
 
+    const chain = await Mina.LocalBlockchain({ proofsEnabled });
+    Mina.setActiveInstance(chain);
+
+    const vkSettlement = await MockSettlementContract.compile();
+    const vk = await BridgeContract.compile();
+
     const settlement = new MockSettlementContract(key1.toPublicKey());
     const contract = new BridgeContract(key2.toPublicKey());
 
-    const chain = await Mina.LocalBlockchain({ proofsEnabled });
-    Mina.setActiveInstance(chain);
     const tx = await Mina.transaction(chain.testAccounts[0], async () => {
       AccountUpdate.fundNewAccount(chain.testAccounts[0], 2);
 
-      await settlement.deploy();
+      await settlement.deploy(vkSettlement);
 
       const accountUpdate = await contract.deployProvable(
-        VerificationKey.dummySync(),
+        vk.verificationKey,
         false,
         Permissions.default(),
         key1.toPublicKey()
@@ -137,19 +146,6 @@ describe("bridging contract", () => {
     };
 
     const treeWitness = tree.getReadWitness(path.toBigInt());
-    // expect(
-    //   treeWitness
-    //     .checkMembership(
-    //       tree.getRoot(),
-    //       path,
-    //       Poseidon.hash(Withdrawal.toFields(message))
-    //     )
-    //     .toBoolean()
-    // ).toBe(true);
-
-    Provable.log(Poseidon.hash(Withdrawal.toFields(message)));
-    Provable.log(path);
-    Provable.log(tree.getRoot());
 
     const tx3 = await Mina.transaction(chain.testAccounts[0], async () => {
       const funded = await contract.rollupOutgoingMessages(
@@ -174,5 +170,7 @@ describe("bridging contract", () => {
       .prove();
     const txId3 = await proven3.send();
     await txId3.wait();
-  });
+
+    console.log(proven3.proofs.map((p) => p?.toJSON()));
+  }, 300000);
 });
