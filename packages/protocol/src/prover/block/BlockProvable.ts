@@ -348,16 +348,25 @@ export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 export interface BlockProvable
   extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput>,
     CompilableModule {
-  proveBlockBatch: (
+  proveBlockBatchNoProofs: (
     publicInput: BlockProverPublicInput,
     stateWitness: BlockProverStateInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof,
+    batch: BlockArgumentsBatch,
+    finalize: Bool
+  ) => Promise<BlockProverPublicOutput>;
+
+  proveBlockBatchWithProofs: (
+    publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
+    networkState: NetworkState,
+    blockWitness: BlockHashMerkleTreeWitness,
+    batch: BlockArgumentsBatch,
     deferSTProof: Bool,
-    transactionProof: TransactionProof,
     deferTransactionProof: Bool,
-    batch: BlockArgumentsBatch
+    stateTransitionProof: StateTransitionProof,
+    transactionProof: TransactionProof
   ) => Promise<BlockProverPublicOutput>;
 
   merge: (

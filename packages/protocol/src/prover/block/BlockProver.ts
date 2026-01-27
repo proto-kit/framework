@@ -64,6 +64,8 @@ const errors = {
   propertyNotMatching: (propertyName: string) => `${propertyName} not matching`,
 };
 
+type Tail<T extends any[]> = T extends [infer A, ...infer Rest] ? Rest : never;
+
 type BlockHookArgument<T extends "before" | "after"> = T extends "before"
   ? BeforeBlockHookArguments
   : AfterBlockHookArguments;
@@ -222,70 +224,37 @@ export class BlockProverProgrammable extends ZkProgrammable<
     };
   }
 
-  @provableMethod()
-  public async proveBlockBatch(
-    publicInput: BlockProverPublicInput,
-    stateWitness: BlockProverStateInput,
-    networkState: NetworkState,
-    blockWitness: BlockHashMerkleTreeWitness,
+  private verifySTProof(
+    state: BlockProverState,
     stateTransitionProof: StateTransitionProof,
-    deferSTProof: Bool,
+    deferSTProof: Bool
+  ) {
+    // Verify ST Proof only if STs have been emitted,
+    // and we don't defer the verification of the STs
+    // otherwise we can input a dummy proof
+    const batchesEmpty = state.pendingSTBatches.commitment.equals(Field(0));
+    const verifyStProof = deferSTProof.not().and(batchesEmpty.not());
+    log.provable.debug("Verify STProof", verifyStProof);
+    stateTransitionProof.verifyIf(verifyStProof);
+
+    // Apply STProof if not deferred
+    const stateProofResult = this.includeSTProof(
+      stateTransitionProof,
+      verifyStProof,
+      state.stateRoot,
+      state.pendingSTBatches.commitment,
+      state.witnessedRoots.commitment
+    );
+    state.stateRoot = stateProofResult.stateRoot;
+    state.pendingSTBatches.commitment = stateProofResult.pendingSTBatchesHash;
+    state.witnessedRoots.commitment = stateProofResult.witnessedRootsHash;
+  }
+
+  private verifyTransactionProof(
+    state: BlockProverState,
     transactionProof: TransactionProof,
-    deferTransactionProof: Bool,
-    batch: BlockArgumentsBatch
-  ): Promise<BlockProverPublicOutput> {
-    const hasNoStateRemained = publicInput.proverStateRemainder.equals(0);
-
-    // If the state is supplied as a witness, we check that it is equals the PI's stateHash
-    stateWitness
-      .hash()
-      .equals(publicInput.proverStateRemainder)
-      .or(hasNoStateRemained)
-      .assertTrue("Input state witness is invalid");
-
-    const stateInputs = Provable.if(
-      hasNoStateRemained,
-      BlockProverStateInput,
-      BlockProverStateInput.fromPublicInput(publicInput),
-      stateWitness
-    );
-
-    stateInputs.networkStateHash.assertEquals(
-      networkState.hash(),
-      "Network state not valid"
-    );
-
-    let state = BlockProverState.blockProverFromCommitments(
-      stateInputs,
-      networkState,
-      blockWitness
-    );
-
-    // Calculate the new block tree hash
-    const blockIndex = blockWitness.calculateIndex();
-
-    blockIndex.assertEquals(stateInputs.blockNumber);
-
-    blockWitness
-      .calculateRoot(Field(0))
-      .assertEquals(
-        stateInputs.blockHashRoot,
-        "Supplied block hash witness not matching state root"
-      );
-
-    // Prove blocks iteratively
-    state = await reduceSequential(
-      batch.batch,
-      async (current, block) => {
-        const result = await this.proveBlock(current.copy(), block);
-
-        this.stateServiceProvider.popCurrentStateService();
-
-        return BlockProverState.choose(block.isDummy, current, result);
-      },
-      state
-    );
-
+    deferTransactionProof: Bool
+  ) {
     // Verify Transaction proof if it has at least 1 tx and it isn't deferred
     const finalizeBlockProof = deferTransactionProof.not();
     const verifyTransactionProof = finalizeBlockProof.and(
@@ -332,27 +301,61 @@ export class BlockProverProgrammable extends ZkProgrammable<
       verifyTransactionProof,
       "bundles hash"
     );
+  }
 
-    // Verify ST Proof only if STs have been emitted,
-    // and we don't defer the verification of the STs
-    // otherwise we can input a dummy proof
-    const batchesEmpty = state.pendingSTBatches.commitment.equals(Field(0));
-    const verifyStProof = deferSTProof.not().and(batchesEmpty.not());
-    log.provable.debug("Verify STProof", verifyStProof);
-    stateTransitionProof.verifyIf(verifyStProof);
+  private parseState(
+    publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
+    networkState: NetworkState,
+    blockWitness: BlockHashMerkleTreeWitness
+  ) {
+    const hasNoStateRemained = publicInput.proverStateRemainder.equals(0);
 
-    // Apply STProof if not deferred
-    const stateProofResult = this.includeSTProof(
-      stateTransitionProof,
-      verifyStProof,
-      state.stateRoot,
-      state.pendingSTBatches.commitment,
-      state.witnessedRoots.commitment
+    // If the state is supplied as a witness, we check that it is equals the PI's stateHash
+    stateWitness
+      .hash()
+      .equals(publicInput.proverStateRemainder)
+      .or(hasNoStateRemained)
+      .assertTrue("Input state witness is invalid");
+
+    const stateInputs = Provable.if(
+      hasNoStateRemained,
+      BlockProverStateInput,
+      BlockProverStateInput.fromPublicInput(publicInput),
+      stateWitness
     );
-    state.stateRoot = stateProofResult.stateRoot;
-    state.pendingSTBatches.commitment = stateProofResult.pendingSTBatchesHash;
-    state.witnessedRoots.commitment = stateProofResult.witnessedRootsHash;
 
+    stateInputs.networkStateHash.assertEquals(
+      networkState.hash(),
+      "Network state not valid"
+    );
+
+    const state = BlockProverState.blockProverFromCommitments(
+      stateInputs,
+      networkState,
+      blockWitness
+    );
+
+    // Verify block witness validity
+    const blockIndex = blockWitness.calculateIndex();
+
+    blockIndex.assertEquals(stateInputs.blockNumber);
+
+    blockWitness
+      .calculateRoot(Field(0))
+      .assertEquals(
+        stateInputs.blockHashRoot,
+        "Supplied block hash witness not matching state root"
+      );
+
+    return state;
+  }
+
+  private computeOutput(
+    publicInput: BlockProverPublicInput,
+    state: BlockProverState,
+    finalizeBlockProof: Bool
+  ) {
     const finalizedOutput = state.toCommitments();
 
     const deferredOutput = {
@@ -368,6 +371,84 @@ export class BlockProverProgrammable extends ZkProgrammable<
         deferredOutput
       )
     );
+  }
+
+  @provableMethod()
+  public async proveBlockBatchNoProofs(
+    publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
+    networkState: NetworkState,
+    blockWitness: BlockHashMerkleTreeWitness,
+    batch: BlockArgumentsBatch,
+    finalize: Bool
+  ) {
+    return await this.proveBlockBatch(
+      false,
+      publicInput,
+      stateWitness,
+      networkState,
+      blockWitness,
+      batch,
+      // TODO Don't do this -> very confusing
+      finalize,
+      finalize
+    );
+  }
+
+  @provableMethod()
+  public async proveBlockBatchWithProofs(
+    ...args: Required<Tail<Parameters<typeof this.proveBlockBatch>>>
+  ) {
+    return await this.proveBlockBatch(true, ...args);
+  }
+
+  public async proveBlockBatch(
+    doProofVerification: boolean,
+    publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
+    networkState: NetworkState,
+    blockWitness: BlockHashMerkleTreeWitness,
+    batch: BlockArgumentsBatch,
+    deferSTProof: Bool,
+    deferTransactionProof: Bool,
+    stateTransitionProof?: StateTransitionProof,
+    transactionProof?: TransactionProof
+  ): Promise<BlockProverPublicOutput> {
+    let state = this.parseState(
+      publicInput,
+      stateWitness,
+      networkState,
+      blockWitness
+    );
+
+    // Prove blocks iteratively
+    state = await reduceSequential(
+      batch.batch,
+      async (current, block) => {
+        const result = await this.proveBlock(current.copy(), block);
+
+        this.stateServiceProvider.popCurrentStateService();
+
+        return BlockProverState.choose(block.isDummy, current, result);
+      },
+      state
+    );
+
+    if (doProofVerification) {
+      this.verifyTransactionProof(
+        state,
+        transactionProof!,
+        deferTransactionProof
+      );
+      this.verifySTProof(state, stateTransitionProof!, deferSTProof);
+    }
+
+    const finalizeBlockProof = deferTransactionProof.or(deferSTProof).not();
+    // .or()
+    // .or(state.bundleList.isEmpty().and(state.pendingSTBatches.isEmpty()));
+    // TODO This finalizes immediately if nothing happened - which we don't account for in tracer currently
+
+    return this.computeOutput(publicInput, state, finalizeBlockProof);
   }
 
   private async proveBlock(
@@ -444,6 +525,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const hasNoSTBatches = state.pendingSTBatches.commitment.equals(
       startingPendingStBatches
     );
+
+    // TODO Cover case when we witness root but pendingSTBatches is completely empty
 
     state.witnessedRoots.witnessRoot(
       {
@@ -525,7 +608,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const { prover, stateTransitionProver, transactionProver } = this;
     const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
     const TransactionProofClass = transactionProver.zkProgram[0].Proof;
-    const proveBlockBatch = prover.proveBlockBatch.bind(prover);
+    const proveBlockBatchWithProofs =
+      prover.proveBlockBatchWithProofs.bind(prover);
+    const proveBlockBatchNoProofs = prover.proveBlockBatchNoProofs.bind(prover);
     const merge = prover.merge.bind(prover);
 
     const program = ZkProgram({
@@ -534,39 +619,68 @@ export class BlockProverProgrammable extends ZkProgrammable<
       publicOutput: BlockProverPublicOutput,
 
       methods: {
-        proveBlockBatch: {
+        proveBlockBatchWithProofs: {
           privateInputs: [
             BlockProverStateInput,
             NetworkState,
             BlockHashMerkleTreeWitness,
-            StateTransitionProofClass,
-            Bool,
-            TransactionProofClass,
-            Bool,
             BlockArgumentsBatch,
+            Bool,
+            Bool,
+            StateTransitionProofClass,
+            TransactionProofClass,
           ],
           async method(
             publicInput: BlockProverPublicInput,
             stateWitness: BlockProverStateInput,
             networkState: NetworkState,
             blockWitness: BlockHashMerkleTreeWitness,
-            stateTransitionProof: StateTransitionProof,
+            batch: BlockArgumentsBatch,
             deferSTProof: Bool,
-            transactionProof: TransactionProof,
             deferTransactionProof: Bool,
-            batch: BlockArgumentsBatch
+            stateTransitionProof: StateTransitionProof,
+            transactionProof: TransactionProof
           ) {
             return {
-              publicOutput: await proveBlockBatch(
+              publicOutput: await proveBlockBatchWithProofs(
                 publicInput,
                 stateWitness,
                 networkState,
                 blockWitness,
-                stateTransitionProof,
+                batch,
                 deferSTProof,
-                transactionProof,
                 deferTransactionProof,
-                batch
+                stateTransitionProof,
+                transactionProof
+              ),
+            };
+          },
+        },
+
+        proveBlockBatchNoProofs: {
+          privateInputs: [
+            BlockProverStateInput,
+            NetworkState,
+            BlockHashMerkleTreeWitness,
+            BlockArgumentsBatch,
+            Bool,
+          ],
+          async method(
+            publicInput: BlockProverPublicInput,
+            stateWitness: BlockProverStateInput,
+            networkState: NetworkState,
+            blockWitness: BlockHashMerkleTreeWitness,
+            batch: BlockArgumentsBatch,
+            finalize: Bool
+          ) {
+            return {
+              publicOutput: await proveBlockBatchNoProofs(
+                publicInput,
+                stateWitness,
+                networkState,
+                blockWitness,
+                batch,
+                finalize
               ),
             };
           },
@@ -590,7 +704,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     });
 
     const methods = {
-      proveBlockBatch: program.proveBlockBatch,
+      proveBlockBatchWithProofs: program.proveBlockBatchWithProofs,
+      proveBlockBatchNoProofs: program.proveBlockBatchNoProofs,
       merge: program.merge,
     };
 
@@ -659,27 +774,45 @@ export class BlockProver
     });
   }
 
-  public proveBlockBatch(
+  public proveBlockBatchNoProofs(
     publicInput: BlockProverPublicInput,
     stateWitness: BlockProverStateInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof,
-    deferSTProof: Bool,
-    transactionProof: TransactionProof,
-    deferTransactionProof: Bool,
-    batch: BlockArgumentsBatch
+    batch: BlockArgumentsBatch,
+    finalize: Bool
   ): Promise<BlockProverPublicOutput> {
-    return this.zkProgrammable.proveBlockBatch(
+    return this.zkProgrammable.proveBlockBatchNoProofs(
       publicInput,
       stateWitness,
       networkState,
       blockWitness,
-      stateTransitionProof,
+      batch,
+      finalize
+    );
+  }
+
+  public proveBlockBatchWithProofs(
+    publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
+    networkState: NetworkState,
+    blockWitness: BlockHashMerkleTreeWitness,
+    batch: BlockArgumentsBatch,
+    deferSTProof: Bool,
+    deferTransactionProof: Bool,
+    stateTransitionProof: StateTransitionProof,
+    transactionProof: TransactionProof
+  ): Promise<BlockProverPublicOutput> {
+    return this.zkProgrammable.proveBlockBatchWithProofs(
+      publicInput,
+      stateWitness,
+      networkState,
+      blockWitness,
+      batch,
       deferSTProof,
-      transactionProof,
       deferTransactionProof,
-      batch
+      stateTransitionProof,
+      transactionProof
     );
   }
 
