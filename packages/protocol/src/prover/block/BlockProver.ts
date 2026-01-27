@@ -446,7 +446,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const finalizeBlockProof = deferTransactionProof.or(deferSTProof).not();
     // .or()
     // .or(state.bundleList.isEmpty().and(state.pendingSTBatches.isEmpty()));
-    // TODO This finalizes immediately if nothing happened - which we don't account for in tracer currently
 
     return this.computeOutput(publicInput, state, finalizeBlockProof);
   }

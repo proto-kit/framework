@@ -70,7 +70,9 @@ export class BridgeContractContext {
 }
 
 export interface BridgeContractArgs {
-  SettlementContract: TypedClass<BridgingSettlementContractType> &
+  SettlementContract: TypedClass<
+    Pick<BridgingSettlementContractType, "assertStateRoot">
+  > &
     typeof SmartContract;
   messageProcessors: OutgoingMessageProcessor<unknown>[];
   batchSize?: number;
@@ -186,7 +188,9 @@ export abstract class BridgeContractBase
         messageType: args.messageType,
         value,
       });
+      Provable.log("h", Poseidon.hash(MessageType.toFields(message)));
       return {
+        // TODO This doesn't make any sense tbh...
         messageType: args.messageType,
         result: processor.processMessage(value, {
           bridgeContract: {
@@ -301,6 +305,10 @@ export abstract class BridgeContractBase
           tokenId: this.tokenId,
         }
       );
+
+      Provable.log(message.hash);
+      Provable.log(path);
+      Provable.log(stateRoot);
 
       args.witness
         .checkMembership(stateRoot, path, message.hash)
