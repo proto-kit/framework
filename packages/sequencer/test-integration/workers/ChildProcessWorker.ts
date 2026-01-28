@@ -3,7 +3,11 @@ import { spawn, ChildProcess } from "node:child_process";
 export class ChildProcessWorker {
   process?: ChildProcess;
 
-  start(forwardLogs: boolean = true, env_args: Record<string, string> = {}) {
+  start(
+    name: string,
+    forwardLogs: boolean = true,
+    env_args: Record<string, string> = {}
+  ) {
     const s = spawn(
       "node",
       [
@@ -26,11 +30,13 @@ export class ChildProcessWorker {
     });
     if (forwardLogs) {
       s.stdout.on("data", (data) => {
+        process.stdout.write(`${name}: `);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         process.stdout.write(data);
       });
     }
     s.stderr.on("data", (data) => {
+      process.stderr.write(`${name}: `);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       process.stderr.write(data);
     });
