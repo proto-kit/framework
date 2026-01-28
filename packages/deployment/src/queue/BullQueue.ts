@@ -1,5 +1,5 @@
 import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
-import { log } from "@proto-kit/common";
+import { log, ModuleContainerLike } from "@proto-kit/common";
 import {
   TaskPayload,
   Closeable,
@@ -10,6 +10,7 @@ import {
 } from "@proto-kit/sequencer";
 
 import { InstantiatedBullQueue } from "./InstantiatedBullQueue";
+import { inject } from "tsyringe";
 
 export interface BullQueueConfig {
   redis: {
@@ -30,6 +31,12 @@ export class BullQueue
   extends AbstractTaskQueue<BullQueueConfig>
   implements TaskQueue, Closeable
 {
+  public constructor(
+    @inject("ParentContainer") private parent: ModuleContainerLike
+  ) {
+    super();
+  }
+
   private activePromise?: Promise<void>;
 
   public createWorker(
@@ -101,9 +108,16 @@ export class BullQueue
     });
   }
 
+  private isMaster() {
+    return this.parent.dependencyContainer.isRegistered("BatchProducerModule");
+  }
+
   public async start() {
-    // Drain all queues to clear stale tasks from previous sequencer instances
-    await this.drainAllQueues();
+    if (this.isMaster()) {
+      log.debug("Instance is master, draining queue");
+      // Drain all queues to clear stale tasks from previous sequencer instances
+      await this.drainAllQueues();
+    }
   }
 
   public async close() {
