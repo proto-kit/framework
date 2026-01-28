@@ -21,21 +21,31 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "yargs": "17.7.2",
+    "@inquirer/figures": "^2.0.3",
+    "dotenv": "^17.2.3",
+    "inquirer": "^9.3.0",
+    "kleur": "^4.1.5",
+    "mina-fungible-token": "^1.1.0",
+    "reflect-metadata": "^0.1.13",
+    "spectaql": "3.0.5",
     "ts-node": "^10.9.1",
-    "spectaql": "3.0.5"
+    "yargs": "17.7.2"
   },
   "peerDependencies": {
     "@proto-kit/api": "*",
     "@proto-kit/common": "*",
+    "@proto-kit/explorer": "*",
     "@proto-kit/library": "*",
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
-    "o1js": "^2.10.0"
+    "@proto-kit/stack": "*",
+    "o1js": "^2.10.0",
+    "tsyringe": "^4.10.0"
   },
   "devDependencies": {
+    "@types/inquirer": "^9.0.9",
     "@types/node": "^20.19.24",
     "@types/yargs": "17.0.32"
   }
