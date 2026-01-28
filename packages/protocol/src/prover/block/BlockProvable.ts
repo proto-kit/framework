@@ -32,7 +32,6 @@ export class BlockArguments extends Struct({
     return new BlockArguments({
       afterBlockRootWitness: {
         witnessedRoot: stateRoot,
-        preimage: Field(0),
       },
       transactionsHash: Field(0),
       pendingSTBatchesHash: {
@@ -87,6 +86,7 @@ export const BlockProverStateCommitments = {
     pendingSTBatchesHash: Field,
     witnessedRootsHash: Field,
     bundlesHash: Field,
+    witnessedRootsPreimage: Field,
   },
   ...BlockProverStateBaseFields,
 };
@@ -102,6 +102,7 @@ export class BlockProverStateInput extends Struct(BlockProverStateCommitments) {
         bundlesHash: Field(0),
         pendingSTBatchesHash: Field(0),
         witnessedRootsHash: Field(0),
+        witnessedRootsPreimage: Field(0),
       },
       eternalTransactionsHash: input.eternalTransactionsHash,
       incomingMessagesHash: input.incomingMessagesHash,
@@ -203,6 +204,7 @@ export class BlockProverState {
         bundlesHash: this.bundleList.commitment,
         pendingSTBatchesHash: this.pendingSTBatches.commitment,
         witnessedRootsHash: this.witnessedRoots.commitment,
+        witnessedRootsPreimage: this.witnessedRoots.preimage,
       },
       eternalTransactionsHash: this.eternalTransactionsList.commitment,
       incomingMessagesHash: this.incomingMessages.commitment,
@@ -230,7 +232,8 @@ export class BlockProverState {
         stateInput.remainders.pendingSTBatchesHash
       ),
       witnessedRoots: new WitnessedRootHashList(
-        stateInput.remainders.witnessedRootsHash
+        stateInput.remainders.witnessedRootsHash,
+        stateInput.remainders.witnessedRootsPreimage
       ),
       stateRoot: stateInput.stateRoot,
       blockHashRoot: stateInput.blockHashRoot,
@@ -251,6 +254,7 @@ export class BlockProverState {
       this.pendingSTBatches.commitment,
       this.incomingMessages.commitment,
       this.witnessedRoots.commitment,
+      this.witnessedRoots.preimage,
       this.stateRoot,
       this.blockHashRoot,
       this.blockNumber,
@@ -266,14 +270,14 @@ export class BlockProverState {
       eternalTransactionsList: new TransactionHashList(fields[1]),
       pendingSTBatches: new AppliedBatchHashList(fields[2]),
       incomingMessages: new MinaActionsHashList(fields[3]),
-      witnessedRoots: new WitnessedRootHashList(fields[4]),
-      stateRoot: fields[5],
-      blockHashRoot: fields[6],
-      blockNumber: fields[7],
-      networkState: new NetworkState(NetworkState.fromFields(fields.slice(8))),
+      witnessedRoots: new WitnessedRootHashList(fields[4], fields[5]),
+      stateRoot: fields[6],
+      blockHashRoot: fields[7],
+      blockNumber: fields[8],
+      networkState: new NetworkState(NetworkState.fromFields(fields.slice(9))),
       blockWitness: new BlockHashMerkleTreeWitness(
         BlockHashMerkleTreeWitness.fromFields(
-          fields.slice(8 + NetworkState.sizeInFields())
+          fields.slice(9 + NetworkState.sizeInFields())
         )
       ),
     });
@@ -314,6 +318,11 @@ export class BlockProverState {
           condition,
           a.witnessedRoots.commitment,
           b.witnessedRoots.commitment
+        ),
+        Provable.if(
+          condition,
+          a.witnessedRoots.preimage,
+          b.witnessedRoots.preimage
         )
       ),
       stateRoot: Provable.if(condition, a.stateRoot, b.stateRoot),
@@ -339,16 +348,25 @@ export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 export interface BlockProvable
   extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput>,
     CompilableModule {
-  proveBlockBatch: (
+  proveBlockBatchNoProofs: (
     publicInput: BlockProverPublicInput,
     stateWitness: BlockProverStateInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof,
+    batch: BlockArgumentsBatch,
+    finalize: Bool
+  ) => Promise<BlockProverPublicOutput>;
+
+  proveBlockBatchWithProofs: (
+    publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
+    networkState: NetworkState,
+    blockWitness: BlockHashMerkleTreeWitness,
+    batch: BlockArgumentsBatch,
     deferSTProof: Bool,
-    transactionProof: TransactionProof,
     deferTransactionProof: Bool,
-    batch: BlockArgumentsBatch
+    stateTransitionProof: StateTransitionProof,
+    transactionProof: TransactionProof
   ) => Promise<BlockProverPublicOutput>;
 
   merge: (

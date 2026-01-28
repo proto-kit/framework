@@ -125,6 +125,8 @@ export class BatchFlow {
       }
     );
 
+    // TODO Cover case where either 0 STs or 0 Transactions are in a batch
+
     // Push all blocks except the last one with dummy proofs
     // except the last one, which will wait on the two proofs to complete
     await mapSequential(

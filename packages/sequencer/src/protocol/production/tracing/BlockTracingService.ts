@@ -76,9 +76,10 @@ export class BlockTracingService {
       eternalTransactionsHash: batchInput.eternalTransactionsHash,
       incomingMessagesHash: batchInput.incomingMessagesHash,
       remainders: {
-        witnessedRootsHash: state.witnessedRoots.commitment,
         pendingSTBatchesHash: state.pendingSTBatches.commitment,
         bundlesHash: state.bundleList.commitment,
+        witnessedRootsHash: state.witnessedRoots.commitment,
+        witnessedRootsPreimage: state.witnessedRoots.preimage,
       },
     });
 
@@ -173,14 +174,8 @@ export class BlockTracingService {
     state.incomingMessages = afterState.incomingMessages;
     state.eternalTransactionsList = afterState.eternalTransactionsList;
 
-    const preimage = afterState.witnessedRoots
-      .getUnconstrainedValues()
-      .get()
-      .at(-2)?.preimage;
-
     const afterBlockRootWitness: WitnessedRootWitness = {
       witnessedRoot: Field(block.result.witnessedRoots[0]),
-      preimage: preimage ?? Field(0),
     };
 
     // We create the batch here, because we need the afterBlockRootWitness,
@@ -206,7 +201,6 @@ export class BlockTracingService {
           appliedBatchListState: afterState.pendingSTBatches.commitment,
           root: afterBlockRootWitness.witnessedRoot,
         },
-        afterBlockRootWitness.preimage,
         state.pendingSTBatches.commitment.equals(0).not()
       );
     }
