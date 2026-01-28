@@ -7,6 +7,7 @@ import {
   TaskQueue,
   AbstractTaskQueue,
   closeable,
+  sequencerModule,
 } from "@proto-kit/sequencer";
 
 import { InstantiatedBullQueue } from "./InstantiatedBullQueue";
@@ -27,6 +28,7 @@ export interface BullQueueConfig {
  * TaskQueue implementation for BullMQ
  */
 @closeable()
+@sequencerModule()
 export class BullQueue
   extends AbstractTaskQueue<BullQueueConfig>
   implements TaskQueue, Closeable
