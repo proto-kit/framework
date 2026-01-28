@@ -32,23 +32,21 @@ export class BlockFlow {
     private readonly transactionMergeTask: TransactionReductionTask
   ) {}
 
+  private dummyProof: TransactionProof | undefined = undefined;
+
   private async dummyTransactionProof() {
-    const publicInput = {
-      bundlesHash: Field(0),
-      eternalTransactionsHash: Field(0),
-      incomingMessagesHash: Field(0),
-    } satisfies TransactionProverPublicInput;
+    if (this.dummyProof !== undefined) {
+      return this.dummyProof;
+    }
 
-    // TODO Set publicInput.stateRoot to result after block hooks!
-    const publicOutput = new TransactionProverPublicOutput({
-      ...publicInput,
+    const flow = this.flowCreator.createFlow("transaction-dummy", undefined);
+    const dummy = await flow.withFlow<TransactionProof>(async (resolve) => {
+      await flow.pushTask(this.transactionTask, "dummy", async (result) => {
+        resolve(result);
+      });
     });
-
-    return await this.protocol.transactionProver.zkProgrammable.zkProgram[0].Proof.dummy(
-      publicInput,
-      publicOutput,
-      2
-    );
+    this.dummyProof = dummy;
+    return dummy;
   }
 
   private async proveTransactions(height: string, traces: TransactionTrace[]) {

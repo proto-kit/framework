@@ -171,6 +171,10 @@ export interface TransactionProvable
     executionData2: TransactionProverExecutionData
   ) => Promise<TransactionProverPublicOutput>;
 
+  dummy: (
+    publicInput: TransactionProverPublicInput
+  ) => Promise<TransactionProverPublicOutput>;
+
   merge: (
     publicInput: TransactionProverPublicInput,
     proof1: TransactionProof,

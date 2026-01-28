@@ -6,6 +6,7 @@ import {
   DynamicRuntimeProof,
   TransactionProvable,
   TransactionProof,
+  TransactionProverPublicInput,
 } from "@proto-kit/protocol";
 import { Runtime } from "@proto-kit/module";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
@@ -87,9 +88,32 @@ export class TransactionProvingTask
     );
   }
 
+  private async computeDummy(): Promise<TransactionProof> {
+    await executeWithPrefilledStateService(
+      this.protocol.stateServiceProvider,
+      [{}, {}],
+      async () => {
+        await this.transactionProver.dummy(
+          TransactionProverPublicInput.empty()
+        );
+      }
+    );
+
+    return await executeWithPrefilledStateService(
+      this.protocol.stateServiceProvider,
+      [{}, {}],
+      async () =>
+        await this.executionContext.current().result.prove<TransactionProof>()
+    );
+  }
+
   public async compute(
     input: TransactionProvingTaskParameters
   ): Promise<TransactionProof> {
+    if (input === "dummy") {
+      return await this.computeDummy();
+    }
+
     const startingState = input.flatMap((i) => i.parameters.startingState);
 
     await executeWithPrefilledStateService(

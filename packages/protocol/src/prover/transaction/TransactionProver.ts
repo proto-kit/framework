@@ -303,6 +303,13 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
   }
 
   @provableMethod()
+  public async dummy(
+    publicInput: TransactionProverPublicInput
+  ): Promise<TransactionProverPublicOutput> {
+    return publicInput;
+  }
+
+  @provableMethod()
   public async merge(
     publicInput: TransactionProverPublicInput,
     proof1: TransactionProof,
@@ -367,6 +374,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     const proveTransaction = prover.proveTransaction.bind(prover);
     const proveTransactions = prover.proveTransactions.bind(prover);
     const merge = prover.merge.bind(prover);
+    const dummy = prover.dummy.bind(prover);
 
     const program = ZkProgram({
       name: "TransactionProver",
@@ -419,6 +427,13 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
           },
         },
 
+        dummy: {
+          privateInputs: [],
+          async method(publicInput: TransactionProverPublicInput) {
+            return { publicOutput: await dummy(publicInput) };
+          },
+        },
+
         merge: {
           privateInputs: [
             SelfProof<
@@ -445,6 +460,7 @@ export class TransactionProverZkProgrammable extends ZkProgrammable<
     const methods = {
       proveTransaction: program.proveTransaction,
       proveTransactions: program.proveTransactions,
+      dummy: program.dummy,
       merge: program.merge,
     };
 
@@ -529,6 +545,10 @@ export class TransactionProver
       executionData1,
       executionData2
     );
+  }
+
+  public dummy(publicInput: TransactionProverPublicInput) {
+    return this.zkProgrammable.dummy(publicInput);
   }
 
   public merge(
