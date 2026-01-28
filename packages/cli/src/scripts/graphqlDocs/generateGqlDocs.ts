@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import {
   BlockStorageNetworkStateModule,
   InMemoryTransactionSender,
@@ -21,7 +22,7 @@ import {
 } from "@proto-kit/api";
 import { Runtime } from "@proto-kit/module";
 
-import { generateGqlDocs } from "../utils";
+import { generateGqlDocs } from "../../utils/graphqlDocs";
 
 export async function generateGqlDocsCommand(args: {
   empty: boolean;
@@ -76,3 +77,4 @@ export async function generateGqlDocsCommand(args: {
     await generateGqlDocs(args.url);
   }
 }
+/* eslint-enable no-console */

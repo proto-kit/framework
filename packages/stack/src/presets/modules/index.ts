@@ -25,6 +25,9 @@ import {
   IndexerNotifier,
   GeneratedResolverFactoryGraphqlModule,
   IndexBlockTask,
+  IndexBatchTask,
+  IndexPendingTxTask,
+  IndexSettlementTask,
 } from "@proto-kit/indexer";
 import { PrismaRedisDatabase } from "@proto-kit/persistance";
 import { BullQueue } from "@proto-kit/deployment";
@@ -115,6 +118,9 @@ export class DefaultModules {
       TaskQueue: BullQueue,
       TaskWorker: LocalTaskWorkerModule.from({
         IndexBlockTask,
+        IndexPendingTxTask,
+        IndexBatchTask,
+        IndexSettlementTask,
       }),
       GraphqlServer,
       Graphql: GraphqlSequencerModule.from({
@@ -311,6 +317,9 @@ export class DefaultConfigs {
       ...taskQueueConfig,
       TaskWorker: {
         IndexBlockTask: {},
+        IndexBatchTask: {},
+        IndexPendingTxTask: {},
+        IndexSettlementTask: {},
       },
       ...graphqlServerConfig,
       Graphql: {
