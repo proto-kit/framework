@@ -1,9 +1,11 @@
 import { inject, injectable } from "tsyringe";
 import { Field } from "o1js";
+import { splitArray } from "@proto-kit/common";
 
 import { TransactionStorage } from "../repositories/TransactionStorage";
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { BlockStorage } from "../repositories/BlockStorage";
+import { PathResolution } from "../../protocol/production/sequencing/Ordering";
 
 import { InMemoryBatchStorage } from "./InMemoryBatchStorage";
 
@@ -56,7 +58,10 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     this.sortQueue();
 
     const from = offset ?? 0;
-    const to = limit !== undefined ? from + limit : undefined;
+    const to =
+      limit !== undefined
+        ? Math.min(from + limit, this.queue.length)
+        : undefined;
 
     return this.queue.slice(from, to).map(({ tx }) => tx);
   }
@@ -130,5 +135,39 @@ export class InMemoryTransactionStorage implements TransactionStorage {
       }
     }
     return undefined;
+  }
+
+  private pathResolution = new PathResolution<string>();
+
+  private unresolvedSet: { tx: PendingTransaction; sortingValue: number }[] =
+    [];
+
+  public async reportSkippedTransactions(
+    paths: Record<string, bigint[]>
+  ): Promise<void> {
+    Object.entries(paths).forEach(([txHash, transactionPaths]) => {
+      this.pathResolution.pushPaths(txHash, transactionPaths);
+    });
+
+    // Remove all unresolved txs from queue and append them to the unresolvedSet
+    const unresolvedHashes = Object.keys(paths);
+    const split = splitArray(this.queue, (x) =>
+      unresolvedHashes.includes(x.tx.hash().toString()) ? "unresolved" : "queue"
+    );
+    this.queue = split.queue ?? [];
+    this.unresolvedSet.push(...(split.unresolved ?? []));
+  }
+
+  public async reportChangedPaths(paths: bigint[]): Promise<void> {
+    const resolved = this.pathResolution.resolvePaths(paths);
+
+    // Move resolved from unresolvedSet to queue, then sort queue
+    const resolvedSplit = splitArray(this.unresolvedSet, (x) =>
+      resolved.includes(x.tx.hash().toString()) ? "resolved" : "unresolved"
+    );
+    this.queue.push(...(resolvedSplit.resolved ?? []));
+    this.unresolvedSet = resolvedSplit.unresolved ?? [];
+
+    this.sortQueue();
   }
 }

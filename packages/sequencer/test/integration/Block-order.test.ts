@@ -4,7 +4,7 @@ import { Protocol } from "@proto-kit/protocol";
 import { Bool, PrivateKey, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { afterEach } from "@jest/globals";
+import { afterEach, expect, jest } from "@jest/globals";
 
 import {
   InMemoryDatabase,
@@ -122,6 +122,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
     afterEach(async () => {
       await appChain.close();
+
+      jest.restoreAllMocks();
     });
 
     it("transactions are returned in right order - simple", async () => {
@@ -242,6 +244,53 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(txs[4].sender).toStrictEqual(user2PublicKey);
       expect(txs[5].nonce.toBigInt()).toStrictEqual(1n);
       expect(txs[5].sender).toStrictEqual(user3PublicKey);
+    });
+
+    it("transactions are returned in right order in multiple distinct blocks - hardest", async () => {
+      expect.assertions(18);
+
+      sequencer.resolve("BlockProducerModule").config.maximumBlockSize = 3;
+      const txStorage = sequencer.resolve("TransactionStorage");
+      const getTxsSpy = jest.spyOn(txStorage, "getPendingUserTransactions");
+
+      await mempoolAddTransactions(user1PrivateKey, 0);
+      await mempoolAddTransactions(user1PrivateKey, 4);
+      await mempoolAddTransactions(user1PrivateKey, 5);
+      await mempoolAddTransactions(user2PrivateKey, 1);
+      await mempoolAddTransactions(user3PrivateKey, 1);
+      await mempoolAddTransactions(user2PrivateKey, 0);
+      await mempoolAddTransactions(user3PrivateKey, 0);
+      await mempoolAddTransactions(user1PrivateKey, 1);
+
+      let block = await trigger.produceBlock();
+      expectDefined(block);
+
+      let txs = block.transactions.map((x) => x.tx);
+      expect(txs).toHaveLength(3);
+
+      expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[0].sender).toStrictEqual(user1PublicKey);
+      expect(txs[1].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[1].sender).toStrictEqual(user2PublicKey);
+      expect(txs[2].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[2].sender).toStrictEqual(user3PublicKey);
+
+      expect(getTxsSpy).toHaveBeenCalledTimes(3);
+
+      block = await trigger.produceBlock();
+      expectDefined(block);
+
+      txs = block.transactions.map((x) => x.tx);
+      expect(txs).toHaveLength(3);
+
+      expect(txs[0].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[0].sender).toStrictEqual(user2PublicKey);
+      expect(txs[1].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[1].sender).toStrictEqual(user3PublicKey);
+      expect(txs[2].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[2].sender).toStrictEqual(user1PublicKey);
+
+      expect(getTxsSpy).toHaveBeenCalledTimes(4);
     });
   }
 );

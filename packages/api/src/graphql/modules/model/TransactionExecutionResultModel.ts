@@ -1,16 +1,18 @@
 import { ObjectType, Field } from "type-graphql";
-import { BatchTransaction } from "@proto-kit/sequencer";
 import { IsBoolean } from "class-validator";
+import { TransactionExecutionResult } from "@proto-kit/sequencer";
 
 import { TransactionObject } from "../MempoolResolver";
 
 @ObjectType()
-export class BatchTransactionModel {
-  public static fromServiceLayerModel(cbt: BatchTransaction) {
+export class TransactionExecutionResultModel {
+  public static fromServiceLayerModel(
+    cbt: Pick<TransactionExecutionResult, "tx" | "status" | "statusMessage">
+  ) {
     const { tx, status, statusMessage } = cbt;
-    return new BatchTransactionModel(
+    return new TransactionExecutionResultModel(
       TransactionObject.fromServiceLayerModel(tx),
-      status,
+      status.toBoolean(),
       statusMessage
     );
   }

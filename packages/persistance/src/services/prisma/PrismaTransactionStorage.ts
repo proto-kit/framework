@@ -9,6 +9,7 @@ import {
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 import { TransactionMapper } from "./mappers/TransactionMapper";
+import { Decimal } from "./PrismaStateService";
 
 @injectable()
 export class PrismaTransactionStorage implements TransactionStorage {
@@ -32,6 +33,9 @@ export class PrismaTransactionStorage implements TransactionStorage {
         },
         isMessage: {
           equals: false,
+        },
+        inputPaths: {
+          is: null,
         },
       },
       orderBy: {
@@ -126,5 +130,30 @@ export class PrismaTransactionStorage implements TransactionStorage {
       block,
       batch,
     };
+  }
+
+  public async reportSkippedTransactions(
+    paths: Record<string, bigint[]>
+  ): Promise<void> {
+    const { prismaClient } = this.connection;
+
+    await prismaClient.skippedTransactionInputPaths.createMany({
+      data: Object.entries(paths).map(([transactionHash, pathArray]) => ({
+        transactionHash,
+        paths: pathArray.map((path) => new Decimal(path.toString())),
+      })),
+    });
+  }
+
+  public async reportChangedPaths(paths: bigint[]): Promise<void> {
+    const { prismaClient } = this.connection;
+
+    await prismaClient.skippedTransactionInputPaths.deleteMany({
+      where: {
+        paths: {
+          hasSome: paths.map((path) => new Decimal(path.toString())),
+        },
+      },
+    });
   }
 }

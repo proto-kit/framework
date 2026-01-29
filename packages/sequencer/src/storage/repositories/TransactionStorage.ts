@@ -28,4 +28,13 @@ export interface TransactionStorage {
       }
     | undefined
   >;
+
+  /**
+   * Mapping hash => path[]
+   */
+  reportSkippedTransactions: (paths: Record<string, bigint[]>) => Promise<void>;
+
+  reportChangedPaths: (paths: bigint[]) => Promise<void>;
+
+  // TODO Add a method to retrieve all conflict transactions and expose it through the APIs
 }

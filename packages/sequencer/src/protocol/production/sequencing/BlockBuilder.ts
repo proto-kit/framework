@@ -22,7 +22,7 @@ import {
   TransactionExecutionResultStatus,
   TransactionExecutionService,
 } from "./TransactionExecutionService";
-import { Ordering } from "./Ordering";
+import { Ordering, OrderingMetadata } from "./Ordering";
 
 // TODO Allow user overriding of the blockbuilder
 @injectable()
@@ -67,6 +67,7 @@ export class BlockBuilder {
   ): Promise<{
     blockState: BlockTrackers;
     executionResults: TransactionExecutionResultStatus[];
+    orderingMetadata: OrderingMetadata;
   }> {
     let blockState = state;
     const exceptionExecutionResults: TransactionExecutionResultStatus[] = [];
@@ -139,11 +140,13 @@ export class BlockBuilder {
       }
     }
 
-    const orderingResults = ordering.getResults();
+    const { results: orderingResults, orderingMetadata } =
+      ordering.getResults();
 
     return {
       blockState,
       executionResults: orderingResults.concat(...exceptionExecutionResults),
+      orderingMetadata,
     };
   }
 }
