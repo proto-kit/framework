@@ -189,66 +189,71 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       return hash;
     }
 
-    // TODO Make sure this implementation is as efficient as it gets.
-    //  Especially compared to doing calculateRoot + witness new witness + check index
     public calculateRootIncrement(
       leafIndex: Field,
       leaf: Field
     ): [Field, RollupMerkleWitness] {
-      // This won't generate any constraints, since it's purely a computation on constants
-      const zero = getZeroes();
+      const root = this.calculateRoot(leaf);
 
-      if (zero.length === 0) {
-        throw new Error("Zeroes not initialized");
-      }
-      const zeroes = zero.map((x) => Field(x));
+      const newWitness = Provable.witness(RollupMerkleWitness, () => {
+        const zero = getZeroes();
 
-      let hash = leaf;
-      const n = this.height();
+        if (zero.length === 0) {
+          throw new Error("Zeroes not initialized");
+        }
+        const zeroes = zero.map((x) => Field(x));
 
-      let notDiverged = Bool(true);
-      const newPath = leafIndex.add(1).toBits();
-      newPath.push(Bool(false));
+        let hash = leaf;
+        const n = this.height();
 
-      const newSiblings: Field[] = [];
-      const newIsLefts: Bool[] = [];
+        let notDiverged = true;
+        const newPath = leafIndex.add(1).toBits();
+        newPath.push(Bool(false));
 
-      for (let index = 0; index < n - 1; ++index) {
-        const isLeft = this.isLeft[index];
-        const sibling = this.path[index];
+        const newSiblings: Field[] = [];
+        const newIsLefts: Bool[] = [];
 
-        const newIsLeft = newPath[index].not();
+        for (let index = 0; index < n - 1; ++index) {
+          const isLeft = this.isLeft[index];
+          const sibling = this.path[index];
 
-        // Bool(true) default for root level
-        let convergesNextLevel = Bool(true);
-        if (index < n - 2) {
-          convergesNextLevel = newPath[index + 1]
-            .equals(this.isLeft[index + 1])
-            .not();
+          const newIsLeft = newPath[index].not();
+
+          // Bool(true) default for root level
+          let convergesNextLevel = true;
+          if (index < n - 2) {
+            convergesNextLevel = newPath[index + 1]
+              .equals(this.isLeft[index + 1])
+              .not()
+              .toBoolean();
+          }
+
+          const nextSibling =
+            // eslint-disable-next-line no-nested-ternary
+            convergesNextLevel && notDiverged
+              ? hash
+              : notDiverged
+                ? zeroes[index]
+                : sibling;
+
+          notDiverged = notDiverged && !convergesNextLevel;
+
+          newSiblings.push(nextSibling);
+          newIsLefts.push(newIsLeft);
+
+          const [left, right] = maybeSwap(isLeft, hash, sibling);
+          hash = Poseidon.hash([left, right]);
         }
 
-        const nextSibling = Provable.if(
-          convergesNextLevel.and(notDiverged),
-          hash,
-          Provable.if(notDiverged, zeroes[index], sibling)
-        );
-
-        notDiverged = notDiverged.and(convergesNextLevel.not());
-
-        newSiblings.push(nextSibling);
-        newIsLefts.push(newIsLeft);
-
-        const [left, right] = maybeSwap(isLeft, hash, sibling);
-        hash = Poseidon.hash([left, right]);
-      }
-
-      return [
-        hash,
-        new RollupMerkleWitness({
+        return new RollupMerkleWitness({
           isLeft: newIsLefts,
           path: newSiblings,
-        }),
-      ];
+        });
+      });
+
+      newWitness.calculateIndex().assertEquals(leafIndex.add(1));
+
+      return [root, newWitness];
     }
 
     /**
