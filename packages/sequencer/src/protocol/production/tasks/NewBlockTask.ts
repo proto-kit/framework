@@ -169,10 +169,6 @@ export class NewBlockTask
   }
 
   public async prepare(): Promise<void> {
-    await this.transactionProver.compile(this.compileRegistry);
-    await this.stateTransitionProver.compile(this.compileRegistry);
-    await this.compileRegistry.forceProverExists(async (registry) => {
-      await this.blockProver.compile(registry);
-    });
+    await this.blockProver.compile(this.compileRegistry);
   }
 }
