@@ -72,6 +72,11 @@ export class BatchTracingService {
 
     const batchState = this.createBatchState(blocks[0]);
 
+    const publicInput = this.blockTracingService.openBatch(
+      batchState,
+      blocks[0]
+    );
+
     // Trace blocks
     const numBlocks = blocks.length;
     const numBatches = Math.ceil(numBlocks / BLOCK_ARGUMENT_BATCH_SIZE);
@@ -80,8 +85,20 @@ export class BatchTracingService {
       chunk(blocks, BLOCK_ARGUMENT_BATCH_SIZE),
       async (state, batch, index) => {
         // Trace batch of blocks fitting in single proof
-        const batchTrace = this.blockTracingService.openBlock(state, batch[0]);
+        const partialBlockTrace = this.blockTracingService.openBlock(
+          state,
+          batch[0],
+          publicInput
+        );
         const start = state.blockNumber.toString();
+
+        // PI is taken for first chunk of batch, all others use the stateWitness
+        // Copy here because we need a fresh instance
+        const currentPublicInput = publicInput.clone();
+        if (index > 0) {
+          currentPublicInput.proverStateRemainder =
+            partialBlockTrace.stateWitness.hash();
+        }
 
         const [newState, combinedTraces] = await yieldSequential(
           batch,
@@ -100,13 +117,15 @@ export class BatchTracingService {
           state
         );
 
+        const [blockArgumentBatch, transactionTraces] = unzip(combinedTraces);
+
         // Fill up with dummies
         const dummyBlockArgs = BlockArguments.noop(
           newState,
           Field(blocks.at(-1)!.result.stateRoot)
         );
         const dummies = range(
-          blocks.length,
+          blockArgumentBatch.length,
           BLOCK_ARGUMENT_BATCH_SIZE
         ).map<NewBlockArguments>(() => ({
           args: dummyBlockArgs,
@@ -114,14 +133,13 @@ export class BatchTracingService {
           startingStateBeforeHook: {},
         }));
 
-        const [blockArgumentBatch, transactionTraces] = unzip(combinedTraces);
-
         const blockTrace: BlockTrace = {
           block: {
-            ...batchTrace,
+            ...partialBlockTrace,
+            publicInput: currentPublicInput,
             blocks: blockArgumentBatch.concat(dummies),
-            deferTransactionProof: Bool(numBatches - 1 < index),
-            deferSTProof: Bool(numBatches - 1 < index),
+            deferTransactionProof: Bool(numBatches - 1 !== index),
+            deferSTProof: Bool(numBatches - 1 !== index),
           },
           heights: [start, newState.blockNumber.toString()],
         };

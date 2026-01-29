@@ -199,17 +199,9 @@ export abstract class SettlementBase
       );
 
     // Check remainders are zero
-    blockProof.publicOutput.remainders.bundlesHash.assertEquals(
+    blockProof.publicOutput.proverStateRemainder.assertEquals(
       Field(0),
-      "Bundles list has not been fully proven"
-    );
-    blockProof.publicOutput.remainders.pendingSTBatchesHash.assertEquals(
-      Field(0),
-      "Supplied proof is has outstanding STs to be proven"
-    );
-    blockProof.publicOutput.remainders.witnessedRootsHash.assertEquals(
-      Field(0),
-      "Supplied proof is has outstanding witnessed roots hashes to be proven"
+      "Supplied proof is has outstanding block prover state to be proven"
     );
 
     // Execute onSettlementHooks for additional checks

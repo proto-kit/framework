@@ -8,6 +8,7 @@ import {
   WitnessedRootWitness,
   BundleHashList,
   BundlePreimage,
+  BlockProverStateInput,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { toStateTransitionsHash } from "@proto-kit/module";
@@ -42,29 +43,48 @@ export class BlockTracingService {
     public readonly tracer: Tracer
   ) {}
 
-  public openBlock(
+  public openBatch(
     state: BlockTracingState,
     { block: firstBlock, result: firstResult }: BlockWithResult
-  ): Pick<
-    NewBlockProverParameters,
-    "publicInput" | "networkState" | "blockWitness"
-  > {
-    const publicInput: BlockProverPublicInput = new BlockProverPublicInput({
+  ) {
+    return new BlockProverPublicInput({
       stateRoot: state.stateRoot,
       blockNumber: firstBlock.height,
       blockHashRoot: firstBlock.fromBlockHashRoot,
       eternalTransactionsHash: firstBlock.fromEternalTransactionsHash,
       incomingMessagesHash: firstBlock.fromMessagesHash,
       networkStateHash: firstBlock.networkState.before.hash(),
+      proverStateRemainder: Field(0),
+    });
+  }
+
+  public openBlock(
+    state: BlockTracingState,
+    { block: firstBlock, result: firstResult }: BlockWithResult,
+    batchInput: BlockProverPublicInput
+  ): Pick<
+    NewBlockProverParameters,
+    "stateWitness" | "networkState" | "blockWitness"
+  > {
+    const stateWitness = new BlockProverStateInput({
+      stateRoot: state.stateRoot,
+      blockNumber: firstBlock.height,
+      blockHashRoot: firstBlock.fromBlockHashRoot,
+      networkStateHash: firstBlock.networkState.before.hash(),
+      // The next two are properties that we fast-forward only after tx proofs are verified
+      // Therefore those don't change over multiple block batches
+      eternalTransactionsHash: batchInput.eternalTransactionsHash,
+      incomingMessagesHash: batchInput.incomingMessagesHash,
       remainders: {
-        witnessedRootsHash: state.witnessedRoots.commitment,
         pendingSTBatchesHash: state.pendingSTBatches.commitment,
         bundlesHash: state.bundleList.commitment,
+        witnessedRootsHash: state.witnessedRoots.commitment,
+        witnessedRootsPreimage: state.witnessedRoots.preimage,
       },
     });
 
     return {
-      publicInput,
+      stateWitness,
       networkState: firstBlock.networkState.before,
       blockWitness: firstResult.blockHashWitness,
     };
@@ -154,14 +174,8 @@ export class BlockTracingService {
     state.incomingMessages = afterState.incomingMessages;
     state.eternalTransactionsList = afterState.eternalTransactionsList;
 
-    const preimage = afterState.witnessedRoots
-      .getUnconstrainedValues()
-      .get()
-      .at(-2)?.preimage;
-
     const afterBlockRootWitness: WitnessedRootWitness = {
       witnessedRoot: Field(block.result.witnessedRoots[0]),
-      preimage: preimage ?? Field(0),
     };
 
     // We create the batch here, because we need the afterBlockRootWitness,
@@ -187,7 +201,6 @@ export class BlockTracingService {
           appliedBatchListState: afterState.pendingSTBatches.commitment,
           root: afterBlockRootWitness.witnessedRoot,
         },
-        afterBlockRootWitness.preimage,
         state.pendingSTBatches.commitment.equals(0).not()
       );
     }

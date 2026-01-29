@@ -1,4 +1,4 @@
-import { Bool, Field, Proof, Provable, Struct } from "o1js";
+import { Bool, Field, Poseidon, Proof, Provable, Struct } from "o1js";
 import { CompilableModule, WithZkProgrammable } from "@proto-kit/common";
 
 import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
@@ -32,7 +32,6 @@ export class BlockArguments extends Struct({
     return new BlockArguments({
       afterBlockRootWitness: {
         witnessedRoot: stateRoot,
-        preimage: Field(0),
       },
       transactionsHash: Field(0),
       pendingSTBatchesHash: {
@@ -51,6 +50,92 @@ export class BlockArguments extends Struct({
 export class BlockArgumentsBatch extends Struct({
   batch: Provable.Array(BlockArguments, BLOCK_ARGUMENT_BATCH_SIZE),
 }) {}
+
+const BlockProverStateBaseFields = {
+  eternalTransactionsHash: Field,
+  incomingMessagesHash: Field,
+  stateRoot: Field,
+  blockHashRoot: Field,
+  blockNumber: Field,
+  networkStateHash: Field,
+};
+
+export class BlockProverPublicInput extends Struct({
+  // Tracker of the current block prover state
+  proverStateRemainder: Field,
+  ...BlockProverStateBaseFields,
+}) {
+  public equals(input: BlockProverPublicInput): Bool {
+    const output2 = BlockProverPublicInput.toFields(input);
+    const output1 = BlockProverPublicInput.toFields(this);
+    return output1
+      .map((value1, index) => value1.equals(output2[index]))
+      .reduce((a, b) => a.and(b));
+  }
+
+  public clone() {
+    return new BlockProverPublicInput(
+      BlockProverPublicInput.fromFields(BlockProverPublicInput.toFields(this))
+    );
+  }
+}
+
+export const BlockProverStateCommitments = {
+  remainders: {
+    // Commitment to the list of unprocessed (pending) batches of STs that need to be proven
+    pendingSTBatchesHash: Field,
+    witnessedRootsHash: Field,
+    bundlesHash: Field,
+    witnessedRootsPreimage: Field,
+  },
+  ...BlockProverStateBaseFields,
+};
+
+export class BlockProverStateInput extends Struct(BlockProverStateCommitments) {
+  public hash() {
+    return Poseidon.hash(BlockProverStateInput.toFields(this));
+  }
+
+  public static fromPublicInput(input: BlockProverPublicInput) {
+    return new BlockProverStateInput({
+      remainders: {
+        bundlesHash: Field(0),
+        pendingSTBatchesHash: Field(0),
+        witnessedRootsHash: Field(0),
+        witnessedRootsPreimage: Field(0),
+      },
+      eternalTransactionsHash: input.eternalTransactionsHash,
+      incomingMessagesHash: input.incomingMessagesHash,
+      stateRoot: input.stateRoot,
+      blockHashRoot: input.blockHashRoot,
+      blockNumber: input.blockNumber,
+      networkStateHash: input.networkStateHash,
+    });
+  }
+
+  public finalize(condition: Bool) {
+    condition
+      .implies(
+        this.remainders.bundlesHash
+          .equals(0)
+          .and(this.remainders.pendingSTBatchesHash.equals(0))
+          .and(this.remainders.witnessedRootsHash.equals(0))
+      )
+      .assertTrue("Remainers not fully removed");
+
+    return new BlockProverPublicInput({
+      proverStateRemainder: Field(0),
+      eternalTransactionsHash: this.eternalTransactionsHash,
+      incomingMessagesHash: this.incomingMessagesHash,
+      stateRoot: this.stateRoot,
+      blockHashRoot: this.blockHashRoot,
+      blockNumber: this.blockNumber,
+      networkStateHash: this.networkStateHash,
+    });
+  }
+}
+
+export class BlockProverPublicOutput extends BlockProverPublicInput {}
 
 export class BlockProverState {
   /**
@@ -113,12 +198,13 @@ export class BlockProverState {
     this.incomingMessages = args.incomingMessages;
   }
 
-  public toCommitments(): BlockProverPublicInput {
-    return {
+  public toCommitments(): BlockProverStateInput {
+    return new BlockProverStateInput({
       remainders: {
         bundlesHash: this.bundleList.commitment,
         pendingSTBatchesHash: this.pendingSTBatches.commitment,
         witnessedRootsHash: this.witnessedRoots.commitment,
+        witnessedRootsPreimage: this.witnessedRoots.preimage,
       },
       eternalTransactionsHash: this.eternalTransactionsList.commitment,
       incomingMessagesHash: this.incomingMessages.commitment,
@@ -126,31 +212,32 @@ export class BlockProverState {
       blockHashRoot: this.blockHashRoot,
       blockNumber: this.blockNumber,
       networkStateHash: this.networkState.hash(),
-    };
+    });
   }
 
   public static blockProverFromCommitments(
-    publicInput: BlockProverPublicInput,
+    stateInput: NonMethods<BlockProverStateInput>,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness
   ): BlockProverState {
     return new BlockProverState({
-      bundleList: new BundleHashList(publicInput.remainders.bundlesHash),
+      bundleList: new BundleHashList(stateInput.remainders.bundlesHash),
       eternalTransactionsList: new TransactionHashList(
-        publicInput.eternalTransactionsHash
+        stateInput.eternalTransactionsHash
       ),
       incomingMessages: new MinaActionsHashList(
-        publicInput.incomingMessagesHash
+        stateInput.incomingMessagesHash
       ),
       pendingSTBatches: new AppliedBatchHashList(
-        publicInput.remainders.pendingSTBatchesHash
+        stateInput.remainders.pendingSTBatchesHash
       ),
       witnessedRoots: new WitnessedRootHashList(
-        publicInput.remainders.witnessedRootsHash
+        stateInput.remainders.witnessedRootsHash,
+        stateInput.remainders.witnessedRootsPreimage
       ),
-      stateRoot: publicInput.stateRoot,
-      blockHashRoot: publicInput.blockHashRoot,
-      blockNumber: publicInput.blockNumber,
+      stateRoot: stateInput.stateRoot,
+      blockHashRoot: stateInput.blockHashRoot,
+      blockNumber: stateInput.blockNumber,
       networkState,
       blockWitness,
     });
@@ -167,6 +254,7 @@ export class BlockProverState {
       this.pendingSTBatches.commitment,
       this.incomingMessages.commitment,
       this.witnessedRoots.commitment,
+      this.witnessedRoots.preimage,
       this.stateRoot,
       this.blockHashRoot,
       this.blockNumber,
@@ -182,14 +270,14 @@ export class BlockProverState {
       eternalTransactionsList: new TransactionHashList(fields[1]),
       pendingSTBatches: new AppliedBatchHashList(fields[2]),
       incomingMessages: new MinaActionsHashList(fields[3]),
-      witnessedRoots: new WitnessedRootHashList(fields[4]),
-      stateRoot: fields[5],
-      blockHashRoot: fields[6],
-      blockNumber: fields[7],
-      networkState: new NetworkState(NetworkState.fromFields(fields.slice(8))),
+      witnessedRoots: new WitnessedRootHashList(fields[4], fields[5]),
+      stateRoot: fields[6],
+      blockHashRoot: fields[7],
+      blockNumber: fields[8],
+      networkState: new NetworkState(NetworkState.fromFields(fields.slice(9))),
       blockWitness: new BlockHashMerkleTreeWitness(
         BlockHashMerkleTreeWitness.fromFields(
-          fields.slice(8 + NetworkState.sizeInFields())
+          fields.slice(9 + NetworkState.sizeInFields())
         )
       ),
     });
@@ -230,6 +318,11 @@ export class BlockProverState {
           condition,
           a.witnessedRoots.commitment,
           b.witnessedRoots.commitment
+        ),
+        Provable.if(
+          condition,
+          a.witnessedRoots.preimage,
+          b.witnessedRoots.preimage
         )
       ),
       stateRoot: Provable.if(condition, a.stateRoot, b.stateRoot),
@@ -250,51 +343,30 @@ export class BlockProverState {
   }
 }
 
-export const BlockProverStateCommitments = {
-  remainders: {
-    // Commitment to the list of unprocessed (pending) batches of STs that need to be proven
-    pendingSTBatchesHash: Field,
-    witnessedRootsHash: Field,
-    bundlesHash: Field,
-  },
-  eternalTransactionsHash: Field,
-  incomingMessagesHash: Field,
-  stateRoot: Field,
-  blockHashRoot: Field,
-  blockNumber: Field,
-  networkStateHash: Field,
-};
-
-export class BlockProverPublicInput extends Struct(
-  BlockProverStateCommitments
-) {}
-
-export class BlockProverPublicOutput extends Struct({
-  ...BlockProverStateCommitments,
-}) {
-  public equals(input: BlockProverPublicInput): Bool {
-    const output2 = BlockProverPublicOutput.toFields(input);
-    const output1 = BlockProverPublicOutput.toFields(this);
-    return output1
-      .map((value1, index) => value1.equals(output2[index]))
-      .reduce((a, b) => a.and(b));
-  }
-}
-
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export interface BlockProvable
   extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput>,
     CompilableModule {
-  proveBlockBatch: (
+  proveBlockBatchNoProofs: (
     publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
     networkState: NetworkState,
     blockWitness: BlockHashMerkleTreeWitness,
-    stateTransitionProof: StateTransitionProof,
+    batch: BlockArgumentsBatch,
+    finalize: Bool
+  ) => Promise<BlockProverPublicOutput>;
+
+  proveBlockBatchWithProofs: (
+    publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
+    networkState: NetworkState,
+    blockWitness: BlockHashMerkleTreeWitness,
+    batch: BlockArgumentsBatch,
     deferSTProof: Bool,
-    transactionProof: TransactionProof,
     deferTransactionProof: Bool,
-    batch: BlockArgumentsBatch
+    stateTransitionProof: StateTransitionProof,
+    transactionProof: TransactionProof
   ) => Promise<BlockProverPublicOutput>;
 
   merge: (

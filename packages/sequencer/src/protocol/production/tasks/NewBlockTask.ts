@@ -13,8 +13,10 @@ import {
   TransactionProvable,
   BlockArguments,
   BlockArgumentsBatch,
+  BlockProverStateInput,
+  BLOCK_ARGUMENT_BATCH_SIZE,
 } from "@proto-kit/protocol";
-import { Bool } from "o1js";
+import { Bool, Provable } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
@@ -37,6 +39,7 @@ export type NewBlockArguments = {
 
 export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
+  stateWitness: BlockProverStateInput;
   networkState: NetworkState;
   blockWitness: BlockHashMerkleTreeWitness;
   deferSTProof: Bool;
@@ -103,10 +106,15 @@ export class NewBlockTask
       networkState,
       blockWitness,
       publicInput,
+      stateWitness,
       deferSTProof,
       deferTransactionProof,
       blocks,
     } = parameters;
+
+    if (blocks.length !== BLOCK_ARGUMENT_BATCH_SIZE) {
+      throw new Error("Given block argument length not exactly batch size");
+    }
 
     const blockArgumentBatch = new BlockArgumentsBatch({
       batch: blocks.map((block) => block.args),
@@ -121,25 +129,43 @@ export class NewBlockTask
       this.protocol.stateServiceProvider,
       stateRecords,
       async () => {
-        await this.blockProver.proveBlockBatch(
-          publicInput,
-          networkState,
-          blockWitness,
-          input1,
-          deferSTProof,
-          input2,
-          deferTransactionProof,
-          blockArgumentBatch
-        );
+        if (deferSTProof.toBoolean() && deferTransactionProof.toBoolean()) {
+          await this.blockProver.proveBlockBatchNoProofs(
+            publicInput,
+            stateWitness,
+            networkState,
+            blockWitness,
+            blockArgumentBatch,
+            Bool(false)
+            // deferSTProof.or(deferTransactionProof)
+          );
+        } else {
+          await this.blockProver.proveBlockBatchWithProofs(
+            publicInput,
+            stateWitness,
+            networkState,
+            blockWitness,
+            blockArgumentBatch,
+            deferSTProof,
+            deferTransactionProof,
+            input1,
+            input2
+          );
+        }
       }
     );
 
-    return await executeWithPrefilledStateService(
+    const proof = await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
       stateRecords,
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );
+
+    Provable.log("Input", proof.publicInput);
+    Provable.log("Output", proof.publicOutput);
+
+    return proof;
   }
 
   public async prepare(): Promise<void> {

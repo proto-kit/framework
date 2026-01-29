@@ -189,6 +189,8 @@ export function createMerkleTree(height: number): AbstractMerkleTreeClass {
       return hash;
     }
 
+    // TODO Make sure this implementation is as efficient as it gets.
+    //  Especially compared to doing calculateRoot + witness new witness + check index
     public calculateRootIncrement(
       leafIndex: Field,
       leaf: Field
