@@ -12,6 +12,7 @@ import {
   BridgingModule,
   SettlementTokenConfig,
 } from "../../../settlement/BridgingModule";
+import { ensureNotBusy } from "../../../helpers/BusyGuard";
 
 import { BlockEvents, BlockTriggerBase } from "./BlockTrigger";
 
@@ -44,9 +45,6 @@ export class TimedBlockTrigger
   // There is no real type for interval ids somehow, so any it is
 
   private interval?: any;
-
-  // TODO Move that logic to somewhere proper
-  private settlementInProgress = false;
 
   public constructor(
     @inject("BatchProducerModule", { isOptional: true })
@@ -123,15 +121,9 @@ export class TimedBlockTrigger
         // otherwise treat as unproven-only
         if (
           settlementInterval !== undefined &&
-          totalTime % settlementInterval === 0 &&
-          !this.settlementInProgress
+          totalTime % settlementInterval === 0
         ) {
-          this.settlementInProgress = true;
-          const batch = await this.produceBatch();
-          if (batch !== undefined) {
-            await this.settle(batch, this.config.settlementTokenConfig);
-          }
-          this.settlementInProgress = false;
+          await this.tryProduceSettlement();
         }
       } catch (error) {
         log.error(error);
@@ -148,6 +140,14 @@ export class TimedBlockTrigger
     // than 1 tx in mempool
     if (mempoolTxs.length > 0 || (this.config.produceEmptyBlocks ?? true)) {
       await this.produceBlock();
+    }
+  }
+
+  @ensureNotBusy()
+  private async tryProduceSettlement(): Promise<void> {
+    const batch = await this.produceBatch();
+    if (batch !== undefined) {
+      await this.settle(batch, this.config.settlementTokenConfig);
     }
   }
 
