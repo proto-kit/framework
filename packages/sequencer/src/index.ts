@@ -4,6 +4,8 @@ export * from "./mempool/Mempool";
 export * from "./mempool/PendingTransaction";
 export * from "./mempool/CompressedSignature";
 export * from "./mempool/private/PrivateMempool";
+export * from "./mempool/sorting/MempoolSorting";
+export * from "./mempool/sorting/DefaultMempoolSorting";
 export * from "./sequencer/executor/Sequencer";
 export * from "./sequencer/executor/Sequenceable";
 export * from "./sequencer/SequencerIdProvider";
