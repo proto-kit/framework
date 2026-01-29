@@ -251,7 +251,7 @@ describe("prisma integration", () => {
         PrismaTransactionStorage
       );
 
-      const txs = await txResolver.getPendingUserTransactions();
+      const txs = await txResolver.getPendingUserTransactions(0);
 
       expectDefined(transaction.transaction);
 

@@ -81,7 +81,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
 
         await txQueue.addTask(task);
       } catch (err) {
-        console.error("Failed to add pending-tx task", err);
+        log.error("Failed to add pending-tx task", err);
       }
     });
     this.sequencer.events.on("batch-produced", async (batch) => {

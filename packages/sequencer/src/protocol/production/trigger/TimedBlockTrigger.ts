@@ -135,7 +135,7 @@ export class TimedBlockTrigger
 
   private async produceUnprovenBlock() {
     // TODO Optimize towards mempool.length()
-    const mempoolTxs = await this.mempool.getTxs();
+    const mempoolTxs = await this.mempool.getTxs(0);
     // Produce a block if either produceEmptyBlocks is true or we have more
     // than 1 tx in mempool
     if (mempoolTxs.length > 0 || (this.config.produceEmptyBlocks ?? true)) {

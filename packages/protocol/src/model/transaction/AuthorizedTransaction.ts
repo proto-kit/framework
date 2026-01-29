@@ -2,26 +2,30 @@ import { Bool, Field, Scalar, Signature, Struct, UInt64 } from "o1js";
 
 import { RuntimeTransaction } from "./RuntimeTransaction";
 
-export class SignedTransaction extends Struct({
+export class AuthorizedTransaction extends Struct({
   transaction: RuntimeTransaction,
   signature: Signature,
+  isMessage: Bool,
 }) {
   public static getSignatureData(args: {
     methodId: Field;
     nonce: UInt64;
     argsHash: Field;
   }): Field[] {
+    // No isMessage here - we don't sign that
     return [args.methodId, ...args.nonce.value.toFields(), args.argsHash];
   }
 
-  public static dummy(): SignedTransaction {
-    return new SignedTransaction({
+  public static dummy(): AuthorizedTransaction {
+    return new AuthorizedTransaction({
       transaction: RuntimeTransaction.dummyTransaction(),
 
       signature: Signature.fromObject({
         s: Scalar.from(0),
         r: Field(0),
       }),
+
+      isMessage: Bool(false),
     });
   }
 
@@ -31,17 +35,16 @@ export class SignedTransaction extends Struct({
 
   public getSignatureData(): Field[] {
     const { methodId, argsHash, nonce } = this.transaction;
-    return SignedTransaction.getSignatureData({
+    return AuthorizedTransaction.getSignatureData({
       nonce: nonce.value,
       methodId,
       argsHash,
     });
   }
 
-  public validateSignature(): Bool {
-    return this.signature.verify(
-      this.transaction.sender.value,
-      this.getSignatureData()
-    );
+  public validateAuthorization(): Bool {
+    return this.signature
+      .verify(this.transaction.sender.value, this.getSignatureData())
+      .or(this.isMessage);
   }
 }

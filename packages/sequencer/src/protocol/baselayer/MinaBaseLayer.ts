@@ -15,7 +15,7 @@ import {
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
 
-import { BaseLayer } from "./BaseLayer";
+import { BaseLayer, StaticBaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
 import { LightnetUtils } from "./network-utils/LightnetUtils";
 import { RemoteNetworkUtils } from "./network-utils/RemoteNetworkUtils";
@@ -62,13 +62,7 @@ export class MinaBaseLayer
     super();
   }
 
-  public dependencies() {
-    const NetworkUtilsClass = match(this.config.network.type)
-      .with("local", () => LocalBlockchainUtils)
-      .with("lightnet", () => LightnetUtils)
-      .with("remote", () => RemoteNetworkUtils)
-      .exhaustive();
-
+  public static dependencies() {
     return {
       IncomingMessageAdapter: {
         useClass: MinaIncomingMessageAdapter,
@@ -81,7 +75,17 @@ export class MinaBaseLayer
       OutgoingMessageAdapter: {
         useClass: DefaultOutgoingMessageAdapter,
       },
+    };
+  }
 
+  public dependencies() {
+    const NetworkUtilsClass = match(this.config.network.type)
+      .with("local", () => LocalBlockchainUtils)
+      .with("lightnet", () => LightnetUtils)
+      .with("remote", () => RemoteNetworkUtils)
+      .exhaustive();
+
+    return {
       NetworkUtils: {
         useClass: NetworkUtilsClass,
       },
@@ -141,3 +145,5 @@ export class MinaBaseLayer
     this.network = Network;
   }
 }
+
+MinaBaseLayer satisfies StaticBaseLayer;

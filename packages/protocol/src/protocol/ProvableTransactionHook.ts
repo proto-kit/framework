@@ -1,13 +1,10 @@
 import { NoConfig } from "@proto-kit/common";
-import { Field, Signature } from "o1js";
+import { Field } from "o1js";
 
-import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../model/network/NetworkState";
 import { MethodPublicOutput } from "../model/MethodPublicOutput";
-import {
-  TransactionProverState,
-  TransactionProverTransactionArguments,
-} from "../prover/transaction/TransactionProvable";
+import { TransactionProverState } from "../prover/transaction/TransactionProvable";
+import { AuthorizedTransaction } from "../model/transaction/AuthorizedTransaction";
 
 import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
@@ -32,34 +29,29 @@ export function toProvableHookTransactionState(
 }
 
 export function toBeforeTransactionHookArgument(
-  executionData: Omit<
-    TransactionProverTransactionArguments,
-    "verificationKeyAttestation"
-  >,
+  authorizedTransaction: AuthorizedTransaction,
   networkState: NetworkState,
   state: Parameters<typeof toProvableHookTransactionState>[0]
 ): BeforeTransactionHookArguments {
-  const { transaction, signature } = executionData;
-
   return {
     networkState,
-    transaction,
-    signature,
+    transaction: authorizedTransaction,
     prover: toProvableHookTransactionState(state),
   };
 }
 
 export function toAfterTransactionHookArgument(
-  executionData: Omit<
-    TransactionProverTransactionArguments,
-    "verificationKeyAttestation"
-  >,
+  authorizedTransaction: AuthorizedTransaction,
   networkState: NetworkState,
   state: Parameters<typeof toProvableHookTransactionState>[0],
   runtimeResult: MethodPublicOutput
 ): AfterTransactionHookArguments {
   return {
-    ...toBeforeTransactionHookArgument(executionData, networkState, state),
+    ...toBeforeTransactionHookArgument(
+      authorizedTransaction,
+      networkState,
+      state
+    ),
     runtimeResult,
   };
 }
@@ -75,8 +67,7 @@ export type TransactionResult = Omit<
 >;
 
 export interface BeforeTransactionHookArguments {
-  transaction: RuntimeTransaction;
-  signature: Signature;
+  transaction: AuthorizedTransaction;
   networkState: NetworkState;
   prover: ProvableHookTransactionState;
 }

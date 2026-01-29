@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Introduced dynamic block building and JIT transaction fetching [#394](https://github.com/proto-kit/framework/pull/394)
 - Introduced block explorer [#381](https://github.com/proto-kit/framework/pull/381)
 - Added CircuitAnalysisModule for easy analysis of protocol circuits [#379](https://github.com/proto-kit/framework/pull/379)
 - Separated settlement and bridging functionally, so now settlement can be used without bridging [#376](https://github.com/proto-kit/framework/pull/376)
