@@ -64,8 +64,6 @@ const errors = {
   propertyNotMatching: (propertyName: string) => `${propertyName} not matching`,
 };
 
-type Tail<T extends any[]> = T extends [infer A, ...infer Rest] ? Rest : never;
-
 type BlockHookArgument<T extends "before" | "after"> = T extends "before"
   ? BeforeBlockHookArguments
   : AfterBlockHookArguments;
