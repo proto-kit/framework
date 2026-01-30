@@ -58,7 +58,7 @@ export class WorkerRegistrationTask
   public name = "worker-registration";
 
   public async prepare() {
-    noop();
+    log.info("Waiting on sequencer to send registration info...");
   }
 
   public async compute(input: WorkerStartupPayload) {
@@ -114,6 +114,8 @@ export class WorkerRegistrationTask
       .setCompileRegistry(this.compileRegistry);
 
     this.events.emit("startup-task-finished");
+
+    log.info("Worker registration completed");
 
     this.done = true;
     return true;

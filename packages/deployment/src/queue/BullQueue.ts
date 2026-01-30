@@ -41,6 +41,10 @@ export class BullQueue
 
   private activePromise?: Promise<void>;
 
+  private workers: Worker[] = [];
+
+  private jobsInProgress = 0;
+
   public createWorker(
     name: string,
     executor: (data: TaskPayload) => Promise<TaskPayload>,
@@ -54,7 +58,9 @@ export class BullQueue
         // computing them, so that leads to bad performance over multiple workers.
         // For that we need to restructure tasks to be flowing through a single queue however
 
-        // TODO Use worker.pause()
+        this.jobsInProgress += 1;
+        await Promise.all(this.workers.map((w) => w.pause()));
+
         while (this.activePromise !== undefined) {
           // eslint-disable-next-line no-await-in-loop
           await this.activePromise;
@@ -70,17 +76,24 @@ export class BullQueue
         this.activePromise = undefined;
         void resOutside();
 
+        this.jobsInProgress -= 1;
+        if (this.jobsInProgress === 0) {
+          this.workers.map((w) => w.resume());
+        }
+
         return result;
       },
       {
         concurrency: options?.concurrency ?? 1,
         connection: this.config.redis,
         stalledInterval: 60000, // 1 minute
-        lockDuration: 60000, // 1 minute
+        lockDuration: 60000 * 5, // 5 minutes
 
         metrics: { maxDataPoints: MetricsTime.ONE_HOUR * 24 },
       }
     );
+
+    this.workers.push(worker);
 
     // We have to do this, because we want to prevent the worker from crashing
     worker.on("error", (error) => {
