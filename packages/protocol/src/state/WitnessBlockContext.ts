@@ -19,9 +19,11 @@ const asyncProxyWitnessFunction = <
   return async (...args: Parameters<F>) => {
     const context = container.resolve(WitnessBlockContext);
     context.witnessBlockDepth += 1;
-    const ret = await originalFuncDef(...args);
-    context.witnessBlockDepth -= 1;
-    return ret;
+    try {
+      return await originalFuncDef(...args);
+    } finally {
+      context.witnessBlockDepth -= 1;
+    }
   };
 };
 
@@ -35,9 +37,11 @@ const proxySyncWitnessFunction = <
   return (...args: Params): Ret => {
     const context = container.resolve(WitnessBlockContext);
     context.witnessBlockDepth += 1;
-    const ret = originalFuncDef(...args);
-    context.witnessBlockDepth -= 1;
-    return ret;
+    try {
+      return originalFuncDef(...args);
+    } finally {
+      context.witnessBlockDepth -= 1;
+    }
   };
 };
 
