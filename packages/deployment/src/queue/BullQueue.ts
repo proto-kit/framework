@@ -58,19 +58,20 @@ export class BullQueue
         // computing them, so that leads to bad performance over multiple workers.
         // For that we need to restructure tasks to be flowing through a single queue however
 
-        this.jobsInProgress += 1;
-        await Promise.all(this.workers.map((w) => w.pause()));
-
         while (this.activePromise !== undefined) {
           // eslint-disable-next-line no-await-in-loop
           await this.activePromise;
         }
+
         let resOutside: () => void = () => {};
         // TODO Use Promise.withResolvers() for that
         const promise = new Promise<void>((res) => {
           resOutside = res;
         });
         this.activePromise = promise;
+
+        this.jobsInProgress += 1;
+        await Promise.all(this.workers.map((w) => w.pause()));
 
         const result = await executor(job.data);
         this.activePromise = undefined;
