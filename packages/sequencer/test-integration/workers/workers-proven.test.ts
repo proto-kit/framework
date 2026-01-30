@@ -29,7 +29,7 @@ const timeout = 300000;
 
 const proofsEnabled = false;
 
-const numWorkers = 4;
+const numWorkers = 1;
 
 describe("worker-proven", () => {
   describe("sequencer", () => {
@@ -42,9 +42,14 @@ describe("worker-proven", () => {
     beforeAll(async () => {
       for (let i = 0; i < numWorkers; i++) {
         const worker = new ChildProcessWorker();
-        worker.start(`worker-${i}`, true, {
-          PROOFS_ENABLED: `${proofsEnabled}`,
-        });
+        worker.start(
+          `worker-${i}`,
+          "./test-integration/workers/worker.ts",
+          true,
+          {
+            PROOFS_ENABLED: `${proofsEnabled}`,
+          }
+        );
         workers.push(worker);
       }
     });

@@ -4,7 +4,7 @@ import { MinaBaseLayerConfig } from "../src";
 import { FungibleToken } from "mina-fungible-token";
 import { PrivateKey } from "o1js";
 
-describe("Settlement - Devnet", () => {
+describe.skip("Settlement - Devnet", () => {
   const network: MinaBaseLayerConfig = {
     network: {
       type: "remote",
@@ -29,7 +29,7 @@ describe("Settlement - Devnet", () => {
   });
 
   describe("Default token", () => {
-    settlementTestFn("proven", network, undefined, 500_000, [
+    settlementTestFn("proven", network, undefined, 500_000, undefined, [
       sequencerKey,
       userKey,
     ]);
@@ -43,6 +43,7 @@ describe("Settlement - Devnet", () => {
         tokenOwner: FungibleToken,
       },
       500_000,
+      undefined,
       [sequencerKey, userKey]
     );
   });

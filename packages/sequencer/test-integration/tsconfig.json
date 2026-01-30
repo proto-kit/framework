@@ -3,5 +3,15 @@
   "compilerOptions": {
     "experimentalDecorators": true
   },
+  "ts-node": {
+    "experimentalSpecifierResolution": "node",
+    "esm": true,
+    "experimentalResolver": true,
+    "transpileOnly": true,
+    "swc": true,
+    "compilerOptions": {
+      "skipLibCheck": true,
+    }
+  },
   "include": ["./**/*.ts", "./**/*.test.ts", "./*.ts", "./*.ts"]
 }
