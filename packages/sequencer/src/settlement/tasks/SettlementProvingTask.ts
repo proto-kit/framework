@@ -47,6 +47,7 @@ type Account = ReturnType<typeof Mina.getAccount>;
 export type ChainStateTaskArgs = {
   accounts: Account[];
   graphql: string | undefined;
+  archive: string | undefined;
 };
 
 export type TransactionTaskArgs = {
@@ -106,7 +107,7 @@ export class SettlementProvingTask
     state: ChainStateTaskArgs,
     f: () => Promise<T>
   ): Promise<T> {
-    const { graphql, accounts } = state;
+    const { accounts, graphql, archive } = state;
 
     // For this, we assume that remote networks will only be used with separate
     // worker instances, since they only work with proofs enabled. For
@@ -116,7 +117,10 @@ export class SettlementProvingTask
 
     if (graphql !== undefined) {
       const oldInstance = Mina.activeInstance;
-      const newInstance = Mina.Network(graphql);
+      const newInstance = Mina.Network({
+        mina: graphql,
+        archive,
+      });
       newInstance.proofsEnabled = this.areProofsEnabled.areProofsEnabled;
       Mina.setActiveInstance(newInstance);
 
@@ -223,6 +227,7 @@ export class SettlementProvingTask
       lazyProofs: (LazyProofJson | null)[];
       chainState: {
         graphql: string | undefined | null;
+        archive: string | undefined | null;
         accounts: AccountJson[];
       };
     };
@@ -323,6 +328,7 @@ export class SettlementProvingTask
           transaction,
           chainState: {
             graphql: jsonObject.chainState.graphql ?? undefined,
+            archive: jsonObject.chainState.archive ?? undefined,
             accounts: jsonObject.chainState.accounts.map((account) =>
               Types.Account.fromJSON(account)
             ),
@@ -414,6 +420,7 @@ export class SettlementProvingTask
           lazyProofs,
           chainState: {
             graphql: input.chainState.graphql,
+            archive: input.chainState.archive,
             accounts: input.chainState.accounts.map((account) =>
               Types.Account.toJSON(account)
             ),

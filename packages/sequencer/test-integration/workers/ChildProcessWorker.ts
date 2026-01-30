@@ -19,6 +19,7 @@ export class ChildProcessWorker {
         "--experimental-vm-modules",
         "--experimental-wasm-modules",
         "--es-module-specifier-resolution=node",
+        "--no-warnings",
         file,
       ],
       {
