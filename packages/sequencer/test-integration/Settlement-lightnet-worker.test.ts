@@ -39,7 +39,7 @@ describe.skip.each(["signed"] as const)(
         "./test-integration/settlement-worker.ts",
         true,
         {
-          PROOFS_ENABLED: "false",
+          PROOFS_ENABLED: `${(type as string) === "proven"}`,
         }
       );
     });
