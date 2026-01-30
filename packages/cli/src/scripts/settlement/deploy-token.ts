@@ -217,7 +217,9 @@ export default async function (
 
   async function deployBridge() {
     const settlement = settlementModule.getSettlementContract();
+
     const dispatch =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       bridgingModule.getDispatchContract() as DispatchSmartContract;
 
     await fetchAccount({

@@ -120,6 +120,7 @@ export default async function (
 
   const settlement = settlementModule.getSettlementContract();
   const dispatch =
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     bridgingModule.getDispatchContract() as DispatchSmartContract;
 
   await fetchAccount({ publicKey: fromPrivateKey.toPublicKey() });
