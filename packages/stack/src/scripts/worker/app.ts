@@ -34,6 +34,7 @@ export const app = {
     protocol: {
       AccountState: {},
       BlockProver: {},
+      TransactionProver: {},
       BlockHeight: {},
       StateTransitionProver: {},
       LastStateRoot: {},

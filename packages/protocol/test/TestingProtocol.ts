@@ -3,33 +3,13 @@ import { Runtime } from "@proto-kit/module";
 import { Balance } from "@proto-kit/sequencer/test/integration/mocks/Balance";
 import { NoopRuntime } from "@proto-kit/sequencer/test/integration/mocks/NoopRuntime";
 
-import {
-  AccountStateHook,
-  BlockHeightHook,
-  BlockProver,
-  LastStateRootBlockHook,
-  Protocol,
-  StateServiceProvider,
-  StateTransitionProver,
-} from "../src";
+import { Protocol, StateServiceProvider } from "../src";
 
 export function createAndInitTestingProtocol() {
-  const ProtocolClass = Protocol.from({
-    StateTransitionProver: StateTransitionProver,
-    BlockProver: BlockProver,
-    AccountState: AccountStateHook,
-    BlockHeight: BlockHeightHook,
-    LastStateRoot: LastStateRootBlockHook,
-  });
+  const ProtocolClass = Protocol.from(Protocol.defaultModules());
   const protocol = new ProtocolClass();
 
-  protocol.configure({
-    BlockProver: {},
-    AccountState: {},
-    BlockHeight: {},
-    StateTransitionProver: {},
-    LastStateRoot: {},
-  });
+  protocol.configure(Protocol.defaultConfig());
 
   const appChain = container.createChildContainer();
 

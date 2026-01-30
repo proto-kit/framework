@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable func-names */
 import { Runtime } from "@proto-kit/module";
-import { Protocol } from "@proto-kit/protocol";
+import { DispatchSmartContract, Protocol } from "@proto-kit/protocol";
 import {
   ArchiveNode,
   MinaTransactionSender,
@@ -10,6 +10,7 @@ import {
   SettlementModule,
   SignedSettlementPermissions,
   AppChain,
+  BridgingModule,
 } from "@proto-kit/sequencer";
 import {
   AccountUpdate,
@@ -98,6 +99,11 @@ export default async function (
     SettlementModule
   );
 
+  const bridgingModule = appChain.sequencer.resolveOrFail(
+    "BridgingModule",
+    BridgingModule
+  );
+
   const isSignedSettlement = settlementModule.utils.isSignedSettlement();
 
   const tokenOwnerKey = PrivateKey.fromBase58(
@@ -155,11 +161,13 @@ export default async function (
     console.log("Sending deploy transaction...");
     console.log(tx.toPretty());
 
-    settlementModule.signTransaction(
-      tx,
-      [feepayerPrivateKey, tokenOwnerKey, tokenAdminKey],
-      [tokenOwnerKey, tokenAdminKey]
-    );
+    settlementModule.utils.signTransaction(tx, {
+      signingWithSignatureCheck: [
+        tokenOwnerKey.toPublicKey(),
+        tokenAdminKey.toPublicKey(),
+      ],
+      signingPublicKeys: [feepayerPrivateKey.toPublicKey()],
+    });
 
     await appChain.sequencer
       .resolveOrFail("TransactionSender", MinaTransactionSender)
@@ -193,11 +201,14 @@ export default async function (
         await tokenOwner!.mint(receiverPublicKey, UInt64.from(mintAmount));
       }
     );
-    settlementModule.utils.signTransaction(
-      tx,
-      [feepayerPrivateKey],
-      [tokenOwnerKey, tokenAdminKey]
-    );
+
+    settlementModule.utils.signTransaction(tx, {
+      signingPublicKeys: [feepayerPrivateKey.toPublicKey()],
+      signingWithSignatureCheck: [
+        tokenOwnerKey.toPublicKey(),
+        tokenAdminKey.toPublicKey(),
+      ],
+    });
 
     await appChain.sequencer
       .resolveOrFail("TransactionSender", MinaTransactionSender)
@@ -205,19 +216,23 @@ export default async function (
   }
 
   async function deployBridge() {
-    const { settlement, dispatch } = settlementModule.getAddresses();
+    const settlement = settlementModule.getSettlementContract();
+
+    const dispatch =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      bridgingModule.getDispatchContract() as DispatchSmartContract;
+
     await fetchAccount({
-      publicKey: settlementModule.config.feepayer.toPublicKey(),
+      publicKey: settlementModule.utils.getSigner(),
     });
-    await fetchAccount({ publicKey: settlement });
-    await fetchAccount({ publicKey: dispatch });
+    await fetchAccount({ publicKey: settlement.address });
+    await fetchAccount({ publicKey: dispatch.address });
 
     const tokenOwner = new FungibleToken(tokenOwnerKey.toPublicKey());
     // SetAdminEvent.
-    await settlementModule.deployTokenBridge(
+    await bridgingModule.deployTokenBridge(
       tokenOwner,
-      tokenOwnerKey,
-      tokenBridgeKey,
+      tokenBridgeKey.toPublicKey(),
       {}
     );
     console.log(

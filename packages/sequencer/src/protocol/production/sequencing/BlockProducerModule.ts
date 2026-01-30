@@ -14,7 +14,6 @@ import {
   SequencerModule,
 } from "../../../sequencer/builder/SequencerModule";
 import { BlockQueue } from "../../../storage/repositories/BlockStorage";
-import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { AsyncMerkleTreeStore } from "../../../state/async/AsyncMerkleTreeStore";
 import { AsyncStateService } from "../../../state/async/AsyncStateService";
 import {
@@ -23,10 +22,11 @@ import {
   BlockWithResult,
 } from "../../../storage/model/Block";
 import { Database } from "../../../storage/Database";
-import { IncomingMessagesService } from "../../../settlement/messages/IncomingMessagesService";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
+import { TransactionStorage } from "../../../storage/repositories/TransactionStorage";
+import { ensureNotBusy } from "../../../helpers/BusyGuard";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -38,18 +38,16 @@ export interface BlockConfig {
 
 @sequencerModule()
 export class BlockProducerModule extends SequencerModule<BlockConfig> {
-  private productionInProgress = false;
-
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
-    @inject("IncomingMessagesService", { isOptional: true })
-    private readonly messageService: IncomingMessagesService | undefined,
     @inject("UnprovenStateService")
     private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenLinkedLeafStore")
     private readonly unprovenLinkedLeafStore: AsyncLinkedLeafStore,
     @inject("BlockQueue")
     private readonly blockQueue: BlockQueue,
+    @inject("TransactionStorage")
+    private readonly transactionStorage: TransactionStorage,
     @inject("BlockTreeStore")
     private readonly blockTreeStore: AsyncMerkleTreeStore,
     private readonly productionService: BlockProductionService,
@@ -140,48 +138,29 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return result;
   }
 
+  @ensureNotBusy()
   public async tryProduceBlock(): Promise<Block | undefined> {
-    if (!this.productionInProgress) {
-      try {
-        const block = await this.produceBlock();
+    const block = await this.produceBlock();
 
-        if (block === undefined) {
-          if (!this.allowEmptyBlock()) {
-            log.info("No transactions in mempool, skipping production");
-          } else {
-            log.error("Something wrong happened, skipping block");
-          }
-          return undefined;
-        }
-
-        log.info(
-          `Produced block #${block.height.toBigInt()} (${block.transactions.length} txs)`
-        );
-        this.prettyPrintBlockContents(block);
-
-        return block;
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          throw error;
-        } else {
-          log.error(error);
-        }
-      } finally {
-        this.productionInProgress = false;
+    if (block === undefined) {
+      if (!this.allowEmptyBlock()) {
+        log.info("No transactions in mempool, skipping production");
+      } else {
+        log.error("Something wrong happened, skipping block");
       }
+      return undefined;
     }
-    return undefined;
+
+    log.info(
+      `Produced block #${block.height.toBigInt()} (${block.transactions.length} txs)`
+    );
+    this.prettyPrintBlockContents(block);
+
+    return block;
   }
 
-  // TODO Move to different service, to remove dependency on mempool and messagequeue
-  //  Idea: Create a service that aggregates a bunch of different sources
   @trace("block.collect_inputs")
-  private async collectProductionData(): Promise<{
-    txs: PendingTransaction[];
-    metadata: BlockWithResult;
-  }> {
-    const txs = await this.mempool.getTxs(this.maximumBlockSize());
-
+  private async collectProductionData(): Promise<BlockWithResult> {
     const parentBlock = await this.blockQueue.getLatestBlockAndResult();
 
     let metadata: BlockWithResult;
@@ -203,67 +182,59 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       };
     }
 
-    let messages: PendingTransaction[] = [];
-    if (this.messageService !== undefined) {
-      messages = await this.messageService.getPendingMessages();
-    }
-
-    log.debug(
-      `Block collected, ${txs.length} txs, ${messages.length} messages`
-    );
-
-    return {
-      txs: messages.concat(txs),
-      metadata,
-    };
+    return metadata;
   }
 
   @trace("block")
   private async produceBlock(): Promise<Block | undefined> {
-    this.productionInProgress = true;
-
-    const { txs, metadata } = await this.collectProductionData();
-
-    // Skip production if no transactions are available for now
-    if (txs.length === 0 && !this.allowEmptyBlock()) {
-      return undefined;
-    }
+    const metadata = await this.collectProductionData();
 
     const blockResult = await this.productionService.createBlock(
       this.unprovenStateService,
-      txs,
       metadata,
-      this.allowEmptyBlock()
+      this.allowEmptyBlock(),
+      this.maximumBlockSize()
     );
 
     if (blockResult !== undefined) {
-      const { block, stateChanges } = blockResult;
+      const { block, stateChanges, orderingMetadata } = blockResult;
+
+      // Skip production if no transactions are available for now
+      if (block.transactions.length === 0 && !this.allowEmptyBlock()) {
+        return undefined;
+      }
 
       await this.tracer.trace(
         "block.commit",
-        async () =>
+        async () => {
           // Push changes to the database atomically
           await this.database.executeInTransaction(async () => {
             await stateChanges.mergeIntoParent();
             await this.blockQueue.pushBlock(block);
-          }),
+
+            // Remove included or dropped txs, leave skipped ones alone
+            await this.mempool.removeTxs(
+              blockResult.includedTxs
+                .filter((x) => x.type === "included")
+                .map((x) => x.hash),
+              blockResult.includedTxs
+                .filter((x) => x.type === "shouldRemove")
+                .map((x) => x.hash)
+            );
+
+            await this.transactionStorage.reportChangedPaths(
+              orderingMetadata.allChangedPaths
+            );
+            await this.transactionStorage.reportSkippedTransactions(
+              orderingMetadata.skippedPaths
+            );
+          });
+        },
         {
           height: block.height.toString(),
         }
       );
-
-      // Remove included or dropped txs, leave skipped ones alone
-      await this.mempool.removeTxs(
-        blockResult.includedTxs
-          .filter((x) => x.type === "included")
-          .map((x) => x.hash),
-        blockResult.includedTxs
-          .filter((x) => x.type === "shouldRemove")
-          .map((x) => x.hash)
-      );
     }
-
-    this.productionInProgress = false;
 
     return blockResult?.block;
   }

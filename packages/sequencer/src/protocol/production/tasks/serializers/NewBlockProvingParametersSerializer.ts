@@ -1,14 +1,16 @@
 import {
+  BlockArguments,
   BlockHashMerkleTreeWitness,
-  BlockProof,
   BlockProverPublicInput,
-  BlockProverPublicOutput,
+  BlockProverStateInput,
   NetworkState,
   ReturnType,
   StateTransitionProof,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
-  WitnessedRootWitness,
+  TransactionProof,
+  TransactionProverPublicInput,
+  TransactionProverPublicOutput,
 } from "@proto-kit/protocol";
 import { Bool } from "o1js";
 
@@ -27,18 +29,22 @@ interface JsonType {
   input2: string;
   params: {
     publicInput: ReturnType<typeof BlockProverPublicInput.toJSON>;
+    stateWitness: ReturnType<typeof BlockProverStateInput.toJSON>;
     networkState: ReturnType<typeof NetworkState.toJSON>;
     blockWitness: ReturnType<typeof BlockHashMerkleTreeWitness.toJSON>;
-    startingStateBeforeHook: JSONEncodableState;
-    startingStateAfterHook: JSONEncodableState;
     deferSTProof: boolean;
-    afterBlockRootWitness: ReturnType<typeof WitnessedRootWitness.toJSON>;
+    deferTransactionProof: boolean;
+    blocks: {
+      startingStateBeforeHook: JSONEncodableState;
+      startingStateAfterHook: JSONEncodableState;
+      args: ReturnType<typeof BlockArguments.toJSON>;
+    }[];
   };
 }
 
 type NewBlockPayload = PairingDerivedInput<
   StateTransitionProof,
-  BlockProof,
+  TransactionProof,
   NewBlockProverParameters
 >;
 
@@ -50,19 +56,21 @@ export class NewBlockProvingParametersSerializer
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,
-    private readonly blockProofSerializer: ProofTaskSerializer<
-      BlockProverPublicInput,
-      BlockProverPublicOutput
+    private readonly transactionProofSerializer: ProofTaskSerializer<
+      TransactionProverPublicInput,
+      TransactionProverPublicOutput
     >
   ) {}
 
   public toJSON(input: NewBlockPayload) {
     return JSON.stringify({
       input1: this.stProofSerializer.toJSON(input.input1),
-      input2: this.blockProofSerializer.toJSON(input.input2),
+      input2: this.transactionProofSerializer.toJSON(input.input2),
 
       params: {
         publicInput: BlockProverPublicInput.toJSON(input.params.publicInput),
+
+        stateWitness: BlockProverStateInput.toJSON(input.params.stateWitness),
 
         networkState: NetworkState.toJSON(input.params.networkState),
 
@@ -70,19 +78,22 @@ export class NewBlockProvingParametersSerializer
           input.params.blockWitness
         ),
 
-        startingStateBeforeHook: DecodedStateSerializer.toJSON(
-          input.params.startingStateBeforeHook
-        ),
+        blocks: input.params.blocks.map((block) => {
+          return {
+            startingStateBeforeHook: DecodedStateSerializer.toJSON(
+              block.startingStateBeforeHook
+            ),
 
-        startingStateAfterHook: DecodedStateSerializer.toJSON(
-          input.params.startingStateAfterHook
-        ),
+            startingStateAfterHook: DecodedStateSerializer.toJSON(
+              block.startingStateAfterHook
+            ),
+
+            args: BlockArguments.toJSON(block.args),
+          };
+        }),
 
         deferSTProof: input.params.deferSTProof.toBoolean(),
-
-        afterBlockRootWitness: WitnessedRootWitness.toJSON(
-          input.params.afterBlockRootWitness
-        ),
+        deferTransactionProof: input.params.deferTransactionProof.toBoolean(),
       },
     } satisfies JsonType);
   }
@@ -92,11 +103,15 @@ export class NewBlockProvingParametersSerializer
     const jsonObject: JsonType = JSON.parse(json);
     return {
       input1: await this.stProofSerializer.fromJSON(jsonObject.input1),
-      input2: await this.blockProofSerializer.fromJSON(jsonObject.input2),
+      input2: await this.transactionProofSerializer.fromJSON(jsonObject.input2),
 
       params: {
-        publicInput: BlockProverPublicInput.fromJSON(
-          jsonObject.params.publicInput
+        publicInput: new BlockProverPublicInput(
+          BlockProverPublicInput.fromJSON(jsonObject.params.publicInput)
+        ),
+
+        stateWitness: new BlockProverStateInput(
+          BlockProverStateInput.fromJSON(jsonObject.params.stateWitness)
         ),
 
         networkState: new NetworkState(
@@ -107,19 +122,22 @@ export class NewBlockProvingParametersSerializer
           BlockHashMerkleTreeWitness.fromJSON(jsonObject.params.blockWitness)
         ),
 
-        startingStateBeforeHook: DecodedStateSerializer.fromJSON(
-          jsonObject.params.startingStateBeforeHook
-        ),
+        blocks: jsonObject.params.blocks.map((block) => {
+          return {
+            startingStateBeforeHook: DecodedStateSerializer.fromJSON(
+              block.startingStateBeforeHook
+            ),
 
-        startingStateAfterHook: DecodedStateSerializer.fromJSON(
-          jsonObject.params.startingStateBeforeHook
-        ),
+            startingStateAfterHook: DecodedStateSerializer.fromJSON(
+              block.startingStateBeforeHook
+            ),
+
+            args: BlockArguments.fromJSON(block.args),
+          };
+        }),
 
         deferSTProof: Bool(jsonObject.params.deferSTProof),
-
-        afterBlockRootWitness: WitnessedRootWitness.fromJSON(
-          jsonObject.params.afterBlockRootWitness
-        ),
+        deferTransactionProof: Bool(jsonObject.params.deferTransactionProof),
       },
     };
   }

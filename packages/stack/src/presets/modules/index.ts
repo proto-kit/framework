@@ -20,6 +20,7 @@ import {
   InMemoryDatabase,
   LocalTaskQueue,
   AppChainModulesRecord,
+  InMemoryMinaSigner,
 } from "@proto-kit/sequencer";
 import {
   IndexerNotifier,
@@ -100,6 +101,7 @@ export class DefaultModules {
       FeeStrategy: ConstantFeeStrategy,
       BatchProducerModule,
       SettlementModule,
+      SettlementSigner: InMemoryMinaSigner,
       LocalTaskWorkerModule: LocalTaskWorkerModule.from(
         VanillaTaskWorkerModules.allTasks()
       ),
@@ -379,16 +381,19 @@ export class DefaultConfigs {
         },
       },
       SettlementModule: {
-        feepayer: PrivateKey.fromBase58(config.sequencerPrivateKey),
-        keys: {
-          settlement: PrivateKey.fromBase58(
+        addresses: {
+          SettlementContract: PrivateKey.fromBase58(
             config.settlementContractPrivateKey
-          ),
-          dispatch: PrivateKey.fromBase58(config.dispatcherContractPrivateKey),
-          minaBridge: PrivateKey.fromBase58(
-            config.minaBridgeContractPrivateKey
-          ),
+          ).toPublicKey(),
         },
+      },
+      SettlementSigner: {
+        feepayer: PrivateKey.fromBase58(config.sequencerPrivateKey),
+        contractKeys: [
+          PrivateKey.fromBase58(config.settlementContractPrivateKey),
+          PrivateKey.fromBase58(config.dispatcherContractPrivateKey),
+          PrivateKey.fromBase58(config.minaBridgeContractPrivateKey),
+        ],
       },
       FeeStrategy: {},
       BatchProducerModule: {},

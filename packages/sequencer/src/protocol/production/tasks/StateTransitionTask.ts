@@ -9,10 +9,8 @@ import {
   StateTransitionProvable,
   StateTransitionProvableBatch,
   StateTransitionProverPublicInput,
-  StateTransitionProverPublicOutput,
 } from "@proto-kit/protocol";
 import {
-  log,
   ProvableMethodExecutionContext,
   CompileRegistry,
   LinkedMerkleTreeWitness,
@@ -66,16 +64,12 @@ export class StateTransitionTask
   public async compute(
     input: StateTransitionProofParameters
   ): Promise<StateTransitionProof> {
-    const output = await this.stateTransitionProver.proveBatch(
+    await this.stateTransitionProver.proveBatch(
       input.publicInput,
       input.batch,
       new MerkleWitnessBatch({ witnesses: input.merkleWitnesses.slice() }),
       input.batchState
     );
-    log.debug("STTask public io:", {
-      input: StateTransitionProverPublicInput.toJSON(input.publicInput),
-      output: StateTransitionProverPublicOutput.toJSON(output),
-    });
 
     return await this.executionContext
       .current()

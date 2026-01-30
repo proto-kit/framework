@@ -10,7 +10,7 @@ import "reflect-metadata";
 import {
   MethodPublicOutput,
   NetworkState,
-  SignedTransaction,
+  AuthorizedTransaction,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
 } from "../src";

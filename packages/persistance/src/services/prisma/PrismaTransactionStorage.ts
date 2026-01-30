@@ -9,6 +9,7 @@ import {
 import type { PrismaConnection } from "../../PrismaDatabaseConnection";
 
 import { TransactionMapper } from "./mappers/TransactionMapper";
+import { Decimal } from "./PrismaStateService";
 
 @injectable()
 export class PrismaTransactionStorage implements TransactionStorage {
@@ -19,7 +20,10 @@ export class PrismaTransactionStorage implements TransactionStorage {
   ) {}
 
   @trace("db.txs.get")
-  public async getPendingUserTransactions(): Promise<PendingTransaction[]> {
+  public async getPendingUserTransactions(
+    offset: number,
+    limit?: number
+  ): Promise<PendingTransaction[]> {
     const { prismaClient } = this.connection;
 
     const txs = await prismaClient.transaction.findMany({
@@ -30,7 +34,17 @@ export class PrismaTransactionStorage implements TransactionStorage {
         isMessage: {
           equals: false,
         },
+        inputPaths: {
+          is: null,
+        },
       },
+      orderBy: {
+        priority: {
+          priority: "desc",
+        },
+      },
+      skip: offset,
+      take: limit,
     });
     return txs.map((tx) => this.transactionMapper.mapIn(tx));
   }
@@ -51,13 +65,27 @@ export class PrismaTransactionStorage implements TransactionStorage {
     }
   }
 
-  public async pushUserTransaction(tx: PendingTransaction): Promise<boolean> {
+  public async pushUserTransaction(
+    tx: PendingTransaction,
+    priority: number
+  ): Promise<boolean> {
     const { prismaClient } = this.connection;
 
-    const result = await prismaClient.transaction.createMany({
-      data: [this.transactionMapper.mapOut(tx)],
-      skipDuplicates: true,
-    });
+    const transactionData = this.transactionMapper.mapOut(tx);
+
+    const [result] = await prismaClient.$transaction([
+      prismaClient.transaction.createMany({
+        data: [transactionData],
+        skipDuplicates: true,
+      }),
+
+      prismaClient.transactionPriority.create({
+        data: {
+          priority,
+          transactionHash: transactionData.hash,
+        },
+      }),
+    ]);
 
     return result.count === 1;
   }
@@ -102,5 +130,30 @@ export class PrismaTransactionStorage implements TransactionStorage {
       block,
       batch,
     };
+  }
+
+  public async reportSkippedTransactions(
+    paths: Record<string, bigint[]>
+  ): Promise<void> {
+    const { prismaClient } = this.connection;
+
+    await prismaClient.skippedTransactionInputPaths.createMany({
+      data: Object.entries(paths).map(([transactionHash, pathArray]) => ({
+        transactionHash,
+        paths: pathArray.map((path) => new Decimal(path.toString())),
+      })),
+    });
+  }
+
+  public async reportChangedPaths(paths: bigint[]): Promise<void> {
+    const { prismaClient } = this.connection;
+
+    await prismaClient.skippedTransactionInputPaths.deleteMany({
+      where: {
+        paths: {
+          hasSome: paths.map((path) => new Decimal(path.toString())),
+        },
+      },
+    });
   }
 }

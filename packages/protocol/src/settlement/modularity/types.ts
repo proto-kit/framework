@@ -1,4 +1,5 @@
 import { TypedClass } from "@proto-kit/common";
+import { SmartContract } from "o1js";
 
 import {
   ContractModule,
@@ -11,7 +12,7 @@ export type InferContractType<
 > =
   Module extends TypedClass<infer ConcreteModule>
     ? ConcreteModule extends ContractModule<infer Contract, any>
-      ? Contract
+      ? Contract & SmartContract
       : never
     : never;
 

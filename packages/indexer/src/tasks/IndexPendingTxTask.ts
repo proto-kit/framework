@@ -30,7 +30,7 @@ export class IndexPendingTxTask
 
   public async compute(input: PendingTransaction): Promise<string | void> {
     try {
-      await this.transactionStorage.pushUserTransaction(input);
+      await this.transactionStorage.pushUserTransaction(input, 0);
       return "";
     } catch (err) {
       log.error("Failed to process pending tx task", err);

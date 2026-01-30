@@ -1,6 +1,5 @@
 import "reflect-metadata";
-import { expect } from "@jest/globals";
-import { VanillaProtocolModules } from "@proto-kit/library";
+import { afterAll, expect } from "@jest/globals";
 import { Protocol } from "@proto-kit/protocol";
 import { Runtime } from "@proto-kit/module";
 import { Bool, Field, PrivateKey, UInt64 } from "o1js";
@@ -59,9 +58,6 @@ describe.each([["InMemory", InMemoryDatabase]])(
     let unprovenState: AsyncStateService;
     let provenState: AsyncStateService;
 
-    // let unprovenTreeStore: AsyncMerkleTreeStore;
-    // let provenTreeStore: AsyncMerkleTreeStore;
-
     const sk = PrivateKey.random();
     const pk = sk.toPublicKey();
     let pkNonce = 0;
@@ -77,9 +73,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         Balance,
       });
 
-      const protocolClass = Protocol.from(
-        VanillaProtocolModules.mandatoryModules({})
-      );
+      const protocolClass = Protocol.from(Protocol.defaultModules());
 
       return AppChain.from({
         Sequencer: sequencerClass,
@@ -107,13 +101,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           FeeStrategy: {},
           SequencerStartupModule: {},
         },
-        Protocol: {
-          AccountState: {},
-          BlockProver: {},
-          StateTransitionProver: {},
-          BlockHeight: {},
-          LastStateRoot: {},
-        },
+        Protocol: Protocol.defaultConfig(),
       });
 
       await appChain.start(false);
@@ -123,6 +111,10 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       unprovenState = sequencer.resolve("UnprovenStateService");
       provenState = sequencer.resolve("AsyncStateService");
+    });
+
+    afterAll(async () => {
+      await appChain.close();
     });
 
     it("test unproven block prod", async () => {
@@ -212,7 +204,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       });
       await mempool.add(tx);
 
-      const txs = await txStorage.getPendingUserTransactions();
+      const txs = await txStorage.getPendingUserTransactions(0);
 
       expect(txs).toHaveLength(1);
       expect(txs[0].hash().toString()).toStrictEqual(tx.hash().toString());
@@ -220,7 +212,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await sequencer.resolve("BlockTrigger").produceBlock();
 
       await expect(
-        txStorage.getPendingUserTransactions()
+        txStorage.getPendingUserTransactions(0)
       ).resolves.toHaveLength(0);
     }, 60_000);
   }

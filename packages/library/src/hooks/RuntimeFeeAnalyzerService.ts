@@ -79,8 +79,8 @@ export class RuntimeFeeAnalyzerService extends ConfigurableModule<RuntimeFeeAnal
       transaction: RuntimeTransaction.dummyTransaction(),
       networkState: NetworkState.empty(),
     });
+    context.clear();
 
-    container.resolve(RuntimeMethodExecutionContext).clear();
     let methodCounter = 0;
     const [values, indexes] =
       await this.runtime.zkProgrammable.zkProgram.reduce<

@@ -161,7 +161,10 @@ export class MempoolResolver extends GraphqlModule {
       "Returns the hashes of all transactions that are currently inside the mempool",
   })
   public async transactions() {
-    const txs = await this.transactionStorage.getPendingUserTransactions();
+    const txs = await this.transactionStorage.getPendingUserTransactions(
+      0,
+      1000
+    );
     return txs.map((x) => x.hash().toString());
   }
 }

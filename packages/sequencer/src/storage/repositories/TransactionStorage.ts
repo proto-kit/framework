@@ -1,9 +1,15 @@
 import { PendingTransaction } from "../../mempool/PendingTransaction";
 
 export interface TransactionStorage {
-  pushUserTransaction: (tx: PendingTransaction) => Promise<boolean>;
+  pushUserTransaction: (
+    tx: PendingTransaction,
+    priority: number
+  ) => Promise<boolean>;
 
-  getPendingUserTransactions: () => Promise<PendingTransaction[]>;
+  getPendingUserTransactions: (
+    offset: number,
+    limit?: number
+  ) => Promise<PendingTransaction[]>;
 
   removeTx: (txHashes: string[], type: "included" | "dropped") => Promise<void>;
 
@@ -22,4 +28,13 @@ export interface TransactionStorage {
       }
     | undefined
   >;
+
+  /**
+   * Mapping hash => path[]
+   */
+  reportSkippedTransactions: (paths: Record<string, bigint[]>) => Promise<void>;
+
+  reportChangedPaths: (paths: bigint[]) => Promise<void>;
+
+  // TODO Add a method to retrieve all conflict transactions and expose it through the APIs
 }

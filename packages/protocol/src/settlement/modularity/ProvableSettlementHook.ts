@@ -3,8 +3,8 @@ import { InferProofBase } from "@proto-kit/common";
 
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import { NetworkState } from "../../model/network/NetworkState";
-import type { BlockProof } from "../../prover/block/BlockProver";
-import type { SettlementSmartContractBase } from "../contracts/SettlementSmartContract";
+import type { BlockProof } from "../../prover/block/BlockProvable";
+import type { SettlementContractType } from "../contracts/settlement/SettlementBase";
 
 export type InputBlockProof = InferProofBase<BlockProof>;
 
@@ -30,7 +30,7 @@ export abstract class ProvableSettlementHook<
   Config,
 > extends ProtocolModule<Config> {
   public abstract beforeSettlement(
-    smartContract: SettlementSmartContractBase,
+    smartContract: SettlementContractType,
     inputs: SettlementHookInputs
   ): Promise<void>;
 }

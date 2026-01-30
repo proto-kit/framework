@@ -61,7 +61,7 @@ export class AppChain<
    */
   public async start(
     proofsEnabled: boolean = false,
-    dependencyContainer: DependencyContainer = container
+    dependencyContainer: DependencyContainer = container.createChildContainer()
   ) {
     this.create(() => dependencyContainer);
 

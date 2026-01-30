@@ -70,9 +70,7 @@ describe("block limit", () => {
       Sequencer: {
         Database: {},
         BlockTrigger: {},
-        Mempool: {
-          validationEnabled: true,
-        },
+        Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {
           maximumBlockSize: maxBlockSize,
@@ -88,11 +86,7 @@ describe("block limit", () => {
         NoopRuntime: {},
       },
       Protocol: {
-        AccountState: {},
-        BlockProver: {},
-        StateTransitionProver: {},
-        BlockHeight: {},
-        LastStateRoot: {},
+        ...Protocol.defaultConfig(),
         ProtocolStateTestHook: {},
       },
     });

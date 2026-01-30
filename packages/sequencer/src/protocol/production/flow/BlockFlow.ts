@@ -1,23 +1,22 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
-  BlockProof,
-  BlockProverPublicInput,
-  BlockProverPublicOutput,
   MandatoryProtocolModulesRecord,
   Protocol,
+  TransactionProof,
 } from "@proto-kit/protocol";
-import { Bool, Field } from "o1js";
-import { MAX_FIELD } from "@proto-kit/common";
+import { mapSequential } from "@proto-kit/common";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import chunk from "lodash/chunk";
 
 import { TransactionProvingTask } from "../tasks/TransactionProvingTask";
-import { BlockReductionTask } from "../tasks/BlockReductionTask";
-import { TransactionProvingTaskParameters } from "../tasks/serializers/types/TransactionProvingTypes";
 import { FlowCreator } from "../../../worker/flow/Flow";
-import { BlockTrace } from "../tracing/BlockTracingService";
+import { TransactionReductionTask } from "../tasks/TransactionReductionTask";
+import { TransactionTrace } from "../tracing/TransactionTracingService";
 
 import { ReductionTaskFlow } from "./ReductionTaskFlow";
 import { TransactionFlow } from "./TransactionFlow";
 
+// TODO Rename to TransactionFlow
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 export class BlockFlow {
@@ -25,54 +24,41 @@ export class BlockFlow {
     private readonly flowCreator: FlowCreator,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly transactionProvingTask: TransactionProvingTask,
-    private readonly blockReductionTask: BlockReductionTask,
-    private readonly transactionFlow: TransactionFlow
+    private readonly runtimeFlow: TransactionFlow,
+    private readonly transactionTask: TransactionProvingTask,
+    private readonly transactionMergeTask: TransactionReductionTask
   ) {}
 
-  private async dummyTransactionProof(trace: BlockTrace) {
-    const publicInput = {
-      ...trace.blockParams.publicInput,
-      networkStateHash: Field(0),
-      transactionsHash: Field(0),
-      blockHashRoot: Field(0),
-      blockNumber: MAX_FIELD,
-    } satisfies BlockProverPublicInput;
+  private dummyProof: TransactionProof | undefined = undefined;
 
-    // TODO Set publicInput.stateRoot to result after block hooks!
-    const publicOutput = new BlockProverPublicOutput({
-      ...publicInput,
-      closed: Bool(true),
+  private async dummyTransactionProof() {
+    if (this.dummyProof !== undefined) {
+      return this.dummyProof;
+    }
+
+    const flow = this.flowCreator.createFlow("transaction-dummy", undefined);
+    const dummy = await flow.withFlow<TransactionProof>(async (resolve) => {
+      await flow.pushTask(this.transactionTask, "dummy", async (result) => {
+        resolve(result);
+      });
     });
-
-    return await this.protocol.blockProver.zkProgrammable.zkProgram[0].Proof.dummy(
-      publicInput,
-      publicOutput,
-      2
-    );
+    this.dummyProof = dummy;
+    return dummy;
   }
 
-  private async executeTransactions(
-    trace: BlockTrace
-  ): Promise<ReductionTaskFlow<TransactionProvingTaskParameters, BlockProof>> {
-    const transactionFlow = new ReductionTaskFlow(
+  private async proveTransactions(height: string, traces: TransactionTrace[]) {
+    const flow = new ReductionTaskFlow(
       {
-        name: `transactions-${trace.height}`,
-        inputLength: trace.transactions.length,
-        mappingTask: this.transactionProvingTask,
-        reductionTask: this.blockReductionTask,
-
+        name: `transaction-${height}`,
+        inputLength: Math.ceil(traces.length / 2),
+        mappingTask: this.transactionTask,
+        reductionTask: this.transactionMergeTask,
         mergableFunction: (a, b) =>
-          a.publicOutput.stateRoot
-            .equals(b.publicInput.stateRoot)
+          a.publicOutput.eternalTransactionsHash
+            .equals(b.publicInput.eternalTransactionsHash)
             .and(
-              a.publicOutput.transactionsHash.equals(
-                b.publicInput.transactionsHash
-              )
-            )
-            .and(
-              a.publicInput.networkStateHash.equals(
-                b.publicInput.networkStateHash
+              a.publicOutput.incomingMessagesHash.equals(
+                b.publicInput.incomingMessagesHash
               )
             )
             .toBoolean(),
@@ -80,32 +66,30 @@ export class BlockFlow {
       this.flowCreator
     );
 
-    await transactionFlow.flow.forEach(
-      trace.transactions,
-      async (transactionTrace, txIndex) => {
-        await this.transactionFlow.proveRuntimes(
-          transactionTrace,
-          trace.height,
-          txIndex,
-          async (parameters) => {
-            await transactionFlow.pushInput(parameters);
-          }
-        );
-      }
-    );
+    await mapSequential(chunk(traces, 2), async (traceChunk, index) => {
+      await this.runtimeFlow.proveRuntimes(
+        traceChunk,
+        height,
+        index,
+        async (result) => {
+          await flow.pushInput(result);
+        }
+      );
+    });
 
-    return transactionFlow;
+    return flow;
   }
 
-  public async executeBlock(
-    trace: BlockTrace,
-    callback: (proof: BlockProof) => Promise<void>
+  public async createTransactionProof(
+    height: string,
+    trace: TransactionTrace[],
+    callback: (proof: TransactionProof) => Promise<void>
   ) {
-    if (trace.transactions.length === 0) {
-      const proof = await this.dummyTransactionProof(trace);
+    if (trace.length === 0) {
+      const proof = await this.dummyTransactionProof();
       await callback(proof);
     } else {
-      const flow = await this.executeTransactions(trace);
+      const flow = await this.proveTransactions(height, trace);
       flow.onCompletion(async (result) => {
         await callback(result);
       });

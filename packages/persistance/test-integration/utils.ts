@@ -126,6 +126,7 @@ export function createPrismaAppchain(
       AccountState: {},
       BlockProver: {},
       StateTransitionProver: {},
+      TransactionProver: {},
       BlockHeight: {},
       LastStateRoot: {},
     },

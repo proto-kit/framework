@@ -217,4 +217,35 @@ describe.each([4, 16, 256])("cachedMerkleTree - %s", (height) => {
       tree.getNode(0, index);
     }).toThrow("Index greater than maximum leaf number");
   });
+
+  it("witness incrementing", () => {
+    tree.setLeaf(0n, Field(3256));
+    tree.setLeaf(1n, Field(3256));
+    tree.setLeaf(2n, Field(3256));
+
+    const witness = tree.getWitness(3n);
+
+    const [root, newWitness] = witness.calculateRootIncrement(
+      Field(3),
+      Field(1234)
+    );
+    tree.setLeaf(3n, Field(1234));
+
+    expect(tree.getRoot().toString()).toStrictEqual(root.toString());
+    expect(newWitness.calculateIndex().toString()).toStrictEqual("4");
+
+    const [root2, newWitness2] = newWitness.calculateRootIncrement(
+      Field(4),
+      Field(4321)
+    );
+    tree.setLeaf(4n, Field(4321));
+
+    expect(tree.getRoot().toString()).toStrictEqual(root2.toString());
+    expect(newWitness2.calculateIndex().toString()).toStrictEqual("5");
+
+    const root3 = newWitness2.calculateRoot(Field(555));
+    tree.setLeaf(5n, Field(555));
+
+    expect(tree.getRoot().toString()).toStrictEqual(root3.toString());
+  });
 });

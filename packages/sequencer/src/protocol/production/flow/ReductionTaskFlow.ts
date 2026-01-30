@@ -176,7 +176,7 @@ export class ReductionTaskFlow<Input, Output> {
 
   /**
    * To be used in conjunction with onCompletion
-   * It allows errors from this flow to be "defered" to another parent
+   * It allows errors from this flow to be "deferred" to another parent
    * flow which might be properly awaited and therefore will throw the
    * error up to the user
    * @param flow

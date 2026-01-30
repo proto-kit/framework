@@ -10,7 +10,7 @@ import {
   reduceStateTransitions,
   RuntimeTransaction,
   StateServiceProvider,
-  toProvableHookBlockState,
+  toBeforeBlockHookArgument,
   TransactionHashList,
 } from "@proto-kit/protocol";
 import { Field } from "o1js";
@@ -33,12 +33,15 @@ import {
   BlockTrackers,
   executeWithExecutionContext,
   TransactionExecutionResultStatus,
-  TransactionExecutionService,
 } from "./TransactionExecutionService";
+import { BlockBuilder } from "./BlockBuilder";
+import { OrderingMetadata } from "./Ordering";
 
-function isIncludedTxs(
-  x: TransactionExecutionResultStatus
-): x is { status: "included"; result: TransactionExecutionResult } {
+function isIncludedTxs(x: TransactionExecutionResultStatus): x is {
+  status: "included";
+  tx: PendingTransaction;
+  result: TransactionExecutionResult;
+} {
   return x.status === "included";
 }
 
@@ -52,7 +55,7 @@ export class BlockProductionService {
     protocol: Protocol<MandatoryProtocolModulesRecord & ProtocolModulesRecord>,
     @inject("Tracer")
     public readonly tracer: Tracer,
-    private readonly transactionExecutionService: TransactionExecutionService,
+    private readonly blockBuilder: BlockBuilder,
     @inject("StateServiceProvider")
     private readonly stateServiceProvider: StateServiceProvider
   ) {
@@ -98,9 +101,9 @@ export class BlockProductionService {
    */
   public async createBlock(
     asyncStateService: AsyncStateService,
-    transactions: PendingTransaction[],
     lastBlockWithResult: BlockWithResult,
-    allowEmptyBlocks: boolean
+    allowEmptyBlocks: boolean,
+    maximumBlockSize: number
   ): Promise<
     | {
         block: Block;
@@ -109,6 +112,7 @@ export class BlockProductionService {
           hash: string;
           type: "included" | "skipped" | "shouldRemove";
         }[];
+        orderingMetadata: OrderingMetadata;
       }
     | undefined
   > {
@@ -128,7 +132,7 @@ export class BlockProductionService {
 
     // Get used networkState by executing beforeBlock() hooks
     const beforeHookResult = await this.executeBeforeBlockHook(
-      toProvableHookBlockState(blockState),
+      toBeforeBlockHookArgument(blockState),
       lastResult.afterNetworkState,
       stateService
     );
@@ -140,13 +144,16 @@ export class BlockProductionService {
       UntypedStateTransition.fromStateTransition(transition)
     );
 
-    const { blockState: newBlockState, executionResults } =
-      await this.transactionExecutionService.createExecutionTraces(
-        stateService,
-        transactions,
-        networkState,
-        blockState
-      );
+    const {
+      blockState: newBlockState,
+      executionResults,
+      orderingMetadata,
+    } = await this.blockBuilder.buildBlock(
+      stateService,
+      networkState,
+      blockState,
+      maximumBlockSize
+    );
 
     const previousBlockHash =
       lastResult.blockHash === 0n ? undefined : Field(lastResult.blockHash);
@@ -204,6 +211,7 @@ export class BlockProductionService {
       },
       stateChanges: stateService,
       includedTxs,
+      orderingMetadata,
     };
   }
 }

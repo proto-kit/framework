@@ -34,6 +34,7 @@ import {
   DatabasePruneModule,
   AsyncLinkedLeafStore,
   AppChain,
+  BlockProducerModule,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -157,11 +158,7 @@ export function testBlockProduction<
         EventMaker: {},
       },
       Protocol: {
-        AccountState: {},
-        BlockProver: {},
-        StateTransitionProver: {},
-        BlockHeight: {},
-        LastStateRoot: {},
+        ...Protocol.defaultConfig(),
         ProtocolStateTestHook: {},
       },
     });
@@ -422,7 +419,7 @@ export function testBlockProduction<
 
   const numberTxs = 3;
 
-  it("should produce block with multiple transaction", async () => {
+  it("should produce block with multiple transactions", async () => {
     log.setLevel("TRACE");
 
     expect.assertions(6 + 4 * numberTxs);
@@ -541,22 +538,24 @@ export function testBlockProduction<
 
   it.each([
     [2, 1, 1],
-    [1, 2, 1],
-    [1, 1, 2],
+    [1, 5, 1],
     [2, 2, 2],
     [1, 14, 0],
+    [1, 6, 5],
   ])(
     "should produce multiple blocks with multiple batches with multiple transactions",
     async (batches, blocksPerBatch, txsPerBlock) => {
       expect.assertions(
         2 * batches +
-          1 * batches * blocksPerBatch +
-          2 * batches * blocksPerBatch * txsPerBlock
+          2 * batches * blocksPerBatch +
+          1 * batches * blocksPerBatch * txsPerBlock
       );
 
       log.setLevel("DEBUG");
 
-      const sender = PrivateKey.random();
+      const sender = PrivateKey.fromBase58(
+        "EKEiL7J4ouZGAz8uHo3oUebfA8zTWYYwLsojTyK9cAafi9sBBRpN"
+      );
 
       const keys = range(0, batches * blocksPerBatch * txsPerBlock).map(() =>
         PrivateKey.random()
@@ -586,9 +585,9 @@ export function testBlockProduction<
 
           expect(block).toBeDefined();
 
+          expect(block!.transactions).toHaveLength(txsPerBlock);
           for (let k = 0; k < txsPerBlock; k++) {
-            expect(block!.transactions).toHaveLength(txsPerBlock);
-            expect(block!.transactions[0].status.toBoolean()).toBe(true);
+            expect(block!.transactions[k].status.toBoolean()).toBe(true);
           }
         }
 
@@ -685,6 +684,49 @@ export function testBlockProduction<
     expect(batch!.blockHashes).toHaveLength(1);
     expect(batch!.proof.proof).toBe(MOCK_PROOF);
   }, 30000);
+
+  it.each([4, 6, 9])(
+    "should produce some filled blocks and some empty blocks",
+    async (numBlocks) => {
+      log.setLevel("INFO");
+
+      (sequencer.resolve("BlockProducerModule") as BlockProducerModule).config =
+        {
+          maximumBlockSize: 5,
+        };
+
+      const privateKey = PrivateKey.random();
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      for (const i of range(0, 7)) {
+        await test.addTransaction({
+          method: ["Balance", "addBalance"],
+          privateKey,
+          args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
+        });
+      }
+
+      // Produce 6 blocks, 5 txs each into 1 batch
+      const block = await test.produceBlock();
+
+      expectDefined(block);
+      expect(block.transactions).toHaveLength(5);
+      expect(block.transactions[0].status.toBoolean()).toBe(true);
+
+      await mapSequential(
+        range(0, numBlocks - 1),
+        async () => await test.produceBlock()
+      );
+      const batch = await test.produceBatch();
+
+      expectDefined(batch);
+
+      console.log(batch.proof);
+
+      expect(batch.blockHashes).toHaveLength(numBlocks);
+    },
+    30000
+  );
 
   it("events - should produce block with the right events", async () => {
     log.setLevel("TRACE");

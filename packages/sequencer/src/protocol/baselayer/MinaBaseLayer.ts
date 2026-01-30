@@ -2,7 +2,6 @@ import {
   AreProofsEnabled,
   DependencyFactory,
   ModuleContainerLike,
-  DependencyRecord,
 } from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
@@ -15,9 +14,8 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
-import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
 
-import { BaseLayer } from "./BaseLayer";
+import { BaseLayer, StaticBaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
 import { LightnetUtils } from "./network-utils/LightnetUtils";
 import { RemoteNetworkUtils } from "./network-utils/RemoteNetworkUtils";
@@ -66,20 +64,6 @@ export class MinaBaseLayer
 
   public static dependencies() {
     return {
-      IncomingMessagesService: {
-        useClass: IncomingMessagesService,
-      },
-    } satisfies DependencyRecord;
-  }
-
-  public dependencies() {
-    const NetworkUtilsClass = match(this.config.network.type)
-      .with("local", () => LocalBlockchainUtils)
-      .with("lightnet", () => LightnetUtils)
-      .with("remote", () => RemoteNetworkUtils)
-      .exhaustive();
-
-    return {
       IncomingMessageAdapter: {
         useClass: MinaIncomingMessageAdapter,
       },
@@ -91,7 +75,17 @@ export class MinaBaseLayer
       OutgoingMessageAdapter: {
         useClass: DefaultOutgoingMessageAdapter,
       },
+    };
+  }
 
+  public dependencies() {
+    const NetworkUtilsClass = match(this.config.network.type)
+      .with("local", () => LocalBlockchainUtils)
+      .with("lightnet", () => LightnetUtils)
+      .with("remote", () => RemoteNetworkUtils)
+      .exhaustive();
+
+    return {
       NetworkUtils: {
         useClass: NetworkUtilsClass,
       },
@@ -107,6 +101,14 @@ export class MinaBaseLayer
 
   public isLocalBlockChain(): boolean {
     return this.config.network.type === "local";
+  }
+
+  /**
+   * Signed settlement happens when proofs are disabled and the network is remote
+   * This is because on local network we can use mock proofs, while on remotes ones we can't
+   */
+  public isSignedSettlement(): boolean {
+    return !this.areProofsEnabled.areProofsEnabled && !this.isLocalBlockChain();
   }
 
   public async start(): Promise<void> {
@@ -144,4 +146,4 @@ export class MinaBaseLayer
   }
 }
 
-MinaBaseLayer satisfies DependencyFactory;
+MinaBaseLayer satisfies StaticBaseLayer;

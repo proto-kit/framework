@@ -9,7 +9,7 @@ import {
   AppChain,
 } from "@proto-kit/sequencer";
 import { Runtime } from "@proto-kit/module";
-import { Protocol } from "@proto-kit/protocol";
+import { DispatchSmartContract, Protocol } from "@proto-kit/protocol";
 import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
 import {
   AccountUpdate,
@@ -118,7 +118,10 @@ export default async function (
     BridgingModule
   );
 
-  const { settlement, dispatch } = settlementModule.getContracts();
+  const settlement = settlementModule.getSettlementContract();
+  const dispatch =
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    bridgingModule.getDispatchContract() as DispatchSmartContract;
 
   await fetchAccount({ publicKey: fromPrivateKey.toPublicKey() });
   await fetchAccount({ publicKey: settlement.address });
@@ -161,12 +164,11 @@ export default async function (
   );
   console.log(tx.toPretty());
 
-  settlementModule.signTransaction(
-    tx,
-    [fromPrivateKey],
-    [tokenOwnerPrivateKey],
-    [dispatch.address]
-  );
+  settlementModule.utils.signTransaction(tx, {
+    signingPublicKeys: [fromPrivateKey.toPublicKey()],
+    preventNoncePreconditionFor: [dispatch.address],
+    signingWithSignatureCheck: [tokenOwnerPrivateKey.toPublicKey()],
+  });
 
   console.log("Sending...");
   console.log(tx.toPretty());

@@ -114,40 +114,46 @@ export class Flow<State> implements Closeable {
       taskName?: string;
     }
   ): Promise<void> {
-    const queueName = task.name;
-    const taskName = overrides?.taskName ?? task.name;
-    const queue = await this.queueImpl.getQueue(queueName);
+    // We wrap this in a try-catch here, because the flow architecture
+    // sometimes lets errors vanish
+    try {
+      const queueName = task.name;
+      const taskName = overrides?.taskName ?? task.name;
+      const queue = await this.queueImpl.getQueue(queueName);
 
-    const payload = await task.inputSerializer().toJSON(input);
+      const payload = await task.inputSerializer().toJSON(input);
+      this.taskCounter += 1;
+      const taskId = String(this.taskCounter);
 
-    this.taskCounter += 1;
-    const taskId = String(this.taskCounter);
+      log.trace(`Pushing task ${task.name}`);
 
-    log.trace(`Pushing task ${task.name}`);
+      await queue.addTask({
+        name: taskName,
+        taskId,
+        flowId: this.flowId,
+        payload,
+        sequencerId: this.sequencerId,
+      });
 
-    await queue.addTask({
-      name: taskName,
-      taskId,
-      flowId: this.flowId,
-      payload,
-      sequencerId: this.sequencerId,
-    });
+      this.tasksInProgress += 1;
 
-    this.tasksInProgress += 1;
-
-    const callback = async (returnPayload: TaskPayload) => {
-      log.trace(
-        `Completed ${returnPayload.name}, task: ${returnPayload.flowId}:${
-          returnPayload?.taskId ?? "-"
-        }`
-      );
-      const decoded = await task
-        .resultSerializer()
-        .fromJSON(returnPayload.payload);
-      this.tasksInProgress -= 1;
-      return await completed?.(decoded, input);
-    };
-    await this.waitForResult(queue, taskId, callback);
+      const callback = async (returnPayload: TaskPayload) => {
+        log.trace(
+          `Completed ${returnPayload.name}, task: ${returnPayload.flowId}:${
+            returnPayload?.taskId ?? "-"
+          }`
+        );
+        const decoded = await task
+          .resultSerializer()
+          .fromJSON(returnPayload.payload);
+        this.tasksInProgress -= 1;
+        return await completed?.(decoded, input);
+      };
+      await this.waitForResult(queue, taskId, callback);
+    } catch (e) {
+      log.error(e);
+      throw e;
+    }
   }
 
   public async forEach<Type>(

@@ -1,22 +1,5 @@
-import {
-  EventEmitter,
-  log,
-  noop,
-  ModuleContainerLike,
-} from "@proto-kit/common";
-import { container, inject } from "tsyringe";
-import {
-  AccountStateHook,
-  BlockHashMerkleTree,
-  MandatoryProtocolModulesRecord,
-  NetworkState,
-  Protocol,
-  ProvableHookBlockState,
-  RuntimeMethodExecutionContext,
-  RuntimeMethodExecutionData,
-  StateServiceProvider,
-} from "@proto-kit/protocol";
-import { Field } from "o1js";
+import { EventEmitter, log, noop } from "@proto-kit/common";
+import { inject } from "tsyringe";
 
 import type { Mempool, MempoolEvents } from "../Mempool";
 import type { PendingTransaction } from "../PendingTransaction";
@@ -26,21 +9,15 @@ import {
 } from "../../sequencer/builder/SequencerModule";
 import { TransactionStorage } from "../../storage/repositories/TransactionStorage";
 import { TransactionValidator } from "../verification/TransactionValidator";
-import { BlockStorage } from "../../storage/repositories/BlockStorage";
-import { CachedStateService } from "../../state/state/CachedStateService";
-import { AsyncStateService } from "../../state/async/AsyncStateService";
-import { distinctByPredicate } from "../../helpers/utils";
 import { Tracer } from "../../logging/Tracer";
 import { trace } from "../../logging/trace";
+import { IncomingMessagesService } from "../../settlement/messages/IncomingMessagesService";
+import { MempoolSorting } from "../sorting/MempoolSorting";
+import { DefaultMempoolSorting } from "../sorting/DefaultMempoolSorting";
 
-type MempoolTransactionPaths = {
-  transaction: PendingTransaction;
-  paths: Field[];
+type PrivateMempoolConfig = {
+  type?: "hybrid" | "private" | "based";
 };
-
-interface PrivateMempoolConfig {
-  validationEnabled?: boolean;
-}
 
 @sequencerModule()
 export class PrivateMempool
@@ -49,34 +26,40 @@ export class PrivateMempool
 {
   public readonly events = new EventEmitter<MempoolEvents>();
 
-  private readonly accountStateHook: AccountStateHook;
+  private readonly mempoolSorting: MempoolSorting;
 
   public constructor(
     private readonly transactionValidator: TransactionValidator,
     @inject("TransactionStorage")
     private readonly transactionStorage: TransactionStorage,
-    @inject("Protocol")
-    private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    @inject("Sequencer")
-    private readonly sequencer: ModuleContainerLike,
-    @inject("UnprovenStateService")
-    private readonly stateService: AsyncStateService,
-    @inject("Tracer") public readonly tracer: Tracer
+    @inject("IncomingMessagesService", { isOptional: true })
+    private readonly messageService: IncomingMessagesService | undefined,
+    @inject("Tracer") public readonly tracer: Tracer,
+    @inject("MempoolSorting", { isOptional: true })
+    mempoolSorting: MempoolSorting | undefined
   ) {
     super();
-    this.accountStateHook =
-      this.protocol.dependencyContainer.resolve("AccountState");
+    this.mempoolSorting = mempoolSorting ?? new DefaultMempoolSorting();
+  }
+
+  private type() {
+    return this.config.type ?? "hybrid";
   }
 
   public async length(): Promise<number> {
-    const txs = await this.transactionStorage.getPendingUserTransactions();
+    const txs = await this.transactionStorage.getPendingUserTransactions(0);
     return txs.length;
   }
 
   public async add(tx: PendingTransaction): Promise<boolean> {
     const [txValid, error] = this.transactionValidator.validateTx(tx);
     if (txValid) {
-      const success = await this.transactionStorage.pushUserTransaction(tx);
+      const sortingValue = this.mempoolSorting!.presortingPriority(tx);
+
+      const success = await this.transactionStorage.pushUserTransaction(
+        tx,
+        sortingValue
+      );
       if (success) {
         this.events.emit("mempool-transaction-added", tx);
         log.trace(`Transaction added to mempool: ${tx.hash().toString()}`);
@@ -99,169 +82,38 @@ export class PrivateMempool
     );
   }
 
-  private get unprovenQueue(): BlockStorage {
-    return this.sequencer.dependencyContainer.resolve<BlockStorage>(
-      "BlockStorage"
-    );
-  }
-
-  public async getStagedNetworkState(): Promise<NetworkState | undefined> {
-    const result = await this.unprovenQueue.getLatestBlock();
-    return result?.result.afterNetworkState;
-  }
-
   public async removeTxs(included: string[], dropped: string[]) {
     await this.transactionStorage.removeTx(included, "included");
     await this.transactionStorage.removeTx(dropped, "dropped");
   }
 
   @trace("mempool.get_txs")
-  public async getTxs(limit?: number): Promise<PendingTransaction[]> {
-    // TODO Add limit to the storage (or do something smarter entirely)
-    const txs = await this.transactionStorage.getPendingUserTransactions();
+  public async getTxs(
+    offset?: number,
+    limit?: number
+  ): Promise<PendingTransaction[]> {
+    if (this.type() === "based") {
+      return [];
+    }
 
-    const baseCachedStateService = new CachedStateService(this.stateService);
+    let txs = await this.transactionStorage.getPendingUserTransactions(
+      offset ?? 0,
+      limit
+    );
 
-    const networkState =
-      (await this.getStagedNetworkState()) ?? NetworkState.empty();
+    if (this.mempoolSorting.enablePostSorting()) {
+      txs = this.mempoolSorting.postSorting(txs);
+    }
 
-    const validationEnabled = this.config.validationEnabled ?? false;
-    const sortedTxs = validationEnabled
-      ? await this.checkTxValid(
-          txs,
-          baseCachedStateService,
-          this.protocol.stateServiceProvider,
-          networkState,
-          limit
-        )
-      : txs.slice(0, limit);
-
-    this.protocol.stateServiceProvider.popCurrentStateService();
-    return sortedTxs;
+    return txs;
   }
 
-  // We iterate through the transactions. For each tx we run the account state hook.
-  // If the txs succeeds then it can be returned. If it fails then we keep track of it
-  // in the skipped txs list and when later txs succeed we check to see if any state transition
-  // paths are shared between the just succeeded tx and any of the skipped txs. This is
-  // because a failed tx may succeed now if the failure was to do with a nonce issue, say.
-  // TODO Refactor
-  @trace("mempool.validate_txs")
-  // eslint-disable-next-line sonarjs/cognitive-complexity
-  private async checkTxValid(
-    transactions: PendingTransaction[],
-    baseService: CachedStateService,
-    stateServiceProvider: StateServiceProvider,
-    networkState: NetworkState,
-    limit?: number
-  ) {
-    const executionContext = container.resolve<RuntimeMethodExecutionContext>(
-      RuntimeMethodExecutionContext
-    );
-    executionContext.clear();
-
-    // Initialize starting state
-    const sortedTransactions: PendingTransaction[] = [];
-    const skippedTransactions: Record<string, MempoolTransactionPaths> = {};
-
-    let queue: PendingTransaction[] = [...transactions];
-
-    const previousBlock = await this.unprovenQueue.getLatestBlock();
-
-    // TODO This is not sound currently as the prover state changes all the time
-    //  in the actual blockprover. We need to properly simulate that
-    const proverState: ProvableHookBlockState = {
-      blockHashRoot: Field(
-        previousBlock?.result.blockHashRoot ?? BlockHashMerkleTree.EMPTY_ROOT
-      ),
-      eternalTransactionsHash:
-        previousBlock?.block.toEternalTransactionsHash ?? Field(0),
-      transactionsHash: previousBlock?.block.transactionsHash ?? Field(0),
-      incomingMessagesHash: previousBlock?.block.toMessagesHash ?? Field(0),
-    };
-
-    while (
-      queue.length > 0 &&
-      sortedTransactions.length < (limit ?? Number.MAX_VALUE)
-    ) {
-      const [tx] = queue.splice(0, 1);
-      const txStateService = new CachedStateService(baseService);
-      stateServiceProvider.setCurrentStateService(txStateService);
-      const contextInputs: RuntimeMethodExecutionData = {
-        networkState: networkState,
-        transaction: tx.toProtocolTransaction().transaction,
-      };
-      executionContext.setup(contextInputs);
-
-      const signedTransaction = tx.toProtocolTransaction();
-
-      // eslint-disable-next-line no-await-in-loop
-      await this.accountStateHook.beforeTransaction({
-        networkState: networkState,
-        transaction: signedTransaction.transaction,
-        signature: signedTransaction.signature,
-        prover: proverState,
-      });
-      const { status, statusMessage, stateTransitions } =
-        executionContext.current().result;
-
-      if (status.toBoolean()) {
-        log.trace(`Accepted tx ${tx.hash().toString()}`);
-        sortedTransactions.push(tx);
-        // eslint-disable-next-line no-await-in-loop
-        await txStateService.applyStateTransitions(stateTransitions);
-        // eslint-disable-next-line no-await-in-loop
-        await txStateService.mergeIntoParent();
-        delete skippedTransactions[tx.hash().toString()];
-        if (Object.entries(skippedTransactions).length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-loop-func
-          stateTransitions.forEach((st) => {
-            Object.values(skippedTransactions).forEach((value) => {
-              if (value.paths.some((x) => x.equals(st.path))) {
-                queue.push(value.transaction);
-              }
-            });
-          });
-          queue = queue.filter(distinctByPredicate((a, b) => a === b));
-        }
-      } else {
-        // eslint-disable-next-line no-await-in-loop
-        const removeTxWhen = await this.accountStateHook.removeTransactionWhen({
-          networkState: networkState,
-          transaction: signedTransaction.transaction,
-          signature: signedTransaction.signature,
-          prover: proverState,
-        });
-        if (removeTxWhen) {
-          // eslint-disable-next-line no-await-in-loop
-          await this.transactionStorage.removeTx(
-            [tx.hash().toString()],
-            "dropped"
-          );
-          log.trace(
-            `Deleting tx ${tx.hash().toString()}  from mempool because removeTransactionWhen condition is satisfied`
-          );
-          // eslint-disable-next-line no-continue
-          continue;
-        }
-
-        log.trace(
-          `Skipped tx ${tx.hash().toString()} because ${statusMessage}`
-        );
-        if (!(tx.hash().toString() in skippedTransactions)) {
-          skippedTransactions[tx.hash().toString()] = {
-            transaction: tx,
-            paths: stateTransitions
-              .map((x) => x.path)
-              .filter((id, idx, arr) => arr.indexOf(id) === idx),
-          };
-        }
-        stateServiceProvider.popCurrentStateService();
-      }
-
-      executionContext.clear();
+  @trace("mempool.get_mandatory_txs")
+  public async getMandatoryTxs(): Promise<PendingTransaction[]> {
+    if (this.type() === "private") {
+      return [];
     }
-    return sortedTransactions;
+    return (await this.messageService?.getPendingMessages()) ?? [];
   }
 
   public async start(): Promise<void> {

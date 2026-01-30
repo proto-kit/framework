@@ -1,11 +1,10 @@
-import { log, TypedClass } from "@proto-kit/common";
-import { VanillaProtocolModules } from "@proto-kit/library";
+import { expectDefined, log, TypedClass } from "@proto-kit/common";
 import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 import { Bool, PrivateKey, UInt64 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { afterEach } from "@jest/globals";
+import { afterEach, expect, jest } from "@jest/globals";
 
 import {
   InMemoryDatabase,
@@ -15,6 +14,7 @@ import {
   StorageDependencyFactory,
   VanillaTaskWorkerModules,
   AppChain,
+  ManualBlockTrigger,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -25,17 +25,20 @@ import { Balance } from "./mocks/Balance";
 import { createTransaction } from "./utils";
 
 describe.each([["InMemory", InMemoryDatabase]])(
-  "Mempool test",
+  "Block Ordering test: %s",
   (
     testName,
     Database: TypedClass<SequencerModule & StorageDependencyFactory>
   ) => {
     let appChain: ReturnType<typeof createAppChain>;
     let sequencer: Sequencer<
-      DefaultTestingSequencerModules & { Database: typeof Database }
+      DefaultTestingSequencerModules & {
+        Database: typeof Database;
+      }
     >;
     let runtime: Runtime<{ Balance: typeof Balance }>;
     let mempool: PrivateMempool;
+    let trigger: ManualBlockTrigger;
 
     async function mempoolAddTransactions(
       userPrivateKey: PrivateKey,
@@ -74,9 +77,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
 
       const sequencerClass = Sequencer.from(testingSequencerModules({}));
 
-      const protocolClass = Protocol.from(
-        VanillaProtocolModules.mandatoryModules({})
-      );
+      const protocolClass = Protocol.from(Protocol.defaultModules());
 
       return AppChain.from({
         Sequencer: sequencerClass,
@@ -97,9 +98,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
         Sequencer: {
           Database: {},
           BlockTrigger: {},
-          Mempool: {
-            validationEnabled: true,
-          },
+          Mempool: {},
           FeeStrategy: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
@@ -108,13 +107,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           TaskQueue: {},
           SequencerStartupModule: {},
         },
-        Protocol: {
-          AccountState: {},
-          BlockProver: {},
-          StateTransitionProver: {},
-          BlockHeight: {},
-          LastStateRoot: {},
-        },
+        Protocol: Protocol.defaultConfig(),
       });
 
       // Start AppChain
@@ -124,14 +117,17 @@ describe.each([["InMemory", InMemoryDatabase]])(
       sequencer = appChain.sequencer;
 
       mempool = sequencer.resolve("Mempool");
+      trigger = sequencer.resolve("BlockTrigger");
     });
 
     afterEach(async () => {
       await appChain.close();
+
+      jest.restoreAllMocks();
     });
 
     it("transactions are returned in right order - simple", async () => {
-      expect.assertions(13);
+      expect.assertions(14);
 
       await mempoolAddTransactions(user1PrivateKey, 0);
       await mempoolAddTransactions(user2PrivateKey, 0);
@@ -140,7 +136,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await mempoolAddTransactions(user2PrivateKey, 1);
       await mempoolAddTransactions(user3PrivateKey, 1);
 
-      const txs = await mempool.getTxs();
+      const block = await trigger.produceBlock();
+      expectDefined(block);
+      const txs = block.transactions.map((x) => x.tx);
 
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
@@ -158,7 +156,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
     });
 
     it("transactions are returned in right order - medium", async () => {
-      expect.assertions(13);
+      expect.assertions(14);
 
       log.setLevel("TRACE");
 
@@ -169,7 +167,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await mempoolAddTransactions(user2PrivateKey, 1);
       await mempoolAddTransactions(user3PrivateKey, 0);
 
-      const txs = await mempool.getTxs();
+      const block = await trigger.produceBlock();
+      expectDefined(block);
+      const txs = block.transactions.map((x) => x.tx);
 
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
@@ -187,7 +187,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
     });
 
     it("transactions are returned in right order - harder", async () => {
-      expect.assertions(13);
+      expect.assertions(14);
 
       await mempoolAddTransactions(user1PrivateKey, 0);
       await mempoolAddTransactions(user2PrivateKey, 1);
@@ -196,7 +196,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await mempoolAddTransactions(user3PrivateKey, 0);
       await mempoolAddTransactions(user1PrivateKey, 1);
 
-      const txs = await mempool.getTxs();
+      const block = await trigger.produceBlock();
+      expectDefined(block);
+      const txs = block.transactions.map((x) => x.tx);
 
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
@@ -214,7 +216,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
     });
 
     it("transactions are returned in right order - hardest", async () => {
-      expect.assertions(13);
+      expect.assertions(14);
 
       await mempoolAddTransactions(user1PrivateKey, 0);
       await mempoolAddTransactions(user1PrivateKey, 4);
@@ -225,7 +227,9 @@ describe.each([["InMemory", InMemoryDatabase]])(
       await mempoolAddTransactions(user3PrivateKey, 0);
       await mempoolAddTransactions(user1PrivateKey, 1);
 
-      const txs = await mempool.getTxs();
+      const block = await trigger.produceBlock();
+      expectDefined(block);
+      const txs = block.transactions.map((x) => x.tx);
 
       expect(txs).toHaveLength(6);
       expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
@@ -240,6 +244,53 @@ describe.each([["InMemory", InMemoryDatabase]])(
       expect(txs[4].sender).toStrictEqual(user2PublicKey);
       expect(txs[5].nonce.toBigInt()).toStrictEqual(1n);
       expect(txs[5].sender).toStrictEqual(user3PublicKey);
+    });
+
+    it("transactions are returned in right order in multiple distinct blocks - hardest", async () => {
+      expect.assertions(18);
+
+      sequencer.resolve("BlockProducerModule").config.maximumBlockSize = 3;
+      const txStorage = sequencer.resolve("TransactionStorage");
+      const getTxsSpy = jest.spyOn(txStorage, "getPendingUserTransactions");
+
+      await mempoolAddTransactions(user1PrivateKey, 0);
+      await mempoolAddTransactions(user1PrivateKey, 4);
+      await mempoolAddTransactions(user1PrivateKey, 5);
+      await mempoolAddTransactions(user2PrivateKey, 1);
+      await mempoolAddTransactions(user3PrivateKey, 1);
+      await mempoolAddTransactions(user2PrivateKey, 0);
+      await mempoolAddTransactions(user3PrivateKey, 0);
+      await mempoolAddTransactions(user1PrivateKey, 1);
+
+      let block = await trigger.produceBlock();
+      expectDefined(block);
+
+      let txs = block.transactions.map((x) => x.tx);
+      expect(txs).toHaveLength(3);
+
+      expect(txs[0].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[0].sender).toStrictEqual(user1PublicKey);
+      expect(txs[1].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[1].sender).toStrictEqual(user2PublicKey);
+      expect(txs[2].nonce.toBigInt()).toStrictEqual(0n);
+      expect(txs[2].sender).toStrictEqual(user3PublicKey);
+
+      expect(getTxsSpy).toHaveBeenCalledTimes(3);
+
+      block = await trigger.produceBlock();
+      expectDefined(block);
+
+      txs = block.transactions.map((x) => x.tx);
+      expect(txs).toHaveLength(3);
+
+      expect(txs[0].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[0].sender).toStrictEqual(user2PublicKey);
+      expect(txs[1].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[1].sender).toStrictEqual(user3PublicKey);
+      expect(txs[2].nonce.toBigInt()).toStrictEqual(1n);
+      expect(txs[2].sender).toStrictEqual(user1PublicKey);
+
+      expect(getTxsSpy).toHaveBeenCalledTimes(4);
     });
   }
 );

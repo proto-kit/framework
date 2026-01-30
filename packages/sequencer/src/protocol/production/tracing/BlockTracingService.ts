@@ -1,17 +1,25 @@
 import {
+  BlockArguments,
   BlockProverPublicInput,
   BlockProverState,
+  Bundle,
+  TransactionHashList,
+  TransactionProverState,
   WitnessedRootWitness,
+  BundleHashList,
+  BundlePreimage,
+  BlockProverStateInput,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
 import { toStateTransitionsHash } from "@proto-kit/module";
-import { yieldSequential } from "@proto-kit/common";
-// eslint-disable-next-line import/no-extraneous-dependencies
-import chunk from "lodash/chunk";
+import { NonMethods, yieldSequential } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 
 import { BlockWithResult } from "../../../storage/model/Block";
-import type { NewBlockProverParameters } from "../tasks/NewBlockTask";
+import type {
+  NewBlockArguments,
+  NewBlockProverParameters,
+} from "../tasks/NewBlockTask";
 import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
 
@@ -23,23 +31,9 @@ import {
 
 export type TaskStateRecord = Record<string, Field[]>;
 
-export type BlockTracingState = Pick<
-  BlockProverState,
-  | "witnessedRoots"
-  | "stateRoot"
-  | "pendingSTBatches"
-  | "networkState"
-  | "transactionList"
-  | "eternalTransactionsList"
-  | "incomingMessages"
+export type BlockTracingState = NonMethods<
+  Omit<BlockProverState, "blockWitness">
 >;
-
-export type BlockTrace = {
-  blockParams: NewBlockProverParameters;
-  transactions: TransactionTrace[];
-  // Only for debugging and logging
-  height: string;
-};
 
 @injectable()
 export class BlockTracingService {
@@ -49,37 +43,63 @@ export class BlockTracingService {
     public readonly tracer: Tracer
   ) {}
 
+  public openBatch(
+    state: BlockTracingState,
+    { block: firstBlock, result: firstResult }: BlockWithResult
+  ) {
+    return new BlockProverPublicInput({
+      stateRoot: state.stateRoot,
+      blockNumber: firstBlock.height,
+      blockHashRoot: firstBlock.fromBlockHashRoot,
+      eternalTransactionsHash: firstBlock.fromEternalTransactionsHash,
+      incomingMessagesHash: firstBlock.fromMessagesHash,
+      networkStateHash: firstBlock.networkState.before.hash(),
+      proverStateRemainder: Field(0),
+    });
+  }
+
+  public openBlock(
+    state: BlockTracingState,
+    { block: firstBlock, result: firstResult }: BlockWithResult,
+    batchInput: BlockProverPublicInput
+  ): Pick<
+    NewBlockProverParameters,
+    "stateWitness" | "networkState" | "blockWitness"
+  > {
+    const stateWitness = new BlockProverStateInput({
+      stateRoot: state.stateRoot,
+      blockNumber: firstBlock.height,
+      blockHashRoot: firstBlock.fromBlockHashRoot,
+      networkStateHash: firstBlock.networkState.before.hash(),
+      // The next two are properties that we fast-forward only after tx proofs are verified
+      // Therefore those don't change over multiple block batches
+      eternalTransactionsHash: batchInput.eternalTransactionsHash,
+      incomingMessagesHash: batchInput.incomingMessagesHash,
+      remainders: {
+        pendingSTBatchesHash: state.pendingSTBatches.commitment,
+        bundlesHash: state.bundleList.commitment,
+        witnessedRootsHash: state.witnessedRoots.commitment,
+        witnessedRootsPreimage: state.witnessedRoots.preimage,
+      },
+    });
+
+    return {
+      stateWitness,
+      networkState: firstBlock.networkState.before,
+      blockWitness: firstResult.blockHashWitness,
+    };
+  }
+
   @trace("batch.trace.block", ([, block]) => ({
     height: block.block.height.toString(),
   }))
   public async traceBlock(
     state: BlockTracingState,
-    block: BlockWithResult,
-    includeSTProof: boolean
-  ): Promise<[BlockTracingState, BlockTrace]> {
-    const publicInput: BlockProverPublicInput = new BlockProverPublicInput({
-      stateRoot: state.stateRoot,
-      blockNumber: block.block.height,
-      blockHashRoot: block.block.fromBlockHashRoot,
-      eternalTransactionsHash: block.block.fromEternalTransactionsHash,
-      incomingMessagesHash: block.block.fromMessagesHash,
-      transactionsHash: Field(0),
-      networkStateHash: block.block.networkState.before.hash(),
-      witnessedRootsHash: state.witnessedRoots.commitment,
-      pendingSTBatchesHash: state.pendingSTBatches.commitment,
-    });
-
+    block: BlockWithResult
+  ): Promise<[BlockTracingState, NewBlockArguments, TransactionTrace[]]> {
     const startingStateBeforeHook = collectStartingState(
       block.block.beforeBlockStateTransitions
     );
-
-    const blockTrace = {
-      publicInput,
-      networkState: block.block.networkState.before,
-      deferSTProof: Bool(!includeSTProof),
-      blockWitness: block.result.blockHashWitness,
-      startingStateBeforeHook,
-    } satisfies Partial<NewBlockProverParameters>;
 
     state.pendingSTBatches.push({
       batchHash: toStateTransitionsHash(
@@ -89,35 +109,91 @@ export class BlockTracingService {
     });
     state.networkState = block.block.networkState.during;
 
+    const blockArgsPartial = {
+      fromPendingSTBatchesHash: state.pendingSTBatches.commitment,
+      fromWitnessedRootsHash: state.witnessedRoots.commitment,
+    };
+
+    const transactionProverState = new TransactionProverState({
+      transactionList: new TransactionHashList(),
+      witnessedRoots: state.witnessedRoots,
+      pendingSTBatches: state.pendingSTBatches,
+      incomingMessages: state.incomingMessages,
+      eternalTransactionsList: state.eternalTransactionsList,
+      bundleList: new BundleHashList(
+        state.bundleList.commitment,
+        // The preimage here is just the current state (the start of the block)
+        // Internally, both provers will detect commitment == preimage and start
+        // a new bundle
+        new BundlePreimage({
+          preimage: state.bundleList.commitment,
+          fromStateTransitionsHash: state.pendingSTBatches.commitment,
+          fromWitnessedRootsHash: state.witnessedRoots.commitment,
+        })
+      ),
+    });
+
     const [afterState, transactionTraces] = await yieldSequential(
-      chunk(block.block.transactions, 2),
-      async (input, [transaction1, transaction2]) => {
+      block.block.transactions,
+      async (input, transaction) => {
         const [output, transactionTrace] =
-          transaction2 !== undefined
-            ? await this.transactionTracing.createMultiTransactionTrace(
-                input,
-                transaction1,
-                transaction2
-              )
-            : await this.transactionTracing.createSingleTransactionTrace(
-                input,
-                transaction1
-              );
+          await this.transactionTracing.createTransactionTrace(
+            input,
+            state.networkState,
+            transaction
+          );
 
         return [output, transactionTrace];
       },
-      state
+      transactionProverState
     );
 
-    const preimage = afterState.witnessedRoots
-      .getUnconstrainedValues()
-      .get()
-      .at(-2)?.preimage;
+    // TODO Maybe replace this with replicating the in-circuit version inside createTransactionTrace
+    // Add to bundleList (before all the afterBlock stuff since bundles only care about
+    // all the stuff that happens in the TransactionProver)
+    // Also, this list is a different instance than the one used in transaction tracing
+    const finishedBundle = new Bundle({
+      networkStateHash: state.networkState.hash(),
+      transactionsHash: block.block.transactionsHash,
+      pendingSTBatchesHash: {
+        from: blockArgsPartial.fromPendingSTBatchesHash,
+        to: afterState.pendingSTBatches.commitment,
+      },
+      witnessedRootsHash: {
+        from: blockArgsPartial.fromWitnessedRootsHash,
+        to: afterState.witnessedRoots.commitment,
+      },
+    });
+    state.bundleList.pushIf(
+      finishedBundle,
+      afterState.transactionList.isEmpty().not()
+    );
+
+    state.pendingSTBatches = afterState.pendingSTBatches;
+    state.witnessedRoots = afterState.witnessedRoots;
+    state.incomingMessages = afterState.incomingMessages;
+    state.eternalTransactionsList = afterState.eternalTransactionsList;
 
     const afterBlockRootWitness: WitnessedRootWitness = {
       witnessedRoot: Field(block.result.witnessedRoots[0]),
-      preimage: preimage ?? Field(0),
     };
+
+    // We create the batch here, because we need the afterBlockRootWitness,
+    // but the afterBlock's witnessed root can't be in the arguments, because
+    // it is temporally **after** the bundle, not inside it
+    const args = new BlockArguments({
+      transactionsHash: afterState.transactionList.commitment,
+      afterBlockRootWitness,
+      witnessedRootsHash: {
+        from: blockArgsPartial.fromWitnessedRootsHash,
+        to: state.witnessedRoots.commitment,
+      },
+      pendingSTBatchesHash: {
+        from: blockArgsPartial.fromPendingSTBatchesHash,
+        to: state.pendingSTBatches.commitment,
+      },
+      isDummy: Bool(false),
+    });
 
     if (afterState.pendingSTBatches.commitment.equals(0).not().toBoolean()) {
       state.witnessedRoots.witnessRoot(
@@ -125,7 +201,6 @@ export class BlockTracingService {
           appliedBatchListState: afterState.pendingSTBatches.commitment,
           root: afterBlockRootWitness.witnessedRoot,
         },
-        afterBlockRootWitness.preimage,
         state.pendingSTBatches.commitment.equals(0).not()
       );
     }
@@ -133,19 +208,24 @@ export class BlockTracingService {
     const startingStateAfterHook = collectStartingState(
       block.result.afterBlockStateTransitions
     );
+    state.pendingSTBatches.push({
+      batchHash: toStateTransitionsHash(
+        block.result.afterBlockStateTransitions
+      ),
+      applied: Bool(true),
+    });
     state.networkState = block.result.afterNetworkState;
 
+    state.blockNumber = state.blockNumber.add(1);
+
     return [
-      afterState,
+      state,
       {
-        blockParams: {
-          ...blockTrace,
-          startingStateAfterHook,
-          afterBlockRootWitness,
-        },
-        transactions: transactionTraces,
-        height: block.block.height.toString(),
+        args,
+        startingStateBeforeHook,
+        startingStateAfterHook,
       },
+      transactionTraces,
     ];
   }
 }

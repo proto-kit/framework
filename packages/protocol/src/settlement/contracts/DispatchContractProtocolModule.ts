@@ -7,11 +7,12 @@ import {
   ContractModule,
   SmartContractClassFromInterface,
 } from "../ContractModule";
+import { ContractArgsRegistry } from "../ContractArgsRegistry";
 
 import {
   DispatchSmartContract,
   DispatchContractType,
-  DispatchSmartContractBase,
+  DispatchContractArgs,
 } from "./DispatchSmartContract";
 
 export type DispatchContractConfig = {
@@ -23,7 +24,10 @@ export class DispatchContractProtocolModule extends ContractModule<
   DispatchContractType,
   DispatchContractConfig
 > {
-  public constructor(@inject("Runtime") private readonly runtime: RuntimeLike) {
+  public constructor(
+    @inject("Runtime") private readonly runtime: RuntimeLike,
+    private readonly contractArgsRegistry: ContractArgsRegistry
+  ) {
     super();
   }
 
@@ -52,20 +56,18 @@ export class DispatchContractProtocolModule extends ContractModule<
 
     this.checkConfigIntegrity(incomingMessagesMethods, methodIdMappings);
 
-    DispatchSmartContractBase.args = {
-      incomingMessagesPaths: incomingMessagesMethods,
-      methodIdMappings,
-      settlementContractClass:
-        DispatchSmartContractBase.args?.settlementContractClass,
-    };
+    this.contractArgsRegistry.addArgs<DispatchContractArgs>(
+      "DispatchContract",
+      {
+        incomingMessagesPaths: incomingMessagesMethods,
+        methodIdMappings,
+      }
+    );
 
     return DispatchSmartContract;
   }
 
   public async compile(registry: CompileRegistry) {
-    if (DispatchSmartContractBase.args.settlementContractClass === undefined) {
-      throw new Error("Reference to Settlement Contract not set");
-    }
     return {
       DispatchSmartContract: await registry.forceProverExists(
         async () => await registry.compile(DispatchSmartContract)

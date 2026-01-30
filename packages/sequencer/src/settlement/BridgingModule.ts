@@ -3,7 +3,6 @@ import {
   BridgeContractConfig,
   BridgeContractType,
   MandatoryProtocolModulesRecord,
-  MandatorySettlementModulesRecord,
   OUTGOING_MESSAGE_BATCH_SIZE,
   OutgoingMessageArgument,
   OutgoingMessageArgumentBatch,
@@ -18,21 +17,26 @@ import {
   PROTOKIT_FIELD_PREFIXES,
   OutgoingMessageEvent,
   BridgeContractContext,
+  BridgingSettlementModulesRecord,
+  DispatchContractType,
+  BridgingSettlementContractType,
+  ContractArgsRegistry,
+  BridgingSettlementContractArgs,
 } from "@proto-kit/protocol";
 import {
   AccountUpdate,
   Field,
   Mina,
-  PrivateKey,
   Provable,
   PublicKey,
+  SmartContract,
   TokenContract,
   TokenId,
   Transaction,
   UInt32,
 } from "o1js";
 import {
-  AreProofsEnabled,
+  DependencyRecord,
   filterNonUndefined,
   LinkedMerkleTree,
   log,
@@ -43,30 +47,44 @@ import { match, Pattern } from "ts-pattern";
 import { FungibleToken } from "mina-fungible-token";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import groupBy from "lodash/groupBy";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import truncate from "lodash/truncate";
 
 import { FeeStrategy } from "../protocol/baselayer/fees/FeeStrategy";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { AsyncLinkedLeafStore } from "../state/async/AsyncLinkedLeafStore";
 import { CachedLinkedLeafStore } from "../state/lmt/CachedLinkedLeafStore";
 import { SettleableBatch } from "../storage/model/Batch";
+import { SequencerModule } from "../sequencer/builder/SequencerModule";
 
 import type { SettlementModule } from "./SettlementModule";
 import { SettlementUtils } from "./utils/SettlementUtils";
 import { MinaTransactionSender } from "./transactions/MinaTransactionSender";
 import { OutgoingMessageCollector } from "./messages/outgoing/OutgoingMessageCollector";
 import { ArchiveNode } from "./utils/ArchiveNode";
+import { MinaSigner } from "./MinaSigner";
+import { SignedSettlementPermissions } from "./permissions/SignedSettlementPermissions";
+import { ProvenSettlementPermissions } from "./permissions/ProvenSettlementPermissions";
+import { AddressRegistry } from "./interactions/AddressRegistry";
+import { IncomingMessagesService } from "./messages/IncomingMessagesService";
 
 export type SettlementTokenConfig = Record<
   string,
   | {
-      bridgingContractPrivateKey?: PrivateKey;
+      bridgingContractPublicKey?: PublicKey;
     }
   | {
       tokenOwner: FungibleToken;
-      bridgingContractPrivateKey?: PrivateKey;
-      tokenOwnerPrivateKey?: PrivateKey;
+      bridgingContractPublicKey?: PublicKey;
+      tokenOwnerPublicKey?: PublicKey;
     }
 >;
+
+export type BridgingModuleConfig = {
+  addresses?: {
+    DispatchContract: PublicKey;
+  };
+};
 
 /**
  * Module that facilitates all transaction creation and monitoring for
@@ -75,17 +93,17 @@ export type SettlementTokenConfig = Record<
  * for those as needed
  */
 @injectable()
-export class BridgingModule {
+export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
+  // TODO Eventually, we don't want to store this here either, but build a smarter AddressRegistry
   private seenBridgeDeployments: {
     latestDeployment: number;
-    // tokenId => Bridge address
-    deployments: Record<string, PublicKey>;
   } = {
     latestDeployment: -1,
-    deployments: {},
   };
 
   private utils: SettlementUtils;
+
+  protected dispatchContract?: DispatchContractType & SmartContract;
 
   public constructor(
     @inject("Protocol")
@@ -97,12 +115,46 @@ export class BridgingModule {
     private readonly linkedLeafStore: AsyncLinkedLeafStore,
     @inject("FeeStrategy")
     private readonly feeStrategy: FeeStrategy,
-    @inject("AreProofsEnabled") areProofsEnabled: AreProofsEnabled,
     @inject("BaseLayer") private readonly baseLayer: MinaBaseLayer,
+    @inject("SettlementSigner") private readonly signer: MinaSigner,
     @inject("TransactionSender")
-    private readonly transactionSender: MinaTransactionSender
+    private readonly transactionSender: MinaTransactionSender,
+    @inject("AddressRegistry")
+    private readonly addressRegistry: AddressRegistry,
+    private readonly argsRegistry: ContractArgsRegistry
   ) {
-    this.utils = new SettlementUtils(areProofsEnabled, baseLayer);
+    super();
+
+    this.utils = new SettlementUtils(baseLayer, signer);
+  }
+
+  public static dependencies() {
+    return {
+      IncomingMessagesService: {
+        useClass: IncomingMessagesService,
+      },
+    } satisfies DependencyRecord;
+  }
+
+  public getDispatchContract() {
+    if (this.dispatchContract === undefined) {
+      const address = this.getDispatchContractAddress();
+      this.dispatchContract = this.settlementContractModule().createContract(
+        "DispatchContract",
+        address
+      );
+    }
+    return this.dispatchContract;
+  }
+
+  public getDispatchContractAddress(): PublicKey {
+    const keys =
+      this.addressRegistry.getContractAddress("DispatchContract") ??
+      this.config.addresses?.DispatchContract;
+    if (keys === undefined) {
+      throw new Error("Contracts not initialized yet");
+    }
+    return keys;
   }
 
   private getMessageProcessors() {
@@ -111,7 +163,7 @@ export class BridgingModule {
     >("OutgoingMessageProcessor");
   }
 
-  protected settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
+  protected settlementContractModule(): SettlementContractModule<BridgingSettlementModulesRecord> {
     return this.protocol.dependencyContainer.resolve(
       "SettlementContractModule"
     );
@@ -128,10 +180,11 @@ export class BridgingModule {
     return config;
   }
 
+  // TODO Use AddressRegistry for bridge addresses
   public async updateBridgeAddresses() {
     const events = await this.settlementModule
-      .getContracts()
-      .settlement.fetchEvents(
+      .getContract()
+      .fetchEvents(
         UInt32.from(this.seenBridgeDeployments.latestDeployment + 1)
       );
     const tuples = events
@@ -139,41 +192,112 @@ export class BridgingModule {
       .map((event) => {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const mapping = event.event.data as unknown as TokenMapping;
-        return [mapping.tokenId.toString(), mapping.publicKey];
+        return [mapping.tokenId.toBigInt(), mapping.publicKey] as const;
       });
-    const mergedDeployments = {
-      ...this.seenBridgeDeployments.deployments,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      ...(Object.fromEntries(tuples) as Record<string, PublicKey>),
-    };
+
+    tuples.forEach(([tokenId, publicKey]) => {
+      this.addressRegistry.addContractAddress(
+        this.addressRegistry.getIdentifier("BridgeContract", tokenId),
+        publicKey
+      );
+    });
+
     const latestDeployment = events
       .map((event) => Number(event.blockHeight.toString()))
       .reduce((a, b) => (a > b ? a : b), 0);
     this.seenBridgeDeployments = {
-      deployments: mergedDeployments,
       latestDeployment,
     };
+  }
+
+  public async deployMinaBridge(
+    contractKey: PublicKey,
+    options: {
+      nonce?: number;
+    }
+  ) {
+    return await this.deployTokenBridge(undefined, contractKey, options);
+  }
+
+  /**
+   * Deploys a token bridge (BridgeContract) and authorizes it on the DispatchContract
+   *
+   * Invariant: The owner has to be specified, unless the bridge is for the mina token
+   *
+   * @param owner reference to the token owner contract (used to approve the deployment AUs)
+   * @param contractKey PublicKey to which the new bridge contract should be deployed to
+   * @param options
+   */
+  public async deployTokenBridge(
+    owner: TokenContract | undefined,
+    contractKey: PublicKey,
+    options: {
+      nonce?: number;
+    }
+  ) {
+    const feepayer = this.signer.getFeepayerKey();
+    const nonce = options?.nonce ?? undefined;
+
+    const tokenId = owner?.deriveTokenId() ?? TokenId.default;
+    const settlementContract =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      this.settlementModule.getContract() as BridgingSettlementContractType &
+        SmartContract;
+
+    const tx = await Mina.transaction(
+      {
+        sender: feepayer,
+        nonce: nonce,
+        memo: `Deploy token bridge for ${truncate(tokenId.toString(), { length: 6 })}`,
+        fee: this.feeStrategy.getFee(),
+      },
+      async () => {
+        AccountUpdate.fundNewAccount(feepayer, 1);
+
+        await settlementContract.addTokenBridge(tokenId, contractKey);
+
+        if (owner !== undefined) {
+          await owner.approveAccountUpdate(settlementContract.self);
+        }
+      }
+    );
+
+    // Only ContractKeys and OwnerKey for check.
+    // Used all in signing process.
+    const txSigned = this.utils.signTransaction(tx, {
+      signingWithSignatureCheck: [
+        ...this.signer.getContractAddresses(),
+        ...(owner ? [owner.address] : []),
+      ],
+      signingPublicKeys: [contractKey],
+    });
+
+    await this.transactionSender.proveAndSendTransaction(txSigned, "included");
   }
 
   public async getBridgeAddress(
     tokenId: Field
   ): Promise<PublicKey | undefined> {
-    const { deployments } = this.seenBridgeDeployments;
+    const identifier = this.addressRegistry.getIdentifier(
+      "BridgeContract",
+      tokenId.toBigInt()
+    );
+    const deployment = this.addressRegistry.getContractAddress(identifier);
 
-    if (Object.keys(deployments).includes(tokenId.toString())) {
-      return deployments[tokenId.toString()];
+    if (deployment !== undefined) {
+      return deployment;
     }
 
     await this.updateBridgeAddresses();
-    return this.seenBridgeDeployments.deployments[tokenId.toString()];
+    return this.addressRegistry.getContractAddress(identifier);
   }
 
   public async getDepositContractAttestation(tokenId: Field) {
     await ArchiveNode.waitOnSync(this.baseLayer.config);
 
-    const { dispatch } = this.settlementModule.getContracts();
+    const DispatchContract = this.getDispatchContract();
 
-    const tree = await TokenBridgeTree.buildTreeFromEvents(dispatch);
+    const tree = await TokenBridgeTree.buildTreeFromEvents(DispatchContract);
     const index = tree.getIndex(tokenId);
     return new TokenBridgeAttestation({
       index: Field(index),
@@ -182,8 +306,8 @@ export class BridgingModule {
   }
 
   private async fetchFeepayerNonce() {
-    const { feepayer } = this.settlementModule.config;
-    return await this.transactionSender.getNextNonce(feepayer.toPublicKey());
+    const feepayer = this.signer.getFeepayerKey();
+    return await this.transactionSender.getNextNonce(feepayer);
   }
 
   public async sendRollupTransactions(
@@ -244,13 +368,13 @@ export class BridgingModule {
     options:
       | {
           nonce: number;
-          bridgingContractPrivateKey?: PrivateKey;
+          bridgingContractPublicKey?: PublicKey;
         }
       | {
           nonce: number;
           tokenOwner: FungibleToken;
-          bridgingContractPrivateKey?: PrivateKey;
-          tokenOwnerPrivateKey?: PrivateKey;
+          bridgingContractPublicKey?: PublicKey;
+          tokenOwnerPublicKey?: PublicKey;
         }
   ) {
     return await match(options)
@@ -258,18 +382,16 @@ export class BridgingModule {
         {
           nonce: Pattern.number,
           tokenOwner: Pattern.instanceOf(FungibleToken),
-          bridgingContractPrivateKey: Pattern.optional(
-            Pattern.instanceOf(PrivateKey)
+          bridgingContractPublicKey: Pattern.optional(
+            Pattern.instanceOf(PublicKey)
           ),
-          tokenOwnerPrivateKey: Pattern.optional(
-            Pattern.instanceOf(PrivateKey)
-          ),
+          tokenOwnerPublicKey: Pattern.optional(Pattern.instanceOf(PublicKey)),
         },
         ({
           nonce,
           tokenOwner,
-          bridgingContractPrivateKey,
-          tokenOwnerPrivateKey,
+          bridgingContractPublicKey,
+          tokenOwnerPublicKey,
         }) => {
           return this.sendRollupTransactionsBase(
             async (au: AccountUpdate) => {
@@ -280,8 +402,8 @@ export class BridgingModule {
             {
               nonce,
               contractKeys: [
-                bridgingContractPrivateKey,
-                tokenOwnerPrivateKey,
+                bridgingContractPublicKey,
+                tokenOwnerPublicKey,
               ].filter(filterNonUndefined),
             }
           );
@@ -290,11 +412,11 @@ export class BridgingModule {
       .with(
         {
           nonce: Pattern.number,
-          bridgingContractPrivateKey: Pattern.optional(
-            Pattern.instanceOf(PrivateKey)
+          bridgingContractPublicKey: Pattern.optional(
+            Pattern.instanceOf(PublicKey)
           ),
         },
-        ({ nonce, bridgingContractPrivateKey }) => {
+        ({ nonce, bridgingContractPublicKey }) => {
           return this.sendRollupTransactionsBase(
             async () => {},
             TokenId.default,
@@ -302,8 +424,8 @@ export class BridgingModule {
             {
               nonce,
               contractKeys:
-                bridgingContractPrivateKey !== undefined
-                  ? [bridgingContractPrivateKey]
+                bridgingContractPublicKey !== undefined
+                  ? [bridgingContractPublicKey]
                   : [],
             }
           );
@@ -314,7 +436,8 @@ export class BridgingModule {
 
   public createBridgeContract(contractAddress: PublicKey, tokenId: Field) {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return this.settlementContractModule().createBridgeContract(
+    return this.settlementContractModule().createContract(
+      "BridgeContract",
       contractAddress,
       tokenId
     ) as BridgeContractType & TokenContract;
@@ -354,12 +477,12 @@ export class BridgingModule {
   public async pullStateRoot(
     tokenWrapper: (au: AccountUpdate) => Promise<void>,
     tokenId: Field,
-    options: { nonce: number; contractKeys: PrivateKey[] }
+    options: { nonce: number; contractKeys: PublicKey[] }
   ): Promise<
     | { nonceUsed: false }
     | { nonceUsed: true; tx: Mina.Transaction<false, true> }
   > {
-    const settlementContract = this.settlementModule.getContracts().settlement;
+    const settlementContract = this.settlementModule.getSettlementContract();
     const bridge = await this.getBridgeContract(tokenId);
 
     log.debug(
@@ -381,12 +504,12 @@ export class BridgingModule {
 
     if (settledRoot.toBigInt() !== (tokenBridgeRoot?.toBigInt() ?? -1n)) {
       // Create transaction
-      const { feepayer } = this.settlementModule.config;
+      const feepayer = this.signer.getFeepayerKey();
       let { nonce } = options;
 
       const tx = await Mina.transaction(
         {
-          sender: feepayer.toPublicKey(),
+          sender: feepayer,
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
           fee: this.feeStrategy.getFee(),
@@ -398,11 +521,9 @@ export class BridgingModule {
         }
       );
 
-      const signedTx = this.utils.signTransaction(
-        tx,
-        [feepayer],
-        options.contractKeys
-      );
+      const signedTx = this.utils.signTransaction(tx, {
+        signingWithSignatureCheck: options.contractKeys,
+      });
 
       await this.transactionSender.proveAndSendTransaction(
         signedTx,
@@ -423,13 +544,13 @@ export class BridgingModule {
     tokenWrapper: (au: AccountUpdate) => Promise<void>,
     tokenId: Field,
     events: OutgoingMessageEvent<any>[],
-    options: { nonce: number; contractKeys: PrivateKey[] }
+    options: { nonce: number; contractKeys: PublicKey[] }
   ): Promise<
     {
       tx: Transaction<false, true>;
     }[]
   > {
-    const { feepayer } = this.settlementModule.config;
+    const feepayer = this.signer.getFeepayerKey();
     let { nonce } = options;
 
     const txs: {
@@ -444,7 +565,10 @@ export class BridgingModule {
       );
     }
 
-    if (this.utils.isSignedSettlement() && options.contractKeys.length === 0) {
+    if (
+      this.baseLayer.isSignedSettlement() &&
+      options.contractKeys.length === 0
+    ) {
       throw new Error(
         "Bridging contract private key for signed settlement has to be provided"
       );
@@ -503,7 +627,7 @@ export class BridgingModule {
 
       const tx = await Mina.transaction(
         {
-          sender: feepayer.toPublicKey(),
+          sender: feepayer,
           // eslint-disable-next-line no-plusplus
           nonce: nonce++,
           fee: this.feeStrategy.getFee(),
@@ -525,21 +649,16 @@ export class BridgingModule {
           });
 
           // Pay account creation fees for internal token accounts
-          AccountUpdate.fundNewAccount(
-            feepayer.toPublicKey(),
-            numNewAccountsNumber
-          );
+          AccountUpdate.fundNewAccount(feepayer, numNewAccountsNumber);
         }
       );
 
       log.debug("Sending rollup transaction:");
       log.debug(tx.toPretty());
 
-      const signedTx = this.utils.signTransaction(
-        tx,
-        [feepayer],
-        options.contractKeys
-      );
+      const signedTx = this.utils.signTransaction(tx, {
+        signingWithSignatureCheck: [...options.contractKeys],
+      });
 
       await this.transactionSender.proveAndSendTransaction(
         signedTx,
@@ -553,5 +672,28 @@ export class BridgingModule {
 
     return txs;
   }
+
+  public async start(): Promise<void> {
+    this.argsRegistry.addArgs<BridgingSettlementContractArgs>(
+      "SettlementContract",
+      {
+        // TODO Add distinction between mina and custom tokens
+        BridgeContractPermissions: (this.baseLayer.isSignedSettlement()
+          ? new SignedSettlementPermissions()
+          : new ProvenSettlementPermissions()
+        ).bridgeContractMina(),
+      }
+    );
+
+    const dispatchAddress = this.config.addresses?.DispatchContract;
+    if (dispatchAddress !== undefined) {
+      this.addressRegistry.addContractAddress(
+        "DispatchContract",
+        dispatchAddress
+      );
+    }
+  }
   /* eslint-enable no-await-in-loop */
 }
+
+// BridgingModule satisfies DependencyFactory;

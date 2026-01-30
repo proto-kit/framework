@@ -2,16 +2,21 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   BlockProvable,
   BlockProverPublicInput,
-  BlockProverPublicOutput,
   NetworkState,
   Protocol,
   StateTransitionProof,
   StateTransitionProvable,
   BlockHashMerkleTreeWitness,
   MandatoryProtocolModulesRecord,
-  WitnessedRootWitness,
+  TransactionProof,
+  BlockProof,
+  TransactionProvable,
+  BlockArguments,
+  BlockArgumentsBatch,
+  BlockProverStateInput,
+  BLOCK_ARGUMENT_BATCH_SIZE,
 } from "@proto-kit/protocol";
-import { Bool, Proof } from "o1js";
+import { Bool, Provable } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
@@ -26,21 +31,25 @@ import type { TaskStateRecord } from "../tracing/BlockTracingService";
 import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
 import { executeWithPrefilledStateService } from "./TransactionProvingTask";
 
-type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
+export type NewBlockArguments = {
+  args: BlockArguments;
+  startingStateBeforeHook: TaskStateRecord;
+  startingStateAfterHook: TaskStateRecord;
+};
 
 export interface NewBlockProverParameters {
   publicInput: BlockProverPublicInput;
+  stateWitness: BlockProverStateInput;
   networkState: NetworkState;
   blockWitness: BlockHashMerkleTreeWitness;
   deferSTProof: Bool;
-  afterBlockRootWitness: WitnessedRootWitness;
-  startingStateBeforeHook: TaskStateRecord;
-  startingStateAfterHook: TaskStateRecord;
+  deferTransactionProof: Bool;
+  blocks: NewBlockArguments[];
 }
 
 export type NewBlockProvingParameters = PairingDerivedInput<
   StateTransitionProof,
-  BlockProof,
+  TransactionProof,
   NewBlockProverParameters
 >;
 
@@ -51,6 +60,8 @@ export class NewBlockTask
   implements Task<NewBlockProvingParameters, BlockProof>
 {
   private readonly stateTransitionProver: StateTransitionProvable;
+
+  private readonly transactionProver: TransactionProvable;
 
   private readonly blockProver: BlockProvable;
 
@@ -64,7 +75,8 @@ export class NewBlockTask
   ) {
     super();
     this.stateTransitionProver = protocol.stateTransitionProver;
-    this.blockProver = this.protocol.blockProver;
+    this.transactionProver = protocol.transactionProver;
+    this.blockProver = protocol.blockProver;
   }
 
   public inputSerializer(): TaskSerializer<NewBlockProvingParameters> {
@@ -72,13 +84,13 @@ export class NewBlockTask
       this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
     );
 
-    const blockProofSerializer = new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+    const transactionProofSerializer = new ProofTaskSerializer(
+      this.transactionProver.zkProgrammable.zkProgram[0].Proof
     );
 
     return new NewBlockProvingParametersSerializer(
       stProofSerializer,
-      blockProofSerializer
+      transactionProofSerializer
     );
   }
 
@@ -93,39 +105,71 @@ export class NewBlockTask
     const {
       networkState,
       blockWitness,
-      startingStateBeforeHook,
-      startingStateAfterHook,
       publicInput,
+      stateWitness,
       deferSTProof,
-      afterBlockRootWitness,
+      deferTransactionProof,
+      blocks,
     } = parameters;
 
-    await this.blockProver.proveBlock(
-      publicInput,
-      networkState,
-      blockWitness,
-      input1,
-      deferSTProof,
-      afterBlockRootWitness,
-      input2
-    );
+    if (blocks.length !== BLOCK_ARGUMENT_BATCH_SIZE) {
+      throw new Error("Given block argument length not exactly batch size");
+    }
+
+    const blockArgumentBatch = new BlockArgumentsBatch({
+      batch: blocks.map((block) => block.args),
+    });
+
+    const stateRecords = blocks.flatMap((block) => [
+      block.startingStateBeforeHook,
+      block.startingStateAfterHook,
+    ]);
 
     await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      [startingStateBeforeHook, startingStateAfterHook],
-      async () => {}
+      stateRecords,
+      async () => {
+        if (deferSTProof.toBoolean() && deferTransactionProof.toBoolean()) {
+          await this.blockProver.proveBlockBatchNoProofs(
+            publicInput,
+            stateWitness,
+            networkState,
+            blockWitness,
+            blockArgumentBatch,
+            Bool(false)
+            // deferSTProof.or(deferTransactionProof)
+          );
+        } else {
+          await this.blockProver.proveBlockBatchWithProofs(
+            publicInput,
+            stateWitness,
+            networkState,
+            blockWitness,
+            blockArgumentBatch,
+            deferSTProof,
+            deferTransactionProof,
+            input1,
+            input2
+          );
+        }
+      }
     );
 
-    return await executeWithPrefilledStateService(
+    const proof = await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
-      [startingStateBeforeHook, startingStateAfterHook],
+      stateRecords,
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );
+
+    Provable.log("Input", proof.publicInput);
+    Provable.log("Output", proof.publicOutput);
+
+    return proof;
   }
 
   public async prepare(): Promise<void> {
     // Compile
-    await this.blockProver.compile(this.compileRegistry);
+    await this.transactionProver.compile(this.compileRegistry);
   }
 }

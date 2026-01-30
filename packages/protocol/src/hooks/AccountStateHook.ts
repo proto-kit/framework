@@ -14,15 +14,19 @@ export class AccountState extends Struct({
   nonce: UInt64,
 }) {}
 
+export type AccountStateHookConfig = {
+  maximumNonceLookahead?: number;
+};
+
 @injectable()
-export class AccountStateHook extends ProvableTransactionHook {
+export class AccountStateHook extends ProvableTransactionHook<AccountStateHookConfig> {
   @state() public accountState = StateMap.from<PublicKey, AccountState>(
     PublicKey,
     AccountState
   );
 
   public async beforeTransaction({
-    transaction,
+    transaction: { transaction },
   }: BeforeTransactionHookArguments) {
     const sender = transaction.sender.value;
 
@@ -57,7 +61,7 @@ export class AccountStateHook extends ProvableTransactionHook {
 
   // Under these conditions we want the tx removed from the mempool.
   public async removeTransactionWhen({
-    transaction,
+    transaction: { transaction },
   }: BeforeTransactionHookArguments): Promise<boolean> {
     const sender = transaction.sender.value;
 
@@ -67,6 +71,10 @@ export class AccountStateHook extends ProvableTransactionHook {
 
     const currentNonce = accountState.nonce;
 
-    return transaction.nonce.value.lessThan(currentNonce).toBoolean();
+    const exceedsMaximumLookahead = transaction.nonce.value.greaterThan(
+      currentNonce.add(this.config.maximumNonceLookahead ?? 10)
+    );
+    const nonceIsInPast = transaction.nonce.value.lessThan(currentNonce);
+    return nonceIsInPast.or(exceedsMaximumLookahead).toBoolean();
   }
 }

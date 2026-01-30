@@ -4,8 +4,9 @@ import {
   RollupMerkleTree,
   mapSequential,
 } from "@proto-kit/common";
-import { Field, PrivateKey, UInt64 as O1UInt64, Signature } from "o1js";
+import { Field, PrivateKey, UInt64 as O1UInt64, Signature, Bool } from "o1js";
 import {
+  AuthorizedTransaction,
   BlockProverPublicOutput,
   NetworkState,
   ProvableTransactionHook,
@@ -89,19 +90,21 @@ describe.skip("blockProof", () => {
 
     await mapSequential(txHooks, async (hook) => {
       await hook.beforeTransaction({
-        transaction: RuntimeTransaction.fromTransaction({
-          sender: alice,
-          nonce: O1UInt64.from(0),
-          methodId: Field(balancesMethodId),
-          argsHash: Field(0),
+        transaction: new AuthorizedTransaction({
+          transaction: RuntimeTransaction.fromTransaction({
+            sender: alice,
+            nonce: O1UInt64.from(0),
+            methodId: Field(balancesMethodId),
+            argsHash: Field(0),
+          }),
+          signature: Signature.create(PrivateKey.random(), [Field(0)]),
+          isMessage: Bool(false),
         }),
         networkState: NetworkState.empty(),
-        signature: Signature.create(PrivateKey.random(), [Field(0)]),
         prover: {
           incomingMessagesHash: Field(0),
           transactionsHash: Field(0),
           eternalTransactionsHash: Field(0),
-          blockHashRoot: Field(0),
         },
       });
     });

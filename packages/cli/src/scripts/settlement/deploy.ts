@@ -9,7 +9,7 @@ import {
   SettlementModule,
   AppChain,
 } from "@proto-kit/sequencer";
-import { PrivateKey, Provable } from "o1js";
+import { Provable, PublicKey } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
 import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
@@ -59,25 +59,22 @@ export default async function (options?: LoadEnvOptions) {
 
   console.log("Deploying settlement contracts...");
 
-  await settlementModule.deploy(
-    PrivateKey.fromBase58(
-      getRequiredEnv("PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY")
+  await settlementModule.deploy({
+    settlementContract: PublicKey.fromBase58(
+      getRequiredEnv("PROTOKIT_SETTLEMENT_CONTRACT_PUBLIC_KEY")
     ),
-    PrivateKey.fromBase58(
-      getRequiredEnv("PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY")
+    dispatchContract: PublicKey.fromBase58(
+      getRequiredEnv("PROTOKIT_DISPATCHER_CONTRACT_PUBLIC_KEY")
     ),
-    PrivateKey.fromBase58(
-      getRequiredEnv("PROTOKIT_MINA_BRIDGE_CONTRACT_PRIVATE_KEY")
-    )
-  );
+  });
 
   Provable.log("Deployed and initialized settlement contracts", {
-    settlement: PrivateKey.fromBase58(
-      getRequiredEnv("PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY")
-    ).toPublicKey(),
-    dispatcher: PrivateKey.fromBase58(
-      getRequiredEnv("PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY")
-    ).toPublicKey(),
+    settlement: PublicKey.fromBase58(
+      getRequiredEnv("PROTOKIT_SETTLEMENT_CONTRACT_PUBLIC_KEY")
+    ),
+    dispatcher: PublicKey.fromBase58(
+      getRequiredEnv("PROTOKIT_DISPATCHER_CONTRACT_PUBLIC_KEY")
+    ),
   });
 
   await appChain.close();

@@ -1,44 +1,58 @@
 import { NoConfig } from "@proto-kit/common";
-import { Signature } from "o1js";
+import { Field } from "o1js";
 
-import { RuntimeTransaction } from "../model/transaction/RuntimeTransaction";
 import { NetworkState } from "../model/network/NetworkState";
 import { MethodPublicOutput } from "../model/MethodPublicOutput";
-import type {
-  BlockProverState,
-  BlockProverStateCommitments,
-} from "../prover/block/BlockProvable";
+import { TransactionProverState } from "../prover/transaction/TransactionProvable";
+import { AuthorizedTransaction } from "../model/transaction/AuthorizedTransaction";
 
 import { TransitioningProtocolModule } from "./TransitioningProtocolModule";
 
-export type ProvableHookBlockState = Pick<
-  BlockProverStateCommitments,
-  | "transactionsHash"
-  | "eternalTransactionsHash"
-  | "incomingMessagesHash"
-  | "blockHashRoot"
->;
+export type ProvableHookTransactionState = {
+  transactionsHash: Field;
+  eternalTransactionsHash: Field;
+  incomingMessagesHash: Field;
+};
 
-export function toProvableHookBlockState(
+export function toProvableHookTransactionState(
   state: Pick<
-    BlockProverState,
-    | "transactionList"
-    | "eternalTransactionsList"
-    | "incomingMessages"
-    | "blockHashRoot"
+    TransactionProverState,
+    "transactionList" | "eternalTransactionsList" | "incomingMessages"
   >
-) {
-  const {
-    transactionList,
-    eternalTransactionsList,
-    incomingMessages,
-    blockHashRoot,
-  } = state;
+): ProvableHookTransactionState {
+  const { transactionList, eternalTransactionsList, incomingMessages } = state;
   return {
     transactionsHash: transactionList.commitment,
     eternalTransactionsHash: eternalTransactionsList.commitment,
     incomingMessagesHash: incomingMessages.commitment,
-    blockHashRoot,
+  };
+}
+
+export function toBeforeTransactionHookArgument(
+  authorizedTransaction: AuthorizedTransaction,
+  networkState: NetworkState,
+  state: Parameters<typeof toProvableHookTransactionState>[0]
+): BeforeTransactionHookArguments {
+  return {
+    networkState,
+    transaction: authorizedTransaction,
+    prover: toProvableHookTransactionState(state),
+  };
+}
+
+export function toAfterTransactionHookArgument(
+  authorizedTransaction: AuthorizedTransaction,
+  networkState: NetworkState,
+  state: Parameters<typeof toProvableHookTransactionState>[0],
+  runtimeResult: MethodPublicOutput
+): AfterTransactionHookArguments {
+  return {
+    ...toBeforeTransactionHookArgument(
+      authorizedTransaction,
+      networkState,
+      state
+    ),
+    runtimeResult,
   };
 }
 
@@ -53,10 +67,9 @@ export type TransactionResult = Omit<
 >;
 
 export interface BeforeTransactionHookArguments {
-  transaction: RuntimeTransaction;
-  signature: Signature;
+  transaction: AuthorizedTransaction;
   networkState: NetworkState;
-  prover: ProvableHookBlockState;
+  prover: ProvableHookTransactionState;
 }
 
 export interface AfterTransactionHookArguments

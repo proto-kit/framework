@@ -134,7 +134,10 @@ export default async function (
     SettlementModule
   );
 
-  settlementModule.signTransaction(tx, [toPrivateKey], [tokenOwnerPrivateKey]);
+  settlementModule.utils.signTransaction(tx, {
+    signingPublicKeys: [toPrivateKey.toPublicKey()],
+    signingWithSignatureCheck: [tokenOwnerPrivateKey.toPublicKey()],
+  });
 
   console.log("Sending...");
 

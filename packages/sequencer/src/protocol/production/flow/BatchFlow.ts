@@ -5,14 +5,9 @@ import {
   Protocol,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
+  TransactionProverPublicInput,
 } from "@proto-kit/protocol";
-import {
-  isFull,
-  mapSequential,
-  MAX_FIELD,
-  Nullable,
-  range,
-} from "@proto-kit/common";
+import { isFull, mapSequential, Nullable } from "@proto-kit/common";
 
 import { FlowCreator } from "../../../worker/flow/Flow";
 import { NewBlockProvingParameters, NewBlockTask } from "../tasks/NewBlockTask";
@@ -33,7 +28,7 @@ export class BatchFlow {
     private readonly blockProvingTask: NewBlockTask,
     private readonly blockReductionTask: BlockReductionTask,
     private readonly stateTransitionFlow: StateTransitionFlow,
-    private readonly blockFlow: BlockFlow,
+    private readonly transactionFlow: BlockFlow,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     @inject("Tracer")
@@ -42,7 +37,7 @@ export class BatchFlow {
 
   private isBlockProofsMergable(a: BlockProof, b: BlockProof): boolean {
     // TODO Proper replication of merge logic
-    const part1 = a.publicOutput.stateRoot
+    return a.publicOutput.stateRoot
       .equals(b.publicInput.stateRoot)
       .and(a.publicOutput.blockHashRoot.equals(b.publicInput.blockHashRoot))
       .and(
@@ -53,26 +48,12 @@ export class BatchFlow {
           b.publicInput.eternalTransactionsHash
         )
       )
-      .and(a.publicOutput.closed.equals(b.publicOutput.closed))
+      .and(
+        a.publicOutput.proverStateRemainder.equals(
+          b.publicInput.proverStateRemainder
+        )
+      )
       .toBoolean();
-
-    const proof1Closed = a.publicOutput.closed;
-    const proof2Closed = b.publicOutput.closed;
-
-    const blockNumberProgressionValid = a.publicOutput.blockNumber.equals(
-      b.publicInput.blockNumber
-    );
-
-    const isValidTransactionMerge = a.publicInput.blockNumber
-      .equals(MAX_FIELD)
-      .and(blockNumberProgressionValid)
-      .and(proof1Closed.or(proof2Closed).not());
-
-    const isValidClosedMerge = proof1Closed
-      .and(proof2Closed)
-      .and(blockNumberProgressionValid);
-
-    return part1 && isValidClosedMerge.or(isValidTransactionMerge).toBoolean();
   }
 
   private async pushBlockInput(
@@ -92,6 +73,14 @@ export class BatchFlow {
     );
   }
 
+  private dummyTransactionProof() {
+    return this.protocol.transactionProver.zkProgrammable.zkProgram[0].Proof.dummy(
+      TransactionProverPublicInput.empty(),
+      TransactionProverPublicInput.empty(),
+      2
+    );
+  }
+
   @trace("batch.prove", ([, batchId]) => ({ batchId }))
   public async executeBatch(batch: BatchTrace, batchId: number) {
     const batchFlow = new ReductionTaskFlow(
@@ -105,41 +94,54 @@ export class BatchFlow {
       this.flowCreator
     );
 
-    const map: Record<
-      number,
-      Nullable<NewBlockProvingParameters>
-    > = Object.fromEntries(
-      batch.blocks.map((blockTrace, i) => [
-        i,
-        {
-          params: blockTrace.blockParams,
-          input1: undefined,
-          input2: undefined,
-        },
-      ])
-    );
+    const lastBlockProofCollector: Nullable<NewBlockProvingParameters> = {
+      params: batch.blocks.at(-1)!.block,
+      input1: undefined,
+      input2: undefined,
+    };
 
     const dummySTProof = await this.dummySTProof();
-    range(0, batch.blocks.length - 1).forEach((index) => {
-      map[index].input1 = dummySTProof;
-    });
+    const dummyTransactionProof = await this.dummyTransactionProof();
 
+    // TODO Make sure we use deferErrorsTo to everywhere (preferably with a nice pattern)
+    //  Currently, a lot of errors just get eaten and the chain just halts with no
+    //  error being thrown
     await this.stateTransitionFlow.executeBatches(
       batch.stateTransitionTrace,
       batchId,
       async (proof) => {
-        const index = batch.blocks.length - 1;
-        map[index].input1 = proof;
-        await this.pushBlockInput(map[index], batchFlow);
+        lastBlockProofCollector.input1 = proof;
+        await this.pushBlockInput(lastBlockProofCollector, batchFlow);
       }
     );
 
-    await mapSequential(batch.blocks, async (blockTrace, blockIndex) => {
-      await this.blockFlow.executeBlock(blockTrace, async (proof) => {
-        map[blockIndex].input2 = proof;
-        await this.pushBlockInput(map[blockIndex], batchFlow);
-      });
-    });
+    // TODO Proper height
+    await this.transactionFlow.createTransactionProof(
+      batch.blocks[0].heights[0],
+      batch.transactions,
+      async (proof) => {
+        lastBlockProofCollector.input2 = proof;
+        await this.pushBlockInput(lastBlockProofCollector, batchFlow);
+      }
+    );
+
+    // TODO Cover case where either 0 STs or 0 Transactions are in a batch
+
+    // Push all blocks except the last one with dummy proofs
+    // except the last one, which will wait on the two proofs to complete
+    await mapSequential(
+      batch.blocks.slice(0, batch.blocks.length - 1),
+      async (blockTrace) => {
+        await this.pushBlockInput(
+          {
+            input1: dummySTProof,
+            input2: dummyTransactionProof,
+            params: blockTrace.block,
+          },
+          batchFlow
+        );
+      }
+    );
 
     return await new Promise<BlockProof>((res, rej) => {
       batchFlow.onCompletion(async (result) => res(result));

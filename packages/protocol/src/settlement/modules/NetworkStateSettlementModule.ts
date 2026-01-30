@@ -4,7 +4,7 @@ import {
   ProvableSettlementHook,
   SettlementHookInputs,
 } from "../modularity/ProvableSettlementHook";
-import { SettlementSmartContract } from "../contracts/SettlementSmartContract";
+import { SettlementContractType } from "../contracts/settlement/SettlementBase";
 
 type NetworkStateSettlementModuleConfig = {
   blocksPerL1Block: UInt64;
@@ -13,7 +13,7 @@ type NetworkStateSettlementModuleConfig = {
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class NetworkStateSettlementModule extends ProvableSettlementHook<NetworkStateSettlementModuleConfig> {
   public async beforeSettlement(
-    smartContract: SettlementSmartContract,
+    smartContract: SettlementContractType,
     {
       blockProof,
       fromNetworkState,
