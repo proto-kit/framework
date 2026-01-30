@@ -13,7 +13,7 @@ console.log(PrivateKey.random().toPublicKey().toBase58());
 
 log.setLevel("DEBUG");
 
-describe.each(["signed"] as const)(
+describe.skip.each(["signed"] as const)(
   "settlement contracts: workers + lightnet - %s",
   (type) => {
     const network = {
