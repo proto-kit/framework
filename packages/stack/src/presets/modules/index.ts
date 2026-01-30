@@ -152,7 +152,7 @@ export class DefaultModules {
     } satisfies SequencerModulesRecord;
   }
 
-  static PrismaRedisDatabase() {
+  static prismaRedisDatabase() {
     return {
       Database: PrismaRedisDatabase,
       DatabasePruneModule,
@@ -165,7 +165,7 @@ export class DefaultModules {
     } satisfies SequencerModulesRecord;
   }
 
-  static RedisTaskQueue() {
+  static redisTaskQueue() {
     return {
       TaskQueue: BullQueue,
     } satisfies SequencerModulesRecord;
