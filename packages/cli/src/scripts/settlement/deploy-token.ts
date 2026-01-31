@@ -57,7 +57,7 @@ export default async function (
       ...protocol.settlementModules,
     }),
     Sequencer: Sequencer.from({
-      ...DefaultModules.PrismaRedisDatabase(),
+      ...DefaultModules.prismaRedisDatabase(),
       ...DefaultModules.settlementScript(),
     }),
   });
