@@ -1,5 +1,6 @@
 import { PrivateKey, TokenId } from "o1js";
 import { FungibleToken } from "mina-fungible-token";
+import { SettlementTokenConfig } from "@proto-kit/sequencer";
 
 import { developmentConfig, inmemoryConfig, sovereignConfig } from "../config";
 
@@ -30,7 +31,7 @@ export function resolveEnv<T extends object>(
 export function buildCustomTokenConfig(
   customTokenPrivateKey?: string,
   customTokenBridgePrivateKey?: string
-) {
+): SettlementTokenConfig {
   if (
     customTokenPrivateKey === undefined ||
     customTokenBridgePrivateKey === undefined
@@ -39,24 +40,34 @@ export function buildCustomTokenConfig(
   }
   const pk = PrivateKey.fromBase58(customTokenPrivateKey);
   const tokenId = TokenId.derive(pk.toPublicKey()).toString();
+
+  const tokenOwner = new FungibleToken(
+    PrivateKey.fromBase58(customTokenPrivateKey).toPublicKey()
+  );
+
   return {
     [tokenId]: {
-      bridgingContractPrivateKey: PrivateKey.fromBase58(
+      tokenOwner: tokenOwner,
+      bridgingContractPublicKey: PrivateKey.fromBase58(
         customTokenBridgePrivateKey
-      ),
-      tokenOwner: FungibleToken,
-      tokenOwnerPrivateKey: customTokenPrivateKey,
+      ).toPublicKey(),
+      tokenOwnerPublicKey: pk.toPublicKey(),
     },
   };
 }
 export function buildSettlementTokenConfig(
-  bridgePrivateKey: string,
-  customTokens: Record<string, unknown> = {}
-) {
+  bridgePrivateKey?: string,
+  customTokens: SettlementTokenConfig = {}
+): SettlementTokenConfig {
   return {
-    "1": {
-      bridgingContractPrivateKey: PrivateKey.fromBase58(bridgePrivateKey),
-    },
+    ...(bridgePrivateKey !== undefined
+      ? {
+          "1": {
+            bridgingContractPublicKey:
+              PrivateKey.fromBase58(bridgePrivateKey).toPublicKey(),
+          },
+        }
+      : {}),
     ...customTokens,
   };
 }
