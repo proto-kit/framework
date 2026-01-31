@@ -48,15 +48,11 @@ export class ChildProcessWorker {
     });
     if (forwardLogs) {
       s.stdout.on("data", (data) => {
-        process.stdout.write(`${name}: `);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        process.stdout.write(data);
+        process.stdout.write(`${name}: ${data}`);
       });
     }
     s.stderr.on("data", (data) => {
-      process.stderr.write(`${name}: `);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      process.stderr.write(data);
+      process.stderr.write(`${name}: ${data}`);
     });
 
     this.process = s;
