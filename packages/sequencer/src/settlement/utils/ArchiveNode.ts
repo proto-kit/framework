@@ -66,7 +66,7 @@ export namespace ArchiveNode {
     archiveNodeEndpoint: string,
     blockHeight: number,
     { numAttempts, timeout }: { numAttempts: number; timeout: number }
-  ): Promise<true> {
+  ): Promise<number> {
     for (let i = 0; i < numAttempts; i++) {
       const archiveNodeResponse =
         // eslint-disable-next-line no-await-in-loop
@@ -78,7 +78,7 @@ export namespace ArchiveNode {
         archiveNodeResponse.networkState.maxBlockHeight.pendingMaxBlockHeight;
 
       if (archiveNodeTip >= blockHeight) {
-        return true;
+        return archiveNodeTip;
       }
       // eslint-disable-next-line no-await-in-loop
       await sleep(timeout);
@@ -103,7 +103,9 @@ export namespace ArchiveNode {
         timeout: 5000,
       });
     }
-    return true;
+    // For local blockchain
+    // eslint-disable-next-line no-bitwise
+    return 1 << 32;
   }
 }
 /* eslint-enable no-inner-declarations */
