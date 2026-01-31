@@ -92,7 +92,8 @@
     // Handled by prettier
     "@typescript-eslint/indent": ["off"],
     "@typescript-eslint/no-floating-promises": "error",
-    "no-else-return": "off"
+    "no-else-return": "off",
+    "no-bitwise": "off"
   },
 
   "overrides": [

@@ -82,7 +82,7 @@ export namespace ArchiveNode {
         archiveNodeResponse.networkState.maxBlockHeight.pendingMaxBlockHeight;
 
       if (archiveNodeTip >= blockHeight) {
-        if (type === "lightnet" && archiveNodeTip + 10 > blockHeight) {
+        if (type === "lightnet" && archiveNodeTip - 10 > blockHeight) {
           log.warn(
             `Archive node height ${archiveNodeTip} is much greater than requested network block height ${blockHeight}. ` +
               "This is probably because you restarted lightnet but didn't clear out the archive node's database"
