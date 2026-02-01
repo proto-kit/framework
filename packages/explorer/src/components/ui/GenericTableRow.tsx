@@ -3,7 +3,7 @@
 /* eslint-disable no-nested-ternary */
 
 import React from "react";
-import { ChevronRight, CircleCheck, CircleX } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { TableCell, TableRow } from "./table";
 import { Skeleton } from "./skeleton";
@@ -17,7 +17,9 @@ export interface GenericTableRowProps<Item> {
   loading: boolean;
   item: Item;
   copyKeys?: string[];
-  statusKey?: string;
+  columnRenderers?: Partial<
+    Record<keyof Item, (item: Item) => React.ReactNode>
+  >;
   onRowClick?: () => void;
 }
 
@@ -28,7 +30,7 @@ export default function GenericTableRow<Item>({
   item,
   onRowClick,
   copyKeys = [],
-  statusKey,
+  columnRenderers,
 }: GenericTableRowProps<Item>) {
   return (
     <TableRow onClick={onRowClick}>
@@ -37,16 +39,10 @@ export default function GenericTableRow<Item>({
           view.includes(_key) && (
             <TableCell className={""} key={_key}>
               {!loading ? (
-                copyKeys.includes(_key) ? (
+                columnRenderers && _key in columnRenderers ? (
+                  columnRenderers[typed<keyof Item>(_key)]?.(item)
+                ) : copyKeys.includes(_key) ? (
                   <Copy text={String(item[typed<keyof Item>(_key)])} />
-                ) : statusKey === _key ? (
-                  <div className="flex w-full items-center justify-center">
-                    {String(item[typed<keyof Item>(_key)]) === "true" ? (
-                      <CircleCheck className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <CircleX className="w-4 h-4 text-red-500" />
-                    )}
-                  </div>
                 ) : (
                   <>{String(item[typed<keyof Item>(_key)])}</>
                 )
