@@ -27,9 +27,7 @@ export const depositCommand: CommandModule<{}, DepositArgs> = {
       }),
   handler: async (args) => {
     try {
-      const { default: deposit } = await import(
-        "../../scripts/bridge/deposit"
-      );
+      const { default: deposit } = await import("../../scripts/bridge/deposit");
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await deposit(
         {

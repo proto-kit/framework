@@ -25,9 +25,7 @@ export const redeemCommand: CommandModule<{}, RedeemArgs> = {
       }),
   handler: async (args) => {
     try {
-      const { default: redeem } = await import(
-        "../../scripts/bridge/redeem"
-      );
+      const { default: redeem } = await import("../../scripts/bridge/redeem");
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await redeem(
         {

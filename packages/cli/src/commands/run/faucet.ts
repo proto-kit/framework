@@ -27,9 +27,7 @@ export const faucetCommand: CommandModule<{}, FaucetArgs> = {
       }),
   handler: async (args) => {
     try {
-      const { default: faucet } = await import(
-        "../../scripts/lightnet/faucet"
-      );
+      const { default: faucet } = await import("../../scripts/lightnet/faucet");
       await faucet(args.publicKey);
       process.exit(0);
     } catch (error) {

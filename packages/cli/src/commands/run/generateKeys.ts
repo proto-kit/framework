@@ -1,4 +1,5 @@
 import { CommandModule } from "yargs";
+
 import type { GenerateKeysArgs } from "../../scripts/generateKeys";
 
 export const generateKeysCommand: CommandModule<{}, GenerateKeysArgs> = {
