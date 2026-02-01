@@ -4,7 +4,12 @@ import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 
-export default async function (port?: number, indexerUrl?: string) {
+export default async function (args: {
+  port?: number;
+  indexerUrl?: string;
+  dashboardTitle?: string;
+  dashboardSlogan?: string;
+}): Promise<void> {
   let explorerDir: string;
 
   try {
@@ -19,13 +24,15 @@ export default async function (port?: number, indexerUrl?: string) {
   }
 
   return await new Promise<void>((resolve, reject) => {
-    const child = spawn("npm", ["run", "dev", "--", "-p", String(port)], {
+    const child = spawn("npm", ["run", "dev", "--", "-p", String(args.port)], {
       cwd: explorerDir,
       stdio: "inherit",
       env: {
         ...process.env,
         NODE_OPTIONS: "",
-        NEXT_PUBLIC_INDEXER_URL: indexerUrl,
+        NEXT_PUBLIC_INDEXER_URL: args.indexerUrl,
+        NEXT_PUBLIC_DASHBOARD_TITLE: args.dashboardTitle,
+        NEXT_PUBLIC_DASHBOARD_SLOGAN: args.dashboardSlogan,
       },
     });
 

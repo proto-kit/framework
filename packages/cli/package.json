@@ -4,7 +4,7 @@
   "type": "module",
   "main": "./bin/protokit-cli.js",
   "bin": {
-    "proto-kit": "./bin/protokit-cli.js"
+    "protokit": "./bin/protokit-cli.js"
   },
   "publishConfig": {
     "access": "public"

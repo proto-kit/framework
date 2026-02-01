@@ -2,11 +2,11 @@
 
 import { PrivateKey } from "o1js";
 
-type GenerateKeysArgs = {
+export type GenerateKeysArgs = {
   count?: number;
 };
 
-export async function generateKeysCommand(args: GenerateKeysArgs) {
+export default async function (args: GenerateKeysArgs) {
   const count = args.count ?? 1;
   console.log(`Generated ${count} keys for development purposes:`);
   console.log("-".repeat(70));

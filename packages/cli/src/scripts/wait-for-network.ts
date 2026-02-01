@@ -7,7 +7,7 @@ import {
   loadEnvironmentVariables,
   getRequiredEnv,
   LoadEnvOptions,
-} from "../../utils/loadEnv";
+} from "../utils/loadEnv";
 
 const maxAttempts = 24;
 const delay = 5000;

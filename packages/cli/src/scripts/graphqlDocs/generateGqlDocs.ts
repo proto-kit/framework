@@ -24,7 +24,7 @@ import { Runtime } from "@proto-kit/module";
 
 import { generateGqlDocs } from "../../utils/graphqlDocs";
 
-export async function generateGqlDocsCommand(args: {
+export default async function (args: {
   empty: boolean;
   port: number;
   url: string;

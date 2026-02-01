@@ -177,7 +177,7 @@ export function generateChainConfig(answers: WizardAnswers): string {
   if (isInMemory) {
     moduleParts.push("    ...DefaultModules.inMemoryDatabase(),");
   } else {
-    moduleParts.push("    ...DefaultModules.PrismaRedisDatabase(),");
+    moduleParts.push("    ...DefaultModules.prismaRedisDatabase(),");
   }
   moduleParts.push(
     `    ...DefaultModules.core({ settlementEnabled: ${answers.settlementEnabled} }),`
@@ -185,7 +185,7 @@ export function generateChainConfig(answers: WizardAnswers): string {
   if (isInMemory) {
     moduleParts.push("    ...DefaultModules.localTaskQueue(),");
   } else {
-    moduleParts.push("    ...DefaultModules.RedisTaskQueue(),");
+    moduleParts.push("    ...DefaultModules.redisTaskQueue(),");
   }
   if (answers.includeIndexer) {
     moduleParts.push("    ...DefaultModules.sequencerIndexer(),");
