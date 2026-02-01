@@ -34,7 +34,9 @@ export class TokenBridgeTree extends createMerkleTree(256) {
   ) {
     const events = await contract.fetchEvents(UInt32.from(0), endHeight);
 
-    log.debug(`Found ${events.length} token bridge add events`);
+    log.debug(
+      `Found ${events.length} token bridge add events (height: ${endHeight?.toString() ?? "open end"})`
+    );
 
     const tree = new TokenBridgeTree(new InMemoryMerkleTreeStorage());
     const indizes: Record<string, bigint> = {};
