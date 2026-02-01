@@ -1,4 +1,3 @@
-import { PrivateKey } from "o1js";
 import { log } from "@proto-kit/common";
 import { FungibleToken } from "mina-fungible-token";
 import { BullQueueConfig } from "@proto-kit/deployment";
@@ -6,14 +5,12 @@ import { afterAll, beforeAll } from "@jest/globals";
 
 import { settlementTestFn } from "../test/settlement/Settlement";
 
-import { ChildProcessWorker } from "./workers/ChildProcessWorker";
-import { BullConfig } from "./workers/modules";
-
-console.log(PrivateKey.random().toPublicKey().toBase58());
+import { ChildProcessWorker } from "../test-integration/workers/ChildProcessWorker";
+import { BullConfig } from "../test-integration/workers/modules";
 
 log.setLevel("DEBUG");
 
-describe.skip.each(["signed"] as const)(
+describe.each(["signed"] as const)(
   "settlement contracts: workers + lightnet - %s",
   (type) => {
     const network = {

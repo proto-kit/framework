@@ -22,26 +22,22 @@ import {
   VanillaTaskWorkerModules,
 } from "../src";
 
-import { MinimumWorkerModules } from "./workers/WorkerModules";
-import { BullConfig } from "./workers/modules";
+import { MinimumWorkerModules } from "../test-integration/workers/WorkerModules";
+import { BullConfig } from "../test-integration/workers/modules";
 
 /* eslint-disable no-console */
 async function main() {
   const proofsEnabled = process.env.PROOFS_ENABLED === "true";
-  // const settlementEnabled = process.env.SETTLEMENT_ENABLED === "true";
 
   console.log("Starting worker...");
   console.log(`Worker proofs enabled: ${proofsEnabled}`);
-  // console.log(`Worker settlement enabled: ${settlementEnabled}`);
 
   log.setLevel("DEBUG");
 
   const sequencerClass = Sequencer.from({
     TaskQueue: BullQueue,
     LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-      // settlementEnabled
       VanillaTaskWorkerModules.allTasks()
-      // : VanillaTaskWorkerModules.withoutSettlement()
     ),
   } satisfies MinimumWorkerModules);
 
