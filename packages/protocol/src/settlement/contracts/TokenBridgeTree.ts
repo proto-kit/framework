@@ -32,7 +32,10 @@ export class TokenBridgeTree extends createMerkleTree(256) {
     },
     endHeight?: UInt32
   ) {
-    const events = await contract.fetchEvents(UInt32.from(0), endHeight);
+    const events = await contract.fetchEvents(
+      UInt32.from(0),
+      endHeight?.add(1)
+    );
 
     log.debug(
       `Found ${events.length} token bridge add events (height: ${endHeight?.toString() ?? "open end"})`
