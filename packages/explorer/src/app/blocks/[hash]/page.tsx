@@ -104,8 +104,10 @@ export default function BlockDetail() {
   const transactions: TableItem[] = (data?.block?.transactions || []).map(
     (tx) => ({
       ...tx.tx,
-      status: `${tx.status}`,
-      statusMessage: tx.statusMessage ?? "—",
+      status: {
+        isSuccess: tx.status === true,
+        message: tx.statusMessage,
+      },
     })
   );
 

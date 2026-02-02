@@ -17,6 +17,9 @@ export interface DataTableConfig<TItem> {
   columns: Record<keyof TItem, string>;
   navigationPath?: string;
   copyKeys?: string[];
+  columnRenderers?: Partial<
+    Record<keyof TItem, (item: TItem) => React.ReactNode>
+  >;
   items?: TItem[];
   totalCount?: string;
   loading?: boolean;
@@ -36,6 +39,7 @@ export default function DataTable<TItem>(config: DataTableConfig<TItem>) {
     columns,
     navigationPath,
     copyKeys,
+    columnRenderers,
     items: externalItems,
     totalCount: externalTotalCount,
     loading: externalLoading,
@@ -162,6 +166,7 @@ export default function DataTable<TItem>(config: DataTableConfig<TItem>) {
                 view={currentView}
                 onRowClick={() => handleRowClick(item)}
                 copyKeys={copyKeys}
+                columnRenderers={columnRenderers}
               />
             )}
             page={page != null ? page : 0}
