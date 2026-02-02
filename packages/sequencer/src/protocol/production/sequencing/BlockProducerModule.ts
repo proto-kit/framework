@@ -26,6 +26,7 @@ import { Tracer } from "../../../logging/Tracer";
 import { trace } from "../../../logging/trace";
 import { AsyncLinkedLeafStore } from "../../../state/async/AsyncLinkedLeafStore";
 import { TransactionStorage } from "../../../storage/repositories/TransactionStorage";
+import { ensureNotBusy } from "../../../helpers/BusyGuard";
 
 import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
@@ -37,8 +38,6 @@ export interface BlockConfig {
 
 @sequencerModule()
 export class BlockProducerModule extends SequencerModule<BlockConfig> {
-  private productionInProgress = false;
-
   public constructor(
     @inject("Mempool") private readonly mempool: Mempool,
     @inject("UnprovenStateService")
@@ -139,37 +138,25 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     return result;
   }
 
+  @ensureNotBusy()
   public async tryProduceBlock(): Promise<Block | undefined> {
-    if (!this.productionInProgress) {
-      try {
-        const block = await this.produceBlock();
+    const block = await this.produceBlock();
 
-        if (block === undefined) {
-          if (!this.allowEmptyBlock()) {
-            log.info("No transactions in mempool, skipping production");
-          } else {
-            log.error("Something wrong happened, skipping block");
-          }
-          return undefined;
-        }
-
-        log.info(
-          `Produced block #${block.height.toBigInt()} (${block.transactions.length} txs)`
-        );
-        this.prettyPrintBlockContents(block);
-
-        return block;
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          throw error;
-        } else {
-          log.error(error);
-        }
-      } finally {
-        this.productionInProgress = false;
+    if (block === undefined) {
+      if (!this.allowEmptyBlock()) {
+        log.info("No transactions in mempool, skipping production");
+      } else {
+        log.error("Something wrong happened, skipping block");
       }
+      return undefined;
     }
-    return undefined;
+
+    log.info(
+      `Produced block #${block.height.toBigInt()} (${block.transactions.length} txs)`
+    );
+    this.prettyPrintBlockContents(block);
+
+    return block;
   }
 
   @trace("block.collect_inputs")
@@ -200,8 +187,6 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
   @trace("block")
   private async produceBlock(): Promise<Block | undefined> {
-    this.productionInProgress = true;
-
     const metadata = await this.collectProductionData();
 
     const blockResult = await this.productionService.createBlock(
@@ -250,8 +235,6 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         }
       );
     }
-
-    this.productionInProgress = false;
 
     return blockResult?.block;
   }

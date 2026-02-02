@@ -84,6 +84,10 @@ export class TransactionProvingTaskParameterSerializer
   }
 
   public toJSON(inputs: TransactionProvingTaskParameters): string {
+    if (inputs === "dummy") {
+      return "dummy";
+    }
+
     const taskParamsJson: TransactionProvingTaskParametersJSON = inputs.map(
       (input) => {
         const { parameters, proof } = input;
@@ -119,6 +123,10 @@ export class TransactionProvingTaskParameterSerializer
   public async fromJSON(
     json: string
   ): Promise<TransactionProvingTaskParameters> {
+    if (json === "dummy") {
+      return "dummy";
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const jsonReadyObject: TransactionProvingTaskParametersJSON =
       JSON.parse(json);

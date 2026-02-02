@@ -64,8 +64,6 @@ const errors = {
   propertyNotMatching: (propertyName: string) => `${propertyName} not matching`,
 };
 
-type Tail<T extends any[]> = T extends [infer A, ...infer Rest] ? Rest : never;
-
 type BlockHookArgument<T extends "before" | "after"> = T extends "before"
   ? BeforeBlockHookArguments
   : AfterBlockHookArguments;
@@ -389,17 +387,39 @@ export class BlockProverProgrammable extends ZkProgrammable<
       networkState,
       blockWitness,
       batch,
-      // TODO Don't do this -> very confusing
-      finalize,
+      Bool(true),
+      Bool(true),
       finalize
     );
   }
 
   @provableMethod()
   public async proveBlockBatchWithProofs(
-    ...args: Required<Tail<Parameters<typeof this.proveBlockBatch>>>
+    publicInput: BlockProverPublicInput,
+    stateWitness: BlockProverStateInput,
+    networkState: NetworkState,
+    blockWitness: BlockHashMerkleTreeWitness,
+    batch: BlockArgumentsBatch,
+    deferSTProof: Bool,
+    deferTransactionProof: Bool,
+    stateTransitionProof: StateTransitionProof,
+    transactionProof: TransactionProof
   ) {
-    return await this.proveBlockBatch(true, ...args);
+    const finalize = deferTransactionProof.or(deferSTProof).not();
+
+    return await this.proveBlockBatch(
+      true,
+      publicInput,
+      stateWitness,
+      networkState,
+      blockWitness,
+      batch,
+      deferSTProof,
+      deferTransactionProof,
+      finalize,
+      stateTransitionProof,
+      transactionProof
+    );
   }
 
   public async proveBlockBatch(
@@ -411,6 +431,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     batch: BlockArgumentsBatch,
     deferSTProof: Bool,
     deferTransactionProof: Bool,
+    finalize: Bool,
     stateTransitionProof?: StateTransitionProof,
     transactionProof?: TransactionProof
   ): Promise<BlockProverPublicOutput> {
@@ -443,11 +464,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
       this.verifySTProof(state, stateTransitionProof!, deferSTProof);
     }
 
-    const finalizeBlockProof = deferTransactionProof.or(deferSTProof).not();
-    // .or()
-    // .or(state.bundleList.isEmpty().and(state.pendingSTBatches.isEmpty()));
-
-    return this.computeOutput(publicInput, state, finalizeBlockProof);
+    return this.computeOutput(publicInput, state, finalize);
   }
 
   private async proveBlock(

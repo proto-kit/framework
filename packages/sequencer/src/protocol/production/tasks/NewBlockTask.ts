@@ -136,7 +136,8 @@ export class NewBlockTask
             networkState,
             blockWitness,
             blockArgumentBatch,
-            deferSTProof.or(deferTransactionProof)
+            Bool(false)
+            // deferSTProof.or(deferTransactionProof)
           );
         } else {
           await this.blockProver.proveBlockBatchWithProofs(

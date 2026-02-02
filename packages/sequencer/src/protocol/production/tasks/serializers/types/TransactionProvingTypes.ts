@@ -17,7 +17,9 @@ export interface TransactionProverTaskParameters {
 
 export type OneOrTwo<Type> = [Type] | [Type, Type];
 
-export type TransactionProvingTaskParameters = OneOrTwo<{
-  parameters: TransactionProverTaskParameters;
-  proof: RuntimeProof;
-}>;
+export type TransactionProvingTaskParameters =
+  | "dummy"
+  | OneOrTwo<{
+      parameters: TransactionProverTaskParameters;
+      proof: RuntimeProof;
+    }>;
