@@ -9,9 +9,9 @@ import {
   closeable,
   sequencerModule,
 } from "@proto-kit/sequencer";
+import { inject } from "tsyringe";
 
 import { InstantiatedBullQueue } from "./InstantiatedBullQueue";
-import { inject } from "tsyringe";
 
 export interface BullQueueConfig {
   redis: {
