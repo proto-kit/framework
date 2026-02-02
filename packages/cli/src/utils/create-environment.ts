@@ -337,10 +337,18 @@ export function generateWorkerConfig(answers: WizardAnswers): string {
   }
 
   const presetEnv = PRESET_ENV_NAMES[answers.preset];
-
+  const taskWorkerImports = answers.settlementEnabled
+    ? ""
+    : ` LocalTaskWorkerModule, VanillaTaskWorkerModules`;
+  const withoutSettlementTask = answers.settlementEnabled
+    ? ""
+    : `LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      VanillaTaskWorkerModules.withoutSettlement()
+    ),
+  `;
   return `import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
-import { Sequencer, AppChain } from "@proto-kit/sequencer";
+import { Sequencer, AppChain, ${taskWorkerImports} } from "@proto-kit/sequencer";
 import runtime from "../../../runtime";
 import * as protocol from "../../../protocol";
 import { Arguments } from "../../../start";
@@ -358,6 +366,7 @@ const appChain = AppChain.from({
   }),
   Sequencer: Sequencer.from({
     ...DefaultModules.worker(),
+    ${withoutSettlementTask}
   }),
 });
 
