@@ -438,5 +438,4 @@ export abstract class UInt<BITS extends number> extends Struct({
     );
   }
 }
-// eslint-disable-next-line max-len
-/* eslint-enable prefer-const,no-underscore-dangle,no-bitwise,@typescript-eslint/naming-convention */
+/* eslint-enable prefer-const,no-underscore-dangle,@typescript-eslint/naming-convention */
