@@ -1,13 +1,25 @@
-import { Bool, Field, FlexibleProvablePure, Provable, Struct } from "o1js";
+import {
+  Bool,
+  Field,
+  FlexibleProvablePure,
+  Provable,
+  Struct,
+  Unconstrained,
+} from "o1js";
 import {
   LinkedMerkleTree,
   LinkedMerkleTreeReadWitness,
+  createUnknownLengthUnion,
 } from "@proto-kit/common";
 
 import { OutgoingMessage } from "./OutgoingMessage";
 
 // TODO Make that dynamic based on processors configured
 export const OUTGOING_MESSAGE_BATCH_SIZE = 1;
+
+export class BridgeUnknownLengthArgument extends createUnknownLengthUnion(
+  100
+) {}
 
 export function createMessageStruct<T>(type: FlexibleProvablePure<T>) {
   return class MessageStruct extends Struct({
@@ -19,11 +31,13 @@ export function createMessageStruct<T>(type: FlexibleProvablePure<T>) {
 export class OutgoingMessageArgument extends Struct({
   witness: LinkedMerkleTreeReadWitness,
   messageType: Field,
+  data: Unconstrained<Field[]>,
 }) {
   public static dummy(): OutgoingMessageArgument {
     return new OutgoingMessageArgument({
       witness: LinkedMerkleTree.dummyReadWitness(),
       messageType: Field(0),
+      data: Unconstrained.from([]),
     });
   }
 }

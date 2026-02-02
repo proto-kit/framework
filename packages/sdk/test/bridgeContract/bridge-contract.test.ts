@@ -2,7 +2,6 @@ import "reflect-metadata";
 import {
   BridgeContract,
   BridgeContractArgs,
-  BridgeContractContext,
   BridgingSettlementContractType,
   ContractArgsRegistry,
   createMessageStruct,
@@ -26,6 +25,8 @@ import {
   Poseidon,
   Provable,
   method,
+  Unconstrained,
+  VerificationKey,
 } from "o1js";
 import { container } from "tsyringe";
 import { Withdrawal, WithdrawalMessageProcessor } from "@proto-kit/library";
@@ -35,6 +36,7 @@ import {
   LinkedMerkleTree,
   noop,
 } from "@proto-kit/common";
+import { beforeAll } from "@jest/globals";
 
 class MockSettlementContract
   extends SmartContract
@@ -54,23 +56,40 @@ class MockSettlementContract
 
 const proofsEnabled = false;
 
+const timeout = proofsEnabled ? 180_000 : 50_000;
+
 describe("bridging contract", () => {
-  it("setup", async () => {
+  let chain: Mina.LocalBlockchain;
+
+  beforeAll(async () => {
+    chain = await Mina.LocalBlockchain({ proofsEnabled });
+
+    Mina.setActiveInstance(chain);
+
     container
       .resolve(ContractArgsRegistry)
       .addArgs<BridgeContractArgs>("BridgeContract", {
         SettlementContract: MockSettlementContract,
         messageProcessors: [new WithdrawalMessageProcessor() as any],
       });
+  });
 
+  const vks: { verificationKey: VerificationKey }[] = [];
+
+  it(
+    "compile",
+    async () => {
+      const vkSettlement = await MockSettlementContract.compile();
+      const vk = await BridgeContract.compile();
+      vks.push(vkSettlement, vk);
+    },
+    timeout
+  );
+
+  it("should process withdrawal and mint withdrawal tokens", async () => {
     const key1 = PrivateKey.random();
     const key2 = PrivateKey.random();
-
-    const chain = await Mina.LocalBlockchain({ proofsEnabled });
-    Mina.setActiveInstance(chain);
-
-    const vkSettlement = await MockSettlementContract.compile();
-    const vk = await BridgeContract.compile();
+    const [vkSettlement, vkBridge] = vks;
 
     const settlement = new MockSettlementContract(key1.toPublicKey());
     const contract = new BridgeContract(key2.toPublicKey());
@@ -81,7 +100,7 @@ describe("bridging contract", () => {
       await settlement.deploy(vkSettlement);
 
       const accountUpdate = await contract.deployProvable(
-        vk.verificationKey,
+        vkBridge.verificationKey,
         false,
         Permissions.default(),
         key1.toPublicKey()
@@ -115,20 +134,16 @@ describe("bridging contract", () => {
     );
     const message = new Withdrawal({
       tokenId: TokenId.default,
-      amount: UInt64.from(1e9),
+      amount: UInt64.from(1e8),
       address: chain.testAccounts[1].key.toPublicKey(),
     });
     const MessageType = createMessageStruct(Withdrawal);
+    const messageType = new WithdrawalMessageProcessor().getMessageType();
+
     tree.setLeaf(
       path.toBigInt(),
       Poseidon.hash(
-        MessageType.toFields({ messageType: Field(0), value: message })
-      ).toBigInt()
-    );
-    Provable.log(
-      "tree hash",
-      Poseidon.hash(
-        MessageType.toFields({ messageType: Field(0), value: message })
+        MessageType.toFields({ messageType, value: message })
       ).toBigInt()
     );
 
@@ -141,18 +156,15 @@ describe("bridging contract", () => {
     const txId2 = await proven2.send();
     await txId2.wait();
 
-    container.resolve(BridgeContractContext).data = {
-      messageInputs: [[message]],
-    };
-
     const treeWitness = tree.getReadWitness(path.toBigInt());
 
     const tx3 = await Mina.transaction(chain.testAccounts[0], async () => {
       const funded = await contract.rollupOutgoingMessages(
         OutgoingMessageArgumentBatch.fromMessages([
           new OutgoingMessageArgument({
-            messageType: Field(0),
+            messageType,
             witness: treeWitness,
+            data: Unconstrained.from(Withdrawal.toFields(message)),
           }),
         ])
       );
@@ -171,6 +183,10 @@ describe("bridging contract", () => {
     const txId3 = await proven3.send();
     await txId3.wait();
 
-    console.log(proven3.proofs.map((p) => p?.toJSON()));
+    const settlementAccount = chain.getAccount(
+      chain.testAccounts[1].key.toPublicKey(),
+      contract.deriveTokenId()
+    );
+    expect(settlementAccount.balance.toString()).toBe((1e8).toString());
   }, 300000);
 });

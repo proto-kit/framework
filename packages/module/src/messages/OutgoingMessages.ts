@@ -112,6 +112,7 @@ export class OutgoingMessages<
     const counter = counterOption.orElse(Field(0));
 
     const messageKey = { index: counter, tokenId };
+    // TODO Salt/prefix
     const messageType = prefixToField(key);
 
     await counterState.set(tokenId, counter.add(1));
