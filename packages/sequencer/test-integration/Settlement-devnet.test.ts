@@ -1,8 +1,9 @@
 import { describe } from "@jest/globals";
-import { settlementTestFn } from "../test/settlement/Settlement";
-import { MinaBaseLayerConfig } from "../src";
 import { FungibleToken } from "mina-fungible-token";
 import { PrivateKey } from "o1js";
+
+import { settlementTestFn } from "../test/settlement/Settlement";
+import { MinaBaseLayerConfig } from "../src";
 
 describe.skip("Settlement - Devnet", () => {
   const network: MinaBaseLayerConfig = {

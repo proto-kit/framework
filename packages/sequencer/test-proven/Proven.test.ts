@@ -20,18 +20,18 @@ import { VanillaProtocolModules } from "@proto-kit/library";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 
-import { testingSequencerModules } from "../TestingSequencer";
+import { testingSequencerModules } from "../test/TestingSequencer";
 import {
   ProvenSettlementPermissions,
   Sequencer,
   VanillaTaskWorkerModules,
   AppChain,
   InMemoryAreProofsEnabled,
-} from "../../src";
-import { SettlementStartupModule } from "../../src/sequencer/SettlementStartupModule";
+  SettlementStartupModule,
+} from "../src";
 
-import { BlockTestService } from "./services/BlockTestService";
-import { ProvenBalance } from "./mocks/ProvenBalance";
+import { BlockTestService } from "../test/integration/services/BlockTestService";
+import { ProvenBalance } from "../test/integration/mocks/ProvenBalance";
 
 const timeout = 300000;
 
@@ -131,7 +131,7 @@ describe("Proven", () => {
       try {
         // Start AppChain
         const childContainer = container.createChildContainer();
-        await app.start(false, childContainer);
+        await app.start(true, childContainer);
 
         test = app.sequencer.dependencyContainer.resolve(BlockTestService);
 
@@ -193,7 +193,7 @@ describe("Proven", () => {
     }
   }, 500000);
 
-  it.skip(
+  it(
     "should produce simple block",
     async () => {
       expect.assertions(6);

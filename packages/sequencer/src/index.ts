@@ -64,6 +64,7 @@ export * from "./protocol/production/tracing/BatchTracingService";
 export * from "./protocol/production/tracing/StateTransitionTracingService";
 export * from "./protocol/production/tracing/TransactionTracingService";
 export * from "./sequencer/SequencerStartupModule";
+export * from "./sequencer/SettlementStartupModule";
 export * from "./sequencer/builder/StartableModule";
 export * from "./storage/model/Batch";
 export * from "./storage/model/Block";

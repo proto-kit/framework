@@ -9,6 +9,7 @@ export class ChildProcessWorker {
     forwardLogs: boolean = true,
     env_args: Record<string, string> = {}
   ) {
+    // eslint-disable-next-line no-console
     console.log("Spawning process");
 
     const s = spawn(

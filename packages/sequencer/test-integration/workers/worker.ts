@@ -19,6 +19,7 @@ import {
 } from "./modules";
 import { MinimumWorkerModules } from "./WorkerModules";
 
+/* eslint-disable no-console */
 async function main() {
   const proofsEnabled = process.env.PROOFS_ENABLED === "true";
 
@@ -71,3 +72,4 @@ const isSpawned = process.env.IS_SPAWNED_PROCESS === "true";
 if (isSpawned) {
   await main();
 }
+/* eslint-enable no-console */

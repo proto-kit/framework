@@ -1,6 +1,5 @@
 import {
   log,
-  noop,
   ArtifactRecord,
   ChildVerificationKeyService,
   CompileRegistry,

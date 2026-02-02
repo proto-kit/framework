@@ -115,7 +115,6 @@ export namespace ArchiveNode {
       });
     }
     // For local blockchain
-    // eslint-disable-next-line no-bitwise
     return 1 << 32;
   }
 }
