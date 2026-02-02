@@ -4,18 +4,20 @@ import { log } from "@proto-kit/common";
  * Mostly useful for production of blocks, batches and tasks.
  */
 export function ensureNotBusy<T>() {
-  let inProgress = false;
-
-  return function innerFunction(
+  return function innerFunction<R>(
     _target: T,
     methodName: string,
-    descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<any>>
+    descriptor: TypedPropertyDescriptor<
+      (...args: any[]) => Promise<R | undefined>
+    >
   ): void {
+    let inProgress = false;
+
     const originalMethod = descriptor.value!;
 
     descriptor.value = async function wrapped(this: T, ...args: unknown[]) {
       if (inProgress) {
-        log.trace(`${methodName} is in use at the moment.`);
+        log.trace(`${methodName} is in use at the moment, skipping execution.`);
         return undefined;
       }
 

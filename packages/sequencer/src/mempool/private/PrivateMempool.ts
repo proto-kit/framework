@@ -47,8 +47,12 @@ export class PrivateMempool
   }
 
   public async length(): Promise<number> {
-    const txs = await this.transactionStorage.getPendingUserTransactions(0);
-    return txs.length;
+    const numUserTxs =
+      await this.transactionStorage.countPendingUserTransactions();
+
+    const messages = await this.getMandatoryTxs();
+
+    return numUserTxs + messages.length;
   }
 
   public async add(tx: PendingTransaction): Promise<boolean> {
