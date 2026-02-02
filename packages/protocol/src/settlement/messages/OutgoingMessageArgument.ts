@@ -9,17 +9,12 @@ import {
 import {
   LinkedMerkleTree,
   LinkedMerkleTreeReadWitness,
-  createUnknownLengthUnion,
 } from "@proto-kit/common";
 
 import { OutgoingMessage } from "./OutgoingMessage";
 
 // TODO Make that dynamic based on processors configured
 export const OUTGOING_MESSAGE_BATCH_SIZE = 1;
-
-export class BridgeUnknownLengthArgument extends createUnknownLengthUnion(
-  100
-) {}
 
 export function createMessageStruct<T>(type: FlexibleProvablePure<T>) {
   return class MessageStruct extends Struct({
