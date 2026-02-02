@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
+import { CircleCheck, CircleX } from "lucide-react";
 
 import DataTable from "@/components/ui/DataTable";
 import { FilterFieldDef } from "@/components/ui/FilterBuilder";
@@ -37,8 +38,7 @@ export interface TableItem {
   methodId: string;
   sender: string;
   nonce: string;
-  status: string;
-  statusMessage: string;
+  status: { isSuccess: boolean; message?: string };
 }
 
 export const columns: Record<keyof TableItem, string> = {
@@ -47,7 +47,6 @@ export const columns: Record<keyof TableItem, string> = {
   sender: "Sender",
   nonce: "Nonce",
   status: "Status",
-  statusMessage: "Status Message",
 };
 
 const formSchema = z.object({
@@ -99,6 +98,24 @@ const graphqlQuery = `query GetTransactions($take: Int!, $skip: Int!, $where: Tr
   }
 }`;
 
+const statusRenderer = (item: TableItem) => {
+  const { isSuccess, message } = item.status;
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full gap-1">
+      {isSuccess === true ? (
+        <CircleCheck className="w-4 h-4 text-green-500" />
+      ) : (
+        <>
+          <CircleX className="w-4 h-4 text-red-500" />
+          {message !== undefined && (
+            <span className="text-xs text-red-600 text-center">{message}</span>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 export default function TransactionsPageClient() {
   const [page, view, filters, setPage, setView, setFilters] = useQueryParams(
     columns,
@@ -130,14 +147,22 @@ export default function TransactionsPageClient() {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         (await response.json()) as GetTransactionsQueryResponse;
       const transactions = result.data?.transactions;
-      const mappedItems: TableItem[] = transactions?.map((item) => ({
-        hash: item.hash,
-        methodId: item.methodId,
-        sender: item.sender,
-        nonce: item.nonce,
-        status: item.executionResult.status ? "true" : "false",
-        statusMessage: item.executionResult.statusMessage ?? "—",
-      }));
+      const mappedItems: TableItem[] = transactions?.map((item) => {
+        const statusDisplay =
+          item.executionResult?.status === true
+            ? { isSuccess: true }
+            : {
+                isSuccess: false,
+                message: item.executionResult?.statusMessage ?? "Pending",
+              };
+        return {
+          hash: item.hash,
+          methodId: item.methodId,
+          sender: item.sender,
+          nonce: item.nonce,
+          status: statusDisplay,
+        };
+      });
 
       setData(mappedItems);
       setTotalCount(
@@ -170,7 +195,8 @@ export default function TransactionsPageClient() {
       onPageChange={setPage}
       onViewChange={setView}
       navigationPath="/transactions/{hash}"
-      copyKeys={["hash", "sender"]}
+      copyKeys={["hash", "sender", "methodId"]}
+      columnRenderers={{ status: statusRenderer }}
     />
   );
 }

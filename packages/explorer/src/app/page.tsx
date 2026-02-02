@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react";
 
 import GlobalSearch from "@/components/search/GlobalSearch";
 import DashboardStats from "@/components/dashboard/DashboardStats";
+import config from "@/config";
 
 export default function LandingPage() {
   return (
@@ -13,12 +14,12 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-2 mb-4">
             <Sparkles className="w-6 h-6 text-primary" />
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight">
-              Explorer
+              {config.DASHBOARD_TITLE}
             </h1>
             <Sparkles className="w-6 h-6 text-primary" />
           </div>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Explore the blockchain. Search in real-time.
+            {config.DASHBOARD_SLOGAN}
           </p>
         </div>
 
