@@ -190,9 +190,6 @@ export function generateChainConfig(answers: WizardAnswers): string {
   if (answers.includeIndexer) {
     moduleParts.push("    ...DefaultModules.sequencerIndexer(),");
   }
-  if (answers.settlementEnabled) {
-    moduleParts.push("    ...DefaultModules.settlement(),");
-  }
   const modulesString = moduleParts.join("\n");
   const configParts: string[] = [];
   const coreConfig = `    ...DefaultConfigs.core({ settlementEnabled: ${answers.settlementEnabled}, preset: "${presetEnv}" }),`;
@@ -212,17 +209,15 @@ export function generateChainConfig(answers: WizardAnswers): string {
     configParts.push(
       `    ...DefaultConfigs.redisTaskQueue({
       preset: "${presetEnv}",
+      overrides: {
+        redisDb: 1,
+      },
     }),`
     );
     configParts.push(
       `    ...DefaultConfigs.prismaRedisDatabase({
       preset: "${presetEnv}",
     }),`
-    );
-  }
-  if (answers.settlementEnabled) {
-    configParts.push(
-      `    ...DefaultConfigs.settlement({ preset: "${presetEnv}" }),`
     );
   }
   const configString = configParts.join("\n");
@@ -276,16 +271,22 @@ export function generateIndexerConfig(answers: WizardAnswers): string {
   const presetEnv = PRESET_ENV_NAMES[answers.preset];
 
   return `import { Indexer } from "@proto-kit/indexer";
+import { Arguments } from "../../../start";
+import { Startable } from "@proto-kit/common";
 import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
 
 const indexer = Indexer.from({
   ...DefaultModules.indexer(),
 });
 
-export default async (): Promise<any> => {
+export default async (args: Arguments): Promise<Startable> => {
   indexer.configurePartial({
     ...DefaultConfigs.indexer({
       preset: "${presetEnv}",
+      overrides: {
+        pruneOnStartup: args.pruneOnStartup,
+        redisDb: 1,
+      },
     }),
   });
 
@@ -300,24 +301,84 @@ export function generateProcessorConfig(answers: WizardAnswers): string {
 
   const presetEnv = PRESET_ENV_NAMES[answers.preset];
 
-  return `import { Processor } from "@proto-kit/processor";
+  return `import { DatabasePruneModule, Processor } from "@proto-kit/processor";
+import { databaseModule } from "../../processor";
+import { Arguments } from "../../../start";
+import { Startable } from "@proto-kit/common";
 import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
 
 import { handlers } from "../../processor/handlers";
 import { resolvers } from "../../processor/api/resolvers";
 
 const processor = Processor.from({
+  Database: databaseModule,
+  DatabasePruneModule: DatabasePruneModule,
   ...DefaultModules.processor(resolvers, handlers),
 });
 
-export default async (): Promise<any> => {
+export default async (args: Arguments): Promise<Startable> => {
   processor.configurePartial({
     ...DefaultConfigs.processor({
       preset: "${presetEnv}",
     }),
+    Database: {},
+    DatabasePruneModule: {
+      pruneOnStartup: args.pruneOnStartup,
+    },
   });
 
   return processor;
+};`;
+}
+
+export function generateWorkerConfig(answers: WizardAnswers): string {
+  if (answers.preset === "inmemory") {
+    return "";
+  }
+
+  const presetEnv = PRESET_ENV_NAMES[answers.preset];
+
+  return `import { Runtime } from "@proto-kit/module";
+import { Protocol } from "@proto-kit/protocol";
+import { Sequencer, AppChain } from "@proto-kit/sequencer";
+import runtime from "../../../runtime";
+import * as protocol from "../../../protocol";
+import { Arguments } from "../../../start";
+
+import { log, Startable } from "@proto-kit/common";
+import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
+
+const settlementEnabled = process.env.PROTOKIT_SETTLEMENT_ENABLED! === "true";
+
+const appChain = AppChain.from({
+  Runtime: Runtime.from(runtime.modules),
+  Protocol: Protocol.from({
+    ...protocol.modules,
+    ...(settlementEnabled ? protocol.settlementModules : {}),
+  }),
+  Sequencer: Sequencer.from({
+    ...DefaultModules.worker(),
+  }),
+});
+
+export default async (args: Arguments): Promise<Startable> => {
+  appChain.configurePartial({
+    Runtime: runtime.config,
+    Protocol: {
+      ...protocol.config,
+      ...(settlementEnabled ? protocol.settlementModulesConfig : {}),
+    },
+    Sequencer: DefaultConfigs.worker({
+      preset: "${presetEnv}",
+      overrides: {
+        redisDb: 1,
+      },
+    }),
+  });
+
+  log.setLevel("DEBUG");
+
+  return appChain;
 };`;
 }
 

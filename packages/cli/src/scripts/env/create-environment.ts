@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 /* eslint-disable func-names */
+/* eslint-disable sonarjs/cognitive-complexity */
 import * as fs from "fs";
 import * as path from "path";
 
@@ -10,6 +11,7 @@ import {
   generateChainConfig,
   generateIndexerConfig,
   generateProcessorConfig,
+  generateWorkerConfig,
   icons,
   promptUser,
 } from "../../utils/create-environment";
@@ -32,6 +34,7 @@ export default async function () {
     const chainConfigPath = path.join(envDir, "chain.config.ts");
     const indexerConfigPath = path.join(envDir, "indexer.config.ts");
     const processorConfigPath = path.join(envDir, "processor.config.ts");
+    const workerConfigPath = path.join(envDir, "worker.config.ts");
 
     if (fs.existsSync(chainConfigPath)) {
       console.log(`\nEnvironment already exists at ${envDir}`);
@@ -53,6 +56,13 @@ export default async function () {
       const processorConfig = generateProcessorConfig(answers);
       if (processorConfig) {
         fs.writeFileSync(processorConfigPath, processorConfig);
+      }
+    }
+
+    if (answers.preset !== "inmemory") {
+      const workerConfig = generateWorkerConfig(answers);
+      if (workerConfig) {
+        fs.writeFileSync(workerConfigPath, workerConfig);
       }
     }
 
@@ -79,6 +89,9 @@ export default async function () {
     if (answers.includeProcessor && answers.includeIndexer) {
       console.log(`  ${green(icons.checkmark)} processor.config.ts`);
     }
+    if (answers.preset !== "inmemory") {
+      console.log(`  ${green(icons.checkmark)} worker.config.ts`);
+    }
 
     console.log(`\n${bold("Next Steps:")}`);
     const cdCommand = `cd ${path.relative(process.cwd(), envDir)}`;
@@ -100,3 +113,4 @@ export default async function () {
 }
 /* eslint-enable no-console */
 /* eslint-enable func-names */
+/* eslint-enable sonarjs/cognitive-complexity */
