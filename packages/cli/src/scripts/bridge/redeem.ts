@@ -35,7 +35,7 @@ export interface BridgeRedeemArgs {
 }
 
 export default async function (
-  options?: LoadEnvOptions,
+  options: LoadEnvOptions,
   bridgeArgs?: BridgeRedeemArgs
 ) {
   if (!bridgeArgs) {

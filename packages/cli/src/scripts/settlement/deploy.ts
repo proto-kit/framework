@@ -21,7 +21,7 @@ import {
 } from "../../utils/loadEnv";
 import { loadUserModules } from "../../utils/loadUserModules";
 
-export default async function (options?: LoadEnvOptions) {
+export default async function (options: LoadEnvOptions) {
   loadEnvironmentVariables(options);
   const { runtime, protocol } = await loadUserModules();
   const appChain = AppChain.from({

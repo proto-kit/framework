@@ -16,7 +16,7 @@ export interface BridgeWithdrawArgs {
 }
 
 export default async function (
-  options?: LoadEnvOptions,
+  options: LoadEnvOptions,
   bridgeArgs?: BridgeWithdrawArgs
 ) {
   if (!bridgeArgs) {

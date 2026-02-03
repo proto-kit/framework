@@ -8,28 +8,20 @@ import dotenv from "dotenv";
 export type LoadEnvOptions = {
   envPath?: string;
   envVars?: Record<string, string>;
+  env: string;
 };
 
-export function loadEnvironmentVariables(options?: LoadEnvOptions) {
+export function loadEnvironmentVariables(options: LoadEnvOptions) {
   const cwd = process.cwd();
-
-  if (options?.envPath !== undefined) {
-    if (fs.existsSync(options.envPath)) {
-      dotenv.config({ path: options.envPath });
-      console.log(`Loaded environment from ${options.envPath}`);
-    } else {
-      throw new Error(`Environment file not found at ${options.envPath}`);
-    }
+  const env = options.envPath ?? `./src/core/environments/${options.env}/.env`;
+  const envPath = path.isAbsolute(env) ? env : path.join(cwd, env);
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+    console.log(`Loaded environment from ${envPath}`);
   } else {
-    const envPath = path.join(cwd, "./src/core/environments/development/.env");
-
-    if (fs.existsSync(envPath)) {
-      dotenv.config({ path: envPath });
-      console.log(`Loaded environment from ${envPath}`);
-    } else {
-      console.warn(`.env file not found at ${envPath}`);
-    }
+    console.warn(`.env file not found at ${envPath}`);
   }
+
   if (options?.envVars !== undefined) {
     Object.entries(options.envVars).forEach(([key, value]) => {
       process.env[key] = value;

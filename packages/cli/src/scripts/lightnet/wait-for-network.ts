@@ -12,7 +12,7 @@ import {
 const maxAttempts = 24;
 const delay = 5000;
 
-export default async function (options?: LoadEnvOptions) {
+export default async function (options: LoadEnvOptions) {
   loadEnvironmentVariables(options);
   const graphqlEndpoint = `${getRequiredEnv("MINA_NODE_GRAPHQL_HOST")}:${getRequiredEnv("MINA_NODE_GRAPHQL_PORT")}/graphql`;
   let lastBlock;

@@ -5,12 +5,12 @@ import {
   getRequiredEnv,
   loadEnvironmentVariables,
 } from "../../utils/loadEnv";
+import settlementDeployScript from "../settlement/deploy";
 
 import lightnetWaitForNetworkScript from "./wait-for-network";
 import lightnetFaucetScript from "./faucet";
-import settlementDeployScript from "../settlement/deploy";
 
-export default async function (options?: LoadEnvOptions) {
+export default async function (options: LoadEnvOptions) {
   loadEnvironmentVariables(options);
 
   console.log("Step 1: Waiting for network to be ready...");

@@ -1,27 +1,26 @@
 import { CommandModule } from "yargs";
 
+import { addEnvironmentOptions } from "../../utils/environmentOptions";
+
 interface WithdrawArgs {
   tokenId: string;
   senderKey: string;
   amount: number;
   "env-path"?: string;
-  env?: string[];
+  env?: string;
+  set?: string[];
 }
 
 export const withdrawCommand: CommandModule<{}, WithdrawArgs> = {
   command: "withdraw <tokenId> <senderKey> <amount>",
   describe: "Withdraw tokens\n\nRequires: NEXT_PUBLIC_PROTOKIT_GRAPHQL_URL",
   builder: (yarg) =>
-    yarg
-      .positional("tokenId", { type: "string", demandOption: true })
-      .positional("senderKey", { type: "string", demandOption: true })
-      .positional("amount", { type: "number", demandOption: true })
-      .option("env-path", { type: "string", describe: "path to .env file" })
-      .option("env", {
-        type: "string",
-        array: true,
-        describe: "environment variables as KEY=value",
-      }),
+    addEnvironmentOptions(
+      yarg
+        .positional("tokenId", { type: "string", demandOption: true })
+        .positional("senderKey", { type: "string", demandOption: true })
+        .positional("amount", { type: "number", demandOption: true })
+    ),
   handler: async (args) => {
     try {
       const { default: withdraw } = await import(
@@ -31,7 +30,8 @@ export const withdrawCommand: CommandModule<{}, WithdrawArgs> = {
       await withdraw(
         {
           envPath: args["env-path"],
-          envVars: parseEnvArgs(args.env ?? []),
+          env: args.env!,
+          envVars: parseEnvArgs(args.set ?? []),
         },
         {
           tokenId: args.tokenId,

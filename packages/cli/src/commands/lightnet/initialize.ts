@@ -1,22 +1,18 @@
 import { CommandModule } from "yargs";
 
+import { addEnvironmentOptions } from "../../utils/environmentOptions";
+
 interface InitializeArgs {
   "env-path"?: string;
-  env?: string[];
+  env?: string;
+  set?: string[];
 }
 
 export const initializeCommand: CommandModule<{}, InitializeArgs> = {
   command: "initialize",
   describe:
     "Initialize lightnet: wait for network, fund accounts, and deploy settlement\n\nRequires: MINA_NODE_GRAPHQL_HOST, MINA_NODE_GRAPHQL_PORT, MINA_ARCHIVE_GRAPHQL_HOST, MINA_ARCHIVE_GRAPHQL_PORT, MINA_ACCOUNT_MANAGER_HOST, MINA_ACCOUNT_MANAGER_PORT, PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY, PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY, PROTOKIT_MINA_BRIDGE_CONTRACT_PRIVATE_KEY",
-  builder: (yarg) =>
-    yarg
-      .option("env-path", { type: "string", describe: "path to .env file" })
-      .option("env", {
-        type: "string",
-        array: true,
-        describe: "environment variables as KEY=value",
-      }),
+  builder: (yarg) => addEnvironmentOptions(yarg),
   handler: async (args) => {
     try {
       const { default: lightnetInitialize } = await import(
@@ -25,7 +21,8 @@ export const initializeCommand: CommandModule<{}, InitializeArgs> = {
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await lightnetInitialize({
         envPath: args["env-path"],
-        envVars: parseEnvArgs(args.env ?? []),
+        env: args.env!,
+        envVars: parseEnvArgs(args.set ?? []),
       });
       process.exit(0);
     } catch (error) {

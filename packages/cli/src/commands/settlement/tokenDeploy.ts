@@ -1,12 +1,15 @@
 import { CommandModule } from "yargs";
 
+import { addEnvironmentOptions } from "../../utils/environmentOptions";
+
 interface TokenDeployArgs {
   tokenSymbol: string;
   feepayerKey: string;
   receiverPublicKey: string;
   mintAmount: number;
   "env-path"?: string;
-  env?: string[];
+  env?: string;
+  set?: string[];
 }
 
 export const tokenDeployCommand: CommandModule<{}, TokenDeployArgs> = {
@@ -15,20 +18,16 @@ export const tokenDeployCommand: CommandModule<{}, TokenDeployArgs> = {
   describe:
     "Deploy custom fungible token for settlement\n\nRequires: PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY, PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY, PROTOKIT_CUSTOM_TOKEN_PRIVATE_KEY, PROTOKIT_CUSTOM_TOKEN_ADMIN_PRIVATE_KEY, PROTOKIT_CUSTOM_TOKEN_BRIDGE_PRIVATE_KEY",
   builder: (yarg) =>
-    yarg
-      .positional("tokenSymbol", { type: "string", demandOption: true })
-      .positional("feepayerKey", { type: "string", demandOption: true })
-      .positional("receiverPublicKey", {
-        type: "string",
-        demandOption: true,
-      })
-      .positional("mintAmount", { type: "number", default: 0 })
-      .option("env-path", { type: "string", describe: "path to .env file" })
-      .option("env", {
-        type: "string",
-        array: true,
-        describe: "environment variables as KEY=value",
-      }),
+    addEnvironmentOptions(
+      yarg
+        .positional("tokenSymbol", { type: "string", demandOption: true })
+        .positional("feepayerKey", { type: "string", demandOption: true })
+        .positional("receiverPublicKey", {
+          type: "string",
+          demandOption: true,
+        })
+        .positional("mintAmount", { type: "number", default: 0 })
+    ),
   handler: async (args) => {
     try {
       const { default: tokenDeploy } = await import(
@@ -38,7 +37,8 @@ export const tokenDeployCommand: CommandModule<{}, TokenDeployArgs> = {
       await tokenDeploy(
         {
           envPath: args["env-path"],
-          envVars: parseEnvArgs(args.env ?? []),
+          env: args.env!,
+          envVars: parseEnvArgs(args.set ?? []),
         },
         {
           tokenSymbol: args.tokenSymbol,

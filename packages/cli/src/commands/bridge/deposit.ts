@@ -1,12 +1,15 @@
 import { CommandModule } from "yargs";
 
+import { addEnvironmentOptions } from "../../utils/environmentOptions";
+
 interface DepositArgs {
   tokenId: string;
   fromKey: string;
   toKey: string;
   amount: number;
   "env-path"?: string;
-  env?: string[];
+  env?: string;
+  set?: string[];
 }
 
 export const depositCommand: CommandModule<{}, DepositArgs> = {
@@ -14,17 +17,13 @@ export const depositCommand: CommandModule<{}, DepositArgs> = {
   describe:
     "Deposit tokens to the bridge\n\nRequires: PROTOKIT_CUSTOM_TOKEN_PRIVATE_KEY (for custom tokens), PROTOKIT_CUSTOM_TOKEN_BRIDGE_PRIVATE_KEY, PROTOKIT_MINA_BRIDGE_CONTRACT_PRIVATE_KEY",
   builder: (yarg) =>
-    yarg
-      .positional("tokenId", { type: "string", demandOption: true })
-      .positional("fromKey", { type: "string", demandOption: true })
-      .positional("toKey", { type: "string", demandOption: true })
-      .positional("amount", { type: "number", demandOption: true })
-      .option("env-path", { type: "string", describe: "path to .env file" })
-      .option("env", {
-        type: "string",
-        array: true,
-        describe: "environment variables as KEY=value",
-      }),
+    addEnvironmentOptions(
+      yarg
+        .positional("tokenId", { type: "string", demandOption: true })
+        .positional("fromKey", { type: "string", demandOption: true })
+        .positional("toKey", { type: "string", demandOption: true })
+        .positional("amount", { type: "number", demandOption: true })
+    ),
   handler: async (args) => {
     try {
       const { default: deposit } = await import("../../scripts/bridge/deposit");
@@ -32,7 +31,8 @@ export const depositCommand: CommandModule<{}, DepositArgs> = {
       await deposit(
         {
           envPath: args["env-path"],
-          envVars: parseEnvArgs(args.env ?? []),
+          env: args.env!,
+          envVars: parseEnvArgs(args.set ?? []),
         },
         {
           tokenId: args.tokenId,

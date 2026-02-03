@@ -1,11 +1,14 @@
 import { CommandModule } from "yargs";
 
+import { addEnvironmentOptions } from "../../utils/environmentOptions";
+
 interface RedeemArgs {
   tokenId: string;
   toKey: string;
   amount: number;
   "env-path"?: string;
-  env?: string[];
+  env?: string;
+  set?: string[];
 }
 
 export const redeemCommand: CommandModule<{}, RedeemArgs> = {
@@ -13,16 +16,12 @@ export const redeemCommand: CommandModule<{}, RedeemArgs> = {
   describe:
     "Redeem tokens from the bridge\n\nRequires: PROTOKIT_CUSTOM_TOKEN_PRIVATE_KEY",
   builder: (yarg) =>
-    yarg
-      .positional("tokenId", { type: "string", demandOption: true })
-      .positional("toKey", { type: "string", demandOption: true })
-      .positional("amount", { type: "number", demandOption: true })
-      .option("env-path", { type: "string", describe: "path to .env file" })
-      .option("env", {
-        type: "string",
-        array: true,
-        describe: "environment variables as KEY=value",
-      }),
+    addEnvironmentOptions(
+      yarg
+        .positional("tokenId", { type: "string", demandOption: true })
+        .positional("toKey", { type: "string", demandOption: true })
+        .positional("amount", { type: "number", demandOption: true })
+    ),
   handler: async (args) => {
     try {
       const { default: redeem } = await import("../../scripts/bridge/redeem");
@@ -30,7 +29,8 @@ export const redeemCommand: CommandModule<{}, RedeemArgs> = {
       await redeem(
         {
           envPath: args["env-path"],
-          envVars: parseEnvArgs(args.env ?? []),
+          env: args.env!,
+          envVars: parseEnvArgs(args.set ?? []),
         },
         {
           tokenId: args.tokenId,

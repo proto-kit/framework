@@ -38,7 +38,7 @@ export interface BridgeDepositArgs {
 }
 
 export default async function (
-  options?: LoadEnvOptions,
+  options: LoadEnvOptions,
   bridgeArgs?: BridgeDepositArgs
 ) {
   if (!bridgeArgs) {

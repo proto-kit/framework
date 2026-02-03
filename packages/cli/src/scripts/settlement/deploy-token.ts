@@ -39,7 +39,7 @@ export interface TokenDeployArgs {
 }
 
 export default async function (
-  options?: LoadEnvOptions,
+  options: LoadEnvOptions,
   tokenArgs?: TokenDeployArgs
 ) {
   if (!tokenArgs) {
