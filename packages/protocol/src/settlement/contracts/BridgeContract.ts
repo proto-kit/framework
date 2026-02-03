@@ -61,14 +61,6 @@ export class OutgoingMessageKey extends Struct({
   tokenId: Field,
 }) {}
 
-// @injectable()
-// @singleton()
-// export class BridgeContractContext {
-//   public data: {
-//     messageInputs: any[][];
-//   } = { messageInputs: [] };
-// }
-
 export interface BridgeContractArgs {
   SettlementContract: TypedClass<
     Pick<BridgingSettlementContractType, "assertStateRoot">

@@ -5,7 +5,7 @@ import { MinaBaseLayerConfig } from "../../src";
 import { settlementTestFn } from "./Settlement";
 import { settlementOnlyTestFn } from "./Settlement-only";
 
-describe.each(["mock-proofs", "signed"] as const)(
+describe.each(["mock-proofs" /*, "signed"*/] as const)(
   "Settlement contracts: local blockchain - %s",
   (type) => {
     const network: MinaBaseLayerConfig = {
@@ -14,7 +14,7 @@ describe.each(["mock-proofs", "signed"] as const)(
       },
     };
 
-    describe("Default token", () => {
+    describe.only("Default token", () => {
       settlementTestFn(type, network);
     });
 

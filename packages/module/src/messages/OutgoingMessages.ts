@@ -2,6 +2,7 @@ import {
   Field,
   FlexibleProvablePure,
   InferProvable,
+  Poseidon,
   Struct,
   TokenId,
 } from "o1js";
@@ -113,7 +114,7 @@ export class OutgoingMessages<
 
     const messageKey = { index: counter, tokenId };
     // TODO Salt/prefix
-    const messageType = prefixToField(key);
+    const messageType = Poseidon.hash([prefixToField(key)]);
 
     await counterState.set(tokenId, counter.add(1));
     await stateMap.set(messageKey, { messageType, value });

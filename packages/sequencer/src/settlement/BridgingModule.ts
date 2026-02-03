@@ -603,8 +603,8 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
       await cachedStore.preloadKeys(keys.map((key) => key.toBigInt()));
 
       const transactionParameters = batch.map((message, index) => {
-        const processor = this.getMessageProcessors().find(
-          (p) => p.getMessageType() === message.messageType
+        const processor = this.getMessageProcessors().find((p) =>
+          p.getMessageType().equals(message.messageType).toBoolean()
         );
         if (processor === undefined) {
           throw new Error(
