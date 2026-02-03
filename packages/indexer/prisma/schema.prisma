@@ -44,8 +44,19 @@ model Transaction {
   isMessage Boolean
 
   executionResult TransactionExecutionResult?
+  priority        TransactionPriority?
 
   IncomingMessageBatchTransaction IncomingMessageBatchTransaction[]
+}
+
+model TransactionPriority {
+  transactionHash String
+
+  priority BigInt
+
+  Transaction Transaction @relation(fields: [transactionHash], references: [hash])
+
+  @@id([transactionHash])
 }
 
 model TransactionExecutionResult {
