@@ -4,11 +4,11 @@ import {
   LoadEnvOptions,
   getRequiredEnv,
   loadEnvironmentVariables,
-} from "../utils/loadEnv";
+} from "../../utils/loadEnv";
 
 import lightnetWaitForNetworkScript from "./wait-for-network";
-import lightnetFaucetScript from "./lightnet/faucet";
-import settlementDeployScript from "./settlement/deploy";
+import lightnetFaucetScript from "./faucet";
+import settlementDeployScript from "../settlement/deploy";
 
 export default async function (options?: LoadEnvOptions) {
   loadEnvironmentVariables(options);

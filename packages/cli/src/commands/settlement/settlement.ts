@@ -1,13 +1,15 @@
 import { CommandModule } from "yargs";
 
-export const runCommand: CommandModule = {
-  command: "run <subcommand>",
-  describe: "Run various operations",
+export const settlementCommand: CommandModule = {
+  command: "settlement <subcommand>",
+  describe: "Settlement operations",
   builder: async (yargs) => {
-    const { generateKeysCommand } = await import("./generateKeys");
+    const { deployCommand } = await import("./deploy");
+    const { tokenDeployCommand } = await import("./tokenDeploy");
 
     return yargs
-      .command(generateKeysCommand)
+      .command(deployCommand)
+      .command(tokenDeployCommand)
       .demandCommand(
         1,
         "You must specify a subcommand. Use --help to see available options."

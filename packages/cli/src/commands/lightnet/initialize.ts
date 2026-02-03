@@ -20,7 +20,7 @@ export const initializeCommand: CommandModule<{}, InitializeArgs> = {
   handler: async (args) => {
     try {
       const { default: lightnetInitialize } = await import(
-        "../../scripts/lightnetInitialize"
+        "../../scripts/lightnet/lightnetInitialize"
       );
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await lightnetInitialize({

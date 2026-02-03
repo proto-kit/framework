@@ -49,7 +49,7 @@ export const tokenDeployCommand: CommandModule<{}, TokenDeployArgs> = {
       );
       process.exit(0);
     } catch (error) {
-      console.error("Failed to deploy settlement token:", error);
+      console.error("Failed to deploy token:", error);
       process.exit(1);
     }
   },

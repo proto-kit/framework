@@ -6,7 +6,7 @@ interface WaitForNetworkArgs {
 }
 
 export const waitForNetworkCommand: CommandModule<{}, WaitForNetworkArgs> = {
-  command: "wait-for-network",
+  command: "wait",
   describe:
     "Wait for network to be ready\n\nRequires: MINA_NODE_GRAPHQL_HOST, MINA_NODE_GRAPHQL_PORT",
   builder: (yarg) =>
@@ -23,7 +23,7 @@ export const waitForNetworkCommand: CommandModule<{}, WaitForNetworkArgs> = {
   handler: async (args) => {
     try {
       const { default: waitForNetwork } = await import(
-        "../../scripts/wait-for-network"
+        "../../scripts/lightnet/wait-for-network"
       );
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await waitForNetwork({
