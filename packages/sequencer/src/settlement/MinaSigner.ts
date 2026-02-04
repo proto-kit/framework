@@ -1,8 +1,9 @@
 import { Field, PrivateKey, PublicKey, Signature, Transaction } from "o1js";
-import { noop } from "@proto-kit/common";
-import { injectable } from "tsyringe";
 
-import { SequencerModule } from "../sequencer/builder/SequencerModule";
+import {
+  sequencerModule,
+  SequencerModule,
+} from "../sequencer/builder/SequencerModule";
 
 /**
  * Options for signing transactions.
@@ -117,7 +118,7 @@ export interface InMemorySignerConfig {
  * for the Mina blockchain protocol. This implementation is suitable for
  * server-side sequencer operations where keys can be securely stored in memory.
  */
-@injectable()
+@sequencerModule()
 export class InMemoryMinaSigner
   extends SequencerModule<InMemorySignerConfig>
   implements MinaSigner
@@ -330,6 +331,5 @@ export class InMemoryMinaSigner
    */
   public async start() {
     this.initializeKeyMap();
-    noop();
   }
 }
