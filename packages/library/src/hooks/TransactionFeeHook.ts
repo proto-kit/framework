@@ -67,7 +67,9 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
   // check if the fee config is compatible with the current runtime
   // we couldn't resolve this purely on the type level, so we have to do it here
   public verifyConfig() {
-    Object.keys(super.config.methods).forEach((combinedMethodName) => {
+    const { config } = this;
+
+    Object.keys(config.methods).forEach((combinedMethodName) => {
       const [runtimeModule, runtimeMethod] = combinedMethodName.split(".");
       const resolvedRuntimeModule = this.runtime.resolve(runtimeModule);
 
@@ -79,7 +81,25 @@ export class TransactionFeeHook extends ProvableTransactionHook<TransactionFeeHo
         throw errors.invalidMethod(combinedMethodName);
       }
     });
+
+    const properties = [
+      "feeRecipient",
+      "tokenId",
+      "baseFee",
+      "perWeightUnitFee",
+    ] as const;
+    const missing = properties
+      .filter((property) => {
+        return config[property] === undefined;
+      })
+      .join(", ");
+
+    if (missing.length > 0) {
+      throw new Error(`TransactionFeeHook is missing config values ${missing}`);
+    }
   }
+
+  private async checkConfig() {}
 
   public async start() {
     this.persistedFeeAnalyzer = new RuntimeFeeAnalyzerService(this.runtime);
