@@ -38,8 +38,7 @@ export interface DependencyFactory {
 export function dependencyFactory<T>() {
   return (
     /**
-     * Check if the target class extends RuntimeModule, while
-     * also providing static config presets
+     * Check if the target class itself satisfies DependencyFactory
      */
     target: TypedClass<T> & DependencyFactory
   ) => {
