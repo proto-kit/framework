@@ -10,7 +10,7 @@ import {
   ModulesRecord,
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { dependencyFactory, DependencyFactory, expectDefined } from "../../src";
+import { dependencyFactory, expectDefined } from "../../src";
 import { injectAlias } from "../../src/config/injectAlias";
 
 // module container will accept modules that extend this type
