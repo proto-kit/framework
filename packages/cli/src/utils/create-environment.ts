@@ -395,11 +395,10 @@ export default async (args: Arguments): Promise<Startable> => {
 
 export function copyAndUpdateEnvFile(
   answers: WizardAnswers,
-  cwd: string,
   envDir: string
 ): boolean {
   const presetEnvPath = path.join(
-    resolveChainPath(),
+    resolveChainPath(true),
     "src",
     "core",
     "environments",

@@ -38,8 +38,8 @@ interface LoadedModules {
 
 export async function loadUserModules(): Promise<LoadedModules> {
   try {
-    const runtimePath = path.join(resolveChainPath(), "src", "runtime");
-    const protocolPath = path.join(resolveChainPath(), "src", "protocol");
+    const runtimePath = path.join(resolveChainPath(true), "src", "runtime");
+    const protocolPath = path.join(resolveChainPath(true), "src", "protocol");
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const runtimeImport: { default: RuntimeModule } = await import(runtimePath);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

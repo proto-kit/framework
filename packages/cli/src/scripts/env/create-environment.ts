@@ -21,9 +21,8 @@ export default async function () {
   try {
     const answers = await promptUser();
 
-    const cwd = process.cwd();
     const envDir = path.join(
-      resolveChainPath(),
+      resolveChainPath(true),
       "src",
       "core",
       "environments",
@@ -44,7 +43,7 @@ export default async function () {
       return;
     }
 
-    copyAndUpdateEnvFile(answers, cwd, envDir);
+    copyAndUpdateEnvFile(answers, envDir);
     const chainConfig = generateChainConfig(answers);
     fs.writeFileSync(chainConfigPath, chainConfig);
 
