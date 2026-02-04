@@ -5,6 +5,8 @@ import fs from "fs";
 
 import dotenv from "dotenv";
 
+import { resolveChainPath } from "./pathResolver";
+
 export type LoadEnvOptions = {
   envPath?: string;
   envVars?: Record<string, string>;
@@ -13,7 +15,12 @@ export type LoadEnvOptions = {
 
 export function loadEnvironmentVariables(options: LoadEnvOptions) {
   const cwd = process.cwd();
-  const env = options.envPath ?? `./src/core/environments/${options.env}/.env`;
+  const env =
+    options.envPath ??
+    path.join(
+      resolveChainPath(),
+      `./src/core/environments/${options.env}/.env`
+    );
   const envPath = path.isAbsolute(env) ? env : path.join(cwd, env);
   if (fs.existsSync(envPath)) {
     dotenv.config({ path: envPath });

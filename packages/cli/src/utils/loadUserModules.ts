@@ -8,6 +8,8 @@ import { RuntimeModulesRecord } from "@proto-kit/module";
 import { ModulesConfig } from "@proto-kit/common";
 import { Withdrawals } from "@proto-kit/library";
 
+import { resolveChainPath } from "./pathResolver";
+
 /* eslint-disable no-console */
 
 type AppRuntimeModules = RuntimeModulesRecord & {
@@ -35,16 +37,14 @@ interface LoadedModules {
 }
 
 export async function loadUserModules(): Promise<LoadedModules> {
-  const cwd = process.cwd();
-
   try {
+    const runtimePath = path.join(resolveChainPath(), "src", "runtime");
+    const protocolPath = path.join(resolveChainPath(), "src", "protocol");
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const runtimeImport: { default: RuntimeModule } = await import(
-      path.join(cwd, "src/runtime")
-    );
+    const runtimeImport: { default: RuntimeModule } = await import(runtimePath);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const protocolImport: { default: ProtocolModule } = await import(
-      path.join(cwd, "src/protocol")
+      protocolPath
     );
 
     return {

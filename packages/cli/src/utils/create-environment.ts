@@ -5,6 +5,8 @@ import inquirer from "inquirer";
 import figuresLib from "@inquirer/figures";
 import { cyan, green, blue, gray, bold } from "kleur/colors";
 
+import { resolveChainPath } from "./pathResolver";
+
 /* eslint-disable no-console */
 
 export const icons = {
@@ -397,8 +399,10 @@ export function copyAndUpdateEnvFile(
   envDir: string
 ): boolean {
   const presetEnvPath = path.join(
-    cwd,
-    "src/core/environments",
+    resolveChainPath(),
+    "src",
+    "core",
+    "environments",
     answers.preset,
     ".env"
   );

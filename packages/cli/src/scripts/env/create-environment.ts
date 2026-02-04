@@ -15,6 +15,7 @@ import {
   icons,
   promptUser,
 } from "../../utils/create-environment";
+import { resolveChainPath } from "../../utils/pathResolver";
 
 export default async function () {
   try {
@@ -22,8 +23,10 @@ export default async function () {
 
     const cwd = process.cwd();
     const envDir = path.join(
-      cwd,
-      "src/core/environments",
+      resolveChainPath(),
+      "src",
+      "core",
+      "environments",
       answers.environmentName
     );
 
