@@ -36,6 +36,7 @@ import {
   UInt32,
 } from "o1js";
 import {
+  dependencyFactory,
   DependencyRecord,
   filterNonUndefined,
   LinkedMerkleTree,
@@ -93,6 +94,7 @@ export type BridgingModuleConfig = {
  * for those as needed
  */
 @injectable()
+@dependencyFactory()
 export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
   // TODO Eventually, we don't want to store this here either, but build a smarter AddressRegistry
   private seenBridgeDeployments: {
@@ -695,5 +697,3 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
   }
   /* eslint-enable no-await-in-loop */
 }
-
-// BridgingModule satisfies DependencyFactory;

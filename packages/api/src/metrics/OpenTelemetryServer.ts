@@ -14,7 +14,7 @@ import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runti
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 import { inject } from "tsyringe";
-import { DependencyFactory, DependencyRecord, log } from "@proto-kit/common";
+import { dependencyFactory, DependencyRecord, log } from "@proto-kit/common";
 
 import { SequencerInstrumentation } from "./SequencerInstrumentation";
 import { OpenTelemetryTracer } from "./OpenTelemetryTracer";
@@ -32,6 +32,7 @@ export type OpenTelemetryServerConfig = {
 };
 
 @sequencerModule()
+@dependencyFactory()
 export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConfig> {
   public constructor(
     @inject("Sequencer") private readonly sequencer: Sequencer<any>
@@ -96,5 +97,3 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
     log.info("OpenTelemetryServer started");
   }
 }
-
-OpenTelemetryServer satisfies DependencyFactory;
