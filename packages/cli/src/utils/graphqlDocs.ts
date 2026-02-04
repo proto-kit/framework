@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
@@ -110,3 +112,4 @@ export async function generateGqlDocs(gqlUrl: string) {
   console.log("Docs generated successfully!");
   cleanUp(generatedPath);
 }
+/* eslint-enable no-console */

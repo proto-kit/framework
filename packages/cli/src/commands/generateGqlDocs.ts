@@ -1,78 +1,44 @@
-import {
-  BlockStorageNetworkStateModule,
-  InMemoryTransactionSender,
-  StateServiceQueryModule,
-} from "@proto-kit/sdk";
-import { Protocol } from "@proto-kit/protocol";
-import {
-  AppChain,
-  Sequencer,
-  VanillaTaskWorkerModules,
-} from "@proto-kit/sequencer";
-import {
-  InMemorySequencerModules,
-  VanillaProtocolModules,
-  VanillaRuntimeModules,
-} from "@proto-kit/library";
-import {
-  GraphqlSequencerModule,
-  GraphqlServer,
-  VanillaGraphqlModules,
-} from "@proto-kit/api";
-import { Runtime } from "@proto-kit/module";
+import { CommandModule } from "yargs";
 
-import { generateGqlDocs } from "../utils";
-
-export async function generateGqlDocsCommand(args: {
-  empty: boolean;
+interface GenerateGqlDocsArgs {
   port: number;
   url: string;
-}) {
-  if (args.empty) {
-    const { port } = args;
-    console.log(`Starting AppChain on port ${port}...`);
-
-    const appChain = AppChain.from({
-      Runtime: Runtime.from(VanillaRuntimeModules.with({})),
-      Protocol: Protocol.from(VanillaProtocolModules.with({})),
-      Sequencer: Sequencer.from(
-        InMemorySequencerModules.with({
-          GraphqlServer: GraphqlServer,
-          Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
-        })
-      ),
-      TransactionSender: InMemoryTransactionSender,
-      QueryTransportModule: StateServiceQueryModule,
-      NetworkStateTransportModule: BlockStorageNetworkStateModule,
-    });
-
-    appChain.configurePartial({
-      Runtime: VanillaRuntimeModules.defaultConfig(),
-      Protocol: VanillaProtocolModules.defaultConfig(),
-      Sequencer: {
-        Database: {},
-        TaskQueue: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
-        Mempool: {},
-        BlockProducerModule: {},
-        SequencerStartupModule: {},
-        BlockTrigger: { blockInterval: 5000, produceEmptyBlocks: true },
-        FeeStrategy: {},
-        BaseLayer: {},
-        BatchProducerModule: {},
-        Graphql: VanillaGraphqlModules.defaultConfig(),
-        GraphqlServer: { port, host: "localhost", graphiql: true },
-      },
-    });
-
-    await appChain.start();
-    console.log("AppChain started successfully!");
-
-    const gqlUrl = `http://localhost:${port}/graphql`;
-    await generateGqlDocs(gqlUrl);
-    await appChain.close();
-  } else {
-    console.log(`Using existing GraphQL endpoint: ${args.url}`);
-    await generateGqlDocs(args.url);
-  }
+  empty: boolean;
 }
+
+export const generateGqlDocsCommand: CommandModule<{}, GenerateGqlDocsArgs> = {
+  command: "generate-gql-docs",
+  describe: "Generate GraphQL docs",
+  builder: (yarg) =>
+    yarg
+      .option("port", {
+        alias: "p",
+        type: "number",
+        default: 8080,
+        describe: "Port for the GraphQL server if creating an AppChain",
+      })
+      .option("url", {
+        alias: "u",
+        type: "string",
+        default: "http://localhost:8080/graphql",
+        describe: "GraphQL endpoint to use if not starting AppChain",
+      })
+      .option("empty", {
+        alias: "e",
+        type: "boolean",
+        default: false,
+        describe: "Start a new AppChain instead of using existing URL",
+      }),
+  handler: async (args) => {
+    try {
+      const { default: generateGqlDocs } = await import(
+        "../scripts/graphqlDocs/generateGqlDocs"
+      );
+      await generateGqlDocs(args);
+      process.exit(0);
+    } catch (error) {
+      console.error("Failed to start AppChain or generate docs:", error);
+      process.exit(1);
+    }
+  },
+};

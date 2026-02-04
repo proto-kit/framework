@@ -28,6 +28,8 @@
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
+    "@proto-kit/indexer": "*",
+    "@proto-kit/processor": "*",
     "o1js": "^2.10.0",
     "tsyringe": "^4.10.0"
   },
@@ -35,7 +37,10 @@
     "@jest/globals": "^29.5.0"
   },
   "dependencies": {
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "@prisma/client": "^5.19.1",
+    "mina-fungible-token": "^1.1.0",
+    "type-graphql": "2.0.0-rc.2"
   },
   "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
 }
