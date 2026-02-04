@@ -113,7 +113,7 @@ jobs:
         image: redis:6.2-alpine
         ports:
           - 6379:6379
-      lighnet:
+      lightnet:
         image: o1labs/mina-local-network:compatible-latest-lightnet
         env:
           RUN_ARCHIVE_NODE: true
