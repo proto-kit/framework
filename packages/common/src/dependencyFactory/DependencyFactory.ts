@@ -6,7 +6,7 @@ import {
 } from "tsyringe";
 
 import { TypedClass } from "../types";
-import type { BaseModuleInstanceType } from "../config/ModuleContainer";
+import { noop } from "../utils";
 
 export type DependencyDeclaration<Dependency> =
   | ClassProvider<Dependency>
@@ -35,6 +35,18 @@ export interface DependencyFactory {
   dependencies: () => DependencyRecord;
 }
 
+export function dependencyFactory<T>() {
+  return (
+    /**
+     * Check if the target class extends RuntimeModule, while
+     * also providing static config presets
+     */
+    target: TypedClass<T> & DependencyFactory
+  ) => {
+    noop();
+  };
+}
+
 export type TypeFromDependencyDeclaration<
   Declaration extends DependencyDeclaration<unknown>,
 > =
@@ -51,7 +63,6 @@ export type MapDependencyRecordToTypes<Record extends DependencyRecord> = {
   >;
 };
 
-export type InferDependencies<Class extends BaseModuleInstanceType> =
-  Class extends DependencyFactory
-    ? MapDependencyRecordToTypes<ReturnType<Class["dependencies"]>>
-    : never;
+export type InferDependencies<Class> = Class extends DependencyFactory
+  ? MapDependencyRecordToTypes<ReturnType<Class["dependencies"]>>
+  : never;

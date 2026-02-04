@@ -118,7 +118,9 @@ export type DependenciesFromModules<Modules extends ModulesRecord> =
   FilterNeverValues<{
     [Key in keyof Modules]: Modules[Key] extends TypedClass<DependencyFactory>
       ? InferDependencies<InstanceType<Modules[Key]>>
-      : never;
+      : Modules[Key] extends DependencyFactory
+        ? InferDependencies<Modules[Key]>
+        : never;
   }>;
 
 export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
