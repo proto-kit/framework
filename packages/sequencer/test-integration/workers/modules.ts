@@ -4,7 +4,7 @@ import { Protocol } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { ModulesConfig } from "@proto-kit/common";
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { BullQueueConfig } from "@proto-kit/deployment";
+import { BullQueueConfig, S3Config } from "@proto-kit/deployment";
 
 import { ProvenBalance } from "../../test/integration/mocks/ProvenBalance";
 import { ProtocolStateTestHook } from "../../test/integration/mocks/ProtocolStateTestHook";
@@ -29,6 +29,7 @@ export const runtimeProtocolConfig: ModulesConfig<{
   Protocol: {
     AccountState: {},
     BlockProver: {},
+    TransactionProver: {},
     StateTransitionProver: {},
     BlockHeight: {},
     LastStateRoot: {},
@@ -42,5 +43,16 @@ export const BullConfig: BullQueueConfig = {
     port: 6379,
     password: "password",
     db: 1,
+  },
+};
+
+export const RemoteCacheConfig: S3Config = {
+  bucketName: "worker-test-proven",
+  client: {
+    endPoint: "localhost",
+    port: 9000,
+    useSSL: false,
+    accessKey: "minioadmin",
+    secretKey: "minioadmin",
   },
 };

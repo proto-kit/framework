@@ -29,3 +29,7 @@ export * from "./compiling/AtomicCompileHelper";
 export * from "./compiling/CompileRegistry";
 export * from "./compiling/CompilableModule";
 export * from "./compiling/services/ChildVerificationKeyService";
+export * from "./cache/RemoteCache";
+export * from "./cache/RemoteCacheCompiler";
+export * from "./cache/CacheManifest";
+export * from "./cache/ProxyCache";
