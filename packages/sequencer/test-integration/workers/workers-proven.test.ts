@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 import { expectDefined, log } from "@proto-kit/common";
-import { BullQueue } from "@proto-kit/deployment";
+import { BullQueue, S3RemoteCache } from "@proto-kit/deployment";
 
 import {
   BatchProducerModule,
@@ -20,6 +20,7 @@ import { BlockTestService } from "../../test/integration/services/BlockTestServi
 import {
   BullConfig,
   protocolClass,
+  RemoteCacheConfig,
   runtimeClass,
   runtimeProtocolConfig,
 } from "./modules";
@@ -27,6 +28,7 @@ import { ChildProcessWorker } from "./ChildProcessWorker";
 
 const timeout = 300000;
 
+// true
 const proofsEnabled = false;
 
 describe("worker-proven", () => {
@@ -63,6 +65,7 @@ describe("worker-proven", () => {
           TaskQueue: BullQueue,
           FeeStrategy: ConstantFeeStrategy,
           SequencerStartupModule,
+          RemoteCache: S3RemoteCache,
         });
 
         const app = AppChain.from({
@@ -82,6 +85,7 @@ describe("worker-proven", () => {
             TaskQueue: BullConfig,
             FeeStrategy: {},
             SequencerStartupModule: {},
+            RemoteCache: RemoteCacheConfig,
           },
           ...runtimeProtocolConfig,
         });

@@ -109,6 +109,14 @@ export class SettlementUtils {
     return this.signer.registerKey(privateKey);
   }
 
+  public getSigner(): PublicKey {
+    return this.signer.getFeepayerKey();
+  }
+
+  public isSignedSettlement(): boolean {
+    return this.baseLayer.isSignedSettlement();
+  }
+
   /**
    * Fetch a set of accounts (and there update internally) with respect to what network is set
    */

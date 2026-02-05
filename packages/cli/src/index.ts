@@ -1,47 +1,36 @@
 #!/usr/bin/env node
+
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 import { generateGqlDocsCommand } from "./commands/generateGqlDocs";
+import { runCommand } from "./commands/run/run";
+import { explorerCommand } from "./commands/explorer/explorer";
+import { wizardCommand } from "./commands/wizard";
+import { settlementCommand } from "./commands/settlement/settlement";
+import { lightnetCommand } from "./commands/lightnet/lightnet";
+import { bridgeCommand } from "./commands/bridge/bridge";
 
 process.removeAllListeners("warning");
 process.env.NODE_NO_WARNINGS = "1";
 
 await yargs(hideBin(process.argv))
-  .command(
-    "generate-gql-docs",
-    "generate GraphQL docs",
-    (yarg) =>
-      yarg
-        .option("port", {
-          alias: "p",
-          type: "number",
-          default: 8080,
-          describe: "Port for the GraphQL server if creating an AppChain",
-        })
-        .option("url", {
-          alias: "u",
-          type: "string",
-          default: "http://localhost:8080/graphql",
-          describe: "GraphQL endpoint to use if not starting AppChain",
-        })
-        .option("empty", {
-          alias: "e",
-          type: "boolean",
-          default: false,
-          describe: "Start a new AppChain instead of using existing URL",
-        }),
-    async (args) => {
-      try {
-        await generateGqlDocsCommand(args);
-        process.exit(0);
-      } catch (error) {
-        console.error("Failed to start AppChain or generate docs:", error);
-        process.exit(1);
-      }
-    }
+  .scriptName("protokit")
+  .usage("$0 <command> [options]")
+  .strict()
+  .command(generateGqlDocsCommand)
+  .command(wizardCommand)
+  .command(runCommand)
+  .command(explorerCommand)
+  .command(settlementCommand)
+  .command(lightnetCommand)
+  .command(bridgeCommand)
+  .demandCommand(
+    1,
+    "You must specify a command. Use --help to see available commands."
   )
-  .demandCommand()
-  .help()
+  .help("help")
+  .alias("help", "h")
+  .option("help", { describe: "Show help" })
   .strict()
   .parse();

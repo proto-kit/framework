@@ -11,7 +11,7 @@
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
     "test:watch": "npm run test:file -- ./test/** --watch",
-    "integration": "npm run test:file -- ./test-integration/** --runInBand",
+    "test:integration": "npm run test:file -- ./test-integration/** --runInBand",
     "start": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --es-module-specifier-resolution=node ./dist/src/entry.js"
   },
   "main": "dist/index.js",

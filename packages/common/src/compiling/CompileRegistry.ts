@@ -1,9 +1,6 @@
-import { inject, injectable, singleton } from "tsyringe";
+import { injectable, singleton } from "tsyringe";
 
-import {
-  AreProofsEnabled,
-  CompileArtifact,
-} from "../zkProgrammable/ZkProgrammable";
+import { CompileArtifact } from "../zkProgrammable/ZkProgrammable";
 
 import {
   ArtifactRecord,
@@ -19,14 +16,7 @@ import {
 @injectable()
 @singleton()
 export class CompileRegistry {
-  public constructor(
-    @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
-  ) {
-    this.compiler = new AtomicCompileHelper(this.areProofsEnabled);
-  }
-
-  private compiler: AtomicCompileHelper;
+  public constructor(private readonly compiler: AtomicCompileHelper) {}
 
   private artifacts: ArtifactRecord = {};
 
