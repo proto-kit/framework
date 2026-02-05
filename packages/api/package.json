@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "version": "0.1.1-develop.833+397881ed",
+  "version": "0.1.1-develop.2024+5a945075",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -57,5 +57,5 @@
     "@types/lodash": "^4.14.194",
     "@types/ws": "^8.5.4"
   },
-  "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
+  "gitHead": "5a945075ca3572f50ea9a686224c2eccab1421b0"
 }
