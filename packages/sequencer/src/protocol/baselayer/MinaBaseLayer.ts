@@ -19,6 +19,7 @@ import { BaseLayer, StaticBaseLayer } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
 import { LightnetUtils } from "./network-utils/LightnetUtils";
 import { RemoteNetworkUtils } from "./network-utils/RemoteNetworkUtils";
+import { MinaNetworkUtils } from "./network-utils/MinaNetworkUtils";
 
 export type LocalMinaBaseLayerConfig = {
   type: "local";
@@ -96,7 +97,9 @@ export class MinaBaseLayer
     if (this.config.network.type === "remote") {
       throw new Error("NetworkUtils not available for remote networks");
     }
-    return this.sequencer.dependencyContainer.resolve("NetworkUtils");
+    return this.sequencer.dependencyContainer.resolve<MinaNetworkUtils>(
+      "NetworkUtils"
+    );
   }
 
   public isLocalBlockChain(): boolean {

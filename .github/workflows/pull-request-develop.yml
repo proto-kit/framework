@@ -113,7 +113,7 @@ jobs:
         image: redis:6.2-alpine
         ports:
           - 6379:6379
-      lighnet:
+      lightnet:
         image: o1labs/mina-local-network:compatible-latest-lightnet
         env:
           RUN_ARCHIVE_NODE: true
@@ -126,6 +126,15 @@ jobs:
           - 8181:8181
           #     archive endpoints
           - 8282:8282
+      minio:
+        # fixme: let's not depend on external unofficial image
+        image: lazybit/minio
+        ports:
+          - 9000:9000
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        options: --name=minio --health-cmd "curl http://localhost:9000/minio/health/live"
 
     steps:
       - uses: actions/checkout@v3

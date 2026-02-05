@@ -1,4 +1,5 @@
 export * from "./helpers/utils";
+export * from "./helpers/BusyGuard";
 export * from "./mempool/Mempool";
 export * from "./mempool/PendingTransaction";
 export * from "./mempool/CompressedSignature";

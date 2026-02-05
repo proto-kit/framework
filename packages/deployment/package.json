@@ -10,7 +10,8 @@
     "lint": "eslint ./src ./test",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
-    "test:watch": "npm run test:file -- ./test/** --watch"
+    "test:watch": "npm run test:file -- ./test/** --watch",
+    "test:integration": "npm run test:file -- ./test-integration/** --runInBand"
   },
   "main": "dist/index.js",
   "publishConfig": {
@@ -19,6 +20,7 @@
   "dependencies": {
     "@types/yargs": "^17.0.29",
     "loglevel": "^1.8.1",
+    "minio": "^8.0.6",
     "reflect-metadata": "^0.1.13",
     "yargs": "^17.7.2"
   },
@@ -32,7 +34,8 @@
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
-    "@jest/globals": "^29.5.0"
+    "@jest/globals": "^29.5.0",
+    "cachedir": "^2.4.0"
   },
   "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
 }

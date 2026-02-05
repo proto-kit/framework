@@ -165,7 +165,8 @@ describe("Proven", () => {
       const vkService = new ChildVerificationKeyService();
       const proofs = new InMemoryAreProofsEnabled();
       proofs.setProofsEnabled(true);
-      const registry = new CompileRegistry(proofs);
+      const registry =
+        appChain.sequencer.dependencyContainer.resolve(CompileRegistry);
       registry.addArtifactsRaw({
         BlockProver: {
           verificationKey: MOCK_VERIFICATION_KEY,

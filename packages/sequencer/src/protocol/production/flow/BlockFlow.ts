@@ -3,10 +3,7 @@ import {
   MandatoryProtocolModulesRecord,
   Protocol,
   TransactionProof,
-  TransactionProverPublicInput,
-  TransactionProverPublicOutput,
 } from "@proto-kit/protocol";
-import { Field } from "o1js";
 import { mapSequential } from "@proto-kit/common";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import chunk from "lodash/chunk";

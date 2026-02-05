@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable no-underscore-dangle */
+
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2, Zap, Cuboid, Link } from "lucide-react";
@@ -31,76 +33,150 @@ export interface SearchResponse {
     }>;
   };
 }
+export interface GetBlocksMaxHeightResponse {
+  data: {
+    aggregateBlock: {
+      _max: {
+        height: number | null;
+      };
+    };
+  };
+}
 
 export default function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [maxHeight, setMaxHeight] = useState<number | null>(null);
   const router = useRouter();
 
-  const searchIndexer = useCallback(async (searchQuery: string) => {
-    if (!searchQuery || searchQuery.length < 2) {
-      setResults([]);
-      return;
-    }
+  useEffect(() => {
+    const fetchMaxHeight = async () => {
+      try {
+        const gqlQuery = `query {
+                            aggregateBlock {
+                              _max {
+                                height
+                              }
+                            }
+                          }`;
+        const res = await fetch(`${config.INDEXER_URL}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: gqlQuery }),
+        });
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const resJson = (await res.json()) as GetBlocksMaxHeightResponse;
+        setMaxHeight(resJson?.data?.aggregateBlock?._max?.height ?? null);
+      } catch (error) {
+        console.error("Failed to fetch max height:", error);
+      }
+    };
+    void fetchMaxHeight();
+  }, []);
 
-    setLoading(true);
-    const foundResults: SearchResult[] = [];
+  const searchIndexer = useCallback(
+    async (searchQuery: string) => {
+      if (!searchQuery) {
+        setResults([]);
+        return;
+      }
 
-    try {
-      const gqlQuery = `query Search($input: String!) {
-          blocks(where: { hash: { contains: $input } }, take: 10) {
+      setLoading(true);
+      const foundResults: SearchResult[] = [];
+
+      try {
+        const isNumeric = /^\d+$/.test(searchQuery);
+        const searchHeight = isNumeric ? parseInt(searchQuery, 10) : null;
+        const shouldSearchByHeight =
+          searchHeight !== null &&
+          maxHeight !== null &&
+          searchHeight <= maxHeight;
+        const searchByHeightQuery = `
+          blocks(
+            where: { height: { equals: $height } }
+            take: 10
+          ) {
             hash
             height
           }
-          transactions(where: { hash: { contains: $input } }, take: 10) {
+          `;
+        const searchByHashQuery = `
+          blocks(
+            where: { hash: { contains: $input } }
+            take: 10
+          ) {
+            hash
+            height
+          }
+          `;
+        const gqlQuery = `
+        query Search($input: String! ${shouldSearchByHeight ? ", $height: Int" : ""}) {
+          ${shouldSearchByHeight ? searchByHeightQuery : searchByHashQuery}          
+          transactions(
+            where: { hash: { contains: $input } }
+            take: 10
+          ) {
             hash
             methodId
           }
-          settlements(where: { transactionHash: { contains: $input } }, take: 10) {
+
+          settlements(
+            where: { transactionHash: { contains: $input } }
+            take: 10
+          ) {
             transactionHash
             promisedMessagesHash
           }
-        }`;
-      const queryRes = await fetch(`${config.INDEXER_URL}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: gqlQuery,
-          variables: { input: searchQuery },
-        }),
-      });
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      const res: SearchResponse = (await queryRes.json()) as SearchResponse;
-      res?.data?.blocks?.forEach((block) => {
-        foundResults.push({
-          type: "block",
-          hash: block.hash,
-          label: `Block #${block.height}`,
+        }
+      `;
+        const queryRes = await fetch(`${config.INDEXER_URL}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: gqlQuery,
+            variables: {
+              input: searchQuery,
+              height: shouldSearchByHeight ? searchHeight : undefined,
+            },
+          }),
         });
-      });
-      res?.data?.transactions?.forEach((tx) => {
-        foundResults.push({
-          type: "transaction",
-          hash: tx.hash,
-          label: `Transaction ${tx.hash.substring(0, 8)}...`,
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const res = (await queryRes.json()) as SearchResponse;
+        res?.data?.blocks.forEach((block) => {
+          foundResults.push({
+            type: "block",
+            hash: block.hash,
+            label: `Block #${block.height}`,
+          });
         });
-      });
-      res?.data?.settlements?.forEach((settlement) => {
-        foundResults.push({
-          type: "settlement",
-          hash: settlement.transactionHash,
-          label: `Settlement ${settlement.transactionHash.substring(0, 8)}...`,
+
+        res?.data?.transactions?.forEach((tx) => {
+          foundResults.push({
+            type: "transaction",
+            hash: tx.hash,
+            label: `Transaction ${tx.hash.substring(0, 8)}...`,
+          });
         });
-      });
-      setResults(foundResults);
-    } catch (error) {
-      console.error("Search error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+
+        res?.data?.settlements?.forEach((settlement) => {
+          foundResults.push({
+            type: "settlement",
+            hash: settlement.transactionHash,
+            label: `Settlement ${settlement.transactionHash.substring(0, 8)}...`,
+          });
+        });
+
+        setResults(foundResults);
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [maxHeight]
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -108,7 +184,7 @@ export default function GlobalSearch() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, searchIndexer]);
+  }, [query, searchIndexer, maxHeight]);
 
   const handleResultClick = (result: SearchResult) => {
     switch (result.type) {
@@ -195,3 +271,4 @@ export default function GlobalSearch() {
     </div>
   );
 }
+/* eslint-enable no-underscore-dangle */
