@@ -1,4 +1,4 @@
-import { container, inject, injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import {
   BridgeContractConfig,
   BridgeContractType,
@@ -16,7 +16,6 @@ import {
   OutgoingMessageProcessor,
   PROTOKIT_FIELD_PREFIXES,
   OutgoingMessageEvent,
-  BridgeContractContext,
   BridgingSettlementModulesRecord,
   DispatchContractType,
   BridgingSettlementContractType,
@@ -34,13 +33,13 @@ import {
   TokenId,
   Transaction,
   UInt32,
+  Unconstrained,
 } from "o1js";
 import {
   DependencyRecord,
   filterNonUndefined,
   LinkedMerkleTree,
   log,
-  prefixToField,
   reduceSequential,
 } from "@proto-kit/common";
 import { match, Pattern } from "ts-pattern";
@@ -604,26 +603,25 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
       await cachedStore.preloadKeys(keys.map((key) => key.toBigInt()));
 
       const transactionParameters = batch.map((message, index) => {
+        const processor = this.getMessageProcessors().find((p) =>
+          p.getMessageType().equals(message.messageType).toBoolean()
+        );
+        if (processor === undefined) {
+          throw new Error(
+            "Processor not found for message type - looks like your module configuration is faulty"
+          );
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        const data = processor.type.toFields(message.value);
+
         const witness = tree.getReadWitness(keys[index].toBigInt());
         return new OutgoingMessageArgument({
           witness,
           messageType: message.messageType,
+          data: Unconstrained.from(data),
         });
       });
-
-      const contextData = transactionParameters.map((arg, j) =>
-        this.getMessageProcessors().map((processor) => {
-          return prefixToField(processor.messageType)
-            .equals(arg.messageType)
-            .toBoolean()
-            ? batch[j].value
-            : processor.dummy();
-        })
-      );
-      container.resolve(BridgeContractContext).data = {
-        messageInputs: contextData,
-      };
-      // TODO Somehow make sure this data ends up in the proving task
 
       const tx = await Mina.transaction(
         {
