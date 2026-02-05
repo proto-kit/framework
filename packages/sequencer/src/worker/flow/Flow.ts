@@ -112,6 +112,7 @@ export class Flow<State> implements Closeable {
     completed?: CompletedCallback<Input, Result>,
     overrides?: {
       taskName?: string;
+      maxRetries?: number;
     }
   ): Promise<void> {
     // We wrap this in a try-catch here, because the flow architecture

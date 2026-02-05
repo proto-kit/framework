@@ -142,6 +142,13 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
     this.preparePromise = preparePromise;
 
     if (startupTasks.length > 0) {
+      for (const task of startupTasks) {
+        log.info(`Preparing task ${task.constructor.name}`);
+        // eslint-disable-next-line no-await-in-loop
+        await task.prepare();
+        log.debug(`${task.constructor.name} prepared`);
+      }
+
       this.workers = Object.fromEntries(
         unpreparingTasks
           .concat(startupTasks)
@@ -161,6 +168,7 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
           }
         });
       });
+      log.debug(`Waiting on ${startupTasks.length} startup tasks to be called`);
     } else {
       await this.prepareTasks(normalTasks.concat(unpreparingTasks));
     }

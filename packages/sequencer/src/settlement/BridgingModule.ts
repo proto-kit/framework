@@ -292,11 +292,14 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
   }
 
   public async getDepositContractAttestation(tokenId: Field) {
-    await ArchiveNode.waitOnSync(this.baseLayer.config);
+    const blockHeight = await ArchiveNode.waitOnSync(this.baseLayer.config);
 
     const DispatchContract = this.getDispatchContract();
 
-    const tree = await TokenBridgeTree.buildTreeFromEvents(DispatchContract);
+    const tree = await TokenBridgeTree.buildTreeFromEvents(
+      DispatchContract,
+      UInt32.from(blockHeight)
+    );
     const index = tree.getIndex(tokenId);
     return new TokenBridgeAttestation({
       index: Field(index),
