@@ -3,7 +3,14 @@ import {
   InMemoryMerkleTreeStorage,
   log,
 } from "@proto-kit/common";
-import { Field, Poseidon, PublicKey, SmartContract, Struct } from "o1js";
+import {
+  Field,
+  Poseidon,
+  PublicKey,
+  SmartContract,
+  Struct,
+  UInt32,
+} from "o1js";
 
 /**
  * Merkle tree that contains all the deployed token bridges as a mapping of
@@ -22,11 +29,17 @@ export class TokenBridgeTree extends createMerkleTree(256) {
   public static async buildTreeFromEvents(
     contract: SmartContract & {
       events: { "token-bridge-added": typeof TokenBridgeTreeAddition };
-    }
+    },
+    endHeight?: UInt32
   ) {
-    const events = await contract.fetchEvents();
+    const events = await contract.fetchEvents(
+      UInt32.from(0),
+      endHeight?.add(1)
+    );
 
-    log.debug(`Found ${events.length} token bridge add events`);
+    log.debug(
+      `Found ${events.length} token bridge add events (height: ${endHeight?.toString() ?? "open end"})`
+    );
 
     const tree = new TokenBridgeTree(new InMemoryMerkleTreeStorage());
     const indizes: Record<string, bigint> = {};

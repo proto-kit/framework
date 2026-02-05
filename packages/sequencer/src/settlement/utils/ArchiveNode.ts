@@ -1,5 +1,5 @@
 /* eslint-disable no-inner-declarations */
-import { sleep } from "@proto-kit/common";
+import { log, sleep } from "@proto-kit/common";
 
 import type { MinaBaseLayerConfig } from "../../protocol/baselayer/MinaBaseLayer";
 
@@ -65,8 +65,12 @@ export namespace ArchiveNode {
   async function waitOnArchiveNodeCatchup(
     archiveNodeEndpoint: string,
     blockHeight: number,
-    { numAttempts, timeout }: { numAttempts: number; timeout: number }
-  ): Promise<true> {
+    {
+      numAttempts,
+      timeout,
+      type,
+    }: { numAttempts: number; timeout: number; type: string }
+  ): Promise<number> {
     for (let i = 0; i < numAttempts; i++) {
       const archiveNodeResponse =
         // eslint-disable-next-line no-await-in-loop
@@ -78,7 +82,13 @@ export namespace ArchiveNode {
         archiveNodeResponse.networkState.maxBlockHeight.pendingMaxBlockHeight;
 
       if (archiveNodeTip >= blockHeight) {
-        return true;
+        if (type === "lightnet" && archiveNodeTip - 10 > blockHeight) {
+          log.warn(
+            `Archive node height ${archiveNodeTip} is much greater than requested network block height ${blockHeight}. ` +
+              "This is probably because you restarted lightnet but didn't clear out the archive node's database"
+          );
+        }
+        return archiveNodeTip;
       }
       // eslint-disable-next-line no-await-in-loop
       await sleep(timeout);
@@ -101,9 +111,11 @@ export namespace ArchiveNode {
       return await waitOnArchiveNodeCatchup(network.archive, tip, {
         numAttempts: 10,
         timeout: 5000,
+        type: network.type,
       });
     }
-    return true;
+    // For local blockchain
+    return 1 << 32;
   }
 }
 /* eslint-enable no-inner-declarations */

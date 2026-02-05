@@ -1,6 +1,5 @@
 import { inject, injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
-import gcd from "compute-gcd";
 
 import { closeable, Closeable } from "../../../sequencer/builder/Closeable";
 import { BatchProducerModule } from "../BatchProducerModule";
@@ -14,17 +13,9 @@ import {
 } from "../../../settlement/BridgingModule";
 import { ensureNotBusy } from "../../../helpers/BusyGuard";
 
-import { BlockEvents, BlockTriggerBase } from "./BlockTrigger";
+import { BlockTriggerBase } from "./BlockTrigger";
 
 export interface TimedBlockTriggerConfig {
-  /**
-   * Interval for the tick event to be fired.
-   * The time x of any block trigger time is always guaranteed to be
-   * tick % x == 0.
-   * Value has to be a divisor of gcd(blockInterval, settlementInterval).
-   * If it doesn't satisfy this requirement, this config will not be respected
-   */
-  tick?: number;
   settlementInterval?: number;
   blockInterval: number;
   produceEmptyBlocks?: boolean;
@@ -32,19 +23,13 @@ export interface TimedBlockTriggerConfig {
   settlementTokenConfig: SettlementTokenConfig;
 }
 
-export interface TimedBlockTriggerEvent extends BlockEvents {
-  tick: [number];
-}
-
 @injectable()
 @closeable()
 export class TimedBlockTrigger
-  extends BlockTriggerBase<TimedBlockTriggerConfig, TimedBlockTriggerEvent>
+  extends BlockTriggerBase<TimedBlockTriggerConfig>
   implements Closeable
 {
-  // There is no real type for interval ids somehow, so any it is
-
-  private interval?: any;
+  private intervals: NodeJS.Timeout[] = [];
 
   public constructor(
     @inject("BatchProducerModule", { isOptional: true })
@@ -69,26 +54,6 @@ export class TimedBlockTrigger
     );
   }
 
-  private getTimerInterval(): number {
-    const { settlementInterval, blockInterval, tick } = this.config;
-
-    let timerInterval =
-      settlementInterval !== undefined
-        ? gcd(settlementInterval, blockInterval)
-        : blockInterval;
-
-    const definedTick = tick ?? 1000;
-    if (definedTick <= timerInterval) {
-      // Check if tick is a divisor of the calculated interval
-      const div = timerInterval / definedTick;
-      if (Math.floor(div) === div) {
-        timerInterval = definedTick;
-      }
-    }
-
-    return timerInterval;
-  }
-
   public async start(): Promise<void> {
     log.info("Starting timed block trigger");
     const { settlementInterval, blockInterval } = this.config;
@@ -102,43 +67,39 @@ export class TimedBlockTrigger
       );
     }
 
-    const timerInterval = this.getTimerInterval();
-
-    let totalTime = 0;
-    this.interval = setInterval(async () => {
-      totalTime += timerInterval;
-
-      this.events.emit("tick", totalTime);
-
+    const blockIntervalId = setInterval(async () => {
       try {
         // Trigger unproven blocks
-        if (totalTime % blockInterval === 0) {
-          await this.produceUnprovenBlock();
-        }
-
-        // Trigger proven (settlement) blocks
-        // Only produce settlements if a time has been set
-        // otherwise treat as unproven-only
-        if (
-          settlementInterval !== undefined &&
-          totalTime % settlementInterval === 0
-        ) {
-          await this.tryProduceSettlement();
-        }
+        await this.produceUnprovenBlock();
       } catch (error) {
         log.error(error);
       }
-    }, timerInterval);
+    }, blockInterval);
+    this.intervals.push(blockIntervalId);
+
+    if (settlementInterval !== undefined) {
+      const settlementIntervalId = setInterval(async () => {
+        try {
+          // Trigger settlement
+          await this.tryProduceSettlement();
+        } catch (error) {
+          log.error(error);
+        }
+      }, settlementInterval);
+      this.intervals.push(settlementIntervalId);
+    }
 
     await super.start();
   }
 
+  // This is technically not necessary since produceBlock checks business down the line
+  // but we save a bunch of DB checks before
+  @ensureNotBusy()
   private async produceUnprovenBlock() {
-    // TODO Optimize towards mempool.length()
-    const mempoolTxs = await this.mempool.getTxs(0);
+    const mempoolLength = await this.mempool.length();
     // Produce a block if either produceEmptyBlocks is true or we have more
-    // than 1 tx in mempool
-    if (mempoolTxs.length > 0 || (this.config.produceEmptyBlocks ?? true)) {
+    // than 1 tx in mempool or messages
+    if (mempoolLength > 0 || (this.config.produceEmptyBlocks ?? true)) {
       await this.produceBlock();
     }
   }
@@ -152,7 +113,8 @@ export class TimedBlockTrigger
   }
 
   public async close(): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    clearInterval(this.interval);
+    this.intervals.forEach((interval) => {
+      clearInterval(interval);
+    });
   }
 }

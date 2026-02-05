@@ -27,12 +27,7 @@ export const runtimeProtocolConfig: ModulesConfig<{
     Balance: {},
   },
   Protocol: {
-    AccountState: {},
-    BlockProver: {},
-    TransactionProver: {},
-    StateTransitionProver: {},
-    BlockHeight: {},
-    LastStateRoot: {},
+    ...Protocol.defaultConfig(),
     ProtocolStateTestHook: {},
   },
 };

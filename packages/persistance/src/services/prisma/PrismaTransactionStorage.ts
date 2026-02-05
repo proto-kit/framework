@@ -49,6 +49,24 @@ export class PrismaTransactionStorage implements TransactionStorage {
     return txs.map((tx) => this.transactionMapper.mapIn(tx));
   }
 
+  public async countPendingUserTransactions() {
+    const { prismaClient } = this.connection;
+
+    return await prismaClient.transaction.count({
+      where: {
+        executionResult: {
+          is: null,
+        },
+        isMessage: {
+          equals: false,
+        },
+        inputPaths: {
+          is: null,
+        },
+      },
+    });
+  }
+
   public async removeTx(hashes: string[], type: "included" | "dropped") {
     // In our schema, included txs are simply just linked with blocks, so we only
     // need to delete if we drop a tx

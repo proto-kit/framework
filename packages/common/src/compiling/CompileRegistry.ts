@@ -20,7 +20,7 @@ export class CompileRegistry {
 
   private artifacts: ArtifactRecord = {};
 
-  private inForceProverBlock = false;
+  private inForceProverBlock = 0;
 
   /**
    * This function forces compilation even if the artifact itself is in the registry.
@@ -31,15 +31,15 @@ export class CompileRegistry {
   public async forceProverExists<R>(
     f: (registry: CompileRegistry) => Promise<R>
   ): Promise<R> {
-    this.inForceProverBlock = true;
+    this.inForceProverBlock += 1;
     const result = await f(this);
-    this.inForceProverBlock = false;
+    this.inForceProverBlock -= 1;
     return result;
   }
 
   public async compile(target: CompileTarget, nameOverride?: string) {
     const name = nameOverride ?? target.name;
-    if (this.artifacts[name] === undefined || this.inForceProverBlock) {
+    if (this.artifacts[name] === undefined || this.inForceProverBlock > 0) {
       const artifact = await this.compiler.compileContract(target);
       this.artifacts[name] = artifact;
       return artifact;

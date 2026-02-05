@@ -15,12 +15,14 @@ interface QueueListener {
 
 export interface LocalTaskQueueConfig {
   simulatedDuration?: number;
+  retryAttempts?: number;
 }
 
 class InMemoryInstantiatedQueue implements InstantiatedQueue {
   public constructor(
     public readonly name: string,
-    public taskQueue: LocalTaskQueue
+    public taskQueue: LocalTaskQueue,
+    private readonly retries: number
   ) {}
 
   private id = 0;
@@ -35,7 +37,11 @@ class InMemoryInstantiatedQueue implements InstantiatedQueue {
   ): Promise<{ taskId: string }> {
     this.id += 1;
     const nextId = taskId ?? String(this.id).toString();
-    this.taskQueue.queuedTasks[this.name].push({ payload, taskId: nextId });
+    this.taskQueue.queuedTasks[this.name].push({
+      payload,
+      taskId: nextId,
+      retries: this.retries,
+    });
 
     void this.taskQueue.workNextTasks();
 
@@ -74,7 +80,7 @@ export class LocalTaskQueue
   implements TaskQueue
 {
   public queuedTasks: {
-    [key: string]: { payload: TaskPayload; taskId: string }[];
+    [key: string]: { payload: TaskPayload; taskId: string; retries: number }[];
   } = {};
 
   private workers: {
@@ -116,6 +122,22 @@ export class LocalTaskQueue
               return;
             }
             log.trace("LocalTaskQueue got", JSON.stringify(payload));
+
+            if (payload.status === "error" && task.retries >= 1) {
+              log.info(
+                `Task ${task.taskId} ${task.payload.name} failed, retrying`
+              );
+
+              // TODO Not sounds yet, iterator iterates over old entries without
+              //  this new task
+              this.queuedTasks[queueName].push({
+                payload: task.payload,
+                taskId: task.taskId,
+                retries: task.retries - 1,
+              });
+
+              return;
+            }
 
             // Notify listeners about result
             const listenerPromises = this.listeners[queueName]?.map(
@@ -187,7 +209,11 @@ export class LocalTaskQueue
   public async getQueue(queueName: string): Promise<InstantiatedQueue> {
     return this.createOrGetQueue(queueName, (name) => {
       this.queuedTasks[name] = [];
-      return new InMemoryInstantiatedQueue(name, this);
+      return new InMemoryInstantiatedQueue(
+        name,
+        this,
+        this.config.retryAttempts ?? 2
+      );
     });
   }
 
