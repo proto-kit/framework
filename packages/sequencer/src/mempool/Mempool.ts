@@ -22,4 +22,6 @@ export interface Mempool<Events extends MempoolEvents = MempoolEvents>
   getMandatoryTxs: () => Promise<PendingTransaction[]>;
 
   removeTxs: (included: string[], dropped: string[]) => Promise<void>;
+
+  length: () => Promise<number>;
 }
