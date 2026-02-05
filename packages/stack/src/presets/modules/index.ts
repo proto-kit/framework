@@ -375,18 +375,12 @@ export class DefaultConfigs {
       BaseLayer: {
         network: {
           type: "lightnet" as const,
-          graphql: config.minaNodeGraphqlHost,
-          archive: config.minaArchiveGraphqlHost,
-          accountManager: config.minaAccountManagerHost,
+          graphql: `${config.minaNodeGraphqlHost}:${config.minaNodeGraphqlPort}/graphql`,
+          archive: `${config.minaArchiveGraphqlHost}:${config.minaArchiveGraphqlPort}/graphql`,
+          accountManager: `${config.minaAccountManagerHost}:${config.minaAccountManagerPort}`,
         },
       },
-      SettlementModule: {
-        addresses: {
-          SettlementContract: PrivateKey.fromBase58(
-            config.settlementContractPrivateKey
-          ).toPublicKey(),
-        },
-      },
+      SettlementModule: {},
       SettlementSigner: {
         feepayer: PrivateKey.fromBase58(config.sequencerPrivateKey),
         contractKeys: [

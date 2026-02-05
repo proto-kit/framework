@@ -8,6 +8,7 @@ import {
   Sequencer,
   SettlementModule,
   AppChain,
+  BridgingModule,
 } from "@proto-kit/sequencer";
 import { Provable, PublicKey } from "o1js";
 import "reflect-metadata";
@@ -33,6 +34,7 @@ export default async function (options: LoadEnvOptions) {
     Sequencer: Sequencer.from({
       Database: InMemoryDatabase,
       ...DefaultModules.settlementScript(),
+      BridgingModule: BridgingModule
     }),
   });
 
@@ -41,12 +43,13 @@ export default async function (options: LoadEnvOptions) {
     Protocol: {
       ...protocol.config,
       ...protocol.settlementModulesConfig,
-    },
+    },  
     Sequencer: {
       ...DefaultConfigs.inMemoryDatabase(),
       ...DefaultConfigs.settlementScript({ preset: "development" }),
+      BridgingModule: {}
     },
-  });
+  }); 
 
   const chainContainer = container.createChildContainer();
   const proofsEnabled = process.env.PROTOKIT_PROOFS_ENABLED === "true";
