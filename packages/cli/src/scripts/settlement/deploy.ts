@@ -34,7 +34,7 @@ export default async function (options: LoadEnvOptions) {
     Sequencer: Sequencer.from({
       Database: InMemoryDatabase,
       ...DefaultModules.settlementScript(),
-      BridgingModule: BridgingModule
+      BridgingModule: BridgingModule,
     }),
   });
 
@@ -43,13 +43,13 @@ export default async function (options: LoadEnvOptions) {
     Protocol: {
       ...protocol.config,
       ...protocol.settlementModulesConfig,
-    },  
+    },
     Sequencer: {
       ...DefaultConfigs.inMemoryDatabase(),
       ...DefaultConfigs.settlementScript({ preset: "development" }),
-      BridgingModule: {}
+      BridgingModule: {},
     },
-  }); 
+  });
 
   const chainContainer = container.createChildContainer();
   const proofsEnabled = process.env.PROTOKIT_PROOFS_ENABLED === "true";

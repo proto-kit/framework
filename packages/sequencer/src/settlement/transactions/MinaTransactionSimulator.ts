@@ -95,7 +95,9 @@ export class MinaTransactionSimulator {
     const feePayerAccount = accounts[this.cacheKey(feePayer.body.publicKey)];
 
     if (!this.checkFeePayer(feePayerAccount, feePayer)) {
-      throw new Error("Feepayer invalid" + feePayerAccount.publicKey.toBase58() + " : " + feePayerAccount.balance.toString()+ " , " + feePayer.body.publicKey.toBase58());
+      throw new Error(
+        `Feepayer invalid${feePayerAccount.publicKey.toBase58()} : ${feePayerAccount.balance.toString()} , ${feePayer.body.publicKey.toBase58()}`
+      );
     }
     this.applyFeepayer(feePayerAccount, feePayer);
 
