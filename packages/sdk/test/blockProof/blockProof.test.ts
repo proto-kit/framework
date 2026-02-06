@@ -22,8 +22,24 @@ import { TestingAppChain } from "../../src/testing/TestingAppChain";
 
 import { TestBalances } from "./TestBalances";
 
+function createAppChain(totalSupply: UInt64) {
+  const appChain = TestingAppChain.fromRuntime({
+    Balances: TestBalances,
+  });
+
+  appChain.configurePartial({
+    Runtime: {
+      Balances: {
+        totalSupply,
+      },
+    },
+  });
+
+  return appChain;
+}
 // Failing - investigate why
 describe.skip("blockProof", () => {
+  let appChain: ReturnType<typeof createAppChain>;
   it("should transition block state hash", async () => {
     expect.assertions(3);
 
@@ -31,18 +47,7 @@ describe.skip("blockProof", () => {
     const tree = new RollupMerkleTree(merklestore.store);
 
     const totalSupply = UInt64.from(10_000);
-
-    const appChain = TestingAppChain.fromRuntime({
-      Balances: TestBalances,
-    });
-
-    appChain.configurePartial({
-      Runtime: {
-        Balances: {
-          totalSupply,
-        },
-      },
-    });
+    appChain = createAppChain(totalSupply);
 
     await appChain.start();
 
@@ -143,5 +148,7 @@ describe.skip("blockProof", () => {
 
     expect(block?.transactions[0].status.toBoolean()).toBe(true);
     expect(aliceBalance?.toBigInt()).toBe(1000n);
+
+    await appChain.close();
   }, 120_000);
 });

@@ -178,6 +178,10 @@ describe.skip("IndexerNotifier", () => {
     await sendTransactions(appChain, 2);
   }, 20000);
 
+  afterAll(async () => {
+    await appChain.close();
+  });
+
   it("should create a task for every unproven block produced", async () => {
     const { block } = container
       .resolve(IndexBlockTaskParametersSerializer)

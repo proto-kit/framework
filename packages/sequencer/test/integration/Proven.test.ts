@@ -222,4 +222,8 @@ describe.skip("Proven", () => {
     },
     timeout
   );
+
+  afterAll(async () => {
+    await appChain.close();
+  });
 });

@@ -18,6 +18,29 @@ import {
 } from "./modules";
 import { MinimumWorkerModules } from "./WorkerModules";
 
+function createAppChain() {
+  const sequencerClass = Sequencer.from({
+    TaskQueue: BullQueue,
+    LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      VanillaTaskWorkerModules.withoutSettlement()
+    ),
+  } satisfies MinimumWorkerModules);
+
+  const app = AppChain.from({
+    Runtime: runtimeClass,
+    Sequencer: sequencerClass,
+    Protocol: protocolClass,
+  });
+
+  app.configure({
+    ...runtimeProtocolConfig,
+    Sequencer: {
+      TaskQueue: BullConfig,
+      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+    },
+  });
+  return app;
+}
 describe("worker", () => {
   const isSpawned = process.env.IS_SPAWNED_PROCESS === "true";
 
@@ -28,32 +51,11 @@ describe("worker", () => {
 
     const proofsEnabled = process.env.PROOFS_ENABLED === "true";
 
-    const sequencerClass = Sequencer.from({
-      TaskQueue: BullQueue,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.withoutSettlement()
-      ),
-    } satisfies MinimumWorkerModules);
-
-    const app = AppChain.from({
-      Runtime: runtimeClass,
-      Sequencer: sequencerClass,
-      Protocol: protocolClass,
-    });
-
-    app.configure({
-      ...runtimeProtocolConfig,
-      Sequencer: {
-        TaskQueue: BullConfig,
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
-      },
-    });
-
     console.log("Starting worker...");
     console.log(`Worker proofs enabled: ${proofsEnabled}`);
 
     log.setLevel("DEBUG");
-
+    const app = createAppChain();
     await app.start(proofsEnabled, container.createChildContainer());
 
     console.log("Worker started...");
@@ -70,5 +72,6 @@ describe("worker", () => {
     console.log("Ready received!");
 
     await sleep(10000000);
+    await app.close();
   }, 10000000);
 });

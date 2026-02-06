@@ -79,6 +79,10 @@ describe("fees", () => {
     appChain.setSigner(senderKey);
   }, 60_000);
 
+  afterAll(async () => {
+    await appChain.close();
+  });
+
   it("should allow a free faucet transaction", async () => {
     expect.assertions(2);
 

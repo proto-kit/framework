@@ -112,6 +112,7 @@ describe("graphql client test", () => {
   }, 20_000);
 
   afterAll(async () => {
+    await appChain.close();
     await server.sequencer.close();
   }, 20_000);
 

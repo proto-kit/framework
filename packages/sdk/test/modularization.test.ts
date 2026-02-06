@@ -43,44 +43,52 @@ class TestSequencerModule extends SequencerModule<object> {
   }
 }
 
-describe("modularization", () => {
-  it("should initialize all modules correctly", async () => {
-    const appChain = AppChain.from({
-      Runtime: Runtime.from(
-        VanillaRuntimeModules.with({
-          TestRuntimeModule,
-        })
-      ),
-      Protocol: Protocol.from(
-        VanillaProtocolModules.with({
-          TestProtocolModule,
-        })
-      ),
-      Sequencer: Sequencer.from({
-        TestSequencerModule,
-      }),
-    });
+function createAppChain() {
+  const appChain = AppChain.from({
+    Runtime: Runtime.from(
+      VanillaRuntimeModules.with({
+        TestRuntimeModule,
+      })
+    ),
+    Protocol: Protocol.from(
+      VanillaProtocolModules.with({
+        TestProtocolModule,
+      })
+    ),
+    Sequencer: Sequencer.from({
+      TestSequencerModule,
+    }),
+  });
 
-    appChain.configurePartial({
-      Runtime: {
-        Balances: {},
-        TestRuntimeModule: {},
+  appChain.configurePartial({
+    Runtime: {
+      Balances: {},
+      TestRuntimeModule: {},
+    },
+    Protocol: {
+      ...Protocol.defaultConfig(),
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 0n,
+        perWeightUnitFee: 0n,
+        methods: {},
       },
-      Protocol: {
-        ...Protocol.defaultConfig(),
-        TransactionFee: {
-          tokenId: 0n,
-          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
-          baseFee: 0n,
-          perWeightUnitFee: 0n,
-          methods: {},
-        },
-        TestProtocolModule: {},
-      },
-      Sequencer: {
-        TestSequencerModule: {},
-      },
-    });
+      TestProtocolModule: {},
+    },
+    Sequencer: {
+      TestSequencerModule: {},
+    },
+  });
+
+  return appChain;
+}
+
+describe("modularization", () => {
+  let appChain: ReturnType<typeof createAppChain>;
+
+  it("should initialize all modules correctly", async () => {
+    appChain = createAppChain();
 
     await appChain.start();
 
@@ -108,5 +116,9 @@ describe("modularization", () => {
     expect(
       appChain.runtime.resolveOrFail("MethodIdResolver", MethodIdResolver)
     ).toBeDefined();
+  });
+
+  afterAll(async () => {
+    await appChain.close();
   });
 });
