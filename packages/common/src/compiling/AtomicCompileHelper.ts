@@ -1,3 +1,5 @@
+import { inject, injectable } from "tsyringe";
+
 import {
   AreProofsEnabled,
   CompileArtifact,
@@ -6,6 +8,7 @@ import {
 import { isSubtypeOfName } from "../utils";
 import { TypedClass } from "../types";
 import { log } from "../log";
+import { RemoteCacheCompiler } from "../cache/RemoteCacheCompiler";
 
 export type ArtifactRecord = Record<string, CompileArtifact>;
 
@@ -14,8 +17,13 @@ export type CompileTarget = {
   compile: () => Promise<CompileArtifact>;
 };
 
+@injectable()
 export class AtomicCompileHelper {
-  public constructor(private readonly areProofsEnabled: AreProofsEnabled) {}
+  public constructor(
+    @inject("AreProofsEnabled")
+    private readonly areProofsEnabled: AreProofsEnabled,
+    private readonly remoteCacheCompiler: RemoteCacheCompiler
+  ) {}
 
   private compilationPromises: {
     [key: string]: Promise<CompileArtifact>;
@@ -44,7 +52,8 @@ export class AtomicCompileHelper {
         )
       ) {
         log.time(`Compiling ${name}`);
-        this.compilationPromises[name] = contract.compile();
+        this.compilationPromises[name] =
+          this.remoteCacheCompiler.compileWithCache(contract);
         newPromise = true;
       } else {
         log.debug(`Compiling ${name} - mock`);

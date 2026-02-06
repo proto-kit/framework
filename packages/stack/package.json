@@ -11,6 +11,7 @@
     "test:file": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
     "test:watch": "npm run test:file -- ./test/** --watch",
+    "test:integration": "npm run test:file -- ./test-integration/** --runInBand",
     "graphql": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --es-module-specifier-resolution=node ./dist/scripts/graphql/run-graphql.js",
     "start": "node --experimental-vm-modules --es-module-specifier-resolution=node ./dist/start.js"
   },
@@ -34,7 +35,8 @@
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
-    "@jest/globals": "^29.5.0"
+    "@jest/globals": "^29.5.0",
+    "cachedir": "^2.4.0"
   },
   "dependencies": {
     "reflect-metadata": "^0.1.13",

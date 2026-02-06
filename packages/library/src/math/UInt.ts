@@ -1,5 +1,4 @@
-// eslint-disable-next-line max-len
-/* eslint-disable prefer-const,no-underscore-dangle,no-bitwise,@typescript-eslint/naming-convention */
+/* eslint-disable prefer-const,no-underscore-dangle,@typescript-eslint/naming-convention */
 import {
   Bool,
   Field,
@@ -47,7 +46,6 @@ export abstract class UInt<BITS extends number> extends Struct({
 }) {
   public static readonly assertionFunction: (bool: Bool, msg?: string) => void =
     (bool, msg) => {
-      // const executionContext = container.resolve(RuntimeMethodExecutionContext);
       assert(bool, msg);
     };
 
@@ -440,5 +438,4 @@ export abstract class UInt<BITS extends number> extends Struct({
     );
   }
 }
-// eslint-disable-next-line max-len
-/* eslint-enable prefer-const,no-underscore-dangle,no-bitwise,@typescript-eslint/naming-convention */
+/* eslint-enable prefer-const,no-underscore-dangle,@typescript-eslint/naming-convention */

@@ -157,6 +157,7 @@ export class MinaTransactionSender {
 
     const { network } = this.baseLayer.config;
     const graphql = network.type === "local" ? undefined : network.graphql;
+    const archive = network.type === "local" ? undefined : network.archive;
 
     const resultPromise = flow.withFlow<TransactionTaskResult>(
       async (resolve, reject) => {
@@ -166,6 +167,7 @@ export class MinaTransactionSender {
             transaction,
             chainState: {
               graphql,
+              archive,
               accounts: accounts
                 .map((r) => r.account)
                 .filter(filterNonUndefined),
