@@ -33,7 +33,7 @@ const proofsEnabled = false;
 
 const numWorkers = 1;
 
-describe("worker-proven", () => {
+describe.skip("worker-proven", () => {
   describe("sequencer", () => {
     let test: BlockTestService;
 

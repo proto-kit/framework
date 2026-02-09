@@ -12,6 +12,9 @@ describe("ArchiveNode", () => {
       },
     };
 
-    await expect(ArchiveNode.waitOnSync(config)).resolves.toBe(true);
+    // We don't know the exact block numbers, but any will be fine
+    await expect(
+      ArchiveNode.waitOnSync(config)
+    ).resolves.toBeGreaterThanOrEqual(0);
   });
 });
