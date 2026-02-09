@@ -8,7 +8,6 @@ import {
   Sequencer,
   SettlementModule,
   AppChain,
-  BridgingModule,
 } from "@proto-kit/sequencer";
 import { Provable, PublicKey } from "o1js";
 import "reflect-metadata";

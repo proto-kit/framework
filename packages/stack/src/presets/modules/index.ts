@@ -195,7 +195,7 @@ export class DefaultModules {
       Mempool: PrivateMempool,
       TaskQueue: LocalTaskQueue,
       SequencerStartupModule,
-      BridgingModule: BridgingModule
+      BridgingModule: BridgingModule,
     } satisfies SequencerModulesRecord;
   }
 }
@@ -523,7 +523,7 @@ export class DefaultConfigs {
         simulatedDuration: 0,
       },
       Mempool: {},
-      BridgingModule: {}
+      BridgingModule: {},
     };
   }
 }
