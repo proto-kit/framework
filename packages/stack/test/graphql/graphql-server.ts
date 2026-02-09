@@ -6,11 +6,10 @@ import {
   StateServiceQueryModule,
   InMemoryBlockExplorer,
 } from "@proto-kit/sdk";
-import { PrivateKey, PublicKey } from "o1js";
-import { Runtime, runtimeMethod, runtimeModule } from "@proto-kit/module";
-import { Protocol, State, state } from "@proto-kit/protocol";
+import { PrivateKey } from "o1js";
+import { Runtime } from "@proto-kit/module";
+import { Protocol } from "@proto-kit/protocol";
 import {
-  Balances,
   TokenId,
   VanillaProtocolModules,
   VanillaRuntimeModules,
@@ -41,6 +40,7 @@ import {
   BlockResolver,
 } from "@proto-kit/api";
 import { container } from "tsyringe";
+
 import { TestBalances } from "./utils";
 
 export async function startGraphqlServer() {

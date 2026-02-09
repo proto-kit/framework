@@ -72,7 +72,7 @@ export default async function (
     Sequencer: Sequencer.from({
       ...DefaultModules.inMemoryDatabase(),
       ...DefaultModules.settlementScript(),
-      BridgingModule: BridgingModule
+      BridgingModule: BridgingModule,
     }),
   });
 
@@ -87,9 +87,8 @@ export default async function (
       ...DefaultConfigs.settlementScript({
         preset: "development",
       }),
-      BridgingModule: {}
+      BridgingModule: {},
     },
-
   });
 
   const proofsEnabled = process.env.PROTOKIT_PROOFS_ENABLED === "true";

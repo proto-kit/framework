@@ -9,7 +9,6 @@ import {
   UInt64,
 } from "@proto-kit/library";
 
-
 @runtimeModule()
 export class TestBalances extends Balances {
   /**
