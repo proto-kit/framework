@@ -542,6 +542,7 @@ export class DefaultConfigs {
       TaskQueue: {
         simulatedDuration: 0,
       },
+      LocalTaskWorker: VanillaTaskWorkerModules.defaultConfig(),
       Mempool: {},
       BridgingModule: {},
     };
