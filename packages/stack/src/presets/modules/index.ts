@@ -21,6 +21,7 @@ import {
   LocalTaskQueue,
   AppChainModulesRecord,
   InMemoryMinaSigner,
+  BridgingModule,
 } from "@proto-kit/sequencer";
 import {
   IndexerNotifier,
@@ -194,6 +195,7 @@ export class DefaultModules {
       Mempool: PrivateMempool,
       TaskQueue: LocalTaskQueue,
       SequencerStartupModule,
+      BridgingModule: BridgingModule
     } satisfies SequencerModulesRecord;
   }
 }
@@ -521,6 +523,7 @@ export class DefaultConfigs {
         simulatedDuration: 0,
       },
       Mempool: {},
+      BridgingModule: {}
     };
   }
 }

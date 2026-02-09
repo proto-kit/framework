@@ -88,7 +88,6 @@ export default async function (
     Sequencer: Sequencer.from({
       ...DefaultModules.inMemoryDatabase(),
       ...DefaultModules.settlementScript(),
-      BridgingModule: BridgingModule,
     }),
   });
 
@@ -103,7 +102,6 @@ export default async function (
       ...DefaultConfigs.settlementScript({
         preset: "development",
       }),
-      BridgingModule: {},
     },
   });
 
