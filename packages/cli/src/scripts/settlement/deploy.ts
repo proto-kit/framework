@@ -31,7 +31,6 @@ export default async function (options: LoadEnvOptions) {
     Sequencer: Sequencer.from({
       Database: InMemoryDatabase,
       ...DefaultModules.settlementScript(),
-      BridgingModule: BridgingModule,
     }),
   });
 
@@ -44,7 +43,12 @@ export default async function (options: LoadEnvOptions) {
     Sequencer: {
       ...DefaultConfigs.inMemoryDatabase(),
       ...DefaultConfigs.settlementScript({ preset: "development" }),
-      BridgingModule: {},
+      SettlementModule: {
+        addresses: undefined,
+      },
+      BridgingModule: {
+        addresses: undefined,
+      },
     },
   });
 

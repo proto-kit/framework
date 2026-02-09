@@ -21,6 +21,7 @@ import {
   LocalTaskQueue,
   AppChainModulesRecord,
   InMemoryMinaSigner,
+  BridgingModule,
 } from "@proto-kit/sequencer";
 import {
   IndexerNotifier,
@@ -65,6 +66,7 @@ import {
   RedisTaskQueueEnv,
   GraphqlServerEnv,
 } from "./types";
+import { ModulesConfig } from "@proto-kit/common";
 
 export class DefaultModules {
   static api() {
@@ -83,9 +85,6 @@ export class DefaultModules {
       BlockProducerModule,
       BlockTrigger: TimedBlockTrigger,
       SequencerStartupModule,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.withoutSettlement()
-      ),
     } satisfies SequencerModulesRecord;
   }
 
@@ -102,9 +101,7 @@ export class DefaultModules {
       BatchProducerModule,
       SettlementModule,
       SettlementSigner: InMemoryMinaSigner,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.allTasks()
-      ),
+      BridgingModule,
     } satisfies SequencerModulesRecord;
   }
 
@@ -159,8 +156,13 @@ export class DefaultModules {
     } satisfies SequencerModulesRecord;
   }
 
-  static localTaskQueue() {
+  static localWorker(options?: { settlementEnabled?: boolean }) {
     return {
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        options?.settlementEnabled === true
+          ? VanillaTaskWorkerModules.allTasks()
+          : VanillaTaskWorkerModules.withoutSettlement()
+      ),
       TaskQueue: LocalTaskQueue,
     } satisfies SequencerModulesRecord;
   }
@@ -171,7 +173,7 @@ export class DefaultModules {
     } satisfies SequencerModulesRecord;
   }
 
-  static worker() {
+  static remoteWorker() {
     return {
       TaskQueue: BullQueue,
       LocalTaskWorkerModule: LocalTaskWorkerModule.from(
@@ -380,7 +382,20 @@ export class DefaultConfigs {
           accountManager: `${config.minaAccountManagerHost}:${config.minaAccountManagerPort}`,
         },
       },
-      SettlementModule: {},
+      SettlementModule: {
+        addresses: {
+          SettlementContract: PrivateKey.fromBase58(
+            config.settlementContractPrivateKey
+          ).toPublicKey(),
+        },
+      },
+      BridgingModule: {
+        addresses: {
+          DispatchContract: PrivateKey.fromBase58(
+            config.dispatcherContractPrivateKey
+          ).toPublicKey(),
+        },
+      },
       SettlementSigner: {
         feepayer: PrivateKey.fromBase58(config.sequencerPrivateKey),
         contractKeys: [
@@ -422,10 +437,13 @@ export class DefaultConfigs {
     };
   }
 
-  static localTaskQueue() {
+  static localWorker() {
     return {
       TaskQueue: {},
-    };
+      LocalTaskWorkerModule: {
+        ...VanillaTaskWorkerModules.defaultConfig(),
+      },
+    } satisfies ModulesConfig<ReturnType<typeof DefaultModules.localWorker>>;
   }
 
   static redisTaskQueue(options?: {
