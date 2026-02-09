@@ -300,10 +300,6 @@ export abstract class BridgeContractBase
         }
       );
 
-      Provable.log(message.hash);
-      Provable.log(path);
-      Provable.log(stateRoot);
-
       args.witness
         .checkMembership(stateRoot, path, message.hash)
         .or(isDummy)
@@ -323,7 +319,7 @@ export abstract class BridgeContractBase
           const isNew = accountUpdate.account.isNew.getAndRequireEquals();
           return Provable.if(isNew, Field(1), Field(0));
         })
-        .reduce((a, b) => a.add(b));
+        .reduce((a, b) => a.add(b), Field(0));
       accountCreationFeePaid = accountCreationFeePaid.add(newAccounts);
     }
 

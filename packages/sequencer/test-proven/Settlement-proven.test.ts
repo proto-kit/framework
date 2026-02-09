@@ -4,14 +4,14 @@ import { MinaBaseLayerConfig } from "../src";
 import { settlementTestFn } from "../test/settlement/Settlement";
 
 // Disabled this for now since the CI for this will likely fail
-describe.skip("Settlement contracts: local blockchain - proven", () => {
+describe("Settlement contracts: local blockchain - proven", () => {
   const network: MinaBaseLayerConfig = {
     network: {
       type: "local",
     },
   };
 
-  describe("Default token", () => {
+  describe.only("Default token", () => {
     settlementTestFn("proven", network, undefined, 500_000);
   });
 

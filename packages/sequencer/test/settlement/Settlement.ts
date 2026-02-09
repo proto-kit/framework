@@ -351,7 +351,7 @@ export const settlementTestFn = (
   }, timeout * 3);
 
   afterAll(async () => {
-    container.resolve(ContractArgsRegistry).resetArgs("SettlementContract");
+    container.resolve(ContractArgsRegistry).resetArgs();
 
     await appChain.close();
   });
