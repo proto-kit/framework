@@ -54,6 +54,12 @@ export class TransactionTracingService {
   public async getTransactionData(
     transaction: PendingTransaction
   ): Promise<TransactionProverTransactionArguments> {
+    console.log(
+      `[TransactionTracing] Getting transaction data for methodId: ${transaction.methodId.toBigInt()}`
+    );
+    console.log(
+      `[TransactionTracing] Transaction nonce: ${transaction.nonce.toString()}, isMessage: ${transaction.isMessage}`
+    );
     const verificationKeyAttestation =
       this.verificationKeyService.getAttestation(
         transaction.methodId.toBigInt()

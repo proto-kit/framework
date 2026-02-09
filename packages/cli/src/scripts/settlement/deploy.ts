@@ -5,6 +5,7 @@ import {
   Sequencer,
   SettlementModule,
   AppChain,
+  BridgingModule,
 } from "@proto-kit/sequencer";
 import { Provable, PublicKey } from "o1js";
 import "reflect-metadata";
@@ -30,6 +31,7 @@ export default async function (options: LoadEnvOptions) {
     Sequencer: Sequencer.from({
       Database: InMemoryDatabase,
       ...DefaultModules.settlementScript(),
+      BridgingModule: BridgingModule,
     }),
   });
 
@@ -42,6 +44,7 @@ export default async function (options: LoadEnvOptions) {
     Sequencer: {
       ...DefaultConfigs.inMemoryDatabase(),
       ...DefaultConfigs.settlementScript({ preset: "development" }),
+      BridgingModule: {},
     },
   });
 
