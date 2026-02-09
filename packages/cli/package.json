@@ -29,7 +29,7 @@
     "reflect-metadata": "^0.1.13",
     "spectaql": "3.0.5",
     "ts-node": "^10.9.1",
-    "spectaql": "3.0.5"
+    "yargs": "17.7.2"
   },
   "peerDependencies": {
     "@proto-kit/api": "*",

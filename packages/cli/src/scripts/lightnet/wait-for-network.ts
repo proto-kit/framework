@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import { sleep } from "@proto-kit/common";
 import { fetchLastBlock, Provable } from "o1js";
 
@@ -37,5 +35,3 @@ export default async function (options: LoadEnvOptions) {
 
   Provable.log("Network is ready", lastBlock);
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

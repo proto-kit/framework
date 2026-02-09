@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 import {
   LoadEnvOptions,
   getRequiredEnv,
@@ -29,4 +27,3 @@ export default async function (options: LoadEnvOptions) {
     "Lightnet initialization complete! Settlement contracts are deployed."
   );
 }
-/* eslint-enable no-console */

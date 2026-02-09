@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import { ClientAppChain, InMemorySigner } from "@proto-kit/sdk";
 import { Field, PrivateKey, Provable } from "o1js";
 import { UInt64 } from "@proto-kit/library";
@@ -74,5 +72,3 @@ export default async function (
 
   await appChain.close();
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

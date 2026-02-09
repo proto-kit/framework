@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -60,5 +58,3 @@ export default async function (args: {
     });
   });
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {
   BlockStorageNetworkStateModule,
   InMemoryTransactionSender,
@@ -77,4 +76,3 @@ export default async function (args: {
     await generateGqlDocs(args.url);
   }
 }
-/* eslint-enable no-console */

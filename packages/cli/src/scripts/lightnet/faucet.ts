@@ -1,4 +1,3 @@
-/* eslint-disable func-names */
 import {
   AccountUpdate,
   fetchAccount,
@@ -76,4 +75,3 @@ export default async function (publicKey: string) {
     publicKey: pair.publicKey.toBase58(),
   });
 }
-/* eslint-enable func-names */

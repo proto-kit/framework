@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import { Runtime } from "@proto-kit/module";
 import { DispatchSmartContract, Protocol } from "@proto-kit/protocol";
 import {
@@ -259,5 +257,3 @@ export default async function (
 
   await appChain.close();
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

@@ -1,6 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
-
 import {
   BridgingModule,
   MinaTransactionSender,
@@ -181,5 +178,3 @@ export default async function (
 
   await appChain.close();
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */
