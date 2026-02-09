@@ -63,20 +63,10 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
   }
 
   public async initializeVKTree(artifacts: Record<string, CompileArtifact>) {
-    console.log(
-      "[VKService] Initializing VK Tree with artifacts:",
-      Object.keys(artifacts)
-    );
     const mappings = await mapSequential(
       this.runtime.zkProgrammable.zkProgram,
       async (program) => {
         const artifact = artifacts[program.name];
-        console.log(
-          "[VKService] Processing program:",
-          program.name,
-          "methods:",
-          Object.keys(program.methods)
-        );
 
         if (artifact === undefined) {
           throw new Error(
@@ -89,9 +79,6 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
           const methodId = this.runtime.methodIdResolver.getMethodId(
             moduleName,
             methodName
-          );
-          console.log(
-            `[VKService] Registering method: ${moduleName}.${methodName} -> methodId: ${methodId.toString()}`
           );
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           return [
@@ -145,11 +132,8 @@ export class VerificationKeyService extends ConfigurableModule<{}> {
   }
 
   public getAttestation(methodId: bigint) {
-    const vkRecord = this.getVkRecord();
-    const verificationKey = vkRecord[methodId.toString()];
+    const verificationKey = this.getVkRecord()[methodId.toString()];
     if (verificationKey === undefined) {
-      console.error(`[VKService] MethodId not found: ${methodId}`);
-      console.error("[VKService] Registered methodIds:", Object.keys(vkRecord));
       throw new Error(
         `MethodId not registered in VerificationKeyService (${methodId})`
       );
