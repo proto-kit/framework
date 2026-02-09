@@ -27,8 +27,9 @@ import {
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 
+import { TestBalances } from "../../src/helpers/TestBalance";
+
 import { startGraphqlServer } from "./graphql-server";
-import { TestBalances } from "./utils";
 
 const pk = PrivateKey.random();
 

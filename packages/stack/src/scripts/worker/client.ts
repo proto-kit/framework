@@ -6,7 +6,7 @@ import {
 import { Runtime } from "@proto-kit/module";
 import { Protocol } from "@proto-kit/protocol";
 
-import { TestBalances } from "../graphql/server";
+import { TestBalances } from "../../helpers/TestBalance";
 
 const client = ClientAppChain.fromRemoteEndpoint(
   Runtime.from(

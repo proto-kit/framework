@@ -31,7 +31,7 @@ import {
 import { container } from "tsyringe";
 import { S3RemoteCache } from "@proto-kit/deployment";
 
-import { TestBalances } from "../../src";
+import { TestBalances } from "../../src/helpers/TestBalance";
 import * as fs from "node:fs";
 import cachedir from "cachedir";
 

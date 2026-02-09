@@ -6,7 +6,7 @@ import {
 import { Protocol } from "@proto-kit/protocol";
 import { ModulesConfig, ModuleContainer, TypedClass } from "@proto-kit/common";
 
-import { TestBalances } from "../graphql/server";
+import { TestBalances } from "../../helpers/TestBalance";
 
 const runtime = Runtime.from(
   VanillaRuntimeModules.with({

@@ -41,7 +41,7 @@ import {
 } from "@proto-kit/api";
 import { container } from "tsyringe";
 
-import { TestBalances } from "./utils";
+import { TestBalances } from "../../src/helpers/TestBalance";
 
 export async function startGraphqlServer() {
   log.setLevel("DEBUG");
