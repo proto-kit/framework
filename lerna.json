@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
+  "useWorkspaces": true,
   "version": "independent",
+  "independent": true,
   "command": {
     "publish": {
       "conventionalCommits": true,
