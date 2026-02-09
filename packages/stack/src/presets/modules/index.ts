@@ -195,6 +195,9 @@ export class DefaultModules {
       ...DefaultModules.settlement(),
       Mempool: PrivateMempool,
       TaskQueue: LocalTaskQueue,
+      LocalTaskWorker: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.allTasks()
+      ),
       SequencerStartupModule,
       BridgingModule: BridgingModule,
     } satisfies SequencerModulesRecord;
