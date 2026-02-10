@@ -4,7 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import fs from "fs";
-import process from "process";
 
 const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +32,9 @@ const args = process.argv.slice(2);
 if (!process.env.TS_NODE_LOADER_ACTIVE) {
   const env = { ...process.env };
   env.TS_NODE_LOADER_ACTIVE = "1";
+  env.TS_NODE_TRANSPILE_ONLY = "true";
+  env.TS_NODE_SKIP_PROJECT = "false";
+  env.TS_NODE_PREFER_TS_EXTS = "true";
 
   // Configure ts-node for proper ESM/CJS interop
   env.TS_NODE_ESMODULEINTEROP = "true";
@@ -47,7 +49,8 @@ if (!process.env.TS_NODE_LOADER_ACTIVE) {
     target: "ES2020",
     experimentalDecorators: true,
     emitDecoratorMetadata: true,
-    strictNullChecks: true,
+    strictNullChecks: false,
+    noEmit: true,
   });
 
   const tsNodeEsm = resolveTsNodeEsm();
