@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
+import type { Environment } from "@proto-kit/stack";
 
 import {
   loadEnvironmentVariables,
@@ -14,7 +15,8 @@ export default async function (options: LoadEnvOptions) {
   const { Protocol } = await import("@proto-kit/protocol");
   const { AppChain, Sequencer, SettlementModule, InMemoryDatabase } =
     await import("@proto-kit/sequencer");
-  const { DefaultModules, DefaultConfigs, Environment } = await import("@proto-kit/stack");
+
+  const { DefaultModules, DefaultConfigs } = await import("@proto-kit/stack");
   loadEnvironmentVariables(options);
   const { runtime, protocol } = await loadUserModules();
   const appChain = AppChain.from({
