@@ -382,7 +382,7 @@ export class DefaultConfigs {
         network: {
           type: config.minaNetwork,
           graphql: `${config.minaNodeGraphqlHost}:${config.minaNodeGraphqlPort}/graphql`,
-          archive: `${config.minaArchiveGraphqlHost}:${config.minaArchiveGraphqlPort}/graphql`,
+          archive: `${config.minaArchiveGraphqlHost}:${config.minaArchiveGraphqlPort}`,
           accountManager: `${config.minaAccountManagerHost}:${config.minaAccountManagerPort}`,
         },
       },
