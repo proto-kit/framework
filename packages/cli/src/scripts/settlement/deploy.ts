@@ -9,7 +9,7 @@ import {
 import { Provable, PublicKey } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
+import { DefaultConfigs, DefaultModules, Environment } from "@proto-kit/stack";
 
 import {
   loadEnvironmentVariables,
@@ -41,7 +41,10 @@ export default async function (options: LoadEnvOptions) {
     },
     Sequencer: {
       ...DefaultConfigs.inMemoryDatabase(),
-      ...DefaultConfigs.settlementScript({ preset: "development" }),
+      ...DefaultConfigs.settlementScript({
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        preset: options.env as Environment,
+      }),
       SettlementModule: {
         addresses: undefined,
       },
