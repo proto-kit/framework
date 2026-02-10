@@ -1,30 +1,6 @@
-import { Runtime } from "@proto-kit/module";
-import { DispatchSmartContract, Protocol } from "@proto-kit/protocol";
-import {
-  ArchiveNode,
-  MinaTransactionSender,
-  ProvenSettlementPermissions,
-  Sequencer,
-  SettlementModule,
-  SignedSettlementPermissions,
-  AppChain,
-  BridgingModule,
-} from "@proto-kit/sequencer";
-import {
-  AccountUpdate,
-  Bool,
-  fetchAccount,
-  Mina,
-  PrivateKey,
-  Provable,
-  PublicKey,
-  UInt64,
-  UInt8,
-} from "o1js";
+import { DispatchSmartContract } from "@proto-kit/protocol";
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { FungibleToken, FungibleTokenAdmin } from "mina-fungible-token";
-import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
 
 import { loadEnvironmentVariables, LoadEnvOptions } from "../../utils/loadEnv";
 import { loadUserModules } from "../../utils/loadUserModules";
@@ -45,8 +21,36 @@ export default async function (
       "Token deployment arguments required: tokenSymbol, feepayerKey, receiverPublicKey, [mintAmount]"
     );
   }
-
   loadEnvironmentVariables(options);
+
+  const { Runtime } = await import("@proto-kit/module");
+  const { Protocol } = await import("@proto-kit/protocol");
+  const {
+    ArchiveNode,
+    MinaTransactionSender,
+    ProvenSettlementPermissions,
+    Sequencer,
+    SettlementModule,
+    SignedSettlementPermissions,
+    AppChain,
+    BridgingModule,
+  } = await import("@proto-kit/sequencer");
+  const {
+    AccountUpdate,
+    Bool,
+    fetchAccount,
+    Mina,
+    PrivateKey,
+    Provable,
+    PublicKey,
+    UInt64,
+    UInt8,
+  } = await import("o1js");
+  const { FungibleToken, FungibleTokenAdmin } = await import(
+    "mina-fungible-token"
+  );
+  const { DefaultConfigs, DefaultModules } = await import("@proto-kit/stack");
+
   const { runtime, protocol } = await loadUserModules();
   const appChain = AppChain.from({
     Runtime: Runtime.from(runtime.modules),

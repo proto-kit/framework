@@ -1,24 +1,4 @@
-import {
-  BridgingModule,
-  MinaTransactionSender,
-  Sequencer,
-  SettlementModule,
-  AppChain,
-} from "@proto-kit/sequencer";
-import { Runtime } from "@proto-kit/module";
-import { DispatchSmartContract, Protocol } from "@proto-kit/protocol";
-import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
-import {
-  AccountUpdate,
-  fetchAccount,
-  Field,
-  Mina,
-  PrivateKey,
-  Provable,
-  PublicKey,
-  UInt64,
-} from "o1js";
-import { FungibleToken } from "mina-fungible-token";
+import { DispatchSmartContract } from "@proto-kit/protocol";
 
 import {
   loadEnvironmentVariables,
@@ -43,8 +23,30 @@ export default async function (
       "Bridge deposit arguments required: tokenId, fromKey, toKey, amount"
     );
   }
-
   loadEnvironmentVariables(options);
+
+  const {
+    BridgingModule,
+    MinaTransactionSender,
+    Sequencer,
+    SettlementModule,
+    AppChain,
+  } = await import("@proto-kit/sequencer");
+  const { Runtime } = await import("@proto-kit/module");
+  const { Protocol } = await import("@proto-kit/protocol");
+  const { DefaultConfigs, DefaultModules } = await import("@proto-kit/stack");
+  const {
+    AccountUpdate,
+    fetchAccount,
+    Field,
+    Mina,
+    PrivateKey,
+    Provable,
+    PublicKey,
+    UInt64,
+  } = await import("o1js");
+  const { FungibleToken } = await import("mina-fungible-token");
+
   const { runtime, protocol } = await loadUserModules();
   const tokenId = Field(bridgeArgs.tokenId);
   const fromPrivateKey = PrivateKey.fromBase58(

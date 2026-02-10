@@ -1,26 +1,3 @@
-import {
-  BlockStorageNetworkStateModule,
-  InMemoryTransactionSender,
-  StateServiceQueryModule,
-} from "@proto-kit/sdk";
-import { Protocol } from "@proto-kit/protocol";
-import {
-  AppChain,
-  Sequencer,
-  VanillaTaskWorkerModules,
-} from "@proto-kit/sequencer";
-import {
-  InMemorySequencerModules,
-  VanillaProtocolModules,
-  VanillaRuntimeModules,
-} from "@proto-kit/library";
-import {
-  GraphqlSequencerModule,
-  GraphqlServer,
-  VanillaGraphqlModules,
-} from "@proto-kit/api";
-import { Runtime } from "@proto-kit/module";
-
 import { generateGqlDocs } from "../../utils/graphqlDocs";
 
 export default async function (args: {
@@ -29,6 +6,23 @@ export default async function (args: {
   url: string;
 }) {
   if (args.empty) {
+    const {
+      BlockStorageNetworkStateModule,
+      InMemoryTransactionSender,
+      StateServiceQueryModule,
+    } = await import("@proto-kit/sdk");
+    const { Protocol } = await import("@proto-kit/protocol");
+    const { AppChain, Sequencer, VanillaTaskWorkerModules } = await import(
+      "@proto-kit/sequencer"
+    );
+    const {
+      InMemorySequencerModules,
+      VanillaProtocolModules,
+      VanillaRuntimeModules,
+    } = await import("@proto-kit/library");
+    const { GraphqlSequencerModule, GraphqlServer, VanillaGraphqlModules } =
+      await import("@proto-kit/api");
+    const { Runtime } = await import("@proto-kit/module");
     const { port } = args;
     console.log(`Starting AppChain on port ${port}...`);
 
