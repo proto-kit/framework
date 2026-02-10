@@ -1,27 +1,6 @@
 /* eslint-disable no-console */
 /* eslint-disable func-names */
 import {
-  BridgingModule,
-  MinaTransactionSender,
-  Sequencer,
-  SettlementModule,
-  AppChain,
-} from "@proto-kit/sequencer";
-import { Runtime } from "@proto-kit/module";
-import { Protocol } from "@proto-kit/protocol";
-import {
-  AccountUpdate,
-  fetchAccount,
-  Field,
-  Mina,
-  PrivateKey,
-  Provable,
-  UInt64,
-} from "o1js";
-import { FungibleToken } from "mina-fungible-token";
-import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
-
-import {
   loadEnvironmentVariables,
   getRequiredEnv,
   LoadEnvOptions,
@@ -41,8 +20,28 @@ export default async function (
   if (!bridgeArgs) {
     throw new Error("Bridge redeem arguments required: tokenId, toKey, amount");
   }
-
   loadEnvironmentVariables(options);
+
+  const {
+    BridgingModule,
+    MinaTransactionSender,
+    Sequencer,
+    SettlementModule,
+    AppChain,
+  } = await import("@proto-kit/sequencer");
+  const { Runtime } = await import("@proto-kit/module");
+  const { Protocol } = await import("@proto-kit/protocol");
+  const {
+    AccountUpdate,
+    fetchAccount,
+    Field,
+    Mina,
+    PrivateKey,
+    Provable,
+    UInt64,
+  } = await import("o1js");
+  const { FungibleToken } = await import("mina-fungible-token");
+  const { DefaultConfigs, DefaultModules } = await import("@proto-kit/stack");
   const { runtime, protocol } = await loadUserModules();
   const tokenId = Field(bridgeArgs.tokenId);
   const toPrivateKey = PrivateKey.fromBase58(

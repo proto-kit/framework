@@ -1,18 +1,8 @@
 /* eslint-disable no-console */
 /* eslint-disable func-names */
 
-import { Runtime } from "@proto-kit/module";
-import { Protocol } from "@proto-kit/protocol";
-import {
-  InMemoryDatabase,
-  Sequencer,
-  SettlementModule,
-  AppChain,
-} from "@proto-kit/sequencer";
-import { Provable, PublicKey } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { DefaultConfigs, DefaultModules } from "@proto-kit/stack";
 
 import {
   loadEnvironmentVariables,
@@ -22,6 +12,12 @@ import {
 import { loadUserModules } from "../../utils/loadUserModules";
 
 export default async function (options: LoadEnvOptions) {
+  const { Provable, PublicKey } = await import("o1js");
+  const { Runtime } = await import("@proto-kit/module");
+  const { Protocol } = await import("@proto-kit/protocol");
+  const { AppChain, Sequencer, SettlementModule, InMemoryDatabase } =
+    await import("@proto-kit/sequencer");
+  const { DefaultModules, DefaultConfigs } = await import("@proto-kit/stack");
   loadEnvironmentVariables(options);
   const { runtime, protocol } = await loadUserModules();
   const appChain = AppChain.from({
