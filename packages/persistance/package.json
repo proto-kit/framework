@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "version": "0.1.1-develop.2024+5a945075",
+  "version": "0.1.1-develop.2137+8a7eca31",
   "scripts": {
     "build": "npm run prisma:generate && tsc -p tsconfig.json",
     "prisma:generate": "npx prisma generate",
@@ -38,5 +38,5 @@
     "@jest/globals": "^29.5.0",
     "@types/lodash": "^4.14.194"
   },
-  "gitHead": "fb121dd0802012f70abff6afe48e82a67c13318d"
+  "gitHead": "8a7eca319272a15162dc4ad04bdc134b1017716d"
 }

@@ -1,6 +1,6 @@
 {
   "name": "@proto-kit/cli",
-  "version": "0.1.1-develop.2024+5a945075",
+  "version": "0.1.1-develop.2137+8a7eca31",
   "type": "module",
   "main": "./bin/protokit-cli.js",
   "bin": {
@@ -49,5 +49,5 @@
     "@types/node": "^20.19.24",
     "@types/yargs": "17.0.32"
   },
-  "gitHead": "fb121dd0802012f70abff6afe48e82a67c13318d"
+  "gitHead": "8a7eca319272a15162dc4ad04bdc134b1017716d"
 }
