@@ -48,6 +48,7 @@ import {
 } from "@proto-kit/sdk";
 import { PrivateKey } from "o1js";
 import { NonEmptyArray } from "type-graphql";
+import { ModulesConfig } from "@proto-kit/common";
 
 import {
   buildCustomTokenConfig,
@@ -66,7 +67,6 @@ import {
   RedisTaskQueueEnv,
   GraphqlServerEnv,
 } from "./types";
-import { ModulesConfig } from "@proto-kit/common";
 
 export class DefaultModules {
   static api() {

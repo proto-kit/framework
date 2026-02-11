@@ -13,7 +13,7 @@ import {
 import { Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { injectable } from "tsyringe";
 
-import { constants } from "../../Constants";
+import { Constants } from "../../Constants";
 import { ProvableStateTransition } from "../../model/StateTransition";
 import {
   MerkleWitnessBatch,
@@ -180,11 +180,11 @@ export class StateTransitionProverProgrammable extends ZkProgrammable<
   ) {
     const transitions = batch.batch;
 
-    for (
-      let index = 0;
-      index < constants.stateTransitionProverBatchSize;
-      index++
-    ) {
+    const batchSize = Constants.getConstant(
+      "STATE_TRANSITION_BATCH_SIZE",
+      parseInt
+    );
+    for (let index = 0; index < batchSize; index++) {
       const updatedBatchState = this.applyTransition(
         state.currentBatch,
         transitions[index].stateTransition,

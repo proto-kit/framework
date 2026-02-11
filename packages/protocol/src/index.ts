@@ -68,6 +68,6 @@ export * from "./settlement/messages/OutgoingMessage";
 export * from "./settlement/modules/NetworkStateSettlementModule";
 export * from "./settlement/messages/Deposit";
 export * from "./settlement/ContractArgsRegistry";
-export { constants as ProtocolConstants } from "./Constants";
+export { Constants as ProtocolConstants } from "./Constants";
 export * from "./hashing/protokit-prefixes";
 export * from "./hashing/mina-prefixes";

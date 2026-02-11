@@ -1,7 +1,7 @@
 import { Bool, Field, Provable, Struct } from "o1js";
 import { batch, LinkedMerkleTreeWitness } from "@proto-kit/common";
 
-import { constants } from "../Constants";
+import { Constants } from "../Constants";
 
 import { ProvableStateTransition } from "./StateTransition.js";
 
@@ -54,7 +54,7 @@ export class ProvableStateTransitionType extends Struct({
 export class MerkleWitnessBatch extends Struct({
   witnesses: Provable.Array(
     LinkedMerkleTreeWitness,
-    constants.stateTransitionProverBatchSize
+    Constants.getConstant("STATE_TRANSITION_BATCH_SIZE", parseInt)
   ),
 }) {}
 
@@ -82,7 +82,7 @@ export class ProvableStateTransitionEntry extends Struct({
 export class StateTransitionProvableBatch extends Struct({
   batch: Provable.Array(
     ProvableStateTransitionEntry,
-    constants.stateTransitionProverBatchSize
+    Constants.getConstant("STATE_TRANSITION_BATCH_SIZE", parseInt)
   ),
 }) {
   public static fromBatches(
@@ -121,7 +121,7 @@ export class StateTransitionProvableBatch extends Struct({
 
     const values = batch(
       flattened,
-      constants.stateTransitionProverBatchSize,
+      Constants.getConstant("STATE_TRANSITION_BATCH_SIZE", parseInt),
       () => ProvableStateTransitionEntry.dummy()
     );
 

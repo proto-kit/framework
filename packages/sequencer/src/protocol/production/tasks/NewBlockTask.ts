@@ -14,7 +14,7 @@ import {
   BlockArguments,
   BlockArgumentsBatch,
   BlockProverStateInput,
-  BLOCK_ARGUMENT_BATCH_SIZE,
+  ProtocolConstants,
 } from "@proto-kit/protocol";
 import { Bool, Provable } from "o1js";
 import {
@@ -112,7 +112,10 @@ export class NewBlockTask
       blocks,
     } = parameters;
 
-    if (blocks.length !== BLOCK_ARGUMENT_BATCH_SIZE) {
+    if (
+      blocks.length !==
+      ProtocolConstants.getConstant("BLOCK_ARGUMENT_BATCH_SIZE", parseInt)
+    ) {
       throw new Error("Given block argument length not exactly batch size");
     }
 
