@@ -85,17 +85,38 @@ export interface ModulesRecord<
   [name: string]: ModuleType;
 }
 
-// config record derived from the provided modules and their config types
-export type ModulesConfig<Modules extends ModulesRecord> = {
-  // this will translate into = key: module name, value: module.config
-  [ConfigKey in StringKeyOf<Modules>]: InstanceType<
-    Modules[ConfigKey]
-  > extends Configurable<infer Config>
+type ExtractConfig<Module extends BaseModuleType> =
+  InstanceType<Module> extends Configurable<infer Config>
     ? Config extends NoConfig
       ? Config | undefined
       : Config
     : never;
+
+type OnlyDefined<R extends Record<string, unknown>> = {
+  [Key in keyof R as NoConfig extends R[Key] ? never : Key]: R[Key];
 };
+type OptionalUndefined<R extends Record<string, unknown>> = {
+  [Key in keyof R as NoConfig extends R[Key] ? Key : never]?: R[Key];
+};
+
+type MakeNoConfigOptional<A extends Record<string, unknown>> = OnlyDefined<A> &
+  OptionalUndefined<A>;
+
+export type CompletedModulesConfig<Modules extends ModulesRecord> = {
+  // this will translate into = key: module name, value: module.config
+  [ConfigKey in StringKeyOf<Modules>]: ExtractConfig<Modules[ConfigKey]>;
+};
+
+// config record derived from the provided modules and their config types
+export type ModulesConfig<Modules extends ModulesRecord> = MakeNoConfigOptional<
+  CompletedModulesConfig<Modules>
+>;
+
+// export type MakeNeeded<R extends {  }>
+
+// export type ShortConfig<Modules extends ModulesRecord> =
+//   ModulesConfig<Modules>
+// >;
 
 /**
  * This type make any config partial (i.e. optional) up to the first level
@@ -287,6 +308,26 @@ export class ModuleContainer<Modules extends ModulesRecord>
     });
   }
 
+  private completeConfig(
+    config: ModulesConfig<Modules>
+  ): ModulesConfig<Modules> {
+    const keys = Object.keys(config);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const moduleNames = this.moduleNames as StringKeyOf<Modules>[];
+    const noConfigParts = moduleNames
+      .filter((moduleName) => !keys.includes(moduleName))
+      .reduce<Record<string, NoConfig>>((obj, moduleName) => {
+        obj[moduleName] = {};
+        return obj;
+      }, {});
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return {
+      ...config,
+      ...noConfigParts,
+    } as unknown as ModulesConfig<Modules>;
+  }
+
   /**
    * Provide additional configuration after the ModuleContainer was created.
    *
@@ -296,7 +337,7 @@ export class ModuleContainer<Modules extends ModulesRecord>
    * @param config
    */
   public configure(config: ModulesConfig<Modules>) {
-    this.config = config;
+    this.config = this.completeConfig(config);
   }
 
   public configurePartial(config: RecursivePartial<ModulesConfig<Modules>>) {
@@ -314,8 +355,14 @@ export class ModuleContainer<Modules extends ModulesRecord>
     super.config = merge<
       ModulesConfig<Modules> | NoConfig,
       ModulesConfig<Modules>
-    >(this.currentConfig ?? {}, config);
+    >(this.currentConfig ?? {}, this.completeConfig(config));
   }
+  // public set config(config: ShortConfig<Modules>) {
+  //   super.config = merge<ShortConfig<Modules> | NoConfig, ShortConfig<Modules>>(
+  //     this.currentConfig ?? {},
+  //     config
+  //   );
+  // }
 
   /**
    * Resolves a module from the current module container
@@ -364,7 +411,11 @@ export class ModuleContainer<Modules extends ModulesRecord>
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
-    const config = super.config?.[moduleName];
+    const config =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      (super.config as unknown as CompletedModulesConfig<Modules>)?.[
+        moduleName
+      ];
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config) {
       throw errors.configNotSetInContainer(moduleName.toString());
