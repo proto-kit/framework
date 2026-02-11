@@ -158,17 +158,12 @@ export class NewBlockTask
       }
     );
 
-    const proof = await executeWithPrefilledStateService(
+    return await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
       stateRecords,
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );
-
-    Provable.log("Input", proof.publicInput);
-    Provable.log("Output", proof.publicOutput);
-
-    return proof;
   }
 
   public async prepare(): Promise<void> {
