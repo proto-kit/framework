@@ -11,6 +11,7 @@
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
     "test:watch": "npm run test:file -- ./test/** --watch",
+    "test:check": "tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p test-integration/tsconfig.json",
     "test:integration": "npm run test:file -- ./test-integration/** --runInBand"
   },
   "main": "dist/index.js",
