@@ -33,7 +33,7 @@ const proofsEnabled = false;
 
 const numWorkers = 1;
 
-describe.skip("worker-proven", () => {
+describe("worker-proven", () => {
   describe("sequencer", () => {
     let test: BlockTestService;
 
@@ -67,7 +67,7 @@ describe.skip("worker-proven", () => {
     it(
       "should start up and compile",
       async () => {
-        log.setLevel(log.levels.DEBUG);
+        log.setLevel(log.levels.TRACE);
 
         const sequencerClass = Sequencer.from({
           Database: InMemoryDatabase,
@@ -79,7 +79,7 @@ describe.skip("worker-proven", () => {
           TaskQueue: BullQueue,
           FeeStrategy: ConstantFeeStrategy,
           SequencerStartupModule,
-          RemoteCache: S3RemoteCache,
+          // RemoteCache: S3RemoteCache,
         });
 
         const app = AppChain.from({
@@ -101,7 +101,7 @@ describe.skip("worker-proven", () => {
             TaskQueue: BullConfig,
             FeeStrategy: {},
             SequencerStartupModule: {},
-            RemoteCache: RemoteCacheConfig,
+            // RemoteCache: RemoteCacheConfig,
           },
           ...runtimeProtocolConfig,
         });

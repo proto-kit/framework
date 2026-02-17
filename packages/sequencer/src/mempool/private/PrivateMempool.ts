@@ -7,7 +7,7 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import { TransactionStorage } from "../../storage/repositories/TransactionStorage";
+import type { TransactionStorage } from "../../storage/repositories/TransactionStorage";
 import { TransactionValidator } from "../verification/TransactionValidator";
 import { Tracer } from "../../logging/Tracer";
 import { trace } from "../../logging/trace";

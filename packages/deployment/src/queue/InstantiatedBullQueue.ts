@@ -34,6 +34,7 @@ export class InstantiatedBullQueue implements InstantiatedQueue {
 
   async onCompleted(listener: (payload: TaskPayload) => Promise<void>) {
     if (!this.initialized) {
+      this.initialized = true;
       await this.events.waitUntilReady();
 
       this.events.on("completed", async (result) => {
@@ -52,7 +53,6 @@ export class InstantiatedBullQueue implements InstantiatedQueue {
       this.events.on("error", async (error) => {
         log.error("Error in worker", error);
       });
-      this.initialized = true;
     }
 
     return this.listeners.pushListener(listener);
