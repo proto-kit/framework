@@ -43,8 +43,6 @@ export class BullQueue
 
   private workers: Worker[] = [];
 
-  private jobsInProgress = 0;
-
   private lock: AsyncLock;
 
   public createWorker(
@@ -55,24 +53,13 @@ export class BullQueue
     const worker = new Worker<TaskPayload, TaskPayload>(
       name,
       async (job) => {
-        await Promise.all(this.workers.map((w) => w.pause()));
-
-        this.jobsInProgress += 1;
-
         // This lock is needed to make sure the worker is not proving in parallel
         // This is by far not optimal - since it still picks up 1 task per queue but waits until
         // computing them, so that leads to bad performance over multiple workers.
         // For that we need to restructure tasks to be flowing through a single queue however
-        const result = await this.lock.acquire("worker-lock", async () => {
+        return await this.lock.acquire("worker-lock", async () => {
           return await executor(job.data);
         });
-
-        this.jobsInProgress -= 1;
-        if (this.jobsInProgress === 0) {
-          this.workers.map((w) => w.resume());
-        }
-
-        return result;
       },
       {
         concurrency: options?.concurrency ?? 1,

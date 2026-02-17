@@ -191,17 +191,6 @@ export async function executeWithExecutionContext<MethodResult>(
   };
 }
 
-function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
-  log.trace(
-    msg,
-    JSON.stringify(
-      stateTransitions.map((x) => x.toJSON()),
-      null,
-      2
-    )
-  );
-}
-
 export type TransactionExecutionResultStatus =
   | {
       result: TransactionExecutionResult;
@@ -279,8 +268,6 @@ export class TransactionExecutionService {
       },
       runSimulated
     );
-
-    traceLogSTs(`${hookName} STs:`, result.stateTransitions);
 
     return result;
   }
@@ -380,7 +367,6 @@ export class TransactionExecutionService {
       "block.transaction.execute",
       () => this.executeRuntimeMethod(method, args, runtimeContextInputs)
     );
-    traceLogSTs("STs:", runtimeResult.stateTransitions);
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {
