@@ -37,6 +37,7 @@ class InMemoryInstantiatedQueue implements InstantiatedQueue {
   ): Promise<{ taskId: string }> {
     this.id += 1;
     const nextId = taskId ?? String(this.id).toString();
+    log.trace("Adding task: ", payload);
     this.taskQueue.queuedTasks[this.name].push({
       payload,
       taskId: nextId,
