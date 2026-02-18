@@ -174,8 +174,8 @@ export abstract class BridgeContractBase
       const value = Provable.witness(processor.type, () => {
         if (args.messageType.toString() === messageType.toString()) {
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          const fieldData = (args.data as Unconstrained<Field[]>).get();
-          return processor.type.fromFields(fieldData);
+          const fieldData = (args.data as Unconstrained<string[]>).get();
+          return processor.type.fromFields(fieldData.map(Field));
         } else {
           return processor.dummy();
         }

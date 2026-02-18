@@ -615,8 +615,10 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
           );
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        const data = processor.type.toFields(message.value);
+        const data = processor.type
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          .toFields(message.value)
+          .map((x) => x.toString());
 
         const witness = tree.getReadWitness(keys[index].toBigInt());
         return new OutgoingMessageArgument({

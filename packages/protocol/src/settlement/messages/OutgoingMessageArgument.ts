@@ -26,7 +26,7 @@ export function createMessageStruct<T>(type: FlexibleProvablePure<T>) {
 export class OutgoingMessageArgument extends Struct({
   witness: LinkedMerkleTreeReadWitness,
   messageType: Field,
-  data: Unconstrained<Field[]>,
+  data: Unconstrained<string[]>,
 }) {
   public static dummy(): OutgoingMessageArgument {
     return new OutgoingMessageArgument({
