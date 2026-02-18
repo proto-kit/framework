@@ -30,7 +30,6 @@ export class StateServiceProvider {
   public popCurrentStateService() {
     if (this.stateServiceStack.length === 0) {
       log.trace("Trying to pop from empty state-service stack");
-      log.trace(new Error().stack);
       return;
     }
     this.stateServiceStack.pop();
