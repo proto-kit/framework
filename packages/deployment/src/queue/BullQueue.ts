@@ -1,4 +1,5 @@
 import { MetricsTime, Queue, QueueEvents, Worker } from "bullmq";
+import { BullMQOtel } from "bullmq-otel";
 import { log, ModuleContainerLike } from "@proto-kit/common";
 import {
   TaskPayload,
@@ -33,6 +34,8 @@ export class BullQueue
   extends AbstractTaskQueue<BullQueueConfig>
   implements TaskQueue, Closeable
 {
+  private readonly telemetry = new BullMQOtel("protokit", "1.0.0");
+
   public constructor(
     @inject("ParentContainer") private parent: ModuleContainerLike
   ) {
@@ -91,6 +94,8 @@ export class BullQueue
         lockDuration: 60000 * 5, // 5 minutes
 
         metrics: { maxDataPoints: MetricsTime.ONE_HOUR * 24 },
+
+        telemetry: this.telemetry,
       }
     );
 
@@ -117,6 +122,7 @@ export class BullQueue
 
       const queue = new Queue<TaskPayload, TaskPayload>(queueName, {
         connection: redis,
+        telemetry: this.telemetry,
       });
       const events = new QueueEvents(queueName, { connection: redis });
 

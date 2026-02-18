@@ -1,8 +1,10 @@
 import { log, mapSequential, noop, sleep } from "@proto-kit/common";
+import { inject } from "tsyringe";
 
 import { sequencerModule } from "../../sequencer/builder/SequencerModule";
 import { TaskPayload } from "../flow/Task";
 import { Closeable } from "../../sequencer/builder/Closeable";
+import { Tracer } from "../../logging/Tracer";
 
 import { InstantiatedQueue, TaskQueue } from "./TaskQueue";
 import { ListenerList } from "./ListenerList";
@@ -79,6 +81,10 @@ export class LocalTaskQueue
   extends AbstractTaskQueue<LocalTaskQueueConfig>
   implements TaskQueue
 {
+  public constructor(@inject("Tracer") public readonly tracer: Tracer) {
+    super();
+  }
+
   public queuedTasks: {
     [key: string]: { payload: TaskPayload; taskId: string; retries: number }[];
   } = {};
@@ -114,8 +120,12 @@ export class LocalTaskQueue
 
             log.trace(`Working ${task.payload.name} with id ${task.taskId}`);
 
-            const payload = await this.workers[queueName]?.handler(
-              task.payload
+            const payload = await this.tracer.trace(
+              `queue.${queueName}.${task.payload.name}`,
+              async () => {
+                return await this.workers[queueName]?.handler(task.payload);
+              },
+              { taskId: task.taskId, queueName }
             );
 
             if (payload === "closed" || payload === undefined) {

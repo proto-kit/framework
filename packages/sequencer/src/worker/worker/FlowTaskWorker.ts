@@ -38,7 +38,10 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
         // Use first handler that returns a non-undefined result
         const input = await task.inputSerializer().fromJSON(data.payload);
 
+        const computeMsg = `task.${queueName}.compute [${data.taskId}]`;
+        log.time(computeMsg);
         const output: Output = await task.compute(input);
+        log.timeEnd.info(computeMsg);
 
         if (output === undefined) {
           throw errors.notComputable(data.name);
@@ -92,10 +95,13 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
     // Call them in order of registration, because the prepare methods
     // might depend on each other or a result that is saved in a DI singleton
     for (const task of tasks) {
+      const prepareMsg = `task.${task.name}.prepare`;
       log.info(`Preparing task ${task.constructor.name}`);
+      log.time(prepareMsg);
       // eslint-disable-next-line no-await-in-loop
       await task.prepare();
       log.debug(`${task.constructor.name} prepared`);
+      log.timeEnd.info(prepareMsg);
     }
 
     const newWorkers = Object.fromEntries(
@@ -143,10 +149,12 @@ export class FlowTaskWorker<Tasks extends Task<any, any>[]>
 
     if (startupTasks.length > 0) {
       for (const task of startupTasks) {
+        const prepareMsg = `task.${task.name}.prepare`;
         log.info(`Preparing task ${task.constructor.name}`);
+        log.time(prepareMsg);
         // eslint-disable-next-line no-await-in-loop
         await task.prepare();
-        log.debug(`${task.constructor.name} prepared`);
+        log.timeEnd.info(prepareMsg);
       }
 
       this.workers = Object.fromEntries(
