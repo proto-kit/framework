@@ -16,7 +16,7 @@ import {
   BlockProverStateInput,
   ProtocolConstants,
 } from "@proto-kit/protocol";
-import { Bool, Provable } from "o1js";
+import { Bool } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,

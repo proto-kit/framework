@@ -347,6 +347,7 @@ export class SettlementProvingTask
                   throw new Error("Method interface not found");
                 }
 
+                // args are [public key, tokenId, ...args]
                 const args = method.args.slice(2);
 
                 const encodedArgs = lazyProof.args

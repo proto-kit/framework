@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 import { expectDefined, log } from "@proto-kit/common";
-import { BullQueue, S3RemoteCache } from "@proto-kit/deployment";
+import { BullQueue } from "@proto-kit/deployment";
 
 import {
   BatchProducerModule,
@@ -20,7 +20,6 @@ import { BlockTestService } from "../../test/integration/services/BlockTestServi
 import {
   BullConfig,
   protocolClass,
-  RemoteCacheConfig,
   runtimeClass,
   runtimeProtocolConfig,
 } from "./modules";

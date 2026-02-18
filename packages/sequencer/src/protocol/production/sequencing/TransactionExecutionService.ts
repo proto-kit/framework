@@ -27,7 +27,7 @@ import {
   MinaActionsHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
-import { log, mapSequential } from "@proto-kit/common";
+import { mapSequential } from "@proto-kit/common";
 import {
   MethodParameterEncoder,
   Runtime,
@@ -252,7 +252,7 @@ export class TransactionExecutionService {
     hookName: string,
     runSimulated = false
   ) {
-    const result = await executeWithExecutionContext(
+    return await executeWithExecutionContext(
       async () =>
         await this.wrapHooksForContext(async () => {
           await mapSequential(
@@ -268,8 +268,6 @@ export class TransactionExecutionService {
       },
       runSimulated
     );
-
-    return result;
   }
 
   private buildSTBatches(

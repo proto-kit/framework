@@ -444,7 +444,9 @@ export class StateTransitionProver
   public async compile(
     registry: CompileRegistry
   ): Promise<void | ArtifactRecord> {
-    return await this.zkProgrammable.compile(registry);
+    return await registry.proverNeeded(
+      async () => await this.zkProgrammable.compile(registry)
+    );
   }
 
   public proveBatch(
