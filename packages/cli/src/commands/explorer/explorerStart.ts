@@ -5,6 +5,7 @@ interface ExplorerStartArgs {
   "indexer-url"?: string;
   "dashboard-title"?: string;
   "dashboard-slogan"?: string;
+  "explorer-image"?: string;
 }
 
 export const explorerStartCommand: CommandModule<{}, ExplorerStartArgs> = {
@@ -31,6 +32,11 @@ export const explorerStartCommand: CommandModule<{}, ExplorerStartArgs> = {
         type: "string",
         default: "Explore your Protokit AppChain",
         describe: "Slogan for the explorer dashboard",
+      })
+      .option("explorer-image", {
+        type: "string",
+        default: "ghcr.io/proto-kit/explorer:latest",
+        describe: "Docker image to use for explorer UI",
       }),
   handler: async (args) => {
     try {
@@ -42,6 +48,7 @@ export const explorerStartCommand: CommandModule<{}, ExplorerStartArgs> = {
         indexerUrl: args["indexer-url"],
         dashboardTitle: args["dashboard-title"],
         dashboardSlogan: args["dashboard-slogan"],
+        explorerImage: args["explorer-image"],
       });
       process.exit(0);
     } catch (error) {
