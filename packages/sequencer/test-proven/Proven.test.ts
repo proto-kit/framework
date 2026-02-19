@@ -5,6 +5,7 @@ import {
   MOCK_VERIFICATION_KEY,
   ChildVerificationKeyService,
   CompileRegistry,
+  range,
 } from "@proto-kit/common";
 import { Runtime } from "@proto-kit/module";
 import {
@@ -14,32 +15,27 @@ import {
   ContractArgsRegistry,
   DispatchSmartContract,
   Protocol,
-  SettlementContractModule,
 } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 
-import { testingSequencerModules } from "../TestingSequencer";
+import { testingSequencerModules } from "../test/TestingSequencer";
 import {
-  MinaBaseLayer,
   ProvenSettlementPermissions,
   Sequencer,
-  SettlementModule,
-  SettlementProvingTask,
   VanillaTaskWorkerModules,
   AppChain,
   InMemoryAreProofsEnabled,
-} from "../../src";
-import { SettlementStartupModule } from "../../src/sequencer/SettlementStartupModule";
+  SettlementStartupModule,
+} from "../src";
 
-import { ProtocolStateTestHook } from "./mocks/ProtocolStateTestHook";
-import { BlockTestService } from "./services/BlockTestService";
-import { ProvenBalance } from "./mocks/ProvenBalance";
+import { BlockTestService } from "../test/integration/services/BlockTestService";
+import { ProvenBalance } from "../test/integration/mocks/ProvenBalance";
 
 const timeout = 300000;
 
-describe.skip("Proven", () => {
+describe("Proven", () => {
   let test: BlockTestService;
 
   let appChain: ReturnType<typeof createAppChain>;
@@ -52,11 +48,11 @@ describe.skip("Proven", () => {
     const sequencerClass = Sequencer.from(
       testingSequencerModules(
         {
-          BaseLayer: MinaBaseLayer,
-          SettlementModule,
+          // BaseLayer: MinaBaseLayer,
+          // SettlementModule,
         },
         {
-          SettlementProvingTask,
+          // SettlementProvingTask,
         }
       )
     );
@@ -64,14 +60,14 @@ describe.skip("Proven", () => {
     // TODO Analyze how we can get rid of the library import for mandatory modules
     const protocolClass = Protocol.from({
       ...VanillaProtocolModules.mandatoryModules({
-        ProtocolStateTestHook,
+        // ProtocolStateTestHook,
         // ProtocolStateTestHook2,
       }),
-      SettlementContractModule: SettlementContractModule.from({
-        ...SettlementContractModule.settlementAndBridging(),
-        // FungibleToken: FungibleTokenContractModule,
-        // FungibleTokenAdmin: FungibleTokenAdminContractModule,
-      }),
+      // SettlementContractModule: SettlementContractModule.from({
+      //   ...SettlementContractModule.settlementAndBridging(),
+      // FungibleToken: FungibleTokenContractModule,
+      // FungibleTokenAdmin: FungibleTokenAdminContractModule,
+      // }),
       // modules: VanillaProtocolModules.with({}),
     });
 
@@ -81,6 +77,10 @@ describe.skip("Proven", () => {
       Protocol: protocolClass,
     });
   }
+
+  afterAll(async () => {
+    await appChain.close();
+  });
 
   it(
     "should start up and compile",
@@ -95,33 +95,35 @@ describe.skip("Proven", () => {
           BlockTrigger: {},
           Mempool: {},
           BatchProducerModule: {},
-          BlockProducerModule: {},
+          BlockProducerModule: {
+            maximumBlockSize: 5,
+          },
           LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           TaskQueue: {},
           FeeStrategy: {},
           SequencerStartupModule: {},
           BaseLayer: {
-            network: {
-              type: "local",
-            },
+            //   network: {
+            //     type: "local",
+            //   },
           },
-          SettlementModule: {},
+          // SettlementModule: {},
         },
         Runtime: {
           Balances: {},
         },
         Protocol: {
           ...Protocol.defaultConfig(),
-          ProtocolStateTestHook: {},
-          SettlementContractModule: {
-            SettlementContract: {},
-            BridgeContract: {},
-            DispatchContract: {
-              incomingMessagesMethods: {
-                deposit: "Balances.deposit",
-              },
-            },
-          },
+          // ProtocolStateTestHook: {},
+          // SettlementContractModule: {
+          //   SettlementContract: {},
+          //   BridgeContract: {},
+          //   DispatchContract: {
+          //     incomingMessagesMethods: {
+          //       deposit: "Balances.deposit",
+          //     },
+          //   },
+          // },
           // ProtocolStateTestHook2: {},
         },
       });
@@ -142,7 +144,7 @@ describe.skip("Proven", () => {
     timeout
   );
 
-  it("should compile settlement contracts", async () => {
+  it.skip("should compile settlement contracts", async () => {
     const module = appChain.sequencer.dependencyContainer.resolve(
       SettlementStartupModule
     );
@@ -163,7 +165,8 @@ describe.skip("Proven", () => {
       const vkService = new ChildVerificationKeyService();
       const proofs = new InMemoryAreProofsEnabled();
       proofs.setProofsEnabled(true);
-      const registry = new CompileRegistry(proofs);
+      const registry =
+        appChain.sequencer.dependencyContainer.resolve(CompileRegistry);
       registry.addArtifactsRaw({
         BlockProver: {
           verificationKey: MOCK_VERIFICATION_KEY,
@@ -217,9 +220,48 @@ describe.skip("Proven", () => {
 
       console.log(batch.proof);
 
-      expect(batch.proof.proof.length).toBeGreaterThan(50);
       expect(batch.blockHashes).toHaveLength(1);
+      expect(batch.proof.proof.length).toBeGreaterThan(50);
     },
     timeout
+  );
+
+  it(
+    "should produce large block",
+    async () => {
+      log.setLevel("INFO");
+
+      const privateKey = PrivateKey.random();
+
+      for (const i of range(0, 30)) {
+        await test.addTransaction({
+          method: ["Balances", "addBalance"],
+          privateKey,
+          args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
+        });
+      }
+
+      // Produce 6 blocks, 5 txs each into 1 batch
+      const block = await test.produceBlock();
+
+      expectDefined(block);
+      expect(block.transactions).toHaveLength(5);
+      expect(block.transactions[0].status.toBoolean()).toBe(true);
+
+      await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+      const batch = await test.produceBatch();
+
+      expectDefined(batch);
+
+      console.log(batch.proof);
+
+      expect(batch.blockHashes).toHaveLength(6);
+      expect(batch.proof.proof.length).toBeGreaterThan(50);
+    },
+    timeout * 10
   );
 });

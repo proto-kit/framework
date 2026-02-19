@@ -2,6 +2,8 @@ import type { Proof } from "o1js";
 import { singleton } from "tsyringe";
 import uniqueId from "lodash/uniqueId";
 
+import { log } from "../log";
+
 import type { ArgumentTypes } from "./provableMethod";
 
 const errors = {
@@ -33,9 +35,12 @@ export class ProvableMethodExecutionResult {
       throw errors.proverNotSet(this.moduleName, this.methodName);
     }
 
+    log.debug("Proving work started");
     // turn the prover result into the desired proof type
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return (await this.prover()) as ProofType;
+    const proof = (await this.prover()) as ProofType;
+    log.debug("Proving work ended");
+    return proof;
   }
 }
 

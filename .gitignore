@@ -8,6 +8,7 @@ docs
 
 # dependencies
 node_modules
+.nx
 
 # IDEs and editors
 /.idea

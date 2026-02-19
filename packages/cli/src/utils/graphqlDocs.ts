@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
@@ -85,7 +83,10 @@ function cleanUp(generatedPath: string) {
   }
 }
 export async function generateGqlDocs(gqlUrl: string) {
-  const templatePath = path.resolve(dirname, "../spectaql.config.template.yml");
+  const templatePath = path.resolve(
+    dirname,
+    "../../spectaql.config.template.yml"
+  );
   const generatedPath = path.resolve(process.cwd(), "spectaql.config.yml");
 
   if (!fs.existsSync(templatePath)) {
@@ -112,4 +113,3 @@ export async function generateGqlDocs(gqlUrl: string) {
   console.log("Docs generated successfully!");
   cleanUp(generatedPath);
 }
-/* eslint-enable no-console */

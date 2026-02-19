@@ -14,9 +14,9 @@ import {
   BlockArguments,
   BlockArgumentsBatch,
   BlockProverStateInput,
-  BLOCK_ARGUMENT_BATCH_SIZE,
+  ProtocolConstants,
 } from "@proto-kit/protocol";
-import { Bool, Provable } from "o1js";
+import { Bool } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
@@ -112,7 +112,10 @@ export class NewBlockTask
       blocks,
     } = parameters;
 
-    if (blocks.length !== BLOCK_ARGUMENT_BATCH_SIZE) {
+    if (
+      blocks.length !==
+      ProtocolConstants.getConstant("BLOCK_ARGUMENT_BATCH_SIZE", parseInt)
+    ) {
       throw new Error("Given block argument length not exactly batch size");
     }
 
@@ -155,21 +158,15 @@ export class NewBlockTask
       }
     );
 
-    const proof = await executeWithPrefilledStateService(
+    return await executeWithPrefilledStateService(
       this.protocol.stateServiceProvider,
       stateRecords,
       async () =>
         await this.executionContext.current().result.prove<BlockProof>()
     );
-
-    Provable.log("Input", proof.publicInput);
-    Provable.log("Output", proof.publicOutput);
-
-    return proof;
   }
 
   public async prepare(): Promise<void> {
-    // Compile
-    await this.transactionProver.compile(this.compileRegistry);
+    await this.blockProver.compile(this.compileRegistry);
   }
 }

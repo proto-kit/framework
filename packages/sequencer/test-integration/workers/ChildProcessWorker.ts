@@ -3,14 +3,25 @@ import { spawn, ChildProcess } from "node:child_process";
 export class ChildProcessWorker {
   process?: ChildProcess;
 
-  start(forwardLogs: boolean = true, env_args: Record<string, string> = {}) {
+  start(
+    name: string,
+    file: string,
+    forwardLogs: boolean = true,
+    env_args: Record<string, string> = {}
+  ) {
+    // eslint-disable-next-line no-console
+    console.log("Spawning process");
+
     const s = spawn(
       "node",
       [
+        "--loader",
+        "ts-node/esm",
         "--experimental-vm-modules",
         "--experimental-wasm-modules",
-        "../../node_modules/jest/bin/jest.js",
-        "./test-integration/workers/worker.test.ts",
+        "--es-module-specifier-resolution=node",
+        "--no-warnings",
+        file,
       ],
       {
         env: {
@@ -20,19 +31,29 @@ export class ChildProcessWorker {
         },
       }
     );
+
+    [
+      "exit",
+      "SIGINT",
+      "SIGUSR1",
+      "SIGUSR2",
+      "uncaughtException",
+      "SIGTERM",
+    ].forEach((eventType) => {
+      process.on(eventType, () => this.kill());
+    });
+
     s.on("error", (err) => {
       // eslint-disable-next-line no-console
       console.error(err);
     });
     if (forwardLogs) {
       s.stdout.on("data", (data) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        process.stdout.write(data);
+        process.stdout.write(`\x1b[34m${name}: ${data}\x1b[0m`);
       });
     }
     s.stderr.on("data", (data) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      process.stderr.write(data);
+      process.stderr.write(`${name}: ${data}`);
     });
 
     this.process = s;

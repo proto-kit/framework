@@ -3,22 +3,26 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "version": "0.1.1-develop.833+397881ed",
+  "version": "0.1.1-develop.2137+8a7eca31",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
-    "test:watch": "npm run test:file -- ./test/** --watch"
+    "test:watch": "npm run test:file -- ./test/** --watch",
+    "test:integration": "npm run test:file -- ./test-integration/** --runInBand"
   },
   "main": "dist/index.js",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
+    "@types/async-lock": "^1.4.2",
     "@types/yargs": "^17.0.29",
+    "async-lock": "^1.4.1",
     "loglevel": "^1.8.1",
+    "minio": "^8.0.6",
     "reflect-metadata": "^0.1.13",
     "yargs": "^17.7.2"
   },
@@ -27,12 +31,13 @@
     "@proto-kit/persistance": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
-    "bullmq": "^3.15.8",
+    "bullmq": "^4.18.3",
     "o1js": "^2.10.0",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
-    "@jest/globals": "^29.5.0"
+    "@jest/globals": "^29.5.0",
+    "cachedir": "^2.4.0"
   },
-  "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
+  "gitHead": "8a7eca319272a15162dc4ad04bdc134b1017716d"
 }

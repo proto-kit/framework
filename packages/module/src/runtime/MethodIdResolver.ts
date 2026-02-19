@@ -29,7 +29,9 @@ export class MethodIdResolver {
       this.runtime.assertIsValidModuleName(moduleName);
 
       runtime.resolve(moduleName).runtimeMethodNames.forEach((methodName) => {
-        dict[this.getMethodId(moduleName, methodName).toString()] = {
+        const methodId = this.getMethodId(moduleName, methodName).toString();
+
+        dict[methodId] = {
           moduleName,
           methodName,
         };

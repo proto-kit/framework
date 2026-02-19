@@ -1,17 +1,9 @@
-/* eslint-disable func-names */
-import {
-  AccountUpdate,
-  fetchAccount,
-  Lightnet,
-  Mina,
-  Provable,
-  PublicKey,
-} from "o1js";
-
 import "reflect-metadata";
 import { getRequiredEnv } from "../../utils/loadEnv";
 
 export default async function (publicKey: string) {
+  const { AccountUpdate, fetchAccount, Lightnet, Mina, Provable, PublicKey } =
+    await import("o1js");
   // configuration
   const fee = 0.1 * 1e9;
   const fundingAmount = 1000 * 1e9;
@@ -76,4 +68,3 @@ export default async function (publicKey: string) {
     publicKey: pair.publicKey.toBase58(),
   });
 }
-/* eslint-enable func-names */

@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 
-export function resolveChainPath(): string {
+export function resolveChainPath(isFolderRequired?: boolean): string {
   let currentDir = process.cwd();
   while (true) {
     const candidate = path.join(currentDir, "packages", "chain");
@@ -17,8 +17,10 @@ export function resolveChainPath(): string {
 
     currentDir = parent;
   }
-
-  throw new Error(
-    "Unable to locate packages/chain. Make sure you run this command inside the project repository."
-  );
+  if (isFolderRequired === true) {
+    throw new Error(
+      "Unable to locate packages/chain. Make sure you run this command inside the project repository."
+    );
+  }
+  return "";
 }

@@ -1,18 +1,18 @@
-/* eslint-disable no-console */
-
 import {
   LoadEnvOptions,
   getRequiredEnv,
   loadEnvironmentVariables,
 } from "../../utils/loadEnv";
-import settlementDeployScript from "../settlement/deploy";
-
-import lightnetWaitForNetworkScript from "./wait-for-network";
-import lightnetFaucetScript from "./faucet";
 
 export default async function (options: LoadEnvOptions) {
   loadEnvironmentVariables(options);
-
+  const { default: lightnetWaitForNetworkScript } = await import(
+    "./wait-for-network"
+  );
+  const { default: lightnetFaucetScript } = await import("./faucet");
+  const { default: settlementDeployScript } = await import(
+    "../settlement/deploy"
+  );
   console.log("Step 1: Waiting for network to be ready...");
   await lightnetWaitForNetworkScript(options);
 
@@ -29,4 +29,3 @@ export default async function (options: LoadEnvOptions) {
     "Lightnet initialization complete! Settlement contracts are deployed."
   );
 }
-/* eslint-enable no-console */

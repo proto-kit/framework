@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 /* eslint-disable sonarjs/cognitive-complexity */
 import * as fs from "fs";
 import * as path from "path";
@@ -21,9 +19,8 @@ export default async function () {
   try {
     const answers = await promptUser();
 
-    const cwd = process.cwd();
     const envDir = path.join(
-      resolveChainPath(),
+      resolveChainPath(true),
       "src",
       "core",
       "environments",
@@ -44,7 +41,7 @@ export default async function () {
       return;
     }
 
-    copyAndUpdateEnvFile(answers, cwd, envDir);
+    copyAndUpdateEnvFile(answers, envDir);
     const chainConfig = generateChainConfig(answers);
     fs.writeFileSync(chainConfigPath, chainConfig);
 
@@ -114,6 +111,4 @@ export default async function () {
     process.exit(1);
   }
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */
 /* eslint-enable sonarjs/cognitive-complexity */

@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 import { PrivateKey } from "o1js";
 
 export type GenerateKeysArgs = {
@@ -18,4 +16,3 @@ export default async function (args: GenerateKeysArgs) {
     console.log("-".repeat(70));
   }
 }
-/* eslint-enable no-console */

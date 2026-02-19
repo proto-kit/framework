@@ -21,6 +21,7 @@ import {
   LocalTaskQueue,
   AppChainModulesRecord,
   InMemoryMinaSigner,
+  BridgingModule,
 } from "@proto-kit/sequencer";
 import {
   IndexerNotifier,
@@ -47,6 +48,7 @@ import {
 } from "@proto-kit/sdk";
 import { PrivateKey } from "o1js";
 import { NonEmptyArray } from "type-graphql";
+import { ModulesConfig } from "@proto-kit/common";
 
 import {
   buildCustomTokenConfig,
@@ -83,9 +85,6 @@ export class DefaultModules {
       BlockProducerModule,
       BlockTrigger: TimedBlockTrigger,
       SequencerStartupModule,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.withoutSettlement()
-      ),
     } satisfies SequencerModulesRecord;
   }
 
@@ -102,9 +101,7 @@ export class DefaultModules {
       BatchProducerModule,
       SettlementModule,
       SettlementSigner: InMemoryMinaSigner,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.allTasks()
-      ),
+      BridgingModule,
     } satisfies SequencerModulesRecord;
   }
 
@@ -159,8 +156,13 @@ export class DefaultModules {
     } satisfies SequencerModulesRecord;
   }
 
-  static localTaskQueue() {
+  static localWorker(options?: { settlementEnabled?: boolean }) {
     return {
+      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+        options?.settlementEnabled === true
+          ? VanillaTaskWorkerModules.allTasks()
+          : VanillaTaskWorkerModules.withoutSettlement()
+      ),
       TaskQueue: LocalTaskQueue,
     } satisfies SequencerModulesRecord;
   }
@@ -171,7 +173,7 @@ export class DefaultModules {
     } satisfies SequencerModulesRecord;
   }
 
-  static worker() {
+  static remoteWorker() {
     return {
       TaskQueue: BullQueue,
       LocalTaskWorkerModule: LocalTaskWorkerModule.from(
@@ -193,7 +195,11 @@ export class DefaultModules {
       ...DefaultModules.settlement(),
       Mempool: PrivateMempool,
       TaskQueue: LocalTaskQueue,
+      LocalTaskWorker: LocalTaskWorkerModule.from(
+        VanillaTaskWorkerModules.allTasks()
+      ),
       SequencerStartupModule,
+      BridgingModule: BridgingModule,
     } satisfies SequencerModulesRecord;
   }
 }
@@ -374,16 +380,23 @@ export class DefaultConfigs {
     return {
       BaseLayer: {
         network: {
-          type: "lightnet" as const,
-          graphql: config.minaNodeGraphqlHost,
-          archive: config.minaArchiveGraphqlHost,
-          accountManager: config.minaAccountManagerHost,
+          type: config.minaNetwork,
+          graphql: `${config.minaNodeGraphqlHost}:${config.minaNodeGraphqlPort}/graphql`,
+          archive: `${config.minaArchiveGraphqlHost}:${config.minaArchiveGraphqlPort}`,
+          accountManager: `${config.minaAccountManagerHost}:${config.minaAccountManagerPort}`,
         },
       },
       SettlementModule: {
         addresses: {
           SettlementContract: PrivateKey.fromBase58(
             config.settlementContractPrivateKey
+          ).toPublicKey(),
+        },
+      },
+      BridgingModule: {
+        addresses: {
+          DispatchContract: PrivateKey.fromBase58(
+            config.dispatcherContractPrivateKey
           ).toPublicKey(),
         },
       },
@@ -428,10 +441,13 @@ export class DefaultConfigs {
     };
   }
 
-  static localTaskQueue() {
+  static localWorker() {
     return {
       TaskQueue: {},
-    };
+      LocalTaskWorkerModule: {
+        ...VanillaTaskWorkerModules.defaultConfig(),
+      },
+    } satisfies ModulesConfig<ReturnType<typeof DefaultModules.localWorker>>;
   }
 
   static redisTaskQueue(options?: {
@@ -526,7 +542,9 @@ export class DefaultConfigs {
       TaskQueue: {
         simulatedDuration: 0,
       },
+      LocalTaskWorker: VanillaTaskWorkerModules.defaultConfig(),
       Mempool: {},
+      BridgingModule: {},
     };
   }
 }

@@ -7,7 +7,7 @@ import {
   sequencerModule,
   SequencerModule,
 } from "../../sequencer/builder/SequencerModule";
-import { TransactionStorage } from "../../storage/repositories/TransactionStorage";
+import type { TransactionStorage } from "../../storage/repositories/TransactionStorage";
 import { TransactionValidator } from "../verification/TransactionValidator";
 import { Tracer } from "../../logging/Tracer";
 import { trace } from "../../logging/trace";
@@ -47,8 +47,12 @@ export class PrivateMempool
   }
 
   public async length(): Promise<number> {
-    const txs = await this.transactionStorage.getPendingUserTransactions(0);
-    return txs.length;
+    const numUserTxs =
+      await this.transactionStorage.countPendingUserTransactions();
+
+    const messages = await this.getMandatoryTxs();
+
+    return numUserTxs + messages.length;
   }
 
   public async add(tx: PendingTransaction): Promise<boolean> {

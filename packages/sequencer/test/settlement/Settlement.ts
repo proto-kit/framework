@@ -3,6 +3,7 @@ import {
   mapSequential,
   TypedClass,
   LinkedMerkleTree,
+  ModulesConfig,
 } from "@proto-kit/common";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { Runtime } from "@proto-kit/module";
@@ -40,6 +41,7 @@ import {
 import "reflect-metadata";
 import { container } from "tsyringe";
 import { FungibleToken, FungibleTokenAdmin } from "mina-fungible-token";
+import { BullQueue, BullQueueConfig } from "@proto-kit/deployment";
 
 import {
   ManualBlockTrigger,
@@ -48,7 +50,6 @@ import {
   BlockQueue,
   SettlementModule,
   MinaBaseLayer,
-  SettlementProvingTask,
   MinaTransactionSender,
   MinaBaseLayerConfig,
   SignedSettlementPermissions,
@@ -57,9 +58,15 @@ import {
   Sequencer,
   InMemoryMinaSigner,
   CircuitAnalysisModule,
+  LocalTaskWorkerModule,
+  InMemoryDatabase,
+  BatchProducerModule,
+  BlockProducerModule,
+  LocalTaskQueue,
+  ConstantFeeStrategy,
+  SequencerStartupModule,
 } from "../../src";
 import { BlockProofSerializer } from "../../src/protocol/production/tasks/serializers/BlockProofSerializer";
-import { testingSequencerModules } from "../TestingSequencer";
 import { createTransaction } from "../integration/utils";
 import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 import { BridgingModule } from "../../src/settlement/BridgingModule";
@@ -70,17 +77,57 @@ import { MinaNetworkUtils } from "../../src/protocol/baselayer/network-utils/Min
 import { Balances, BalancesKey } from "./mocks/Balances";
 import { WithdrawalMessageProcessor, Withdrawals } from "./mocks/Withdrawals";
 
+export const runtimeModules = {
+  Balances,
+  Withdrawals,
+};
+
+export const runtimeModulesConfig = {
+  Balances: {
+    totalSupply: UInt64.from(1000),
+  },
+  Withdrawals: {},
+} satisfies ModulesConfig<typeof runtimeModules>;
+
+export const protocolModules = {
+  ...VanillaProtocolModules.mandatoryModules({}),
+  SettlementContractModule: SettlementContractModule.from({
+    ...SettlementContractModule.settlementAndBridging(),
+    FungibleToken: FungibleTokenContractModule,
+    FungibleTokenAdmin: FungibleTokenAdminContractModule,
+  }),
+  WithdrawalMessageProcessor,
+};
+
+export const protocolModulesConfig = {
+  ...Protocol.defaultConfig(),
+  SettlementContractModule: {
+    SettlementContract: {},
+    BridgeContract: {},
+    DispatchContract: {
+      incomingMessagesMethods: {
+        deposit: "Balances.deposit",
+      },
+    },
+    FungibleToken: {},
+    FungibleTokenAdmin: {},
+  },
+  WithdrawalMessageProcessor: {},
+} satisfies ModulesConfig<typeof protocolModules>;
+
 export const settlementTestFn = (
   settlementType: "signed" | "mock-proofs" | "proven",
   baseLayerConfig: MinaBaseLayerConfig,
   tokenConfig?: {
     tokenOwner: TypedClass<FungibleToken> & typeof SmartContract;
   },
-  timeout: number = 120_000
+  timeout: number = 120_000,
+  bullQueueConfig?: BullQueueConfig,
+  fundedKeysInput: PrivateKey[] = []
 ) => {
-  let testAccounts: PrivateKey[] = [];
+  let testAccounts: PrivateKey[] = fundedKeysInput.slice(1);
 
-  const sequencerKey = PrivateKey.random();
+  const sequencerKey = fundedKeysInput[0] ?? PrivateKey.random();
   const settlementKey = PrivateKey.random();
   const dispatchKey = PrivateKey.random();
   const minaBridgeKey = PrivateKey.random();
@@ -117,42 +164,41 @@ export const settlementTestFn = (
     tokenConfig === undefined ? TokenId.default : tokenOwner!.deriveTokenId();
 
   function setupAppChain() {
-    const runtime = Runtime.from({
-      Balances,
-      Withdrawals,
-    });
+    const runtime = Runtime.from(runtimeModules);
 
     // eslint-disable-next-line @typescript-eslint/dot-notation
     MinaBaseLayer.prototype["isSignedSettlement"] = () =>
       settlementType === "signed";
 
-    const sequencer = Sequencer.from(
-      testingSequencerModules(
-        {
-          BaseLayer: MinaBaseLayer,
-          SettlementModule: SettlementModule,
-          BridgingModule: BridgingModule,
-          SettlementSigner: InMemoryMinaSigner,
-        },
-        {
-          SettlementProvingTask,
-        }
-      )
+    const taskWorkerModule = LocalTaskWorkerModule.from(
+      VanillaTaskWorkerModules.allTasks()
     );
+
+    const sequencer = Sequencer.from({
+      Database: InMemoryDatabase,
+      Mempool: PrivateMempool,
+      BatchProducerModule,
+      BlockProducerModule,
+      BlockTrigger: ManualBlockTrigger,
+      TaskQueue: bullQueueConfig !== undefined ? BullQueue : LocalTaskQueue,
+      FeeStrategy: ConstantFeeStrategy,
+      BaseLayer: MinaBaseLayer,
+      SettlementModule: SettlementModule,
+      BridgingModule: BridgingModule,
+      SettlementSigner: InMemoryMinaSigner,
+      ...(bullQueueConfig !== undefined
+        ? {}
+        : {
+            LocalTaskWorkerModule: taskWorkerModule,
+          }),
+      SequencerStartupModule,
+    });
 
     const appchain = ClientAppChain.from({
       Runtime: runtime,
       Sequencer: sequencer,
 
-      Protocol: Protocol.from({
-        ...VanillaProtocolModules.mandatoryModules({}),
-        SettlementContractModule: SettlementContractModule.from({
-          ...SettlementContractModule.settlementAndBridging(),
-          FungibleToken: FungibleTokenContractModule,
-          FungibleTokenAdmin: FungibleTokenAdminContractModule,
-        }),
-        WithdrawalMessageProcessor,
-      }),
+      Protocol: Protocol.from(protocolModules),
 
       Signer: InMemorySigner,
       TransactionSender: InMemoryTransactionSender,
@@ -162,12 +208,7 @@ export const settlementTestFn = (
     });
 
     appchain.configure({
-      Runtime: {
-        Balances: {
-          totalSupply: UInt64.from(1000),
-        },
-        Withdrawals: {},
-      },
+      Runtime: runtimeModulesConfig,
 
       Sequencer: {
         Database: {},
@@ -193,25 +234,11 @@ export const settlementTestFn = (
         BridgingModule: {},
         SequencerStartupModule: {},
 
-        TaskQueue: {
+        TaskQueue: bullQueueConfig ?? {
           simulatedDuration: 0,
         },
       },
-      Protocol: {
-        ...Protocol.defaultConfig(),
-        SettlementContractModule: {
-          SettlementContract: {},
-          BridgeContract: {},
-          DispatchContract: {
-            incomingMessagesMethods: {
-              deposit: "Balances.deposit",
-            },
-          },
-          FungibleToken: {},
-          FungibleTokenAdmin: {},
-        },
-        WithdrawalMessageProcessor: {},
-      },
+      Protocol: protocolModulesConfig,
       TransactionSender: {},
       QueryTransportModule: {},
       Signer: {
@@ -264,6 +291,10 @@ export const settlementTestFn = (
     return result;
   }
 
+  let nonceCounter = 0;
+  let user0Nonce = 0;
+  let acc0L2Nonce = 0;
+
   beforeAll(async () => {
     appChain = setupAppChain();
 
@@ -292,27 +323,38 @@ export const settlementTestFn = (
       appChain.sequencer.dependencyContainer.resolve<MinaNetworkUtils>(
         "NetworkUtils"
       );
-    const accs = await networkUtils.getFundedAccounts(3);
-    testAccounts = accs.slice(1);
-
     await networkUtils.waitForNetwork();
 
-    console.log(
-      `Funding ${sequencerKey.toPublicKey().toBase58()} from ${accs[0].toPublicKey().toBase58()}`
-    );
+    if (fundedKeysInput.length === 0) {
+      const accs = await networkUtils.getFundedAccounts(2);
+      testAccounts = accs.slice(1);
 
-    await networkUtils.faucet(sequencerKey.toPublicKey(), 20 * 1e9);
+      console.log(
+        `Funding ${sequencerKey.toPublicKey().toBase58()} from ${accs[0].toPublicKey().toBase58()}`
+      );
+
+      await networkUtils.faucet(sequencerKey.toPublicKey(), 20 * 1e9);
+    } else {
+      const sequencerAccount = await fetchAccount({
+        publicKey: fundedKeysInput[0].toPublicKey(),
+      });
+      nonceCounter = parseInt(
+        sequencerAccount.account?.nonce.toString() ?? "0",
+        10
+      );
+
+      const account = await fetchAccount({
+        publicKey: testAccounts[0].toPublicKey(),
+      });
+      user0Nonce = parseInt(account.account?.nonce.toString() ?? "0", 10);
+    }
   }, timeout * 3);
 
   afterAll(async () => {
-    container.resolve(ContractArgsRegistry).resetArgs("SettlementContract");
+    container.resolve(ContractArgsRegistry).resetArgs();
 
     await appChain.close();
   });
-
-  let nonceCounter = 0;
-  let user0Nonce = 0;
-  let acc0L2Nonce = 0;
 
   it.skip("Print constraint summary", async () => {
     await appChain.protocol.dependencyContainer
@@ -608,6 +650,7 @@ export const settlementTestFn = (
           signingWithSignatureCheck: [
             tokenOwnerPubKeys.tokenOwner,
             settlementModule.getSettlementContractAddress(),
+            bridgingModule.getDispatchContractAddress(),
           ],
           signingPublicKeys: [userPublicKey],
           preventNoncePreconditionFor: [dispatch.address],

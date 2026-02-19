@@ -66,6 +66,10 @@ export class InMemoryTransactionStorage implements TransactionStorage {
     return this.queue.slice(from, to).map(({ tx }) => tx);
   }
 
+  public async countPendingUserTransactions() {
+    return (await this.getPendingUserTransactions(0)).length;
+  }
+
   public async pushUserTransaction(
     tx: PendingTransaction,
     priority: number

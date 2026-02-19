@@ -1,4 +1,11 @@
-import { Bool, Field, FlexibleProvablePure, Provable, Struct } from "o1js";
+import {
+  Bool,
+  Field,
+  FlexibleProvablePure,
+  Provable,
+  Struct,
+  Unconstrained,
+} from "o1js";
 import {
   LinkedMerkleTree,
   LinkedMerkleTreeReadWitness,
@@ -19,11 +26,13 @@ export function createMessageStruct<T>(type: FlexibleProvablePure<T>) {
 export class OutgoingMessageArgument extends Struct({
   witness: LinkedMerkleTreeReadWitness,
   messageType: Field,
+  data: Unconstrained<string[]>,
 }) {
   public static dummy(): OutgoingMessageArgument {
     return new OutgoingMessageArgument({
       witness: LinkedMerkleTree.dummyReadWitness(),
       messageType: Field(0),
+      data: Unconstrained.from([]),
     });
   }
 }

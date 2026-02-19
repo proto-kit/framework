@@ -1,12 +1,15 @@
 {
   "name": "@proto-kit/explorer",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.1-develop.2137+8a7eca31",
+  "private": false,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",
@@ -42,5 +45,6 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
-  }
+  },
+  "gitHead": "8a7eca319272a15162dc4ad04bdc134b1017716d"
 }

@@ -11,6 +11,8 @@ export interface TransactionStorage {
     limit?: number
   ) => Promise<PendingTransaction[]>;
 
+  countPendingUserTransactions: () => Promise<number>;
+
   removeTx: (txHashes: string[], type: "included" | "dropped") => Promise<void>;
 
   /**

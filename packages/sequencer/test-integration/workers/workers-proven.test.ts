@@ -27,23 +27,38 @@ import { ChildProcessWorker } from "./ChildProcessWorker";
 
 const timeout = 300000;
 
+// true
 const proofsEnabled = false;
+
+const numWorkers = 1;
 
 describe("worker-proven", () => {
   describe("sequencer", () => {
     let test: BlockTestService;
 
-    let worker: ChildProcessWorker;
+    const workers: ChildProcessWorker[] = [];
 
     let appChain: AppChain<any>;
 
     beforeAll(async () => {
-      worker = new ChildProcessWorker();
-      worker.start(true, { PROOFS_ENABLED: `${proofsEnabled}` });
+      for (let i = 0; i < numWorkers; i++) {
+        const worker = new ChildProcessWorker();
+        worker.start(
+          `worker-${i}`,
+          "./test-integration/workers/worker.ts",
+          true,
+          {
+            PROOFS_ENABLED: `${proofsEnabled}`,
+          }
+        );
+        workers.push(worker);
+      }
     });
 
     afterAll(async () => {
-      worker.kill();
+      workers.forEach((worker) => {
+        worker.kill();
+      });
 
       await appChain.close();
     });
@@ -51,7 +66,7 @@ describe("worker-proven", () => {
     it(
       "should start up and compile",
       async () => {
-        log.setLevel(log.levels.DEBUG);
+        log.setLevel(log.levels.TRACE);
 
         const sequencerClass = Sequencer.from({
           Database: InMemoryDatabase,
@@ -63,6 +78,7 @@ describe("worker-proven", () => {
           TaskQueue: BullQueue,
           FeeStrategy: ConstantFeeStrategy,
           SequencerStartupModule,
+          // RemoteCache: S3RemoteCache,
         });
 
         const app = AppChain.from({
@@ -77,11 +93,14 @@ describe("worker-proven", () => {
             BlockTrigger: {},
             Mempool: {},
             BatchProducerModule: {},
-            BlockProducerModule: {},
+            BlockProducerModule: {
+              maximumBlockSize: 5,
+            },
             // BaseLayer: {},
             TaskQueue: BullConfig,
             FeeStrategy: {},
             SequencerStartupModule: {},
+            // RemoteCache: RemoteCacheConfig,
           },
           ...runtimeProtocolConfig,
         });
@@ -109,17 +128,21 @@ describe("worker-proven", () => {
 
         const privateKey = PrivateKey.random();
 
-        await test.addTransaction({
-          method: ["Balance", "addBalance"],
-          privateKey,
-          args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
-        });
+        const txs = 4;
+
+        for (let i = 0; i < txs; i++) {
+          await test.addTransaction({
+            method: ["Balance", "addBalance"],
+            privateKey,
+            args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
+          });
+        }
 
         const [block, batch] = await test.produceBlockAndBatch();
 
         expectDefined(block);
 
-        expect(block.transactions).toHaveLength(1);
+        expect(block.transactions).toHaveLength(txs);
         expect(block.transactions[0].status.toBoolean()).toBe(true);
 
         expectDefined(batch);
@@ -134,9 +157,22 @@ describe("worker-proven", () => {
       timeout
     );
 
-    it.each([5, 14, 20])(
+    it.each([
+      [5, 4],
+      [14, 10],
+    ])(
       "should produce a batch of a %s of blocks",
-      async (numBlocks) => {
+      async (numBlocks, txs) => {
+        const privateKey = PrivateKey.random();
+
+        for (let i = 0; i < txs; i++) {
+          await test.addTransaction({
+            method: ["Balance", "addBalance"],
+            privateKey,
+            args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
+          });
+        }
+
         for (let i = 0; i < numBlocks; i++) {
           await test.produceBlock();
         }

@@ -1,9 +1,6 @@
-import { inject, injectable, singleton } from "tsyringe";
+import { injectable, singleton } from "tsyringe";
 
-import {
-  AreProofsEnabled,
-  CompileArtifact,
-} from "../zkProgrammable/ZkProgrammable";
+import { CompileArtifact } from "../zkProgrammable/ZkProgrammable";
 
 import {
   ArtifactRecord,
@@ -19,18 +16,11 @@ import {
 @injectable()
 @singleton()
 export class CompileRegistry {
-  public constructor(
-    @inject("AreProofsEnabled")
-    private readonly areProofsEnabled: AreProofsEnabled
-  ) {
-    this.compiler = new AtomicCompileHelper(this.areProofsEnabled);
-  }
-
-  private compiler: AtomicCompileHelper;
+  public constructor(private readonly compiler: AtomicCompileHelper) {}
 
   private artifacts: ArtifactRecord = {};
 
-  private inForceProverBlock = false;
+  private proverMode: "sideloaded" | "baked" | "unset" = "unset";
 
   /**
    * This function forces compilation even if the artifact itself is in the registry.
@@ -38,21 +28,45 @@ export class CompileRegistry {
    * actually have the prover compiled.
    * This is true for non-sideloaded circuit dependencies.
    */
-  public async forceProverExists<R>(
+  public async proverNeeded<R>(
     f: (registry: CompileRegistry) => Promise<R>
   ): Promise<R> {
-    this.inForceProverBlock = true;
+    if (this.proverMode === "unset") {
+      this.proverMode = "baked";
+
+      const result = await f(this);
+
+      this.proverMode = "unset";
+      return result;
+    } else {
+      return await f(this);
+    }
+  }
+
+  public async sideloaded<R>(
+    f: (registry: CompileRegistry) => Promise<R>
+  ): Promise<R> {
+    const previous = this.proverMode;
+    this.proverMode = "sideloaded";
     const result = await f(this);
-    this.inForceProverBlock = false;
+    this.proverMode = previous;
     return result;
   }
 
-  public async compile(target: CompileTarget, nameOverride?: string) {
+  public async compile(
+    target: CompileTarget,
+    nameOverride?: string
+  ): Promise<CompileArtifact> {
     const name = nameOverride ?? target.name;
-    if (this.artifacts[name] === undefined || this.inForceProverBlock) {
+    if (this.artifacts[name] === undefined || this.proverMode === "baked") {
       const artifact = await this.compiler.compileContract(target);
       this.artifacts[name] = artifact;
       return artifact;
+    } else if (this.proverMode === "unset") {
+      // TODO Maybe think about relaxing this requirement and "assume" provers are needed by default
+      throw new Error(
+        "Please call compile only inside a previous .proverNeeded or .sideloaded call"
+      );
     }
     return this.artifacts[name];
   }

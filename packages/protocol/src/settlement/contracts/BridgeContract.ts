@@ -1,7 +1,6 @@
 import {
   AccountUpdate,
   Bool,
-  Experimental,
   Field,
   method,
   Permissions,
@@ -17,7 +16,7 @@ import {
   VerificationKey,
 } from "o1js";
 import { noop, range, TypedClass } from "@proto-kit/common";
-import { container, injectable, singleton } from "tsyringe";
+import { container } from "tsyringe";
 
 import {
   OUTGOING_MESSAGE_BATCH_SIZE,
@@ -61,16 +60,10 @@ export class OutgoingMessageKey extends Struct({
   tokenId: Field,
 }) {}
 
-@injectable()
-@singleton()
-export class BridgeContractContext {
-  public data: {
-    messageInputs: any[][];
-  } = { messageInputs: [] };
-}
-
 export interface BridgeContractArgs {
-  SettlementContract: TypedClass<BridgingSettlementContractType> &
+  SettlementContract: TypedClass<
+    Pick<BridgingSettlementContractType, "assertStateRoot">
+  > &
     typeof SmartContract;
   messageProcessors: OutgoingMessageProcessor<unknown>[];
   batchSize?: number;
@@ -171,40 +164,54 @@ export abstract class BridgeContractBase
     );
   }
 
-  private executeProcessors(batchIndex: number, args: OutgoingMessageArgument) {
+  private executeProcessors(args: OutgoingMessageArgument) {
     const { messageProcessors } = this.getInitializationArgs();
     return messageProcessors.map((processor, j) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const value = Experimental.memoizeWitness(processor.type, () => {
-        return container.resolve(BridgeContractContext).data.messageInputs[
-          batchIndex
-        ][j];
+      const messageType = processor.getMessageType();
+
+      // Create the message struct from unconstrained message argument Field[]
+      const value = Provable.witness(processor.type, () => {
+        if (args.messageType.toString() === messageType.toString()) {
+          /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+          const fieldData = args.data.get();
+          // This is a workaround for this being proven on a worker
+          // The parsing seems to not unwrap the option object in Unconstrained, so
+          // we use this workaround to parse out the string[]
+          let fields: string[];
+          if (fieldData.option !== undefined) {
+            fields = fieldData.option.value;
+          } else {
+            fields = fieldData;
+          }
+          /* eslint-enable @typescript-eslint/no-unsafe-assignment */
+          return processor.type.fromFields(fields.map(Field));
+        } else {
+          return processor.dummy();
+        }
       });
 
       const MessageType = createMessageStruct(processor.type);
       const message = new MessageType({
-        messageType: args.messageType,
+        messageType,
         value,
       });
+      const result = processor.processMessage(value, {
+        bridgeContract: {
+          publicKey: this.address,
+          tokenId: this.tokenId,
+        },
+      });
       return {
-        messageType: args.messageType,
-        result: processor.processMessage(value, {
-          bridgeContract: {
-            publicKey: this.address,
-            tokenId: this.tokenId,
-          },
-        }),
+        // messageType is authenticated via the hash, which is checked again
+        messageType,
+        result,
         hash: Poseidon.hash(MessageType.toFields(message)),
       };
     });
   }
 
-  public processMessage(
-    batchIndex: number,
-    args: OutgoingMessageArgument,
-    isDummy: Bool
-  ) {
-    const results = this.executeProcessors(batchIndex, args);
+  public processMessage(args: OutgoingMessageArgument, isDummy: Bool) {
+    const results = this.executeProcessors(args);
 
     const maxAccountUpdates = Math.max(
       0,
@@ -290,7 +297,7 @@ export abstract class BridgeContractBase
 
       const isDummy = batch.isDummys[i];
 
-      const message = this.processMessage(i, args, isDummy);
+      const message = this.processMessage(args, isDummy);
 
       // Check witness
       const path = Path.fromKey(
@@ -321,7 +328,7 @@ export abstract class BridgeContractBase
           const isNew = accountUpdate.account.isNew.getAndRequireEquals();
           return Provable.if(isNew, Field(1), Field(0));
         })
-        .reduce((a, b) => a.add(b));
+        .reduce((a, b) => a.add(b), Field(0));
       accountCreationFeePaid = accountCreationFeePaid.add(newAccounts);
     }
 

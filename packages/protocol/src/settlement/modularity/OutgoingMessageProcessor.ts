@@ -3,9 +3,10 @@ import {
   Bool,
   Field,
   FlexibleProvablePure,
+  Poseidon,
   PublicKey,
 } from "o1js";
-import { implement, NoConfig } from "@proto-kit/common";
+import { implement, NoConfig, prefixToField } from "@proto-kit/common";
 
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 
@@ -55,7 +56,19 @@ export abstract class OutgoingMessageProcessor<
     };
   }
 
-  abstract type: FlexibleProvablePure<T>;
+  public getMessageType(): Field {
+    // TODO static salt/prefix
+    // This executes the bigint poseidon behind the scenes, therefore creates a constant
+    const messageType = Poseidon.hash([prefixToField(this.messageType)]);
+    if (!messageType.isConstant()) {
+      throw new Error(
+        "Underlying poseidon implementation has changed and doesn't create a constant anymore"
+      );
+    }
+    return messageType;
+  }
+
+  abstract type: FlexibleProvablePure<T> & { name: string };
 
   abstract messageType: string;
 

@@ -1,11 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
-import { ClientAppChain, InMemorySigner } from "@proto-kit/sdk";
-import { Field, PrivateKey, Provable } from "o1js";
-import { UInt64 } from "@proto-kit/library";
-import { Runtime } from "@proto-kit/module";
-import { Protocol } from "@proto-kit/protocol";
-
 import { loadEnvironmentVariables, LoadEnvOptions } from "../../utils/loadEnv";
 import { loadUserModules } from "../../utils/loadUserModules";
 
@@ -24,8 +16,14 @@ export default async function (
       "Bridge withdraw arguments required: tokenId, senderKey, amount"
     );
   }
-
   loadEnvironmentVariables(options);
+
+  const { ClientAppChain, InMemorySigner } = await import("@proto-kit/sdk");
+  const { Field, PrivateKey, Provable } = await import("o1js");
+  const { UInt64 } = await import("@proto-kit/library");
+  const { Runtime } = await import("@proto-kit/module");
+  const { Protocol } = await import("@proto-kit/protocol");
+
   const { runtime, protocol } = await loadUserModules();
   const tokenId = Field(bridgeArgs.tokenId);
   const amount = UInt64.from(bridgeArgs.amount * 1e9);
@@ -74,5 +72,3 @@ export default async function (
 
   await appChain.close();
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

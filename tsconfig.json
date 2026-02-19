@@ -20,5 +20,15 @@
     "baseUrl": ".",
     "sourceMap": true
   },
+  "ts-node": {
+    "experimentalSpecifierResolution": "node",
+    "esm": true,
+    "experimentalResolver": true,
+//    "transpileOnly": true,
+//    "swc": true,
+    "compilerOptions": {
+      "skipLibCheck": true,
+    }
+  },
   "exclude": ["jest.config.cjs"]
 }

@@ -7,8 +7,6 @@ import { cyan, green, blue, gray, bold } from "kleur/colors";
 
 import { resolveChainPath } from "./pathResolver";
 
-/* eslint-disable no-console */
-
 export const icons = {
   checkmark: figuresLib.tick,
   cross: figuresLib.cross,
@@ -395,11 +393,10 @@ export default async (args: Arguments): Promise<Startable> => {
 
 export function copyAndUpdateEnvFile(
   answers: WizardAnswers,
-  cwd: string,
   envDir: string
 ): boolean {
   const presetEnvPath = path.join(
-    resolveChainPath(),
+    resolveChainPath(true),
     "src",
     "core",
     "environments",
@@ -443,4 +440,3 @@ export function copyAndUpdateEnvFile(
     return false;
   }
 }
-/* eslint-enable no-console */
