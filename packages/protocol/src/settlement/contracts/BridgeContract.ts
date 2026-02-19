@@ -13,7 +13,6 @@ import {
   Struct,
   TokenContract,
   TokenId,
-  Unconstrained,
   VerificationKey,
 } from "o1js";
 import { noop, range, TypedClass } from "@proto-kit/common";

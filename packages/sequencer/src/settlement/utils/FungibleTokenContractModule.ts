@@ -12,7 +12,9 @@ export class FungibleTokenContractModule extends ContractModule<FungibleToken> {
     return FungibleToken;
   }
 
-  public async compile(registry: CompileRegistry): Promise<Record<string, CompileArtifact>> {
+  public async compile(
+    registry: CompileRegistry
+  ): Promise<Record<string, CompileArtifact>> {
     const vk = await registry.proverNeeded(
       async (reg) => await reg.compile(FungibleToken)
     );

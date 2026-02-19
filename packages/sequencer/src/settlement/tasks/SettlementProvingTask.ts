@@ -394,8 +394,6 @@ export class SettlementProvingTask
                   })
                   .filter(filterNonUndefined);
 
-                console.log("encoded args", JSON.stringify(encodedArgs));
-
                 return {
                   methodName: lazyProof.methodName,
                   zkappClassName: lazyProof.ZkappClass.name,
