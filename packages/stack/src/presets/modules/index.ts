@@ -374,7 +374,7 @@ export class DefaultConfigs {
     return {
       BaseLayer: {
         network: {
-          type: "lightnet" as const,
+          type: config.minaNetwork,
           graphql: config.minaNodeGraphqlHost,
           archive: config.minaArchiveGraphqlHost,
           accountManager: config.minaAccountManagerHost,

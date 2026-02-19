@@ -21,7 +21,7 @@ export type MetricsEnv = {
   tracingUrl: string;
 };
 export type SettlementEnv = {
-  minaNetwork: string;
+  minaNetwork: "lightnet" | "remote";
   minaNodeGraphqlHost: string;
   minaNodeGraphqlPort: number;
   minaArchiveGraphqlHost: string;
