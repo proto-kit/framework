@@ -1,11 +1,12 @@
 import {
   AreProofsEnabled,
-  DependencyFactory,
+  dependencyFactory,
+  DependencyRecord,
   ModuleContainerLike,
 } from "@proto-kit/common";
 import { Mina } from "o1js";
 import { match } from "ts-pattern";
-import { inject } from "tsyringe";
+import { DependencyContainer, inject } from "tsyringe";
 
 import { MinaIncomingMessageAdapter } from "../../settlement/messages/MinaIncomingMessageAdapter";
 import {
@@ -15,7 +16,7 @@ import {
 import { MinaTransactionSender } from "../../settlement/transactions/MinaTransactionSender";
 import { DefaultOutgoingMessageAdapter } from "../../settlement/messages/outgoing/DefaultOutgoingMessageAdapter";
 
-import { BaseLayer, StaticBaseLayer } from "./BaseLayer";
+import { BaseLayer, BaseLayerDependencyRecord } from "./BaseLayer";
 import { LocalBlockchainUtils } from "./network-utils/LocalBlockchainUtils";
 import { LightnetUtils } from "./network-utils/LightnetUtils";
 import { RemoteNetworkUtils } from "./network-utils/RemoteNetworkUtils";
@@ -46,9 +47,10 @@ export interface MinaBaseLayerConfig {
 }
 
 @sequencerModule()
+@dependencyFactory()
 export class MinaBaseLayer
   extends SequencerModule<MinaBaseLayerConfig>
-  implements BaseLayer, DependencyFactory
+  implements BaseLayer
 {
   public network?: Parameters<typeof Mina.setActiveInstance>[0];
 
@@ -63,7 +65,7 @@ export class MinaBaseLayer
     super();
   }
 
-  public static dependencies() {
+  public static dependencies(): BaseLayerDependencyRecord<MinaBaseLayer> {
     return {
       IncomingMessageAdapter: {
         useClass: MinaIncomingMessageAdapter,
@@ -76,21 +78,21 @@ export class MinaBaseLayer
       OutgoingMessageAdapter: {
         useClass: DefaultOutgoingMessageAdapter,
       },
-    };
-  }
 
-  public dependencies() {
-    const NetworkUtilsClass = match(this.config.network.type)
-      .with("local", () => LocalBlockchainUtils)
-      .with("lightnet", () => LightnetUtils)
-      .with("remote", () => RemoteNetworkUtils)
-      .exhaustive();
-
-    return {
       NetworkUtils: {
-        useClass: NetworkUtilsClass,
+        useGenerated: (
+          baseLayer: MinaBaseLayer,
+          container: DependencyContainer
+        ) => {
+          const utilsClass = match(baseLayer.config.network.type)
+            .with("local", () => LocalBlockchainUtils)
+            .with("lightnet", () => LightnetUtils)
+            .with("remote", () => RemoteNetworkUtils)
+            .exhaustive();
+          return container.resolve(utilsClass);
+        },
       },
-    };
+    } satisfies DependencyRecord<MinaBaseLayer>;
   }
 
   public get networkUtils() {
@@ -148,5 +150,3 @@ export class MinaBaseLayer
     this.network = Network;
   }
 }
-
-MinaBaseLayer satisfies StaticBaseLayer;

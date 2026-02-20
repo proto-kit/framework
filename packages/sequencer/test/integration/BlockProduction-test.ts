@@ -35,6 +35,7 @@ import {
   AsyncLinkedLeafStore,
   AppChain,
   BlockProducerModule,
+  DatabaseDependencyFactory,
 } from "../../src";
 import {
   DefaultTestingSequencerModules,
@@ -83,7 +84,7 @@ class EventMaker extends RuntimeModule {
 }
 
 export function testBlockProduction<
-  T extends TypedClass<SequencerModule<unknown>>,
+  T extends TypedClass<SequencerModule<unknown>> & DatabaseDependencyFactory,
 >(
   database: T,
   databaseConfig: T extends TypedClass<infer Module>
@@ -97,7 +98,12 @@ export function testBlockProduction<
     NoopRuntime: typeof NoopRuntime;
     EventMaker: typeof EventMaker;
   }>;
-  let sequencer: Sequencer<DefaultTestingSequencerModules>;
+  let sequencer: Sequencer<
+    DefaultTestingSequencerModules & {
+      Database: TypedClass<SequencerModule<unknown>> &
+        DatabaseDependencyFactory;
+    }
+  >;
 
   let protocol: Protocol<
     MandatoryProtocolModulesRecord & {

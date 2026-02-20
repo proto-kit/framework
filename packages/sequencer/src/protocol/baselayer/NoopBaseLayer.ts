@@ -1,5 +1,5 @@
 import { noop } from "@proto-kit/common";
-import { PublicKey } from "o1js";
+import { PrivateKey, PublicKey } from "o1js";
 import { OutgoingMessageEvent } from "@proto-kit/protocol";
 
 import {
@@ -11,7 +11,8 @@ import { PendingTransaction } from "../../mempool/PendingTransaction";
 import { OutgoingMessageAdapter } from "../../settlement/messages/outgoing/OutgoingMessageCollector";
 import { Block } from "../../storage/model/Block";
 
-import { StaticBaseLayer, StaticBaseLayerDependencyRecord } from "./BaseLayer";
+import { BaseLayerDependencyRecord } from "./BaseLayer";
+import { MinaNetworkUtils } from "./network-utils/MinaNetworkUtils";
 
 class NoopIncomingMessageAdapter implements IncomingMessageAdapter {
   async fetchPendingMessages(
@@ -39,7 +40,25 @@ class NoopMessageAdapter implements OutgoingMessageAdapter<undefined> {
   }
 }
 
-@sequencerModule()
+class NoopNetworkUtils implements MinaNetworkUtils {
+  async faucet(
+    receiver: PublicKey,
+    fundingAmount?: number,
+    fee?: number
+  ): Promise<void> {
+    noop();
+  }
+
+  async getFundedAccounts(num?: number): Promise<PrivateKey[]> {
+    return [];
+  }
+
+  async waitForNetwork(): Promise<void> {
+    noop();
+  }
+}
+
+sequencerModule();
 export class NoopBaseLayer extends SequencerModule {
   public async blockProduced(): Promise<void> {
     noop();
@@ -49,7 +68,7 @@ export class NoopBaseLayer extends SequencerModule {
     noop();
   }
 
-  public static dependencies(): StaticBaseLayerDependencyRecord {
+  public static dependencies(): BaseLayerDependencyRecord<NoopBaseLayer> {
     return {
       OutgoingMessageAdapter: {
         useClass: NoopMessageAdapter,
@@ -57,8 +76,9 @@ export class NoopBaseLayer extends SequencerModule {
       IncomingMessageAdapter: {
         useClass: NoopIncomingMessageAdapter,
       },
+      NetworkUtils: {
+        useClass: NoopNetworkUtils,
+      },
     };
   }
 }
-
-NoopBaseLayer satisfies StaticBaseLayer;

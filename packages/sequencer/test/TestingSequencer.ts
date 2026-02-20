@@ -16,7 +16,7 @@ import {
 } from "../src";
 import { ConstantFeeStrategy } from "../src/protocol/baselayer/fees/ConstantFeeStrategy";
 
-export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
+export type DefaultTestingSequencerModules = {
   Database: typeof InMemoryDatabase;
   Mempool: typeof PrivateMempool;
   LocalTaskWorkerModule: TypedClass<LocalTaskWorkerModule<any>>;
@@ -27,7 +27,7 @@ export interface DefaultTestingSequencerModules extends SequencerModulesRecord {
   TaskQueue: typeof LocalTaskQueue;
   FeeStrategy: typeof ConstantFeeStrategy;
   SequencerStartupModule: typeof SequencerStartupModule;
-}
+};
 
 export function testingSequencerModules<
   AdditionalModules extends SequencerModulesRecord,

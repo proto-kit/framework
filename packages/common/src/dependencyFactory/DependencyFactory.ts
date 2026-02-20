@@ -1,5 +1,6 @@
 import {
   ClassProvider,
+  DependencyContainer,
   FactoryProvider,
   TokenProvider,
   ValueProvider,
@@ -8,15 +9,26 @@ import {
 import { TypedClass } from "../types";
 import { noop } from "../utils";
 
-export type DependencyDeclaration<Dependency> =
+export type GeneratedProvider<Dependency, Module> = {
+  useGenerated: (module: Module, container: DependencyContainer) => Dependency;
+};
+
+export type DependencyDeclaration<Dependency, This = unknown> =
   | ClassProvider<Dependency>
   | FactoryProvider<Dependency>
   | TokenProvider<Dependency>
-  | ValueProvider<Dependency>;
+  | ValueProvider<Dependency>
+  | GeneratedProvider<Dependency, This>;
 
-export type DependencyRecord = Record<
+export function isGeneratedProvider<Dependency, Module>(
+  input: DependencyDeclaration<Dependency, Module>
+): input is GeneratedProvider<Dependency, Module> {
+  return "useGenerated" in input;
+}
+
+export type DependencyRecord<This = unknown> = Record<
   string,
-  DependencyDeclaration<unknown> & { forceOverwrite?: boolean }
+  DependencyDeclaration<unknown, This> & { forceOverwrite?: boolean }
 >;
 
 /**
@@ -31,37 +43,39 @@ export type DependencyRecord = Record<
  * DependencyFactories are designed to only be used statically for sets of
  * deps that are necessary for the sequencer to work.
  */
-export interface DependencyFactory {
-  dependencies: () => DependencyRecord;
+export interface DependencyFactory<Type> {
+  dependencies: () => DependencyRecord<Type>;
 }
 
-export function dependencyFactory<T>() {
+export function dependencyFactory<T extends TypedClass<unknown>>() {
   return (
     /**
-     * Check if the target class itself satisfies DependencyFactory
+     * Check if the target class extends RuntimeModule, while
+     * also providing static config presets
      */
-    target: TypedClass<T> & DependencyFactory
+    target: T & DependencyFactory<InstanceType<T>>
   ) => {
     noop();
   };
 }
 
 export type TypeFromDependencyDeclaration<
-  Declaration extends DependencyDeclaration<unknown>,
+  Declaration extends DependencyDeclaration<any>,
 > =
-  Declaration extends DependencyDeclaration<infer Dependency>
+  Declaration extends DependencyDeclaration<infer Dependency, any>
     ? Dependency
     : never;
 
 export type CapitalizeAny<Key extends string | number | symbol> =
   Key extends string ? Capitalize<Key> : Key;
 
-export type MapDependencyRecordToTypes<Record extends DependencyRecord> = {
+export type MapDependencyRecordToTypes<Record extends DependencyRecord<any>> = {
   [Key in keyof Record as CapitalizeAny<Key>]: TypedClass<
     TypeFromDependencyDeclaration<Record[Key]>
   >;
 };
 
-export type InferDependencies<Class> = Class extends DependencyFactory
-  ? MapDependencyRecordToTypes<ReturnType<Class["dependencies"]>>
-  : never;
+export type InferDependencies<Class extends TypedClass<any>> =
+  Class extends DependencyFactory<any>
+    ? MapDependencyRecordToTypes<ReturnType<Class["dependencies"]>>
+    : never;

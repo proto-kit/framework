@@ -44,6 +44,9 @@ class TestModule extends BaseTestModule<TestModuleConfig> {
       dependencyModule1: {
         useClass: ChildModule,
       },
+      dependencyModule2: {
+        useGenerated: (module: TestModule) => "test",
+      },
     };
   }
 }
@@ -108,6 +111,9 @@ describe("moduleContainer", () => {
 
     expect(dm.x()).toBe("dependency factory works");
     expect(dm.testModule).toBeDefined();
+
+    const dm2 = container.resolve("DependencyModule2");
+    expect(dm2).toBe("test");
   });
 
   it("should throw on resolution, if config was not provided", () => {
