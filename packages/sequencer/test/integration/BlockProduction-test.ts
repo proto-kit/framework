@@ -84,7 +84,8 @@ class EventMaker extends RuntimeModule {
 }
 
 export function testBlockProduction<
-  T extends TypedClass<SequencerModule<unknown>> & DatabaseDependencyFactory,
+  T extends TypedClass<SequencerModule<unknown>> &
+    DatabaseDependencyFactory<any>,
 >(
   database: T,
   databaseConfig: T extends TypedClass<infer Module>
@@ -101,7 +102,7 @@ export function testBlockProduction<
   let sequencer: Sequencer<
     DefaultTestingSequencerModules & {
       Database: TypedClass<SequencerModule<unknown>> &
-        DatabaseDependencyFactory;
+        DatabaseDependencyFactory<any>;
     }
   >;
 

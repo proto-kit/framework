@@ -27,6 +27,6 @@ export interface StorageDependencyMinimumDependencies<Module>
   transactionStorage: DependencyDeclaration<TransactionStorage, Module>;
 }
 
-export interface DatabaseDependencyFactory {
-  dependencies(): StorageDependencyMinimumDependencies<unknown>;
+export interface DatabaseDependencyFactory<T> {
+  dependencies(): StorageDependencyMinimumDependencies<T>;
 }
