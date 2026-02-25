@@ -78,10 +78,6 @@ describe("Proven", () => {
     });
   }
 
-  afterAll(async () => {
-    await appChain.close();
-  });
-
   it(
     "should start up and compile",
     async () => {
@@ -225,7 +221,6 @@ describe("Proven", () => {
     },
     timeout
   );
-
   it(
     "should produce large block",
     async () => {
@@ -264,4 +259,8 @@ describe("Proven", () => {
     },
     timeout * 10
   );
+
+  afterAll(async () => {
+    await appChain.close();
+  });
 });
