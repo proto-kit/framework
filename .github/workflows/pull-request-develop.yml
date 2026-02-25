@@ -68,7 +68,7 @@ jobs:
         run: npx prettier ./packages --check
 
   # type-checks all test folders (fast fail on compile errors)
-  typecheck:
+  test-check:
     runs-on: ubuntu-latest
     needs: install
     steps:
@@ -90,7 +90,7 @@ jobs:
   # tests all packages
   test:
     runs-on: ubuntu-latest
-    needs: install
+    needs: test-check
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3

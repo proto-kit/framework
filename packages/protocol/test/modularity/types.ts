@@ -4,7 +4,7 @@ import { TypedClass } from "@proto-kit/common";
 import { GetContracts } from "../../src/settlement/modularity/types";
 import {
   BridgeContractType,
-  MandatorySettlementModulesRecord,
+  BridgingSettlementModulesRecord,
   SettlementContractType,
 } from "../../src";
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -12,7 +12,7 @@ import {
 // Goal of this "test" is that it compiles. By compiling this file checks that
 // certain types are inferred correctly
 
-type Inferred = GetContracts<MandatorySettlementModulesRecord>;
+type Inferred = GetContracts<BridgingSettlementModulesRecord>;
 
 // Get inferred Bridge Type
 type Bridge = Inferred["BridgeContract"];
