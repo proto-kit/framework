@@ -1,4 +1,4 @@
-import { FungibleToken } from "mina-fungible-token";
+import { FungibleToken } from "fungible-token-contract";
 
 import { MinaBaseLayerConfig } from "../src";
 import { settlementTestFn } from "../test/settlement/Settlement";

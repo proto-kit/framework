@@ -36,7 +36,7 @@
     "ascii-table3": "^0.9.0",
     "compute-gcd": "^1.2.1",
     "lodash-es": "^4.17.21",
-    "mina-fungible-token": "^1.1.0",
+    "fungible-token-contract": "^0.0.1",
     "reflect-metadata": "^0.1.13",
     "ts-pattern": "^4.3.0"
   },

@@ -118,7 +118,6 @@ export * from "./settlement/transactions/MinaSimulationService";
 export * from "./settlement/utils/ArchiveNode";
 export * from "./settlement/utils/SettlementUtils";
 export * from "./settlement/utils/FungibleTokenContractModule";
-export * from "./settlement/utils/FungibleTokenAdminContractModule";
 export * from "./logging/Tracer";
 export * from "./logging/trace";
 export * from "./logging/ConsoleTracingFactory";

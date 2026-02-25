@@ -1,5 +1,5 @@
 import { PrivateKey, TokenId } from "o1js";
-import { FungibleToken } from "mina-fungible-token";
+import { FungibleToken } from "fungible-token-contract";
 import { SettlementTokenConfig } from "@proto-kit/sequencer";
 
 import { developmentConfig, inmemoryConfig, sovereignConfig } from "../config";
