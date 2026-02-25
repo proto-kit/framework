@@ -1,4 +1,6 @@
 import "reflect-metadata";
+
+import { setBackend } from "o1js";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { BullQueue } from "@proto-kit/deployment";
 import { container } from "tsyringe";
@@ -18,6 +20,8 @@ import {
   runtimeProtocolConfig,
 } from "./modules";
 import { MinimumWorkerModules } from "./WorkerModules";
+
+setBackend("native");
 
 /* eslint-disable no-console */
 async function main() {
