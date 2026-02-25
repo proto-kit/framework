@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { DependencyFactory, noop, sleep } from "@proto-kit/common";
+import { dependencyFactory, noop, sleep } from "@proto-kit/common";
 import { jest } from "@jest/globals";
 import { container } from "tsyringe";
 
@@ -29,18 +29,21 @@ describe("Sequencer close", () => {
     }
 
     @sequencerModule()
-    class DependencyFactoryModule
-      extends SequencerModule
-      implements DependencyFactory
-    {
+    @dependencyFactory()
+    class DependencyFactoryModule extends SequencerModule {
       public async start(): Promise<void> {
         noop();
       }
 
-      dependencies() {
+      static dependencies() {
         return {
           Dep2: {
             useClass: CloseableModule,
+          },
+          Dep3: {
+            useGenerated: (instance: DependencyFactoryModule) => {
+              return new CloseableModule();
+            },
           },
         };
       }
@@ -59,6 +62,8 @@ describe("Sequencer close", () => {
     });
 
     sequencer.resolve("D");
+    sequencer.resolve("Dep2");
+    sequencer.resolve("Dep3");
 
     await sequencer.close();
 

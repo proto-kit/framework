@@ -1,6 +1,7 @@
 import "reflect-metadata";
 
 import {
+  ClassProvider,
   DependencyContainer,
   Frequency,
   InjectionToken,
@@ -18,6 +19,7 @@ import { MergeObjects, StringKeyOf, TypedClass } from "../types";
 import {
   DependencyFactory,
   InferDependencies,
+  isGeneratedProvider,
 } from "../dependencyFactory/DependencyFactory";
 import { EventEmitterProxy } from "../events/EventEmitterProxy";
 
@@ -116,11 +118,9 @@ export type FilterNeverValues<Type extends Record<string, unknown>> = {
 
 export type DependenciesFromModules<Modules extends ModulesRecord> =
   FilterNeverValues<{
-    [Key in keyof Modules]: Modules[Key] extends TypedClass<DependencyFactory>
-      ? InferDependencies<InstanceType<Modules[Key]>>
-      : Modules[Key] extends DependencyFactory
-        ? InferDependencies<Modules[Key]>
-        : never;
+    [Key in keyof Modules]: Modules[Key] extends DependencyFactory<any>
+      ? InferDependencies<Modules[Key]>
+      : never;
   }>;
 
 export type ResolvableModules<Modules extends ModulesRecord> = MergeObjects<
@@ -265,7 +265,7 @@ export class ModuleContainer<Modules extends ModulesRecord>
         this.registerAliases(moduleName, useClass);
 
         if (this.isDependencyFactory(useClass)) {
-          this.useDependencyFactory(useClass);
+          this.useDependencyFactory(useClass, moduleName);
         }
       }
     });
@@ -379,7 +379,9 @@ export class ModuleContainer<Modules extends ModulesRecord>
     }
   }
 
-  private isDependencyFactory(type: any): type is DependencyFactory {
+  private isDependencyFactory<T, Class extends ClassProvider<T>["useClass"]>(
+    type: Class
+  ): type is DependencyFactory<T> & Class {
     return "dependencies" in type;
   }
 
@@ -399,9 +401,13 @@ export class ModuleContainer<Modules extends ModulesRecord>
    * This will be automatically called for every module, but can also be called
    * explicitly to initialize an extra factory
    * @param factory
+   * @param token
    * @private
    */
-  protected useDependencyFactory(factory: DependencyFactory) {
+  protected useDependencyFactory<T>(
+    factory: DependencyFactory<T>,
+    token?: string
+  ) {
     const dependencies = factory.dependencies();
 
     // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -422,7 +428,20 @@ export class ModuleContainer<Modules extends ModulesRecord>
         }
 
         // Find correct provider type and call respective register
-        if (isValueProvider(declaration)) {
+        if (isGeneratedProvider(declaration)) {
+          if (token === undefined) {
+            throw new Error(
+              "Cannot use generated provider without injection token"
+            );
+          }
+          // Here we first resolve the instance and then give it to the generator
+          this.container.register(key, {
+            useFactory: instanceCachingFactory((container) => {
+              const instance = container.resolve<T>(token);
+              return declaration.useGenerated(instance, this.container);
+            }),
+          });
+        } else if (isValueProvider(declaration)) {
           this.container.register(key, declaration);
         } else if (isFactoryProvider(declaration)) {
           // this enables us to have a singletoned factory
@@ -442,7 +461,7 @@ export class ModuleContainer<Modules extends ModulesRecord>
 
           // Register static dependencies
           if (this.isDependencyFactory(declaration.useClass)) {
-            this.useDependencyFactory(declaration.useClass);
+            this.useDependencyFactory(declaration.useClass, key);
           }
         } else if (isTokenProvider(declaration)) {
           this.container.register(key, declaration, {
@@ -476,10 +495,6 @@ export class ModuleContainer<Modules extends ModulesRecord>
           container.reset();
           return container;
         });
-
-        if (this.isDependencyFactory(containedModule)) {
-          this.useDependencyFactory(containedModule);
-        }
       },
       { frequency: ModuleContainer.moduleDecorationFrequency }
     );
@@ -496,10 +511,10 @@ export class ModuleContainer<Modules extends ModulesRecord>
     this.registerValue({
       ChildContainerProvider: () => this.container.createChildContainer(),
     });
+    this.container.register("ParentContainer", { useValue: this });
 
     // register all provided modules when the container is created
     this.registerModules(this.definition);
-    this.container.register("ParentContainer", { useValue: this });
   }
 
   public get dependencyContainer(): DependencyContainer {

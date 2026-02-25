@@ -1,4 +1,4 @@
-import { noop } from "@proto-kit/common";
+import { dependencyFactory, noop } from "@proto-kit/common";
 
 import { CachedStateService } from "../../state/state/CachedStateService";
 import {
@@ -19,8 +19,9 @@ import { InMemoryAsyncMerkleTreeStore } from "./InMemoryAsyncMerkleTreeStore";
 
 @sequencerModule()
 @closeable()
+@dependencyFactory()
 export class InMemoryDatabase extends SequencerModule implements Database {
-  public dependencies(): StorageDependencyMinimumDependencies {
+  public static dependencies(): StorageDependencyMinimumDependencies<InMemoryDatabase> {
     return {
       asyncLinkedLeafStore: {
         useClass: InMemoryAsyncLinkedLeafStore,

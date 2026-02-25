@@ -1,8 +1,4 @@
-import {
-  DependencyDeclaration,
-  DependencyFactory,
-  DependencyRecord,
-} from "@proto-kit/common";
+import { DependencyDeclaration, DependencyRecord } from "@proto-kit/common";
 
 import { AsyncStateService } from "../state/async/AsyncStateService";
 import { AsyncLinkedLeafStore } from "../state/async/AsyncLinkedLeafStore";
@@ -14,22 +10,23 @@ import { MessageStorage } from "./repositories/MessageStorage";
 import { SettlementStorage } from "./repositories/SettlementStorage";
 import { TransactionStorage } from "./repositories/TransactionStorage";
 
-export interface StorageDependencyMinimumDependencies extends DependencyRecord {
-  asyncStateService: DependencyDeclaration<AsyncStateService>;
-  asyncLinkedLeafStore: DependencyDeclaration<AsyncLinkedLeafStore>;
+export interface StorageDependencyMinimumDependencies<Module>
+  extends DependencyRecord<Module> {
+  asyncStateService: DependencyDeclaration<AsyncStateService, Module>;
+  asyncLinkedLeafStore: DependencyDeclaration<AsyncLinkedLeafStore, Module>;
 
-  unprovenStateService: DependencyDeclaration<AsyncStateService>;
-  unprovenLinkedLeafStore: DependencyDeclaration<AsyncLinkedLeafStore>;
+  unprovenStateService: DependencyDeclaration<AsyncStateService, Module>;
+  unprovenLinkedLeafStore: DependencyDeclaration<AsyncLinkedLeafStore, Module>;
 
-  batchStorage: DependencyDeclaration<BatchStorage>;
-  blockQueue: DependencyDeclaration<BlockQueue>;
-  blockStorage: DependencyDeclaration<BlockStorage>;
-  blockTreeStore: DependencyDeclaration<AsyncMerkleTreeStore>;
-  messageStorage: DependencyDeclaration<MessageStorage>;
-  settlementStorage: DependencyDeclaration<SettlementStorage>;
-  transactionStorage: DependencyDeclaration<TransactionStorage>;
+  batchStorage: DependencyDeclaration<BatchStorage, Module>;
+  blockQueue: DependencyDeclaration<BlockQueue, Module>;
+  blockStorage: DependencyDeclaration<BlockStorage, Module>;
+  blockTreeStore: DependencyDeclaration<AsyncMerkleTreeStore, Module>;
+  messageStorage: DependencyDeclaration<MessageStorage, Module>;
+  settlementStorage: DependencyDeclaration<SettlementStorage, Module>;
+  transactionStorage: DependencyDeclaration<TransactionStorage, Module>;
 }
 
-export interface StorageDependencyFactory extends DependencyFactory {
-  dependencies: () => StorageDependencyMinimumDependencies;
+export interface DatabaseDependencyFactory<T> {
+  dependencies(): StorageDependencyMinimumDependencies<T>;
 }

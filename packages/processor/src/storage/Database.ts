@@ -1,4 +1,4 @@
-import { DependencyFactory, NoConfig, TypedClass } from "@proto-kit/common";
+import { dependencyFactory, NoConfig, TypedClass } from "@proto-kit/common";
 import { injectable } from "tsyringe";
 
 import { ProcessorModule } from "../ProcessorModule";
@@ -8,9 +8,10 @@ import { BlockStorage } from "./BlockStorage";
 import { PrismaDatabaseConnection } from "./PrismaDatabaseConnection";
 
 @injectable()
+@dependencyFactory()
 export class Database<PrismaClient extends BasePrismaClient>
   extends ProcessorModule<NoConfig>
-  implements PrismaDatabaseConnection<PrismaClient>, DependencyFactory
+  implements PrismaDatabaseConnection<PrismaClient>
 {
   public constructor(public prismaClient: PrismaClient) {
     super();
@@ -26,7 +27,7 @@ export class Database<PrismaClient extends BasePrismaClient>
     };
   }
 
-  public dependencies() {
+  public static dependencies() {
     return {
       BlockStorage: {
         useClass: BlockStorage,
