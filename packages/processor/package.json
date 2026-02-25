@@ -16,6 +16,7 @@
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "prisma:generate": "prisma generate --schema=./test/prisma/schema.prisma",
     "test": "npm run test:file -- ./src/** ./test/**",
+    "test:check": "tsc --noEmit -p test/tsconfig.json",
     "test:watch": "npm run test:file -- ./src/** ./test/** --watch"
   },
   "publishConfig": {

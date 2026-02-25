@@ -13,6 +13,7 @@
     "lint:staged": "eslint",
     "format": "prettier --check \"packages/*/src/**/*.ts\" \"packages/*/test/**/*.ts\" \"packages/*/*.{cjs,json}\"",
     "format:write": "prettier --write \"packages/*/src/**/*.ts\" \"packages/*/test/**/*.ts\" \"packages/*/*.{cjs,json}\"",
+    "test:check": "npx lerna run test:check",
     "test": "npx lerna run test -- --passWithNoTests",
     "test:ci": "npx lerna run test --concurrency=1 -- --passWithNoTests --forceExit",
     "test:integration": "npx lerna run test:integration --concurrency=1 -- --passWithNoTests --forceExit",

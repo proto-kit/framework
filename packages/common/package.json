@@ -10,6 +10,7 @@
     "lint": "eslint ./src ./test",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
+    "test:check": "tsc --noEmit -p test/tsconfig.json",
     "test:watch": "npm run test:file -- ./test/** --watch"
   },
   "main": "dist/index.js",

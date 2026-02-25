@@ -8,6 +8,7 @@
           "prisma:generate",
           "lint",
           "test",
+          "test:check",
           "integration"
         ]
       }
