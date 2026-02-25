@@ -33,7 +33,8 @@
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
     "bullmq": "^4.18.3",
-    "o1js": "^2.10.0",
+    "o1js": "2.10.0-dev.be63f",
+    "@o1js/native": "0.0.1-dev.be63f",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
