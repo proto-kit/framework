@@ -1,6 +1,6 @@
 import { PrivateKey } from "o1js";
 import { log } from "@proto-kit/common";
-import { FungibleToken } from "mina-fungible-token";
+import { FungibleToken } from "fungible-token-contract";
 
 import { settlementTestFn } from "../test/settlement/Settlement";
 

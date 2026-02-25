@@ -1,5 +1,5 @@
 import { describe } from "@jest/globals";
-import { FungibleToken } from "mina-fungible-token";
+import { FungibleToken } from "fungible-token-contract";
 import { PrivateKey } from "o1js";
 
 import { settlementTestFn } from "../test/settlement/Settlement";

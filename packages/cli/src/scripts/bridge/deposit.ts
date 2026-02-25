@@ -45,7 +45,7 @@ export default async function (
     PublicKey,
     UInt64,
   } = await import("o1js");
-  const { FungibleToken } = await import("mina-fungible-token");
+  const { FungibleToken } = await import("fungible-token-contract");
 
   const { runtime, protocol } = await loadUserModules();
   const tokenId = Field(bridgeArgs.tokenId);
@@ -157,7 +157,7 @@ export default async function (
       if (isCustomToken) {
         await new FungibleToken(
           tokenOwnerPrivateKey.toPublicKey()
-        )!.approveAccountUpdates([au, dispatch.self]);
+        )!.approveAccountUpdatesCustom([au, dispatch.self]);
       }
     }
   );

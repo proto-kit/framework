@@ -37,7 +37,6 @@ export default async function (
   } = await import("@proto-kit/sequencer");
   const {
     AccountUpdate,
-    Bool,
     fetchAccount,
     Mina,
     PrivateKey,
@@ -46,10 +45,14 @@ export default async function (
     UInt64,
     UInt8,
   } = await import("o1js");
-  const { FungibleToken, FungibleTokenAdmin } = await import(
-    "mina-fungible-token"
-  );
+  const { FungibleToken } = await import("fungible-token-contract");
   const { DefaultConfigs, DefaultModules } = await import("@proto-kit/stack");
+  const {
+    BurnDynamicProofConfig,
+    MintDynamicProofConfig,
+    TransferDynamicProofConfig,
+    UpdatesDynamicProofConfig,
+  } = await import("fungible-token-contract");
 
   const { runtime, protocol } = await loadUserModules();
   const appChain = AppChain.from({
@@ -137,12 +140,6 @@ export default async function (
       async () => {
         AccountUpdate.fundNewAccount(feepayerPrivateKey.toPublicKey(), 3);
 
-        const admin = new FungibleTokenAdmin(tokenAdminKey.toPublicKey());
-        await admin.deploy({
-          adminPublicKey: feepayerPrivateKey.toPublicKey(),
-        });
-        admin.self.account.permissions.set(permissions.bridgeContractToken());
-
         const fungibleToken = new FungibleToken(tokenOwnerKey.toPublicKey());
         await fungibleToken.deploy({
           src: "",
@@ -153,10 +150,14 @@ export default async function (
           permissions.bridgeContractToken()
         );
 
-        await fungibleToken.initialize(
-          tokenAdminKey.toPublicKey(),
+        await fungibleToken!.initialize(
+          // TODO Add specific, different key for this
+          feepayerPrivateKey.toPublicKey(),
           UInt8.from(9),
-          Bool(false)
+          MintDynamicProofConfig.default,
+          BurnDynamicProofConfig.default,
+          TransferDynamicProofConfig.default,
+          UpdatesDynamicProofConfig.default
         );
       }
     );

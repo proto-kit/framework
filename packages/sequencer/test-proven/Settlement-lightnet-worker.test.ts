@@ -1,5 +1,5 @@
 import { log } from "@proto-kit/common";
-import { FungibleToken } from "mina-fungible-token";
+import { FungibleToken } from "fungible-token-contract";
 import { BullQueueConfig } from "@proto-kit/deployment";
 import { afterAll, beforeAll } from "@jest/globals";
 

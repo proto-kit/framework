@@ -44,7 +44,7 @@ import {
   reduceSequential,
 } from "@proto-kit/common";
 import { match, Pattern } from "ts-pattern";
-import { FungibleToken } from "mina-fungible-token";
+import { FungibleToken } from "fungible-token-contract";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import groupBy from "lodash/groupBy";
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -230,7 +230,7 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
    * @param options
    */
   public async deployTokenBridge(
-    owner: TokenContract | undefined,
+    owner: FungibleToken | undefined,
     contractKey: PublicKey,
     options: {
       nonce?: number;
@@ -258,7 +258,7 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
         await settlementContract.addTokenBridge(tokenId, contractKey);
 
         if (owner !== undefined) {
-          await owner.approveAccountUpdate(settlementContract.self);
+          await owner.approveAccountUpdateCustom(settlementContract.self);
         }
       }
     );
@@ -399,7 +399,7 @@ export class BridgingModule extends SequencerModule<BridgingModuleConfig> {
         }) => {
           return this.sendRollupTransactionsBase(
             async (au: AccountUpdate) => {
-              await tokenOwner.approveAccountUpdate(au);
+              await tokenOwner.approveAccountUpdateCustom(au);
             },
             tokenOwner.deriveTokenId(),
             events,

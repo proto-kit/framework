@@ -3,8 +3,8 @@ import {
   ContractModule,
   SmartContractClassFromInterface,
 } from "@proto-kit/protocol";
-import { FungibleToken } from "mina-fungible-token";
 import { CompileArtifact, CompileRegistry } from "@proto-kit/common";
+import { FungibleToken } from "fungible-token-contract";
 
 @injectable()
 export class FungibleTokenContractModule extends ContractModule<FungibleToken> {

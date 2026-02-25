@@ -35,12 +35,17 @@ import {
   TokenId,
   SmartContract,
   UInt8,
-  Bool,
   PublicKey,
 } from "o1js";
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { FungibleToken, FungibleTokenAdmin } from "mina-fungible-token";
+import {
+  BurnDynamicProofConfig,
+  FungibleToken,
+  MintDynamicProofConfig,
+  TransferDynamicProofConfig,
+  UpdatesDynamicProofConfig,
+} from "fungible-token-contract";
 import { BullQueue, BullQueueConfig } from "@proto-kit/deployment";
 
 import {
@@ -71,7 +76,6 @@ import { createTransaction } from "../integration/utils";
 import { FeeStrategy } from "../../src/protocol/baselayer/fees/FeeStrategy";
 import { BridgingModule } from "../../src/settlement/BridgingModule";
 import { FungibleTokenContractModule } from "../../src/settlement/utils/FungibleTokenContractModule";
-import { FungibleTokenAdminContractModule } from "../../src/settlement/utils/FungibleTokenAdminContractModule";
 import { MinaNetworkUtils } from "../../src/protocol/baselayer/network-utils/MinaNetworkUtils";
 
 import { Balances, BalancesKey } from "./mocks/Balances";
@@ -94,7 +98,6 @@ export const protocolModules = {
   SettlementContractModule: SettlementContractModule.from({
     ...SettlementContractModule.settlementAndBridging(),
     FungibleToken: FungibleTokenContractModule,
-    FungibleTokenAdmin: FungibleTokenAdminContractModule,
   }),
   WithdrawalMessageProcessor,
 };
@@ -110,7 +113,6 @@ export const protocolModulesConfig = {
       },
     },
     FungibleToken: {},
-    FungibleTokenAdmin: {},
   },
   WithdrawalMessageProcessor: {},
 } satisfies ModulesConfig<typeof protocolModules>;
@@ -136,12 +138,10 @@ export const settlementTestFn = (
     tokenConfig === undefined ? minaBridgeKey : PrivateKey.random();
   const tokenOwnerKey = {
     tokenOwner: PrivateKey.random(),
-    admin: PrivateKey.random(),
   };
 
   const tokenOwnerPubKeys = {
     tokenOwner: tokenOwnerKey.tokenOwner.toPublicKey(),
-    admin: tokenOwnerKey.admin.toPublicKey(),
   };
 
   const tokenOwner =
@@ -222,11 +222,7 @@ export const settlementTestFn = (
         SettlementSigner: {
           feepayer: sequencerKey,
           contractKeys: [settlementKey, dispatchKey, minaBridgeKey],
-          tokenBridgeKeys: [
-            tokenBridgeKey,
-            tokenOwnerKey.tokenOwner,
-            tokenOwnerKey.admin,
-          ],
+          tokenBridgeKeys: [tokenBridgeKey, tokenOwnerKey.tokenOwner],
         },
         BlockProducerModule: {},
         FeeStrategy: {},
@@ -433,17 +429,6 @@ export const settlementTestFn = (
           async () => {
             AccountUpdate.fundNewAccount(sequencerKey.toPublicKey(), 3);
 
-            const admin = new FungibleTokenAdmin(
-              tokenOwnerKey.admin.toPublicKey()
-            );
-            await admin.deploy({
-              verificationKey: undefined,
-              adminPublicKey: sequencerKey.toPublicKey(),
-            });
-            admin.self.account.permissions.set(
-              permissions.bridgeContractToken()
-            );
-
             await tokenOwner!.deploy({
               src: "",
               symbol: "TEST",
@@ -454,9 +439,12 @@ export const settlementTestFn = (
             );
 
             await tokenOwner!.initialize(
-              tokenOwnerKey.admin.toPublicKey(),
+              sequencerKey.toPublicKey(),
               UInt8.from(9),
-              Bool(false)
+              MintDynamicProofConfig.default,
+              BurnDynamicProofConfig.default,
+              TransferDynamicProofConfig.default,
+              UpdatesDynamicProofConfig.default
             );
           }
         );
@@ -465,7 +453,6 @@ export const settlementTestFn = (
         settlementModule.utils.signTransaction(tx, {
           signingWithSignatureCheck: [
             tokenOwnerPubKeys.tokenOwner,
-            tokenOwnerPubKeys.admin,
             settlementModule.getSettlementContractAddress(),
             bridgingModule.getDispatchContractAddress(),
           ],
@@ -510,10 +497,7 @@ export const settlementTestFn = (
           }
         );
         settlementModule.utils.signTransaction(tx, {
-          signingWithSignatureCheck: [
-            tokenOwnerPubKeys.tokenOwner,
-            tokenOwnerPubKeys.admin,
-          ],
+          signingWithSignatureCheck: [tokenOwnerPubKeys.tokenOwner],
         });
 
         await appChain.sequencer
@@ -638,7 +622,10 @@ export const settlementTestFn = (
             );
 
             if (tokenConfig !== undefined) {
-              await tokenOwner!.approveAccountUpdates([au, dispatch.self]);
+              await tokenOwner!.approveAccountUpdatesCustom([
+                au,
+                dispatch.self,
+              ]);
             }
           }
         );
@@ -832,7 +819,7 @@ export const settlementTestFn = (
 
           // Approve AUs if necessary
           if (tokenConfig !== undefined) {
-            await tokenOwner!.approveAccountUpdate(bridgingContract.self);
+            await tokenOwner!.approveAccountUpdateCustom(bridgingContract.self);
           }
         }
       );
