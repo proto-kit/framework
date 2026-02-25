@@ -27,7 +27,7 @@ import {
   MinaActionsHashList,
 } from "@proto-kit/protocol";
 import { Bool, Field } from "o1js";
-import { log, mapSequential } from "@proto-kit/common";
+import { mapSequential } from "@proto-kit/common";
 import {
   MethodParameterEncoder,
   Runtime,
@@ -191,17 +191,6 @@ export async function executeWithExecutionContext<MethodResult>(
   };
 }
 
-function traceLogSTs(msg: string, stateTransitions: StateTransition<any>[]) {
-  log.trace(
-    msg,
-    JSON.stringify(
-      stateTransitions.map((x) => x.toJSON()),
-      null,
-      2
-    )
-  );
-}
-
 export type TransactionExecutionResultStatus =
   | {
       result: TransactionExecutionResult;
@@ -263,7 +252,7 @@ export class TransactionExecutionService {
     hookName: string,
     runSimulated = false
   ) {
-    const result = await executeWithExecutionContext(
+    return await executeWithExecutionContext(
       async () =>
         await this.wrapHooksForContext(async () => {
           await mapSequential(
@@ -279,10 +268,6 @@ export class TransactionExecutionService {
       },
       runSimulated
     );
-
-    traceLogSTs(`${hookName} STs:`, result.stateTransitions);
-
-    return result;
   }
 
   private buildSTBatches(
@@ -380,7 +365,6 @@ export class TransactionExecutionService {
       "block.transaction.execute",
       () => this.executeRuntimeMethod(method, args, runtimeContextInputs)
     );
-    traceLogSTs("STs:", runtimeResult.stateTransitions);
 
     // Apply runtime STs (only if the tx succeeded)
     if (runtimeResult.status.toBoolean()) {

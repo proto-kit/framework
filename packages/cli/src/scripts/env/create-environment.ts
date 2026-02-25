@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 /* eslint-disable sonarjs/cognitive-complexity */
 import * as fs from "fs";
 import * as path from "path";
@@ -113,6 +111,4 @@ export default async function () {
     process.exit(1);
   }
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */
 /* eslint-enable sonarjs/cognitive-complexity */

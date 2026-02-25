@@ -1,7 +1,7 @@
 import { injectable } from "tsyringe";
 import {
   AreProofsEnabled,
-  DependencyFactory,
+  dependencyFactory,
   DependencyRecord,
 } from "@proto-kit/common";
 
@@ -18,6 +18,7 @@ export class InMemoryAreProofsEnabled implements AreProofsEnabled {
   }
 }
 
+@dependencyFactory()
 export class AreProofsEnabledFactory {
   public static dependencies() {
     return {
@@ -27,5 +28,3 @@ export class AreProofsEnabledFactory {
     } satisfies DependencyRecord;
   }
 }
-
-AreProofsEnabledFactory satisfies DependencyFactory;

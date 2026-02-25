@@ -1,6 +1,6 @@
 import {
   DependencyDeclaration,
-  DependencyFactory,
+  dependencyFactory,
   DependencyRecord,
 } from "@proto-kit/common";
 import { StateServiceProvider } from "@proto-kit/protocol";
@@ -11,6 +11,7 @@ export interface SharedDependencyRecord extends DependencyRecord {
   methodIdResolver: DependencyDeclaration<MethodIdResolver>;
 }
 
+@dependencyFactory()
 export class SharedDependencyFactory {
   public static dependencies(): SharedDependencyRecord {
     return {
@@ -23,5 +24,3 @@ export class SharedDependencyFactory {
     };
   }
 }
-
-SharedDependencyFactory satisfies DependencyFactory;

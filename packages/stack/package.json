@@ -1,6 +1,6 @@
 {
   "name": "@proto-kit/stack",
-  "version": "0.1.1-develop.833+397881ed",
+  "version": "0.1.1-develop.2137+8a7eca31",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -23,14 +23,14 @@
     "@proto-kit/api": "*",
     "@proto-kit/common": "*",
     "@proto-kit/deployment": "*",
+    "@proto-kit/indexer": "*",
     "@proto-kit/library": "*",
     "@proto-kit/module": "*",
     "@proto-kit/persistance": "*",
+    "@proto-kit/processor": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sdk": "*",
     "@proto-kit/sequencer": "*",
-    "@proto-kit/indexer": "*",
-    "@proto-kit/processor": "*",
     "o1js": "^2.10.0",
     "tsyringe": "^4.10.0"
   },
@@ -39,10 +39,10 @@
     "cachedir": "^2.4.0"
   },
   "dependencies": {
-    "reflect-metadata": "^0.1.13",
     "@prisma/client": "^5.19.1",
     "mina-fungible-token": "^1.1.0",
+    "reflect-metadata": "^0.1.13",
     "type-graphql": "2.0.0-rc.2"
   },
-  "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
+  "gitHead": "8a7eca319272a15162dc4ad04bdc134b1017716d"
 }

@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { PrivateKey, UInt64 } from "o1js";
 import { expectDefined, log } from "@proto-kit/common";
-import { BullQueue, S3RemoteCache } from "@proto-kit/deployment";
+import { BullQueue } from "@proto-kit/deployment";
 
 import {
   BatchProducerModule,
@@ -20,7 +20,6 @@ import { BlockTestService } from "../../test/integration/services/BlockTestServi
 import {
   BullConfig,
   protocolClass,
-  RemoteCacheConfig,
   runtimeClass,
   runtimeProtocolConfig,
 } from "./modules";
@@ -67,7 +66,7 @@ describe("worker-proven", () => {
     it(
       "should start up and compile",
       async () => {
-        log.setLevel(log.levels.DEBUG);
+        log.setLevel(log.levels.TRACE);
 
         const sequencerClass = Sequencer.from({
           Database: InMemoryDatabase,
@@ -79,7 +78,7 @@ describe("worker-proven", () => {
           TaskQueue: BullQueue,
           FeeStrategy: ConstantFeeStrategy,
           SequencerStartupModule,
-          RemoteCache: S3RemoteCache,
+          // RemoteCache: S3RemoteCache,
         });
 
         const app = AppChain.from({
@@ -101,7 +100,7 @@ describe("worker-proven", () => {
             TaskQueue: BullConfig,
             FeeStrategy: {},
             SequencerStartupModule: {},
-            RemoteCache: RemoteCacheConfig,
+            // RemoteCache: RemoteCacheConfig,
           },
           ...runtimeProtocolConfig,
         });

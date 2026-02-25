@@ -13,7 +13,6 @@ import {
   Struct,
   TokenContract,
   TokenId,
-  Unconstrained,
   VerificationKey,
 } from "o1js";
 import { noop, range, TypedClass } from "@proto-kit/common";
@@ -173,9 +172,19 @@ export abstract class BridgeContractBase
       // Create the message struct from unconstrained message argument Field[]
       const value = Provable.witness(processor.type, () => {
         if (args.messageType.toString() === messageType.toString()) {
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          const fieldData = (args.data as Unconstrained<Field[]>).get();
-          return processor.type.fromFields(fieldData);
+          /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+          const fieldData = args.data.get();
+          // This is a workaround for this being proven on a worker
+          // The parsing seems to not unwrap the option object in Unconstrained, so
+          // we use this workaround to parse out the string[]
+          let fields: string[];
+          if (fieldData.option !== undefined) {
+            fields = fieldData.option.value;
+          } else {
+            fields = fieldData;
+          }
+          /* eslint-enable @typescript-eslint/no-unsafe-assignment */
+          return processor.type.fromFields(fields.map(Field));
         } else {
           return processor.dummy();
         }
@@ -300,10 +309,6 @@ export abstract class BridgeContractBase
         }
       );
 
-      Provable.log(message.hash);
-      Provable.log(path);
-      Provable.log(stateRoot);
-
       args.witness
         .checkMembership(stateRoot, path, message.hash)
         .or(isDummy)
@@ -323,7 +328,7 @@ export abstract class BridgeContractBase
           const isNew = accountUpdate.account.isNew.getAndRequireEquals();
           return Provable.if(isNew, Field(1), Field(0));
         })
-        .reduce((a, b) => a.add(b));
+        .reduce((a, b) => a.add(b), Field(0));
       accountCreationFeePaid = accountCreationFeePaid.add(newAccounts);
     }
 

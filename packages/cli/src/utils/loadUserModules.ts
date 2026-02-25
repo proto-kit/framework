@@ -10,8 +10,6 @@ import { Withdrawals } from "@proto-kit/library";
 
 import { resolveChainPath } from "./pathResolver";
 
-/* eslint-disable no-console */
-
 type AppRuntimeModules = RuntimeModulesRecord & {
   Withdrawals: typeof Withdrawals;
 };
@@ -56,5 +54,3 @@ export async function loadUserModules(): Promise<LoadedModules> {
     throw error;
   }
 }
-
-/* eslint-enable no-console */

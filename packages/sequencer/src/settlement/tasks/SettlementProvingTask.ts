@@ -30,6 +30,7 @@ import {
   ProvableType,
   Bool,
   Unconstrained,
+  fetchLastBlock,
 } from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 
@@ -128,16 +129,8 @@ export class SettlementProvingTask
         addCachedAccount(account);
       }
 
-      // This fetches the network state behind the scenes
-      await Mina.transaction(
-        { sender: transaction.transaction.feePayer.body.publicKey },
-        async () => {
-          const au = AccountUpdate.createSigned(
-            transaction.transaction.feePayer.body.publicKey
-          );
-          au.network.blockchainLength.getAndRequireEquals();
-        }
-      );
+      // This fetches the network state
+      await fetchLastBlock(graphql);
 
       const result = await f();
 
@@ -354,6 +347,7 @@ export class SettlementProvingTask
                   throw new Error("Method interface not found");
                 }
 
+                // args are [public key, tokenId, ...args]
                 const args = method.args.slice(2);
 
                 const encodedArgs = lazyProof.args

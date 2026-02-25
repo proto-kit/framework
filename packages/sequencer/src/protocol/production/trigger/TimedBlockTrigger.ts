@@ -12,6 +12,7 @@ import {
   SettlementTokenConfig,
 } from "../../../settlement/BridgingModule";
 import { ensureNotBusy } from "../../../helpers/BusyGuard";
+import { SequencerStartupModule } from "../../../sequencer/SequencerStartupModule";
 
 import { BlockTriggerBase } from "./BlockTrigger";
 
@@ -43,7 +44,11 @@ export class TimedBlockTrigger
     @inject("BlockQueue")
     blockQueue: BlockQueue,
     @inject("Mempool")
-    private readonly mempool: Mempool
+    private readonly mempool: Mempool,
+    // Only for start order, we need to make sure startup is finished before
+    // starting the block production
+    @inject("SequencerStartupModule")
+    private readonly startupModule: SequencerStartupModule
   ) {
     super(
       blockProducerModule,

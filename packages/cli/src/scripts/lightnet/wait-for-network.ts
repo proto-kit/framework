@@ -1,6 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
-
 import { LoadEnvOptions } from "../../utils/loadEnv";
 
 const maxAttempts = 24;
@@ -36,5 +33,3 @@ export default async function (options: LoadEnvOptions) {
 
   Provable.log("Network is ready", lastBlock);
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { generateGqlDocs } from "../../utils/graphqlDocs";
 
 export default async function (args: {
@@ -71,4 +70,3 @@ export default async function (args: {
     await generateGqlDocs(args.url);
   }
 }
-/* eslint-enable no-console */

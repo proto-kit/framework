@@ -69,7 +69,7 @@ export class DispatchContractProtocolModule extends ContractModule<
 
   public async compile(registry: CompileRegistry) {
     return {
-      DispatchSmartContract: await registry.forceProverExists(
+      DispatchSmartContract: await registry.proverNeeded(
         async () => await registry.compile(DispatchSmartContract)
       ),
     };

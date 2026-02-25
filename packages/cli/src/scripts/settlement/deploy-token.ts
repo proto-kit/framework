@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import { DispatchSmartContract } from "@proto-kit/protocol";
 import "reflect-metadata";
 import { container } from "tsyringe";
@@ -263,5 +261,3 @@ export default async function (
 
   await appChain.close();
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

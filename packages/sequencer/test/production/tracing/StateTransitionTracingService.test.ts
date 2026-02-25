@@ -174,7 +174,13 @@ describe("StateTransitionTracingService", () => {
 
     it("trace should have correct length", async () => {
       expect(trace).toHaveLength(
-        Math.ceil(numSTs / ProtocolConstants.stateTransitionProverBatchSize)
+        Math.ceil(
+          numSTs /
+            ProtocolConstants.getConstant(
+              "STATE_TRANSITION_BATCH_SIZE",
+              parseInt
+            )
+        )
       );
     });
 
@@ -331,7 +337,13 @@ describe("StateTransitionTracingService", () => {
       batches.forEach(({ witnessRoot }, index) => {
         expect(
           trace[
-            Math.floor(index / ProtocolConstants.stateTransitionProverBatchSize)
+            Math.floor(
+              index /
+                ProtocolConstants.getConstant(
+                  "STATE_TRANSITION_BATCH_SIZE",
+                  parseInt
+                )
+            )
           ].batch.batch[index].witnessRoot.toBoolean()
         ).toBe(witnessRoot);
       });
