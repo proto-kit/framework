@@ -38,6 +38,7 @@ import {
   AddressRegistry,
   InMemoryAddressRegistry,
 } from "./interactions/AddressRegistry";
+import { SettlementProvingTask } from "./tasks/SettlementProvingTask";
 
 export type SettlementModuleConfig = {
   addresses?: {
@@ -82,6 +83,9 @@ export class SettlementModule
     return {
       AddressRegistry: {
         useClass: InMemoryAddressRegistry,
+      },
+      settlementProvingTask: {
+        useClass: SettlementProvingTask,
       },
     };
   }

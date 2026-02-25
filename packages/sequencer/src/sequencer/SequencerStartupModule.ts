@@ -12,6 +12,8 @@ import {
   ChildVerificationKeyService,
   CompileRegistry,
   AreProofsEnabled,
+  dependencyFactory,
+  DependencyRecord,
 } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../worker/flow/Flow";
@@ -23,12 +25,14 @@ import {
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
+import { WorkerRegistrationTask } from "../worker/worker/startup/WorkerRegistrationTask";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
 
 @sequencerModule()
 @closeable()
+@dependencyFactory()
 export class SequencerStartupModule
   extends SequencerModule
   implements Closeable
@@ -48,6 +52,17 @@ export class SequencerStartupModule
     private readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
+  }
+
+  public static dependencies(): DependencyRecord {
+    return {
+      compileTask: {
+        useClass: CircuitCompilerTask,
+      },
+      workerRegistrationTask: {
+        useClass: WorkerRegistrationTask,
+      },
+    };
   }
 
   private async pushCompileTask(

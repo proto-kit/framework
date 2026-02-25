@@ -9,6 +9,7 @@ import {
 import {
   CompileRegistry,
   ProvableMethodExecutionContext,
+  implement,
 } from "@proto-kit/common";
 
 import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
@@ -21,6 +22,7 @@ import {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@implement("Task")
 export class BlockReductionTask
   extends TaskWorkerModule
   implements Task<PairTuple<BlockProof>, BlockProof>

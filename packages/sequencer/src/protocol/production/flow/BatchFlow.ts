@@ -7,7 +7,7 @@ import {
   StateTransitionProverPublicOutput,
   TransactionProverPublicInput,
 } from "@proto-kit/protocol";
-import { isFull, mapSequential, Nullable } from "@proto-kit/common";
+import { isFull, mapSequential, Nullable, dependencyFactory, DependencyRecord } from "@proto-kit/common";
 
 import { FlowCreator } from "../../../worker/flow/Flow";
 import { NewBlockProvingParameters, NewBlockTask } from "../tasks/NewBlockTask";
@@ -22,6 +22,7 @@ import { BlockFlow } from "./BlockFlow";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@dependencyFactory()
 export class BatchFlow {
   public constructor(
     private readonly flowCreator: FlowCreator,
@@ -34,6 +35,17 @@ export class BatchFlow {
     @inject("Tracer")
     public readonly tracer: Tracer
   ) {}
+
+  public static dependencies(): DependencyRecord {
+    return {
+      blockProvingTask: {
+        useClass: NewBlockTask,
+      },
+      blockReductionTask: {
+        useClass: BlockReductionTask,
+      },
+    };
+  }
 
   private isBlockProofsMergable(a: BlockProof, b: BlockProof): boolean {
     // TODO Proper replication of merge logic

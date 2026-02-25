@@ -9,6 +9,7 @@ import {
   CompilableModule,
   safeParseJson,
   reduceSequential,
+  implement,
 } from "@proto-kit/common";
 import {
   MandatorySettlementModulesRecord,
@@ -40,6 +41,7 @@ export type CompilerTaskParams = {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@implement("Task")
 export class CircuitCompilerTask extends UnpreparingTask<
   CompilerTaskParams,
   ArtifactRecord

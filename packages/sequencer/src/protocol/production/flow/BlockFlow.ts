@@ -4,7 +4,7 @@ import {
   Protocol,
   TransactionProof,
 } from "@proto-kit/protocol";
-import { mapSequential } from "@proto-kit/common";
+import { mapSequential, dependencyFactory, DependencyRecord } from "@proto-kit/common";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import chunk from "lodash/chunk";
 
@@ -19,6 +19,7 @@ import { TransactionFlow } from "./TransactionFlow";
 // TODO Rename to TransactionFlow
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@dependencyFactory()
 export class BlockFlow {
   public constructor(
     private readonly flowCreator: FlowCreator,
@@ -28,6 +29,17 @@ export class BlockFlow {
     private readonly transactionTask: TransactionProvingTask,
     private readonly transactionMergeTask: TransactionReductionTask
   ) {}
+
+  public static dependencies(): DependencyRecord {
+    return {
+      transactionTask: {
+        useClass: TransactionProvingTask,
+      },
+      transactionMergeTask: {
+        useClass: TransactionReductionTask,
+      },
+    };
+  }
 
   private dummyProof: TransactionProof | undefined = undefined;
 

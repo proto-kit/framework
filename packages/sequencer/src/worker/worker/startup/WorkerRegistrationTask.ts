@@ -5,6 +5,7 @@ import {
   CompileRegistry,
   safeParseJson,
   ModuleContainerLike,
+  implement,
 } from "@proto-kit/common";
 import { inject, injectable } from "tsyringe";
 import {
@@ -39,6 +40,7 @@ export type WorkerStartupPayload = {
 };
 
 @injectable()
+@implement("Task")
 export class WorkerRegistrationTask
   extends AbstractStartupTask<WorkerStartupPayload, boolean>
   implements Task<WorkerStartupPayload, boolean>

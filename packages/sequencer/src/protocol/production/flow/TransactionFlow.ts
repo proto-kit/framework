@@ -1,5 +1,5 @@
 import { injectable } from "tsyringe";
-import { assertSizeOneOrTwo } from "@proto-kit/common";
+import { assertSizeOneOrTwo, dependencyFactory, DependencyRecord } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../../../worker/flow/Flow";
 import {
@@ -10,11 +10,20 @@ import { RuntimeProvingTask } from "../tasks/RuntimeProvingTask";
 import { TransactionTrace } from "../tracing/TransactionTracingService";
 
 @injectable()
+@dependencyFactory()
 export class TransactionFlow {
   public constructor(
     private readonly flowCreator: FlowCreator,
     private readonly runtimeProvingTask: RuntimeProvingTask
   ) {}
+
+  public static dependencies(): DependencyRecord {
+    return {
+      runtimeProvingTask: {
+        useClass: RuntimeProvingTask,
+      },
+    };
+  }
 
   private async resolveTransactionFlow(
     flow: Flow<{

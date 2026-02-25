@@ -10,7 +10,7 @@ import {
   RuntimeMethodExecutionContext,
 } from "@proto-kit/protocol";
 import { Proof } from "o1js";
-import { CompileRegistry } from "@proto-kit/common";
+import { CompileRegistry, implement } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
@@ -31,6 +31,7 @@ export interface RuntimeProofParameters {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@implement("Task")
 export class RuntimeProvingTask
   extends TaskWorkerModule
   implements Task<RuntimeProofParameters, RuntimeProof>

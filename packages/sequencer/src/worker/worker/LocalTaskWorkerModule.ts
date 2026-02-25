@@ -64,48 +64,69 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
 
   public containerEvents = new EventEmitter<LocalTaskWorkerModuleEvents>();
 
-  private worker?: FlowTaskWorker<
-    InstanceType<ResolvableModules<Tasks>[StringKeyOf<Tasks>]>[]
-  > = undefined;
+  private worker?: FlowTaskWorker<any> = undefined;
 
   public static from<Tasks extends TaskWorkerModulesRecord>(
     modules: Tasks
   ): TypedClass<LocalTaskWorkerModule<Tasks>> {
     return class ScopedTaskWorkerModule extends LocalTaskWorkerModule<Tasks> {
       public constructor() {
-        super(modules);
+        super();
+        this.definition = modules;
+
+        const config = Object.keys(modules).reduce<Record<string, NoConfig>>(
+          (acc, moduleName) => {
+            this.assertIsValidModuleName(moduleName);
+            acc[moduleName] = {};
+            return acc;
+          },
+          {}
+        );
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        this.currentConfig = config as ModulesConfig<Tasks>;
       }
     };
   }
 
-  public constructor(modules: Tasks) {
-    super(modules);
-
-    // Since we disabled configs for tasks, we initialize the config as empty here
-    const config = Object.keys(modules).reduce<Record<string, NoConfig>>(
-      (acc, moduleName) => {
-        this.assertIsValidModuleName(moduleName);
-        acc[moduleName] = {};
-        return acc;
-      },
-      {}
-    );
+  public constructor() {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    this.currentConfig = config as ModulesConfig<Tasks>;
+    super({} as Tasks);
   }
 
   private taskQueue() {
     return this.container.resolve<TaskQueue>("TaskQueue");
   }
 
-  public async start(): Promise<void> {
-    const tasks = this.moduleNames.map((moduleName) => {
-      this.assertIsValidModuleName(moduleName);
+  private resolveTasks() {
+    if (this.moduleNames.length > 0) {
+      return this.moduleNames.map((moduleName) => {
+        this.assertIsValidModuleName(moduleName);
+        const task = this.resolve(moduleName);
+        log.debug(`Resolved task ${task.name}`);
+        return task;
+      });
+    }
+    if (this.container.isRegistered("Task", true)) {
+      const injectedTasks = this.container.resolveAll<
+        TaskWorkerModule & Task<any, any>
+      >("Task");
 
-      const task = this.resolve(moduleName);
-      log.debug(`Resolved task ${task.name}`);
-      return task;
-    });
+      const tasksSet = new Set<string>();
+      return injectedTasks.filter((task) => {
+        if (tasksSet.has(task.name)) {
+          return false;
+        }
+        tasksSet.add(task.name);
+        return true;
+      });
+    }
+
+    log.warn("No tasks found");
+    return [];
+  }
+
+  public async start(): Promise<void> {
+    const tasks = this.resolveTasks();
 
     const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
     this.worker = worker;

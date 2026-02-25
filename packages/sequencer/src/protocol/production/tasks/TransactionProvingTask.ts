@@ -13,6 +13,7 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
+  implement,
 } from "@proto-kit/common";
 
 import { ProofTaskSerializer } from "../../../helpers/utils";
@@ -49,6 +50,7 @@ export async function executeWithPrefilledStateService<Return>(
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@implement("Task")
 export class TransactionProvingTask
   extends TaskWorkerModule
   implements Task<TransactionProvingTaskParameters, TransactionProof>

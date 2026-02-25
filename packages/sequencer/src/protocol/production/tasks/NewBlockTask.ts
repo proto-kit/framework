@@ -1,4 +1,5 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { implement } from "@proto-kit/common";
 import {
   BlockProvable,
   BlockProverPublicInput,
@@ -55,6 +56,7 @@ export type NewBlockProvingParameters = PairingDerivedInput<
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@implement("Task")
 export class NewBlockTask
   extends TaskWorkerModule
   implements Task<NewBlockProvingParameters, BlockProof>

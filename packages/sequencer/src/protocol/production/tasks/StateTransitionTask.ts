@@ -14,6 +14,7 @@ import {
   ProvableMethodExecutionContext,
   CompileRegistry,
   LinkedMerkleTreeWitness,
+  implement,
 } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
@@ -31,6 +32,7 @@ export interface StateTransitionProofParameters {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@implement("Task")
 export class StateTransitionTask
   extends TaskWorkerModule
   implements Task<StateTransitionProofParameters, StateTransitionProof>

@@ -33,6 +33,7 @@ import {
   fetchLastBlock,
 } from "o1js";
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
+import { implement } from "@proto-kit/common";
 
 import {
   ProofTaskSerializer,
@@ -74,6 +75,7 @@ export class SomeProofSubclass extends Proof<Field, Void> {
  */
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@implement("Task")
 export class SettlementProvingTask
   extends TaskWorkerModule
   implements Task<TransactionTaskArgs, TransactionTaskResult>

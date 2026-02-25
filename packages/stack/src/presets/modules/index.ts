@@ -176,9 +176,7 @@ export class DefaultModules {
   static remoteWorker() {
     return {
       TaskQueue: BullQueue,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.allTasks()
-      ),
+      LocalTaskWorkerModule: LocalTaskWorkerModule,
     } satisfies SequencerModulesRecord;
   }
 

@@ -16,9 +16,11 @@ import {
 import { StateTransitionReductionTask } from "../tasks/StateTransitionReductionTask";
 
 import { ReductionTaskFlow } from "./ReductionTaskFlow";
+import { dependencyFactory, DependencyRecord } from "@proto-kit/common";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@dependencyFactory()
 export class StateTransitionFlow {
   public constructor(
     @inject("Protocol")
@@ -27,7 +29,16 @@ export class StateTransitionFlow {
     private readonly stateTransitionTask: StateTransitionTask,
     private readonly stateTransitionReductionTask: StateTransitionReductionTask
   ) {}
-
+  public static dependencies(): DependencyRecord {
+    return {
+      stateTransitionTask: {
+        useClass: StateTransitionTask,
+      },
+      stateTransitionReductionTask: {
+        useClass: StateTransitionReductionTask,
+      },
+    };
+  }
   private async dummySTProof(): Promise<StateTransitionProof> {
     const emptyInputOutput: StateTransitionProverPublicInput &
       StateTransitionProverPublicOutput = {
