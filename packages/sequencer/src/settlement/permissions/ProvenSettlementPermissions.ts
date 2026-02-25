@@ -2,9 +2,7 @@ import { Permissions, TransactionVersion } from "o1js";
 
 import { BaseLayerContractPermissions } from "./BaseLayerContractPermissions";
 
-export class ProvenSettlementPermissions
-  implements BaseLayerContractPermissions
-{
+export class ProvenSettlementPermissions implements BaseLayerContractPermissions {
   private onlyProofs(): Permissions {
     return {
       ...Permissions.default(),

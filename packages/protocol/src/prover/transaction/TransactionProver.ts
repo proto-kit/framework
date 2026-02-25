@@ -513,8 +513,10 @@ export class TransactionProver
   public async compile(
     registry: CompileRegistry
   ): Promise<Record<string, CompileArtifact> | undefined> {
-    return await registry.forceProverExists(async () => {
+    await registry.sideloaded(async () => {
       await this.runtime.compile(registry);
+    });
+    return await registry.proverNeeded(async () => {
       return await this.zkProgrammable.compile(registry);
     });
   }

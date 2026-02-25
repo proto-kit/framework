@@ -7,8 +7,10 @@ import {
 
 import { MethodIdResolver } from "./MethodIdResolver";
 
-export interface RuntimeEnvironment
-  extends WithZkProgrammable<undefined, MethodPublicOutput> {
+export interface RuntimeEnvironment extends WithZkProgrammable<
+  undefined,
+  MethodPublicOutput
+> {
   get areProofsEnabled(): AreProofsEnabled | undefined;
   get stateService(): SimpleAsyncStateService;
   get stateServiceProvider(): StateServiceProvider;

@@ -27,7 +27,8 @@ import {
 import { beforeAll } from "@jest/globals";
 import { container } from "tsyringe";
 
-import { startGraphqlServer, TestBalances } from "./graphql-server";
+import { startGraphqlServer } from "./graphql-server";
+import { TestBalances } from "./utils";
 
 const pk = PrivateKey.random();
 
@@ -112,6 +113,7 @@ describe("graphql client test", () => {
   }, 20_000);
 
   afterAll(async () => {
+    await appChain.close();
     await server.sequencer.close();
   }, 20_000);
 

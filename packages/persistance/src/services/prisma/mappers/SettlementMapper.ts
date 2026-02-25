@@ -5,9 +5,10 @@ import { Settlement as DBSettlement } from "@prisma/client";
 import { ObjectMapper } from "../../../ObjectMapper";
 
 @injectable()
-export class SettlementMapper
-  implements ObjectMapper<Settlement, [DBSettlement, number[]]>
-{
+export class SettlementMapper implements ObjectMapper<
+  Settlement,
+  [DBSettlement, number[]]
+> {
   public mapIn(input: [DBSettlement, number[]]): Settlement {
     const [settlement, batches] = input;
     return {

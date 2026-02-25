@@ -6,7 +6,7 @@ import {
   closeable,
   Tracer,
 } from "@proto-kit/sequencer";
-import { ChildContainerProvider } from "@proto-kit/common";
+import { ChildContainerProvider, dependencyFactory } from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
 import { RedisClientType } from "redis";
 import { inject } from "tsyringe";
@@ -31,6 +31,7 @@ export interface PrismaRedisCombinedConfig {
 
 @sequencerModule()
 @closeable()
+@dependencyFactory()
 export class PrismaRedisDatabase
   extends SequencerModule<PrismaRedisCombinedConfig>
   implements PrismaConnection, RedisConnection, Database
@@ -63,28 +64,28 @@ export class PrismaRedisDatabase
     this.redis.create(childContainerProvider);
   }
 
-  public dependencies(): StorageDependencyMinimumDependencies {
+  public static dependencies(): StorageDependencyMinimumDependencies<PrismaRedisDatabase> {
     return {
-      ...this.prisma.dependencies(),
-      ...this.redis.dependencies(),
+      ...PrismaDatabaseConnection.dependencies(),
+      ...RedisConnectionModule.dependencies(),
 
       asyncLinkedLeafStore: {
-        useFactory: () => {
+        useGenerated: (module) => {
           return new PrismaLinkedLeafStore(
-            this.prisma,
-            this.redis,
-            this.tracer,
+            module.prisma,
+            module.redis,
+            module.tracer,
             "batch"
           );
         },
       },
 
       unprovenLinkedLeafStore: {
-        useFactory: () => {
+        useGenerated: (module) => {
           return new PrismaLinkedLeafStore(
-            this.prisma,
-            this.redis,
-            this.tracer,
+            module.prisma,
+            module.redis,
+            module.tracer,
             "block"
           );
         },

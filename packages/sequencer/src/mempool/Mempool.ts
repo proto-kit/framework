@@ -6,8 +6,9 @@ export type MempoolEvents = {
   "mempool-transaction-added": [PendingTransaction];
 };
 
-export interface Mempool<Events extends MempoolEvents = MempoolEvents>
-  extends EventEmittingComponent<Events> {
+export interface Mempool<
+  Events extends MempoolEvents = MempoolEvents,
+> extends EventEmittingComponent<Events> {
   /**
    * Add a transaction to the mempool
    * @returns The new commitment to the mempool

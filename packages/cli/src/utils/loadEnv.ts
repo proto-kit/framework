@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 import path from "path";
 import fs from "fs";
 
@@ -61,4 +59,3 @@ export function parseEnvArgs(args: string[]): Record<string, string> {
 
   return envVars;
 }
-/* eslint-enable no-console */

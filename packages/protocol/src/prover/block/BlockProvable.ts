@@ -13,10 +13,9 @@ import {
 import { TransactionProof } from "../transaction/TransactionProvable";
 import { BundleHashList, FieldTransition } from "../accumulators/BlockHashList";
 import { NonMethods } from "../../utils/utils";
+import { Constants } from "../../Constants";
 
 import { BlockHashMerkleTreeWitness } from "./accummulators/BlockHashMerkleTree";
-
-export const BLOCK_ARGUMENT_BATCH_SIZE = 4;
 
 export class BlockArguments extends Struct({
   afterBlockRootWitness: WitnessedRootWitness,
@@ -48,7 +47,10 @@ export class BlockArguments extends Struct({
 }
 
 export class BlockArgumentsBatch extends Struct({
-  batch: Provable.Array(BlockArguments, BLOCK_ARGUMENT_BATCH_SIZE),
+  batch: Provable.Array(
+    BlockArguments,
+    Constants.getConstant("BLOCK_ARGUMENT_BATCH_SIZE", parseInt)
+  ),
 }) {}
 
 const BlockProverStateBaseFields = {
@@ -346,7 +348,8 @@ export class BlockProverState {
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export interface BlockProvable
-  extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput>,
+  extends
+    WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput>,
     CompilableModule {
   proveBlockBatchNoProofs: (
     publicInput: BlockProverPublicInput,

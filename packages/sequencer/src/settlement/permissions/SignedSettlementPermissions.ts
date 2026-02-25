@@ -2,9 +2,7 @@ import { Permissions } from "o1js";
 
 import { BaseLayerContractPermissions } from "./BaseLayerContractPermissions";
 
-export class SignedSettlementPermissions
-  implements BaseLayerContractPermissions
-{
+export class SignedSettlementPermissions implements BaseLayerContractPermissions {
   private onlySignature() {
     return {
       ...Permissions.default(),

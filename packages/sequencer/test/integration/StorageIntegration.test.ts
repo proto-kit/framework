@@ -13,7 +13,7 @@ import {
   SequencerModule,
   StateEntry,
   StateRecord,
-  StorageDependencyFactory,
+  DatabaseDependencyFactory,
   BlockStorage,
   VanillaTaskWorkerModules,
   AppChain,
@@ -47,7 +47,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
   "Storage Adapter Test %s",
   (
     testName,
-    Database: TypedClass<SequencerModule & StorageDependencyFactory>
+    Database: TypedClass<SequencerModule> & DatabaseDependencyFactory<any>
   ) => {
     let appChain: ReturnType<typeof createAppChain>;
     let sequencer: Sequencer<

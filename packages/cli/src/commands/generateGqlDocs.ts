@@ -31,9 +31,8 @@ export const generateGqlDocsCommand: CommandModule<{}, GenerateGqlDocsArgs> = {
       }),
   handler: async (args) => {
     try {
-      const { default: generateGqlDocs } = await import(
-        "../scripts/graphqlDocs/generateGqlDocs"
-      );
+      const { default: generateGqlDocs } =
+        await import("../scripts/graphqlDocs/generateGqlDocs");
       await generateGqlDocs(args);
       process.exit(0);
     } catch (error) {

@@ -24,9 +24,9 @@ export type NoConfig = Record<never, never>;
 /**
  * Used by various module sub-types that may need to be configured
  */
-export class ConfigurableModule<Config = NoConfig>
-  implements BaseModuleInstanceType
-{
+export class ConfigurableModule<
+  Config = NoConfig,
+> implements BaseModuleInstanceType {
   /**
    * Store the config separately, so that we can apply additional
    * checks when retrieving it via the getter

@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import {
   loadEnvironmentVariables,
   getRequiredEnv,
@@ -168,5 +166,3 @@ export default async function (
     throw error;
   }
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

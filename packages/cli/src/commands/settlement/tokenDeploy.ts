@@ -30,9 +30,8 @@ export const tokenDeployCommand: CommandModule<{}, TokenDeployArgs> = {
     ),
   handler: async (args) => {
     try {
-      const { default: tokenDeploy } = await import(
-        "../../scripts/settlement/deploy-token"
-      );
+      const { default: tokenDeploy } =
+        await import("../../scripts/settlement/deploy-token");
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await tokenDeploy(
         {

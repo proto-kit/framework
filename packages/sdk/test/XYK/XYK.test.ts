@@ -68,6 +68,10 @@ describe("xyk", () => {
     xyk = chain.runtime.resolve("XYK");
   }, 60_000);
 
+  afterAll(async () => {
+    await chain.close();
+  });
+
   it("should mint balance for alice", async () => {
     expect.assertions(2);
 

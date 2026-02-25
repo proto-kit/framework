@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 /* eslint-disable no-inner-declarations */
 
 import { DispatchSmartContract } from "@proto-kit/protocol";
@@ -51,9 +49,8 @@ export default async function (
       UInt64,
       UInt8,
     } = await import("o1js");
-    const { FungibleToken, FungibleTokenAdmin } = await import(
-      "mina-fungible-token"
-    );
+    const { FungibleToken, FungibleTokenAdmin } =
+      await import("mina-fungible-token");
     const { DefaultConfigs, DefaultModules } = await import("@proto-kit/stack");
 
     const { runtime, protocol } = await loadUserModules();
@@ -282,6 +279,4 @@ export default async function (
     throw error;
   }
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */
 /* eslint-enable no-inner-declarations */

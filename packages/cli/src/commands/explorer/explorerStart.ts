@@ -40,9 +40,8 @@ export const explorerStartCommand: CommandModule<{}, ExplorerStartArgs> = {
       }),
   handler: async (args) => {
     try {
-      const { default: explorerStart } = await import(
-        "../../scripts/explorer/start"
-      );
+      const { default: explorerStart } =
+        await import("../../scripts/explorer/start");
       await explorerStart({
         port: args.port,
         indexerUrl: args["indexer-url"],

@@ -163,10 +163,12 @@ export class DynamicProofTaskSerializer<PublicInputType, PublicOutputType>
 
 export type PairTuple<Type> = [Type, Type];
 
-export class PairProofTaskSerializer<PublicInputType, PublicOutputType>
-  implements
-    TaskSerializer<PairTuple<Proof<PublicInputType, PublicOutputType>>>
-{
+export class PairProofTaskSerializer<
+  PublicInputType,
+  PublicOutputType,
+> implements TaskSerializer<
+  PairTuple<Proof<PublicInputType, PublicOutputType>>
+> {
   private readonly proofSerializer = new ProofTaskSerializer(this.proofClass);
 
   public constructor(

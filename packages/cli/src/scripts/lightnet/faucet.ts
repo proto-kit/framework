@@ -1,5 +1,3 @@
-/* eslint-disable func-names */
-
 import "reflect-metadata";
 import { getRequiredEnv } from "../../utils/loadEnv";
 
@@ -70,4 +68,3 @@ export default async function (publicKey: string) {
     publicKey: pair.publicKey.toBase58(),
   });
 }
-/* eslint-enable func-names */

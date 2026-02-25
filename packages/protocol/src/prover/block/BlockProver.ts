@@ -783,7 +783,7 @@ export class BlockProver
   public async compile(
     registry: CompileRegistry
   ): Promise<Record<string, CompileArtifact> | undefined> {
-    return await registry.forceProverExists(async () => {
+    return await registry.proverNeeded(async () => {
       await this.stateTransitionProver.compile(registry);
       await this.transactionProver.compile(registry);
       return await this.zkProgrammable.compile(registry);

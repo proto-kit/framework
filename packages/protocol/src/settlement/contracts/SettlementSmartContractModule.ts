@@ -68,7 +68,7 @@ export class SettlementSmartContractModule extends ContractModule<
 
     log.debug("Compiling Settlement Contract");
 
-    const artifact = await registry.forceProverExists(
+    const artifact = await registry.proverNeeded(
       async (reg) => await registry.compile(SettlementContract)
     );
 

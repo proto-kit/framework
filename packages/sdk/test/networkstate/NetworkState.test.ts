@@ -73,6 +73,10 @@ describe.skip("block production", () => {
     blockTrigger = sequencer.resolve("BlockTrigger");
   });
 
+  afterEach(async () => {
+    await appchain.close();
+  });
+
   it("stateproof test", async () => {
     log.setLevel("INFO");
 

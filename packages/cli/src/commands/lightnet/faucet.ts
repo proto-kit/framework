@@ -23,9 +23,8 @@ export const faucetCommand: CommandModule<{}, FaucetArgs> = {
   handler: async (args) => {
     try {
       const { default: faucet } = await import("../../scripts/lightnet/faucet");
-      const { loadEnvironmentVariables, parseEnvArgs } = await import(
-        "../../utils/loadEnv"
-      );
+      const { loadEnvironmentVariables, parseEnvArgs } =
+        await import("../../utils/loadEnv");
       loadEnvironmentVariables({
         envPath: args["env-path"],
         env: args.env!,

@@ -10,7 +10,7 @@ import {
   ModulesRecord,
 } from "../../src/config/ModuleContainer";
 import { TypedClass } from "../../src/types";
-import { DependencyFactory, expectDefined } from "../../src";
+import { dependencyFactory, expectDefined } from "../../src";
 import { injectAlias } from "../../src/config/injectAlias";
 
 // module container will accept modules that extend this type
@@ -37,14 +37,15 @@ class ChildModule extends BaseTestModule<NoConfig> {
 }
 
 @injectAlias(["base-alias", "multi-alias"])
-class TestModule
-  extends BaseTestModule<TestModuleConfig>
-  implements DependencyFactory
-{
-  public dependencies() {
+@dependencyFactory()
+class TestModule extends BaseTestModule<TestModuleConfig> {
+  public static dependencies() {
     return {
       dependencyModule1: {
         useClass: ChildModule,
+      },
+      dependencyModule2: {
+        useGenerated: (module: TestModule) => "test",
       },
     };
   }
@@ -110,6 +111,9 @@ describe("moduleContainer", () => {
 
     expect(dm.x()).toBe("dependency factory works");
     expect(dm.testModule).toBeDefined();
+
+    const dm2 = container.resolve("DependencyModule2");
+    expect(dm2).toBe("test");
   });
 
   it("should throw on resolution, if config was not provided", () => {

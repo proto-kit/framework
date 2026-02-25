@@ -32,8 +32,12 @@ export class ContractArgsRegistry {
     this.args[name] = merge(args, addition);
   }
 
-  public resetArgs(name: string) {
-    delete this.args[name];
+  public resetArgs(name?: string) {
+    if (name !== undefined) {
+      delete this.args[name];
+    } else {
+      this.args = {};
+    }
   }
 
   public getArgs<Type>(name: string, schema: NaiveObjectSchema<Type>): Type {

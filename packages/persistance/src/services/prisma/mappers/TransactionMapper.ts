@@ -16,9 +16,10 @@ import { EventArrayMapper } from "./EventMapper";
 
 @singleton()
 @injectable()
-export class TransactionMapper
-  implements ObjectMapper<PendingTransaction, DBTransaction>
-{
+export class TransactionMapper implements ObjectMapper<
+  PendingTransaction,
+  DBTransaction
+> {
   public mapIn(input: DBTransaction): PendingTransaction {
     return PendingTransaction.fromJSON({
       ...input,
@@ -46,13 +47,10 @@ export class TransactionMapper
 }
 
 @singleton()
-export class TransactionExecutionResultMapper
-  implements
-    ObjectMapper<
-      TransactionExecutionResult,
-      [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction]
-    >
-{
+export class TransactionExecutionResultMapper implements ObjectMapper<
+  TransactionExecutionResult,
+  [Omit<DBTransactionExecutionResult, "blockHash">, DBTransaction]
+> {
   public constructor(
     private readonly transactionMapper: TransactionMapper,
     private readonly stBatchMapper: StateTransitionBatchArrayMapper,

@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import { loadEnvironmentVariables, LoadEnvOptions } from "../../utils/loadEnv";
 import { loadUserModules } from "../../utils/loadUserModules";
 
@@ -74,5 +72,3 @@ export default async function (
 
   await appChain.close();
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

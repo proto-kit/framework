@@ -14,7 +14,7 @@ import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runti
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 import { inject } from "tsyringe";
-import { DependencyFactory, DependencyRecord, log } from "@proto-kit/common";
+import { dependencyFactory, DependencyRecord, log } from "@proto-kit/common";
 
 import { SequencerInstrumentation } from "./SequencerInstrumentation";
 import { OpenTelemetryTracer } from "./OpenTelemetryTracer";
@@ -32,6 +32,7 @@ export type OpenTelemetryServerConfig = {
 };
 
 @sequencerModule()
+@dependencyFactory()
 export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConfig> {
   public constructor(
     @inject("Sequencer") private readonly sequencer: Sequencer<any>
@@ -59,12 +60,12 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
     );
 
     const metricReader =
-      metrics?.enabled ?? true
+      (metrics?.enabled ?? true)
         ? new PrometheusExporter(metrics?.prometheus)
         : undefined;
 
     const instrumentations =
-      metrics?.enabled ?? true
+      (metrics?.enabled ?? true)
         ? [
             new RuntimeNodeInstrumentation({
               monitoringPrecision: metrics?.nodeScrapeInterval ?? 5000,
@@ -74,7 +75,7 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
         : [];
 
     const traceExporter =
-      tracing?.enabled ?? true
+      (tracing?.enabled ?? true)
         ? new OTLPTraceExporter(tracing?.otlp)
         : undefined;
 
@@ -96,5 +97,3 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
     log.info("OpenTelemetryServer started");
   }
 }
-
-OpenTelemetryServer satisfies DependencyFactory;

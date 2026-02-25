@@ -11,7 +11,7 @@ import {
   PrivateMempool,
   Sequencer,
   SequencerModule,
-  StorageDependencyFactory,
+  DatabaseDependencyFactory,
   VanillaTaskWorkerModules,
   AppChain,
   ManualBlockTrigger,
@@ -28,7 +28,8 @@ describe.each([["InMemory", InMemoryDatabase]])(
   "Block Ordering test: %s",
   (
     testName,
-    Database: TypedClass<SequencerModule & StorageDependencyFactory>
+    Database: TypedClass<SequencerModule<unknown>> &
+      DatabaseDependencyFactory<any>
   ) => {
     let appChain: ReturnType<typeof createAppChain>;
     let sequencer: Sequencer<

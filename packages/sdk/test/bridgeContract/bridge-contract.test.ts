@@ -166,7 +166,9 @@ describe("bridging contract", () => {
             new OutgoingMessageArgument({
               messageType,
               witness: treeWitness,
-              data: Unconstrained.from(Withdrawal.toFields(message)),
+              data: Unconstrained.from(
+                Withdrawal.toFields(message).map((x) => x.toString())
+              ),
             }),
           ])
         );

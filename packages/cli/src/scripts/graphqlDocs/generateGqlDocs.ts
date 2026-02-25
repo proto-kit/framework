@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { generateGqlDocs } from "../../utils/graphqlDocs";
 
 export default async function (args: {
@@ -13,9 +12,8 @@ export default async function (args: {
       StateServiceQueryModule,
     } = await import("@proto-kit/sdk");
     const { Protocol } = await import("@proto-kit/protocol");
-    const { AppChain, Sequencer, VanillaTaskWorkerModules } = await import(
-      "@proto-kit/sequencer"
-    );
+    const { AppChain, Sequencer, VanillaTaskWorkerModules } =
+      await import("@proto-kit/sequencer");
     const {
       InMemorySequencerModules,
       VanillaProtocolModules,
@@ -71,4 +69,3 @@ export default async function (args: {
     await generateGqlDocs(args.url);
   }
 }
-/* eslint-enable no-console */

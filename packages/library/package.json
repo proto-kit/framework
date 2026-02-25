@@ -3,13 +3,14 @@
   "license": "MIT",
   "private": false,
   "type": "module",
-  "version": "0.1.1-develop.833+397881ed",
+  "version": "0.1.1-develop.2137+8a7eca31",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "eslint ./src ./test",
     "test:file": "node --experimental-vm-modules --experimental-wasm-modules ../../node_modules/jest/bin/jest.js",
     "test": "npm run test:file -- ./test/**",
+    "test:check": "tsc --noEmit -p test/tsconfig.json",
     "test:watch": "npm run test:file -- ./test/** --watch"
   },
   "main": "dist/index.js",
@@ -34,5 +35,5 @@
     "@jest/globals": "^29.5.0",
     "@types/lodash": "^4.14.194"
   },
-  "gitHead": "397881ed5d8f98f5005bcd7be7f5a12b3bc6f956"
+  "gitHead": "8a7eca319272a15162dc4ad04bdc134b1017716d"
 }

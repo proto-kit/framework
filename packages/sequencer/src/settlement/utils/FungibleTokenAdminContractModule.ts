@@ -4,7 +4,7 @@ import {
   SmartContractClassFromInterface,
 } from "@proto-kit/protocol";
 import { FungibleTokenAdmin } from "mina-fungible-token";
-import { CompileArtifact } from "@proto-kit/common";
+import { CompileArtifact, CompileRegistry } from "@proto-kit/common";
 
 @injectable()
 export class FungibleTokenAdminContractModule extends ContractModule<FungibleTokenAdmin> {
@@ -12,8 +12,12 @@ export class FungibleTokenAdminContractModule extends ContractModule<FungibleTok
     return FungibleTokenAdmin;
   }
 
-  public async compile(): Promise<Record<string, CompileArtifact>> {
-    const vk = await FungibleTokenAdmin.compile();
+  public async compile(
+    registry: CompileRegistry
+  ): Promise<Record<string, CompileArtifact>> {
+    const vk = await registry.proverNeeded(
+      async (reg) => await reg.compile(FungibleTokenAdmin)
+    );
     return {
       FungibleTokenAdmin: vk,
     };

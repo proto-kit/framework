@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import { spawn } from "child_process";
 
 const DEFAULT_EXPLORER_IMAGE = "ghcr.io/proto-kit/explorer:latest";
@@ -100,5 +98,3 @@ export default async function (args: {
     throw error;
   }
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

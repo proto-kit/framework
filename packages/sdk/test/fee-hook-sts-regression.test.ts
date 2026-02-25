@@ -78,8 +78,39 @@ class CustomBalances extends Balances<BalancesConfig> {
   // @runtimeMethod()
   public foo() {}
 }
+function createAppChain(sender: PublicKey) {
+  const appChain = TestingAppChain.fromRuntime({
+    Admin,
+    Balances: CustomBalances,
+  });
+
+  appChain.configurePartial({
+    Runtime: {
+      Admin: {
+        admin: sender,
+      },
+
+      Balances: {
+        totalSupply: UInt64.from(10000),
+      },
+    },
+    Protocol: {
+      ...appChain.config.Protocol!,
+      TransactionFee: {
+        tokenId: 0n,
+        feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
+        baseFee: 0n,
+        perWeightUnitFee: 0n,
+        methods: {},
+      },
+    },
+  });
+
+  return appChain;
+}
 
 describe("testing app chain", () => {
+  let appChain: ReturnType<typeof createAppChain>;
   it("should enable a complete transaction roundtrip", async () => {
     expect.assertions(4);
 
@@ -90,33 +121,7 @@ describe("testing app chain", () => {
      * Setup the app chain for testing purposes,
      * using the provided runtime modules
      */
-    const appChain = TestingAppChain.fromRuntime({
-      Admin,
-      Balances: CustomBalances,
-    });
-
-    appChain.configurePartial({
-      Runtime: {
-        Admin: {
-          admin: sender,
-        },
-
-        Balances: {
-          totalSupply: UInt64.from(10000),
-        },
-      },
-      Protocol: {
-        ...appChain.config.Protocol!,
-        TransactionFee: {
-          tokenId: 0n,
-          feeRecipient: PrivateKey.random().toPublicKey().toBase58(),
-          baseFee: 0n,
-          perWeightUnitFee: 0n,
-          methods: {},
-        },
-      },
-    });
-
+    appChain = createAppChain(sender);
     // start the chain, sequencer is now accepting transactions
     await appChain.start();
 
@@ -178,4 +183,8 @@ describe("testing app chain", () => {
 
     expect(balance?.toBigInt()).toBe(2000n);
   }, 60_000);
+
+  afterAll(async () => {
+    await appChain.close();
+  });
 });

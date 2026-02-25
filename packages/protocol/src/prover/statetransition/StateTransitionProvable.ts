@@ -27,7 +27,8 @@ export type StateTransitionProof = Proof<
 >;
 
 export interface StateTransitionProvable
-  extends WithZkProgrammable<
+  extends
+    WithZkProgrammable<
       StateTransitionProverPublicInput,
       StateTransitionProverPublicOutput
     >,

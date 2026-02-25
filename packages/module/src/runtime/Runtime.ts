@@ -390,7 +390,9 @@ export class Runtime<Modules extends RuntimeModulesRecord>
       transaction: RuntimeTransaction.dummyTransaction(),
       networkState: NetworkState.empty(),
     });
-    return await this.zkProgrammable.compile(registry);
+    return await registry.proverNeeded(
+      async () => await this.zkProgrammable.compile(registry)
+    );
   }
 }
 /* eslint-enable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument */

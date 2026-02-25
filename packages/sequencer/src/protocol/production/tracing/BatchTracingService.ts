@@ -1,12 +1,12 @@
 import { log, range, unzip, yieldSequential } from "@proto-kit/common";
 import {
   AppliedBatchHashList,
-  BLOCK_ARGUMENT_BATCH_SIZE,
   MinaActionsHashList,
   TransactionHashList,
   WitnessedRootHashList,
   BundleHashList,
   BlockArguments,
+  ProtocolConstants,
 } from "@proto-kit/protocol";
 import { inject, injectable } from "tsyringe";
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -78,11 +78,15 @@ export class BatchTracingService {
     );
 
     // Trace blocks
+    const blockArgumentBatchSize = ProtocolConstants.getConstant(
+      "BLOCK_ARGUMENT_BATCH_SIZE",
+      parseInt
+    );
     const numBlocks = blocks.length;
-    const numBatches = Math.ceil(numBlocks / BLOCK_ARGUMENT_BATCH_SIZE);
+    const numBatches = Math.ceil(numBlocks / blockArgumentBatchSize);
 
     const [, blockTraces] = await yieldSequential(
-      chunk(blocks, BLOCK_ARGUMENT_BATCH_SIZE),
+      chunk(blocks, blockArgumentBatchSize),
       async (state, batch, index) => {
         // Trace batch of blocks fitting in single proof
         const partialBlockTrace = this.blockTracingService.openBlock(
@@ -126,7 +130,7 @@ export class BatchTracingService {
         );
         const dummies = range(
           blockArgumentBatch.length,
-          BLOCK_ARGUMENT_BATCH_SIZE
+          blockArgumentBatchSize
         ).map<NewBlockArguments>(() => ({
           args: dummyBlockArgs,
           startingStateAfterHook: {},

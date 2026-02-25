@@ -7,8 +7,6 @@ import { cyan, green, blue, gray, bold } from "kleur/colors";
 
 import { resolveChainPath } from "./pathResolver";
 
-/* eslint-disable no-console */
-
 export const icons = {
   checkmark: figuresLib.tick,
   cross: figuresLib.cross,
@@ -442,4 +440,3 @@ export function copyAndUpdateEnvFile(
     return false;
   }
 }
-/* eslint-enable no-console */

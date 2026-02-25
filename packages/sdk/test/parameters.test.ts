@@ -94,7 +94,21 @@ class TestRuntime extends RuntimeModule<unknown> {
   }
 }
 
+function createAppChain() {
+  const appChain = TestingAppChain.fromRuntime({
+    TestRuntime,
+  });
+
+  appChain.configurePartial({
+    Runtime: {
+      TestRuntime: {},
+      Balances: {},
+    },
+  });
+  return appChain;
+}
 describe("parameters", () => {
+  let appChain: ReturnType<typeof createAppChain>;
   it("should accept various provable transaction arguments", async () => {
     expect.assertions(2);
 
@@ -105,19 +119,8 @@ describe("parameters", () => {
      * Setup the app chain for testing purposes,
      * using the provided runtime modules
      */
-    const appChain = TestingAppChain.fromRuntime({
-      TestRuntime,
-    });
-
-    appChain.configurePartial({
-      Runtime: {
-        TestRuntime: {},
-        Balances: {},
-      },
-    });
-
+    appChain = createAppChain();
     await appChain.start();
-
     appChain.setSigner(signer);
 
     const runtime = appChain.runtime.resolve("TestRuntime");
@@ -148,4 +151,8 @@ describe("parameters", () => {
     expectDefined(block);
     expect(block.transactions[0].status.toBoolean()).toBe(true);
   }, 60_000);
+
+  afterAll(async () => {
+    await appChain.close();
+  });
 });

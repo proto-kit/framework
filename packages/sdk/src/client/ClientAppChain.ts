@@ -160,7 +160,7 @@ export class ClientAppChain<
     const nonce =
       options?.nonce !== undefined
         ? UInt64.from(options.nonce)
-        : (await retrieveNonce(sender)) ?? UInt64.from(0);
+        : ((await retrieveNonce(sender)) ?? UInt64.from(0));
 
     const unsignedTransaction = new UnsignedTransaction({
       methodId: Field(

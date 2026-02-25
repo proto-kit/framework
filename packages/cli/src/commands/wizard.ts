@@ -6,9 +6,8 @@ export const wizardCommand: CommandModule<{}> = {
   builder: (yarg) => yarg,
   handler: async () => {
     try {
-      const { default: createEnvironment } = await import(
-        "../scripts/env/create-environment"
-      );
+      const { default: createEnvironment } =
+        await import("../scripts/env/create-environment");
       await createEnvironment();
       process.exit(0);
     } catch (error) {

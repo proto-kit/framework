@@ -49,7 +49,7 @@ export class ChildProcessWorker {
     });
     if (forwardLogs) {
       s.stdout.on("data", (data) => {
-        process.stdout.write(`${name}: ${data}`);
+        process.stdout.write(`\x1b[34m${name}: ${data}\x1b[0m`);
       });
     }
     s.stderr.on("data", (data) => {

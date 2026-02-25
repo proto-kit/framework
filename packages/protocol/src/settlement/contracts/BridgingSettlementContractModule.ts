@@ -84,9 +84,13 @@ export class BridgingSettlementContractModule extends ContractModule<
     registry: CompileRegistry
   ): Promise<ArtifactRecord | undefined> {
     // Dependencies
-    const bridgeArtifact = await this.bridgeContractModule.compile(registry);
+    const bridgeArtifact = await registry.sideloaded(async (r) => {
+      const bridgeResult = await this.bridgeContractModule.compile(r);
 
-    await this.blockProver.compile(registry);
+      await this.blockProver.compile(r);
+
+      return bridgeResult;
+    });
 
     this.contractFactory();
 
@@ -101,7 +105,7 @@ export class BridgingSettlementContractModule extends ContractModule<
 
     log.debug("Compiling Settlement Contract");
 
-    const artifact = await registry.forceProverExists(
+    const artifact = await registry.proverNeeded(
       async (reg) =>
         await registry.compile(
           BridgingSettlementContract,

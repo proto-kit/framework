@@ -21,18 +21,23 @@ const alice = alicePrivateKey.toPublicKey();
 
 const bobPrivateKey = PrivateKey.random();
 const bob = bobPrivateKey.toPublicKey();
+function createAppChain() {
+  const appChain = TestingAppChain.fromRuntime({
+    Balances: Balances,
+  });
 
+  appChain.configurePartial({
+    Runtime: {
+      Balances: {},
+    },
+  });
+  return appChain;
+}
 describe("HandlersModule", () => {
-  it("should handle blocks", async () => {
-    const appChain = TestingAppChain.fromRuntime({
-      Balances: Balances,
-    });
+  let appChain: ReturnType<typeof createAppChain>;
 
-    appChain.configurePartial({
-      Runtime: {
-        Balances: {},
-      },
-    });
+  it("should handle blocks", async () => {
+    appChain = createAppChain();
 
     await appChain.start();
 
@@ -40,12 +45,13 @@ describe("HandlersModule", () => {
       client,
       { block, result: blockResult }
     ) => {
+      const app = appChain;
       // iterate over all transactions
       for (const tx of block.transactions) {
         const methodId = tx.tx.methodId.toBigInt();
 
         const methodDescriptor =
-          appChain.runtime.methodIdResolver.getMethodNameFromId(methodId);
+          app.runtime.methodIdResolver.getMethodNameFromId(methodId);
 
         if (methodDescriptor === undefined) {
           throw new Error("Unable to retrieve the method descriptor");
@@ -56,7 +62,7 @@ describe("HandlersModule", () => {
 
         const handleBalancesTransferSigned = async () => {
           console.log("handleBalancesTransferSigned");
-          const module = appChain.runtime.resolve("Balances");
+          const module = app.runtime.resolve("Balances");
 
           const parameterDecoder = MethodParameterEncoder.fromMethod(
             module,
@@ -175,5 +181,9 @@ describe("HandlersModule", () => {
     const balance: PrismaBalance = client.balance.create.mock.calls[0][0].data;
     expect(balance.address).toBe(alice.toBase58());
     expect(balance.amount).toBe("0");
+  });
+
+  afterAll(async () => {
+    await appChain.close();
   });
 });

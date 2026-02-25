@@ -63,9 +63,7 @@ export function createLinkedMerkleTree(
     }
   }
 
-  return class AbstractLinkedRollupMerkleTree
-    implements AbstractLinkedMerkleTree
-  {
+  return class AbstractLinkedRollupMerkleTree implements AbstractLinkedMerkleTree {
     public static HEIGHT = height;
 
     public static EMPTY_ROOT = new AbstractLinkedRollupMerkleTree(
@@ -332,4 +330,5 @@ export function createLinkedMerkleTree(
 
 export class LinkedMerkleTree extends createLinkedMerkleTree(40) {}
 export class LinkedMerkleTreeWitness extends LinkedMerkleTree.WITNESS {}
-export class LinkedMerkleTreeReadWitness extends LinkedMerkleTree.READ_WITNESS {}
+export class LinkedMerkleTreeReadWitness
+  extends LinkedMerkleTree.READ_WITNESS {}

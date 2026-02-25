@@ -13,9 +13,8 @@ export const generateKeysCommand: CommandModule<{}, GenerateKeysArgs> = {
     }),
   handler: async (args) => {
     try {
-      const { default: generateKeys } = await import(
-        "../../scripts/generateKeys"
-      );
+      const { default: generateKeys } =
+        await import("../../scripts/generateKeys");
       await generateKeys({ count: args.count });
       process.exit(0);
     } catch (error) {

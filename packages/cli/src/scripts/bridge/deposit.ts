@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
 import { DispatchSmartContract } from "@proto-kit/protocol";
 
 import {
@@ -198,5 +196,3 @@ export default async function (
     throw error;
   }
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

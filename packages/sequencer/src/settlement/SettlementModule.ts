@@ -12,10 +12,10 @@ import { inject } from "tsyringe";
 import {
   EventEmitter,
   EventEmittingComponent,
-  DependencyFactory,
   ModuleContainerLike,
   DependencyRecord,
   log,
+  dependencyFactory,
 } from "@proto-kit/common";
 
 import {
@@ -50,6 +50,7 @@ export type SettlementModuleEvents = {
 };
 
 @sequencerModule()
+@dependencyFactory()
 export class SettlementModule
   extends SequencerModule<SettlementModuleConfig>
   implements EventEmittingComponent<SettlementModuleEvents>
@@ -261,5 +262,3 @@ export class SettlementModule
     }
   }
 }
-
-SettlementModule satisfies DependencyFactory;

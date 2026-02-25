@@ -30,9 +30,10 @@ import {
  * The pairs are then mapped: number * bigint
  * And then reduced by summing them together: bigint + bigint
  */
-class PairedMulTask
-  implements Task<PairingDerivedInput<number, bigint, void>, bigint>
-{
+class PairedMulTask implements Task<
+  PairingDerivedInput<number, bigint, void>,
+  bigint
+> {
   public name = "sum";
 
   public inputSerializer(): TaskSerializer<

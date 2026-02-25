@@ -1,8 +1,6 @@
-/* eslint-disable no-console */
-/* eslint-disable func-names */
-
 import "reflect-metadata";
 import { container } from "tsyringe";
+import type { Environment } from "@proto-kit/stack";
 
 import {
   loadEnvironmentVariables,
@@ -18,6 +16,7 @@ export default async function (options: LoadEnvOptions) {
     const { Protocol } = await import("@proto-kit/protocol");
     const { AppChain, Sequencer, SettlementModule, InMemoryDatabase } =
       await import("@proto-kit/sequencer");
+
     const { DefaultModules, DefaultConfigs } = await import("@proto-kit/stack");
     loadEnvironmentVariables(options);
     const { runtime, protocol } = await loadUserModules();
@@ -41,7 +40,16 @@ export default async function (options: LoadEnvOptions) {
       },
       Sequencer: {
         ...DefaultConfigs.inMemoryDatabase(),
-        ...DefaultConfigs.settlementScript({ preset: "development" }),
+        ...DefaultConfigs.settlementScript({
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          preset: options.env as Environment,
+        }),
+        SettlementModule: {
+          addresses: undefined,
+        },
+        BridgingModule: {
+          addresses: undefined,
+        },
       },
     });
 
@@ -90,5 +98,3 @@ export default async function (options: LoadEnvOptions) {
     throw error;
   }
 }
-/* eslint-enable no-console */
-/* eslint-enable func-names */

@@ -48,9 +48,7 @@ type NewBlockPayload = PairingDerivedInput<
   NewBlockProverParameters
 >;
 
-export class NewBlockProvingParametersSerializer
-  implements TaskSerializer<NewBlockPayload>
-{
+export class NewBlockProvingParametersSerializer implements TaskSerializer<NewBlockPayload> {
   public constructor(
     private readonly stProofSerializer: ProofTaskSerializer<
       StateTransitionProverPublicInput,

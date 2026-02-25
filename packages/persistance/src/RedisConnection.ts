@@ -4,7 +4,6 @@ import {
   StorageDependencyMinimumDependencies,
   Tracer,
 } from "@proto-kit/sequencer";
-import { DependencyFactory } from "@proto-kit/common";
 import isArray from "lodash/isArray";
 
 import { RedisMerkleTreeStore } from "./services/redis/RedisMerkleTreeStore";
@@ -25,7 +24,7 @@ export interface RedisConnection {
 
 export class RedisConnectionModule
   extends SequencerModule<RedisConnectionConfig>
-  implements DependencyFactory, RedisConnection
+  implements RedisConnection
 {
   public constructor(private readonly tracer: Tracer) {
     super();
@@ -42,21 +41,22 @@ export class RedisConnectionModule
     return this.client;
   }
 
-  public dependencies(): Pick<
-    StorageDependencyMinimumDependencies,
+  public static dependencies(): Pick<
+    StorageDependencyMinimumDependencies<{ redis: RedisConnectionModule }>,
     "asyncMerkleStore" | "blockTreeStore" | "unprovenMerkleStore"
   > {
     return {
       asyncMerkleStore: {
-        useFactory: () => new RedisMerkleTreeStore(this, this.tracer),
+        useGenerated: ({ redis }) =>
+          new RedisMerkleTreeStore(redis, redis.tracer),
       },
       unprovenMerkleStore: {
-        useFactory: () =>
-          new RedisMerkleTreeStore(this, this.tracer, "unproven"),
+        useGenerated: ({ redis }) =>
+          new RedisMerkleTreeStore(redis, redis.tracer, "unproven"),
       },
       blockTreeStore: {
-        useFactory: () =>
-          new RedisMerkleTreeStore(this, this.tracer, "blockHash"),
+        useGenerated: ({ redis }) =>
+          new RedisMerkleTreeStore(redis, redis.tracer, "blockHash"),
       },
     };
   }
