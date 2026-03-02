@@ -21,15 +21,14 @@ import {
   ContractArgsRegistry,
 } from "@proto-kit/protocol";
 
-import { TaskSerializer } from "../../../worker/flow/Task";
-import { UnpreparingTask } from "../../../worker/flow/UnpreparingTask";
-import { SignedSettlementPermissions } from "../../../settlement/permissions/SignedSettlementPermissions";
-import { ProvenSettlementPermissions } from "../../../settlement/permissions/ProvenSettlementPermissions";
-
+import { TaskSerializer } from "../../../../worker/flow/Task";
+import { UnpreparingTask } from "../../../../worker/flow/UnpreparingTask";
+import { SignedSettlementPermissions } from "../../../../settlement/permissions/SignedSettlementPermissions";
+import { ProvenSettlementPermissions } from "../../../../settlement/permissions/ProvenSettlementPermissions";
 import {
   ArtifactRecordSerializer,
   SerializedArtifactRecord,
-} from "./serializers/ArtifactionRecordSerializer";
+} from "../serializers/ArtifactionRecordSerializer";
 
 export type CompilerTaskParams = {
   existingArtifacts: ArtifactRecord;
