@@ -15,9 +15,8 @@ export const waitForNetworkCommand: CommandModule<{}, WaitForNetworkArgs> = {
   builder: (yarg) => addEnvironmentOptions(yarg),
   handler: async (args) => {
     try {
-      const { default: waitForNetwork } = await import(
-        "../../scripts/lightnet/wait-for-network"
-      );
+      const { default: waitForNetwork } =
+        await import("../../scripts/lightnet/wait-for-network");
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await waitForNetwork({
         envPath: args["env-path"],

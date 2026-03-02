@@ -23,9 +23,8 @@ export const withdrawCommand: CommandModule<{}, WithdrawArgs> = {
     ),
   handler: async (args) => {
     try {
-      const { default: withdraw } = await import(
-        "../../scripts/bridge/withdraw"
-      );
+      const { default: withdraw } =
+        await import("../../scripts/bridge/withdraw");
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await withdraw(
         {

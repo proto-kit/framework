@@ -4,9 +4,8 @@ const maxAttempts = 24;
 const delay = 5000;
 
 export default async function (options: LoadEnvOptions) {
-  const { loadEnvironmentVariables, getRequiredEnv } = await import(
-    "../../utils/loadEnv"
-  );
+  const { loadEnvironmentVariables, getRequiredEnv } =
+    await import("../../utils/loadEnv");
   const { sleep } = await import("@proto-kit/common");
   const { fetchLastBlock, Provable } = await import("o1js");
   loadEnvironmentVariables(options);

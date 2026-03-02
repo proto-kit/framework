@@ -50,14 +50,12 @@ export type ProtocolModulesRecord = ModulesRecord<
 >;
 
 export interface TransactionProverType
-  extends ProtocolModule,
-    TransactionProvable {}
+  extends ProtocolModule, TransactionProvable {}
 
 export interface BlockProverType extends ProtocolModule, BlockProvable {}
 
 export interface StateTransitionProverType
-  extends ProtocolModule,
-    StateTransitionProvable {}
+  extends ProtocolModule, StateTransitionProvable {}
 
 export type MandatoryProtocolModulesRecord = {
   TransactionProver: TypedClass<TransactionProverType>;
@@ -69,8 +67,8 @@ export type MandatoryProtocolModulesRecord = {
 };
 
 export class Protocol<
-    Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord,
-  >
+  Modules extends ProtocolModulesRecord & MandatoryProtocolModulesRecord,
+>
   extends ModuleContainer<Modules>
   implements ProtocolEnvironment, Startable
 {

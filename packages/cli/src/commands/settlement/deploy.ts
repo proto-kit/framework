@@ -15,9 +15,8 @@ export const deployCommand: CommandModule<{}, DeployArgs> = {
   builder: (yarg) => addEnvironmentOptions(yarg),
   handler: async (args) => {
     try {
-      const { default: deploy } = await import(
-        "../../scripts/settlement/deploy"
-      );
+      const { default: deploy } =
+        await import("../../scripts/settlement/deploy");
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await deploy({
         envPath: args["env-path"],

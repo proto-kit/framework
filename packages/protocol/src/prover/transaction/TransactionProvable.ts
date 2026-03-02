@@ -152,7 +152,8 @@ export type TransactionProof = Proof<
 >;
 
 export interface TransactionProvable
-  extends WithZkProgrammable<
+  extends
+    WithZkProgrammable<
       TransactionProverPublicInput,
       TransactionProverPublicOutput
     >,

@@ -12,9 +12,8 @@ export default async function (args: {
       StateServiceQueryModule,
     } = await import("@proto-kit/sdk");
     const { Protocol } = await import("@proto-kit/protocol");
-    const { AppChain, Sequencer, VanillaTaskWorkerModules } = await import(
-      "@proto-kit/sequencer"
-    );
+    const { AppChain, Sequencer, VanillaTaskWorkerModules } =
+      await import("@proto-kit/sequencer");
     const {
       InMemorySequencerModules,
       VanillaProtocolModules,

@@ -10,8 +10,9 @@ import { MessageStorage } from "./repositories/MessageStorage";
 import { SettlementStorage } from "./repositories/SettlementStorage";
 import { TransactionStorage } from "./repositories/TransactionStorage";
 
-export interface StorageDependencyMinimumDependencies<Module>
-  extends DependencyRecord<Module> {
+export interface StorageDependencyMinimumDependencies<
+  Module,
+> extends DependencyRecord<Module> {
   asyncStateService: DependencyDeclaration<AsyncStateService, Module>;
   asyncLinkedLeafStore: DependencyDeclaration<AsyncLinkedLeafStore, Module>;
 

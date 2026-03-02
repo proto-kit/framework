@@ -7,8 +7,9 @@ import { AppChainTransaction } from "@proto-kit/sdk";
 import { Block, Batch } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
 import { container } from "tsyringe";
-import { testBlockProduction } from "@proto-kit/sequencer/test/integration/BlockProduction-test";
 
+// eslint-disable-next-line import/no-relative-packages
+import { testBlockProduction } from "../../sequencer/test/integration/BlockProduction-test";
 import {
   PrismaBatchStore,
   PrismaBlockStorage,
@@ -24,13 +25,17 @@ import {
 
 describe("Prisma block production", () => {
   const { prismaConfig, redisConfig } = IntegrationTestDBConfig;
-  testBlockProduction(PrismaRedisDatabase, {
-    prisma: {
-      connection: prismaConfig,
-      log: [{ level: "query", emit: "event" }],
-    },
-    redis: redisConfig,
-  });
+  // TODO Fix /src and /dist type mismatch
+  testBlockProduction(
+    PrismaRedisDatabase as any,
+    {
+      prisma: {
+        connection: prismaConfig,
+        log: [{ level: "query", emit: "event" }],
+      },
+      redis: redisConfig,
+    } as never
+  );
 });
 
 describe("prisma integration", () => {

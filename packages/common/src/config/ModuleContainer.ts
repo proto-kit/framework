@@ -73,8 +73,7 @@ const errors = {
 export const ModuleContainerErrors = errors;
 
 export interface BaseModuleInstanceType
-  extends ChildContainerCreatable,
-    Configurable<unknown> {}
+  extends ChildContainerCreatable, Configurable<unknown> {}
 
 // determines that a module should be configurable by default
 export type BaseModuleType = TypedClass<BaseModuleInstanceType>;

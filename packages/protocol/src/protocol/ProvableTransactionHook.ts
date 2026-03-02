@@ -72,8 +72,7 @@ export interface BeforeTransactionHookArguments {
   prover: ProvableHookTransactionState;
 }
 
-export interface AfterTransactionHookArguments
-  extends BeforeTransactionHookArguments {
+export interface AfterTransactionHookArguments extends BeforeTransactionHookArguments {
   runtimeResult: TransactionResult;
 }
 

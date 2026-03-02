@@ -6,9 +6,10 @@ import { JsonProof } from "o1js";
 import { ObjectMapper } from "../../../ObjectMapper";
 
 @singleton()
-export class BatchMapper
-  implements ObjectMapper<Batch, [PrismaBatch, string[]]>
-{
+export class BatchMapper implements ObjectMapper<
+  Batch,
+  [PrismaBatch, string[]]
+> {
   public mapIn(input: [PrismaBatch, string[]]): Batch {
     return {
       blockHashes: input[1],

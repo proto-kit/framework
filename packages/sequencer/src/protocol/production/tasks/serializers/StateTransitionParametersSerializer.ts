@@ -15,9 +15,7 @@ interface StateTransitionParametersJSON {
   batchState: ReturnType<typeof AppliedStateTransitionBatchState.toJSON>;
 }
 
-export class StateTransitionParametersSerializer
-  implements TaskSerializer<StateTransitionProofParameters>
-{
+export class StateTransitionParametersSerializer implements TaskSerializer<StateTransitionProofParameters> {
   public toJSON(parameters: StateTransitionProofParameters) {
     return JSON.stringify({
       publicInput: StateTransitionProverPublicInput.toJSON(

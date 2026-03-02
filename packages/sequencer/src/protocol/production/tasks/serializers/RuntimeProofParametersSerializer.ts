@@ -9,9 +9,7 @@ import {
   JSONEncodableState,
 } from "./DecodedStateSerializer";
 
-export class RuntimeProofParametersSerializer
-  implements TaskSerializer<RuntimeProofParameters>
-{
+export class RuntimeProofParametersSerializer implements TaskSerializer<RuntimeProofParameters> {
   public toJSON(parameters: RuntimeProofParameters): string {
     const jsonReadyObject = {
       tx: parameters.tx.toJSON(),

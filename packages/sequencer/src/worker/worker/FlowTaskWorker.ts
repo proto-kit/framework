@@ -12,9 +12,9 @@ const errors = {
 };
 
 // Had to use any here, because otherwise you couldn't assign any tasks to it
-export class FlowTaskWorker<Tasks extends Task<any, any>[]>
-  implements Closeable
-{
+export class FlowTaskWorker<
+  Tasks extends Task<any, any>[],
+> implements Closeable {
   private readonly queue: TaskQueue;
 
   private workers: Record<string, Closeable> = {};

@@ -348,7 +348,8 @@ export class BlockProverState {
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export interface BlockProvable
-  extends WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput>,
+  extends
+    WithZkProgrammable<BlockProverPublicInput, BlockProverPublicOutput>,
     CompilableModule {
   proveBlockBatchNoProofs: (
     publicInput: BlockProverPublicInput,

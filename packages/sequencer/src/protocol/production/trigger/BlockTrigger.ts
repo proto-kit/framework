@@ -35,9 +35,9 @@ export type BlockEvents = {
 };
 
 export class BlockTriggerBase<
-    Config = NoConfig,
-    Events extends BlockEvents = BlockEvents,
-  >
+  Config = NoConfig,
+  Events extends BlockEvents = BlockEvents,
+>
   extends SequencerModule<Config>
   implements BlockTrigger, EventEmittingComponent<Events>
 {

@@ -45,9 +45,10 @@ export class EventMapper implements ObjectMapper<EventData, Prisma.JsonObject> {
 }
 
 @singleton()
-export class EventArrayMapper
-  implements ObjectMapper<EventData[], Prisma.JsonValue | undefined>
-{
+export class EventArrayMapper implements ObjectMapper<
+  EventData[],
+  Prisma.JsonValue | undefined
+> {
   public constructor(private readonly eventMapper: EventMapper) {}
 
   public mapIn(input: Prisma.JsonValue | undefined): EventData[] {

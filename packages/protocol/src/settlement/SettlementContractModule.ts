@@ -52,8 +52,8 @@ export type BridgingSettlementModulesRecord = {
 
 @injectable()
 export class SettlementContractModule<
-    SettlementModules extends SettlementModulesRecord,
-  >
+  SettlementModules extends SettlementModulesRecord,
+>
   extends ModuleContainer<SettlementModules>
   implements ProtocolModule<unknown>
 {

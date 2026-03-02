@@ -8,9 +8,10 @@ import { Prisma } from "@prisma/client";
 import { ObjectMapper } from "../../../ObjectMapper";
 
 @singleton()
-export class StateTransitionMapper
-  implements ObjectMapper<UntypedStateTransition, Prisma.JsonObject>
-{
+export class StateTransitionMapper implements ObjectMapper<
+  UntypedStateTransition,
+  Prisma.JsonObject
+> {
   public mapIn(input: Prisma.JsonObject): UntypedStateTransition {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return UntypedStateTransition.fromJSON(input as any);
@@ -22,10 +23,10 @@ export class StateTransitionMapper
 }
 
 @singleton()
-export class StateTransitionArrayMapper
-  implements
-    ObjectMapper<UntypedStateTransition[], Prisma.JsonValue | undefined>
-{
+export class StateTransitionArrayMapper implements ObjectMapper<
+  UntypedStateTransition[],
+  Prisma.JsonValue | undefined
+> {
   public constructor(private readonly stMapper: StateTransitionMapper) {}
 
   public mapIn(input: Prisma.JsonValue | undefined): UntypedStateTransition[] {
@@ -45,9 +46,10 @@ export class StateTransitionArrayMapper
 }
 
 @singleton()
-export class StateTransitionBatchArrayMapper
-  implements ObjectMapper<StateTransitionBatch[], Prisma.JsonValue>
-{
+export class StateTransitionBatchArrayMapper implements ObjectMapper<
+  StateTransitionBatch[],
+  Prisma.JsonValue
+> {
   public constructor(
     private readonly stArrayMapper: StateTransitionArrayMapper
   ) {}

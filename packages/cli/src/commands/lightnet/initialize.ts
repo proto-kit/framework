@@ -15,9 +15,8 @@ export const initializeCommand: CommandModule<{}, InitializeArgs> = {
   builder: (yarg) => addEnvironmentOptions(yarg),
   handler: async (args) => {
     try {
-      const { default: lightnetInitialize } = await import(
-        "../../scripts/lightnet/lightnetInitialize"
-      );
+      const { default: lightnetInitialize } =
+        await import("../../scripts/lightnet/lightnetInitialize");
       const { parseEnvArgs } = await import("../../utils/loadEnv");
       await lightnetInitialize({
         envPath: args["env-path"],

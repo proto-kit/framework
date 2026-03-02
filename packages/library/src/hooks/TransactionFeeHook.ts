@@ -34,8 +34,7 @@ interface Balances {
   balances: StateMap<BalancesKey, Balance>;
 }
 
-export interface TransactionFeeHookConfig
-  extends RuntimeFeeAnalyzerServiceConfig {}
+export interface TransactionFeeHookConfig extends RuntimeFeeAnalyzerServiceConfig {}
 
 const errors = {
   invalidFeeTreeRoot: () =>

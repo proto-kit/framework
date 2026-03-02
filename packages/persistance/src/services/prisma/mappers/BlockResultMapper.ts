@@ -8,9 +8,10 @@ import { ObjectMapper } from "../../../ObjectMapper";
 import { StateTransitionArrayMapper } from "./StateTransitionMapper";
 
 @singleton()
-export class BlockResultMapper
-  implements ObjectMapper<BlockResult, DBBlockResult>
-{
+export class BlockResultMapper implements ObjectMapper<
+  BlockResult,
+  DBBlockResult
+> {
   public constructor(
     private readonly stArrayMapper: StateTransitionArrayMapper
   ) {}

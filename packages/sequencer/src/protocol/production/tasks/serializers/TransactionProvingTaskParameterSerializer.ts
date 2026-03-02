@@ -44,9 +44,7 @@ export type TransactionProverTransactionArgumentsJSON = {
   >;
 };
 
-export class TransactionProvingTaskParameterSerializer
-  implements TaskSerializer<TransactionProvingTaskParameters>
-{
+export class TransactionProvingTaskParameterSerializer implements TaskSerializer<TransactionProvingTaskParameters> {
   public constructor(
     private readonly runtimeProofSerializer: ProofTaskSerializer<
       void,
