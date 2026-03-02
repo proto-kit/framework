@@ -27,6 +27,7 @@ describe("mempool removal mechanism", () => {
   let trigger: ManualBlockTrigger;
 
   const createAppChain = async () => {
+    log.setLevel("TRACE");
     const app = AppChain.from({
       Sequencer: Sequencer.from(testingSequencerModules({})),
       Protocol: Protocol.from(Protocol.defaultModules()),

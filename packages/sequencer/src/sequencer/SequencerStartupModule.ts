@@ -27,6 +27,7 @@ import { Task } from "../worker/flow/Task";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
+import { SettlementModule } from "../settlement/SettlementModule";
 
 @sequencerModule()
 @closeable()
@@ -48,7 +49,9 @@ export class SequencerStartupModule
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
-    private readonly contractArgsRegistry: ContractArgsRegistry
+    private readonly contractArgsRegistry: ContractArgsRegistry,
+    @inject("SettlementModule", { isOptional: true })
+    private readonly settlementModule: SettlementModule | undefined
   ) {
     super();
   }
@@ -108,6 +111,10 @@ export class SequencerStartupModule
         if (bridge !== undefined && protocol !== undefined) {
           res({ ...protocol, ...bridge });
         }
+        // TODO Try to generalize stuff like this a bit more
+        if (this.settlementModule === undefined && protocol !== undefined) {
+          res(protocol);
+        }
       };
 
       await flow.pushTask(
@@ -122,18 +129,20 @@ export class SequencerStartupModule
         }
       );
 
-      await flow.pushTask(
-        this.settlementCompilerTask,
-        {
-          existingArtifacts: {},
-          runtimeVKRoot: undefined,
-          isSignedSettlement,
-        },
-        async (bridgeResult) => {
-          results.bridge = bridgeResult;
-          resolveIfPossible();
-        }
-      );
+      if (this.settlementModule !== undefined) {
+        await flow.pushTask(
+          this.settlementCompilerTask,
+          {
+            existingArtifacts: {},
+            runtimeVKRoot: undefined,
+            isSignedSettlement,
+          },
+          async (bridgeResult) => {
+            results.bridge = bridgeResult;
+            resolveIfPossible();
+          }
+        );
+      }
     });
     this.compileRegistry.addArtifactsRaw(result);
     return result;
