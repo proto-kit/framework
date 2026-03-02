@@ -15,14 +15,15 @@ import {
 } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../worker/flow/Flow";
-import { WorkerRegistrationFlow } from "../worker/worker/startup/WorkerRegistrationFlow";
-import {
-  CircuitCompilerTask,
-  CompilerTaskParams,
-} from "../protocol/production/tasks/CircuitCompilerTask";
+import { WorkerRegistrationFlow } from "../worker/startup/WorkerRegistrationFlow";
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
+import { RuntimeCompileTask } from "../protocol/production/tasks/compile/RuntimeCompileTask";
+import { ProtocolCompileTask } from "../protocol/production/tasks/compile/ProtocolCompileTask";
+import { SettlementCompileTask } from "../protocol/production/tasks/compile/SettlementCompileTask";
+import { CompilerTaskParams } from "../protocol/production/tasks/compile/CircuitCompileTask";
+import { Task } from "../worker/flow/Task";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
@@ -37,7 +38,9 @@ export class SequencerStartupModule
     private readonly flowCreator: FlowCreator,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly compileTask: CircuitCompilerTask,
+    private readonly runtimeCompilerTask: RuntimeCompileTask,
+    private readonly protocolCompilerTask: ProtocolCompileTask,
+    private readonly settlementCompilerTask: SettlementCompileTask,
     private readonly verificationKeyService: VerificationKeyService,
     private readonly registrationFlow: WorkerRegistrationFlow,
     private readonly compileRegistry: CompileRegistry,
@@ -52,21 +55,25 @@ export class SequencerStartupModule
 
   private async pushCompileTask(
     flow: Flow<{}>,
+    task: Task<CompilerTaskParams, ArtifactRecord>,
     payload: CompilerTaskParams
   ): Promise<ArtifactRecord> {
     return await flow.withFlow<ArtifactRecord>(async (res, rej) => {
-      await flow.pushTask(this.compileTask, payload, async (result) => {
+      await flow.pushTask(task, payload, async (result) => {
         res(result);
       });
     });
   }
 
   public async compileRuntime(flow: Flow<{}>) {
-    const artifacts = await this.pushCompileTask(flow, {
-      existingArtifacts: {},
-      targets: ["runtime"],
-      runtimeVKRoot: undefined,
-    });
+    const artifacts = await this.pushCompileTask(
+      flow,
+      this.runtimeCompilerTask,
+      {
+        existingArtifacts: {},
+        runtimeVKRoot: undefined,
+      }
+    );
 
     // Init runtime VK tree
     await this.verificationKeyService.initializeVKTree(artifacts);
@@ -104,10 +111,9 @@ export class SequencerStartupModule
       };
 
       await flow.pushTask(
-        this.compileTask,
+        this.protocolCompilerTask,
         {
           existingArtifacts: {},
-          targets: ["protocol"],
           runtimeVKRoot: runtimeVkTreeRoot.toString(),
         },
         async (protocolResult) => {
@@ -117,10 +123,9 @@ export class SequencerStartupModule
       );
 
       await flow.pushTask(
-        this.compileTask,
+        this.settlementCompilerTask,
         {
           existingArtifacts: {},
-          targets: ["Settlement.BridgeContract"],
           runtimeVKRoot: undefined,
           isSignedSettlement,
         },
@@ -167,6 +172,7 @@ export class SequencerStartupModule
 
     log.info("Protocol circuits compiled");
 
+    // TODO Why is this not in SettlementStartupModule?
     // Init BridgeContract vk for settlement contract
     const bridgeVk = protocolBridgeArtifacts.BridgeContract;
     if (bridgeVk !== undefined) {

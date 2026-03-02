@@ -47,6 +47,10 @@ export * from "./protocol/production/tasks/serializers/RuntimeVerificationKeyAtt
 export * from "./protocol/production/tasks/serializers/StateTransitionParametersSerializer";
 export * from "./protocol/production/tasks/serializers/TransactionProvingTaskParameterSerializer";
 export * from "./protocol/production/tasks/serializers/VerificationKeySerializer";
+export * from "./protocol/production/tasks/compile/CircuitCompileTask";
+export * from "./protocol/production/tasks/compile/ProtocolCompileTask";
+export * from "./protocol/production/tasks/compile/RuntimeCompileTask";
+export * from "./protocol/production/tasks/compile/SettlementCompileTask";
 export * from "./protocol/production/trigger/BlockTrigger";
 export * from "./protocol/production/trigger/ManualBlockTrigger";
 export * from "./protocol/production/trigger/TimedBlockTrigger";

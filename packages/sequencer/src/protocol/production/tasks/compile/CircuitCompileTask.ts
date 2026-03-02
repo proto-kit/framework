@@ -1,22 +1,15 @@
-import { inject, injectable, Lifecycle, scoped } from "tsyringe";
-import { Runtime } from "@proto-kit/module";
 import {
   log,
   mapSequential,
-  StringKeyOf,
   ArtifactRecord,
   CompileRegistry,
   CompilableModule,
   safeParseJson,
-  reduceSequential,
 } from "@proto-kit/common";
 import {
-  MandatorySettlementModulesRecord,
   Protocol,
-  SettlementContractModule,
   RuntimeVerificationKeyRootService,
   MandatoryProtocolModulesRecord,
-  type SettlementModulesRecord,
   BridgingSettlementContractArgs,
   ContractArgsRegistry,
 } from "@proto-kit/protocol";
@@ -32,32 +25,24 @@ import {
 
 export type CompilerTaskParams = {
   existingArtifacts: ArtifactRecord;
-  targets: string[];
   runtimeVKRoot?: string;
   isSignedSettlement?: boolean;
 };
 
-@injectable()
-@scoped(Lifecycle.ContainerScoped)
-export class CircuitCompilerTask extends UnpreparingTask<
+export abstract class CircuitCompileTask extends UnpreparingTask<
   CompilerTaskParams,
   ArtifactRecord
 > {
-  public name = "compiledCircuit";
-
-  public constructor(
-    @inject("Runtime") protected readonly runtime: Runtime<never>,
-    @inject("Protocol")
+  protected constructor(
     protected readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly compileRegistry: CompileRegistry,
-    private readonly contractArgsRegistry: ContractArgsRegistry
+    protected readonly compileRegistry: CompileRegistry,
+    protected readonly contractArgsRegistry: ContractArgsRegistry
   ) {
     super();
   }
 
   public inputSerializer(): TaskSerializer<CompilerTaskParams> {
     type CompilerTaskParamsJSON = {
-      targets: string[];
       runtimeVKRoot?: string;
       existingArtifacts: SerializedArtifactRecord;
       isSignedSettlement?: boolean;
@@ -67,7 +52,6 @@ export class CircuitCompilerTask extends UnpreparingTask<
     return {
       toJSON: (input) =>
         JSON.stringify({
-          targets: input.targets,
           runtimeVKRoot: input.runtimeVKRoot,
           existingArtifacts: serializer.toJSON(input.existingArtifacts),
           isSignedSettlement: input.isSignedSettlement,
@@ -75,7 +59,6 @@ export class CircuitCompilerTask extends UnpreparingTask<
       fromJSON: (input) => {
         const json = safeParseJson<CompilerTaskParamsJSON>(input);
         return {
-          targets: json.targets,
           runtimeVKRoot: json.runtimeVKRoot,
           existingArtifacts: serializer.fromJSON(json.existingArtifacts),
           isSignedSettlement: json.isSignedSettlement,
@@ -93,51 +76,7 @@ export class CircuitCompilerTask extends UnpreparingTask<
     };
   }
 
-  public getSettlementTargets(): Record<string, CompilableModule> {
-    // We only care about the BridgeContract for now - later with caching,
-    // we might want to expand that to all protocol circuits
-    const container = this.protocol.dependencyContainer;
-    if (container.isRegistered("SettlementContractModule")) {
-      const settlementModule = container.resolve<
-        SettlementContractModule<SettlementModulesRecord>
-      >("SettlementContractModule");
-
-      // Needed so that all contractFactory functions are called, because
-      // they set static args on the contracts
-      settlementModule.getContractClasses();
-
-      const moduleNames =
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        settlementModule.moduleNames as StringKeyOf<MandatorySettlementModulesRecord>[];
-
-      const modules = moduleNames.map<[string, CompilableModule]>((name) => [
-        `Settlement.${name}`,
-        settlementModule.resolve(name),
-      ]);
-
-      const sumModule = {
-        compile: async (registry: CompileRegistry) => {
-          await reduceSequential<[string, CompilableModule], ArtifactRecord>(
-            modules,
-            async (record, [moduleName, module]) => {
-              log.info(`Compiling ${moduleName}`);
-              const artifacts = await module.compile(registry);
-              return {
-                ...record,
-                ...artifacts,
-              };
-            },
-            {}
-          );
-        },
-      };
-
-      const combinedModules = [...modules, ["Settlement", sumModule]];
-
-      return Object.fromEntries(combinedModules);
-    }
-    return {};
-  }
+  public abstract getTargets(): Promise<CompilableModule[]>;
 
   public async compute(input: CompilerTaskParams): Promise<ArtifactRecord> {
     log.info("Computing VKs");
@@ -166,24 +105,12 @@ export class CircuitCompilerTask extends UnpreparingTask<
       );
     }
 
-    // TODO make adaptive
-    const targets: Record<string, CompilableModule> = {
-      runtime: this.runtime,
-      protocol: this.protocol.blockProver,
-      ...this.getSettlementTargets(),
-    };
+    const targets = await this.getTargets();
 
-    const msg = `Compiling targets [${input.targets}]`;
+    const msg = `Compiling targets ${this.name}`;
     log.time(msg);
-    await mapSequential(input.targets, async (target) => {
-      if (target in targets) {
-        await targets[target].compile(this.compileRegistry);
-      } else {
-        log.info(
-          // TODO Is that right? Or should we check that the bridge exists on the sequencer side?
-          `Compile target ${target} not found, skipping`
-        );
-      }
+    await mapSequential(targets, async (target) => {
+      await target.compile(this.compileRegistry);
     });
     log.timeEnd.info(msg);
 
