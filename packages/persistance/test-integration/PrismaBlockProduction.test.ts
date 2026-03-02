@@ -8,7 +8,7 @@ import { Block, Batch } from "@proto-kit/sequencer";
 import { PrivateKey, PublicKey } from "o1js";
 import { container } from "tsyringe";
 
-import { testBlockProduction } from "../../../packages/sequencer/test/integration/BlockProduction-test";
+import { testBlockProduction } from "../../sequencer/test/integration/BlockProduction-test";
 import {
   PrismaBatchStore,
   PrismaBlockStorage,
