@@ -12,6 +12,7 @@ import {
   ChildVerificationKeyService,
   CompileRegistry,
   AreProofsEnabled,
+  CompileArtifact,
 } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../worker/flow/Flow";
@@ -92,57 +93,36 @@ export class SequencerStartupModule
     return root;
   }
 
-  private async compileProtocolAndBridge(
-    flow: Flow<{}>,
-    runtimeVkTreeRoot: bigint,
-    isSignedSettlement?: boolean
-  ) {
-    // Can happen in parallel
-    type ParallelResult = {
-      protocol?: ArtifactRecord;
-      bridge?: ArtifactRecord;
-    };
-
+  private async compileBridge(flow: Flow<{}>, isSignedSettlement?: boolean) {
     const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
-      const results: ParallelResult = {};
-
-      const resolveIfPossible = () => {
-        const { bridge, protocol } = results;
-        if (bridge !== undefined && protocol !== undefined) {
-          res({ ...protocol, ...bridge });
+      await flow.pushTask(
+        this.settlementCompilerTask,
+        {
+          existingArtifacts: this.compileRegistry.getAllArtifacts(),
+          runtimeVKRoot: undefined,
+          isSignedSettlement,
+        },
+        async (bridgeResult) => {
+          res(bridgeResult);
         }
-        // TODO Try to generalize stuff like this a bit more
-        if (this.settlementModule === undefined && protocol !== undefined) {
-          res(protocol);
-        }
-      };
+      );
+    });
+    this.compileRegistry.addArtifactsRaw(result);
+    return result;
+  }
 
+  private async compileProtocol(flow: Flow<{}>, runtimeVkTreeRoot: bigint) {
+    const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
       await flow.pushTask(
         this.protocolCompilerTask,
         {
-          existingArtifacts: {},
+          existingArtifacts: this.compileRegistry.getAllArtifacts(),
           runtimeVKRoot: runtimeVkTreeRoot.toString(),
         },
         async (protocolResult) => {
-          results.protocol = protocolResult;
-          resolveIfPossible();
+          res(protocolResult);
         }
       );
-
-      if (this.settlementModule !== undefined) {
-        await flow.pushTask(
-          this.settlementCompilerTask,
-          {
-            existingArtifacts: {},
-            runtimeVKRoot: undefined,
-            isSignedSettlement,
-          },
-          async (bridgeResult) => {
-            results.bridge = bridgeResult;
-            resolveIfPossible();
-          }
-        );
-      }
     });
     this.compileRegistry.addArtifactsRaw(result);
     return result;
@@ -173,26 +153,31 @@ export class SequencerStartupModule
 
     const root = await this.compileRuntime(flow);
 
-    const protocolBridgeArtifacts = await this.compileProtocolAndBridge(
-      flow,
-      root,
-      isSignedSettlement
-    );
+    await this.compileProtocol(flow, root);
+
+    let bridgeVk: CompileArtifact | undefined = undefined;
+
+    if (this.settlementModule !== undefined) {
+      const bridgeArtifacts = await this.compileBridge(
+        flow,
+        isSignedSettlement
+      );
+
+      // TODO Why is this not in SettlementStartupModule?
+      // Init BridgeContract vk for settlement contract
+      bridgeVk = bridgeArtifacts.BridgeContract;
+      if (bridgeVk !== undefined) {
+        // TODO Inject CompileRegistry directly
+        this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
+          "SettlementContract",
+          {
+            BridgeContractVerificationKey: bridgeVk.verificationKey,
+          }
+        );
+      }
+    }
 
     log.info("Protocol circuits compiled");
-
-    // TODO Why is this not in SettlementStartupModule?
-    // Init BridgeContract vk for settlement contract
-    const bridgeVk = protocolBridgeArtifacts.BridgeContract;
-    if (bridgeVk !== undefined) {
-      // TODO Inject CompileRegistry directly
-      this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
-        "SettlementContract",
-        {
-          BridgeContractVerificationKey: bridgeVk.verificationKey,
-        }
-      );
-    }
 
     await this.registrationFlow.start({
       runtimeVerificationKeyRoot: root,
