@@ -19,7 +19,7 @@ import {
 
 import { BatchProducerModule } from "../../BatchProducerModule";
 
-import { CircuitCompileTask, CompilerTaskParams } from "./CircuitCompileTask";
+import { CircuitCompileTask } from "./CircuitCompileTask";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

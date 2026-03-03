@@ -25,10 +25,10 @@ import { ProtocolCompileTask } from "../protocol/production/tasks/compile/Protoc
 import { SettlementCompileTask } from "../protocol/production/tasks/compile/SettlementCompileTask";
 import { CompilerTaskParams } from "../protocol/production/tasks/compile/CircuitCompileTask";
 import { Task } from "../worker/flow/Task";
+import { SettlementModule } from "../settlement/SettlementModule";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
-import { SettlementModule } from "../settlement/SettlementModule";
 
 @sequencerModule()
 @closeable()
