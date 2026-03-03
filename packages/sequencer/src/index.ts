@@ -23,6 +23,8 @@ export * from "./worker/worker/FlowTaskWorker";
 export * from "./worker/worker/LocalTaskWorkerModule";
 export * from "./worker/worker/TaskWorkerModule";
 export * from "./worker/worker/WorkerReadyModule";
+export * from "./worker/startup/WorkerRegistrationTask";
+export * from "./worker/startup/CloseWorkerError";
 export * from "./protocol/baselayer/BaseLayer";
 export * from "./protocol/baselayer/MinaBaseLayer";
 export * from "./protocol/baselayer/NoopBaseLayer";
