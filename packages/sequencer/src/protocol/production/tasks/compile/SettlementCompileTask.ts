@@ -1,6 +1,7 @@
 import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   ArtifactRecord,
+  ChildVerificationKeyService,
   CompilableModule,
   CompileRegistry,
   log,
@@ -18,7 +19,7 @@ import {
 
 import { BatchProducerModule } from "../../BatchProducerModule";
 
-import { CircuitCompileTask } from "./CircuitCompileTask";
+import { CircuitCompileTask, CompilerTaskParams } from "./CircuitCompileTask";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -31,7 +32,8 @@ export class SettlementCompileTask extends CircuitCompileTask {
     compileRegistry: CompileRegistry,
     contractArgsRegistry: ContractArgsRegistry,
     @inject("BatchProducerModule", { isOptional: true })
-    batchProducerModule: BatchProducerModule | undefined
+    batchProducerModule: BatchProducerModule | undefined,
+    private readonly childVkService: ChildVerificationKeyService
   ) {
     super(protocol, compileRegistry, contractArgsRegistry);
 
@@ -89,6 +91,8 @@ export class SettlementCompileTask extends CircuitCompileTask {
   }
 
   public async getTargets(): Promise<CompilableModule[]> {
+    this.childVkService.setCompileRegistry(this.compileRegistry);
+
     return this.getSettlementTargets();
   }
 }
