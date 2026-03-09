@@ -4,7 +4,7 @@ const CONTAINER_NAME = "protokit-explorer";
 
 async function stopDockerContainer(): Promise<void> {
   return await new Promise<void>((resolve, reject) => {
-    console.log(`Stopping explorer container...`);
+    console.log("Stopping explorer container...");
     const child = spawn("docker", ["stop", CONTAINER_NAME], {
       stdio: "inherit",
     });

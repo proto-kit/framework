@@ -44,7 +44,7 @@ async function runDockerContainer(args: {
     "-p",
     `${port}:3000`,
   ];
-  
+
   if (args.indexerUrl !== undefined) {
     dockerArgs.push("-e", `NEXT_PUBLIC_INDEXER_URL=${args.indexerUrl}`);
   }
