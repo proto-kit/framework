@@ -35,8 +35,16 @@ async function runDockerContainer(args: {
   const { port = 5003, explorerImage } = args;
   console.log(`\nExplorer is running at http://localhost:${port}\n`);
 
-  const dockerArgs = ["run", "--rm", "-p", `${port}:3000`];
-
+  const dockerArgs = [
+    "run",
+    "-d",
+    "--rm",
+    "--name",
+    "protokit-explorer",
+    "-p",
+    `${port}:3000`,
+  ];
+  
   if (args.indexerUrl !== undefined) {
     dockerArgs.push("-e", `NEXT_PUBLIC_INDEXER_URL=${args.indexerUrl}`);
   }
