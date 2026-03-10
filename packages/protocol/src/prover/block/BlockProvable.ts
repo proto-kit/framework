@@ -22,7 +22,10 @@ import {
   WitnessedRootHashList,
   WitnessedRootWitness,
 } from "../accumulators/WitnessedRootHashList";
-import { TransactionProof } from "../transaction/TransactionProvable";
+import {
+  TransactionProverPublicInput,
+  TransactionProverPublicOutput,
+} from "../transaction/TransactionProvable";
 import { BundleHashList, FieldTransition } from "../accumulators/BlockHashList";
 import { NonMethods } from "../../utils/utils";
 import { Constants } from "../../Constants";
@@ -368,6 +371,17 @@ export class DynamicSTProof extends DynamicProof<
   static maxProofsVerified = 2 as const;
 }
 
+export class DynamicTransactionProof extends DynamicProof<
+  TransactionProverPublicInput,
+  TransactionProverPublicOutput
+> {
+  static publicInputType = TransactionProverPublicInput;
+
+  static publicOutputType = TransactionProverPublicOutput;
+
+  static maxProofsVerified = 2 as const;
+}
+
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export interface BlockProvable
@@ -392,7 +406,7 @@ export interface BlockProvable
     deferSTProof: Bool,
     deferTransactionProof: Bool,
     stateTransitionProof: DynamicSTProof,
-    transactionProof: TransactionProof
+    transactionProof: DynamicTransactionProof
   ) => Promise<BlockProverPublicOutput>;
 
   merge: (

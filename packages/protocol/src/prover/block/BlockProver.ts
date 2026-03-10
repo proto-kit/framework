@@ -35,7 +35,6 @@ import { assertEqualsIf } from "../../utils/utils";
 import { StateServiceProvider } from "../../state/StateServiceProvider";
 import { executeHooks } from "../utils";
 import {
-  TransactionProof,
   TransactionProvable,
   TransactionProverPublicInput,
   TransactionProverPublicOutput,
@@ -52,6 +51,7 @@ import {
   BlockProverState,
   BlockProverStateInput,
   DynamicSTProof,
+  DynamicTransactionProof,
 } from "./BlockProvable";
 import {
   BlockHashMerkleTreeWitness,
@@ -75,10 +75,6 @@ export class BlockProverProgrammable extends ZkProgrammable<
 > {
   public constructor(
     private readonly prover: BlockProver,
-    public readonly transactionProver: ZkProgrammable<
-      TransactionProverPublicInput,
-      TransactionProverPublicOutput
-    >,
     private readonly blockHooks: ProvableBlockHook<unknown>[],
     private readonly stateServiceProvider: StateServiceProvider,
     private readonly childVerificationKeyService: ChildVerificationKeyService
@@ -233,12 +229,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     log.provable.debug("Verify STProof", verifyStProof);
 
     // Brought in as a constant
-    const stProofVk = this.childVerificationKeyService.getVerificationKey(
+    const stProofVk = this.childVerificationKeyService.getAsConstant(
       "StateTransitionProver"
     );
-    if (!stProofVk.hash.isConstant()) {
-      throw new Error("Sanity check - vk hash has to be constant");
-    }
     stateTransitionProof.verifyIf(stProofVk, verifyStProof);
 
     // Apply STProof if not deferred
@@ -256,7 +249,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
   private verifyTransactionProof(
     state: BlockProverState,
-    transactionProof: TransactionProof,
+    transactionProof: DynamicTransactionProof,
     deferTransactionProof: Bool
   ) {
     // Verify Transaction proof if it has at least 1 tx and it isn't deferred
@@ -265,7 +258,11 @@ export class BlockProverProgrammable extends ZkProgrammable<
       state.bundleList.isEmpty().not()
     );
 
-    transactionProof.verifyIf(verifyTransactionProof);
+    // Brought in as a constant
+    const transactionProofVk = this.childVerificationKeyService.getAsConstant(
+      "StateTransitionProver"
+    );
+    transactionProof.verifyIf(transactionProofVk, verifyTransactionProof);
 
     // Fast-forward transaction trackers by the results of the aggregated transaction proof
     // Implicitly, the 'from' values here are asserted against the publicInput, since the hashlists
@@ -409,7 +406,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     deferSTProof: Bool,
     deferTransactionProof: Bool,
     stateTransitionProof: DynamicSTProof,
-    transactionProof: TransactionProof
+    transactionProof: DynamicTransactionProof
   ) {
     const finalize = deferTransactionProof.or(deferSTProof).not();
 
@@ -439,7 +436,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     deferTransactionProof: Bool,
     finalize: Bool,
     stateTransitionProof?: DynamicSTProof,
-    transactionProof?: TransactionProof
+    transactionProof?: DynamicTransactionProof
   ): Promise<BlockProverPublicOutput> {
     let state = this.parseState(
       publicInput,
@@ -627,8 +624,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     BlockProverPublicInput,
     BlockProverPublicOutput
   >[] {
-    const { prover, transactionProver } = this;
-    const TransactionProofClass = transactionProver.zkProgram[0].Proof;
+    const { prover } = this;
     const proveBlockBatchWithProofs =
       prover.proveBlockBatchWithProofs.bind(prover);
     const proveBlockBatchNoProofs = prover.proveBlockBatchNoProofs.bind(prover);
@@ -649,7 +645,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             Bool,
             Bool,
             DynamicSTProof,
-            TransactionProofClass,
+            DynamicTransactionProof,
           ],
           async method(
             publicInput: BlockProverPublicInput,
@@ -660,7 +656,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             deferSTProof: Bool,
             deferTransactionProof: Bool,
             stateTransitionProof: DynamicSTProof,
-            transactionProof: TransactionProof
+            transactionProof: DynamicTransactionProof
           ) {
             return {
               publicOutput: await proveBlockBatchWithProofs(
@@ -779,7 +775,6 @@ export class BlockProver
     super();
     this.zkProgrammable = new BlockProverProgrammable(
       this,
-      transactionProver.zkProgrammable,
       blockHooks,
       stateServiceProvider,
       childVerificationKeyService
@@ -791,9 +786,9 @@ export class BlockProver
   ): Promise<Record<string, CompileArtifact> | undefined> {
     await registry.sideloaded(async () => {
       await this.stateTransitionProver.compile(registry);
+      await this.transactionProver.compile(registry);
     });
     return await registry.proverNeeded(async () => {
-      await this.transactionProver.compile(registry);
       return await this.zkProgrammable.compile(registry);
     });
   }
@@ -825,7 +820,7 @@ export class BlockProver
     deferSTProof: Bool,
     deferTransactionProof: Bool,
     stateTransitionProof: DynamicSTProof,
-    transactionProof: TransactionProof
+    transactionProof: DynamicTransactionProof
   ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveBlockBatchWithProofs(
       publicInput,

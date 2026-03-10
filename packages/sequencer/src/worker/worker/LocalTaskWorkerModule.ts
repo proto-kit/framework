@@ -34,6 +34,7 @@ import { SettlementCompileTask } from "../../protocol/production/tasks/compile/S
 import {
   BlockProverCompileTask,
   STProverCompileTask,
+  TransactionProverCompileTask,
 } from "../../protocol/production/tasks/compile/ProtocolCompileTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
@@ -148,6 +149,7 @@ export class VanillaTaskWorkerModules {
       RuntimeCompileTask,
       STProverCompileTask,
       BlockProverCompileTask,
+      TransactionProverCompileTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -171,9 +173,10 @@ export class VanillaTaskWorkerModules {
       SettlementProvingTask: {},
       WorkerRegistrationTask: {},
       RuntimeCompileTask: {},
-      SettlementCompileTask: {},
       STProverCompileTask: {},
       BlockProverCompileTask: {},
+      TransactionProverCompileTask: {},
+      SettlementCompileTask: {},
     } satisfies ModulesConfig<
       ReturnType<typeof VanillaTaskWorkerModules.allTasks>
     >;

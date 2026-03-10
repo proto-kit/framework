@@ -45,3 +45,10 @@ export class STProverCompileTask extends ProtocolCompileTask {
     return "StateTransitionProver";
   }
 }
+
+@injectable()
+export class TransactionProverCompileTask extends ProtocolCompileTask {
+  public getTargetProtocolModule() {
+    return "TransactionProver";
+  }
+}
