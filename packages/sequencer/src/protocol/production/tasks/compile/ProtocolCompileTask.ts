@@ -20,7 +20,7 @@ export class ProtocolCompileTask extends CircuitCompileTask {
   ) {
     super(protocol, compileRegistry, contractArgsRegistry);
 
-    this.name = `compile-${this.getTargetProtocolModule()}`;
+    this.name = `compile-${this.getTargetProtocolModule().toLowerCase()}`;
   }
 
   public getTargetProtocolModule(): string {

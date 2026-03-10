@@ -149,6 +149,10 @@ export class LocalTaskQueue
           });
           this.queuedTasks[queueName] = [];
           return functions;
+        } else if (tasks.length > 0) {
+          log.warn(
+            `Tasks found in queue ${queueName} but no worker registered`
+          );
         }
 
         return [];
@@ -161,9 +165,15 @@ export class LocalTaskQueue
     this.taskInProgress = false;
 
     // In case new tasks came up in the meantime, execute them as well
-    if (tasksToExecute.length > 0) {
+    if (this.hasTasksQueued()) {
       await this.workNextTasks();
     }
+  }
+
+  private hasTasksQueued() {
+    return Object.entries(this.queuedTasks).some(
+      ([, tasks]) => tasks.length > 0
+    );
   }
 
   public createWorker(
