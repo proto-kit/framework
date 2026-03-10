@@ -19,7 +19,7 @@ export class FlowTaskWorker implements Closeable {
 
   public constructor(
     mq: TaskQueue,
-    private readonly tasks: Task<unknown, unknown>[]
+    private readonly tasks: Task<any, any>[]
   ) {
     this.queue = mq;
   }
