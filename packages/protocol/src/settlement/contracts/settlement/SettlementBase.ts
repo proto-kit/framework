@@ -150,8 +150,8 @@ export abstract class SettlementBase
       throw new Error("Sanity check - vk hash has to be constant");
     }
     // Verify the blockproof
-
     blockProof.verify(blockProofVk);
+
     // Get and assert on-chain values
     const stateRoot = this.stateRoot.getAndRequireEquals();
     const networkStateHash = this.networkStateHash.getAndRequireEquals();

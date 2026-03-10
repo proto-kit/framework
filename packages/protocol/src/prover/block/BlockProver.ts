@@ -2,6 +2,7 @@ import { Bool, Field, Provable, SelfProof, ZkProgram } from "o1js";
 import { container, inject, injectable, injectAll } from "tsyringe";
 import {
   AreProofsEnabled,
+  ChildVerificationKeyService,
   CompilableModule,
   CompileArtifact,
   CompileRegistry,
@@ -16,7 +17,6 @@ import {
 
 import { ProtocolModule } from "../../protocol/ProtocolModule";
 import {
-  StateTransitionProof,
   StateTransitionProvable,
   StateTransitionProverPublicInput,
   StateTransitionProverPublicOutput,
@@ -51,6 +51,7 @@ import {
   BlockProverPublicOutput,
   BlockProverState,
   BlockProverStateInput,
+  DynamicSTProof,
 } from "./BlockProvable";
 import {
   BlockHashMerkleTreeWitness,
@@ -74,16 +75,13 @@ export class BlockProverProgrammable extends ZkProgrammable<
 > {
   public constructor(
     private readonly prover: BlockProver,
-    public readonly stateTransitionProver: ZkProgrammable<
-      StateTransitionProverPublicInput,
-      StateTransitionProverPublicOutput
-    >,
     public readonly transactionProver: ZkProgrammable<
       TransactionProverPublicInput,
       TransactionProverPublicOutput
     >,
     private readonly blockHooks: ProvableBlockHook<unknown>[],
-    private readonly stateServiceProvider: StateServiceProvider
+    private readonly stateServiceProvider: StateServiceProvider,
+    private readonly childVerificationKeyService: ChildVerificationKeyService
   ) {
     super();
   }
@@ -141,7 +139,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
   }
 
   public includeSTProof(
-    stateTransitionProof: StateTransitionProof,
+    stateTransitionProof: DynamicSTProof,
     apply: Bool,
     stateRoot: Field,
     pendingSTBatchesHash: Field,
@@ -224,7 +222,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
 
   private verifySTProof(
     state: BlockProverState,
-    stateTransitionProof: StateTransitionProof,
+    stateTransitionProof: DynamicSTProof,
     deferSTProof: Bool
   ) {
     // Verify ST Proof only if STs have been emitted,
@@ -233,7 +231,15 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const batchesEmpty = state.pendingSTBatches.commitment.equals(Field(0));
     const verifyStProof = deferSTProof.not().and(batchesEmpty.not());
     log.provable.debug("Verify STProof", verifyStProof);
-    stateTransitionProof.verifyIf(verifyStProof);
+
+    // Brought in as a constant
+    const stProofVk = this.childVerificationKeyService.getVerificationKey(
+      "StateTransitionProver"
+    );
+    if (!stProofVk.hash.isConstant()) {
+      throw new Error("Sanity check - vk hash has to be constant");
+    }
+    stateTransitionProof.verifyIf(stProofVk, verifyStProof);
 
     // Apply STProof if not deferred
     const stateProofResult = this.includeSTProof(
@@ -402,7 +408,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     batch: BlockArgumentsBatch,
     deferSTProof: Bool,
     deferTransactionProof: Bool,
-    stateTransitionProof: StateTransitionProof,
+    stateTransitionProof: DynamicSTProof,
     transactionProof: TransactionProof
   ) {
     const finalize = deferTransactionProof.or(deferSTProof).not();
@@ -432,7 +438,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     deferSTProof: Bool,
     deferTransactionProof: Bool,
     finalize: Bool,
-    stateTransitionProof?: StateTransitionProof,
+    stateTransitionProof?: DynamicSTProof,
     transactionProof?: TransactionProof
   ): Promise<BlockProverPublicOutput> {
     let state = this.parseState(
@@ -621,8 +627,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     BlockProverPublicInput,
     BlockProverPublicOutput
   >[] {
-    const { prover, stateTransitionProver, transactionProver } = this;
-    const StateTransitionProofClass = stateTransitionProver.zkProgram[0].Proof;
+    const { prover, transactionProver } = this;
     const TransactionProofClass = transactionProver.zkProgram[0].Proof;
     const proveBlockBatchWithProofs =
       prover.proveBlockBatchWithProofs.bind(prover);
@@ -643,7 +648,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             BlockArgumentsBatch,
             Bool,
             Bool,
-            StateTransitionProofClass,
+            DynamicSTProof,
             TransactionProofClass,
           ],
           async method(
@@ -654,7 +659,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
             batch: BlockArgumentsBatch,
             deferSTProof: Bool,
             deferTransactionProof: Bool,
-            stateTransitionProof: StateTransitionProof,
+            stateTransitionProof: DynamicSTProof,
             transactionProof: TransactionProof
           ) {
             return {
@@ -768,23 +773,26 @@ export class BlockProver
     @injectAll("ProvableBlockHook")
     blockHooks: ProvableBlockHook<unknown>[],
     @inject("StateServiceProvider")
-    stateServiceProvider: StateServiceProvider
+    stateServiceProvider: StateServiceProvider,
+    childVerificationKeyService: ChildVerificationKeyService
   ) {
     super();
     this.zkProgrammable = new BlockProverProgrammable(
       this,
-      stateTransitionProver.zkProgrammable,
       transactionProver.zkProgrammable,
       blockHooks,
-      stateServiceProvider
+      stateServiceProvider,
+      childVerificationKeyService
     );
   }
 
   public async compile(
     registry: CompileRegistry
   ): Promise<Record<string, CompileArtifact> | undefined> {
-    return await registry.proverNeeded(async () => {
+    await registry.sideloaded(async () => {
       await this.stateTransitionProver.compile(registry);
+    });
+    return await registry.proverNeeded(async () => {
       await this.transactionProver.compile(registry);
       return await this.zkProgrammable.compile(registry);
     });
@@ -816,7 +824,7 @@ export class BlockProver
     batch: BlockArgumentsBatch,
     deferSTProof: Bool,
     deferTransactionProof: Bool,
-    stateTransitionProof: StateTransitionProof,
+    stateTransitionProof: DynamicSTProof,
     transactionProof: TransactionProof
   ): Promise<BlockProverPublicOutput> {
     return this.zkProgrammable.proveBlockBatchWithProofs(

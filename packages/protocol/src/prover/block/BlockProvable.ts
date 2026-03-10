@@ -1,7 +1,19 @@
-import { Bool, Field, Poseidon, Proof, Provable, Struct } from "o1js";
+// eslint-disable-next-line max-classes-per-file
+import {
+  Bool,
+  DynamicProof,
+  Field,
+  Poseidon,
+  Proof,
+  Provable,
+  Struct,
+} from "o1js";
 import { CompilableModule, WithZkProgrammable } from "@proto-kit/common";
 
-import { StateTransitionProof } from "../statetransition/StateTransitionProvable";
+import {
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput,
+} from "../statetransition/StateTransitionProvable";
 import { NetworkState } from "../../model/network/NetworkState";
 import { TransactionHashList } from "../accumulators/TransactionHashList";
 import { MinaActionsHashList } from "../../utils/MinaPrefixedProvableHashList";
@@ -345,6 +357,17 @@ export class BlockProverState {
   }
 }
 
+export class DynamicSTProof extends DynamicProof<
+  StateTransitionProverPublicInput,
+  StateTransitionProverPublicOutput
+> {
+  static publicInputType = StateTransitionProverPublicInput;
+
+  static publicOutputType = StateTransitionProverPublicOutput;
+
+  static maxProofsVerified = 2 as const;
+}
+
 export type BlockProof = Proof<BlockProverPublicInput, BlockProverPublicOutput>;
 
 export interface BlockProvable
@@ -368,7 +391,7 @@ export interface BlockProvable
     batch: BlockArgumentsBatch,
     deferSTProof: Bool,
     deferTransactionProof: Bool,
-    stateTransitionProof: StateTransitionProof,
+    stateTransitionProof: DynamicSTProof,
     transactionProof: TransactionProof
   ) => Promise<BlockProverPublicOutput>;
 
