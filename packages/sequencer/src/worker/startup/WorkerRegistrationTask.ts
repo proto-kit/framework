@@ -27,6 +27,7 @@ import {
 } from "../../protocol/production/tasks/serializers/ArtifactionRecordSerializer";
 import { SignedSettlementPermissions } from "../../settlement/permissions/SignedSettlementPermissions";
 import { ProvenSettlementPermissions } from "../../settlement/permissions/ProvenSettlementPermissions";
+import { task } from "../worker/TaskWorkerModule";
 
 import { CloseWorkerError } from "./CloseWorkerError";
 
@@ -39,6 +40,7 @@ export type WorkerStartupPayload = {
 };
 
 @injectable()
+@task()
 export class WorkerRegistrationTask
   extends AbstractStartupTask<WorkerStartupPayload, boolean>
   implements Task<WorkerStartupPayload, boolean>

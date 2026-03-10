@@ -39,7 +39,7 @@ import {
   DynamicProofTaskSerializer,
 } from "../../helpers/utils";
 import { Task, TaskSerializer } from "../../worker/flow/Task";
-import { TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
+import { task, TaskWorkerModule } from "../../worker/worker/TaskWorkerModule";
 
 import { ContractRegistry } from "./ContractRegistry";
 
@@ -74,6 +74,7 @@ export class SomeProofSubclass extends Proof<Field, Void> {
  */
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
 export class SettlementProvingTask
   extends TaskWorkerModule
   implements Task<TransactionTaskArgs, TransactionTaskResult>

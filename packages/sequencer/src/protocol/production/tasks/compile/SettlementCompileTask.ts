@@ -18,11 +18,13 @@ import {
 } from "@proto-kit/protocol";
 
 import { BatchProducerModule } from "../../BatchProducerModule";
+import { task } from "../../../../worker/worker/TaskWorkerModule";
 
 import { CircuitCompileTask } from "./CircuitCompileTask";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
 export class SettlementCompileTask extends CircuitCompileTask {
   public name = "compile-settlement";
 

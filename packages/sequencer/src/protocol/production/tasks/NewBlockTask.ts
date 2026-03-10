@@ -26,7 +26,10 @@ import {
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
 import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
@@ -57,6 +60,7 @@ export type NewBlockProvingParameters = PairingDerivedInput<
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
 export class NewBlockTask
   extends TaskWorkerModule
   implements Task<NewBlockProvingParameters, BlockProof>

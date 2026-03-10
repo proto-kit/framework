@@ -14,7 +14,10 @@ import { CompileRegistry } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import { PreFilledStateService } from "../../../state/prefilled/PreFilledStateService";
 import { PendingTransaction } from "../../../mempool/PendingTransaction";
 import { TaskStateRecord } from "../tracing/BlockTracingService";
@@ -31,6 +34,7 @@ export interface RuntimeProofParameters {
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
 export class RuntimeProvingTask
   extends TaskWorkerModule
   implements Task<RuntimeProofParameters, RuntimeProof>
