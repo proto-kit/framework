@@ -27,13 +27,6 @@ import { TransactionProvingTask } from "../../protocol/production/tasks/Transact
 import { BlockReductionTask } from "../../protocol/production/tasks/BlockReductionTask";
 import { TransactionReductionTask } from "../../protocol/production/tasks/TransactionReductionTask";
 import { WorkerRegistrationTask } from "../startup/WorkerRegistrationTask";
-import { RuntimeCompileTask } from "../../protocol/production/tasks/compile/RuntimeCompileTask";
-import { SettlementCompileTask } from "../../protocol/production/tasks/compile/SettlementCompileTask";
-import {
-  BlockProverCompileTask,
-  STProverCompileTask,
-  TransactionProverCompileTask,
-} from "../../protocol/production/tasks/compile/ProtocolCompileTask";
 
 import { FlowTaskWorker } from "./FlowTaskWorker";
 import { TaskWorkerModule } from "./TaskWorkerModule";
