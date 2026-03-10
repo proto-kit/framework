@@ -107,7 +107,10 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
   public async start(): Promise<void> {
     const tasks = this.tasks();
 
-    log.debug(`Resolved tasks ${tasks.map((t) => t.name)}`);
+    log.debug(
+      "Resolved tasks",
+      tasks.map((t) => t.name)
+    );
 
     const worker = new FlowTaskWorker(this.taskQueue(), [...tasks]);
     this.worker = worker;
@@ -142,10 +145,6 @@ export class VanillaTaskWorkerModules {
       BlockReductionTask,
       NewBlockTask,
       WorkerRegistrationTask,
-      RuntimeCompileTask,
-      STProverCompileTask,
-      BlockProverCompileTask,
-      TransactionProverCompileTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -153,7 +152,6 @@ export class VanillaTaskWorkerModules {
     return {
       ...VanillaTaskWorkerModules.withoutSettlement(),
       SettlementProvingTask,
-      SettlementCompileTask,
     } satisfies TaskWorkerModulesRecord;
   }
 
@@ -168,11 +166,6 @@ export class VanillaTaskWorkerModules {
       StateTransitionReductionTask: {},
       SettlementProvingTask: {},
       WorkerRegistrationTask: {},
-      RuntimeCompileTask: {},
-      STProverCompileTask: {},
-      BlockProverCompileTask: {},
-      TransactionProverCompileTask: {},
-      SettlementCompileTask: {},
     } satisfies ModulesConfig<
       ReturnType<typeof VanillaTaskWorkerModules.allTasks>
     >;

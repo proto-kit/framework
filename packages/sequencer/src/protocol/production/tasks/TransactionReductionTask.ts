@@ -8,6 +8,7 @@ import {
 } from "@proto-kit/protocol";
 import {
   CompileRegistry,
+  dependencyFactory,
   ProvableMethodExecutionContext,
 } from "@proto-kit/common";
 
@@ -22,9 +23,12 @@ import {
   ProofTaskSerializer,
 } from "../../../helpers/utils";
 
+import { TransactionProverCompileTask } from "./compile/ProtocolCompileTask";
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 @task()
+@dependencyFactory()
 export class TransactionReductionTask
   extends TaskWorkerModule
   implements Task<PairTuple<TransactionProof>, TransactionProof>
@@ -43,6 +47,14 @@ export class TransactionReductionTask
   ) {
     super();
     this.transactionProver = this.protocol.transactionProver;
+  }
+
+  public static dependencies() {
+    return {
+      TransactionProverCompileTask: {
+        useClass: TransactionProverCompileTask,
+      },
+    };
   }
 
   public inputSerializer(): TaskSerializer<PairTuple<TransactionProof>> {

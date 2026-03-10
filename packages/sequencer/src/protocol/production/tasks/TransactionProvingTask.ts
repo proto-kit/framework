@@ -13,6 +13,7 @@ import { inject, injectable, Lifecycle, scoped } from "tsyringe";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
+  dependencyFactory,
 } from "@proto-kit/common";
 
 import { ProofTaskSerializer } from "../../../helpers/utils";
@@ -26,6 +27,7 @@ import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { TransactionProvingTaskParameterSerializer } from "./serializers/TransactionProvingTaskParameterSerializer";
 import { TransactionProvingTaskParameters } from "./serializers/types/TransactionProvingTypes";
+import { TransactionProverCompileTask } from "./compile/ProtocolCompileTask";
 
 export async function executeWithPrefilledStateService<Return>(
   stateServiceProvider: StateServiceProvider,
@@ -53,6 +55,7 @@ export async function executeWithPrefilledStateService<Return>(
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
 @task()
+@dependencyFactory()
 export class TransactionProvingTask
   extends TaskWorkerModule
   implements Task<TransactionProvingTaskParameters, TransactionProof>
@@ -75,6 +78,14 @@ export class TransactionProvingTask
   ) {
     super();
     this.transactionProver = protocol.transactionProver;
+  }
+
+  public static dependencies() {
+    return {
+      TransactionProverCompileTask: {
+        useClass: TransactionProverCompileTask,
+      },
+    };
   }
 
   public inputSerializer(): TaskSerializer<TransactionProvingTaskParameters> {
