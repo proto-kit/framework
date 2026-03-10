@@ -25,7 +25,6 @@ import {
 } from "../../../worker/worker/TaskWorkerModule";
 
 import { StateTransitionParametersSerializer } from "./serializers/StateTransitionParametersSerializer";
-import { STProverCompileTask } from "./compile/ProtocolCompileTask";
 
 export interface StateTransitionProofParameters {
   publicInput: StateTransitionProverPublicInput;
