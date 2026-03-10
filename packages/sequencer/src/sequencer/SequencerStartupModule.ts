@@ -13,6 +13,7 @@ import {
   CompileRegistry,
   AreProofsEnabled,
   CompileArtifact,
+  ChildContainerProvider,
 } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../worker/flow/Flow";
@@ -21,11 +22,11 @@ import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationK
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
 import { RuntimeCompileTask } from "../protocol/production/tasks/compile/RuntimeCompileTask";
-import { ProtocolCompileTask } from "../protocol/production/tasks/compile/ProtocolCompileTask";
 import { SettlementCompileTask } from "../protocol/production/tasks/compile/SettlementCompileTask";
 import { CompilerTaskParams } from "../protocol/production/tasks/compile/CircuitCompileTask";
 import { Task } from "../worker/flow/Task";
 import { SettlementModule } from "../settlement/SettlementModule";
+import { BlockProverCompileTask } from "../protocol/production/tasks/compile/ProtocolCompileTask";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
@@ -41,7 +42,7 @@ export class SequencerStartupModule
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
     private readonly runtimeCompilerTask: RuntimeCompileTask,
-    private readonly protocolCompilerTask: ProtocolCompileTask,
+    private readonly blockProverCompilerTask: BlockProverCompileTask,
     private readonly settlementCompilerTask: SettlementCompileTask,
     private readonly verificationKeyService: VerificationKeyService,
     private readonly registrationFlow: WorkerRegistrationFlow,
@@ -55,6 +56,11 @@ export class SequencerStartupModule
     private readonly settlementModule: SettlementModule | undefined
   ) {
     super();
+  }
+
+  public create(childContainerProvider: ChildContainerProvider) {
+    this.blockProverCompilerTask.config = { target: "BlockProver" };
+    this.blockProverCompilerTask.create(childContainerProvider);
   }
 
   private async pushCompileTask(
@@ -114,7 +120,7 @@ export class SequencerStartupModule
   private async compileProtocol(flow: Flow<{}>, runtimeVkTreeRoot: bigint) {
     const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
       await flow.pushTask(
-        this.protocolCompilerTask,
+        this.blockProverCompilerTask,
         {
           existingArtifacts: this.compileRegistry.getAllArtifacts(),
           runtimeVKRoot: runtimeVkTreeRoot.toString(),
