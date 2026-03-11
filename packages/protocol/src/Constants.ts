@@ -1,3 +1,5 @@
+import { log } from "@proto-kit/common";
+
 const constants = {
   STATE_TRANSITION_BATCH_SIZE: 4,
   BLOCK_ARGUMENT_BATCH_SIZE: 4,
@@ -17,5 +19,15 @@ export const Constants = {
     } else {
       return constants[name];
     }
+  },
+
+  printAllConstants() {
+    const constantsString = Object.keys(constants)
+      .map((name) => {
+        const constant = Constants.getConstant(name as any, (x) => x);
+        return `${name}=${constant}`;
+      })
+      .join(", ");
+    log.info("Protocol constants: ", constantsString);
   },
 };
