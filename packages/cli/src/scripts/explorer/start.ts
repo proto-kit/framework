@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 
+export const EXPLORER_CONTAINER_NAME = "protokit-explorer";
 const DEFAULT_EXPLORER_IMAGE = "ghcr.io/proto-kit/explorer:latest";
 
 async function pullDockerImage(image: string): Promise<void> {
@@ -40,7 +41,7 @@ async function runDockerContainer(args: {
     "-d",
     "--rm",
     "--name",
-    "protokit-explorer",
+    EXPLORER_CONTAINER_NAME,
     "-p",
     `${port}:3000`,
   ];

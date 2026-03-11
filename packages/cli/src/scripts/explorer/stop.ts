@@ -1,11 +1,10 @@
 import { spawn } from "child_process";
-
-const CONTAINER_NAME = "protokit-explorer";
+import { EXPLORER_CONTAINER_NAME } from "./start";
 
 async function stopDockerContainer(): Promise<void> {
   return await new Promise<void>((resolve, reject) => {
     console.log("Stopping explorer container...");
-    const child = spawn("docker", ["stop", CONTAINER_NAME], {
+    const child = spawn("docker", ["stop", EXPLORER_CONTAINER_NAME], {
       stdio: "inherit",
     });
 
