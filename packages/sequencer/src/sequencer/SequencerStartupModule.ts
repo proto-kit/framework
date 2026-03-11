@@ -168,9 +168,9 @@ export class SequencerStartupModule
     const root = await this.compileRuntime(flow);
 
     const tasks = [
-      this.blockProverCompileTask,
       this.stProverCompileTask,
       this.transactionProverCompileTask,
+      this.blockProverCompileTask,
     ];
     await mapSequential(tasks, async (task) => {
       await this.compileProtocol(flow, task, root);
