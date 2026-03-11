@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+
 import { EXPLORER_CONTAINER_NAME } from "./start";
 
 async function stopDockerContainer(): Promise<void> {
