@@ -66,7 +66,7 @@ export class StateMap<KeyType, ValueType> extends Mixin(
     this.hasPathOrFail();
     this.hasStateServiceOrFail();
 
-    state.path = Path.fromKey(this.path, this.keyType, key);
+    state.path = this.getPath(key);
     state.stateServiceProvider = this.stateServiceProvider;
     return await state.set(value);
   }
