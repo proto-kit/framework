@@ -5,6 +5,14 @@ name: "Validate PRs to develop"
 on: [pull_request]
 
 jobs:
+  # Checks if the PR has a changelog entry, and fails if not.
+  # Apply a label named no changelog to the PR to skip the check
+  Check-Changelog:
+    name: Check Changelog Action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: tarides/changelog-check-action@v2
+
   # Installs npm dependencies for the first time,
   # caching them in ~/.npm
   install:
