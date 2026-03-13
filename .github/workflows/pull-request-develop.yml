@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: tarides/changelog-check-action@v2
+        with:
+          changelog: CHANGELOG.md
+
 
   # Installs npm dependencies for the first time,
   # caching them in ~/.npm
