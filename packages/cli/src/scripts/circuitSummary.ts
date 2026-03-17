@@ -40,7 +40,7 @@ export default async function (): Promise<void> {
     },
     Sequencer: {},
   });
-  
+
   loglevel.setLevel("SILENT");
 
   const chainContainer = container.createChildContainer();
