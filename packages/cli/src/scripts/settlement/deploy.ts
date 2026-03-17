@@ -11,6 +11,7 @@ import { loadUserModules } from "../../utils/loadUserModules";
 
 export default async function (options: LoadEnvOptions) {
   try {
+    loadEnvironmentVariables(options);
     const { Provable, PublicKey } = await import("o1js");
     const { Runtime } = await import("@proto-kit/module");
     const { Protocol } = await import("@proto-kit/protocol");
@@ -18,7 +19,6 @@ export default async function (options: LoadEnvOptions) {
       await import("@proto-kit/sequencer");
 
     const { DefaultModules, DefaultConfigs } = await import("@proto-kit/stack");
-    loadEnvironmentVariables(options);
     const { runtime, protocol } = await loadUserModules();
     const appChain = AppChain.from({
       Runtime: Runtime.from(runtime.modules),
