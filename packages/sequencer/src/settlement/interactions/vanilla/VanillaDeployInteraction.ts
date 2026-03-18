@@ -21,6 +21,8 @@ import { SettlementUtils } from "../../utils/SettlementUtils";
 
 @injectable()
 export class VanillaDeployInteraction implements DeployInteraction {
+  private utils: SettlementUtils;
+
   public constructor(
     @inject("AddressRegistry")
     private readonly addressRegistry: AddressRegistry,
@@ -33,7 +35,9 @@ export class VanillaDeployInteraction implements DeployInteraction {
     private readonly feeStrategy: FeeStrategy,
     @inject("TransactionSender")
     private readonly transactionSender: MinaTransactionSender
-  ) {}
+  ) {
+    this.utils = new SettlementUtils(this.baseLayer, this.signer);
+  }
 
   protected settlementContractModule(): SettlementContractModule<MandatorySettlementModulesRecord> {
     return this.protocol.dependencyContainer.resolve(
@@ -62,7 +66,8 @@ export class VanillaDeployInteraction implements DeployInteraction {
 
     const feepayer = this.signer.getFeepayerKey();
 
-    const nonce = options?.nonce ?? 0;
+    const nonce =
+      options?.nonce ?? (await this.utils.fetchNonce(feepayer)) ?? 0;
 
     const sm = this.settlementContractModule();
     const { SettlementContract: settlementContract } = sm.createContracts({

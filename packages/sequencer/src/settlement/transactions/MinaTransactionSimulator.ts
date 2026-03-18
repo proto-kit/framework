@@ -181,6 +181,8 @@ export class MinaTransactionSimulator {
       const account = match(fetchedAccount)
         .with(undefined, () => getAccountSafe())
         .with({ account: undefined }, (e) => {
+          // TODO Check if it's a "account not found" error, and if it's not then display the error
+          //  (as it's probably networking related)
           log.trace(e.error);
           return getAccountSafe();
         })

@@ -2,12 +2,13 @@ import {
   Bool,
   fetchAccount,
   Field,
+  Mina,
   PrivateKey,
   PublicKey,
   Transaction,
   UInt32,
 } from "o1js";
-import { mapSequential } from "@proto-kit/common";
+import { log, mapSequential } from "@proto-kit/common";
 
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
 import { MinaSigner } from "../MinaSigner";
@@ -26,6 +27,29 @@ export class SettlementUtils {
     private readonly baseLayer: MinaBaseLayer,
     private readonly signer: MinaSigner
   ) {}
+
+  public async fetchNonce(publicKey: PublicKey): Promise<number | undefined> {
+    const account = await this.safeFetchAccount(publicKey);
+    if (account !== undefined) {
+      return parseInt(account.nonce.toString(), 10);
+    }
+    return undefined;
+  }
+
+  public async safeFetchAccount(publicKey: PublicKey, tokenId?: Field) {
+    const isLocal = this.baseLayer.isLocalBlockChain();
+    if (isLocal && Mina.hasAccount(publicKey, tokenId)) {
+      return Mina.getAccount(publicKey, tokenId);
+    } else if (!isLocal) {
+      const fetchResult = await fetchAccount({ publicKey, tokenId });
+      if (fetchResult.account !== undefined) {
+        return fetchResult.account;
+      } else {
+        log.info(fetchResult.error);
+      }
+    }
+    return undefined;
+  }
 
   public signTransaction(
     tx: Transaction<false, false>,
