@@ -94,6 +94,9 @@ export class BullQueue
 
       const queue = new Queue<TaskPayload, TaskPayload>(queueName, {
         connection: redis,
+        defaultJobOptions: {
+          attempts: this.config.retryAttempts ?? 2,
+        },
       });
       const events = new QueueEvents(queueName, { connection: redis });
 
