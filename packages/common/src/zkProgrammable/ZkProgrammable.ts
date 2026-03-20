@@ -164,6 +164,7 @@ export abstract class ZkProgrammable<
     });
   }
 
+  @Memoize()
   public async proofType(): Promise<typeof Proof<PublicInput, PublicOutput>> {
     const programs = await this.zkProgram();
 
@@ -186,22 +187,34 @@ export abstract class ZkProgrammable<
     };
   }
 
+  @Memoize()
   public async dynamicProofType(): Promise<
     typeof DynamicProof<PublicInput, PublicOutput>
   > {
     const programs = await this.zkProgram();
 
-    const maxProofsVerifieds = await mapSequential(
-      programs,
-      async (zkProgram) => await zkProgram.maxProofsVerified()
-    );
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const maxProofsVerified = Math.max(...maxProofsVerifieds) as 0 | 1 | 2;
-    const featureFlagss = await mapSequential(
-      programs,
-      async (zkProgram) => await FeatureFlags.fromZkProgram(zkProgram)
-    );
-    const featureFlags = featureFlagss.reduce(combineFeatureFlags);
+    let maxProofsVerified: 0 | 1 | 2;
+    let featureFlags: FeatureFlags;
+
+    // We actually only need to compute maxProofsVerified and featuresflags if proofs
+    // are enabled, otherwise o1js will ignore it anyways. This way startup is a bit
+    // faster for non-proof environments
+    if (this.areProofsEnabled?.areProofsEnabled === true) {
+      const maxProofsVerifieds = await mapSequential(
+        programs,
+        async (zkProgram) => await zkProgram.maxProofsVerified()
+      );
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      maxProofsVerified = Math.max(...maxProofsVerifieds) as 0 | 1 | 2;
+      const featureFlagsSet = await mapSequential(
+        programs,
+        async (zkProgram) => await FeatureFlags.fromZkProgram(zkProgram)
+      );
+      featureFlags = featureFlagsSet.reduce(combineFeatureFlags);
+    } else {
+      featureFlags = FeatureFlags.allNone;
+      maxProofsVerified = 0;
+    }
 
     return class DynamicProofType extends DynamicProof<
       PublicInput,
