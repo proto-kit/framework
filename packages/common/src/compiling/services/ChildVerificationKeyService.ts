@@ -1,5 +1,4 @@
 import { injectable, Lifecycle, scoped } from "tsyringe";
-import { Provable } from "o1js";
 
 import { CompileRegistry } from "../CompileRegistry";
 
@@ -30,7 +29,6 @@ export class ChildVerificationKeyService {
     if (!vk.hash.isConstant()) {
       throw new Error("Sanity check - vk hash has to be constant");
     }
-    Provable.log("Vk hash", name, vk.hash, vk.data);
     return vk;
   }
 }
