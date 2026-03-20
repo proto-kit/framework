@@ -26,7 +26,7 @@ export function toProver(
   return async function prover(this: ZkProgrammable<any, any>) {
     const { areProofsEnabled } = this.areProofsEnabled!;
 
-    const zkProgram = this.zkProgram.find((prog) =>
+    const zkProgram = (await this.zkProgram()).find((prog) =>
       Object.keys(prog.methods).includes(methodName)
     );
 

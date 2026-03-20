@@ -37,11 +37,9 @@ export class StateTransitionFlow {
       witnessedRootsHash: Field(0),
     };
 
-    return await this.protocol.stateTransitionProver.zkProgrammable.zkProgram[0].Proof.dummy(
-      emptyInputOutput,
-      emptyInputOutput,
-      2
-    );
+    const program =
+      await this.protocol.stateTransitionProver.zkProgrammable.zkProgram();
+    return await program[0].Proof.dummy(emptyInputOutput, emptyInputOutput, 2);
   }
 
   private createFlow(name: string, inputLength: number) {

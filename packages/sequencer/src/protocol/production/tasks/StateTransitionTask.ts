@@ -63,8 +63,8 @@ export class StateTransitionTask
   }
 
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
-    return new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.stateTransitionProver.zkProgrammable.proofType()
     );
   }
 

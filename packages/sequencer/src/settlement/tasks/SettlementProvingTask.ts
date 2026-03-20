@@ -182,11 +182,11 @@ export class SettlementProvingTask
     return proofType.prototype instanceof Proof
       ? new ProofTaskSerializer(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          proofType as Subclass<typeof Proof<any, any>>
+          async () => proofType as Subclass<typeof Proof<any, any>>
         )
       : new DynamicProofTaskSerializer(
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          proofType as Subclass<typeof DynamicProof<any, any>>
+          async () => proofType as Subclass<typeof DynamicProof<any, any>>
         );
   }
 

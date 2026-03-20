@@ -1,6 +1,7 @@
 import { Field, Proof, DynamicProof } from "o1js";
 import { Subclass } from "@proto-kit/protocol";
 import { MOCK_PROOF, TypedClass } from "@proto-kit/common";
+import { Memoize } from "typescript-memoize";
 
 import { TaskSerializer } from "../worker/flow/Task";
 
@@ -30,28 +31,37 @@ export function distinctByString<Value extends { toString: () => string }>(
 
 type JsonProof = ReturnType<typeof Proof.prototype.toJSON>;
 
-abstract class ProofTaskSerializerBase<PublicInputType, PublicOutputType> {
+abstract class ProofTaskSerializerBase<
+  PublicInputType,
+  PublicOutputType,
+  Type extends
+    | (TypedClass<Proof<PublicInputType, PublicOutputType>> &
+        typeof Proof<PublicInputType, PublicOutputType>)
+    | (TypedClass<DynamicProof<PublicInputType, PublicOutputType>> &
+        typeof DynamicProof<PublicInputType, PublicOutputType>),
+> {
   protected constructor(
-    private readonly proofClassInternal: Subclass<
-      | typeof Proof<PublicInputType, PublicOutputType>
-      | typeof DynamicProof<PublicInputType, PublicOutputType>
-    >
+    private readonly proofClassInternalFun: () => Promise<Subclass<Type>>
   ) {}
 
-  protected getDummy<
-    T extends
-      | Proof<PublicInputType, PublicOutputType>
-      | DynamicProof<PublicInputType, PublicOutputType>,
-  >(c: TypedClass<T>, jsonProof: JsonProof): T {
+  @Memoize()
+  protected get proofClass() {
+    return this.proofClassInternalFun();
+  }
+
+  protected async getDummy(
+    c: Subclass<Type>,
+    jsonProof: JsonProof
+  ): Promise<InstanceType<Type>> {
+    const proofClass = await this.proofClass;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const publicInput: PublicInputType =
-      this.proofClassInternal.publicInputType.fromFields(
-        jsonProof.publicInput.map(Field),
-        []
-      );
+    const publicInput: PublicInputType = proofClass.publicInputType.fromFields(
+      jsonProof.publicInput.map(Field),
+      []
+    );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const publicOutput: PublicOutputType =
-      this.proofClassInternal.publicOutputType.fromFields(
+      proofClass.publicOutputType.fromFields(
         jsonProof.publicOutput.map(Field),
         []
       );
@@ -72,20 +82,21 @@ abstract class ProofTaskSerializerBase<PublicInputType, PublicOutputType> {
     return JSON.stringify(this.toJSONProof(proof));
   }
 
-  public toJSONProof(
+  public async toJSONProof(
     proof:
       | Proof<PublicInputType, PublicOutputType>
       | DynamicProof<PublicInputType, PublicOutputType>
-  ): JsonProof {
+  ): Promise<JsonProof> {
     if (proof.proof === MOCK_PROOF) {
+      const proofClass = await this.proofClass;
       return {
-        publicInput: this.proofClassInternal.publicInputType
+        publicInput: proofClass.publicInputType
           // eslint-disable-next-line max-len
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument
           .toFields(proof.publicInput as any)
           .map(String),
 
-        publicOutput: this.proofClassInternal.publicOutputType
+        publicOutput: proofClass.publicOutputType
           // eslint-disable-next-line max-len
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-argument
           .toFields(proof.publicOutput as any)
@@ -100,13 +111,15 @@ abstract class ProofTaskSerializerBase<PublicInputType, PublicOutputType> {
 }
 
 export class ProofTaskSerializer<PublicInputType, PublicOutputType>
-  extends ProofTaskSerializerBase<PublicInputType, PublicOutputType>
+  extends ProofTaskSerializerBase<
+    PublicInputType,
+    PublicOutputType,
+    typeof Proof<PublicInputType, PublicOutputType>
+  >
   implements TaskSerializer<Proof<PublicInputType, PublicOutputType>>
 {
   public constructor(
-    private readonly proofClass: Subclass<
-      typeof Proof<PublicInputType, PublicOutputType>
-    >
+    proofClass: () => Promise<typeof Proof<PublicInputType, PublicOutputType>>
   ) {
     super(proofClass);
   }
@@ -122,20 +135,24 @@ export class ProofTaskSerializer<PublicInputType, PublicOutputType>
     jsonProof: JsonProof
   ): Promise<Proof<PublicInputType, PublicOutputType>> {
     if (jsonProof.proof === MOCK_PROOF) {
-      return this.getDummy(this.proofClass, jsonProof);
+      return await this.getDummy(await this.proofClass, jsonProof);
     }
 
-    return await this.proofClass.fromJSON(jsonProof);
+    return await (await this.proofClass).fromJSON(jsonProof);
   }
 }
 
 export class DynamicProofTaskSerializer<PublicInputType, PublicOutputType>
-  extends ProofTaskSerializerBase<PublicInputType, PublicOutputType>
+  extends ProofTaskSerializerBase<
+    PublicInputType,
+    PublicOutputType,
+    typeof DynamicProof<PublicInputType, PublicOutputType>
+  >
   implements TaskSerializer<DynamicProof<PublicInputType, PublicOutputType>>
 {
   public constructor(
-    private readonly proofClass: Subclass<
-      typeof DynamicProof<PublicInputType, PublicOutputType>
+    proofClass: () => Promise<
+      Subclass<typeof DynamicProof<PublicInputType, PublicOutputType>>
     >
   ) {
     super(proofClass);
@@ -151,11 +168,11 @@ export class DynamicProofTaskSerializer<PublicInputType, PublicOutputType>
   public async fromJSONProof(
     jsonProof: JsonProof
   ): Promise<DynamicProof<PublicInputType, PublicOutputType>> {
-    if (jsonProof.proof === MOCK_PROOF) {
-      return this.getDummy(this.proofClass, jsonProof);
-    }
+    const proofClass = await this.proofClass;
 
-    const { proofClass } = this;
+    if (jsonProof.proof === MOCK_PROOF) {
+      return await this.getDummy(proofClass, jsonProof);
+    }
 
     return await proofClass.fromJSON(jsonProof);
   }
@@ -169,11 +186,13 @@ export class PairProofTaskSerializer<
 > implements TaskSerializer<
   PairTuple<Proof<PublicInputType, PublicOutputType>>
 > {
-  private readonly proofSerializer = new ProofTaskSerializer(this.proofClass);
+  private readonly proofSerializer = new ProofTaskSerializer(
+    this.proofClassFun
+  );
 
   public constructor(
-    private readonly proofClass: Subclass<
-      typeof Proof<PublicInputType, PublicOutputType>
+    private readonly proofClassFun: () => Promise<
+      Subclass<typeof Proof<PublicInputType, PublicOutputType>>
     >
   ) {}
 

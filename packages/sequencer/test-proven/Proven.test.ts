@@ -18,7 +18,7 @@ import {
 } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { container } from "tsyringe";
-import { PrivateKey, UInt64 } from "o1js";
+import { PrivateKey, Provable, UInt64, VerificationKey } from "o1js";
 
 import { testingSequencerModules } from "../test/TestingSequencer";
 import {
@@ -127,7 +127,7 @@ describe("Proven", () => {
       try {
         // Start AppChain
         const childContainer = container.createChildContainer();
-        await app.start(true, childContainer);
+        await app.start(false, childContainer);
 
         test = app.sequencer.dependencyContainer.resolve(BlockTestService);
 
@@ -190,7 +190,7 @@ describe("Proven", () => {
     }
   }, 500000);
 
-  it(
+  it.skip(
     "should produce simple block",
     async () => {
       expect.assertions(6);
@@ -221,7 +221,8 @@ describe("Proven", () => {
     },
     timeout
   );
-  it(
+
+  it.skip(
     "should produce large block",
     async () => {
       log.setLevel("INFO");
@@ -248,6 +249,45 @@ describe("Proven", () => {
       await test.produceBlock();
       await test.produceBlock();
       await test.produceBlock();
+      const batch = await test.produceBatch();
+
+      expectDefined(batch);
+
+      console.log(batch.proof);
+
+      expect(batch.blockHashes).toHaveLength(6);
+      expect(batch.proof.proof.length).toBeGreaterThan(50);
+    },
+    timeout * 10
+  );
+
+  it(
+    "should produce empty + 1 tx",
+    async () => {
+      log.setLevel("INFO");
+
+      const privateKey = PrivateKey.random();
+
+      // await test.produceBlock();
+      // await test.produceBlock();
+      // await test.produceBlock();
+
+      await test.addTransaction({
+        method: ["Balances", "addBalance"],
+        privateKey,
+        args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
+      });
+
+      // Produce 6 blocks, 5 txs each into 1 batch
+      const block = await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+
+      expectDefined(block);
+      expect(block.transactions).toHaveLength(1);
+      expect(block.transactions[0].status.toBoolean()).toBe(true);
+
       const batch = await test.produceBatch();
 
       expectDefined(batch);

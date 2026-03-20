@@ -58,14 +58,14 @@ export class TransactionReductionTask
   }
 
   public inputSerializer(): TaskSerializer<PairTuple<TransactionProof>> {
-    return new PairProofTaskSerializer(
-      this.transactionProver.zkProgrammable.zkProgram[0].Proof
+    return new PairProofTaskSerializer(() =>
+      this.transactionProver.zkProgrammable.proofType()
     );
   }
 
   public resultSerializer(): TaskSerializer<TransactionProof> {
-    return new ProofTaskSerializer(
-      this.transactionProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.transactionProver.zkProgrammable.proofType()
     );
   }
 

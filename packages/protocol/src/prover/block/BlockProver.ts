@@ -75,6 +75,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
 > {
   public constructor(
     private readonly prover: BlockProver,
+    public readonly stateTransitionProver: ZkProgrammable<
+      StateTransitionProverPublicInput,
+      StateTransitionProverPublicOutput
+    >,
+    public readonly transactionProver: ZkProgrammable<
+      TransactionProverPublicInput,
+      TransactionProverPublicOutput
+    >,
     private readonly blockHooks: ProvableBlockHook<unknown>[],
     private readonly stateServiceProvider: StateServiceProvider,
     private readonly childVerificationKeyService: ChildVerificationKeyService
@@ -232,7 +240,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const stProofVk = this.childVerificationKeyService.getAsConstant(
       "StateTransitionProver"
     );
-    stateTransitionProof.verifyIf(stProofVk, verifyStProof);
+    // stateTransitionProof.verifyIf(stProofVk, verifyStProof);
+    stateTransitionProof.verify(stProofVk);
 
     // Apply STProof if not deferred
     const stateProofResult = this.includeSTProof(
@@ -259,10 +268,9 @@ export class BlockProverProgrammable extends ZkProgrammable<
     );
 
     // Brought in as a constant
-    const transactionProofVk = this.childVerificationKeyService.getAsConstant(
-      "StateTransitionProver"
-    );
-    transactionProof.verifyIf(transactionProofVk, verifyTransactionProof);
+    const transactionProofVk =
+      this.childVerificationKeyService.getAsConstant("TransactionProver");
+    transactionProof.verify(transactionProofVk);
 
     // Fast-forward transaction trackers by the results of the aggregated transaction proof
     // Implicitly, the 'from' values here are asserted against the publicInput, since the hashlists
@@ -435,6 +443,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     deferSTProof: Bool,
     deferTransactionProof: Bool,
     finalize: Bool,
+    // TODO Add typing such that it is clear that either both are undefined or none is
     stateTransitionProof?: DynamicSTProof,
     transactionProof?: DynamicTransactionProof
   ): Promise<BlockProverPublicOutput> {
@@ -620,15 +629,18 @@ export class BlockProverProgrammable extends ZkProgrammable<
    * Recursive linking of proofs is done via the previously
    * injected StateTransitionProver and the required AppChainProof class
    */
-  public zkProgramFactory(): PlainZkProgram<
-    BlockProverPublicInput,
-    BlockProverPublicOutput
-  >[] {
+  public async zkProgramFactory(): Promise<
+    PlainZkProgram<BlockProverPublicInput, BlockProverPublicOutput>[]
+  > {
     const { prover } = this;
     const proveBlockBatchWithProofs =
       prover.proveBlockBatchWithProofs.bind(prover);
     const proveBlockBatchNoProofs = prover.proveBlockBatchNoProofs.bind(prover);
     const merge = prover.merge.bind(prover);
+
+    const dynamicStProofType =
+      await this.stateTransitionProver.dynamicProofType();
+    const dynamicTxProofType = await this.transactionProver.dynamicProofType();
 
     const program = ZkProgram({
       name: "BlockProver",
@@ -644,8 +656,8 @@ export class BlockProverProgrammable extends ZkProgrammable<
             BlockArgumentsBatch,
             Bool,
             Bool,
-            DynamicSTProof,
-            DynamicTransactionProof,
+            dynamicStProofType,
+            dynamicTxProofType,
           ],
           async method(
             publicInput: BlockProverPublicInput,
@@ -731,11 +743,14 @@ export class BlockProverProgrammable extends ZkProgrammable<
     return [
       {
         name: program.name,
+        publicInputType: program.publicInputType,
+        publicOutputType: program.publicOutputType,
         compile: program.compile.bind(program),
         verify: program.verify.bind(program),
         analyzeMethods: program.analyzeMethods.bind(program),
         Proof: SelfProofClass,
         methods,
+        maxProofsVerified: program.maxProofsVerified.bind(program),
       },
     ];
   }
@@ -775,6 +790,8 @@ export class BlockProver
     super();
     this.zkProgrammable = new BlockProverProgrammable(
       this,
+      stateTransitionProver.zkProgrammable,
+      transactionProver.zkProgrammable,
       blockHooks,
       stateServiceProvider,
       childVerificationKeyService
