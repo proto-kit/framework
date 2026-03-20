@@ -127,7 +127,7 @@ describe("Proven", () => {
       try {
         // Start AppChain
         const childContainer = container.createChildContainer();
-        await app.start(false, childContainer);
+        await app.start(true, childContainer);
 
         test = app.sequencer.dependencyContainer.resolve(BlockTestService);
 
@@ -190,7 +190,7 @@ describe("Proven", () => {
     }
   }, 500000);
 
-  it.skip(
+  it(
     "should produce simple block",
     async () => {
       expect.assertions(6);
@@ -222,7 +222,7 @@ describe("Proven", () => {
     timeout
   );
 
-  it.skip(
+  it(
     "should produce large block",
     async () => {
       log.setLevel("INFO");
@@ -294,7 +294,7 @@ describe("Proven", () => {
 
       console.log(batch.proof);
 
-      expect(batch.blockHashes).toHaveLength(6);
+      expect(batch.blockHashes).toHaveLength(4);
       expect(batch.proof.proof.length).toBeGreaterThan(50);
     },
     timeout * 10

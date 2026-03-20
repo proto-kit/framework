@@ -1,6 +1,6 @@
 import { Field, Proof, DynamicProof } from "o1js";
 import { Subclass } from "@proto-kit/protocol";
-import { MOCK_PROOF, TypedClass } from "@proto-kit/common";
+import { mapSequential, MOCK_PROOF, TypedClass } from "@proto-kit/common";
 import { Memoize } from "typescript-memoize";
 
 import { TaskSerializer } from "../worker/flow/Task";
@@ -74,12 +74,12 @@ abstract class ProofTaskSerializerBase<
     });
   }
 
-  public toJSON(
+  public async toJSON(
     proof:
       | Proof<PublicInputType, PublicOutputType>
       | DynamicProof<PublicInputType, PublicOutputType>
-  ): string {
-    return JSON.stringify(this.toJSONProof(proof));
+  ): Promise<string> {
+    return JSON.stringify(await this.toJSONProof(proof));
   }
 
   public async toJSONProof(
@@ -207,11 +207,13 @@ export class PairProofTaskSerializer<
     ];
   }
 
-  public toJSON(
+  public async toJSON(
     input: PairTuple<Proof<PublicInputType, PublicOutputType>>
-  ): string {
+  ): Promise<string> {
     return JSON.stringify(
-      input.map((element) => this.proofSerializer.toJSONProof(element))
+      await mapSequential(input, (element) =>
+        this.proofSerializer.toJSONProof(element)
+      )
     );
   }
 }
