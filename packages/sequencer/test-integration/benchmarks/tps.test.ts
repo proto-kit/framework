@@ -25,7 +25,6 @@ import { afterEach } from "@jest/globals";
 import {
   BlockProducerModule,
   ConsoleTracer,
-  DatabasePruneModule,
   ManualBlockTrigger,
   Sequencer,
 } from "../../src";
@@ -65,7 +64,6 @@ export async function createAppChain() {
     ),
     Protocol: Protocol.from(VanillaProtocolModules.with({})),
     Sequencer: Sequencer.from({
-      DatabasePruneModule,
       Database: PrismaRedisDatabase,
       Mempool: PrivateMempool,
       BlockProducerModule: BlockProducerModule,
@@ -86,9 +84,6 @@ export async function createAppChain() {
       ...VanillaProtocolModules.defaultConfig(),
     },
     Sequencer: {
-      DatabasePruneModule: {
-        pruneOnStartup: true,
-      },
       Database: {
         redis: {
           host: "localhost",
@@ -98,6 +93,9 @@ export async function createAppChain() {
         prisma: {
           connection:
             "postgresql://admin:password@localhost:5432/protokit?schema=public",
+        },
+        databasePruneModule: {
+          pruneOnStartup: true,
         },
       },
       BlockProducerModule: {

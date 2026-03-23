@@ -16,7 +16,6 @@ import {
   ConstantFeeStrategy,
   BatchProducerModule,
   SettlementModule,
-  DatabasePruneModule,
   InMemoryDatabase,
   LocalTaskQueue,
   AppChainModulesRecord,
@@ -152,7 +151,6 @@ export class DefaultModules {
   static prismaRedisDatabase() {
     return {
       Database: PrismaRedisDatabase,
-      DatabasePruneModule,
     } satisfies SequencerModulesRecord;
   }
 
@@ -434,9 +432,9 @@ export class DefaultConfigs {
         prisma: {
           connection: config.databaseUrl,
         },
-      },
-      DatabasePruneModule: {
-        pruneOnStartup: config.pruneOnStartup,
+        databasePruneModule: {
+          pruneOnStartup: config.pruneOnStartup,
+        },
       },
     };
   }

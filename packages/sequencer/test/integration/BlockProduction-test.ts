@@ -31,7 +31,6 @@ import {
   Sequencer,
   SequencerModule,
   VanillaTaskWorkerModules,
-  DatabasePruneModule,
   AsyncLinkedLeafStore,
   AppChain,
   BlockProducerModule,
@@ -125,7 +124,6 @@ export function testBlockProduction<
     });
 
     const sequencerClass = Sequencer.from({
-      DatabasePruneModule,
       ...testingSequencerModules({}),
       Database: database,
     });
@@ -145,9 +143,6 @@ export function testBlockProduction<
 
     app.configure({
       Sequencer: {
-        DatabasePruneModule: {
-          pruneOnStartup: true,
-        },
         Database: databaseConfig,
         BlockTrigger: {},
         Mempool: {},

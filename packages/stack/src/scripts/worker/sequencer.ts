@@ -9,7 +9,6 @@ import {
   InMemoryDatabase,
   MinaBaseLayer,
   TimedBlockTrigger,
-  DatabasePruneModule,
   AppChain,
 } from "@proto-kit/sequencer";
 import {
@@ -29,7 +28,6 @@ export const sequencer = AppChain.from({
       Database: InMemoryDatabase,
       BaseLayer: MinaBaseLayer,
       BlockTrigger: TimedBlockTrigger,
-      DatabasePruneModule: DatabasePruneModule,
       GraphqlServer: GraphqlServer,
       Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
     })

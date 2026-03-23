@@ -5,6 +5,8 @@ import {
   Database,
   closeable,
   Tracer,
+  DatabasePruneModule,
+  DatabasePruneConfig,
 } from "@proto-kit/sequencer";
 import { ChildContainerProvider, dependencyFactory } from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
@@ -27,6 +29,7 @@ import { PrismaLinkedLeafStore } from "./services/prisma/PrismaLinkedLeafStore";
 export interface PrismaRedisCombinedConfig {
   prisma: PrismaDatabaseConfig;
   redis: RedisConnectionConfig;
+  databasePruneModule?: DatabasePruneConfig;
 }
 
 @sequencerModule()
@@ -40,10 +43,13 @@ export class PrismaRedisDatabase
 
   public redis: RedisConnectionModule;
 
+  private databasePruneModule: DatabasePruneModule;
+
   public constructor(@inject("Tracer") private readonly tracer: Tracer) {
     super();
     this.prisma = new PrismaDatabaseConnection(tracer);
     this.redis = new RedisConnectionModule(tracer);
+    this.databasePruneModule = new DatabasePruneModule(this);
   }
 
   public get prismaClient(): PrismaClient {
@@ -62,6 +68,7 @@ export class PrismaRedisDatabase
     super.create(childContainerProvider);
     this.prisma.create(childContainerProvider);
     this.redis.create(childContainerProvider);
+    this.databasePruneModule.create(childContainerProvider);
   }
 
   public static dependencies(): StorageDependencyMinimumDependencies<PrismaRedisDatabase> {
@@ -99,6 +106,9 @@ export class PrismaRedisDatabase
 
     this.redis.config = this.config.redis;
     await this.redis.start();
+
+    this.databasePruneModule.config = this.config.databasePruneModule ?? {};
+    await this.databasePruneModule.start();
   }
 
   public async close() {

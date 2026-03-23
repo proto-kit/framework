@@ -33,7 +33,6 @@ import {
   BlockProducerModule,
   VanillaTaskWorkerModules,
   SequencerStartupModule,
-  DatabasePruneModule,
 } from "@proto-kit/sequencer";
 import { Bool, PrivateKey, PublicKey, Struct } from "o1js";
 
@@ -92,7 +91,8 @@ export class MintableBalances extends Balances {
 
 export function createPrismaAppchain(
   prismaConnection: PrismaDatabaseConfig["connection"],
-  redisConnection: RedisConnectionConfig
+  redisConnection: RedisConnectionConfig,
+  pruneOnStartup = false
 ) {
   const appChain = ClientAppChain.from({
     Protocol: Protocol.from(VanillaProtocolModules.mandatoryModules({})),
@@ -100,7 +100,6 @@ export function createPrismaAppchain(
       Balances: MintableBalances,
     }),
     Sequencer: Sequencer.from({
-      DatabasePruneModule,
       Database: PrismaRedisDatabase,
 
       Mempool: PrivateMempool,
@@ -139,6 +138,9 @@ export function createPrismaAppchain(
           connection: prismaConnection,
         },
         redis: redisConnection,
+        databasePruneModule: {
+          pruneOnStartup,
+        },
       },
       BlockTrigger: {},
       Mempool: {},
@@ -150,9 +152,6 @@ export function createPrismaAppchain(
         simulatedDuration: 0,
       },
       SequencerStartupModule: {},
-      DatabasePruneModule: {
-        pruneOnStartup: true,
-      },
     },
     Signer: {
       signer: PrivateKey.random(),

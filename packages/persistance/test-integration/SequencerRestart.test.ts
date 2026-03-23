@@ -29,11 +29,6 @@ describe("sequencer restart", () => {
       Signer: {
         signer: sender,
       },
-      Sequencer: {
-        DatabasePruneModule: {
-          pruneOnStartup: false,
-        },
-      },
     });
 
     await appChain.start(false, container.createChildContainer());

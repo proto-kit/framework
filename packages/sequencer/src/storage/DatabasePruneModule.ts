@@ -1,4 +1,3 @@
-import { inject } from "tsyringe";
 import { noop, log } from "@proto-kit/common";
 
 import {
@@ -14,7 +13,7 @@ export type DatabasePruneConfig = {
 
 @sequencerModule()
 export class DatabasePruneModule extends SequencerModule<DatabasePruneConfig> {
-  public constructor(@inject("Database") private readonly database: Database) {
+  public constructor(private readonly database: Database) {
     super();
   }
 
