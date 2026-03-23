@@ -20,7 +20,7 @@ import {
   BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   NoopBaseLayer,
   PrivateMempool,
   Sequencer,
@@ -59,7 +59,7 @@ export async function startGraphqlServer() {
       // Database: PrismaRedisDatabase,
 
       Mempool: PrivateMempool,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      WorkerModule: WorkerModule.from(
         VanillaTaskWorkerModules.withoutSettlement()
       ),
 
@@ -146,7 +146,7 @@ export async function startGraphqlServer() {
 
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       TaskQueue: {},
 

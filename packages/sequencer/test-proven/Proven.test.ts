@@ -94,7 +94,7 @@ describe("Proven", () => {
           BlockProducerModule: {
             maximumBlockSize: 5,
           },
-          LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+          WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           TaskQueue: {},
           FeeStrategy: {},
           SequencerStartupModule: {},

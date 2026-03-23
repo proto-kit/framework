@@ -9,7 +9,7 @@ import {
   TimedBlockTrigger,
   BlockProducerModule,
   SequencerStartupModule,
-  LocalTaskWorkerModule,
+  WorkerModule,
   VanillaTaskWorkerModules,
   MinaBaseLayer,
   ConstantFeeStrategy,
@@ -112,7 +112,7 @@ export class DefaultModules {
     return {
       Database: PrismaRedisDatabase,
       TaskQueue: BullQueue,
-      TaskWorker: LocalTaskWorkerModule.from({
+      TaskWorker: WorkerModule.from({
         IndexBlockTask,
         IndexPendingTxTask,
         IndexBatchTask,
@@ -152,7 +152,7 @@ export class DefaultModules {
 
   static localWorker(options?: { settlementEnabled?: boolean }) {
     return {
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      WorkerModule: WorkerModule.from(
         options?.settlementEnabled === true
           ? VanillaTaskWorkerModules.allTasks()
           : VanillaTaskWorkerModules.withoutSettlement()
@@ -170,9 +170,7 @@ export class DefaultModules {
   static remoteWorker() {
     return {
       TaskQueue: BullQueue,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.allTasks()
-      ),
+      WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
     } satisfies SequencerModulesRecord;
   }
 
@@ -189,9 +187,7 @@ export class DefaultModules {
       ...DefaultModules.settlement(),
       Mempool: PrivateMempool,
       TaskQueue: LocalTaskQueue,
-      LocalTaskWorker: LocalTaskWorkerModule.from(
-        VanillaTaskWorkerModules.allTasks()
-      ),
+      WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
       SequencerStartupModule,
       BridgingModule: BridgingModule,
     } satisfies SequencerModulesRecord;
@@ -256,7 +252,7 @@ export class DefaultConfigs {
       BlockProducerModule: {},
       BlockTrigger: blockTriggerConfig,
       SequencerStartupModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       ...settlementConfig,
     };
   }
@@ -407,7 +403,7 @@ export class DefaultConfigs {
       },
       FeeStrategy: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
     };
   }
 
@@ -441,7 +437,7 @@ export class DefaultConfigs {
   static localWorker() {
     return {
       TaskQueue: {},
-      LocalTaskWorkerModule: {
+      WorkerModule: {
         ...VanillaTaskWorkerModules.defaultConfig(),
       },
     } satisfies ModulesConfig<ReturnType<typeof DefaultModules.localWorker>>;
@@ -521,7 +517,7 @@ export class DefaultConfigs {
 
     return {
       ...taskQueueConfig,
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
     };
   }
 

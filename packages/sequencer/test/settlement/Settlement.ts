@@ -58,7 +58,7 @@ import {
   Sequencer,
   InMemoryMinaSigner,
   CircuitAnalysisModule,
-  LocalTaskWorkerModule,
+  WorkerModule,
   InMemoryDatabase,
   BatchProducerModule,
   BlockProducerModule,
@@ -170,7 +170,7 @@ export const settlementTestFn = (
     MinaBaseLayer.prototype["isSignedSettlement"] = () =>
       settlementType === "signed";
 
-    const taskWorkerModule = LocalTaskWorkerModule.from(
+    const taskWorkerModule = WorkerModule.from(
       VanillaTaskWorkerModules.allTasks()
     );
 
@@ -189,7 +189,7 @@ export const settlementTestFn = (
       ...(bullQueueConfig !== undefined
         ? {}
         : {
-            LocalTaskWorkerModule: taskWorkerModule,
+            WorkerModule: taskWorkerModule,
           }),
       SequencerStartupModule,
     });
@@ -215,7 +215,7 @@ export const settlementTestFn = (
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        LocalTaskWorkerModule: {
+        WorkerModule: {
           ...VanillaTaskWorkerModules.defaultConfig(),
         },
         BaseLayer: baseLayerConfig,

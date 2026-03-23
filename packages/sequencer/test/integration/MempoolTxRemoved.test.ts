@@ -50,7 +50,7 @@ describe("mempool removal mechanism", () => {
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},

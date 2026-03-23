@@ -148,7 +148,7 @@ export function testBlockProduction<
         Mempool: {},
         BatchProducerModule: {},
         BlockProducerModule: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},

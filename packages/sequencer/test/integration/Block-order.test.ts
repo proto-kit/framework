@@ -103,7 +103,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
           FeeStrategy: {},
           BatchProducerModule: {},
           BlockProducerModule: {},
-          LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+          WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           BaseLayer: {},
           TaskQueue: {},
           SequencerStartupModule: {},

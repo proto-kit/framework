@@ -25,7 +25,7 @@ import {
 import {
   BatchProducerModule,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
@@ -103,7 +103,7 @@ export function createPrismaAppchain(
       Database: PrismaRedisDatabase,
 
       Mempool: PrivateMempool,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      WorkerModule: WorkerModule.from(
         VanillaTaskWorkerModules.withoutSettlement()
       ),
       BaseLayer: NoopBaseLayer,
@@ -145,7 +145,7 @@ export function createPrismaAppchain(
       BlockTrigger: {},
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       BlockProducerModule: {},
       TaskQueue: {

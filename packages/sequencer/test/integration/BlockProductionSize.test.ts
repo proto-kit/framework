@@ -75,7 +75,7 @@ describe("block limit", () => {
         BlockProducerModule: {
           maximumBlockSize: maxBlockSize,
         },
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         TaskQueue: {},
         FeeStrategy: {},

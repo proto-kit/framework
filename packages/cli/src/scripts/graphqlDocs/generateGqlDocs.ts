@@ -44,7 +44,7 @@ export default async function (args: {
       Sequencer: {
         Database: {},
         TaskQueue: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         Mempool: {},
         BlockProducerModule: {},
         SequencerStartupModule: {},
