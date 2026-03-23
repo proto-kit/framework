@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 
+export const EXPLORER_CONTAINER_NAME = "protokit-explorer";
 const DEFAULT_EXPLORER_IMAGE = "ghcr.io/proto-kit/explorer:latest";
 
 async function pullDockerImage(image: string): Promise<void> {
@@ -35,7 +36,14 @@ async function runDockerContainer(args: {
   const { port = 5003, explorerImage } = args;
   console.log(`\nExplorer is running at http://localhost:${port}\n`);
 
-  const dockerArgs = ["run", "--rm", "-p", `${port}:3000`];
+  const dockerArgs = [
+    "run",
+    "--rm",
+    "--name",
+    EXPLORER_CONTAINER_NAME,
+    "-p",
+    `${port}:3000`,
+  ];
 
   if (args.indexerUrl !== undefined) {
     dockerArgs.push("-e", `NEXT_PUBLIC_INDEXER_URL=${args.indexerUrl}`);
