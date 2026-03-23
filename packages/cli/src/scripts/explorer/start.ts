@@ -38,7 +38,6 @@ async function runDockerContainer(args: {
 
   const dockerArgs = [
     "run",
-    "-d",
     "--rm",
     "--name",
     EXPLORER_CONTAINER_NAME,
