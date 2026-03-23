@@ -96,9 +96,7 @@ export async function startAppChain() {
       BaseLayer: {},
       TaskQueue: {},
 
-      BlockProducerModule: {
-        allowEmptyBlock: true,
-      },
+      BlockProducerModule: {},
 
       BlockTrigger: {},
 

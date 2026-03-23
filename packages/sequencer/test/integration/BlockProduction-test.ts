@@ -33,7 +33,6 @@ import {
   VanillaTaskWorkerModules,
   AsyncLinkedLeafStore,
   AppChain,
-  BlockProducerModule,
   DatabaseDependencyFactory,
 } from "../../src";
 import {
@@ -692,10 +691,9 @@ export function testBlockProduction<
     async (numBlocks) => {
       log.setLevel("INFO");
 
-      (sequencer.resolve("BlockProducerModule") as BlockProducerModule).config =
-        {
-          maximumBlockSize: 5,
-        };
+      sequencer.resolve("Mempool").config = {
+        targetBlockSize: 5,
+      };
 
       const privateKey = PrivateKey.random();
 

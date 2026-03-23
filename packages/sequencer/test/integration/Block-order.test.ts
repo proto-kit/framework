@@ -250,7 +250,7 @@ describe.each([["InMemory", InMemoryDatabase]])(
     it("transactions are returned in right order in multiple distinct blocks - hardest", async () => {
       expect.assertions(18);
 
-      sequencer.resolve("BlockProducerModule").config.maximumBlockSize = 3;
+      sequencer.resolve("Mempool").config.targetBlockSize = 3;
       const txStorage = sequencer.resolve("TransactionStorage");
       const getTxsSpy = jest.spyOn(txStorage, "getPendingUserTransactions");
 

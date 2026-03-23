@@ -150,9 +150,7 @@ export async function startGraphqlServer() {
       BaseLayer: {},
       TaskQueue: {},
 
-      BlockProducerModule: {
-        allowEmptyBlock: true,
-      },
+      BlockProducerModule: {},
 
       BlockTrigger: {},
     },

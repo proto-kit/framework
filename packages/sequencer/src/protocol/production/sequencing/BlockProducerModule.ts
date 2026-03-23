@@ -32,8 +32,7 @@ import { BlockProductionService } from "./BlockProductionService";
 import { BlockResultService } from "./BlockResultService";
 
 export interface BlockConfig {
-  allowEmptyBlock?: boolean;
-  maximumBlockSize?: number;
+  skipEmptyBlocks?: boolean;
 }
 
 @sequencerModule()
@@ -61,12 +60,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     super();
   }
 
-  private allowEmptyBlock() {
-    return this.config.allowEmptyBlock ?? true;
-  }
-
-  private maximumBlockSize() {
-    return this.config.maximumBlockSize ?? 20;
+  private skipEmptyBlocks() {
+    return this.config.skipEmptyBlocks ?? false;
   }
 
   private prettyPrintBlockContents(block: Block) {
@@ -143,7 +138,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     const block = await this.produceBlock();
 
     if (block === undefined) {
-      if (!this.allowEmptyBlock()) {
+      if (this.skipEmptyBlocks()) {
         log.info("No transactions in mempool, skipping production");
       } else {
         log.error("Something wrong happened, skipping block");
@@ -192,15 +187,14 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     const blockResult = await this.productionService.createBlock(
       this.unprovenStateService,
       metadata,
-      this.allowEmptyBlock(),
-      this.maximumBlockSize()
+      this.skipEmptyBlocks()
     );
 
     if (blockResult !== undefined) {
       const { block, stateChanges, orderingMetadata } = blockResult;
 
       // Skip production if no transactions are available for now
-      if (block.transactions.length === 0 && !this.allowEmptyBlock()) {
+      if (block.transactions.length === 0 && this.skipEmptyBlocks()) {
         return undefined;
       }
 

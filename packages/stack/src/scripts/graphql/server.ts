@@ -200,9 +200,7 @@ export async function startServer() {
       BaseLayer: {},
       TaskQueue: {},
 
-      BlockProducerModule: {
-        allowEmptyBlock: true,
-      },
+      BlockProducerModule: {},
 
       BlockTrigger: {
         blockInterval: 10000,

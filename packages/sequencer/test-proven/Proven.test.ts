@@ -89,11 +89,11 @@ describe("Proven", () => {
         Sequencer: {
           Database: {},
           BlockTrigger: {},
-          Mempool: {},
-          BatchProducerModule: {},
-          BlockProducerModule: {
-            maximumBlockSize: 5,
+          Mempool: {
+            targetBlockSize: 5,
           },
+          BatchProducerModule: {},
+          BlockProducerModule: {},
           WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
           TaskQueue: {},
           FeeStrategy: {},

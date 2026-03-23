@@ -98,11 +98,11 @@ export async function createAppChain() {
           pruneOnStartup: true,
         },
       },
-      BlockProducerModule: {
-        maximumBlockSize: 100,
-      },
+      BlockProducerModule: {},
       BlockTrigger: {},
-      Mempool: {},
+      Mempool: {
+        targetBlockSize: 100,
+      },
     },
     Signer: {
       signer: PrivateKey.random(),

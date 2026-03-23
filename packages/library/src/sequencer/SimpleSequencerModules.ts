@@ -94,9 +94,7 @@ export class SimpleSequencerModules {
 
   public static defaultConfig() {
     return {
-      BlockProducerModule: {
-        allowEmptyBlock: true,
-      },
+      BlockProducerModule: {},
 
       Mempool: {},
       BatchProducerModule: {},
