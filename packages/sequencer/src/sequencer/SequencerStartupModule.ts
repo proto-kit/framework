@@ -104,13 +104,17 @@ export class SequencerStartupModule
     return root;
   }
 
-  private async compileBridge(flow: Flow<{}>, isSignedSettlement?: boolean) {
+  private async compileBridge(
+    flow: Flow<{}>,
+    runtimeVKRoot: bigint,
+    isSignedSettlement?: boolean
+  ) {
     const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
       await flow.pushTask(
         this.settlementCompileTask,
         {
           existingArtifacts: this.compileRegistry.getAllArtifacts(),
-          runtimeVKRoot: undefined,
+          runtimeVKRoot: runtimeVKRoot.toString(),
           isSignedSettlement,
         },
         async (bridgeResult) => {
@@ -184,6 +188,7 @@ export class SequencerStartupModule
     if (this.settlementModule !== undefined) {
       const bridgeArtifacts = await this.compileBridge(
         flow,
+        root,
         isSignedSettlement
       );
 
