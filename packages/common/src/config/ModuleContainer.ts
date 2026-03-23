@@ -98,6 +98,11 @@ export type ModulesConfig<Modules extends ModulesRecord> = {
     : never;
 };
 
+export type CombinedModuleContainerConfig<
+  Modules extends ModulesRecord,
+  OwnConfig = NoConfig,
+> = OwnConfig & ModulesConfig<Modules>;
+
 /**
  * This type make any config partial (i.e. optional) up to the first level
  * So { Module: { a: { b: string } } }
@@ -139,9 +144,16 @@ export interface ModuleContainerLike {
 /**
  * Reusable module container facilitating registration, resolution
  * configuration, decoration and validation of modules
+ *
+ * @typeParam Modules - The record of child module classes.
+ * @typeParam OwnConfig - Optional config type for keys that belong to the
+ *   container itself (not forwarded to child modules). Defaults to NoConfig.
  */
-export class ModuleContainer<Modules extends ModulesRecord>
-  extends ConfigurableModule<ModulesConfig<Modules>>
+export class ModuleContainer<
+  Modules extends ModulesRecord,
+  OwnConfig = NoConfig,
+>
+  extends ConfigurableModule<CombinedModuleContainerConfig<Modules, OwnConfig>>
   implements ModuleContainerLike
 {
   /**
@@ -155,8 +167,26 @@ export class ModuleContainer<Modules extends ModulesRecord>
 
   private eventEmitterProxy: EventEmitterProxy<Modules> | undefined = undefined;
 
+  /**
+   * Set of config key names that belong to the container
+   */
+  protected readonly ownConfigKeys: Set<string> = new Set();
+
   public constructor(public definition: Modules) {
     super();
+  }
+
+  /**
+   * Returns an object containing the keys listed in ownConfigKeys.
+   */
+  public get ownConfig(): OwnConfig {
+    const fullConfig = this.config;
+    const result: Record<string, unknown> = {};
+    for (const key of this.ownConfigKeys) {
+      result[key] = fullConfig[key];
+    }
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return result as OwnConfig;
   }
 
   /**
@@ -296,25 +326,28 @@ export class ModuleContainer<Modules extends ModulesRecord>
    * before the first resolution.
    * @param config
    */
-  public configure(config: ModulesConfig<Modules>) {
+  public configure(config: CombinedModuleContainerConfig<Modules, OwnConfig>) {
     this.config = config;
   }
 
-  public configurePartial(config: RecursivePartial<ModulesConfig<Modules>>) {
-    this.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      RecursivePartial<ModulesConfig<Modules>>
-    >(this.currentConfig ?? {}, config);
+  public configurePartial(
+    config: RecursivePartial<CombinedModuleContainerConfig<Modules, OwnConfig>>
+  ) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    this.config = merge(
+      this.currentConfig ?? {},
+      config
+    ) as CombinedModuleContainerConfig<Modules, OwnConfig>;
   }
 
   public get config() {
     return super.config;
   }
 
-  public set config(config: ModulesConfig<Modules>) {
+  public set config(config: CombinedModuleContainerConfig<Modules, OwnConfig>) {
     super.config = merge<
-      ModulesConfig<Modules> | NoConfig,
-      ModulesConfig<Modules>
+      CombinedModuleContainerConfig<Modules, OwnConfig> | NoConfig,
+      CombinedModuleContainerConfig<Modules, OwnConfig>
     >(this.currentConfig ?? {}, config);
   }
 
@@ -365,6 +398,10 @@ export class ModuleContainer<Modules extends ModulesRecord>
     moduleName: StringKeyOf<Modules>,
     containedModule: InstanceType<Modules[StringKeyOf<Modules>]>
   ) {
+    if (this.ownConfigKeys.has(moduleName)) {
+      return;
+    }
+
     const config = super.config?.[moduleName];
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!config) {

@@ -34,9 +34,9 @@ describe("Prisma block production", () => {
         log: [{ level: "query", emit: "event" }],
       },
       redis: redisConfig,
-      databasePruneModule:{
+      databasePruneModule: {
         pruneOnStartup: true,
-      }
+      },
     } as never
   );
 });

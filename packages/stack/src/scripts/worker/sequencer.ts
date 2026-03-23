@@ -11,11 +11,7 @@ import {
   TimedBlockTrigger,
   AppChain,
 } from "@proto-kit/sequencer";
-import {
-  VanillaGraphqlModules,
-  GraphqlSequencerModule,
-  GraphqlServer,
-} from "@proto-kit/api";
+import { VanillaGraphqlModules, GraphqlSequencerModule } from "@proto-kit/api";
 
 import { app } from "./app";
 
@@ -28,7 +24,6 @@ export const sequencer = AppChain.from({
       Database: InMemoryDatabase,
       BaseLayer: MinaBaseLayer,
       BlockTrigger: TimedBlockTrigger,
-      GraphqlServer: GraphqlServer,
       Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
     })
   ),
@@ -60,13 +55,10 @@ sequencer.configure({
       },
     },
     SequencerStartupModule: {},
-    GraphqlServer: {
+    Graphql: {
       host: "0.0.0.0",
       port: 8080,
       graphiql: true,
-    },
-
-    Graphql: {
       QueryGraphqlModule: {},
       MempoolResolver: {},
       BatchStorageResolver: {},

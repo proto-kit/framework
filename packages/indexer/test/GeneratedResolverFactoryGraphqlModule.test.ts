@@ -1,9 +1,5 @@
 import "reflect-metadata";
-import {
-  GraphqlSequencerModule,
-  GraphqlServer,
-  graphqlModule,
-} from "@proto-kit/api";
+import { GraphqlSequencerModule, graphqlModule } from "@proto-kit/api";
 import { log } from "@proto-kit/common";
 import { jest } from "@jest/globals";
 
@@ -30,20 +26,17 @@ class MockedGeneratedResolverFactoryGraphqlModule extends GeneratedResolverFacto
 
 describe("GeneratedResolverFactoryGraphqlModule", () => {
   const indexer = Indexer.from({
-    GraphqlServer: GraphqlServer,
     Graphql: GraphqlSequencerModule.from({
       GeneratedResolverFactory: MockedGeneratedResolverFactoryGraphqlModule,
     }),
   });
 
   indexer.configurePartial({
-    GraphqlServer: {
+    Graphql: {
+      GeneratedResolverFactory: {},
       port,
       host: "0.0.0.0",
       graphiql: true,
-    },
-    Graphql: {
-      GeneratedResolverFactory: {},
     },
   });
 
@@ -136,6 +129,6 @@ describe("GeneratedResolverFactoryGraphqlModule", () => {
   });
 
   afterAll(async () => {
-    await indexer.resolve("GraphqlServer").close();
+    await indexer.resolve("Graphql").close();
   });
 });

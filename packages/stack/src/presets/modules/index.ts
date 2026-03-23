@@ -1,7 +1,6 @@
 import {
   VanillaGraphqlModules,
   GraphqlSequencerModule,
-  GraphqlServer,
   OpenTelemetryServer,
 } from "@proto-kit/api";
 import {
@@ -70,7 +69,6 @@ import {
 export class DefaultModules {
   static api() {
     return {
-      GraphqlServer,
       Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
     } satisfies SequencerModulesRecord;
   }
@@ -120,7 +118,6 @@ export class DefaultModules {
         IndexBatchTask,
         IndexSettlementTask,
       }),
-      GraphqlServer,
       Graphql: GraphqlSequencerModule.from({
         GeneratedResolverFactory: GeneratedResolverFactoryGraphqlModule,
       }),
@@ -132,7 +129,6 @@ export class DefaultModules {
     handlers: HandlersRecord<PrismaClient>
   ) {
     return {
-      GraphqlServer,
       GraphqlSequencerModule: GraphqlSequencerModule.from({
         ResolverFactory: ResolverFactoryGraphqlModule.from(resolvers),
       }),
@@ -206,12 +202,15 @@ export class DefaultConfigs {
     preset?: Environment;
     overrides?: Partial<GraphqlServerEnv>;
   }) {
+    const serverConfig = DefaultConfigs.graphqlServer({
+      preset: options?.preset,
+      overrides: options?.overrides,
+    });
     return {
-      Graphql: VanillaGraphqlModules.defaultConfig(),
-      ...DefaultConfigs.graphqlServer({
-        preset: options?.preset,
-        overrides: options?.overrides,
-      }),
+      Graphql: {
+        ...VanillaGraphqlModules.defaultConfig(),
+        ...serverConfig.GraphqlServer,
+      },
     };
   }
 
@@ -327,9 +326,9 @@ export class DefaultConfigs {
         IndexPendingTxTask: {},
         IndexSettlementTask: {},
       },
-      ...graphqlServerConfig,
       Graphql: {
         GeneratedResolverFactory: {},
+        ...graphqlServerConfig.GraphqlServer,
       },
     };
   }
@@ -359,9 +358,9 @@ export class DefaultConfigs {
       Trigger: {
         interval: Number(config.blockInterval) / 5,
       },
-      ...graphqlServerConfig,
       GraphqlSequencerModule: {
         ResolverFactory: {},
+        ...graphqlServerConfig.GraphqlServer,
       },
     };
   }

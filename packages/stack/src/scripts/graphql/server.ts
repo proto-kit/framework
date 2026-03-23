@@ -34,7 +34,6 @@ import {
 import {
   BatchStorageResolver,
   GraphqlSequencerModule,
-  GraphqlServer,
   MempoolResolver,
   LinkedMerkleWitnessResolver as MerkleWitnessResolver,
   NodeStatusResolver,
@@ -99,7 +98,6 @@ export async function startServer() {
       OpenTelemetryServer,
 
       Mempool: PrivateMempool,
-      GraphqlServer,
       LocalTaskWorkerModule: LocalTaskWorkerModule.from(
         VanillaTaskWorkerModules.withoutSettlement()
       ),
@@ -151,19 +149,12 @@ export async function startServer() {
     },
 
     Sequencer: {
-      GraphqlServer: {
+      SequencerStartupModule: {},
+
+      Graphql: {
         port: 8080,
         host: "0.0.0.0",
         graphiql: true,
-      },
-      SequencerStartupModule: {},
-
-      // SettlementModule: {
-      //   address: PrivateKey.random().toPublicKey(),
-      //   feepayer: PrivateKey.random(),
-      // },
-
-      Graphql: {
         QueryGraphqlModule: {},
         MempoolResolver: {},
         BatchStorageResolver: {},
