@@ -240,8 +240,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     const stProofVk = this.childVerificationKeyService.getAsConstant(
       "StateTransitionProver"
     );
-    // stateTransitionProof.verifyIf(stProofVk, verifyStProof);
-    stateTransitionProof.verify(stProofVk);
+    stateTransitionProof.verifyIf(stProofVk, verifyStProof);
 
     // Apply STProof if not deferred
     const stateProofResult = this.includeSTProof(
@@ -270,7 +269,7 @@ export class BlockProverProgrammable extends ZkProgrammable<
     // Brought in as a constant
     const transactionProofVk =
       this.childVerificationKeyService.getAsConstant("TransactionProver");
-    transactionProof.verify(transactionProofVk);
+    transactionProof.verifyIf(transactionProofVk, verifyTransactionProof);
 
     // Fast-forward transaction trackers by the results of the aggregated transaction proof
     // Implicitly, the 'from' values here are asserted against the publicInput, since the hashlists
