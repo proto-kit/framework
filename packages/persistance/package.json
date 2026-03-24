@@ -32,8 +32,8 @@
     "@proto-kit/module": "*",
     "@proto-kit/protocol": "*",
     "@proto-kit/sequencer": "*",
-    "o1js": "2.10.0-dev.be63f",
-    "@o1js/native": "0.0.1-dev.be63f",
+    "o1js": "2.10.0-dev.6d3a3",
+    "@o1js/native": "2.10.0-dev.6d3a3",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {

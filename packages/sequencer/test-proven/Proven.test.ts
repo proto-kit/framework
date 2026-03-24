@@ -18,7 +18,7 @@ import {
 } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { container } from "tsyringe";
-import { PrivateKey, Provable, UInt64, VerificationKey, setBackend } from "o1js";
+import { PrivateKey, UInt64, setBackend } from "o1js";
 
 import { testingSequencerModules } from "../test/TestingSequencer";
 import {
@@ -35,7 +35,7 @@ import { ProvenBalance } from "../test/integration/mocks/ProvenBalance";
 
 const timeout = 300000;
 
-setBackend();
+// setBackend("native");
 
 describe("Proven", () => {
   let test: BlockTestService;
