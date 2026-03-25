@@ -199,8 +199,6 @@ describe("zkProgrammable", () => {
         testProgrammable.areProofsEnabled.setProofsEnabled(areProofsEnabled);
         zkProgramFactorySpy = jest.spyOn(testProgrammable, "zkProgramFactory");
 
-        const o = await testProgrammable.zkProgram();
-
         artifact = await testProgrammable
           .zkProgram()
           .then((p) => takeFirst(p))
