@@ -5,11 +5,7 @@ import { AsyncLinkedLeafStore } from "../../state/async/AsyncLinkedLeafStore";
 export class InMemoryAsyncLinkedLeafStore implements AsyncLinkedLeafStore {
   private readonly leafStore = new InMemoryLinkedLeafStore();
 
-  public async openTransaction(): Promise<void> {
-    noop();
-  }
-
-  public async commit(): Promise<void> {
+  public async flush(): Promise<void> {
     noop();
   }
 

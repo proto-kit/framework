@@ -8,7 +8,6 @@ import {
 } from "@proto-kit/sequencer";
 import { ChildContainerProvider, dependencyFactory } from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
-import { RedisClientType } from "redis";
 import { inject } from "tsyringe";
 
 import {
@@ -17,10 +16,8 @@ import {
   PrismaDatabaseConnection,
 } from "./PrismaDatabaseConnection";
 import {
-  RedisConnection,
   RedisConnectionConfig,
   RedisConnectionModule,
-  RedisTransaction,
 } from "./RedisConnection";
 
 export interface PrismaRedisCombinedConfig {
@@ -33,7 +30,7 @@ export interface PrismaRedisCombinedConfig {
 @dependencyFactory()
 export class PrismaRedisDatabase
   extends SequencerModule<PrismaRedisCombinedConfig>
-  implements PrismaConnection, RedisConnection, Database
+  implements PrismaConnection, Database
 {
   public prisma: PrismaDatabaseConnection;
 
@@ -49,14 +46,6 @@ export class PrismaRedisDatabase
     return this.prisma.prismaClient;
   }
 
-  public get redisClient(): RedisClientType {
-    return this.redis.redisClient;
-  }
-
-  public get currentMulti(): RedisTransaction {
-    return this.redis.currentMulti;
-  }
-
   public create(childContainerProvider: ChildContainerProvider) {
     super.create(childContainerProvider);
     this.prisma.create(childContainerProvider);
@@ -67,6 +56,9 @@ export class PrismaRedisDatabase
     return {
       ...PrismaDatabaseConnection.dependencies(),
       ...RedisConnectionModule.dependencies(),
+      TreeDatabase: {
+        useGenerated: (dbModule) => dbModule.redis,
+      },
     };
   }
 
@@ -92,7 +84,7 @@ export class PrismaRedisDatabase
     // TODO Long-term we want to somehow make sure we can rollback one data source
     //  if commiting the other one's transaction fails
     await this.prisma.executeInTransaction(async () => {
-      await this.redis.executeInTransaction(f);
+      await f();
     });
   }
 }

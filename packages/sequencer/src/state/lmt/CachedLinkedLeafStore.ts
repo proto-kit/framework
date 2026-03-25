@@ -14,6 +14,7 @@ import groupBy from "lodash/groupBy";
 import { AsyncLinkedLeafStore } from "../async/AsyncLinkedLeafStore";
 import { CachedMerkleTreeStore } from "../merkle/CachedMerkleTreeStore";
 import { AsyncMerkleTreeStore } from "../async/AsyncMerkleTreeStore";
+import { Database } from "../../storage/Database";
 
 export class CachedLinkedLeafStore implements LinkedLeafStore {
   private writeCache: {
@@ -26,7 +27,7 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
 
   private constructor(
     private readonly parent: AsyncLinkedLeafStore,
-    private readonly parentTreeStore: AsyncMerkleTreeStore
+    parentTreeStore: AsyncMerkleTreeStore
   ) {
     this.treeCache = new CachedMerkleTreeStore(parentTreeStore);
   }
@@ -217,20 +218,25 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
 
   // This merges the cache into the parent tree and resets the cache, but not the
   //  in-memory merkle tree.
-  public async mergeIntoParent(): Promise<void> {
+  public async mergeIntoParent(
+    stateDb: Database,
+    treeDb: Database
+  ): Promise<void> {
     const leaves = this.getWrittenLeaves();
     // In case no state got set we can skip this step
     if (leaves.length === 0) {
       return;
     }
 
-    await this.parent.openTransaction();
+    await stateDb.executeInTransaction(async () => {
+      this.parent.writeLeaves(Object.values(leaves));
 
-    this.parent.writeLeaves(Object.values(leaves));
+      await this.parent.flush();
+    });
 
-    await this.parent.commit();
-
-    await this.treeCache.mergeIntoParent();
+    await treeDb.executeInTransaction(async () => {
+      await this.treeCache.mergeIntoParent();
+    });
 
     this.resetWrittenLeaves();
   }

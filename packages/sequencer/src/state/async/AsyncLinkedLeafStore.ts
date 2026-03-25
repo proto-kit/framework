@@ -1,9 +1,7 @@
 import { StoredLeaf } from "@proto-kit/common";
 
 export interface AsyncLinkedLeafStore {
-  openTransaction: () => Promise<void>;
-
-  commit: () => Promise<void>;
+  flush: () => Promise<void>;
 
   writeLeaves: (leaves: StoredLeaf[]) => void;
 

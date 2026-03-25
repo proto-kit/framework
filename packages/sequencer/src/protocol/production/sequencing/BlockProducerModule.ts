@@ -58,6 +58,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly methodIdResolver: MethodIdResolver,
     @inject("Runtime") private readonly runtime: Runtime<RuntimeModulesRecord>,
     @inject("Database") private readonly database: Database,
+    @inject("TreeDatabase") private readonly treeDatabase: Database,
     @inject("Tracer") public readonly tracer: Tracer
   ) {
     super();
@@ -127,14 +128,16 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
 
     await this.tracer.trace(
       "block.result.commit",
-      async () =>
+      async () => {
         await this.database.executeInTransaction(async () => {
-          await blockHashTreeStore.mergeIntoParent();
-          await treeStore.mergeIntoParent();
-          await stateService.mergeIntoParent();
-
           await this.blockQueue.pushResult(result);
-        }),
+          await stateService.mergeIntoParent();
+        });
+        await this.treeDatabase.executeInTransaction(async () => {
+          await blockHashTreeStore.mergeIntoParent();
+        });
+        await treeStore.mergeIntoParent(this.database, this.treeDatabase);
+      },
       traceMetadata
     );
 
@@ -215,7 +218,6 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         async () => {
           // Push changes to the database atomically
           await this.database.executeInTransaction(async () => {
-            await stateChanges.mergeIntoParent();
             await this.blockQueue.pushBlock(block);
 
             // Remove included or dropped txs, leave skipped ones alone
@@ -234,6 +236,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
             await this.transactionStorage.reportSkippedTransactions(
               orderingMetadata.skippedPaths
             );
+
+            await stateChanges.mergeIntoParent();
           });
         },
         {
