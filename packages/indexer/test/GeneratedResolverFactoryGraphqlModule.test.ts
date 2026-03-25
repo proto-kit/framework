@@ -34,9 +34,11 @@ describe("GeneratedResolverFactoryGraphqlModule", () => {
   indexer.configurePartial({
     Graphql: {
       GeneratedResolverFactory: {},
-      port,
-      host: "0.0.0.0",
-      graphiql: true,
+      containerConfig: {
+        port,
+        host: "0.0.0.0",
+        graphiql: true,
+      },
     },
   });
 

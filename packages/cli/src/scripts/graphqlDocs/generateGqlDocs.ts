@@ -54,9 +54,11 @@ export default async function (args: {
         BatchProducerModule: {},
         Graphql: {
           ...VanillaGraphqlModules.defaultConfig(),
-          port,
-          host: "localhost",
-          graphiql: true,
+          containerConfig: {
+            port,
+            host: "localhost",
+            graphiql: true,
+          },
         },
       },
     });

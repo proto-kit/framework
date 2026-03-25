@@ -56,9 +56,11 @@ sequencer.configure({
     },
     SequencerStartupModule: {},
     Graphql: {
-      host: "0.0.0.0",
-      port: 8080,
-      graphiql: true,
+      containerConfig: {
+        host: "0.0.0.0",
+        port: 8080,
+        graphiql: true,
+      },
       QueryGraphqlModule: {},
       MempoolResolver: {},
       BatchStorageResolver: {},

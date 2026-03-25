@@ -61,7 +61,7 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
   private context: {} = {};
 
   public get serverConfig(): GraphqlServerConfig {
-    return this.ownConfig;
+    return this.containerConfig;
   }
 
   public static from<GraphQLModules extends GraphqlModulesRecord>(
@@ -76,11 +76,6 @@ export class GraphqlSequencerModule<GraphQLModules extends GraphqlModulesRecord>
 
   public constructor(definition: GraphQLModules) {
     super(definition);
-
-    // Configure own config keys
-    ["host", "port", "graphiql"].forEach((key) => {
-      this.ownConfigKeys.add(key);
-    });
   }
 
   public setContext(newContext: {}) {

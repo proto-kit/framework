@@ -114,9 +114,11 @@ export async function startGraphqlServer() {
       // },
 
       Graphql: {
-        port: 8080,
-        host: "0.0.0.0",
-        graphiql: true,
+        containerConfig: {
+          port: 8080,
+          host: "0.0.0.0",
+          graphiql: true,
+        },
         QueryGraphqlModule: {},
         MempoolResolver: {},
         BatchStorageResolver: {},
