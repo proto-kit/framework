@@ -94,9 +94,7 @@ export async function createAppChain() {
           connection:
             "postgresql://admin:password@localhost:5432/protokit?schema=public",
         },
-        databasePruneModule: {
-          pruneOnStartup: true,
-        },
+        pruneOnStartup: true,
       },
       BlockProducerModule: {},
       BlockTrigger: {},
