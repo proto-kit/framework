@@ -19,6 +19,7 @@ import {
   StateTransitionProofParameters,
   ConsoleTracer,
   CachedLinkedLeafStore,
+  InMemoryAsyncMerkleTreeStore,
 } from "../../../src";
 import { InMemoryAsyncLinkedLeafStore } from "../../../src/storage/inmemory/InMemoryAsyncLinkedLeafStore";
 
@@ -115,7 +116,8 @@ async function applyBatchesToTree(
 //   return sequencer;
 // }
 
-const service = new StateTransitionTracingService(new ConsoleTracer());
+const tracer = new ConsoleTracer();
+const service = new StateTransitionTracingService(tracer);
 
 describe("StateTransitionTracingService", () => {
   const cases: {
@@ -163,11 +165,12 @@ describe("StateTransitionTracingService", () => {
 
   describe.each(cases)("tracing two chunks of STs", ({ batch, numSTs }) => {
     const store = new InMemoryAsyncLinkedLeafStore();
+    const treeStore = new InMemoryAsyncMerkleTreeStore();
 
     let trace: StateTransitionProofParameters[];
 
     beforeAll(async () => {
-      const cached = await CachedLinkedLeafStore.new(store);
+      const cached = await CachedLinkedLeafStore.new(store, treeStore);
 
       trace = await service.createMerkleTrace(cached, batch);
     });
@@ -187,7 +190,7 @@ describe("StateTransitionTracingService", () => {
     it("should set second publicInput correctly", async () => {
       const tree = await applyBatchesToTree(
         batch.slice(0, 4),
-        await CachedLinkedLeafStore.new(store)
+        await CachedLinkedLeafStore.new(store, treeStore)
       );
 
       expect(trace[1].publicInput.root.toString()).toStrictEqual(
@@ -222,7 +225,7 @@ describe("StateTransitionTracingService", () => {
       const witnessedRootsList = new WitnessedRootHashList();
       const tempTree = await applyBatchesToTree(
         batch.slice(0, 2),
-        await CachedLinkedLeafStore.new(store)
+        await CachedLinkedLeafStore.new(store, treeStore)
       );
 
       witnessedRootsList.push({
@@ -242,6 +245,7 @@ describe("StateTransitionTracingService", () => {
 
   describe("tracing two separate sequences", () => {
     const store = new InMemoryAsyncLinkedLeafStore();
+    const treeStore = new InMemoryAsyncMerkleTreeStore();
     let cached: CachedLinkedLeafStore;
 
     let trace1: StateTransitionProofParameters[];
@@ -271,10 +275,10 @@ describe("StateTransitionTracingService", () => {
     ];
 
     beforeAll(async () => {
-      cached = await CachedLinkedLeafStore.new(store);
+      cached = await CachedLinkedLeafStore.new(store, treeStore);
       trace1 = await service.createMerkleTrace(cached, batches[0]);
 
-      const cached2 = await CachedLinkedLeafStore.new(store);
+      const cached2 = await CachedLinkedLeafStore.new(store, treeStore);
       tree1 = await applyBatchesToTree(batches[0], cached2);
 
       trace2 = await service.createMerkleTrace(cached, batches[1]);
@@ -304,6 +308,7 @@ describe("StateTransitionTracingService", () => {
 
   describe("should trace correctly", () => {
     const store = new InMemoryAsyncLinkedLeafStore();
+    const treeStore = new InMemoryAsyncMerkleTreeStore();
     let cached: CachedLinkedLeafStore;
 
     const batches: TracingStateTransitionBatch[] = [
@@ -327,7 +332,7 @@ describe("StateTransitionTracingService", () => {
     let trace: StateTransitionProofParameters[];
 
     beforeAll(async () => {
-      cached = await CachedLinkedLeafStore.new(store);
+      cached = await CachedLinkedLeafStore.new(store, treeStore);
       trace = await service.createMerkleTrace(cached, batches);
     });
 
@@ -371,12 +376,16 @@ describe("StateTransitionTracingService", () => {
     it("check that STs have been applied to the tree store", async () => {
       const tracedTree = new LinkedMerkleTree(cached.treeStore, cached);
 
-      const cached2 = await CachedLinkedLeafStore.new(store);
+      const cached2 = await CachedLinkedLeafStore.new(store, treeStore);
       const tree = await applyBatchesToTree(batches, cached2);
 
       expect(tracedTree.getRoot().toString()).toStrictEqual(
         tree.getRoot().toString()
       );
     });
+  });
+
+  afterAll(async () => {
+    await tracer.close();
   });
 });

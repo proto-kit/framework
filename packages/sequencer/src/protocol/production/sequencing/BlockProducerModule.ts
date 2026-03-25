@@ -44,6 +44,8 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
     private readonly unprovenStateService: AsyncStateService,
     @inject("UnprovenLinkedLeafStore")
     private readonly unprovenLinkedLeafStore: AsyncLinkedLeafStore,
+    @inject("UnprovenTreeStore")
+    private readonly unprovenTreeStore: AsyncMerkleTreeStore,
     @inject("BlockQueue")
     private readonly blockQueue: BlockQueue,
     @inject("TransactionStorage")
@@ -118,6 +120,7 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
       await this.resultService.generateMetadataForNextBlock(
         block,
         this.unprovenLinkedLeafStore,
+        this.unprovenTreeStore,
         this.blockTreeStore,
         this.unprovenStateService
       );

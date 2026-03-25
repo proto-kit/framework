@@ -56,6 +56,12 @@ export class InMemoryDatabase extends SequencerModule implements Database {
       transactionStorage: {
         useClass: InMemoryTransactionStorage,
       },
+      unprovenTreeStore: {
+        useClass: InMemoryAsyncMerkleTreeStore,
+      },
+      asyncTreeStore: {
+        useClass: InMemoryAsyncMerkleTreeStore,
+      },
     };
   }
 
