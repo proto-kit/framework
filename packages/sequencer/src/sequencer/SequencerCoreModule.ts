@@ -16,45 +16,45 @@ import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { closeable } from "./builder/Closeable";
 import { SequencerStartupModule } from "./SequencerStartupModule";
 
-export interface InMemorySequencerCoreDependencies extends DependencyRecord<InMemorySequencerCoreModule> {
-  sequencerStartupModule: DependencyDeclaration<
+export interface LocalSequencerCoreDependencies extends DependencyRecord<LocalSequencerCoreModule> {
+  SequencerStartupModule: DependencyDeclaration<
     SequencerStartupModule,
-    InMemorySequencerCoreModule
+    LocalSequencerCoreModule
   >;
-  blockProducerModule: DependencyDeclaration<
+  BlockProducerModule: DependencyDeclaration<
     BlockProducerModule,
-    InMemorySequencerCoreModule
+    LocalSequencerCoreModule
   >;
 }
 
 export interface SequencerCoreDependencies extends DependencyRecord<SequencerCoreModule> {
-  sequencerStartupModule: DependencyDeclaration<
+  SequencerStartupModule: DependencyDeclaration<
     SequencerStartupModule,
     SequencerCoreModule
   >;
-  blockProducerModule: DependencyDeclaration<
+  BlockProducerModule: DependencyDeclaration<
     BlockProducerModule,
     SequencerCoreModule
   >;
-  batchProducerModule: DependencyDeclaration<
+  BatchProducerModule: DependencyDeclaration<
     BatchProducerModule,
     SequencerCoreModule
   >;
 }
 
-export interface InMemorySequencerCoreConfig {
+export interface LocalSequencerCoreConfig {
   SequencerStartupModule: NoConfig;
   BlockProducerModule: BlockConfig;
 }
 
-export interface SequencerCoreConfig extends InMemorySequencerCoreConfig {
+export interface SequencerCoreConfig extends LocalSequencerCoreConfig {
   BatchProducerModule: NoConfig;
 }
 
 @sequencerModule()
 @closeable()
 @dependencyFactory()
-export class InMemorySequencerCoreModule extends SequencerModule<InMemorySequencerCoreConfig> {
+export class LocalSequencerCoreModule extends SequencerModule<LocalSequencerCoreConfig> {
   public constructor(
     @inject("SequencerStartupModule")
     private readonly sequencerStartupModule: SequencerStartupModule,
@@ -64,21 +64,23 @@ export class InMemorySequencerCoreModule extends SequencerModule<InMemorySequenc
     super();
   }
 
-  public static dependencies(): InMemorySequencerCoreDependencies {
+  public static dependencies(): LocalSequencerCoreDependencies {
     return {
-      sequencerStartupModule: {
+      SequencerStartupModule: {
         useClass: SequencerStartupModule,
       },
-      blockProducerModule: {
+      BlockProducerModule: {
         useClass: BlockProducerModule,
       },
     };
   }
 
-  public async start(): Promise<void> {
+  public create() {
     this.sequencerStartupModule.config = this.config.SequencerStartupModule;
     this.blockProducerModule.config = this.config.BlockProducerModule;
+  }
 
+  public async start(): Promise<void> {
     await this.sequencerStartupModule.start();
     await this.blockProducerModule.start();
   }
@@ -105,23 +107,25 @@ export class SequencerCoreModule extends SequencerModule<SequencerCoreConfig> {
 
   public static dependencies(): SequencerCoreDependencies {
     return {
-      sequencerStartupModule: {
+      SequencerStartupModule: {
         useClass: SequencerStartupModule,
       },
-      blockProducerModule: {
+      BlockProducerModule: {
         useClass: BlockProducerModule,
       },
-      batchProducerModule: {
+      BatchProducerModule: {
         useClass: BatchProducerModule,
       },
     };
   }
 
-  public async start(): Promise<void> {
+  public create() {
     this.sequencerStartupModule.config = this.config.SequencerStartupModule;
     this.blockProducerModule.config = this.config.BlockProducerModule;
     this.batchProducerModule.config = this.config.BatchProducerModule;
+  }
 
+  public async start(): Promise<void> {
     await this.sequencerStartupModule.start();
     await this.blockProducerModule.start();
     await this.batchProducerModule.start();
