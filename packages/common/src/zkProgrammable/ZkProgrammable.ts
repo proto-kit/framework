@@ -231,9 +231,9 @@ export abstract class ZkProgrammable<
   }
 
   public async compile(registry: CompileRegistry) {
-    const program = await this.zkProgram();
+    const programs = await this.zkProgram();
     return await reduceSequential(
-      program,
+      programs,
       async (acc, program) => {
         const result = await registry.compile(program);
         return {
