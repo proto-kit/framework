@@ -35,7 +35,7 @@ import { ProvenBalance } from "../test/integration/mocks/ProvenBalance";
 
 const timeout = 300000;
 
-// setBackend("native");
+setBackend("native");
 
 describe("Proven", () => {
   let test: BlockTestService;
