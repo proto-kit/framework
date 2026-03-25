@@ -91,7 +91,6 @@ export class LocalSequencerCoreModule extends SequencerModule<LocalSequencerCore
 }
 
 @sequencerModule()
-@closeable()
 @dependencyFactory()
 export class SequencerCoreModule extends SequencerModule<SequencerCoreConfig> {
   public constructor(
@@ -129,9 +128,5 @@ export class SequencerCoreModule extends SequencerModule<SequencerCoreConfig> {
     await this.sequencerStartupModule.start();
     await this.blockProducerModule.start();
     await this.batchProducerModule.start();
-  }
-
-  public async close(): Promise<void> {
-    await this.sequencerStartupModule.close();
   }
 }
