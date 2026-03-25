@@ -85,7 +85,7 @@ export * from "./storage/inmemory/InMemoryMessageStorage";
 export * from "./storage/inmemory/InMemoryTransactionStorage";
 export * from "./storage/StorageDependencyFactory";
 export * from "./storage/Database";
-export * from "./storage/DatabasePruneModule";
+export * from "./storage/Prunable";
 export * from "./helpers/query/QueryTransportModule";
 export * from "./helpers/query/QueryBuilderFactory";
 export * from "./helpers/query/NetworkStateQuery";

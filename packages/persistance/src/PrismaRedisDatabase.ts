@@ -5,10 +5,13 @@ import {
   Database,
   closeable,
   Tracer,
-  DatabasePruneModule,
-  DatabasePruneConfig,
+  Prunable,
 } from "@proto-kit/sequencer";
-import { ChildContainerProvider, dependencyFactory } from "@proto-kit/common";
+import {
+  ChildContainerProvider,
+  dependencyFactory,
+  log,
+} from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
 import { RedisClientType } from "redis";
 import { inject } from "tsyringe";
@@ -29,7 +32,7 @@ import { PrismaLinkedLeafStore } from "./services/prisma/PrismaLinkedLeafStore";
 export interface PrismaRedisCombinedConfig {
   prisma: PrismaDatabaseConfig;
   redis: RedisConnectionConfig;
-  databasePruneModule?: DatabasePruneConfig;
+  pruneOnStartup?: boolean;
 }
 
 @sequencerModule()
@@ -37,19 +40,16 @@ export interface PrismaRedisCombinedConfig {
 @dependencyFactory()
 export class PrismaRedisDatabase
   extends SequencerModule<PrismaRedisCombinedConfig>
-  implements PrismaConnection, RedisConnection, Database
+  implements PrismaConnection, RedisConnection, Database, Prunable
 {
   public prisma: PrismaDatabaseConnection;
 
   public redis: RedisConnectionModule;
 
-  private databasePruneModule: DatabasePruneModule;
-
   public constructor(@inject("Tracer") private readonly tracer: Tracer) {
     super();
     this.prisma = new PrismaDatabaseConnection(tracer);
     this.redis = new RedisConnectionModule(tracer);
-    this.databasePruneModule = new DatabasePruneModule(this);
   }
 
   public get prismaClient(): PrismaClient {
@@ -68,7 +68,6 @@ export class PrismaRedisDatabase
     super.create(childContainerProvider);
     this.prisma.create(childContainerProvider);
     this.redis.create(childContainerProvider);
-    this.databasePruneModule.create(childContainerProvider);
   }
 
   public static dependencies(): StorageDependencyMinimumDependencies<PrismaRedisDatabase> {
@@ -107,8 +106,10 @@ export class PrismaRedisDatabase
     this.redis.config = this.config.redis;
     await this.redis.start();
 
-    this.databasePruneModule.config = this.config.databasePruneModule ?? {};
-    await this.databasePruneModule.start();
+    if (this.config?.pruneOnStartup ?? false) {
+      log.info("Pruning database");
+      await this.pruneDatabase();
+    }
   }
 
   public async close() {

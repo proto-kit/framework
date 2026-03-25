@@ -138,9 +138,7 @@ export function createPrismaAppchain(
           connection: prismaConnection,
         },
         redis: redisConnection,
-        databasePruneModule: {
-          pruneOnStartup,
-        },
+        pruneOnStartup,
       },
       BlockTrigger: {},
       Mempool: {},
