@@ -216,29 +216,37 @@ export class CachedLinkedLeafStore implements LinkedLeafStore {
     await this.preloadKeysInternal(paths);
   }
 
-  // This merges the cache into the parent tree and resets the cache, but not the
-  //  in-memory merkle tree.
-  public async mergeIntoParent(
-    stateDb: Database,
-    treeDb: Database
-  ): Promise<void> {
+  public async mergeLeavesIntoParent() {
     const leaves = this.getWrittenLeaves();
     // In case no state got set we can skip this step
     if (leaves.length === 0) {
       return;
     }
 
-    await stateDb.executeInTransaction(async () => {
-      this.parent.writeLeaves(Object.values(leaves));
+    this.parent.writeLeaves(Object.values(leaves));
 
-      await this.parent.flush();
+    await this.parent.flush();
+
+    this.resetWrittenLeaves();
+  }
+
+  public async mergeTreeIntoParent() {
+    await this.treeCache.mergeIntoParent();
+  }
+
+  // This merges the cache into the parent tree and resets the cache, but not the
+  //  in-memory merkle tree.
+  public async mergeIntoParent(
+    stateDb: Database,
+    treeDb: Database
+  ): Promise<void> {
+    await stateDb.executeInTransaction(async () => {
+      await this.mergeLeavesIntoParent();
     });
 
     await treeDb.executeInTransaction(async () => {
-      await this.treeCache.mergeIntoParent();
+      await this.mergeTreeIntoParent();
     });
-
-    this.resetWrittenLeaves();
   }
 
   public getPreviousLeaf(path: bigint) {

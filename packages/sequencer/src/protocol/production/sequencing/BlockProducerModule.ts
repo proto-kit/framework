@@ -132,11 +132,12 @@ export class BlockProducerModule extends SequencerModule<BlockConfig> {
         await this.database.executeInTransaction(async () => {
           await this.blockQueue.pushResult(result);
           await stateService.mergeIntoParent();
+          await treeStore.mergeLeavesIntoParent();
         });
         await this.treeDatabase.executeInTransaction(async () => {
           await blockHashTreeStore.mergeIntoParent();
+          await treeStore.mergeTreeIntoParent();
         });
-        await treeStore.mergeIntoParent(this.database, this.treeDatabase);
       },
       traceMetadata
     );
