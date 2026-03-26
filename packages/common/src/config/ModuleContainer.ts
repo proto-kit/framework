@@ -220,6 +220,12 @@ export class ModuleContainer<Modules extends ModulesRecord>
     return Object.prototype.hasOwnProperty.call(modules, moduleName);
   }
 
+  private isValidModuleNameTuple(
+    module: [string, BaseModuleType]
+  ): module is [StringKeyOf<Modules>, BaseModuleType] {
+    return Object.prototype.hasOwnProperty.call(this.definition, module[0]);
+  }
+
   public assertContainerInitialized(
     container: DependencyContainer | undefined
   ): asserts container is DependencyContainer {
@@ -246,26 +252,26 @@ export class ModuleContainer<Modules extends ModulesRecord>
    * @param modules
    */
   protected registerModules(modules: Modules) {
-    Object.keys(modules).forEach((moduleName) => {
-      if (Object.prototype.hasOwnProperty.call(modules, moduleName)) {
-        this.assertIsValidModuleName(moduleName);
+    const moduleClasses = Object.entries(modules).filter(
+      this.isValidModuleNameTuple
+    );
 
-        log.debug(`Registering module: ${moduleName}`);
+    moduleClasses.forEach(([moduleName, useClass]) => {
+      log.debug(`Registering module: ${moduleName}`);
 
-        const useClass = modules[moduleName];
+      this.container.register(
+        moduleName,
+        { useClass },
+        { lifecycle: Lifecycle.ContainerScoped }
+      );
+      this.onAfterModuleResolution(moduleName);
 
-        this.container.register(
-          moduleName,
-          { useClass },
-          { lifecycle: Lifecycle.ContainerScoped }
-        );
-        this.onAfterModuleResolution(moduleName);
+      this.registerAliases(moduleName, useClass);
+    });
 
-        this.registerAliases(moduleName, useClass);
-
-        if (this.isDependencyFactory(useClass)) {
-          this.useDependencyFactory(useClass, moduleName);
-        }
+    moduleClasses.forEach(([moduleName, clazz]) => {
+      if (this.isDependencyFactory(clazz)) {
+        this.useDependencyFactory(clazz, moduleName);
       }
     });
   }
