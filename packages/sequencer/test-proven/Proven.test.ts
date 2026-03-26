@@ -18,7 +18,7 @@ import {
 } from "@proto-kit/protocol";
 import { VanillaProtocolModules } from "@proto-kit/library";
 import { container } from "tsyringe";
-import { PrivateKey, UInt64 } from "o1js";
+import { PrivateKey, UInt64, setBackend } from "o1js";
 
 import { testingSequencerModules } from "../test/TestingSequencer";
 import {
@@ -34,6 +34,8 @@ import { BlockTestService } from "../test/integration/services/BlockTestService"
 import { ProvenBalance } from "../test/integration/mocks/ProvenBalance";
 
 const timeout = 300000;
+
+setBackend("native");
 
 describe("Proven", () => {
   let test: BlockTestService;
@@ -221,6 +223,7 @@ describe("Proven", () => {
     },
     timeout
   );
+
   it(
     "should produce large block",
     async () => {
@@ -255,6 +258,45 @@ describe("Proven", () => {
       console.log(batch.proof);
 
       expect(batch.blockHashes).toHaveLength(6);
+      expect(batch.proof.proof.length).toBeGreaterThan(50);
+    },
+    timeout * 10
+  );
+
+  it(
+    "should produce empty + 1 tx",
+    async () => {
+      log.setLevel("INFO");
+
+      const privateKey = PrivateKey.random();
+
+      // await test.produceBlock();
+      // await test.produceBlock();
+      // await test.produceBlock();
+
+      await test.addTransaction({
+        method: ["Balances", "addBalance"],
+        privateKey,
+        args: [PrivateKey.random().toPublicKey(), UInt64.from(100)],
+      });
+
+      // Produce 6 blocks, 5 txs each into 1 batch
+      const block = await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+      await test.produceBlock();
+
+      expectDefined(block);
+      expect(block.transactions).toHaveLength(1);
+      expect(block.transactions[0].status.toBoolean()).toBe(true);
+
+      const batch = await test.produceBatch();
+
+      expectDefined(batch);
+
+      console.log(batch.proof);
+
+      expect(batch.blockHashes).toHaveLength(4);
       expect(batch.proof.proof.length).toBeGreaterThan(50);
     },
     timeout * 10

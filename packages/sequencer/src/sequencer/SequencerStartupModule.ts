@@ -4,6 +4,7 @@ import {
   ContractArgsRegistry,
   MandatoryProtocolModulesRecord,
   Protocol,
+  ProtocolConstants,
   RuntimeVerificationKeyRootService,
 } from "@proto-kit/protocol";
 import {
@@ -12,17 +13,28 @@ import {
   ChildVerificationKeyService,
   CompileRegistry,
   AreProofsEnabled,
+  CompileArtifact,
+  mapSequential,
 } from "@proto-kit/common";
 
 import { Flow, FlowCreator } from "../worker/flow/Flow";
-import { WorkerRegistrationFlow } from "../worker/worker/startup/WorkerRegistrationFlow";
-import {
-  CircuitCompilerTask,
-  CompilerTaskParams,
-} from "../protocol/production/tasks/CircuitCompilerTask";
+import { WorkerRegistrationFlow } from "../worker/startup/WorkerRegistrationFlow";
 import { VerificationKeyService } from "../protocol/runtime/RuntimeVerificationKeyService";
 import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { NoopBaseLayer } from "../protocol/baselayer/NoopBaseLayer";
+import { RuntimeCompileTask } from "../protocol/production/tasks/compile/RuntimeCompileTask";
+import { SettlementCompileTask } from "../protocol/production/tasks/compile/SettlementCompileTask";
+import {
+  CircuitCompileTask,
+  CompilerTaskParams,
+} from "../protocol/production/tasks/compile/CircuitCompileTask";
+import { Task } from "../worker/flow/Task";
+import { SettlementModule } from "../settlement/SettlementModule";
+import {
+  BlockProverCompileTask,
+  STProverCompileTask,
+  TransactionProverCompileTask,
+} from "../protocol/production/tasks/compile/ProtocolCompileTask";
 
 import { SequencerModule, sequencerModule } from "./builder/SequencerModule";
 import { Closeable, closeable } from "./builder/Closeable";
@@ -37,7 +49,11 @@ export class SequencerStartupModule
     private readonly flowCreator: FlowCreator,
     @inject("Protocol")
     private readonly protocol: Protocol<MandatoryProtocolModulesRecord>,
-    private readonly compileTask: CircuitCompilerTask,
+    private readonly runtimeCompileTask: RuntimeCompileTask,
+    private readonly stProverCompileTask: STProverCompileTask,
+    private readonly transactionProverCompileTask: TransactionProverCompileTask,
+    private readonly blockProverCompileTask: BlockProverCompileTask,
+    private readonly settlementCompileTask: SettlementCompileTask,
     private readonly verificationKeyService: VerificationKeyService,
     private readonly registrationFlow: WorkerRegistrationFlow,
     private readonly compileRegistry: CompileRegistry,
@@ -45,28 +61,34 @@ export class SequencerStartupModule
     private readonly baseLayer: MinaBaseLayer | undefined,
     @inject("AreProofsEnabled")
     private readonly areProofsEnabled: AreProofsEnabled,
-    private readonly contractArgsRegistry: ContractArgsRegistry
+    private readonly contractArgsRegistry: ContractArgsRegistry,
+    @inject("SettlementModule", { isOptional: true })
+    private readonly settlementModule: SettlementModule | undefined
   ) {
     super();
   }
 
   private async pushCompileTask(
     flow: Flow<{}>,
+    task: Task<CompilerTaskParams, ArtifactRecord>,
     payload: CompilerTaskParams
   ): Promise<ArtifactRecord> {
     return await flow.withFlow<ArtifactRecord>(async (res, rej) => {
-      await flow.pushTask(this.compileTask, payload, async (result) => {
+      await flow.pushTask(task, payload, async (result) => {
         res(result);
       });
     });
   }
 
   public async compileRuntime(flow: Flow<{}>) {
-    const artifacts = await this.pushCompileTask(flow, {
-      existingArtifacts: {},
-      targets: ["runtime"],
-      runtimeVKRoot: undefined,
-    });
+    const artifacts = await this.pushCompileTask(
+      flow,
+      this.runtimeCompileTask,
+      {
+        existingArtifacts: {},
+        runtimeVKRoot: undefined,
+      }
+    );
 
     // Init runtime VK tree
     await this.verificationKeyService.initializeVKTree(artifacts);
@@ -82,51 +104,42 @@ export class SequencerStartupModule
     return root;
   }
 
-  private async compileProtocolAndBridge(
+  private async compileBridge(
     flow: Flow<{}>,
-    runtimeVkTreeRoot: bigint,
+    runtimeVKRoot: bigint,
     isSignedSettlement?: boolean
   ) {
-    // Can happen in parallel
-    type ParallelResult = {
-      protocol?: ArtifactRecord;
-      bridge?: ArtifactRecord;
-    };
-
     const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
-      const results: ParallelResult = {};
-
-      const resolveIfPossible = () => {
-        const { bridge, protocol } = results;
-        if (bridge !== undefined && protocol !== undefined) {
-          res({ ...protocol, ...bridge });
-        }
-      };
-
       await flow.pushTask(
-        this.compileTask,
+        this.settlementCompileTask,
         {
-          existingArtifacts: {},
-          targets: ["protocol"],
-          runtimeVKRoot: runtimeVkTreeRoot.toString(),
-        },
-        async (protocolResult) => {
-          results.protocol = protocolResult;
-          resolveIfPossible();
-        }
-      );
-
-      await flow.pushTask(
-        this.compileTask,
-        {
-          existingArtifacts: {},
-          targets: ["Settlement.BridgeContract"],
-          runtimeVKRoot: undefined,
+          existingArtifacts: this.compileRegistry.getAllArtifacts(),
+          runtimeVKRoot: runtimeVKRoot.toString(),
           isSignedSettlement,
         },
         async (bridgeResult) => {
-          results.bridge = bridgeResult;
-          resolveIfPossible();
+          res(bridgeResult);
+        }
+      );
+    });
+    this.compileRegistry.addArtifactsRaw(result);
+    return result;
+  }
+
+  private async compileProtocol(
+    flow: Flow<{}>,
+    task: CircuitCompileTask,
+    runtimeVkTreeRoot: bigint
+  ) {
+    const result = await flow.withFlow<ArtifactRecord>(async (res, rej) => {
+      await flow.pushTask(
+        task,
+        {
+          existingArtifacts: this.compileRegistry.getAllArtifacts(),
+          runtimeVKRoot: runtimeVkTreeRoot.toString(),
+        },
+        async (protocolResult) => {
+          res(protocolResult);
         }
       );
     });
@@ -135,6 +148,8 @@ export class SequencerStartupModule
   }
 
   public async start() {
+    ProtocolConstants.printAllConstants();
+
     const flow = this.flowCreator.createFlow("compile-circuits", {});
 
     this.protocol.dependencyContainer
@@ -159,25 +174,39 @@ export class SequencerStartupModule
 
     const root = await this.compileRuntime(flow);
 
-    const protocolBridgeArtifacts = await this.compileProtocolAndBridge(
-      flow,
-      root,
-      isSignedSettlement
-    );
+    const tasks = [
+      this.stProverCompileTask,
+      this.transactionProverCompileTask,
+      this.blockProverCompileTask,
+    ];
+    await mapSequential(tasks, async (task) => {
+      await this.compileProtocol(flow, task, root);
+    });
+
+    let bridgeVk: CompileArtifact | undefined = undefined;
+
+    if (this.settlementModule !== undefined) {
+      const bridgeArtifacts = await this.compileBridge(
+        flow,
+        root,
+        isSignedSettlement
+      );
+
+      // TODO Why is this not in SettlementStartupModule?
+      // Init BridgeContract vk for settlement contract
+      bridgeVk = bridgeArtifacts.BridgeContract;
+      if (bridgeVk !== undefined) {
+        // TODO Inject CompileRegistry directly
+        this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
+          "SettlementContract",
+          {
+            BridgeContractVerificationKey: bridgeVk.verificationKey,
+          }
+        );
+      }
+    }
 
     log.info("Protocol circuits compiled");
-
-    // Init BridgeContract vk for settlement contract
-    const bridgeVk = protocolBridgeArtifacts.BridgeContract;
-    if (bridgeVk !== undefined) {
-      // TODO Inject CompileRegistry directly
-      this.contractArgsRegistry.addArgs<BridgingSettlementContractArgs>(
-        "SettlementContract",
-        {
-          BridgeContractVerificationKey: bridgeVk.verificationKey,
-        }
-      );
-    }
 
     await this.registrationFlow.start({
       runtimeVerificationKeyRoot: root,

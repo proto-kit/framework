@@ -18,7 +18,7 @@ import {
 } from "@proto-kit/protocol";
 import { match } from "ts-pattern";
 import { inject, injectable } from "tsyringe";
-import { hashWithPrefix, noop, range } from "@proto-kit/common";
+import { hashWithPrefix, log, noop, range } from "@proto-kit/common";
 
 import { distinctByPredicate } from "../../helpers/utils";
 import type { MinaBaseLayer } from "../../protocol/baselayer/MinaBaseLayer";
@@ -173,17 +173,26 @@ export class MinaTransactionSimulator {
       const getAccountSafe = () => {
         try {
           return Mina.getAccount(publicKey, tokenId);
-        } catch {
+        } catch (e) {
+          log.trace(e);
           return undefined;
         }
       };
       const account = match(fetchedAccount)
         .with(undefined, () => getAccountSafe())
-        .with({ account: undefined }, () => getAccountSafe())
+        .with({ account: undefined }, (e) => {
+          // TODO Check if it's a "account not found" error, and if it's not then display the error
+          //  (as it's probably networking related)
+          log.trace(e.error);
+          return getAccountSafe();
+        })
         .with({ error: undefined }, (v) => v.account)
         .exhaustive();
 
       if (account !== undefined) {
+        log.trace(
+          `Reloaded account ${account.publicKey.toBase58()}, ${account.balance.toJSON()} MINA`
+        );
         addCachedAccount(account);
         this.loaded[key] = account;
       }

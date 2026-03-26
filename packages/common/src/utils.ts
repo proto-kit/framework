@@ -311,3 +311,10 @@ export function assertDefined<T>(
     throw new Error(msg ?? "Value is undefined");
   }
 }
+
+export function takeFirst<T>(arr: T[]): T {
+  if (arr.length === 0) {
+    throw new Error("takeFirst called with empty array");
+  }
+  return arr[0];
+}

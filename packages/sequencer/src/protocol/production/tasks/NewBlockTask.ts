@@ -20,16 +20,21 @@ import { Bool } from "o1js";
 import {
   ProvableMethodExecutionContext,
   CompileRegistry,
+  dependencyFactory,
 } from "@proto-kit/common";
 
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import { ProofTaskSerializer } from "../../../helpers/utils";
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import { PairingDerivedInput } from "../flow/ReductionTaskFlow";
 import type { TaskStateRecord } from "../tracing/BlockTracingService";
 
 import { NewBlockProvingParametersSerializer } from "./serializers/NewBlockProvingParametersSerializer";
 import { executeWithPrefilledStateService } from "./TransactionProvingTask";
+import { BlockProverCompileTask } from "./compile/ProtocolCompileTask";
 
 export type NewBlockArguments = {
   args: BlockArguments;
@@ -55,6 +60,8 @@ export type NewBlockProvingParameters = PairingDerivedInput<
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
+@dependencyFactory()
 export class NewBlockTask
   extends TaskWorkerModule
   implements Task<NewBlockProvingParameters, BlockProof>
@@ -79,13 +86,21 @@ export class NewBlockTask
     this.blockProver = protocol.blockProver;
   }
 
+  public static dependencies() {
+    return {
+      BlockProverCompileTask: {
+        useClass: BlockProverCompileTask,
+      },
+    };
+  }
+
   public inputSerializer(): TaskSerializer<NewBlockProvingParameters> {
-    const stProofSerializer = new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+    const stProofSerializer = new ProofTaskSerializer(() =>
+      this.stateTransitionProver.zkProgrammable.proofType()
     );
 
-    const transactionProofSerializer = new ProofTaskSerializer(
-      this.transactionProver.zkProgrammable.zkProgram[0].Proof
+    const transactionProofSerializer = new ProofTaskSerializer(() =>
+      this.transactionProver.zkProgrammable.proofType()
     );
 
     return new NewBlockProvingParametersSerializer(
@@ -95,8 +110,8 @@ export class NewBlockTask
   }
 
   public resultSerializer(): TaskSerializer<BlockProof> {
-    return new ProofTaskSerializer(
-      this.blockProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.blockProver.zkProgrammable.proofType()
     );
   }
 
@@ -140,9 +155,16 @@ export class NewBlockTask
             blockWitness,
             blockArgumentBatch,
             Bool(false)
-            // deferSTProof.or(deferTransactionProof)
           );
         } else {
+          const DynamicSTProof =
+            await this.stateTransitionProver.zkProgrammable.dynamicProofType();
+          const stProof = DynamicSTProof.fromProof(input1);
+
+          const DynamicTransactionProof =
+            await this.transactionProver.zkProgrammable.dynamicProofType();
+          const txProof = DynamicTransactionProof.fromProof(input2);
+
           await this.blockProver.proveBlockBatchWithProofs(
             publicInput,
             stateWitness,
@@ -151,8 +173,8 @@ export class NewBlockTask
             blockArgumentBatch,
             deferSTProof,
             deferTransactionProof,
-            input1,
-            input2
+            stProof,
+            txProof
           );
         }
       }

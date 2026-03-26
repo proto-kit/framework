@@ -8,10 +8,14 @@ import {
 } from "@proto-kit/protocol";
 import {
   CompileRegistry,
+  dependencyFactory,
   ProvableMethodExecutionContext,
 } from "@proto-kit/common";
 
-import { TaskWorkerModule } from "../../../worker/worker/TaskWorkerModule";
+import {
+  task,
+  TaskWorkerModule,
+} from "../../../worker/worker/TaskWorkerModule";
 import { Task, TaskSerializer } from "../../../worker/flow/Task";
 import {
   PairProofTaskSerializer,
@@ -19,8 +23,12 @@ import {
   ProofTaskSerializer,
 } from "../../../helpers/utils";
 
+import { STProverCompileTask } from "./compile/ProtocolCompileTask";
+
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
+@task()
+@dependencyFactory()
 export class StateTransitionReductionTask
   extends TaskWorkerModule
   implements Task<PairTuple<StateTransitionProof>, StateTransitionProof>
@@ -42,15 +50,23 @@ export class StateTransitionReductionTask
     this.stateTransitionProver = this.protocol.stateTransitionProver;
   }
 
+  public static dependencies() {
+    return {
+      STProverCompileTask: {
+        useClass: STProverCompileTask,
+      },
+    };
+  }
+
   public inputSerializer(): TaskSerializer<PairTuple<StateTransitionProof>> {
-    return new PairProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+    return new PairProofTaskSerializer(() =>
+      this.stateTransitionProver.zkProgrammable.proofType()
     );
   }
 
   public resultSerializer(): TaskSerializer<StateTransitionProof> {
-    return new ProofTaskSerializer(
-      this.stateTransitionProver.zkProgrammable.zkProgram[0].Proof
+    return new ProofTaskSerializer(() =>
+      this.stateTransitionProver.zkProgrammable.proofType()
     );
   }
 

@@ -1,5 +1,6 @@
 import {
   BlockQueue,
+  task,
   Task,
   TaskSerializer,
   TaskWorkerModule,
@@ -13,6 +14,7 @@ import {
 } from "./IndexBlockTaskParameters";
 
 @injectable()
+@task()
 export class IndexBlockTask
   extends TaskWorkerModule
   implements Task<IndexBlockTaskParameters, string | void>
