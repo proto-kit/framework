@@ -26,7 +26,7 @@ export default async function (options: LoadEnvOptions) {
       MinaBaseLayer,
       PrivateMempool,
       LocalTaskQueue,
-      LocalTaskWorkerModule,
+      WorkerModule,
       VanillaTaskWorkerModules,
       SequencerStartupModule,
     } = await import("@proto-kit/sequencer");
@@ -49,9 +49,7 @@ export default async function (options: LoadEnvOptions) {
         BridgingModule,
         Mempool: PrivateMempool,
         TaskQueue: LocalTaskQueue,
-        LocalTaskWorker: LocalTaskWorkerModule.from(
-          VanillaTaskWorkerModules.allTasks()
-        ),
+        WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
         SequencerStartupModule,
       }),
     });
@@ -71,7 +69,7 @@ export default async function (options: LoadEnvOptions) {
             type: process.env.MINA_NETWORK as any,
             graphql: process.env.MINA_NODE_GRAPHQL!,
             archive: process.env.MINA_ARCHIVE_GRAPHQL!,
-            accountManager: process.env.MINA_ACCOUNT_MANAGER!,
+            accountManager: process.env.MINA_ACCOUNT_MANAGER_URL!,
           },
         },
         SettlementSigner: {
@@ -102,7 +100,7 @@ export default async function (options: LoadEnvOptions) {
         TaskQueue: {
           simulatedDuration: 0,
         },
-        LocalTaskWorker: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         Mempool: {},
       },
     });
