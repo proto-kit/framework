@@ -253,7 +253,7 @@ export class ModuleContainer<Modules extends ModulesRecord>
    */
   protected registerModules(modules: Modules) {
     const moduleClasses = Object.entries(modules).filter(
-      this.isValidModuleNameTuple
+      this.isValidModuleNameTuple.bind(this)
     );
 
     moduleClasses.forEach(([moduleName, useClass]) => {
