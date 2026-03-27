@@ -20,6 +20,7 @@ import { BatchProducerModule } from "../../BatchProducerModule";
 import { task } from "../../../../worker/worker/TaskWorkerModule";
 
 import { CircuitCompileTask } from "./CircuitCompileTask";
+import { BlockProducerModule } from "../../sequencing/BlockProducerModule";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)
@@ -32,8 +33,8 @@ export class SettlementCompileTask extends CircuitCompileTask {
     protocol: Protocol<MandatoryProtocolModulesRecord>,
     compileRegistry: CompileRegistry,
     contractArgsRegistry: ContractArgsRegistry,
-    @inject("BatchProducerModule", { isOptional: true })
-    batchProducerModule: BatchProducerModule | undefined
+    @inject("BlockProducerModule", { isOptional: true })
+    blockProducerModule: BlockProducerModule | undefined
   ) {
     super(protocol, compileRegistry, contractArgsRegistry);
 
@@ -41,7 +42,7 @@ export class SettlementCompileTask extends CircuitCompileTask {
     if (
       !container.isRegistered("SettlementContractModule") &&
       // Disable this check for the sequencer
-      batchProducerModule === undefined
+      blockProducerModule === undefined
     ) {
       throw new Error(
         "SettlementContractModule not configured but SettlementCompilerTask is - fix the configuration"
