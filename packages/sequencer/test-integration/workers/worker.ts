@@ -21,7 +21,7 @@ import {
 } from "./modules";
 import { MinimumWorkerModules } from "./WorkerModules";
 
-setBackend("native");
+// setBackend("native");
 
 /* eslint-disable no-console */
 async function main() {
