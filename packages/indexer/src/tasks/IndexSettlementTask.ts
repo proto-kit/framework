@@ -4,11 +4,13 @@ import {
   TaskWorkerModule,
   Settlement,
   SettlementStorage,
+  task,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
 
 @injectable()
+@task()
 export class IndexSettlementTask
   extends TaskWorkerModule
   implements Task<Settlement, string | void>
@@ -28,6 +30,8 @@ export class IndexSettlementTask
   public async compute(input: Settlement): Promise<string | void> {
     try {
       await this.settlementStorage.pushSettlement(input);
+
+      log.info(`Settlement ${input.batches.at(-1)!} indexed successfully`);
       return "";
     } catch (err) {
       log.error("Failed to process settlement task", err);

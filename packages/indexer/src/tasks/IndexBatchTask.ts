@@ -4,11 +4,13 @@ import {
   TaskWorkerModule,
   Batch,
   BatchStorage,
+  task,
 } from "@proto-kit/sequencer";
 import { inject, injectable } from "tsyringe";
 import { log } from "@proto-kit/common";
 
 @injectable()
+@task()
 export class IndexBatchTask
   extends TaskWorkerModule
   implements Task<Batch, string | void>
@@ -28,10 +30,11 @@ export class IndexBatchTask
   public async compute(input: Batch): Promise<string | void> {
     try {
       await this.batchStorage.pushBatch(input);
+
+      log.info(`Batch ${input.height} indexed successfully`);
       return "";
     } catch (err) {
       log.error("Failed to process settlement task", err);
-      return undefined;
     }
   }
 
