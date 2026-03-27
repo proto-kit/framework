@@ -1,6 +1,5 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
-import type { Environment } from "@proto-kit/stack";
 
 import {
   loadEnvironmentVariables,
@@ -17,8 +16,10 @@ export default async function (options: LoadEnvOptions) {
     const { AppChain, Sequencer, SettlementModule, InMemoryDatabase } =
       await import("@proto-kit/sequencer");
 
-    const { DefaultModules, DefaultConfigs } = await import("@proto-kit/stack");
     loadEnvironmentVariables(options);
+    const { scriptModules, scriptModulesConfig } =
+      await import("../../utils/modules");
+
     const { runtime, protocol } = await loadUserModules();
     const appChain = AppChain.from({
       Runtime: Runtime.from(runtime.modules),
@@ -28,7 +29,7 @@ export default async function (options: LoadEnvOptions) {
       }),
       Sequencer: Sequencer.from({
         Database: InMemoryDatabase,
-        ...DefaultModules.settlementScript(),
+        ...scriptModules,
       }),
     });
 
@@ -39,11 +40,8 @@ export default async function (options: LoadEnvOptions) {
         ...protocol.settlementModulesConfig,
       },
       Sequencer: {
-        ...DefaultConfigs.inMemoryDatabase(),
-        ...DefaultConfigs.settlementScript({
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          preset: options.env as Environment,
-        }),
+        Database: {},
+        ...scriptModulesConfig,
         SettlementModule: {
           addresses: undefined,
         },

@@ -41,6 +41,7 @@
     "@proto-kit/sequencer": "*",
     "@proto-kit/stack": "*",
     "@proto-kit/indexer": "*",
+    "@proto-kit/persistance": "*",
     "o1js": "^2.10.0",
     "tsyringe": "^4.10.0"
   },

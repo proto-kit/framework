@@ -11,7 +11,7 @@ interface InitializeArgs {
 export const initializeCommand: CommandModule<{}, InitializeArgs> = {
   command: "initialize",
   describe:
-    "Initialize lightnet: wait for network, fund accounts, and deploy settlement\n\nRequires: MINA_NODE_GRAPHQL_HOST, MINA_NODE_GRAPHQL_PORT, MINA_ARCHIVE_GRAPHQL_HOST, MINA_ARCHIVE_GRAPHQL_PORT, MINA_ACCOUNT_MANAGER_HOST, MINA_ACCOUNT_MANAGER_PORT, PROTOKIT_SETTLEMENT_CONTRACT_PRIVATE_KEY, PROTOKIT_DISPATCHER_CONTRACT_PRIVATE_KEY, PROTOKIT_MINA_BRIDGE_CONTRACT_PRIVATE_KEY",
+    "Initialize lightnet: wait for network, fund accounts, and deploy settlement\n\nRequires: MINA_NODE_GRAPHQL_HOST, MINA_NODE_GRAPHQL_PORT, MINA_ARCHIVE_GRAPHQL_HOST, MINA_ARCHIVE_GRAPHQL_PORT, MINA_ACCOUNT_MANAGER_HOST, MINA_ACCOUNT_MANAGER_PORT, PROTOKIT_SEQUENCER_PUBLIC_KEY, TEST_ACCOUNT_1_PUBLIC_KEY, PROTOKIT_SETTLEMENT_CONTRACT_PUBLIC_KEY, PROTOKIT_DISPATCHER_CONTRACT_PUBLIC_KEY",
   builder: (yarg) => addEnvironmentOptions(yarg),
   handler: async (args) => {
     try {
