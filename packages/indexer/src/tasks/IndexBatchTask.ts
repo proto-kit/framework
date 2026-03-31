@@ -36,6 +36,7 @@ export class IndexBatchTask
     } catch (err) {
       log.error("Failed to process settlement task", err);
     }
+    return undefined;
   }
 
   public inputSerializer(): TaskSerializer<Batch> {

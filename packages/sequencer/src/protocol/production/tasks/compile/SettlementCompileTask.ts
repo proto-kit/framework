@@ -16,11 +16,10 @@ import {
   SettlementModulesRecord,
 } from "@proto-kit/protocol";
 
-import { BatchProducerModule } from "../../BatchProducerModule";
 import { task } from "../../../../worker/worker/TaskWorkerModule";
+import { BlockProducerModule } from "../../sequencing/BlockProducerModule";
 
 import { CircuitCompileTask } from "./CircuitCompileTask";
-import { BlockProducerModule } from "../../sequencing/BlockProducerModule";
 
 @injectable()
 @scoped(Lifecycle.ContainerScoped)

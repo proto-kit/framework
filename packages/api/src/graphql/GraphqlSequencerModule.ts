@@ -2,7 +2,6 @@ import { buildSchemaSync, NonEmptyArray } from "type-graphql";
 import { Closeable, closeable, SequencerModule } from "@proto-kit/sequencer";
 import {
   ChildContainerProvider,
-  Configurable,
   CombinedModuleContainerConfig,
   log,
   ModuleContainer,

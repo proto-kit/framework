@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { setBackend } from "o1js";
+// import { setBackend } from "o1js";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { BullQueue } from "@proto-kit/deployment";
 import { container } from "tsyringe";
