@@ -1,5 +1,5 @@
 import { inject, injectable } from "tsyringe";
-import { log } from "@proto-kit/common";
+import { dependencyFactory, log } from "@proto-kit/common";
 
 import { closeable, Closeable } from "../../../sequencer/builder/Closeable";
 import { BatchProducerModule } from "../BatchProducerModule";
@@ -13,6 +13,7 @@ import {
 } from "../../../settlement/BridgingModule";
 import { ensureNotBusy } from "../../../helpers/BusyGuard";
 import { SequencerStartupModule } from "../../../sequencer/SequencerStartupModule";
+import { BlockProductionInstrumentation } from "../../../metrics/BlockProductionInstrumentation";
 
 import { BlockTriggerBase } from "./BlockTrigger";
 
@@ -26,6 +27,7 @@ export interface TimedBlockTriggerConfig {
 
 @injectable()
 @closeable()
+@dependencyFactory()
 export class TimedBlockTrigger
   extends BlockTriggerBase<TimedBlockTriggerConfig>
   implements Closeable
@@ -57,6 +59,14 @@ export class TimedBlockTrigger
       bridgingModule,
       blockQueue
     );
+  }
+
+  public static dependencies() {
+    return {
+      BlockProductionInstrumentation: {
+        useClass: BlockProductionInstrumentation,
+      },
+    };
   }
 
   public async start(): Promise<void> {

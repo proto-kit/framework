@@ -16,8 +16,8 @@ import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 import { inject } from "tsyringe";
 import { dependencyFactory, DependencyRecord, log } from "@proto-kit/common";
 
-import { SequencerInstrumentation } from "./SequencerInstrumentation";
 import { OpenTelemetryTracer } from "./OpenTelemetryTracer";
+import { ModularizedInstrumentation } from "./ModularizedInstrumentation";
 
 export type OpenTelemetryServerConfig = {
   metrics?: {
@@ -54,9 +54,8 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
       config: { metrics, tracing },
     } = this;
 
-    // TODO Modularize Instrumentations
     const seqMetrics = this.sequencer.dependencyContainer.resolve(
-      SequencerInstrumentation
+      ModularizedInstrumentation
     );
 
     const metricReader =
@@ -90,6 +89,8 @@ export class OpenTelemetryServer extends SequencerModule<OpenTelemetryServerConf
     });
 
     sdk.start();
+
+    await seqMetrics.start();
 
     // TODO Write logger to directly integrate with our logging library
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
