@@ -92,7 +92,7 @@ export class MintableBalances extends Balances {
 export function createPrismaAppchain(
   prismaConnection: PrismaDatabaseConfig["connection"],
   redisConnection: RedisConnectionConfig,
-  pruneOnStartup = false
+  pruneOnStartup = true
 ) {
   const appChain = ClientAppChain.from({
     Protocol: Protocol.from(VanillaProtocolModules.mandatoryModules({})),
