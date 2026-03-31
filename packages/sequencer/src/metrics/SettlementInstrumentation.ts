@@ -1,6 +1,6 @@
 import { inject, injectable } from "tsyringe";
 
-import { SettlementModule } from "../settlement/SettlementModule";
+import type { SettlementModule } from "../settlement/SettlementModule";
 
 import { instrumentation, PushInstrumentation } from "./Instrumentation";
 

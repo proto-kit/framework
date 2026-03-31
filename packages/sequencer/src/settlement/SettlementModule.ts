@@ -26,6 +26,7 @@ import type { MinaBaseLayer } from "../protocol/baselayer/MinaBaseLayer";
 import { SettleableBatch } from "../storage/model/Batch";
 import { Settlement } from "../storage/model/Settlement";
 import { SettlementStorage } from "../storage/repositories/SettlementStorage";
+import { SettlementInstrumentation } from "../metrics/SettlementInstrumentation";
 
 import { SettlementUtils } from "./utils/SettlementUtils";
 import type { BridgingModule } from "./BridgingModule";
@@ -38,7 +39,6 @@ import {
   AddressRegistry,
   InMemoryAddressRegistry,
 } from "./interactions/AddressRegistry";
-import { SettlementInstrumentation } from "../metrics/SettlementInstrumentation";
 
 export type SettlementModuleConfig = {
   addresses?: {

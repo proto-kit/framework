@@ -243,7 +243,7 @@ export async function startServer() {
   let nonce = Number(as?.nonce.toString() ?? "0");
 
   setInterval(async () => {
-    const random = 0; //Math.floor(Math.random() * 5);
+    const random = Math.floor(Math.random() * 5);
     await mapSequential(range(0, random), async () => {
       const tx = await appChain.transaction(
         priv.toPublicKey(),
