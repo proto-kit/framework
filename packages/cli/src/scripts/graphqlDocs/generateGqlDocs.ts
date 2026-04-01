@@ -19,7 +19,7 @@ export default async function (args: {
       VanillaProtocolModules,
       VanillaRuntimeModules,
     } = await import("@proto-kit/library");
-    const { GraphqlSequencerModule, GraphqlServer, VanillaGraphqlModules } =
+    const { GraphqlSequencerModule, VanillaGraphqlModules } =
       await import("@proto-kit/api");
     const { Runtime } = await import("@proto-kit/module");
     const { port } = args;
@@ -30,7 +30,6 @@ export default async function (args: {
       Protocol: Protocol.from(VanillaProtocolModules.with({})),
       Sequencer: Sequencer.from(
         InMemorySequencerModules.with({
-          GraphqlServer: GraphqlServer,
           Graphql: GraphqlSequencerModule.from(VanillaGraphqlModules.with({})),
         })
       ),
@@ -45,7 +44,7 @@ export default async function (args: {
       Sequencer: {
         Database: {},
         TaskQueue: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         Mempool: {},
         BlockProducerModule: {},
         SequencerStartupModule: {},
@@ -53,8 +52,14 @@ export default async function (args: {
         FeeStrategy: {},
         BaseLayer: {},
         BatchProducerModule: {},
-        Graphql: VanillaGraphqlModules.defaultConfig(),
-        GraphqlServer: { port, host: "localhost", graphiql: true },
+        Graphql: {
+          ...VanillaGraphqlModules.defaultConfig(),
+          containerConfig: {
+            port,
+            host: "localhost",
+            graphiql: true,
+          },
+        },
       },
     });
 

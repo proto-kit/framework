@@ -67,7 +67,7 @@ export class TestingAppChain<
         BlockTrigger: {},
         Mempool: {},
         BatchProducerModule: {},
-        LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+        WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
         BaseLayer: {},
         BlockProducerModule: {},
         SequencerStartupModule: {},

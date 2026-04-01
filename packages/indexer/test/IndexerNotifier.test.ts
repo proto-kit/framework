@@ -90,7 +90,7 @@ function createAppChain() {
       BlockTrigger: {},
       Mempool: {},
       BlockProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       BatchProducerModule: {},
       TaskQueue: {

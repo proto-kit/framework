@@ -25,7 +25,7 @@ import {
 import {
   BatchProducerModule,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
@@ -33,7 +33,6 @@ import {
   BlockProducerModule,
   VanillaTaskWorkerModules,
   SequencerStartupModule,
-  DatabasePruneModule,
 } from "@proto-kit/sequencer";
 import { Bool, PrivateKey, PublicKey, Struct } from "o1js";
 
@@ -92,7 +91,8 @@ export class MintableBalances extends Balances {
 
 export function createPrismaAppchain(
   prismaConnection: PrismaDatabaseConfig["connection"],
-  redisConnection: RedisConnectionConfig
+  redisConnection: RedisConnectionConfig,
+  pruneOnStartup = true
 ) {
   const appChain = ClientAppChain.from({
     Protocol: Protocol.from(VanillaProtocolModules.mandatoryModules({})),
@@ -100,11 +100,10 @@ export function createPrismaAppchain(
       Balances: MintableBalances,
     }),
     Sequencer: Sequencer.from({
-      DatabasePruneModule,
       Database: PrismaRedisDatabase,
 
       Mempool: PrivateMempool,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+      WorkerModule: WorkerModule.from(
         VanillaTaskWorkerModules.withoutSettlement()
       ),
       BaseLayer: NoopBaseLayer,
@@ -139,20 +138,18 @@ export function createPrismaAppchain(
           connection: prismaConnection,
         },
         redis: redisConnection,
+        pruneOnStartup,
       },
       BlockTrigger: {},
       Mempool: {},
       BatchProducerModule: {},
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
       BaseLayer: {},
       BlockProducerModule: {},
       TaskQueue: {
         simulatedDuration: 0,
       },
       SequencerStartupModule: {},
-      DatabasePruneModule: {
-        pruneOnStartup: true,
-      },
     },
     Signer: {
       signer: PrivateKey.random(),

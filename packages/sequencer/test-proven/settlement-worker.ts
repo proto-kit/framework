@@ -17,7 +17,7 @@ import {
 } from "../test/settlement/Settlement";
 import {
   AppChain,
-  LocalTaskWorkerModule,
+  WorkerModule,
   Sequencer,
   VanillaTaskWorkerModules,
 } from "../src";
@@ -36,9 +36,7 @@ async function main() {
 
   const sequencerClass = Sequencer.from({
     TaskQueue: BullQueue,
-    LocalTaskWorkerModule: LocalTaskWorkerModule.from(
-      VanillaTaskWorkerModules.allTasks()
-    ),
+    WorkerModule: WorkerModule.from(VanillaTaskWorkerModules.allTasks()),
   } satisfies MinimumWorkerModules);
 
   const app = AppChain.from({
@@ -52,7 +50,7 @@ async function main() {
     Protocol: protocolModulesConfig,
     Sequencer: {
       TaskQueue: BullConfig,
-      LocalTaskWorkerModule: VanillaTaskWorkerModules.defaultConfig(),
+      WorkerModule: VanillaTaskWorkerModules.defaultConfig(),
     },
   });
 

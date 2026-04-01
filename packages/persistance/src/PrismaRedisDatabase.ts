@@ -5,8 +5,13 @@ import {
   Database,
   closeable,
   Tracer,
+  Prunable,
 } from "@proto-kit/sequencer";
-import { ChildContainerProvider, dependencyFactory } from "@proto-kit/common";
+import {
+  ChildContainerProvider,
+  dependencyFactory,
+  log,
+} from "@proto-kit/common";
 import { PrismaClient } from "@prisma/client";
 import { RedisClientType } from "redis";
 import { inject } from "tsyringe";
@@ -27,6 +32,7 @@ import { PrismaLinkedLeafStore } from "./services/prisma/PrismaLinkedLeafStore";
 export interface PrismaRedisCombinedConfig {
   prisma: PrismaDatabaseConfig;
   redis: RedisConnectionConfig;
+  pruneOnStartup?: boolean;
 }
 
 @sequencerModule()
@@ -34,7 +40,7 @@ export interface PrismaRedisCombinedConfig {
 @dependencyFactory()
 export class PrismaRedisDatabase
   extends SequencerModule<PrismaRedisCombinedConfig>
-  implements PrismaConnection, RedisConnection, Database
+  implements PrismaConnection, RedisConnection, Database, Prunable
 {
   public prisma: PrismaDatabaseConnection;
 
@@ -99,6 +105,11 @@ export class PrismaRedisDatabase
 
     this.redis.config = this.config.redis;
     await this.redis.start();
+
+    if (this.config?.pruneOnStartup ?? false) {
+      log.info("Pruning database");
+      await this.pruneDatabase();
+    }
   }
 
   public async close() {

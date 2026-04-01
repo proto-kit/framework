@@ -3,7 +3,7 @@ import {
   BlockWithResult,
   InMemoryDatabase,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   TaskPayload,
 } from "@proto-kit/sequencer";
 
@@ -14,7 +14,7 @@ describe("IndexBlockTask", () => {
   const indexer = Indexer.from({
     Database: InMemoryDatabase,
     TaskQueue: LocalTaskQueue,
-    LocalTaskWorkerModule: LocalTaskWorkerModule.from({
+    WorkerModule: WorkerModule.from({
       IndexBlockTask: IndexBlockTask,
     }),
   });
@@ -22,7 +22,7 @@ describe("IndexBlockTask", () => {
   indexer.configurePartial({
     Database: {},
     TaskQueue: {},
-    LocalTaskWorkerModule: {
+    WorkerModule: {
       IndexBlockTask: {},
     },
   });
@@ -30,8 +30,8 @@ describe("IndexBlockTask", () => {
   it("should listen to block indexing tasks", async () => {
     await indexer.start();
     const taskQueue = indexer.resolve("TaskQueue");
-    const localTaskWorker = indexer.resolve("LocalTaskWorkerModule");
-    const indexBlockTask = localTaskWorker.resolve("IndexBlockTask");
+    const workerModule = indexer.resolve("WorkerModule");
+    const indexBlockTask = workerModule.resolve("IndexBlockTask");
     const queue = await taskQueue.getQueue(indexBlockTask.name);
     const block = BlockWithResult.createEmpty();
 

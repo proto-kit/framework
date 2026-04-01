@@ -339,10 +339,10 @@ export function generateWorkerConfig(answers: WizardAnswers): string {
   const presetEnv = PRESET_ENV_NAMES[answers.preset];
   const taskWorkerImports = answers.settlementEnabled
     ? ""
-    : " LocalTaskWorkerModule, VanillaTaskWorkerModules";
+    : " WorkerModule, VanillaTaskWorkerModules";
   const withoutSettlementTask = answers.settlementEnabled
     ? ""
-    : `LocalTaskWorkerModule: LocalTaskWorkerModule.from(
+    : `WorkerModule: WorkerModule.from(
       VanillaTaskWorkerModules.withoutSettlement()
     ),
   `;

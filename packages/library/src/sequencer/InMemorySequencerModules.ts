@@ -2,7 +2,7 @@ import {
   BatchProducerModule,
   InMemoryDatabase,
   LocalTaskQueue,
-  LocalTaskWorkerModule,
+  WorkerModule,
   ManualBlockTrigger,
   NoopBaseLayer,
   PrivateMempool,
@@ -18,9 +18,7 @@ import { TypedClass } from "@proto-kit/common";
 export type InMemorySequencerModulesRecord = {
   Database: typeof InMemoryDatabase;
   Mempool: typeof PrivateMempool;
-  LocalTaskWorkerModule: TypedClass<
-    LocalTaskWorkerModule<TaskWorkerModulesWithoutSettlement>
-  >;
+  WorkerModule: TypedClass<WorkerModule<TaskWorkerModulesWithoutSettlement>>;
   BaseLayer: typeof NoopBaseLayer;
   BatchProducerModule: typeof BatchProducerModule;
   BlockProducerModule: typeof BlockProducerModule;
@@ -37,7 +35,7 @@ export class InMemorySequencerModules {
     return {
       Database: InMemoryDatabase,
       Mempool: PrivateMempool,
-      LocalTaskWorkerModule: LocalTaskWorkerModule.from({
+      WorkerModule: WorkerModule.from({
         ...VanillaTaskWorkerModules.withoutSettlement(),
       }),
       FeeStrategy: ConstantFeeStrategy,

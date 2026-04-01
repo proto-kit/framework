@@ -17,6 +17,7 @@ import { DefaultMempoolSorting } from "../sorting/DefaultMempoolSorting";
 
 type PrivateMempoolConfig = {
   type?: "hybrid" | "private" | "based";
+  targetBlockSize?: number;
 };
 
 @sequencerModule()
@@ -44,6 +45,10 @@ export class PrivateMempool
 
   private type() {
     return this.config.type ?? "hybrid";
+  }
+
+  public getTargetBlockSize(): number {
+    return this.config.targetBlockSize ?? 20;
   }
 
   public async length(): Promise<number> {

@@ -44,7 +44,7 @@ export type TaskWorkerModulesRecord = ModulesRecord<
   TypedClass<TaskWorkerModule & Task<any, any>>
 >;
 
-type LocalTaskWorkerModuleEvents = { ready: [boolean] };
+type WorkerModuleEvents = { ready: [boolean] };
 
 /**
  * This module spins up a worker in the current local node instance.
@@ -54,15 +54,13 @@ type LocalTaskWorkerModuleEvents = { ready: [boolean] };
  */
 @sequencerModule()
 @closeable()
-export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
+export class WorkerModule<Tasks extends TaskWorkerModulesRecord>
   extends ModuleContainer<Tasks>
-  implements
-    SequencerModule,
-    EventEmittingContainer<LocalTaskWorkerModuleEvents>
+  implements SequencerModule, EventEmittingContainer<WorkerModuleEvents>
 {
   public static presets: Presets<unknown> = {};
 
-  public containerEvents = new EventEmitter<LocalTaskWorkerModuleEvents>();
+  public containerEvents = new EventEmitter<WorkerModuleEvents>();
 
   private worker?: FlowTaskWorker<
     InstanceType<ResolvableModules<Tasks>[StringKeyOf<Tasks>]>[]
@@ -70,8 +68,8 @@ export class LocalTaskWorkerModule<Tasks extends TaskWorkerModulesRecord>
 
   public static from<Tasks extends TaskWorkerModulesRecord>(
     modules: Tasks
-  ): TypedClass<LocalTaskWorkerModule<Tasks>> {
-    return class ScopedTaskWorkerModule extends LocalTaskWorkerModule<Tasks> {
+  ): TypedClass<WorkerModule<Tasks>> {
+    return class ScopedWorkerModule extends WorkerModule<Tasks> {
       public constructor() {
         super(modules);
       }
