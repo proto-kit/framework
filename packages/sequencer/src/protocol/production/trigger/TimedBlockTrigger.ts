@@ -14,6 +14,7 @@ import {
 import { ensureNotBusy } from "../../../helpers/BusyGuard";
 import { SequencerStartupModule } from "../../../sequencer/SequencerStartupModule";
 import { BlockProductionInstrumentation } from "../../../metrics/BlockProductionInstrumentation";
+import { SequencerCoreModule } from "../../../sequencer/SequencerCoreModule";
 
 import { BlockTriggerBase } from "./BlockTrigger";
 
@@ -50,7 +51,10 @@ export class TimedBlockTrigger
     // Only for start order, we need to make sure startup is finished before
     // starting the block production
     @inject("SequencerStartupModule")
-    private readonly startupModule: SequencerStartupModule
+    private readonly startupModule: SequencerStartupModule,
+    // TODO Fix the necessity for this - by having @startable() and starting based on that
+    @inject("SequencerCoreModule", { isOptional: true })
+    private readonly sequencerCoreModule: SequencerCoreModule | undefined
   ) {
     super(
       blockProducerModule,
