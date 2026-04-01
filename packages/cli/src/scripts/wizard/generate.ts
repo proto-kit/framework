@@ -12,7 +12,7 @@ import {
   generateWorkerConfig,
   icons,
   promptUser,
-} from "../../utils/create-environment";
+} from "../../utils/wizard";
 import { resolveChainPath } from "../../utils/pathResolver";
 
 export default async function () {
@@ -46,24 +46,22 @@ export default async function () {
     fs.writeFileSync(chainConfigPath, chainConfig);
 
     if (answers.includeIndexer) {
-      const indexerConfig = generateIndexerConfig(answers);
+      const indexerConfig = generateIndexerConfig();
       if (indexerConfig) {
         fs.writeFileSync(indexerConfigPath, indexerConfig);
       }
     }
 
-    if (answers.includeProcessor && answers.includeIndexer) {
-      const processorConfig = generateProcessorConfig(answers);
+    if (answers.includeProcessor) {
+      const processorConfig = generateProcessorConfig();
       if (processorConfig) {
         fs.writeFileSync(processorConfigPath, processorConfig);
       }
     }
 
-    if (answers.preset !== "inmemory") {
-      const workerConfig = generateWorkerConfig(answers);
-      if (workerConfig) {
-        fs.writeFileSync(workerConfigPath, workerConfig);
-      }
+    const workerConfig = generateWorkerConfig(answers);
+    if (workerConfig) {
+      fs.writeFileSync(workerConfigPath, workerConfig);
     }
 
     console.log(
@@ -89,7 +87,7 @@ export default async function () {
     if (answers.includeProcessor && answers.includeIndexer) {
       console.log(`  ${green(icons.checkmark)} processor.config.ts`);
     }
-    if (answers.preset !== "inmemory") {
+    if (workerConfig) {
       console.log(`  ${green(icons.checkmark)} worker.config.ts`);
     }
 
