@@ -1,5 +1,6 @@
 import {
   BlockQueue,
+  BlockStorage,
   Task,
   TaskSerializer,
   TaskWorkerModule,
@@ -12,17 +13,25 @@ import {
   IndexBlockTaskParametersSerializer,
 } from "./IndexBlockTaskParameters";
 
+export interface IndexBlockResult {
+  status: "ok" | "missing-blocks";
+  missingHeights: number[];
+  incomingHeight: number;
+}
+
 @injectable()
 export class IndexBlockTask
   extends TaskWorkerModule
-  implements Task<IndexBlockTaskParameters, string | void>
+  implements Task<IndexBlockTaskParameters, IndexBlockResult>
 {
   public name = "index-block";
 
   public constructor(
     public taskSerializer: IndexBlockTaskParametersSerializer,
     @inject("BlockQueue")
-    public blockStorage: BlockQueue
+    public blockStorage: BlockQueue,
+    @inject("BlockStorage")
+    private readonly blockRepository: BlockStorage
   ) {
     super();
   }
@@ -32,27 +41,41 @@ export class IndexBlockTask
 
   public async compute(
     input: IndexBlockTaskParameters
-  ): Promise<string | void> {
+  ): Promise<IndexBlockResult> {
+    const incomingHeight = Number(input.block.height.toBigInt());
     try {
+      const currentHeight = await this.blockRepository.getCurrentBlockHeight();
+
+      if (incomingHeight > currentHeight) {
+        const missingHeights = Array.from(
+          { length: incomingHeight - currentHeight },
+          (_, i) => currentHeight + i
+        );
+
+        return { status: "missing-blocks", missingHeights, incomingHeight };
+      }
       await this.blockStorage.pushBlock(input.block);
       await this.blockStorage.pushResult(input.result);
-    } catch (error) {
-      log.error("Failed to index block", input.block.height.toBigInt(), error);
-      return undefined;
-    }
 
-    log.info(`Block ${input.block.height.toBigInt()} indexed sucessfully`);
-    return "";
+      log.info(`Block ${incomingHeight} indexed successfully`);
+      return { status: "ok", missingHeights: [], incomingHeight };
+    } catch (error) {
+      log.error("Failed to index block", incomingHeight, error);
+      return { status: "ok", missingHeights: [], incomingHeight };
+    }
   }
 
   public inputSerializer(): TaskSerializer<IndexBlockTaskParameters> {
     return this.taskSerializer;
   }
 
-  public resultSerializer(): TaskSerializer<string | void> {
+  public resultSerializer(): TaskSerializer<IndexBlockResult> {
     return {
-      fromJSON: async () => {},
-      toJSON: async () => "",
+      toJSON: async (input: IndexBlockResult) => JSON.stringify(input),
+
+      fromJSON: async (json: string) =>
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        JSON.parse(json) as IndexBlockResult,
     };
   }
 }

@@ -7,3 +7,4 @@ export * from "./tasks/IndexBlockTaskParameters";
 export * from "./tasks/IndexPendingTxTask";
 export * from "./tasks/IndexBatchTask";
 export * from "./tasks/IndexSettlementTask";
+export * from "./tasks/IndexMissingBlocksTask";
