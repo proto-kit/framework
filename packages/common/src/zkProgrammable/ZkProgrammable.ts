@@ -212,9 +212,16 @@ export abstract class ZkProgrammable<
       );
       featureFlags = featureFlagsSet.reduce(combineFeatureFlags);
     } else {
-      featureFlags = FeatureFlags.allNone;
+      featureFlags = FeatureFlags.allMaybe;
       maxProofsVerified = 0;
     }
+
+    log.debug(
+      `Computed featured flags of ${programs[0].name} as`,
+      featureFlags,
+      "maxProofsVerified:",
+      maxProofsVerified
+    );
 
     return class DynamicProofType extends DynamicProof<
       PublicInput,
