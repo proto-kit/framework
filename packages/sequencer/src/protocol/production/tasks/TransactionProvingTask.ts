@@ -130,6 +130,10 @@ export class TransactionProvingTask
       return await this.computeDummy();
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    const DynamicRuntimeProof =
+      await this.runtime.zkProgrammable.dynamicProofType();
+
     const startingState = input.flatMap((i) => i.parameters.startingState);
 
     await executeWithPrefilledStateService(

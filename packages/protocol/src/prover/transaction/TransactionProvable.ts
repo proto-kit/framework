@@ -129,17 +129,7 @@ export class TransactionProverTransactionArguments extends Struct({
   verificationKeyAttestation: RuntimeVerificationKeyAttestation,
 }) {}
 
-export class DynamicRuntimeProof extends DynamicProof<
-  Void,
-  MethodPublicOutput
-> {
-  static publicInputType = Void;
-
-  static publicOutputType = MethodPublicOutput;
-
-  // TODO this won't be 0 for proofs-as-args
-  static maxProofsVerified = 0 as const;
-}
+export type DynamicRuntimeProof = DynamicProof<Void, MethodPublicOutput>;
 
 export class TransactionProverExecutionData extends Struct({
   transaction: TransactionProverTransactionArguments,
