@@ -114,30 +114,36 @@ export class LocalTaskQueue
 
             log.trace(`Working ${task.payload.name} with id ${task.taskId}`);
 
-            const payload = await this.workers[queueName]?.handler(
-              task.payload
-            );
+            let payloadLet: TaskPayload | "closed" | undefined;
+            try {
+              payloadLet = await this.workers[queueName]?.handler(task.payload);
+            } catch (error) {
+              if (task.retries >= 1) {
+                log.info(
+                  `Task ${task.taskId} ${task.payload.name} failed, retrying`
+                );
+
+                // TODO Not sound yet, iterator iterates over old entries without
+                //  this new task
+                this.queuedTasks[queueName].push({
+                  payload: task.payload,
+                  taskId: task.taskId,
+                  retries: task.retries - 1,
+                });
+
+                return;
+              } else {
+                throw error;
+              }
+            }
+
+            // Make it const so ts can infer narrowing types
+            const payload = payloadLet;
 
             if (payload === "closed" || payload === undefined) {
               return;
             }
             log.trace("LocalTaskQueue got", JSON.stringify(payload));
-
-            if (payload.status === "error" && task.retries >= 1) {
-              log.info(
-                `Task ${task.taskId} ${task.payload.name} failed, retrying`
-              );
-
-              // TODO Not sounds yet, iterator iterates over old entries without
-              //  this new task
-              this.queuedTasks[queueName].push({
-                payload: task.payload,
-                taskId: task.taskId,
-                retries: task.retries - 1,
-              });
-
-              return;
-            }
 
             // Notify listeners about result
             const listenerPromises = this.listeners[queueName]?.map(
