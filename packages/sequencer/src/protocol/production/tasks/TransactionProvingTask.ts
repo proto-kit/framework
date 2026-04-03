@@ -3,7 +3,6 @@ import {
   Protocol,
   ProtocolModulesRecord,
   StateServiceProvider,
-  DynamicRuntimeProof,
   TransactionProvable,
   TransactionProof,
   TransactionProverPublicInput,

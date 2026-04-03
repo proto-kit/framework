@@ -1,4 +1,3 @@
-// eslint-disable-next-line max-classes-per-file
 import { CompilableModule, WithZkProgrammable } from "@proto-kit/common";
 import { DynamicProof, Field, Proof, Signature, Struct, Void } from "o1js";
 
