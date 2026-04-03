@@ -331,7 +331,7 @@ export async function tryNTimes<T>(
     try {
       // eslint-disable-next-line no-await-in-loop
       return await f();
-    } catch (e) {
+    } catch (e: unknown) {
       lastError = e;
       log.warn(`Attempt ${i + 1} failed. Retrying...`);
 
@@ -342,7 +342,12 @@ export async function tryNTimes<T>(
     }
   }
 
-  throw new Error(
-    `Function failed after ${times} tries. Last error: ${lastError}`
-  );
+  if (lastError instanceof Error) {
+    lastError.message = `Function failed after ${times} tries. Last error: ${lastError.message}`;
+    throw lastError;
+  } else {
+    throw new Error(
+      `Function failed after ${times} tries. Last error: ${lastError}`
+    );
+  }
 }

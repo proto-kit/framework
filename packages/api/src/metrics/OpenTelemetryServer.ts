@@ -1,8 +1,4 @@
-import {
-  Sequencer,
-  SequencerModule,
-  sequencerModule,
-} from "@proto-kit/sequencer";
+import { SequencerModule, sequencerModule } from "@proto-kit/sequencer";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { Resource } from "@opentelemetry/resources";
 import {

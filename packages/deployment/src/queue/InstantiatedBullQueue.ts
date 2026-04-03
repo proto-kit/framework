@@ -53,6 +53,10 @@ export class InstantiatedBullQueue implements InstantiatedQueue {
       this.events.on("error", async (error) => {
         log.error("Error in worker", error);
       });
+      this.events.on("failed", async (failed) => {
+        log.error("Error in worker", failed.failedReason);
+        throw new Error(failed.failedReason);
+      });
     }
 
     return this.listeners.pushListener(listener);
