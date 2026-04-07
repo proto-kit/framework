@@ -11,6 +11,7 @@ import { settlementCommand } from "./commands/settlement/settlement";
 import { lightnetCommand } from "./commands/lightnet/lightnet";
 import { bridgeCommand } from "./commands/bridge/bridge";
 import { initCommand } from "./commands/init";
+import { circuitSummaryCommand } from "./commands/circuitSummary";
 
 process.removeAllListeners("warning");
 process.env.NODE_NO_WARNINGS = "1";
@@ -27,6 +28,7 @@ await yargs(hideBin(process.argv))
   .command(lightnetCommand)
   .command(bridgeCommand)
   .command(initCommand)
+  .command(circuitSummaryCommand)
   .demandCommand(
     1,
     "You must specify a command. Use --help to see available commands."
