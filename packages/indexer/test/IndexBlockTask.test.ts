@@ -35,7 +35,7 @@ describe("IndexBlockTask", () => {
     const queue = await taskQueue.getQueue(indexBlockTask.name);
     const block = BlockWithResult.createEmpty();
 
-    const payload = await indexBlockTask.inputSerializer().toJSON(block);
+    const payload = await indexBlockTask.inputSerializer().toJSON([block]);
 
     const task: TaskPayload = {
       name: indexBlockTask.name,

@@ -13,16 +13,17 @@ import {
   IndexBlockTaskParametersSerializer,
 } from "./IndexBlockTaskParameters";
 
-export interface IndexBlockResult {
-  status: "ok" | "missing-blocks";
-  missingHeights: number[];
-  incomingHeight: number;
-}
+export type IndexBlockResult =
+  | { status: "ok" }
+  | {
+      status: "missing-blocks";
+      missingHeights: number[];
+    };
 
 @injectable()
 export class IndexBlockTask
   extends TaskWorkerModule
-  implements Task<IndexBlockTaskParameters, IndexBlockResult>
+  implements Task<IndexBlockTaskParameters[], IndexBlockResult>
 {
   public name = "index-block";
 
@@ -40,33 +41,48 @@ export class IndexBlockTask
   public async prepare(): Promise<void> {}
 
   public async compute(
-    input: IndexBlockTaskParameters
+    input: IndexBlockTaskParameters[]
   ): Promise<IndexBlockResult> {
-    const incomingHeight = Number(input.block.height.toBigInt());
+    const firstBlockHeight = Number(input[0].block.height.toBigInt());
+
     try {
       const currentHeight = await this.blockRepository.getCurrentBlockHeight();
 
-      if (incomingHeight > currentHeight) {
+      if (firstBlockHeight > currentHeight) {
         const missingHeights = Array.from(
-          { length: incomingHeight - currentHeight },
+          { length: firstBlockHeight - currentHeight + 1 },
           (_, i) => currentHeight + i
         );
-
-        return { status: "missing-blocks", missingHeights, incomingHeight };
+        return { status: "missing-blocks", missingHeights };
       }
-      await this.blockStorage.pushBlock(input.block);
-      await this.blockStorage.pushResult(input.result);
 
-      log.info(`Block ${incomingHeight} indexed successfully`);
-      return { status: "ok", missingHeights: [], incomingHeight };
+      for (const blockWithResult of input) {
+        const height = Number(blockWithResult.block.height.toBigInt());
+        // eslint-disable-next-line no-await-in-loop
+        await this.blockStorage.pushBlock(blockWithResult.block);
+        // eslint-disable-next-line no-await-in-loop
+        await this.blockStorage.pushResult(blockWithResult.result);
+        log.info(`Block ${height} indexed successfully`);
+      }
+
+      return { status: "ok" };
     } catch (error) {
-      log.error("Failed to index block", incomingHeight, error);
-      return { status: "ok", missingHeights: [], incomingHeight };
+      log.error("Failed to index block", firstBlockHeight, error);
+      return { status: "ok" };
     }
   }
 
-  public inputSerializer(): TaskSerializer<IndexBlockTaskParameters> {
-    return this.taskSerializer;
+  public inputSerializer(): TaskSerializer<IndexBlockTaskParameters[]> {
+    return {
+      toJSON: (blocks: IndexBlockTaskParameters[]): string =>
+        JSON.stringify(blocks.map((b) => this.taskSerializer.toJSON(b))),
+
+      fromJSON: (json: string): IndexBlockTaskParameters[] => {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const items = JSON.parse(json) as string[];
+        return items.map((item) => this.taskSerializer.fromJSON(item));
+      },
+    };
   }
 
   public resultSerializer(): TaskSerializer<IndexBlockResult> {

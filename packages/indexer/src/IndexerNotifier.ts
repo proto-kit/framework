@@ -1,7 +1,6 @@
 import {
   BlockTriggerBase,
   BlockStorage,
-  BlockWithResult,
   Sequencer,
   sequencerModule,
   SequencerModule,
@@ -11,11 +10,10 @@ import {
   PrivateMempool,
   SettlementModule,
 } from "@proto-kit/sequencer";
-import { log } from "@proto-kit/common";
+import { filterNonUndefined, log } from "@proto-kit/common";
 import { inject } from "tsyringe";
 
 import { IndexBlockTask, IndexBlockResult } from "./tasks/IndexBlockTask";
-import { IndexMissingBlocksTask } from "./tasks/IndexMissingBlocksTask";
 import { IndexPendingTxTask } from "./tasks/IndexPendingTxTask";
 import { IndexSettlementTask } from "./tasks/IndexSettlementTask";
 import { IndexBatchTask } from "./tasks/IndexBatchTask";
@@ -36,7 +34,6 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
     @inject("BlockStorage")
     private readonly blockStorage: BlockStorage,
     public indexBlockTask: IndexBlockTask,
-    public indexMissingBlocksTask: IndexMissingBlocksTask,
     public indexPendingTxTask: IndexPendingTxTask,
     public indexBatchTask: IndexBatchTask,
     public indexSettlementTask: IndexSettlementTask,
@@ -77,28 +74,26 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
         return;
       }
 
-      const heights = [...result.missingHeights, result.incomingHeight];
-
       const blocks = await Promise.all(
-        heights.map((h) => this.blockStorage.getBlockWithResultAt(h))
+        result.missingHeights.map((h) =>
+          this.blockStorage.getBlockWithResultAt(h)
+        )
       );
 
-      const filteredBlocks = blocks.filter(
-        (block): block is BlockWithResult => block !== undefined
-      );
+      const filteredBlocks = blocks.filter(filterNonUndefined);
 
       if (filteredBlocks.length === 0) {
         log.warn("No blocks found to re-send");
         return;
       }
 
-      const serialized = await this.indexMissingBlocksTask
+      const serialized = await this.indexBlockTask
         .inputSerializer()
         .toJSON(filteredBlocks);
 
       await this.pushTask(
-        this.indexMissingBlocksTask.name,
-        this.indexMissingBlocksTask.name,
+        this.indexBlockTask.name,
+        this.indexBlockTask.name,
         serialized
       );
     } catch (error) {
@@ -123,7 +118,7 @@ export class IndexerNotifier extends SequencerModule<Record<never, never>> {
         "Notifiying the indexer about block",
         block.block.height.toBigInt()
       );
-      const payload = await inputSerializer.toJSON(block);
+      const payload = await inputSerializer.toJSON([block]);
       await this.pushTask(
         this.indexBlockTask.name,
         this.indexBlockTask.name,
